@@ -14035,3 +14035,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-722 to 2026-09-28-727
 **search-keyboard built; strip changes added.** search-keyboard at 273f1978, cut from main bfbba33f. Built: the keep-in-view on shrink (-722), the recent-tap fix (-723: re-running the search already showing changed none of the fetch effect's keys; a searchSerial key was added), Clear, the suggestion that keeps search open with fetches reading the last search run (-725/-726), and the guidance removal (-727). Of 13 revert checks, all 13 bit. Full suite: 4,410 tests, 2 failures: AvailabilityViewModelSeasonalPatternTest's two tests assume a species pick re-searches, which -725 removed. The planner's call: rewrite them to run a search after the pick and then expect the refetch. The owner, with a phone screenshot (kept off GitHub), verbatim: "Remove the "facing" part it seems to crowd the line a bit. What size is the text itself?" The planner answered with Material 3 labelMedium, 12 sp on a 16 sp line, unmodified. The owner: "Keep the the 330° NW metric, just remove the word "facing" and nothing else. There is a slightly hang down of chrome from the search menu that extends into the strip zone, making it look taller than it is." and "Go up to 14 sp". So: the word "Facing" is never drawn, on the strip or in the navigation display; the heading value stays; "Alt" stays when there is room. The search bar's chrome must not extend into the strip zone. The strip's text goes to 14 sp. Clear's 29 dp touch height, owner verbatim: "Keep 29 dp tall, wide (Recommended)". Clear keeps the bar's height, with its tap area widened to the whole word plus padding. Everything joins search-keyboard: one build, one merge, then T6b resumes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -729.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-729
+**Timestamp:** 2026-10-08T13:48:15Z
+**Title:** landscape-bar-strip: in landscape the search bar and the strip meet at the centre, the same height, split by a line
+**Dispatch-file:** preserved/2026-10-08-03.md
+**Context:** search-keyboard (PR #202) built green: 4,416 tests, 0 failures. Its 14 sp strip drops the word "Alt" at 360 dp portrait, and the heading in S22 landscape with decimal coordinates; S22 portrait is unchanged. Asked whether to merge as is, the owner, verbatim: "Landscape mode strip can extend to meet the search bar. The search bar height can change to meet the height of the strip. The two can meet at direct center, and they can be split by a simple vertical line between the two". Shown as steps, the owner: "Yes, that's it (Recommended)", on the option that merges #202 now, with the landscape join as its own small build before T6b resumes. On navigation: "Strip only (Recommended)".
+**Sent:** to a coder subagent once #202 merges.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -730.
