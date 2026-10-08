@@ -14100,3 +14100,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-734
 **-734's "315° NW?" withdrawn; one icon for both states.** The coder stopped before building. An unreliable reading carries no heading, by an earlier owner decision recorded in ui/map/TrueHeading.kt:27-44 ("Carries no heading on purpose: a heading the app has just said cannot be trusted is not a value to hand anyone") and :111-118 ("Reset, not pause, not carry (owner decision)"). The planner had offered "315° NW?" without checking that ruling. Asked again, the owner, verbatim: "Same crossed-out icon (Recommended)". In short landscape, both unavailable and unreliable compass states show Icons.Filled.ExploreOff, sized to the 14 sp line (20 dp at font 1.0, 34 dp at 2.0), with the screen-reader labels "Compass unavailable" and "Compass unreliable". The heading slot stays at the value width (58.33 dp at font 1.0), so the join doesn't move. The earlier ruling stands unchanged. Portrait keeps its words.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -736.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-736
+**Timestamp:** 2026-10-08T17:50:33Z
+**Continues:** 2026-09-28-735
+**The landscape strip keeps portrait's height.** The owner, verbatim: "Yes for landscape I'm willing to accept a shorter search bar. The compass strip must remain the same height as portrait though and that's important". In short landscape the strip's height equals its portrait height at the same font scale, and it never grows to fit the bar's field. This reverses the coder's beyond-scope call in -729/-732, where the strip grew to the bar's field height at large fonts. The bar matches the strip's height, so its field gets shorter if needed, and it may also be narrower (the join already gives it the rest of the width). If the bar's text can't stay readable at the strip's height at large fonts, the coder reports that rather than growing the strip.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -737.
