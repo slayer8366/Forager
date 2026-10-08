@@ -14326,3 +14326,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** The owner sent an S26 screenshot on build 1.0.3103 (merged main 34fd5deb), in landscape with the dropdown closed: "Build 3103 does similar with the same action, but this time no species name was input. But the behavior was triggered by rotating from portrait to landscape". As the planner reads it, the bar's fill reaches lower than the strip's bottom and wider than the join, under the strip's left end. The screenshot is kept at ~/Zynergy/device-evidence/2026-10-08/, off GitHub. This supersedes -758's "no geometry change".
 **Decision:** The coder finds the cause on the S22 (install -r only, captures kept outside the repo), then fixes it so the bar keeps the strip's height and ends at the join after any rotation, open or closed. A test must fail on the real cause.
 **Notes:** Next free ID -760.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-760
+**Timestamp:** 2026-10-08T22:49:52Z
+**Title:** -755 item 1 cause found; item 4 to be found on the S22 in this build
+**Context:** Item 1 (5c693fe5): the compass strip kept its last landscape size through portrait. On the next turn to landscape it measured the same size and reported no change, while the screen had cleared its own copy, so the bar fell back to its own height and half the window's width. A test that turns to landscape a second time failed before the fix (45 dp tall, half width) and passes after it; the revert check bit. Item 4: the screen hands the remembered camera at the settled size, so the blank and magnified frame happen inside the MapLibre view, which is rebuilt on each return. The coder added logging (tag ForagerMapsComeback) and offered three options: (A) read the logging on the S22, (B) cover the map with a snapshot, (C) keep the map view alive.
+**Decision:** The owner: "Find it on the S22 now (Recommended)". The coder reads the logging on the S22 (install -r only), fixes the cause in this build and confirms it on the S22. If the fix would be B or C, the coder stops and asks first.
+**Notes:** Next free ID -761.
