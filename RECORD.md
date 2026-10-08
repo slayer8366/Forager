@@ -13898,3 +13898,12 @@ Real stops still go to the owner.
 - "Move it into the status line (Recommended)". When tight, "by trail" or "straight" joins the status line ("By trail · Approaching"), and "Unable to calculate route" uses the status line's size. Nothing grows.
 The planner's call: MapChromeColourPixelsLightTest samples its bare-map reference at root.bottom − 200 dp, which the strip-following dropdown now covers. The reference point moves below the panel, with the same claim (the panel is drawn at the 0.8 token).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -714.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-714
+**Timestamp:** 2026-10-08T07:06:51Z
+**Continues:** 2026-09-28-713
+**Back-by, third round.** back-by at ce93efa4. Full suite: 4,317 tests, 3 failures. -713's two rules are built (readoutsFitBeside; the kind in the status line; "Unable to calculate route" at status size when it doesn't fit), with R15 to R18 biting. Left: at 360 dp the display's status column is 87 dp beside the three-dot button, narrower than some statuses ("≈ 1250 ft straight" needs 102 dp). The owner, verbatim: "Button moves to second row (Recommended)". Only when the screen is that narrow, the display's three-dot button sits at the end of its second row, the status gets its full width, and the second row's readouts give way under -713's rule with coordinates whole. Wider screens keep it beside the X (-648). The planner's calls: delete the now-uncalled readoutsKeptBeside/stripReadoutsShown and their tests (dead code, "Remove what costs", -655), and keep "Unable…" at status size conditional.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -715.
