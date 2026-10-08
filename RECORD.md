@@ -14201,3 +14201,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-745
 **PR #205 merged into main** (c0ec942a), from launch-verifyerror (head 8d779ae8): the launch VerifyError fixed (CompactMapTab split to 173 registers, parameters grouped, R8 9.3.31 pinned), #203's landscape join restored, and scripts/s22-launch-check.sh as the pre-merge UI step. The owner, verbatim: "Merge it once checks pass" (-730) and "Keep it pinned (Recommended)". The S22 launch check passed on this head's build. The laptop suite: 4,454 tests, 0 failures. CI "Build, test, publish APK" passed. Pre-merge main 6cbcdac5 is backed up at forager-repo-backups/2026-10-08-07. Next: T6b resumes until 13:00 is past, so its window is re-set.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -747.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-747
+**Timestamp:** 2026-10-08T20:27:02Z
+**Continues:** 2026-09-28-738, 2026-09-28-746
+**T6b resumed until 17:00.** With #205 merged and no Gradle running, the 13:00 window had passed. The owner, verbatim: "Run it until 17:00 (Recommended)". The planner removed the PAUSE file and restarted t6b-night with --until 17:00, under the same caps as before.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -748.
