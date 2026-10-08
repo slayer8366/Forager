@@ -13916,3 +13916,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-714
 **Back-by, fourth round.** back-by at caf337f9. Full suite: 4,313 tests, 4 failures. The button's row is chosen by a measured fit (firstRowHoldsTheButton, against data part B's longest route line). The measurement put the button in the second row at 320 and 360 dp portrait and in both landscape widths, and beside the X at 384 dp (S22). The planner had told the owner landscape would keep it beside the X; that was wrong, because the landscape display is capped at the search bar. Wherever the button is in the second row, the display is 12 dp taller (108 dp in landscape, still above the central third). The owner, verbatim: "Keep it, 12 dp taller (Recommended)". The planner's calls under the owner's rulings: data part B's three 360 dp display tests change from "labels drawn" to -713's rule (labels may drop, values and coordinates whole); NavigationHudQuickSettingsWidthTest's "No origin waypoint for this track" case, cut even without the button, changes to -694's rule (one line, ends in "…").
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -716.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-716
+**Timestamp:** 2026-10-08T08:01:30Z
+**Continues:** 2026-09-28-645
+**PR #199 merged into main** (0f5cf0e5), from back-by (head 130f88e5): plan T15, dispatch -645 with amendments -646 to -649, -687, -690 and -709 to -715. The owner, verbatim: "Merge back-by once checks pass". The laptop suite: 4,313 tests, 0 failures, 20 revert checks bit. The first CI run failed MushroomLogViewModelWiringTest "a find deleted through the Journal's ViewModel…" (AssertionError at :80). That test is in the parked flake family (-348/-349), had a prior CI failure on PR #181, and the diff does not touch its path. One PR comment and the one rerun followed, and the rerun passed. Pre-merge main d223728b is backed up at forager-repo-backups/2026-10-08-01. Device checks are still open (silent alert with the app swiped away, both buttons, ending on arrival, the new button positions, the bubble limit). Next per -710: search-order with data part D and guidance-text.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -717.
