@@ -14109,3 +14109,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-735
 **The landscape strip keeps portrait's height.** The owner, verbatim: "Yes for landscape I'm willing to accept a shorter search bar. The compass strip must remain the same height as portrait though and that's important". In short landscape the strip's height equals its portrait height at the same font scale, and it never grows to fit the bar's field. This reverses the coder's beyond-scope call in -729/-732, where the strip grew to the bar's field height at large fonts. The bar matches the strip's height, so its field gets shorter if needed, and it may also be narrower (the join already gives it the rest of the width). If the bar's text can't stay readable at the strip's height at large fonts, the coder reports that rather than growing the strip.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -737.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-737
+**Timestamp:** 2026-10-08T18:22:45Z
+**Continues:** 2026-09-28-729 to 2026-09-28-736
+**PR #203 merged into main** (0e766d94), from landscape-bar-strip (head f5c6b0e3): the landscape search bar and strip join, the strip at portrait height, and the crossed-out compass icon. The owner, verbatim: "Merge it once checks pass". The laptop suite: 4,454 tests, 0 failures; R1 to R10 bit. CI "Build, test, publish APK" passed on the first run. Pre-merge main f8739856 is backed up at forager-repo-backups/2026-10-08-05. Next: T6b resumes, by removing its PAUSE file and restarting the section until 13:00.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -738.
