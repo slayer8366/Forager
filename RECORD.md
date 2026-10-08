@@ -13961,3 +13961,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-707, 2026-09-28-708, 2026-09-28-711
 **PR #201 merged into main** (bfbba33f), from basemaps (head e4024e7b): settings-moves (-707), Satellite removed with the basemap remembered (-708), and the icon cluster's side and height remembered (-711), with CLAUDE.md's UX-defaults sentence updated in place. The owner, verbatim: "The rest can be finished in one merge" (-710), and the merge words in -706 and -707. The laptop suite: 4,412 tests, 0 failures; 17 revert checks bit; the 26 accidentally deleted tests are restored (-712); the chips test claim changed (-719). CI "Build, test, publish APK" passed on the first run. Pre-merge main 74c9fdd4 is backed up at forager-repo-backups/2026-10-08-03. All of tonight's queue is on main. The owner starts T6b next, on their word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -721.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-721
+**Timestamp:** 2026-10-08T12:04:23Z
+**Continues:** 2026-09-28-720
+**T6b section started.** The owner, verbatim: "Good night". Asked whether to start tonight's T6b section, the owner: "Yes, start it (Recommended)". It was started at 05:03 PDT as the transient user service t6b-night (MemoryMax=5G, no swap, Nice=10), running forager-forecast-t6b at be17b71 (the runner with network retry and deferral): scripts/t6b_run.py --until 13:00 --stages mask,plots,soil,trees --workers 2, logging to the flash drive's t6b/night-2026-10-08.log. Mask and plots were already done; soil has 89 tiles. No Gradle build is running alongside.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -722.
