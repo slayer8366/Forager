@@ -14210,3 +14210,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-738, 2026-09-28-746
 **T6b resumed until 17:00.** With #205 merged and no Gradle running, the 13:00 window had passed. The owner, verbatim: "Run it until 17:00 (Recommended)". The planner removed the PAUSE file and restarted t6b-night with --until 17:00, under the same caps as before.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -748.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-748
+**Timestamp:** 2026-10-08T20:27:32Z
+**Continues:** 2026-09-28-747
+**Standing instruction: T6b uses the downtime.** The owner, verbatim: "Keep running it when there's downtime. Pause it when I request a build. Otherwise may as well put the downtime to use." From now on t6b-night runs whenever no Gradle build is running or queued, with its --until set late. Before a build the planner sets the PAUSE file and waits for the unit to go inactive; after the build and merge it removes PAUSE and restarts. Each start and pause is recorded. This needs no further ask.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -749.
