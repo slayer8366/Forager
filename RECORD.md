@@ -13999,3 +13999,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-723
 **A suggestion tap searches too.** The owner, verbatim, with a phone screenshot of the species suggestions for "fly" (kept off GitHub): "Do the same with the suggested searches too". Shown as steps (tapping a species suggestion closes the dropdown and runs the search for it at once, with the current month and radius; in the same place if a search is already showing, else at the current position, as Search does), the owner: "Yes, that's it (Recommended)". It joins search-keyboard (-722, -723).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -725.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-725
+**Timestamp:** 2026-10-08T12:15:29Z
+**Continues:** 2026-09-28-724
+**-724 reversed; recent searches keep their own month and radius.** The owner, verbatim: "Actually did suggested search, instead of having it automatically search, just keep the keyboard open and fill it in, no search yet. For recent search, just use the same month and radius as they did before". So, replacing -724: tapping a species suggestion fills it into the search field and selects it, the keyboard stays open, and nothing is searched yet. A recent search, when tapped, runs with its own saved month and radius (as onRecentSearchSelected already sets them), not the current ones. -723's recent-tap bug fix and Clear stand.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -726.
