@@ -13769,3 +13769,12 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 **Continues:** 2026-09-28-699
 **Small fixes green, one planner extension before the PR.** small-fixes-1007 is at 16995ce7. Full suite: 4,238 tests, 24 skipped, 0 failures. All seven revert checks bit. AvailabilityScreenNavigationWordsLandscapeTest was changed under -699: lines may end in "…", and the display never overlaps the search bar. The strip's coordinates come first, with facing and altitude sharing what's left in proportion; below a 48 dp floor facing drops first (the coder's call, since the needle still shows direction). At the test's 780 dp width the cap also cut the navigation display's grid reference (16 of 18 characters). The planner extended the owner's "Coordinates take priority (Recommended)" to the display's second row, on the reason the owner agreed to (the coordinates are what you'd read out for help). This is a planner call under that ruling, not a new owner answer. One more build follows, then the PR.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -702.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-702
+**Timestamp:** 2026-10-08T04:40:06Z
+**Continues:** 2026-09-28-697, 2026-09-28-656
+**Data part D folded into search-order.** The owner, with a phone screenshot of the Finds tab still showing "Find on 2026-10-07" (kept off GitHub), verbatim: "The "finds" section still displays the date instead of the given name. Can we also change that along with the search menu?" The planner disclosed that data part D (dates, Finds and times, -656) had been planned for after motion Part 3 and was never dispatched; that was the planner's slip. The owner: "All of data part D, with search (Recommended)". The search-order coder takes -656's remaining items. Finds are grouped under date headings, and each tile shows the find's given name, or "Found 2:14 PM" when unnamed. Every date in the app reads "Oct 7, 2026" (the earlier ISO-date answer Q3 is superseded). Times follow the phone's 12- or 24-hour setting. One build, one merge, under the owner's "Merge search order once checks pass".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -703.
