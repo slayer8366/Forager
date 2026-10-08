@@ -13595,3 +13595,12 @@ The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty s
 **Continues:** 2026-09-28-667
 **PR #194 merged into main** (f17b24b5), from data-a-entry (head 497305c9): data part A, dispatch -667 with amendments -671 and -673. The owner, verbatim: "Merge data part A once checks pass". The laptop suite passed before main moved (4,093 tests, 0 failures, 8 revert checks bit). Merging main after motion Part 2 conflicted only in the audits index. CI "Build, test, publish APK" passed on the merged head; that was its first compile and test of the merged code. Pre-merge main bc85fd29 is backed up at forager-repo-backups/2026-10-07-13. Device checks D1 (profile threshold against real walks) and D2 (Save on an empty day) are still open.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -684.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-684
+**Timestamp:** 2026-10-08T00:59:06Z
+**Continues:** 2026-09-28-678
+**S22 day check finished; -400 passes on Vibrate.** The owner's retest ("S22 plugged in, test finished"): ringer on Vibrate at 17:44:07, recording from 17:44:28, Return at 17:50:46, Forager swiped away at 17:50:54. At 17:54:01 the app judged off-track and posted its notification, and Android's vibration history shows the buzz played ("finished", 690 ms). A sundown alert buzzed at once when recording started, because the day's leave-by time had already passed; this is the case -678's "Start back now" fix covers. The final report is on s22-day-check at 6c1c9005 (docs/navigation/2026-10-07-s22-day-check.md). The margin is back to 1 h. The phone's ringer is left on Vibrate, as the owner left it. Final DB hash forager.db 40397ca1…, WAL c6be97ae…. Since step 2 the database has gained 2 tracks, 6 waypoints and 524 points. Open: the no-times track's bubble, the Journal step (empty on this phone), and dark-mode dots. The queued small fixes stand: the "Imported" label squeeze, the large-font landscape overlap, the false "vibration=done", and "Start back now".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -685.
