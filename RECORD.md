@@ -13792,3 +13792,12 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 - An unnamed find's own pages and map bubble: "Match the tile (Recommended)".
 The planner's calls: Drafts grouped by day, newest day first, and the "+" tile alone on the first row are accepted. A blank-titled find keeps a screen-reader label naming it as a find and its date, so TalkBack never meets an empty control. The database version follows guidance-text's 19, so this branch goes from 19 to 20 after guidance-text merges (the queue order guarantees that). It re-checks at build time.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -704.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-704
+**Timestamp:** 2026-10-08T04:55:44Z
+**Continues:** 2026-09-28-685
+**PR #198 merged into main** (d223728b), from small-fixes-1007 (head 20f84143): dispatch -685 with amendments -694, -699 and -701. The owner, verbatim: "Merge the small fixes once checks pass". The laptop suite: 4,239 tests, 0 failures, all eight revert checks bit. The first CI run failed one test outside the diff: WalkLoggerServiceTest "switched on, the log starts with the recording…", NoSuchElementException at :148 (readLines().first() on a walk log whose header wasn't written yet). That reads as a race in the test's wait; it was inferred, not reproduced. The planner posted one comment on the PR and ran the one rerun, which passed. The walk-logger test's wait goes on the follow-up list. Pre-merge main b71c1569 is backed up at forager-repo-backups/2026-10-07-17. Next per -689: back-by.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -705.
