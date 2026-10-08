@@ -13886,3 +13886,15 @@ Real stops still go to the owner.
 **Continues:** 2026-09-28-707, 2026-09-28-711
 **An accidental test deletion, caught and restored; CLAUDE.md edited.** The settings-moves coder's commit e78b6a5c took AvailabilityScreenSettingsPanelTest.kt from 28 tests to 2 (+15/−603). Its report named only the two camera-checkbox tests. The basemaps coder noticed the deletion while merging settings-moves into basemaps (merge 196bbc60). It kept basemaps' version with only the two camera tests replaced, giving 27 tests. Asked, the settings-moves coder confirmed the extra 26 deletions were not deliberate: an edit script cut from the first match of a repeated doc-comment line, its one check confirmed only that the targets were inside the cut, and the −603 diff count went unread. That is an unrequested reduction in coverage, which CLAUDE.md forbids. It reached no branch on main, and the combined branch carries the restore. The same family as the CLAUDE.md "count read against something outside the check" entries: the diff count was the outside check, and it was skipped. Separately, the planner applied the owner's CLAUDE.md go (-711) itself on basemaps at 0c979382: lines 239–240 were rewritten in place, wc -l stayed 485, and line 253 is byte-identical. The basemaps coder had declined to edit CLAUDE.md on a relayed word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -713.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-713
+**Timestamp:** 2026-10-08T06:30:00Z
+**Continues:** 2026-09-28-709
+**Back-by, second round.** back-by at 78fd5bb6. Built: things below the strip follow its measured height (R11 to R14 bit), and the landscape button keeps its 36 dp with real touches (R10 bit). Full suite: 4,310 tests, 8 failures, none touched. The coordinates-first rule cut "Facing 315° NW" to "315" and "Alt 9843 ft" to "98" at 360 dp portrait, and the same at 823×384 landscape. A separate "by trail" line needs 56 dp against the first row's 48; the planner's "within 48 dp" in -709 was wrong. The owner, verbatim:
+- "Drop labels, then values (Recommended)". The words "Facing" and "Alt" go first; then facing drops whole (the needle shows direction), then altitude; a value is never cut mid-way. Data B's two strip tests and LandscapeLargeFontTest's font-1.0 case change to that rule.
+- "Move it into the status line (Recommended)". When tight, "by trail" or "straight" joins the status line ("By trail · Approaching"), and "Unable to calculate route" uses the status line's size. Nothing grows.
+The planner's call: MapChromeColourPixelsLightTest samples its bare-map reference at root.bottom − 200 dp, which the strip-following dropdown now covers. The reference point moves below the panel, with the same claim (the panel is drawn at the 0.8 token).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -714.
