@@ -14306,3 +14306,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** Gradle go for -755 (followup-1008), given in advance
 **Context:** The owner, in the planner's window: "Build when the coder's ready". Relayed to the -755 coder with #206's merge (34fd5deb). The coder pauses T6b (PAUSE file) and waits for its unit to stop before Gradle, per -748. The planner restarts T6b after the coder reports.
 **Notes:** Next free ID -758.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-758
+**Timestamp:** 2026-10-08T22:36:37Z
+**Title:** -755 item 1: the bar growth doesn't reproduce; the screenshot predates #206
+**Context:** The -755 coder could not make the landscape bar grow on the merged code: at 780 and 823, in both rotations, after a turn from portrait, with short and long summaries, the bar keeps its closed bounds and the panel hangs flush beneath it. The owner: the S26 screenshot was "Build 1.0.3097". That is the commit count of c0ec942a, main before #206. Asked whether the bar itself moved or the bar and panel only read as one block, the owner answered "Not sure".
+**Decision:** No geometry change for item 1. Guard tests stay. The coder reads c0ec942a's code to see whether #206 changed this. The owner looks again on the new build.
+**Notes:** Planner's slip, disclosed: -755's "at its own width" was the planner's wording and not part of the owner's choice in -754. Next free ID -759.
