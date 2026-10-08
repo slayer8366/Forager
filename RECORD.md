@@ -13722,3 +13722,14 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 **Continues:** 2026-09-28-695
 **Amendment 1 to -695 (guidance-text).** Items 1, 2 and 4 are written at guidance-text 99a401a1, not compiled. The no-guidance block and the species note are removed, and forSelection returns null when there is no guidance. Only one path loses a species' group: reopening a recent search (AvailabilityViewModel onRecentSearchSelected), because cached_searches stores only the taxon id and label for a species. The owner, verbatim: "Save it with the search (Recommended)". A new nullable column on cached_searches holds the species' iNaturalist iconic group, written on save and read when a recent search is reopened. ForagerDatabase goes from version 18 to 19 with MIGRATION_18_19 and its schema JSON. The planner checked that no other open branch claims version 19 (main, back-by, small-fixes-1007 and guidance-text are all at 18). Rows saved before the change keep no group. Lichens keep their deliberate null.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -697.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-697
+**Timestamp:** 2026-10-08T04:04:09Z
+**Title:** search-order: the search dropdown reordered: coordinates on top, Search and Set on map at the bottom
+**Dispatch-file:** preserved/2026-10-07-17.md
+**Context:** the owner, verbatim, over several messages with two phone screenshots (kept off GitHub): "the search menu is a bit unorganized. The search button is all the way at the top, tucked away, while manual search is at the bottom. That's a bit backwards."; "the slider should go below the month selection. Recent search below the slider. Search in place of "use current location", and set on map, both at the bottom, near the thumb"; "The set on map and search button where the "Search this location" button is now. Manual can go at the top, tucked away where the current search is."; "remove the drop down functions for the advanced search". The planner twice restated it wrongly (a "Location" group first; the coordinates folded shut), and the owner corrected both. The confirmed layout, top to bottom: Latitude and Longitude always shown with no headings or fold, prefilled with the current position; Month; Search radius; Recent searches (keeps its fold); at the bottom Search and Set on map side by side. Search searches the fields, and as prefilled that is the current position. The owner: "Yes, that's it (Recommended)". Continuation 2026-09-28-40 ("Also open manual coordinates") still holds. Its scroll-to-bottom goes, because the coordinates are now at the top.
+**Sent:** to a coder subagent, code and tests now. Its build is queued after the small fixes, back-by and guidance-text.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -698.
