@@ -14046,3 +14046,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** search-keyboard (PR #202) built green: 4,416 tests, 0 failures. Its 14 sp strip drops the word "Alt" at 360 dp portrait, and the heading in S22 landscape with decimal coordinates; S22 portrait is unchanged. Asked whether to merge as is, the owner, verbatim: "Landscape mode strip can extend to meet the search bar. The search bar height can change to meet the height of the strip. The two can meet at direct center, and they can be split by a simple vertical line between the two". Shown as steps, the owner: "Yes, that's it (Recommended)", on the option that merges #202 now, with the landscape join as its own small build before T6b resumes. On navigation: "Strip only (Recommended)".
 **Sent:** to a coder subagent once #202 merges.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -730.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-730
+**Timestamp:** 2026-10-08T13:51:25Z
+**Continues:** 2026-09-28-729
+**Merge word.** The owner, verbatim: "Merge it once checks pass". This covers PR #202 (already covered by -728's word) and the landscape-bar-strip branch (-729), each after its laptop build is green and its CI passes. T6b resumes after the landscape merge.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -731.
