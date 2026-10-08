@@ -13651,3 +13651,12 @@ The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty s
 **Continues:** 2026-09-28-685, 2026-09-28-687
 **Build order.** The owner, verbatim: "Motion part 3, then the small fixes, and then the back-by". Motion Part 3 builds now and merges on green CI (owner, earlier: "Merge motion Part 3 once checks pass"). Then the small fixes (-685) are cut from main after Part 3 lands, written, and built. Then back-by builds, after merging main with the small fixes. Both the small fixes and back-by touch the alert delivery code, so back-by takes the small fixes' vibration-record and "Start back now" changes when it merges main.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -690.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-690
+**Timestamp:** 2026-10-08T01:36:52Z
+**Continues:** 2026-09-28-687
+**Back-by prepared, and a likely width clash.** back-by at 625ca276, not compiled, with main merged through data part B (a71b57ac). BackByWatch.onFix is guarded through RecordingWatches with a test. The three-dot button is a BouncingIconButton, with its touch area held at QUICK_SETTINGS_TAP_TARGET (36 dp) by setting LocalMinimumInteractiveComponentSize to 0 for that one button. The Back by line uses the sundown line's pop-up grow and WordSwap. The coder estimates, from data part B's report and not measured, that the 36 dp button (-648/-649) and data part B's labelled lines (-656, -680) don't both fit at 360 dp on the strip or the navigation display's first row. Asked, the owner, verbatim: "Measure first, then decide (Recommended)". Back-by's build measures it through data part B's existing fit tests and NavigationHudQuickSettingsWidthTest, and the numbers and options go to the owner before any layout change.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -691.
