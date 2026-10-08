@@ -13504,3 +13504,25 @@ The planner's calls under the owner's -651 answers:
 **Continues:** 2026-09-28-652
 **PR #192 merged into main** (1317369f), from motion-part-1 (head 28de7c52): motion Part 1, dispatch -652 with amendments -657 and -659, built on main after failure-fixes. The owner, verbatim: "Go ahead and merge". CI "Build, test, publish APK" passed on the head. The laptop suite: 4,053 tests, 0 failures. Of nine revert checks, eight bit; R4 (icon descriptions moved to buttons) could not fail and is kept as a labelled pin. Pre-merge main 4f078b8b is backed up at forager-repo-backups/2026-10-07-11. Its look and feel is still to be checked on the S22. Motion Part 2 is fixing leaving-content semantics: a screen reader saw two bars mid-fade, caught by RestoreReturnsToMap tests, which stay unchanged. The planner chose to fix the cause rather than the tests.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -676.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-676
+**Timestamp:** 2026-10-08T00:06:34Z
+**Title:** motion-part-3: Journal pages, lists, word fades, night mode (motion Part 3)
+**Dispatch-file:** preserved/2026-10-07-13.md
+**Context:** the owner's go for "The motions, animations, the engineering hygiene, the data sweep" (-664), and "Yes, start them (Recommended)" for writers while builds run (-666 to -668). Motion Part 2 is green at 008ebbab (4,083 tests, 0 failures), so this is cut from motion-part-2. The choices are in -651 and -656.
+**Sent:** to a coder subagent, code and tests only, no Gradle.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -677.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-677
+**Timestamp:** 2026-10-08T00:06:34Z
+**Title:** data-b-track-nav: the track sheet and the navigation display (data part B)
+**Dispatch-file:** preserved/2026-10-07-14.md
+**Context:** the owner's go for "The motions, animations, the engineering hygiene, the data sweep" (-664), and "Yes, start them (Recommended)" for writers while builds run (-666 to -668). Motion Part 2 is green at 008ebbab (4,083 tests, 0 failures), so this is cut from motion-part-2, since Part 2 changes the navigation display. The choices are in -651 and -656.
+**Sent:** to a coder subagent, code and tests only, no Gradle.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -678.
