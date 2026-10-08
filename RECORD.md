@@ -14277,3 +14277,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-753
 **The open bar in landscape.** The owner, with an S26 landscape screenshot (kept off GitHub), verbatim: "I see that the entire bar gets larger along with the corresponding panel. Is this what the coder found too?" No: the coder measured the closed bar only. With the dropdown open in landscape, the bar grows taller than the strip and wider than the join, to the panel's size. That is likely -750's item 4, and no test covers the open state. The owner: "Bar stays put, panel hangs below (Recommended)": the bar keeps its closed size and position whether the dropdown is open or not, and the panel opens flush beneath it at its own width. And: "Merge #206, fix next (Recommended)": #206 merges on green CI, and this joins the follow-up with New find in the landscape header (-753), the night blend and the Maps-return flash (-752).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -755.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-755
+**Timestamp:** 2026-10-08T22:04:17Z
+**Title:** followup-1008: the open bar in landscape, New find in the landscape header, the night blend, the Maps-return flash
+**Dispatch-file:** preserved/2026-10-08-07.md
+**Context:** -752, -753 and -754. The coder writes now and builds after #206 merges, with T6b paused for the build per -748.
+**Sent:** to a coder subagent.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -756.
