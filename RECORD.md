@@ -13688,3 +13688,17 @@ Motion Part 3 (f7cb6ea3, main merged through data part C): 46 new tests pass, an
 **Continues:** 2026-09-28-676
 **PR #197 merged into main** (b71c1569), from motion-part-3 (head 7f97c993): motion Part 3, dispatch -676 with amendments -681, -682, -691 and -692. The owner, verbatim: "Merge motion Part 3 once checks pass". The laptop suite, after merging main through data part B: 4,209 tests, 0 failures. Revert checks R1 to R17 bit, except R15, whose map-side guard is a labelled pin. CI "Build, test, publish APK" passed on the head. Pre-merge main a71b57ac is backed up at forager-repo-backups/2026-10-07-16. All three motion parts, the failure fixes and data parts A to C are now on main. The S22 look-and-feel check of the sweeps is still to do. Next, per -689: the small fixes (-685), then back-by.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -694.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-694
+**Timestamp:** 2026-10-08T03:40:36Z
+**Continues:** 2026-09-28-685
+**Amendment 1 to -685 (small fixes), after the coder's stops.** small-fixes-1007 is at bf97ed15, cut from b71c1569, not compiled. Fix 5 (typed tweens in check 3) is done and proven by planted files. The owner's answers, verbatim:
+- Large-font landscape: "Stay beside the search bar, '…' (Recommended)". The strip and the navigation display stay on the rail side of the centre line, never wider than the gap to the search bar. Text that doesn't fit ends in "…" on one line, with no height change.
+- The long status line: "Drop 'Approaching ·' if needed (Recommended)". When "Approaching · last fix 45 s ago" doesn't fit, it shows "last fix 45 s ago". The build measures it first.
+- "Start back now" strings: "Approve as written (Recommended)". "The walk back the way you came is about %1$s. Start back now to finish before dark." and "The walk back is at least %1$s. Start back now to finish before dark." They apply only to the leave-by alert, when its start-by minute is earlier than the minute it fires in.
+- The skipped-buzz record: "Yes, cover Do Not Disturb (Recommended)". It also records "skipped (Do Not Disturb)" from the interruption filter. A phone-level vibration-off setting can't be read reliably, and the report says so.
+Logged as separate findings, not fixed here: at font 2.0 in landscape, Record and Return are pushed to the bottom edge, and the rail's "Tools" label is cut.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -695.
