@@ -14091,3 +14091,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-733
 **-733's short words don't fit; a crossed-out compass icon instead.** landscape-bar-strip at af24a7d7. The heading slot is 58.33 dp at font 1.0 (108 at 2.0). "No compass" needs 84.33 dp and "Compass?" 70.33 dp, so the status was dropped. The planner's -733 claim that the short words would fit was wrong. The owner, verbatim: "Crossed-out compass icon (Recommended)". In short landscape, an unavailable compass shows a crossed-out compass icon in the heading slot. An unreliable one shows the heading value with "?" after it (for example "315° NW?"). The screen-reader labels are "Compass unavailable" and "Compass unreliable". The heading slot is sized from the widest of the value form, the value form with "?", and the icon, so the join stays put whether or not the compass works. Portrait keeps the full words.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -735.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-735
+**Timestamp:** 2026-10-08T17:27:54Z
+**Continues:** 2026-09-28-734
+**-734's "315° NW?" withdrawn; one icon for both states.** The coder stopped before building. An unreliable reading carries no heading, by an earlier owner decision recorded in ui/map/TrueHeading.kt:27-44 ("Carries no heading on purpose: a heading the app has just said cannot be trusted is not a value to hand anyone") and :111-118 ("Reset, not pause, not carry (owner decision)"). The planner had offered "315° NW?" without checking that ruling. Asked again, the owner, verbatim: "Same crossed-out icon (Recommended)". In short landscape, both unavailable and unreliable compass states show Icons.Filled.ExploreOff, sized to the 14 sp line (20 dp at font 1.0, 34 dp at 2.0), with the screen-reader labels "Compass unavailable" and "Compass unreliable". The heading slot stays at the value width (58.33 dp at font 1.0), so the join doesn't move. The earlier ruling stands unchanged. Portrait keeps its words.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -736.
