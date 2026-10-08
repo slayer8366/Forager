@@ -14082,3 +14082,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-732
 **Landscape join built; short compass words.** landscape-bar-strip at 72db216a. The join fits the strip: at 780×360 and 823×384, in both rotations and both coordinate formats, heading, altitude and coordinates are whole, and so are the coordinates at font 2.0. The bar's floor is measured (394.33 dp with a long search and Clear). The coder corrected its own -729 shortfall figures (two separators, not three): 47.6/39.3 dp at 780 and 26.1/17.8 dp at 823. Full suite: 4,438 tests, 3 failures (LandscapeLRulingsTest B1 at 90 and 270, LayoutFixesChipRowLandscapeTest T7). Making room for the compass status words narrowed the bar to about 302 dp and squeezed the notice and chips beneath it. The owner, verbatim: "Short words, same room (Recommended)". In short landscape, a broken compass shows "No compass" and an unreliable one "Compass?", sized to the heading's value width, so the join doesn't move and nothing under the bar is squeezed. Portrait keeps the full wording.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -734.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-734
+**Timestamp:** 2026-10-08T17:24:26Z
+**Continues:** 2026-09-28-733
+**-733's short words don't fit; a crossed-out compass icon instead.** landscape-bar-strip at af24a7d7. The heading slot is 58.33 dp at font 1.0 (108 at 2.0). "No compass" needs 84.33 dp and "Compass?" 70.33 dp, so the status was dropped. The planner's -733 claim that the short words would fit was wrong. The owner, verbatim: "Crossed-out compass icon (Recommended)". In short landscape, an unavailable compass shows a crossed-out compass icon in the heading slot. An unreliable one shows the heading value with "?" after it (for example "315° NW?"). The screen-reader labels are "Compass unavailable" and "Compass unreliable". The heading slot is sized from the widest of the value form, the value form with "?", and the icon, so the join stays put whether or not the compass works. Portrait keeps the full words.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -735.
