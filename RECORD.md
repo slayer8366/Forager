@@ -13990,3 +13990,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-722
 **Two additions to search-keyboard.** The owner, verbatim: "Once someone touches a selection from the recents section, have it automatically search that selection. Put an "Clear" at the end of the search bar to clear the search. Tap once to remove observations from the map." The planner read main: tapping a recent row already closes the dropdown and calls onRecentSearchSelected, which calls refresh(). Asked what the phone does, the owner: "Dropdown closes, nothing new". That is treated as a bug, to be reproduced first: the map does not show the recent search's observations. Clear, shown to the owner as steps (a Clear at the right end of the bar while a search is showing; one tap removes the observations from the map and returns the bar to "Search a location"; recent searches stay; hidden when nothing is searched), and confirmed: "Yes, that's it (Recommended)". Both join search-keyboard (-722): one build, one merge.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -724.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-724
+**Timestamp:** 2026-10-08T12:14:09Z
+**Continues:** 2026-09-28-723
+**A suggestion tap searches too.** The owner, verbatim, with a phone screenshot of the species suggestions for "fly" (kept off GitHub): "Do the same with the suggested searches too". Shown as steps (tapping a species suggestion closes the dropdown and runs the search for it at once, with the current month and radius; in the same place if a search is already showing, else at the current position, as Search does), the owner: "Yes, that's it (Recommended)". It joins search-keyboard (-722, -723).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -725.
