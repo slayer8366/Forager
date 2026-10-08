@@ -14165,3 +14165,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-740
 **PR #204 merged into main** (6cbcdac5): the revert of #203. The owner, verbatim: "Confirm and undo, leave S26". CI "Build, test, publish APK" passed. The S22 launch check (-741) is met by evidence: the revert's tree is byte-identical to f8739856 (git diff is empty), and CI's APK for f8739856 verified and launched on the S22 with an empty crash buffer. Main launches again. Pre-merge main 0e766d94 (the crashing one) is backed up at forager-repo-backups/2026-10-08-06. The S26 still has the crashing 1.0.3086, left alone at the owner's word. The landscape join returns with -739/-741's fix.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -743.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-743
+**Timestamp:** 2026-10-08T19:07:08Z
+**Continues:** 2026-09-28-741
+**R8 9.3.31 verifies; disk freed.** The coder's step 1: with R8 9.3.31 pinned on the buildscript classpath (pushed on launch-verifyerror at 63daddf9), the fix-attempt-1 build verifies on the S22 (compile -m verify -f printed Success) and launches to the Maps tab with an empty crash buffer. CompactMapTab is still 255 registers under 9.3.31, so the split goes ahead (-741). The home disk was at 1.3 GB, below the 1.5 GB build floor. The planner deleted its own downloaded APKs, then, on the owner's verbatim "Both of these (Recommended)", removed four clean, fully pushed report worktrees (data-scout, hygiene-scout, motion-scout, s22-day-check; their branches stay on GitHub) and the main checkout's app/build directory (compiled output only).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -744.
