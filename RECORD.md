@@ -14336,3 +14336,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** Item 1 (5c693fe5): the compass strip kept its last landscape size through portrait. On the next turn to landscape it measured the same size and reported no change, while the screen had cleared its own copy, so the bar fell back to its own height and half the window's width. A test that turns to landscape a second time failed before the fix (45 dp tall, half width) and passes after it; the revert check bit. Item 4: the screen hands the remembered camera at the settled size, so the blank and magnified frame happen inside the MapLibre view, which is rebuilt on each return. The coder added logging (tag ForagerMapsComeback) and offered three options: (A) read the logging on the S22, (B) cover the map with a snapshot, (C) keep the map view alive.
 **Decision:** The owner: "Find it on the S22 now (Recommended)". The coder reads the logging on the S22 (install -r only), fixes the cause in this build and confirms it on the S22. If the fix would be B or C, the coder stops and asks first.
 **Notes:** Next free ID -761.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-761
+**Timestamp:** 2026-10-08T23:20:48Z
+**Title:** -755 item 4: picture cover in this build, heading keeps its last reading
+**Context:** On the S22 (1.0.3107+g5c693fe5) the coder found that every return to Maps builds a new MapLibre MapView. The map area is the bare background for about 200 ms, then one or two black frames, then tiles at the remembered camera. The heading shows "—" because the compass restarts with the tab. No magnified frame was recorded. The options were (B) cover the returning map with a picture of it as it was left, and (C) keep one MapView alive across tabs. followup-1008 is at e20de11d with items 1 to 3 done: full suite 4,502 tests, 0 failures; launch check PASS.
+**Decision:** The owner: "Picture cover, this build (Recommended)" and "Keep last reading (Recommended)". A stale picture or an unready map falls back to today's behaviour, and the fallback is logged. The cover takes no touches. The heading still shows "—" when there was never a reading.
+**Notes:** T6b stays paused for this build. Next free ID -762.
