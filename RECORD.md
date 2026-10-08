@@ -13548,3 +13548,19 @@ The planner's calls under the owner's -651 answers:
 **Continues:** 2026-09-28-666
 **PR #193 merged into main** (bc85fd29), from motion-part-2 (head 008ebbab): motion Part 2, dispatch -666 with amendment -672. The owner, verbatim: "Merge motion Part 2". CI "Build, test, publish APK" passed on the head. The laptop suite: 4,083 tests, 0 failures. All 14 revert checks bit. Pre-merge main 1317369f is backed up at forager-repo-backups/2026-10-07-12. Its look and feel, and the live map's cost during a tab fade, are still to be checked on the S22. Also: data part A's build found 3 CartographyScreenTest failures (Save pushed below the test screen's fold by the new panel). The owner: "Confirm cause, then scroll (Recommended)".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -680.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-680
+**Timestamp:** 2026-10-08T00:35:47Z
+**Continues:** 2026-09-28-677
+**Amendment 1 to -677 (data part B), after the coder's stops.** Code and tests are on data-b-track-nav at 2341aa59, not compiled. It merged data-a-entry, so it must merge after A or together with it. The owner's answers, verbatim:
+- Turn words: "As proposed (Recommended)". 0–9° "Ahead · N°", 10–44° "Slight left/right · N°", 45–134° "Left/Right · N°", 135–169° "Sharp left/right · N°", 170–180° "Behind · N°".
+- The heading: "Move it, labelled (Recommended)". It goes to the start of the display's second row.
+- Decimal coordinates: "Shorter decimals, no labels (Recommended)". "45.3262, -122.6340", with no Lat/Lon words.
+- Labels: "'Facing' and 'Alt' (Recommended)".
+- Avg speed: "Moving speed (Recommended)". It uses the app's existing moving pace, and the tile reads "Moving speed".
+- Sheet order: "Keep -618's order (Recommended)".
+The planner's calls: the Details fold's open state holds for the session (CLAUDE.md UX default); the 24-hour title mismatch is accepted until data part D. The coder noted that "within 16 ft" can no longer appear (arrival covers it first) and that "Approaching · last fix 45 s ago" may already be cut at 360 dp; both are left for later.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -681.
