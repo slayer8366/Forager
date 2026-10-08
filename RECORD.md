@@ -13615,3 +13615,12 @@ The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty s
 **Context:** the owner, verbatim: "Write the queued small fixes dispatch". The fixes come from -644 ("Fix it (Recommended)"; "Log it, fix next (Recommended)"), -678 ("Fix: record it as skipped (Recommended)"; "'Start back now' (Recommended)") and -655 ("Fix and prove they bite (Recommended)"), with the typed-tween gap found by motion Part 2. On timing, the owner: "After B and Part 3 merge (Recommended)". Stops: fix 2's approach and fix 4's exact strings go to the owner before the build.
 **Sent:** not yet. The coder starts once data part B and motion Part 3 are on main.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -686.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-686
+**Timestamp:** 2026-10-08T01:08:07Z
+**Continues:** 2026-09-28-668
+**PR #195 merged into main** (f6fc6c91), from data-c-seasonal (head ffbbb796): data part C, dispatch -668 with amendment -669. The owner, verbatim: "Merge data part C once checks pass". The laptop suite passed after merging main through motion Part 2 (4,110 tests, 0 failures, 8 revert checks bit). The planner merged main again for data part A (ffbbb796), which conflicted only in the audits index; both rows were kept. CI "Build, test, publish APK" passed on that head. Pre-merge main f17b24b5 is backed up at forager-repo-backups/2026-10-07-14. The charts' look, the soil scale at large font, and the zoom note's trigger are still to be checked on the S22.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -687.
