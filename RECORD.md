@@ -13526,3 +13526,16 @@ The planner's calls under the owner's -651 answers:
 **Context:** the owner's go for "The motions, animations, the engineering hygiene, the data sweep" (-664), and "Yes, start them (Recommended)" for writers while builds run (-666 to -668). Motion Part 2 is green at 008ebbab (4,083 tests, 0 failures), so this is cut from motion-part-2, since Part 2 changes the navigation display. The choices are in -651 and -656.
 **Sent:** to a coder subagent, code and tests only, no Gradle.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -678.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-678
+**Timestamp:** 2026-10-08T00:21:49Z
+**Continues:** 2026-09-28-643
+**S22 day check, step 3 (the owner's walk), and the owner's answers.** Report on s22-day-check at 44906a77. Passes: "start back by" (16:38:19 "Sunset 6:39 PM · start back by 5:38"); each margin change moved the time at once; the '+' waypoint "Walk test" (16:48:42); Approaching (16:49:18, 76 m) and Arrived (16:50:23). -400: the off-track alert fired with Forager swiped away (17:04:08), but none of the four off-track alerts vibrated. The phone stayed muted, and the off-track alert by ruling does not override silence; the sundown alerts did vibrate on the muted phone. **Finding:** the app logged vibration=done for all four while Android logged ignored_for_ringer_mode, a failure reported as success. The near-hour gap between the 4:41 notification and the 4:50 strip came from margin changes (1 h, then 1 h 30, then 30 min). A later change to 1 h 30 at about 17:08 put the leave-by time in the past, and the alert then said "start by 5:07 PM" at 5:08. The owner's answers, verbatim:
+- Tidy the S22: "Yes, tidy it up (Recommended)".
+- The false "done": "Fix: record it as skipped (Recommended)". The alert's behaviour is unchanged; it records "skipped: phone on silent".
+- A leave-by time already past when the alert fires: "'Start back now' (Recommended)". It still fires once and never names a time already gone.
+- The off-track buzz retest on Vibrate with the app swiped away: "Now, before dark".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -679.
