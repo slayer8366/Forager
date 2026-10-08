@@ -14174,3 +14174,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-741
 **R8 9.3.31 verifies; disk freed.** The coder's step 1: with R8 9.3.31 pinned on the buildscript classpath (pushed on launch-verifyerror at 63daddf9), the fix-attempt-1 build verifies on the S22 (compile -m verify -f printed Success) and launches to the Maps tab with an empty crash buffer. CompactMapTab is still 255 registers under 9.3.31, so the split goes ahead (-741). The home disk was at 1.3 GB, below the 1.5 GB build floor. The planner deleted its own downloaded APKs, then, on the owner's verbatim "Both of these (Recommended)", removed four clean, fully pushed report worktrees (data-scout, hygiene-scout, motion-scout, s22-day-check; their branches stay on GitHub) and the main checkout's app/build directory (compiled output only).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -744.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-744
+**Timestamp:** 2026-10-08T19:40:49Z
+**Continues:** 2026-09-28-743
+**A new coder for the fix; device check requested.** launch-verifyerror at 516180f6: R8 9.3.31 pinned, CompactMapTab split (255 to 173 dex registers), main (with #204's revert) merged in while keeping #203's join. The s22-launch-check.sh script and the register-script edits were left uncommitted. The owner, verbatim: "Run device check when ready". The coder had stopped and could not be resumed. Asked, the owner: "Yes, start a new coder (Recommended)". A new coder finishes the branch, runs the S22 launch check and a portrait/landscape check, then the full suite. It merges once checks pass, under -730's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -745.
