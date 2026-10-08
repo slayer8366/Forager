@@ -13760,3 +13760,12 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 **Continues:** 2026-09-28-698
 **Amendment 2 to -697 (search order).** search-order is at 871d58bf, not compiled. The coder found that the planner's premise "prefilled with the current position" was false: the fields start empty and hold the last search's place. The planner put options to the owner. The owner, verbatim: "There are no fields to fill in. Search is the same as "Use current location" just renamed and relocated." So the bottom-right Search runs the existing current-location path unchanged (permission, one live fix, search there) and does not read the fields. Asked how typed coordinates are then searched, the owner: "Small button under the fields": a "Search coordinates" text button directly under Latitude and Longitude runs the existing manual-coordinates path, validation unchanged. On the two location failure messages, the owner: "Option 1, but only refer to "Set on map" since that is right there. Manual coordinates isn't something people do unless they know what they're looking for, and it won't be their own location". The planner's wording from that: "Location permission was denied. Tap Set on map to choose a place." and "Couldn't find your location. Tap Set on map to choose a place."
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -701.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-701
+**Timestamp:** 2026-10-08T04:24:31Z
+**Continues:** 2026-09-28-699
+**Small fixes green, one planner extension before the PR.** small-fixes-1007 is at 16995ce7. Full suite: 4,238 tests, 24 skipped, 0 failures. All seven revert checks bit. AvailabilityScreenNavigationWordsLandscapeTest was changed under -699: lines may end in "…", and the display never overlaps the search bar. The strip's coordinates come first, with facing and altitude sharing what's left in proportion; below a 48 dp floor facing drops first (the coder's call, since the needle still shows direction). At the test's 780 dp width the cap also cut the navigation display's grid reference (16 of 18 characters). The planner extended the owner's "Coordinates take priority (Recommended)" to the display's second row, on the reason the owner agreed to (the coordinates are what you'd read out for help). This is a planner call under that ruling, not a new owner answer. One more build follows, then the PR.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -702.
