@@ -14118,3 +14118,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-729 to 2026-09-28-736
 **PR #203 merged into main** (0e766d94), from landscape-bar-strip (head f5c6b0e3): the landscape search bar and strip join, the strip at portrait height, and the crossed-out compass icon. The owner, verbatim: "Merge it once checks pass". The laptop suite: 4,454 tests, 0 failures; R1 to R10 bit. CI "Build, test, publish APK" passed on the first run. Pre-merge main f8739856 is backed up at forager-repo-backups/2026-10-08-05. Next: T6b resumes, by removing its PAUSE file and restarting the section until 13:00.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -738.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-738
+**Timestamp:** 2026-10-08T18:23:20Z
+**Continues:** 2026-09-28-721, 2026-09-28-737
+**T6b resumed.** With PR #203 merged and no Gradle running, the planner removed T6b's PAUSE file and restarted the section as t6b-night: scripts/t6b_run.py --until 13:00 --stages mask,plots,soil,trees --workers 2, appending to night-2026-10-08.log, under the same caps as -721. It had paused at 05:13 PDT after its first tile (40 unit lines in the manifest).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -739.
