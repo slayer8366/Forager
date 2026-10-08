@@ -14147,3 +14147,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-739
 **Cause confirmed; #203 to be reverted.** The owner asked, verbatim: "Is it better if main is fixed first? You're the planner so let me know what makes it better". The planner recommended confirming the cause with CI's own APKs, then reverting #203 so main launches while the proper fix is built. The owner, verbatim: "Confirm and undo, leave S26". On the S22, CI's debug APK for f8739856 (before #203, 1.0.3072) opens with no VerifyError, and 0e766d94 (1.0.3086) crashes. The coder's dex reading: CompactMapTab has 246 registers at f8739856 against 259 at 0e766d94. #203's two added parameters pushed the method past 256 registers, and at 0x10E D8's code reads v0 (holding mapMode) where it should have moved v256: a D8 register-allocation miscompile. The planner opened a revert PR (branch revert-203, git revert -m 1 0e766d94), to merge on green CI. The S26 is left alone. The fix (-739) brings the join back with grouped parameters (67 to 37).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -741.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-741
+**Timestamp:** 2026-10-08T19:00:34Z
+**Continues:** 2026-09-28-739, 2026-09-28-740
+**The fix plan, and an S22 launch guard.** The coder's first fix (CompactMapTab's parameters grouped from 67 to 37, 249 registers) still crashed on the S22, with a different VerifyError in the same method ("[0x1E20] copy-reference v12<-v197 type=BooleanConstant"). So the 256-register explanation was incomplete. D8 9.3.16, bundled with AGP 9.3.1, miscompiles this one very large method (about 12,000 dex code units, 222 JVM locals, 106 inlined calls including 51 remembers). The JVM bytecode is correct, which is why Robolectric and CI are green. No public R8 fix matches. AvailabilityScreen (401 registers), CompactMainScaffold (385) and JournalTab (289) are also large and verify today. No offline ART verifier exists. The owner, verbatim: "Try newer tool, then split (Recommended)": first a one-build test of a newer pinned R8 (9.3.31) on the S22, then, either way, split CompactMapTab's body into smaller composables with no behaviour change, and then the landscape join returns. And: "S22 launch check before merging (Recommended)": before merging any change to screens, the build is installed on the S22 (install -r), checked with cmd package compile -m verify, and launched once.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -742.
