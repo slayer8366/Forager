@@ -13733,3 +13733,12 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 **Context:** the owner, verbatim, over several messages with two phone screenshots (kept off GitHub): "the search menu is a bit unorganized. The search button is all the way at the top, tucked away, while manual search is at the bottom. That's a bit backwards."; "the slider should go below the month selection. Recent search below the slider. Search in place of "use current location", and set on map, both at the bottom, near the thumb"; "The set on map and search button where the "Search this location" button is now. Manual can go at the top, tucked away where the current search is."; "remove the drop down functions for the advanced search". The planner twice restated it wrongly (a "Location" group first; the coordinates folded shut), and the owner corrected both. The confirmed layout, top to bottom: Latitude and Longitude always shown with no headings or fold, prefilled with the current position; Month; Search radius; Recent searches (keeps its fold); at the bottom Search and Set on map side by side. Search searches the fields, and as prefilled that is the current position. The owner: "Yes, that's it (Recommended)". Continuation 2026-09-28-40 ("Also open manual coordinates") still holds. Its scroll-to-bottom goes, because the coordinates are now at the top.
 **Sent:** to a coder subagent, code and tests now. Its build is queued after the small fixes, back-by and guidance-text.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -698.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-698
+**Timestamp:** 2026-10-08T04:04:38Z
+**Continues:** 2026-09-28-697
+**Amendment 1 to -697.** The owner, verbatim: "Search on the right, set on map on the left". In the bottom row, Set on map is on the left and Search on the right, which puts Search under the right thumb.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -699.
