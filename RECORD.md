@@ -13952,3 +13952,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-708, 2026-09-28-710
 **The combined basemaps build.** basemaps at 44f97aa4 (settings-moves, basemaps, cluster persistence), with main merged through search-order (74c9fdd4); conflicts were only in the audits index. Full suite: 4,412 tests, 1 failure. AvailabilityScreenSettingsPanelTest runs its 27 tests, including the 26 restored ones (-712). All 15 revert checks bit. A first full-suite run was OOM-killed because a Gradle daemon started inside one capped scope was reused by later runs; it was rerun on a fresh daemon. The one failure: LayersChipsLandscapeTest "the map-type chips are centred between the sheet's sides", expected 412.0 but was 414.0. With Satellite gone, the two remaining chips differ in width (Street 39 dp, Topographical 46 dp), so their 48 dp minimum touch targets pad them unequally. The laid-out row is centred (412.25), while the semantic bounds read 2 dp off. The planner's call: the test measures the laid-out touch-target boxes for centring (within 1 dp), and adds a visual check that the drawn chips sit within 2 dp of the sheet's centre, so a real centring bug still fails. Then a rerun.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -720.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-720
+**Timestamp:** 2026-10-08T09:54:10Z
+**Continues:** 2026-09-28-707, 2026-09-28-708, 2026-09-28-711
+**PR #201 merged into main** (bfbba33f), from basemaps (head e4024e7b): settings-moves (-707), Satellite removed with the basemap remembered (-708), and the icon cluster's side and height remembered (-711), with CLAUDE.md's UX-defaults sentence updated in place. The owner, verbatim: "The rest can be finished in one merge" (-710), and the merge words in -706 and -707. The laptop suite: 4,412 tests, 0 failures; 17 revert checks bit; the 26 accidentally deleted tests are restored (-712); the chips test claim changed (-719). CI "Build, test, publish APK" passed on the first run. Pre-merge main 74c9fdd4 is backed up at forager-repo-backups/2026-10-08-03. All of tonight's queue is on main. The owner starts T6b next, on their word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -721.
