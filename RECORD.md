@@ -13981,3 +13981,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** the owner, verbatim, with a phone screenshot (kept off GitHub): "Real quick, the search menu doesn't bounce back up when the keyboard hits it. It used to do that. The search button is still hidden as a result. Fix this before the build". The cause is PR #200's removal of the keep-in-view scroll. The planner restated the fix (the panel scrolls its bottom row above the keyboard whenever it shrinks; a user drag stops it) and raised the T6b clash. The owner: "Pause T6b, build, resume (Recommended)". The planner set T6b's PAUSE file at the time below. The build waits for T6b's current tile to end. It merges once checks pass, then T6b resumes until 13:00.
 **Sent:** to a coder subagent: write now, and build when T6b has paused.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -723.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-723
+**Timestamp:** 2026-10-08T12:12:35Z
+**Continues:** 2026-09-28-722
+**Two additions to search-keyboard.** The owner, verbatim: "Once someone touches a selection from the recents section, have it automatically search that selection. Put an "Clear" at the end of the search bar to clear the search. Tap once to remove observations from the map." The planner read main: tapping a recent row already closes the dropdown and calls onRecentSearchSelected, which calls refresh(). Asked what the phone does, the owner: "Dropdown closes, nothing new". That is treated as a bug, to be reproduced first: the map does not show the recent search's observations. Clear, shown to the owner as steps (a Clear at the right end of the bar while a search is showing; one tap removes the observations from the map and returns the bar to "Search a location"; recent searches stay; hidden when nothing is searched), and confirmed: "Yes, that's it (Recommended)". Both join search-keyboard (-722): one build, one merge.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -724.
