@@ -14017,3 +14017,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-725
 **Clarification to -725.** The owner, verbatim: "The keyboard and the search bar". After a species suggestion tap, both the keyboard and the search dropdown stay open, with the species filled in and nothing searched yet.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -727.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-727
+**Timestamp:** 2026-10-08T12:23:35Z
+**Continues:** 2026-09-28-695, 2026-09-28-726
+**All trip-window guidance text removed.** The owner, verbatim, with a phone screenshot of Trip Windows for Fly Agaric now showing the fungi pattern (kept off GitHub): "And remove the block of text here labeled Rain and Fungi: the general pattern". Asked about the matching plants block, the owner: "Remove both (Recommended)". Trip Windows ends at its measurements for every selection. ForagingWeatherGuidance and its rendering are removed, with no caller left. The species-group storage from -696 stays, because recent searches still restore the selection. It joins search-keyboard (-722 to -726).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -728.
