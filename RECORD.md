@@ -13810,3 +13810,12 @@ The planner's calls: Drafts grouped by day, newest day first, and the "+" tile a
 **Continues:** 2026-09-28-703
 **Find dates (search-order at 92726960).** Asked whether a find's own pages should show its date, now that "Find on <date>" is gone from its title, the owner, verbatim: "Group the finds by a single date heading rather than dating each individually". So the Finds tab dates by day heading only, and a find's own pages carry no date line (as built). Asked about the map bubble, which has no heading, the owner: "Keep the date in the bubble (Recommended)". As built, no code change follows.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -706.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-706
+**Timestamp:** 2026-10-08T05:10:24Z
+**Continues:** 2026-09-28-689
+**Merge word for the rest of the queue.** The owner, verbatim: "Got it, merge them all once checks pass". This covers back-by (-645, already "Merge back-by once checks pass"), guidance-text (-695) and search-order with data part D (-697). Each merges after its laptop build is green and its CI passes, in that order. A stop in any build (for example back-by's width measurement, -690) still goes to the owner before merging.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -707.
