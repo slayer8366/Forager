@@ -13855,3 +13855,16 @@ The planner's calls: Drafts grouped by day, newest day first, and the "+" tile a
 The planner's call: the landscape strip button's 0 dp width is a bug, and the button always keeps its 36 dp.
 Also, settings-moves (2b4afab3, not compiled) reported five choices. The planner accepts all five: Sundown under the collapsed Trip Planner header, the panel's dark 80% look, a tap outside that closes only the panel, the panel turning with the device, and the rows keeping Settings' ripple.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -710.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-710
+**Timestamp:** 2026-10-08T05:56:44Z
+**Continues:** 2026-09-28-706
+**Tonight's merge order.** The owner, verbatim: "Go ahead and merge at the end when it's all finished, that way no need to keep waiting". Asked how, the owner: "Finish back-by and make those changes. Then Plan D and merge that. The rest can be finished in one merge". So:
+1. Back-by finishes the -709 changes, builds and merges on green CI.
+2. search-order with data part D (-697, -702) builds and merges. It already contains guidance-text (-695, merged into it for the 18 to 19 to 20 migrations), so guidance-text lands with it.
+3. settings-moves (-707) and basemaps (-708) are combined into one branch, built once and merged once.
+Real stops still go to the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -711.
