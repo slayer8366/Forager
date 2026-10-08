@@ -14219,3 +14219,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-747
 **Standing instruction: T6b uses the downtime.** The owner, verbatim: "Keep running it when there's downtime. Pause it when I request a build. Otherwise may as well put the downtime to use." From now on t6b-night runs whenever no Gradle build is running or queued, with its --until set late. Before a build the planner sets the PAUSE file and waits for the unit to go inactive; after the build and merge it removes PAUSE and restarts. Each start and pause is recorded. This needs no further ask.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -749.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-749
+**Timestamp:** 2026-10-08T20:30:27Z
+**Title:** merged-device-check: S22 check of everything merged 2026-10-07/08
+**Dispatch-file:** preserved/2026-10-08-05.md
+**Context:** the owner, verbatim: "S22 plugged in, start the device check". It uses CI's own APK for main c0ec942a, so there is no laptop Gradle and T6b keeps running (-748). Also noticed: CI on main's push run for 6cbcdac5 (the #204 merge) reports failure in "Run the unit tests". Its log could not be read here; that is to be looked into, though the next main run (c0ec942a) is in progress.
+**Sent:** to a coder subagent.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -750.
