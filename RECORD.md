@@ -13564,3 +13564,15 @@ The planner's calls under the owner's -651 answers:
 - Sheet order: "Keep -618's order (Recommended)".
 The planner's calls: the Details fold's open state holds for the session (CLAUDE.md UX default); the 24-hour title mismatch is accepted until data part D. The coder noted that "within 16 ft" can no longer appear (arrival covers it first) and that "Approaching · last fix 45 s ago" may already be cut at 360 dp; both are left for later.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -681.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-681
+**Timestamp:** 2026-10-08T00:40:32Z
+**Continues:** 2026-09-28-676
+**Motion Part 3 Amendment 1, data part A green, and data part B's two calls.**
+Motion Part 3 (motion-part-3 at 2cb2b19e, not compiled). The owner, verbatim: "Same rule everywhere (Recommended)": any page opened on top of another slides in from the right and back on Back, anywhere in the app, and every list's rows close up and grow in, including the Entries album, trip cards, the find editor's photo row and logbook find pairs. The camera's rotation and system dialogs keep their own behaviour. On the short-landscape switch row: "Keep it still (Recommended)". The planner's calls: R2 slides in as well as out; word items beside tappable controls stay instant (as C5 did); the arriving page taking touches where drawn during its brief slide-in is accepted; reduced motion stays instant for pages and rows.
+Data part A: confirmed with a probe that Save sat at 530–582 dp on a 470 dp test root. The three CartographyScreenTest Save tests now scroll to Save, with assertions unchanged. Full suite on data-a-entry 8755d85e: 4,093 tests, 0 failures. Ready to merge on the owner's word.
+Data part B (add94e66, not compiled; main merged): the planner accepts the coder's two calls. Moving speed shows "—" under 5 minutes of moving time, rather than an assumed 2 mph ("unsupported" is never a fabricated value). Decimal coordinates always use a full stop as the decimal mark.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -682.
