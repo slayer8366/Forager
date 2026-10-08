@@ -14156,3 +14156,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-739, 2026-09-28-740
 **The fix plan, and an S22 launch guard.** The coder's first fix (CompactMapTab's parameters grouped from 67 to 37, 249 registers) still crashed on the S22, with a different VerifyError in the same method ("[0x1E20] copy-reference v12<-v197 type=BooleanConstant"). So the 256-register explanation was incomplete. D8 9.3.16, bundled with AGP 9.3.1, miscompiles this one very large method (about 12,000 dex code units, 222 JVM locals, 106 inlined calls including 51 remembers). The JVM bytecode is correct, which is why Robolectric and CI are green. No public R8 fix matches. AvailabilityScreen (401 registers), CompactMainScaffold (385) and JournalTab (289) are also large and verify today. No offline ART verifier exists. The owner, verbatim: "Try newer tool, then split (Recommended)": first a one-build test of a newer pinned R8 (9.3.31) on the S22, then, either way, split CompactMapTab's body into smaller composables with no behaviour change, and then the landscape join returns. And: "S22 launch check before merging (Recommended)": before merging any change to screens, the build is installed on the S22 (install -r), checked with cmd package compile -m verify, and launched once.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -742.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-742
+**Timestamp:** 2026-10-08T19:01:11Z
+**Continues:** 2026-09-28-740
+**PR #204 merged into main** (6cbcdac5): the revert of #203. The owner, verbatim: "Confirm and undo, leave S26". CI "Build, test, publish APK" passed. The S22 launch check (-741) is met by evidence: the revert's tree is byte-identical to f8739856 (git diff is empty), and CI's APK for f8739856 verified and launched on the S22 with an empty crash buffer. Main launches again. Pre-merge main 0e766d94 (the crashing one) is backed up at forager-repo-backups/2026-10-08-06. The S26 still has the crashing 1.0.3086, left alone at the owner's word. The landscape join returns with -739/-741's fix.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -743.
