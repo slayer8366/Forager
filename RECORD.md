@@ -14268,3 +14268,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-750, 2026-09-28-751
 **landscape-search-fixes built; two owner calls.** landscape-search-fixes at eb4932ca, PR #206 open. Full suite: 4,485 tests, 0 failures. All 11 revert checks bit. S22 launch check: PASS on 1.0.3101+ga1accb17. The landscape gap was 36 dp, from the panel leaving room for the strip that sits beside the bar there; it is now 0. Item 4 (the bar dropping below the strip) did not reproduce; 8 guard tests were added, and Clear's reset removes the owner's state. The owner, verbatim: "Keep month and radius (Recommended)", so Clear resets the species but keeps the month and radius; and "Yes, match Entries (Recommended)", so in short landscape New find moves into the header row like New entry, as a quick follow-up after this merge. It merges once checks pass (the owner's "Yes, build now" on the option reading "Merge once checks pass").
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -754.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-754
+**Timestamp:** 2026-10-08T22:03:50Z
+**Continues:** 2026-09-28-753
+**The open bar in landscape.** The owner, with an S26 landscape screenshot (kept off GitHub), verbatim: "I see that the entire bar gets larger along with the corresponding panel. Is this what the coder found too?" No: the coder measured the closed bar only. With the dropdown open in landscape, the bar grows taller than the strip and wider than the join, to the panel's size. That is likely -750's item 4, and no test covers the open state. The owner: "Bar stays put, panel hangs below (Recommended)": the bar keeps its closed size and position whether the dropdown is open or not, and the panel opens flush beneath it at its own width. And: "Merge #206, fix next (Recommended)": #206 merges on green CI, and this joins the follow-up with New find in the landscape header (-753), the night blend and the Maps-return flash (-752).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -755.
