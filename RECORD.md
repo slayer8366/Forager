@@ -13742,3 +13742,12 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 **Continues:** 2026-09-28-697
 **Amendment 1 to -697.** The owner, verbatim: "Search on the right, set on map on the left". In the bottom row, Set on map is on the left and Search on the right, which puts Search under the right thumb.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -699.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-699
+**Timestamp:** 2026-10-08T04:10:05Z
+**Continues:** 2026-09-28-694
+**Amendment 2 to -685 (small fixes).** small-fixes-1007 is at e2024931. The build passes all new tests, and all six revert checks bit. The full suite has 4,233 tests, 24 skipped and 2 failures, both from one cause. The planner's dispatch line "at font 1.0 that nothing changes" was the planner's addition, not the owner's, and it was wrong: at font 1.0 in landscape the 360 dp display already overlaps the search bar (1 dp in an 823 dp window, about 42 dp at 780 dp, about 20 dp on the S22, inferred). So the cap changes font 1.0 too, cutting "by trail" (AvailabilityScreenNavigationWordsLandscapeTest) and "No origin waypoint for this track" (LandscapeLargeFontTest). The owner, verbatim: "Yes, everywhere (Recommended)": the cap applies at every font scale. The landscape test that expected "by trail" whole is updated to the new rule, on this word. Also found: at font 2.0 the strip's coordinates show only "…". The owner: "Coordinates take priority (Recommended)": when space runs short, facing and altitude give way before the coordinates, which stay whole.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -700.
