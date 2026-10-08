@@ -13841,3 +13841,17 @@ The planner's calls: Drafts grouped by day, newest day first, and the "+" tile a
 **Context:** the owner, verbatim: "I'm also wondering about what would be lost if I removed satellite view from the maps and leave it at Topo + street view. Satellite loses quality fast and is less useful when zoomed in. That's a hit on quality when Google maps does it much better, and people are used to that. Any drawbacks to that decision?" The planner checked the code: Satellite is USGS orthoimagery, US-only, with maxZoom 15. Asked to take it through as a decision, the owner chose "Remove now, revisit later (Recommended)", and "Topo (Recommended)" for anyone with Satellite stored. To the step path: "Option 1 with an addition: have the app remember which map modes you had it on last so we don't have to keep switching to the favorite". The basemap had been session-only by omission, not by ruling (docs/plans/journal-redesign.md:517: "Not asked, and so unchanged"). It now persists across restarts. Shown the updated steps, the owner: "Yes, that's it (Recommended)", on the option reading "It merges once checks pass." Satellite is to be revisited once the forecast's habitat layers are on the map.
 **Sent:** not yet; the coder starts once a slot frees. Its build is queued after settings-moves.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -709.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-709
+**Timestamp:** 2026-10-08T05:37:35Z
+**Continues:** 2026-09-28-690
+**Back-by build and the width clash, measured.** back-by at b318b4b3, with main merged through the small fixes. Full suite: 4,300 tests, 8 failures, 24 skipped. All nine revert checks bit. The three-dot button is built from motion Part 1's pieces with a whole 36 dp square touch area, not a clipped IconButton. Back by's skipped buzz is recorded like sundown's. Measured: at 360 dp portrait the button cuts the strip's heading ("315") and elevation ("98") and the display's "by trail" and "Unable to calculate route". At 384 dp (S22) everything fits. At 780×360 landscape the strip's button is laid out 0 dp wide (a bug: there is no way into the quick menu). The 36 dp strip floor makes the search dropdown and the icon bar's drag limit overlap the strip's lower 18 dp, and probably the bubble and chips too. The owner, verbatim:
+- Strip on small phones: "Coordinates first, same rule (Recommended)". The small fixes' coordinates-first rule applies in portrait too.
+- Display on small phones: "Second line under the distance (Recommended)". "by trail" or "straight", and a long status, take a second line within the row's existing 48 dp height. Nothing is cut and nothing grows.
+- The taller strip: "Follow the strip's real height (Recommended)". Everything placed under the strip reads its measured height.
+The planner's call: the landscape strip button's 0 dp width is a bug, and the button always keeps its 36 dp.
+Also, settings-moves (2b4afab3, not compiled) reported five choices. The planner accepts all five: Sundown under the collapsed Trip Planner header, the panel's dark 80% look, a tap outside that closes only the panel, the panel turning with the device, and the rows keeping Settings' ripple.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -710.
