@@ -14192,3 +14192,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-744
 **The fix is checked; R8 stays pinned.** launch-verifyerror at 8d779ae8, PR #205 opened. Its contents: #203's join kept (10 files byte-identical, 2 regrouped only); s22-launch-check.sh (exit 0: "compile -m verify -f: Success", "dexopt: status=verify", "PASS: verified (status=verify), launched, process 23519 alive after 8 s, crash buffer empty"); the S22 checks of the portrait strip at 36 dp, a tab switch, and landscape at both rotations (join, line, portrait height, heading whole); and the full suite, 4,454 tests with 0 failures. The revert check without the R8 pin also verifies and launches, so the split is the fix and the pin is insurance. The guard has not yet been seen failing on a crashing build, because install -r refused the older crashing build. At ROTATION_270 the bar's accessibility box starts about 6 dp after the strip ends; it isn't visible and is noted for later. The register report lists nine methods over 256 registers. The owner, verbatim: "Keep it pinned (Recommended)". It merges once checks pass, under -730.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -746.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-746
+**Timestamp:** 2026-10-08T20:19:15Z
+**Continues:** 2026-09-28-745
+**PR #205 merged into main** (c0ec942a), from launch-verifyerror (head 8d779ae8): the launch VerifyError fixed (CompactMapTab split to 173 registers, parameters grouped, R8 9.3.31 pinned), #203's landscape join restored, and scripts/s22-launch-check.sh as the pre-merge UI step. The owner, verbatim: "Merge it once checks pass" (-730) and "Keep it pinned (Recommended)". The S22 launch check passed on this head's build. The laptop suite: 4,454 tests, 0 failures. CI "Build, test, publish APK" passed. Pre-merge main 6cbcdac5 is backed up at forager-repo-backups/2026-10-08-07. Next: T6b resumes until 13:00 is past, so its window is re-set.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -747.
