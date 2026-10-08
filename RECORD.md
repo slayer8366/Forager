@@ -14064,3 +14064,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-728
 **PR #202 merged into main** (f8739856), from search-keyboard (head 50f245d9): -722 to -728. The owner, verbatim: "Merge it once checks pass". The laptop suite: 4,416 tests, 0 failures. CI "Build, test, publish APK" passed on the first run. Pre-merge main bfbba33f is backed up at forager-repo-backups/2026-10-08-04. Next: landscape-bar-strip (-729), then T6b resumes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -732.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-732
+**Timestamp:** 2026-10-08T16:39:56Z
+**Continues:** 2026-09-28-729
+**Landscape join: the planner's premise was wrong; the join moves to fit.** landscape-bar-strip at d9e96a5b. The centre join is built, mirrored at ROTATION_270, at equal height with the line, and its revert checks bit. But it gives the strip less room, not more: the bar used to stop short of the centre and the strip already filled the space beside it. So the heading still drops (38 to 68 dp short), and at font 2.0 the MGRS coordinates are cut (15 of 18 characters), against -699. The planner's -729 premise that the join would make room for the heading was wrong. Full suite: 4,432 tests, 6 failures. Four are AvailabilityScreenLandscapeB2Test S1/S2 at 90 and 270, which encode the old 384 dp cap and 8 dp gap. Two are LandscapeLargeFontTest at font 2.0. The owner, verbatim: "Join moves to fit the strip (Recommended)". The strip takes the width its readouts need (heading, altitude and coordinates whole, under readoutsFitBeside), the join sits at the strip's edge with the line, the bar takes the rest at the same height, and the bar keeps a sensible minimum for its field. B2 S1/S2 change to the new rule; LandscapeLargeFontTest should pass as written.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -733.
