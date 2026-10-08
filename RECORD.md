@@ -14073,3 +14073,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-729
 **Landscape join: the planner's premise was wrong; the join moves to fit.** landscape-bar-strip at d9e96a5b. The centre join is built, mirrored at ROTATION_270, at equal height with the line, and its revert checks bit. But it gives the strip less room, not more: the bar used to stop short of the centre and the strip already filled the space beside it. So the heading still drops (38 to 68 dp short), and at font 2.0 the MGRS coordinates are cut (15 of 18 characters), against -699. The planner's -729 premise that the join would make room for the heading was wrong. Full suite: 4,432 tests, 6 failures. Four are AvailabilityScreenLandscapeB2Test S1/S2 at 90 and 270, which encode the old 384 dp cap and 8 dp gap. Two are LandscapeLargeFontTest at font 2.0. The owner, verbatim: "Join moves to fit the strip (Recommended)". The strip takes the width its readouts need (heading, altitude and coordinates whole, under readoutsFitBeside), the join sits at the strip's edge with the line, the bar takes the rest at the same height, and the bar keeps a sensible minimum for its field. B2 S1/S2 change to the new rule; LandscapeLargeFontTest should pass as written.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -733.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-733
+**Timestamp:** 2026-10-08T17:10:48Z
+**Continues:** 2026-09-28-732
+**Landscape join built; short compass words.** landscape-bar-strip at 72db216a. The join fits the strip: at 780×360 and 823×384, in both rotations and both coordinate formats, heading, altitude and coordinates are whole, and so are the coordinates at font 2.0. The bar's floor is measured (394.33 dp with a long search and Clear). The coder corrected its own -729 shortfall figures (two separators, not three): 47.6/39.3 dp at 780 and 26.1/17.8 dp at 823. Full suite: 4,438 tests, 3 failures (LandscapeLRulingsTest B1 at 90 and 270, LayoutFixesChipRowLandscapeTest T7). Making room for the compass status words narrowed the bar to about 302 dp and squeezed the notice and chips beneath it. The owner, verbatim: "Short words, same room (Recommended)". In short landscape, a broken compass shows "No compass" and an unreliable one "Compass?", sized to the heading's value width, so the join doesn't move and nothing under the bar is squeezed. Portrait keeps the full wording.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -734.
