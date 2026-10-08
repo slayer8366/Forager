@@ -13868,3 +13868,12 @@ Also, settings-moves (2b4afab3, not compiled) reported five choices. The planner
 3. settings-moves (-707) and basemaps (-708) are combined into one branch, built once and merged once.
 Real stops still go to the owner.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -711.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-711
+**Timestamp:** 2026-10-08T06:04:30Z
+**Continues:** 2026-09-28-708, 2026-09-28-710
+**The icon cluster remembered across restarts, folded into the last merge.** The owner, verbatim, with a phone screenshot of the map (kept off GitHub): "Please fold this into the last set of changes: have the map icon bar persist between restarts so left handed users don't need to change it every time they open the app". This reverses CLAUDE.md's UX default "the cluster's position, side and minimised flag deliberately do not". The planner quoted that sentence back to the owner. Answers: "Side and height (Recommended)": the side it is snapped to and its dragged vertical position persist across restarts in DataStore (map_preferences), while the minimised flag stays session-only so the bar never reopens hidden. "Yes, update it (Recommended)": the CLAUDE.md sentence is edited in place to name what now persists, quoting the owner, with no line moved (line 253 stays put). It goes with the combined settings-moves and basemaps merge (-710, step 3).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -712.
