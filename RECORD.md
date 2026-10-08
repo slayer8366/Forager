@@ -14250,3 +14250,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-750
 **A "New find" button replaces the "+" tile.** The owner, verbatim, with two phone screenshots (kept off GitHub): "Now that the UI changed for Finds (which I like), can we use a New Find button instead of the + tile. The New Find button should look like the New Entry button found in the journal entry section." Shown as steps (the grid starts at the first date heading; a "New find" extended button floats bottom right, matching "New entry"; tapping it opens a new find as the tile did), the owner chose: "The Finds leaf (Recommended)" for the icon, and "Yes, same build (Recommended)", so it joins landscape-search-fixes (-750). This supersedes -703's "+" tile alone at the top.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -752.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-752
+**Timestamp:** 2026-10-08T20:59:17Z
+**Continues:** 2026-09-28-749
+**Device check findings queued as a follow-up.** The merged device check (-749) passed items 1 to 7 and 9 on the S22 with CI's APK for c0ec942a. Its failure (a recent search not moving the map) is in -750. Two motion observations: the night blend shows one muddy grey middle frame instead of a smooth fade, and returning to Maps from another tab shows a blank map with the heading "—" for a moment, then one frame drawn hugely magnified before the view settles. The owner, verbatim: "Yes, add them to a follow-up". Both go to a small follow-up after landscape-search-fixes, with the root cause found before any fix (map: likely the tab crossfade's hold and the camera restore; night blend: the colour interpolation). Also on the list: French common names in species suggestions; the 6 dp accessibility gap at ROTATION_270's join; CI failing on main's push run for 6cbcdac5.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -753.
