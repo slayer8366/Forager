@@ -14127,3 +14127,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-721, 2026-09-28-737
 **T6b resumed.** With PR #203 merged and no Gradle running, the planner removed T6b's PAUSE file and restarted the section as t6b-night: scripts/t6b_run.py --until 13:00 --stages mask,plots,soil,trees --workers 2, appending to night-2026-10-08.log, under the same caps as -721. It had paused at 05:13 PDT after its first tile (40 unit lines in the manifest).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -739.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-739
+**Timestamp:** 2026-10-08T18:39:19Z
+**Title:** launch-verifyerror: URGENT, main crashes on launch (ART VerifyError in CompactMapTab)
+**Dispatch-file:** preserved/2026-10-08-04.md
+**Context:** the owner, verbatim: "App force closes when trying to start". The connected S22 still had 1.0.2874 (no crash). The owner plugged in the S26, which has 1.0.3086+g0e766d94, installed 11:36 PDT. Its crash buffer shows java.lang.VerifyError rejecting AvailabilityCompactMapUiKt: CompactMapTab (about 77 parameters plus ten int masks) fails ART verification ("register v0 has type Reference: …MapMode but expected Integer"). Robolectric and CI never run ART's verifier, so every suite was green. The planner paused T6b again (PAUSE file), as the owner chose for the earlier fix ("Pause T6b, build, resume (Recommended)"). Nothing was installed on the S26; it was read only. The fix: reproduce on the S22 with install -r, shrink CompactMapTab's parameters into holder classes with no behaviour change, verify on the S22, and add a guard against a repeat.
+**Sent:** to a coder subagent, urgent.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -740.
