@@ -14297,3 +14297,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** PR #206 (landscape-search-fixes) merged into main
 **Context:** The owner: "Merge #206, fix next (Recommended)" (-754). CI passed on head eb4932ca (Build, test, publish APK, 11m48s), the head unchanged since the S22 launch check. Merge commit 34fd5deb; pre-merge main c0ec942a backed up to forager-repo-backups/2026-10-08-08. The worktree was removed. The fix-next work is -755.
 **Notes:** T6b was restarted afterwards per -748 (PAUSE removed, --until 07:00 local), and will be paused again before -755's build. Next free ID -757.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-757
+**Timestamp:** 2026-10-08T22:08:37Z
+**Title:** Gradle go for -755 (followup-1008), given in advance
+**Context:** The owner, in the planner's window: "Build when the coder's ready". Relayed to the -755 coder with #206's merge (34fd5deb). The coder pauses T6b (PAUSE file) and waits for its unit to stop before Gradle, per -748. The planner restarts T6b after the coder reports.
+**Notes:** Next free ID -758.
