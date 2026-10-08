@@ -13624,3 +13624,12 @@ The planner's calls on the other stops: J6/J10/F5/F8/V4/K2 (a loading or empty s
 **Continues:** 2026-09-28-668
 **PR #195 merged into main** (f6fc6c91), from data-c-seasonal (head ffbbb796): data part C, dispatch -668 with amendment -669. The owner, verbatim: "Merge data part C once checks pass". The laptop suite passed after merging main through motion Part 2 (4,110 tests, 0 failures, 8 revert checks bit). The planner merged main again for data part A (ffbbb796), which conflicted only in the audits index; both rows were kept. CI "Build, test, publish APK" passed on that head. Pre-merge main f17b24b5 is backed up at forager-repo-backups/2026-10-07-14. The charts' look, the soil scale at large font, and the zoom note's trigger are still to be checked on the S22.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -687.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-687
+**Timestamp:** 2026-10-08T01:27:50Z
+**Continues:** 2026-09-28-645
+**Back-by prepared for its build.** The owner, verbatim: "Start getting back-by ready for when the laptop is free". The first back-by coder was stopped earlier (-664) and cannot be resumed, so a new coder takes the branch (back-by at 29074703, code and tests from -645 with amendments -646 to -649). It merges origin/main, which now has failure-fixes, motion Parts 1 and 2 and data parts A and C, and data part B and motion Part 3 if they have landed. It guards BackByWatch.onFix through failure-fixes' RecordingWatches with a test, as -674 noted. It routes the three-dot button through BouncingIconButton with the rounded press shade, and fits the strip and navigation display changes from motion Part 2 and data part B. No Gradle until the laptop is free and the planner says go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -688.
