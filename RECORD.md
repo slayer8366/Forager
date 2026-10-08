@@ -13679,3 +13679,12 @@ Motion Part 3 (f7cb6ea3, main merged through data part C): 46 new tests pass, an
 **Continues:** 2026-09-28-691
 **Motion Part 3: the album fix confirmed, F1 to the owner.** motion-part-3 at 868ab573, with main merged through data part B. Full suite: 4,208 tests, 24 skipped, 1 failure (LeavingTheJournalFixesTest F1). The album cases pass unchanged, which confirms the keyed-remember cause. F1: going Back from the find editor, focus passes from the sliding-out editor to the returned search field, and the dropdown opens. Two focus fixes failed, and the coder stopped under CLAUDE.md's two-failed-attempts rule. The under-48 dp guard on Parts 1 and 2 is in. Its map test (SmallLeavingChipTest) cannot fail, because the map under the touch wins (R15 passed with the fix off), so it is labelled a pin. On lists the gap is real (R16 bit). The owner, verbatim: "Search bar returns after the slide (Recommended)". On Journal, the search bar stays hidden until no Journal page is leaving, extending the existing isEditingJournalEntry rule.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -693.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-693
+**Timestamp:** 2026-10-08T03:22:59Z
+**Continues:** 2026-09-28-676
+**PR #197 merged into main** (b71c1569), from motion-part-3 (head 7f97c993): motion Part 3, dispatch -676 with amendments -681, -682, -691 and -692. The owner, verbatim: "Merge motion Part 3 once checks pass". The laptop suite, after merging main through data part B: 4,209 tests, 0 failures. Revert checks R1 to R17 bit, except R15, whose map-side guard is a labelled pin. CI "Build, test, publish APK" passed on the head. Pre-merge main a71b57ac is backed up at forager-repo-backups/2026-10-07-16. All three motion parts, the failure fixes and data parts A to C are now on main. The S22 look-and-feel check of the sweeps is still to do. Next, per -689: the small fixes (-685), then back-by.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -694.
