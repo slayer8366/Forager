@@ -13778,3 +13778,17 @@ Logged as separate findings, not fixed here: at font 2.0 in landscape, Record an
 **Continues:** 2026-09-28-697, 2026-09-28-656
 **Data part D folded into search-order.** The owner, with a phone screenshot of the Finds tab still showing "Find on 2026-10-07" (kept off GitHub), verbatim: "The "finds" section still displays the date instead of the given name. Can we also change that along with the search menu?" The planner disclosed that data part D (dates, Finds and times, -656) had been planned for after motion Part 3 and was never dispatched; that was the planner's slip. The owner: "All of data part D, with search (Recommended)". The search-order coder takes -656's remaining items. Finds are grouped under date headings, and each tile shows the find's given name, or "Found 2:14 PM" when unnamed. Every date in the app reads "Oct 7, 2026" (the earlier ISO-date answer Q3 is superseded). Times follow the phone's 12- or 24-hour setting. One build, one merge, under the owner's "Merge search order once checks pass".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -703.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-703
+**Timestamp:** 2026-10-08T04:54:32Z
+**Continues:** 2026-09-28-702
+**Amendment 4 to -697 (data part D in search-order).** search-order is at 0ba71eef, not compiled. There is one shared date and time formatter (ui/format/DisplayDates.kt), the parts A and C copies are deleted, dates read "Oct 7, 2026", and times follow the phone. A find stores no time of day. The owner's answers, verbatim:
+- An unnamed find's time: "Option 1, but keep it blank instead of showing "Unnamed find"". New finds save a found-at time, in a new nullable column with a migration. Older finds use the earliest photo taken that day. A find with neither shows no title text at all, and no placeholder.
+- Weekday day headers in the Records logbook and the Album: "Keep the weekday there (Recommended)".
+- Automatic waypoint names: "New ones follow the new style (Recommended)", for example "Start · Oct 7, 2026, 9:41 AM" or 24-hour. Saved names are unchanged.
+- An unnamed find's own pages and map bubble: "Match the tile (Recommended)".
+The planner's calls: Drafts grouped by day, newest day first, and the "+" tile alone on the first row are accepted. A blank-titled find keeps a screen-reader label naming it as a find and its date, so TalkBack never meets an empty control. The database version follows guidance-text's 19, so this branch goes from 19 to 20 after guidance-text merges (the queue order guarantees that). It re-checks at build time.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -704.
