@@ -14288,3 +14288,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** -752, -753 and -754. The coder writes now and builds after #206 merges, with T6b paused for the build per -748.
 **Sent:** to a coder subagent.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -756.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-756
+**Timestamp:** 2026-10-08T22:07:59Z
+**Title:** PR #206 (landscape-search-fixes) merged into main
+**Context:** The owner: "Merge #206, fix next (Recommended)" (-754). CI passed on head eb4932ca (Build, test, publish APK, 11m48s), the head unchanged since the S22 launch check. Merge commit 34fd5deb; pre-merge main c0ec942a backed up to forager-repo-backups/2026-10-08-08. The worktree was removed. The fix-next work is -755.
+**Notes:** T6b was restarted afterwards per -748 (PAUSE removed, --until 07:00 local), and will be paused again before -755's build. Next free ID -757.
