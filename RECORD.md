@@ -13819,3 +13819,14 @@ The planner's calls: Drafts grouped by day, newest day first, and the "+" tile a
 **Continues:** 2026-09-28-689
 **Merge word for the rest of the queue.** The owner, verbatim: "Got it, merge them all once checks pass". This covers back-by (-645, already "Merge back-by once checks pass"), guidance-text (-695) and search-order with data part D (-697). Each merges after its laptop build is green and its CI passes, in that order. A stop in any build (for example back-by's width measurement, -690) still goes to the owner before merging.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -707.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-707
+**Timestamp:** 2026-10-08T05:19:27Z
+**Title:** settings-moves: Sundown into the Tools drawer; the two camera options into a gear panel in the camera
+**Dispatch-file:** preserved/2026-10-07-18.md
+**Context:** the owner, verbatim, with a phone screenshot of Settings (kept off GitHub): "In the settings menu, can you move the Sundown area to the Tools so that it's one button away instead of two. Move the two camera options at the bottom to a settings menu inside the camera itself." Answers: "Section in the Tools drawer (Recommended)" (Sundown alerts, Dark under trees and the Off-track reminder, as a section in the drawer, gone from Settings); "Gear chip with the others (Recommended)" (a gear chip beside flash, timer and grid, opening a panel with "Automatically Save Location to Photos" and "Lock camera to portrait", gone from Settings). Shown the step path, the owner: "Yes, that's it (Recommended)", on the option reading "I record it and queue it after search order. It merges once checks pass, like the rest."
+**Sent:** to a coder subagent, code and tests now. Its build is queued after back-by, guidance-text and search-order.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -708.
