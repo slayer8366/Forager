@@ -14621,3 +14621,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 - The planner's slip, found by the review: -782's "23,226" US cells for 256_-29_20 should read 23,211 (total 25,760).
 **The owner:** asked twice to see the options again and for the steps a visitor takes, then chose "A: Pre-cut tiles, go live (Recommended)". Each layer becomes static z/x/y image tiles (about 2,200 files), and the byte-range handler is removed. The map goes live at /Forager/forecast/ before Monday, after a re-check. The tap readout must keep working, or the planner returns to the owner before going live. On the forecast fix the owner answered "[No preference]". The planner proceeds under -784's "merge when ready": fix F1 (with a test and a revert check) and F2 to F5, re-review, then merge into t6b-continental-layers.
 **Notes:** Next free ID -787.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-787
+**Timestamp:** 2026-10-09T16:37:23Z
+**Continues:** 2026-09-28-786
+**The owner's answer on the forecast fix:** "Fix, re-check, merge (Recommended)". This replaces -786's "[No preference]". The order stands: fix F1 to F5, re-review, merge t6b-pnw-monday into t6b-continental-layers.
+**Notes:** Next free ID -788.
