@@ -14652,3 +14652,15 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** The owner asked: "How many layers should be used? To me it seems like the sighting chances just increase with more data added, but maybe I'm not seeing the logic." The planner explained four things: a calibrated chance is sharpened, not raised, by data; the limit is the roughly 1,200 Cantharellus records; layers overlap; and effort measures people. The plan already requires layers to earn their place on held-out years. The planner recommended a lean start of about 6 to 10 inputs.
 **Decision:** The owner, verbatim: "Go with the lean start". Habitat: host trees, soil pH, the land and water mask. Trigger: a few weather measures (recent rain, soil moisture, temperature). Observation: effort. Anything further enters only if it beats the model without it on held-out years (D33). Written as D121 on forager-forecast branch d121-lean-start (from t6b-continental-layers), pushed, unmerged. Its merge follows the repo's rules (D40).
 **Notes:** Next free ID -790.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-790
+**Timestamp:** 2026-10-09T17:59:09Z
+**Title:** Reference layers come with a "how to read this" guide; one added to the test map now
+**The owner, verbatim:** "Reference layers aren't terrible, but a reference legend on how to use them would be the guideline needed to hold it together", then "Add the guide to the test map too". This followed a web read of GeoForager: many reference layers, plus a "morel probability" layer with no published inputs, method or validation.
+**Shape, as the planner proposed it:** each layer's guide gives what it shows (one line); why a forager would care, per mushroom group, with a source from the forecast repo's own citations; its limits; and no hidden scoring (the guide never combines layers into a "hot spot").
+**Now:** a guide panel for the four test-map layers on /Forager/forecast/, built on a new zynergy-site branch, reviewed, then merged live. The owner's word to put it there is "Add the guide to the test map too".
+**For the next update (idea, not a go-ahead):** reference layers in the Forager app, each with such a guide. The app needs a new decision first, since the current forecast contract (D55) keeps 250 m data out of the app.
+**Notes:** Next free ID -791.
