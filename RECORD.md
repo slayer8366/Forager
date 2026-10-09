@@ -14630,3 +14630,15 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-786
 **The owner's answer on the forecast fix:** "Fix, re-check, merge (Recommended)". This replaces -786's "[No preference]". The order stands: fix F1 to F5, re-review, merge t6b-pnw-monday into t6b-continental-layers.
 **Notes:** Next free ID -788.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-788
+**Timestamp:** 2026-10-09T17:08:01Z
+**Title:** The PNW forecast test area is live; t6b-pnw-monday merged into t6b-continental-layers
+**Context:** The owner: "2 and 3 merge when ready", "Base branch is correct", "A: Pre-cut tiles, go live (Recommended)", "Fix, re-check, merge (Recommended)" (-784, -786, -787). The D18 re-review gave both branches PASS WITH NITS: forager-forecast 46c1ed6 (F1 fixed with two guards, each proven by its own revert; suite 480) and zynergy-site 8423138 (static tiles; middleware byte-identical to main).
+**Site:** the planner applied the re-review's S6 (the tile folder's _headers get "Content-Security-Policy: default-src 'none'; frame-ancestors 'none'" and "X-Frame-Options: DENY") and S7 (a stale comment in app.js) in c2629bc, verified on the preview, opened zynergy-site PR #6 (Cloudflare Pages check passed) and merged it: main afeb307, pre-merge 89593b1 backed up to forager-repo-backups/2026-10-09-03-zynergy-site. Checked on production: https://zynergy-labs.com/Forager/forecast/ serves the labelled page with its CSP, /forager/forecast returns a 301 to it, tiles return 200 image/png with DENY, and /forager is unchanged.
+**Forecast:** T6b was paused at 10:05 PDT. In the T6b checkout the planner merged origin/t6b-pnw-monday into t6b-continental-layers (e4979e2, backed up to forager-repo-backups/2026-10-09-04-forecast-t6b). The merge was clean, 480 tests passed under a 2G cap, and it was pushed as 63dc6e4. T6b restarted at 10:07 from the merged code with stages mask,plots,soil,trees-us-half,trees and --until 23:00, so the other 72 mixed tiles get their US halves under D119.
+**Re-review nits carried, not done:** N1, report section 13 should say whether the planner allowed the tile cut alongside T6b (the planner's -786 message allowed light steps under 2G and asked to be told before anything over about 1.5 GB; the cut peaked at 0.67 GB); N2, log dropped Canada-only keys in --us-half-tiles; N3, the tap-method correction also covers section 12's tap. S8: the stale vendor/pmtiles.js on the preview alias edge (nothing loads it).
+**Notes:** Next free ID -789.
