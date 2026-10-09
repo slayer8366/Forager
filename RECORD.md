@@ -14364,3 +14364,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** Plan L3: a rainy woods walk at Molalla with both phones, combined with the back-by check
 **Context:** The owner, verbatim: "Tomorrow it's going to be rainy, Molalla is only 20 minutes from me so I'll head out there with bad weather, poor GPS, full canopy, and we can get some real data". This is the first L3 walk (plan track L), using the walk logger on both phones per docs/navigation/2026-10-05-how-to-log-a-walk.md. The planner folded in the open back-by device check (-645: silent mode, the app swiped away, both buttons, ending on arrival). -400, off-track with the app swiped away, already passed on Vibrate (S22 day check).
 **Notes:** The logs go to ~/Zynergy/device-evidence/ and never into a repo. Next free ID -764.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-764
+**Timestamp:** 2026-10-09T02:12:12Z
+**Title:** T11: the navigation HUD in landscape, a check and a report (no fixes)
+**Dispatch-file:** preserved/2026-10-09-01.md
+**Context:** The owner, verbatim: "Go ahead and write the T11 dispatch". The plan defines T11 as a device check first, with a fix only for what the check shows. Tablets are now "a big phone", so the tablet check is left for the owner to decide. The check measures headless at 780 and 823, in both rotations and at fonts 1.0, 1.3 and 2.0, across the HUD's states, then on the S22. The report gives options and a recommendation. Gradle and the S22 run only on the planner's go, with T6b paused.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -765.
