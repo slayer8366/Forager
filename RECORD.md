@@ -14431,3 +14431,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 - "Quick menu, logger off (Recommended)". The switch is in the quick menu only, with the wording "Battery saver" / "Checks your position every 5 seconds instead of every second. Alerts can come a few seconds later." The measurement runs with the walk logger off: 2 h with the saver off, then 2 h with it on, unplugged, then a recharge before the walk.
 **Order:** T17 builds first, so the measurement can run tonight; T11 builds after it.
 **Notes:** Next free ID -769.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-769
+**Timestamp:** 2026-10-09T03:44:45Z
+**Title:** T11 fixes: the short-text order applies in portrait too
+**Context:** The T11 fixes coder found that the order confirmed in -768 changes portrait on narrow phones. On a 320 dp phone at font 1.0, heading home, the status line reads "By trail · ≈ 125…" today. Under the confirmed order it reads "By trail", because the note gives way whole. The dispatch -766 said portrait must not change. NavigationHudKindInStatusTest pins today's text.
+**Decision:** The owner: "Same rule everywhere (Recommended)". Portrait changes only where text was already cut with "…". The test is updated to the new text, citing this entry.
+**Also:** a pre-existing finding, not changed: while navigating, the search bar grows from 36 to 45 dp, which moves the L on the other side down 1 to 9 dp. The report records it for a later ruling.
+**Notes:** T17's S22 measurement waits for the owner to plug the S22 back in. Next free ID -770.
