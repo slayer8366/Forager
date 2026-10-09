@@ -14474,3 +14474,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** A read-only check of forager-forecast (after -771) found the following. No forecast can exist by Monday: no weather pull, no T1 fit, T7 to T11 not written. T6b has finished continental soil, and the US trees are about 15% done. The PNW US tree tiles finish in tonight's section, but the 23 tiles touching Canada wait for SCANFI and leave about 47.76 to 49 N without tree data. The data drive has 4.0 GB free, and the laptop's swap is full. TASKS.md and START_HERE are stale. The owner, verbatim: "If anything, we can work the PNW region and use that as the starting point."
 **The owner's answers:** "Compute the US half now" (offered: show the strip as pending, recommended; finish Canada first) and "Also a browsable map" (offered: image, checks and briefing, recommended; briefing only).
 **Notes:** Heavy steps run only after tonight's section stops at 07:00 PDT, on the planner's go, under the 5 GB cap. The decision row (next D number) is written by the coder, quoting the owner. Next free ID -773.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-773
+**Timestamp:** 2026-10-09T06:40:43Z
+**Continues:** 2026-09-28-772
+**The browsable map goes on the owner's site.** The owner, verbatim: "The web browser can go on my website at /forager/forecast". The coder builds forager/forecast/index.html (lowercase; Pages paths are case-sensitive, and /Forager/mushroom-forecast/ is a separate path) on a new zynergy-site branch. The page carries the PMTiles beside it, pinned CDN scripts, the "not a forecast, not yet reviewed" label, the attributions and licence, and noindex. It is verified on the branch's preview deployment: the body, Range requests answering 206, and the layers drawing. Production (a merge to main) waits for the owner's word.
+**Notes:** Next free ID -774.
