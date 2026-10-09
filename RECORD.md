@@ -14463,3 +14463,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "This update cycle is mostly coded already, so what's left are the data collection field trips. On the other hand, FLS doesn't need to rush, we'll want to actually invest proper time in this, so if this extends beyond release a bit, then no harm. I'll be meeting with Alan Rockefeller this Monday at the OMS meeting, so I'll want to focus on the forecast system to finish by then anyway".
 **Reading:** the planner takes "FLS" to mean the location-fusion track (plan track L), unconfirmed. L may slip past the release; it gets proper time, not a rush. The focus to Monday 2026-10-12 is the forecast system (T6b and what follows), finished for the owner's meeting. -765's "L by Monday" is relaxed accordingly.
 **Notes:** Next free ID -772.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-772
+**Timestamp:** 2026-10-09T06:34:28Z
+**Title:** forager-forecast: the PNW for Monday (US cells of the border tiles now, a PNW render and browsable map, first checks, a meeting briefing)
+**Dispatch-file:** preserved/2026-10-09-04.md
+**Context:** A read-only check of forager-forecast (after -771) found the following. No forecast can exist by Monday: no weather pull, no T1 fit, T7 to T11 not written. T6b has finished continental soil, and the US trees are about 15% done. The PNW US tree tiles finish in tonight's section, but the 23 tiles touching Canada wait for SCANFI and leave about 47.76 to 49 N without tree data. The data drive has 4.0 GB free, and the laptop's swap is full. TASKS.md and START_HERE are stale. The owner, verbatim: "If anything, we can work the PNW region and use that as the starting point."
+**The owner's answers:** "Compute the US half now" (offered: show the strip as pending, recommended; finish Canada first) and "Also a browsable map" (offered: image, checks and briefing, recommended; briefing only).
+**Notes:** Heavy steps run only after tonight's section stops at 07:00 PDT, on the planner's go, under the 5 GB cap. The decision row (next D number) is written by the coder, quoting the owner. Next free ID -773.
