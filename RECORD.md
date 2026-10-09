@@ -14513,3 +14513,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-775
 **A lowercase redirect.** The owner, verbatim: "Add the lowercase redirect too". /forager/forecast(/) redirects to /Forager/forecast/ through the site's _redirects file. It is scoped to that path only; /forager itself stays reserved for the app page. It is checked on the preview by reading the Location header and the body.
 **Notes:** Next free ID -777.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-777
+**Timestamp:** 2026-10-09T06:46:37Z
+**Continues:** 2026-09-28-773
+**What the two site paths are for.** The owner, verbatim: "That mushroom-forecast page will be exactly this forecast model, but complete. This is the test zone before it hits live." /Forager/forecast/ is the test area. /Forager/mushroom-forecast/ is the future home of the complete forecast. It holds the forecast's planning record today (README of zynergy-site), so a later move of that record will be needed, which is not decided here.
+**Notes:** Next free ID -778.
