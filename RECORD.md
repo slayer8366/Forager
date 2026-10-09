@@ -14374,3 +14374,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Dispatch-file:** preserved/2026-10-09-01.md
 **Context:** The owner, verbatim: "Go ahead and write the T11 dispatch". The plan defines T11 as a device check first, with a fix only for what the check shows. Tablets are now "a big phone", so the tablet check is left for the owner to decide. The check measures headless at 780 and 823, in both rotations and at fonts 1.0, 1.3 and 2.0, across the HUD's states, then on the S22. The report gives options and a recommendation. Gradle and the S22 run only on the planner's go, with T6b paused.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -765.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-765
+**Timestamp:** 2026-10-09T02:37:48Z
+**Title:** The weekend plan for a Monday release: T tasks tonight, the L walk tomorrow, then T6b
+**The owner, verbatim:** "We can wrap up the T sections of navigation tonight, and tomorrow after my walk we can finish the L section. Production can cool down a bit in the laptop and we'll focus fire T6b before the weekend is over. Target release date is Monday".
+**Answers:**
+- T17: "Build and measure tonight". (Offered: after Monday, recommended; build tonight with no claim.)
+- T20: "After our own tiles (Recommended)".
+- L by Monday: "Walk, read logs, L7 (Recommended)". The filter (L4) is built and tuned after Monday, off the live map.
+**Also:** T19 is closed by a code read. The disclaimer's wording is not in the app; it survives only as a comment, Theme.kt:81 on main c81b326d. T11's check is done (t11-hud-landscape 577532e9, report docs/navigation/2026-10-09-t11-hud-landscape-check.md), and its options go to the owner. T6b was restarted after the T11 check (--until 07:00).
+**Notes:** Next free ID -766.
