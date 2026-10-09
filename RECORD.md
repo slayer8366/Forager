@@ -14551,3 +14551,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** PR #208 (battery-saver, plan T17) merged into main
 **Context:** The owner: "Merge them both once checks pass" (-779). CI passed on head f621aecb (Build, test, publish APK, 12m9s). Merge commit caabf104; pre-merge main c81b326d was backed up to forager-repo-backups/2026-10-09-01. The worktree was removed. The planner then merged main into t11-hud-fixes (860fe33a). The only conflict was the docs/audits/README.md index, and both rows were kept. PR #209's CI re-runs on that head.
 **Notes:** Next free ID -781.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-781
+**Timestamp:** 2026-10-09T08:41:43Z
+**Title:** PR #209 (t11-hud-fixes, plan T11 and T19) merged into main
+**Context:** The owner: "Merge them both once checks pass" (-779). CI passed on head 860fe33a (main merged in after #208; Build, test, publish APK, 12m33s). Merge commit 6373e2fe; pre-merge main caabf104 was backed up to forager-repo-backups/2026-10-09-02. The worktree was removed. The t11-hud-landscape check branch rode along in this PR.
+**Open for the owner on a phone:** the bar's slide and its look, and the fit on the S22's narrower width (about 2 dp short at font 1.0 with an evening line). A pre-existing finding: the search bar grows from 36 to 45 dp while navigating and moves the other side's L down 1 to 9 dp.
+**Notes:** Stages A to F of the navigation plan are now built, apart from T20 (after own tiles, -765). Next free ID -782.
