@@ -14442,3 +14442,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Decision:** The owner: "Same rule everywhere (Recommended)". Portrait changes only where text was already cut with "…". The test is updated to the new text, citing this entry.
 **Also:** a pre-existing finding, not changed: while navigating, the search bar grows from 36 to 45 dp, which moves the L on the other side down 1 to 9 dp. The report records it for a later ruling.
 **Notes:** T17's S22 measurement waits for the owner to plug the S22 back in. Next free ID -770.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-770
+**Timestamp:** 2026-10-09T04:10:59Z
+**Title:** T11 fixes: the three-dot button gives way to the distance; the evening line leaves in the rare overlap
+**Context:** At 780 dp, font 2.0, moving the three-dot button up beside "1280 ft" cut "≈ 150 ft" to 5 of 8 characters. The coder's rule: the button goes up only while the figure on screen fits beside it. The grid reference then stays whole on the way home and to a far waypoint, and is cut to 16 of 18 when approaching or when the route is withheld, as before T11. A withheld route with the evening line at 780, font 2.0 would cover about 72 dp of the bar, including part of Reset north. The coder also decided, beyond the dispatch, to use "No route" in the small type on its own line, and to let the turn words give way to a warning or message.
+**Decision:** The owner: "Yes, distance wins (Recommended)" and "Drop the evening line then (Recommended)". In that case only, the sunset and Back-by line leaves the display so Reset north stays clear. The alerts are unchanged.
+**Also:** the planner tried to free disk by removing four old worktrees from earlier sessions (clean, already on the remote). The auto-mode classifier blocked it, and the owner was told. Nothing was deleted.
+**Notes:** Next free ID -771.
