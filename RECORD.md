@@ -14453,3 +14453,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Decision:** The owner: "Yes, distance wins (Recommended)" and "Drop the evening line then (Recommended)". In that case only, the sunset and Back-by line leaves the display so Reset north stays clear. The alerts are unchanged.
 **Also:** the planner tried to free disk by removing four old worktrees from earlier sessions (clean, already on the remote). The auto-mode classifier blocked it, and the owner was told. Nothing was deleted.
 **Notes:** Next free ID -771.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-771
+**Timestamp:** 2026-10-09T06:16:15Z
+**Title:** Priorities to Monday: the forecast system first; location fusion is not rushed
+**The owner, verbatim:** "This update cycle is mostly coded already, so what's left are the data collection field trips. On the other hand, FLS doesn't need to rush, we'll want to actually invest proper time in this, so if this extends beyond release a bit, then no harm. I'll be meeting with Alan Rockefeller this Monday at the OMS meeting, so I'll want to focus on the forecast system to finish by then anyway".
+**Reading:** the planner takes "FLS" to mean the location-fusion track (plan track L), unconfirmed. L may slip past the release; it gets proper time, not a rush. The focus to Monday 2026-10-12 is the forecast system (T6b and what follows), finished for the owner's meeting. -765's "L by Monday" is relaxed accordingly.
+**Notes:** Next free ID -772.
