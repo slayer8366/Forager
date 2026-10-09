@@ -14355,3 +14355,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** PR #207 (followup-1008) merged into main
 **Context:** The owner: "Merge it once checks pass". CI passed on head 1cbae504 (Build, test, publish APK, 8m20s). The coder's report: full suite 4,510 tests, 0 failures; nine revert checks bit; S22 launch check PASS on 1.0.3111+gaae61004; four returns to Maps on the S22 showed the map from the first frame. Merge commit c81b326d; pre-merge main 34fd5deb was backed up to forager-repo-backups/2026-10-08-09. The worktree was removed. T6b was restarted before CI (PAUSE removed, --until 07:00 local).
 **Notes:** Still to check on a phone: item 1 on the S26, the New find header's look, the night blend's smoothness on the S22, and the cover's fallbacks. Disk is at about 1.7 GB free. Next free ID -763.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-763
+**Timestamp:** 2026-10-09T02:08:32Z
+**Title:** Plan L3: a rainy woods walk at Molalla with both phones, combined with the back-by check
+**Context:** The owner, verbatim: "Tomorrow it's going to be rainy, Molalla is only 20 minutes from me so I'll head out there with bad weather, poor GPS, full canopy, and we can get some real data". This is the first L3 walk (plan track L), using the walk logger on both phones per docs/navigation/2026-10-05-how-to-log-a-walk.md. The planner folded in the open back-by device check (-645: silent mode, the app swiped away, both buttons, ending on arrival). -400, off-track with the app swiped away, already passed on Vibrate (S22 day check).
+**Notes:** The logs go to ~/Zynergy/device-evidence/ and never into a repo. Next free ID -764.
