@@ -14664,3 +14664,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Now:** a guide panel for the four test-map layers on /Forager/forecast/, built on a new zynergy-site branch, reviewed, then merged live. The owner's word to put it there is "Add the guide to the test map too".
 **For the next update (idea, not a go-ahead):** reference layers in the Forager app, each with such a guide. The app needs a new decision first, since the current forecast contract (D55) keeps 250 m data out of the app.
 **Notes:** Next free ID -791.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-791
+**Timestamp:** 2026-10-09T18:05:47Z
+**Continues:** 2026-09-28-790
+**The test-map guide is reviewed.** zynergy-site forager-forecast-guide at 3977645, D18 review PASS WITH NITS. Every quote traces to the forecast repo's T5 verify report section 3, or to t5_layer.py's TreeMap citation. No combined score, no D58 terms, and the site config is identical to main. G1 (only squares that are mostly water are blank) was applied by the planner in 417f462. G2 (the Pacific golden chanterelle quote's page is approximate in the T5 report) is not wrong as written. The full text was shown to the owner. It goes live on the owner's word.
+**Notes:** Next free ID -792.
