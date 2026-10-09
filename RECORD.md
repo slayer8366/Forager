@@ -14522,3 +14522,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-773
 **What the two site paths are for.** The owner, verbatim: "That mushroom-forecast page will be exactly this forecast model, but complete. This is the test zone before it hits live." /Forager/forecast/ is the test area. /Forager/mushroom-forecast/ is the future home of the complete forecast. It holds the forecast's planning record today (README of zynergy-site), so a later move of that record will be needed, which is not decided here.
 **Notes:** Next free ID -778.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-778
+**Timestamp:** 2026-10-09T08:13:13Z
+**Continues:** 2026-09-28-767
+**T17 built; the measurement was not a comparison.** battery-saver is at f621aecb. The quick-menu row works; with it on, every fix request asks every 5 s, mid-recording included. Full suite 4,520, 0 failures; 6 revert checks bit; launch check PASS on 385452de. Overnight on the S22 (screen off, still by a window, walk logger off): Run A (saver off) used 83.8 mAh/h, but the phone marked the app's GPS requests inactive about 3.5 min after going idle, so GPS was on for only 4 min 57 s of the 2 h. Run B (saver on) used 142.7 mAh/h, with GPS on for the full 2 h. Why they differ is not determined. No saving is claimed; the shipped wording makes no claim.
+**Finding for the owner (not acted on):** with the saver off, a still phone with the screen off lost the recording's GPS within minutes. On a walk, a standing walker could get no off-track or arrival readings until the phone wakes. Seen once, at a desk. The L3 walk logs can show whether it happens in the field.
+**The owner:** stopped the recording at 01:12 PDT and plugged the S22 in. The S22 then went to the T11 fixes coder for its launch check.
+**Notes:** Next free ID -779.
