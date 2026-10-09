@@ -14608,3 +14608,16 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-784
 **D120 done; independent review started.** forager-forecast t6b-pnw-monday at ac848c3 (D120: one condition on the guard; suite 475; 11 of 11 revert checks bit). zynergy-site forager-forecast-pnw at 01b3cde. Every US study cell in the PNW box now has its tile; 102,543 Canadian cells are pending. Tree edges are 29 of 32 windows exact (the other 3 are Canada-only or have no study cell). The seam has all 2,000 US samples, with no verdict while Canada is pending. On the preview: 0 map errors, a tap inside a D120 tile matches the mosaic, Range 206 OK. The coder corrected its own labelling (14,683 Canadian cells in Canada-only tiles had been shown as "held back"). T6b resumed at 05:45 PDT, --until 23:00. The D18 independent review of both branches is running, read-only, with the site middleware reviewed hardest. Merges follow a pass.
 **Notes:** Next free ID -786.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-786
+**Timestamp:** 2026-10-09T16:36:50Z
+**Title:** The D18 review's results; the live map is served as pre-cut tiles; the forecast branch is fixed before its merge
+**The review** (read-only, an independent session):
+- forager-forecast t6b-pnw-monday: **BLOCK** for F1. A Canada-only tile gets an "ok" US-half line with no files. Later, the trees stage takes it for a finished US half and fails on the missing file (reproduced). Nits: F2, the briefing overstates progress in two places; F3, the box also covers northern Nevada and northwestern Utah; F4, START_HERE needs a D120 row; F5, low-zoom overviews could blend a pending value (measured 0 cases here).
+- zynergy-site forager-forecast-pnw: **PASS WITH NITS**, with one condition, S1: the byte-range handler buffers the whole archive (up to 18.36 MB) per tile request inside the same Function that serves /api/beta-signup. Nits: S2, the README rationale; S3, Range edge cases; S4, the pmtiles licence notice; S5, dead text and "per forager group".
+- The planner's slip, found by the review: -782's "23,226" US cells for 256_-29_20 should read 23,211 (total 25,760).
+**The owner:** asked twice to see the options again and for the steps a visitor takes, then chose "A: Pre-cut tiles, go live (Recommended)". Each layer becomes static z/x/y image tiles (about 2,200 files), and the byte-range handler is removed. The map goes live at /Forager/forecast/ before Monday, after a re-check. The tap readout must keep working, or the planner returns to the owner before going live. On the forecast fix the owner answered "[No preference]". The planner proceeds under -784's "merge when ready": fix F1 (with a test and a revert check) and F2 to F5, re-review, then merge into t6b-continental-layers.
+**Notes:** Next free ID -787.
