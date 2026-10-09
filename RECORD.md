@@ -14542,3 +14542,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** Merge battery-saver and t11-hud-fixes once checks pass
 **The owner, verbatim:** "Merge them both once checks pass". PR #208 (battery-saver) is open. t11-hud-fixes gets its PR after its S22 launch check. The second merge brings in main first, keeping every index row.
 **Notes:** Next free ID -780.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-780
+**Timestamp:** 2026-10-09T08:27:40Z
+**Title:** PR #208 (battery-saver, plan T17) merged into main
+**Context:** The owner: "Merge them both once checks pass" (-779). CI passed on head f621aecb (Build, test, publish APK, 12m9s). Merge commit caabf104; pre-merge main c81b326d was backed up to forager-repo-backups/2026-10-09-01. The worktree was removed. The planner then merged main into t11-hud-fixes (860fe33a). The only conflict was the docs/audits/README.md index, and both rows were kept. PR #209's CI re-runs on that head.
+**Notes:** Next free ID -781.
