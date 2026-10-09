@@ -14673,3 +14673,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-790
 **The test-map guide is reviewed.** zynergy-site forager-forecast-guide at 3977645, D18 review PASS WITH NITS. Every quote traces to the forecast repo's T5 verify report section 3, or to t5_layer.py's TreeMap citation. No combined score, no D58 terms, and the site config is identical to main. G1 (only squares that are mostly water are blank) was applied by the planner in 417f462. G2 (the Pacific golden chanterelle quote's page is approximate in the T5 report) is not wrong as written. The full text was shown to the owner. It goes live on the owner's word.
 **Notes:** Next free ID -792.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-792
+**Timestamp:** 2026-10-09T18:12:33Z
+**Title:** The test-map guide is live (zynergy-site PR #7)
+**Context:** The owner, verbatim: "Go live as it is". PR #7 (forager-forecast-guide, head 417f462; Cloudflare Pages check passed) was merged as main 14713d7. Pre-merge main afeb307 was backed up to forager-repo-backups/2026-10-09-05-zynergy-site. Checked on production: https://zynergy-labs.com/Forager/forecast/ carries the guide with the G1 wording, and guide.css is served as text/css. The worktree was removed.
+**Notes:** Next free ID -793.
