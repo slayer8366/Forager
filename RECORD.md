@@ -14533,3 +14533,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Finding for the owner (not acted on):** with the saver off, a still phone with the screen off lost the recording's GPS within minutes. On a walk, a standing walker could get no off-track or arrival readings until the phone wakes. Seen once, at a desk. The L3 walk logs can show whether it happens in the field.
 **The owner:** stopped the recording at 01:12 PDT and plugged the S22 in. The S22 then went to the T11 fixes coder for its launch check.
 **Notes:** Next free ID -779.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-779
+**Timestamp:** 2026-10-09T08:14:26Z
+**Title:** Merge battery-saver and t11-hud-fixes once checks pass
+**The owner, verbatim:** "Merge them both once checks pass". PR #208 (battery-saver) is open. t11-hud-fixes gets its PR after its S22 launch check. The second merge brings in main first, keeping every index row.
+**Notes:** Next free ID -780.
