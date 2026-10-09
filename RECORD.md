@@ -14561,3 +14561,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** The owner: "Merge them both once checks pass" (-779). CI passed on head 860fe33a (main merged in after #208; Build, test, publish APK, 12m33s). Merge commit 6373e2fe; pre-merge main caabf104 was backed up to forager-repo-backups/2026-10-09-02. The worktree was removed. The t11-hud-landscape check branch rode along in this PR.
 **Open for the owner on a phone:** the bar's slide and its look, and the fit on the S22's narrower width (about 2 dp short at font 1.0 with an evening line). A pre-existing finding: the search bar grows from 36 to 45 dp while navigating and moves the other side's L down 1 to 9 dp.
 **Notes:** Stages A to F of the navigation plan are now built, apart from T20 (after own tiles, -765). Next free ID -782.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-782
+**Timestamp:** 2026-10-09T10:48:00Z
+**Continues:** 2026-09-28-772
+**Three PNW border tiles fail T6b's TreeMap-coverage guard; held for the owner.** In the US-half run, 256_-31_20, 256_-30_20 and 256_-29_20 fail t6b_layers._treemap_part:397 ("the TreeMap raster does not cover the US side of this tile"). The guard is unchanged code. The failing pixels have side NONE: their cells fall in no CEC political polygon (coastline gaps), while NALCMS calls them land. They sit on BC coasts north or west of TreeMap's raster: Vancouver Island, the Gulf Islands, Delta. D115 lets a NONE pixel count for either side. The tiles hold 1,720, 829 and 23,226 US study cells; the last is around Bellingham. T6b's own whole-tile runs would hit the same guard.
+**The planner's call while the owner sleeps:** (b), the 3 tiles are left uncomputed and shown as "not computed yet". No rule is changed. The coder's recommendation, (a), is put to the owner in the morning: a NONE pixel outside TreeMap's raster counts as no data for the US side. It would need a new D row and a re-run of the 3 tiles and the renders.
+**Notes:** Next free ID -783.
