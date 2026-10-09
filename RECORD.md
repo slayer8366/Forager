@@ -14642,3 +14642,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Forecast:** T6b was paused at 10:05 PDT. In the T6b checkout the planner merged origin/t6b-pnw-monday into t6b-continental-layers (e4979e2, backed up to forager-repo-backups/2026-10-09-04-forecast-t6b). The merge was clean, 480 tests passed under a 2G cap, and it was pushed as 63dc6e4. T6b restarted at 10:07 from the merged code with stages mask,plots,soil,trees-us-half,trees and --until 23:00, so the other 72 mixed tiles get their US halves under D119.
 **Re-review nits carried, not done:** N1, report section 13 should say whether the planner allowed the tile cut alongside T6b (the planner's -786 message allowed light steps under 2G and asked to be told before anything over about 1.5 GB; the cut peaked at 0.67 GB); N2, log dropped Canada-only keys in --us-half-tiles; N3, the tap-method correction also covers section 12's tap. S8: the stale vendor/pmtiles.js on the preview alias edge (nothing loads it).
 **Notes:** Next free ID -789.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-789
+**Timestamp:** 2026-10-09T17:36:15Z
+**Title:** The forecast model starts lean on input layers (forager-forecast D121)
+**Context:** The owner asked: "How many layers should be used? To me it seems like the sighting chances just increase with more data added, but maybe I'm not seeing the logic." The planner explained four things: a calibrated chance is sharpened, not raised, by data; the limit is the roughly 1,200 Cantharellus records; layers overlap; and effort measures people. The plan already requires layers to earn their place on held-out years. The planner recommended a lean start of about 6 to 10 inputs.
+**Decision:** The owner, verbatim: "Go with the lean start". Habitat: host trees, soil pH, the land and water mask. Trigger: a few weather measures (recent rain, soil moisture, temperature). Observation: effort. Anything further enters only if it beats the model without it on held-out years (D33). Written as D121 on forager-forecast branch d121-lean-start (from t6b-continental-layers), pushed, unmerged. Its merge follows the repo's rules (D40).
+**Notes:** Next free ID -790.
