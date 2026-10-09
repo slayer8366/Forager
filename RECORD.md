@@ -14413,3 +14413,21 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Dispatch-file:** preserved/2026-10-09-03.md
 **Context:** -765 ("Build and measure tonight") and -766 ("A Battery saver switch (Recommended)"). The coder verifies first: today's fix requests, the effect of a slower rate on each alert and on the track, the proposed saver settings and wording, and a measurement protocol that avoids USB power and leaves the S22 charged for the morning walk. It stops for the owner before building. Anything that would delay a safety alert is a stop.
 **Notes:** Next free ID -768.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-768
+**Timestamp:** 2026-10-09T03:02:36Z
+**Title:** T11 fixes' strings and stops, and T17's verify answers
+**T11 (-766), the owner, verbatim:**
+- The short forms and priority order (distance, needle, fix warning, by trail or straight, turn words, Approaching, straight-line note; "45 s old", "No fix 6 min", "No location", "No start point", "≤ 16 ft"; turn words to the bearing alone, then gone): "Yes, use these (Recommended)".
+- The evening line "<sundown> · Back by <time>", with Back by whole, and "No route" beside Try again when they don't fit: "Yes (Recommended)".
+- Which side slides: "Follow the display (Recommended)". This is the rail side at either rotation.
+- When the bar can't fit below the display: "Slide as far as it can (Recommended)". The display may cover a sliver of Fullscreen.
+**T17 (-767), the owner, verbatim:**
+- "Slow everything, every 5 s (Recommended)". One shared request at 5 s while the saver is on. The existing Battery saver recording mode (60 s, 30 m, 100 m) is not used.
+- Off-track up to about 4 s later: "Accept up to 4 s (Recommended)".
+- "Quick menu, logger off (Recommended)". The switch is in the quick menu only, with the wording "Battery saver" / "Checks your position every 5 seconds instead of every second. Alerts can come a few seconds later." The measurement runs with the walk logger off: 2 h with the saver off, then 2 h with it on, unplugged, then a recharge before the walk.
+**Order:** T17 builds first, so the measurement can run tonight; T11 builds after it.
+**Notes:** Next free ID -769.
