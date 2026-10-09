@@ -14723,3 +14723,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Dispatch-file:** preserved/2026-10-09-05.md
 **Context:** -793 to -795. Reproduce through the real entry points before any fix. The steps: the fix with a revert check; a file log of Back by events, with no coordinates; the logger following its switch mid-recording (the owner: "Start straight away (Recommended)"); then S22 checks on the planner's go, including a desk check with a short Back by after Return.
 **Notes:** Next free ID -797.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-797
+**Timestamp:** 2026-10-09T22:40:42Z
+**Title:** Back by and the sunset alerts get a fix-check plus a wake-up alarm
+**Context:** The back-by-fires coder (1dcc4fab) reproduced the following. Back by is evaluated only by the service's 15 s coroutine delay (TrackRecordingService.kt:259-268, 531), never by a fix (BackByWatch.kt:105-108). The recording holds no wake lock, and a delay counts only awake time. The test "no back-by alert within 3 s of a GPS fix 1 ms past the time" failed. The sundown alerts have the same shape (TrackRecordingService.kt:252-257). S22 usagestats: the screen was off 13:48:37 to 13:57:10, across 13:55, and no back_by_alert was posted. batterystats was reset at 14:54, so there is no walk history. Consistent with a stalled timer, not proven. The owner's answers to the coder's questions: "1:55 PM"; strip line "Didn't look".
+**Decision:** The owner, verbatim: "Check on GPS + wake-up alarm (Recommended)" (offered: check on GPS only; keep the phone awake while recording) and, for the sunset alerts, "Yes, same fix (Recommended)". Every fix evaluates due times, and an inexact allow-while-idle alarm at each due time wakes the service. No new permission; it may be minutes late in deep sleep but must not be missed. Alarm events are logged. Already built: the Back by record log, the loud no-op, and the walk logger following its switch mid-recording.
+**Notes:** Next free ID -798.
