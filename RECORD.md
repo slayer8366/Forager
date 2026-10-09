@@ -14713,3 +14713,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The investigation (read-only, S26 only, because the S22 was not attached):** Back by is kept in memory only (BackByWatch.kt:75-79) and logs nothing to a file when it is set, fires, ends or is cleared. setBackBy is a silent no-op with no active track (TrackRecordingViewModel.kt:315). The one service firing test sets an already-past time before the service starts (TrackRecordingServiceBackByTest.kt:77-86); there is no test of a future time reached through the 15 s loop, during a return, or through menu → ViewModel → watch. On the S26 usagestats shows no back_by_alert post (the source does show yesterday's sundown alert). The walk logger reads its switch once at recording start (WalkLogger.kt:66). On the S26 the recording started at 13:09:45 and the Diagnostics panel opened at 13:10:46; there is no Forager:WalkLogger wake lock and no logger code changed since 3103. Inferred: the switch was turned on 61 s after Record. Side note: ART refuses to compile AvailabilityScreen (21112 instructions), so it runs interpreted.
 **The owner's answers:** Back by was set on "S22 only", by "Pick a time, showed 1:55". The menu label is read from the watch itself, so the watch was armed. The S22's service ran without a process restart (diagnostics.log: starts at 13:09:38 and 14:44 only). It did not fire: the owner, "No back-by alert felt or seen". This is treated as a bug, release-blocking for Monday. For the logger, the owner chose "Start straight away (Recommended)": switching it on mid-recording starts logging from that moment.
 **Notes:** The S22's own usagestats and batterystats are still to be read when it is plugged in. Next free ID -796.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-796
+**Timestamp:** 2026-10-09T22:03:00Z
+**Title:** back-by-fires: reproduce and fix Back by not firing (release-blocking); log its events; the walk logger starts mid-recording
+**Dispatch-file:** preserved/2026-10-09-05.md
+**Context:** -793 to -795. Reproduce through the real entry points before any fix. The steps: the fix with a revert check; a file log of Back by events, with no coordinates; the logger following its switch mid-recording (the owner: "Start straight away (Recommended)"); then S22 checks on the planner's go, including a desk check with a short Back by after Return.
+**Notes:** Next free ID -797.
