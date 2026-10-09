@@ -14388,3 +14388,28 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 - L by Monday: "Walk, read logs, L7 (Recommended)". The filter (L4) is built and tuned after Monday, off the live map.
 **Also:** T19 is closed by a code read. The disclaimer's wording is not in the app; it survives only as a comment, Theme.kt:81 on main c81b326d. T11's check is done (t11-hud-landscape 577532e9, report docs/navigation/2026-10-09-t11-hud-landscape-check.md), and its options go to the owner. T6b was restarted after the T11 check (--until 07:00).
 **Notes:** Next free ID -766.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-766
+**Timestamp:** 2026-10-09T02:47:49Z
+**Title:** T11 fixes from the check: text that fits, combined lines, and the right-side icon bar while navigating; plus T19's stale comment
+**Dispatch-file:** preserved/2026-10-09-02.md
+**The owner's answers, verbatim:**
+- Cut text: "Distance first, short status (Recommended)".
+- Middle third: "Combine lines, allow the rest (Recommended)".
+- Icon bar: "Have the recording pill to the left side of the + button on the icon bar, rather than below it. Same L, more compact. When switching to navigation mode, simply have the icon bar animate slide down, and the recording pill can slide to the side. Right side only, left side doesn't get this". The planner restated this as steps and was told "Not quite", then: "Option 1, but have the recording pill move back into its original place when the icon bar moves back up". Option 1 was "Right, landscape only".
+- T17: "A Battery saver switch (Recommended)".
+**As steps (icon bar):** on the right side, in landscape, while not navigating, the pill sits under the bar as today. When navigation starts, the bar slides down to clear the navigation display and the pill slides beside the +. When navigation ends, both slide back. On the left side, or in portrait, nothing changes. Planner's slip, disclosed: the first restatement put the pill beside the + at all times.
+**Notes:** T17 is dispatched as -767 (preserved/2026-10-09-03.md). Next free ID -768.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-767
+**Timestamp:** 2026-10-09T02:47:49Z
+**Title:** T17: a Battery saver switch in the strip's quick menu, built and measured on the S22 tonight
+**Dispatch-file:** preserved/2026-10-09-03.md
+**Context:** -765 ("Build and measure tonight") and -766 ("A Battery saver switch (Recommended)"). The coder verifies first: today's fix requests, the effect of a slower rate on each alert and on the track, the proposed saver settings and wording, and a measurement protocol that avoids USB power and leaves the S22 charged for the morning walk. It stops for the owner before building. Anything that would delay a safety alert is a stop.
+**Notes:** Next free ID -768.
