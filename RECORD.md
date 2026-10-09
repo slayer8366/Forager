@@ -14682,3 +14682,15 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** The test-map guide is live (zynergy-site PR #7)
 **Context:** The owner, verbatim: "Go live as it is". PR #7 (forager-forecast-guide, head 417f462; Cloudflare Pages check passed) was merged as main 14713d7. Pre-merge main afeb307 was backed up to forager-repo-backups/2026-10-09-05-zynergy-site. Checked on production: https://zynergy-labs.com/Forager/forecast/ carries the guide with the G1 wording, and guide.css is served as text/css. The worktree was removed.
 **Notes:** Next free ID -793.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-793
+**Timestamp:** 2026-10-09T21:54:53Z
+**Title:** The L3 walk (Hopkins Demonstration Forest): no walk-logger file on either phone; Back by left no trace
+**The owner, verbatim:** "S26 updated, heading out now to Hopkins Demonstration Forest in Oregon City" (the walk moved there from Molalla, -763). Stops: "1310 stopped to photograph trail maps and bathroom / 1315 headed out to the trail / 1324 stopped for a moment / 1348 turned around / 1410 stopped for a moment / 1413 continued". "I turned the logger on before the walk, turned it off after. For both S22 and S26." "Back-by was set for 45 minutes after start time of 1310".
+**Found (read-only):** both phones are on 1.0.3129+g6373e2fe (the S26 since 12:04, the S22 since 12:09). Neither has a walk-logger file for today. The S26's newest is 2026-10-08 19:47 and the S22's 2026-10-05; both switches read off, last written 14:19. return-record.log on both: Return at 13:48; off-track at 13:57:48 (S22, "vibration=skipped(phone on silent)", -678's fix seen in the field) and 13:57:53 (S26, "vibration=done"); re-armed about 13:58:36; return ended by-walker at about 14:19. Back by (about 13:55) should have fired during the walk back under -646, and nothing in the logs records it. Side finding: on the S22 after the walk, ART logged "Method exceeds compiler instruction limit: 21112 in AvailabilityScreenKt.AvailabilityScreen" about every 5 s.
+**Planner's slip, disclosed:** the planner told the owner the CI build would not install over the S22's laptop-built app without wiping data. It installed in place.
+**Next:** a read-only investigation of the walk logger (a regression suspected between 3103 and 3129) and of Back by is running. The owner is asked whether the Back by alert was seen.
+**Notes:** Next free ID -794.
