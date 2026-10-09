@@ -14504,3 +14504,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-773
 **The site path is /Forager/forecast/.** The owner, verbatim: "Oh, use the uppercase /Forager then, I didn't realize it was uppercase." The page sits beside the existing /Forager/mushroom-forecast/ planning record. This replaces -773's lowercase path.
 **Notes:** Next free ID -776.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-776
+**Timestamp:** 2026-10-09T06:44:42Z
+**Continues:** 2026-09-28-775
+**A lowercase redirect.** The owner, verbatim: "Add the lowercase redirect too". /forager/forecast(/) redirects to /Forager/forecast/ through the site's _redirects file. It is scoped to that path only; /forager itself stays reserved for the app page. It is checked on the preview by reading the Location header and the body.
+**Notes:** Next free ID -777.
