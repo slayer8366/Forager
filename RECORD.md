@@ -14483,3 +14483,15 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Continues:** 2026-09-28-772
 **The browsable map goes on the owner's site.** The owner, verbatim: "The web browser can go on my website at /forager/forecast". The coder builds forager/forecast/index.html (lowercase; Pages paths are case-sensitive, and /Forager/mushroom-forecast/ is a separate path) on a new zynergy-site branch. The page carries the PMTiles beside it, pinned CDN scripts, the "not a forecast, not yet reviewed" label, the attributions and licence, and noindex. It is verified on the branch's preview deployment: the body, Range requests answering 206, and the layers drawing. Production (a merge to main) waits for the owner's word.
 **Notes:** Next free ID -774.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-774
+**Timestamp:** 2026-10-09T06:41:20Z
+**Continues:** 2026-09-28-772, 2026-09-28-773
+**The planner's acceptances for the PNW work (within scope, not owner rulings).**
+(1) The site's CSP (functions/_middleware.js at 89593b1) blocks CDN scripts and MapLibre's blob worker. The map's JavaScript is self-hosted under forager/forecast/vendor/ (pinned, with sha256s recorded), with a CEC boundary-line basemap. The site-wide CSP is unchanged; relaxing it would be the owner's call.
+(2) The 49 N seam check is reported as "no verdict, Canadian side pending", not as a pass.
+(3) Wrong premise, from the planner's check: 20 PNW tiles mix US and Canadian cells, not 23. Three are Canadian only. There are 92 mixed tiles continent-wide. The 20 PNW tiles run now; the report says how the other 72 get their US halves.
+**Notes:** Next free ID -775.
