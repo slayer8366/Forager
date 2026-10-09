@@ -14694,3 +14694,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Planner's slip, disclosed:** the planner told the owner the CI build would not install over the S22's laptop-built app without wiping data. It installed in place.
 **Next:** a read-only investigation of the walk logger (a regression suspected between 3103 and 3129) and of Back by is running. The owner is asked whether the Back by alert was seen.
 **Notes:** Next free ID -794.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-794
+**Timestamp:** 2026-10-09T21:57:33Z
+**Continues:** 2026-09-28-793
+**Back by did not fire.** The owner, verbatim: "No back-by alert felt or seen". Treated as a release-blocking candidate for Monday. Relayed to the investigation, with Back by first.
+**Notes:** Next free ID -795.
