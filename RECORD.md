@@ -14571,3 +14571,20 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Three PNW border tiles fail T6b's TreeMap-coverage guard; held for the owner.** In the US-half run, 256_-31_20, 256_-30_20 and 256_-29_20 fail t6b_layers._treemap_part:397 ("the TreeMap raster does not cover the US side of this tile"). The guard is unchanged code. The failing pixels have side NONE: their cells fall in no CEC political polygon (coastline gaps), while NALCMS calls them land. They sit on BC coasts north or west of TreeMap's raster: Vancouver Island, the Gulf Islands, Delta. D115 lets a NONE pixel count for either side. The tiles hold 1,720, 829 and 23,226 US study cells; the last is around Bellingham. T6b's own whole-tile runs would hit the same guard.
 **The planner's call while the owner sleeps:** (b), the 3 tiles are left uncomputed and shown as "not computed yet". No rule is changed. The coder's recommendation, (a), is put to the owner in the morning: a NONE pixel outside TreeMap's raster counts as no data for the US side. It would need a new D row and a re-run of the 3 tiles and the renders.
 **Notes:** Next free ID -783.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-783
+**Timestamp:** 2026-10-09T11:42:48Z
+**Continues:** 2026-09-28-772 to -777, -782
+**The PNW work is done, apart from the 3 held tiles.**
+- forager-forecast t6b-pnw-monday at 2cba4a7: D119 (the US half of border tiles; Canadian cells flagged pending), the PNW render and checks, a tree encoding, a --pause-file option on the runner, and TASKS and START_HERE corrected. Suite 473; 9 of 9 revert checks bit. Checks (rules committed at d42a63f before any value was read; the PNW holds 16,674,133 study cells): tree edges 29 of 32 windows exact; soil edges 10 of 11 exact; ten cells 2 of 2 match; the seam gives no verdict, with the Canadian side pending. Peak memory 2.48 GB under the 5G cap. The data drive went from 3.96 to 3.2 GB free.
+- zynergy-site forager-forecast-pnw at 7dde25e: the page /Forager/forecast/ with four PMTiles (7.6 to 18.3 MB), the boundary lines, self-hosted MapLibre 6.13.0 and PMTiles 4.5.0, and the lowercase 301. Preview: https://forager-forecast-pnw.zynergy-site.pages.dev/Forager/forecast/. Checked in headless Firefox: the worker loads under the CSP, all four layers draw, a tap matches the mosaic, Range requests return 206 with matching sha256.
+- **An unplanned change to the site's Function:** a byte-range handler in functions/_middleware.js, scoped to /Forager/forecast/data/*.pmtiles. Behind the Function, the asset server answered Range requests with 200 and no Content-Length. It is not load-tested, and whether Cloudflare caches the 206 responses is unknown. Production (a merge) is the owner's word.
+- Images (SVG): forecast-data/pnw/images/ on the data drive. Briefing: docs/briefings/2026-10-12-oms-briefing.md. Report: docs/audits/2026-10-09-pnw-monday-completion-report.md.
+- The 3 held tiles hold 25,760 US cells (0.16% of the box), shown dark grey "not computed yet". If the owner chooses (a), it is about 15 minutes all told, plus a new D row.
+- The other 72 mixed tiles are picked up by T6b sections run from this branch; sections run from the c2b0769 checkout don't pick them up.
+- **A slip, disclosed:** site commit b1c6177 cites "RECORD -778" for the planner's ruling (b), a guessed number. The real entry is -782. The commit is not amended.
+**Still open:** the owner's word on (a), the D18 review, both merges (D40), a check on a phone. T6b resumed at 04:34 PDT, --until 14:00.
+**Notes:** Next free ID -784.
