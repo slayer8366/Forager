@@ -14588,3 +14588,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 - **A slip, disclosed:** site commit b1c6177 cites "RECORD -778" for the planner's ruling (b), a guessed number. The real entry is -782. The commit is not amended.
 **Still open:** the owner's word on (a), the D18 review, both merges (D40), a check on a phone. T6b resumed at 04:34 PDT, --until 14:00.
 **Notes:** Next free ID -784.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-784
+**Timestamp:** 2026-10-09T12:21:36Z
+**Title:** The coastal tiles filled by option (a); the site and forecast branches merge when ready
+**The owner, verbatim:** "1 yes 2 and 3 merge when ready". (1) was option (a) from -782: a NONE pixel outside TreeMap's raster counts as no data for the US side. A new D row quotes this. (2) was putting the map live on zynergy-site (merge forager-forecast-pnw to main). (3) was the forecast branch's merge after its independent review.
+**The planner's reading of (3):** t6b-pnw-monday merges into its base t6b-continental-layers, not main, because T6b itself is unfinished and goes to main through its own completion, review and merge (D40). "When ready" means after (a) is done and the D18 independent review passes, for both branches. The site's new byte-range handler is part of that review.
+**Order:** (a) with T6b paused for about 15 minutes; then the preview is re-checked; then the independent review of both branches; then the merges.
+**Notes:** Next free ID -785.
