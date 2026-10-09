@@ -14599,3 +14599,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The planner's reading of (3):** t6b-pnw-monday merges into its base t6b-continental-layers, not main, because T6b itself is unfinished and goes to main through its own completion, review and merge (D40). "When ready" means after (a) is done and the D18 independent review passes, for both branches. The site's new byte-range handler is part of that review.
 **Order:** (a) with T6b paused for about 15 minutes; then the preview is re-checked; then the independent review of both branches; then the merges.
 **Notes:** Next free ID -785.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-785
+**Timestamp:** 2026-10-09T12:49:04Z
+**Continues:** 2026-09-28-784
+**D120 done; independent review started.** forager-forecast t6b-pnw-monday at ac848c3 (D120: one condition on the guard; suite 475; 11 of 11 revert checks bit). zynergy-site forager-forecast-pnw at 01b3cde. Every US study cell in the PNW box now has its tile; 102,543 Canadian cells are pending. Tree edges are 29 of 32 windows exact (the other 3 are Canada-only or have no study cell). The seam has all 2,000 US samples, with no verdict while Canada is pending. On the preview: 0 map errors, a tap inside a D120 tile matches the mosaic, Range 206 OK. The coder corrected its own labelling (14,683 Canadian cells in Canada-only tiles had been shown as "held back"). T6b resumed at 05:45 PDT, --until 23:00. The D18 independent review of both branches is running, read-only, with the site middleware reviewed hardest. Merges follow a pass.
+**Notes:** Next free ID -786.
