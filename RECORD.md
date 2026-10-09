@@ -14495,3 +14495,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 (2) The 49 N seam check is reported as "no verdict, Canadian side pending", not as a pass.
 (3) Wrong premise, from the planner's check: 20 PNW tiles mix US and Canadian cells, not 23. Three are Canadian only. There are 92 mixed tiles continent-wide. The 20 PNW tiles run now; the report says how the other 72 get their US halves.
 **Notes:** Next free ID -775.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-775
+**Timestamp:** 2026-10-09T06:44:08Z
+**Continues:** 2026-09-28-773
+**The site path is /Forager/forecast/.** The owner, verbatim: "Oh, use the uppercase /Forager then, I didn't realize it was uppercase." The page sits beside the existing /Forager/mushroom-forecast/ planning record. This replaces -773's lowercase path.
+**Notes:** Next free ID -776.
