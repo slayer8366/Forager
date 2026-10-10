@@ -14809,3 +14809,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Store it compressed (Recommended)" (offered: the full manifest zipped, about a fifth of the size, the limit unchanged, a small script change by a coder after this run; the other options were summary only on GitHub with the full manifest on the drive, splitting it into parts under 1 MB, and raising the limit).
 **What it sets:** the evidence copy of the manifest is committed compressed; the limit stays. The change is made by a coder after the section started in -802 ends (it is not edited under a running section). The three evidence files already staged in ~/Zynergy/forager-forecast-t6b are folded into that commit.
 **Notes:** Next free ID -804.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-804
+**Timestamp:** 2026-10-10T14:47:03Z
+**PR:** 210
+**Head:** back-by-fires
+**Base:** main
+**Merge-commit:** 0b561481661961cc7c589b517d7a40eaaecc4d26
+**Pre-merge:** 6373e2fe56f95ebadb99ad10a1fa6c01036fa6bd
+**Backup:** 2026-10-10-01
+**Observed:** pull request #210 (back-by-fires into main: Back by and sundown fire on a GPS fix and an inexact wake-up alarm, -797; alerts cleared when a recording ends, -800 and -801; walk logger follows its switch) was merged as 0b561481 at 2026-10-10T14:47:00Z, pinned to head 53ed26d7, on green CI at that head (run 38059329498, 14 m), read from GitHub, on the owner's "Merge now (Recommended)". Before opening it for merge the planner edited the report's header and last section ("Draft, in progress" and "PENDING" removed; two items still open marked as such, no finding changed) and brought the PR description up to date with -800, -801 and the 2026-10-10 S22 results; the planner checked the coder's four revert logs (each compiled, only its own tests failed) and that its commits were pushed. Not checked on the phone: clearing on destroy, at process start, and off-track.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -805.
