@@ -14925,3 +14925,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Inferred:** 14:03:05 to 14:04:10 is an S22 error: it fell up to 60 m behind the S26 while reporting 3.8 to 7.5 m accuracy, then caught up 98 m in 25 s; the S26 was smooth. 13:57:46 to 13:58:25 is probably real movement: both phones left the way-out path by 58 to 82 m together and both off-track alerts fired within 5 s (13:57:48 S22, 13:57:53 S26); a shared canopy error is not ruled out; the owner is asked. Unexamined: a 37 m separation at 13:40:53 to 13:41:01.
 **For plan L:** a real single-phone error that its own accuracy figure hid, and evidence against weighting fusion on reported accuracy. For the return estimate: two clean out-and-back tracks. Still no provider tags or raw fixes.
 **Notes:** Next free ID -814.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-814
+**Timestamp:** 2026-10-10T18:19:27Z
+**Title:** Monday-morning target: a labelled prototype forecast map for the PNW strip
+**Context:** The owner: "I expect the full forecast to work no later than Monday morning". The planner said it could not promise that: T7 to T11 are unwritten and are days to weeks, T1 alone is 12 to 25 hours plus the pull, and D5's gate may say no. Offered a prototype: T1's model fed this week's Open-Meteo weather and drawn per weather cell on the test map, labelled unvalidated, skipping T7's habitat shading, T9's calibration and gate, the D18 review and T10's automation.
+**The owner, verbatim:** "Prototype map is the target" (offered: the T1 result with the prototype if time allows (recommended); the T1 result only).
+**What it sets:** the target for Monday morning 2026-10-12 is the prototype map: T1's PNW-strip model, this week's weather from Open-Meteo (D19 serving route), a sighting chance per 0.1° cell drawn on the forecast test zone, shown even if T1 does not beat the calendar, with the map saying so. This bends D5's gate for a labelled pilot only; nothing is published as the forecast, D12's wording holds ("sighting chance", never fruiting probability), and the label says unvalidated and unreviewed. A production deploy of zynergy-site still needs the owner's word.
+**Notes:** Next free ID -815.
