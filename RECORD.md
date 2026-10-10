@@ -14861,3 +14861,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "The PNW can be our pilot run so we know how it works before we commit to the entire country".
 **What it adds:** the PNW fit is a pilot, not a replacement for the continental plan. D100's continental fit stays the target and follows the pilot; the pilot's job includes learning how the pipeline behaves (time, data, what the D5 gate says) before the continent is committed to. The continental SCANFI run is not urgent ahead of the pilot.
 **Notes:** Next free ID -808.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-808
+**Timestamp:** 2026-10-10T17:59:44Z
+**Title:** Pilot weather: Copernicus for the training history, Open-Meteo for weekly weather and serving (D24 stands)
+**Context:** The owner: "Open-meteo for weather since they are free". The planner read forager-forecast D24 first: the bulk route was chosen for throughput, not price. The free Open-Meteo tier "fits about 34 cells a day against about 14,000, which is over a year of pulling"; Copernicus serves the same ERA5 reanalysis free under CC BY 4.0 with an account (D43); the free tier's non-commercial term no longer matters under D61. Open-Meteo is already the serving source (D19, D21).
+**The owner, verbatim:** "Copernicus bulk, Open-Meteo live (Recommended)" (offered: Open-Meteo free tier only, many months for the history; a paid Open-Meteo plan).
+**What it sets:** no change to D19, D21 or D24, including D24's equivalence test against pinned Open-Meteo requests before any fit. Recorded because the owner asked; the pilot (-806, -807) proceeds on that route.
+**Notes:** Next free ID -809.
