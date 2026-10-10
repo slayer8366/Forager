@@ -14748,3 +14748,22 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 - The owner: "Sunset triggered", and "the S22 had it when I unplugged it" (the 6:35 PM alert from the test recording, while on USB).
 - The owner, on re-running B and C and opening the PR: "yes do it asap". PR #210 (back-by-fires, 95b6bfb3) is open for CI's full suite. The merge waits for the owner's word after the screen-off check.
 **Notes:** Next free ID -799.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-799
+**Timestamp:** 2026-10-10T03:39:46Z
+**Continues:** 2026-09-28-798
+**The sunset notification at 19:49 is a finding; the owner holds the PR.**
+- The owner on PR #210: "Hold the PR", then "Keep the re-run going".
+- The coder's read-only check found:
+  - no sunset alert fired at 18:35, and nothing was posted after the recording ended at 19:05:35 (stopped by the coder on the planner's instruction);
+  - the only sundown_alert interruption all evening was 17:45:30, the leave-by, whose title string is "Sunset at %1$s" (strings.xml:20);
+  - the sundown notification (id 1003) is never cancelled in code, while Back by is cancelled on Stop and on answering, but not on onDestroy;
+  - the wake-up alarm receiver cannot post on its own;
+  - there is no onTaskRemoved.
+- The owner, verbatim: "If it triggered after recording and the app was swiped away, then that is a finding and investigate that too"; then "That was swiped long ago. So something happened still" (the 17:45 alert had been dismissed); and on its text: "Don't remember exactly". So something put a sundown notification back. It is investigated read-only after Cases B and C, so the adb reads don't spoil them.
+- The owner, on clearing alerts: "Yes, clear on kill too (Recommended)". Alerts are cleared when a recording ends any way, as far as Android allows. Clearing the sundown alert on Stop was asked and answered only by the "swiped" remark, so the planner reads it as part of the same rule. It is built after the re-post source is known.
+- Cases B and C are re-running with the fixed script (positive-controlled guards); the owner was asked to unplug.
+**Notes:** Next free ID -800.
