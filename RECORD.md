@@ -14979,3 +14979,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **What it sets:** a value passes within Open-Meteo's storage step plus half a display unit (0.075 °C for temperatures); rain bounded by the rounding of its hourly values; the review's rain-day convention test added; anything beyond the bound still stops the fit for the owner. The restated spec is committed before any Open-Meteo body is read. Fits on partial years are labelled and are not the T1 result.
 **Also:** the scoring coder scores ISO week 2026-W41 (Monday 2026-10-05): the archive held every day through 2026-10-04, and Open-Meteo's forecast endpoint serves no era5_seamless values, so no same-product bridge exists for the newest days. Monday's map shows the week of 5 October, labelled.
 **Notes:** Next free ID -819.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-819
+**Timestamp:** 2026-10-10T18:36:11Z
+**Title:** PNW pilot trains and scores on Copernicus; the Open-Meteo rain gap is an open problem for the live route
+**Context:** The scoring coder's feature check (forager-forecast pnw-pilot-scoring; files ~/Zynergy/forecast-data-pnw-pilot/scoring/feature-check/): 6 cells (seed 20260918), Monday 2019-10-07, 90 days, both paths through pnw_weather.weather_matrix. All 8 rain features exceed -818's bound; Open-Meteo era5_seamless totals run 4 to 8% below the store's ERA5 daily sum at every cell (for example 249.3 vs 268.2 mm over 90 days). Nearest 0.25° point and lag 0 match best; a one-hour shift halves the daily error but leaves the level gap (cause not determined). Under -818 a difference beyond the bound stops the fit for the owner. Temperature and soil not yet checkable.
+**The owner, verbatim:** "Copernicus for both (Recommended)" (offered: score on Open-Meteo anyway, labelled about 7% low; stop and investigate first, likely costing Monday).
+**What it sets:** for the pilot, training and scoring both use the Copernicus products (the last 90 days for W41 from the same daily-statistics product, 3 to 4 requests). The weather fit goes ahead; D24's equivalence test still runs to completion and its result is reported, not used as the gate for the pilot. This bends D24 (equivalence before any fit) and D19 (serving from Open-Meteo) for the pilot only. The rain gap is an open problem for T10's live route, to be investigated before any weekly serving.
+**Notes:** Next free ID -820.
