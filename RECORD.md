@@ -15042,3 +15042,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Be sure to take care. A rushed model that reports inaccuracy and admits it isn't any better than a missing one." Then, asked what earns a place on the live map: "Keep -814 as it was". Then: "Just keep it as we had it. Monday morning full finish is the deadline nonetheless".
 **What it sets:** -814 stands unchanged (the labelled pilot is shown even if it does not beat the calendar). -823's reading that "the date may slip" is withdrawn: Monday morning 2026-10-12, the full prototype finished (the weather model scored and on the map) is the deadline, and it is met with care, not cuts. No step already kept is cut for it.
 **Notes:** Next free ID -825.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-825
+**Timestamp:** 2026-10-10T18:59:12Z
+**PR:** zynergy-site 8
+**Head:** forager-forecast-pilot
+**Base:** main
+**Merge-commit:** 1d6918529521deba25ebe367d6ff852abd15e376
+**Pre-merge:** 14713d7 (zynergy-site main)
+**Backup:** 2026-10-10-02-zynergy-site
+**Observed:** zynergy-site PR #8 (the "Sighting chance (pilot)" layer on /Forager/forecast/) was merged as 1d691852 at 2026-10-10T18:59Z, pinned to head ed3c78b, on a passing Cloudflare Pages check, under the owner's approval in -817 ("You have my approval to put the map on a live site when ready") with -824 confirming -814. -817's conditions, checked: real output (the calendar-only model from forager-forecast pnw-pilot-scoring 9e24e67, 2,387 cells, week of 2026-10-05, not synthetic); the coder's check.py on the preview, 44 of 44 at 1366x860 and 390x844, 8 skipped for cell cases the file lacks; the banner reads pilot, not validated, not reviewed, calendar only; no forbidden wording. Planner's own reads: the preview and then production (zynergy-labs.com/Forager/forecast/) serve manifest sha256 4debbc8b... and cells c74ee7f0..., the manifest reads model_kind calendar, pilot true, validated false, reviewed false, attribution_sources [gbif_download]; the page has the layer and no "fruiting probab" or "where mushrooms are". Credits: GBIF's citation for download 10.15468/dl.8jxmeb, provisional, no weather credit. Not checked on a real phone. The weather-model output replaces the two data files later as a data drop under -817.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -826.
