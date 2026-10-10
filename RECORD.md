@@ -14882,3 +14882,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "I forgot about copernicus. Let's get a standing model ready before Monday at least and we can see how it works out."
 **What it adds:** a target date for the pilot: a fitted PNW model that runs, before Monday 2026-10-12, to see how it performs. The planner reads this as a working fit and its held-out results against the calendar baseline (T1's design), not a published forecast: D5's gate and D12's meaning are unchanged, and what the model shows decides what comes next. The T1 verify report prices the route to that date.
 **Notes:** Next free ID -810.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-810
+**Timestamp:** 2026-10-10T18:03:26Z
+**Corrects:** 2026-09-28-771 (its Reading)
+**What was wrong:** -771 read the owner's "I'll want to focus on the forecast system to finish by then" as "T6b and what follows", and the planner then worked it as T6b: continental input layers and the PNW test map. No weather pull or model was started, and the planner did not say that a finished forecast system needed them, nor ask what "finish" meant. The owner, 2026-10-10, after -809: "That's what I wanted two days ago when I asked." The owner's intent on 2026-10-08 was a working model by Monday, which is -809's target.
+**Effect:** about two of the four days before Monday went to input layers instead of the model. -809 stands; the model route comes first, and T6b work proceeds only where it feeds the PNW pilot.
+**Notes:** Next free ID -811.
