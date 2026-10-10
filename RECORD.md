@@ -15205,3 +15205,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Yes on the live input map. So long as it doesn't get in the way of the deadline"
 **What it sets:** the test map's input layers at zynergy-labs.com/Forager/forecast/ are rebuilt from the completed PNW mosaic (-838) and deployed. The drive's 2026-10-09 mosaic is kept as a copy before it is replaced. The work yields to the pilot: no CPU-heavy step while a pilot fit or the hedge chain runs, finished well before about 09:00 UTC Sunday, and dropped if it would delay the -824 deadline. The planner merges the site change under this word after the preview check.
 **Notes:** Next free ID -840.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-840
+**Timestamp:** 2026-10-10T22:34:26Z
+**PR:** zynergy-site 9
+**Head:** input-map-canada
+**Base:** main
+**Merge-commit:** 68d8ae0f0af540f2785c1f9e02ee97949993b78b
+**Pre-merge:** 1d69185 (zynergy-site main)
+**Backup:** 2026-10-10-04-zynergy-site
+**Observed:** zynergy-site PR #9 (the PNW input layers with Canada's trees filled) was merged as 68d8ae0f at 2026-10-10T22:34Z, pinned to head 8bc69a3, on a passing Cloudflare Pages check, under the owner's "Yes on the live input map. So long as it doesn't get in the way of the deadline" (-839). The coder's checks: the pipeline reproduced the live 2,280 tiles byte for byte from the 10-09 mosaic; 72 tiles re-cut (24 each for cover, Douglas-fir, hemlock), soil unchanged, 0 pixels changed outside the old pending pixels, 72 sampled Canadian pixels recomputed independently; the input check 70 of 70 on the preview at two sizes (22 of 70 fail on the old production, so it discriminates); the pilot's check.py 44 of 44. Drive: the 10-09 mosaic kept as forecast-data/pnw/mosaic-2026-10-09/, the completed mosaic verified by sha256. Planner's reads: preview and production serve the new page (SCANFI named, no "not computed yet", no forbidden phrases), the pilot manifest unchanged (4debbc8b...). Disclosed by the coder: the deadline rule's pgrep matched the hedge chain's idle waiting poller; it treated that as not running (the fit was not running; each heavy step about 2 min under the 5 GB cap). Not checked on a real phone; the drive's four SVG images not redrawn.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -841.
