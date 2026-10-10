@@ -14793,6 +14793,9 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Done by the planner:** twelve old worktrees removed with git worktree remove (no force), each checked first for no changes, no untracked non-build files, and a HEAD already on a remote branch: wt-532-build, forager-wt/ci-flake, /tmp/claude-1000/sundown-base, privacy-fixes-redo-sonnet, s22-followup, s22-session-check, decoded-photo-thread, leaving-journal-flake, leave-journal, legal-drafts, walk-evidence-545, planner-records. Root went to 1.7 GB free. An unexplained slow decrease (about 6 MB a minute) was seen beforehand; its source was not found.
 **Notes:** Next free ID -802.
 
+---
+
+**Kind:** observation
 **ID:** 2026-09-28-802
 **Timestamp:** 2026-10-10T14:06:46Z
 **Title:** After the laptop restart: new work partition, flash drive cleared for T6b, T6b SCANFI stage started
@@ -14802,6 +14805,9 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Found:** T6b's end-of-section evidence commit has failed since the 2026-10-09T20:18 section: the forecast repo's large-file hook refuses docs/audits/2026-10-07-t6b-run/manifest.jsonl (1,469,819 bytes, limit 1,048,576). The data on the drive is intact; three evidence files are staged and uncommitted in ~/Zynergy/forager-forecast-t6b. The same failure will recur at the end of this section. Put to the owner; not changed.
 **Notes:** Next free ID -803.
 
+---
+
+**Kind:** decision
 **ID:** 2026-09-28-803
 **Timestamp:** 2026-10-10T14:08:53Z
 **Title:** T6b's run manifest is kept on GitHub compressed
