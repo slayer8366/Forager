@@ -14892,3 +14892,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **What was wrong:** -771 read the owner's "I'll want to focus on the forecast system to finish by then" as "T6b and what follows", and the planner then worked it as T6b: continental input layers and the PNW test map. No weather pull or model was started, and the planner did not say that a finished forecast system needed them, nor ask what "finish" meant. The owner, 2026-10-10, after -809: "That's what I wanted two days ago when I asked." The owner's intent on 2026-10-08 was a working model by Monday, which is -809's target.
 **Effect:** about two of the four days before Monday went to input layers instead of the model. -809 stands; the model route comes first, and T6b work proceeds only where it feeds the PNW pilot.
 **Notes:** Next free ID -811.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-811
+**Timestamp:** 2026-10-10T18:04:44Z
+**Title:** Build now: PNW-only weather download and training start immediately
+**The owner, verbatim:** "Download only PNW region data. Ignore everywhere else even if it has to be redone. and begin training immediately"
+**What it sets:** the go to build, without waiting for the verify report to be read. Data is pulled for the PNW only (the eastern T1 box and the continent are not pulled now; redoing pulls later for a wider area is accepted). Training starts at once: what needs no weather (T1's calendar baseline on the PNW records) starts while the weather downloads; the weather model fits as soon as the weather and D24's equivalence sample are in. D5, D12 and D24's equivalence test are not waived by this; any step cut to make Monday is named to the owner. The T1 verify coder becomes the builder.
+**Notes:** Next free ID -812.
