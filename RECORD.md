@@ -14957,3 +14957,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "You allocated your time yourself. You had two extra days to get it done and you chose something else. Now make choices that perform two days of work to make up for the loss"
 **Done by the planner:** the single builder's route split so nothing waits on what it does not need. (1) The T1 builder (origin/pnw-pilot-t1; CDS pull and calendar baseline already running) keeps only the critical path: download (now with concurrent requests), baseline, equivalence, random-date comparison, weather fit, report. (2) A scoring coder (branch pnw-pilot-scoring): Open-Meteo recent weather for the strip, the archive-lag bridge, the scoring script and the output file. (3) A site coder (zynergy-site branch forager-forecast-pilot, preview only): the pilot layer, banner and guide entry on /Forager/forecast/, built against synthetic data in the fixed format. (4) A reviewer (branch pnw-pilot-t1-review): the D18 review in parallel, pre-fit now and results as they land, so -812's deferral of the review may not be needed. The planner fixed the output format from D55/D56 up front (cell GeoJSON with D55's properties; manifest with D55's fields plus pilot, validated, reviewed, beats_calendar, t1_result, weather_bridge), so tracks 2 and 3 start at once. Builder-level choices are decided by the coders and reported; only owner-level ones (a rule bent, a step cut) come to the owner. The OMS briefing is updated once T1's headline exists.
 **Notes:** Next free ID -817.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-817
+**Timestamp:** 2026-10-10T18:23:08Z
+**Title:** The owner approves putting the pilot map live when ready
+**The owner, verbatim:** "You have my approval to put the map on a live site when ready"
+**What it sets:** the planner may merge the zynergy-site pilot-map branch to main (production) without asking again, once: the real scoring output (not synthetic) is in; the browser check passes on the preview; the banner shows pilot, not validated, not reviewed (or reviewed, if the parallel review has filed), and whether it beat the calendar; and no forbidden wording appears (D12, D58). The usual merge pattern applies (backup bundle, merge entry). A later update of the data file under the same approval is a data drop, recorded, not re-asked.
+**Notes:** Next free ID -818.
