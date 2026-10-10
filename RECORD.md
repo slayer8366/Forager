@@ -14801,3 +14801,11 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Done:** six folders copied to /mnt/work/from-flash and checked against the originals by file count, apparent bytes and per-file checksum, all matching (device-evidence 7.10 GB, forager-repo-backups 3.03 GB, engine-spike 1.95 GB, apks 0.74 GB, map-style 0.37 GB, label-check 0.16 GB). The owner removed the originals; each now is a symlink on the drive to its copy. The drive has 15 GB free. avd (11 GB) and forecast-data stay on the drive. T6b started at 2026-10-10T07:05:54-07:00 as unit t6b-night (5G cap, Nice=10), stages scanfi-layers,trees, workers 2, until 23:00, log night-2026-10-10.log on the drive.
 **Found:** T6b's end-of-section evidence commit has failed since the 2026-10-09T20:18 section: the forecast repo's large-file hook refuses docs/audits/2026-10-07-t6b-run/manifest.jsonl (1,469,819 bytes, limit 1,048,576). The data on the drive is intact; three evidence files are staged and uncommitted in ~/Zynergy/forager-forecast-t6b. The same failure will recur at the end of this section. Put to the owner; not changed.
 **Notes:** Next free ID -803.
+
+**ID:** 2026-09-28-803
+**Timestamp:** 2026-10-10T14:08:53Z
+**Title:** T6b's run manifest is kept on GitHub compressed
+**Context:** -802's finding: T6b's evidence commit is refused because docs/audits/2026-10-07-t6b-run/manifest.jsonl is past the forecast repo's 1 MB per-file limit.
+**The owner, verbatim:** "Store it compressed (Recommended)" (offered: the full manifest zipped, about a fifth of the size, the limit unchanged, a small script change by a coder after this run; the other options were summary only on GitHub with the full manifest on the drive, splitting it into parts under 1 MB, and raising the limit).
+**What it sets:** the evidence copy of the manifest is committed compressed; the limit stays. The change is made by a coder after the section started in -802 ends (it is not edited under a running section). The three evidence files already staged in ~/Zynergy/forager-forecast-t6b are folded into that commit.
+**Notes:** Next free ID -804.
