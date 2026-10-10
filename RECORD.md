@@ -15032,3 +15032,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "I mean it's only a meeting with Alan Rockefeller. No big deal."
 **Planner's reading:** Monday stays the target, but it no longer justifies cutting or bending anything further. The work keeps its pace; nothing more is cut for the date; where a choice trades care against the date, care wins and the date may slip. -812's deferrals (review, D33 runs) are not needed if the work reaches them, and the parallel review continues.
 **Notes:** Next free ID -824.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-824
+**Continues:** 2026-09-28-823
+**Timestamp:** 2026-10-10T18:58:02Z
+**The owner, verbatim:** "Be sure to take care. A rushed model that reports inaccuracy and admits it isn't any better than a missing one." Then, asked what earns a place on the live map: "Keep -814 as it was". Then: "Just keep it as we had it. Monday morning full finish is the deadline nonetheless".
+**What it sets:** -814 stands unchanged (the labelled pilot is shown even if it does not beat the calendar). -823's reading that "the date may slip" is withdrawn: Monday morning 2026-10-12, the full prototype finished (the weather model scored and on the map) is the deadline, and it is met with care, not cuts. No step already kept is cut for it.
+**Notes:** Next free ID -825.
