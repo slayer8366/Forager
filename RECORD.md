@@ -15067,3 +15067,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Hourly, checked against 2019 (Recommended)" (offered: keep the daily rain queue).
 **What it sets:** rain years not yet delivered come from hourly ERA5 single-levels total precipitation, summed in code over the UTC day per D52. Before any summed value is used, the summing is checked against the 2019 daily sum already on disk (cds/era5-precip-2019.nc) for the whole year at every point, within a tolerance committed before the comparison. A mismatch stops for the owner. The map's rain job d6ae24ed and rain 2025's job stay. Builder's call, accepted by the planner: the overlap daily-statistics job (9d8226a8) may be dismissed to free a slot, but the hourly-to-daily land agreement check must still run on a derived land month before the weather fit.
 **Notes:** Next free ID -827.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-827
+**Timestamp:** 2026-10-10T19:59:12Z
+**Title:** -826's 2019 rain check passes exactly; the full model is expected around Sunday 05:00 to 06:00 PDT
+**Observed (builder, forager-forecast pnw-pilot-t1 267e3ad; docs/audits/2026-10-10-pnw-pilot-t1/precip_hourly_vs_daily_2019.json):** hourly ERA5 rain summed over stamps d 01:00 to d+1 00:00 against the store's era5-precip-2019.nc at every point and day: 192,355 values, largest difference 0.0 m against a committed tolerance of 1e-5 m, identical NaN positions. The check discriminates: summing stamps 00 to 23 would put 97,562 values out of tolerance, up to 8.7 mm. Summing code, test and tolerance committed before the comparison (a5a981b). A lint-failed command launched the rain pull three times; the builder's request adoption prevented duplicate store jobs, and it killed the extras (no data lost or duplicated).
+**Pace:** rain about 2,095 s per two-year request, done about 23:30 UTC 2026-10-10; land 8 of 136 hourly months, about 10 an hour, done about 09:00 UTC Sunday; then the map's months (about 1 h), a derived land month for the route agreement check, and the weather fit (1 to 2 h). The builder's estimate for the full model: about 12:00 to 13:00 UTC Sunday 2026-10-11, assuming the store's pace holds. The two derived jobs (d6ae24ed, 8f202c97) have not started since 18:30 to 18:37 UTC; both have hourly fallbacks.
+**Notes:** Next free ID -828.
