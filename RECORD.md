@@ -15129,3 +15129,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** area: "Test map's box, after the 8 tiles (Recommended)" (offered: T1's area; the union box); groups: "Chanterelles and chicken of the woods (Recommended)" (offered: chanterelles only); review: "Review now, alongside (Recommended)" (offered: T7 runs labelled unreviewed); land cover: "A mask only (Recommended)" (offered: a real input).
 **What it sets:** T7's pilot box is 40 to 49 N, 111 to 125 W once the 8 Canadian tiles are filled; both groups, chicken of the woods as the control; an independent review of the PNW box's T6b layers runs now, in parallel; D121's "NALCMS land and water mask" is a mask, not an input. Planner's calls: the edge ruling keeps D122 (filed first); the pilot row becomes D123 with a note; O4 (ecoregion level for validation) and O7 (T7's base branch, after the branches are merged in order) stay open in the dispatch with recommendations and come to the owner before T7 starts. T7 does not start before Monday.
 **Notes:** Next free ID -833.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-833
+**Timestamp:** 2026-10-10T20:21:08Z
+**Title:** The Open-Meteo rain gap is explained: an hour offset plus a 0.1 mm drizzle cut
+**Observed (scoring coder, forager-forecast pnw-pilot-scoring, docs/audits/2026-10-11-rain-gap-for-t10.md; no new requests):** Open-Meteo's daily rain equals the store's hourly ERA5 rain summed over stamps 00 to 23 (the store sums 01 to 24) after each hour under 0.1 mm is set to 0 and the rest rounded to 0.1 mm: exact on 540 of 540 cell-days (6 cells, summer 2019); hourly values match 2,208 of 2,208 hours at the one cell with Open-Meteo hourly on disk, and only a 0.1 mm cut fits (0.09 matches 2,185, 0.11 matches 2,178). The hour offset only moves rain across midnight; the drizzle cut is the whole 4 to 8% level gap (at that cell 690 drizzle hours, 18.6 of 281 mm). Where Open-Meteo applies the cut was not found in its code: observed, not read. Summer 2019 only; winter, snow and the newest preliminary weeks untested. T10 options in the file (hourly and resum, which still loses 5.5%; bias correction; the same cut applied before training; another source for the newest days, where -820 applies). Not decided; for T10.
+**Also:** the calendar floor was re-published with -822's coastal rule (5d2ce36): 2,618 cells, 231 from a land neighbour; cells sha256 6a4a3536..., manifest 92b30496.... Not yet dropped into the live map; the planner drops it with the weather-model output to avoid two changes in a row. The scoring suite: 473 passed.
+**Notes:** Next free ID -834.
