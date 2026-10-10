@@ -14767,3 +14767,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 - The owner, on clearing alerts: "Yes, clear on kill too (Recommended)". Alerts are cleared when a recording ends any way, as far as Android allows. Clearing the sundown alert on Stop was asked and answered only by the "swiped" remark, so the planner reads it as part of the same rule. It is built after the re-post source is known.
 - Cases B and C are re-running with the fixed script (positive-controlled guards); the owner was asked to unplug.
 **Notes:** Next free ID -800.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-800
+**Timestamp:** 2026-10-10T04:26:47Z
+**Title:** The screen-off desk checks pass; 7 minutes is accepted as the backstop's worst case; alerts clear when a recording ends
+**Desk results (S22, 1.0.3139, unplugged, no adb reads during the cases):**
+- Case B, screen off: Back by fired 8.7 s after 20:50 by a fix; the alarm was delivered 7 min 6 s late with no second fire.
+- Case C, forced deep idle: fired 11.8 s after 21:10 by the timer; the alarm was 6 min 45 s late with no second fire; Stop took the Back by notification down.
+- The timer never stalled at the desk (longest gap about 22 s), so the walk's stall stays inferred; no Back by has yet been fired by the alarm itself.
+- The 19:49 notification: id 1003 has one post path, and it always writes a fired line. Only 17:45:29 fired. Samsung's reminders are off and nothing is snoozed. By elimination the likeliest source is the 17:45 leave-by left in the shade after its heads-up pop-up was swiped (inferred).
+**The owner, verbatim:** "Yes, acceptable (Recommended)" (up to about 7 minutes late as the worst case; no exact-alarm permission) and "Yes, add it now (Recommended)". Alerts (sundown id 1003 and Back by) are cleared when a recording ends any way, including onDestroy, as far as Android allows, in PR #210.
+**Notes:** T6b was paused for the build. Next free ID -801.
