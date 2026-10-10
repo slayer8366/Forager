@@ -14872,3 +14872,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Copernicus bulk, Open-Meteo live (Recommended)" (offered: Open-Meteo free tier only, many months for the history; a paid Open-Meteo plan).
 **What it sets:** no change to D19, D21 or D24, including D24's equivalence test against pinned Open-Meteo requests before any fit. Recorded because the owner asked; the pilot (-806, -807) proceeds on that route.
 **Notes:** Next free ID -809.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-809
+**Timestamp:** 2026-10-10T18:00:38Z
+**Continues:** 2026-09-28-806
+**The owner, verbatim:** "I forgot about copernicus. Let's get a standing model ready before Monday at least and we can see how it works out."
+**What it adds:** a target date for the pilot: a fitted PNW model that runs, before Monday 2026-10-12, to see how it performs. The planner reads this as a working fit and its held-out results against the calendar baseline (T1's design), not a published forecast: D5's gate and D12's meaning are unchanged, and what the model shows decides what comes next. The T1 verify report prices the route to that date.
+**Notes:** Next free ID -810.
