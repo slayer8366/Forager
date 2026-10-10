@@ -15118,3 +15118,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "That's good for the beta build. the actual Release build will focus on app tidiness and a round in android lint. Behind the scenes work mostly."
 **What it records:** scope for the production release after this last beta: app tidiness and a round of Android lint, mostly behind the scenes. Scope only, not a go-ahead; nothing is dispatched on it. It sits beside the open release items already known (the Play Console symbol warnings and the R8 decision, D36's account swaps on the release checklist).
 **Notes:** Next free ID -832.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-832
+**Timestamp:** 2026-10-10T20:20:02Z
+**Title:** The T7 PNW plan's first answers; a D122 collision resolved; a T6b layer review alongside
+**Context:** The plan writer (forager-forecast branch pnw-pilot-plans f5470f2: docs/dispatch/2026-10-11-t7-pnw-pilot-habitat.md and an updated docs/briefings/2026-10-12-oms-briefing.md with TO FILL placeholders) found: two different D122 rows (the SCANFI edge ruling, RECORD -805; the pilot's D100 change on pnw-pilot-t1); no branch holding T6b's code, D121 and the pilot ruling together; no master-grid NALCMS layer (NALCMS used only as D112's water rule); no filed independent review of the T6b layers; and seven open decisions O1 to O7.
+**The owner, verbatim:** area: "Test map's box, after the 8 tiles (Recommended)" (offered: T1's area; the union box); groups: "Chanterelles and chicken of the woods (Recommended)" (offered: chanterelles only); review: "Review now, alongside (Recommended)" (offered: T7 runs labelled unreviewed); land cover: "A mask only (Recommended)" (offered: a real input).
+**What it sets:** T7's pilot box is 40 to 49 N, 111 to 125 W once the 8 Canadian tiles are filled; both groups, chicken of the woods as the control; an independent review of the PNW box's T6b layers runs now, in parallel; D121's "NALCMS land and water mask" is a mask, not an input. Planner's calls: the edge ruling keeps D122 (filed first); the pilot row becomes D123 with a note; O4 (ecoregion level for validation) and O7 (T7's base branch, after the branches are merged in order) stay open in the dispatch with recommendations and come to the owner before T7 starts. T7 does not start before Monday.
+**Notes:** Next free ID -833.
