@@ -15149,3 +15149,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **What was wrong:** -821 says "The equivalence spec was restated per -818 before any Open-Meteo body was read." The spec document was restated in 0caf56d, but the script was not: the builder's commit message claimed the restated bounds were in pnw_equivalence.py and that edit had not applied. The parallel review found the script still carried the old tolerances, crashed on its first span (8 days reshaped as 7x24), and was not in pnw_t1_run_all.sh (review S5, pnw-pilot-t1-review 96c5d0a). The builder found a fourth bug (a variable shadowing args). No Open-Meteo body had been read at any point, so no result was affected.
 **Fixed (builder, d9d396d):** the script rewritten with the -818 bounds actually in it (0.075 °C, 0.075 °C, 0.001 m3/m3, 1.25 mm), the span shape guarded and tested, a revert check biting, and the step wired into the run before any fit. The review's S7 is answered the same way: an hourly land-route check (Open-Meteo hourly temperature, soil temperature and soil moisture against the hourly ERA5-Land files at offsets −1, 0, +1 h; pass means offset 0 matches every hour and beats both others) specified in equivalence_spec.md before any value was read, replacing -829's daily stand-in.
 **Notes:** Next free ID -835.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-835
+**Timestamp:** 2026-10-10T20:58:04Z
+**Title:** Two border tiles added to T6b's PNW run; the beta cleanup built and PR #211 opened
+**Context:** The T6b layer review (forager-forecast t6b-pnw-review 5be7eb7, S1): with only the box's 8 tiles, the 49 N seam check can run on 6 of its 25 transects; the other 19 sample into 256_-27_20 and 256_-28_20, US-half tiles whose Canadian cells lie north of 49 N. The box's own 102,543 Canadian cells are islands with no land seam. US side and soil: 296 box tiles listed and ok, 23 of 23 sampled hashes match, 10 independent recomputes agree.
+**The owner, verbatim:** "Add the 2 tiles (Recommended)" (offered: run it on 6 lines, labelled).
+**Done:** T6b paused for the beta build at 13:22:57 PDT (26 of 88 units done) and resumed by the planner at 13:57 PDT on 10 tiles (the 8 plus 256_-27_20 and 256_-28_20), --until 01:30, from forager-forecast t6b-pnw-scanfi (4ac4cab, the tile filter, whole layers kept); the edge fix merged into t6b-continental-layers as cfbf50d. Beta cleanup (-830) built on beta-diagnostics-out (f6522161 tests first, c1ab617d, 683e6cc9, ca60c540 the divider fix, 8eb87743 report); targeted debug 65/65 and release 7/7; four revert checks and a whole-change revert each fail only their own tests; 23 debug-dependent test files moved unchanged to src/testDebug, which CI's testDebugUnitTest runs (ci.yml:163, checked by the planner); no assembleRelease (signing stays in the owner's checkout). PR #211 opened; merge on the owner's word.
+**Notes:** Next free ID -836.
