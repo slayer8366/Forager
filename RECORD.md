@@ -14967,3 +14967,15 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "You have my approval to put the map on a live site when ready"
 **What it sets:** the planner may merge the zynergy-site pilot-map branch to main (production) without asking again, once: the real scoring output (not synthetic) is in; the browser check passes on the preview; the banner shows pilot, not validated, not reviewed (or reviewed, if the parallel review has filed), and whether it beat the calendar; and no forbidden wording appears (D12, D58). The usual merge pattern applies (backup bundle, merge entry). A later update of the data file under the same approval is a data drop, recorded, not re-asked.
 **Notes:** Next free ID -818.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-818
+**Timestamp:** 2026-10-10T18:34:34Z
+**Title:** PNW pilot: the equivalence tolerance allows Open-Meteo's storage rounding; "Train as it downloads" recorded
+**Context:** The parallel review's pass 1 (forager-forecast origin/pnw-pilot-t1-review 222e927, docs/audits/2026-10-10-pnw-pilot-t1-review.md) found three blocking items before any equivalence value was read: B1, soil moisture given the kelvin offset (pnw_weather.py:71); B2, the committed tolerance (half a display unit, all 1,008 values) almost sure to fail on the same product, because Open-Meteo stores ERA5 quantised (0.05 °C, 0.1 mm per hour; Era5Variables.swift:148-158, read by the reviewer), with about a 0.2% chance all 252 temperatures pass by simulation; B3, NaN weather passed to the fit uncounted, and the hourly route's files not read. B1 and B3 went to the builder as fixes.
+**The owner, verbatim:** "Allow Open-Meteo's own rounding (Recommended)" (offered: keep the strict rule and expect a stop). Earlier, to the builder's pull (2026-10-10, about 18:00Z, not recorded until now, the review's S4): "Train as it downloads if you need to".
+**What it sets:** a value passes within Open-Meteo's storage step plus half a display unit (0.075 °C for temperatures); rain bounded by the rounding of its hourly values; the review's rain-day convention test added; anything beyond the bound still stops the fit for the owner. The restated spec is committed before any Open-Meteo body is read. Fits on partial years are labelled and are not the T1 result.
+**Also:** the scoring coder scores ISO week 2026-W41 (Monday 2026-10-05): the archive held every day through 2026-10-04, and Open-Meteo's forecast endpoint serves no era5_seamless values, so no same-product bridge exists for the newest days. Monday's map shows the week of 5 October, labelled.
+**Notes:** Next free ID -819.
