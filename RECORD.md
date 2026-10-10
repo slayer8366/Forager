@@ -14913,3 +14913,15 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** box: "Bigger box (Recommended)" (offered: T1's box only); equivalence: "Keep it before the fit (Recommended)" (offered: beside the fit); deferrals allowed after Monday: "Independent review,D33's extra runs" (the random-date comparison was offered and not chosen, so it stays before Monday).
 **What it sets:** the weather download covers 40 to 49.5 N, 111 to 125 W; T1's fit uses its own box from it, T1's box pulled first. D24's equivalence test runs before the fit; the builder fixes "within rounding" as half a unit of Open-Meteo's displayed precision plus 1e-6, committed before data is read. The D18 review and D33 (3) and (4) may follow Monday, reported, not dropped; the result is labelled unreviewed until then. The pilot's D100 change is filed as a forager-forecast decision.
 **Notes:** Next free ID -813.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-813
+**Timestamp:** 2026-10-10T18:09:07Z
+**Title:** The L3 walk's two tracks, read off both phones: one real S22 lag-and-snap, one probable real detour, reported accuracy unreliable
+**Context:** -793 to -797 had no walk-logger file from the 2026-10-09 Hopkins walk; the owner asked whether the tracks were useful ("Sure if you have them"). A read-only agent pulled both phones' databases with run-as cat (nothing changed on either phone; raw files and scripts in ~/Zynergy/device-evidence/2026-10-09-l3-tracks/, outside every repo; no coordinates printed). Track S22 6f6b7c03 (517 points), S26 fcd35b03 (532 points), both starting 13:09:45 PDT (-795's start time is right for both).
+**Read from data:** both loops close within 9 m (S22) and 7 m (S26); lengths 3,669 m and 3,408 m. Every gap over 30 s on both phones moved 5 to 15 m and lines up with the owner's stops. The S22 kept 85 points in its screen-off window 13:48:37 to 13:57:10 (the recording did not stall; consistent with -797). Way back vs way out: S22 median 7.3 m, p90 19.3 m; S26 median 4.4 m, p90 11.1 m. Two-phone separation over 471 matched points: median 12.1 m, p90 20.4 m, max 59.7 m; only 51% within the two phones' reported accuracies combined. Both phones report accuracy at the same two fixed values (3.79 m and 9.94 m; 76% of S26 points at 9.94 m). The provider is not stored (read from code).
+**Inferred:** 14:03:05 to 14:04:10 is an S22 error: it fell up to 60 m behind the S26 while reporting 3.8 to 7.5 m accuracy, then caught up 98 m in 25 s; the S26 was smooth. 13:57:46 to 13:58:25 is probably real movement: both phones left the way-out path by 58 to 82 m together and both off-track alerts fired within 5 s (13:57:48 S22, 13:57:53 S26); a shared canopy error is not ruled out; the owner is asked. Unexamined: a 37 m separation at 13:40:53 to 13:41:01.
+**For plan L:** a real single-phone error that its own accuracy figure hid, and evidence against weighting fusion on reported accuracy. For the return estimate: two clean out-and-back tracks. Still no provider tags or raw fixes.
+**Notes:** Next free ID -814.
