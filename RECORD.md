@@ -14829,3 +14829,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Backup:** 2026-10-10-01
 **Observed:** pull request #210 (back-by-fires into main: Back by and sundown fire on a GPS fix and an inexact wake-up alarm, -797; alerts cleared when a recording ends, -800 and -801; walk logger follows its switch) was merged as 0b561481 at 2026-10-10T14:47:00Z, pinned to head 53ed26d7, on green CI at that head (run 38059329498, 14 m), read from GitHub, on the owner's "Merge now (Recommended)". Before opening it for merge the planner edited the report's header and last section ("Draft, in progress" and "PENDING" removed; two items still open marked as such, no finding changed) and brought the PR description up to date with -800, -801 and the 2026-10-10 S22 results; the planner checked the coder's four revert logs (each compiled, only its own tests failed) and that its commits were pushed. Not checked on the phone: clearing on destroy, at process start, and off-track.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -805.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-805
+**Timestamp:** 2026-10-10T17:53:10Z
+**Title:** T6b's SCANFI stage stopped on an edge tile; edge tiles are blanked past the edge; the pace is measured before the run continues
+**Context:** The section started in -802 stopped at 2026-10-10T10:49-07:00 (exit 1): `scanfi_layer_tile` raised "tile 256_-36_32 reaches past the SCANFI raster" (forager-forecast src/forager_forecast/t6b_layers.py:553, a deliberate guard), and the error ended the run instead of deferring the unit. 709 balsamFir units were done, all ok, mean 37.7 s per unit with 2 workers (about 19 s of wall time each). The stage is 11 layers × 2,043 Canadian tiles = 22,473 units, about 5 days of laptop time at that rate. The end-of-section commit failed again on the manifest size (-802, -803).
+**The owner, verbatim:** to "How should edge tiles be handled?": "Blank past the edge (Recommended)" (offered: read the covered part, the part past SCANFI's edge counts as no data with a flag saying why, the same rule as SCANFI's own no-data; set them aside as deferred; count the affected tiles first). To "Keep going after the fix?": "Look for a faster way first" (offered: keep going in downtime; pause SCANFI until after Monday).
+**What it sets:** a forecast coder blanks past the edge, files it as a forager-forecast decision, and measures where the SCANFI stage's time goes, with options; the run stays stopped until the owner rules on the options. -803's compressed manifest is done in the same dispatch.
+**Notes:** Next free ID -806.
