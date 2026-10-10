@@ -15077,3 +15077,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Observed (builder, forager-forecast pnw-pilot-t1 267e3ad; docs/audits/2026-10-10-pnw-pilot-t1/precip_hourly_vs_daily_2019.json):** hourly ERA5 rain summed over stamps d 01:00 to d+1 00:00 against the store's era5-precip-2019.nc at every point and day: 192,355 values, largest difference 0.0 m against a committed tolerance of 1e-5 m, identical NaN positions. The check discriminates: summing stamps 00 to 23 would put 97,562 values out of tolerance, up to 8.7 mm. Summing code, test and tolerance committed before the comparison (a5a981b). A lint-failed command launched the rain pull three times; the builder's request adoption prevented duplicate store jobs, and it killed the extras (no data lost or duplicated).
 **Pace:** rain about 2,095 s per two-year request, done about 23:30 UTC 2026-10-10; land 8 of 136 hourly months, about 10 an hour, done about 09:00 UTC Sunday; then the map's months (about 1 h), a derived land month for the route agreement check, and the weather fit (1 to 2 h). The builder's estimate for the full model: about 12:00 to 13:00 UTC Sunday 2026-10-11, assuming the store's pace holds. The two derived jobs (d6ae24ed, 8f202c97) have not started since 18:30 to 18:37 UTC; both have hourly fallbacks.
 **Notes:** Next free ID -828.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-828
+**Timestamp:** 2026-10-10T20:06:37Z
+**Title:** Spare time before Monday: the extra runs, plus four parallel tracks (T6b PNW tiles, T7 plan, briefing, rain gap)
+**The owner, verbatim:** "With spare time, yes those extra runs should take place. Get as much progress in as we can before Monday morning." Then, to the planner's list of parallel work: "Write the T7 habitat-model plan,Update the OMS briefing,Rain-gap write-up for the live version,T6b: the PNW's 8 Canadian tiles".
+**What it sets:** the random-date comparison and D33 (3) and (4) run before Monday after the main fit and scoring (-812's deferral not used). -815's T6b hold is lifted for the PNW box's 8 Canadian tiles only: merge t6b-scanfi-edge into t6b-continental-layers (the owner's selection of this option is the merge word), build a tile filter for scanfi-layers that skips the whole-layer delete, download the 5 missing layers, run the 8 tiles and the trees stage for them; it yields the processor to the pilot's weather fit. A T7 plan for the PNW pilot is written (writing only). The OMS briefing is brought up to date. The Open-Meteo rain gap is investigated for T10 (analysis only).
+**Notes:** Next free ID -829.
