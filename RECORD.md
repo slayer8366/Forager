@@ -15022,3 +15022,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **What it sets:** a cell with no ERA5-Land value of its own takes its land variables from the nearest of its 8 neighbouring ERA5-Land land points by great-circle distance from the cell centre (ties per D63), the same product and grid. It is flagged per unit and counted in every summary; cells with no land neighbour stay dropped and counted. Both models use the resulting unit set.
 **Also, the planner's call:** the scoring coder rebuilt the pilot's attribution to name exactly the sources each output read (forager-forecast pnw-pilot-scoring 9e24e67; field attribution_sources). The calendar floor cites GBIF's own text for download 0012112-260928105237408 (DOI 10.15468/dl.8jxmeb) with its dataset licences, and credits no weather source. The weather model adds D53's Copernicus text for the products read, and no Open-Meteo because none is read (-819). The download is the provisional test-account one (D26, D43); the planner accepts it for the labelled pilot, which says so, and D36's release-checklist swap still applies before any release.
 **Notes:** Next free ID -823.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-823
+**Timestamp:** 2026-10-10T18:56:00Z
+**Continues:** 2026-09-28-814
+**The owner, verbatim:** "I mean it's only a meeting with Alan Rockefeller. No big deal."
+**Planner's reading:** Monday stays the target, but it no longer justifies cutting or bending anything further. The work keeps its pace; nothing more is cut for the date; where a choice trades care against the date, care wins and the date may slip. -812's deferrals (review, D33 runs) are not needed if the work reaches them, and the parallel review continues.
+**Notes:** Next free ID -824.
