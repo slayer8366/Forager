@@ -14990,3 +14990,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Copernicus for both (Recommended)" (offered: score on Open-Meteo anyway, labelled about 7% low; stop and investigate first, likely costing Monday).
 **What it sets:** for the pilot, training and scoring both use the Copernicus products (the last 90 days for W41 from the same daily-statistics product, 3 to 4 requests). The weather fit goes ahead; D24's equivalence test still runs to completion and its result is reported, not used as the gate for the pilot. This bends D24 (equivalence before any fit) and D19 (serving from Open-Meteo) for the pilot only. The rain gap is an open problem for T10's live route, to be investigated before any weekly serving.
 **Notes:** Next free ID -820.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-820
+**Timestamp:** 2026-10-10T18:36:45Z
+**Continues:** 2026-09-28-819
+**The owner, verbatim:** "Weather forecast models differ in the PNW in rain accuracy. This is a feature of the region changing every so often, not the data itself"
+**Planner's reading, for T10's investigation:** this holds for forecast models; the PNW's terrain-driven rain is where models disagree most, and it bears directly on the live route, which must fill the newest days from some forecast or near-real-time product. The -819 comparison was between two routes to the same reanalysis, ERA5, so a model difference should not appear unless Open-Meteo's era5_seamless takes its rain from a different component than the store's ERA5 daily sum (for example ERA5-Land's precipitation rather than ERA5's). That would be a model difference of exactly the kind the owner describes. Unverified; the first thing T10's rain-gap investigation checks. No change to -819.
+**Notes:** Next free ID -821.
