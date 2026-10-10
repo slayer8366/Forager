@@ -15108,3 +15108,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** to what goes: "The Crash logs row in Settings,The background alert record files" (offered also: nothing more). To navigation: "Nothing; T is done (Recommended)" (offered: T20 now; the open field checks).
 **What it sets:** release builds lose the Crash logs row and stop writing the alert record files; debug builds keep both, so device checks still work. The planner's call: crash-log capture follows its viewer to debug only, since nothing in a release build can read it (Play Console reports crashes). T20 stays after own tiles; track L waits for the next release. Gradle runs on the planner's go, around the forecast's laptop jobs.
 **Notes:** Next free ID -831.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-831
+**Timestamp:** 2026-10-10T20:15:41Z
+**Continues:** 2026-09-28-830
+**The owner, verbatim:** "That's good for the beta build. the actual Release build will focus on app tidiness and a round in android lint. Behind the scenes work mostly."
+**What it records:** scope for the production release after this last beta: app tidiness and a round of Android lint, mostly behind the scenes. Scope only, not a go-ahead; nothing is dispatched on it. It sits beside the open release items already known (the Play Console symbol warnings and the R8 decision, D36's account swaps on the release checklist).
+**Notes:** Next free ID -832.
