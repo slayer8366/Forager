@@ -15000,3 +15000,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Weather forecast models differ in the PNW in rain accuracy. This is a feature of the region changing every so often, not the data itself"
 **Planner's reading, for T10's investigation:** this holds for forecast models; the PNW's terrain-driven rain is where models disagree most, and it bears directly on the live route, which must fill the newest days from some forecast or near-real-time product. The -819 comparison was between two routes to the same reanalysis, ERA5, so a model difference should not appear unless Open-Meteo's era5_seamless takes its rain from a different component than the store's ERA5 daily sum (for example ERA5-Land's precipitation rather than ERA5's). That would be a model difference of exactly the kind the owner describes. Unverified; the first thing T10's rain-gap investigation checks. No change to -819.
 **Notes:** Next free ID -821.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-821
+**Timestamp:** 2026-10-10T18:42:04Z
+**Title:** The pilot map is on preview; two mobile fixes before go-live; the PNW pilot's state at the evening of 2026-10-10
+**Site:** zynergy-site branch forager-forecast-pilot at 9626f4c (from main 14713d7), preview https://forager-forecast-pilot.zynergy-site.pages.dev/Forager/forecast/, drawing the scoring coder's synthetic sample (forager-forecast pnw-pilot-scoring f53fa2f, 250 cells, labelled SYNTHETIC). The coder's browser check: 37 of 37 pass on the preview, 8 skipped (cases the sample lacks), 43 of 43 on its local fixture; a revert of the applicable filter failed exactly the 4 expected checks. Planner's own fetch: HTTP 200, the layer present, no "fruiting probability" or "where mushrooms are". Six fixed colour classes (under 5% to 50%+) are the coder's choice, kept by the planner. Sent back: on a phone the banner takes about half the screen and MapLibre's attribution covers the bottom third of the map; the banner compacts to one line with the pilot facts and the attribution collapses to its button (the owner's "nothing should fully obstruct the map" and "Don't make me think").
+**Model track:** review pass 1's blocking items fixed (9060ea6, e2865eb, 0caf56d, ab8d28f on pnw-pilot-t1), with B1's revert check biting. The equivalence spec was restated per -818 before any Open-Meteo body was read. The store's cap is about 5 queued requests per user; pull estimate 5 to 20 h for T1's box; queue order T1's box, then the scoring months, then the union remainder. Preliminary calendar baseline: Brier 0.02042, AUC 0.795 (to be refit on the weather unit set).
+**Notes:** Next free ID -822.
