@@ -14733,3 +14733,18 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** The back-by-fires coder (1dcc4fab) reproduced the following. Back by is evaluated only by the service's 15 s coroutine delay (TrackRecordingService.kt:259-268, 531), never by a fix (BackByWatch.kt:105-108). The recording holds no wake lock, and a delay counts only awake time. The test "no back-by alert within 3 s of a GPS fix 1 ms past the time" failed. The sundown alerts have the same shape (TrackRecordingService.kt:252-257). S22 usagestats: the screen was off 13:48:37 to 13:57:10, across 13:55, and no back_by_alert was posted. batterystats was reset at 14:54, so there is no walk history. Consistent with a stalled timer, not proven. The owner's answers to the coder's questions: "1:55 PM"; strip line "Didn't look".
 **Decision:** The owner, verbatim: "Check on GPS + wake-up alarm (Recommended)" (offered: check on GPS only; keep the phone awake while recording) and, for the sunset alerts, "Yes, same fix (Recommended)". Every fix evaluates due times, and an inexact allow-while-idle alarm at each due time wakes the service. No new permission; it may be minutes late in deep sleep but must not be missed. Alarm events are logged. Already built: the Back by record log, the loud no-op, and the walk logger following its switch mid-recording.
 **Notes:** Next free ID -798.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-798
+**Timestamp:** 2026-10-10T03:34:31Z
+**Continues:** 2026-09-28-797
+**The desk check so far, and the PR.** On the S22 (1.0.3139+g54274939, launch check PASS):
+- Case A with Return: arrival ended Back by and cancelled its alarm, per -646 (pass); the sundown watch did the same.
+- Case A without Return, screen on: fired at 18:00:00, notification posted and vibration done; "I'm back" ended it and cancelled the alarm (pass).
+- The owner removed the S22's screen lock: "the fix was to have no more screen lock. Done. Proceed."
+- Cases B and C (screen off; forced deep idle) were invalid: the script's Record tap started no recording and the script carried on. Recorded as no result. The coder disclosed that its first UI dump printed the map's grid reference into its own transcript only (nothing saved).
+- The owner: "Sunset triggered", and "the S22 had it when I unplugged it" (the 6:35 PM alert from the test recording, while on USB).
+- The owner, on re-running B and C and opening the PR: "yes do it asap". PR #210 (back-by-fires, 95b6bfb3) is open for CI's full suite. The merge waits for the owner's word after the screen-off check.
+**Notes:** Next free ID -799.
