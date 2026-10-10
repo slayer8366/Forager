@@ -14936,3 +14936,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Prototype map is the target" (offered: the T1 result with the prototype if time allows (recommended); the T1 result only).
 **What it sets:** the target for Monday morning 2026-10-12 is the prototype map: T1's PNW-strip model, this week's weather from Open-Meteo (D19 serving route), a sighting chance per 0.1° cell drawn on the forecast test zone, shown even if T1 does not beat the calendar, with the map saying so. This bends D5's gate for a labelled pilot only; nothing is published as the forecast, D12's wording holds ("sighting chance", never fruiting probability), and the label says unvalidated and unreviewed. A production deploy of zynergy-site still needs the owner's word.
 **Notes:** Next free ID -815.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-815
+**Timestamp:** 2026-10-10T18:19:56Z
+**Title:** T6b's edge fix, pace and manifest reported; T6b held until Monday's prototype map is done
+**Context:** The T6b coder's report (forager-forecast branch t6b-scanfi-edge, commits bbb308c to 187ebb1, audit docs/audits/2026-10-10-t6b-scanfi-edge-and-pace.md; run-checkout commit 7f7cb49 on t6b-continental-layers): 10 tiles reach past the SCANFI raster and none of their 193,470 Canadian study cells does; blank past the edge built as D122, with a unit's own error now failing that unit only (revert checks bit, suite 483 passed). The time is in the regrid (86 to 92%), all CPU; computing all 11 layers of a tile in one pass would take the remaining 21,764 units from about 114 h to about 8 to 12 h, with all 11 layers on disk at once (19 GB), replacing D118's one-at-a-time rule. The manifest is now committed gzipped; it will pass 1 MiB again about 60% through the SCANFI stage (needs a ruling later). The PNW box holds 8 Canadian tiles with study cells (102,543 cells), about 28 min of SCANFI plus 9.02 GB of layer downloads; a tile filter for scanfi-layers is needed and not built. The profiling overlapped the pilot's fit and slowed it.
+**The owner, verbatim:** "Hold T6b until Monday's map is done (Recommended)" (offered: run the PNW's 8 tiles in the download wait).
+**What it sets:** no T6b work, merge or run until the -814 prototype map is done. Afterwards, the planner brings: the merge of t6b-scanfi-edge, the PNW 8-tile run, the one-pass option, and the manifest's size limit.
+**Notes:** Next free ID -816.
