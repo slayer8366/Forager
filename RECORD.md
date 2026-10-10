@@ -14851,3 +14851,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Real forecast, PNW only, ASAP" (offered: inputs complete now with the forecast planned after Monday (recommended); inputs now and plan a PNW-first forecast; real forecast PNW only ASAP, reversing D100 for the first fit, weeks of work, not ready Monday, the D5 gate may still say no).
 **What it sets:** the first model is fitted on the PNW, not the continent; D100's "fitted on continental layers" is changed for the first fit, to be filed in forager-forecast as a decision citing this entry. D5's gate (published only after beating a calendar baseline on held-out years) and D12's meaning of sighting chance are unchanged. Order: T1 (the PNW calendar-vs-weather test, already planned, whose fit has waited) first; the PNW box's Canadian SCANFI tiles ahead of the continent; then T7 to T9 on the PNW. Monday will not have a forecast.
 **Notes:** Next free ID -807.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-807
+**Timestamp:** 2026-10-10T17:57:09Z
+**Continues:** 2026-09-28-806
+**The owner, verbatim:** "The PNW can be our pilot run so we know how it works before we commit to the entire country".
+**What it adds:** the PNW fit is a pilot, not a replacement for the continental plan. D100's continental fit stays the target and follows the pilot; the pilot's job includes learning how the pipeline behaves (time, data, what the D5 gate says) before the continent is committed to. The continental SCANFI run is not urgent ahead of the pilot.
+**Notes:** Next free ID -808.
