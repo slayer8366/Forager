@@ -14840,3 +14840,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** to "How should edge tiles be handled?": "Blank past the edge (Recommended)" (offered: read the covered part, the part past SCANFI's edge counts as no data with a flag saying why, the same rule as SCANFI's own no-data; set them aside as deferred; count the affected tiles first). To "Keep going after the fix?": "Look for a faster way first" (offered: keep going in downtime; pause SCANFI until after Monday).
 **What it sets:** a forecast coder blanks past the edge, files it as a forager-forecast decision, and measures where the SCANFI stage's time goes, with options; the run stays stopped until the owner rules on the options. -803's compressed manifest is done in the same dispatch.
 **Notes:** Next free ID -806.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-806
+**Timestamp:** 2026-10-10T17:56:27Z
+**Title:** forager-forecast: a real PNW forecast, PNW only, as soon as possible (D100 changed for the first fit)
+**Context:** The owner asked whether the PNW was "entirely done, forecast and all". It is not: the PNW's input layers are done for the US side (soil, canopy, Douglas-fir and hemlock shares, on the test map), Canada's trees in the box (102,543 cells) wait for SCANFI, and no weather pull, model fit or forecast exists (forecast repo briefing 2026-10-12, line 10; TASKS T7 to T11 "Not started"). The owner: "Let's finish the PNW region to make it forecast ready". The planner offered three finish lines.
+**The owner, verbatim:** "Real forecast, PNW only, ASAP" (offered: inputs complete now with the forecast planned after Monday (recommended); inputs now and plan a PNW-first forecast; real forecast PNW only ASAP, reversing D100 for the first fit, weeks of work, not ready Monday, the D5 gate may still say no).
+**What it sets:** the first model is fitted on the PNW, not the continent; D100's "fitted on continental layers" is changed for the first fit, to be filed in forager-forecast as a decision citing this entry. D5's gate (published only after beating a calendar baseline on held-out years) and D12's meaning of sighting chance are unchanged. Order: T1 (the PNW calendar-vs-weather test, already planned, whose fit has waited) first; the PNW box's Canadian SCANFI tiles ahead of the continent; then T7 to T9 on the PNW. Monday will not have a forecast.
+**Notes:** Next free ID -807.
