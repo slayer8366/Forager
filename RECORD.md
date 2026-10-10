@@ -14781,3 +14781,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 - The 19:49 notification: id 1003 has one post path, and it always writes a fired line. Only 17:45:29 fired. Samsung's reminders are off and nothing is snoozed. By elimination the likeliest source is the 17:45 leave-by left in the shade after its heads-up pop-up was swiped (inferred).
 **The owner, verbatim:** "Yes, acceptable (Recommended)" (up to about 7 minutes late as the worst case; no exact-alarm permission) and "Yes, add it now (Recommended)". Alerts (sundown id 1003 and Back by) are cleared when a recording ends any way, including onDestroy, as far as Android allows, in PR #210.
 **Notes:** T6b was paused for the build. Next free ID -801.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-801
+**Timestamp:** 2026-10-10T11:55:37Z
+**Title:** The coder's push is allowed; disk freed; off-track clears on recording end too
+**Context:** The back-by-fires coder built the clear-on-end change (cancelRecordingAlerts on stopRecording, onDestroy and Application.onCreate; 13 targeted tests green). Its commit and push were refused by the permission system ("Out-of-Place Publication"); it did not work around it, and the planner did not push for it. Disk was at about 1.0 GB.
+**The owner, verbatim:** "Allow the push. Free up space. Yes". The third answer is to "should off-track clear the same way?".
+**Done by the planner:** twelve old worktrees removed with git worktree remove (no force), each checked first for no changes, no untracked non-build files, and a HEAD already on a remote branch: wt-532-build, forager-wt/ci-flake, /tmp/claude-1000/sundown-base, privacy-fixes-redo-sonnet, s22-followup, s22-session-check, decoded-photo-thread, leaving-journal-flake, leave-journal, legal-drafts, walk-evidence-545, planner-records. Root went to 1.7 GB free. An unexplained slow decrease (about 6 MB a minute) was seen beforehand; its source was not found.
+**Notes:** Next free ID -802.
