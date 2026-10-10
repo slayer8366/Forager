@@ -15175,3 +15175,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Observed:** pull request #211 (the last beta's cleanup, -830: the Crash logs row, crash capture and the alert record files out of release builds; Settings ends at Backup with no stray divider) was merged as 53f573ae, pinned to head 8eb87743, on green CI at that head (run 38085796090), read from GitHub, on the owner's "Merge now (Recommended)". The signed release build for Play is the owner's to make from main in their own checkout (signing stays there).
 **Also:** the pilot's land pull slowed (about 6 months an hour, the store's per-user cap of 5 confirmed); the builder projects the all-years T1 result at about 19:00 to 20:00 UTC Sunday. The planner's call: the live map gets the all-years model only; a 2019 to 2025 model, labelled as such, is fitted when its years land (about 09:00 to 10:00 UTC Sunday) for the scoring output and the site preview only, as a tested fallback. D33's year range is not changed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -837.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-837
+**Timestamp:** 2026-10-10T21:42:15Z
+**Title:** If the all-years model misses Monday morning, the 2019-2025 model goes live, labelled
+**Context:** The builder: land months at about 3 to 4 an hour with 4 in flight (the store's cap of 5 per user re-tested; one month per request; per-job time set by the store's load). 17 of 136 in; all years projected about 04:00 to 14:00 UTC Monday plus 2 to 3 h of equivalence and fits, so the worst case misses -824's Monday-morning deadline (about 15:00 UTC). The 2019 to 2025 model (-836's preview-only hedge) about 16:00 to 21:00 UTC Sunday.
+**The owner, verbatim:** "2019–2025 model if all-years misses (Recommended)" (offered: drop 2015 to 2018 for good, changing D33 (2); wait for all years, past Monday morning if need be).
+**What it sets:** this replaces -836's "never live" for the hedge, for this case only. If the all-years model is not fitted, checked and scored by Monday morning 2026-10-12, the 2019 to 2025 model goes live labelled "fitted on 2019–2025; the full test over 2015–2025 is pending", and the all-years model replaces it when ready. T1's evaluation (D33, all years train; the headline only from the all-years run) is unchanged. The hedge model passes the same checks as the all-years one (equivalence, review items, attribution) before it can go live.
+**Notes:** Next free ID -838.
