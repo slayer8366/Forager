@@ -15087,3 +15087,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "With spare time, yes those extra runs should take place. Get as much progress in as we can before Monday morning." Then, to the planner's list of parallel work: "Write the T7 habitat-model plan,Update the OMS briefing,Rain-gap write-up for the live version,T6b: the PNW's 8 Canadian tiles".
 **What it sets:** the random-date comparison and D33 (3) and (4) run before Monday after the main fit and scoring (-812's deferral not used). -815's T6b hold is lifted for the PNW box's 8 Canadian tiles only: merge t6b-scanfi-edge into t6b-continental-layers (the owner's selection of this option is the merge word), build a tile filter for scanfi-layers that skips the whole-layer delete, download the 5 missing layers, run the 8 tiles and the trees stage for them; it yields the processor to the pilot's weather fit. A T7 plan for the PNW pilot is written (writing only). The OMS briefing is brought up to date. The Open-Meteo rain gap is investigated for T10 (analysis only).
 **Notes:** Next free ID -829.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-829
+**Timestamp:** 2026-10-10T20:10:08Z
+**Title:** The store slowed; the stuck derived jobs are dismissed and their slots go to land (planner's call)
+**Context:** The builder: hourly ERA5-Land months now take about 1,860 s each (against 389 to 896 s an hour earlier); with 2 in flight that is about 4 months an hour and 126 left, about 31 h, ending about 03:00 UTC Monday, which would lose -824's deadline. Two of the about 5 per-user slots were held by derived jobs not started in 1.5 h: 8f202c97 (rain 2025, already in the hourly chunks) and d6ae24ed (the map's 2026 rain, covered by the hourly fallback in 61f9bf6).
+**Decision (planner):** the builder's option (c). Both derived jobs are dismissed; land runs on 4 workers now and 5 once the rain chunks finish (builder's estimate 13 to 16 h). Keeping those jobs was the planner's precaution written into -826, not the owner's ruling (the owner chose the route: "Hourly, checked against 2019 (Recommended)"), and the hourly rain route has since been checked exactly against the store's 2019 daily sum (-827). The hourly-to-derived land agreement check is attempted if a slot frees and the derived queue moves; if not, D24's equivalence comparison on temperature and soil against Open-Meteo's ERA5-Land values, within -818's tolerance, stands in for it, and the report says so.
+**Notes:** Next free ID -830.
