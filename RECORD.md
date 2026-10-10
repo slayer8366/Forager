@@ -14902,3 +14902,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Download only PNW region data. Ignore everywhere else even if it has to be redone. and begin training immediately"
 **What it sets:** the go to build, without waiting for the verify report to be read. Data is pulled for the PNW only (the eastern T1 box and the continent are not pulled now; redoing pulls later for a wider area is accepted). Training starts at once: what needs no weather (T1's calendar baseline on the PNW records) starts while the weather downloads; the weather model fits as soon as the weather and D24's equivalence sample are in. D5, D12 and D24's equivalence test are not waived by this; any step cut to make Monday is named to the owner. The T1 verify coder becomes the builder.
 **Notes:** Next free ID -812.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-812
+**Timestamp:** 2026-10-10T18:06:52Z
+**Title:** PNW pilot: the bigger weather box, the equivalence check before the fit, two deferrals
+**Context:** The verify report (forager-forecast pnw-first-fit-verify dd28648, docs/audits/2026-10-10-pnw-first-fit-verify-report.md): the Copernicus account is present; the daily-statistics product offers both soil variables, so no hourly fallback; T1's box is 42 to 49.5 N, 121 to 125 W (t1_design.py:35), the T6b box 40 to 49 N, 111 to 125 W; about 0.16 GB for T1's box, 0.71 GB for the union; pull time unmeasured, 2.5 to 12 hours; route to Monday 12 to 25 hours of build and run. -811's "PNW only" already skips T1's East box (a deviation from T1's dispatch and D24's "two boxes").
+**The owner, verbatim:** box: "Bigger box (Recommended)" (offered: T1's box only); equivalence: "Keep it before the fit (Recommended)" (offered: beside the fit); deferrals allowed after Monday: "Independent review,D33's extra runs" (the random-date comparison was offered and not chosen, so it stays before Monday).
+**What it sets:** the weather download covers 40 to 49.5 N, 111 to 125 W; T1's fit uses its own box from it, T1's box pulled first. D24's equivalence test runs before the fit; the builder fixes "within rounding" as half a unit of Open-Meteo's displayed precision plus 1e-6, committed before data is read. The D18 review and D33 (3) and (4) may follow Monday, reported, not dropped; the result is labelled unreviewed until then. The pilot's D100 change is filed as a forager-forecast decision.
+**Notes:** Next free ID -813.
