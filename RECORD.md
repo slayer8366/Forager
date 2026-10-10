@@ -15195,3 +15195,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** The PNW box's inputs are complete: Canada's trees filled, the 49 N seam check gives T5's verdicts, and the layer review finds nothing blocking
 **Observed:** T6b's 10-tile run (-835) ended 2026-10-10T15:08:41-07:00: scanfi-layers 84 ok, trees 10 ok, 0 deferred, 0 failed (forager-forecast t6b-pnw-scanfi 04f0302). The planner rebuilt the PNW mosaic under /mnt/work only (the drive's forecast-data/pnw/ untouched) and ran the seam check on it (8035b5c, docs/audits/2026-10-10-t6b-pnw-run/seam-after-10-tiles/): 16,674,133 box study cells, 102,543 Canadian, 0 pending Canada, 0 not computed; seam verdicts total cover "artifact" (23 transects with a border step), Douglas-fir, conifer and broadleaf shares "no step" (7 each), the same verdicts as T5 (D90). Hemlock share defined in 6,991,082 cells against 7,087,659 for the other shares, as D85 expects (hemlock not separable in Canada). The independent layer review (t6b-pnw-review e013406, docs/audits/2026-10-11-t6b-pnw-layers-review.md): nothing blocking; all 296 box tiles ok, study-cell counts match the mask on every tile, 23 of 23 pre-sampled hashes match, 19 independent recomputes agree to float32 rounding, soil inputs traced to ISRIC's files; the 10 Canadian tiles' 20 tile files and 110 layer files verified and their US cells unchanged. Should-fix, not blocking: S2 the trees stage trusts SCANFI layer files by name, not by manifest line; S3 the pnw-monday edge check cannot be re-run as written; Canadian cells never compared across a tile edge. Not checked: the CEC polygons, the 4.2 GB att_closure hash, a shoreline Canadian cell.
 **Notes:** The drive's own pnw mosaic (and the test map's input tiles) is still the 2026-10-09 05:39 build; redrawing the live input map with Canada filled is not done and needs the owner's word under the site rule. Next free ID -839.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-839
+**Timestamp:** 2026-10-10T22:15:21Z
+**Title:** Redraw the live PNW input map with Canada filled, without touching the pilot's deadline
+**The owner, verbatim:** "Yes on the live input map. So long as it doesn't get in the way of the deadline"
+**What it sets:** the test map's input layers at zynergy-labs.com/Forager/forecast/ are rebuilt from the completed PNW mosaic (-838) and deployed. The drive's 2026-10-09 mosaic is kept as a copy before it is replaced. The work yields to the pilot: no CPU-heavy step while a pilot fit or the hedge chain runs, finished well before about 09:00 UTC Sunday, and dropped if it would delay the -824 deadline. The planner merges the site change under this word after the preview check.
+**Notes:** Next free ID -840.
