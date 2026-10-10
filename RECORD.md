@@ -15160,3 +15160,18 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Add the 2 tiles (Recommended)" (offered: run it on 6 lines, labelled).
 **Done:** T6b paused for the beta build at 13:22:57 PDT (26 of 88 units done) and resumed by the planner at 13:57 PDT on 10 tiles (the 8 plus 256_-27_20 and 256_-28_20), --until 01:30, from forager-forecast t6b-pnw-scanfi (4ac4cab, the tile filter, whole layers kept); the edge fix merged into t6b-continental-layers as cfbf50d. Beta cleanup (-830) built on beta-diagnostics-out (f6522161 tests first, c1ab617d, 683e6cc9, ca60c540 the divider fix, 8eb87743 report); targeted debug 65/65 and release 7/7; four revert checks and a whole-change revert each fail only their own tests; 23 debug-dependent test files moved unchanged to src/testDebug, which CI's testDebugUnitTest runs (ci.yml:163, checked by the planner); no assembleRelease (signing stays in the owner's checkout). PR #211 opened; merge on the owner's word.
 **Notes:** Next free ID -836.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-836
+**Timestamp:** 2026-10-10T21:09:39Z
+**PR:** 211
+**Head:** beta-diagnostics-out
+**Base:** main
+**Merge-commit:** 53f573ae32081e875072bb3efb39ba719503d8c3
+**Pre-merge:** 0b561481661961cc7c589b517d7a40eaaecc4d26
+**Backup:** 2026-10-10-03
+**Observed:** pull request #211 (the last beta's cleanup, -830: the Crash logs row, crash capture and the alert record files out of release builds; Settings ends at Backup with no stray divider) was merged as 53f573ae, pinned to head 8eb87743, on green CI at that head (run 38085796090), read from GitHub, on the owner's "Merge now (Recommended)". The signed release build for Play is the owner's to make from main in their own checkout (signing stays there).
+**Also:** the pilot's land pull slowed (about 6 months an hour, the store's per-user cap of 5 confirmed); the builder projects the all-years T1 result at about 19:00 to 20:00 UTC Sunday. The planner's call: the live map gets the all-years model only; a 2019 to 2025 model, labelled as such, is fitted when its years land (about 09:00 to 10:00 UTC Sunday) for the scoring output and the site preview only, as a tested fallback. D33's year range is not changed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -837.
