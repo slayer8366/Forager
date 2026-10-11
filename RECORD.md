@@ -15838,3 +15838,13 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Observed:** the scorer republished at 23:41:25Z (pnw-pilot-scoring 92cd265, records ff352e8). Cells (ac6038d3…) and the 40 block files are byte-identical. manifest.json is 14,085 B, sha256 aae1e57b…ae22, and weather_bridge carries the -895 wording verbatim. **Slip:** the publish ran for a few seconds while the D33 (3) weather fit (pnw_t1_fit.py --list t1_5000m) was running. The scorer's check printed the fit but did not stop. Both ran under the 5G cap, and the fit continued.
 **Planner call:** sighting_chance_meaning still says "this week". It is D12's definition (scripts/pnw_pilot_score.py:116), already published in the calendar manifest. pilot.js does not show it, so the page's never-say-this-week rule is not breached. Left as is: rewording a published definition is a forecast-repository decision, not needed for the demo.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -897.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-897
+**Timestamp:** 2026-10-11T23:46:03Z
+**Title:** D33 (3), the 5,000 m list: worse than the calendar; the gate-override dispatch's chain is complete
+**Observed (builder's report, pnw-pilot-t1 9ed9b16):** 56,927 units, 1,365 positive, 2,060 cells; 491 sea units dropped. The 22 previously refused units are kept and no unit was dropped for missing weather; the sample is as fixed. Brier: calendar 0.02267, weather 0.02285. Skill -0.0080, interval -0.0120 to -0.0044, verdict "worse". AUC: calendar 0.802, weather 0.785. Skill is negative in 9 of 11 years. The 34-point pull (22:41 to 22:56Z) put 1,904 of 1,904 points on disk, and the check found 0 failed. Fits ran 22:56 to 23:45Z after waiting for no other CPU job. weather/t1_pnw_d33_3.npz is identical to t1_pnw.npz on every shared point-day. Not reviewed: it ran after review pass 2 filed. Single bootstrap seed.
+**What it sets:** the OMS briefing's pending D33 (3) line is filled with this result, marked not reviewed (under -875).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -898.
