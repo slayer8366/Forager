@@ -15695,3 +15695,23 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "S22 steps today, the rest after merge (Recommended)".
 **What it sets:** the merge gates on the S22 steps: 1 (passed), 2 (pressure stored on a 2-minute recording), 6 (the sensor only while recording), 4 (the waypoint distance bubble), 5 (a new entry leaving out an under-a-minute recording, its markers too), and 9 (a stairwell climb within ±10%). Steps 3 and 8 (existing entries and the flat pocket walk, on the owner's S26) and 7 (battery) run on the next beta built from main after the merge. The report's database path uses com.zynergylabs.forager; the installed id is com.zynergylabs.forager.app.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -886.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-886
+**Timestamp:** 2026-10-11T21:29:14Z
+**Title:** Journal entry and barometer height: S22 check passed (steps 1, 2, 4, 5, 6); step 9 moved to after the merge (owner)
+**Observed (S22, build 1.0.3222+g69309a18, installed 14:06 PDT; the owner at the phone):**
+- **Step 1:** pressure sensor "lps22hh … android.sensor.pressure(6)". Pass.
+- **Database:** user_version 21 after first launch; track_points has pressureHpa.
+- **Step 2:** track 596f5e3d (14:10:52 to 14:19:12 PDT) has pressure on 69 of 69 points (994.14 to 995.72 hPa; GPS altitude 79.0 to 115.3 m). Pass, against at least half.
+- **Step 6:** dumpsys sensorservice shows AndroidPressureProvider registered at 14:10:52 (1 Hz, 5 s batch) and unregistered at 14:19:12, the recording's span. Pass. The diagnostics walk logger also registers pressure while it is on; that is pre-existing.
+- **Step 5,** from the owner's screenshots, kept off GitHub: in a new Oct 11 entry's editor, the under-a-minute recording (28 ft) and its Start and End markers are off, Waypoint 5 (saved during it) is on, and the 474 ft walk is on. Pass.
+- **Step 4:** tapping the walk's End pin shows "474 ft walked from the start", fully on screen. Pass.
+- The entry page shows the map, the Offline map toggle, the four tiles and the Height heading, with Climb "0 ft".
+
+**Observation, not a gate:** the walk's "Time out" reads 3 min while its points run from 14:10:53. The Start marker is at 2:15 PM, the first good fix outdoors, so Time out appears to count from the Start marker. Probably existing behaviour; not investigated.
+**The owner, verbatim:** "Tests passed." and, on step 9 (a climb of known height; no stairs nearby), "Move it to after the merge".
+**What it sets:** the S22 gate (-885) is met with step 9 moved; the pull request opens and merges on green. Steps 3, 7, 8 and 9 run on the next beta built from main.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -887.
