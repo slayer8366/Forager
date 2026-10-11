@@ -15684,3 +15684,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Merge after the check".
 **What it sets:** the pull request is opened and merged only after the nine-step device check passes on the S22, with the owner at the phone. The APK comes from the branch's CI artifact, so no local Gradle is needed. Version 21 is re-checked against the remote before the merge (-867). A failed step comes back to the owner before any fix.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -885.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-885
+**Timestamp:** 2026-10-11T21:09:09Z
+**Title:** Journal entry and barometer: the S22 steps gate the merge; the S26 and battery steps follow on the next beta (owner)
+**Context:** journal-entry-height merged main fc8367cd as 69309a18, with the one README conflict resolved keeping all seven rows. CI run 38173936493 at 69309a18: 611 suites, 4,687 tests, 0 failures, 24 skipped. Version 21 and MIGRATION_20_21 are unclaimed outside this branch (origin/main ForagerDatabase.kt:188 is version = 20). The planner installed that run's APK on the S22 at 14:06 PDT over the existing app (adb install -r, data kept; installed version 1.0.3222+g69309a18). No recording was running beforehand. Device-check step 1 passed: dumpsys sensorservice lists "lps22hh Pressure Sensor Non-wakeup … android.sensor.pressure(6)".
+**The owner, verbatim:** "S22 steps today, the rest after merge (Recommended)".
+**What it sets:** the merge gates on the S22 steps: 1 (passed), 2 (pressure stored on a 2-minute recording), 6 (the sensor only while recording), 4 (the waypoint distance bubble), 5 (a new entry leaving out an under-a-minute recording, its markers too), and 9 (a stairwell climb within ±10%). Steps 3 and 8 (existing entries and the flat pocket walk, on the owner's S26) and 7 (battery) run on the next beta built from main after the merge. The report's database path uses com.zynergylabs.forager; the installed id is com.zynergylabs.forager.app.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -886.
