@@ -15739,3 +15739,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 
 The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How each phone was carried is not known; asked.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -888.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-888
+**Timestamp:** 2026-10-11T21:36:01Z
+**Resolves:** the open question in -887
+**Observed:** the owner, verbatim: "Both phones in pockets" and "and yes I installed it myself" (the S26's build 1.0.3222+g69309a18, at 14:06:27 PDT). So the S22's larger GPS wander and barometric drift on the shared stretch were not a carrying difference; whether they come from the phone or from its particular pocket is not determined. A swapped-pocket flat walk would separate the two, alongside device-check step 8. Since the S26 runs the test build, steps 3 and 8 can run on it before the next beta.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -889.
