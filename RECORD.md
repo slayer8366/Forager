@@ -15475,3 +15475,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Yes, add a 'run this branch' trigger (Recommended)" (offered: draft pull requests only; keep builds local).
 **What it sets:** a workflow_dispatch trigger with an optional test filter, documented with the coder's command and the revert-runner rules for CI. CI is the default build route for coders whenever a forecast job is running; local builds remain for when the laptop is free. Dispatch prompts/preserved/2026-10-11-02.md. Merge on the owner's word; the trigger can only be exercised once merged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -866.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-866
+**Timestamp:** 2026-10-11T18:21:34Z
+**Title:** The CI run-this-branch change may be merged when ready (owner)
+**The owner, verbatim:** "Merge it when ready" (about -865's CI change, dispatch 2026-10-11-02).
+**What it sets:** the planner merges the ci-run-this-branch pull request once: step 1 is done; the pull request's own CI run is green at the pinned head; the diff is read and touches only the workflow and its docs, with no change to what existing triggers run, no new secrets or permissions, and no @Ignore or removed assertion; and a backup bundle of main is taken first. A RECORD merge entry follows, then the post-merge run on a scratch branch. A finding that's the owner's call comes back first.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -867.
