@@ -52,7 +52,7 @@ enum class ColourFieldMove { UP, DOWN }
 
 /**
  * [registry]'s colour fields in the order the Layers sheet and the legend list them: **top of the draw
- * order first**, the way Gaia and CalTopo list stacked layers, so the row at the top is the layer drawn
+ * order first**, the way backcountry and topographic map apps list stacked layers, so the row at the top is the layer drawn
  * on top.
  */
 fun colourFieldsTopFirst(registry: List<MapLayerSpec>, state: MapLayersState): List<MapLayerSpec> =

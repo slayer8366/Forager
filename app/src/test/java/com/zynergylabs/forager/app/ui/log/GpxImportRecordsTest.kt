@@ -113,7 +113,7 @@ class GpxImportRecordsTest {
         }
     }
 
-    private var fileBytes: ByteArray = GpxImportFixtures.STRAVA_LIKE.toByteArray()
+    private var fileBytes: ByteArray = GpxImportFixtures.SHAPE_A.toByteArray()
 
     private val importNow = Instant.parse("2026-10-07T12:34:56Z").toEpochMilli()
 

@@ -304,7 +304,7 @@ on legible output today.
 
 ---
 
-## 6. Export / comparison against Gaia
+## 6. Export / comparison against a widely used backcountry map app
 
 **There is no way to get a recorded track out of this app today** — no
 GPX file write, no share sheet, no Storage Access Framework picker. This
@@ -326,7 +326,7 @@ the UI/file layer: there is no button, menu item, or share intent
 anywhere that calls `encode()` and writes or shares the result.
 
 **Practical implication for the field test:** as scoped today, there is
-no way to turn the field test into accuracy data against Gaia's own
+no way to turn the field test into accuracy data against that app's own
 recorded track — only visual/anecdotal comparison on two separate
 screens. Wiring a minimal "share as GPX" action (encode the ended
 `Track`, hand the string to `Intent.ACTION_SEND` with a `text/xml` mime

@@ -42,7 +42,7 @@ report from the actual tester build or the project owner, not speculative polish
      `MapIconBar`'s `Surface`, vertically centered on the same right-edge column, silently swallowed
      taps on the new control on short screens.
   3. Defaulted the tester build's recording to `TrackRecordingMode.HIGH_ACCURACY` (a call-site
-     override, not a changed library default) for a denser track to compare against Gaia.
+     override, not a changed library default) for a denser track to compare against a widely used backcountry map app.
   4. Routed `DetectOffTrackUseCase`'s signal to a dedicated notification channel plus vibration, on
      a 120s repeat-while-off-track cooldown.
   - 762 tests run, 761 passing; one pre-existing full-suite-only flake (`JournalTabTest`), documented

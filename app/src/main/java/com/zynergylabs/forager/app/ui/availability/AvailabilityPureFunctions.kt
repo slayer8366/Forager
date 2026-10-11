@@ -142,7 +142,7 @@ private const val NO_MAPS_APP_MESSAGE = "No maps app is installed to show direct
 
 /**
  * The `geo:` intent for a point named [name] at [location]: a `geo:0,0?q=lat,lng(label)` URI
- * resolves to whatever navigation app is installed rather than assuming Google Maps specifically,
+ * resolves to whatever navigation app is installed rather than assuming a mainstream maps app specifically,
  * which is the portable choice — see this file's own doc comment for why this lives here and not
  * in the ViewModel or `domain/`. Exposed as its own function (rather than inlined into
  * [launchDirections]) so a test can assert on its action/data without needing a resolvable package

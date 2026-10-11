@@ -144,7 +144,7 @@ non-tester caller (or any existing test) still gets `BALANCED` unless it asks ot
 **Reasoning:** at typical walking pace (~1.2–1.4 m/s), `HIGH_ACCURACY`'s 5m distance gate is met in
 ~4s, so its 5s interval gate becomes the binding constraint — roughly one point every 5–7s, versus
 `BALANCED`'s ~15–20s. That's a real, meaningful density increase for retracing a route against
-Gaia, using numbers this project has already validated (unit-tested `LocationSampler`/
+a widely used backcountry map app, using numbers this project has already validated (unit-tested `LocationSampler`/
 `TrackRecordingModeTest` coverage), not new invented thresholds.
 
 **Adaptive behavior — considered, not built, and here is why:** the dispatch's own framing

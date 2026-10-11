@@ -29,7 +29,7 @@ In a **release build** none of this exists: `WalkLogger` is a do-nothing twin (`
 | `816bdc5a` | The failing tests, with stubs so they compile. The release twin in its final form. |
 | `401a54b2` | Test harness only: the writer and session tests run under Robolectric (see "The red run"). |
 | `4ed83cb9` | The code (written before the red run; see disclosures). |
-| `90b45971`, `c0fab08a` | The owner's how-to; then its "close Google Maps and other navigation apps" line (the owner, relayed by the planner: "Yes, add the line (Recommended)"). |
+| `90b45971`, `c0fab08a` | The owner's how-to; then its "close [the mainstream maps app] and other navigation apps" line (the owner, relayed by the planner: "Yes, add the line (Recommended)"). |
 | `edf533a0` | Three fixes from the first green run (one code, two test harness). |
 | `62f41bc7` | A session reads inactive only once its file is closed (a race the full suite found). |
 | `3c025c6f` | Merge of `origin/main` at `71c1de9c`. No conflicts. |
@@ -197,7 +197,7 @@ The other rows (location lost while navigating, pace not yet measured, walk back
 
 ### Could not determine
 
-- **Whether the S22 delivers valid carrier phase without full tracking.** Its capability reads "unknown". The location history shows Google Maps asking for full tracking while Play services got duty cycling. Our logs may show no valid carrier phase even if the chip can produce it.
+- **Whether the S22 delivers valid carrier phase without full tracking.** Its capability reads "unknown". The location history shows a mainstream maps app asking for full tracking while Play services got duty cycling. Our logs may show no valid carrier phase even if the chip can produce it.
 - **Anything about the S26:** not connected; its reads wait.
 - **Battery cost of the wake lock:** the desk run.
 

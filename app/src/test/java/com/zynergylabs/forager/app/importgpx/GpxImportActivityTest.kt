@@ -108,7 +108,7 @@ class GpxImportActivityTest {
     @Test
     fun `Open with saves the file as a track and opens Forager on it`() {
         val uri = Uri.parse("content://com.example.files/document/Morning%20Hike.gpx")
-        offer(uri, GpxImportFixtures.STRAVA_LIKE)
+        offer(uri, GpxImportFixtures.SHAPE_A)
 
         launch(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/gpx+xml"))
 
@@ -124,7 +124,7 @@ class GpxImportActivityTest {
     @Test
     fun `Share saves the file too`() {
         val uri = Uri.parse("content://com.example.mail/attachment/7")
-        offer(uri, GpxImportFixtures.GAIA_LIKE)
+        offer(uri, GpxImportFixtures.SHAPE_B)
 
         launch(Intent(Intent.ACTION_SEND).setType("application/gpx+xml").putExtra(Intent.EXTRA_STREAM, uri))
 
@@ -160,7 +160,7 @@ class GpxImportActivityTest {
         val recordingBefore = runBlocking { container.trackRepository.getById("running") }.getOrThrow()
         val watchBefore = container.returnWatch.state.value
         val uri = Uri.parse("content://com.example.files/document/Morning%20Hike.gpx")
-        offer(uri, GpxImportFixtures.STRAVA_LIKE)
+        offer(uri, GpxImportFixtures.SHAPE_A)
 
         launch(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/gpx+xml"))
 

@@ -153,7 +153,7 @@ class SchemaMigrationTest {
             assertEquals("w-1", db.scalar("SELECT originWaypointId FROM tracks"))
             assertNull("a recorded walk is not imported", db.scalar("SELECT importedAtEpochMillis FROM tracks"))
             assertEquals("a recorded walk has its times", 0L, db.scalar("SELECT importedWithoutTimes FROM tracks"))
-            db.execSQL("INSERT INTO tracks (id, name, startedAtEpochMillis, endedAtEpochMillis, importedAtEpochMillis, importedWithoutTimes) VALUES ('t-imp', 'Gaia', 1, 2, 1759800000000, 1)")
+            db.execSQL("INSERT INTO tracks (id, name, startedAtEpochMillis, endedAtEpochMillis, importedAtEpochMillis, importedWithoutTimes) VALUES ('t-imp', 'Imported', 1, 2, 1759800000000, 1)")
             assertEquals(1_759_800_000_000L, db.scalar("SELECT importedAtEpochMillis FROM tracks WHERE id = 't-imp'"))
             assertEquals(1L, db.scalar("SELECT importedWithoutTimes FROM tracks WHERE id = 't-imp'"))
             db.execSQL("INSERT INTO tracks (id, name, startedAtEpochMillis) VALUES ('t-default', NULL, 3)")

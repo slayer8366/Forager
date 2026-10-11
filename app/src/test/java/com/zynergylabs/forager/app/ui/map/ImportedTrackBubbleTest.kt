@@ -32,7 +32,7 @@ class ImportedTrackBubbleTest {
 
     @Test
     fun `an imported track with times, and a recorded walk, show their duration`() {
-        assertEquals("1h 0m", durationOf(Track("imp", "Gaia", 0L, 3_600_000L, points, importedAtEpochMillis = 1L)))
+        assertEquals("1h 0m", durationOf(Track("imp", "Imported", 0L, 3_600_000L, points, importedAtEpochMillis = 1L)))
         assertEquals("1h 0m", durationOf(Track("rec", null, 0L, 3_600_000L, points)))
     }
 }

@@ -127,7 +127,7 @@ tests, 0 failures.
 
 - `ImportGpxUseCaseTest` (13, Room): the app's own export (`TrackGpxExporter`, with a hidden network fix
   and an ORIGIN waypoint) imported back equal in points, times, name and waypoints, with fresh ids;
-  importing twice makes two tracks and overwrites nothing; Strava-, Gaia- and OsmAnd-shaped fixtures
+  importing twice makes two tracks and overwrites nothing; shape A, B and C fixtures (other apps' exports)
   written by hand; three tracks; no times; six refused files; XXE; over 10 MB; unopenable; rollback.
 - `ImportedTrackOutOfJournalTest`: the derived trip holds the recorded walk and its own and loose
   waypoints, not the imported track or its waypoints; `getAll` (Records, map) holds all.
@@ -154,7 +154,7 @@ the file equals HEAD. All 22 compiled, all restored equal to HEAD.
 
 | Edit | Test | Failure |
 |---|---|---|
-| R1 no rounding | Gaia | "both segments ... .400 rounds down, .600 up ..." |
+| R1 no rounding | shape B | "both segments ... .400 rounds down, .600 up ..." |
 | R2 `importedWithoutTimes = false` | no times | assertion on the flag |
 | R3 waypoints unlinked | five tests | e.g. "expected:<[Car, Spring]> but was:<[]>" |
 | R4 first `<trk>` only | three tracks | "expected:<[Day one, Three days (2), Day three]> but was:<[Day one]>" |

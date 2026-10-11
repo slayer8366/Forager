@@ -297,7 +297,7 @@ alert and check-in timer per §4's delivery check.
 `SiteContextSection` · log entries linked to track points and waypoints ·
 capture-position vs. corrected-position separation · sensitive-location
 controls and privacy-safe export. Cheap, independent of the layer
-pipeline, and the thing nobody else builds: Gaia doesn't care about
+pipeline, and the thing nobody else builds: a widely used backcountry map app doesn't care about
 mycology, iNaturalist isn't a field navigator.
 
 **Phase 2 — terrain and hydrography**

@@ -668,8 +668,8 @@ class MainActivity : ComponentActivity() {
                                 requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
                             // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
-                            // too sparse to evaluate against Gaia's own recording. Testers already
-                            // run Gaia concurrently, so the extra GPS draw is a cost already
+                            // too sparse to evaluate against a reference map app's own recording. Testers already
+                            // run that app concurrently, so the extra GPS draw is a cost already
                             // committed either way — see startRecording()'s own default-parameter
                             // doc comment for why this is an explicit override here rather than a
                             // changed default: a future non-tester-build caller should still get

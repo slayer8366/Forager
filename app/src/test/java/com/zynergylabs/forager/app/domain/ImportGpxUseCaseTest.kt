@@ -123,8 +123,8 @@ class ImportGpxUseCaseTest {
 
     @Test
     fun `importing the same file twice makes two tracks and never overwrites a waypoint`() = runTest {
-        val first = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.GAIA_LIKE))).single()
-        val second = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.GAIA_LIKE))).single()
+        val first = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_B))).single()
+        val second = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_B))).single()
 
         assertNotEquals(first.id, second.id)
         assertEquals(2, waypoints.getForTrack(first.id).getOrThrow().size)
@@ -135,8 +135,8 @@ class ImportGpxUseCaseTest {
     // ---- other apps' files ---------------------------------------------------------------------
 
     @Test
-    fun `a Strava-shaped file imports with its name, elevations and times`() = runTest {
-        val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.STRAVA_LIKE, "Morning_Hike.gpx"))).single()
+    fun `a shape A file imports with its name, elevations and times`() = runTest {
+        val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_A, "Morning_Hike.gpx"))).single()
 
         assertEquals("Morning Hike", track.name)
         assertEquals(listOf(100.2, 101.0, 102.4), track.points.map { it.altitude })
@@ -146,8 +146,8 @@ class ImportGpxUseCaseTest {
     }
 
     @Test
-    fun `a Gaia-shaped file joins its segments, rounds its times to the second, and names its waypoints`() = runTest {
-        val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.GAIA_LIKE))).single()
+    fun `a shape B file joins its segments, rounds its times to the second, and names its waypoints`() = runTest {
+        val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_B))).single()
 
         assertEquals("the file's own <metadata> name, the track having none", "Chanterelle ridge", track.name)
         assertEquals(
@@ -166,8 +166,8 @@ class ImportGpxUseCaseTest {
     }
 
     @Test
-    fun `an OsmAnd-shaped file with offset times and no names is named from the file`() = runTest {
-        val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.OSMAND_LIKE, "2026-09-22_09-00_Tue.gpx"))).single()
+    fun `a shape C file with offset times and no names is named from the file`() = runTest {
+        val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_C, "2026-09-22_09-00_Tue.gpx"))).single()
 
         assertEquals("2026-09-22_09-00_Tue", track.name)
         assertEquals(listOf(ms("2026-09-22T07:00:00Z"), ms("2026-09-22T07:01:00Z")), track.points.map { it.timestampEpochMillis })

@@ -218,7 +218,7 @@ data class MapLayersControls(
  *   Q3, "Stays open (Recommended)"); it closes on a swipe, Back or a tap outside, all through
  *   [onDismiss]. On the Maps tab the choice persists across restarts ([MapMode]'s doc).
  * - **"Overlays"**: one switch per [overlays] entry, then the colour fields [colourFields] (only the
- *   ones with data, top of the draw order first, the way Gaia and CalTopo list stacked layers), each
+ *   ones with data, top of the draw order first, the way backcountry and topographic map apps list stacked layers), each
  *   with its switch, an "Opacity" slider and a drag handle. Listed after the record overlays because
  *   they draw below every one of them. A reorder is drawn at the map's next style load (terminal
  *   `2026-09-27-72`, Deviations 4); until then the sheet shows the new order and the map the old one.
@@ -327,7 +327,7 @@ private val COLOUR_FIELD_ROW_GAP = Spacing.sm
 
 /**
  * The colour fields, top of the draw order first. Each row is its switch, its opacity slider and its
- * drag handle. The handle reorders by dragging (the prior-art convention in Gaia and CalTopo) and by
+ * drag handle. The handle reorders by dragging (the prior-art convention in backcountry and topographic map apps) and by
  * TalkBack's custom actions "Move up" and "Move down". A drag moves the row with the finger and, on
  * release, steps the layer by the whole rows it was dragged ([ColourFieldMove.DOWN] for each row
  * down, since the list is top first).

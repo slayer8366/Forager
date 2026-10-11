@@ -3,14 +3,14 @@ package com.zynergylabs.forager.app.domain
 /**
  * Small GPX files for plan T16's tests, written by hand from the GPX 1.1 schema in the shape each app is
  * known to write (the dispatch: "write small fixtures by hand ... don't download anyone's data"). The
- * coordinates are made up. "-like" means the shape, not a file any of those apps produced.
+ * coordinates are made up. Each shape is another app's export by its structure only, not a file any app produced.
  */
 internal object GpxImportFixtures {
 
-    /** Strava's shape: `creator="StravaGPX"`, a `<metadata><time>`, one named `<trk>` with a `<type>`, whole-second Z times. */
-    val STRAVA_LIKE = """
+    /** Shape A, another app's export: a `creator` attribute, a `<metadata><time>`, one named `<trk>` with a `<type>`, whole-second Z times. */
+    val SHAPE_A = """
         <?xml version="1.0" encoding="UTF-8"?>
-        <gpx creator="StravaGPX" version="1.1" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+        <gpx creator="ShapeAGPX" version="1.1" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
          <metadata>
           <time>2026-09-20T15:00:00Z</time>
          </metadata>
@@ -36,12 +36,12 @@ internal object GpxImportFixtures {
     """.trimIndent()
 
     /**
-     * Gaia GPS's shape: a `<metadata><name>`, an unnamed `<trk>` in two `<trkseg>`s, millisecond times
+     * Shape B, another app's export: a `<metadata><name>`, an unnamed `<trk>` in two `<trkseg>`s, millisecond times
      * (.400 rounds down, .600 up), and two waypoints with `<sym>`, one with no `<name>` and no `<time>`.
      */
-    val GAIA_LIKE = """
+    val SHAPE_B = """
         <?xml version="1.0" encoding="UTF-8"?>
-        <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="GaiaGPS">
+        <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="ShapeBGPS">
           <metadata><name>Chanterelle ridge</name></metadata>
           <wpt lat="45.6" lon="-122.7">
             <ele>300.0</ele>
@@ -65,23 +65,23 @@ internal object GpxImportFixtures {
         </gpx>
     """.trimIndent()
 
-    /** OsmAnd's shape: its own namespace, per-point `<extensions>`, `<hdop>`, and times with a +02:00 offset. No `<name>` anywhere. */
-    val OSMAND_LIKE = """
+    /** Shape C, another app's export: its own namespace, per-point `<extensions>`, `<hdop>`, and times with a +02:00 offset. No `<name>` anywhere. */
+    val SHAPE_C = """
         <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-        <gpx version="1.1" creator="OsmAnd~ 4.7.2" xmlns="http://www.topografix.com/GPX/1/1" xmlns:osmand="https://osmand.net">
+        <gpx version="1.1" creator="ShapeC~ 4.7.2" xmlns="http://www.topografix.com/GPX/1/1" xmlns:shapec="https://example.com/gpx/shape-c">
           <trk>
             <trkseg>
               <trkpt lat="46.1" lon="7.1">
                 <ele>1200</ele>
                 <time>2026-09-22T09:00:00+02:00</time>
                 <hdop>4.2</hdop>
-                <extensions><osmand:speed>1.2</osmand:speed></extensions>
+                <extensions><shapec:speed>1.2</shapec:speed></extensions>
               </trkpt>
               <trkpt lat="46.101" lon="7.101">
                 <ele>1205</ele>
                 <time>2026-09-22T09:01:00+02:00</time>
                 <hdop>3.9</hdop>
-                <extensions><osmand:speed>1.3</osmand:speed></extensions>
+                <extensions><shapec:speed>1.3</shapec:speed></extensions>
               </trkpt>
             </trkseg>
           </trk>

@@ -2055,7 +2055,7 @@ private fun activateLiveLocationIfPermitted(
  * The zoom level a first-ever GPS activation eases to, once — a close, orienting view rather than
  * whatever the region-search zoom heuristic ([zoomForRadiusKm], topping out at 13.0) happened to
  * leave the camera at. 16.0 is the conventional "street level" a locate-me control zooms to
- * elsewhere (Google Maps, among others) — not derived from anything specific to this app.
+ * elsewhere (mainstream maps apps, among others) — not derived from anything specific to this app.
  */
 private const val FIRST_ACTIVATION_ZOOM = 16.0
 

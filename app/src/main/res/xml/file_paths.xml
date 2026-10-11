@@ -12,7 +12,7 @@
   than external-files-path — unlike a crash report, an exported GPX file only needs to survive
   long enough for the share-sheet target app to read it, not to accumulate for later on-device
   inspection. Exposed here so the Settings "Recorded Tracks" export action can hand a track to
-  another app (Gaia, CalTopo, email) via Intent.ACTION_SEND.
+  another app (a map app, email) via Intent.ACTION_SEND.
 -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="captures" path="captures/" />

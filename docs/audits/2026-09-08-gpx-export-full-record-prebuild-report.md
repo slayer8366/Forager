@@ -335,7 +335,7 @@ numbers; the rule name is recorded so a future second rule can be told apart):
 Field rules: `i` is the stored ordinal in DAO order (0-based); `t` is fixed three-decimal
 ISO-8601; `lat`/`lon`/`ele` as stored, `ele` omitted when null; `acc` omitted when null; `spd` /
 `spdAcc` omitted when null (present only after schema 15); `v` is `kept` or `excluded`. The
-namespace URI is a name, not a fetchable document — the same convention Garmin's extension
+namespace URI is a name, not a fetchable document — the same convention an established handheld GPS maker's extension
 namespaces use — and carries a `/1` so a second schema can exist beside the first.
 
 **What a replay-harness reader needs and gets:** every stored row, in order, with the verdict,
