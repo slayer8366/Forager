@@ -15422,3 +15422,23 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Rulings (owner, verbatim answers):** "Move to the $5/month plan, then merge (Recommended)". "'from the Oregon–California border' (Recommended)": the intro's first sentence becomes "An early look at the weekly chance of chanterelles being found, cell by cell, from the Oregon–California border to the Canadian border." (forecast cells run 41.95 to 49.55° N). "Use this wording" for two passages: index.html:47 becomes "Model inputs (soil, host trees) for the Pacific Northwest. Not a forecast on their own."; the "The forecast itself does not exist yet…" passage (index.html:197-198) becomes "The forecast is a weekly sighting chance per mushroom group and weather cell. This pilot covers chanterelles only. It is shown together with the result of its test against a seasonal calendar on years it was not fitted to, whether or not it passed, so it can be looked at and questioned."
 **What it sets:** the 2026-08-22 constraint is lifted for the site's forecast page once the tile server's account is on the paid plan; the owner makes that switch in the hosting dashboard (not visible from any repository). The app's own rule on live browsing is unchanged. The site merge waits for the owner to confirm the switch and give the merge word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -861.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-861
+**Timestamp:** 2026-10-11T17:09:27Z
+**Title:** PNW pilot: the weather model goes on the demo, labelled as not beating the calendar; the extras' missing weather is fetched if quick (owner)
+**Context:** Review pass 2 (forecast pnw-pilot-t1-review, 79b8b17; docs/audits/2026-10-10-pnw-pilot-t1-review.md, "## Pass 2"). Every builder figure reproduces with the reviewer's own code. Gate: the rounding explanation reproduces Open-Meteo's value on 6,912 of 6,912 hours from the time-series route. Units 52,718 and positives 1,138, as pass 1 predicted. Headline (all years, primary): Brier skill -0.003536; interval [-0.00657, -0.00010] (builder) and [-0.00678, -0.00020] (reviewer), below zero for every one of 50 seeds. Per fold: weather favoured in 4 of 7 informative folds; 2024 and 2025 (609 of 1,138 positives) favour the calendar. Random-date comparison: skill -0.002213, "not shown". Blocking B4: the model fails D5's test, and the model.json files carry no verdict. The reviewer was not given -814, which already bends D5 for this labelled pilot. Planner's wrong premise: the extras run had not been "in progress"; it stopped at 16:54:23Z on "weather missing for 22 units (months not pulled)", and override_chain.sh logs no failure line.
+**Rulings (owner, verbatim answers):** "The weather model, labelled (Recommended)" (offered: the calendar model instead; both as two layers). "Fetch the missing weather if it's quick (Recommended)" (offered: do them after Monday).
+**What it sets:** -814 stands. The demo shows the all-years weather model with beats_calendar false and the banner's existing "did not beat the seasonal calendar" wording; reviewed true, since pass 2 has filed and its figures reproduce, with B4 answered by -814 and this ruling. The pilot's label stays (not validated). D33 (3) and (4): the coder reports the missing months and the time to fetch them; they run before Monday only if that fits, otherwise after, with the briefing saying they're pending. The sample is unchanged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -862.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-862
+**Timestamp:** 2026-10-11T17:09:27Z
+**Corrects:** 2026-09-28-854
+**What was wrong:** -854 says the two Copernicus routes "differ by up to 0.00016 K". That figure is from ts_check's comparison of daily statistics. Hour by hour the routes differ by up to 0.00024 K (review pass 2, item 1). The rounding explanation is unaffected; pass 2 tested it on every compared hour.
+**Notes:** Next free ID -863.
