@@ -15791,3 +15791,14 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **The owner, verbatim:** "Merge on green" (offered: a quick S22 tap test of Navigate before merging, or merge on green CI).
 **What it sets:** once part 6 (-890) is pushed and CI is green at the pinned head, the planner reads the diff for @Ignore and removed or weakened assertions beyond those named, re-checks that version 21 is unclaimed, backs up main, merges, and writes the merge entry. The Navigate tap goes on the post-merge device-check list with steps 3, 7, 8 and 9.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -893.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-893
+**Timestamp:** 2026-10-11T22:46:55Z
+**Title:** PNW pilot published for 2026-W41; the banner's weather line in plain words (owner)
+**Observed:** the scorer published the weather model for 2026-W41 (forecast pnw-pilot-scoring 9090a59, after fixes 22a01c8 and 4a5faea): ~/Zynergy/forecast-data-pnw-pilot/scoring/out/pnw-pilot/2026-10-05/, cantharellus.geojson 1,594,691 B (sha256 ac6038d3…a395), manifest.json 14,242 B. 2,618 of 3,116 cells scored (231 from a land neighbour, 498 sea, 0 with an incomplete window); chance 0.0067 to 0.1571. pilot true, validated false, reviewed true, beats_calendar false; status_label and t1_result verbatim from -863. Attribution: GBIF plus the Copernicus text for the four products read. Open-Meteo values appear only inside the embedded gate record. The 2014-2025 rain files are unchanged (12 of 12 checksums). The window is final data for 07-07 to 07-31 and preliminary from 08-01 to 10-04, as weather.source states. Not verified: an independent recomputation of the chances on the real window.
+**The owner, verbatim:** "Plain version (Recommended)", for the banner's weather_bridge line, which had read "None. The week is scored from the Copernicus store, by products training also read (owner, Forager RECORD -819; route, RECORD -829); weather.source names them. Open-Meteo's archive was fetched …".
+**What it sets:** weather_bridge reads "This week's weather comes from the Copernicus climate archive, the same sources the model was trained on. A second weather service was checked for the same days but isn't used for scoring." The technical detail stays in weather.source and the report. The scorer changes it (test first) and republishes; the cell file must stay byte-identical. Then the site drop (dispatch 2026-10-11-pnw-pilot-site-drop.md with its -877/-878 amendment), merged on the owner's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -894.
