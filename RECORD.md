@@ -15759,3 +15759,15 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **The owner, verbatim:** "Hold the merge, fix it first (Recommended)".
 **What it sets:** PR #219 is not merged. The coder fixes barometer smoothing on journal-entry-height: a time-based window rather than a sample count, proper handling at a walk's start and end, and a jump limit suited to walking. The failing test comes first, built from this walk's pressures with locations and absolute times stripped (fixture /tmp/s22-walk-596f5e3d-no-location.json, 69 points). Then CI, then the planner re-checks this walk's chart on the S22 before merging.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -890.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-890
+**Timestamp:** 2026-10-11T22:17:43Z
+**Title:** Journal entry map bubbles offer Navigate for waypoints (owner)
+**Context:** The owner, from a screenshot of an entry map's End-pin bubble (kept off GitHub), verbatim: "Also offer to navigate via our new system in these bubbles please". The planner read origin/main: MapBubble.kt:470 shows "Navigate" only when onNavigate is passed. The Maps tab, the waypoint details sheet and Records pass it (dispatch -502, AvailabilityScreen.kt:1060-1075, WaypointNavigationOrigin); the journal entry map does not, and offers only "Directions" (a geo: intent to another app) and "Details".
+**Path, restated and confirmed:** Journal > an entry > tap a waypoint pin (Start, End or a saved waypoint) > the bubble shows Navigate · Directions · Details > Navigate opens the Maps tab with waypoint navigation running to it, exactly as from Records today > Back behaves as it does after starting navigation from Records.
+**The owner, verbatim:** "Waypoints only, as described (Recommended)".
+**What it sets:** built as part 6 on journal-entry-height (PR #219, held under -889), so it merges with the barometer fix after the S22 re-check. Today's waypoint navigation is reused unchanged; finds get no Navigate.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -891.
