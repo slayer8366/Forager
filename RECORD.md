@@ -15306,3 +15306,18 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "The two failing tests,RECORD catch-up,Return ends on arrival" (to which work to restart beside the forecast download).
 **What it sets:** the Return change (-844, -845) restarts from main 58fbc642 with the owner's answers as recorded; a coder diagnoses the two tests that fail on main (the Back by clock-picker test, AvailabilityScreenQuickSettingsTest, and WalkLoggerServiceTest's storage-below-200-MB test, -848) before any fix, and silences neither. Gradle runs one build at a time on the planner's go, and yields to the pilot's fits.
 **Notes:** Next free ID -851.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-851
+**Timestamp:** 2026-10-11T05:29:54Z
+**PR:** 213
+**Head:** main-red-tests
+**Base:** main
+**Merge-commit:** 65bd8ee52146ad7fe03a60c42d493d981d173a5e
+**Pre-merge:** 58fbc642d532bab5501f73d41ebf01ad22b7ebd9
+**Backup:** 2026-10-11-02
+**Observed:** pull request #213 (the two tests that failed main's CI after #212, -848) was merged as 65bd8ee5, pinned to head 9e00bce8, on green CI at that head (run 38113556168, at night UTC, when the picker test used to fail), on the owner's "Merge now (Recommended)". Causes, each reproduced with CI's own message and its fix revert-checked: (1) the Back by time picker read the real clock instead of the screen's (MapQuickSettings.kt:163-164; no call site passed one), so the test failed from about 23:00 to 10:59 UTC; the screen's clock is now passed through, and in the app it is the same system clock as before; (2) the walk-logger storage test raced the service's fix handling (Stop cancels it, TrackRecordingService.kt:363-366); the test now waits for a stored batch of 20 points. Report docs/audits/2026-10-11-main-red-tests-report.md.
+**Also:** PR #214 (Return ends on arrival, -844, -845) is open on green targeted tests (156) and 10 biting reverts; it waits for CI and an S22 launch check, because the register report shows AvailabilityScreen at 409 (baseline 402) and CompactMainScaffold at 386 (385).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -852.
