@@ -15663,3 +15663,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Rulings (owner, verbatim answers):** "Start the research now (Recommended)". For what "guide people away" means, the owner selected all four options: "Show it on the map", "Warn on entering", "Routes avoid it", "Let the research inform it".
 **What it sets:** dispatch prompts/preserved/2026-10-11-05.md, a read-only web research job: data sources and licences, owner names and privacy, prior art, foraging rules by land type in Oregon and Washington, what each behaviour can honestly support given boundary accuracy, routing avoid-areas, and weekly-build size. Nothing is built; options come back to the owner.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -883.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-883
+**Timestamp:** 2026-10-11T20:51:28Z
+**Title:** Land-ownership layer: caution on entry warnings (owner)
+**The owner, verbatim:** "Be careful on the warning upon entering item, look for more info that comes back. I can see that triggering by GPS being slightly off and walking on the sidewalk by someone's house."
+**What it sets:** added to dispatch 2026-10-11-05's question 5. The researcher reports real GPS error in towns and under trees; how parcel lines relate to sidewalks, rights-of-way and easements; how other apps suppress false entry alerts; and whether any entry warning can be honest without firing on a sidewalk walk, saying plainly if none can. The warning is not assumed to ship; it is decided after the research.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -884.
