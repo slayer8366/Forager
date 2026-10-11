@@ -15379,3 +15379,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** PNW pilot follow-on dispatches written: review pass 2, scoring step 4, site drop
 **Dispatches:** forager-forecast pnw-pilot-plans 8e3009b, docs/dispatch/2026-10-11-pnw-pilot-review-pass2.md, 2026-10-11-pnw-pilot-scoring-step4.md, 2026-10-11-pnw-pilot-site-drop.md. Each starts when its input exists: the review and scoring when the builder's chain (-854) has pushed results, the site drop after scoring publishes. Under -816, -817, -819 and -837. Each carries the gate failure and override (-854) and the corrected daily count (-855). The site merge stays on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -857.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-857
+**Timestamp:** 2026-10-11T16:29:12Z
+**Title:** Forecast page: our own street map beneath the layers before Monday; topo and satellite later (owner)
+**Context:** Asked whether the forecast map shows beneath the tiles: the page (zynergy-site main 734b2a6, Forager/forecast/app.js) shows one layer at a time over a plain background, with no street, topo or satellite map. The owner: "Yes I would like to have the map displayed beneath. Can we have street, topo map, and the USGS satellite choices?" Four answers followed: "Before Monday, separately (Recommended)", "Street map fills in (Recommended)" (where satellite has no imagery), "One fixed setting (Recommended)" (layers see-through, about 70%, no slider), "Street (Recommended)" (the default). The planner then restated the path with outside servers for all three maps. The owner: "We should use our own map tiles for it". The planner checked: our tile server (forager-pmtiles Worker, /us.json) is live, covers [-124.85, 24.4, -66.87, 49.6] at zoom 0-15, and answers cross-site requests; we serve no elevation and no imagery (Forager docs/plans/own-map-tiles.md). Asked again, with three options, the owner chose "Our street map now, rest later (Recommended)".
+**What it sets:** before Monday, as its own site change: our street map beneath every layer of the forecast page; no picker while there's one map; layers at one fixed see-through setting of about 70%; credits as the licences require; nothing fetched from outside servers at runtime. Topo and satellite of our own come with the own-tiles project, shared with the app; the picker appears once there's a second map. The satellite fill-in and street-default answers carry forward to then. Merge on the owner's word. Dispatch: forager-forecast pnw-pilot-plans docs/dispatch/2026-10-11-site-own-street-basemap.md.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -858.
