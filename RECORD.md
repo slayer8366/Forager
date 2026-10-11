@@ -15400,3 +15400,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Rulings (owner, verbatim answers):** demo page: "Make /Forager/forecast/ demo-ready (Recommended)" (search engines may list it; the banner reads the review's verdict instead of "unreviewed"; /Forager/mushroom-forecast/ stays for the complete forecast). Opening layer: "Soil pH, as today". Next step for visitors: "No link". Town names: "Street map's names, drawn on top (Recommended)" (the page's own place markers go). North edge: "Stop panning just past the box (Recommended)". Page text: "Use this wording": title "Forager mushroom forecast: Pacific Northwest pilot"; heading "Mushroom forecast: Pacific Northwest pilot"; intro "An early look at the weekly chance of chanterelles being found, cell by cell, from northern California to the Canadian border. It's a pilot: the banner says how it did when tested on years it hadn't seen. It opens on the soil layer. Choose Sighting chance (pilot) in the layer list to see the forecast."
 **Planner calls (technical):** connect-src opened for the tile server on /Forager/forecast/ paths only; full fonts (768 files, about 11 MB), not a subset; licence notices (OFL, MIT, BSD-3) shipped beside the vendored files; the landcover layer kept with its credit added by hand; @protomaps/basemaps 5.7.2 light, self-contained build vendored; legend swatches and colour bar matched to the 70% look. All on the -857 branch, so the site merges once, on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -859.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-859
+**Timestamp:** 2026-10-11T16:42:15Z
+**Supersedes:** -857's "One fixed setting (Recommended)" (layers at a fixed ~70% with no slider)
+**Title:** Forecast page: a see-through slider for the layers (owner)
+**Ruling:** the owner, verbatim: "Can we also have an opacity slider on the site for people to adjust?" The planner restated the path: a "See-through" slider in the layer panel, under the layer list, starting at 70%; dragging changes the showing layer (soil, trees or the forecast) live, from street map only to fully solid; the legend follows the slider; switching layers keeps the setting; a reload returns to 70%; thumb-sized on a phone. The owner: "Sounds good for the slider".
+**What it sets:** added to the -857/-858 site branch, so the page changes once; merge on the owner's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -860.
