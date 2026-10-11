@@ -15521,3 +15521,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Backup:** 2026-10-11-05 (main-pre-216.bundle, verified okay, sha256 978fbb1f…dbd67)
 **Observed:** PR #216 ("run this branch": workflow_dispatch with an optional ';'-separated test filter; a filtered run skips only the stale-allowlist check; README how-to with the revert-runner rules on CI) was merged by the planner as af5ea9af at 2026-10-11T18:37:18Z, pinned to head 72d99a47, on green CI at that head (run 38163639640; 606 suites, 4,649 tests, 0 failures, 24 skipped, unfiltered path). Under the owner's "Merge it when ready" (-866). The planner read the diff: 2 files (ci.yml +71/-2, README +42/-1); no change to the push and pull_request triggers, permissions, concurrency, build, version check or uploads; no @Ignore and no removed assertion. actionlint 1.7.12 (checksum verified) reports 0 errors; its shellcheck and pyflakes rules were off. The coder's step-0 count of 25 allowlist entries was wrong; it's 24. Not yet observed: the manual trigger itself (step 3, next), and Gradle failing on a pattern that matches no test.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -870.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-870
+**Timestamp:** 2026-10-11T18:38:03Z
+**Title:** The offline-region row in Records becomes one plain line (owner)
+**Context:** In the owner's Records > All screenshot, the offline-region row ("Region 5") shows a long technical paragraph: its centre coordinates, tile count and size, then "Ready to zoom 15: zoom 10–14 from the archive, zoom 15 detail fetched live from …" with how a failed fetch behaves, naming a mapping product. The planner proposed shortening it to one plain line, with the detail kept on the region's own page.
+**The owner, verbatim:** "Yes please. Good catch"
+**What it sets:** added to dispatch 2026-10-11-03 (records-tidy). The row reads name · size of area · download size · when downloaded (e.g. "Region 5 · 10 mi around … · 18.8 MB · downloaded 11 hours ago"). A place name is used only if the app already has one offline, never by a new network lookup; otherwise the place part is left out. The technical detail moves to the region's own page if one exists. If none does, the coder stops and reports rather than dropping it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -871.
