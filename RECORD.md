@@ -15583,3 +15583,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** The writer filled the briefing's 30 TO FILL lines (forager-forecast pnw-pilot-plans 7c3cf7b, docs/briefings/2026-10-12-oms-briefing.md, dispatch 2026-10-11-oms-briefing-fill.md). It re-derived the pooled skills and the unit, positive, cell and per-year counts from the held-out prediction files, and quoted the intervals, D24 counts and review findings. The 4 remaining "TO FILL" strings are dated history notes (lines 10, 11, 15) and one stale rule (line 319). It listed nine existing lines that contradict the record: the model "expected Sunday"; "not reviewed"; no room guidance for an interval wholly below zero; "A region is shown only after…" without -814/-861; the 4 to 8% rain-gap figure beside D24's 0.982 ratio, which come from different samples.
 **The owner, verbatim:** "Update them to match the record (Recommended)" (facts only, no new claims; the owner reads the finished briefing before Monday).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -876.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-876
+**Timestamp:** 2026-10-11T20:12:33Z
+**Title:** Records tidy: Edit from All opens over All; pull request and merge on green (owner)
+**Context:** The coder's addendum for -874 (Forager records-tidy: bf4973fb, 9884d970, then the report d037e1af; full CI run 38169963103 at 9884d970: 608 suites, 4,666 tests, 0 failures, 24 skipped; revert runs 38169965476 and 38169967395 each failed only their own test). One edge was outside the rulings: from All, long-press a find > Edit still opened the edit form under the Finds chip.
+**Rulings (owner, verbatim answers):** "Yes, Edit opens over All too (Recommended)" (Back from the edit form returns to All). "Open a pull request, merge on green (Recommended)": the planner opens the pull request, waits for green CI at the pinned head, reads the diff for @Ignore and removed or weakened assertions beyond those named, backs up main, and merges, ahead of journal-entry-height, which then merges main in. The nine-step phone check goes on the next device-check list.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -877.
