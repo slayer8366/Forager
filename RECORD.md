@@ -15618,3 +15618,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Rulings (owner, verbatim answers):** "Say so in the briefing only" (the briefing explains that the independent review is a second automated reviewer working separately from the builder; the page banner keeps -863's wording). "A one-page card at the top (Recommended)" (the result in plain words with what the score means, what to say and not say, and the questions worth asking; the evidence moves below as an appendix, unchanged). "Fix both, with the forecast data (Recommended)": the page intro becomes "…the weekly chance of chanterelles being reported…", and the guide's "Not validated and not reviewed" becomes "Not validated. Its figures were checked by an independent review."; both go in one site change with this week's data, merged on the owner's word.
 **What it sets:** the briefing's writer applies every factual finding under -875 plus the two rulings above. The site-drop dispatch gains the two text fixes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -879.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-879
+**Timestamp:** 2026-10-11T20:35:53Z
+**Supersedes:** -466 item 1 ("the Raspberry Pi 5 is the serving origin, and Cloudflare (R2 behind the Worker) is the backup"; the owner then: "Set up the RPI5 as server and cloudflare as backup") and the Pi-as-origin parts of -479 ("Pi hidden behind the Worker", fallback to R2 when the Pi is down)
+**Title:** The map service: Cloudflare serves; the Pi builds and keeps a copy, not a live fallback (owner)
+**The owner, verbatim:** "I say we use cloudflare as the main server, and the PI as backup". Asked the Pi's role, with options (builds and stands by as a live fallback, Recommended; builds and keeps a copy, nothing live): "Builds the maps and keeps a copy, nothing live".
+**What it sets:** the Worker at tiles.zynergy-labs.com in the zynergy-labs account (-481, unchanged) serves from R2 for everyone. The Pi builds each map update (stage 4, spec R1), uploads to R2 and keeps a copy of each build. It is not wired as a fallback; restoring from it is a manual step. Spec R2 reads as: the Worker serves from R2, and the Pi being down affects only builds. The tunnel, origin hostname and Access token from -468 are no longer needed for serving; keeping or retiring them comes back to the owner from the Pi planner. Workers Paid is per account: the zynergy-labs account will need it at launch. Relay for the Pi planner: prompts/preserved/2026-10-11-04-pi-relay.md (the owner relays, per the -4xx split). This matches the survey's original recommendation (2026-10-03-own-tiles-survey.md, decision 1).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -880.
