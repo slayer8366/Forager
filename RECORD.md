@@ -15370,3 +15370,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **What was wrong:** the dispatch called the D24 daily comparison's mismatches "20 known". 20 is the length of first_daily_mismatches, which the script cuts at 20. Both runs have 30 daily mismatches of 1,008 values, all precipitation, found by the coder's step 0 (forecast pnw-pilot-t1 903a170). -833 explains the rain gap but gives no count. The daily comparison does not gate the fit, so the plan is unchanged.
 **Also:** step 0 confirmed the planner's failing hour with the coder's own code (scripts/pnw_land_route_failures.py, 903a170): exactly one hour in each run, t2m 493_-1250 at 2025-12-12T11:00, store 5.424951 °C, Open-Meteo 5.5 °C. The time-series route gives 5.425012 °C for the same hour, on the other side of the 5.425 midpoint, where the difference would pass. That supports the rounding explanation without proving it. D33 (3) and (4) run in pnw_t1_run_all.sh extras, which step 2 adds.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -856.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-856
+**Timestamp:** 2026-10-11T15:24:34Z
+**Title:** PNW pilot follow-on dispatches written: review pass 2, scoring step 4, site drop
+**Dispatches:** forager-forecast pnw-pilot-plans 8e3009b, docs/dispatch/2026-10-11-pnw-pilot-review-pass2.md, 2026-10-11-pnw-pilot-scoring-step4.md, 2026-10-11-pnw-pilot-site-drop.md. Each starts when its input exists: the review and scoring when the builder's chain (-854) has pushed results, the site drop after scoring publishes. Under -816, -817, -819 and -837. Each carries the gate failure and override (-854) and the corrected daily count (-855). The site merge stays on the owner's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -857.
