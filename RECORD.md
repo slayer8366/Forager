@@ -15532,3 +15532,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Yes please. Good catch"
 **What it sets:** added to dispatch 2026-10-11-03 (records-tidy). The row reads name · size of area · download size · when downloaded (e.g. "Region 5 · 10 mi around … · 18.8 MB · downloaded 11 hours ago"). A place name is used only if the app already has one offline, never by a new network lookup; otherwise the place part is left out. The technical detail moves to the region's own page if one exists. If none does, the coder stops and reports rather than dropping it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -871.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-871
+**Timestamp:** 2026-10-11T18:49:48Z
+**Title:** Records tidy: Back paths, find photo layout, region row wording (owner); step-0 calls (planner); two planner premises corrected
+**Context:** The coder's step 0 for dispatch 2026-10-11-03 (Forager records-tidy e651dd12, docs/audits/2026-10-11-records-tidy-step0-report.md, base af5ea9af). Today Back from any chip steps to All (RecordsTab.kt:269), then to Entries (JournalTab.kt:486), then to Maps (AvailabilityScreen.kt:1319). The region page already shows the technical detail (RecordDetailsSheet.kt:505-520). No place name is stored offline. **Planner premises that were wrong:** the dispatch said Tools has a waypoints entry; waypoints moved to Records (AvailabilitySettingsUi.kt:576-577). It also said "Back retraces the way in" is in CLAUDE.md; it is in RECORD -383 (the owner's words), -618 and -672.
+**Rulings (owner, verbatim answers):** "Reopen Tools, then Seasonal (Recommended)" (from Tools > Offline maps, the first Back reopens the Tools drawer and the second closes it to the page the user came from; once the user moves on inside the Journal, by another chip or tab, Back works normally from there). "Back to Finds, then out (Recommended)" (Back from any other chip returns to Finds; Back from Finds leaves Records the way Back from All does today). "Under the title, whole photo, next one peeking (Recommended)" (photo first under the title, the "Found at" and identification lines below; each photo uncropped in its own shape; with several, the next peeks in from the side). "Yes, that wording (Recommended)" (the region row reads "Region 5 · 10 mi radius · 18.8 MB · downloaded 11 hours ago"; the Stale label stays; rows not yet downloaded take the same short form).
+**Planner calls:** a kind with no records is omitted from All; finds on the same day sort most recently saved first; the Tools button is a fixed row above Settings; the drawer's inclusion-rule comment records this owner-ruled exception; DecodedPhotoSemanticsTest's snapshot is reported if it changes, not edited.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -872.
