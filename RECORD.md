@@ -15261,3 +15261,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Yes, that sounds reasonable. an established handheld GPS maker is a good source to model", to the step path: (1) tap Return, the HUD guides back along the track with off-track on; (2) on reaching the start, by the same arrival test Back by and sundown already use, Return ends by itself, the HUD shows Arrived, off-track stops watching; (3) the recording keeps going until Stop; (4) driving away afterwards sends no off-track alert.
 **What it sets:** that behaviour, built test-first through the real entry points, with a revert check, and an S22 desk or walk check named in its report.
 **Notes:** Next free ID -845.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-845
+**Timestamp:** 2026-10-11T02:09:34Z
+**Continues:** 2026-09-28-844
+**Context:** The coder's stop before building (base 53f573ae): the navigation HUD exists only while navigating (AvailabilityScreen.kt:916; the ViewModel copies the watch's isReturning, TrackRecordingViewModel.kt:380-393), so a Return that ends on arrival would remove the HUD and "Arrived" would at most flash. The arrival test is the same in BackByWatch (:273-288) and SundownWatch (:285-290), on hasArrived (NavigationReadout.kt:67, 111: max(15 m, 2x accuracy) of the origin waypoint, else the track's first point). Waypoint navigation (T8) also never ends on arrival, by -503's step path (WaypointNavigation.kt:13); it runs no off-track, so it has no drive-off alert; reported, not changed.
+**The owner, verbatim:** "Arrived for a few seconds, then closes (Recommended)" (offered: Arrived stays until closed; closes at once with a short notice), and "Must leave first (Recommended)" (offered: ends right away).
+**What it sets:** on arrival the HUD holds "Arrived" with the start ringed for about 10 seconds (held, not live, so a drive-off does not turn it back into a distance), then closes by itself to the plain map; off-track and the route tick stop at arrival. Arrival counts only after the walker has been outside the arrival circle at least once since tapping Return. The coder's plan to keep Back by's and sundown's arrival behaviour unchanged (an "arrived after Return" flag read by both, pinned by tests) is accepted.
+**Notes:** Next free ID -846.
