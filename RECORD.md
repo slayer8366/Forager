@@ -15673,3 +15673,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Be careful on the warning upon entering item, look for more info that comes back. I can see that triggering by GPS being slightly off and walking on the sidewalk by someone's house."
 **What it sets:** added to dispatch 2026-10-11-05's question 5. The researcher reports real GPS error in towns and under trees; how parcel lines relate to sidewalks, rights-of-way and easements; how other apps suppress false entry alerts; and whether any entry warning can be honest without firing on a sidewalk walk, saying plainly if none can. The warning is not assumed to ship; it is decided after the research.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -884.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-884
+**Timestamp:** 2026-10-11T20:52:05Z
+**Title:** Journal entry and barometer height merges after the S22 phone check (owner)
+**Context:** Dispatch 2026-10-11-01's final report (Forager journal-entry-height 3a8a7de0, docs/audits/2026-10-11-journal-entry-height-final-report.md; full suite green at 63331992: 609 suites, 4,669 tests, 0 failures, 24 skipped). The branch carries a database migration (20 to 21, pressureHpa on track_points) and barometer height whose storage on the S22 is unverified (device-check step 2). The coder chose a 60-minute GPS re-anchor time constant from synthetic walks (step 0 proposed 20 minutes), so device-check step 8 passes at under about 25 ft of chart spread. The branch is merging main fc8367cd (PR #218) before a fresh CI run.
+**The owner, verbatim:** "Merge after the check".
+**What it sets:** the pull request is opened and merged only after the nine-step device check passes on the S22, with the owner at the phone. The APK comes from the branch's CI artifact, so no local Gradle is needed. Version 21 is re-checked against the remote before the merge (-867). A failed step comes back to the owner before any fix.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -885.
