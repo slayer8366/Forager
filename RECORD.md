@@ -15507,3 +15507,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Rulings (owner, verbatim answers):** "Centered and large (Recommended)" (full width with margins, centered under the title; several photos in a centered swipeable row; tap opens full screen). "Finds, Tracks, Waypoints, Offline maps (Recommended)" (sections by kind in chip order, each with a count; newest first inside). "Your last pick until the app restarts (Recommended)" (opens on Finds at app start; the session keeps the last chip). "Records, on the Offline maps chip (Recommended)" (the Tools button opens Journal > Records on the Offline maps chip; Back returns to where the user was).
 **What it sets:** dispatch prompts/preserved/2026-10-11-03.md, branch records-tidy, read-and-report first, CI builds only; merge on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -869.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-869
+**Timestamp:** 2026-10-11T18:37:32Z
+**PR:** 216
+**Head:** ci-run-this-branch
+**Base:** main
+**Merge-commit:** af5ea9afe7d79e71a5c18a1e97c4434e8dced119
+**Pre-merge:** bde4206886316b26f93478d6a3c5c69ddb801621
+**Backup:** 2026-10-11-05 (main-pre-216.bundle, verified okay, sha256 978fbb1f…dbd67)
+**Observed:** PR #216 ("run this branch": workflow_dispatch with an optional ';'-separated test filter; a filtered run skips only the stale-allowlist check; README how-to with the revert-runner rules on CI) was merged by the planner as af5ea9af at 2026-10-11T18:37:18Z, pinned to head 72d99a47, on green CI at that head (run 38163639640; 606 suites, 4,649 tests, 0 failures, 24 skipped, unfiltered path). Under the owner's "Merge it when ready" (-866). The planner read the diff: 2 files (ci.yml +71/-2, README +42/-1); no change to the push and pull_request triggers, permissions, concurrency, build, version check or uploads; no @Ignore and no removed assertion. actionlint 1.7.12 (checksum verified) reports 0 errors; its shellcheck and pyflakes rules were off. The coder's step-0 count of 25 allowlist entries was wrong; it's 24. Not yet observed: the manual trigger itself (step 3, next), and Gradle failing on a pattern that matches no test.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -870.
