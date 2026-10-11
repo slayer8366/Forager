@@ -15748,3 +15748,14 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Resolves:** the open question in -887
 **Observed:** the owner, verbatim: "Both phones in pockets" and "and yes I installed it myself" (the S26's build 1.0.3222+g69309a18, at 14:06:27 PDT). So the S22's larger GPS wander and barometric drift on the shared stretch were not a carrying difference; whether they come from the phone or from its particular pocket is not determined. A swapped-pocket flat walk would separate the two, alongside device-check step 8. Since the S26 runs the test build, steps 3 and 8 can run on it before the next beta.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -889.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-889
+**Timestamp:** 2026-10-11T21:41:25Z
+**Title:** Barometer height: a false end-of-walk drop on the S22; hold PR #219 and fix first (owner)
+**Observed:** the owner's screenshot (kept off GitHub) of the S22's Oct 11 entry for track 596f5e3d (1,060 ft walked, End 2:19 PM): the Height chart (334 to 373 ft) ends in a sharp drop of about 35 ft. The owner: "I dropped into the earth at the end". The S22's stored pressure swings up to about 1.4 hPa between consecutive points 5 to 8 s apart (e.g. 994.31, 995.26, 995.54, 994.71, 995.72 hPa over 14:18:34 to 14:19:07, about ±10 m) at walking speed, against the S26's ±0.2 hPa on the same stretch, both in pockets. The last point (995.72 hPa, about -8.8 m from the start) is the drop. Inferred, not run through the app's code: a 5-sample median has no later neighbours at the walk's end, and jumps of about 1 m/s pass the 2 m/s rejection.
+**The owner, verbatim:** "Hold the merge, fix it first (Recommended)".
+**What it sets:** PR #219 is not merged. The coder fixes barometer smoothing on journal-entry-height: a time-based window rather than a sample count, proper handling at a walk's start and end, and a jump limit suited to walking. The failing test comes first, built from this walk's pressures with locations and absolute times stripped (fixture /tmp/s22-walk-596f5e3d-no-location.json, 69 points). Then CI, then the planner re-checks this walk's chart on the S22 before merging.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -890.
