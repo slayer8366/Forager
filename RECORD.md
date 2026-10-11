@@ -15781,3 +15781,13 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Observed:** the planner installed CI run 38178570116's APK (head 035fcbf1, the smoothing fix d96d68ad) on the S22 at 15:15:40 PDT over the existing app (adb install -r; version 1.0.3227+g035fcbf1). The owner's screenshot (kept off GitHub) of the same Oct 11 entry (track 596f5e3d, 1,060 ft) shows the Height chart at 363 to 368 ft, against 334 to 373 ft with a sharp end drop before the fix. A gentle slope of about 4 to 5 ft remains at the end, in line with the fix's tested end minus start of -1.20 m and spread of 1.59 m (S22WalkHeightTest). The owner, verbatim: "Not a straight drop anymore".
 **What it sets:** the -889 hold is satisfied for the barometer fix. PR #219 merges once part 6 (-890, Navigate in entry bubbles) is built and CI is green at the pinned head.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -892.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-892
+**Timestamp:** 2026-10-11T22:28:49Z
+**Title:** PR #219 merges on green once part 6 lands; no device tap test for Navigate before merge (owner)
+**The owner, verbatim:** "Merge on green" (offered: a quick S22 tap test of Navigate before merging, or merge on green CI).
+**What it sets:** once part 6 (-890) is pushed and CI is green at the pinned head, the planner reads the diff for @Ignore and removed or weakened assertions beyond those named, re-checks that version 21 is unclaimed, backs up main, merges, and writes the merge entry. The Navigate tap goes on the post-merge device-check list with steps 3, 7, 8 and 9.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -893.
