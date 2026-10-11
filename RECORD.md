@@ -15272,3 +15272,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Arrived for a few seconds, then closes (Recommended)" (offered: Arrived stays until closed; closes at once with a short notice), and "Must leave first (Recommended)" (offered: ends right away).
 **What it sets:** on arrival the HUD holds "Arrived" with the start ringed for about 10 seconds (held, not live, so a drive-off does not turn it back into a distance), then closes by itself to the plain map; off-track and the route tick stop at arrival. Arrival counts only after the walker has been outside the arrival circle at least once since tapping Return. The coder's plan to keep Back by's and sundown's arrival behaviour unchanged (an "arrived after Return" flag read by both, pinned by tests) is accepted.
 **Notes:** Next free ID -846.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-848
+**Timestamp:** 2026-10-11T03:23:10Z
+**PR:** 212
+**Head:** scrub-names-main
+**Base:** main
+**Merge-commit:** 81dcab7cb16b07777ac5f2fb6335e0df18f9ba9f
+**Pre-merge:** 53f573ae
+**Backup:** 2026-10-11-scrub (mirror)
+**Observed:** pull request #212 (generic wording for other products in the current tree; GPX import fixtures renamed to shapes A, B and C; no behaviour change) was merged as 81dcab7c, pinned to head 05980685, on the owner's "Merge, investigate tests after (Recommended)". CI was red on two tests the PR does not touch: the Back by clock-picker test (AvailabilityScreenQuickSettingsTest:424, failed on both runs; inferred, not confirmed, to depend on the time of day CI runs) and WalkLoggerServiceTest's storage-below-200-MB test (failed on the re-run only). 4,601 of 4,627 tests passed, 24 skipped. The PR's own checks: 104 targeted tests before and after, and the rewrite rules leave its head tree byte-identical. Both failing tests go to a coder after the history rewrite; neither is silenced.
+**Notes:** Next free ID -849.
