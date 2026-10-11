@@ -15321,3 +15321,31 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Observed:** pull request #213 (the two tests that failed main's CI after #212, -848) was merged as 65bd8ee5, pinned to head 9e00bce8, on green CI at that head (run 38113556168, at night UTC, when the picker test used to fail), on the owner's "Merge now (Recommended)". Causes, each reproduced with CI's own message and its fix revert-checked: (1) the Back by time picker read the real clock instead of the screen's (MapQuickSettings.kt:163-164; no call site passed one), so the test failed from about 23:00 to 10:59 UTC; the screen's clock is now passed through, and in the app it is the same system clock as before; (2) the walk-logger storage test raced the service's fix handling (Stop cancels it, TrackRecordingService.kt:363-366); the test now waits for a stored batch of 20 points. Report docs/audits/2026-10-11-main-red-tests-report.md.
 **Also:** PR #214 (Return ends on arrival, -844, -845) is open on green targeted tests (156) and 10 biting reverts; it waits for CI and an S22 launch check, because the register report shows AvailabilityScreen at 409 (baseline 402) and CompactMainScaffold at 386 (385).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -852.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-852
+**Timestamp:** 2026-10-11T06:28:43Z
+**PR:** 215
+**Head:** walk-logger-header-first
+**Base:** main
+**Merge-commit:** bd9baf7890880fa1841606f667e4b9516cec3095
+**Pre-merge:** 65bd8ee52146ad7fe03a60c42d493d981d173a5e
+**Backup:** 2026-10-11-03
+**Observed:** pull request #215 (the walk logger, debug builds only, writes and flushes its header before it counts as active) was merged as bd9baf78, pinned to head 31828c8e, on green CI at that head (run 38117581304), on the owner's "Merge both (Recommended)". Cause, found while diagnosing a CI failure on #214: WalkLogSession set active=true when the file opened (WalkLogSession.kt:41) while the header sat in a buffer until the first minute's flush, so isLogging could read true with an empty file (WalkLoggerServiceTest.kt:148, NoSuchElementException). The race is on main too: 0/20 on each side unchanged, 5/5 on each side with a 200 ms pause after active=true. With the fix, 5/5 pass; the revert fails 5/5. Report docs/audits/2026-10-11-walk-logger-header-first-report.md.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -853.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-853
+**Timestamp:** 2026-10-11T06:44:35Z
+**PR:** 214
+**Head:** return-ends-on-arrival
+**Base:** main
+**Merge-commit:** bde4206886316b26f93478d6a3c5c69ddb801621
+**Pre-merge:** bd9baf7890880fa1841606f667e4b9516cec3095
+**Backup:** 2026-10-11-04
+**Observed:** pull request #214 (Return ends by itself on arrival; the HUD holds "Arrived" for 10 s then closes; arrival counts only after leaving the circle; Back by and sundown unchanged; waypoint navigation untouched; -844, -845) was merged as bde42068, pinned to head 641ab01e, on green CI at that head (run 38118212241), on the owner's "Merge both (Recommended)". 21 new tests; 10 revert checks each failing with its own message, R1 reproducing the 2026-10-10 drive-off alert ("expected:<0> but was:<1>"). Main merged in twice (65bd8ee5, then bd9baf78), conflicts only in the audit index, every row kept; app changes after the last full green (d2a86f4b) were only #215's logger files. S22 launch check PASS on the built head and again on the first merge (1.0.3169+gca0ced10: verified, cold launch, alive after 8 s, crash buffer empty); AvailabilityScreen remains over ART's compiler instruction limit (21426, interpreted, as already logged at -793 with 21112). Not yet done on a phone: the report's S22 desk and walk steps (must leave first, the 10 s hold, no drive-off alert, Back by ending on arrival).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -854.
