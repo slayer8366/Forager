@@ -15802,3 +15802,17 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **The owner, verbatim:** "Plain version (Recommended)", for the banner's weather_bridge line, which had read "None. The week is scored from the Copernicus store, by products training also read (owner, Forager RECORD -819; route, RECORD -829); weather.source names them. Open-Meteo's archive was fetched …".
 **What it sets:** weather_bridge reads "This week's weather comes from the Copernicus climate archive, the same sources the model was trained on. A second weather service was checked for the same days but isn't used for scoring." The technical detail stays in weather.source and the report. The scorer changes it (test first) and republishes; the cell file must stay byte-identical. Then the site drop (dispatch 2026-10-11-pnw-pilot-site-drop.md with its -877/-878 amendment), merged on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -894.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-894
+**Timestamp:** 2026-10-11T23:38:31Z
+**PR:** 219
+**Head:** journal-entry-height
+**Base:** main
+**Merge-commit:** 921aa9c796052e5ce8c3ad883c4487f45f6fb86f
+**Pre-merge:** fc8367cdd76416f8b71da1c07d7d42a8e8018f7f
+**Backup:** 2026-10-11-08 (main-pre-219.bundle, verified okay, sha256 d190155a…aaae)
+**Observed:** PR #219 merged by the planner, pinned to head 549a8c50, on green CI at that head (pull_request run 38182647821). It carries the journal entry page (-864, -867, -873), the Climb fix, smoothed and barometer height with MIGRATION_20_21 (version 21; main was at 20 and no other remote branch carries MIGRATION_20_21, checked before merge), the end-drop smoothing fix (-889; S22 re-check -891), and Navigate in entry-map waypoint bubbles (-890; the coder's full run 38181642268 at 48ca074b: 612 suites, 4,691 tests, 0 failures, 24 skipped). Under the owner's "Merge after the check" (-884), the S22 gate (-885, -886, -887) and "Merge on green" (-892). The planner read the diff: no @Ignore; no change to .github; removed assertion lines in 8 test files, each named in the coder's reports. Part 6's Back returns to the Journal entry where Navigate was tapped: the coder's reading of -890's "as from Records", consistent with Back retracing the way in. Still to run on a phone, after the merge: existing entries (step 3), battery (7), the flat pocket walk (8), a known climb (9), the Navigate tap, and a swapped-pocket comparison (-888).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -895.
