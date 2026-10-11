@@ -15828,3 +15828,13 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Planner call:** check.py's collapsed-banner check reads "Reviewed." or "Not reviewed." from the manifest's reviewed field instead of hardcoding it.
 **What it sets:** the scorer republishes (numbers unchanged); the site coder makes the credits change, recopies the manifest, fixes check.py, and reruns both checks. The merge stays on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -896.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-896
+**Timestamp:** 2026-10-11T23:42:15Z
+**Title:** W41 republished with "This forecast's" (after -895); one overlap slip; "this week" left in the unshown D12 definition (planner)
+**Observed:** the scorer republished at 23:41:25Z (pnw-pilot-scoring 92cd265, records ff352e8). Cells (ac6038d3…) and the 40 block files are byte-identical. manifest.json is 14,085 B, sha256 aae1e57b…ae22, and weather_bridge carries the -895 wording verbatim. **Slip:** the publish ran for a few seconds while the D33 (3) weather fit (pnw_t1_fit.py --list t1_5000m) was running. The scorer's check printed the fit but did not stop. Both ran under the 5G cap, and the fit continued.
+**Planner call:** sighting_chance_meaning still says "this week". It is D12's definition (scripts/pnw_pilot_score.py:116), already published in the calendar manifest. pilot.js does not show it, so the page's never-say-this-week rule is not breached. Left as is: rewording a published definition is a forecast-repository decision, not needed for the demo.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -897.
