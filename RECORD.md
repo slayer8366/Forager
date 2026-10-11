@@ -15286,3 +15286,23 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Backup:** 2026-10-11-scrub (mirror)
 **Observed:** pull request #212 (generic wording for other products in the current tree; GPX import fixtures renamed to shapes A, B and C; no behaviour change) was merged as 81dcab7c, pinned to head 05980685, on the owner's "Merge, investigate tests after (Recommended)". CI was red on two tests the PR does not touch: the Back by clock-picker test (AvailabilityScreenQuickSettingsTest:424, failed on both runs; inferred, not confirmed, to depend on the time of day CI runs) and WalkLoggerServiceTest's storage-below-200-MB test (failed on the re-run only). 4,601 of 4,627 tests passed, 24 skipped. The PR's own checks: 104 targeted tests before and after, and the rewrite rules leave its head tree byte-identical. Both failing tests go to a coder after the history rewrite; neither is silenced.
 **Notes:** Next free ID -849.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-849
+**Timestamp:** 2026-10-11T04:48:56Z
+**Corrects:** 2026-09-28-827 and 2026-09-28-829
+**What was wrong:** -827 and -829 rest on the builder's report that rain for 2025 was in the hourly ERA5 chunks, so the derived 2025 job (8f202c97) could be dismissed. The edit adding 2025 to the hourly route had never applied, and nothing read it back; no route had requested rain for 2025. Found by the builder on restarting the pull (forecast pnw-pilot-t1 ae4f1e9 adds rain 2025 and the 2026-01-01 00:00 stamp). This is the builder's second claimed edit that had not applied (the first: the equivalence bounds, -834). From now on the builder reads back each change from the committed state before reporting it.
+**Also:** all pilot pulls and watchers were stopped at about 02:20 UTC 2026-10-11 on the owner's "Stop everything and fix it now" and restarted at 04:25 UTC on the owner's "Run the download again" (the forecast repository was unaffected by other work in between). At the restart 270 of 1,870 timeseries points and rain for 2014-Q4 to 2024 were on disk.
+**Notes:** Next free ID -850.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-850
+**Timestamp:** 2026-10-11T04:48:56Z
+**Title:** Work restarted: Return ends on arrival, the two failing tests on main, and the record catch-up
+**The owner, verbatim:** "The two failing tests,RECORD catch-up,Return ends on arrival" (to which work to restart beside the forecast download).
+**What it sets:** the Return change (-844, -845) restarts from main 58fbc642 with the owner's answers as recorded; a coder diagnoses the two tests that fail on main (the Back by clock-picker test, AvailabilityScreenQuickSettingsTest, and WalkLoggerServiceTest's storage-below-200-MB test, -848) before any fix, and silences neither. Gradle runs one build at a time on the planner's go, and yields to the pilot's fits.
+**Notes:** Next free ID -851.
