@@ -15442,3 +15442,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Corrects:** 2026-09-28-854
 **What was wrong:** -854 says the two Copernicus routes "differ by up to 0.00016 K". That figure is from ts_check's comparison of daily statistics. Hour by hour the routes differ by up to 0.00024 K (review pass 2, item 1). The rounding explanation is unaffected; pass 2 tested it on every compared hour.
 **Notes:** Next free ID -863.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-863
+**Timestamp:** 2026-10-11T17:18:20Z
+**Title:** PNW pilot banner wording (owner); scoring step-0 calls and the missing window weather (planner)
+**Context:** The scoring coder's step 0 (forecast pnw-pilot-scoring deca36a, the merge of pnw-pilot-t1 7d19c66; suite 493 passed). The manifest already embeds model.json whole, so the land_route_gate record is published, including two Open-Meteo values. pnw_pilot_score.py hard-codes reviewed false and the status label. The publish would stop on an unknown attribution source, era5_land_timeseries. weather.source understates what training read. **Wrong premise:** the store holds no 2026 weather for W41's window (2026-07-07 to 2026-10-04). The scoring report left those months to the builder (job d6ae24ed queued; outcome unknown), and nobody pulled them. The handoff did not say so, and the planner did not check.
+**Rulings (owner, verbatim answers):** "Keep it in the data file only (Recommended)" (the gate failure is not on the banner). "Pilot. Independently reviewed. (Recommended)": the status line for the reviewed model reads "Pilot, not yet validated. Its figures were checked by an independent review. Shown whether or not it beats the seasonal calendar." "Plain wording (Recommended)": t1_result reads "Tested on years it wasn't trained on (2015 to 2025, one year left out at a time), it did very slightly worse than the seasonal calendar alone. Brier skill −0.0035 (95% range −0.0066 to −0.0001). An independent review reproduced these figures."
+**Planner calls (technical):** the scoring coder pulls the window weather first (-819's products, about 3 to 4 requests, adopting d6ae24ed if it exists); the extras' months wait behind it (one user cap at the store). The gate record's two Open-Meteo values stay in the embedded model.json; they describe the gate, not scoring (-819 governs training and scoring inputs), with a top-level gate_record_attribution field crediting that API as its licence requires. The time-series product's citation, attribution (CC-BY-4.0) and access dates are added. A --reviewed flag is added, default false. weather.source for the full model names the products training read. The builder's model.json label ("unreviewed") stays as the builder wrote it, and is noted.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -864.
