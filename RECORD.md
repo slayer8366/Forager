@@ -15573,3 +15573,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Ruling (owner, verbatim answer):** "Find > All > Finds > out (Recommended)": from Records > All, open a find; the first Back closes it to All, the second goes to Finds, the third leaves Records.
 **Planner calls:** same-day finds sort by the time found, finds with no time last. **This corrects -871's "most recently saved first"**: no saved time is stored, and adding one needs a migration. The photo height is capped at the smaller of 480 dp and about 60% of the window height, so the title and details stay in view in short landscape windows; 32 dp of peek stands. Opening a find from All uses the forward motion (the find's page slides in), not All sliding out. The Tools return restoring fullscreen stands, as part of retracing the way in. The seven records-tidy-revert-* scratch branches hold only revert commits; they're left in place, and deleting them is the owner's call.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -875.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-875
+**Timestamp:** 2026-10-11T20:06:28Z
+**Title:** OMS briefing: blanks filled; stale lines brought up to date with the record (owner)
+**Context:** The writer filled the briefing's 30 TO FILL lines (forager-forecast pnw-pilot-plans 7c3cf7b, docs/briefings/2026-10-12-oms-briefing.md, dispatch 2026-10-11-oms-briefing-fill.md). It re-derived the pooled skills and the unit, positive, cell and per-year counts from the held-out prediction files, and quoted the intervals, D24 counts and review findings. The 4 remaining "TO FILL" strings are dated history notes (lines 10, 11, 15) and one stale rule (line 319). It listed nine existing lines that contradict the record: the model "expected Sunday"; "not reviewed"; no room guidance for an interval wholly below zero; "A region is shown only after…" without -814/-861; the 4 to 8% rain-gap figure beside D24's 0.982 ratio, which come from different samples.
+**The owner, verbatim:** "Update them to match the record (Recommended)" (facts only, no new claims; the owner reads the finished briefing before Monday).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -876.
