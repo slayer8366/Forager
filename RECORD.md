@@ -15715,3 +15715,27 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Tests passed." and, on step 9 (a climb of known height; no stairs nearby), "Move it to after the merge".
 **What it sets:** the S22 gate (-885) is met with step 9 moved; the pull request opens and merges on green. Steps 3, 7, 8 and 9 run on the next beta built from main.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -887.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-887
+**Timestamp:** 2026-10-11T21:32:58Z
+**Corrects:** 2026-09-28-886
+**What was wrong:**
+1. -886 attributed steps 4 and 5 to the S22. The owner's screenshots, of the "474 ft · 3 min" walk and the under-a-minute recording, came from the S26 (SM-S948U, serial R5GYC4CYJ3X), which runs the same build, 1.0.3222+g69309a18 (lastUpdateTime 2026-10-11 14:06:27 PDT; firstInstallTime 2026-10-03). Its database holds track b8fecb13 (14:15:27, 219 s, 30 of 30 points with pressure) and the 13 s track 966cd259 (14:24:50). Steps 4 and 5 still pass on that build, on the S26.
+2. -886's observation that "Time out" reads 3 min against points from 14:10:53 is withdrawn. It compared the S26 walk against the S22's track 596f5e3d; the S26 walk really ran 219 s.
+
+**Also:** the planner installed the build only on the S22 (adb -s R5CT321008R install -r, 14:06:14 PDT), and the S26 was not connected then. How the S26 received the build 13 s later is not known; the owner has been asked.
+
+**Comparison (same stretch, 14:15:27 to 14:19:06, both phones):**
+| | S26 | S22 |
+| --- | --- | --- |
+| GPS altitude range | 4.3 m | 32.5 m |
+| Barometric height range | 5.3 m | 13.4 m |
+| End minus start | -0.8 m | -9.4 m |
+| Path | 171 m | 372 m |
+| Mean reported accuracy | 4.8 m | 8.5 m |
+
+The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How each phone was carried is not known; asked.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -888.
