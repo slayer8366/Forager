@@ -15464,3 +15464,14 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Rulings (owner, verbatim answers):** "Keep it, once height is fixed (Recommended)" (the entry page keeps the map, the four stat tiles and the Height chart; the waypoint table goes; tapping a map icon still shows its details; the chart is hidden until height is fixed). "Use the barometer (Recommended)" (barometer height re-anchored to GPS; smoothed GPS where there's no barometer). "Start today" (builds wait for gaps between forecast runs).
 **What it sets:** dispatch prompts/preserved/2026-10-11-01.md (this branch): a read-and-report step first, covering the entry page, the Climb mismatch, the 2:44 PM pair, a barometer design with operating limits, tests and a device check. Stops include any migration. Gradle on the planner's go; merge on the owner's word. Takes idea 7 of the fusion plan ahead of track L.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -865.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-865
+**Timestamp:** 2026-10-11T18:20:14Z
+**Title:** Coders build on CI when the laptop is busy: a "run this branch" trigger (owner)
+**Context:** The owner: "Can we use Github CI to run builds when the laptop is busy?" The planner read .github/workflows/ci.yml: it runs on push to main and pre-main and on every pull_request, builds assembleDebug, runs testDebugUnitTest, and uploads the APK and test report; there is no manual trigger; recent runs took about 10 to 15 minutes; the repository is public (GitHub's published policy charges public repositories nothing for standard runners; the account's billing was not checked).
+**The owner, verbatim:** "Yes, add a 'run this branch' trigger (Recommended)" (offered: draft pull requests only; keep builds local).
+**What it sets:** a workflow_dispatch trigger with an optional test filter, documented with the coder's command and the revert-runner rules for CI. CI is the default build route for coders whenever a forecast job is running; local builds remain for when the laptop is free. Dispatch prompts/preserved/2026-10-11-02.md. Merge on the owner's word; the trigger can only be exercised once merged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -866.
