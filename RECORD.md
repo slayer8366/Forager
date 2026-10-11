@@ -15639,3 +15639,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **The owner, verbatim:** "Pi can be the weekly map builder" and "Terrain shading, offline maps that show name, and street maps, to start. I want to do property ownership and private properties to guide people away from those areas".
 **What it sets:** the Pi rebuilds the maps weekly from a fresh extract and uploads to R2 (-879). The first layers are our own street map (spec scope), offline maps that show names (spec R4), and terrain shading. Terrain shading brings hillshade into scope, superseding the spec's "Topo … out of scope" for shading only; contours are not ruled, and the survey names USGS 3DEP, public domain, as the source. **Land ownership and private property** is a new layer to "guide people away from those areas". Not yet planned: its data sources, licences, privacy, and what "guide away" means (show, warn, or route around) are open. The "raster downloads" question from the planner is answered by these three layers. Relay to the Pi planner: appended to prompts/preserved/2026-10-11-04-pi-relay.md.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -881.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-881
+**Timestamp:** 2026-10-11T20:50:08Z
+**PR:** 218
+**Head:** records-tidy
+**Base:** main
+**Merge-commit:** fc8367cdd76416f8b71da1c07d7d42a8e8018f7f
+**Pre-merge:** af5ea9afe7d79e71a5c18a1e97c4434e8dced119
+**Backup:** 2026-10-11-07 (main-pre-218.bundle, verified okay, sha256 9cdb6ce5…b684d)
+**Observed:** PR #218 (Records tidy: -868, -870, -871, -874, -876) was merged by the planner as fc8367cd at 2026-10-11T20:49:52Z, pinned to head f4240642, on green CI at that head (pull_request run 38173013711; the coder's dispatch run 38171899381 at the same head: 608 suites, 4,667 tests, 0 failures, 24 skipped). Under the owner's "Open a pull request, merge on green (Recommended)" (-876). The planner read the diff: 34 files; no @Ignore; no change to .github; 26 removed assertion lines across 9 test files, each in a file named in the coder's reports as changed by the rulings, or a setup-only change keeping the assertion (LeavingTheJournalFixesTest adds performScrollTo; AvailabilityScreenMapLayersTest scopes the label lookup to the Layers sheet); 130 assertion lines added. Ten records-tidy-revert-* scratch branches remain on the remote; deleting them is the owner's call. Not seen on a phone: the nine-step S22 check in docs/audits/2026-10-11-records-tidy-completion-report.md.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -882.
