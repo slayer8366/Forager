@@ -15552,3 +15552,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Title:** The CI run-this-branch trigger works on main (after -869)
 **Observed (coder's report, runs on scratch branch ci-scratch-run-this-branch at af5ea9af, since deleted):** run 38164628546, unfiltered: 13 min 25 s, 606 suites, 4,649 tests, 0 failures, 24 skipped, success, identical to PR #216's run. Run 38165568177, filtered with two patterns, one containing spaces: 4 min 2 s, 3 tests (AbandonedTrackSweepOnceTest's 2, plus the one named TrackRecordingViewModelTest case), stale check not applied, success. Run 38165854977, a pattern matching no test: Gradle "No tests found for given includes", then the summary step "No JUnit XML … a failure, not an empty pass", failure. So a typo in a filter gives a red run, never an empty green one; this confirms the README's claim, unverified at merge. Runs on one branch must be sequential: the concurrency rule cancels an in-flight run.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -873.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-873
+**Timestamp:** 2026-10-11T19:26:09Z
+**Title:** Journal entry: a left-out short recording's Start and End pins go too; the kept offline-maps list goes (owner); planner slip disclosed
+**Context:** The coder's parts 1 to 3 report for dispatch 2026-10-11-01 (Forager journal-entry-height 66e13257, docs/audits/2026-10-11-journal-entry-height-parts-1-3-report.md; CI runs 38164674451, 38165440497 (4,646 tests, 0 failures, 24 skipped), 38166937447; each revert failed only its predicted tests). Two decisions outside -864/-867: a left-out recording's own ORIGIN/END markers were still included in a new entry, and the list of kept offline maps was named in neither of -867's lists. **Planner slip:** -867's question listed "the 'Offline map' toggle" and folded the separate list of kept offline maps into it, though the step-0 report had named both.
+**Rulings (owner, verbatim answers):** "Leave out its Start and End pins too (Recommended)" (a new entry leaves out a left-out recording's own Start and End markers; any waypoint the user saved during it stays; everything stays in Records). "Remove it, like the other lists (Recommended)" (the entry page's list of kept offline maps goes; the Offline map toggle stays).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -874.
