@@ -15653,3 +15653,13 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Backup:** 2026-10-11-07 (main-pre-218.bundle, verified okay, sha256 9cdb6ce5…b684d)
 **Observed:** PR #218 (Records tidy: -868, -870, -871, -874, -876) was merged by the planner as fc8367cd at 2026-10-11T20:49:52Z, pinned to head f4240642, on green CI at that head (pull_request run 38173013711; the coder's dispatch run 38171899381 at the same head: 608 suites, 4,667 tests, 0 failures, 24 skipped). Under the owner's "Open a pull request, merge on green (Recommended)" (-876). The planner read the diff: 34 files; no @Ignore; no change to .github; 26 removed assertion lines across 9 test files, each in a file named in the coder's reports as changed by the rulings, or a setup-only change keeping the assertion (LeavingTheJournalFixesTest adds performScrollTo; AvailabilityScreenMapLayersTest scopes the label lookup to the Layers sheet); 130 assertion lines added. Ten records-tidy-revert-* scratch branches remain on the remote; deleting them is the owner's call. Not seen on a phone: the nine-step S22 check in docs/audits/2026-10-11-records-tidy-completion-report.md.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -882.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-882
+**Timestamp:** 2026-10-11T20:50:32Z
+**Title:** Land-ownership layer: research now; "guide away" means show, warn, route around, informed by the research (owner)
+**Rulings (owner, verbatim answers):** "Start the research now (Recommended)". For what "guide people away" means, the owner selected all four options: "Show it on the map", "Warn on entering", "Routes avoid it", "Let the research inform it".
+**What it sets:** dispatch prompts/preserved/2026-10-11-05.md, a read-only web research job: data sources and licences, owner names and privacy, prior art, foraging rules by land type in Oregon and Washington, what each behaviour can honestly support given boundary accuracy, routing avoid-areas, and weekly-build size. Nothing is built; options come back to the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -883.
