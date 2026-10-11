@@ -15593,3 +15593,17 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Context:** The coder's addendum for -874 (Forager records-tidy: bf4973fb, 9884d970, then the report d037e1af; full CI run 38169963103 at 9884d970: 608 suites, 4,666 tests, 0 failures, 24 skipped; revert runs 38169965476 and 38169967395 each failed only their own test). One edge was outside the rulings: from All, long-press a find > Edit still opened the edit form under the Finds chip.
 **Rulings (owner, verbatim answers):** "Yes, Edit opens over All too (Recommended)" (Back from the edit form returns to All). "Open a pull request, merge on green (Recommended)": the planner opens the pull request, waits for green CI at the pinned head, reads the diff for @Ignore and removed or weakened assertions beyond those named, backs up main, and merges, ahead of journal-entry-height, which then merges main in. The nine-step phone check goes on the next device-check list.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -877.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-877
+**Timestamp:** 2026-10-11T20:23:32Z
+**PR:** zynergy-site 10
+**Head:** site-own-street-basemap
+**Base:** main
+**Merge-commit:** cb596aad3c81b712378c748760ea7d0a026d6eb9
+**Pre-merge:** 734b2a60674a54fbc83f7f27116402fbca0b7b8e
+**Backup:** 2026-10-11-06 (zynergy-site-main-pre-10.bundle, verified okay, sha256 58d67fdb…bca188)
+**Observed:** The owner, verbatim: "Cloudflare is now set. Merge the website when ready" (the tile account moved to the paid plan, -860; the plan itself is not visible from any repository). The planner opened PR #10 and merged it as cb596aad at 2026-10-11T20:21:27Z, pinned to head ba7fea05, on a passing Cloudflare Pages check at that head. The diff was read: 1,038 files, 1,032 of them vendored map fonts, icons and style code with licence files and checksums; app.js, index.html, pilot.js, README; and functions/_middleware.js, whose connect-src opens the tile server for /Forager/forecast/ paths only, with every other directive unchanged. Before merging, the tile server answered tile 6/10/22 with 200. Live after the merge: the title reads "Forager mushroom forecast: Pacific Northwest pilot"; connect-src for /Forager/forecast/ includes the tile server and for / is 'self' only; no noindex; a vendored font range returns 200. check.py against production: 43 passed, 1 failed, 8 skipped. The failure: the hosting provider's analytics beacon (static.cloudflareinsights.com), injected on the production domain only, is refused by script-src. script-src is unchanged from 734b2a6 (functions/_middleware.js:23 there), so this is inferred to predate the merge, not observed on the old page. The preview runs (44/44) had no beacon. Evidence: ~/Zynergy/device-evidence/2026-10-11-street-basemap/production/. Not checked: a real phone, and the slider check on production.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -878.
