@@ -15543,3 +15543,12 @@ The planner's call: MapChromeColourPixelsLightTest samples its bare-map referenc
 **Rulings (owner, verbatim answers):** "Reopen Tools, then Seasonal (Recommended)" (from Tools > Offline maps, the first Back reopens the Tools drawer and the second closes it to the page the user came from; once the user moves on inside the Journal, by another chip or tab, Back works normally from there). "Back to Finds, then out (Recommended)" (Back from any other chip returns to Finds; Back from Finds leaves Records the way Back from All does today). "Under the title, whole photo, next one peeking (Recommended)" (photo first under the title, the "Found at" and identification lines below; each photo uncropped in its own shape; with several, the next peeks in from the side). "Yes, that wording (Recommended)" (the region row reads "Region 5 · 10 mi radius · 18.8 MB · downloaded 11 hours ago"; the Stale label stays; rows not yet downloaded take the same short form).
 **Planner calls:** a kind with no records is omitted from All; finds on the same day sort most recently saved first; the Tools button is a fixed row above Settings; the drawer's inclusion-rule comment records this owner-ruled exception; DecodedPhotoSemanticsTest's snapshot is reported if it changes, not edited.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -872.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-872
+**Timestamp:** 2026-10-11T19:01:25Z
+**Title:** The CI run-this-branch trigger works on main (after -869)
+**Observed (coder's report, runs on scratch branch ci-scratch-run-this-branch at af5ea9af, since deleted):** run 38164628546, unfiltered: 13 min 25 s, 606 suites, 4,649 tests, 0 failures, 24 skipped, success, identical to PR #216's run. Run 38165568177, filtered with two patterns, one containing spaces: 4 min 2 s, 3 tests (AbandonedTrackSweepOnceTest's 2, plus the one named TrackRecordingViewModelTest case), stale check not applied, success. Run 38165854977, a pattern matching no test: Gradle "No tests found for given includes", then the summary step "No JUnit XML … a failure, not an empty pass", failure. So a typo in a filter gives a red run, never an empty green one; this confirms the README's claim, unverified at merge. Runs on one branch must be sequential: the concurrency rule cancels an in-flight run.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -873.
