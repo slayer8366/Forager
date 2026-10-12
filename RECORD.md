@@ -16106,3 +16106,19 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Finish line:** Phase A's report pushed. Then either a stop reported, or Phase B's setting and extraction evidence and a green CI suite, pushed, with an index row. A terminal entry closes this intent. Whether Play's warning clears is visible only on the owner's next upload (T8), and is recorded then.
 **Abort conditions:** Phase A's stops; the extraction can't be shown without a signed release build; the setting breaks the debug build or a test; any step needs a key, a guard change or a local build.
 **Notes:** Written by the planner by hand, on branch records-after-173. It runs in parallel with -918 (lint survey); both use CI only, not the laptop. The coder runs as a subagent on opus in its own worktree. Next free ID -920.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-920
+**Timestamp:** 2026-10-12T05:22:37Z
+**Title:** Forecast page: the opened phone panel crushes the readout, whose text runs over the rest (site fix)
+**Dispatch-file:** preserved/2026-10-12-03.md
+**Observed (owner's two phone screenshots, kept off GitHub, copies at ~/Zynergy/device-evidence/2026-10-12-panel-overlap/owner-screens/):** the owner, verbatim: "The Zynergy forecast site has some overlapping text in two out of two browsers tested". With the pilot layer on, a cell tapped and the panel opened, the readout's box is about one line tall. Its rating, sighting chance, explanation, uncertainty and input list are drawn over the legend's description, the guide and the two summaries below. It shows in a dark-mode phone maker's browser and in another mainstream mobile browser.
+**Planner's reproduction:** reproduced on production b8ac1e2c in Chromium at 390x844 with touch (planner-repro/overlap.py in the same folder): #readout's box is 35 px and its content 311 px; every other panel child fits. Inferred mechanism, for the coder to confirm or correct: in the phone layout #panel is a flex column (index.html:57), opened to a fixed height that scrolls (:65). #readout's explicit min-height: 2.6em (:33) replaces a flex child's automatic content minimum, so it is the one child that shrinks. phone_check.py never measured whether the readout's content fits its box in the opened panel, which is why -911 and -915 passed with this in place.
+**Change:** a phone-layout rule that no panel child is smaller than its content, with the panel scrolling instead, on branch forecast-panel-readout. New phone checks for content-fits-box and no sibling overlap, in peek and open, on soil and pilot, at 390x844, 360x740 and 412x915, plus a large-text case. Each fails on main first.
+**Scope boundary:** no copy, data, manifest or pilot.js logic change; desktop layout unchanged; the -908 calls and -912 bounds unchanged; no merge without the owner's word; no phone; the analytics beacon (-877) not touched.
+**Baseline:** zynergy-site origin/main b8ac1e2c
+**Finish line:** a PR with a passing Pages check; check.py, slider_check.py, phone_check.py and the new checks reported on the preview (the beacon aside); each new check shown failing on main for the readout overflow; before and after screenshots outside the repository. Then the owner's look in both browsers, the owner's merge word, a backup, a production check and a merge entry.
+**Abort conditions:** the diagnosis is wrong in a way that needs a different kind of fix; the fix changes desktop or copy; an existing check fails; a new check passes on main.
+**Notes:** Written by the planner by hand, on branch records-after-173. A bug on the live page is dispatched as -912 was, with the merge left to the owner. The coder runs as a subagent on opus in a separate worktree of zynergy-site. Next free ID -921.
