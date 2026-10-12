@@ -16161,3 +16161,14 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **The owner, verbatim:** "We'll just push out the navigation release to appease the testers and we can focus on the production release fizes". Asked what it means: "Tester build of today's app (Recommended)" (offered: trail navigation first). Asked whether the owed phone checks gate it: "Ship to testers now (Recommended)" (offered: checks first).
 **What it sets:** the owner builds and signs a closed-testing build from Forager main, 921aa9c7 when this was written. It carries Return ends on arrival (#214), Records tidy (#218), and the journal entry page with barometer height, MIGRATION_20_21 and Navigate from entry maps (#219). The owed phone checks (task list T7) gate the production release only, not this build. Nothing is built for it; the planner drafts the release notes for the owner's wording. -905's order stands: production release, then trail navigation and maps.
 **Notes:** Written by the planner by hand, on branch records-after-173. Not checked: which build testers last received; the -830 beta's upload isn't recorded here. Next free ID -924.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-924
+**Timestamp:** 2026-10-12T05:31:30Z
+**Continues:** 2026-09-28-923
+**Title:** The owed phone checks are done and passed, except sudden elevation change (owner)
+**The owner, verbatim:** "Those checks have been done and passed. The only thing untested is how well it handles sudden elevation". This answers -923's list: the journal checks (steps 3, 7 and 8 and the Navigate tap), the Records tidy nine-step S22 check, and the Return-ends-on-arrival S22 steps.
+**What it sets:** the production release's T7 gate is met by the owner's account, except one item: a sudden change in height, closest to journal step 9 (a climb of known height). That item stays open.
+**Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word: the planner has seen no per-step evidence, and readings or screenshots, if kept, stay off GitHub. Next free ID -925.
