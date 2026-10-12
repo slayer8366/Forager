@@ -16380,3 +16380,25 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **The owner, verbatim:** "With the open street map tint strip,instead of the entire right side, curve only the upper right side since it's the only side exposed".
 **What it sets:** replaces -937's "right-hand corners". Only the credit strip's top-right corner is rounded; the other three stay square. Sent to the coder on dispatch 2026-10-12-06.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -939.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-939
+**Timestamp:** 2026-10-12T08:44:15Z
+**Closes:** 2026-09-28-930
+**PR:** Forager 220
+**Head:** strip-dev-tools
+**Base:** main
+**Merge-commit:** a576c051c1dea40c01eb09fb74af0c00f59025f7
+**Pre-merge:** 921aa9c796052e5ce8c3ad883c4487f45f6fb86f
+**Backup:** 2026-10-12-06 (forager-main-pre-220.bundle, verified okay, sha256 28ea42c9…29bc)
+**Observed:** main no longer holds the dev tools. The owner, verbatim: "Merge". The planner merged PR #220 at 2026-10-12T08:29:16Z, pinned to head 4fbb3037, on green CI (run 38221096022: 587 suites, 4,573 tests, 0 failures, 24 skipped).
+- **What it removes:** the walk logger, diagnostics, crash capture and panel, the Settings debug rows, the alert record files with their types, writes and trigger plumbing, the synthetic forecast store, and all of app/src/debug and app/src/release.
+- **Also changed:** the privacy policy and delete-data pages lose their crash lines; README loses "crash logs"; the walk-log .gitignore lines move to dev; ci.yml gains dev in its push branches.
+- **Tests:** 25 suites with 108 tests removed, plus 10 methods from kept suites, each listed in the coder's report. The diff has no @Ignore (planner's grep). SundownWatchWakeUpTest now asserts each wake-up's due time within 1 s.
+- **Kept on main as behaviour:** AlertDelivery.deliverReporting and its outcome.
+- **dev:** rebased by the planner onto a576c051 after a backup (dev-20261012T082927Z-1ee7be9b.bundle). It is one commit, 0ed8b3f0, reworded to describe itself, with a tree identical to the pre-rebase dev.
+- **CI after the merge:** main 38223860061, 587 suites, 4,573 tests, 0 failures. dev 38223882627, triggered by its push, 612 suites, 4,691 tests, 0 failures, matching main at 921aa9c7.
+**Not checked:** no release build or test of the release variant ran on CI. The tester build the owner signs is the first, and the device items are owed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -940.
