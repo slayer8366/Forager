@@ -1149,7 +1149,7 @@ internal const val TAXON_SUGGESTIONS_MENU_TAG = "taxon-suggestions-menu"
 internal const val MONTH_MENU_TAG = "month-menu"
 
 /** RECORD -943: the Maps tab's search pill's padding above its field (the bar elsewhere keeps Spacing.xs). */
-internal val MAP_PILL_TOP_PADDING = 3.dp
+internal val MAP_PILL_TOP_PADDING = 4.dp
 
 /** RECORD -943: the pill's padding below its field, before its 1 dp spacer (the bar elsewhere keeps twice Spacing.xs). */
-internal val MAP_PILL_BOTTOM_PADDING = 4.dp
+internal val MAP_PILL_BOTTOM_PADDING = 8.dp
