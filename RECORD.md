@@ -16030,3 +16030,14 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **The owner, verbatim:** "I think it would be worthwhile having a map focused on mycorrhizal mushrooms for now. It's already geared in that direction and this is something that can benefit more than foragers". Asked what it should show, the owner chose "Habitat: where mycorrhizal fungi can grow (Recommended)" (offered: weekly forecasts for several mycorrhizal species; both, habitat first).
 **What it sets:** scope only, not a go-ahead. A habitat map, not a weekly forecast, of where host trees and soils suit mycorrhizal mushrooms as a group, for foresters, ecologists and land managers as well as foragers. It builds on the drafted T7 habitat dispatch (forager-forecast pnw-pilot-plans, docs/dispatch/2026-10-11-t7-pnw-pilot-habitat.md), widened from chanterelles to the mycorrhizal group. T7's open owner decisions O4 (ecoregion level) and O7 (merge order and base branch) still need answers before it starts. Where it sits against the production release (-905) and trail navigation and maps (-904) is not yet asked. Forecast-repository decision numbers and the review protocol (D18) apply when it is dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -914.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-914
+**Timestamp:** 2026-10-12T04:41:16Z
+**Continues:** 2026-09-28-913
+**Title:** Why mycorrhizal: other apps' maps focus on burn morels (owner)
+**The owner, verbatim:** "Other apps focus on burn morels for their maps, and we can approach it from the mycorrhizal angle".
+**What it records:** the positioning behind -913. Forager's maps take the mycorrhizal angle (host trees, soils, habitat) where other foraging apps map burn morels. This guides how the habitat map is framed and described, with other apps described generically. Unverified by the planner: what other apps actually map. A prior-art check belongs in the habitat dispatch.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -915.
