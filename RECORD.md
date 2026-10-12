@@ -16298,3 +16298,17 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **Finish line:** the coder's plan answered, then a PR on green CI with coordinate-touch tests, revert checks, changed tests listed with old and new assertions, and screenshots kept off the repository. Then the owner's merge word, and the device items.
 **Abort conditions:** a visible change beyond the step path; a conflict with a recorded ruling; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. The beta (-923) now waits for both this and -930. Next free ID -933.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-933
+**Timestamp:** 2026-10-12T06:37:31Z
+**PR:** zynergy-site 15
+**Head:** forecast-panel-readout
+**Base:** main
+**Merge-commit:** 2185246a40633eb1120b67f2a089ade5e2ccde23
+**Pre-merge:** b8ac1e2c18e76dc1c565a890b3b0434c51741cb5
+**Backup:** 2026-10-12-05 (zynergy-site-main-pre-15.bundle, verified okay, sha256 4b6ea7d7…11fb4)
+**Observed:** the -920 fix is live. The owner, verbatim, after opening the preview: "Map looks good. Merge it". The planner merged PR #15 at 2026-10-12T06:29:23Z, pinned to head a55bf4a3, on a passing Cloudflare Pages check. The diff (read): index.html +7, the phone-layout rule `#panel > * { flex-shrink: 0; }` with its reason. The coder confirmed the diagnosis: injecting `#readout{min-height:auto}` alone took the new check from 29/44 to 44/44. The coder's preview checks: check.py 71/71, slider 34/34, phone_check 22/22, the new panel_fit_check 44/44. That last check failed 29/44 on production before the fix, every failure naming the readout. Its overlap assertion measures drawn text, not boxes, because box-only comparison couldn't see this bug. Production served the rule about 60 s after the merge. Against production: panel_fit_check 44/44; phone_check 21 passed, 1 failed, the old analytics beacon (-877). check.py and slider_check.py were not rerun on production.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -934.
