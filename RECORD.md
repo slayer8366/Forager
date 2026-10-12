@@ -16644,3 +16644,19 @@ After that, the owner's merge word and the device items.
 **The owner, verbatim:** "Have the map i next to the open street maps logo", and, asked about orientation, "Just landscape".
 **What it sets:** in landscape the map's ⓘ info button sits beside the credit strip at the bottom of the screen. Portrait is unchanged. The ⓘ still opens what it opens now; only its position changes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -955.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-955
+**Timestamp:** 2026-10-12T20:23:50Z
+**Continues:** 2026-09-28-953
+**Title:** Landscape while navigating: the icon bar is fixed to the screen's left; at the largest text the evening lines leave; Try again may grow the card (owner)
+**Context:** at 92791482 (CI 38299141514, 10 failures), the bottom-edge landscape card (-953) covered the icon bar's Record/Return pill on the rail side, reached over the bar at font 1.0 with evening lines, and at font 2.0 covered Reset north and the walker's dot.
+**The owner, verbatim:** "There's no friendly way to keep the icon bar on the right in landscape mode. I say we keep it on the left in landscape." Asked which left, and about the saved side: "1 The screen left." and "2 yes. Only have it fixed in a) landscape and b) with navigation mode on. Those two conditions must be met to have it fixed to the left. Else it can be set on the right as an option for the user". Then "C yes", "D allow".
+**What it sets:**
+- **Landscape and navigating, both together:** the icon bar sits on the screen's left and can't be moved there.
+- **Otherwise:** the user's saved side applies as now. When navigation ends or the phone turns to portrait, the bar returns to the saved side. The saved side is never overwritten by the fixed placement.
+- **C:** in landscape, when the card would cover Reset north or the walker's dot, the evening lines leave the card, extending -770. Overlap left at the largest text is accepted.
+- **D:** Try again may make the card taller while it shows, replacing -766's "no taller for Try again".
+**Notes:** Written by the planner by hand, on branch records-after-173. Not yet asked: at the rotation where the rail, strip and card are on the screen's left, the fixed bar shares that side with the card, and the card covers the credit strip and the ⓘ (B). The coder measures and reports both. Next free ID -956.
