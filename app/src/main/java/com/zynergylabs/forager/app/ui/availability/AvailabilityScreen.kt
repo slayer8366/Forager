@@ -218,6 +218,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.BuildConfig
+import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CompassProvider
@@ -276,6 +277,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
+import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
+import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
@@ -770,6 +774,11 @@ fun AvailabilityScreen(
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
+    /**
+     * The Settings tab's crash-log diagnostic surface — see [CrashLogPanel]. Defaults to the real
+     * on-device store, same [mapSlot]/[cameraCaptureFiles]/[compassProvider] pattern above.
+     */
+    crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
     /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
     onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
     /**
@@ -1456,7 +1465,8 @@ fun AvailabilityScreen(
     val isLandscapeWindow = isLandscapeWindow()
     // Map layers L0b, B2: the Maps tab's freshness mechanism. Whenever the Maps tab comes into view
     // (the Maps bottom-nav tab or rail item) the saved records reload and the forecast store is
-    // asked again, so a find saved on the Journal tab shows the next time the map is shown.
+    // asked again, so a find saved on the Journal tab, or the Diagnostics switch turned on, shows the
+    // next time the map is shown.
     val isMapsTabShown = compactTab == CompactTab.MAP
     LaunchedEffect(isMapsTabShown) {
         if (isMapsTabShown) onMapShown()
@@ -1983,6 +1993,7 @@ fun AvailabilityScreen(
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     themeMode = uiState.themeMode,
                     onThemeModeChanged = onThemeModeChanged,
+                    crashFileStore = crashFileStore,
                     backup = backup,
                     openSettingsRequest = openBackupRequest,
                     openSettingsOnlyRequest = openSettingsOnlyRequest,
