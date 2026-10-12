@@ -20,7 +20,7 @@ Standing rules confirmed this session:
 ## 1. Today
 
 - **The OMS meeting is this evening (PDT).** The forecast site is live and briefed. The owner chose to leave the briefing card unchanged.
-- **The owner wants to start with the new mobile design system plugin.** They added it during this session, and it didn't load here. Find out what they want it for: a review of the rounded strip (PR #221), or a wider consistency pass across the app.
+- **The owner wants to start with the new mobile design system plugin.** They added it during this session, and it didn't load here. The owner, asked what it's for: "The design of the strip mostly." So the first job is a design review of the rounded strip (PR #221) with that plugin. Use the renders and the owner's mockup. Bring the findings to the owner as choices; don't send them to a coder unasked.
 
 ## 2. Forager app
 
