@@ -15904,3 +15904,15 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **The owner, verbatim:** "Yes, these five ratings, before Monday (Recommended)".
 **What it sets (cut-offs fixed now, before seeing the map with them):** ratio = chance ÷ base_rate.rate (-901). Ratings: "Below average" under 0.67; "About average" 0.67 to under 1.5; "Above average" 1.5 to under 3; "High" 3 to under 5; "Very high" 5 or more. Map colours and legend use the five ratings. A tapped cell leads with "<Rating>: about N times the average week across the year." (or the -901 wording for near-average and below-average cells), with "Sighting chance N%" and D11's definition underneath, smaller. The legend notes "Average week across the year: about 2%". With base_rate missing, the page falls back to the current percent classes. This supersedes -901's plan of a comparison line under the percent headline. Built on the same branch as -901; checks on a preview; merge on the owner's word tonight.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -903.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-903
+**Timestamp:** 2026-10-12T01:08:56Z
+**Title:** Ratings: "times the average" to one decimal; merge tonight once the checks pass (owner)
+**Context:** zynergy-site PR #12 (pnw-pilot-base-rate 936ef957; preview check.py 65/65 with 8 skipped, slider 34/34). Shares of 2,618 cells: Below average 9.1%, About average 27.6%, Above average 43.8%, High 17.6%, Very high 1.8%. Readouts: "Very high: about 7 times the average week across the year." (chance 0.1571) and "Below average: below the average week across the year." (0.0067). Whole-number rounding let a High cell at 4.6 read "about 5 times", which contradicts its band.
+**Rulings (owner, verbatim answers):** "One decimal place (Recommended)" and "Yes, once the rounding is settled and checks pass (Recommended)".
+**Planner call:** the ratio is truncated, not rounded, to one decimal, so the shown number never crosses into the next band (a 4.96 cell reads "about 4.9 times", not "5.0").
+**What it sets:** the coder changes the readout to one decimal (truncated), with check.py matching. Once checks pass on the preview, the planner backs up zynergy-site main, merges PR #12 pinned to its head, checks the live page, and writes the merge entry.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -904.
