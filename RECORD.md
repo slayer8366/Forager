@@ -15986,3 +15986,12 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Corrects:** the planner's statements to the owner and coders on 2026-10-11 that the OMS meeting is Monday morning
 **What was wrong:** the owner, verbatim: "The meeting is tomorrow evening, so it shouldn't take that long". The meeting is the evening of Monday 2026-10-12 (PDT). The planner had been calling it "tomorrow morning", drawn from -814/-824's Monday-morning deadline for the pilot map, which was a work deadline, not the meeting time. -908's "tonight" build stands; it has more slack than the planner told the site coder.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -910.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-910
+**Timestamp:** 2026-10-12T04:02:30Z
+**Title:** Planner handoff to the next session
+**Handoff-file:** prompts/preserved/2026-10-12-planner-handoff.md (this branch). The owner, verbatim: "Write a handoff for the next session. The context window limit is nearly reached so I'll be switching over".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -911.
