@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertAudibilityState
 import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.BackByChoice
+import com.zynergylabs.forager.app.domain.BackByRecordEvent
 import com.zynergylabs.forager.app.domain.BackByShown
 import com.zynergylabs.forager.app.domain.BackByWatch
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
@@ -109,7 +110,8 @@ class TrackRecordingBackByTest {
 
     private val now = 1_791_050_400_000L // 2026-10-03T18:00:00Z
     private val clock = CurrentTimeProvider { now }
-    private val watch = BackByWatch(AlertDelivery { }, clock, { Result.success(null) }, { Result.success(null) }, { false }, { _, _, _ -> })
+    private val recorded = mutableListOf<BackByRecordEvent>()
+    private val watch = BackByWatch(AlertDelivery { }, clock, { Result.success(null) }, { Result.success(null) }, { false }, { _, _, _ -> }, record = { recorded += it })
 
     private fun viewModel(): TrackRecordingViewModel {
         val repository = InMemoryTracks()
@@ -185,6 +187,22 @@ class TrackRecordingBackByTest {
         runCurrent()
         assertNull(watch.shown.value)
         assertNull(viewModel.uiState.value.backBy)
+        // Dispatch 2026-09-28-796: no longer silent.
+        assertEquals("recorded, not silent", listOf<BackByRecordEvent>(BackByRecordEvent.SetWithNoRecording), recorded.toList())
+    }
+
+    /** Dispatch 2026-09-28-796: a picked time from the menu is recorded as set, accepted, for this recording. */
+    @Test
+    fun `a picked time is recorded as set and accepted for the recording`() = runRecordingTest {
+        val viewModel = viewModel()
+        viewModel.startRecording()
+        runCurrent()
+        viewModel.setBackBy(BackByChoice.AtTime(18, 45))
+        runCurrent()
+        assertEquals(
+            listOf(BackByRecordEvent.Set("track-1", now + 45 * 60_000L, accepted = true, watchedTrackId = null)),
+            recorded.filterIsInstance<BackByRecordEvent.Set>(),
+        )
     }
 
     @Test
