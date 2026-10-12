@@ -16236,3 +16236,28 @@ Not covered: release-only sources; test sources beyond test-specific checks; beh
 **The owner, verbatim:** "Drop the alert records" (offered: copy them whole (Recommended); restructure the alerts).
 **What it sets:** the Return, Back by and sundown record files and their types (ReturnRecord, BackByRecord with EvaluationTrigger and BackByEndReason, SundownRecord, AlertRecordFiles, the File…Record writers) are removed from every build, along with the record-write lines in the watches and the trigger plumbing in the service. What the alerts do is unchanged. Tests that assert only on the records go with the feature, and each removal is listed; tests of alert behaviour stay. The rest of the revised plan is approved as written, with the drift guard covering the remaining copies. Planner's calls: the comments in release source that name dev tools (ForecastCellStores.kt:10-11, AppContainer.kt:297-298, main AndroidManifest.xml:118-120) are reworded so they don't name them, keeping each recorded ruling's meaning. The -928 privacy note is still in scope. Step 2 builds on branch release-no-dev-tools, on CI only, with a PR and no merge.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -930.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-930
+**Timestamp:** 2026-10-12T05:56:54Z
+**Continues:** 2026-09-28-929
+**Title:** main without the dev tools; a dev branch that keeps them, rebased on every main update; the privacy policy's stale crash lines removed (owner)
+**Dispatch-file:** preserved/2026-10-12-05.md
+**The owner, verbatim:**
+- "No privacy notes in the document. Absolutely zero trace. None. No repo notes, nothing".
+- "Just strip it out altogether".
+- Asked whether that meant every build: "Keep them, but in a private repo". Asked about past mentions: "Current code only".
+- Of the alert record files in the dev copy: "Keep them in the private copy (Recommended)". Of the privacy policy: "Remove the crash lines (Recommended)".
+- Then, after the planner's attempt to create a private repository was refused by the session's permission system (nothing was created): "Dev build holds all that stuff still. Not public. Build a dev branch and just rebase it every time main gets an update". Of where it lives: "It can be public. Just not public release".
+**Change:** dispatch 2026-10-12-04 is withdrawn, with nothing built or pushed under it (confirmed: no release-no-dev-tools branch on origin). Its copies, drift guard, no-trace check and the -928 privacy note are all dropped.
+- main loses the walk logger, diagnostics, crash capture and crash-log panel, the Settings debug rows, the alert record files with their types, writes and trigger plumbing, and the synthetic forecast switch, in every build type.
+- dev = main + one commit restoring them exactly as at 921aa9c7. It is rebased onto main after each main update, with a backup bundle before each force-push, and is never merged.
+- The privacy policy loses the crash-trace bullet (privacy-policy.md:34-35) and "crash reports" (:174; delete-data.md:25), with nothing added.
+- -929's drop of the alert records now applies to main only; dev keeps them.
+**Scope boundary:** the release build's user-facing behaviour and copy are unchanged apart from the policy lines; alert behaviour is unchanged; no Gradle on the laptop; no merge without the owner's word; past records and history untouched ("Current code only").
+**Baseline:** origin/main 921aa9c7
+**Finish line:** PR strip-dev-tools → main on green CI, with removed tests listed and a zero-hit name grep reported, not committed. dev pushed, with diff from 921aa9c7 limited to docs/legal and CI green. The rebase procedure reported. Then the owner's merge word, a backup, the merge, dev rebased, and the beta built from main.
+**Abort conditions:** a record-write line carries behaviour; a behaviour test must change in substance; dev can't equal 921aa9c7 plus the policy change; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. The owner's earlier answer that records go in a private repository fell with the private repository, since the dev branch is public by the owner's word. Next free ID -931.
