@@ -16441,3 +16441,14 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 - **Straight-line note:** told it is the crow-flies distance, not the trail distance, the owner chose "Remove it".
 **What it sets:** -935's "keep everything" is narrowed: the route-mode straight-line note ("≈ 1250 ft straight" / "0.7 mi straight") is no longer shown. Other status messages stay. Neither arrow changes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -943.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-943
+**Timestamp:** 2026-10-12T11:15:03Z
+**Continues:** 2026-09-28-942
+**Title:** Rounded map strip: a thinner search pill, with the card's text closer under it (owner)
+**The owner, verbatim:** "Distance by trail is the only honest framing. And keeping it to one number is less UI clutter" (the reason behind -942). Then: "Looks like the text between the navigation panel and the search bar can be closer together. The search panel has a very thick margin and it can afford to thin out".
+**What it sets:** on the Maps tab the search pill's vertical padding is reduced, and the gap between the pill's text and the card's first line closes up. The planner's floor: the pill stays at least 40 dp tall so it remains easy to tap. The card's top padding under the tuck is trimmed to match. Other tabs' search bar is unchanged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -944.
