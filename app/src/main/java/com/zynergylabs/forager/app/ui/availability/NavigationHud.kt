@@ -1267,7 +1267,7 @@ internal fun navigationReadout(
             // (dispatch -677's "0.3 mi straight") is not shown. The coder's reading, reported for the owner: before the first
             // route and with the route withheld the large slot holds a dash or the route message, so nothing else says how far
             // the start is, and the note stays there, as it was.
-            route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
+            route != null -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
             else -> ""
         }
     }
