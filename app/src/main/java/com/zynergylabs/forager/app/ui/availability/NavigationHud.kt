@@ -595,21 +595,7 @@ private fun CardColumns(
         CardDivider(height = topRow + bottomRow, color = dividerColor)
         // Middle: the altitude, then the compass arrow and the heading, the arrow flush against the divider.
         Column(horizontalAlignment = Alignment.Start) {
-            Row(modifier = Modifier.height(topRow), verticalAlignment = Alignment.CenterVertically) {
-                if (fit.altitudeShown && readout.elevationText != null) {
-                    val label = ALTITUDE_LABEL.takeIf { fit.altitudeLabel && readout.elevationText != ELEVATION_UNAVAILABLE_TEXT }
-                    LabelledReadout(label = label) {
-                        Text(
-                            text = readout.elevationText,
-                            style = small,
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
-                        )
-                    }
-                }
-            }
-            Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(modifier = Modifier.height(topRow), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 if (fit.headingAsIcon) {
                     // RECORD -934: a compass status whose words do not fit the middle column takes RECORD -735's crossed-out
                     // compass, its words kept as the icon's description for a screen reader.
@@ -641,6 +627,20 @@ private fun CardColumns(
                             maxLines = 1,
                             softWrap = false,
                             modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
+                        )
+                    }
+                }
+            }
+            Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically) {
+                if (fit.altitudeShown && readout.elevationText != null) {
+                    val label = ALTITUDE_LABEL.takeIf { fit.altitudeLabel && readout.elevationText != ELEVATION_UNAVAILABLE_TEXT }
+                    LabelledReadout(label = label) {
+                        Text(
+                            text = readout.elevationText,
+                            style = small,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
                         )
                     }
                 }
