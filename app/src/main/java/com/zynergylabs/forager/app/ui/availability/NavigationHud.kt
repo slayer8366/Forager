@@ -671,7 +671,7 @@ private fun CardColumns(
  * 12:41 AM", "in 2 h 28 min", "dark 1:13", "Back by …").
  */
 internal fun eveningPieces(sundownLine: String?, backByLine: String?): List<String> =
-    listOfNotNull(sundownLine, backByLine).flatMap { line -> line.split(" · ").map(String::trim).filter(String::isNotEmpty) }
+    listOfNotNull(sundownLine, backByLine).flatMap { line -> listOf(line) }
 
 /**
  * RECORD -941: the evening lines stacked in the right column, one piece per line, never ending in "…" (a piece wider than the
