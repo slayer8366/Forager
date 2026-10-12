@@ -16261,3 +16261,14 @@ Not covered: release-only sources; test sources beyond test-specific checks; beh
 **Finish line:** PR strip-dev-tools → main on green CI, with removed tests listed and a zero-hit name grep reported, not committed. dev pushed, with diff from 921aa9c7 limited to docs/legal and CI green. The rebase procedure reported. Then the owner's merge word, a backup, the merge, dev rebased, and the beta built from main.
 **Abort conditions:** a record-write line carries behaviour; a behaviour test must change in substance; dev can't equal 921aa9c7 plus the policy change; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. The owner's earlier answer that records go in a private repository fell with the private repository, since the dev branch is public by the owner's word. Next free ID -931.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-931
+**Timestamp:** 2026-10-12T05:57:22Z
+**Continues:** 2026-09-28-930
+**Title:** One repository: CI also runs on pushes to dev (owner, planner)
+**The owner, verbatim:** "Build a dev branch and just rebase it every time main gets an update. That way I don't have 5 repos for one app. I feel this way is easier anyway, since it can rebase off main directly and both CI will trigger".
+**What it sets:** the planner found that ci.yml runs on pushes to main and pre-main only (ci.yml:12-13), so a push to dev wouldn't trigger CI. Added to dispatch 2026-10-12-05: `dev` joins ci.yml's push branches in the strip-dev-tools PR, one line with no description of the dev tools.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -932.
