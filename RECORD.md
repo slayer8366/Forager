@@ -16417,3 +16417,14 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **The owner, verbatim:** to how landscape saves height: "Increase the length of the box. It can be the same size as portrait so that nothing really needs to change." To the grid reference at large text (offered: card widens to fit when needed; split over two lines): "Option 1, but permanent".
 **What it sets:** in landscape the navigation card and the compass strip card take the same width as in portrait (the window's short side), always. They lay out exactly as portrait does: three columns, X above ⋮, and the same fit order. This replaces -694's room rule and the 360 dp landscape cap for these cards. The search pill takes the remaining width beside them. The evening line is never cut, in either orientation. If the card at that width still crosses the central third at large text, the coder reports the numbers instead of trimming.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -941.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-941
+**Timestamp:** 2026-10-12T11:04:17Z
+**Continues:** 2026-09-28-936, 2026-09-28-940
+**Title:** Rounded map strip: the evening line moves into the right column, stacked in short pieces (owner)
+**The owner, verbatim:** "The sunset text is the odd one out at the bottom. The far right column is empty, it looks like it can go there". Told the recording-time line is wider than the column: "Then stack it and don't fit the full length silly".
+**What it sets:** replaces -934's sundown placement (the right column when short, otherwise a full-width line). The evening line goes in the right column under the grid reference, broken at its " · " joins into short lines stacked one per piece (for example "Sunset 12:41 AM", "in 2 h 28 min", "dark 1:13", then "Back by …"). The card grows taller as needed. Nothing is ellipsised. If the grid reference has dropped to its own line under -936, the stack still sits in the right column. Pending, asked in the same exchange: the straight-line note, and what the arrows point at.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -942.
