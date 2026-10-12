@@ -15946,3 +15946,17 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **The owner, verbatim:** "Write a task list for production release".
 **What it records:** docs/plans/2026-10-11-production-release-tasks.md on this branch. It sets out five decisions for the owner (D1 the cut, D2 R8, D3 native symbols, D4 lint policy, D5 tidiness items), then tasks T1 to T9 with a verification for each: lint survey, lint fixes, lint on CI, symbols, R8 if chosen, tidiness, the owed device checks as gate, the owner's build, and a store listing check. Proposal only; nothing dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -907.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-907
+**Timestamp:** 2026-10-12T01:25:44Z
+**PR:** zynergy-site 12
+**Head:** pnw-pilot-base-rate
+**Base:** main
+**Merge-commit:** e1c3f8a9e423512d69168fd490d8585932343a6c
+**Pre-merge:** 3143c5f48fbf00c899ca439813f1fbd8f26128d8
+**Backup:** 2026-10-11-10 (zynergy-site-main-pre-12.bundle, verified okay, sha256 ecaef0af…f1bd)
+**Observed:** the forecast layer's five relative ratings (-902) with the one-decimal readout (-903) went live. The planner merged PR #12 at 2026-10-12T01:21:16Z, pinned to head 0358c5d9, on a passing Cloudflare Pages check, under the owner's "Yes, once the rounding is settled and checks pass (Recommended)" (-903). Diff read: 6 files (app.js, guide.css, index.html, pilot.js, README, manifest.json, which adds base_rate). The coder's preview checks at 0358c5d9: check.py 71/71 with 8 skipped (each new check shown failing on a broken copy; the rounding copy failed 14 at the band edges 4.9985 and 2.9972); slider 34/34. Readouts: "Very high: about 7.2 times the average week across the year." (chance 0.1571) and "High: about 4.9 times…" (ratio 4.9985). Live: the manifest serves 074879ff…. check.py against production: 70 passed, 1 failed, 8 skipped; the failure is the pre-existing analytics beacon (-877). Not checked: a real phone.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -908.
