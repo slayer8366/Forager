@@ -16272,3 +16272,29 @@ Not covered: release-only sources; test sources beyond test-specific checks; beh
 **The owner, verbatim:** "Build a dev branch and just rebase it every time main gets an update. That way I don't have 5 repos for one app. I feel this way is easier anyway, since it can rebase off main directly and both CI will trigger".
 **What it sets:** the planner found that ci.yml runs on pushes to main and pre-main only (ci.yml:12-13), so a push to dev wouldn't trigger CI. Added to dispatch 2026-10-12-05: `dev` joins ci.yml's push branches in the strip-dev-tools PR, one line with no description of the dev tools.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -932.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-932
+**Timestamp:** 2026-10-12T06:26:00Z
+**Title:** Rounded, tucked map strip: the navigation card in three columns, and the compass strip restyled, in portrait and landscape (owner)
+**Dispatch-file:** preserved/2026-10-12-06.md
+**The owner, verbatim:** "I had [an image tool] draft a change to the navigation strip. The compass strip can follow suite with the rounded corners and the tucked look. So let's reproduce this look on both landscape and portrait mode." (The mockup is kept off GitHub, with a copy at ~/Zynergy/device-evidence/2026-10-12-nav-strip-mockup/.) Then: "Have the altitude and the north compass switch sides so both arrows can be side by side."
+Answers, verbatim:
+- Kept: "\"by trail\" / \"straight\" (Recommended)", "Back by line (Recommended)", "Stop button (X) (Recommended)", "Have the X button go above the three dot menu in the top corner. The three dot menu can go in the bottom corner". The status line wasn't kept.
+- Landscape: "Side by side, rounded (Recommended)".
+- Compass strip: "One line, rounded" (offered: two columns, recommended).
+- Release: "In this beta" (offered: after this beta, recommended).
+- Step path: "Yes; show \"Try again\" only when needed (Recommended)".
+**Change:** the search bar becomes a rounded pill. While navigating, a rounded, inset, shadowed card at 80% fill sits tucked under it, in three columns with dividers:
+- left: distance plus kind, then "ahead 5° ▲";
+- middle: "Alt 344 ft", then "▲ 134° SE";
+- right: grid reference, then sundown plus Back by;
+- X at the top right and ⋮ at the bottom right; a Try again line only when a route fails.
+The compass strip keeps its one line, restyled as the rounded, tucked card. Landscape stays side by side, restyled. The turn words become lower-case with the needle after them.
+**Scope boundary:** no change to navigation, distance, routing, sundown or Back by logic, or the quick-settings menu; touches around the card, corner gaps and margins included, reach the map; the dev-tools branches untouched; no Gradle on the laptop; no merge without the owner's word.
+**Baseline:** origin/main 921aa9c7, or main's head when started.
+**Finish line:** the coder's plan answered, then a PR on green CI with coordinate-touch tests, revert checks, changed tests listed with old and new assertions, and screenshots kept off the repository. Then the owner's merge word, and the device items.
+**Abort conditions:** a visible change beyond the step path; a conflict with a recorded ruling; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. The beta (-923) now waits for both this and -930. Next free ID -933.
