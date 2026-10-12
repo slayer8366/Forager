@@ -16312,3 +16312,23 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **Backup:** 2026-10-12-05 (zynergy-site-main-pre-15.bundle, verified okay, sha256 4b6ea7d7…11fb4)
 **Observed:** the -920 fix is live. The owner, verbatim, after opening the preview: "Map looks good. Merge it". The planner merged PR #15 at 2026-10-12T06:29:23Z, pinned to head a55bf4a3, on a passing Cloudflare Pages check. The diff (read): index.html +7, the phone-layout rule `#panel > * { flex-shrink: 0; }` with its reason. The coder confirmed the diagnosis: injecting `#readout{min-height:auto}` alone took the new check from 29/44 to 44/44. The coder's preview checks: check.py 71/71, slider 34/34, phone_check 22/22, the new panel_fit_check 44/44. That last check failed 29/44 on production before the fix, every failure naming the readout. Its overlap assertion measures drawn text, not boxes, because box-only comparison couldn't see this bug. Production served the rule about 60 s after the merge. Against production: panel_fit_check 44/44; phone_check 21 passed, 1 failed, the old analytics beacon (-877). check.py and slider_check.py were not rerun on production.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -934.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-934
+**Timestamp:** 2026-10-12T06:44:43Z
+**Continues:** 2026-09-28-932
+**Title:** Rounded map strip: fit order, problem-only line, sundown placement, earlier rulings superseded, zero side margin (owner)
+**Context:** the coder's step-1 plan for dispatch 2026-10-12-06 found four things:
+- three columns need about 300 dp at a typical reading against about 222 dp of room at 360 dp (estimates from earlier measurements);
+- today's status line carries more than Try again;
+- recording-time sundown lines are far wider than the right column;
+- the design touches rulings -728 (no hang-down from the search bar), -656 (turn wording "Slight left · 10°") and -732 (the landscape join).
+**The owner, verbatim answers:**
+- "Trim extras when tight (Recommended)": trim in order the kind word, then the turn words to degrees and needle, then the Alt label; the distance, compass and grid reference stay whole.
+- "Problems only (Recommended)": the conditional line carries no location, lost or stale fix, approximate position, route unavailable with Try again when offered, and no origin waypoint. "Approaching" and the straight-line note go.
+- "Moves to a full-width line (Recommended)".
+- "Yes. Go ahead and leave zero margin between the card and the edge of the screen, the curves can meet the edge and that will look sleek too and give a bit more space." This confirms that the tuck supersedes -728's no-hang-down, the lower-case turn words with the needle after them supersede -656's form, the pill is over the map only, and in landscape the pieces touch edge to edge with Try again beside its message.
+**What it sets:** step 2 of 2026-10-12-06 is a go with these answers. The card runs to the screen's side edges, with its rounded corners meeting them. The planner's reading, for the owner to correct from the screenshots: the pill and the compass strip match the card's full width, since the mockup draws pill and card the same width.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -935.
