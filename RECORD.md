@@ -16139,3 +16139,14 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 - Stops (b) and (c) fired.
 **Correction:** the planner told the owner D3 was "One build setting, with no change to what the app does" that "makes crashes inside the map library's native parts readable". The second half was wrong: making map crashes readable needs a build-script change (packaging the prefab copies) plus the NDK on the release machine, or a hand upload.
 **Notes:** Written by the planner by hand, on branch records-after-173. D3 goes back to the owner. Side observation from the coder, not acted on: the main checkout's local.properties names sdk.dir with a capital S, which doesn't exist on disk. Next free ID -922.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-922
+**Timestamp:** 2026-10-12T05:29:38Z
+**Continues:** 2026-09-28-917, 2026-09-28-921
+**Title:** D3 reversed: native symbols leave this release (owner)
+**The owner, verbatim:** "Leave the warning for now (Recommended)" (offered: do the full fix this release; setting only).
+**What it sets:** -917's D3 is replaced. The production release adds no native symbols, and Play's native-symbols warning stays. The real fix, packaging the map library's prefab copies with the NDK on the release machine, goes with code shrinking in a later release that has its own release-build check. Branch native-symbols (e4154aba) holds the Phase A report, unmerged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -923.
