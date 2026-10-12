@@ -38,6 +38,8 @@ internal class MushroomLogGallery(
     private val reloadEntries: () -> Unit,
     /** The ViewModel's camera-capture location follow-up, fire-and-forget. */
     private val patchCameraCaptureLocation: (String) -> Unit,
+    /** The ViewModel's own `recordCaptureWithoutEditingEntry`, the dev build's diagnostics hook. */
+    private val recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit,
 ) {
 
     /** Loads [MushroomLogUiState.galleryPhotos] for the photo album — Workstream G2, independent of [MushroomLogViewModel.loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
@@ -101,10 +103,13 @@ internal class MushroomLogGallery(
      * through [onAddGalleryPhoto] first, so its own no-entry guard can skip an attach but never
      * loses a photo.
      *
-     * ## Two things
+     * ## Three things, and the third is not optional
      *
      * The album save is the user's remedy. The Toast is what stops them looking on the find where
-     * they expected the photo — the only thing that closes that gap at the moment it opens.
+     * they expected the photo — the only thing that closes that gap at the moment it opens. The
+     * diagnostics entry is the developer's, and it is written **whether or not the save succeeded**:
+     * a recovered photo is not evidence that nothing went wrong, and what went wrong is that the
+     * app reached a state it should not have.
      *
      * The message goes out through [MushroomLogUiState.saveErrorMessage], which is this screen's
      * one transient-message channel — `JournalTab` and `LogPanel` both show it as a Toast and clear
@@ -119,11 +124,13 @@ internal class MushroomLogGallery(
      */
     internal suspend fun rescueCaptureWithNoEditingEntry(source: PhotoSource) {
         addPhotoToGallery(source).fold(
-            onSuccess = { _ ->
+            onSuccess = { photo ->
+                recordCaptureWithoutEditingEntry(photo.id, null)
                 updateState { it.copy(isSavingPhoto = false, saveErrorMessage = PHOTO_SAVED_TO_ALBUM_MESSAGE) }
                 loadGalleryPhotos()
             },
-            onFailure = { _ ->
+            onFailure = { error ->
+                recordCaptureWithoutEditingEntry(null, error)
                 updateState { it.copy(isSavingPhoto = false, saveErrorMessage = "Couldn't save that photo.") }
             },
         )

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.LayoutDirection
+import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.backup.BackupControls
@@ -56,6 +57,7 @@ internal fun AvailabilityScreenDrawerHost(
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     onThemeModeChanged: (AppThemeMode) -> Unit,
+    crashFileStore: CrashFileStore,
     backup: BackupControls,
     openBackupRequest: Int,
     onSundownAlertsEnabledChanged: (Boolean) -> Unit,
@@ -111,6 +113,7 @@ internal fun AvailabilityScreenDrawerHost(
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     themeMode = uiState.themeMode,
                     onThemeModeChanged = onThemeModeChanged,
+                    crashFileStore = crashFileStore,
                     backup = backup,
                     openSettingsRequest = openBackupRequest,
                     openSettingsOnlyRequest = state.openSettingsOnlyRequest(),

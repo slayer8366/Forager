@@ -140,7 +140,7 @@ class AndroidAlertDelivery private constructor(
     }
 
     /**
-     * Why Android will not play the vibration just issued ([vibrationSkipReason]), for the outcome
+     * Why Android will not play the vibration just issued ([vibrationSkipReason]), for the record
      * only: what was delivered is already decided and unchanged (dispatch 2026-09-28-685, fix 3; the
      * owner, RECORD -678; Do Not Disturb added by Amendment 1, RECORD -694). A reading that fails is logged and says nothing.
      */

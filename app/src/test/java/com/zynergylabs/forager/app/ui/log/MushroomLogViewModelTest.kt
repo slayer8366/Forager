@@ -86,6 +86,7 @@ class MushroomLogViewModelTest {
         locationProvider: FakeLocationProvider = FakeLocationProvider(),
         currentFix: () -> LocationFix.Update? = { null },
         autoSaveLocationToPhotos: suspend () -> Boolean = { true },
+        recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
         pendingDeleteCommitScope: CoroutineScope? = null,
         getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
     ) = MushroomLogViewModel(
@@ -107,6 +108,7 @@ class MushroomLogViewModelTest {
         currentFix = currentFix,
         now = { NOW },
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+        recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: PendingDeleteCommitScope,
         getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
     )
@@ -1528,30 +1530,48 @@ class MushroomLogViewModelTest {
         assertFalse("the spinner does not stay up", vm.uiState.value.isSavingPhoto)
     }
 
-    /** The save is the user's remedy; a failed save still tells the user. */
     @Test
-    fun `a capture with no editing entry tells the user when the album save fails`() = runTest(dispatcher) {
+    fun `a capture with no editing entry writes the diagnostic entry, with the photo's id`() = runTest(dispatcher) {
         val photoStore = FakePhotoStore()
-        val failure = IllegalStateException("disk full")
-        photoStore.persistResult = Result.failure(failure)
-        val vm = viewModel(photoStore = photoStore)
+        val rescued = LogPhoto(id = "rescued-photo", relativePath = "photos/rescued-photo.jpg", createdAtEpochMillis = 2_000L)
+        photoStore.persistResult = Result.success(rescued)
+        val recorded = mutableListOf<Pair<String?, Throwable?>>()
+        val vm = viewModel(photoStore = photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
         advanceUntilIdle()
 
         vm.onAddPhoto(object : PhotoSource {})
         advanceUntilIdle()
 
+        assertEquals(listOf<Pair<String?, Throwable?>>("rescued-photo" to null), recorded)
+    }
+
+    /** The save is the user's remedy, not evidence that nothing went wrong — so a failed save still records, and still tells the user. */
+    @Test
+    fun `a capture with no editing entry records the anomaly even when the album save fails`() = runTest(dispatcher) {
+        val photoStore = FakePhotoStore()
+        val failure = IllegalStateException("disk full")
+        photoStore.persistResult = Result.failure(failure)
+        val recorded = mutableListOf<Pair<String?, Throwable?>>()
+        val vm = viewModel(photoStore = photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
+        advanceUntilIdle()
+
+        vm.onAddPhoto(object : PhotoSource {})
+        advanceUntilIdle()
+
+        assertEquals(listOf<Pair<String?, Throwable?>>(null to failure), recorded)
         assertEquals("Couldn't save that photo.", vm.uiState.value.saveErrorMessage)
         assertFalse(vm.uiState.value.isSavingPhoto)
     }
 
-    /** The working path is untouched: with an entry open, the photo still attaches. */
+    /** The working path is untouched: with an entry open, the photo still attaches and nothing is recorded. */
     @Test
-    fun `a capture with an editing entry attaches as before`() = runTest(dispatcher) {
+    fun `a capture with an editing entry attaches as before and records no anomaly`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository(initial = listOf(entry))
         val photoStore = FakePhotoStore()
         val newPhoto = LogPhoto(id = "new-photo", relativePath = "photos/new-photo.jpg", createdAtEpochMillis = 2_000L)
         photoStore.persistResult = Result.success(newPhoto)
-        val vm = viewModel(repository, photoStore)
+        val recorded = mutableListOf<Pair<String?, Throwable?>>()
+        val vm = viewModel(repository, photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
         advanceUntilIdle()
         vm.onOpenEntry(entry.id)
         vm.onStartEditingEntry()
@@ -1561,6 +1581,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         assertEquals("attached, as before", listOf(newPhoto), vm.uiState.value.editingEntry?.photos)
+        assertEquals("nothing recorded on the path that works", emptyList<Pair<String?, Throwable?>>(), recorded)
         assertNull("and no rescue message", vm.uiState.value.saveErrorMessage)
     }
 

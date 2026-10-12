@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * this field today. It is here because the decision cannot be checked without it.
  *
  * [arrivedAfterReturn] (RECORD -844, -845): the last return on [trackId] ended because the walker
- * reached the start. [isReturning] is false from that moment, so this is
+ * reached the start ([ReturnEndReason.ARRIVAL]). [isReturning] is false from that moment, so this is
  * what Back by and the sundown alerts read beside it ([ReturnWatch.arrivalJudgedFor]) to go on
  * judging arrival exactly as they did while the return ran. Cleared by the next Return and by the end
  * of the recording; the walker closing the HUD afterwards leaves it set, since the return had already
@@ -105,8 +105,13 @@ class ReturnWatch(
     private val computeReturnToStart: ComputeReturnToStartUseCase,
     private val alertDelivery: AlertDelivery,
     /**
+     * Dispatch 2026-09-28-451: the lasting record of Returns and off-track decisions. Written after
+     * the lock is released, as the delivery is, so no file is touched while a fix waits.
+     */
+    private val returnRecord: ReturnRecord = NoReturnRecord,
+    /**
      * Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626; Amendment 1, RECORD -627):
-     * off, a decision to alert is not delivered. Read at the moment of the decision, so
+     * off, a decision to alert is recorded and not delivered. Read at the moment of the decision, so
      * a change mid-walk applies to the next stray. Only the delivery is gated: the judge still runs
      * and [ReturnWatchState.isOffTrack] still colours the Return button. Defaults to on, the
      * setting's own default.
@@ -166,14 +171,19 @@ class ReturnWatch(
      * the service's `onDestroy`, which has no track id left to name.
      */
     fun end(trackId: String?) {
-        synchronized(lock) {
+        val ended = synchronized(lock) {
             if (trackId == null && !begun) return
             if (trackId != null && trackId != this.trackId) return
+            val endedReturn = this.trackId?.takeIf { returning }
             forget()
             this.trackId = null
             mode = null
             begun = false
             publish()
+            endedReturn
+        }
+        if (ended != null) {
+            returnRecord.write(ReturnRecordEvent.ReturnEnded(ended, if (trackId == null) ReturnEndReason.SERVICE_DESTROYED else ReturnEndReason.RECORDING_STOPPED))
         }
     }
 
@@ -182,29 +192,40 @@ class ReturnWatch(
      * check runs in. Returns `false`, changing nothing, if the watch is begun for another track.
      * A new return snapshots the kept points as its path and starts with a fresh judge, armed.
      */
-    fun startReturn(trackId: String): Boolean = synchronized(lock) {
-        if (!holdFor(trackId)) return@synchronized false
-        pathAtReturn = keptPoints.toList()
-        judge = null
-        returning = true
-        offTrack = false
-        leftArrivalCircle = false
-        arrivedAfterReturn = false
-        publish()
-        true
+    fun startReturn(trackId: String): Boolean {
+        var watched: String? = null
+        val taken = synchronized(lock) {
+            if (!holdFor(trackId)) {
+                watched = this.trackId
+                return@synchronized false
+            }
+            pathAtReturn = keptPoints.toList()
+            judge = null
+            returning = true
+            offTrack = false
+            leftArrivalCircle = false
+            arrivedAfterReturn = false
+            publish()
+            true
+        }
+        returnRecord.write(if (taken) ReturnRecordEvent.ReturnStarted(trackId) else ReturnRecordEvent.ReturnRefused(trackId, watched))
+        return taken
     }
 
     /** The return is over, the recording is not. Drops the path and the judge. Ignored for a track the watch is not for. */
     fun stopReturn(trackId: String) {
-        synchronized(lock) {
+        val wasReturning = synchronized(lock) {
             if (trackId != this.trackId) return
+            val was = returning
             pathAtReturn = emptyList()
             judge = null
             returning = false
             offTrack = false
             leftArrivalCircle = false
             publish()
+            was
         }
+        if (wasReturning) returnRecord.write(ReturnRecordEvent.ReturnEnded(trackId, ReturnEndReason.BY_WALKER))
     }
 
     /**
@@ -243,6 +264,7 @@ class ReturnWatch(
      * is, until the next Return.
      */
     fun onFix(current: TrackPoint, provider: FixProvider) {
+        var recorded: ReturnRecordEvent? = null
         val alert = synchronized(lock) {
             if (!begun) return
             val start = start ?: return
@@ -250,21 +272,36 @@ class ReturnWatch(
             lastInfo = info
             var shouldAlert = false
             if (returning && hasArrivedAfterLeaving(current, provider, start)) {
-                endReturnOnArrival()
+                recorded = endReturnOnArrival()
             } else if (returning) {
                 val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider)
+                val wasOff = offTrack
                 offTrack = verdict.isOffTrack
                 shouldAlert = verdict.alert
+                val id = trackId
+                if (id != null) {
+                    recorded = when {
+                        verdict.alert -> ReturnRecordEvent.WentOffTrack(id, current.timestampEpochMillis)
+                        wasOff && !verdict.isOffTrack -> ReturnRecordEvent.ReArmed(id, current.timestampEpochMillis)
+                        else -> null
+                    }
+                }
             }
             publish()
             shouldAlert
         }
-        if (alert && !isReminderOn()) return
+        recorded?.let(returnRecord::write)
+        val alertedTrack = (recorded as? ReturnRecordEvent.WentOffTrack)?.trackId
+        if (alert && !isReminderOn()) {
+            if (alertedTrack != null) returnRecord.write(ReturnRecordEvent.AlertWithheld(alertedTrack))
+            return
+        }
         if (alert) {
             // overridesSilence = false: owner ruling, 2026-09-11, reversing the original. Straying
             // is often deliberate, so off-track respects a phone the user silenced. See
             // AlertDelivery's own doc comment.
-            alertDelivery.deliverReporting(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
+            val outcome = alertDelivery.deliverReporting(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
+            if (alertedTrack != null) returnRecord.write(ReturnRecordEvent.AlertDelivered(alertedTrack, outcome))
         }
     }
 
@@ -296,15 +333,17 @@ class ReturnWatch(
 
     /**
      * Ends the return because the walker arrived (RECORD -844): off-track stops watching, the path and the
-     * judge go, and the recording carries on. Call with [lock] held.
+     * judge go, and the recording carries on. Returns the record entry to write once [lock] is released.
+     * Call with [lock] held.
      */
-    private fun endReturnOnArrival() {
+    private fun endReturnOnArrival(): ReturnRecordEvent? {
         pathAtReturn = emptyList()
         judge = null
         returning = false
         offTrack = false
         leftArrivalCircle = false
         arrivedAfterReturn = true
+        return trackId?.let { ReturnRecordEvent.ReturnEnded(it, ReturnEndReason.ARRIVAL) }
     }
 
     /** Makes the watch be for [trackId] if it may be: already is, or not begun yet. Call with [lock] held. */

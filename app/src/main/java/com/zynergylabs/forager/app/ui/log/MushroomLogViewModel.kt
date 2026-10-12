@@ -214,6 +214,14 @@ class MushroomLogViewModel(
     /** Clock for [MushroomLogCaptureLocation.freshDeviceLocation]'s age check, injected so a test can fix a fix's age. */
     private val now: () -> Long = System::currentTimeMillis,
     /**
+     * Records that a capture arrived with no editing entry — see [MushroomLogGallery.rescueCaptureWithNoEditingEntry].
+     * A plain function rather than `DebugDiagnostics` itself, for the reason [ErrorLog] gives about
+     * `android.util.Log` in a ViewModel: the store is debug-only and Context-bound, and this class
+     * is constructed by tests that have neither. `MainActivity` wires the real one; the default is
+     * a no-op, so every existing test is unaffected and this one's test can assert on a fake.
+     */
+    private val recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
+    /**
      * Settings' "Automatically Save Location to Photos" preference, read at the moment it is about
      * to matter rather than held — see
      * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what it gates and
@@ -289,6 +297,7 @@ class MushroomLogViewModel(
         onPhotoDeleted = onPhotoDeleted,
         reloadEntries = { loadEntries() },
         patchCameraCaptureLocation = { photoId -> captureLocation.patchCameraCaptureLocation(photoId) },
+        recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
     )
 
     /**

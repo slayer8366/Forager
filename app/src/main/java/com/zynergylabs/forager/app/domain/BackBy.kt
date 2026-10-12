@@ -76,6 +76,9 @@ interface BackByControl {
 
     /** Clears it for [trackId]: the menu's "Clear". */
     fun clear(trackId: String)
+
+    /** A choice made with no recording on the screen, so nothing is set: recorded, not silent (dispatch 2026-09-28-796). */
+    fun setWithNoRecording()
 }
 
 /** No Back by: shows none, sets none. */
@@ -83,6 +86,7 @@ object NoBackBy : BackByControl {
     override val shown: kotlinx.coroutines.flow.StateFlow<BackByShown?> = kotlinx.coroutines.flow.MutableStateFlow(null)
     override fun set(trackId: String, atEpochMillis: Long): Boolean = false
     override fun clear(trackId: String) = Unit
+    override fun setWithNoRecording() = Unit
 }
 
 private const val HOUR_MILLIS = 60L * 60L * 1_000L
