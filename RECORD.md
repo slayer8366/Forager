@@ -15848,3 +15848,22 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Observed (builder's report, pnw-pilot-t1 9ed9b16):** 56,927 units, 1,365 positive, 2,060 cells; 491 sea units dropped. The 22 previously refused units are kept and no unit was dropped for missing weather; the sample is as fixed. Brier: calendar 0.02267, weather 0.02285. Skill -0.0080, interval -0.0120 to -0.0044, verdict "worse". AUC: calendar 0.802, weather 0.785. Skill is negative in 9 of 11 years. The 34-point pull (22:41 to 22:56Z) put 1,904 of 1,904 points on disk, and the check found 0 failed. Fits ran 22:56 to 23:45Z after waiting for no other CPU job. weather/t1_pnw_d33_3.npz is identical to t1_pnw.npz on every shared point-day. Not reviewed: it ran after review pass 2 filed. Single bootstrap seed.
 **What it sets:** the OMS briefing's pending D33 (3) line is filled with this result, marked not reviewed (under -875).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -898.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-898
+**Timestamp:** 2026-10-12T00:21:24Z
+**Corrects:** the planner's statements to the owner after -863 and -897
+**What was wrong:**
+1. The planner told the owner the banner's status line would read -863's wording. The page's pilot.js (zynergy-site pnw-pilot-w41-drop 8c3a2f8, lines 182-187) never displays the manifest's status_label; it builds "Pilot model. Not validated. Reviewed. Not the forecast." Found by the briefing writer (forecast pnw-pilot-plans 351a2f5).
+2. The planner described D33 (3) to the owner as "a wider area per cell (5 km instead of 1 km)". The t1_5000m list keeps records with coordinate uncertainty up to 5,000 m on the same cells; t1_1000m keeps those up to 1,000 m (records_summary.json, the list steps).
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-899
+**Timestamp:** 2026-10-12T00:21:24Z
+**Title:** Show the owner's status line on the page; merge the site drop when the checks pass (owner)
+**Rulings (owner, verbatim answers):** "Add your line under the short heading (Recommended)": the collapsed line stays "Pilot model. Not validated. Reviewed. Week of 5 October."; opened, -863's status_label ("Pilot, not yet validated. Its figures were checked by an independent review. Shown whether or not it beats the seasonal calendar.") appears directly under the heading, read from the manifest. "Merge when the checks pass (Recommended)": once built, with check.py (its attribution check moved to look under Details, a planner call matching -895) and slider_check.py passing on the preview, the planner backs up zynergy-site main, merges, checks the live page, and writes the merge entry.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -900.
