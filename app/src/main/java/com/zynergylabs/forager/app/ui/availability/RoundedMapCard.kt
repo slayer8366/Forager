@@ -144,11 +144,6 @@ internal fun Modifier.mapCardSurface(fill: Color, corners: MapCardCorners, tuck:
         // edge and its rounded corners and fades over MAP_CARD_TUCK_SHADOW_DEPTH. Drawn under the card's content.
         val steps = MAP_CARD_TUCK_SHADOW_DEPTH.value.toInt().coerceAtLeast(1)
         val step = MAP_CARD_TUCK_SHADOW_DEPTH.toPx() / steps
-        clipPath(fillPath) {
-            for (i in 1..steps) {
-                val shifted = Path().apply { addPath(pill, androidx.compose.ui.geometry.Offset(0f, i * step)) }
-                drawPath(shifted, Color.Black.copy(alpha = MAP_CARD_TUCK_SHADOW_STEP_ALPHA))
-            }
         }
     }
 
