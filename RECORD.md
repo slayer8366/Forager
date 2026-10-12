@@ -16041,3 +16041,17 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **The owner, verbatim:** "Other apps focus on burn morels for their maps, and we can approach it from the mycorrhizal angle".
 **What it records:** the positioning behind -913. Forager's maps take the mycorrhizal angle (host trees, soils, habitat) where other foraging apps map burn morels. This guides how the habitat map is framed and described, with other apps described generically. Unverified by the planner: what other apps actually map. A prior-art check belongs in the habitat dispatch.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -915.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-915
+**Timestamp:** 2026-10-12T04:50:40Z
+**PR:** zynergy-site 14
+**Head:** forecast-panel-bounds
+**Base:** main
+**Merge-commit:** b8ac1e2c18e76dc1c565a890b3b0434c51741cb5
+**Pre-merge:** 6abc74f0ed66daf43c74b4252e262bec1d51fac3
+**Backup:** 2026-10-12-02 (zynergy-site-main-pre-14.bundle, verified okay, sha256 464f5522…5700)
+**Observed:** the -912 fixes are live. The owner, verbatim, after opening the preview: "[That phone maker's] browser works now. Desktop looks better. Merge when ready". The planner merged PR #14 at 2026-10-12T04:43:44Z, pinned to head b3997038, on a passing Cloudflare Pages check. Diff: index.html (+19/-3) and phone.js (+26/-5). The panel is bounded inside the map area by independent means (always capped, an open top edge, the map area clipping, the phone test read from the stylesheet, height fallbacks), and the desktop map is capped square on windows taller than wide. The coder's preview checks: check.py 71/71, slider 34/34, phone_check 22/22 (7 new; main failed 3 of them). Against production after the merge: phone_check 21 passed, 1 failed, the pre-existing analytics beacon (-877). The 7 new checks pass live, so production carries the fix. The cause in that browser was not confirmed; it is inferred from the symptom matching an unbounded panel. The owner's check on that browser is the evidence that it now works there.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -916.

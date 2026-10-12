@@ -135,3 +135,7 @@ The owner wants "a map focused on mycorrhizal mushrooms", meaning a **habitat** 
   - The desktop map is capped square (980x1700 window gives a 660x660 map; 1366x860 is unchanged).
 - **Cause in the affected browser: not confirmed.** The symptom matches an unbounded panel; the owner's two suspects (no dvh, large text) did not reproduce it in Chromium 140.
 - **Recommended before merging:** the owner opens the preview in that browser and confirms. Then the merge on the owner's word, with the usual backup, production check and merge entry.
+
+## Addendum 6: PR #14 merged (RECORD -915)
+
+The owner confirmed the preview in the affected browser ("works now"; "Desktop looks better") and said "Merge when ready". PR #14 was merged as b8ac1e2c at 04:43:44Z, with backup 2026-10-12-02. Production phone_check: 21/22, the old analytics beacon aside. **Next free RECORD ID: -916.**
