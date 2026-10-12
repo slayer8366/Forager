@@ -16201,3 +16201,15 @@ Not covered: release-only sources; test sources beyond test-specific checks; beh
 - **D4 (lint):** fix every reasonable item in the -925 report, beyond the errors and the short list, as a dispatch after -926's work merges, so they don't edit the same files at once.
 - **D5 (tidiness):** the ten records-tidy-revert-* branches were deleted from GitHub after a verified backup (~/Zynergy/forager-repo-backups/2026-10-12-03-scratch-branches/, sha256 5d7bb9e2…cfac0). scratch-lint-survey is kept until lint-on-CI reuses its job, then deleted. Neither the sundown gap nor the product-name survey is on this release's list.
 **Notes:** Written by the planner by hand, on branch records-after-173. "It wasn't dropped" is read by the planner as the -830 beta having reached testers; not confirmed. Next free ID -927.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-927
+**Timestamp:** 2026-10-12T05:45:55Z
+**Continues:** 2026-09-28-926
+**Title:** Not even neutral signal points: testers' builds hold nothing of the dev tools (owner)
+**Context:** dispatch 2026-10-12-04's step-1 plan: a debug-only Application subclass, with a few neutrally named no-op hooks left in shared code, because debug can't otherwise learn that a recording started or a photo was taken. The coder found that WAKE_LOCK and ACCESS_NETWORK_STATE reach release from libraries (work-runtime, the map library), contrary to the comment at app/src/debug/AndroidManifest.xml:3-5. It also found CI never runs testRelease.
+**The owner, verbatim:** "No, not even those" (offered: "Yes, plain signals are fine (Recommended)"; the alternative was described as separate debug and release copies of the recording and camera code, at the risk of the copies drifting apart).
+**What it sets:** the release source holds no hook, call, type or string for the dev tools, neutral or not. Code that touches them exists in build-type copies, each kept as small as possible. A CI check fails if a debug and release copy differ anywhere except marked dev-tool lines, so drift is caught. The library-supplied permissions stay. The planner's technical calls: crash capture installs as early as today or earlier (debug only); logcat lines that name the dev tools move to debug; a release compile, the release unit tests and the no-trace check run on CI; the false manifest comment is corrected. The coder sends a revised plan before building.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -928.
