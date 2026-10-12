@@ -16402,3 +16402,18 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 - **CI after the merge:** main 38223860061, 587 suites, 4,573 tests, 0 failures. dev 38223882627, triggered by its push, 612 suites, 4,691 tests, 0 failures, matching main at 921aa9c7.
 **Not checked:** no release build or test of the release variant ran on CI. The tester build the owner signs is the first, and the device items are owed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -940.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-940
+**Timestamp:** 2026-10-12T10:50:32Z
+**Continues:** 2026-09-28-936
+**Title:** Rounded map strip in landscape: the card is as wide as in portrait, permanently (owner)
+**Context:** draft PR #221 (rounded-map-strip 5d2ea4a7; CI 38225602288: 597 suites, 4,628 tests, 12 failures, all landscape).
+- **Ten failures, card height:** the stacked X and ⋮ (76 dp) plus Try again's row push the card past -766 and -770 and the central-third rule at 780 dp, reaching 154 dp at font 2.0.
+- **One failure, grid reference:** it ends in "…" at 780 dp, font 2.0, because -694's room rule makes the card 292 dp wide.
+- **Seen by the planner in the render, not reported by the coder:** the landscape evening line is cut off ("dark 1:…"), against -936.
+**The owner, verbatim:** to how landscape saves height: "Increase the length of the box. It can be the same size as portrait so that nothing really needs to change." To the grid reference at large text (offered: card widens to fit when needed; split over two lines): "Option 1, but permanent".
+**What it sets:** in landscape the navigation card and the compass strip card take the same width as in portrait (the window's short side), always. They lay out exactly as portrait does: three columns, X above ⋮, and the same fit order. This replaces -694's room rule and the 360 dp landscape cap for these cards. The search pill takes the remaining width beside them. The evening line is never cut, in either orientation. If the card at that width still crosses the central third at large text, the coder reports the numbers instead of trimming.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -941.
