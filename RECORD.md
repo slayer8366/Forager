@@ -15893,3 +15893,14 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Planner's wording, refined from the example the owner chose ("About 5 times a typical week (a typical week is about 2%).") because the 2% is an all-season average:** ratio = chance ÷ base rate (positives ÷ units over the all-years test, 1,138 ÷ 52,718). At 1.5 or more: "About N times the average week across the year (about 2%)." with N rounded to a whole number. From 0.67 to under 1.5: "About the same as the average week across the year (about 2%)." Under 0.67: "Below the average week across the year (about 2%)." Legend: "Average week across the year: about 2%." The owner is told of the refinement.
 **What it sets:** the scorer adds base_rate (positives, units, rate, source) to the manifest and republishes, cells unchanged. The site coder shows the line and the legend note. Checks run on a preview; the merge waits for the owner's word tonight.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -902.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-902
+**Timestamp:** 2026-10-12T00:48:04Z
+**Title:** The forecast layer rates cells against the average week in five plain words, before Monday (owner)
+**Context:** The owner: "People will see 12% and think it's a poor sign. So we should have a way to translate the data to make it more palatable". The planner read pilot.js:24-31: the colour classes run from "under 5%" to "50% or more". With this week's cells at 0.67% to 15.71%, nearly every cell falls in the bottom three classes.
+**The owner, verbatim:** "Yes, these five ratings, before Monday (Recommended)".
+**What it sets (cut-offs fixed now, before seeing the map with them):** ratio = chance ÷ base_rate.rate (-901). Ratings: "Below average" under 0.67; "About average" 0.67 to under 1.5; "Above average" 1.5 to under 3; "High" 3 to under 5; "Very high" 5 or more. Map colours and legend use the five ratings. A tapped cell leads with "<Rating>: about N times the average week across the year." (or the -901 wording for near-average and below-average cells), with "Sighting chance N%" and D11's definition underneath, smaller. The legend notes "Average week across the year: about 2%". With base_rate missing, the page falls back to the current percent classes. This supersedes -901's plan of a comparison line under the percent headline. Built on the same branch as -901; checks on a preview; merge on the owner's word tonight.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -903.
