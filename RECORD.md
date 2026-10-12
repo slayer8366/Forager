@@ -15926,3 +15926,13 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **The owner, verbatim:** "Next update should focus on trail navigation and maps. We have regular navigation down, which is a good foundation for both items of work".
 **What it sets:** scope only, not a go-ahead. Both pieces are already planned and ruled: docs/plans/trail-navigation-and-own-tiles.md and its spec, docs/plans/2026-10-04-own-map-service-spec.md (-492, -493), as amended on 2026-10-11 by -879 (Cloudflare serves, the Pi builds and keeps a copy) and -880 (weekly builds; first layers street, offline maps with names, terrain shading; land ownership as a future layer, research -882/-883). Stage 4 onward of the map service belongs to the Pi planner, with the owner relaying (prompts/preserved/2026-10-11-04-pi-relay.md). This supersedes the 2026-10-01 next-release scope of navigation, forecast layers and trip planner. The order against the production tidiness and lint release (-831) was asked.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -905.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-905
+**Timestamp:** 2026-10-12T01:14:05Z
+**Title:** Order: the production release first, then trail navigation and maps (owner)
+**The owner, verbatim:** "Production release first, then trail nav and maps (Recommended)" (offered: trail nav and maps first; both together).
+**What it sets:** the next release is -831's production release, app tidiness plus an Android lint round, mostly behind the scenes, carrying what main now holds (journal entry page, barometer height, Records tidy, Navigate from entry maps). The Pi side may start the map pipeline meanwhile, on its own machine, once the owner relays prompts/preserved/2026-10-11-04-pi-relay.md. Trail navigation and maps (-904) are the update after. Scope and order only: no dispatch starts without the owner's go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -906.
