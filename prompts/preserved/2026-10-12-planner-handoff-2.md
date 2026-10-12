@@ -49,7 +49,15 @@ The privacy policy, the delete-data page and the README lost their crash lines. 
 ### The beta (-923)
 
 The owner builds and signs the beta from main once PR #221 merges. That PR is the only thing the beta still waits on.
-- **Draft release notes** are in this session's chat. Rewrite them after #221 to add the new strip:
+- **Draft release notes** (written in this session, about 380 characters):
+  > What's new
+  > • Navigate from a waypoint on a journal entry's map.
+  > • Return to start now ends by itself when you arrive.
+  > • A new journal entry page, with height gained measured by the barometer.
+  > • Records tidied up: find photos shown uncropped, and Offline maps in the Tools drawer.
+  > • Fixes to climb totals and to the height at the end of a walk.
+
+  Rewrite them after #221 so they cover:
   - Navigate from journal entry maps;
   - Return ends on arrival;
   - the journal entry page with barometer height;
