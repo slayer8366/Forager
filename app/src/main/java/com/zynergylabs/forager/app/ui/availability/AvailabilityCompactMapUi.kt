@@ -1536,9 +1536,9 @@ private fun BoxScope.CompactMapNavigationDisplay(
             Modifier
                 .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                 .padding(controlsPadding)
-                // RECORD -940: as wide as in portrait, the window's short side, always. Replaces RECORD -694's room beside the
-                // search bar and the 360 dp cap for this card; the bar takes the rest of the room beside it.
-                .width(mapCardWidth())
+                .besideLandscapeSearchBar(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
+                .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
+                .fillMaxWidth()
         } else {
             // Dispatch 2026-10-12-06: tucked under the pill, as the strip is (CompactMapTopStrip's stripTuck).
             Modifier
