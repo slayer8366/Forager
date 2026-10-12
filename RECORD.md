@@ -16343,3 +16343,15 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **The owner, verbatim:** "The same info can stay as they were, the ordering makes it look neat and intentional and the curves and card stack look make it look neat". Asked whether that means everything stays, just reordered and restyled: "Yes, keep everything (Recommended)".
 **What it sets:** -934's "Problems only" is replaced. The conditional line under the columns carries everything today's status line does, "Approaching" and the straight-line note included, and shows only when it has something to say. Only the order and the look change. -934's trimming order still applies on narrow phones.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -936.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-936
+**Timestamp:** 2026-10-12T07:06:14Z
+**Continues:** 2026-09-28-934, 2026-09-28-935
+**Title:** Rounded map strip: the grid reference drops to its own line when the columns can't fit; tighter spacing; "≤ 16 ft" when tight (owner)
+**Context:** the coder measured the card's real text widths on CI (run 38215191193, Robolectric native graphics). Fully trimmed, the mockup's reading "≈ 800 ft" needs 295 dp against 292 dp of room at 360 dp, font 1.0. At font 1.3 nothing fits at 320 to 412 dp, and at 2.0 nothing fits anywhere. The middle column (arrow plus "315° NW", 79.5 dp) and the grid reference (122.5 dp) are the fixed floor. The coder stopped as instructed.
+**The owner, verbatim answers:** "Grid ref drops to its own line (Recommended)", "Yes, slightly tighter (Recommended)", "Yes, \"≤ 16 ft\" when tight (Recommended)".
+**What it sets:** fit order: first -934's trims (kind word, turn words to degrees and needle, Alt label), and "≤ 16 ft" for "within 16 ft" (distanceShortForm, -768). If the columns still don't fit, the grid reference leaves the right column for a full-width line under the columns, whole and tappable. The distance, Alt and compass keep their columns, with the two arrows side by side. The card uses the tighter spacing (about 4 dp padding, 6 dp divider gaps). Planner's call under -934: in landscape the card still touches the bar edge to edge.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -937.
