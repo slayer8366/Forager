@@ -16500,3 +16500,29 @@ The fit order (-934, -936) is unchanged; a larger figure means its trims, and th
 - in landscape the north arrow (in the strip) and the turn needle (in the card) are no longer on one line.
 This replaces -940's "they lay out exactly as portrait does" for the landscape card's content. Portrait is unchanged. If the strip and card together cross the central third or the -766 / -770 limits, the coder reports the numbers instead of trimming, as under -940.
 **Notes:** Written by the planner by hand, on branch records-after-173. Correction to -945's note: it said PR #221's coder was still working. According to the previous planner session's message to this one, the owner had told it "Tell the coder to stop" at about 12:05 UTC, and the coder was stopped. That session's handoff file records the stop (9b8b35dc). Nothing from -945 or -946 has been sent to a coder. Next free ID -947.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-947
+**Timestamp:** 2026-10-12T12:22:15Z
+**Continues:** 2026-09-28-932
+**Title:** Rounded map strip, continued by a fresh coder from 4b8e5c6c: -945's look, -946's landscape tuck under the compass strip, and what is left of -940 to -943 (owner)
+**Dispatch-file:** preserved/2026-10-12-07.md
+**The owner, verbatim:** to starting a fresh coder from 4b8e5c6c: "Go (Recommended)". To -946's reading that the three-dot menu also leaves the landscape card: "Yes, only on the strip (Recommended)".
+**Change:** on PR #221, branch rounded-map-strip:
+- check -940 to -943 and the tuck in the code at 4b8e5c6c;
+- build -945: the lighter pill, a bigger distance with centred columns, full-height dividers, and the kind word as a third line in the left column;
+- build -946: in landscape the compass strip stays while navigating, and the card tucks under it without the heading, height, grid reference or three-dot menu;
+- diagnose the 13 landscape failures of CI 38246598522.
+The planner's reading, recorded here for the owner to correct: while navigating in landscape the evening lines show once, in the card, not also under the strip.
+**Scope boundary:** as -932. No change to navigation, distance, routing, sundown or Back by logic, or the quick-settings menu's contents. Landscape heights are reported, not trimmed. No Gradle on the laptop, no silenced tests, no merge without the owner's word.
+**Baseline:** origin/rounded-map-strip 4b8e5c6c.
+**Finish line:** the coder's plan answered. Then green CI on the PR, with:
+- coordinate-touch tests and revert checks;
+- the changed tests listed with their old and new assertions;
+- screenshots kept off the repository;
+- the report appended.
+After that, the owner's merge word and the device items.
+**Abort conditions:** a visible change beyond the rulings and step paths; a conflict with a recorded ruling; two failed attempts on one failure.
+**Notes:** Written by the planner by hand, on branch records-after-173. The previous coder (dispatch 2026-10-12-06) was stopped by the owner at about 12:05 UTC, according to the previous planner session (-946's notes). This coder runs as a subagent of the current planner session. Next free ID -948.
