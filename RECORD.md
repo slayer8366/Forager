@@ -16213,3 +16213,14 @@ Not covered: release-only sources; test sources beyond test-specific checks; beh
 **The owner, verbatim:** "No, not even those" (offered: "Yes, plain signals are fine (Recommended)"; the alternative was described as separate debug and release copies of the recording and camera code, at the risk of the copies drifting apart).
 **What it sets:** the release source holds no hook, call, type or string for the dev tools, neutral or not. Code that touches them exists in build-type copies, each kept as small as possible. A CI check fails if a debug and release copy differ anywhere except marked dev-tool lines, so drift is caught. The library-supplied permissions stay. The planner's technical calls: crash capture installs as early as today or earlier (debug only); logcat lines that name the dev tools move to debug; a release compile, the release unit tests and the no-trace check run on CI; the false manifest comment is corrected. The coder sends a revised plan before building.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -928.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-928
+**Timestamp:** 2026-10-12T05:48:41Z
+**Continues:** 2026-09-28-927
+**Title:** Dev tools stay in the open, documented in the privacy docs; separate copies kept (owner)
+**The owner, verbatim:** "Production release is coming up so I want to be sure to get that stuff out before we even approach that. Just to be safe. A code review post production could kill my privacy claims and user trust". The planner pointed out that Forager's repository is public, so a reviewer reads app/src/debug and its history regardless of what ships. It also said the dev tools write only local files and share only through a share button the user taps (ACTION_SEND in CrashLogPanel.kt:245 and DiagnosticsPanel.kt:424). The owner then chose "Out in the open (Recommended)" (offered: move them to a private repository) and "Keep separate copies" (offered: switch to signal points, recommended).
+**What it sets:** -927's build-type copies stand. Added to dispatch 2026-10-12-04's scope: a short note in the privacy docs (docs/legal/) saying that development-only tools exist in the source, never ship in installed builds (proved by the no-trace check on CI), and send nothing on their own. The note's wording comes to the owner before merge.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -929.
