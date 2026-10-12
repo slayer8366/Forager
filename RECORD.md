@@ -16172,3 +16172,18 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **The owner, verbatim:** "Those checks have been done and passed. The only thing untested is how well it handles sudden elevation". This answers -923's list: the journal checks (steps 3, 7 and 8 and the Navigate tap), the Records tidy nine-step S22 check, and the Return-ends-on-arrival S22 steps.
 **What it sets:** the production release's T7 gate is met by the owner's account, except one item: a sudden change in height, closest to journal step 9 (a climb of known height). That item stays open.
 **Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word: the planner has seen no per-step evidence, and readings or screenshots, if kept, stay off GitHub. Next free ID -925.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-925
+**Timestamp:** 2026-10-12T05:33:47Z
+**Closes:** 2026-09-28-918
+**Title:** Lint survey done: 376 issues (29 errors, 338 warnings, 9 hints), nothing fixed
+**Observed:** report docs/audits/2026-10-12-lint-survey.md on Forager branch lint-survey, ce75f629 (counter and positive control at d9160d5a, before the run). Scratch CI branch scratch-lint-survey, 2fb9b012. CI run 38207222367, success; the lint job took 4 min 43 s, lint 9.3.1, debug variant.
+- Three totals agree at 376: the counter, a count of issue elements, and lint's own summary.
+- Errors: 7 in shipped code (NonObservableLocale 5, Range 1, SuspiciousIndentation 1), 18 NewApi in debug-only code (the coder judges them false alarms behind a version check), and 4 in tests.
+- Warnings: LogNotTimber accounts for 272, a rule from a library the app doesn't use. Then ModifierParameter 14, UseKtx 13, and smaller ids.
+- Accessibility 2 (ClickableViewAccessibility); Security 1 (DataExtractionRules, AndroidManifest.xml:134).
+Not covered: release-only sources; test sources beyond test-specific checks; behaviour on a phone.
+**Notes:** Written by the planner by hand, on branch records-after-173. D4 and D5 go to the owner from this report. Next free ID -926.
