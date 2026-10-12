@@ -16055,3 +16055,14 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Backup:** 2026-10-12-02 (zynergy-site-main-pre-14.bundle, verified okay, sha256 464f5522…5700)
 **Observed:** the -912 fixes are live. The owner, verbatim, after opening the preview: "[That phone maker's] browser works now. Desktop looks better. Merge when ready". The planner merged PR #14 at 2026-10-12T04:43:44Z, pinned to head b3997038, on a passing Cloudflare Pages check. Diff: index.html (+19/-3) and phone.js (+26/-5). The panel is bounded inside the map area by independent means (always capped, an open top edge, the map area clipping, the phone test read from the stylesheet, height fallbacks), and the desktop map is capped square on windows taller than wide. The coder's preview checks: check.py 71/71, slider 34/34, phone_check 22/22 (7 new; main failed 3 of them). Against production after the merge: phone_check 21 passed, 1 failed, the pre-existing analytics beacon (-877). The 7 new checks pass live, so production carries the fix. The cause in that browser was not confirmed; it is inferred from the symptom matching an unbounded panel. The owner's check on that browser is the evidence that it now works there.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -916.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-916
+**Timestamp:** 2026-10-12T04:54:43Z
+**Title:** Beta sign-up feedback: structured find conditions and an offline species guide (owner flagged it as valuable)
+**Observed:** the owner shared a beta sign-up notification (screenshot kept off GitHub; the tester's name and email deliberately not recorded here). It was received 2026-10-12T04:52:50Z from a US tester in East Tennessee (Appalachian mountains). The tester's note, paraphrased without personal details: they want to add images and detailed notes about finds and conditions; multiple-choice options for weather conditions and growing conditions (on a tree, in the ground, and so on); and an offline reference guide to search species, e.g. chanterelle: typical growing conditions, best weather and temperature, best season, sorted by location. The owner: "A beta tester sign up is giving some amazingly valuable input."
+**Planner's notes (unverified against the app, to check before any dispatch):** finds already take photos and notes, and entries take notes, tags and photos. Structured multiple-choice conditions (weather, substrate) don't exist as far as the planner knows. They would also give the forecast labelled data it lacks. The app has List and Seasonal tabs and an offline fungi index (fungi_index.db), so part of a reference guide may exist. East Tennessee is outside both T1 boxes (PNW 42-49.5 N; East 38-46 N, 84-70 W, t1_design.py:35-36).
+**What it sets:** nothing yet; ideas for the owner to prioritise.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -917.

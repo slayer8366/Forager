@@ -138,4 +138,4 @@ The owner wants "a map focused on mycorrhizal mushrooms", meaning a **habitat** 
 
 ## Addendum 6: PR #14 merged (RECORD -915)
 
-The owner confirmed the preview in the affected browser ("works now"; "Desktop looks better") and said "Merge when ready". PR #14 was merged as b8ac1e2c at 04:43:44Z, with backup 2026-10-12-02. Production phone_check: 21/22, the old analytics beacon aside. **Next free RECORD ID: -916.**
+The owner confirmed the preview in the affected browser ("works now"; "Desktop looks better") and said "Merge when ready". PR #14 was merged as b8ac1e2c at 04:43:44Z, with backup 2026-10-12-02. Production phone_check: 21/22, the old analytics beacon aside. **Next free RECORD ID: -917.** A beta sign-up asked for structured find conditions and an offline species guide (-916); not prioritised yet.
