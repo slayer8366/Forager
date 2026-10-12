@@ -16599,3 +16599,16 @@ After that, the owner's merge word and the device items.
   - unused leftovers wait for the tidiness release.
 - **-766 governs height.** The navigating display may reach into the central third while navigating, but never over the walker's dot or the needle, and -770 keeps Reset north clear. The three tests that still forbid the central third are changed to that rule.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -952.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-952
+**Timestamp:** 2026-10-12T14:07:44Z
+**Continues:** 2026-09-28-937, 2026-09-28-938
+**Title:** Rounded map strip: the landscape navigation rail rounds its corners like portrait's bottom bar; the map credit strip becomes a pill (owner)
+**The owner, verbatim:** "The results are good. Two minor things and then I think we can call it: In landscape mode: Can we have the rounded corners on the app navigation buttons (the one on the right side of the display) like it is in portrait? In either mode: can the openstreetmaps tint strip have all corners rounded instead of just the one corner, like a pill?"
+**What it sets:**
+- In landscape, on the Maps tab, the navigation rail rounds the two corners that face the map, at the same 16 dp. That is the inner side's top and bottom, as portrait's bottom bar rounds its top two. Touches in the corner gaps reach the map.
+- The map credit strip rounds all four corners, in both orientations, a pill. This replaces -938's top-right corner only.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -953.
