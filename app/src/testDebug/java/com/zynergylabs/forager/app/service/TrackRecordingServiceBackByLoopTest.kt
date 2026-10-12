@@ -135,12 +135,41 @@ class TrackRecordingServiceBackByLoopTest {
             simulateGpsFix(metresNorth = 0.0)
             val notification = awaitBackByNotification(timeoutMillis = FIX_WAIT_MILLIS)
             assertNotNull(
-                "no back-by alert within ${FIX_WAIT_MILLIS / 1_000} s of a GPS fix ${fixAt - at} ms past the time: the alert waits for the 15 s timer, not the fix.",
+                "no back-by alert within ${FIX_WAIT_MILLIS / 1_000} s of a GPS fix ${fixAt - at} ms past the time: the alert waits for the 15 s timer, not the fix. The record: ${recordLines()}",
                 notification,
             )
+            assertTrue("woken by the fix: ${recordLines()}", recordLines().any { " by=fix" in it && " due=yes " in it })
         } finally {
             controller?.let { end(it) }
         }
+    }
+
+    /**
+     * Dispatch 2026-09-28-796, step 3: the app's real record file says what happened, in order, through
+     * the real service and container: started, set, evaluated, fired with its delivery, ended by stop.
+     */
+    @Test
+    fun `the back-by record file tells the story set, evaluated, fired, ended, with no positions`() {
+        val file = java.io.File(context.filesDir, com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME)
+        file.delete()
+        val (c, trackId) = startedRecording()
+        try {
+            simulateGpsFix(metresNorth = 0.0)
+            assertTrue(container.backByWatch.set(trackId, System.currentTimeMillis() + 2_000L))
+            assertNotNull("the alert, for the record to report", awaitBackByNotification(timeoutMillis = LOOP_WAIT_MILLIS))
+        } finally {
+            end(c)
+        }
+        val kinds = file.readLines().map { it.substringAfter(' ').substringBefore(' ') }
+        val story = kinds.filter { it != "evaluated" }
+        assertEquals("the record: ${file.readLines()}", listOf("started", "set", "alarm-scheduled", "fired", "ended", "alarm-cancelled"), story)
+        val lines = file.readLines()
+        assertTrue("an evaluation before the alert: $lines", kinds.indexOf("evaluated") in 0 until kinds.indexOf("fired"))
+        assertTrue("accepted: $lines", lines.single { " set " in it }.endsWith(" accepted"))
+        assertTrue("posted: $lines", " notification=posted " in lines.single { " fired " in it })
+        assertTrue("ended by the stop: $lines", lines.single { " ended " in it }.endsWith(" reason=stop"))
+        assertTrue("every line names this track: $lines", lines.all { "track=$trackId" in it })
+        assertTrue("no coordinate in any line: $lines", lines.none { "-122." in it || "lat=" in it || "lng=" in it })
     }
 
     // ── The wake-up alarm (dispatch 2026-09-28-796; the owner, RECORD -797) ──
@@ -209,11 +238,15 @@ class TrackRecordingServiceBackByLoopTest {
                 "no back-by alert within ${FIX_WAIT_MILLIS / 1_000} s of the wake-up alarm, delivered ${deliveredAt - at} ms past the time",
                 notification,
             )
+            val lines = java.io.File(context.filesDir, com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME).readLines()
+            assertTrue("the record says the alarm arrived and woke the evaluation: $lines", lines.any { " alarm-delivered track=$trackId" in it } && lines.any { " by=alarm" in it && " due=yes " in it })
         } finally {
             controller?.let { end(it) }
         }
     }
 
+    private fun recordLines(): List<String> =
+        java.io.File(context.filesDir, com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME).takeIf { it.exists() }?.readLines().orEmpty()
 
     private fun startedRecording(): Pair<ServiceController<TrackRecordingService>, String> {
         val trackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id

@@ -64,6 +64,7 @@ class ReturnArrivalAlertsTest {
         errorLog = { _, _, _ -> },
     )
 
+    private val backByRecord = mutableListOf<BackByRecordEvent>()
     private val backBy = BackByWatch(
         alertDelivery = { },
         clock = clock,
@@ -71,6 +72,7 @@ class ReturnArrivalAlertsTest {
         readWaypoint = { id -> Result.success(origin.takeIf { it.id == id }) },
         isReturning = returnWatch::arrivalJudgedFor,
         errorLog = { _, _, _ -> },
+        record = { backByRecord += it },
     )
 
     private fun gps(point: TrackPoint) = point.copy(timestampEpochMillis = clock.now / 1_000L * 1_000L)
@@ -113,6 +115,7 @@ class ReturnArrivalAlertsTest {
         runBlocking { backBy.tick() } // the service's next 15 s tick, after the return has ended
 
         assertNull("arrived: the reminder is over", backBy.shown.value)
+        assertEquals(listOf(BackByRecordEvent.Ended("t1", BackByEndReason.ARRIVAL)), backByRecord.filterIsInstance<BackByRecordEvent.Ended>())
     }
 
     @Test

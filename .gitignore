@@ -55,3 +55,7 @@ gradle/gradle-daemon-jvm.properties
 # Written by Python when check_prompts.py imports check_record.py, or a hook imports its library.
 # Untracked, it would stamp release builds .dirty (see the .claude/ entry above).
 __pycache__/
+
+# Walk logs (dispatch 2026-09-28-532) hold positions: they live on the phone and in
+# ~/Zynergy/device-evidence/, never in the repository.
+walklog-*.txt

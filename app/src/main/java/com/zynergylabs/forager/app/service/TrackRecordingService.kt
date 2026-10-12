@@ -20,6 +20,8 @@ import com.zynergylabs.forager.app.MainActivity
 import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
 import com.zynergylabs.forager.app.alert.cancelRecordingAlerts
+import com.zynergylabs.forager.app.domain.EvaluationTrigger
+import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.RecordingHalt
@@ -85,6 +87,12 @@ import kotlinx.coroutines.sync.withLock
  * and [ACTION_BACK_BY_LATER] sent to this service, as its own "Stop recording" is: this service is
  * what is still running when the app has been swiped away. No exact alarm: the timer is this
  * service's, which runs exactly as long as the recording does, the only time Back by exists.
+ *
+ * ## And the walk logger, in debug builds (dispatch 2026-09-28-532)
+ *
+ * Told when a recording starts and stops, and when the service is destroyed; it reads the phone and
+ * acts on nothing. A no-op in release builds (`src/release`), and in debug builds only while the
+ * Diagnostics screen's "Walk logger" switch is on.
  */
 class TrackRecordingService : Service() {
 
@@ -162,6 +170,7 @@ class TrackRecordingService : Service() {
         (application as ForagerApplication).container.backByWatch.end(null)
         // A recording that ends without a Stop leaves no alert behind either (RECORD -800).
         cancelRecordingAlerts(this)
+        WalkLogger.of(this).onRecordingStopped()
         recordingJob?.cancel()
         scope.cancel()
         super.onDestroy()
@@ -183,6 +192,7 @@ class TrackRecordingService : Service() {
         container.returnWatch.begin(trackId, mode)
         container.sundownWatch.begin(trackId)
         container.backByWatch.begin(trackId)
+        WalkLogger.of(this).onRecordingStarted(trackId)
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
 
@@ -224,7 +234,7 @@ class TrackRecordingService : Service() {
                             // an evaluation at once on the first, so a recording started past the
                             // leave-by time does not wait for the timer.
                             if (guardWatch("The sundown watch", candidate) { watches.sundownOnFix(candidate, fix.provider) } == true) {
-                                launch { tickSundown(container) }
+                                launch { tickSundown(container, EvaluationTrigger.FIX) }
                             }
                             // Dispatch 2026-09-28-645 (RECORD -674, -687): every raw fix to the
                             // back-by watch, guarded as the two above are, so a back-by watch that
@@ -232,7 +242,7 @@ class TrackRecordingService : Service() {
                             // Dispatch 2026-09-28-796 (RECORD -797): and evaluated at once when its time has come, not
                             // only on the timer, which stalls while the processor sleeps.
                             if (guardWatch("The back-by watch", candidate) { watches.backByOnFix(candidate, fix.provider) } == true) {
-                                launch { tickBackBy(container) }
+                                launch { tickBackBy(container, EvaluationTrigger.FIX) }
                             }
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
@@ -283,9 +293,9 @@ class TrackRecordingService : Service() {
     }
 
     /** One back-by evaluation; anything it throws is logged and dropped, as [tickSundown] does. */
-    private suspend fun tickBackBy(container: AppContainer) {
+    private suspend fun tickBackBy(container: AppContainer, trigger: EvaluationTrigger = EvaluationTrigger.TIMER) {
         try {
-            container.backByWatch.tick()
+            container.backByWatch.tick(trigger)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -355,9 +365,9 @@ class TrackRecordingService : Service() {
      * One sundown evaluation. Anything it throws is logged and dropped: it runs as a child of the
      * recording, and an exception escaping it would cancel the recording with it.
      */
-    private suspend fun tickSundown(container: AppContainer) {
+    private suspend fun tickSundown(container: AppContainer, trigger: EvaluationTrigger = EvaluationTrigger.TIMER) {
         try {
-            container.sundownWatch.tick()
+            container.sundownWatch.tick(trigger)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -378,6 +388,7 @@ class TrackRecordingService : Service() {
             // The reminder ends with the recording (the owner: "Cancel automatically"), so an alert
             // still in the shade has nothing left to answer; the sundown alert goes with it (RECORD -800).
             cancelRecordingAlerts(this)
+            WalkLogger.of(this).onRecordingStopped()
             scope.launch {
                 flushPendingPoints(trackId, container)
                 container.endTrackUseCase(trackId).onFailure { error ->

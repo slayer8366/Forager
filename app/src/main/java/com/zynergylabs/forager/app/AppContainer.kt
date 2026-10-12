@@ -22,6 +22,8 @@ import com.zynergylabs.forager.app.data.backup.AndroidBackupNotifier
 import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
 import androidx.core.content.pm.PackageInfoCompat
 import android.util.Log
+import com.zynergylabs.forager.app.crash.CrashFileStore
+import com.zynergylabs.forager.app.data.diagnostics.AlertRecordFiles
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.zynergylabs.forager.app.data.repository.DataStoreAppThemePreferenceRepository
@@ -115,12 +117,12 @@ import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
-import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
+import com.zynergylabs.forager.app.forecast.forecastCellStore
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
 import com.zynergylabs.forager.app.domain.SundownWatch
 import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
@@ -212,6 +214,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val declinationProvider: DeclinationProvider = AndroidDeclinationProvider()
     val computeTrueHeadingUseCase = ComputeTrueHeadingUseCase(declinationProvider)
 
+    val crashFileStore = CrashFileStore.forContext(context.applicationContext)
+
     /**
      * The one clock the app reads. Injected rather than called inline so the search cache's LRU
      * stamps and the relative times rendered from them are controllable in tests — see
@@ -289,10 +293,13 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = dataStoreMapPreferencesRepository
 
     /**
-     * Where the map's colour fields read their cells (map layers L0b, B5 and B6): the store that reports
-     * "no forecast data" for every group and week, in every build type, until a real one is built.
+     * Where the map's colour fields read their cells (map layers L0b, B5 and B6): one source-set-split
+     * factory, shaped like `DebugDiagnostics.install` (planner's ruling on Q12). The debug build's is the
+     * synthetic store behind the Diagnostics switch, which also owns the one `debug_diagnostics_preferences`
+     * DataStore; the release build's reports "no forecast data" and nothing else. One instance per process,
+     * because DataStore refuses a second live instance on a file.
      */
-    val forecastCellStore: ForecastCellStore = AbsentForecastCellStore
+    val forecastCellStore: ForecastCellStore = forecastCellStore(context)
     val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context, settingsReset = settingsResetNotice)
     val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context, settingsReset = settingsResetNotice)
     val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context, settingsReset = settingsResetNotice)
@@ -368,11 +375,14 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // The off-track decision and its state, held here so they outlive the Activity (dispatch
     // 2026-09-28-400, Amendment 2). TrackRecordingService begins, feeds and ends it;
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
+    // Dispatch 2026-09-28-451: the lasting record of Returns and off-track decisions, a file in app storage.
+    // Debug builds only since dispatch 2026-10-11 (RECORD -830): AlertRecordFiles' release twin writes nothing.
+    val returnRecord = AlertRecordFiles.returnRecord(context, currentTimeProvider)
     // Dispatch 2026-09-28-626 (plan T14): Settings' "Off-track reminder" and the check made when a
     // recording starts. The watch reads the checkbox at the moment it decides to alert.
     val offTrackReminderPreferences: OffTrackReminderPreferenceRepository = DataStoreOffTrackReminderPreferenceRepository(context, settingsReset = settingsResetNotice)
     val offTrackReminderCheck = OffTrackReminderCheck(AndroidBackgroundRunCheck(context.applicationContext), offTrackReminderPreferences, errorLog)
-    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery, isReminderOn = offTrackReminderPreferences::enabledNow)
+    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery, returnRecord, isReminderOn = offTrackReminderPreferences::enabledNow)
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
     // Amendment 3, Part 3b). The rule is the use case's; AbandonedTrackSweepOnce runs it once per
@@ -408,6 +418,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         isReturning = returnWatch::arrivalJudgedFor,
         errorLog = errorLog,
         lastKnownLocation = lastKnownLocation,
+        // Dispatch 2026-09-28-796 (RECORD -797): each evaluation, alert and wake-up, to files/sundown-record.log.
+        // Debug builds only (dispatch 2026-10-11, RECORD -830).
+        record = AlertRecordFiles.sundownRecord(context, currentTimeProvider),
         alarms = wakeUpAlarms,
     )
 
@@ -421,6 +434,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         // RECORD -844, -845: while returning, and once the return has ended by arrival, so arrival is judged as before.
         isReturning = returnWatch::arrivalJudgedFor,
         errorLog = errorLog,
+        // Dispatch 2026-09-28-796: each set, evaluation, alert and end, to files/back-by-record.log; no positions.
+        // Debug builds only (dispatch 2026-10-11, RECORD -830).
+        record = AlertRecordFiles.backByRecord(context, currentTimeProvider),
         alarms = wakeUpAlarms,
     )
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)

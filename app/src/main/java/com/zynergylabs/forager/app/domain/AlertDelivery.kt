@@ -167,12 +167,12 @@ fun interface AlertDelivery {
 /**
  * What an alert's delivery did: whether its notification was posted and its vibration issued, and
  * if not, why ([notificationProblem], [vibrationProblem]: a permission denied, or the exception's
- * class). Read by the watches' partial-delivery log lines; nothing a walker sees.
+ * class). For the Return record; nothing a walker sees.
  *
  * [vibrationSkipped] (dispatch 2026-09-28-685, fix 3; the owner, RECORD -678: "Fix: record it as
  * skipped (Recommended)"): the vibration was issued without error but Android does not play it, and
  * why, in words ([VIBRATION_SKIPPED_PHONE_ON_SILENT]). [vibrated] is then `false`. Until that
- * dispatch the outcome said the vibration was done for an off-track buzz a silenced phone dropped
+ * dispatch the record said `vibration=done` for an off-track buzz a silenced phone dropped
  * (`ignored_for_ringer_mode` in Android's own vibrator history, the 2026-10-07 S22 walk): a failure
  * reported as success. Defaulted so a caller that cannot tell says nothing it does not know.
  */
@@ -191,7 +191,7 @@ const val VIBRATION_SKIPPED_PHONE_ON_SILENT = "phone on silent"
 const val VIBRATION_SKIPPED_DO_NOT_DISTURB = "Do Not Disturb"
 
 /**
- * Android's interruption filter, the Do Not Disturb state, as the delivery outcome cares about it (dispatch 2026-09-28-685,
+ * Android's interruption filter, the Do Not Disturb state, as the alert record cares about it (dispatch 2026-09-28-685,
  * Amendment 1, RECORD -694; the owner: "Yes, cover Do Not Disturb (Recommended)"). [UNKNOWN] is a filter the platform
  * could not report.
  */

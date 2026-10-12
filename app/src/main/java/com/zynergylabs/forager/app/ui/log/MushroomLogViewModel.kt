@@ -201,6 +201,14 @@ class MushroomLogViewModel(
     /** Clock for [freshDeviceLocation]'s age check, injected so a test can fix a fix's age. */
     private val now: () -> Long = System::currentTimeMillis,
     /**
+     * Records that a capture arrived with no editing entry — see [rescueCaptureWithNoEditingEntry].
+     * A plain function rather than `DebugDiagnostics` itself, for the reason [ErrorLog] gives about
+     * `android.util.Log` in a ViewModel: the store is debug-only and Context-bound, and this class
+     * is constructed by tests that have neither. `MainActivity` wires the real one; the default is
+     * a no-op, so every existing test is unaffected and this one's test can assert on a fake.
+     */
+    private val recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
+    /**
      * Settings' "Automatically Save Location to Photos" preference, read at the moment it is about
      * to matter rather than held — see
      * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what it gates and
@@ -906,10 +914,13 @@ class MushroomLogViewModel(
      * through [onAddGalleryPhoto] first, so its own no-entry guard can skip an attach but never
      * loses a photo.
      *
-     * ## Two things
+     * ## Three things, and the third is not optional
      *
      * The album save is the user's remedy. The Toast is what stops them looking on the find where
-     * they expected the photo — the only thing that closes that gap at the moment it opens.
+     * they expected the photo — the only thing that closes that gap at the moment it opens. The
+     * diagnostics entry is the developer's, and it is written **whether or not the save succeeded**:
+     * a recovered photo is not evidence that nothing went wrong, and what went wrong is that the
+     * app reached a state it should not have.
      *
      * The message goes out through [MushroomLogUiState.saveErrorMessage], which is this screen's
      * one transient-message channel — `JournalTab` and `LogPanel` both show it as a Toast and clear
@@ -924,11 +935,13 @@ class MushroomLogViewModel(
      */
     private suspend fun rescueCaptureWithNoEditingEntry(source: PhotoSource) {
         addPhotoToGallery(source).fold(
-            onSuccess = { _ ->
+            onSuccess = { photo ->
+                recordCaptureWithoutEditingEntry(photo.id, null)
                 _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = PHOTO_SAVED_TO_ALBUM_MESSAGE) }
                 loadGalleryPhotos()
             },
-            onFailure = { _ ->
+            onFailure = { error ->
+                recordCaptureWithoutEditingEntry(null, error)
                 _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = "Couldn't save that photo.") }
             },
         )
@@ -1235,7 +1248,7 @@ class MushroomLogViewModel(
  * Shown when a capture lands with no find open — see
  * [MushroomLogViewModel.rescueCaptureWithNoEditingEntry]. **Says where the photo went, not that
  * something went wrong** (owner's wording, 2026-09-17): the user's problem at that moment is
- * finding their picture. Internal
+ * finding their picture, and the failure is carried by the diagnostics entry instead. Internal
  * rather than private so the test asserts the string the user sees rather than a copy of it.
  */
 internal const val PHOTO_SAVED_TO_ALBUM_MESSAGE = "Photo saved to album."

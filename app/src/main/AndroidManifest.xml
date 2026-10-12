@@ -115,10 +115,9 @@
 
       Two earlier planner rulings are SUPERSEDED — not violated. Recorded here so a later session
       does not re-derive them and think they are new:
-        1. Keep backup on, with exclusion rules for the app's development log files only
-           (paraphrased; those files are no longer in this build). Superseded: it predates the
-           restore-corruption argument above, which is about the database and the photos, not those
-           log files.
+        1. "Keep backup on, add exclusion rules for crash logs only." Superseded: it predates the
+           restore-corruption argument above, which is about the database and the photos, not the
+           crash logs.
         2. "Keep the rules file, add the database and the photo directory to the exclusions."
            Withdrawn before the owner decided: excluding the database and the photo directory
            excludes essentially all user data, so it reaches the same end state as

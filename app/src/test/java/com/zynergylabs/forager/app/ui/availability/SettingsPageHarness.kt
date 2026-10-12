@@ -15,8 +15,10 @@ import org.robolectric.Shadows
 
 /**
  * The Settings page reached the way a person reaches it: [AvailabilityScreen], then "Tools", then
- * "Settings" (the same two taps `AvailabilityScreenSettingsPanelTest.openSettings` makes). The map
- * is a stub, as in that class: composing the real one starts the map library.
+ * "Settings" (the same two taps `AvailabilityScreenSettingsPanelTest.openSettings` makes). Shared by
+ * the debug and release halves of the Crash logs row check (dispatch 2026-10-11, RECORD -830), so
+ * both build types are asked the same question of the same screen. The map is a stub, as in that
+ * class: composing the real one starts the map library.
  */
 internal object SettingsPageHarness {
 
@@ -73,6 +75,8 @@ internal object SettingsPageHarness {
         composeRule.waitForIdle()
     }
 
-    /** One of Settings' own rows: the check that the page showing is Settings. */
+    /** One of Settings' own rows, present in both build types: the check that the page showing is Settings. */
     const val SETTINGS_CONTROL_ROW = "Night Maps"
+
+    const val CRASH_LOGS_ROW = "Crash Logs"
 }
