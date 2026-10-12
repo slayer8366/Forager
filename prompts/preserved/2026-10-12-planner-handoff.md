@@ -116,3 +116,7 @@ The site coder finished -908.
 ## Addendum 2: PR #13 merged (RECORD -911)
 
 The owner said "Merge when ready". zynergy-site PR #13 was merged as 6abc74f0 at 04:03:25Z, with backup 2026-10-12-01. Production: check.py 70/71 and phone_check.py 14/15; the one failure in each is the old analytics beacon. **Next free RECORD ID: -912.** Still owed: the owner's look at the live page on a real phone before the meeting.
+
+## Addendum 3: two site issues after PR #13 (RECORD -912)
+
+In one phone maker's built-in browser, the opened phone panel runs up over the header; other mobile browsers are fine. In desktop mode on a phone, the map is too tall, and the owner wants it capped at 1:1. A site coder was dispatched from the old session on -912; check zynergy-site for its branch or PR. The merge is on the owner's word. **Next free RECORD ID: -913.**

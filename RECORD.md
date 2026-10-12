@@ -16009,3 +16009,14 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Backup:** 2026-10-12-01 (zynergy-site-main-pre-13.bundle, verified okay, sha256 801e8cbf…7315)
 **Observed:** the phone layout's peeking bottom panel (-908) is live. The owner, verbatim: "Merge when ready". The planner merged PR #13 at 2026-10-12T04:03:25Z, pinned to head fa813940, on a passing Cloudflare Pages check. Diff read: app.js (+4), index.html (+42/-5), new phone.js (138 lines). The coder's preview checks at fa813940: check.py 71/71 with 8 skipped; slider_check.py 34/34; the new phone_check.py 15/15, each new check shown failing on a broken copy first. Against production after the merge: check.py 70 passed, 1 failed; phone_check.py 14 passed, 1 failed. Both failures are the pre-existing hosting analytics beacon refused by script-src (-877). The peek takes 24.2% of a 390x844 screen on soil and 35.4% on the pilot layer. The coder's calls stand unless the owner reverses them: choosing a layer returns the panel to the peek; the panel is 80% opaque; the handle is solid only while open. Not checked: a real phone (browser toolbars, safe-area insets, drag feel).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -912.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-912
+**Timestamp:** 2026-10-12T04:21:50Z
+**Title:** Forecast page: the phone panel misbehaves in one phone maker's built-in browser; the desktop-mode map is capped at square (owner)
+**Observed (owner's screenshots, kept off GitHub):** in one phone maker's built-in browser (the owner named it; every other mobile browser the owner tried works as expected), the opened phone panel runs up over the header: the title, intro and banner show through it and the layer list overlaps them. In that browser's desktop mode (the wide layout on a tall phone screen), the map is very tall, well beyond its width.
+**The owner, verbatim:** "This only happens on [that browser]. Every other mobile browser works as I would expect. Desktop mode, the map is very tall, should be cut to 1x1".
+**What it sets:** a site coder diagnoses the panel issue in that browser before fixing. Suspects, unverified: an older engine without dynamic viewport units, or the browser's own text-size setting. The fix keeps the panel inside the map area in every browser. In the wide (desktop) layout, the map's height is capped at its width (1:1), which binds only when the window is taller than it is wide; landscape laptops are unchanged. Checks run on a preview, with that browser's behaviour reproduced if possible. The merge is on the owner's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -913.
