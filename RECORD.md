@@ -16541,3 +16541,37 @@ After that, the owner's merge word and the device items.
 - When navigation ends, the heading returns to the strip's line.
 **Not yet confirmed:** the planner restated the whole path in both orientations, and the owner answered "Not quite". The change is pending, and nothing is dispatched on this entry.
 **Notes:** Written by the planner by hand, on branch records-after-173. The coder started under -947 stopped at the session usage limit before reading its dispatch, having built and pushed nothing (rounded-map-strip still 4b8e5c6c). Next free ID -949.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-949
+**Timestamp:** 2026-10-12T12:49:03Z
+**Closes:** 2026-09-28-947 (preserved 2026-10-12-07)
+**Outcome:** superseded
+**Observed:** the coder started on dispatch 2026-10-12-07 stopped at the session usage limit (it reset at 05:40 PDT) before reading the dispatch. It built nothing and pushed nothing: rounded-map-strip is still 4b8e5c6c. The owner then changed the design while navigating (-948, -950), so the work goes ahead under dispatch 2026-10-12-08 (-950), not -07.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -950.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-950
+**Timestamp:** 2026-10-12T12:49:03Z
+**Continues:** 2026-09-28-932, 2026-09-28-948
+**Title:** Rounded map strip, continued by a fresh coder from 4b8e5c6c: the strip stays while navigating, with the navigation info below a line in portrait and in a tucked card in landscape; -945's look; the arrows side by side (owner)
+**Dispatch-file:** preserved/2026-10-12-08.md
+**The owner, verbatim:**
+- Asked what to change after "Not quite" (-948): "The arrows being side by side is a compass visual" and "Show those options again".
+- Shown the options again (the planner's recommendation changed to side by side, for the compass visual): "Side by side (Recommended)".
+- The owner's phone hadn't shown the drawings, so the planner put them in the message. Shown the drawings: "[No preference]" between side by side and stacked, which leaves the side-by-side answer above standing; then "Yes, dispatch it" to the whole design as drawn.
+**Change:** confirms -948 with side-by-side arrows. While navigating, in both orientations, the compass strip stays and its line drops the north arrow and heading. In portrait, the strip's card extends down past a thin line, one card with no second tuck. In landscape, a separate card is tucked under the strip. The navigation info reads: the distance, larger and centred; "ahead 1° ▲ ▲ 134° SE", the two arrows neighbours; the kind word; the evening stack once, with a full-height divider; the X. Nothing repeats, and the ⋮ is on the strip only. The heading returns to the strip when navigation ends. -945's lighter pill (the pill and the landscape strip share the lighter shade, with the card darker) and -940 to -943 carry over; the coder checks the latter in the code. Supersedes -932's middle column, -946's card without the heading, and the grid reference's place in the card. The planner's -946 reading on the evening lines is now in the step path the owner approved.
+**Scope boundary:** as -932. No change to navigation, distance, routing, sundown or Back by logic, the quick-settings menu's contents, or what Back does. Fit and height are reported, not trimmed, with no new trims. No Gradle on the laptop, no silenced tests, no merge without the owner's word.
+**Baseline:** origin/rounded-map-strip 4b8e5c6c.
+**Finish line:** the coder's plan answered. Then green CI on the PR, with:
+- coordinate-touch tests and revert checks;
+- the changed tests listed with their old and new assertions;
+- screenshots kept off the repository;
+- the report appended.
+After that, the owner's merge word and the device items.
+**Abort conditions:** a visible change beyond the rulings and step paths; a conflict with a recorded ruling; two failed attempts on one failure.
+**Notes:** Written by the planner by hand, on branch records-after-173. The coder runs as a subagent of the current planner session. Next free ID -951.
