@@ -16689,3 +16689,17 @@ After that, the owner's merge word and the device items.
 **The owner, verbatim:** "I didn't say to keep it on the port side. I said the left side."
 **What it corrects:** the owner's ruling was the left side. The words "at the port side" in 2026-09-27-35's notes misquote it, and the landscape port-edge layout was built on that misquote. -956's line saying the quote was applied to the side bar by planner reading is also wrong: the quote itself was wrong.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -958.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-958
+**Timestamp:** 2026-10-12T20:53:26Z
+**Continues:** 2026-09-28-956
+**Title:** The in-app camera also looks the same at both landscape rotations (owner)
+**The owner, verbatim:** asked whether the in-app camera screen, which mirrors with the charging port today, should look the same both ways like the map: "Yes".
+**What it sets:**
+- The in-app camera's landscape layout is identical at ROTATION_90 and ROTATION_270, as it is at ROTATION_90 today.
+- The cut-out still keeps controls out of it on whichever side it falls.
+- The photo's own orientation handling (capture tags, the intended-orientation logic) is not touched; only where controls sit on screen changes.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -959.
