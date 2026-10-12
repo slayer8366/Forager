@@ -16612,3 +16612,24 @@ After that, the owner's merge word and the device items.
 - In landscape, on the Maps tab, the navigation rail rounds the two corners that face the map, at the same 16 dp. That is the inner side's top and bottom, as portrait's bottom bar rounds its top two. Touches in the corner gaps reach the map.
 - The map credit strip rounds all four corners, in both orientations, a pill. This replaces -938's top-right corner only.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -953.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-953
+**Timestamp:** 2026-10-12T18:52:35Z
+**Continues:** 2026-09-28-951
+**Title:** Rounded map strip in landscape: the navigation card rises from the bottom of the screen instead of hanging under the strip (owner)
+**Context:** at fd81f84c (CI 38261622357) the landscape card hanging under the strip failed 8 height tests against -766 and -770. It reached past the L's lowest place, over Reset north at font 2.0, and toward the walker's dot at its tallest.
+**The owner, verbatim:** "An alternative is to have the card peak from the botton of the screen instead from the top. It can stay beneath the heading, just peaking from the opposite direction". Then, to the planner's restated steps: "Confirm 1 to 3", "Landscape only. Portrait is dialed in", and "It stays exactly how it is now. Just flipped upside down. No rearranging."
+**What it sets:** landscape only.
+- **Not navigating:** the search bar and compass strip sit across the top, as now.
+- **Navigating:**
+  - the strip stays exactly where it is;
+  - the navigation card slides up from the bottom edge of the screen, in the strip's column and at the strip's width;
+  - its content and order are as now; it is not rearranged;
+  - its top corners are rounded and its bottom sits square on the screen edge.
+- **X:** the card slides back down.
+- **Portrait is unchanged.**
+- **Unasked, so the coder reports rather than moves anything:** whether the card covers the map's info button or other bottom chrome.
+**Notes:** Written by the planner by hand, on branch records-after-173. This replaces the card-under-the-strip placement in landscape (-946, -950, -951); -951's widths stand. Next free ID -954.
