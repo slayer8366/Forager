@@ -112,3 +112,7 @@ The site coder finished -908.
   - the handle is solid only while open.
 - **Not verified:** a real phone (toolbars, safe-area insets, drag feel).
 - **Next:** ask the owner for the merge word. Then back up site main, merge pinned to fa813940, run check.py against production, and write the merge entry.
+
+## Addendum 2: PR #13 merged (RECORD -911)
+
+The owner said "Merge when ready". zynergy-site PR #13 was merged as 6abc74f0 at 04:03:25Z, with backup 2026-10-12-01. Production: check.py 70/71 and phone_check.py 14/15; the one failure in each is the old analytics beacon. **Next free RECORD ID: -912.** Still owed: the owner's look at the live page on a real phone before the meeting.

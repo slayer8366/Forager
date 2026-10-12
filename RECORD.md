@@ -15995,3 +15995,17 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Title:** Planner handoff to the next session
 **Handoff-file:** prompts/preserved/2026-10-12-planner-handoff.md (this branch). The owner, verbatim: "Write a handoff for the next session. The context window limit is nearly reached so I'll be switching over".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -911.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-911
+**Timestamp:** 2026-10-12T04:08:26Z
+**PR:** zynergy-site 13
+**Head:** forecast-phone-peek
+**Base:** main
+**Merge-commit:** 6abc74f0ed66daf43c74b4252e262bec1d51fac3
+**Pre-merge:** e1c3f8a9e423512d69168fd490d8585932343a6c
+**Backup:** 2026-10-12-01 (zynergy-site-main-pre-13.bundle, verified okay, sha256 801e8cbf…7315)
+**Observed:** the phone layout's peeking bottom panel (-908) is live. The owner, verbatim: "Merge when ready". The planner merged PR #13 at 2026-10-12T04:03:25Z, pinned to head fa813940, on a passing Cloudflare Pages check. Diff read: app.js (+4), index.html (+42/-5), new phone.js (138 lines). The coder's preview checks at fa813940: check.py 71/71 with 8 skipped; slider_check.py 34/34; the new phone_check.py 15/15, each new check shown failing on a broken copy first. Against production after the merge: check.py 70 passed, 1 failed; phone_check.py 14 passed, 1 failed. Both failures are the pre-existing hosting analytics beacon refused by script-src (-877). The peek takes 24.2% of a 390x844 screen on soil and 35.4% on the pilot layer. The coder's calls stand unless the owner reverses them: choosing a layer returns the panel to the peek; the panel is 80% opaque; the handle is solid only while open. Not checked: a real phone (browser toolbars, safe-area insets, drag feel).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -912.
