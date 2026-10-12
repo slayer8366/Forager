@@ -15960,3 +15960,20 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Backup:** 2026-10-11-10 (zynergy-site-main-pre-12.bundle, verified okay, sha256 ecaef0af…f1bd)
 **Observed:** the forecast layer's five relative ratings (-902) with the one-decimal readout (-903) went live. The planner merged PR #12 at 2026-10-12T01:21:16Z, pinned to head 0358c5d9, on a passing Cloudflare Pages check, under the owner's "Yes, once the rounding is settled and checks pass (Recommended)" (-903). Diff read: 6 files (app.js, guide.css, index.html, pilot.js, README, manifest.json, which adds base_rate). The coder's preview checks at 0358c5d9: check.py 71/71 with 8 skipped (each new check shown failing on a broken copy; the rounding copy failed 14 at the band edges 4.9985 and 2.9972); slider 34/34. Readouts: "Very high: about 7.2 times the average week across the year." (chance 0.1571) and "High: about 4.9 times…" (ratio 4.9985). Live: the manifest serves 074879ff…. check.py against production: 70 passed, 1 failed, 8 skipped; the failure is the pre-existing analytics beacon (-877). Not checked: a real phone.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -908.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-908
+**Timestamp:** 2026-10-12T03:32:19Z
+**Title:** Forecast page on phones: a peeking bottom panel, built tonight (owner)
+**Context:** The owner, from a phone screenshot of the live page (kept off GitHub): "For the website, there is a small sliver of space beneath the map to look at things." On a phone the title, intro and banner take the top third, the map nearly all the rest, and the layer list, legend and slider a thin strip below.
+**Rulings (owner, verbatim answers):** "Peeking bottom panel (Recommended)" and "Tonight, before the meeting" (the planner had recommended after the meeting).
+**What it sets (phones only; desktop unchanged):**
+- The map fills the screen under a compact header: the title and banner as now, with the intro collapsed to one line that taps open.
+- A panel peeks up from the bottom with the current layer's name, its legend and the see-through slider.
+- Dragging or tapping its handle opens it to show the full layer list, the guide and a tapped cell's readout; dragging down returns it to the peek.
+- Tapping a cell while the panel is peeking shows the readout in the panel.
+- Touches on the map outside the panel's drawn area reach the map.
+Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, plus new checks: the peek shows the layer name, legend and slider without scrolling; a coordinate drag on the handle opens and closes the panel; a cell tap above the peek still reads out; the handle is at least 44 px and labelled for screen readers. The merge is on the owner's word tonight.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -909.
