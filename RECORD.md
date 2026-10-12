@@ -16575,3 +16575,27 @@ After that, the owner's merge word and the device items.
 After that, the owner's merge word and the device items.
 **Abort conditions:** a visible change beyond the rulings and step paths; a conflict with a recorded ruling; two failed attempts on one failure.
 **Notes:** Written by the planner by hand, on branch records-after-173. The coder runs as a subagent of the current planner session. Next free ID -951.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-951
+**Timestamp:** 2026-10-12T13:14:48Z
+**Continues:** 2026-09-28-940, 2026-09-28-950
+**Title:** Rounded map strip in landscape: the search bar and compass strip keep today's sizes, and the card hangs under the strip at its width; the coder's plan questions settled (owner, planner)
+**The owner, verbatim:** with a landscape screenshot of today's app: "Keep it exactly like this size. Exactly as we have it today", then "Just rearrange it".
+**What it sets:**
+- **Landscape sizes are main's (-729, -732).** The strip is as wide as its readouts need, and the bar takes the rest. This replaces -940's short-side width for the strip and the card.
+- **Nothing resizes when navigation starts.** The strip keeps its not-navigating width, and the card hangs under it at that width. The species and journal tags keep today's room.
+- **At large text the card's fit is measured and reported, not trimmed.**
+- **The planner's calls, made after the owner answered "[No preference]" and "Just rearrange it", for the owner to correct:**
+  - GPS status messages show once, on the strip;
+  - the straight-line distance stays while no trail route exists;
+  - the strip's own evening line breaks into stacked pieces only when it does not fit;
+  - the ⋮ sits above the X in portrait, as drawn in -950;
+  - the pill is white at 0.8 by day and #373737 at 0.8 at night, as new map-chrome tokens;
+  - the divider stays when there is no evening stack;
+  - the pill's 40 dp floor is enforced;
+  - unused leftovers wait for the tidiness release.
+- **-766 governs height.** The navigating display may reach into the central third while navigating, but never over the walker's dot or the needle, and -770 keeps Reset north clear. The three tests that still forbid the central third are changed to that rule.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -952.
