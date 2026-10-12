@@ -1,0 +1,39 @@
+Report: format=6 by=lint 9.3.1
+Issues: 376  (locations: 377; issues with several locations: 1)
+
+By severity
+  Error        29
+  Hint         9
+  Warning      338
+
+By category (severities inside)
+  category                                       total  Error  Hint  Warning
+  Correctness:Messages                             272      0     0      272
+  Correctness                                       76     29     0       47
+  Productivity                                      13      0     0       13
+  Performance                                       12      0     9        3
+  Accessibility                                      2      0     0        2
+  Security                                           1      0     0        1
+
+By id (largest first)
+  LogNotTimber                               272  Warning  Correctness:Messages  e.g. app/src/main/java/com/zynergylabs/forager/app/alert/AndroidAlertAudibility.kt:34; app/src/main/java/com/zynergylabs/forager/app/alert/AndroidAlertDelivery.kt:125; app/src/main/java/com/zynergylabs/forager/app/alert/AndroidAlertDelivery.kt:134
+  NewApi                                      18  Error  Correctness  e.g. app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/AndroidWalkLogPlatform.kt:104; app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/AndroidWalkLogPlatform.kt:105; app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/AndroidWalkLogPlatform.kt:106
+  ModifierParameter                           14  Warning  Correctness  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityCompactMapUi.kt:436; app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilitySearchUi.kt:925; app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilitySettingsUi.kt:230
+  UseKtx                                      13  Warning  Productivity  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityPureFunctions.kt:153; app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityPureFunctions.kt:213; app/src/main/java/com/zynergylabs/forager/app/ui/backup/BackupSection.kt:236
+  AutoboxingStateCreation                      9  Hint  Performance  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityCompactMapUi.kt:208; app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityCompactMapUi.kt:220; app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityCompactMapUi.kt:504
+  NewerVersionAvailable                        8  Warning  Correctness  e.g. gradle/libs.versions.toml:7; gradle/libs.versions.toml:7; gradle/libs.versions.toml:7
+  GradleDependency                             7  Warning  Correctness  e.g. gradle/libs.versions.toml:8; gradle/libs.versions.toml:11; gradle/libs.versions.toml:19
+  ComposableNaming                             5  Warning  Correctness  e.g. app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenGpxImportTest.kt:112; app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenJournalEntriesStateTest.kt:230; app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenJournalShortWindowTest.kt:680
+  LocalContextResourcesRead                    5  Warning  Correctness  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt:647; app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt:883; app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt:981
+  NonObservableLocale                          5  Error  Correctness  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityResultsUi.kt:189; app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilitySearchUi.kt:885; app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilitySearchUi.kt:1084
+  ConfigurationScreenWidthHeight               4  Warning  Correctness  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/log/CartographyEntryReportScreen.kt:397; app/src/main/java/com/zynergylabs/forager/app/ui/log/LogEntryReportScreen.kt:377; app/src/main/java/com/zynergylabs/forager/app/ui/adaptive/ShortWindow.kt:29
+  UnrememberedMutableState                     4  Error  Correctness  e.g. app/src/test/java/com/zynergylabs/forager/app/ui/map/JournalEntriesChipTest.kt:100; app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationHudButtonPlacementTest.kt:73; app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationHudKindInStatusTest.kt:158
+  AndroidGradlePluginVersion                   2  Warning  Correctness  e.g. gradle/wrapper/gradle-wrapper.properties:3; gradle/libs.versions.toml:2
+  ClickableViewAccessibility                   2  Warning  Accessibility  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt:1380; app/src/main/java/com/zynergylabs/forager/app/ui/map/SightingsMap.kt:1380
+  InlinedApi                                   2  Warning  Correctness  e.g. app/src/main/java/com/zynergylabs/forager/app/photo/PhotoExporter.kt:72; app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/WalkLogSession.kt:54
+  DataExtractionRules                          1  Warning  Security  e.g. app/src/main/AndroidManifest.xml:134
+  ObsoleteSdkInt                               1  Warning  Performance  e.g. app/src/main/res/mipmap-anydpi-v26
+  Range                                        1  Error  Correctness  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/map/NavigationView.kt:539
+  StaticFieldLeak                              1  Warning  Performance  e.g. app/src/debug/java/com/zynergylabs/forager/app/diagnostics/WalkLogger.kt:197
+  SuspiciousIndentation                        1  Error  Correctness  e.g. app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityMapControlsUi.kt:627
+  UsableSpace                                  1  Warning  Performance  e.g. app/src/debug/java/com/zynergylabs/forager/app/diagnostics/WalkLogger.kt:120
