@@ -16187,3 +16187,17 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 - Accessibility 2 (ClickableViewAccessibility); Security 1 (DataExtractionRules, AndroidManifest.xml:134).
 Not covered: release-only sources; test sources beyond test-specific checks; behaviour on a phone.
 **Notes:** Written by the planner by hand, on branch records-after-173. D4 and D5 go to the owner from this report. Next free ID -926.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-926
+**Timestamp:** 2026-10-12T05:37:15Z
+**Continues:** 2026-09-28-923, 2026-09-28-925
+**Title:** No trace of dev tools in the release version before the tester build; lint D4 "everything reasonable"; D5 scratch branches deleted (owner)
+**The owner, verbatim:** "It wasn't dropped. But we should be sure to remove the walk logger and diagnostics from the app completely before releasing to testers. That's to remain with me only for dev purposes". Then "Remove every trace" (offered: the do-nothing stand-ins are fine). D4: "Everything reasonable" (offered: serious ones plus a short list; serious ones only). D5: "Delete scratch branches" (offered also: the sundown timing gap; product names in app text).
+**What it sets:**
+- **Tester build:** -923's tester build waits for dispatch prompts/preserved/2026-10-12-04.md: no walk logger, diagnostics, crash capture, Settings debug rows or alert record files in the release version, while the debug build keeps them all. The coder reports a plan first.
+- **D4 (lint):** fix every reasonable item in the -925 report, beyond the errors and the short list, as a dispatch after -926's work merges, so they don't edit the same files at once.
+- **D5 (tidiness):** the ten records-tidy-revert-* branches were deleted from GitHub after a verified backup (~/Zynergy/forager-repo-backups/2026-10-12-03-scratch-branches/, sha256 5d7bb9e2…cfac0). scratch-lint-survey is kept until lint-on-CI reuses its job, then deleted. Neither the sundown gap nor the product-name survey is on this release's list.
+**Notes:** Written by the planner by hand, on branch records-after-173. "It wasn't dropped" is read by the planner as the -830 beta having reached testers; not confirmed. Next free ID -927.
