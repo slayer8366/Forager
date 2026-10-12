@@ -16428,3 +16428,16 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **The owner, verbatim:** "The sunset text is the odd one out at the bottom. The far right column is empty, it looks like it can go there". Told the recording-time line is wider than the column: "Then stack it and don't fit the full length silly".
 **What it sets:** replaces -934's sundown placement (the right column when short, otherwise a full-width line). The evening line goes in the right column under the grid reference, broken at its " · " joins into short lines stacked one per piece (for example "Sunset 12:41 AM", "in 2 h 28 min", "dark 1:13", then "Back by …"). The card grows taller as needed. Nothing is ellipsised. If the grid reference has dropped to its own line under -936, the stack still sits in the right column. Pending, asked in the same exchange: the straight-line note, and what the arrows point at.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -942.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-942
+**Timestamp:** 2026-10-12T11:06:02Z
+**Continues:** 2026-09-28-935, 2026-09-28-941
+**Title:** Rounded map strip: the straight-line note goes; the arrows stay as they are (owner)
+**The owner, verbatim:** "Remove the 0.7m straight since the ≈800ft ahead is saying the same thing." and "The arrows should be pointing at the line you're traveling, not the destination."
+- **Arrows, what the code does:** the planner checked (read-only survey). In route mode the turn needle already aims at RouteHome.Ahead.lookahead, a point about 25 m ahead along the walked route (NavigationHud.kt navigationReadout; RouteHome.kt:140-186), not at the destination. It aims at the target only when no route exists (waypoint and straight-line modes). The middle arrow is a north needle rotated by minus the heading (NavigationHud.kt northArrowDegrees), and the map is heading-up while navigating. The planner explained this. To what the middle arrow should point at, the owner chose "North, as now (Recommended)" (offered: along the trail; the way I'm facing).
+- **Straight-line note:** told it is the crow-flies distance, not the trail distance, the owner chose "Remove it".
+**What it sets:** -935's "keep everything" is narrowed: the route-mode straight-line note ("≈ 1250 ft straight" / "0.7 mi straight") is no longer shown. Other status messages stay. Neither arrow changes.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -943.
