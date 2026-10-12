@@ -16,6 +16,7 @@ internal fun createMushroomLogViewModel(
     container: AppContainer,
     availability: AvailabilityViewModel,
     errorLog: ErrorLog,
+    recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit,
 ): MushroomLogViewModel = MushroomLogViewModel(
     container.getMushroomLogEntriesUseCase,
     container.getDraftEntriesUseCase,
@@ -46,6 +47,9 @@ internal fun createMushroomLogViewModel(
             false
         }
     },
+    // A capture that lands with no find open is saved to the album and recorded where the
+    // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
+    recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
     // A find whose delete has finished leaves the Maps tab's records (dispatch 2026-09-28-291).
     onFindDeleted = { id -> availability.onFindDeleted(id) },
     // An album photo whose delete has finished leaves them too (dispatch 2026-09-28-297).

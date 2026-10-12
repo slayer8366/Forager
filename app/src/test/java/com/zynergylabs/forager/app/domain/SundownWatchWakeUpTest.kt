@@ -40,6 +40,7 @@ class SundownWatchWakeUpTest {
     private val clock = Clock(sunset0 - 6 * hour)
     private val preferences = Preferences()
     private val delivered = mutableListOf<Pair<Long, AlertKind>>()
+    private val recorded = mutableListOf<SundownRecordEvent>()
     private val alarmCalls = mutableListOf<Pair<String, Long?>>()
     private var track: Track? = null
 
@@ -51,6 +52,7 @@ class SundownWatchWakeUpTest {
         readWaypoint = { id -> Result.success(origin.takeIf { it.id == id }) },
         isReturning = { false },
         errorLog = { _, _, _ -> },
+        record = { recorded += it },
         alarms = object : WakeUpAlarms {
             override fun schedule(alarm: WakeUpAlarm, atEpochMillis: Long) = true.also { assertEquals(WakeUpAlarm.SUNDOWN, alarm); alarmCalls += "schedule" to atEpochMillis }
             override fun cancel(alarm: WakeUpAlarm) {
@@ -68,8 +70,7 @@ class SundownWatchWakeUpTest {
 
     private fun gpsFix(point: TrackPoint) = point.copy(timestampEpochMillis = clock.now / 1_000L * 1_000L)
 
-    /** The times each wake-up was asked for, in order. */
-    private fun scheduled() = alarmCalls.filter { it.first == "schedule" }.map { it.second!! }
+    private fun scheduled() = recorded.filterIsInstance<SundownRecordEvent.AlarmScheduled>()
 
     /** Sets up a measured walk and ticks once, an hour before the leave-by time. Returns (heads-up, leave-by, sunset) as the watch first scheduled them. */
     private fun walking(): Triple<TrackPoint, Long, Long> {
@@ -80,13 +81,14 @@ class SundownWatchWakeUpTest {
         val sunset = (ComputeSundownCountdownUseCase()(morning, LatLng(here.lat, here.lng), morning, 0L) as SundownCountdown.Known).sunsetAtEpochMillis
         clock.now = sunset - 3 * hour
         assertTrue("the first fix asks for an evaluation", watch.onFix(gpsFix(here), FixProvider.GPS))
-        runBlocking { watch.tick() }
-        return Triple(here, scheduled().single(), sunset)
+        runBlocking { watch.tick(EvaluationTrigger.FIX) }
+        return Triple(here, scheduled().single().atMillis, sunset)
     }
 
     @Test
     fun `after a decision, a wake-up is set for the heads-up's due time, then the leave-by's, then sunset's, then cancelled`() {
         val (here, headsUpAt, sunset) = walking()
+        assertEquals(SundownAlert.HEADS_UP, scheduled().single().alert)
         assertTrue("the heads-up is ahead: $headsUpAt", headsUpAt > clock.now)
         val leaveBy = headsUpAt + SUNDOWN_HEADS_UP_LEAD_MILLIS
 
@@ -97,29 +99,26 @@ class SundownWatchWakeUpTest {
             clock.now = dueAt + 1_000L
             assertTrue("past the due time, a fix asks", watch.onFix(gpsFix(here), FixProvider.GPS))
             assertFalse("asked once", watch.onFix(gpsFix(here), FixProvider.GPS))
-            runBlocking { watch.tick() }
+            runBlocking { watch.tick(EvaluationTrigger.FIX) }
             assertEquals(expected, delivered.last().second)
         }
         assertEquals("each once", listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET), delivered.map { it.second })
-        // Each due time is worked out again at the tick that schedules it, from that tick's fix, so it moves by
-        // under a second (CI, 2026-10-12: leave-by 466 ms, sunset 174 ms): within a second, as the fixes above are.
-        val wakeUps = scheduled()
-        assertEquals("one wake-up each, for the heads-up, the leave-by and sunset: $wakeUps", 3, wakeUps.size)
-        listOf(headsUpAt, leaveBy, sunset).zip(wakeUps).forEach { (due, at) ->
-            assertEquals("a wake-up at its alert's due time: $wakeUps", due.toDouble(), at.toDouble(), 1_000.0)
-        }
+        assertEquals(listOf(SundownAlert.HEADS_UP, SundownAlert.LEAVE_BY, SundownAlert.SUNSET), scheduled().map { it.alert })
         assertEquals("all given: the wake-up cancelled", "cancel", alarmCalls.last().first)
+        assertEquals(listOf(SundownAlert.HEADS_UP, SundownAlert.LEAVE_BY, SundownAlert.SUNSET), recorded.filterIsInstance<SundownRecordEvent.Fired>().map { it.alert })
+        assertTrue(recorded.filterIsInstance<SundownRecordEvent.Evaluated>().all { it.trigger == EvaluationTrigger.FIX })
     }
 
     @Test
-    fun `the wake-up arriving at the heads-up's time fires it`() {
+    fun `the wake-up arriving at the heads-up's time fires it, recorded as woken by the alarm`() {
         val (here, headsUpAt, _) = walking()
         clock.now = headsUpAt + 2 * minute
         watch.onFix(gpsFix(here), FixProvider.GPS).let { } // keeps the walk back fresh; its answer is not what is tested
         runBlocking { watch.onAlarm() }
         assertEquals(listOf(AlertKind.HEADS_UP), delivered.map { it.second })
-        // Within a second, for the reason the test above gives.
-        assertEquals("the next wake-up is the leave-by's", (headsUpAt + SUNDOWN_HEADS_UP_LEAD_MILLIS).toDouble(), scheduled().last().toDouble(), 1_000.0)
+        assertTrue(SundownRecordEvent.AlarmDelivered("t1") in recorded)
+        assertEquals(EvaluationTrigger.ALARM, recorded.filterIsInstance<SundownRecordEvent.Evaluated>().last().trigger)
+        assertEquals("the next wake-up is the leave-by's", SundownAlert.LEAVE_BY, scheduled().last().alert)
     }
 
     @Test
@@ -133,6 +132,7 @@ class SundownWatchWakeUpTest {
         assertEquals("schedule", alarmCalls.last().first)
         watch.end("t1")
         assertEquals("cancel", alarmCalls.last().first)
+        assertEquals(SundownRecordEvent.AlarmCancelled("t1"), recorded.last())
     }
 
     @Test
@@ -147,8 +147,9 @@ class SundownWatchWakeUpTest {
     }
 
     @Test
-    fun `a wake-up with nothing watched does nothing`() {
+    fun `a wake-up with nothing watched is recorded and does nothing`() {
         runBlocking { watch.onAlarm() }
+        assertEquals(listOf<SundownRecordEvent>(SundownRecordEvent.AlarmDelivered(null)), recorded.toList())
         assertTrue(delivered.isEmpty())
     }
 }

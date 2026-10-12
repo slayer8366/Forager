@@ -73,9 +73,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.BuildConfig
+import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
+import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
+import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapModePicker
@@ -216,7 +220,7 @@ internal const val TOOLS_OFFLINE_MAPS_ROW_TAG = "tools-offline-maps-row"
  *
  * Journal restructure Stage 1 moved Offline Maps and Recorded Tracks out of Settings entirely, into
  * the Journal's Records tab — see [com.zynergylabs.forager.app.ui.log.RecordsTab]. This tab's own `showOfflineMaps`/
- * `showTracks` submenu state is gone with them.
+ * `showTracks` submenu state is gone with them; on dev, Crash Logs and Diagnostics are pages of [SettingsDrawerPage].
  */
 @Composable
 private fun CompactSettingsTab(
@@ -228,6 +232,7 @@ private fun CompactSettingsTab(
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
+    crashFileStore: CrashFileStore,
     backup: BackupControls,
     showBackupRequest: Int = 0,
     /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): Settings' own first page, at the top. */
@@ -236,10 +241,13 @@ private fun CompactSettingsTab(
 ) {
     // Dispatch 2026-10-13-05: Sources & credits, and Open-source software under it, are pages of Settings, one step
     // deeper each. Back retraces the way in: Software to Sources, Sources to Settings, each its own handler, composed after
-    // the Tools drawer's own showSettings handler so the deepest page unwinds first.
+    // the Tools drawer's own showSettings handler so the deepest page unwinds first. Dev only (RECORD -930): Crash Logs and
+    // Diagnostics are pages of the same value, one step deep like Sources, and Back from either returns to Settings.
     var page by remember { mutableStateOf(SettingsDrawerPage.SETTINGS) }
     BackHandler(enabled = page == SettingsDrawerPage.SOFTWARE) { page = SettingsDrawerPage.SOURCES }
     BackHandler(enabled = page == SettingsDrawerPage.SOURCES) { page = SettingsDrawerPage.SETTINGS }
+    BackHandler(enabled = page == SettingsDrawerPage.CRASH_LOGS) { page = SettingsDrawerPage.SETTINGS }
+    BackHandler(enabled = page == SettingsDrawerPage.DIAGNOSTICS) { page = SettingsDrawerPage.SETTINGS }
     // A notification's "open Backup" and the snackbar's "open Settings" both mean Settings' own page (the planner's answer Q8).
     LaunchedEffect(showBackupRequest) { if (showBackupRequest > 0) page = SettingsDrawerPage.SETTINGS }
     LaunchedEffect(showSettingsOnlyRequest) { if (showSettingsOnlyRequest > 0) page = SettingsDrawerPage.SETTINGS }
@@ -250,7 +258,7 @@ private fun CompactSettingsTab(
     // The same push from the left as the Tools drawer's own step into Settings (RECORD -682), and no fill of their own.
     PageSlide(
         targetState = page,
-        depthOf = { it.ordinal },
+        depthOf = { it.depth },
         modifier = modifier.fillMaxSize(),
         pageColor = Color.Transparent,
         style = PageSlideStyle.PUSH_FROM_LEFT,
@@ -265,6 +273,8 @@ private fun CompactSettingsTab(
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
+                    onOpenCrashLogs = { page = SettingsDrawerPage.CRASH_LOGS },
+                    onOpenDiagnostics = { page = SettingsDrawerPage.DIAGNOSTICS },
                     backup = backup,
                     showBackupRequest = showBackupRequest,
                     onOpenSourcesAndCredits = { page = SettingsDrawerPage.SOURCES },
@@ -279,18 +289,44 @@ private fun CompactSettingsTab(
             )
 
             SettingsDrawerPage.SOFTWARE -> OpenSourceSoftwarePage(modifier = Modifier.fillMaxSize())
+
+            SettingsDrawerPage.CRASH_LOGS -> Column(modifier = Modifier.fillMaxSize()) {
+                CrashLogPanel(
+                    modifier = Modifier.weight(1f),
+                    files = crashFileStore.list(),
+                    onBack = { page = SettingsDrawerPage.SETTINGS },
+                )
+            }
+
+            SettingsDrawerPage.DIAGNOSTICS -> Column(modifier = Modifier.fillMaxSize()) {
+                DiagnosticsPanel(
+                    modifier = Modifier.weight(1f),
+                    onBack = { page = SettingsDrawerPage.SETTINGS },
+                )
+            }
         }
     }
 }
 
-/** Which page of [CompactSettingsTab] shows, in order of depth: one value, so the pages slide between each other. */
-private enum class SettingsDrawerPage { SETTINGS, SOURCES, SOFTWARE }
+/**
+ * Which page of [CompactSettingsTab] shows: one value, so the pages slide between each other. [depth] is how many steps
+ * below Settings each page is, which sets the slide's direction: Sources one, Software two (under Sources). Dev only
+ * (RECORD -930): Crash Logs and Diagnostics are one step deep, like Sources, entered from Settings' own rows.
+ */
+private enum class SettingsDrawerPage(val depth: Int) {
+    SETTINGS(0),
+    SOURCES(1),
+    SOFTWARE(2),
+    CRASH_LOGS(1),
+    DIAGNOSTICS(1),
+}
 
 /** Settings' last row (dispatch 2026-10-13-05; the owner: "Bottom of settings page makes sense"), for tests. */
 internal const val SETTINGS_SOURCES_ROW_TAG = "settings-sources-and-credits-row"
 
 /**
- * The Settings panel's body: [DistanceUnitSection], theme, night maps, Backup, and the "Sources & credits" row.
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, Backup, and the "Sources & credits" row; on dev,
+ * debug builds add the Crash Logs and Diagnostics rows above "Sources & credits".
  *
  * **No longer has the Sundown section, the Off-track reminder, or the two camera settings**
  * (dispatch 2026-09-28-707; the owner: "move the Sundown area to the Tools so that it's one button
@@ -312,7 +348,7 @@ internal const val SETTINGS_SOURCES_ROW_TAG = "settings-sources-and-credits-row"
  *
  * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved
  * both into the Journal's own Records tab ([RecordsTab] in `ui/log/`) — see that composable's own
- * doc comment.
+ * doc comment. `CrashLogs` stays here since it isn't a Records concept.
  *
  * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
  * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
@@ -326,6 +362,9 @@ internal fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    onOpenCrashLogs: () -> Unit,
+    /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
+    onOpenDiagnostics: () -> Unit,
     /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
@@ -357,6 +396,9 @@ internal fun SettingsContent(
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
+        // Debug builds: a divider, then Crash Logs and Diagnostics. Release: nothing (see SettingsDebugRows' two
+        // versions). Both sit above Sources & credits, so credits stays last in either build (RECORD -979).
+        SettingsDebugRows(onOpenCrashLogs = onOpenCrashLogs, onOpenDiagnostics = onOpenDiagnostics)
         // Settings ends at Sources & credits, the very bottom (dispatch 2026-10-13-05; the owner: "Bottom of settings page
         // makes sense"), with no divider under it (dispatch 2026-10-11, RECORD -830, when Backup was last).
         HorizontalDivider()
@@ -572,7 +614,8 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
  *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
- *    the "drill in, own back step" shape.
+ *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
+ *    CrashLogs submenu.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
  * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
@@ -588,6 +631,7 @@ internal fun CompactToolsDrawerContent(
     onNightModeMapsChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
+    crashFileStore: CrashFileStore,
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
     openSettingsRequest: Int = 0,
@@ -603,7 +647,8 @@ internal fun CompactToolsDrawerContent(
      */
     onOpenOfflineMaps: (() -> Unit)? = null,
 ) {
-    // Own drill-in step — see this composable's own doc comment, item 2. Composed inside this drawer sheet (which the
+    // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
+    // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
     // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
     // own expand state), so its own BackHandler below takes priority over the top-level
     // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
@@ -637,6 +682,7 @@ internal fun CompactToolsDrawerContent(
             onNightModeMapsChanged = onNightModeMapsChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
+            crashFileStore = crashFileStore,
             backup = backup,
             showBackupRequest = openSettingsRequest,
             showSettingsOnlyRequest = openSettingsOnlyRequest,

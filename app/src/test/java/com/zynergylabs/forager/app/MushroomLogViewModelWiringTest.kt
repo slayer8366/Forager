@@ -58,7 +58,7 @@ class MushroomLogViewModelWiringTest {
     private fun rig(): Pair<AvailabilityViewModel, MushroomLogViewModel> {
         val container = app.container
         val availability = mapLayersViewModel(getMapRecords = { container.getMapRecordsUseCase() })
-        val log = createMushroomLogViewModel(container, availability, ErrorLog { _, _, _ -> })
+        val log = createMushroomLogViewModel(container, availability, ErrorLog { _, _, _ -> }) { _, _ -> }
         return availability to log
     }
 
@@ -109,7 +109,7 @@ class MushroomLogViewModelWiringTest {
             override val fixes: Flow<LocationFix> = fixes
         })
         availability.onEnteredForeground()
-        val log = createMushroomLogViewModel(app.container, availability, ErrorLog { _, _, _ -> })
+        val log = createMushroomLogViewModel(app.container, availability, ErrorLog { _, _, _ -> }) { _, _ -> }
         val now = System.currentTimeMillis() / 1_000L * 1_000L
         val fix = LocationFix.Update(
             lat = 45.52, lng = -122.68, altitude = null, accuracyMeters = 15f,

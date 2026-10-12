@@ -3,11 +3,13 @@ package com.zynergylabs.forager.app
 import android.app.Application
 import android.util.Log
 import com.zynergylabs.forager.app.alert.cancelRecordingAlerts
+import com.zynergylabs.forager.app.crash.installCrashCapture
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependencies
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependenciesProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
+import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
 import com.zynergylabs.forager.app.export.TrackGpxExporter
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.map.installMapHttpClient
@@ -18,6 +20,15 @@ import kotlinx.coroutines.launch
 
 class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     lateinit var container: AppContainer
+        private set
+
+    /**
+     * The debug build's observation surface (StrictMode into a file, the sweep's count); a no-op
+     * object in release, by build-type source set rather than by branch — see the two
+     * [DebugDiagnostics] classes. Installed first, before [container] is built, so what it observes
+     * is the whole process from the first line of this method, not the part after startup.
+     */
+    lateinit var diagnostics: DebugDiagnostics
         private set
 
     /**
@@ -39,11 +50,13 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     override fun onCreate() {
         super.onCreate()
         val startedAt = System.currentTimeMillis()
+        diagnostics = DebugDiagnostics.install(this)
         // The start time goes to the container for the abandoned-track sweep's cut-off (dispatch
         // 2026-09-28-400, Amendment 3, Part 3b). Taken above, before anything else runs. The sweep
         // itself is not launched here: nothing in onCreate queries the database. See
         // AbandonedTrackSweepOnce for what launches it and why.
         container = AppContainer(this, processStartedAtEpochMillis = startedAt)
+        installCrashHandler()
         initializeMapLibreAtStart()
         installMapHttpClientAtStart()
         sweepOrphanedCaptures(startedAt)
@@ -102,6 +115,18 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     }
 
     /**
+     * Crash capture, debug builds only (dispatch 2026-10-11, RECORD -830): [installCrashCapture] has a
+     * debug version in `src/debug` that installs `CrashUncaughtExceptionHandler`, chained to the
+     * platform's own, and a release version in `src/release` that does nothing, because nothing in a
+     * release build can read a crash file (the Crash Logs row is debug-only too; Play Console reports
+     * crashes). A build-type source set rather than a `BuildConfig.DEBUG` branch, as `DebugDiagnostics`
+     * is, so the capturing classes are not in the release APK at all.
+     */
+    private fun installCrashHandler() {
+        installCrashCapture(container.crashFileStore)
+    }
+
+    /**
      * [CameraCaptureFiles.sweepOrphans], off the main thread. **`onCreate` runs on the main
      * thread**; a directory walk and a batch of deletes do not belong on it, and this is dispatched
      * explicitly rather than assumed to be elsewhere — a draft of this change said the sweep "runs
@@ -113,6 +138,8 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         applicationScope.launch {
             val deleted = container.cameraCaptureFiles.sweepOrphans(processStartedAtMillis)
             if (deleted > 0) Log.i(TAG, "Deleted $deleted orphaned capture file(s) left by an earlier process.")
+            // The same number, somewhere a phone with no logcat can read it (debug builds only).
+            diagnostics.recordSweep(deleted)
         }
     }
 

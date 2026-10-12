@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.domain
 
+import com.zynergylabs.forager.app.domain.ReturnRecordEvent.ReturnEnded
+import com.zynergylabs.forager.app.domain.ReturnRecordEvent.WentOffTrack
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import org.junit.Assert.assertEquals
@@ -24,7 +26,8 @@ import org.junit.Test
 class ReturnWatchArrivalTest {
 
     private val delivered = mutableListOf<Alert>()
-    private val watch = ReturnWatch(ComputeReturnToStartUseCase(), { delivered += it })
+    private val written = mutableListOf<ReturnRecordEvent>()
+    private val watch = ReturnWatch(ComputeReturnToStartUseCase(), { delivered += it }, ReturnRecord { written += it })
 
     private fun point(lat: Double, t: Long) = TrackPoint(lat, -122.0, null, 4f, t)
 
@@ -59,6 +62,7 @@ class ReturnWatchArrivalTest {
         assertFalse(state.isOffTrack)
         assertTrue("the recording is still begun", state.isBegun)
         assertEquals("track-1", state.trackId)
+        assertEquals(ReturnEnded("track-1", ReturnEndReason.ARRIVAL), written.last())
         assertEquals("nothing delivered on the way back", 0, delivered.size)
     }
 
@@ -67,11 +71,13 @@ class ReturnWatchArrivalTest {
         begunWithWalkOut().startReturn("track-1")
         walkBackAlmostToTheStart(fromMillis = 100_000L)
         watch.onFix(point(45.0, t = 130_000L), FixProvider.GPS)
+        val writtenAtArrival = written.size
 
         driveOff(fromMillis = 130_000L)
 
         assertEquals("no off-track alert on the drive-off", 0, delivered.size)
         assertFalse(watch.state.value.isOffTrack)
+        assertEquals("no off-track decision written after arrival", emptyList<ReturnRecordEvent>(), written.drop(writtenAtArrival))
         assertTrue("the recording is still begun", watch.state.value.isBegun)
         assertTrue("the drive-off is still measured for the button's distance", (watch.state.value.returnToStart?.distanceMeters ?: 0.0) > 8_000.0)
     }
@@ -86,6 +92,7 @@ class ReturnWatchArrivalTest {
         // A minute standing at the start, a reading every 5 s.
         (1..12).forEach { i -> watch.onFix(point(45.0 + (i % 2) * 0.00005, t = 2_000L + i * 5_000L), FixProvider.GPS) }
         assertTrue("still returning: the walker has not left the circle since Return", watch.state.value.isReturning)
+        assertFalse(written.any { it is ReturnEnded })
 
         // 25 m out, outside the 15 m circle, then back.
         watch.onFix(point(45.000225, t = 70_000L), FixProvider.GPS)
@@ -93,6 +100,7 @@ class ReturnWatchArrivalTest {
         watch.onFix(point(45.0, t = 75_000L), FixProvider.GPS)
 
         assertFalse("left and came back: arrived", watch.state.value.isReturning)
+        assertEquals(ReturnEnded("track-1", ReturnEndReason.ARRIVAL), written.last())
     }
 
     @Test
@@ -122,6 +130,7 @@ class ReturnWatchArrivalTest {
         assertEquals(listOf(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false)), delivered)
         assertTrue(watch.state.value.isOffTrack)
         assertTrue(watch.state.value.isReturning)
+        assertTrue(written.any { it is WentOffTrack })
     }
 
     @Test
