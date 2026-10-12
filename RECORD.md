@@ -16461,3 +16461,25 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **Title:** Planner handoff to the next session
 **Handoff-file:** prompts/preserved/2026-10-12-planner-handoff-2.md (this branch). The owner, verbatim: "Write a handoff for the next session please. I'll do it there".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -945.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-945
+**Timestamp:** 2026-10-12T12:13:40Z
+**Continues:** 2026-09-28-932, 2026-09-28-943
+**Title:** Rounded map strip, design review against the owner's mockup: a lighter pill, a bigger centred distance, full-height dividers, the kind word under the figure (owner)
+**Context:** the planner reviewed draft PR #221's renders (rounded-map-strip 833a2033, CI run 38245003009) against the owner's mockup, using the principles list of the owner's mobile design-system plugin. The plugin itself makes a style guide for new apps only, and its own scope excludes reviewing an existing app, so only that list was used.
+- **Passed:** text contrast over the striped test map, measured from the render's pixels, about 5.6:1 by day and 7:1 at night (the bar is 4.5:1); one 16 dp corner radius on the pill, card, bottom bar and credit line (RoundedMapCard.kt, MAP_CARD_CORNER_RADIUS); the X's 48 dp touch box. The three dots are 36 dp under -648, not reopened.
+- **Differs from the mockup, 1:** the pill and card share one fill, so the tuck shows only as the 6 dp cast shadow (about 17% black at its darkest, RoundedMapCard.kt), faint by day and nearly gone at night. The mockup draws the pill lighter than the card, with a crisp shadow.
+- **2:** the distance is one text size up, in bold (NavigationHud.kt, cardFigureStyle), where the mockup's is about twice the other text.
+- **3:** the left column is aligned to its divider and the other two to their left edges, where the mockup centres each column.
+- **4:** with the evening stack (-941) the right column runs four lines while the dividers stop at two (NavigationHud.kt, CardDivider's height), and "By trail" (the kind word, moved out of the narrow left column into the status line) sits alone under the columns.
+**The owner, verbatim answers:** "Strip review was it" (asked whether the plugin's style guide should also be made for Forager). "Lighter pill + shadow (Recommended)". "Both (Recommended)" (a bigger distance, and each column centred). "Full dividers + by trail under figure (Recommended)".
+**What it sets:** for PR #221, in this beta:
+- the search pill over the map is a shade lighter than the card under it, both still at 80% fill, and the cast shadow stays; the tuck reads by day and at night;
+- the distance figure is larger, as in the mockup; each column's content is centred in its column; the two arrows stay on one line;
+- the dividers run the card's full height;
+- the kind word ("by trail" or "straight") is a small third line in the left column, under the turn line, instead of a line under the columns. That takes the line it had under the columns, so the card is no taller for it.
+The fit order (-934, -936) is unchanged; a larger figure means its trims, and the grid reference's own line, start at wider screens.
+**Notes:** Written by the planner by hand, on branch records-after-173. Not yet sent to a coder: PR #221's coder, a subagent of the previous planner session, was still working at the time (it pushed 4b8e5c6c at 12:03 UTC). Next free ID -946.
