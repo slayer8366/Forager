@@ -16483,3 +16483,20 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 - the kind word ("by trail" or "straight") is a small third line in the left column, under the turn line, instead of a line under the columns. That takes the line it had under the columns, so the card is no taller for it.
 The fit order (-934, -936) is unchanged; a larger figure means its trims, and the grid reference's own line, start at wider screens.
 **Notes:** Written by the planner by hand, on branch records-after-173. Not yet sent to a coder: PR #221's coder, a subagent of the previous planner session, was still working at the time (it pushed 4b8e5c6c at 12:03 UTC). Next free ID -946.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-946
+**Timestamp:** 2026-10-12T12:19:20Z
+**Continues:** 2026-09-28-940, 2026-09-28-945
+**Title:** Rounded map strip in landscape: the compass strip stays while navigating, the card tucks under it and drops what the strip shows (owner)
+**Context:** asked whether a lighter pill should show a change of shade where the pill meets the card in landscape, the owner answered: "The card tuck happens beneath the compass strip instead.  It still happens". The planner restated it as steps (not navigating: pill and compass strip side by side; navigating: the strip stays and the card appears under it, tucked; stopping: the card goes, the strip stays). The planner also said the build doesn't do this: in the render at 833a2033 the card takes the strip's place beside the pill. Two costs were given. Height: the strip adds about 40 dp over a card that is about 94 dp tall at font 1.0 at 780 dp, against the 128 dp central third; an estimate from the coder's figures, not measured. Repeats: heading, height and grid reference would show in both the strip and the card.
+**The owner, verbatim:** "Yes, and drop the repeats" (offered: "Yes, card unchanged"; "No, keep the card in the strip's place").
+**What it sets:** in landscape, while navigating:
+- the compass strip stays beside the search pill; the two are the top bar, both at -945's lighter shade, so there is no change of shade where they meet;
+- the navigation card sits under the compass strip, tucked beneath it as portrait's card is under the pill, with the cast shadow, a shade darker than the strip, and as wide as the strip (-940's width, the window's short side, stands);
+- the card leaves out what the strip shows: the north arrow with heading, the height, and the grid reference. The planner's reading, for the owner to correct: the three-dot menu goes from the card too, since the strip carries the same quick-settings button (at 4b8e5c6c, AvailabilityMapControlsUi.kt:869 and NavigationHud.kt:423). The card keeps the distance with the turn needle and the kind word, the evening stack, the X, and the route, Try again and status lines;
+- in landscape the north arrow (in the strip) and the turn needle (in the card) are no longer on one line.
+This replaces -940's "they lay out exactly as portrait does" for the landscape card's content. Portrait is unchanged. If the strip and card together cross the central third or the -766 / -770 limits, the coder reports the numbers instead of trimming, as under -940.
+**Notes:** Written by the planner by hand, on branch records-after-173. Correction to -945's note: it said PR #221's coder was still working. According to the previous planner session's message to this one, the owner had told it "Tell the coder to stop" at about 12:05 UTC, and the coder was stopped. That session's handoff file records the stop (9b8b35dc). Nothing from -945 or -946 has been sent to a coder. Next free ID -947.
