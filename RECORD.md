@@ -15867,3 +15867,17 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **Title:** Show the owner's status line on the page; merge the site drop when the checks pass (owner)
 **Rulings (owner, verbatim answers):** "Add your line under the short heading (Recommended)": the collapsed line stays "Pilot model. Not validated. Reviewed. Week of 5 October."; opened, -863's status_label ("Pilot, not yet validated. Its figures were checked by an independent review. Shown whether or not it beats the seasonal calendar.") appears directly under the heading, read from the manifest. "Merge when the checks pass (Recommended)": once built, with check.py (its attribution check moved to look under Details, a planner call matching -895) and slider_check.py passing on the preview, the planner backs up zynergy-site main, merges, checks the live page, and writes the merge entry.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -900.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-900
+**Timestamp:** 2026-10-12T00:28:58Z
+**PR:** zynergy-site 11
+**Head:** pnw-pilot-w41-drop
+**Base:** main
+**Merge-commit:** 3143c5f48fbf00c899ca439813f1fbd8f26128d8
+**Pre-merge:** cb596aad3c81b712378c748760ea7d0a026d6eb9
+**Backup:** 2026-10-11-09 (zynergy-site-main-pre-11.bundle, verified okay, sha256 fa9d4cab…3a65)
+**Observed:** the PNW pilot's weather model for 2026-W41 went live on the forecast page. The planner merged PR #11 at 2026-10-12T00:27:04Z, pinned to head 215dd065, on a passing Cloudflare Pages check, under the owner's "Merge when the checks pass (Recommended)" (-899). The approvals are -817 (the drop), -878 (text fixes), -895 (credits line, weather line) and -899 (status line). Diff read: 7 files (app.js, guide.css, index.html, pilot.js, README, and the two data files). The coder's preview checks at 215dd065: check.py 46/46 with 8 skipped (its attribution check moved under Details and a status-line check added, each shown failing on a deliberately broken copy); slider check 34/34; desktop banner 165 px, phone collapsed 58 px. Live after the merge: the manifest serves sha256 aae1e57b… and the cells ac6038d3…, and the intro reads "chanterelles being reported". check.py against production: 45 passed, 1 failed, 8 skipped. The failure is the hosting analytics beacon refused by script-src, which predates this change (-877). Not checked: a real phone.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -901.
