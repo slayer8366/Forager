@@ -71,7 +71,7 @@ The owner builds and signs the beta from main once PR #221 merges. That PR is th
 
 ### PR #221, the rounded, tucked map strip (dispatch 2026-10-12-06; rulings -932 and -934 to -943)
 
-**State:** draft, head 833a2033, on branch rounded-map-strip. **The coder is a subagent of the old session and may still be running. The new session can't message it.**
+**State:** draft, head 4b8e5c6c, on branch rounded-map-strip. **The owner stopped the coder at about 12:05 UTC** ("Tell the coder to stop"). Its last CI run, 38246598522, has completed; read its result. Nothing is running. Dispatch a new coder only on the owner's word, and probably after the plugin design review.
 - Check whether the PR is marked ready and CI is green, and read its report: docs/audits/2026-10-12-rounded-map-strip-report.md, on the branch.
 - **If it's unfinished,** dispatch a new coder from the branch head. Give it these instructions, which are all recorded in -940 to -943:
   - **Landscape card (-940):** the same width as in portrait, permanently. The pill takes the remaining width beside it.
