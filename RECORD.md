@@ -16369,3 +16369,14 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 - The map credit strip gets its right-hand corners rounded; its left side stays square at the screen edge.
 - Map touches in the newly exposed corner areas reach the map.
 **Notes:** Written by the planner by hand, on branch records-after-173. Both coders were stopped at about 07:15 UTC by a session usage limit, which reset at 07:30 UTC. Work was pushed: strip-dev-tools 70e49d63, dev d70d470d, rounded-map-strip 36deac3d. Next free ID -938.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-938
+**Timestamp:** 2026-10-12T08:28:46Z
+**Continues:** 2026-09-28-937
+**Title:** Map credit strip: only the top-right corner is rounded (owner)
+**The owner, verbatim:** "With the open street map tint strip,instead of the entire right side, curve only the upper right side since it's the only side exposed".
+**What it sets:** replaces -937's "right-hand corners". Only the credit strip's top-right corner is rounded; the other three stay square. Sent to the coder on dispatch 2026-10-12-06.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -939.
