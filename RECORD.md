@@ -16122,3 +16122,20 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Finish line:** a PR with a passing Pages check; check.py, slider_check.py, phone_check.py and the new checks reported on the preview (the beacon aside); each new check shown failing on main for the readout overflow; before and after screenshots outside the repository. Then the owner's look in both browsers, the owner's merge word, a backup, a production check and a merge entry.
 **Abort conditions:** the diagnosis is wrong in a way that needs a different kind of fix; the fix changes desktop or copy; an existing check fails; a new check passes on main.
 **Notes:** Written by the planner by hand, on branch records-after-173. A bug on the live page is dispatched as -912 was, with the merge left to the owner. The coder runs as a subagent on opus in a separate worktree of zynergy-site. Next free ID -921.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-921
+**Timestamp:** 2026-10-12T05:28:45Z
+**Closes:** 2026-09-28-919
+**Title:** Native symbols: Phase A stopped; the setting alone wouldn't make map crashes readable, and it needs a tool neither machine has
+**Observed:** report docs/audits/2026-10-12-native-symbols-check.md on Forager branch native-symbols, e4154aba (no index row; Phase B didn't run).
+- Five native libraries ship: the map library and four from AndroidX.
+- All 20 shipped files are byte-identical to the published archives. Every copy has only dynamic symbols except one datastore library, which has a small symbol table.
+- The build strips nothing, because no NDK is installed on this laptop or on CI (setup-android-sdk.sh:45-48). The plugin doesn't download one for this step.
+- From reading plugin 9.3.1's bytecode, not from a run: the symbols setting skips libraries that are already stripped, so it would give the map library no symbols.
+- Full debug copies of the map library, with matching build IDs, sit unused in its archive's prefab folder.
+- Stops (b) and (c) fired.
+**Correction:** the planner told the owner D3 was "One build setting, with no change to what the app does" that "makes crashes inside the map library's native parts readable". The second half was wrong: making map crashes readable needs a build-script change (packaging the prefab copies) plus the NDK on the release machine, or a hand upload.
+**Notes:** Written by the planner by hand, on branch records-after-173. D3 goes back to the owner. Side observation from the coder, not acted on: the main checkout's local.properties names sdk.dir with a capital S, which doesn't exist on disk. Next free ID -922.
