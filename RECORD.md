@@ -16660,3 +16660,22 @@ After that, the owner's merge word and the device items.
 - **C:** in landscape, when the card would cover Reset north or the walker's dot, the evening lines leave the card, extending -770. Overlap left at the largest text is accepted.
 - **D:** Try again may make the card taller while it shows, replacing -766's "no taller for Try again".
 **Notes:** Written by the planner by hand, on branch records-after-173. Not yet asked: at the rotation where the rail, strip and card are on the screen's left, the fixed bar shares that side with the card, and the card covers the credit strip and the ⓘ (B). The coder measures and reports both. Next free ID -956.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-956
+**Timestamp:** 2026-10-12T20:30:25Z
+**Continues:** 2026-09-28-955
+**Title:** Landscape looks the same at both rotations, by screen sides: side bar right, strip and card right, icon bar left while navigating, credit strip and ⓘ bottom left (owner)
+**The owner, verbatim:** "There should be nothing fixed between the two landscape modes. One should look exactly line the other." On which left: "The left isn't the charging port. That's not how we measure it. ... Screen left can be either charging port or front camera end, depending on which degree rotation it's in". Told that the side bar today follows the charging port, so the screen mirrors when the phone turns over: "That was never my call and that should be fixed".
+**What it sets:**
+- In a short landscape window the layout is identical at both rotations, placed by the screen's own left and right:
+  - the app's side bar (navigation rail) on the right;
+  - the search bar, compass strip and navigation card as at ROTATION_90;
+  - the icon bar on the left while navigating (-955), otherwise on the user's saved side;
+  - the credit strip and ⓘ at the bottom left (-954).
+- Nothing follows the charging port's edge any more.
+- The camera cut-out still keeps controls out of it, on whichever side it falls.
+**Correction:** the port-edge rule was carried as an owner closed decision, quoting "Keep the icon strip at the port side." (2026-09-27-35's notes). The owner says the side bar following the port was never their call. The quote was applied to the side bar by planner reading.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -957.
