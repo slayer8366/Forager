@@ -16091,3 +16091,18 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Finish line:** Both branches pushed. The counter's positive control passes. The lint run's three totals (script, issue-element count, lint's own summary) agree or the difference is explained. The report has the counts, the plain-language section for the owner and a could-not-determine section. A terminal entry closes this intent.
 **Abort conditions:** Lint is already configured, or the dispatch trigger doesn't run the branch's ci.yml. Lint fails on CI after one retry. Running it needs more than a job and output-only settings. The totals disagree unexplained.
 **Notes:** Written by the planner by hand, on branch records-after-173. The coder runs as a subagent on opus in its own worktree. Next free ID -919.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-919
+**Timestamp:** 2026-10-12T05:16:51Z
+**Title:** Native debug symbols in the release bundle (production release T4): check first, then the setting
+**Dispatch-file:** preserved/2026-10-12-02.md
+**The owner, verbatim:** "Start with the check (Recommended)" (offered: wait for the lint count first), on top of D3 "Add them (Recommended)" (-917).
+**Change:** Phase A, read-only: list every native library the app ships, check whether their published archives carry symbols, and check what the owner's build machine would need. It stops with a report if nothing carries symbols, if the NDK must be installed, or if a premise is false. Phase B, only if A doesn't stop: `ndk { debugSymbolLevel }` on the release build type, on branch native-symbols. It's proved on CI with the standalone extraction task on scratch-native-symbols, with no key and no release bundle, and the normal CI suite stays green.
+**Scope boundary:** No signing keys or stand-in identity anywhere; the signing guard unchanged; code shrinking stays off; debug build and the CI build job unchanged; no Gradle, NDK or SDK install on the laptop; no PR; no branch deleted; the lint survey's branches untouched.
+**Baseline:** origin/main 921aa9c7
+**Finish line:** Phase A's report pushed. Then either a stop reported, or Phase B's setting and extraction evidence and a green CI suite, pushed, with an index row. A terminal entry closes this intent. Whether Play's warning clears is visible only on the owner's next upload (T8), and is recorded then.
+**Abort conditions:** Phase A's stops; the extraction can't be shown without a signed release build; the setting breaks the debug build or a test; any step needs a key, a guard change or a local build.
+**Notes:** Written by the planner by hand, on branch records-after-173. It runs in parallel with -918 (lint survey); both use CI only, not the laptop. The coder runs as a subagent on opus in its own worktree. Next free ID -920.
