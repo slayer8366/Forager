@@ -94,3 +94,21 @@ Each is idle once its report came in, except the site coder on -908 (section 2).
 - the scoring rain services ended;
 - no fit is running;
 - the T6b continental run stays stopped (-815).
+
+## Addendum, 04:30 UTC: the phone panel is ready for the owner's word
+
+The site coder finished -908.
+- **PR:** zynergy-site PR #13 (https://github.com/slayer8366/zynergy-site/pull/13), head fa8139406a227746d32dc87d620b898305262e74, on main e1c3f8a9. The Cloudflare Pages check passed.
+- **Preview:** https://forecast-phone-peek.zynergy-site.pages.dev/Forager/forecast/.
+- **Results:**
+  - check.py: 71/71 with 8 skipped;
+  - slider_check.py: 34/34;
+  - a new phone_check.py: 15/15, every new check shown failing on a broken copy first. Evidence is in ~/Zynergy/device-evidence/2026-10-12-phone-peek/.
+- **Layout:** the breakpoint is 760 px. At 390x844 the peek takes 24% of the screen on soil and 35% on the pilot layer, and up to 45% with a readout.
+- **Fixed during the build:** the opened map credits overflowed under the header on phones.
+- **The coder's calls for the owner to confirm or reverse:**
+  - choosing a layer returns the panel to the peek;
+  - the panel is 80% opaque (CLAUDE.md map-chrome rule);
+  - the handle is solid only while open.
+- **Not verified:** a real phone (toolbars, safe-area insets, drag feel).
+- **Next:** ask the owner for the merge word. Then back up site main, merge pinned to fa813940, run check.py against production, and write the merge entry.
