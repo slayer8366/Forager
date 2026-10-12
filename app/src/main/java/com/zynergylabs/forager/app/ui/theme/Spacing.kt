@@ -12,8 +12,8 @@ import androidx.compose.ui.unit.dp
  * near-identical copies had accumulated where that original wasn't reachable from, none recorded
  * in the design doc — found by searching for the pattern once, not by the doc naming them:
  * `LogSpacing` (`internal`, in `LogFieldEditors.kt`, 67 call sites across 9 files in `ui/log`),
- * a `private` copy in a since-removed panel (10 call sites, missing `md` since nothing there had
- * needed it), and `MapPickerSpacing` (`private`, in `CentrePinLocationPicker.kt`, 6 call
+ * `CrashLogSpacing` (`private`, in `CrashLogPanel.kt`, 10 call sites, missing `md` since nothing
+ * there had needed it), and `MapPickerSpacing` (`private`, in `CentrePinLocationPicker.kt`, 6 call
  * sites, only `sm`/`lg` — its own doc comment said it existed because that file "sits in neither
  * package, so it keeps its own copy rather than depending sideways on either"; promoting the
  * original into a package every file can reach is what removes the reason for that copy to exist).

@@ -10,16 +10,18 @@ import org.junit.Test
  * Settings' "Off-track reminder" as [ReturnWatch] reads it (dispatch 2026-09-28-626; Amendment 1,
  * RECORD -627: "unticked, the off-track alert doesn't fire"). The same walk away as
  * [ReturnWatchTest]'s, with the reminder on and off: off, the judge still decides and the Return
- * button still turns, but nothing is delivered.
+ * button still turns, but nothing is delivered and the record says why.
  */
 class ReturnWatchReminderTest {
 
     private val delivered = mutableListOf<Alert>()
+    private val recorded = mutableListOf<ReturnRecordEvent>()
     private var reminderOn = true
 
     private fun begunWatch() = ReturnWatch(
         computeReturnToStart = ComputeReturnToStartUseCase(),
         alertDelivery = { delivered += it },
+        returnRecord = { recorded += it },
         isReminderOn = { reminderOn },
     ).apply {
         begin("track-1", TrackRecordingMode.BALANCED)
@@ -43,13 +45,21 @@ class ReturnWatchReminderTest {
     }
 
     @Test
-    fun `reminder off, going off track delivers nothing and still shows off track`() {
+    fun `reminder off, going off track delivers nothing, still shows off track, and records the alert withheld`() {
         reminderOn = false
         val watch = begunWatch()
         watch.walkAway(fromMillis = 2_000L)
 
         assertEquals(listOf<Alert>(), delivered)
         assertTrue("the Return button still shows off track", watch.state.value.isOffTrack)
+        assertEquals(
+            listOf(
+                ReturnRecordEvent.ReturnStarted("track-1"),
+                ReturnRecordEvent.WentOffTrack("track-1", 17_000L),
+                ReturnRecordEvent.AlertWithheld("track-1"),
+            ),
+            recorded,
+        )
     }
 
     @Test

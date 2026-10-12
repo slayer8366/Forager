@@ -9,7 +9,7 @@ import com.zynergylabs.forager.app.domain.DoNotDisturbSource
 /**
  * The Android [DoNotDisturbSource] (dispatch 2026-09-28-685, Amendment 1, RECORD -694): `getCurrentInterruptionFilter`,
  * API 23, free to read; only setting it needs notification-policy access, which this app does not ask for. Read as each
- * alert's vibration is issued, to report whether Do Not Disturb drops it.
+ * alert's vibration is issued, to record whether Do Not Disturb drops it.
  */
 class AndroidDoNotDisturbSource(context: Context) : DoNotDisturbSource {
     private val appContext = context.applicationContext
@@ -20,7 +20,7 @@ class AndroidDoNotDisturbSource(context: Context) : DoNotDisturbSource {
         NotificationManager.INTERRUPTION_FILTER_ALARMS -> DoNotDisturbFilter.ALARMS_ONLY
         NotificationManager.INTERRUPTION_FILTER_NONE -> DoNotDisturbFilter.TOTAL_SILENCE
         else -> {
-            Log.w(TAG, "Interruption filter unreadable ($filter); the delivery outcome does not check Do Not Disturb.")
+            Log.w(TAG, "Interruption filter unreadable ($filter); the alert record does not check Do Not Disturb.")
             DoNotDisturbFilter.UNKNOWN
         }
     }

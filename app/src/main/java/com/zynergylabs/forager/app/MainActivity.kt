@@ -138,6 +138,11 @@ class MainActivity : ComponentActivity() {
                     container,
                     viewModel,
                     androidErrorLog,
+                    // A capture that lands with no find open is saved to the album and recorded where the
+                    // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
+                    recordCaptureWithoutEditingEntry = { photoId, error ->
+                        (application as? ForagerApplication)?.diagnostics?.recordCaptureWithoutEditingEntry(photoId, error)
+                    },
                 )
             }
         }
@@ -729,6 +734,7 @@ class MainActivity : ComponentActivity() {
                     ),
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
+                    crashFileStore = container.crashFileStore,
                     navigation = AvailabilityScreenNavigation(
                         returnToStart = trackUiState.returnToStart,
                         isReturning = trackUiState.isReturning,

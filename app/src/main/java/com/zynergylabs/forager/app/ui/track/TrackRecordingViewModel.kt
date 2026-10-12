@@ -355,8 +355,9 @@ class TrackRecordingViewModel(
     fun setBackBy(choice: BackByChoice) {
         val trackId = uiState.value.activeTrack?.trackId ?: run {
             // Dispatch 2026-09-28-796: no longer silent. The menu offers no choice without a recording,
-            // so reaching here means the screen and the recording disagree; it is logged.
+            // so reaching here means the screen and the recording disagree; it is logged and recorded.
             errorLog.w(TAG, "Back by was not set: no recording on this screen.", IllegalStateException("back-by with no active track"))
+            backBy.setWithNoRecording()
             return
         }
         val at = backByAtFor(choice, currentTime.nowEpochMillis(), zone)

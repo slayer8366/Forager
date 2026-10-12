@@ -11,6 +11,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.alert.OFF_TRACK_NOTIFICATION_ID
+import com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME
+import com.zynergylabs.forager.app.data.diagnostics.RETURN_RECORD_FILE_NAME
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -42,7 +44,9 @@ import org.robolectric.shadows.ShadowLocationManager
  * The fixes reach the service through the platform's own listener path, as in
  * `TrackRecordingServiceSwipeAwayTest`; the start point and Return are the calls the recording ViewModel
  * makes on the container's `ReturnWatch`. The readings are the off-track notification the real
- * `AndroidAlertDelivery` would post, the watch's state, and the stored track.
+ * `AndroidAlertDelivery` would post, the watch's state, the stored track, and the debug build's own
+ * record files (`return-record.log`, `back-by-record.log`), which is why this class is under
+ * `testDebug`: a release build writes no record (RECORD -830).
  *
  * Back by is evaluated by calling the container's `BackByWatch.tick()`, the call the service's 15 s loop
  * makes, so the test does not wait 15 s of real time; its `onFix` is fed by the real service.
@@ -76,6 +80,8 @@ class TrackRecordingServiceReturnArrivalTest {
         shadowLocationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
         shadowLocationManager.setProviderEnabled(LocationManager.NETWORK_PROVIDER, false)
         fixTime = System.currentTimeMillis() / 1_000L * 1_000L
+        File(context.filesDir, RETURN_RECORD_FILE_NAME).delete()
+        File(context.filesDir, BACK_BY_RECORD_FILE_NAME).delete()
     }
 
     /** Starts recording a new track whose start, origin waypoint and watch's start point, is at 45.0 N, 122.0 W. */
@@ -110,6 +116,7 @@ class TrackRecordingServiceReturnArrivalTest {
             simulateGpsFix(0.0) // at the start
 
             assertTrue("the return ended at the start", awaitState { !it.isReturning && it.arrivedAfterReturn })
+            assertTrue("the record says why: ${returnRecordLines()}", returnRecordLines().any { it.endsWith("return-ended track=$trackId reason=arrival") })
 
             // The service's 15 s Back by tick, called here. The arrival fix reaches Back by's onFix just after the
             // return watch's, on the service's thread, so the tick is repeated until it has (10 s at most).
@@ -119,6 +126,7 @@ class TrackRecordingServiceReturnArrivalTest {
                 idleAndSettle()
             } while (container.backByWatch.shown.value != null && System.currentTimeMillis() < deadline)
             assertNull("Back by ended on arrival, as it did while a return ran", container.backByWatch.shown.value)
+            assertTrue("back-by record: ${backByRecordLines()}", backByRecordLines().any { it.endsWith("ended track=$trackId reason=arrival") })
 
             // The drive-off: 300 m a fix, away from the start, enough fixes for the service to flush 20 kept points.
             repeat(14) { i -> simulateGpsFix(400.0 + i * 300.0) }
@@ -126,6 +134,7 @@ class TrackRecordingServiceReturnArrivalTest {
             assertTrue("the recording carries on: the drive-off is stored", awaitPointCount(trackId, 20) >= 20)
             assertNull("no off-track notification on the drive-off", offTrackNotification())
             assertFalse(container.returnWatch.state.value.isOffTrack)
+            assertFalse("no off-track decision after arrival: ${returnRecordLines()}", returnRecordLines().any { "went-off-track" in it })
             assertNull("the track is still open", runBlocking { container.trackRepository.getById(trackId) }.getOrThrow()?.endedAtEpochMillis)
             assertFalse("the service is still running", shadowOf(c.get()).isStoppedBySelf)
             assertTrue("and still begun for the track", container.returnWatch.state.value.let { it.isBegun && it.trackId == trackId })
@@ -151,6 +160,7 @@ class TrackRecordingServiceReturnArrivalTest {
 
             simulateGpsFix(0.0)
             assertTrue("left and came back: ended", awaitState { !it.isReturning && it.arrivedAfterReturn })
+            assertTrue(returnRecordLines().any { it.endsWith("return-ended track=$trackId reason=arrival") })
         } finally {
             controller?.let { end(it) }
         }
@@ -180,6 +190,10 @@ class TrackRecordingServiceReturnArrivalTest {
         )
         idleAndSettle()
     }
+
+    private fun returnRecordLines(): List<String> = File(context.filesDir, RETURN_RECORD_FILE_NAME).takeIf { it.exists() }?.readLines().orEmpty()
+
+    private fun backByRecordLines(): List<String> = File(context.filesDir, BACK_BY_RECORD_FILE_NAME).takeIf { it.exists() }?.readLines().orEmpty()
 
     /** The watch is fed on the service's own thread; polls until [condition] holds, `false` on timeout. */
     private fun awaitState(timeoutMillis: Long = 10_000L, condition: (com.zynergylabs.forager.app.domain.ReturnWatchState) -> Boolean): Boolean {
