@@ -51,13 +51,14 @@ import com.zynergylabs.forager.app.ui.format.displayDateTime
 import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
- * The Journal Records tab's "get a track out of the app" surface: list files this app owns, tap one
- * to hand it to another app.
+ * The Journal Records tab's "get a track out of the app" surface — mirrors
+ * [com.zynergylabs.forager.app.ui.crash.CrashLogPanel]'s list-then-share shape exactly, the closest existing
+ * precedent in this app for "list files this app owns, tap one to hand it to another app."
  *
  * Field-test dispatch item 1: `GpxCodec` was fully implemented and tested but called from nowhere.
  * There is no dedicated track list/detail screen anywhere yet, and the dispatch is explicit not to
- * design one for this — a list-then-share panel is the most convenient surface for "list this
- * app's own records, tap to share one."
+ * design one for this — the crash-log pattern is the most convenient real surface that already
+ * does "list this app's own records, tap to share one."
  *
  * `internal`, no header: Journal restructure Stage 1 moved this into `RecordsTab` (`ui/log/`) as a
  * flat sub-tab, not a drill-in submenu — see that composable's own doc comment. A header with its
@@ -296,7 +297,7 @@ internal const val PARTIAL_GPX_EXPORT_MESSAGE =
  * Builds the `ACTION_SEND` intent for [file] — split out from [exportAndShareTrack] so the intent's
  * own shape (mime type, URI, flags) is testable without actually driving a share sheet, the same
  * split `com.zynergylabs.forager.app.ui.availability.directionsIntent`/`launchDirections` uses. Uses the same
- * `${applicationId}.fileprovider` authority as the app's other shares — see
+ * `${applicationId}.fileprovider` authority the crash-log share action does — see
  * `res/xml/file_paths.xml`'s `tracks` cache-path entry for why a different path, not a different
  * authority, is what's new here.
  */

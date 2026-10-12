@@ -5,8 +5,11 @@
   photos, never needs a FileProvider URI — this app only ever reads and writes it directly as
   files, it never grants another app access to it.
 
+  `crashes/` is not here since dispatch 2026-10-11 (RECORD -830): crash capture and its viewer, the
+  only thing that shared from it, are debug-only, so the entry lives in src/debug's file_paths.xml.
+
   `tracks/` is com.zynergylabs.forager.app.export.TrackGpxExporter's directory, under Context.cacheDir rather
-  than external-files-path — an exported GPX file only needs to survive
+  than external-files-path — unlike a crash report, an exported GPX file only needs to survive
   long enough for the share-sheet target app to read it, not to accumulate for later on-device
   inspection. Exposed here so the Settings "Recorded Tracks" export action can hand a track to
   another app (a map app, email) via Intent.ACTION_SEND.

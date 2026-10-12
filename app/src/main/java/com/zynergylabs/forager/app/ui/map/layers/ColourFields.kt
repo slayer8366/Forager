@@ -31,8 +31,8 @@ const val SYNTHETIC_DATA_CREDIT = "Synthetic test data"
  * The two synthetic test layers (map layers L0b, B6, as planner message 2 changed it): one chance
  * layer per group, for the forecast project's first two groups (forager-forecast D9), named as test
  * data so the fixed term for the real number is never attached to fake values (owner: "Real format,
- * 'test data' name"). Their cells come only from a synthetic store, which this build does not have;
- * the app's store reports no forecast data, so neither layer is ever offered or drawn.
+ * 'test data' name"). Their cells come only from the debug build's synthetic store; the release
+ * build's store reports no forecast data, so neither layer is ever offered or drawn there.
  *
  * The ramps are the L0b coder's choice, stated in the completion report. Both run light to dark, in
  * hues away from the marker palette's purples and magentas (`MapPalette`), and each starts at a

@@ -8,7 +8,7 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
  * Shown when a capture lands with no find open — see
  * [MushroomLogViewModel.rescueCaptureWithNoEditingEntry]. **Says where the photo went, not that
  * something went wrong** (owner's wording, 2026-09-17): the user's problem at that moment is
- * finding their picture. Internal
+ * finding their picture, and the failure is carried by the diagnostics entry instead. Internal
  * rather than private so the test asserts the string the user sees rather than a copy of it.
  */
 internal const val PHOTO_SAVED_TO_ALBUM_MESSAGE = "Photo saved to album."

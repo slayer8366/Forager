@@ -19,7 +19,8 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * [TrackGpxExporter] is pure `java.io.File` plus [GpxCodec] — no Android dependency — so this runs
- * as a plain JVM test, no Robolectric needed. See that class's own doc comment.
+ * as a plain JVM test, no Robolectric needed. See that class's own doc comment, and
+ * [com.zynergylabs.forager.app.crash.CrashFileStoreTest] for the same shape applied to its own sibling class.
  */
 class TrackGpxExporterTest {
 

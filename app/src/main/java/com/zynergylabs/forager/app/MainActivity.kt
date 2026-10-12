@@ -126,6 +126,11 @@ class MainActivity : ComponentActivity() {
                     container,
                     viewModel,
                     androidErrorLog,
+                    // A capture that lands with no find open is saved to the album and recorded where the
+                    // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
+                    recordCaptureWithoutEditingEntry = { photoId, error ->
+                        (application as? ForagerApplication)?.diagnostics?.recordCaptureWithoutEditingEntry(photoId, error)
+                    },
                 )
             }
         }
@@ -721,6 +726,7 @@ class MainActivity : ComponentActivity() {
                     onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                     onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                     waypointsLoaded = trackUiState.waypointsLoaded,
+                    crashFileStore = container.crashFileStore,
                     // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
                     // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
                     // pending delete, and never for a track that is still recording.
