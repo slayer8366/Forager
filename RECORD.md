@@ -16526,3 +16526,18 @@ The planner's reading, recorded here for the owner to correct: while navigating 
 After that, the owner's merge word and the device items.
 **Abort conditions:** a visible change beyond the rulings and step paths; a conflict with a recorded ruling; two failed attempts on one failure.
 **Notes:** Written by the planner by hand, on branch records-after-173. The previous coder (dispatch 2026-10-12-06) was stopped by the owner at about 12:05 UTC, according to the previous planner session (-946's notes). This coder runs as a subagent of the current planner session. Next free ID -948.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-948
+**Timestamp:** 2026-10-12T12:46:09Z
+**Continues:** 2026-09-28-945, 2026-09-28-946
+**Title:** Rounded map strip: in portrait the compass strip also stays while navigating and its card extends down past a line; the heading moves down beside the turn needle; landscape keeps its tuck (owner, whole path not yet confirmed)
+**The owner, verbatim:** "Have it act the same in portrait also, but have the card just extend down rather than a dual tuck, and a line to separate the heading and nav info". To the planner's restated portrait path, which noted that the two arrows would no longer sit side by side (against -932's "so both arrows can be side by side"): "Yes, but keep arrows together". To whether landscape gets the same extend-down card: "Keep the tuck in landscape". To where the turn needle goes (offered: stacked under the strip's north arrow, nothing moving, recommended): "Side by side, heading moves down". The planner had said that landscape's card would follow the same choice.
+**What it sets, as answered so far:**
+- **Portrait, navigating:** the compass strip stays tucked under the pill. Its line drops the north arrow and heading, leaving "344 ft · grid reference · ⋮". Its card extends down past a thin line, rather than a second card tucked under it. Below the line sit the distance; the turn words and needle with the north arrow and heading beside them; the kind word; the evening stack; and the X.
+- **Landscape, navigating:** as -946, but the north arrow and heading move from the strip into the tucked card in the same way.
+- When navigation ends, the heading returns to the strip's line.
+**Not yet confirmed:** the planner restated the whole path in both orientations, and the owner answered "Not quite". The change is pending, and nothing is dispatched on this entry.
+**Notes:** Written by the planner by hand, on branch records-after-173. The coder started under -947 stopped at the session usage limit before reading its dispatch, having built and pushed nothing (rounded-map-strip still 4b8e5c6c). Next free ID -949.
