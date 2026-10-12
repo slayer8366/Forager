@@ -16332,3 +16332,14 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 - "Yes. Go ahead and leave zero margin between the card and the edge of the screen, the curves can meet the edge and that will look sleek too and give a bit more space." This confirms that the tuck supersedes -728's no-hang-down, the lower-case turn words with the needle after them supersede -656's form, the pill is over the map only, and in landscape the pieces touch edge to edge with Try again beside its message.
 **What it sets:** step 2 of 2026-10-12-06 is a go with these answers. The card runs to the screen's side edges, with its rounded corners meeting them. The planner's reading, for the owner to correct from the screenshots: the pill and the compass strip match the card's full width, since the mockup draws pill and card the same width.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -935.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-935
+**Timestamp:** 2026-10-12T06:45:50Z
+**Continues:** 2026-09-28-934
+**Title:** Rounded map strip: the card keeps everything today's strip shows (owner)
+**The owner, verbatim:** "The same info can stay as they were, the ordering makes it look neat and intentional and the curves and card stack look make it look neat". Asked whether that means everything stays, just reordered and restyled: "Yes, keep everything (Recommended)".
+**What it sets:** -934's "Problems only" is replaced. The conditional line under the columns carries everything today's status line does, "Approaching" and the straight-line note included, and shows only when it has something to say. Only the order and the look change. -934's trimming order still applies on narrow phones.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -936.
