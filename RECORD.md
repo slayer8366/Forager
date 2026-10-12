@@ -16355,3 +16355,17 @@ The compass strip keeps its one line, restyled as the rounded, tucked card. Land
 **The owner, verbatim answers:** "Grid ref drops to its own line (Recommended)", "Yes, slightly tighter (Recommended)", "Yes, \"≤ 16 ft\" when tight (Recommended)".
 **What it sets:** fit order: first -934's trims (kind word, turn words to degrees and needle, Alt label), and "≤ 16 ft" for "within 16 ft" (distanceShortForm, -768). If the columns still don't fit, the grid reference leaves the right column for a full-width line under the columns, whole and tappable. The distance, Alt and compass keep their columns, with the two arrows side by side. The card uses the tighter spacing (about 4 dp padding, 6 dp divider gaps). Planner's call under -934: in landscape the card still touches the bar edge to edge.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -937.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-937
+**Timestamp:** 2026-10-12T07:48:53Z
+**Continues:** 2026-09-28-932
+**Title:** Rounded look extends to the bottom navigation bar and the map credit strip (owner)
+**The owner, verbatim:** "While we're at it, let's give the botton navigation buttons the same rounded edge treatment so it looks uniform. The open street maps tint strip can also have a rounded corner on the right side only, since the left runs to the edge" (from a phone screenshot kept off GitHub, copy at ~/Zynergy/device-evidence/2026-10-12-nav-strip-mockup/owner-map-screen.png). Asked to confirm the planner's reading: "Yes, as described (Recommended)".
+**What it sets:** added to dispatch 2026-10-12-06, in this beta:
+- The bottom navigation bar gets rounded top corners. It stays full width, runs to the screen's bottom edge, and keeps its fill as now (80% over the map).
+- The map credit strip gets its right-hand corners rounded; its left side stays square at the screen edge.
+- Map touches in the newly exposed corner areas reach the map.
+**Notes:** Written by the planner by hand, on branch records-after-173. Both coders were stopped at about 07:15 UTC by a session usage limit, which reset at 07:30 UTC. Work was pushed: strip-dev-tools 70e49d63, dev d70d470d, rounded-map-strip 36deac3d. Next free ID -938.
