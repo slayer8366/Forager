@@ -16066,3 +16066,28 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **Planner's notes (unverified against the app, to check before any dispatch):** finds already take photos and notes, and entries take notes, tags and photos. Structured multiple-choice conditions (weather, substrate) don't exist as far as the planner knows. They would also give the forecast labelled data it lacks. The app has List and Seasonal tabs and an offline fungi index (fungi_index.db), so part of a reference guide may exist. East Tennessee is outside both T1 boxes (PNW 42-49.5 N; East 38-46 N, 84-70 W, t1_design.py:35-36).
 **What it sets:** nothing yet; ideas for the owner to prioritise.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -917.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-917
+**Timestamp:** 2026-10-12T05:10:40Z
+**Continues:** 2026-09-28-906
+**Title:** Production release: one small release, code shrinking off, native symbols on, lint counted first (owner)
+**Rulings (owner, verbatim answers):** D1 "One small release (Recommended)" (offered: two releases, owed checks and serious warnings first). D2 "Leave it off (Recommended)" (offered: turn it on now). D3 "Add them (Recommended)" (offered: leave the warning). On D4 the planner asked first whether to count the warnings, and the owner chose "Count them now, on CI (Recommended)" (offered: after the meeting).
+**What it sets:** the production release is one release: the lint fixes the owner chooses, native debug symbols, a short tidiness list, and the owed device checks (task list T7). Code shrinking (R8) stays off this release, so Play's deobfuscation warning stays. Native symbols are in scope. Not checked yet: whether symbols clear Play's warning if the map library ships its native parts stripped, and whether the owner's build machine needs the NDK. T4 is dispatched separately, on the owner's go. Lint: dispatch prompts/preserved/2026-10-12-01.md (intent -918), a CI-only survey with no fixes. The owner chooses D4's categories and D5's tidiness list from its report. Premises re-checked at 921aa9c7 before asking: isMinifyEnabled = false (app/build.gradle.kts:288); no lint block or baseline in the tree; CI runs assembleDebug and testDebugUnitTest only (ci.yml:116, :187). Raised to the owner, unverified: some Play account types need a closed test of a set number of testers and days before production access, which Play Console shows.
+**Notes:** Written by the planner by hand, on branch records-after-173. The same exchange offered a phone line for the OMS briefing card, and the owner chose "Leave the card as is"; nothing changes, so no entry. Next free ID -918.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-918
+**Timestamp:** 2026-10-12T05:10:41Z
+**Title:** Android lint survey on CI (production release T1), count only
+**Dispatch-file:** preserved/2026-10-12-01.md
+**Change:** A scratch branch, scratch-lint-survey, adds a lint job to CI (output-only lint settings) and runs it with the run-this-branch trigger. A report branch, lint-survey, holds docs/audits/2026-10-12-lint-survey.md with counts by severity, category and issue id, the lint XML, a counting script with a positive control, and one index row.
+**Scope boundary:** No lint fixes; no baseline; no check disabled or downgraded; the existing CI build job unchanged; no Gradle on the laptop; no PR; no branch deleted; main, pre-main and records-after-173 untouched. R8 and native symbols are out of scope.
+**Baseline:** origin/main 921aa9c7
+**Finish line:** Both branches pushed. The counter's positive control passes. The lint run's three totals (script, issue-element count, lint's own summary) agree or the difference is explained. The report has the counts, the plain-language section for the owner and a could-not-determine section. A terminal entry closes this intent.
+**Abort conditions:** Lint is already configured, or the dispatch trigger doesn't run the branch's ci.yml. Lint fails on CI after one retry. Running it needs more than a job and output-only settings. The totals disagree unexplained.
+**Notes:** Written by the planner by hand, on branch records-after-173. The coder runs as a subagent on opus in its own worktree. Next free ID -919.
