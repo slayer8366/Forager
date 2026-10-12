@@ -15936,3 +15936,13 @@ The S26 minus S22 pressure offset averaged 0.76 hPa, with a 1.48 hPa spread. How
 **The owner, verbatim:** "Production release first, then trail nav and maps (Recommended)" (offered: trail nav and maps first; both together).
 **What it sets:** the next release is -831's production release, app tidiness plus an Android lint round, mostly behind the scenes, carrying what main now holds (journal entry page, barometer height, Records tidy, Navigate from entry maps). The Pi side may start the map pipeline meanwhile, on its own machine, once the owner relays prompts/preserved/2026-10-11-04-pi-relay.md. Trail navigation and maps (-904) are the update after. Scope and order only: no dispatch starts without the owner's go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -906.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-906
+**Timestamp:** 2026-10-12T01:16:57Z
+**Title:** Production release task list written (proposal)
+**The owner, verbatim:** "Write a task list for production release".
+**What it records:** docs/plans/2026-10-11-production-release-tasks.md on this branch. It sets out five decisions for the owner (D1 the cut, D2 R8, D3 native symbols, D4 lint policy, D5 tidiness items), then tasks T1 to T9 with a verification for each: lint survey, lint fixes, lint on CI, symbols, R8 if chosen, tidiness, the owed device checks as gate, the owner's build, and a store listing check. Proposal only; nothing dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -907.
