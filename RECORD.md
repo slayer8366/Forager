@@ -16020,3 +16020,13 @@ Built on a preview with check.py and slider_check.py at 390x844 and 1366x860, pl
 **The owner, verbatim:** "This only happens on [that browser]. Every other mobile browser works as I would expect. Desktop mode, the map is very tall, should be cut to 1x1".
 **What it sets:** a site coder diagnoses the panel issue in that browser before fixing. Suspects, unverified: an older engine without dynamic viewport units, or the browser's own text-size setting. The fix keeps the panel inside the map area in every browser. In the wide (desktop) layout, the map's height is capped at its width (1:1), which binds only when the window is taller than it is wide; landscape laptops are unchanged. Checks run on a preview, with that browser's behaviour reproduced if possible. The merge is on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -913.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-913
+**Timestamp:** 2026-10-12T04:40:35Z
+**Title:** A habitat map for mycorrhizal mushrooms as a group (owner, scope)
+**The owner, verbatim:** "I think it would be worthwhile having a map focused on mycorrhizal mushrooms for now. It's already geared in that direction and this is something that can benefit more than foragers". Asked what it should show, the owner chose "Habitat: where mycorrhizal fungi can grow (Recommended)" (offered: weekly forecasts for several mycorrhizal species; both, habitat first).
+**What it sets:** scope only, not a go-ahead. A habitat map, not a weekly forecast, of where host trees and soils suit mycorrhizal mushrooms as a group, for foresters, ecologists and land managers as well as foragers. It builds on the drafted T7 habitat dispatch (forager-forecast pnw-pilot-plans, docs/dispatch/2026-10-11-t7-pnw-pilot-habitat.md), widened from chanterelles to the mycorrhizal group. T7's open owner decisions O4 (ecoregion level) and O7 (merge order and base branch) still need answers before it starts. Where it sits against the production release (-905) and trail navigation and maps (-904) is not yet asked. Forecast-repository decision numbers and the review protocol (D18) apply when it is dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -914.

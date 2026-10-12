@@ -120,3 +120,7 @@ The owner said "Merge when ready". zynergy-site PR #13 was merged as 6abc74f0 at
 ## Addendum 3: two site issues after PR #13 (RECORD -912)
 
 In one phone maker's built-in browser, the opened phone panel runs up over the header; other mobile browsers are fine. In desktop mode on a phone, the map is too tall, and the owner wants it capped at 1:1. A site coder was dispatched from the old session on -912; check zynergy-site for its branch or PR. The merge is on the owner's word. **Next free RECORD ID: -913.**
+
+## Addendum 4: a mycorrhizal habitat map (RECORD -913)
+
+The owner wants "a map focused on mycorrhizal mushrooms", meaning a **habitat** map: where host trees and soils suit mycorrhizal mushrooms as a group, not a weekly forecast, useful beyond foragers. It widens the drafted T7 (forager-forecast pnw-pilot-plans docs/dispatch/2026-10-11-t7-pnw-pilot-habitat.md) from chanterelles to the group. This is scope only. Before dispatching, ask the owner T7's O4 and O7, and where it sits against the production release and trail navigation and maps. **Next free RECORD ID: -914.**
