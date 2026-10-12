@@ -124,3 +124,14 @@ In one phone maker's built-in browser, the opened phone panel runs up over the h
 ## Addendum 4: a mycorrhizal habitat map (RECORD -913)
 
 The owner wants "a map focused on mycorrhizal mushrooms", meaning a **habitat** map: where host trees and soils suit mycorrhizal mushrooms as a group, not a weekly forecast, useful beyond foragers. It widens the drafted T7 (forager-forecast pnw-pilot-plans docs/dispatch/2026-10-11-t7-pnw-pilot-habitat.md) from chanterelles to the group. This is scope only. Before dispatching, ask the owner T7's O4 and O7, and where it sits against the production release and trail navigation and maps. Positioning (-914): other apps map burn morels; Forager takes the mycorrhizal angle. **Next free RECORD ID: -915.**
+
+## Addendum 5: the -912 fixes are in PR #14 (not merged)
+
+- **PR:** zynergy-site PR #14 (https://github.com/slayer8366/zynergy-site/pull/14), head b39970382670184521da816697b00b91bde67c0e, on main 6abc74f0. The Pages check passed.
+- **Preview:** https://ff060a20.zynergy-site.pages.dev/Forager/forecast/
+- **Results:** check.py 71/71, slider 34/34, phone_check 22/22 (7 new, each shown failing on a broken copy first; main itself fails 3 of them).
+- **What changed:**
+  - The panel is now bounded inside the map area by several independent means.
+  - The desktop map is capped square (980x1700 window gives a 660x660 map; 1366x860 is unchanged).
+- **Cause in the affected browser: not confirmed.** The symptom matches an unbounded panel; the owner's two suspects (no dvh, large text) did not reproduce it in Chromium 140.
+- **Recommended before merging:** the owner opens the preview in that browser and confirms. Then the merge on the owner's word, with the usual backup, production check and merge entry.
