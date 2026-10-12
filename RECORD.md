@@ -16633,3 +16633,14 @@ After that, the owner's merge word and the device items.
 - **Portrait is unchanged.**
 - **Unasked, so the coder reports rather than moves anything:** whether the card covers the map's info button or other bottom chrome.
 **Notes:** Written by the planner by hand, on branch records-after-173. This replaces the card-under-the-strip placement in landscape (-946, -950, -951); -951's widths stand. Next free ID -954.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-954
+**Timestamp:** 2026-10-12T18:57:52Z
+**Continues:** 2026-09-28-953
+**Title:** Landscape: the map's info button moves next to the map credit strip (owner)
+**The owner, verbatim:** "Have the map i next to the open street maps logo", and, asked about orientation, "Just landscape".
+**What it sets:** in landscape the map's ⓘ info button sits beside the credit strip at the bottom of the screen. Portrait is unchanged. The ⓘ still opens what it opens now; only its position changes.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -955.
