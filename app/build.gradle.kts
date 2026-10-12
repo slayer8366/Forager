@@ -318,6 +318,21 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    // SCRATCH BRANCH ONLY (scratch-lint-survey; dispatch 2026-10-12-01, RECORD -918): output
+    // settings for a one-off lint count on CI, never for merging. Report formats and paths only,
+    // plus abortOnError = false so the lint job's own result says whether lint ran to the end,
+    // not whether it found errors. Nothing here changes which checks run or how severe they are:
+    // no baseline, no disable/enable, no severity override, and checkTestSources,
+    // checkGeneratedSources and checkDependencies are left at lint's defaults.
+    lint {
+        abortOnError = false
+        xmlReport = true
+        htmlReport = true
+        sarifReport = true
+        textReport = true
+        textOutput = file("build/reports/lint-results-debug.txt")
+    }
 }
 
 /**
