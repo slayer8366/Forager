@@ -16679,3 +16679,13 @@ After that, the owner's merge word and the device items.
 - The camera cut-out still keeps controls out of it, on whichever side it falls.
 **Correction:** the port-edge rule was carried as an owner closed decision, quoting "Keep the icon strip at the port side." (2026-09-27-35's notes). The owner says the side bar following the port was never their call. The quote was applied to the side bar by planner reading.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -957.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-957
+**Timestamp:** 2026-10-12T20:32:18Z
+**Corrects:** 2026-09-27-35 (its notes' closed decision "Keep the icon strip at the port side."), and -956's correction line
+**The owner, verbatim:** "I didn't say to keep it on the port side. I said the left side."
+**What it corrects:** the owner's ruling was the left side. The words "at the port side" in 2026-09-27-35's notes misquote it, and the landscape port-edge layout was built on that misquote. -956's line saying the quote was applied to the side bar by planner reading is also wrong: the quote itself was wrong.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -958.
