@@ -16768,3 +16768,18 @@ After that, the owner's merge word and the device items.
 - **dev:** rebased onto 497423d6 after a backup (dev-20261013T023954Z-1f64ab87.bundle), cleanly. It is one commit, 89948306.
 **Not checked:** the device items (the map facing in landscape both ways round, portrait unchanged, the strip heading, the puck's cone); dev's CI on 89948306. The coder's branch revert-check/landscape-heading is still on the remote.
 **Notes:** Written by the planner by hand, on branch records-after-173. The beta (-923) can now be built from main. Next free ID -962.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-962
+**Timestamp:** 2026-10-13T06:57:42Z
+**Continues:** 2026-09-28-923
+**Title:** The tester build is out: 3292 (1.0.3292+g497423d6) on closed testing, Alpha (owner)
+**Observed:** the owner built the release bundle from main 497423d6 (./gradlew bundleRelease, signed with signing/Forager Keys/forager-upload.jks through signing.properties) and uploaded it. From the owner's screenshot of the Play Console, kept off GitHub: release 3292 (1.0.3292+g497423d6), "Available to selected testers", closed testing, Alpha, with the update published Oct 12. The owner, verbatim: "They accepted it pretty quick".
+**What it means:** -923's tester build has shipped, and it carries #221 (the rounded strip) and #222 (the landscape heading). This is the first release-variant build of main since the dev tools left it (-930), built on the owner's machine, not on CI.
+**Not checked:**
+- the bundle's certificate against forager-SHA.txt (the commands were given; no result was reported);
+- the release-build checks (Settings has no Diagnostics or Crash logs rows; recording, export, photos and Return work);
+- the open device items from -959 and -961.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next: the production release (-905, -917: D4 lint, D5 tidiness). Next free ID -963.
