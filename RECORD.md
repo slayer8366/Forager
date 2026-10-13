@@ -16783,3 +16783,29 @@ After that, the owner's merge word and the device items.
 - the release-build checks (Settings has no Diagnostics or Crash logs rows; recording, export, photos and Return work);
 - the open device items from -959 and -961.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next: the production release (-905, -917: D4 lint, D5 tidiness). Next free ID -963.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-963
+**Timestamp:** 2026-10-13T13:11:49Z
+**Title:** Share finds to iNaturalist through its own app, in a review queue; a companion app comes later (owner)
+**Context:** after the OMS meeting the owner reported interest in the forecast, and "a good point about needing more observations for the forecast".
+**The owner, verbatim:**
+- "I think we should go ahead with planning a feature to that offers to upload our finds to iNaturalist."
+- Then: "This doesn't really fit the scope of Forager too well. Maybe have it become a companion app, so that way it's not limited to Forager?"
+- Offered (a) a share button handing finds to iNaturalist's own app, (b) a companion app, (c) upload built into Forager: "A and B, it could fit as the ID app".
+- Then: "A, and allow the user to select multiple finds, and they can be added to a queue, while the user goes through and edits/confirms their find, then it moves to the next one. Offer to send GPS location to each find".
+- Then: "Start with on. Offer each time" and "They can select from the map > open in journal > share to iNaturalist".
+**What it sets:**
+- **Near term, in Forager:**
+  1. Select several finds in the Journal, or reach one from the map through "Open in journal".
+  2. Tap "Share to iNaturalist".
+  3. For each find in turn, review and edit it (edits save to the journal), with "Include location" on to start, offered each time.
+  4. Confirm hands its photos (and location, if included) to iNaturalist's app.
+  5. Coming back moves to the next find. A find can be skipped, or the queue stopped.
+  6. Sent finds show "Sent to iNaturalist", not "posted", since Forager can't see whether posting finished.
+- **Later:** a companion app takes over uploading, alongside the identification system.
+- **Unchanged:** the no-identification rule. A share carries only the user's own ID, or none.
+**Next:** a read-only check of iNaturalist's app (dispatch 2026-10-13-01) before any spec: does it accept shared photos, several at once, and read their location?
+**Notes:** Written by the planner by hand, on branch records-after-173. The check is recorded by this entry; it builds nothing. Next free ID -964.
