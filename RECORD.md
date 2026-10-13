@@ -16703,3 +16703,31 @@ After that, the owner's merge word and the device items.
 - The cut-out still keeps controls out of it on whichever side it falls.
 - The photo's own orientation handling (capture tags, the intended-orientation logic) is not touched; only where controls sit on screen changes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -959.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-959
+**Timestamp:** 2026-10-13T01:54:28Z
+**Closes:** 2026-09-28-932, 2026-09-28-950
+**PR:** Forager 221
+**Head:** rounded-map-strip
+**Base:** main
+**Merge-commit:** 5403ec02f92d0b46a39b4acedce6c58a465b5f47
+**Pre-merge:** a576c051c1dea40c01eb09fb74af0c00f59025f7
+**Backup:** 2026-10-12-07 (forager-main-pre-221.bundle, verified okay, sha256 8bacbeb21ac28210…)
+**Observed:** the rounded map strip is on main, as ruled in -932 to -958.
+- **The owner, verbatim:** after trying the CI build on the phone: "I tried it. Looks good." Asked how to proceed: "merge then start a new branch for the fix as you proposed". Behind the design, for the record: "Distance by trail is the only honest framing. And keeping it to one number is less UI clutter" (-943).
+- **The merge:** the planner merged PR #221 at 2026-10-13T01:53:17Z, pinned to head 43961928. CI was green there and at 3e21948e (run 38309436037: 607 suites, 4,676 tests, 0 failures, 24 skipped).
+- **The planner's read of the diff:**
+  - no @Ignore added;
+  - 11 @Test lines removed and 94 added;
+  - four test files lose more assertions than they gain (LandscapeBarStripJoinTest, LandscapeSearchFixesTest, NavigationHudButtonPlacementTest, InAppCameraDialogLandscapeTest), each with its old and new assertion and ruling listed in the report (docs/audits/2026-10-12-rounded-map-strip-report.md).
+- **Revert checks:** r1 to r30, recorded in the report. The coder deleted its own branches. The seven older revert-check branches (r3b, r15 to r19) remain on the remote.
+- **dev:** rebased by the planner onto 5403ec02 after a backup (dev-…-0ed8b3f0.bundle). It is one commit, 1f64ab87. One import conflict in AvailabilityScreen.kt was resolved by keeping dev's crash and diagnostics imports and dropping two that main no longer uses. CI run 38334308123 started on the push.
+**Not checked:**
+- the release variant;
+- the dev CI result, which was still running when this was written;
+- the device items: the navigation bar at ROTATION_270, the rail over the cut-out, fullscreen insets, photos upright at both rotations, the credit strip against the card at 780 dp, the shadow's lighter patch.
+**Found on the phone, for a follow-up:** "When holding the phone in landscape while navigating, it does turn the map sideways as if it's still measuring portrait orientation." The owner confirmed this means the map's view, to be fixed on a new branch.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -960.
