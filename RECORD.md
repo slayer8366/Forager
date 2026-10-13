@@ -16809,3 +16809,30 @@ After that, the owner's merge word and the device items.
 - **Unchanged:** the no-identification rule. A share carries only the user's own ID, or none.
 **Next:** a read-only check of iNaturalist's app (dispatch 2026-10-13-01) before any spec: does it accept shared photos, several at once, and read their location?
 **Notes:** Written by the planner by hand, on branch records-after-173. The check is recorded by this entry; it builds nothing. Next free ID -964.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-964
+**Timestamp:** 2026-10-13T17:08:25Z
+**Continues:** 2026-09-28-963
+**Title:** iNaturalist share queue: no identification passed; dates always written to share copies; spec written (owner, planner)
+**Context:** the read-only check (dispatch 2026-10-13-01, the coder's report) found:
+- iNaturalist's Play app (org.inaturalist.android) takes a find's shared photos as one observation, up to 20 (ObservationEditor.java:3482-3540);
+- it reads GPS and its accuracy from the first photo's EXIF, without filling the current position;
+- it reads the date from EXIF and blanks it when none is found (:3800-3853);
+- it accepts no documented name or notes, only an undocumented species_guess extra (:1062);
+- after saving, it calls finishAndRemoveTask (ObservationListActivity.java:813-815), which would close a task Forager launched it into;
+- it blocks some sharing apps over stripped metadata (issue #811);
+- a replacement app is in closed testing and treats multiple shared photos as separate observations.
+Forager's camera scrub removes the date with the location (PhotoMetadataScrub.kt:56).
+**The owner, verbatim:** asked whether to pre-fill the user's own identification through the undocumented extra: "A - skip it".
+**What it sets:**
+- **The owner's ruling:** no name or identification goes with a share.
+- **The planner's calls, for the owner to correct:**
+  - share copies always carry the find's date and time, and GPS and accuracy only with "Include location" on; the originals are never changed;
+  - iNaturalist opens in its own task, and the queue position is saved;
+  - a new "Sent to iNaturalist" state records the date sent, and re-sharing a sent find says so first;
+  - with iNaturalist not installed, the button says so and offers its Play page.
+- **The spec:** docs/plans/inaturalist-share-queue.md on branch inat-share-spec, for the owner's review. Not dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -965.
