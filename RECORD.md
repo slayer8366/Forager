@@ -16746,3 +16746,25 @@ After that, the owner's merge word and the device items.
 **Finish line:** the coder's report answered. Then a PR on green CI with a test shown failing first at ROTATION_90 and ROTATION_270, and a revert check. After that the owner's merge word and the device items.
 **Abort conditions:** a visible change beyond the map's facing and the heading readouts; a conflict with a recorded ruling; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -961.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-961
+**Timestamp:** 2026-10-13T02:40:07Z
+**Closes:** 2026-09-28-960
+**PR:** Forager 222
+**Head:** landscape-heading
+**Base:** main
+**Merge-commit:** 497423d60603216f1e8bdcb606772415b6f779c0
+**Pre-merge:** 5403ec02f92d0b46a39b4acedce6c58a465b5f47
+**Backup:** 2026-10-12-08 (forager-main-pre-222.bundle, verified okay, sha256 7ea2e9977c77e5b2…)
+**Observed:** in landscape the compass heading now follows the display rotation.
+- **The owner, verbatim:** "Go ahead and merge". The planner merged PR #222 at 2026-10-13T02:39:47Z, pinned to head fd83d9f2, on green CI (run 38335428233: 4,685 tests, 0 failures, 24 skipped).
+- **The cause:** AndroidCompassProvider never remapped for display rotation. f94f29ff (2026-10-03) replaced the map library's compass engine, which did remap, and nothing recorded the loss.
+- **The fix:** remapCoordinateSystem per event, on both sensor paths, with an axis-pair function; ROTATION_0 is unchanged.
+- **The tests:** shown failing at base (run 38334892219: 6 of 8, "expected 120 / 300 but was 30"). The revert check (run 38335441020) failed 6 for the right reason.
+- **The planner's read of the diff:** three files; no @Ignore; no assertion removed.
+- **dev:** rebased onto 497423d6 after a backup (dev-20261013T023954Z-1f64ab87.bundle), cleanly. It is one commit, 89948306.
+**Not checked:** the device items (the map facing in landscape both ways round, portrait unchanged, the strip heading, the puck's cone); dev's CI on 89948306. The coder's branch revert-check/landscape-heading is still on the remote.
+**Notes:** Written by the planner by hand, on branch records-after-173. The beta (-923) can now be built from main. Next free ID -962.
