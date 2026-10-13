@@ -176,7 +176,7 @@ class AndroidCompassProvider(private val context: Context) : CompassProvider {
      */
     private fun screenHeading(rotationMatrix: FloatArray, remappedMatrix: FloatArray, orientation: FloatArray, display: Display?): Float {
         val axes = if (display != null) {
-            displayRemapAxes(display.rotation)
+            displayRemapAxes(Surface.ROTATION_0)
         } else {
             if (!loggedNoDisplay) {
                 loggedNoDisplay = true
