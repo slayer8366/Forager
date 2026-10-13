@@ -16836,3 +16836,13 @@ Forager's camera scrub removes the date with the location (PhotoMetadataScrub.kt
   - with iNaturalist not installed, the button says so and offers its Play page.
 - **The spec:** docs/plans/inaturalist-share-queue.md on branch inat-share-spec, for the owner's review. Not dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -965.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-965
+**Timestamp:** 2026-10-13T17:11:33Z
+**Title:** Alan Rockefeller's permission to use his GitHub repositories (owner)
+**The owner, verbatim:** "Alan Rockefeller gave me his github and said I can use anything on it. I want to see what we can use from his repository: www.github.com/AlanRockefeller", and, told a written note would settle GPL-licensed code: "I have his permission to use anything".
+**What it means:** code and ideas from github.com/AlanRockefeller may be used in Forager, forager-forecast and the future companion app, on the owner's word that Alan gave permission. His copyright notices are kept, and credit is given where his code is used. A read-only survey of the relevant repositories is under way; nothing is taken yet.
+**Notes:** Written by the planner by hand, on branch records-after-173. The permission was given to the owner in person; there is no written copy in any repository. Next free ID -966.
