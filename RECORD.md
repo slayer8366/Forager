@@ -16731,3 +16731,18 @@ After that, the owner's merge word and the device items.
 - the device items: the navigation bar at ROTATION_270, the rail over the cut-out, fullscreen insets, photos upright at both rotations, the credit strip against the card at 780 dp, the shadow's lighter patch.
 **Found on the phone, for a follow-up:** "When holding the phone in landscape while navigating, it does turn the map sideways as if it's still measuring portrait orientation." The owner confirmed this means the map's view, to be fixed on a new branch.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -960.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-960
+**Timestamp:** 2026-10-13T01:54:58Z
+**Title:** In landscape while navigating, the map faces the way the person is facing (owner)
+**Dispatch-file:** preserved/2026-10-12-09.md
+**The owner, verbatim:** "When holding the phone in landscape while navigating, it does turn the map sideways as if it's still measuring portrait orientation. When using landscape in navigation mode, can the camera face the right way?" Then: "1 yes that is correct" (camera means the map's view) and "2 merge then start a new branch for the fix as you proposed".
+**Change:** the heading-up map, the card's north arrow and the heading readouts account for the display rotation in landscape, at both rotations; portrait is unchanged. The cause is confirmed in the code first.
+**Scope boundary:** no change to navigation, routing or distance logic, photo capture orientation, or #221's layout beyond the fix. Branch landscape-heading. No Gradle on the laptop, no merge without the owner's word.
+**Baseline:** origin/main 5403ec02.
+**Finish line:** the coder's report answered. Then a PR on green CI with a test shown failing first at ROTATION_90 and ROTATION_270, and a revert check. After that the owner's merge word and the device items.
+**Abort conditions:** a visible change beyond the map's facing and the heading readouts; a conflict with a recorded ruling; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -961.
