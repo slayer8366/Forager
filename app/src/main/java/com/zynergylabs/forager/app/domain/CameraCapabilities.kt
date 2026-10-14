@@ -246,7 +246,6 @@ internal fun mapRawSizes(camera2: CameraReading<Camera2Readings>): Probed<List<P
     }
     val sizes = characteristics.rawSensorOutputSizes
         ?: return Probed.Unknown("the camera reports no stream configuration map")
-    if (sizes.isEmpty()) return Probed.Unsupported("the stream configuration map lists no RAW_SENSOR sizes")
     return Probed.Supported(
         sizes.sortedByDescending { it.width.toLong() * it.height },
         "the stream configuration map's RAW_SENSOR sizes",
