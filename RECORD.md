@@ -17478,3 +17478,13 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Title:** Planner handoff to the next session
 **Handoff-file:** prompts/preserved/2026-10-14-planner-handoff.md (this branch). The owner, verbatim: "Write a handoff for the next session please".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1001.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1001
+**Timestamp:** 2026-10-14T21:41:45Z
+**Title:** Coders run as helpers in the planner's session, on Opus, each in its own folder, and build on GitHub; the laptop is for forecast work (owner)
+**The owner, verbatim:** asked whether that is the standing arrangement: "3 yes. Build on github, use the laptop for the forecast work".
+**What it sets:** app coders are subagents of the planner session on Opus, each in its own worktree under ~/.cache/forager-wt/<branch>, with CI as the only build. The laptop's heavy capacity is for forager-forecast work. This confirms the practice in the record since -918, which had no owner words behind it, and replaces the memory that coders run in owner-opened windows.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1002.
