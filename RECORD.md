@@ -17131,3 +17131,18 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - -980's "tablets will rotate fully regardless" is withdrawn as an accepted outcome. Where Android 17 ignores the portrait request (displays 600 dp or wider at their narrowest), the app counter-rotates the camera's own layout, so it still appears fixed.
 - The coder reports how, and with what limits, before building that part.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -982.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-982
+**Timestamp:** 2026-10-14T04:37:51Z
+**Continues:** 2026-09-28-981
+**Title:** Camera: the screen stays fixed, icons turn by the accelerometer, photos save upright (B); tablets hold the layout the same way (owner)
+**Context:** PR #223's coder found that the old lock-on path froze everything. The icons didn't turn, and sideways photos were saved in portrait (domain/CameraOrientationPreferenceRepository.kt:13; AvailabilitySettingsUi.kt:492-494). So "as is" could mean (A) the old lock exactly, or (B) a fixed screen with icons turning in place and upright landscape photos. The app targets API 37 (app/build.gradle.kts:249).
+**The owner, verbatim:** "Tablets can lock portrait and rotate based on accelerometer position rather than screen orientation". The planner reads this as B: icons and photo rotation from the accelerometer, never from the screen's orientation.
+**What it sets:**
+- **Every device:** the camera screen stays in the device's natural portrait layout. Each icon turns in place by the accelerometer's reading. Photos save the right way up (landscape when held sideways).
+- **Phones:** the window is locked to portrait.
+- **Large screens, where Android 17 ignores that request:** the app holds the layout itself and keeps the icons on the accelerometer, so the window's rotation is never what the user sees. The coder reports the approach first.
+**Notes:** Written by the planner by hand, on branch records-after-173. If the owner meant A, this entry is corrected by the next one. Next free ID -983.
