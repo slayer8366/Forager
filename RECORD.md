@@ -17230,3 +17230,18 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - The navigation card, which takes the strip's width (-951), stays the same width too.
 - The search bar keeps the room it had, as for the wider form.
 **Notes:** Written by the planner by hand, on branch records-after-173. Planner's reading: the width rule is -729/-732's landscapeStripFit, which sizes the strip to its readouts. Folded into PR #224 (map-chrome-outline). Next free ID -988.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-988
+**Timestamp:** 2026-10-14T06:50:23Z
+**Continues:** 2026-09-28-976
+**Title:** Landscape: the search pill and compass strip are outlined all the way round, as in portrait (owner)
+**The owner, verbatim,** with a landscape screenshot kept off GitHub: "The pill in landscape isn't fully outlined".
+**What it sets:**
+- In landscape, the top bar's pieces are outlined all the way round, including the top edge and the outer ends: the search pill, and the compass strip beside it.
+- This extends -976's portrait ruling to landscape, and replaces -967 B there.
+- Where pieces touch, one shared line stays (-967 A): pill and strip; strip and rail.
+- The bottom navigation card and the rail are unchanged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Folded into PR #224. Next free ID -989.
