@@ -289,7 +289,6 @@ internal fun mapPhysicalCameras(physical: CameraReading<List<PhysicalCameraReadi
         is CameraReading.Failed -> return Probed.Unknown("the physical cameras could not be read: ${physical.reason}")
         is CameraReading.Read -> physical.value
     }
-    if (cameras.isEmpty()) return Probed.Unsupported("the camera reports no physical cameras")
     return Probed.Supported(
         cameras.map { camera ->
             PhysicalCameraCapabilities(
