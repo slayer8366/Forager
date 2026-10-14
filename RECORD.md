@@ -17448,3 +17448,24 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 - **RAW sizes differ:** 4000x3000 against 4080x3060.
 - **The S26's longest exposure** is about 0.18 s (back) and 0.42 s (front), against the S22's 0.10 s and 0.17 s.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -999.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-999
+**Timestamp:** 2026-10-14T20:15:33Z
+**Closes:** 2026-09-28-975
+**PR:** Forager 226
+**Head:** raw-stage1-probe
+**Base:** main
+**Merge-commit:** 4ade21f004e06b0f331e34215a5c7aff928f24cf
+**Pre-merge:** 94a10cc3d1426b86f3d57a3d7429b96bc7c35dc5
+**Backup:** 2026-10-14-03 (forager-main-pre-226.bundle, verified okay, sha256 3794214b8c7bd630…)
+**Observed:** RAW stage 1, the capability probe, is on main. It has no visible change.
+- **The owner, verbatim:** "Merge 226". The planner merged PR #226 at 2026-10-14T20:14:58Z, pinned to head 976c8415, on green CI (run 38617642734: 4838 tests, 0 failures, 24 skipped).
+- **What it does:** the probe logs, under tag CameraProbe, RAW, manual exposure, exposure compensation, geometry, physical cameras, the front camera and encoders, each as supported, unsupported or unknown.
+- **Readings:** confirmed on the S22 Ultra (-996) and the S26 Ultra (-998).
+- **The planner's read of the diff:** no @Ignore.
+- **dev:** rebased onto 4ade21f0 after a backup (dev-20261014T201506Z-0ef73f3b.bundle). One import-only conflict in CameraXCaptureSession.kt was resolved by keeping both import sets. It is one commit, 8bfb9eac.
+**Not checked:** dev's CI after the rebase; lint for the ExperimentalCamera2Interop opt-in (CI runs no lint).
+**Notes:** Written by the planner by hand, on branch records-after-173. The nine revert-check/raw-stage1-* branches remain on the remote. Next free ID -1000.
