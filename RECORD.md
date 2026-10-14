@@ -16964,3 +16964,19 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **Planner's call:** the empty panel says so plainly, "No camera settings yet", rather than opening blank.
 - The removed row's code goes into the archive document beside the lock's.
 **Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-03. Next free ID -973.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-973
+**Timestamp:** 2026-10-14T03:47:16Z
+**Continues:** 2026-09-28-969
+**Title:** RAW in Forager is for photo quality: frame averaging, HDR bursts and processing (owner)
+**The owner, verbatim:** "RAW photos is for frame averaging, HDR burst, and processing for photo quality". Asked to choose among keeping originals, measuring finds, better photos, or a combination.
+**What it sets:** the RAW port's purpose is better photos made on the phone from RAW bursts: averaging, HDR, then demosaic and tonemapping. Measurement is not its purpose; field measurement stays a separate project. The research sources and a proposed stage list are filed in slayer8366/Forager-app at docs/research/2026-10-13-raw-pipeline-plan-sources.md. Open decisions:
+- handheld alignment of burst frames;
+- storage and whether DNGs are kept;
+- how RAW is turned on;
+- DNG privacy;
+- adopting the experimental Camera2Interop.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -974.
