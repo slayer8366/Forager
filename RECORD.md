@@ -16867,3 +16867,23 @@ The credit pill and the other tabs are unchanged.
 **Finish line:** the coder's plan answered. Then a PR on green CI with pixel tests per piece in day and night, touch tests at the corner gaps, and revert checks. After that the owner's merge word and the device items.
 **Abort conditions:** a size or position change; a conflict with a recorded ruling; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. For the next release, not the beta already out. Next free ID -967.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-967
+**Timestamp:** 2026-10-14T03:23:01Z
+**Continues:** 2026-09-28-966
+**Title:** Map chrome outlines: one shared line where pieces touch; no line on the screen's own edges (owner)
+**Context:** the coder's plan for dispatch 2026-10-13-02 found two layout questions:
+- in landscape the search pill and strip meet edge to edge (RECORD -934's "no join line"), and the strip and card sit against the rail, so outlines on each would double at the joins;
+- in portrait the pill and strip run full width, so side outlines would lie on the screen's edges.
+**The owner, verbatim:** "1 C one line between the two like there is now" and "2 yes".
+**What it sets:**
+- **Where two outlined pieces touch, one shared 1 dp line is drawn:** pill and strip in landscape; strip or card against the rail. This replaces -934's "no join line" for the pill and strip join.
+- **No outline is drawn on a side that lies on the screen's own edge,** for the pill and strip as for the bottom bar. Only corners and edges facing the map are outlined.
+- **The rest of the coder's plan stands:**
+  - one shared outline setting, with the icon bar reading it too;
+  - the strip's outline open at its tucked top and clipped at the pill;
+  - nothing changes size.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -968.
