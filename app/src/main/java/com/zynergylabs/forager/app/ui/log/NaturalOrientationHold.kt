@@ -62,7 +62,7 @@ internal fun HoldNaturalOrientation(
     content: @Composable BoxScope.(windowIsLandscape: Boolean, displayRotation: Int) -> Unit,
 ) {
     val turns = naturalHoldQuarterTurns(displayRotation, fullScreen)
-    val held = turns != 0
+    val held = true
     val density = LocalDensity.current
     val windowEdges = WindowInsets.displayCutout.union(WindowInsets.navigationBars)
     val bandInsets = if (!held) null else with(density) {
