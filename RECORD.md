@@ -17272,3 +17272,29 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 - **Planner's reading of "the same treatment",** as -989 for portrait's bottom bar: the rail is outlined along its inner edge and rounded corners, and along its top and bottom edges out to the screen's edge. The edge that meets Android's own navigation buttons stays open.
 - **The landscape gap:** the coder finds where the outline breaks (the owner's screenshot is the evidence) and closes it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Folded into PR #224. Next free ID -991.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-991
+**Timestamp:** 2026-10-14T10:07:02Z
+**Closes:** 2026-09-28-966
+**PR:** Forager 224
+**Head:** map-chrome-outline
+**Base:** main
+**Merge-commit:** 5f16d76988cb9810c2b11b2351cffc8945c18856
+**Pre-merge:** 850cbad088c74eb39da5e93c3c7216190d4f560d
+**Backup:** 2026-10-14-01 (forager-main-pre-224.bundle, verified okay, sha256 5a27c9be4f1b3c4b…)
+**Observed:** the map's chrome is outlined, the rail is evenly spaced, and the strip readout is centred.
+- **The owner, verbatim:** "Merge both". The planner merged PR #224 at 2026-10-14T10:06:08Z, pinned to head 701a76be, on green CI (run 38531141863: 4772 tests, 0 failures, 24 skipped).
+- **Carries:** -966, -967, -976, -983, -984, -987, -988, -989, -990.
+  - Outlines in the icon bar's tokens on the pill, strip, card, bottom bar and rail. Single lines where pieces join; no lines on edges meeting Android's own bars.
+  - The rail's items evenly spaced (RailItemsEvenly).
+  - The strip readout centred between arrow and ⋮ in both orientations.
+  - The landscape strip sized for the wider coordinate form.
+  - The landscape strip/rail gap closed: the corners on a shared side run to the shared line's centre.
+- **The planner's read of the diff:** no @Ignore added.
+**Not checked:**
+- the device items: outlines over real tiles with real insets; the rail beside real system bars; the readout on a real font;
+- dev's rebase, which waits for #225.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -992.
