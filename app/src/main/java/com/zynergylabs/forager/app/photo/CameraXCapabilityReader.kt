@@ -52,6 +52,8 @@ import java.io.ByteArrayOutputStream
 
 /** Reads one camera. Called on the main thread at bind; the reads are of characteristics the library already holds, except possibly the physical cameras' (device-only). */
 internal fun readCameraCapabilities(cameraInfo: CameraInfo, facing: CameraFacing): CameraCapabilityReadings {
+    val stub = CameraReading.Failed("stage 1 stub")
+    return CameraCapabilityReadings(facing, stub, stub, stub, stub)
     return CameraCapabilityReadings(
         facing = facing,
         cameraXRaw = reading {

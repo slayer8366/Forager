@@ -179,6 +179,7 @@ internal fun mapRawOutput(
     camera2: CameraReading<Camera2Readings>,
     listed: (CameraXRawListing) -> Boolean,
 ): Probed<Unit> {
+    return Probed.Unknown("stage 1 stub")
     val listing = when (cameraXRaw) {
         is CameraReading.Failed -> return Probed.Unknown("CameraX's output formats could not be read: ${cameraXRaw.reason}")
         is CameraReading.Read -> cameraXRaw.value
@@ -198,6 +199,7 @@ internal fun mapRawOutput(
 }
 
 internal fun mapManualExposure(camera2: CameraReading<Camera2Readings>): Probed<ManualExposure> {
+    return Probed.Unknown("stage 1 stub")
     val characteristics = when (camera2) {
         is CameraReading.Failed -> return Probed.Unknown("camera2 could not be read: ${camera2.reason}")
         is CameraReading.Read -> camera2.value
@@ -222,6 +224,7 @@ internal fun mapManualExposure(camera2: CameraReading<Camera2Readings>): Probed<
 }
 
 internal fun mapExposureCompensation(state: CameraReading<ExposureStateReading>): Probed<ExposureCompensation> {
+    return Probed.Unknown("stage 1 stub")
     val reading = when (state) {
         is CameraReading.Failed -> return Probed.Unknown("CameraX's exposure state could not be read: ${state.reason}")
         is CameraReading.Read -> state.value
@@ -240,6 +243,7 @@ internal fun mapExposureCompensation(state: CameraReading<ExposureStateReading>)
 }
 
 internal fun mapRawSizes(camera2: CameraReading<Camera2Readings>): Probed<List<PixelSize>> {
+    return Probed.Unknown("stage 1 stub")
     val characteristics = when (camera2) {
         is CameraReading.Failed -> return Probed.Unknown("camera2 could not be read: ${camera2.reason}")
         is CameraReading.Read -> camera2.value
@@ -259,6 +263,7 @@ internal fun <T : Any> mapReported(
     name: String,
     value: (Camera2Readings) -> T?,
 ): Probed<T> {
+    return Probed.Unknown("stage 1 stub")
     val characteristics = when (camera2) {
         is CameraReading.Failed -> return Probed.Unknown("camera2 could not be read: ${camera2.reason}")
         is CameraReading.Read -> camera2.value
@@ -268,6 +273,7 @@ internal fun <T : Any> mapReported(
 }
 
 internal fun mapColorFilter(camera2: CameraReading<Camera2Readings>): Probed<ColorFilterArrangement> {
+    return Probed.Unknown("stage 1 stub")
     val characteristics = when (camera2) {
         is CameraReading.Failed -> return Probed.Unknown("camera2 could not be read: ${camera2.reason}")
         is CameraReading.Read -> camera2.value
@@ -285,6 +291,7 @@ internal fun mapColorFilter(camera2: CameraReading<Camera2Readings>): Probed<Col
  * no for every one of them whatever the hardware does.
  */
 internal fun mapPhysicalCameras(physical: CameraReading<List<PhysicalCameraReadings>>): Probed<List<PhysicalCameraCapabilities>> {
+    return Probed.Unknown("stage 1 stub")
     val cameras = when (physical) {
         is CameraReading.Failed -> return Probed.Unknown("the physical cameras could not be read: ${physical.reason}")
         is CameraReading.Read -> physical.value
@@ -307,6 +314,7 @@ internal fun mapPhysicalCameras(physical: CameraReading<List<PhysicalCameraReadi
 }
 
 internal fun mapCapabilityListed(camera2: CameraReading<Camera2Readings>, capability: Int, name: String): Probed<Unit> {
+    return Probed.Unknown("stage 1 stub")
     val characteristics = when (camera2) {
         is CameraReading.Failed -> return Probed.Unknown("camera2 could not be read: ${camera2.reason}")
         is CameraReading.Read -> camera2.value
@@ -327,11 +335,13 @@ fun mapEncoderCapabilities(readings: EncoderReadings): EncoderCapabilities = Enc
 )
 
 internal fun mapHeif(sdkInt: Int, mimeTypes: CameraReading<Set<String>>): Probed<Unit> {
+    return Probed.Unknown("stage 1 stub")
     if (sdkInt < HEIC_MIN_SDK) return Probed.Unsupported("Android $sdkInt has no HEIC image type; it arrived in API $HEIC_MIN_SDK")
     return mapEncoderListed(mimeTypes, MIME_HEIC_IMAGE)
 }
 
 internal fun mapEncoderListed(mimeTypes: CameraReading<Set<String>>, mime: String): Probed<Unit> {
+    return Probed.Unknown("stage 1 stub")
     val types = when (mimeTypes) {
         is CameraReading.Failed -> return Probed.Unknown("the encoder list could not be read: ${mimeTypes.reason}")
         is CameraReading.Read -> mimeTypes.value
@@ -345,6 +355,7 @@ internal fun mapEncoderListed(mimeTypes: CameraReading<Set<String>>, mime: Strin
 
 /** Evidence over guarantee (planner, 2026-10-14): PNG is supported because a real compression produced one, not because the platform promises it. */
 internal fun mapPng(png: CameraReading<PngProbeReading>): Probed<Unit> {
+    return Probed.Unknown("stage 1 stub")
     val reading = when (png) {
         is CameraReading.Failed -> return Probed.Unknown("compressing a 1x1 bitmap to PNG threw: ${png.reason}")
         is CameraReading.Read -> png.value
@@ -364,6 +375,7 @@ internal fun mapPng(png: CameraReading<PngProbeReading>): Probed<Unit> {
  * to them. [bound] is false for a camera read without being bound (the front camera).
  */
 fun CameraCapabilities.toLogLines(probeId: Int, bound: Boolean): List<String> {
+    return emptyList()
     val head = "probe=$probeId facing=${facing.label()}${if (bound) "" else " unbound"}"
     val physicalCount = when (val p = physicalCameras) {
         is Probed.Supported -> "supported(${p.value.size})"
@@ -382,6 +394,7 @@ fun CameraCapabilities.toLogLines(probeId: Int, bound: Boolean): List<String> {
 
 /** The encoder line: read once per process, logged for each probe that waited for it. */
 fun EncoderCapabilities.toLogLine(probeId: Int, facing: CameraFacing): String {
+    return ""
     return "probe=$probeId facing=${facing.label()} encoders heif=${heif.logText()} hevcVideo=${hevcVideo.logText()} png=${png.logText()}"
 }
 

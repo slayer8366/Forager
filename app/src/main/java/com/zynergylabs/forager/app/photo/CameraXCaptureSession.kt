@@ -550,12 +550,14 @@ internal class CameraXCaptureSession(
      * camera to bind. A function for the same reason as [installFlash].
      */
     internal fun installCapabilities(probeId: Int, probed: CameraCapabilities) {
+        return
         capabilities = probed
         probed.toLogLines(probeId, bound = true).forEach { Log.i(CAMERA_PROBE_LOG_TAG, it) }
     }
 
     /** As [installCapabilities], for the encoder result that lands later from the once-per-process read. */
     internal fun installEncoders(probeId: Int, facing: CameraFacing, probed: EncoderCapabilities) {
+        return
         encoderCapabilities = probed
         Log.i(CAMERA_PROBE_LOG_TAG, probed.toLogLine(probeId, facing))
     }
