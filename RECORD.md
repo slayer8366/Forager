@@ -17044,3 +17044,25 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **Portrait:** the search pill and the compass strip are outlined all the way round, including the sides that lie on the screen's edges. This replaces -967's "no line on the screen's own edge" for the top pills only. The bottom bar stays as built, without side lines.
 - **Landscape:** the side navigation bar's five destinations are spaced evenly over its height, not packed toward the top.
 **Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-02 (map-chrome-outline). Next free ID -977.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-977
+**Timestamp:** 2026-10-14T04:25:09Z
+**Title:** "Sources & credits" at the bottom of Settings: data sources with licence links, and the open-source software list; the Open-Meteo credit beside weather figures (owner)
+**Dispatch-file:** preserved/2026-10-13-05.md
+**The owner, verbatim:** "We need a part in the app that shows our sources. We haven't used anything from Alan yet, so he doesn't go there, but the data we have should be credited appropriately", "Bottom of settings page makes sense", and "Credits are missing from the settings still". The planner had drawn the page and asked for confirmation; the owner's last message is taken as the go.
+**Change:**
+- A last Settings row opens a page listing:
+  - Maps: OpenStreetMap, OpenTopoMap with SRTM, Protomaps;
+  - Weather: Open-Meteo;
+  - Sightings and species names: iNaturalist and its observers;
+  - each with its licence or site link;
+  - then the open-source libraries with full licence texts.
+- Wherever Open-Meteo figures appear, a "Weather data by Open-Meteo.com" link sits beside them, as its licence requires.
+**Scope boundary:** no change to the map's credit caption or ⓘ. Branch sources-and-credits. No Gradle on the laptop, no merge without the owner's word.
+**Baseline:** origin/main 497423d6, or its head.
+**Finish line:** the coder's plan answered. Then a PR on green CI with tests through the real Settings screen and revert checks. Then the owner's merge word.
+**Abort conditions:** a licence whose required form can't be met on the page; a conflict with a recorded ruling; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. The inventory is on branch sources-credits-inventory (a8777082). Next free ID -978.
