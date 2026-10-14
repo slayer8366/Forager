@@ -331,7 +331,6 @@ private fun ConditionsCard(
             // Open-Meteo's licence: a link next to any place their data are shown (dispatch 2026-10-13-05). Only while a
             // figure of theirs is in the card; a loading or failed fetch shows none.
             if (conditions != null || todaysForecast != null) {
-                OpenMeteoCredit()
             }
         }
     }
