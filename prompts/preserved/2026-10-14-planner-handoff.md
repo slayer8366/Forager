@@ -23,7 +23,7 @@ Write-ups, plans and read-only checks are not builds. See memory `dont-infer-aut
 - **Records:** the records branch was rewritten without stage 2's dispatch file and entries, and the stage 2 parts of the earlier handoff. The backup of the old branch is `2026-10-14-05-records-pre-stage2-erase/`.
 - **Renumbering:** the handoff entry is now -1000, and the owner's coder arrangement is -1001. The removed IDs -1002 and -1003 were stage 2 entries written by a second planner session; their numbers are free again.
 
-**Open, for the owner first: PR #227 and branch `raw-stage2` are back.** After the deletion, someone reopened PR #227 and restored `raw-stage2` at `c7faf0dc` (PR updated 21:55 UTC). The outgoing planner didn't do it and didn't undo it. Ask the owner whether to delete them again. Don't act on either without that answer.
+**PR #227 and branch `raw-stage2`:** after the deletion they were restored and the PR reopened (21:55 UTC). The owner, verbatim: "I'm having the entire PR rewritten and redone from scratch, history and all". That work is the owner's own and is not this planner's. Don't touch the PR or the branch.
 
 **A second planner session** ("the bridge session that read the handoff") was active this afternoon. Its view of the records is stale: it wrote -1002 to -1004 before the rewrite. If it's still running, it should re-read the records branch before writing.
 
@@ -49,9 +49,8 @@ Write-ups, plans and read-only checks are not builds. See memory `dont-infer-aut
 
 ## Waiting on the owner
 
-1. **PR #227 and branch `raw-stage2`:** delete again, or leave? (Above.)
-2. **The iNaturalist share-queue spec,** on branch `inat-share-spec` (`docs/plans/inaturalist-share-queue.md`, -963, -964): review. Not dispatched.
-3. **Device items:**
+1. **The iNaturalist share-queue spec,** on branch `inat-share-spec` (`docs/plans/inaturalist-share-queue.md`, -963, -964): review. Not dispatched.
+2. **Device items:**
    - the tablet camera hold (-985; API 37, full screen, all rotations, split screen);
    - the outlines and rail with real insets;
    - the Sources & credits links.
