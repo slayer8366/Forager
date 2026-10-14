@@ -17337,3 +17337,23 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Finish line:** green CI on the candidate, then the planner's lease push to dev.
 **Abort conditions:** a resolution that changes release behaviour; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. This is the standing dev rule (-930), not a new owner decision. Next free ID -994.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-994
+**Timestamp:** 2026-10-14T10:43:21Z
+**Closes:** 2026-09-28-993 (preserved 2026-10-14-01)
+**Outcome:** completed; dev rebased onto main 94a10cc3, now 0ef73f3b
+**Observed:** dev is main plus its one development-tools commit again.
+- **The resolution:** the coder rebased dev (backup dev-20261014T102334Z-40fddae9.bundle) and resolved the two conflicts:
+  - one page enum with explicit depths: SETTINGS 0, SOURCES 1, SOFTWARE 2, CRASH_LOGS 1, DIAGNOSTICS 1;
+  - the debug rows above "Sources & credits";
+  - a doc-only test change.
+
+  No assertion changed. The coder amended its own local commit's message once, before any push, and disclosed it.
+- **CI on the candidate** (run 38549550908): 669 suites, 4906 tests, 0 failures, 24 skipped. That equals main's 4788 plus dev's own 118.
+- **The push:** the planner pushed 0ef73f3b to dev with --force-with-lease=dev:40fddae9.
+**Correction:** dispatch 2026-10-14-01 named 4,728 as main's expected count; main's run 38547271981 reports 4,788. The planner's figure was wrong.
+**Not checked:** release compilation (CI builds debug only); system Back on the Crash Logs and Diagnostics pages, which has no test of its own.
+**Notes:** Written by the planner by hand, on branch records-after-173. Branch dev-rebase-candidate is still on the remote. Next free ID -995.
