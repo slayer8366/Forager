@@ -17420,3 +17420,31 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Corrects:** 2026-09-28-996
 **What it corrects:** -996's line "The 4x4 CFA of the main sensor is not visible here" asserts a sensor layout the planner did not check. Withdrawn. What the probe shows is only that the camera reports GRBG at a 4000x3000 RAW size.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -998.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-998
+**Timestamp:** 2026-10-14T20:12:11Z
+**Continues:** 2026-09-28-996
+**Title:** RAW stage 1 on the S26 Ultra: everything supported, nothing unknown
+**Observed:** read by the planner over adb (read-only) from the S26 Ultra (SM-S948U), with the same build (1.0.3334+g8a04714c). The owner opened the camera at 13:11 local. Log tag CameraProbe, probe=1. Verbatim values:
+- **Back (bound):**
+  - raw and rawJpeg supported;
+  - manualExposure 83542..176094495 ns, ISO 9..3200;
+  - evComp -20..20, step 1/10 EV;
+  - rawSizes 4080x3060; pixelArray 4080x3060; activeArray 0,0,4080,3060; cfa GBRG;
+  - physical cameras: 4.
+- **Physical cameras** id 2, 5, 6, 7: all list RAW and MANUAL_SENSOR. RAW sizes are 4080x3060, except id 6 at 3648x2736.
+- **Front (unbound):**
+  - raw and rawJpeg supported;
+  - manualExposure 72848..417188152 ns, ISO 25..3200;
+  - evComp -20..20, step 1/10 EV;
+  - rawSizes 4000x3000; cfa GRBG;
+  - no physical cameras.
+- **Encoders:** HEIF, HEVC video, and PNG (97 bytes with a PNG signature).
+**What it means (planner, inferred):**
+- **The two phones differ in their CFA phase:** GRBG on the S22 against GBRG on the S26 main camera. The DNG reader in later stages must take the pattern from each file's tags, never from a constant.
+- **RAW sizes differ:** 4000x3000 against 4080x3060.
+- **The S26's longest exposure** is about 0.18 s (back) and 0.42 s (front), against the S22's 0.10 s and 0.17 s.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -999.
