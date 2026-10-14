@@ -16949,3 +16949,18 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 **The owner, verbatim:** "Don't remove the settings yet"
 **What it corrects:** the camera's gear and settings panel stay. -970's removal of them is withdrawn before any work began. The panel keeps its photo-location row after the portrait lock leaves it (-968). -970's thinner strip icons stand.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -972.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-972
+**Timestamp:** 2026-10-14T03:46:18Z
+**Continues:** 2026-09-28-971
+**Title:** The camera's settings panel is emptied: its photo-location row goes too; the gear stays (owner)
+**The owner, verbatim:** "Remove save location from the settings, empty it out completely".
+**What it sets:**
+- The camera's gear panel loses its photo-location row as well as the lock row (-968). Nothing is left in it, and the gear stays (-971).
+- Save location is still set with the strip's Location chip, and in the app's Settings screen. That row is unchanged, read as the owner meaning the camera's panel.
+- **Planner's call:** the empty panel says so plainly, "No camera settings yet", rather than opening blank.
+- The removed row's code goes into the archive document beside the lock's.
+**Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-03. Next free ID -973.
