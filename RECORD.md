@@ -17245,3 +17245,17 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - Where pieces touch, one shared line stays (-967 A): pill and strip; strip and rail.
 - The bottom navigation card and the rail are unchanged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Folded into PR #224. Next free ID -989.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-989
+**Timestamp:** 2026-10-14T06:52:01Z
+**Continues:** 2026-09-28-976
+**Title:** The bottom navigation bar's sides are outlined all the way down; its bottom edge stays open (owner)
+**The owner, verbatim:** "And I guess go ahead and give the side of the bottom navigation strip the outline too. All the way down. Just not the bottom since it's supposed to meld into the android navbar".
+**What it sets:** in portrait, on the Maps tab, the bottom navigation bar's outline runs:
+- across its rounded top;
+- down both sides to the screen's bottom.
+Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
+**Notes:** Written by the planner by hand, on branch records-after-173. Folded into PR #224. Next free ID -990.
