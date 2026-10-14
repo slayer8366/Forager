@@ -17146,3 +17146,16 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **Phones:** the window is locked to portrait.
 - **Large screens, where Android 17 ignores that request:** the app holds the layout itself and keeps the icons on the accelerometer, so the window's rotation is never what the user sees. The coder reports the approach first.
 **Notes:** Written by the planner by hand, on branch records-after-173. If the owner meant A, this entry is corrected by the next one. Next free ID -983.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-983
+**Timestamp:** 2026-10-14T04:45:00Z
+**Title:** Landscape compass strip: the readout centred between the arrow and the three-dot menu (owner)
+**The owner, verbatim:** "Another thing for the landscape mode UI, have the telemetry centered between the compass arrow and the three dot menu. Right now it's way too close to the arrow".
+**What it sets:**
+- In landscape, the compass strip's readout (heading, height, grid reference) is centred in the space between the compass arrow and the ⋮.
+- **Planner's call:** while navigating, the strip's line has no arrow (-950). There the readout centres between the strip's leading edge and the ⋮.
+- Portrait is unchanged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-02 (map-chrome-outline). Next free ID -984.
