@@ -3,3 +3,4 @@ https://publicsuffix.org/list/public_suffix_list.dat
 
 It is subject to the terms of the Mozilla Public License, v. 2.0:
 https://mozilla.org/MPL/2.0/
+A line the artifact does not have.
