@@ -17298,3 +17298,42 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 - the device items: outlines over real tiles with real insets; the rail beside real system bars; the readout on a real font;
 - dev's rebase, which waits for #225.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -992.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-992
+**Timestamp:** 2026-10-14T10:23:18Z
+**Closes:** 2026-09-28-977
+**PR:** Forager 225
+**Head:** sources-and-credits
+**Base:** main
+**Merge-commit:** 94a10cc3d1426b86f3d57a3d7429b96bc7c35dc5
+**Pre-merge:** 5f16d76988cb9810c2b11b2351cffc8945c18856
+**Backup:** 2026-10-14-02 (forager-main-pre-225.bundle, verified okay, sha256 a34973d1e024d160…)
+**Observed:** Settings ends with "Sources & credits".
+- **The owner, verbatim:** "Merge both".
+- **The merge:** after #224 merged, the planner merged main 5f16d769 into the branch (fe88c538, no conflicts). CI on that merge was green (run 38547271981). The planner merged PR #225 at 2026-10-14T10:22:28Z, pinned to fe88c538.
+- **Carries:** -977 and -979.
+  - The data sources with licence links, and the open-source list grouped by licence from assets/credits/software.json.
+  - verifyCreditsCoverEveryDependency: 193 modules, NOTICE files reproduced.
+  - "Weather data by Open-Meteo.com" in the three places Open-Meteo data shows.
+- **The planner's read of the diff:** no @Ignore added.
+**Not checked:**
+- the device items (each link opening, landscape, the cards' added height);
+- dev: the rebase onto 94a10cc3 stopped on conflicts in AvailabilitySettingsUi.kt (main's Sources pages against dev's debug pages) and SettingsEndsAtItsLastRowTest.kt. The planner aborted it; dev stays at 40fddae9. It goes to a coder (-993).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -993.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-993
+**Timestamp:** 2026-10-14T10:23:18Z
+**Title:** Rebase dev onto main 94a10cc3, combining Settings' Sources pages with dev's debug pages (planner)
+**Dispatch-file:** preserved/2026-10-14-01.md
+**Change:** dev becomes main plus one development-tools commit. One page enum (SETTINGS, SOURCES, SOFTWARE, CRASH_LOGS, DIAGNOSTICS). The debug rows sit above "Sources & credits" (-979).
+**Scope boundary:** the dev commit only. Pushed first to dev-rebase-candidate for CI; the planner pushes dev with a lease after reading the report. No change to main.
+**Baseline:** origin/main 94a10cc3; origin/dev 40fddae9.
+**Finish line:** green CI on the candidate, then the planner's lease push to dev.
+**Abort conditions:** a resolution that changes release behaviour; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. This is the standing dev rule (-930), not a new owner decision. Next free ID -994.
