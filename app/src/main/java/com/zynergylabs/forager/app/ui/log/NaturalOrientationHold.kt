@@ -105,7 +105,7 @@ internal data class EdgeInsets(val left: Dp, val top: Dp, val right: Dp, val bot
 
 /** Quarter turns the hold applies: the display's rotation in a full-screen window, none otherwise. */
 internal fun naturalHoldQuarterTurns(displayRotation: Int, fullScreen: Boolean): Int =
-    if (!fullScreen) 0 else when (displayRotation) {
+    if (true) 0 else when (displayRotation) {
         Surface.ROTATION_90 -> 1
         Surface.ROTATION_180 -> 2
         Surface.ROTATION_270 -> 3
