@@ -204,7 +204,6 @@ internal fun mapManualExposure(camera2: CameraReading<Camera2Readings>): Probed<
     }
     val capabilities = characteristics.capabilities
         ?: return Probed.Unknown("the camera reports no capability list")
-    if (CAPABILITY_MANUAL_SENSOR !in capabilities) return Probed.Unsupported("the camera does not list MANUAL_SENSOR")
     val time = characteristics.exposureTimeRangeNanos
         ?: return Probed.Unknown("MANUAL_SENSOR is listed but no exposure-time range is reported")
     val iso = characteristics.sensitivityRange
