@@ -17101,3 +17101,19 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **Open Sans,** the map label font, is listed, with its licence verified from source.
 - **On dev,** the debug rows sit above "Sources & credits".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -980.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-980
+**Timestamp:** 2026-10-14T04:35:49Z
+**Continues:** 2026-09-28-968
+**Title:** The camera keeps its locked layout with turning icons; only the setting goes. PR #223's full rotation is a bug (owner)
+**The owner, verbatim:** after testing PR #223: "Camera icons look good. But the camera rotates completely". Then, after the planner described the two behaviours and Android 17's large-screen rule: "I never asked the lock to be removed. I only wanted the keep in portrait feature removed. The camera is to remain as is. This is a bug, so fix it".
+**What it sets:**
+- The "Lock camera to portrait" setting and toggle stay removed.
+- The camera's behaviour with the lock on becomes the only behaviour: the camera screen stays in place, and the icons turn to stay upright. That is the owner's camera "as is".
+- -968's "the camera always follows the phone" was the planner's framing of the removal. It is withdrawn as wrong.
+- **Android 17:** for apps targeting API 37, the system ignores orientation requests on displays 600 dp or wider at their narrowest. Tablets and unfolded foldables will rotate fully regardless; phones keep the fixed layout.
+- **The freeze:** it came only from switching the lock mid-session, and with no toggle nothing switches it. The kept viewfinder weakness stays recorded in the archive document.
+**Notes:** Written by the planner by hand, on branch records-after-173. The fix goes to PR #223's coder. Next free ID -981.
