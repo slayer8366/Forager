@@ -17170,3 +17170,22 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 **The owner, verbatim,** with a portrait screenshot kept off GitHub: "Have portrait more centered also. This will matter most to people with OCD".
 **What it sets:** -983's centring applies in portrait as well. The strip's readout is centred between the compass arrow and the ⋮, or between the strip's leading edge and the ⋮ while navigating. This replaces -983's "Portrait is unchanged".
 **Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-02 (map-chrome-outline). Next free ID -985.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-985
+**Timestamp:** 2026-10-14T04:59:42Z
+**Continues:** 2026-09-28-982
+**Title:** Large screens: the camera holds the device's own natural orientation; planner's technical calls for the hold (owner, planner)
+**Context:**
+- PR #223 at c35f54d7 holds the camera window in portrait on phones (CI 38512526030, 4682 tests, 0 failures).
+- For large screens, where Android 17 ignores the request, the coder proposed a wrapper. It counter-rotates the camera content by the display rotation, feeds natural-frame values to it, and rotates the insets.
+- Three questions were left: the viewfinder mode, landscape-natural tablets, and multi-window.
+**The owner, verbatim:** asked whether a landscape-natural tablet holds its own landscape layout (a) or always portrait (b): "Option A for your answer".
+**What it sets:**
+- **The owner's ruling:** a large-screen camera holds the device's natural orientation, landscape on landscape-natural tablets, and never turns. The icons follow the accelerometer.
+- **The planner's calls:**
+  - try PreviewView COMPATIBLE (TextureView) mode first, after reading its source for double correction, and fall back to our own TextureView surface provider if it double-corrects;
+  - apply the hold only to full-screen windows, so split-screen and freeform windows lay out to their own shape, since the window there is the user's choice, not a device rotation.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -986.
