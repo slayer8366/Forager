@@ -16939,3 +16939,13 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **Gear and panel:** both are removed from the camera strip, folded into dispatch 2026-10-13-03. The panel's code goes into the archive document beside the lock's, since the owner expects to bring the gear back with new settings before the update ships.
 - **Strip icons:** they use the thin-line style of the same symbols, and the black outline every overlay keeps is drawn thinner. Legibility is checked over bright and dark scenes. The outline rule itself stands.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -971.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-971
+**Timestamp:** 2026-10-14T03:44:43Z
+**Corrects:** 2026-09-28-970
+**The owner, verbatim:** "Don't remove the settings yet"
+**What it corrects:** the camera's gear and settings panel stay. -970's removal of them is withdrawn before any work began. The panel keeps its photo-location row after the portrait lock leaves it (-968). -970's thinner strip icons stand.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -972.
