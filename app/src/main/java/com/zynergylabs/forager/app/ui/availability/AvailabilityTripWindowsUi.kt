@@ -63,7 +63,6 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
                     TripWindowReportContent(uiState.tripWindowReport, uiState.unitSystem)
                     // Every figure in a report, its "no window" message included, is Open-Meteo's rain, soil or
                     // evaporation, or arithmetic on them: their credit sits beside them (dispatch 2026-10-13-05).
-                    OpenMeteoCredit()
                 }
             }
 
