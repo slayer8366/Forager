@@ -163,6 +163,9 @@ internal fun InAppCameraDialog(
     var captureError by rememberSaveable { mutableStateOf<String?>(null) }
     var isCapturing by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    if (session.capabilities?.rawOutput is com.zynergylabs.forager.app.domain.Probed.Supported) {
+        androidx.compose.material3.Text("RAW")
+    }
     // The self-timer (decision B8 / Closed decision C): the setting lasts this camera session,
     // default Off, gone when the camera closes. The countdown is held here, on this screen's own
     // scope, so anything that removes the screen — Back included — cancels it (CaptureCountdown).
