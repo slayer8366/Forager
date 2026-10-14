@@ -236,7 +236,6 @@ private fun CompactSettingsTab(
     // the Tools drawer's own showSettings handler so the deepest page unwinds first.
     var page by remember { mutableStateOf(SettingsDrawerPage.SETTINGS) }
     BackHandler(enabled = page == SettingsDrawerPage.SOFTWARE) { page = SettingsDrawerPage.SOURCES }
-    BackHandler(enabled = page == SettingsDrawerPage.SOURCES) { page = SettingsDrawerPage.SETTINGS }
     // A notification's "open Backup" and the snackbar's "open Settings" both mean Settings' own page (the planner's answer Q8).
     LaunchedEffect(showBackupRequest) { if (showBackupRequest > 0) page = SettingsDrawerPage.SETTINGS }
     LaunchedEffect(showSettingsOnlyRequest) { if (showSettingsOnlyRequest > 0) page = SettingsDrawerPage.SETTINGS }
