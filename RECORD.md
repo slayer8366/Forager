@@ -17075,3 +17075,29 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 **Corrects:** 2026-09-28-972
 **What it corrects:** -972 said that the app's Settings screen still has an "Automatically Save Location to Photos" row. It doesn't. That row moved into the camera's gear panel in dispatch 2026-09-28-707 (AvailabilitySettingsUi.kt:22), and AvailabilityScreenSettingsPanelTest asserts it is absent. With the panel emptied, the strip's Location chip is the only place the setting is shown or set. That matches the owner's words: "save location is already in the strip". Found by the coder of dispatch 2026-10-13-03 (PR #223).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -979.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-979
+**Timestamp:** 2026-10-14T04:32:02Z
+**Continues:** 2026-09-28-977
+**Title:** Sources & credits: the planner's answers to the coder's plan
+**Context:** the coder's plan for dispatch 2026-10-13-05 found what the inventory missed:
+- MapLibre's own dependencies and its compiled-in native components (ISC, Boost, BSD-2, BSD-3, MIT and FreeType licences);
+- NGA's sf and color libraries;
+- that Open-Meteo also feeds the fruiting-lag section.
+**What it sets (planner's calls, for the owner to correct):**
+- **The software list** is a hand-kept assets/credits/software.json with licence texts, guarded by a build task that fails on any shipped dependency or NOTICE not covered. No new plugin.
+- **The software page** is grouped by licence.
+- **The Open-Meteo credit** appears at the foot of the Seasonal tab's Current Conditions card, the Trip Planner's Trip Windows card, and the fruiting-lag section.
+- **Link targets:**
+  - OpenStreetMap: openstreetmap.org/copyright;
+  - OpenTopoMap: opentopomap.org/about;
+  - Protomaps: github.com/protomaps/basemaps;
+  - Open-Meteo: open-meteo.com/en/licence, with open-meteo.com in the cards;
+  - iNaturalist: inaturalist.org.
+- **A line under Weather,** as CC BY 4.0 asks: "Rain and soil figures in Forager are summaries calculated from this data."
+- **Open Sans,** the map label font, is listed, with its licence verified from source.
+- **On dev,** the debug rows sit above "Sources & credits".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -980.
