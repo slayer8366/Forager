@@ -17381,3 +17381,33 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 - one revert check per rule group;
 - no UI change, held by a positive control.
 **Notes:** Written by the planner by hand, on branch records-after-173. Branch raw-stage1-probe. Next free ID -996.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-996
+**Timestamp:** 2026-10-14T20:09:21Z
+**Continues:** 2026-09-28-975
+**Title:** RAW stage 1 on the S22 Ultra: everything supported, nothing unknown
+**Observed:** read by the planner over adb (read-only) from the S22 Ultra (SM-S908U), with the PR #226 build installed (1.0.3334+g8a04714c, the merge of 976c8415 into 94a10cc3). The owner opened the camera at 13:08 local. Log tag CameraProbe, probe=1. Verbatim values:
+- **Back (bound):**
+  - raw and rawJpeg supported (CameraX lists the output format);
+  - manualExposure supported, exposure 81680..103388880 ns, ISO 50..3200;
+  - evComp supported, -20..20, step 1/10 EV;
+  - rawSizes 4000x3000; pixelArray 4000x3000; activeArray 0,0,4000,3000; cfa GRBG;
+  - physical cameras: 4.
+- **Physical cameras** id 2, 5, 6, 7: all list RAW and MANUAL_SENSOR. RAW sizes are 4000x3000 for ids 2 and 5, and 3648x2736 for ids 6 and 7.
+- **Front (unbound):**
+  - raw and rawJpeg supported;
+  - manualExposure 91672..170289000 ns, ISO 50..3200;
+  - evComp -20..20, step 1/10 EV;
+  - rawSizes 3648x2736; cfa GRBG;
+  - no physical cameras.
+- **Encoders:** HEIF (image/vnd.android.heic), HEVC video, and PNG (a 1x1 bitmap compressed to 97 bytes with a PNG signature).
+**What it means for later stages (planner, inferred):**
+- RAW is reported at 12 MP (4000x3000), which matches the app's standard size (-655).
+- Manual exposure is available for HDR. Its longest exposure is about 0.10 s (back) and 0.17 s (front), which bounds how bright the longest bracket can be.
+- The 4x4 CFA of the main sensor is not visible here; the camera reports GRBG at the 12 MP RAW size.
+- HEIF output can use the device's HEIC encoder.
+**Not checked:** the S26 Ultra; whether a RAW ImageCapture binds alongside the Preview (stage 2).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -997.
