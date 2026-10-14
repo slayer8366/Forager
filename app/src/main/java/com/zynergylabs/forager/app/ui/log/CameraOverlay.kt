@@ -117,7 +117,7 @@ internal fun OverlayIcon(
     // Whole pixels, at least one, the same in every direction.
     val w = with(LocalDensity.current) { OVERLAY_ICON_OUTLINE_OFFSET.roundToPx() }.coerceAtLeast(1)
     Box(modifier) {
-        for ((dx, dy) in listOf(-w to -w, 0 to -w, w to -w, -w to 0, w to 0, -w to w, 0 to w, w to w)) {
+        for ((dx, dy) in listOf(w to 0)) {
             Icon(imageVector, contentDescription = null, tint = OverlayOutline, modifier = Modifier.offset { IntOffset(dx, dy) }.clearAndSetSemantics { })
         }
         Icon(imageVector, contentDescription = contentDescription, tint = fill)

@@ -186,7 +186,7 @@ internal class CameraXCaptureSession(
      * to `ROTATION_0` with "Lock camera to portrait" on; the option and the gate were removed together
      * (RECORD -968), and the off branch was already this pass-through.
      */
-    override val deviceRotation: Int? get() = sensorRotation
+    override val deviceRotation: Int? get() = null
     private var loggedDisplayFallback = false
 
     /** Bumped by every [open] and [close]; a provider callback whose captured epoch has moved on does nothing. */
