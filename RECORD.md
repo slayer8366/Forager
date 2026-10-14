@@ -16920,3 +16920,22 @@ The credit pill and the other tabs are unchanged.
 - camera strip decision B5 ("RAW waits until the capture pipeline can carry it").
 The plan comes to the owner before anything is dispatched. Field measurement Phase 2 and the top-down crosshair (B7d) remain separate items.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -970.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-970
+**Timestamp:** 2026-10-14T03:44:11Z
+**Continues:** 2026-09-28-968
+**Title:** Camera: the gear and its settings panel go for now; the strip icons get the thin-line style with a thinner outline (owner)
+**Context:**
+- The coder's step-1 report (dispatch 2026-10-13-03) found the freeze's cause: toggling the lock while the camera was open rebuilt the camera session (InAppCameraHost.kt:66). The viewfinder, not keyed on its session, stayed on the closed one (CameraXCaptureSession.kt:479-495), leaving a frozen frame.
+- That confirms the owner's prediction that the camera being open was the difference, with one correction: the session, not the orientation lock, failed to switch over.
+- After the lock's removal the gear panel would hold one row, photo location, which the strip's Location chip already toggles.
+- Separately, the owner found the strip icons too thick ("the lines aren't melting into each other").
+- The thickness comes from filled glyphs plus an outline painted at eight offsets (CameraOverlay.kt:27-55).
+**The owner, verbatim:** "The settings in the camera has no use for now, but we will fill it up before the update is done, so remove the settings (save location is already in the strip)." And on the icons: "C both" (offered: A lighter line-style icons, B thinner outline, C both).
+**What it sets:**
+- **Gear and panel:** both are removed from the camera strip, folded into dispatch 2026-10-13-03. The panel's code goes into the archive document beside the lock's, since the owner expects to bring the gear back with new settings before the update ships.
+- **Strip icons:** they use the thin-line style of the same symbols, and the black outline every overlay keeps is drawn thinner. Legibility is checked over bright and dark scenes. The outline rule itself stands.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -971.
