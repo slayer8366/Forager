@@ -119,16 +119,6 @@
       ]
     },
     {
-      "name": "Gson",
-      "licence": "Apache-2.0",
-      "credit": [
-        "Copyright 2008 Google Inc."
-      ],
-      "modules": [
-        "com.google.code.gson:*"
-      ]
-    },
-    {
       "name": "Guava, with its ListenableFuture and failureaccess",
       "licence": "Apache-2.0",
       "credit": [
