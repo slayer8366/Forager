@@ -17189,3 +17189,30 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
   - try PreviewView COMPATIBLE (TextureView) mode first, after reading its source for double correction, and fall back to our own TextureView surface provider if it double-corrects;
   - apply the hold only to full-screen windows, so split-screen and freeform windows lay out to their own shape, since the window there is the user's choice, not a device rotation.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -986.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-986
+**Timestamp:** 2026-10-14T06:18:08Z
+**Closes:** 2026-09-28-968
+**PR:** Forager 223
+**Head:** remove-portrait-lock
+**Base:** main
+**Merge-commit:** 850cbad088c74eb39da5e93c3c7216190d4f560d
+**Pre-merge:** 497423d60603216f1e8bdcb606772415b6f779c0
+**Backup:** 2026-10-13-01 (forager-main-pre-223.bundle, verified okay, sha256 eb78db5bc11d7b19…)
+**Observed:** the camera keeps a fixed screen with icons turning in place, on every device.
+- **The owner, verbatim:** "Camera looks good. Merge when appropriate." The planner merged PR #223 at 2026-10-14T06:17:32Z, pinned to head fb504709, on green CI (run 38518581887: 4696 tests, 0 failures, 24 skipped).
+- **What it does:**
+  - "Lock camera to portrait" is removed (-968). The camera window is held portrait on phones, icons turn by the accelerometer, and sideways photos save upright (-980 to -982).
+  - On large screens, where Android 17 ignores the request, the camera holds the device's natural frame in full-screen windows (-985).
+  - The gear panel is empty, reading "No camera settings yet" (-971, -972).
+  - The strip icons are the outlined style with a 0.75 dp outline (-970).
+  - The freeze's cause, the removed code and how to restore it are in docs/archive/camera-portrait-lock.md.
+- **The planner's read of the diff:** no @Ignore; removed tests are listed and archived in that document.
+- **dev:** rebased onto 850cbad0 after a backup (dev-20261014T061740Z-89948306.bundle). One testDebug conflict in AvailabilityScreenSettingsPanelTest was resolved by keeping dev's Crash Logs line with main's written-out strings.
+**Not checked:**
+- the owner's tablet items (API 37 rotation, insets, split screen);
+- dev's CI after the rebase.
+**Notes:** Written by the planner by hand, on branch records-after-173. RAW stage 1 (dispatch 2026-10-13-04) was queued behind this merge and can now start. Next free ID -987.
