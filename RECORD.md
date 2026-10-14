@@ -16980,3 +16980,25 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - DNG privacy;
 - adopting the experimental Camera2Interop.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -974.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-974
+**Timestamp:** 2026-10-14T03:55:28Z
+**Continues:** 2026-09-28-973
+**Title:** RAW capture design: a format chip (JPG default, HEIF, PNG, TIF, RAW, RAW+), an HDR chip, aligned bursts, only the final photo kept (owner)
+**The owner, verbatim:**
+- "1 A, like phones do already" (burst frames aligned in software, so handheld works);
+- "2 no, only keep the final product";
+- "3 yes sounds good. That outputs a processed RAW (RAW+). Users can choose other formats, and the final output will be the chosen format. It will still go through RAW processing like frame averaging, HDR burst (if HDR mode is chosen) and debayering, until RAW mode is selected where it outputs an unprocessed RAW."
+- Then: "1 the usual form" (RAW+ is a linear DNG), "3 JPG selected by default", "2 JPG, HEIF, PNG, TIF, RAW, RAW+", "4 yes" (HDR is its own chip).
+**What it sets:**
+- **Format chip:** on the camera strip, offering JPG (default), HEIF, PNG, TIF, RAW+ and RAW.
+- **HDR chip:** a separate chip, off or on.
+- **Every format except RAW:** a RAW burst is aligned in software, averaged in floating point, HDR-merged when HDR is on, and debayered. One final photo is saved in the chosen format. RAW+ is a linear DNG: processed and debayered, but unedited.
+- **RAW:** one unprocessed sensor DNG, with no averaging, HDR or debayering.
+- **Only the final file is kept;** burst frames are discarded.
+- **On phones without RAW support,** the RAW chips don't appear and capture works as today.
+- **Planner's call:** formats the journal can't show (DNG, TIF, possibly HEIF and PNG) also get a small preview image for the journal and viewer.
+**Notes:** Written by the planner by hand, on branch records-after-173. Still open: DNG and TIF privacy (make, model and time; the scrub is JPEG-only), adopting the experimental Camera2Interop for manual exposure, and per-format storage size. Next free ID -975.
