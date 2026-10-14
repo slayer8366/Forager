@@ -52,7 +52,7 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 "open-meteo",
                 OPEN_METEO_CREDIT_TEXT,
                 "CC BY 4.0",
-                "https://open-meteo.com/en/licence",
+                "https://open-meteo.com/",
                 // CC BY 4.0 asks a user of the data to say if it was changed. The planner's answer Q5; the owner may reword it.
                 detail = "Rain and soil figures in Forager are summaries calculated from this data.",
             ),
