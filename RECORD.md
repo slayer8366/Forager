@@ -17411,3 +17411,12 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 - HEIF output can use the device's HEIC encoder.
 **Not checked:** the S26 Ultra; whether a RAW ImageCapture binds alongside the Preview (stage 2).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -997.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-997
+**Timestamp:** 2026-10-14T20:09:31Z
+**Corrects:** 2026-09-28-996
+**What it corrects:** -996's line "The 4x4 CFA of the main sensor is not visible here" asserts a sensor layout the planner did not check. Withdrawn. What the probe shows is only that the camera reports GRBG at a 4000x3000 RAW size.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -998.
