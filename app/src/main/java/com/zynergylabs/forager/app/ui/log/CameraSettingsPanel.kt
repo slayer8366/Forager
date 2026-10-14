@@ -148,7 +148,6 @@ internal fun CameraSettingsPanel(
                     .padding(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                Text(CAMERA_SETTINGS_EMPTY_TEXT, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }

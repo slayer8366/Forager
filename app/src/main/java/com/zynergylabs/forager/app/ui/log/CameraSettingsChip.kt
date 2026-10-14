@@ -1,7 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,7 +40,7 @@ internal fun CameraSettingsChip(onClick: () -> Unit, deviceRotation: Int?, displ
 }
 
 /** The gear's glyph, named so a test can hold it (RECORD -970: the thin-line style). */
-internal val CAMERA_SETTINGS_GLYPH: ImageVector get() = Icons.Outlined.Settings
+internal val CAMERA_SETTINGS_GLYPH: ImageVector get() = Icons.Filled.Settings
 
 internal const val CAMERA_SETTINGS_CHIP_TAG = "in-app-camera-settings-chip"
 internal const val CAMERA_SETTINGS_LABEL = "Camera settings"
