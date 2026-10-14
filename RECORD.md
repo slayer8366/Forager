@@ -17002,3 +17002,32 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **On phones without RAW support,** the RAW chips don't appear and capture works as today.
 - **Planner's call:** formats the journal can't show (DNG, TIF, possibly HEIF and PNG) also get a small preview image for the journal and viewer.
 **Notes:** Written by the planner by hand, on branch records-after-173. Still open: DNG and TIF privacy (make, model and time; the scrub is JPEG-only), adopting the experimental Camera2Interop for manual exposure, and per-format storage size. Next free ID -975.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-975
+**Timestamp:** 2026-10-14T04:00:01Z
+**Continues:** 2026-09-28-974
+**Title:** RAW pipeline stage 1: probe what the phone supports (RAW, manual exposure, the exposure-compensation fallback, encoders); privacy for all formats; HDR with a fallback (owner)
+**Dispatch-file:** preserved/2026-10-13-04.md
+**The owner, verbatim:**
+- To privacy (strip make, model and time from DNG and TIF): "yes do that for all formats".
+- To manual exposure for HDR, available only through an experimental part of the camera library: "see if we can get it to work on phones that support it, and have a fallback for those that don't".
+- To file sizes per format: "what do you recommend?"
+- Then: "Yes write it up".
+**What it sets:**
+- Every output format has make, model and time stripped.
+- HDR uses manual exposure where the phone reports it, and falls back to the standard exposure-compensation brackets elsewhere.
+- **File sizes, the planner's recommendation for the owner to correct:**
+  - every format at the app's standard photo size (12 MP, -655's reasoning);
+  - DNG and TIF stored with lossless compression;
+  - each format's approximate size shown in the format menu, so nobody is surprised;
+  - a plain warning when storage is low before a large format is taken.
+- **Stage 1** is a capability probe with no visible change.
+**Change:** a probe behind CameraCaptureSession, read once per bound camera. It reports supported, unsupported or unknown for: RAW and RAW+JPEG output, the MANUAL_SENSOR capability, the exposure-compensation range, the RAW size and CFA, and the HEIF and PNG encoders. The result is a domain model, logged at bind.
+**Scope boundary:** no UI change. No change to the JPEG path, storage or scrub. Branch raw-stage1-probe. No Gradle on the laptop, no merge without the owner's word.
+**Baseline:** origin/main after dispatch 2026-10-13-03 merges. Queued until then, since both touch the camera session.
+**Finish line:** the coder's plan answered. Then a PR on green CI with mapping tests shown failing first and revert checks. Then the owner's device run on the S22 and S26, whose logged capabilities shape stages 2 to 6.
+**Abort conditions:** a visible change; an experimental API needed outside the data layer; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -976.
