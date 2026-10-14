@@ -17259,3 +17259,16 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - down both sides to the screen's bottom.
 Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Notes:** Written by the planner by hand, on branch records-after-173. Folded into PR #224. Next free ID -990.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-990
+**Timestamp:** 2026-10-14T07:28:10Z
+**Continues:** 2026-09-28-989
+**Title:** The landscape side rail gets the bottom bar's outline treatment; a gap in the landscape outline to find and close (owner)
+**The owner, verbatim,** with a landscape screenshot kept off GitHub (a copy is at ~/Zynergy/device-evidence/2026-10-13-map-outlines/owner/): "Looks better, can landscape get the same navigation bar outline treatment? And there's still a slight gap in the outline in landscape mode".
+**What it sets:**
+- **Planner's reading of "the same treatment",** as -989 for portrait's bottom bar: the rail is outlined along its inner edge and rounded corners, and along its top and bottom edges out to the screen's edge. The edge that meets Android's own navigation buttons stays open.
+- **The landscape gap:** the coder finds where the outline breaks (the owner's screenshot is the evidence) and closes it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Folded into PR #224. Next free ID -991.
