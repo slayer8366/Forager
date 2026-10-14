@@ -354,7 +354,6 @@ internal fun SettingsContent(
         // Settings ends at Sources & credits, the very bottom (dispatch 2026-10-13-05; the owner: "Bottom of settings page
         // makes sense"), with no divider under it (dispatch 2026-10-11, RECORD -830, when Backup was last).
         HorizontalDivider()
-        CreditsNavigationRow(SOURCES_AND_CREDITS_TITLE, tag = SETTINGS_SOURCES_ROW_TAG, onClick = onOpenSourcesAndCredits)
     }
 }
 
