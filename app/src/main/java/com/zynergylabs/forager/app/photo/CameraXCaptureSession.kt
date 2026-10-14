@@ -308,7 +308,6 @@ internal class CameraXCaptureSession(
         torch = null
         boundHasFlashUnit = false
         currentFlashMode = FlashMode.Off
-        capabilities = null
         encoderCapabilities = null
         probeScope?.cancel()
         probeScope = null
