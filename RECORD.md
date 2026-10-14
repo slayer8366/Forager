@@ -17159,3 +17159,14 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **Planner's call:** while navigating, the strip's line has no arrow (-950). There the readout centres between the strip's leading edge and the ⋮.
 - Portrait is unchanged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-02 (map-chrome-outline). Next free ID -984.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-984
+**Timestamp:** 2026-10-14T04:59:01Z
+**Continues:** 2026-09-28-983
+**Title:** Portrait compass strip: the readout centred between the arrow and the three-dot menu too (owner)
+**The owner, verbatim,** with a portrait screenshot kept off GitHub: "Have portrait more centered also. This will matter most to people with OCD".
+**What it sets:** -983's centring applies in portrait as well. The strip's readout is centred between the compass arrow and the ⋮, or between the strip's leading edge and the ⋮ while navigating. This replaces -983's "Portrait is unchanged".
+**Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-02 (map-chrome-outline). Next free ID -985.
