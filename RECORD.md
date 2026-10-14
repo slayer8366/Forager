@@ -16846,3 +16846,24 @@ Forager's camera scrub removes the date with the location (PhotoMetadataScrub.kt
 **The owner, verbatim:** "Alan Rockefeller gave me his github and said I can use anything on it. I want to see what we can use from his repository: www.github.com/AlanRockefeller", and, told a written note would settle GPL-licensed code: "I have his permission to use anything".
 **What it means:** code and ideas from github.com/AlanRockefeller may be used in Forager, forager-forecast and the future companion app, on the owner's word that Alan gave permission. His copyright notices are kept, and credit is given where his code is used. A read-only survey of the relevant repositories is under way; nothing is taken yet.
 **Notes:** Written by the planner by hand, on branch records-after-173. The permission was given to the owner in person; there is no written copy in any repository. Next free ID -966.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-966
+**Timestamp:** 2026-10-14T02:53:01Z
+**Title:** The icon bar's outline on the search pill, the compass strip and its card, and the bottom and side navigation bars (owner)
+**Dispatch-file:** preserved/2026-10-13-02.md
+**The owner, verbatim:** "See the icon bar where there's an outline? Can you give the same treatment to the botton navigation bar and the top telemetry header?" Then: "1 each pill gets it. It matches the icon bar and how the outline is around each pill", "2 yes it grows with it", "3 yes side/bottom navigation bar get it just like it does in portrait", "4 left as is" (the map credit pill).
+**Change:** on the Maps tab, each piece gets the icon bar's outline, in the same tokens and drawing method, day and night:
+- the search pill;
+- the compass strip's card, along its visible edges and growing with it while navigating;
+- the landscape navigation card;
+- the bottom navigation bar;
+- the landscape side rail.
+The credit pill and the other tabs are unchanged.
+**Scope boundary:** visual only. No size, position or touch change to PR #221 and #222's layout. Branch map-chrome-outline. No Gradle on the laptop, no merge without the owner's word.
+**Baseline:** origin/main 497423d6.
+**Finish line:** the coder's plan answered. Then a PR on green CI with pixel tests per piece in day and night, touch tests at the corner gaps, and revert checks. After that the owner's merge word and the device items.
+**Abort conditions:** a size or position change; a conflict with a recorded ruling; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. For the next release, not the beta already out. Next free ID -967.
