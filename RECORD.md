@@ -17216,3 +17216,17 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - the owner's tablet items (API 37 rotation, insets, split screen);
 - dev's CI after the rebase.
 **Notes:** Written by the planner by hand, on branch records-after-173. RAW stage 1 (dispatch 2026-10-13-04) was queued behind this merge and can now start. Next free ID -987.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-987
+**Timestamp:** 2026-10-14T06:44:42Z
+**Continues:** 2026-09-28-951
+**Title:** Landscape strip keeps one width when the coordinates switch between grid reference and latitude/longitude (owner)
+**The owner, verbatim:** "UI looks clean. One small thing, and it seems to precede this update — in landscape: tapping the coordinates in the strip changes it as expected, but the change causes strip to change size, and the navigation HUD at the bottom changes along with it. When changing heading coordinates to and from lat/long, can the strip stay the same size? It's currently shorter in lat/long, and behaves normally until you switch the coordinates, but the change is obvious when it happens".
+**What it sets:**
+- In landscape, the strip's width no longer depends on which coordinate format is showing. It is sized for the wider of the two forms, so tapping the coordinates changes only the text.
+- The navigation card, which takes the strip's width (-951), stays the same width too.
+- The search bar keeps the room it had, as for the wider form.
+**Notes:** Written by the planner by hand, on branch records-after-173. Planner's reading: the width rule is -729/-732's landscapeStripFit, which sizes the strip to its readouts. Folded into PR #224 (map-chrome-outline). Next free ID -988.
