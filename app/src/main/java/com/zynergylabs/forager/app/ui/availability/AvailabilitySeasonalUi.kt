@@ -157,7 +157,6 @@ private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
         FruitingLagBucketCounts(distribution.buckets)
         // The lags above are counted from Open-Meteo's historical rainfall, so its credit sits beside them (dispatch
         // 2026-10-13-05, the planner's answer Q3).
-        OpenMeteoCredit()
 
         HorizontalDivider()
         // The observer-effort caveat: not polish, per this feature's own honesty requirement —
