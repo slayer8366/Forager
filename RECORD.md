@@ -17031,3 +17031,16 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 **Finish line:** the coder's plan answered. Then a PR on green CI with mapping tests shown failing first and revert checks. Then the owner's device run on the S22 and S26, whose logged capabilities shape stages 2 to 6.
 **Abort conditions:** a visible change; an experimental API needed outside the data layer; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -976.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-976
+**Timestamp:** 2026-10-14T04:24:03Z
+**Continues:** 2026-09-28-967
+**Title:** Outlines follow the whole top pill in portrait, sides included; the landscape side bar's buttons are evenly spaced (owner)
+**The owner, verbatim,** with phone screenshots of the outline build, kept off GitHub: "In portrait mode: Have the outlines follow the entire pill at top. The bottom bar can stay as is." And: "Landscape: the side navigation buttons (list, seasonal, maps, journal, tools) is crammed on the bar, unevenly stacked between the top and the bottom. Can the buttons be evenly spaced?"
+**What it sets:**
+- **Portrait:** the search pill and the compass strip are outlined all the way round, including the sides that lie on the screen's edges. This replaces -967's "no line on the screen's own edge" for the top pills only. The bottom bar stays as built, without side lines.
+- **Landscape:** the side navigation bar's five destinations are spaced evenly over its height, not packed toward the top.
+**Notes:** Written by the planner by hand, on branch records-after-173. Folded into dispatch 2026-10-13-02 (map-chrome-outline). Next free ID -977.
