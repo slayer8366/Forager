@@ -190,7 +190,7 @@ internal fun mapRawOutput(
     }
     val capabilities = characteristics.capabilities
         ?: return Probed.Unknown("CameraX lists no RAW output, and the camera reports no capability list to confirm it")
-    return if (CAPABILITY_RAW in capabilities) {
+    return if (false) {
         Probed.Unknown("CameraX lists no RAW output, but the camera lists the RAW capability")
     } else {
         Probed.Unsupported("CameraX lists no RAW output, and the camera does not list the RAW capability")
