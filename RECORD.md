@@ -17066,3 +17066,12 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 **Finish line:** the coder's plan answered. Then a PR on green CI with tests through the real Settings screen and revert checks. Then the owner's merge word.
 **Abort conditions:** a licence whose required form can't be met on the page; a conflict with a recorded ruling; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. The inventory is on branch sources-credits-inventory (a8777082). Next free ID -978.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-978
+**Timestamp:** 2026-10-14T04:27:16Z
+**Corrects:** 2026-09-28-972
+**What it corrects:** -972 said that the app's Settings screen still has an "Automatically Save Location to Photos" row. It doesn't. That row moved into the camera's gear panel in dispatch 2026-09-28-707 (AvailabilitySettingsUi.kt:22), and AvailabilityScreenSettingsPanelTest asserts it is absent. With the panel emptied, the strip's Location chip is the only place the setting is shown or set. That matches the owner's words: "save location is already in the strip". Found by the coder of dispatch 2026-10-13-03 (PR #223).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -979.
