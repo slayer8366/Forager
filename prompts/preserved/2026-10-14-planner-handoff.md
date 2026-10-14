@@ -1,65 +1,79 @@
-# Planner handoff, 2026-10-14 21:25 UTC (Tuesday 14:25 PDT)
+# Planner handoff, 2026-10-14 (rewritten 21:58 UTC, 14:58 PDT)
 
-Written by the outgoing planner session (Rowan Waymark) for the next one. Read first:
+Written by the outgoing planner session (Rowan Waymark) for the next one, at the owner's word ("Rewrite the handoff"). This replaces the version written at 21:25 UTC. Read first:
 - `~/Zynergy/Forager/CLAUDE.md`;
 - the memory index;
 - `docs/process/planner-profile.md` on main;
-- RECORD.md on `origin/records-after-173`, entries -945 to -1000 (this session).
+- RECORD.md on `origin/records-after-173`, entries -945 to -1001.
 
-**Next free RECORD ID: -1001.** This handoff takes -1000. The records worktree is `~/.cache/forager-wt/records`, on branch `records-after-173`.
+**Next free RECORD ID: -1002.** The records worktree is `~/.cache/forager-wt/records`, on branch `records-after-173`.
 
-## Rules learned or confirmed this session
+## The first rule: no build without the owner's explicit go
 
-All are in memory. Read the files, not this summary.
-- **Clarify first, record once.** One entry per settled decision. No entries for re-asks, the planner's misreadings or "pending" answers (owner, verbatim: "Don't record the things you confused"). A future record-hygiene pass is pending, with no go yet (memory `record-hygiene-pending`).
-- **The owner's phone hides question previews, and sometimes the text above a question box.** Ask questions that depend on drawings in a plain message that ends the turn, with the drawings as text (memory `question-previews-not-on-phone`).
-- **The camera screen never rotates, on any device; only its icons turn in place.** "Cardinal sin" (memory `camera-never-rotates`). When restating a removal, separate "the setting goes" from "the behaviour changes". Conflating them caused -980.
-- **Credit reused work in the same change, alongside the other credits.** Alan Rockefeller's permission to use his GitHub is RECORD -965; nothing of his is used yet (memory `credit-reused-work`).
-- **Coders sometimes worked in the planner's own worktree.** Give each coder an explicit worktree under `~/.cache/forager-wt/<branch>` and tell it to work only there.
-- **Coders run as subagents on opus, CI only, no Gradle on the laptop.** The owner upgraded their subscription on 2026-10-14, so usage limits shouldn't stop coders now.
+The owner, verbatim, 2026-10-14: **"Yes no build occurs until I explicitly say so."**
+- No coder starts, and no build-producing work is dispatched, until the owner gives an explicit go for that build.
+- "Write up X" means the document only.
+- An answer to a design question is an answer, not a go.
+- Before any coder, ask a separate "Start a coder on X now?" and wait for yes.
+
+Write-ups, plans and read-only checks are not builds. See memory `dont-infer-authorization-to-build`.
+
+**Why it's first:** on 2026-10-14 the outgoing planner read "Show it now", the owner's answer to whether the RAW format chip should appear, as a go, and dispatched a RAW stage 2 coder. The owner: "I didn't authorize anything. Undo everything done in stage 2", then "Delete everything. Redo the entire records branch if needed". So:
+- **Code:** stage 2's code branches were deleted. The backup is `~/Zynergy/forager-repo-backups/2026-10-14-04-raw-stage2-undo/`.
+- **Records:** the records branch was rewritten without stage 2's dispatch file and entries, and the stage 2 parts of the earlier handoff. The backup of the old branch is `2026-10-14-05-records-pre-stage2-erase/`.
+- **Renumbering:** the handoff entry is now -1000, and the owner's coder arrangement is -1001. The removed IDs -1002 and -1003 were stage 2 entries written by a second planner session; their numbers are free again.
+
+**Open, for the owner first: PR #227 and branch `raw-stage2` are back.** After the deletion, someone reopened PR #227 and restored `raw-stage2` at `c7faf0dc` (PR updated 21:55 UTC). The outgoing planner didn't do it and didn't undo it. Ask the owner whether to delete them again. Don't act on either without that answer.
+
+**A second planner session** ("the bridge session that read the handoff") was active this afternoon. Its view of the records is stale: it wrote -1002 to -1004 before the rewrite. If it's still running, it should re-read the records branch before writing.
+
+## Other standing rules (all in memory; read the files)
+
+- **Clarify first, record once.** One entry per settled decision. Nothing for re-asks, misreadings or pending answers. A record-hygiene pass is pending, with no go yet.
+- **Questions that depend on drawings** go in a plain message that ends the turn, with the drawings as text. The owner's phone hides question previews.
+- **The camera screen never rotates on any device;** only its icons turn ("cardinal sin").
+- **Credit reused work in the same change.** Alan Rockefeller's permission is RECORD -965; nothing of his is used yet.
+- **Coders run as subagents on Opus,** each in its own worktree under `~/.cache/forager-wt/<branch>`, CI only, with no Gradle on the laptop. The laptop is for forecast work (-1001). Give each coder an explicit worktree; two coders this session worked in the planner's own folder.
+- **Times to the owner in Pacific;** RECORD in UTC. Products described generically. Owner screenshots stay off GitHub.
 
 ## State
 
-- **main is `4ade21f0`.** Today's merges, each with a backup and a merge entry:
+- **main is `4ade21f0`.** Today's merges, each with a backup and an entry:
   - #223, camera (-986);
-  - #224, map outlines, rail, readout and steady strip (-991);
+  - #224, map outlines and rail (-991);
   - #225, Sources & credits (-992);
   - #226, RAW stage 1 probe (-999).
-- **dev is `8bfb9eac`:** main plus one dev-tools commit, CI green (run 38630511032). Rebase it after every merge to main, following the dev rule (-930). The last two rebases needed small conflict resolutions; -994's was done by a coder because it was a real code merge.
-- **Beta:** build 3292 (1.0.3292+g497423d6) is on closed testing, Alpha (-962). It predates today's camera, outline and credits work.
-
-## Running now
-
-Nothing. No coder is running.
+- **dev is `8bfb9eac`:** main plus one dev-tools commit, CI green. Rebase it after every merge to main (the dev rule, -930). The two most recent rebases needed conflict resolution; -994's went to a coder.
+- **Beta:** build 3292 is on closed testing (-962). It predates today's work.
+- **Running:** nothing. No coder is running from this session.
 
 ## Waiting on the owner
 
-1. **The iNaturalist share-queue spec review.** It is on branch `inat-share-spec` (`docs/plans/inaturalist-share-queue.md`, -963, -964). Not dispatched.
-2. **Device items:**
+1. **PR #227 and branch `raw-stage2`:** delete again, or leave? (Above.)
+2. **The iNaturalist share-queue spec,** on branch `inat-share-spec` (`docs/plans/inaturalist-share-queue.md`, -963, -964): review. Not dispatched.
+3. **Device items:**
    - the tablet camera hold (-985; API 37, full screen, all rotations, split screen);
-   - outline and rail checks with real insets;
-   - Sources & credits links;
+   - the outlines and rail with real insets;
+   - the Sources & credits links.
 
-## Backlog for the production release
+## Backlog for the production release (nothing here is started; each needs the owner's go)
 
-- **iNaturalist and Open-Meteo call grouping and caching:** the owner agreed. A first call-count check is needed, and nothing is dispatched.
-- **Lint fixes** (D4, "Everything reasonable"): survey on branch `lint-survey`. Also, CI runs no lint, so the camera's ExperimentalCamera2Interop opt-in is unproven by lint.
-- **Tidiness** (D5): many `revert-check/*` and `tests-first/*` branches remain on the remote, plus `dev-rebase-candidate`, `coordinate-format`, `rounded-map-strip`, `remove-portrait-lock`, `map-chrome-outline`, `raw-stage1-probe` and `route-drawn`. Ask the owner before deleting, with a bundle backup first.
-- **RAW stages 2 to 6:** not written up or dispatched. The stage list is in -974 and -975; the owner's design is in -973 and -974. Their sources: Forager-app `docs/research/2026-10-13-raw-pipeline-plan-sources.md`, and both phones' probe readings (-996, -998).
-- **Unmerged documentation branches:**
-  - `alan-repos-survey` (the Alan Rockefeller repo survey);
-  - `sources-credits-inventory` (the inventory audit);
-  - `inat-share-spec`.
-
-  Each is docs only and needs a PR or the owner's word.
-- **Field measurement Phase 2** (Forager-app) and the top-down crosshair (B7d): separate, not scheduled.
-- **The future companion app** (identification plus iNaturalist upload): direction only (memory `future-id-system-direction`).
+- **iNaturalist and Open-Meteo call grouping and caching:** agreed in principle. Start with a read-only call count.
+- **Lint fixes** (D4): survey on branch `lint-survey`. CI runs no lint, so the camera's ExperimentalCamera2Interop opt-in is unproven by lint.
+- **Tidiness** (D5): many `revert-check/*`, `tests-first/*` and finished feature branches remain on the remote. Ask before deleting, with a bundle backup first.
+- **RAW stages 2 to 6:** not written up or dispatched.
+  - Design: -973 and -974; the stage list: -975.
+  - Readings from both phones: -996 (S22 Ultra) and -998 (S26 Ultra), including the differing colour layouts, GRBG against GBRG.
+  - Sources: Forager-app `docs/research/2026-10-13-raw-pipeline-plan-sources.md`.
+- **Unmerged documentation branches:** `alan-repos-survey`, `sources-credits-inventory`, `inat-share-spec`. Docs only; each needs a PR or the owner's word.
+- **Field measurement Phase 2** (Forager-app) and the top-down crosshair (B7d): not scheduled.
+- **The future companion app** (identification plus iNaturalist upload): direction only.
 
 ## Corrections this session, for the record
 
-- -957: the owner said "left side", not "port side". -956 had misattributed it.
+- -957: the owner said "left side", not "port side".
 - -971 withdrew -970's gear removal.
-- -978: Settings had no save-location row; -972 was wrong.
-- -980: -968's "camera always follows the phone" was the planner's mistaken framing.
-- -994: the expected test count in dispatch 2026-10-14-01 was wrong.
-- -997: an unchecked sensor claim in -996 was withdrawn.
+- -978: Settings had no save-location row.
+- -980: "the camera always follows the phone" was the planner's mistaken framing.
+- -994: a wrong expected test count.
+- -997: an unchecked sensor claim withdrawn.
