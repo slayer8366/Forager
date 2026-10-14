@@ -16887,3 +16887,36 @@ The credit pill and the other tabs are unchanged.
   - the strip's outline open at its tucked top and clipped at the pill;
   - nothing changes size.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -968.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-968
+**Timestamp:** 2026-10-14T03:37:39Z
+**Title:** Remove "Lock camera to portrait", after finding why toggling it freezes the camera; keep the removed code in a document (owner)
+**Dispatch-file:** preserved/2026-10-13-03.md
+**The owner, verbatim:** "The bug is in the camera's settings. Tapping the lock to portrait mode from the settings freezes the camera. I'm wondering the use of that feature. Seems pretty useless to be honest." Then: "Go ahead and remove it. But keep the code used in a document in case people want it back."
+**Change:**
+- The option goes. The camera always follows the phone, as with today's default; a stored "on" is ignored.
+- The freeze's cause is found first. If it lies in kept code, it is fixed with a failing test.
+- The removed code is kept verbatim in docs/archive/camera-portrait-lock.md, with how to restore it.
+- This reverses B1 of docs/audits/2026-09-21-camera-strip-basics-decisions.md at the owner's word.
+**Scope boundary:** no change to photo orientation in saved files, or to -958's layout. Branch remove-portrait-lock. No Gradle on the laptop, no merge without the owner's word.
+**Baseline:** origin/main 497423d6, or its head.
+**Finish line:** the coder's report answered. Then a PR on green CI, with the removal tested, the freeze's cause stated, and the archive document filed and indexed. After that the owner's merge word and the device items.
+**Abort conditions:** the freeze's cause turns out to be in the photo-orientation path; a conflict with a recorded ruling other than B1; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. Before the production release. Next free ID -969.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-969
+**Timestamp:** 2026-10-14T03:37:39Z
+**Title:** The RAW pipeline plan is rebuilt from the record; no stage 1 dispatch exists (owner)
+**The owner, verbatim:** "And I would like to finish the camera project I started." Then: "A, there is none. You will need to rebuild it." That answered whether a RAW pipeline stage 1 dispatch existed anywhere.
+**What it sets:** the planner rebuilds the plan for bringing OSCam/Zynergy's RAW processing into Forager from:
+- Forager-app's docs/research/2026-09-21-field-measurement-brief.md (including its correction: the raw-pipeline branch never existed) and the Phase 1 report;
+- the OSCam repository (slayer8366/OSCam);
+- camera strip decision B5 ("RAW waits until the capture pipeline can carry it").
+The plan comes to the owner before anything is dispatched. Field measurement Phase 2 and the top-down crosshair (B7d) remain separate items.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -970.
