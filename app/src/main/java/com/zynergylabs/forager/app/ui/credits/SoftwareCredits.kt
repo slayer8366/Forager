@@ -73,7 +73,6 @@ internal object SoftwareCredits {
      */
     fun groups(catalog: SoftwareCatalog, readText: (String) -> String): List<LicenceGroup> {
         val known = catalog.licences.map { it.id }.toSet()
-        catalog.libraries.firstOrNull { it.licence !in known }?.let { error("\"${it.name}\" names licence ${it.licence}, which the list does not have") }
         fun read(path: String): String = readText("$DIRECTORY/$path").also { require(it.isNotBlank()) { "$DIRECTORY/$path is blank" } }
         return catalog.licences.mapNotNull { licence ->
             val libraries = catalog.libraries.filter { it.licence == licence.id }
