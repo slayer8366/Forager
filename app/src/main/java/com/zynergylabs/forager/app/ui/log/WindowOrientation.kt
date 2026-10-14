@@ -147,7 +147,7 @@ internal fun RequestWindowOrientation() {
  * The `requestedOrientation` the camera holds: portrait (RECORD -980, -981). `PORTRAIT` rather than `SENSOR_PORTRAIT` or
  * `USER_PORTRAIT`, which admit reverse portrait (the old lock's reason, `e51b3ae`). Was `SCREEN_ORIENTATION_SENSOR`.
  */
-internal const val CAMERA_WINDOW_ORIENTATION: Int = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+internal const val CAMERA_WINDOW_ORIENTATION: Int = ActivityInfo.SCREEN_ORIENTATION_SENSOR
 
 /** The Activity behind a composition's context, or null — shared with `CameraWindowChrome`, which needs the same window. */
 internal tailrec fun Context.findActivity(): Activity? = when (this) {
