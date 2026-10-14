@@ -265,7 +265,6 @@ private fun CompactSettingsTab(
                     backup = backup,
                     showBackupRequest = showBackupRequest,
                     onOpenSourcesAndCredits = { page = SettingsDrawerPage.SOURCES },
-                    scrollState = settingsScroll,
                 )
                 BuildIdentityFooter()
             }
