@@ -17357,3 +17357,27 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Correction:** dispatch 2026-10-14-01 named 4,728 as main's expected count; main's run 38547271981 reports 4,788. The planner's figure was wrong.
 **Not checked:** release compilation (CI builds debug only); system Back on the Crash Logs and Diagnostics pages, which has no test of its own.
 **Notes:** Written by the planner by hand, on branch records-after-173. Branch dev-rebase-candidate is still on the remote. Next free ID -995.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-995
+**Timestamp:** 2026-10-14T18:26:45Z
+**Continues:** 2026-09-28-975
+**Title:** RAW stage 1: planner's answers to the coder's plan; started at the owner's word
+**The owner, verbatim:** "Begin raw stage 1".
+**Context:** the coder's plan (base 94a10cc3, read from the pinned CameraX 1.6.2 AARs) found:
+- RAW and RAW+JPEG come from one check in 1.6.2, so they can't differ;
+- CameraX reports "no RAW", with no "unknown", when its CameraInfo isn't the internal type;
+- Camera2CameraInfo needs the ExperimentalCamera2Interop opt-in, which only lint enforces, and CI runs no lint;
+- the platform has no HEIF or TIFF bitmap encoder (PNG yes, DNG via DngCreator);
+- the app binds the front camera only when there is no back camera.
+**What it sets (planner's calls):**
+- a new data-layer reader file;
+- camera reads at bind, and the encoder probe once per process in the background;
+- the unbound front camera and the back camera's physical cameras also probed and logged;
+- PNG measured by a real 1×1 compress;
+- a CameraX "no" with Camera2 unreadable is Unknown;
+- one revert check per rule group;
+- no UI change, held by a positive control.
+**Notes:** Written by the planner by hand, on branch records-after-173. Branch raw-stage1-probe. Next free ID -996.
