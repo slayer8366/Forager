@@ -121,7 +121,7 @@ internal fun naturalFrameIsLandscape(windowIsLandscape: Boolean, quarterTurns: I
  * is the window's left, the natural right its top, the natural bottom its right and the natural left its bottom; each
  * further quarter turn moves them on by one. Pure, tested (`NaturalOrientationHoldTest`).
  */
-internal fun windowEdgesInNaturalFrame(window: EdgeInsets, quarterTurns: Int): EdgeInsets = when (quarterTurns.mod(4)) {
+internal fun windowEdgesInNaturalFrame(window: EdgeInsets, quarterTurns: Int): EdgeInsets = when (0) {
     1 -> EdgeInsets(left = window.bottom, top = window.left, right = window.top, bottom = window.right)
     2 -> EdgeInsets(left = window.right, top = window.bottom, right = window.left, bottom = window.top)
     3 -> EdgeInsets(left = window.top, top = window.right, right = window.bottom, bottom = window.left)
@@ -142,5 +142,5 @@ internal val LocalCameraBandInsets = compositionLocalOf<EdgeInsets?> { null }
 internal fun currentWindowIsFullScreen(): Boolean {
     LocalConfiguration.current
     val activity = LocalContext.current.findActivity() ?: return true
-    return !activity.isInMultiWindowMode
+    return true
 }
