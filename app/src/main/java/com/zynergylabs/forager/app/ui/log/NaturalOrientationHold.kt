@@ -12,7 +12,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -80,7 +81,7 @@ internal fun HoldNaturalOrientation(
     Layout(
         modifier = modifier,
         content = {
-            Box(if (held) Modifier.graphicsLayer { rotationZ = degrees } else Modifier) {
+            Box(if (held) Modifier.drawWithContent { rotate(degrees) { this@drawWithContent.drawContent() } } else Modifier) {
                 CompositionLocalProvider(LocalNaturalOrientationHold provides held, LocalCameraBandInsets provides bandInsets) {
                     content(
                         if (held) naturalFrameIsLandscape(windowIsLandscape, turns) else windowIsLandscape,
