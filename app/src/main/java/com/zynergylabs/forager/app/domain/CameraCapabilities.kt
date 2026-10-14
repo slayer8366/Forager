@@ -226,7 +226,6 @@ internal fun mapExposureCompensation(state: CameraReading<ExposureStateReading>)
         is CameraReading.Failed -> return Probed.Unknown("CameraX's exposure state could not be read: ${state.reason}")
         is CameraReading.Read -> state.value
     }
-    if (!reading.supported) return Probed.Unsupported("CameraX reports exposure compensation unsupported")
     if (reading.stepNumerator == 0 || reading.stepDenominator == 0) {
         return Probed.Unknown("CameraX reports exposure compensation supported with a step of ${reading.stepNumerator}/${reading.stepDenominator}")
     }
