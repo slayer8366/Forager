@@ -17117,3 +17117,17 @@ The plan comes to the owner before anything is dispatched. Field measurement Pha
 - **Android 17:** for apps targeting API 37, the system ignores orientation requests on displays 600 dp or wider at their narrowest. Tablets and unfolded foldables will rotate fully regardless; phones keep the fixed layout.
 - **The freeze:** it came only from switching the lock mid-session, and with no toggle nothing switches it. The kept viewfinder weakness stays recorded in the archive document.
 **Notes:** Written by the planner by hand, on branch records-after-173. The fix goes to PR #223's coder. Next free ID -981.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-981
+**Timestamp:** 2026-10-14T04:36:35Z
+**Continues:** 2026-09-28-980
+**Title:** The camera screen never rotates, on any device; tablets included (owner)
+**The owner, verbatim:** "The camera is to never, ever, rotate like this. This is a cardinal sin".
+**What it sets:**
+- The camera's layout never rotates with the device. Only its icons turn in place. This holds on every device.
+- -980's "tablets will rotate fully regardless" is withdrawn as an accepted outcome. Where Android 17 ignores the portrait request (displays 600 dp or wider at their narrowest), the app counter-rotates the camera's own layout, so it still appears fixed.
+- The coder reports how, and with what limits, before building that part.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -982.
