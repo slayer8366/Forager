@@ -17469,3 +17469,12 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 - **dev:** rebased onto 4ade21f0 after a backup (dev-20261014T201506Z-0ef73f3b.bundle). One import-only conflict in CameraXCaptureSession.kt was resolved by keeping both import sets. It is one commit, 8bfb9eac.
 **Not checked:** dev's CI after the rebase; lint for the ExperimentalCamera2Interop opt-in (CI runs no lint).
 **Notes:** Written by the planner by hand, on branch records-after-173. The nine revert-check/raw-stage1-* branches remain on the remote. Next free ID -1000.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1000
+**Timestamp:** 2026-10-14T21:25:57Z
+**Title:** Planner handoff to the next session
+**Handoff-file:** prompts/preserved/2026-10-14-planner-handoff.md (this branch). The owner, verbatim: "Write a handoff for the next session please".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1001.
