@@ -17859,3 +17859,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **What it sets, provisionally until review, with a warning before any point of no return (-1030):** (1) add tier A (Larix, Betula, Populus, Alnus, tanoak and chinquapin, Arbutus) and tier B (Fagus, Carya, Tilia, Ostrya and Carpinus) and an ectomycorrhizal-host total band in one pass; tier B needs D116 amended by a new row; (2) Canada: the genera SCANFI folds into broadleaf are flagged not available, and the licence of a second Canadian source (NRCan's forest-attribute maps) is read at its source for the continental roll-out; (3) the new bands enter the fit under D121, each kept only if it improves held-out years; (4) aspen's crown-width coefficients stand in for genera without their own (as D89(2)); (5) order: the PNW box first (one night), then the rest of the US; old tiles kept until the new ones are verified, then removed on the owner's word; (6) T5's genus list unchanged, a T6b-only list. Also taken as accepted: the stage 2 coder's reading that a crashed or unreadable clean check shows the -1003 message (-1031). Any build must fix the verify report's F1 (tiles counted done by key and hash only) and F2 (the plot table reused unless its rulings string changes).
 **Not a go:** building the change needs the owner's go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1034.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1034
+**Timestamp:** 2026-10-15T04:45:03Z
+**Title:** Publish the PNW pilot for 2026-W42 while the full model is built (owner)
+**The owner, verbatim:** asked whether last week's forecast stays on the live page until T9's publishing gate (-1027) or this week's pilot is published meanwhile: "Publish this week's pilot meanwhile".
+**Change:** the same pilot model, unchanged, scored for 2026-W42 (week start 2026-10-12) by the W41 route: Copernicus weather only, the same publish command and flags, every manifest field but the week, dates, weather window and source and the cell values identical to W41's. Forecast branch pnw-pilot-w42 from main a79d667 (not merged to main, D40). Site drop on zynergy-site branch pnw-pilot-w42-drop as a PR; the planner merges after the coder's report and the preview check, on this word.
+**Abort conditions:** W41 doesn't reproduce from its inputs on main; Copernicus lacks the window; publishing would need a change to the model, copy or labels.
+**Notes:** Written by the planner by hand, on branch records-after-173. The coder is an Opus subagent. Next free ID -1035.
