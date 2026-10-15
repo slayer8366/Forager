@@ -17737,3 +17737,35 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Result:** work drive 2.9 GB free to 23 GB; /tmp 80% to 21%; root drive 25 GB to 12 GB free. Listings and checksums in ~/cleanup-2026-10-15/ (outside any repository).
 **Kept on the planner's recommendation:** device evidence, repository backups (9 GB), the Android SDK (6.1 GB, needed to install builds on phones).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1023.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1023
+**Timestamp:** 2026-10-15T04:07:14Z
+**Continues:** 2026-09-28-913
+**Title:** Habitat map validation uses Level III ecoregions as blocks, with a Level I summary; T7's base is forecast main (owner)
+**The owner, verbatim:** after the planner's explanation of Level III (about 25 regions in the PNW box) against Level I (about 5), and the recommendation "Level III, with a Level I summary alongside it": "Yes to all".
+**What it sets:** T7's open decision O4: Level III ecoregions are the validation blocks; the minimum presences per block is fixed before any count is read; blocks under it are marked uninformative and kept in the pooled figure; a Level I summary is reported beside. T9's publishing level is not decided by this. O7 (base branch) is answered by the merge in -1021: forecast main a79d667 holds T6b's code, D121 and the pilot ruling D123. Both go into the forecast repository as decision rows when T7's plan is filed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1024.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1024
+**Timestamp:** 2026-10-15T04:07:14Z
+**Continues:** 2026-09-28-1016
+**Amendment 2 to -1007 (RAW stage 2): switch on the writer, messages by cause, normal colour.** The owner, verbatim, to "Should I start that coder now?": "Yes to all". The part A coder resumes on raw-stage2 at 2057bc9f: production writer becomes ForagerDngWriter; the -1003 message only for a failed clean check, the -1018 message for every other writer or data failure; the fallback messages in the normal colour (-1019); the adapter checked against part B's reading of blackLevel, CFA origin and lens-shading layout; both parts' index rows added. Tests first, revert checks, CI only, PR #227 unmerged. Details in the dispatch file's Amendment 2.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1025.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1025
+**Timestamp:** 2026-10-15T04:07:14Z
+**Continues:** 2026-09-28-1023
+**Title:** Rewrite the T7 habitat plan for mycorrhizal mushrooms as a group (owner)
+**The owner, verbatim:** to "Should I rewrite the habitat plan for the mycorrhizal group?": "Yes to all".
+**Change:** documents only. The drafted T7 dispatch (forager-forecast docs/dispatch/2026-10-11-t7-pnw-pilot-habitat.md) is rewritten from chanterelles to the mycorrhizal group (-913), framed by -914, with O4 settled (-1023) and O7 answered by main a79d667. Written by an Opus subagent on forecast branch t7-mycorrhizal-plan from main; no fit, no data pull, no merge.
+**Finish line:** the rewritten plan pushed, its open decisions listed for the owner. Nothing runs until the owner's go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1026.
