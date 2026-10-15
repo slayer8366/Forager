@@ -220,7 +220,7 @@ internal class CameraXBurstProbeCamera(private val context: Context) : BurstProb
             control.clearCaptureRequestOptions().await()
             true
         } ?: false
-        val remaining = control.captureRequestOptions
+        val remaining = control.getCaptureRequestOptions()
         val stillSet = listOfNotNull(
             remaining.getCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK)?.let { "CONTROL_AE_LOCK=$it" },
             remaining.getCaptureRequestOption(CaptureRequest.CONTROL_AWB_LOCK)?.let { "CONTROL_AWB_LOCK=$it" },
