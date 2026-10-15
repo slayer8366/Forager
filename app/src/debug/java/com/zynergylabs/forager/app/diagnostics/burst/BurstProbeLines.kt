@@ -24,7 +24,6 @@ internal object BurstProbeLines {
         .millis("rawArrivalMs", frame.rawArrivalMs)
         .millis("jpegArrivalMs", frame.jpegArrivalMs)
         .long("sensorTimestampNs", frame.sensorTimestampNs)
-        .bool("resultMatched", frame.resultMatched)
         .long("exposureTimeNs", frame.exposureTimeNs)
         .int("iso", frame.iso)
         .int("postRawBoost", frame.postRawBoost)
