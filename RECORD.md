@@ -17488,3 +17488,25 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** asked whether that is the standing arrangement: "3 yes. Build on github, use the laptop for the forecast work".
 **What it sets:** app coders are subagents of the planner session on Opus, each in its own worktree under ~/.cache/forager-wt/<branch>, with CI as the only build. The laptop's heavy capacity is for forager-forecast work. This confirms the practice in the record since -918, which had no owner words behind it, and replaces the memory that coders run in owner-opened windows.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1002.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1002
+**Timestamp:** 2026-10-15T00:21:47Z
+**Continues:** 2026-09-28-974
+**Title:** RAW stage 2: the format chip shows now, with JPG and RAW (owner; restored)
+**The owner, verbatim:** asked whether the format chip shows now with JPG and RAW, or stays hidden until stage 3: "Show it now. Nobody will see it before release but me". First recorded 2026-10-14T20:49:21Z inside the erased build intent (old -1000).
+**What it sets:** the format chip appears in stage 2, offering JPG (the default) and RAW, on phones where the stage 1 probe reports RAW. A design decision only: no build is authorised by it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Restored at the owner's correction, relayed by the outgoing planner session and confirmed by the owner in this session: "Everything decided stays, the building is only thing that got undone". Text taken from the pre-rewrite backup (forager-repo-backups/2026-10-14-05-records-pre-stage2-erase, head d347c0e0). Next free ID -1003.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1003
+**Timestamp:** 2026-10-15T00:21:47Z
+**Continues:** 2026-09-28-1002
+**Title:** RAW: a DNG that can't be cleaned of camera details is discarded and the shot is kept as JPG (owner; restored)
+**The owner, verbatim:** "2 A". Offered first, as A: "Closed (Recommended, and already built as the default): the RAW file is thrown away and the shot is kept as a JPG", with the message "The RAW file couldn't be cleaned of camera details, so this photo was saved as JPG."; second: "Open: the RAW file is kept with those details still in it". First recorded 2026-10-14T21:41:45Z (old -1002).
+**What it sets:** a DNG whose make, model and time can't be removed is deleted; the shot's scrubbed JPEG is kept as the photo, the failure is logged, and the user sees the message above. This keeps -975's "yes do that for all formats". The JPEG path's own fail-open is unchanged. The option's words "already built" referred to the erased stage 2 code; nothing is built now.
+**Notes:** Written by the planner by hand, on branch records-after-173. Restored as -1002 above, from the same backup. The original planner read the unlettered first option as A. Next free ID -1004.
