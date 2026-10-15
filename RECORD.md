@@ -17951,3 +17951,16 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Done:** restarted at 06:31 PDT as t6b-pnw-hosts with --workers 1 (the same 5G cap), --until 20:00, same box and stages; memory watched over the first tiles. The continental section stays paused until the PNW run ends, since both write one manifest; it then resumes on the new code, SCANFI-layer stage only, as planned.
 **Lesson:** the build report's per-tile estimate didn't cover memory: 24-band tiles need more than half of 5G each. The rest-of-US rebuild runs with one worker unless measured otherwise, which roughly doubles its time (now about 2 to 3 days of laptop time, inferred).
 **Notes:** Written by the planner by hand, on branch records-after-173. One fix attempt so far on this symptom. Next free ID -1042.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1042
+**Timestamp:** 2026-10-15T16:43:59Z
+**Continues:** 2026-09-28-1038
+**Title:** RAW stage 2 on the S26 Ultra: three RAW photos by the owner at full size; valid, clean, correct colours and the same way up as their JPGs
+**The owner, verbatim:** "S26 plugged in. Took some RAW photos".
+**Build:** 1.0.3363+gf04a1514 already installed on the S26 (SM-S948U), the same PR #227 build as -1038. Files pulled over USB by run-as; evidence kept off GitHub at ~/Zynergy/device-evidence/2026-10-15-raw-stage2-s26/ (the owner's indoor photos; described here, never committed).
+**Observed:** log 09:37 to 09:38 PDT: "Capture rebound as Raw", three "RAW shot" lines at resolution=4080x3060 (two upright, requestDegrees=90; one turned sideways, deviceRotation=1, requestDegrees=0), no fallback to JPG; then JPG chosen and two plain shots (4000x3000); then RAW chosen again. Each RAW shot saved <id>.dng (7.4 to 7.9 MB) and its <id>.jpg. All three DNGs: exiftool -validate OK; no Make, Model, Software, DateTimeOriginal or GPS; UniqueCameraModel Forager; CFA [Green,Blue][Red,Green] (GBRG, as -998); BlackLevel 64, WhiteLevel 1023. Orientation: DNG and JPG agree on each (Rotate 90 CW, Horizontal, Rotate 90 CW). Decoded with LibRaw 0.22.1 with its orientation applied, each RAW shows the same scene, framing and way up as its JPG, with natural colours (wood doors, white walls, a coloured toy bin) and no visible corner darkening; the RAW is darker and flatter than the phone's JPG, as an unprocessed file should be.
+**Not checked:** the second sideways direction (rotation 3) on either phone; the S22's colours in daylight (its decode matched its JPG in a dim room, -1038); a desktop raw editor other than LibRaw; the fallback messages on a phone (covered by tests).
+**Notes:** Written by the planner by hand, on branch records-after-173. PR #227 is ready for the owner's merge word. Next free ID -1043.
