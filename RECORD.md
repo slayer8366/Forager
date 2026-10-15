@@ -17664,3 +17664,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Planner's check:** DngContract.kt is the same blob (bcc78f22) on both branches; part B touched only domain/raw, data/raw and their tests; run 38672444742 succeeded on 2801ad01. Merged by the planner as 2057bc9f (no conflicts, 10 files), pushed to raw-stage2 (PR #227).
 **Open:** production still uses the placeholder writer. Before the swap: the writer's Failed covers a failed cleanliness check, refused input and I/O errors, so part A's mapping of every Failed to the -1003 message would be wrong for the latter two; that mapping waits on the owner's ruling on the new "couldn't be saved" wording and the message colour (-1015).
 **Notes:** Written by the planner by hand, on branch records-after-173. Neither part's index row is in docs/audits/README.md yet. Next free ID -1017.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1017
+**Timestamp:** 2026-10-15T03:11:01Z
+**Title:** forager-forecast: merge the 11 unmerged branches into main, first of four forecast items (owner)
+**The owner, verbatim:** ordering the four forecast items from the planner's status read (1 habitat map, 2 merge the 11 branches, 3 this week's forecast, 4 restart the continental layers job): "2, 1, 4, then 3". Asked to start the merges: "Yes, go ahead and begin branch merging. That's the most important thing to set for the rest of the task list. Your read is sound".
+**Change:** the branch tips t6b-pnw-review, t6b-pnw-scanfi, d121-lean-start, pnw-pilot-t1, pnw-pilot-t1-review, pnw-pilot-scoring, pnw-first-fit-verify and pnw-pilot-plans (carrying the other three) merged --no-ff onto main 36cc647 on an integration branch, merge-2026-10-15, by an Opus subagent. Every DECISIONS and audit-index row kept; the D122/D123 numbering settled from the record or stopped on. The planner checks the result and then moves main.
+**Backup:** ~/Zynergy/forager-repo-backups/2026-10-15-01-forecast-pre-merge/forager-forecast-all-remote.bundle (all remote refs, verified okay, sha256 f3d49696db3b5914f3dc…); main before: 36cc6470238f081d26a30333e013b544dfad8b62.
+**Planner's trial:** in that order on a scratch copy, the two T6b tips merged cleanly; the rest conflicted in docs/planning/DECISIONS.md and docs/audits/README.md, and pnw-pilot-plans also in docs/briefings/2026-10-12-oms-briefing.md.
+**Notes:** Written by the planner by hand, on branch records-after-173. Then, per the owner's order: the habitat map's open questions, the continental layers restart, this week's forecast. Next free ID -1018.
