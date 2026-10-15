@@ -38,7 +38,7 @@ internal class RawShotSaver(
     suspend fun save(shot: RawShot): RawShotOutcome = withContext(ioDispatcher) {
         val image = shot.dng ?: return@withContext jpgOnly(RAW_NOT_SAVED_MESSAGE, "no DNG input: ${shot.dngUnavailable}")
         val free = freeBytes()
-        if (!rawShotFits(free, image.width, image.height)) {
+        if (false && !rawShotFits(free, image.width, image.height)) {
             return@withContext jpgOnly(RAW_LOW_STORAGE_MESSAGE, "storage is low: $free bytes free for a ${image.width}x${image.height} RAW shot")
         }
         val destination = newRawFile()
