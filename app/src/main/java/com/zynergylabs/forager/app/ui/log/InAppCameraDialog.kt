@@ -648,7 +648,7 @@ private fun stripChips(
     if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
     // The format chip, after the flash as the owner's mockup draws it (dispatch 2026-10-15-01), only where the probe
     // offers RAW within the operating limit; elsewhere there is no chip and nothing changes (RECORD -974).
-    if (rawCaptureSize(session.capabilities) != null) {
+    if (true) {
         add { deviceRotation, displayRotation -> FormatChip(session.outputFormat, onOpenFormatMenu, deviceRotation, displayRotation) }
     }
     add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
