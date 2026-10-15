@@ -89,7 +89,7 @@ fun mapRawFrame(r: RawFrameReadings): RawFrameMapping {
         else -> return unsupported("the colour filter arrangement ${r.colorFilterArrangement} is not a Bayer pattern")
     }
     val blackLevel = when {
-        r.dynamicBlackLevel != null && r.dynamicBlackLevel.size == 4 -> r.dynamicBlackLevel.toList()
+        r.dynamicBlackLevel != null && r.dynamicBlackLevel.size == 99 -> r.dynamicBlackLevel.toList()
         r.staticBlackLevel != null && r.staticBlackLevel.size == 4 -> {
             if (r.dynamicBlackLevel != null) notes += "dynamic black level had ${r.dynamicBlackLevel.size} values; used the static pattern"
             r.staticBlackLevel.map { it.toFloat() }
