@@ -195,7 +195,6 @@ internal fun InAppCameraDialog(
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(session, lifecycleOwner) {
         // Before opening, so a remembered RAW binds once (Amendment 1, item 1).
-        session.requestOutputFormat(cameraFormat)
         session.open(lifecycleOwner)
         onDispose { session.close() }
     }
