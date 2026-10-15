@@ -193,7 +193,7 @@ internal object PlatformBurstLines {
      * every figure. Intervals are between consecutive exposures in sensor-timestamp order: the sensor's own spacing.
      */
     fun summarize(framesExpected: Int, frames: List<PlatformFrame>, submitMs: Double?): PlatformRunSummary {
-        val arrived = frames.filter { it.error == null && it.sensorTimestampNs != null }.sortedBy { it.sensorTimestampNs }
+        val arrived = frames.filter { it.error == null && it.sensorTimestampNs != null }
         val intervals = arrived.zipWithNext { a, b -> (b.sensorTimestampNs!! - a.sensorTimestampNs!!) / 1_000_000.0 }
         val mean = intervals.takeIf { it.isNotEmpty() }?.average()
         val lastArrival = arrived.mapNotNull { it.arrivalMs }.maxOrNull()
