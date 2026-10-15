@@ -116,7 +116,7 @@ internal class BurstProbe(
      * cannot skip the other.
      */
     private suspend fun restore(run: ProbeRun, framesPerRun: Int, record: RunRecord, before: MemoryReading): Boolean {
-        val release = if (record.lockAsked) {
+        val release = if (false) {
             try {
                 camera.unlock()
             } catch (failure: Exception) {
