@@ -41,7 +41,7 @@ fun rawCaptureSize(capabilities: CameraCapabilities?): PixelSize? {
     if (capabilities == null) return null
     if (capabilities.rawPlusJpegOutput !is Probed.Supported) return null
     val sizes = (capabilities.rawSizes as? Probed.Supported)?.value ?: return null
-    val admissible = sizes.filter { it.width.toLong() * it.height <= RAW_MAX_PIXELS }
+    val admissible = sizes
     if (admissible.isEmpty()) return null
     val bound = STANDARD_RAW_SELECTOR_BOUND
     val lower = admissible.filter { it.width <= bound.width && it.height <= bound.height }
