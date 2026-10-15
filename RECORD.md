@@ -18204,3 +18204,27 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Observed:** forecast branch t7-proposals, 066f91f on main b9127e5, docs/audits/2026-10-15-t7-proposals.md with an index row; documents only, no record of any group read, no fit, no pull. P3 background: 500,000 points from forest cells inside T6's effort frame, seed 20260918, effort as a model input; effort known only per weather cell. P4: train and map only US forest cells with every input defined, the rest masked with reasons (Canada out of the pilot, 18 of 21 tree bands not available there; this also keeps the total-cover seam out); tier B out; shares under 0.01 count as zero; the new genera and ecm_hosts tested one at a time (D129). P5: LightGBM 4.7.0, effort isolated from habitat splits with a monotone rise. P6: effort held at the box median; ranking checked identical at the 25th and 75th percentiles; a forester's sentence drafted. P7: level III blocks held out in turn (24 without Canada), pooled held-out AUC, 1,000 bootstrap resamples clustered by weather cell, two comparison models (effort only; effort plus conifer and broadleaf cover), a forested cut of 15% (any cut from 7.5% to 20.5% gives the same blocks), 30 presences before a block's own score is read, fixed before any presence is read. P8: CAST-style area of applicability, threshold fixed from training. P9: outputs on /mnt/work, attribution from tile tags. P10: the full model must beat both comparisons over all blocks and forested blocks, intervals above zero. Thirteen pieces of missing code listed. Correction to the planner's -1050 wording: ecm_hosts' presence barely varies, but its size runs 0.46 to 0.99 across blocks. Next free forecast decision D133.
 **For the owner:** nine decisions (background from searched places only; masked land shown as masked; held-out ecoregions as D121's "held-out" test for T7; Canada out of the pilot; shares under 1% as zero; new trees tested one at a time; the 15% and 30 cuts; the P10 bar; pin scipy).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1062.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1062
+**Timestamp:** 2026-10-15T22:02:50Z
+**Continues:** 2026-09-28-1061
+**Title:** T7's nine proposal decisions taken as recommended (owner, provisional as -1030)
+**The owner, verbatim:** to the nine decisions from the T7 proposals (forecast docs/audits/2026-10-15-t7-proposals.md, 066f91f): "All recommended."
+**What it sets, provisionally until review, with a warning before any point of no return (-1030):** (1) background from forest cells inside T6's effort frame only, effort as a model input; (2) land without defined layers masked with its reason; (3) D121's and D129's "held-out years" read as held-out level III ecoregions for T7; (4) Canada out of the pilot map; (5) tree shares under 0.01 count as zero; (6) each new genus and ecm_hosts tested one at a time; (7) the 15% forested cut and the 30-presence block minimum fixed now; (8) the P10 bar; (9) scipy pinned as a direct dependency. P1 and P2 still wait on V9 and the mushroom list (-1036). These go into the forecast repository as decision rows from D133 when T7's build is dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1063.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1063
+**Timestamp:** 2026-10-15T22:02:50Z
+**Continues:** 2026-09-28-1058, 2026-09-28-1060
+**Title:** Fix the privacy policy (backup and RAW), and RAW stage 3's fast-burst test on the dev build (owner)
+**The owner, verbatim:** "Fix the policy for #1 and go on #2" (#1: the privacy policy's stale export line and missing RAW line, -1060; #2: the dev-build fast-burst test of -1058's recommendation).
+**Change (1):** docs/legal/privacy-policy.md on Forager and privacy/index.html on zynergy-site: the export and import passage replaced by what Backup and Restore do; a RAW line (a DNG beside the JPG, written without make, model, time or location, calibration kept, deleted if its check fails; carried by backup, restore, export and delete). The wording goes to the owner before it is published.
+**Change (2):** dispatch 2026-10-15-09: a dev-only probe that borrows the camera from CameraX, takes 8-frame RAW bursts through the platform camera interface, hands the camera back, and logs the burst rate, the swap pause, the hand-back and each frame's processing modes; tripod pairs with noise reduction and hot-pixel correction off against default; frames saved on the dev build only (-1046 Q1). Branch from dev, PR into dev.
+**Still open:** whether binned 12 MP is the RAW the owner means; whether the RAW format asks for noise reduction off always or only for averaging (the test's results inform both).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1064.
