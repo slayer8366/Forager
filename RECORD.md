@@ -17803,3 +17803,26 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Planner's addition:** the writer left the old plan unchanged as instructed, which conflicted with the forecast repository's D41 (a dispatch closed unacted gets a dated closeout note). The planner appended that note (c11b4b6), following D41.
 **For the owner:** M1 which mushrooms count and the list's source; M2 unclear or mixed-lifestyle genera; M3 how kinds are weighed; M4 the comparison group; M5 where chanterelles go; M6 recording the change of target against SPEC's chanterelle wording; M7 host trees the layers lack; M8 whether and on what test the habitat map is ever shown.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1029.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1029
+**Timestamp:** 2026-10-15T04:30:39Z
+**Continues:** 2026-09-28-1028
+**Title:** T7's M7: add the missing host-tree genera to the T6b layers now, before the habitat fit (owner)
+**The owner, verbatim:** offered (a) use the layers as built and add genera later only if they beat a model without them, or (b) add them to T6b before fitting (a rerun and a delay), with the planner recommending (a): "M7 let's add them now, it's not a huge task now, but it will be later."
+**What it sets:** the host genera the tree layers lack for mycorrhizal mushrooms as a group (the plan names birch, aspen and larch among others, from memory) are added to T6b before T7 fits. Which genera, from which sources on each side of the border, and what reruns that needs are a verify step first; building it needs the owner's go. The running T6b section is let finish its Canadian SCANFI layer step (needed either way) and paused before its tree tiles, so no tree tile is built on the old genus list meanwhile.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1030.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1030
+**Timestamp:** 2026-10-15T04:30:39Z
+**Continues:** 2026-09-28-1028
+**Title:** T7's M1 to M6 and M8 taken as recommended, provisionally, until review; the owner is warned before any point of no return (owner)
+**The owner, verbatim:** "The rest recommend as written until review. I may want to change something so let me know before we hit a point of no return".
+**What it sets, provisionally:** M1 (a) a published fungal-lifestyle list by genus, frozen as a dated copy, licence read at source first; M2 (a) unclear or mixed-lifestyle genera and family-only records out of the main map, one run with them in reported beside; M3 (b) each genus weighed equally with a minimum record count fixed before counting; M4 (a) chicken of the woods as the comparison; M5 (a) T7 fits only the group, chanterelles later with T8 and T9; M6 (a) a decision row for the change of target and the term "mycorrhizal group"; M8 (a) nothing shown from T7, a pass bar proposed before the fit, the owner decides later.
+**Points of no return, where the planner stops and asks first:** (1) before any presence or outcome count is read (fixes M1, M2, M3 and the block minimum in practice, since a count once seen can't be unseen); (2) before the fit (M4, M5 and the pass bar of M8); (3) before anything is published (M8). M6's paperwork stays reversible by a later row.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1031.
