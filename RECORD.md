@@ -17676,3 +17676,25 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Backup:** ~/Zynergy/forager-repo-backups/2026-10-15-01-forecast-pre-merge/forager-forecast-all-remote.bundle (all remote refs, verified okay, sha256 f3d49696db3b5914f3dc…); main before: 36cc6470238f081d26a30333e013b544dfad8b62.
 **Planner's trial:** in that order on a scratch copy, the two T6b tips merged cleanly; the rest conflicted in docs/planning/DECISIONS.md and docs/audits/README.md, and pnw-pilot-plans also in docs/briefings/2026-10-12-oms-briefing.md.
 **Notes:** Written by the planner by hand, on branch records-after-173. Then, per the owner's order: the habitat map's open questions, the continental layers restart, this week's forecast. Next free ID -1018.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1018
+**Timestamp:** 2026-10-15T03:19:53Z
+**Continues:** 2026-09-28-1016
+**Title:** RAW: when camera data can't make a DNG, or the writer fails for a reason other than the clean check, the message is "The RAW file couldn't be saved, so this photo was saved as JPG." (owner)
+**The owner, verbatim:** asked whether the coder's wording "The RAW file couldn't be saved, so this photo was saved as JPG." is OK: "1 yes".
+**What it sets:** two failure messages by cause. The -1003 message ("couldn't be cleaned of camera details") only when the writer's post-write check fails; this one for missing camera data, refused input and I/O errors. The JPG is kept in every case.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1019.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1019
+**Timestamp:** 2026-10-15T03:19:53Z
+**Continues:** 2026-09-28-1018
+**Title:** The camera's RAW fallback messages show in the normal message colour, not the error colour (owner)
+**The owner, verbatim:** asked whether the fallback messages (low storage, couldn't be saved, couldn't be cleaned) should use the normal message colour instead of red, since the photo was still saved: "2 yes".
+**What it sets:** those messages are informational, not errors: the photo exists. Applies "Don't make me think": no state the user could misread as broken.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1020.
