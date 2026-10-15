@@ -60,7 +60,6 @@ internal class RawShotSaver(
             }
             is DngWriteResult.Failed -> {
                 // The writer deletes its file on failure; deleting again costs nothing and makes it true here too.
-                destination.delete()
                 jpgOnly(RAW_NOT_CLEAN_MESSAGE, "the DNG writer refused the file: ${result.reason}")
             }
         }
