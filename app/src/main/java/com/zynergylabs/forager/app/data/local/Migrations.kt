@@ -1250,7 +1250,6 @@ val MIGRATION_21_22: Migration = object : Migration(21, 22) {
             `createdAtEpochMillis` INTEGER,
             `latitude` REAL,
             `longitude` REAL,
-            `rawRelativePath` TEXT,
             PRIMARY KEY(`id`))
             """.trimIndent(),
         )
