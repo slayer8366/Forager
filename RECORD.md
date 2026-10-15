@@ -17939,3 +17939,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** asked "Let's work on the next part. Do we have frame averaging written yet?"; offered A (burst, alignment and averaging, output an averaged RAW DNG, a fourth file kind beside RAW, RAW+ and the processed formats; debayering next), B (debayering first) or C (both in one stage), with the planner recommending A and asking whether to write the plan up: "Option A".
 **What it sets:** the next RAW stage captures a burst of RAW frames, aligns them in software for handheld use (-974's "1 A"), averages them in floating point (OSCam frame_average.py as the reference method), and saves the result as a mosaic DNG through Forager's writer (-1009). It adds a new output kind to the format chip's list (-974), whose name and place are for the owner. Burst capture and alignment are built to serve focus stacking later (-1010). The plan is written up as a document; no build without the owner's go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Stage 2 (PR #227) still awaits its daylight S22 photos, the S26 check and the owner's merge word. Next free ID -1041.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1041
+**Timestamp:** 2026-10-15T13:31:40Z
+**Continues:** 2026-09-28-1039
+**Title:** The PNW host-trees run was killed for memory after 13 tiles; restarted with one worker
+**Observed:** user unit t6b-pnw-hosts ended at 2026-10-14T23:02:22 PDT, 8 minutes in: "The kernel OOM killer killed some processes in this unit", result oom-kill, memory peak 5G (its MemoryMax) with two workers on 24-band tiles. No section-end line. 13 trees units finished with band layout t6b-bands-f4e9b848ba51. 44 files sat in superseded/20261015T055455Z-trees/: the 13 rebuilt tiles' old files, two tiles in progress (256_-30_18, 256_-31_18) and the border tiles' US halves, moved aside and not yet rebuilt; every move has a before_unit line in the manifest, so a rerun rebuilds them. Nothing was lost. The planner's scheduled check found it at 06:30 PDT.
+**Done:** restarted at 06:31 PDT as t6b-pnw-hosts with --workers 1 (the same 5G cap), --until 20:00, same box and stages; memory watched over the first tiles. The continental section stays paused until the PNW run ends, since both write one manifest; it then resumes on the new code, SCANFI-layer stage only, as planned.
+**Lesson:** the build report's per-tile estimate didn't cover memory: 24-band tiles need more than half of 5G each. The rest-of-US rebuild runs with one worker unless measured otherwise, which roughly doubles its time (now about 2 to 3 days of laptop time, inferred).
+**Notes:** Written by the planner by hand, on branch records-after-173. One fix attempt so far on this symptom. Next free ID -1042.
