@@ -71,7 +71,8 @@ internal data class MemoryReading(val maxMemoryBytes: Long, val usedBytes: Long)
 
 /** What a bind produced. Only [Bound] is followed by a capture; the other two are reported with their reason. */
 internal sealed interface BindOutcome {
-    data class Bound(val notes: List<String> = emptyList()) : BindOutcome
+    /** Bound and streaming; what the bind noticed goes into the run's facts. */
+    class Bound : BindOutcome
     data class Unsupported(val reason: String) : BindOutcome
     data class Failed(val reason: String) : BindOutcome
 }
