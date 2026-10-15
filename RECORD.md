@@ -17780,3 +17780,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **State found:** on the flash drive's forecast-data/t6b manifest (3,025 unit lines): mask and plots done; soil all units done; trees 2,025 tiles done of 4,058, the other 2,033 waiting for the SCANFI layers (D118); trees-us-half done; SCANFI layers only over the 10 PNW Canadian tiles, with all 11 whole layers downloaded. Last section ended 2026-10-10T15:08 PDT. No PAUSE file.
 **Change:** the run's old worktree (forager-forecast-t6b) was removed in the clean-up (-1022); its code is on forecast main a79d667. New worktree ~/Zynergy/forager-forecast-t6b-run on branch t6b-run-2026-10-15 from main (pushed), uv sync --locked. Started 2026-10-14T21:11 PDT as user unit t6b-night (MemoryMax=5G, no swap, Nice=10): scripts/t6b_run.py --until 07:00 --stages scanfi-layers,trees --workers 2. The script commits its evidence to that branch and pushes it; main is not touched (D40).
 **Notes:** Written by the planner by hand, on branch records-after-173. Standing instruction -748: pause (touch PAUSE) before any laptop build; app builds now run on GitHub (-1001). The flash drive has about 6 GB free; the script checks free space before each download. Next free ID -1027.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1027
+**Timestamp:** 2026-10-15T04:14:25Z
+**Continues:** 2026-09-28-1023
+**Title:** Finish the PNW model as the full sequence (habitat, weather trigger, calibration and publishing gate) on the PNW first; lessons before the continental roll-out (owner)
+**The owner, verbatim:** "Finish the PNW model". Offered A (close out the pilot as it is), B (the full model for the PNW: T7 habitat, T8 trigger model, T9 calibration and the publishing gate) or C (make the current pilot weekly and automatic), with the planner's recommendation B with A's deferred checks folded in: "Option B. Let's have it completed and then we can see what's working out, what's not, learn our lessons while the cost is small, and then roll out the rest of the project".
+**What it sets:** forager-forecast's T7, T8 and T9 are built and fitted on the PNW first, as a pilot of the whole pipeline, before any continental fit (D100's target stands, after the pilot, as D123 already put it). The pilot's deferred checks (D33 (3) and (4), sensitivity and the commercial-safe run) are folded into the sequence. Each task still goes plan, owner's rulings, go, build, independent review (D18), merge on the owner's word (D40). A lessons write-up closes the PNW sequence before the roll-out. T10 (weekly automation) and T11 wait. This is direction, not a go for any fit or data pull.
+**Notes:** Written by the planner by hand, on branch records-after-173. T7's plan is being rewritten now (-1025). Next free ID -1028.
