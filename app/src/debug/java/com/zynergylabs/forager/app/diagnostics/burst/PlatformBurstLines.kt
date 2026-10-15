@@ -334,7 +334,7 @@ internal fun rawCornerToCentre(samples: ShortArray, width: Int, height: Int, bla
         var sum = 0.0
         for (y in y0 until y0 + block) {
             for (x in x0 until x0 + block) {
-                sum += (samples[y * width + x].toInt() and 0xFFFF) - black[(y and 1) * 2 + (x and 1)]
+                sum += samples[y * width + x].toInt() - black[(y and 1) * 2 + (x and 1)]
             }
         }
         return sum / (block * block)
