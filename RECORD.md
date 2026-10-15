@@ -17570,3 +17570,34 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** asked whether the per-unit calibration data in a DNG (noise profile, lens-shading maps, calibration matrices) should be kept: "Phone type isn't a huge issue, that's not uniquely identifying. The vital issue is location privacy and that spots don't leak into photos. That's the key we need to consider and why the scrubbing exists to begin with."
 **What it sets:** the DNG keeps its noise profile, opcode lists and calibration matrices. Location is the protected value: no GPS or other location data may reach a saved RAW file. -975's stripping of make, model and time stays as ruled; this answer does not withdraw it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Raised by the stage 2 coder's verify report (dispatch 2026-10-15-01). The same answer's remarks on owning the processing pipeline are a separate question, pending. Next free ID -1009.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1009
+**Timestamp:** 2026-10-15T01:34:55Z
+**Continues:** 2026-09-28-1008
+**Title:** Forager writes the RAW file itself from stage 2; its processing is geared to nature photography (owner)
+**The owner, verbatim:** first, "We should assume control of the pipeline. Phones do a good job in taking photos, but the quality is dependent on software, which is calibrated from phone to phone. A unified software approach through the app will help ensure similar (aside pixel size, count, style, etc.) photo quality can be taken from different phones. That's why I wrote debayering for OSCam and the whole process". Then, offered A (the phone's writer, cleaned afterwards, uncompressed) or B (Forager writes the DNG from the sensor data, losslessly compressed, nothing in it but what Forager writes): "Let Forager write it. We can gear the processing towards nature photography, whereas phones in general are geared for selfies and city elements".
+**What it sets:** from stage 2 on, Forager owns the RAW pipeline: it takes the sensor data from the camera and writes the DNG with its own code, with lossless compression (-975) and no location, make, model or time (-975, -1008). Later processing stages (debayering, averaging, HDR) are Forager's own, tuned for nature subjects rather than the phone's defaults. If the camera library can't hand over the sensor data this way, the planner tells the owner before anything is built on the fallback (the phone's writer).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1010.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1010
+**Timestamp:** 2026-10-15T01:34:55Z
+**Continues:** 2026-09-28-974
+**Title:** Focus stacking added to the RAW feature list (owner)
+**The owner, verbatim:** "And one thing to add to the feature list is focus stacking."
+**What it sets:** focus stacking joins the RAW pipeline's features beside averaging, HDR and debayering. It is not assigned to a stage and not designed; the stage list (-975) gains it when the owner places it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1011.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1011
+**Timestamp:** 2026-10-15T01:34:55Z
+**Continues:** 2026-09-28-1007
+**Amendment 1 to -1007 (RAW stage 2), after the coder's verify report.** Forager writes the DNG itself (-1009); calibration data is kept (-1008). The planner's answers to the coder's other items: capabilities read before the first bind, so a remembered RAW binds once; a single preview blink on switching format is accepted; the file is written and checked in the shot step; a nullable DNG field on the existing camera source type, so the scrub and the find-location patch stay right (a data field, not a conditional threaded through the JPG path); a nullable log_photos column, version 22; the menu as a panel that turns with the phone, as mocked; low storage below about 564 MB keeps the JPG only, with the coder's message; synthetic DNG fixtures only, no device file committed; menu sizes computed from the bound size and the compression, measured on the phones later. Details in the dispatch file's Amendment 1.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1012.
