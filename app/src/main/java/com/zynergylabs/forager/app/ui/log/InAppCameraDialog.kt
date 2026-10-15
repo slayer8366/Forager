@@ -346,7 +346,7 @@ internal fun InAppCameraDialog(
                             when (outcome) {
                                 is RawShotScreenOutcome.Saved -> {
                                     photosTaken += 1
-                                    captureNotice = outcome.notice
+                                    outcome.notice?.let { captureError = it }
                                     onPhotoCaptured(outcome.source)
                                 }
                                 RawShotScreenOutcome.Failed -> {
