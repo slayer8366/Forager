@@ -18274,3 +18274,19 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Observed:** prompts/preserved/2026-10-15-10-unbinned-raw-bounds.md (read only; S22 getprop, pm list packages, dumpsys package on three of the maker's camera packages; the earlier dumpsys re-read; the S26 not attached, its section unverified). Binning READ: the sensor-name tag names a 108 MP 3x3-cell sensor whose maker's launch material describes 9-to-1 binning to 12 MP. The block: every camera's driver interface is version 3.5; the platform's full-resolution features need 3.7, and the camera service drops the full-resolution setting for older drivers (read in the platform source); the driver dates from Android 12 and is unchanged through Android 16. "Binning factor used: FALSE" only means a standard colour layout, not unbinned data. Routes: the platform's full-resolution mode and the native cell-pattern route are not offered on the S22; the maker's hidden tables list a 12000x9000 RAW stream an app might request by vendor setting names (undetermined whether the driver delivers it to Forager; fragile; 135 to 216 MB a frame; probably re-arranged by the phone); the maker's partner SDK is an agreement, not public; the maker's own RAW app is closed and its RAW colour-processed. Physics: a full-resolution RAW from these sensors is either the untouched 3x3 pattern (no store-app route found) or a re-arranged (processed) one; at the same output size it is never less noisy; its only gain is detail in good light. Workarounds: keep the binned RAW and describe it truthfully; burst merging of hand-shake-shifted binned frames for extra detail (Wronski et al. 2019), built on the averaging burst; a dev-only experiment on the S22's hidden setting; a read-only look at the S26's tables.
 **For the owner:** pure (binned) against detail (re-arranged); a merged burst as the detail version with raw frames as the pure one; the dev experiment on the hidden setting; the S26 read-only look.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1068.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1068
+**Timestamp:** 2026-10-15T22:25:31Z
+**PR:** Forager 229; zynergy-site 16
+**Head:** privacy-backup-raw (Forager 94554056; site 327a3447)
+**Base:** main
+**Merge-commit:** Forager 402489ae6d13c20996701beb836bd992105f03b0; zynergy-site b22cca5abf82aeb72a84901b491d85077234f3fd
+**Pre-merge:** Forager cb25b5822027bdc19b430ec1c2339ad0a45d412a; zynergy-site 2185246a40633eb1120b67f2a089ade5e2ccde23
+**Backup:** 2026-10-15-04-privacy (forager-main-pre-229.bundle and zynergy-site-main-pre-16.bundle, both verified okay)
+**The owner, verbatim:** "Fix the policy for #1", "Ok on the policy wording", "Yes to 4 and 5".
+**Observed:** both PRs merged by the planner pinned to their heads on passing checks (Forager CI run 38815163598; site Cloudflare Pages). The site preview carried the new wording and none of the old before the merge. Live after the merge, read by the planner: zynergy-labs.com/privacy/ and /delete-data/ both dated 15 October 2026; the "no export or import feature yet" note gone; the Backup and Restore wording, the RAW line and the backup-files-survive-uninstall wording present. This corrects -1060's finding; Google's review of the production application (-1059) will now read an accurate policy.
+**Not done:** dev not rebased onto 402489ae yet, deliberately: the fast-burst coder's PR targets dev (dispatch 2026-10-15-09), and a rebase now would rewrite its base; main's change is documents only. Rebase after that PR merges.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1069.
