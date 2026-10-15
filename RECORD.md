@@ -18041,3 +18041,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Finish line:** the coder's report; the planner merges into dev, runs the probe on the S22 then the S26 in bright and dim light, and tabulates the rate for the owner before piece 2 (-1046 Q2).
 **Abort conditions:** main must change; any visible change in a release build; the camera left dead or in the wrong format; two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1049.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1049
+**Timestamp:** 2026-10-15T19:21:03Z
+**Continues:** 2026-09-28-1047
+**Title:** T7 verify step on the PNW (read-only, report by message), V9 and V17 held until the mushroom list is cleared (owner)
+**The owner, verbatim:** "Continue building the PNW with whatever else needs to be done".
+**Change:** the T7 plan's verify items (forager-forecast docs/dispatch/2026-10-15-t7-mycorrhizal-habitat.md on branch t7-mycorrhizal-plan) run now, except V9 (counting presences, which needs M1 and M2 ruled, and M1's list is not cleared, -1036) and V17 (the membership source's licence). The PNW tree layers now carry 24 bands (-1047), from code on unmerged branch t6b-host-genera; V4 and V5 read those. Forecast branch t7-pnw-verify from t7-mycorrhizal-plan; a report in docs/audits; no fit, no data pull, no count of any outcome, nothing written under the drive's t6b folder while t6b-night runs.
+**Not authorised by this:** the rest-of-US tree rebuild (-1048); any count of presences; any fit; merges into forecast main (D40 needs the owner's words naming the branch).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1050.
