@@ -17870,3 +17870,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Change:** the same pilot model, unchanged, scored for 2026-W42 (week start 2026-10-12) by the W41 route: Copernicus weather only, the same publish command and flags, every manifest field but the week, dates, weather window and source and the cell values identical to W41's. Forecast branch pnw-pilot-w42 from main a79d667 (not merged to main, D40). Site drop on zynergy-site branch pnw-pilot-w42-drop as a PR; the planner merges after the coder's report and the preview check, on this word.
 **Abort conditions:** W41 doesn't reproduce from its inputs on main; Copernicus lacks the window; publishing would need a change to the model, copy or labels.
 **Notes:** Written by the planner by hand, on branch records-after-173. The coder is an Opus subagent. Next free ID -1035.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1035
+**Timestamp:** 2026-10-15T04:48:43Z
+**Continues:** 2026-09-28-1034
+**Title:** W42 publish stopped at verify: the climate archive doesn't yet hold the week's weather window; W41 reproduces exactly
+**Observed:** forecast branch pnw-pilot-w42, 1305244 (a section in the scoring report); no site PR, the site worktree unchanged and unpushed. W41 reproduced from main a79d667: cells and all 40 block files byte-identical, manifest identical but for published_at (with it restored, sha256 074879ff…4043, the live file). W42's window is 2026-07-14 to 2026-10-11 plus the 2026-10-12 00:00 rain stamp; at 04:46Z the archive's two hourly products ended at 2026-10-09T00:00Z. Inferred, not checked: the missing days land around 2026-10-17 to 18 UTC, near the end of W42's own week. Also found: the two pull scripts are fixed to W41's dates (pnw_cds_hourly_pull.py:57-58, pnw_cds_precip_hourly.py:127-141), so a W42 pull needs a small download-only change; the October land file name would be overwritten; the citation access dates will move.
+**Planner's reading, a lesson for the PNW sequence (-1027):** with the archive's lag, a week's forecast can be scored only near the week's end, as W41 was (published 2026-10-12 for the week starting 2026-10-05). A forecast that is current while its week runs needs a source for the most recent days; that is a question for T8 to T10, not decided here.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1036.
