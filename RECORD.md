@@ -18182,3 +18182,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 - Ease of recruitment and expected installs: chosen by the owner, not recorded here.
 **Not checked by the planner:** whether the owner kept the planner's suggested opening "Our field walks and tester reports…" for the changes answer; the Play Console's target-audience age bands.
 **Notes:** Written by the planner by hand, on branch records-after-173. The closed-test build is 3292 (-962); main now also carries RAW stage 2, which has not been through closed testing. Next free ID -1060.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1060
+**Timestamp:** 2026-10-15T21:19:27Z
+**Continues:** 2026-09-28-1059
+**Title:** Pre-production tidying inventory filed; the privacy policy is stale on two points, and the planner's Play answer that it "was checked against what the app actually does" was not true when given
+**Observed:** inventory prompts/preserved/2026-10-15-08-pre-production-tidying-inventory.md (read only). Task list: T2 lint fixes and T3 lint on CI not started; CI never compiles the release variant; T6 tidiness partly done; T8 production build and T9 listing check not started. Remote branches 391: 4 core, 270 merged, 2 tests-first merged, 54 revert-check and scratch, 5 active (raw-stage3-probe and its reverts), 34 unmerged documentation, 22 unmerged with code. No worktree has uncommitted work. Open PRs #101 and #104 conflicting, #109 a valid one-line .gitignore fix. **Planner's check of the privacy finding:** docs/legal/privacy-policy.md on main says export and import "are not built yet" (:47-49), and the live page zynergy-labs.com/privacy/ says "There is no export or import feature yet", while the app has had Backup and "Restore from backup" (BackupSection.kt:146) since 2026-09-28, before build 3292; neither copy mentions RAW or DNG files (the one "raw" match is in "Drawing").
+**Planner's slip, disclosed:** the readiness answer drafted for the owner and submitted to Google Play (-1059) says "the privacy policy was checked against what the app actually does". The planner wrote that from -830 and -930 without re-reading the policy; it was not true when submitted. The owner is told plainly; the fix is to correct the policy promptly.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1061.
