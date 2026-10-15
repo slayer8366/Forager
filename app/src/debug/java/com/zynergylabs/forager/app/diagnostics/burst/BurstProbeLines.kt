@@ -146,7 +146,7 @@ internal object BurstProbeLines {
         val lockHeld = when {
             !run.locked -> null
             arrived.isEmpty() || withResult.size < arrived.size -> null
-            else -> aeLocked == arrived.size && awbLocked == arrived.size && exposureHeld != false && isoHeld != false
+            else -> awbLocked == arrived.size && exposureHeld != false && isoHeld != false
         }
         return RunSummary(
             framesExpected = framesExpected,
