@@ -17559,3 +17559,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Finish line:** the coder's verify-first plan, answered by the planner. Then tests first, revert checks and green CI on PR #227, left unmerged. Then the owner's device checks on the S22 and S26.
 **Abort conditions:** RAW+JPEG won't bind beside Preview without a fallback; a visible change to JPG capture; two failed attempts on one symptom.
 **Notes:** Written by the planner by hand, on branch records-after-173. The coder is an Opus subagent of this session (-1001). Next free ID -1008.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1008
+**Timestamp:** 2026-10-15T01:32:28Z
+**Continues:** 2026-09-28-1007
+**Title:** RAW files keep their calibration data; location is the privacy that matters (owner)
+**The owner, verbatim:** asked whether the per-unit calibration data in a DNG (noise profile, lens-shading maps, calibration matrices) should be kept: "Phone type isn't a huge issue, that's not uniquely identifying. The vital issue is location privacy and that spots don't leak into photos. That's the key we need to consider and why the scrubbing exists to begin with."
+**What it sets:** the DNG keeps its noise profile, opcode lists and calibration matrices. Location is the protected value: no GPS or other location data may reach a saved RAW file. -975's stripping of make, model and time stays as ruled; this answer does not withdraw it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Raised by the stage 2 coder's verify report (dispatch 2026-10-15-01). The same answer's remarks on owning the processing pipeline are a separate question, pending. Next free ID -1009.
