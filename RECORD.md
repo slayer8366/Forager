@@ -17769,3 +17769,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Change:** documents only. The drafted T7 dispatch (forager-forecast docs/dispatch/2026-10-11-t7-pnw-pilot-habitat.md) is rewritten from chanterelles to the mycorrhizal group (-913), framed by -914, with O4 settled (-1023) and O7 answered by main a79d667. Written by an Opus subagent on forecast branch t7-mycorrhizal-plan from main; no fit, no data pull, no merge.
 **Finish line:** the rewritten plan pushed, its open decisions listed for the owner. Nothing runs until the owner's go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1026.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1026
+**Timestamp:** 2026-10-15T04:12:27Z
+**Title:** T6b continental layers restarted: the Canadian SCANFI layers over 2,043 tiles, then the Canadian tree tiles (owner)
+**The owner, verbatim:** "Go ahead and restart the job". Third of the four forecast items in the owner's order (-1017).
+**State found:** on the flash drive's forecast-data/t6b manifest (3,025 unit lines): mask and plots done; soil all units done; trees 2,025 tiles done of 4,058, the other 2,033 waiting for the SCANFI layers (D118); trees-us-half done; SCANFI layers only over the 10 PNW Canadian tiles, with all 11 whole layers downloaded. Last section ended 2026-10-10T15:08 PDT. No PAUSE file.
+**Change:** the run's old worktree (forager-forecast-t6b) was removed in the clean-up (-1022); its code is on forecast main a79d667. New worktree ~/Zynergy/forager-forecast-t6b-run on branch t6b-run-2026-10-15 from main (pushed), uv sync --locked. Started 2026-10-14T21:11 PDT as user unit t6b-night (MemoryMax=5G, no swap, Nice=10): scripts/t6b_run.py --until 07:00 --stages scanfi-layers,trees --workers 2. The script commits its evidence to that branch and pushes it; main is not touched (D40).
+**Notes:** Written by the planner by hand, on branch records-after-173. Standing instruction -748: pause (touch PAUSE) before any laptop build; app builds now run on GitHub (-1001). The flash drive has about 6 GB free; the script checks free space before each download. Next free ID -1027.
