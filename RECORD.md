@@ -17653,3 +17653,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **For the owner:** a new message, "The RAW file couldn't be saved, so this photo was saved as JPG.", for camera data that can't make a DNG; the fallback messages use the camera's error colour.
 **Coder's calls, accepted by the planner:** the low-storage floor is about 634 MB (500 MB plus a 4-bytes-a-pixel worst case and the copy), not the planner's 564; the RAW capture turns on the lens-shading map (device-only whether that changes anything else).
 **Notes:** Written by the planner by hand, on branch records-after-173. The twelve revert branches stay until the owner's tidiness word. Next free ID -1016.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1016
+**Timestamp:** 2026-10-15T02:57:25Z
+**Continues:** 2026-09-28-1012
+**Part B of RAW stage 2 (Forager's DNG writer) built and merged into raw-stage2.** Branch raw-stage2-dng-writer, head 2801ad01 on fbf942b4; CI run 38672444742: 4856 tests, 0 failures, 24 skipped; ForagerDngWriterTest 18/18. Tests first: stub run 38668131934 failed all 17 for the stub's reason. Four revert checks (runs 38669075843, 38669501818, 38670062970, 38670493655), each failing only its own test, compile logs clean. Compression 7 (lossless JPEG) chosen as the DNG 1.4 specification's only lossless option for 16-bit CFA data. Sample DNGs opened outside the repository with a raw-decoding library and a metadata validator: all valid; small images under a 256 tile scrambled in the library, fixed by 79435b76 (tile side 256 or the image side rounded up to 16), test failing first in run 38671516575. Still wrong in that library: images under 256 wide whose width isn't a multiple of 16; phone widths 4000 and 4080 are unaffected. The writer never writes Software and also forbids DateTimeDigitized.
+**Planner's check:** DngContract.kt is the same blob (bcc78f22) on both branches; part B touched only domain/raw, data/raw and their tests; run 38672444742 succeeded on 2801ad01. Merged by the planner as 2057bc9f (no conflicts, 10 files), pushed to raw-stage2 (PR #227).
+**Open:** production still uses the placeholder writer. Before the swap: the writer's Failed covers a failed cleanliness check, refused input and I/O errors, so part A's mapping of every Failed to the -1003 message would be wrong for the latter two; that mapping waits on the owner's ruling on the new "couldn't be saved" wording and the message colour (-1015).
+**Notes:** Written by the planner by hand, on branch records-after-173. Neither part's index row is in docs/audits/README.md yet. Next free ID -1017.
