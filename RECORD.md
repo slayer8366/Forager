@@ -18228,3 +18228,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Change (2):** dispatch 2026-10-15-09: a dev-only probe that borrows the camera from CameraX, takes 8-frame RAW bursts through the platform camera interface, hands the camera back, and logs the burst rate, the swap pause, the hand-back and each frame's processing modes; tripod pairs with noise reduction and hot-pixel correction off against default; frames saved on the dev build only (-1046 Q1). Branch from dev, PR into dev.
 **Still open:** whether binned 12 MP is the RAW the owner means; whether the RAW format asks for noise reduction off always or only for averaging (the test's results inform both).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1064.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1064
+**Timestamp:** 2026-10-15T22:04:25Z
+**Continues:** 2026-09-28-1058
+**Title:** The phone's noise reduction is always off for RAW capture; Forager's own averaging deals with noise (owner)
+**The owner, verbatim:** to whether the RAW format asks for the phone's noise reduction off always or only for the averaging path: "Noise reduction always off. Doesn't averaging fix noise? Reducing would be redundant?"
+**What it sets:** every RAW capture Forager requests, the plain RAW format and the averaging bursts alike, asks for the phone's noise reduction OFF where the phone offers that mode, and logs the mode the capture result reports. Forager's own averaging, and later its own processing, handle noise. Hot-pixel correction and lens-shading behaviour are measured by the fast-burst test (dispatch 2026-10-15-09) before any ruling. Not yet built; applies when the RAW capture path is next changed.
+**Notes:** Written by the planner by hand, on branch records-after-173. The owner's "Pure RAW, non binned" in the same message is being clarified against what the phones offer before it is recorded. Next free ID -1065.
