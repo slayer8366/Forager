@@ -38,5 +38,19 @@
                 <action android:name="com.zynergylabs.forager.app.debug.BURST_PROBE" />
             </intent-filter>
         </receiver>
+        <!-- RAW stage 3, the fast-burst test (dispatch 2026-10-15-09): borrows the camera from CameraX for four 8-frame RAW
+             bursts through the platform camera interface, saves them as DNGs under files/raw-burst-test/, and hands the
+             camera back. Debug builds only; guarded by DUMP like the receiver above. Trigger and read, with the camera
+             dialog open:
+               adb shell am broadcast -n com.zynergylabs.forager.app/.diagnostics.burst.PlatformBurstReceiver -a com.zynergylabs.forager.app.debug.PLATFORM_BURST
+               adb logcat -v raw -s PlatformBurst -->
+        <receiver
+            android:name="com.zynergylabs.forager.app.diagnostics.burst.PlatformBurstReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.zynergylabs.forager.app.debug.PLATFORM_BURST" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
