@@ -176,7 +176,6 @@ class FilePhotoStore(
         // PlannedTripRepository.delete's "no-op if nothing to remove" convention.
         File(context.filesDir, photo.relativePath).delete()
         // A RAW shot is one photo of two files (RECORD -1004); delete removes everything the shot saved.
-        photo.rawRelativePath?.let { File(context.filesDir, it).delete() }
         Unit
     }
 
