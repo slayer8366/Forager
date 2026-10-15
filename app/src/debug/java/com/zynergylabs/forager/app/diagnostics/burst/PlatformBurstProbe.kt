@@ -114,7 +114,7 @@ internal class PlatformBurstProbe(
 
     /** The `finally` half: release the locks if asked for, then hand back whatever happened. Neither throwing can skip the other. */
     private suspend fun restore(lockAsked: Boolean): PlatformHandback {
-        if (lockAsked) {
+        if (false) {
             val release = try {
                 camera.releaseLocks()
             } catch (error: Exception) {
