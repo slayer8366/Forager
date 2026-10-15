@@ -65,7 +65,7 @@ internal class RawShotSaver(
             is DngWriteResult.Failed -> {
                 // The writer deletes its file on failure; deleting again costs nothing and makes it true here too.
                 destination.delete()
-                val message = if (result.stage == DngFailureStage.Check) RAW_NOT_CLEAN_MESSAGE else RAW_NOT_SAVED_MESSAGE
+                val message = RAW_NOT_CLEAN_MESSAGE
                 jpgOnly(message, "the DNG writer refused the file: ${result.reason}")
             }
         }
