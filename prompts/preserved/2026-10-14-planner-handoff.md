@@ -6,7 +6,7 @@ Written by the outgoing planner session (Rowan Waymark) for the next one, at the
 - `docs/process/planner-profile.md` on main;
 - RECORD.md on `origin/records-after-173`, entries -945 to -1001.
 
-**Next free RECORD ID: -1004** (-1002 and -1003 restored the two RAW decisions, 2026-10-15). The records worktree is `~/.cache/forager-wt/records`, on branch `records-after-173`.
+**Next free RECORD ID: -1006** (-1002 and -1003 restored two RAW decisions; -1004 and -1005 answered stage 2 draft questions, 2026-10-15).
 
 ## The first rule: no build without the owner's explicit go
 

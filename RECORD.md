@@ -17510,3 +17510,25 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** "2 A". Offered first, as A: "Closed (Recommended, and already built as the default): the RAW file is thrown away and the shot is kept as a JPG", with the message "The RAW file couldn't be cleaned of camera details, so this photo was saved as JPG."; second: "Open: the RAW file is kept with those details still in it". First recorded 2026-10-14T21:41:45Z (old -1002).
 **What it sets:** a DNG whose make, model and time can't be removed is deleted; the shot's scrubbed JPEG is kept as the photo, the failure is logged, and the user sees the message above. This keeps -975's "yes do that for all formats". The JPEG path's own fail-open is unchanged. The option's words "already built" referred to the erased stage 2 code; nothing is built now.
 **Notes:** Written by the planner by hand, on branch records-after-173. Restored as -1002 above, from the same backup. The original planner read the unlettered first option as A. Next free ID -1004.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1004
+**Timestamp:** 2026-10-15T00:24:17Z
+**Continues:** 2026-09-28-1002
+**Title:** RAW: the shot's JPG is the photo's preview, thumbnail and placeholder while it is processed (owner)
+**The owner, verbatim:** "use it as a preview for the photo, a thumbnail, and a placeholder while the photo is being processed". Asked whether, in RAW mode, the matching JPG is kept behind the scenes as the picture shown, or kept as a normal photo beside the RAW file (draft dispatch 2026-10-15-01, question 1).
+**What it sets:** a RAW shot is one photo. Its JPG is not a photo of its own: it is what the journal and viewer display, the thumbnail, and the stand-in shown until the final file is ready. Export sends the final file. Where -1003 applies (the DNG can't be cleaned), the JPG becomes the photo.
+**Notes:** Written by the planner by hand, on branch records-after-173. The placeholder role matters most from stage 3 on, when processing takes time. Next free ID -1005.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1005
+**Timestamp:** 2026-10-15T00:24:17Z
+**Continues:** 2026-09-28-1002
+**Title:** The format chip remembers the user's choice across app restarts (owner)
+**The owner, verbatim:** "remember their decision, the intent is to use it and having to switch it on every time can be annoying". Asked whether the chip goes back to JPG when the app is closed or stays on the chosen format (draft dispatch 2026-10-15-01, question 2; the planner had recommended going back to JPG).
+**What it sets:** the chosen format persists across restarts in DataStore, as the grid mode does. JPG stays the first-run default. The approximate sizes shown in the menu and the low-storage fallback to JPG (-975) are what keep a remembered large format from surprising anyone.
+**Notes:** Written by the planner by hand, on branch records-after-173. A per-case persistence decision under CLAUDE.md's UX defaults. Next free ID -1006.
