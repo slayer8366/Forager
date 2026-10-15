@@ -18004,3 +18004,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **dev:** backed up (dev-20261015T170008Z-8bfb9eac.bundle, verified) and rebased onto cb25b582 with no conflict; range-diff shows the one dev-tools commit unchanged (8bfb9eac = 4c278251); pushed with force-with-lease.
 **Not checked at writing:** CI on main after the merge and on dev after the rebase. Seventeen raw-stage2-revert-* branches, raw-stage2-dng-writer and raw-stage2 remain on the remote for the tidiness pass.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1046.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1046
+**Timestamp:** 2026-10-15T18:15:56Z
+**Continues:** 2026-09-28-1044
+**Title:** RAW stage 3: test bursts saved on the dev build only; build on the current camera library and measure; plain average as the yardstick, then the detail-preserving merge; the engine on main unused, its test switch a second dev commit (owner)
+**The owner, verbatim:** to the four questions of the research and audit (prompts/preserved/2026-10-15-05-averaging-research-audit.md), each with the planner's recommendation: "All recommended".
+**What it sets:** Q1, the dev build may save every frame of a burst, on the two test phones only, kept off GitHub and never in a release, to tune averaging on real photos; an exception to -974's "only keep the final product" for testing only. Q2, build on the current camera library (about 3 RAW frames a second, measured from single shots); bring measured hold-still times to the owner before averaging touches normal photos. Q3, a plain aligned average first as the yardstick, then the published detail-preserving merge, compared on real photos before one is chosen. Q4, the engine lands on main tested and unused until debayering; the dev test switch is a second commit on dev, so -930's dev-tools commit stays as ruled. Also standing, raised and not objected to: stage 3 keeps the phone's own exposure; darker exposure to protect skies waits for HDR. The pieces, one at a time on dev, each checked on the S22 then the S26: 1 speed and lock probe; 2 burst capture in memory; 3 noise model measured from tripod bursts; 4 alignment; 5a plain average; 5b detail-preserving merge; 6 measurement round and report before debayering is planned.
+**Notes:** Written by the planner by hand, on branch records-after-173. Each piece needs its own go. Next free ID -1047.
