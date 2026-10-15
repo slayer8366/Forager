@@ -139,7 +139,7 @@ class PlatformBurstLinesTest {
     }
 
     @Test
-    fun `one frame has no interval and no rate, but a hold-still time of zero; none has neither`() {
+    fun `one frame has no interval and no rate but a hold-still time of zero, and none has neither`() {
         val one = PlatformBurstLines.summarize(8, listOf(frame(0, 1_000_000_000L)), 0.0)
         assertTrue(one.intervalsMs.isEmpty())
         assertNull(one.meanIntervalMs)
