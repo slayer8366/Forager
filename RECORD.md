@@ -18124,3 +18124,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Reading:** at both exposures the capture cadence is a whole number of the sensor's 33.3 ms frames (8 in dim at 66.7 ms exposure... 267 ms; 7 in bright, 233 ms), so the rate is set by CameraX's one-capture-at-a-time queue, not by exposure: about 3.7 to 4.3 frames a second on the S22. Holding still: about 0.7 s for 4 frames, about 1.6 s for 8 (first to last frame). RAW+JPEG cannot burst through this path; averaging uses RAW-only frames.
 **Next:** the S26 Ultra, dim and bright; then the speed table to the owner before piece 2 (-1046 Q2).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1056.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1056
+**Timestamp:** 2026-10-15T20:29:58Z
+**Continues:** 2026-09-28-1055
+**Title:** Direction: go below the camera library for bursts, and prove the RAW Forager saves is the sensor's real RAW (owner); a read-only investigation first
+**The owner, verbatim:** after the S22 burst rates (3.7 to 4.3 frames a second through CameraX): "I want to try and get into the camera library, users deserve a good frame average that they can trust. Plus i want to be sure that the RAW we put out is the actual RAW and not a debayered one".
+**What it sets:** direction, not a build: (1) investigate capturing RAW bursts below CameraX (the platform's own camera interface) at the sensor's rate, and how that coexists with the CameraX camera the app uses, as options for the owner (an architecture decision); (2) establish, with evidence, what the saved RAW is: mosaic or processed, binned or full-resolution, and whether the phone applies noise reduction or other processing before the data reaches Forager. -1046 Q2 ("build on the current camera library") is superseded in direction by this; no code changes until the owner chooses among the options.
+**Next:** a read-only investigation (CameraX and platform documentation and artifacts; adb dumpsys of camera characteristics on the S22, read only; analysis of the DNGs already on the laptop). The S26's probe run stays useful as the baseline.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1057.
