@@ -18111,3 +18111,16 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** to the four recommendations from the review (-1052): "Prior 1-4 all recommended".
 **What it sets:** (1) docs/audits/2026-10-15-t6b-host-genera-build/plot_table_real.py joins pyproject.toml's ruff exclude, on the D124 precedent (evidence kept as it ran); (2) Larix is not available in Canada (SCANFI's tamarack class unused), recorded as a forecast decision row, to be revisited before the continental Canadian tree tiles are built; (3) ecm_hosts keeps all 18 genera, with Arbutus (arbutoid), Populus and Alnus (dual) noted as partial and Chrysolepis as unconfirmed in the one source read; (4) D127 is accepted: for T6b only, Fagus, Carya, Tilia, Ostrya and Carpinus are host bands. Provisional until review, with a warning before any point of no return (-1030, -1033). The forecast decision rows are written when the branches merge; the D40 merges still await the owner's words naming the branches.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1055.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1055
+**Timestamp:** 2026-10-15T20:28:40Z
+**Continues:** 2026-09-28-1053
+**Title:** Burst probe on the S22 in bright light: RAW-only bursts at 4.3 frames a second; RAW+JPEG again loses 7 of 8
+**The owner, verbatim:** "1 is done" (the S22 set facing a bright, still scene).
+**Observed:** session 2, completed, 42 lines, ~/Zynergy/device-evidence/2026-10-15-stage3-probe-s22/probe-run2-bright.jsonl (off GitHub). Exposure 8.33 ms, ISO 69 on every frame. RAW-only, unlocked and locked: 8 of 8 frames, sensor timestamps exactly 233.3 ms apart (4.29 frames a second, zero spread); exposure, ISO and focus held; lock held and released; heap peak about 92 to 103 MB. RAW+JPEG, unlocked and locked: 1 of 8 frames complete, as in dim light. The dialog's chip read RAW afterwards.
+**Reading:** at both exposures the capture cadence is a whole number of the sensor's 33.3 ms frames (8 in dim at 66.7 ms exposure... 267 ms; 7 in bright, 233 ms), so the rate is set by CameraX's one-capture-at-a-time queue, not by exposure: about 3.7 to 4.3 frames a second on the S22. Holding still: about 0.7 s for 4 frames, about 1.6 s for 8 (first to last frame). RAW+JPEG cannot burst through this path; averaging uses RAW-only frames.
+**Next:** the S26 Ultra, dim and bright; then the speed table to the owner before piece 2 (-1046 Q2).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1056.
