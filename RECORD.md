@@ -18136,3 +18136,30 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **What it sets:** direction, not a build: (1) investigate capturing RAW bursts below CameraX (the platform's own camera interface) at the sensor's rate, and how that coexists with the CameraX camera the app uses, as options for the owner (an architecture decision); (2) establish, with evidence, what the saved RAW is: mosaic or processed, binned or full-resolution, and whether the phone applies noise reduction or other processing before the data reaches Forager. -1046 Q2 ("build on the current camera library") is superseded in direction by this; no code changes until the owner chooses among the options.
 **Next:** a read-only investigation (CameraX and platform documentation and artifacts; adb dumpsys of camera characteristics on the S22, read only; analysis of the DNGs already on the laptop). The S26's probe run stays useful as the baseline.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1057.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1057
+**Timestamp:** 2026-10-15T20:48:59Z
+**Repository:** forager-forecast
+**Head:** merge-2026-10-15b (c610926)
+**Base:** main
+**Merge-commit:** b9127e5888382180e9b7b1eceeffb2a3a0ccf24f
+**Pre-merge:** a79d66754916050a865a7948ed645c3ce859f31b
+**Backup:** 2026-10-15-03-forecast-pre-merge-b (forager-forecast-all-remote.bundle, verified okay, sha256 a21a410c8ebd179604ac…)
+**The owner, verbatim (D40's written authorisation naming the branches):** "merge t6b-host-genera-review and t7-pnw-verify into main", then "And merge the optional branches also", after the planner had named them (t6b-host-genera-verify, pnw-pilot-w42, t6b-run-2026-10-15); received before 2026-10-15T20:38:26Z.
+**Observed:** first, on t6b-host-genera-review, the planner added decision rows D128 (accepts D127), D129 (the host-genera ruling, -1029, -1033), D130 (Larix not available in Canada), D131 (ecm_hosts membership) and D132 (plot_table_real.py out of ruff, D124's precedent), with the pyproject exclude: 841a218 (-1054). Then integration branch merge-2026-10-15b from main: t6b-host-genera-verify 80e807a and t6b-run-2026-10-15 2ba2057 clean; t6b-host-genera-review 841a218 with conflicts in the 2026-10-07-t6b-run evidence (run.log.txt and manifest.jsonl.gz taken from the review side, a strict superset; sections.jsonl the union, the 2026-10-14 21:11 section line from t6b-run-2026-10-15 kept and placed by time) and the audits index (every row kept); t7-pnw-verify 90aa3f5 with conflicts in DECISIONS.md (D125 and D126 inserted above D124, no other row moved; a first attempt that re-sorted the table and moved D110 and D100 was discarded) and the index (every row kept); pnw-pilot-w42 1305244 clean. Checks: all five heads and old main are ancestors; no line of DECISIONS.md or the index from any source branch is missing; ruff check and format clean; pytest 604 passed locally; CI on b9127e5 run 38804526472: success, lint and format clean, 604 passed.
+**Left unmerged:** t6b-host-genera itself (the continental run pushes evidence to it; its reviewed code reached main through the review branch).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1058.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1058
+**Timestamp:** 2026-10-15T20:48:59Z
+**Continues:** 2026-09-28-1056
+**Title:** Below-CameraX bursts and RAW authenticity: the S22 can stream RAW at about 30 frames a second, CameraX cannot; the saved RAW is a real mosaic, binned 3x3 on the S22; noise reduction unproven either way
+**Observed:** investigation filed as prompts/preserved/2026-10-15-07-below-camerax-and-raw-authenticity.md (read only; S22 dumpsys media.camera and getprop only; DNGs read in place; the S26 not attached). Part A: the S22 is at the top hardware level with burst capture, manual sensor, AE/AWB lock and per-frame control; 4000x3000 RAW has a 33.3 ms minimum frame duration and no stall; pipeline depth 8. CameraX 1.6.2 allows one still request in flight and holds four images; neither 1.6.2 nor the 1.7.0 alphas offer RAW bursts, and 1.7.0-alpha03 deprecates the interop calls Forager uses. Options, all behind the existing CameraCaptureSession interface: (a) the whole camera on the platform interface (8 frames in about 0.23 s bright, 0.47 s dim, inferred; viewfinder never stops; 1,200 to 2,000 lines, rebuilding flash, focus, the locked-window transform and quirks; not CI-testable); (b) CameraX for viewfinder and single shots, the platform only for a burst (inferred about 0.7 to 1.5 s before the first frame and 0.5 to 1 s to recover the viewfinder; a few hundred lines; the dev probe's in-library swap took 587 to 940 ms); (c) CameraX-only workarounds, none sound. A platform session can also give a JPEG or small YUV for the journal placeholder. The RAW+JPEG probe loss: each request got exactly one image, alternating, only the last both; cause undetermined. Part B, tests validated on synthetic controls: S22 RAW is a single-channel GRBG mosaic (cross-colour neighbour correlation at most 0.03 to 0.06), binned 3x3 (hidden 12000x9000 stream, public 4000x3000; NoiseProfile overstates shot noise about 9x, consistent with 9-photosite sums; inferred but strong); noise reduction unclear (mode never logged; only a 0.03 spatial trace; strong NR ruled out; anything inside a binned group invisible); shading flagged applied but no corner gain seen; hot pixels survive. S26: GBRG mosaic; NoiseProfile matches measured noise; binning and NR undetermined. Full 108 MP RAW is not offered to apps on the S22 and would be re-arranged by the phone where offered.
+**For the owner:** (1) the camera design, (a) or (b), after measuring the swap; (2) a dev test with noise reduction and hot-pixel correction off against default, on a tripod; (3) whether binned 12 MP is the RAW meant; (4) if NR off changes the RAW, whether the RAW format asks for it off always or only the averaging path.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1059.
