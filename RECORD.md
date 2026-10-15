@@ -17964,3 +17964,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Observed:** log 09:37 to 09:38 PDT: "Capture rebound as Raw", three "RAW shot" lines at resolution=4080x3060 (two upright, requestDegrees=90; one turned sideways, deviceRotation=1, requestDegrees=0), no fallback to JPG; then JPG chosen and two plain shots (4000x3000); then RAW chosen again. Each RAW shot saved <id>.dng (7.4 to 7.9 MB) and its <id>.jpg. All three DNGs: exiftool -validate OK; no Make, Model, Software, DateTimeOriginal or GPS; UniqueCameraModel Forager; CFA [Green,Blue][Red,Green] (GBRG, as -998); BlackLevel 64, WhiteLevel 1023. Orientation: DNG and JPG agree on each (Rotate 90 CW, Horizontal, Rotate 90 CW). Decoded with LibRaw 0.22.1 with its orientation applied, each RAW shows the same scene, framing and way up as its JPG, with natural colours (wood doors, white walls, a coloured toy bin) and no visible corner darkening; the RAW is darker and flatter than the phone's JPG, as an unprocessed file should be.
 **Not checked:** the second sideways direction (rotation 3) on either phone; the S22's colours in daylight (its decode matched its JPG in a dim room, -1038); a desktop raw editor other than LibRaw; the fallback messages on a phone (covered by tests).
 **Notes:** Written by the planner by hand, on branch records-after-173. PR #227 is ready for the owner's merge word. Next free ID -1043.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1043
+**Timestamp:** 2026-10-15T16:46:30Z
+**Continues:** 2026-09-28-1038
+**Title:** RAW stage 2 on the S22 Ultra in daylight: nine RAW photos by the owner in all four orientations; valid, clean, correct colours, each the same way up as its JPG
+**The owner, verbatim:** "S22 plugged in with more photos".
+**Observed:** nine RAW shots between 09:34 and 09:45 PDT (plus one plain JPG), each saved as <id>.dng (4.9 to 6.2 MB) and <id>.jpg; pulled by run-as to ~/Zynergy/device-evidence/2026-10-15-raw-stage2-s22/daylight/ (the owner's home and yard; described here, never committed). All nine: exiftool -validate OK; no Make, Model, Software, DateTimeOriginal or GPS; CFA [Green,Red][Blue,Green] (GRBG). Orientation tags cover all four holds (Horizontal x3, Rotate 90 CW x3, Rotate 180 x2, Rotate 270 CW x1), and each DNG's tag equals its JPG's. Decoded with LibRaw 0.22.1, orientation applied, each RAW matches its JPG's size, way up, scene and framing, with natural colours (blue sky, green conifers, a yellow house, red and blue play equipment, a white fence), darker and flatter than the phone's JPG as an unprocessed file is. This closes -1038's open items for colour and orientation on the S22, and -1042's second sideways direction on the S22 (not the S26).
+**Not checked:** the S26 turned the other way sideways or upside down; the fallback messages on a phone (covered by tests); a desktop raw editor other than LibRaw.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1044.
