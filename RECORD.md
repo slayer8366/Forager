@@ -17543,3 +17543,19 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** "Par 227 is reserved for stage 2. It's all yours". Asked whether stage 2 goes on PR #227, held open for a rewrite from scratch, or on a fresh branch (draft dispatch 2026-10-15-01, question 3).
 **What it sets:** stage 2's work lands on raw-stage2 (head fbf942b4, an empty skeleton commit on main 4ade21f0) under draft PR #227 (open, base main). This supersedes the handoff's "Don't touch the PR or the branch". It is not a go to build: no coder starts until the owner says yes to starting one.
 **Notes:** Written by the planner by hand, on branch records-after-173. "Par" read as "PR". Next free ID -1007.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1007
+**Timestamp:** 2026-10-15T00:38:54Z
+**Continues:** 2026-09-28-1006
+**Title:** RAW stage 2 dispatched: the format chip with JPG and RAW, and a cleaned unprocessed RAW photo (owner)
+**Dispatch-file:** preserved/2026-10-15-01.md
+**The owner, verbatim:** asked "Should I start a coder on stage 2 now?": "Go ahead".
+**Change:** as the dispatch file: the chip (JPG, RAW) where the stage 1 probe reports RAW; a RAW+JPEG capture on a new path; the JPG as preview, thumbnail and placeholder (-1004); the choice remembered across restarts (-1005); the DNG cleaned by a TIFF-tag editor of our own, failing closed (-1003); backup and delete carry the DNG; a low-storage fallback to JPG.
+**Scope boundary:** no change to JPG output or the camera's fixed screen; dev and records-after-173 untouched. No Gradle on the laptop, no phone.
+**Baseline:** origin/raw-stage2 fbf942b4 (empty commit on main 4ade21f0), under draft PR #227 (-1006). Worktree ~/.cache/forager-wt/raw-stage2.
+**Finish line:** the coder's verify-first plan, answered by the planner. Then tests first, revert checks and green CI on PR #227, left unmerged. Then the owner's device checks on the S22 and S26.
+**Abort conditions:** RAW+JPEG won't bind beside Preview without a fallback; a visible change to JPG capture; two failed attempts on one symptom.
+**Notes:** Written by the planner by hand, on branch records-after-173. The coder is an Opus subagent of this session (-1001). Next free ID -1008.
