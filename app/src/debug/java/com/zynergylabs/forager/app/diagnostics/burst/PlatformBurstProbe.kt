@@ -88,7 +88,7 @@ internal class PlatformBurstProbe(
             throw cancelled
         } catch (error: Exception) {
             log(PlatformBurstLines.runLine(session, run, RunOutcomeKind.FAILED, "the run failed: $error", null, null))
-            return null
+            throw error
         }
         return when (outcome) {
             is PlatformBurstOutcome.Unsupported -> {
