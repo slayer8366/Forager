@@ -524,7 +524,6 @@ internal const val PHOTO_FILES_QUERY = "SELECT relativePath, rawRelativePath FRO
 
 private fun MutableCollection<String>.addPhotoFiles(c: android.database.Cursor) {
     add(c.getString(0))
-    if (!c.isNull(1)) add(c.getString(1))
 }
 
 private fun photoFilePaths(db: SQLiteDatabase): List<String> =
