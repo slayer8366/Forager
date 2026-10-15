@@ -147,7 +147,7 @@ class FilePhotoStore(
             createdAtEpochMillis = exifData.capturedAtEpochMillis ?: now(),
             latitude = exifData.latitude,
             longitude = exifData.longitude,
-            rawRelativePath = rawRelativePath,
+            rawRelativePath = null,
         )
     }
 
