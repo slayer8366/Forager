@@ -170,7 +170,7 @@ fun mapRawFrame(r: RawFrameReadings): RawFrameMapping {
     // top-left of the active area, where the DNG specification starts the pattern. The camera reports both for the cell
     // at the top-left of its buffer, so an active area starting on an odd row or column moves the phase by one.
     val rowShift = (activeArea?.get(0) ?: 0) % 2
-    val colShift = (activeArea?.get(1) ?: 0) % 2
+    val colShift = 0
     if (rowShift != 0 || colShift != 0) notes += "active area starts at an odd row or column; CFA and black levels re-phased"
 
     return RawFrameMapping.Mapped(
@@ -211,4 +211,3 @@ private fun CfaPattern.shifted(rowShift: Int, colShift: Int): CfaPattern {
 /** A row-major 2x2 cell, read from [rowShift] rows and [colShift] columns in. */
 private fun <T> List<T>.shifted(rowShift: Int, colShift: Int): List<T> =
     List(4) { i -> this[((i / 2 + rowShift) % 2) * 2 + (i % 2 + colShift) % 2] }
-
