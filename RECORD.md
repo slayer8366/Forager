@@ -17725,3 +17725,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Observed:** the integration branch (-1017) merged the 11 tips --no-ff in eight merges: t6b-pnw-scanfi 8586b8a, t6b-pnw-review 37691c6, d121-lean-start b91599f, pnw-first-fit-verify 3c39d66, pnw-pilot-t1 c313f5c, pnw-pilot-t1-review c2154af, pnw-pilot-scoring 72fd2c2, pnw-pilot-plans 31f956c; then D124 (f7c8648). Conflicts only in DECISIONS.md and the audits index (every row kept) and the OMS briefing (the plans branch's strictly later edit taken whole). No renumbering: D122 is the SCANFI edge ruling, D123 the pilot ruling. Coder's local run: pytest 592 passed. **Planner's check:** all 11 tips are ancestors of the head; DECISIONS D rows 102 on main, 115 at 31f956c, all unique (116 with D124); no line of main's DECISIONS.md or audits index is missing from the head.
 **Not checked at writing:** CI on the merge commit (run 38676026645 in progress).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next per the owner's order (-1017): the habitat map's open questions, then the continental layers restart, then this week's forecast. Next free ID -1022.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1022
+**Timestamp:** 2026-10-15T03:42:09Z
+**Title:** Laptop disk clean-up: flash copies moved to the root drive, finished forecast worktrees removed, Gradle cache and old temp files cleared (owner)
+**The owner, verbatim:** to the planner's four options: "1 sounds good on file moving / 2 yes clear out work that is already backed up to the repo / 3 clear it / 4 sounds good / I'll take your recommendations on those".
+**Done by the planner:** (1) /mnt/work/from-flash (19,596 files, 13 GB) copied to ~/from-flash on the root drive, listings and sha256 checksums matched, original removed; /mnt/work/from-flash is now a symlink to ~/from-flash so the flash drive's own symlinks resolve. (2) 26 forecast worktrees removed with git worktree remove (no force), each clean and with HEAD on forecast main; .venv removed from 9 more that hold ignored data or logs (kept) and from the separate clone forager-forecast-t0b (0 unpushed commits, 0 stashes); forager-forecast-t4-review left (one uncommitted change). (3) the Gradle cache (caches, wrapper, daemon, workers, native, kotlin-profile; 3.1 GB) cleared; its android and notifications folders kept. (4) 612 /tmp entries older than a day, owned by the planner's user and not in use by any process, removed (3.3 GB); /tmp/pilot-cr, served by a running local web server, kept.
+**Result:** work drive 2.9 GB free to 23 GB; /tmp 80% to 21%; root drive 25 GB to 12 GB free. Listings and checksums in ~/cleanup-2026-10-15/ (outside any repository).
+**Kept on the planner's recommendation:** device evidence, repository backups (9 GB), the Android SDK (6.1 GB, needed to install builds on phones).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1023.
