@@ -18239,3 +18239,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** to whether the RAW format asks for the phone's noise reduction off always or only for the averaging path: "Noise reduction always off. Doesn't averaging fix noise? Reducing would be redundant?"
 **What it sets:** every RAW capture Forager requests, the plain RAW format and the averaging bursts alike, asks for the phone's noise reduction OFF where the phone offers that mode, and logs the mode the capture result reports. Forager's own averaging, and later its own processing, handle noise. Hot-pixel correction and lens-shading behaviour are measured by the fast-burst test (dispatch 2026-10-15-09) before any ruling. Not yet built; applies when the RAW capture path is next changed.
 **Notes:** Written by the planner by hand, on branch records-after-173. The owner's "Pure RAW, non binned" in the same message is being clarified against what the phones offer before it is recorded. Next free ID -1065.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1065
+**Timestamp:** 2026-10-15T22:08:59Z
+**Continues:** 2026-09-28-1063, 2026-09-28-1064
+**Title:** Privacy wording approved and committed, not yet published; a read-only search for where full-resolution, unbinned RAW is blocked (owner)
+**The owner, verbatim:** to the planner's proposed privacy wording (items 1 to 3): "Ok on the policy wording". To the planner's report that the S22 offers apps only 3x3-binned 12 MP RAW: "Pure RAW, non binned", then "See about digging further. If there's a real block then we should be familiar where the bounds are so we can work around it".
+**Done:** items 1 to 3 applied to docs/legal/privacy-policy.md on Forager branch privacy-backup-raw (commit above), unmerged and unpublished. The planner found the same stale "no copy anywhere / uninstalling is the end" claim in the policy's deletion section and in docs/legal/delete-data.md (the page Play's Data safety form names) and proposed items 4 and 5; awaiting the owner's word before anything is published.
+**Change (research):** a read-only investigation of every route to full-resolution, unbinned RAW on the S22 Ultra (and the S26 when attached): the public camera interface, vendor tags and hidden stream configurations, the phone maker's own camera SDKs and apps, remosaic behaviour of 3x3-cell sensors, and what "unbinned" can mean for such a sensor; where each route is blocked and by what. No code, nothing installed.
+**Notes:** Written by the planner by hand, on branch records-after-173. "Pure RAW, non binned" is not recorded as a decision until the bounds are known. Next free ID -1066.
