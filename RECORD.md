@@ -18100,3 +18100,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Observed:** RAW-only, unlocked and locked: 8 of 8 frames, sensor timestamps exactly 267.28 ms apart (3.74 frames a second, zero spread), about 4 sensor frame times at that exposure; RAW plane copy 13 to 20 ms; heap peak about 90 MB; the sensor's own minimum frame duration 33.3 ms with zero stall at 4000x3000, so CameraX's queue delivers about one capture per four sensor frames here. Exposure, ISO and focus held in every run; the lock held and was released. RAW+JPEG, unlocked and locked: 1 of 8 frames arrived complete; for the others the RAW or the JPEG never arrived within 32 s. Hand-back: camera state OPEN after each run, and the dialog's chip still read RAW afterwards.
 **Not yet measured:** bright light (where exposure is short and the rate may differ), the S26 Ultra, and why RAW+JPEG bursts lose frames (the coder's notes on CameraX's in-flight image limit are the first suspect, unconfirmed).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1054.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1054
+**Timestamp:** 2026-10-15T20:26:49Z
+**Continues:** 2026-09-28-1052
+**Title:** T6b host genera after review: the evidence script excluded from lint as D124; Larix not available in Canada for now; ecm_hosts keeps all 18 genera with three noted partial; D127 accepted (owner)
+**The owner, verbatim:** to the four recommendations from the review (-1052): "Prior 1-4 all recommended".
+**What it sets:** (1) docs/audits/2026-10-15-t6b-host-genera-build/plot_table_real.py joins pyproject.toml's ruff exclude, on the D124 precedent (evidence kept as it ran); (2) Larix is not available in Canada (SCANFI's tamarack class unused), recorded as a forecast decision row, to be revisited before the continental Canadian tree tiles are built; (3) ecm_hosts keeps all 18 genera, with Arbutus (arbutoid), Populus and Alnus (dual) noted as partial and Chrysolepis as unconfirmed in the one source read; (4) D127 is accepted: for T6b only, Fagus, Carya, Tilia, Ostrya and Carpinus are host bands. Provisional until review, with a warning before any point of no return (-1030, -1033). The forecast decision rows are written when the branches merge; the D40 merges still await the owner's words naming the branches.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1055.
