@@ -17698,3 +17698,30 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** asked whether the fallback messages (low storage, couldn't be saved, couldn't be cleaned) should use the normal message colour instead of red, since the photo was still saved: "2 yes".
 **What it sets:** those messages are informational, not errors: the photo exists. Applies "Don't make me think": no state the user could misread as broken.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1020.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1020
+**Timestamp:** 2026-10-15T03:24:12Z
+**Continues:** 2026-09-28-1017
+**Title:** forager-forecast: two committed evidence scripts are excluded from the lint check, kept as they ran (owner)
+**The owner, verbatim:** offered A (exclude the two scripts from the style check, as two record scripts already are), B (reformat them) or C (merge with the check red): "1 A".
+**What it sets:** forecast decision D124: pyproject.toml's ruff exclude gains docs/audits/2026-10-10-t6b-pnw-run/seam-after-10-tiles/pnw_mosaic_and_seam.py and docs/audits/2026-10-10-pnw-pilot-scoring/window-2026-W41/t00.py. Committed as f7c8648 on merge-2026-10-15; ruff check and format check then pass locally.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1021.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1021
+**Timestamp:** 2026-10-15T03:24:12Z
+**Repository:** forager-forecast
+**Head:** merge-2026-10-15 (f7c8648)
+**Base:** main
+**Merge-commit:** a79d66754916050a865a7948ed645c3ce859f31b
+**Pre-merge:** 36cc6470238f081d26a30333e013b544dfad8b62
+**Backup:** 2026-10-15-01-forecast-pre-merge (forager-forecast-all-remote.bundle, verified okay, sha256 f3d49696db3b5914f3dc…)
+**The owner, verbatim (D40's written authorisation naming the branch):** "merge-2026-10-15 into main", received before 2026-10-15T03:23:04Z.
+**Observed:** the integration branch (-1017) merged the 11 tips --no-ff in eight merges: t6b-pnw-scanfi 8586b8a, t6b-pnw-review 37691c6, d121-lean-start b91599f, pnw-first-fit-verify 3c39d66, pnw-pilot-t1 c313f5c, pnw-pilot-t1-review c2154af, pnw-pilot-scoring 72fd2c2, pnw-pilot-plans 31f956c; then D124 (f7c8648). Conflicts only in DECISIONS.md and the audits index (every row kept) and the OMS briefing (the plans branch's strictly later edit taken whole). No renumbering: D122 is the SCANFI edge ruling, D123 the pilot ruling. Coder's local run: pytest 592 passed. **Planner's check:** all 11 tips are ancestors of the head; DECISIONS D rows 102 on main, 115 at 31f956c, all unique (116 with D124); no line of main's DECISIONS.md or audits index is missing from the head.
+**Not checked at writing:** CI on the merge commit (run 38676026645 in progress).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next per the owner's order (-1017): the habitat map's open questions, then the continental layers restart, then this week's forecast. Next free ID -1022.
