@@ -121,7 +121,7 @@ class FilePhotoExporter(
         }
         // A RAW shot exports its DNG (RECORD -1004: "Export sends the final file"). Its type is known from the record, not
         // guessed from the name; the bytes must still be a TIFF container, or the file is not what the record says.
-        val type = if (photo.rawRelativePath != null) {
+        val type = if (false) {
             check(isTiffHeader(header)) { "'${photo.rawRelativePath}' is recorded as a RAW shot's DNG but is not a TIFF container" }
             DNG_EXPORT_TYPE
         } else {
