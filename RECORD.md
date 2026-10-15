@@ -17532,3 +17532,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** "remember their decision, the intent is to use it and having to switch it on every time can be annoying". Asked whether the chip goes back to JPG when the app is closed or stays on the chosen format (draft dispatch 2026-10-15-01, question 2; the planner had recommended going back to JPG).
 **What it sets:** the chosen format persists across restarts in DataStore, as the grid mode does. JPG stays the first-run default. The approximate sizes shown in the menu and the low-storage fallback to JPG (-975) are what keep a remembered large format from surprising anyone.
 **Notes:** Written by the planner by hand, on branch records-after-173. A per-case persistence decision under CLAUDE.md's UX defaults. Next free ID -1006.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1006
+**Timestamp:** 2026-10-15T00:29:08Z
+**Continues:** 2026-09-28-1005
+**Title:** RAW stage 2 is built on PR #227 and branch raw-stage2, which pass to the planner (owner)
+**The owner, verbatim:** "Par 227 is reserved for stage 2. It's all yours". Asked whether stage 2 goes on PR #227, held open for a rewrite from scratch, or on a fresh branch (draft dispatch 2026-10-15-01, question 3).
+**What it sets:** stage 2's work lands on raw-stage2 (head fbf942b4, an empty skeleton commit on main 4ade21f0) under draft PR #227 (open, base main). This supersedes the handoff's "Don't touch the PR or the branch". It is not a go to build: no coder starts until the owner says yes to starting one.
+**Notes:** Written by the planner by hand, on branch records-after-173. "Par" read as "PR". Next free ID -1007.
