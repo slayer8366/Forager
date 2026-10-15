@@ -17791,3 +17791,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** "Finish the PNW model". Offered A (close out the pilot as it is), B (the full model for the PNW: T7 habitat, T8 trigger model, T9 calibration and the publishing gate) or C (make the current pilot weekly and automatic), with the planner's recommendation B with A's deferred checks folded in: "Option B. Let's have it completed and then we can see what's working out, what's not, learn our lessons while the cost is small, and then roll out the rest of the project".
 **What it sets:** forager-forecast's T7, T8 and T9 are built and fitted on the PNW first, as a pilot of the whole pipeline, before any continental fit (D100's target stands, after the pilot, as D123 already put it). The pilot's deferred checks (D33 (3) and (4), sensitivity and the commercial-safe run) are folded into the sequence. Each task still goes plan, owner's rulings, go, build, independent review (D18), merge on the owner's word (D40). A lessons write-up closes the PNW sequence before the roll-out. T10 (weekly automation) and T11 wait. This is direction, not a go for any fit or data pull.
 **Notes:** Written by the planner by hand, on branch records-after-173. T7's plan is being rewritten now (-1025). Next free ID -1028.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1028
+**Timestamp:** 2026-10-15T04:16:45Z
+**Closes:** 2026-09-28-1025
+**Title:** T7 plan rewritten for mycorrhizal mushrooms as a group; eight open decisions (M1 to M8) for the owner
+**Observed:** forager-forecast branch t7-mycorrhizal-plan, 5e74749 on main a79d667: docs/dispatch/2026-10-15-t7-mycorrhizal-habitat.md (530 lines, supersedes the 2026-10-11 chanterelle plan), DECISIONS D125 (O4, Level III blocks, quoting -1023) and D126 (O7, base main a79d667), one audits-index row. Nothing fitted, downloaded or requested. Earlier decisions: A1 no longer applies; A2 (the box) and A4 (land cover as a mask only) carry over; A3 (the groups) re-asked as M4 and M5; A5 (review) fulfilled. Fourteen stale citations corrected. New verify items: V15 prior art of other apps' maps (-914), V16 genus names joined offline, V17 the membership list's licence read at source. New: two comparison models (effort only; forest cover only) so the map must show more than "where the forest is".
+**Planner's addition:** the writer left the old plan unchanged as instructed, which conflicted with the forecast repository's D41 (a dispatch closed unacted gets a dated closeout note). The planner appended that note (c11b4b6), following D41.
+**For the owner:** M1 which mushrooms count and the list's source; M2 unclear or mixed-lifestyle genera; M3 how kinds are weighed; M4 the comparison group; M5 where chanterelles go; M6 recording the change of target against SPEC's chanterelle wording; M7 host trees the layers lack; M8 whether and on what test the habitat map is ever shown.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1029.
