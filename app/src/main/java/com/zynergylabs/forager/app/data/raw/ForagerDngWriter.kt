@@ -55,7 +55,7 @@ class ForagerDngWriter internal constructor(
         } catch (e: OutOfMemoryError) {
             "the check could not run: out of memory"
         }
-        if (problem != null) return failed(destination, "the written DNG failed its check: $problem", DngFailureStage.Check)
+        if (problem != null) return failed(destination, "the written DNG failed its check: $problem", DngFailureStage.Writing)
 
         return DngWriteResult.Written(destination.length())
     }
