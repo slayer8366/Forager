@@ -53,6 +53,14 @@ class GreenSharpnessTest {
     }
 
     @Test
+    fun `a ramp falling to the right counts the same as one rising, because the gradient is absolute`() {
+        // Green = 64 + 10(15 - x): the mirror of the rising ramp, every block step -40/959. Its magnitude is the same
+        // 24/959; a figure that summed signed steps would come out negative.
+        val samples = mosaic(16, 8, rggb) { x, _, _ -> 64 + 10 * (15 - x) }
+        assertEquals(24.0 / 959.0, value(greenSharpness(samples, 16, 8, rggb, listOf(64f, 64f, 64f, 64f), 1023, cellsPerBlock = 2)), 1e-12)
+    }
+
+    @Test
     fun `a vertical green ramp is read through the vertical pairs`() {
         // Green = 64 + 10y; the same reasoning by rows: four vertical pairs of 40/959, six horizontal pairs of 0:
         // mean = 4 * (40/959) / 10 = 16/959.
