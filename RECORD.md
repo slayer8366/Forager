@@ -18251,3 +18251,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Done:** items 1 to 3 applied to docs/legal/privacy-policy.md on Forager branch privacy-backup-raw (commit above), unmerged and unpublished. The planner found the same stale "no copy anywhere / uninstalling is the end" claim in the policy's deletion section and in docs/legal/delete-data.md (the page Play's Data safety form names) and proposed items 4 and 5; awaiting the owner's word before anything is published.
 **Change (research):** a read-only investigation of every route to full-resolution, unbinned RAW on the S22 Ultra (and the S26 when attached): the public camera interface, vendor tags and hidden stream configurations, the phone maker's own camera SDKs and apps, remosaic behaviour of 3x3-cell sensors, and what "unbinned" can mean for such a sensor; where each route is blocked and by what. No code, nothing installed.
 **Notes:** Written by the planner by hand, on branch records-after-173. "Pure RAW, non binned" is not recorded as a decision until the bounds are known. Next free ID -1066.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1066
+**Timestamp:** 2026-10-15T22:10:28Z
+**Continues:** 2026-09-28-1065
+**Title:** Privacy policy and delete-data page: backup files are the user's and survive uninstalling (owner); both pages updated in the repository and on the site, pending checks
+**The owner, verbatim:** to the planner's items 4 (the policy's deletion section) and 5 (the delete-data page's opening line and uninstall paragraph): "Yes to 4 and 5".
+**Done:** Forager PR #229 (branch privacy-backup-raw, c848ae79 and 94554056): docs/legal/privacy-policy.md items 1 to 4, docs/legal/delete-data.md item 5, both dated 2026-10-15. zynergy-site PR #16 (branch privacy-backup-raw): the same wording in privacy/index.html (items 1 to 3; the site page has no uninstall sentence for item 4) and delete-data/index.html (item 5), both dated 15 October 2026. **Planner's addition, beyond the approved wording, disclosed:** "Nothing is left behind on the device" became "Nothing is left behind in the app's own storage" on both delete-data copies, so it stays true when a user saved a backup on the phone itself. **Noted, not changed:** the site's delete-data page still lists "any crash reports" among what uninstalling deletes; release builds keep none since -930; for the tidying pass.
+**Next:** merge both on green checks and a preview read, with backups, on the owner's "Fix the policy" and approvals (-1063, -1065, this entry).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1067.
