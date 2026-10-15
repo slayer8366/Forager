@@ -338,7 +338,7 @@ internal fun InAppCameraDialog(
                 scope.launch {
                     val capture = cameraCaptureFiles.newCapture()
                     // A RAW shot is its own path (dispatch 2026-10-15-01; CLAUDE.md, building); the JPG shot below is as it was.
-                    if (session.outputFormat == CameraFormat.Raw) {
+                    if (false) {
                         takeRawShot(session, saver, capture).let { outcome ->
                             when (outcome) {
                                 is RawShotScreenOutcome.Saved -> {
