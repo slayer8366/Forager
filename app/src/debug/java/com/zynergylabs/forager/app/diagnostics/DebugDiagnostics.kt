@@ -174,8 +174,15 @@ class DebugDiagnostics private constructor(
     }
 
     companion object {
-        /** The production entry point: the log at [DiagnosticsLog.forContext], the worker described on the class. */
-        fun install(context: Context): DebugDiagnostics = install(DiagnosticsLog.forContext(context), newExecutor())
+        /**
+         * The production entry point: the log at [DiagnosticsLog.forContext], the worker described on the class. Also
+         * records the resumed activity for the fast-burst test's viewfinder watch (dispatch 2026-10-15-09,
+         * `diagnostics/burst/ViewfinderWatch.kt`): this is the one debug hook the application calls at start-up.
+         */
+        fun install(context: Context): DebugDiagnostics {
+            (context.applicationContext as? android.app.Application)?.let { com.zynergylabs.forager.app.diagnostics.burst.ResumedActivityTracker.install(it) }
+            return install(DiagnosticsLog.forContext(context), newExecutor())
+        }
 
         /**
          * Installs the policy on the calling thread and writes the process-start line. Exposed at
