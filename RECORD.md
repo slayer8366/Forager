@@ -17629,3 +17629,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Scope boundary:** no code, no network calls to the services. Branch api-call-count from main 4ade21f0.
 **Finish line:** the report pushed; grouping and caching wait for the owner.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1014.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1014
+**Timestamp:** 2026-10-15T01:49:50Z
+**Closes:** 2026-09-28-1013
+**Title:** API call count filed: the forecast is fetched three times per search; rainfall history is never stored; the app's network client has no cache, throttle or 429 handling
+**Observed:** report docs/audits/2026-10-15-api-call-count.md, with its index row, on branch api-call-count at d26ceaa0 (base main 4ade21f0). No code changed and no request sent. All four external endpoints have production callers, all from the search-and-map screen's ViewModel, behind project interfaces. Findings: (1) one search sends three identical forecast requests (AvailabilityViewModel.kt:931, :954, :987), and month taps resend them; (2) the rainfall-history request covers every year the sightings span, weighs as many calls under the weather service's published rule (estimate about 235, unconfirmed), and is stored nowhere; a daily-limit 429 is on record (2026-10-01-readme-archive.md:1267-1283); (3) the saved-search cache is used only when the network fails (GetAvailabilityUseCase.kt:112); (4) the Seasonal tab refetches the Map tab's 200 observations; (5) the shared HTTP client has no response cache, throttle or 429 handling (ApiClients.kt:23-37). Premise found false: docs/plans/maplibre-migration.md:282 says both services' rate limits "are already respected elsewhere in this app"; no such code was found.
+**Planner's check:** the three forecast call sites and the client's interceptor-only setup were re-read at d26ceaa0's base and hold. Not re-checked: the other line citations, the weighting estimate, the session assumptions.
+**Not determined:** device counts; iNaturalist's published limit (its pages returned 403); the weather service's exact weighting and whether limits count per device; cache headers; map tile volume.
+**Notes:** Written by the planner by hand, on branch records-after-173. The branch is unmerged; grouping and caching wait for the owner. Next free ID -1015.
