@@ -6,7 +6,7 @@ Written by the outgoing planner session (Rowan Waymark) for the next one, at the
 - `docs/process/planner-profile.md` on main;
 - RECORD.md on `origin/records-after-173`, entries -945 to -1001.
 
-**Next free RECORD ID: -1012** (-1009 Forager writes the DNG; -1010 focus stacking added; -1011 amendment 1 to stage 2; -1008 calibration kept, location is the key; -1007 dispatched stage 2; 2026-10-15: -1002 and -1003 restored two RAW decisions; -1004 to -1006 answered the stage 2 draft, 2026-10-15-01. -1006 gives PR #227 and raw-stage2 to the planner for stage 2, superseding "Don't touch the PR or the branch" below).
+**Next free RECORD ID: -1014** (-1012 stage 2 part B, the DNG writer; -1013 the API call count; -1009 Forager writes the DNG; -1010 focus stacking added; -1011 amendment 1 to stage 2; -1008 calibration kept, location is the key; -1007 dispatched stage 2; 2026-10-15: -1002 and -1003 restored two RAW decisions; -1004 to -1006 answered the stage 2 draft, 2026-10-15-01. -1006 gives PR #227 and raw-stage2 to the planner for stage 2, superseding "Don't touch the PR or the branch" below).
 
 ## The first rule: no build without the owner's explicit go
 

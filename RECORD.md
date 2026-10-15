@@ -17601,3 +17601,31 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Continues:** 2026-09-28-1007
 **Amendment 1 to -1007 (RAW stage 2), after the coder's verify report.** Forager writes the DNG itself (-1009); calibration data is kept (-1008). The planner's answers to the coder's other items: capabilities read before the first bind, so a remembered RAW binds once; a single preview blink on switching format is accepted; the file is written and checked in the shot step; a nullable DNG field on the existing camera source type, so the scrub and the find-location patch stay right (a data field, not a conditional threaded through the JPG path); a nullable log_photos column, version 22; the menu as a panel that turns with the phone, as mocked; low storage below about 564 MB keeps the JPG only, with the coder's message; synthetic DNG fixtures only, no device file committed; menu sizes computed from the bound size and the compression, measured on the phones later. Details in the dispatch file's Amendment 1.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1012.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1012
+**Timestamp:** 2026-10-15T01:43:33Z
+**Continues:** 2026-09-28-1011
+**Title:** RAW stage 2 split: part B, Forager's own DNG writer, built by a second coder on its own branch (owner)
+**Dispatch-file:** preserved/2026-10-15-02.md
+**The owner, verbatim:** offered "Split stage 2 itself" (a second coder writes the RAW file writer and its compression on its own branch) among three parallel options: "Start 1 and 2".
+**Change:** a pure-Kotlin DNG writer (domain/raw contract, data/raw implementation) with lossless compression, calibration and lens-shading tags, never Make, Model, time or location, and a fail-closed check of its own output. Part A (the coder on raw-stage2, -1007/-1011) builds against the contract with a fake.
+**Scope boundary:** domain/raw and data/raw and their tests only. Branch raw-stage2-dng-writer from fbf942b4; the planner merges it into raw-stage2. No Gradle on the laptop, no phone, no device fixture.
+**Finish line:** green CI on the branch (workflow_dispatch), tests first, revert checks; merged into raw-stage2 by the planner.
+**Abort conditions:** the contract can't carry a required DNG value; lossless compression not feasible in pure Kotlin; two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1013.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1013
+**Timestamp:** 2026-10-15T01:43:33Z
+**Title:** Read-only count of the app's calls to iNaturalist and the weather service (owner)
+**Dispatch-file:** preserved/2026-10-15-03.md
+**The owner, verbatim:** offered "Count the calls to iNaturalist and the weather service … reads only, builds nothing": "Start 1 and 2".
+**Change:** none to code. A report, docs/audits/2026-10-15-api-call-count.md: call sites, triggers traced to callers, frequency, existing caching, rate limits, repeats. The first step of the backlog's call grouping and caching; no design.
+**Scope boundary:** no code, no network calls to the services. Branch api-call-count from main 4ade21f0.
+**Finish line:** the report pushed; grouping and caching wait for the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1014.
