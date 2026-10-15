@@ -17928,3 +17928,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Run:** t6b-night paused by PAUSE at 2026-10-14T22:51 PDT after 322 SCANFI-layer tiles (21,332 left), section clean. Started 22:54 PDT as user unit t6b-pnw-hosts from the t6b-host-genera checkout: --stages plots,trees,trees-us-half --box 40,49,-125,-111 --until 07:00, own pause file PAUSE-pnw. The plot table was superseded and rebuilt (65,814 plots, 17 s); 283 tree tiles offered (estimate 3 to 5 hours). Old tiles move to superseded/, not deleted.
 **Next:** check the first tiles and the run's end; then move the continental section onto the new code before any tree tile (the old code must not build trees); the old SCANFI-layer stage resumes from the same manifest.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1040.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1040
+**Timestamp:** 2026-10-15T10:01:04Z
+**Continues:** 2026-09-28-1010
+**Title:** RAW stage 3: burst capture, handheld alignment and floating-point averaging, saved as an averaged RAW DNG; debayering is the stage after (owner)
+**The owner, verbatim:** asked "Let's work on the next part. Do we have frame averaging written yet?"; offered A (burst, alignment and averaging, output an averaged RAW DNG, a fourth file kind beside RAW, RAW+ and the processed formats; debayering next), B (debayering first) or C (both in one stage), with the planner recommending A and asking whether to write the plan up: "Option A".
+**What it sets:** the next RAW stage captures a burst of RAW frames, aligns them in software for handheld use (-974's "1 A"), averages them in floating point (OSCam frame_average.py as the reference method), and saves the result as a mosaic DNG through Forager's writer (-1009). It adds a new output kind to the format chip's list (-974), whose name and place are for the owner. Burst capture and alignment are built to serve focus stacking later (-1010). The plan is written up as a document; no build without the owner's go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Stage 2 (PR #227) still awaits its daylight S22 photos, the S26 check and the owner's merge word. Next free ID -1041.
