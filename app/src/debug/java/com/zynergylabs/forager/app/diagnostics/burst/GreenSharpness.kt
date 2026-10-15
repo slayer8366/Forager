@@ -86,7 +86,7 @@ internal fun greenSharpness(
         for (bx in 0 until gridWidth) {
             val here = blocks[by * gridWidth + bx]
             if (bx + 1 < gridWidth) {
-                total += kotlin.math.abs(blocks[by * gridWidth + bx + 1] - here)
+                total += blocks[by * gridWidth + bx + 1] - here
                 pairs++
             }
             if (by + 1 < gridHeight) {
