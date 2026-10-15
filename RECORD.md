@@ -17987,3 +17987,20 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** to the draft's proposed "Averaged RAW" menu option: "No this happens automatically. It's not a thing to select. The only option is HDR." Offered A (build the averaging engine now, hidden, with a dev-build-only switch to check it on the phones, connected when debayering lands) or B (averaging and debayering together): "Option A, do one at a time here. I want to be sure we get everything right. It wouldn't cost a lot of tokens to do a bit of research on frame averaging and audit the current plan to see if anything can be improved".
 **What it sets:** -974 stands as written: every format except RAW is burst, aligned, averaged, HDR-merged when HDR is on, and debayered automatically; RAW is one unprocessed frame; the HDR chip is the only processing choice. -1040's "new output kind ... whose name and place are for the owner" is withdrawn: there is no averaged-RAW menu entry. Stage 3 builds burst capture, alignment and averaging with no visible change; a switch on the dev branch only (-930) saves the averaged mosaic so the planner can measure it on the phones. The pieces are dispatched one at a time, each checked before the next. First: research on frame averaging and an audit of draft 2026-10-15-04.
 **Notes:** Written by the planner by hand, on branch records-after-173. The planner's misreading of -974 as a menu choice is disclosed here. PR #227's merge still awaits the owner's word. Next free ID -1045.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1045
+**Timestamp:** 2026-10-15T17:00:34Z
+**PR:** 227
+**Head:** raw-stage2
+**Base:** main
+**Merge-commit:** cb25b5822027bdc19b430ec1c2339ad0a45d412a
+**Pre-merge:** 4ade21f004e06b0f331e34215a5c7aff928f24cf
+**Backup:** 2026-10-15-02-main-pre-227 (forager-main-pre-227.bundle, verified okay, sha256 bb3820b60463c6f2eb09…)
+**The owner, verbatim:** "Merge 227".
+**Observed:** RAW stage 2 is on main: the JPG/RAW format chip where the probe reports RAW, the choice remembered; in-memory RAW+JPEG capture with a rebind to JPG on failure; Forager's own DNG writer (lossless JPEG, no make, model, software, time or location, UniqueCameraModel "Forager", calibration kept, a fail-closed check of its output); the JPG as preview, thumbnail and placeholder; log_photos.rawRelativePath with MIGRATION_21_22; backup, restore, export as DNG and delete carry the DNG; the -1003, -1018 and low-storage fallbacks in the normal colour. Dispatches 2026-10-15-01 (with Amendments 1 and 2) and 2026-10-15-02; decisions -1002 to -1006, -1008, -1009, -1018, -1019; builds -1015, -1016, -1031. The PR was marked ready and merged at 2026-10-15T17:00Z by the planner, pinned to head d8f0f944, on green CI at that head (run 38682575079). The planner read the diff: no @Ignore added, no change under .github; the changed assertions are those named in -1015 and -1031. Device checks: S22 Ultra (-1038, -1043: all four orientations, daylight colours) and S26 Ultra (-1042).
+**dev:** backed up (dev-20261015T170008Z-8bfb9eac.bundle, verified) and rebased onto cb25b582 with no conflict; range-diff shows the one dev-tools commit unchanged (8bfb9eac = 4c278251); pushed with force-with-lease.
+**Not checked at writing:** CI on main after the merge and on dev after the rebase. Seventeen raw-stage2-revert-* branches, raw-stage2-dng-writer and raw-stage2 remain on the remote for the tidiness pass.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1046.
