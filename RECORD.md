@@ -18065,3 +18065,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Planner premises found wrong:** "24 bands = 8 + 12 + ecm_hosts" (it is 21 share bands plus total cover, valid fraction and source); -1032's "Larix partial in Canada" (the code flags Larix not available in Canada; why SCANFI's tamarack class isn't used is undetermined).
 **For the owner:** a rule for the two thirds of the box outside the effort frame; how an undefined share enters the model; a D18 review and a D40 merge of t6b-host-genera (with D127) before T7 builds on the new bands.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1051.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1051
+**Timestamp:** 2026-10-15T19:50:17Z
+**Continues:** 2026-09-28-1050
+**Title:** T7 V15, prior art: the "other apps focus on burn morels" premise holds only in part; nothing found maps mycorrhizal habitat as a group at stand scale
+**Observed:** the web-check subagent of the T7 verify session finished after its parent handed back; its report reached the planner as a message and was filed by the planner as forager-forecast docs/audits/2026-10-15-t7-v15-prior-art.md, with an index row, on branch t7-pnw-verify. Eight products, described generically: four centre morels on burn maps (one dedicated burn-morel app; one western foraging app whose morel page leads with burns, which also sells a 22-species host-tree density layer and an experimental single-species matsutake habitat layer; two general outdoor apps), four map host-tree stands, predicted habitat or species, or user sightings; none states a percent. Research maps found are plot-level, pre-settlement, 1-degree, 10-arcmin or 1-km, or single-species occupancy; nothing at stand scale for the mycorrhizal group (search not exhaustive). Licences noted per source.
+**Reading for -914:** the owner's positioning stands in a sharper form: the morel-focused US products centre on burns; several also map host trees or habitat; none found maps mycorrhizal habitat as a group.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1052.
