@@ -123,4 +123,4 @@ internal fun rawShotSaverFor(context: Context, files: CameraCaptureFiles): RawSh
  * given this phone's identity strings for its check after writing. Until Amendment 2 this returned a stand-in that refused
  * every file.
  */
-internal fun productionDngWriter(forbiddenStrings: List<String>): DngWriter = ForagerDngWriter(forbiddenStrings)
+internal fun productionDngWriter(forbiddenStrings: List<String>): DngWriter = object : DngWriter { override fun write(image: com.zynergylabs.forager.app.domain.raw.DngImage, destination: File): DngWriteResult = DngWriteResult.Failed("stand-in") }
