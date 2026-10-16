@@ -49,6 +49,8 @@ internal object DngFileWriter {
     private const val BLACK_LEVEL_REPEAT_DIM = 50713
     private const val BLACK_LEVEL = 50714
     private const val WHITE_LEVEL = 50717
+    private const val DEFAULT_CROP_ORIGIN = 50719
+    private const val DEFAULT_CROP_SIZE = 50720
     private const val COLOR_MATRIX_1 = 50721
     private const val COLOR_MATRIX_2 = 50722
     private const val CAMERA_CALIBRATION_1 = 50723
@@ -202,6 +204,11 @@ internal object DngFileWriter {
         e += rationals(AS_SHOT_NEUTRAL, image.asShotNeutral.map { it.numerator to it.denominator })
         image.baselineExposure?.let { e += srationals(BASELINE_EXPOSURE, listOf(it)) }
         image.activeArea?.let { a -> e += longs(ACTIVE_AREA, *LongArray(4) { a[it].toLong() }) }
+        // Only when set (the lens chooser's zoom, dev branch, RECORD -1107); with none, the file is byte for byte as before.
+        image.defaultCrop?.let { c ->
+            e += longs(DEFAULT_CROP_ORIGIN, c.originH.toLong(), c.originV.toLong())
+            e += longs(DEFAULT_CROP_SIZE, c.sizeH.toLong(), c.sizeV.toLong())
+        }
         image.noiseProfile?.let { e += noiseProfile(it, colours) }
         image.lensShading?.let { e += gainMaps(image, it, colours) }
         return e
