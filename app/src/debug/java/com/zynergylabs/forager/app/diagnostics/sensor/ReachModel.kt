@@ -223,7 +223,7 @@ internal object ReachPlan {
                 val a = backs[i]
                 val b = backs[j]
                 val label = "pair_${logicalId}_${a.cameraId}_${b.cameraId}"
-                val shared = largestWithin(a.rawSizes.filter { it in b.rawSizes }, rawPixelLimit)
+                val shared = largestWithin(a.rawSizes, rawPixelLimit)
                 steps += if (shared != null) {
                     PlannedReach.Run(ReachAttempt.TwoStreams(logicalId, a.cameraId, b.cameraId, shared))
                 } else {
