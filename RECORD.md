@@ -18704,3 +18704,19 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **Reading:** on the S26, RAW is reachable from all four back lenses inside one session on logical camera 0. That is what a lens chooser (-1083) can offer there. RECORD -1088's correction of camera 7 to about 5x is confirmed by the probe's own role assignment.
 **Not yet run:** the S22 reach probe, and engine A's seven device checks on both phones.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1096.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1096
+**Timestamp:** 2026-10-16T17:01:54Z
+**PR:** 234
+**Head:** methodology-main-gate (40459be6)
+**Base:** pre-main
+**Merge-commit:** 10bebbf936047991c5c4a4961ab0cdcb84872f57
+**Pre-merge:** 402489ae6d13c20996701beb836bd992105f03b0
+**Backup:** pre-main-20261016T170136Z-402489ae.bundle (verified)
+**The owner, verbatim:** "2 and 3 go ahead and merge when ready" (2: the planner-profile PR into pre-main).
+**Observed:** this is the first merge into pre-main under -1086. The change is documents only: docs/process/planner-profile.md gains the "Branches and the road to main (Forager)" section, recording -1085 to -1087. CI run 38934469899 succeeded on the head, and the PR was merged with a merge commit pinned to that head. It reaches main at the next promotion through the gate.
+**Open:** item 3 (the QA philosophy) awaits the owner's answer between "all recommended, then merge the final version" and "merge as a draft".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1097.
