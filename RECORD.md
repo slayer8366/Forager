@@ -18764,3 +18764,18 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **The owner, verbatim:** "The in use message appeared very briefly once, and instantly switched over after".
 **Reading:** this closes -1098 step 6's open item. The message appears while another app holds the camera, and clears by itself when the camera is free. The planner reads the single brief showing as the moment between returning to Forager and the other app letting go. That reading is inferred from the log's disconnected, waiting and recovered sequence, not observed frame by frame. Today's CameraX camera recovers without any message (-1089), so a brief flash of text is new behaviour that the UX auditor should weigh before A ships: noted for the parity work, not a fault.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1100.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1100
+**Timestamp:** 2026-10-16T17:21:10Z
+**PR:** 235
+**Head:** qa-philosophy-draft (ae944980)
+**Base:** pre-main
+**Merge-commit:** 5390089248d339130824e9a9a97f08e20aea80c2
+**Pre-merge:** 10bebbf936047991c5c4a4961ab0cdcb84872f57
+**Backup:** pre-main-20261016T172052Z-10bebbf9.bundle (verified)
+**The owner, verbatim:** "2 and 3 go ahead and merge when ready", "2 a" (-1097).
+**Observed:** docs/process/qa-philosophy.md, Forager's QA philosophy as adopted under -1094 and -1097, is on pre-main. It is documents only, one file. CI run 38937441348 succeeded on the head, and the PR was merged with a merge commit pinned to that head. It reaches main at the next promotion. From now on the UX auditor audits each promotion against it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1101.
