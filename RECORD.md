@@ -18720,3 +18720,14 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **Observed:** this is the first merge into pre-main under -1086. The change is documents only: docs/process/planner-profile.md gains the "Branches and the road to main (Forager)" section, recording -1085 to -1087. CI run 38934469899 succeeded on the head, and the PR was merged with a merge commit pinned to that head. It reaches main at the next promotion through the gate.
 **Open:** item 3 (the QA philosophy) awaits the owner's answer between "all recommended, then merge the final version" and "merge as a draft".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1097.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1097
+**Timestamp:** 2026-10-16T17:06:57Z
+**Continues:** 2026-09-28-1092, 2026-09-28-1094
+**Title:** The QA philosophy is adopted with the auditor's recommended answer to every open question, and the final version goes into pre-main; S26 photo test steps are taken, then deleted (owner)
+**The owner, verbatim:** "2 and 3 go ahead and merge when ready", then, to the planner's two readings of 3 (apply all recommended answers and merge the final version, or merge as a draft): "2 a". To the S26 photo test steps (take then delete; S22 only; keep): "1 a".
+**What it sets:** questions 1 to 22 and 24 of the draft (qa-philosophy-draft at ffff545a) are answered as the auditor recommended. That covers the thirteen principles in the owner's words; A1 to A8 adopted; the verdict definitions; (b) for the phone-check build; field walks for recording, navigation, alerts and position; tester builds through the gate; the accessibility checks in Appendix B now, with full WCAG 2.1 AA later; the camera's fixed layout recorded as the owner's exception; contrast measured over the lightest and darkest maps; honest text kept with a next step; battery reported as an item, never a fail alone; the known-bug rule; short audits for reverts; text-only promotions; Forager's Backup meeting the platform-backup guideline's purpose; and the ruled version into pre-main. Question 23 stands as -1094. The auditor writes the final docs/process/qa-philosophy.md, and the planner merges it into pre-main once its tests pass. On the S26, engine A's photo checks take real photos, which the planner deletes in the app afterwards.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1098.
