@@ -40,6 +40,8 @@ internal class RawShotSaver(
 ) {
 
     suspend fun save(shot: RawShot): RawShotOutcome = withContext(ioDispatcher) {
+        // Dev branch only (dispatch 2026-10-16-04): a lens that cannot give RAW says so in its own words; nothing went wrong.
+        if (shot.lensWithoutRaw) return@withContext jpgOnly(RAW_LENS_UNSUPPORTED_MESSAGE, "the lens offers no RAW: ${shot.dngUnavailable}")
         val image = shot.dng ?: return@withContext jpgOnly(RAW_NOT_SAVED_MESSAGE, "no DNG input: ${shot.dngUnavailable}")
         val free = freeBytes()
         if (!rawShotFits(free, image.width, image.height)) {
