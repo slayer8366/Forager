@@ -110,7 +110,7 @@ internal class EngineASession(
      * frame the fallback lands.
      */
     override val lensControls: LensControlsSlot?
-        get() = null // STUB (tests first)
+        get() = if (cameraX == null && platform.lensSet != null) platformLensRow else null
 
     private val platformLensRow: LensControlsSlot = { vertical, deviceRotation, displayRotation ->
         LensRow(platform, vertical, deviceRotation, displayRotation)
