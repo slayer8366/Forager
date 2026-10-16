@@ -545,6 +545,7 @@ private fun ShutterCluster(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             readout(Alignment.CenterHorizontally)
+            lensControls?.invoke(false, deviceRotation, displayRotation)
             Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                 ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
             }
@@ -558,9 +559,11 @@ private fun ShutterCluster(
         ) {
             if (portOnRight) {
                 readout(Alignment.End)
+                lensControls?.invoke(true, deviceRotation, displayRotation)
                 ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
             } else {
                 ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
+                lensControls?.invoke(true, deviceRotation, displayRotation)
                 readout(Alignment.Start)
             }
         }

@@ -35,6 +35,16 @@ internal object DngImageLimits {
                 return "active area $top, $left, $bottom, $right does not fit inside $w x $h"
             }
         }
+        image.defaultCrop?.let { c ->
+            // Relative to the ActiveArea's top-left (DNG 1.7.1.0, DefaultCropOrigin), so it must fit inside that area.
+            val areaWidth = image.activeArea?.let { it[3] - it[1] } ?: w
+            val areaHeight = image.activeArea?.let { it[2] - it[0] } ?: h
+            if (c.originH < 0 || c.originV < 0 || c.sizeH <= 0 || c.sizeV <= 0 ||
+                c.originH.toLong() + c.sizeH > areaWidth || c.originV.toLong() + c.sizeV > areaHeight
+            ) {
+                return "default crop ${c.originH}, ${c.originV}, ${c.sizeH} x ${c.sizeV} does not fit inside the $areaWidth x $areaHeight active area"
+            }
+        }
         calibrationProblem("calibration 1", image.calibration1)?.let { return it }
         image.calibration2?.let { c -> calibrationProblem("calibration 2", c)?.let { return it } }
         if (image.asShotNeutral.size != 3) return "AsShotNeutral has ${image.asShotNeutral.size} values, not 3"

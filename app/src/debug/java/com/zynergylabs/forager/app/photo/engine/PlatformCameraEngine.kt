@@ -12,9 +12,11 @@ import androidx.lifecycle.LifecycleOwner
 import com.zynergylabs.forager.app.domain.CameraCapabilities
 import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.EncoderCapabilities
+import com.zynergylabs.forager.app.domain.PixelSize
 import com.zynergylabs.forager.app.domain.Probed
 import com.zynergylabs.forager.app.domain.RawFrameMapping
 import com.zynergylabs.forager.app.domain.mapRawFrame
+import com.zynergylabs.forager.app.domain.raw.DngImage
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
 import com.zynergylabs.forager.app.photo.FlashMode
@@ -183,23 +185,43 @@ internal class PlatformCameraEngine(
     private var latestActivePhysical: String? = null
     private var loggedRotationFallback = false
 
-    // STUB (tests first, dispatch 2026-10-16-04): the lens chooser's members, so the tests compile; nothing behind them yet.
+    // ── The lens chooser (dispatch 2026-10-16-04) ─────────────────────────────────────────────────────────────────────
+    // Null [lensSet] (a camera with no lens set, and every fake without one) leaves every path above exactly as it was.
+
+    /** The phone's back lenses, from the facts; null for no row. */
     var lensSet: LensSet? by mutableStateOf(null)
         private set
+
+    /** The button lit: the lens in use, or the one being switched to, at once (RECORD -1107: "the new button lights at once"). */
     var litLens: Lens? by mutableStateOf(null)
         private set
+
+    /** The zoom asked for, in the main wide's terms. Not shown anywhere (no new words, RECORD -1106). */
     var zoom: Double by mutableStateOf(1.0)
         private set
+
+    /**
+     * The viewfinder's extra scale: the part of the zoom the camera did not crop itself, read from each frame's result
+     * (requested crop over achieved crop). 1 when the camera crops, or when it does not report what it did.
+     */
     var previewScale: Float by mutableStateOf(1f)
         private set
-    var viewfinderPreviewSize: com.zynergylabs.forager.app.domain.PixelSize? by mutableStateOf(null)
+
+    /** The viewfinder stream's size and the lens's sensor orientation, for the viewfinder's transform. */
+    var viewfinderPreviewSize: PixelSize? by mutableStateOf(null)
         private set
     var viewfinderSensorOrientation: Int? by mutableStateOf(null)
         private set
 
-    fun onLensTapped(lensId: String) = Unit
-
-    fun onPinch(factor: Float) = Unit
+    private var choice: LensChoice? = null
+    private val closeFocus = CloseFocusRule()
+    private var appliedLens: Lens? = null
+    private var appliedCrop: LensCrop? = null
+    private var lensWorker: Job? = null
+    private var lensDirty = false
+    private var lensReason = "open"
+    private var switchStartedNanos = 0L
+    private var loggedNoFocus = false
 
     // ── Open, lifecycle, close ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -232,6 +254,8 @@ internal class PlatformCameraEngine(
         started = false
         runJob?.cancel()
         runJob = null
+        lensWorker?.cancel()
+        lensWorker = null
         observer?.let { watcher -> owner?.lifecycle?.removeObserver(watcher) }
         observer = null
         owner = null
@@ -341,7 +365,15 @@ internal class PlatformCameraEngine(
 
     private suspend fun configureAndStream(chosen: CameraFacts, surface: PreviewTarget) {
         phase = EnginePhase.Configuring
-        val plan = StreamPlan(raw = chosen.rawSize != null)
+        val lens = targetLens()
+        val plan = if (lens != null) StreamPlan(raw = lens.rawSize != null, lens = lens) else StreamPlan(raw = chosen.rawSize != null)
+        if (lens != null) {
+            appliedLens = lens
+            appliedCrop = lensCrop(lens, choice?.zoom ?: lens.zoom)
+            viewfinderPreviewSize = lens.previewSize
+            viewfinderSensorOrientation = lens.sensorOrientation
+            updatePreviewScale(null)
+        }
         when (val configured = cameraOps.withLock { camera.configure(chosen, surface, plan) }) {
             is ConfigureOutcome.Failed -> {
                 fallBack("the session did not configure: ${configured.reason}")
@@ -355,7 +387,9 @@ internal class PlatformCameraEngine(
                     "engine=platform event=configured raw_source=${label(configured.rawSource)} preview=${chosen.previewSize} " +
                         "jpeg=${chosen.jpegSize} raw=${chosen.rawSize ?: "none"} main_wide=${chosen.mainWidePhysicalId ?: "none"} note=${configured.note}",
                 )
-                if (configured.rawSource == RawSource.None && chosen.rawSize != null) {
+                if (lens != null && plan.raw && configured.rawSource == RawSource.None) {
+                    log("engine=platform event=lens_no_raw lens=${lens.physicalId} reason=the session would not carry this lens's RAW stream; its shots are JPG")
+                } else if (lens == null && configured.rawSource == RawSource.None && chosen.rawSize != null) {
                     // The camera offers RAW but no RAW stream would configure beside the others: the chip must not offer it.
                     capabilities = capabilities?.copy(
                         rawOutput = Probed.Unsupported("the platform engine's session could not carry a RAW stream"),
@@ -379,6 +413,17 @@ internal class PlatformCameraEngine(
         phase = EnginePhase.Streaming
         streaming.value = true
         everStreamed = true
+        if (lens != null) {
+            val switched = switchStartedNanos
+            switchStartedNanos = 0L
+            log(
+                "engine=platform event=lens_streaming lens=${lens.physicalId} label=${lens.label} zoom=${fmt(choice?.zoom ?: lens.zoom)} " +
+                    "crop=${fmt(appliedCrop?.crop ?: 1.0)} raw=${if (rawSource == RawSource.None) "none" else lens.rawSize}" +
+                    if (switched != 0L) " switch_ms=${fmt((camera.nowNanos() - switched) / 1_000_000.0)}" else "",
+            )
+            // A tap or a pinch that landed while this lens was configuring is applied now.
+            requestLensUpdate(lensReason)
+        }
     }
 
     private fun onFrame(frame: PreviewFrame) {
@@ -400,7 +445,132 @@ internal class PlatformCameraEngine(
             }
         }
         metrics.frame(frame.sensorTimestampNanos)?.let(log)
+        if (phase == EnginePhase.Streaming) onLensFrame(frame)
     }
+
+    // ── The lens chooser ──────────────────────────────────────────────────────────────────────────────────────────────
+
+    /** The lens the camera should be on now: the wanted lens, or the main wide when the subject is too close for it. */
+    private fun targetLens(): Lens? {
+        val set = lensSet ?: return null
+        val wanted = choice?.wanted ?: return null
+        return effectiveLens(wanted, set, closeFocus.tooClose)
+    }
+
+    /** A tap on a lens button (`LensRow`): that lens, at its own zoom. */
+    fun onLensTapped(lensId: String) {
+        val c = choice ?: return
+        val lens = c.set.byId(lensId) ?: return
+        val before = c.wanted
+        c.tap(lens)
+        afterChoice(before, "tap")
+    }
+
+    /** A pinch on the picture (`Modifier.lensPinch`): [factor] is the gesture's zoom change since its last event. */
+    fun onPinch(factor: Float) {
+        val c = choice ?: return
+        val before = c.wanted
+        c.pinch(factor)
+        afterChoice(before, "pinch")
+    }
+
+    private fun afterChoice(before: Lens, reason: String) {
+        val c = choice ?: return
+        val set = lensSet ?: return
+        zoom = c.zoom
+        if (c.wanted.physicalId != before.physicalId) {
+            if (closeFocus.wantedChanged(c.wanted, set.main, appliedLens)) {
+                log("engine=platform event=close_focus too_close=${closeFocus.tooClose} wanted=${c.wanted.physicalId} reason=the main wide's last reading is closer than this lens can focus")
+            }
+        }
+        litLens = targetLens()
+        requestLensUpdate(reason)
+    }
+
+    private fun onLensFrame(frame: PreviewFrame) {
+        val c = choice ?: return
+        val set = lensSet ?: return
+        val streamingLens = appliedLens ?: return
+        updatePreviewScale(frame.cropAchieved)
+        if (frame.focusDiopters == null && !loggedNoFocus) {
+            loggedNoFocus = true
+            log("engine=platform event=close_focus_inactive reason=the lens ${streamingLens.physicalId} reports no focus distance")
+        }
+        if (closeFocus.onFrame(streamingLens, c.wanted, set.main, FocusReading(frame.focusDiopters, frame.afState))) {
+            log(
+                "engine=platform event=close_focus too_close=${closeFocus.tooClose} wanted=${c.wanted.physicalId} streaming=${streamingLens.physicalId} " +
+                    "focus_diopters=${frame.focusDiopters} af_state=${frame.afState} min_focus_diopters=${c.wanted.minFocusDiopters}",
+            )
+            litLens = targetLens()
+            requestLensUpdate("close_focus")
+        }
+    }
+
+    private fun updatePreviewScale(achieved: Double?) {
+        val requested = appliedCrop?.crop ?: 1.0
+        previewScale = if (achieved == null || achieved <= 0.0) 1f else (requested / achieved).coerceIn(1.0, requested).toFloat()
+    }
+
+    /**
+     * Brings the camera to [targetLens] at the current zoom: a new session when the lens changes (the picture holds its last
+     * frame and a shot waits, RECORD -1107), a new repeating request when only the crop does. One worker at a time; a
+     * change that lands while it runs is applied when it finishes, so a fast pinch costs one switch, not one per event.
+     */
+    private fun requestLensUpdate(reason: String) {
+        if (lensSet == null) return
+        lensReason = reason
+        if (lensWorker?.isActive == true) {
+            lensDirty = true
+            return
+        }
+        if (!isOpen || fellBack || phase != EnginePhase.Streaming) return
+        lensWorker = scope.launch {
+            try {
+                do {
+                    lensDirty = false
+                    applyLens(lensReason)
+                } while (lensDirty && isOpen && !fellBack && phase == EnginePhase.Streaming)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                fallBack("the lens change failed: ${failure::class.java.simpleName}: ${failure.message}")
+            }
+        }
+    }
+
+    private suspend fun applyLens(reason: String) {
+        val lens = targetLens() ?: return
+        val c = choice ?: return
+        val chosen = facts ?: return
+        val surface = configuredTarget ?: return
+        if (appliedLens?.physicalId != lens.physicalId) {
+            shotOps.withLock {
+                if (!isOpen || fellBack || phase != EnginePhase.Streaming) return@withLock
+                log("engine=platform event=lens_switch from=${appliedLens?.physicalId ?: "none"} to=${lens.physicalId} reason=$reason zoom=${fmt(c.zoom)}")
+                switchStartedNanos = camera.nowNanos()
+                // The shutter waits on this (awaitStreaming); the viewfinder keeps its last frame, its surface untouched.
+                streaming.value = false
+                configureAndStream(chosen, surface)
+            }
+            return
+        }
+        val crop = lensCrop(lens, c.zoom)
+        if (crop == appliedCrop) return
+        appliedCrop = crop
+        updatePreviewScale(null)
+        camera.startRepeating(previewControls()) { frame -> onFrame(frame) }.onFailure { failure ->
+            log("engine=platform event=zoom_failed zoom=${fmt(c.zoom)} reason=${failure.message}")
+        }
+    }
+
+    /** The DNG input with the hard crop for the shot's zoom (RECORD -1107); unchanged at the lens's own zoom. */
+    private fun DngImage.croppedFor(crop: LensCrop?): DngImage {
+        val factor = crop?.crop ?: return this
+        val defaultCrop = dngDefaultCrop(width, height, activeArea, factor) ?: return this
+        return copy(defaultCrop = defaultCrop)
+    }
+
+    private fun fmt(value: Double): String = String.format(java.util.Locale.ROOT, "%.2f", value)
 
     private fun onDeviceEvent(event: DeviceEvent) {
         if (!isOpen || fellBack) return
@@ -471,6 +641,7 @@ internal class PlatformCameraEngine(
         streaming.value = false
         configuredTarget = null
         rawSource = RawSource.None
+        appliedLens = null
         deviceOpen = false
         val released = cameraOps.withLock { camera.release() }
         if (!released.closed) log("engine=platform event=release_incomplete detail=${released.detail}")
@@ -487,6 +658,24 @@ internal class PlatformCameraEngine(
                 "main_wide=${chosen.mainWidePhysicalId ?: "none"} (${chosen.mainWideNote}) nr_off_offered=${chosen.noiseReductionOffOffered}",
         )
         chosen.notes.forEach { log("engine=platform event=camera_note $it") }
+        viewfinderPreviewSize = chosen.previewSize
+        viewfinderSensorOrientation = chosen.sensorOrientation
+        val set = chosen.lenses
+        if (set == null) {
+            if (chosen.lensNote.isNotEmpty()) log("engine=platform event=lenses none reason=${chosen.lensNote}")
+            return
+        }
+        val c = LensChoice(set, LensMemory.lastLensId)
+        choice = c
+        lensSet = set
+        zoom = c.zoom
+        litLens = targetLens()
+        log(
+            "engine=platform event=lenses " + set.lenses.joinToString(" ") { lens ->
+                "${lens.physicalId}:${lens.label}(zoom=${fmt(lens.zoom)},jpeg=${lens.jpegSize},raw=${lens.rawSize ?: "none"},min_focus_diopters=${lens.minFocusDiopters})"
+            } + " opens_on=${c.wanted.physicalId} remembered=${LensMemory.lastLensId ?: "none"}" +
+                if (chosen.lensNote.isNotEmpty()) " note=${chosen.lensNote}" else "",
+        )
     }
 
     // ── The viewfinder's surface ──────────────────────────────────────────────────────────────────────────────────────
@@ -561,19 +750,20 @@ internal class PlatformCameraEngine(
         if (!awaitStreaming()) return Result.failure(IllegalStateException("The camera is not ready yet."))
         val chosen = facts ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
         return shotOps.withLock {
-            val degrees = jpegOrientationDegrees(chosen.sensorOrientation, shotRotation(), chosen.facing)
+            val degrees = jpegOrientationDegrees(appliedLens?.sensorOrientation ?: chosen.sensorOrientation, shotRotation(), chosen.facing)
             val flash = currentFlash
             val shutter = camera.nowNanos()
             val precapture = precaptureIfNeeded(flash)
+            val crop = appliedCrop
             val frame = try {
-                camera.captureJpeg(StillControls(flash, degrees, noiseReductionOff = false), destination)
+                camera.captureJpeg(StillControls(flash, degrees, noiseReductionOff = false, lensCrop = crop), destination)
             } finally {
                 if (precapture) camera.endPrecapture(previewControls())
             }
             frame.fold(
                 onSuccess = { jpeg ->
                     val outcome = withContext(ioDispatcher) { reapplyIntendedOrientation(destination, degrees, Size(jpeg.width, jpeg.height)) }
-                    log("engine=platform event=jpg_shot request_degrees=$degrees size=${jpeg.width}x${jpeg.height} active_physical=${jpeg.activePhysicalId ?: "unreported"} tag=${describe(outcome)}")
+                    log("engine=platform event=jpg_shot request_degrees=$degrees size=${jpeg.width}x${jpeg.height} active_physical=${jpeg.activePhysicalId ?: "unreported"} tag=${describe(outcome)}" + cropText(crop, jpeg.cropAchieved))
                     log(metrics.shot(ShotKind.Jpg, shutter, camera.nowNanos()))
                     log(metrics.heap("jpg_shot", camera.heapUsedBytes()))
                     Result.success(Unit)
@@ -589,16 +779,23 @@ internal class PlatformCameraEngine(
     override suspend fun captureRaw(jpegDestination: File): Result<RawShot> {
         if (!awaitStreaming()) return Result.failure(IllegalStateException("The camera is not ready yet."))
         val chosen = facts ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
+        if (lensSet != null && outputFormat == CameraFormat.Raw && rawSource == RawSource.None) {
+            // A lens that cannot give RAW, with RAW chosen (-1103): the JPG is the photo, and the dialog says so.
+            val lensId = appliedLens?.physicalId ?: "unknown"
+            log("engine=platform event=raw_lens_unsupported lens=$lensId reason=this lens's session carries no RAW stream; saved as JPG")
+            return capture(jpegDestination).map { RawShot(dng = null, dngUnavailable = "lens $lensId carries no RAW stream", lensWithoutRaw = true) }
+        }
         if (outputFormat != CameraFormat.Raw || rawSource == RawSource.None) {
             return Result.failure(IllegalStateException("The camera is not set up for RAW."))
         }
         return shotOps.withLock {
-            val degrees = jpegOrientationDegrees(chosen.sensorOrientation, shotRotation(), chosen.facing)
+            val degrees = jpegOrientationDegrees(appliedLens?.sensorOrientation ?: chosen.sensorOrientation, shotRotation(), chosen.facing)
             val flash = currentFlash
             val shutter = camera.nowNanos()
             val precapture = precaptureIfNeeded(flash)
+            val crop = appliedCrop
             val frame = try {
-                camera.captureRawJpeg(StillControls(flash, degrees, noiseReductionOff = chosen.noiseReductionOffOffered), jpegDestination)
+                camera.captureRawJpeg(StillControls(flash, degrees, noiseReductionOff = chosen.noiseReductionOffOffered, lensCrop = crop), jpegDestination)
             } finally {
                 if (precapture) camera.endPrecapture(previewControls())
             }
@@ -613,7 +810,7 @@ internal class PlatformCameraEngine(
             log(
                 "engine=platform event=raw_shot raw_source=${label(captured.rawSource)} active_physical=${captured.rawActivePhysicalId ?: "unreported"} " +
                     "noise_reduction=${captured.noiseReductionModeReported ?: "unreported"} noise_reduction_off_asked=${chosen.noiseReductionOffOffered} " +
-                    "request_degrees=$degrees jpg_tag=${describe(outcome)} dng_orientation=$dngOrientation",
+                    "request_degrees=$degrees jpg_tag=${describe(outcome)} dng_orientation=$dngOrientation" + cropText(crop, captured.jpeg.cropAchieved),
             )
             if (captured.rawSource is RawSource.Physical && captured.rawActivePhysicalId != null && captured.rawActivePhysicalId != captured.rawSource.physicalId) {
                 log("engine=platform event=raw_sensor_mismatch pinned=${captured.rawSource.physicalId} reported=${captured.rawActivePhysicalId}")
@@ -627,7 +824,7 @@ internal class PlatformCameraEngine(
                         .getOrElse { error -> RawFrameMapping.Unsupported("reading the frame's metadata threw ${error::class.java.simpleName}: ${error.message}") }
                 }
                 when (mapping) {
-                    is RawFrameMapping.Mapped -> RawShot(dng = mapping.image, dngUnavailable = null)
+                    is RawFrameMapping.Mapped -> RawShot(dng = mapping.image.croppedFor(crop), dngUnavailable = null)
                     is RawFrameMapping.Unsupported -> RawShot(dng = null, dngUnavailable = mapping.reason)
                 }
             }
@@ -647,7 +844,10 @@ internal class PlatformCameraEngine(
 
     // ── Flash and format ──────────────────────────────────────────────────────────────────────────────────────────────
 
-    private fun previewControls() = PreviewControls(currentFlash)
+    private fun previewControls() = PreviewControls(currentFlash, lensCrop = appliedCrop)
+
+    private fun cropText(crop: LensCrop?, achieved: Double?): String =
+        if (crop == null) "" else " lens=${crop.lensId} zoom=${fmt(crop.zoom)} crop_requested=${fmt(crop.crop)} crop_achieved=${achieved?.let { fmt(it) } ?: "unreported"}"
 
     override fun setFlashMode(mode: FlashMode) {
         if (!flashUnit) {
@@ -669,7 +869,9 @@ internal class PlatformCameraEngine(
 
     /** The RAW stream is in the session from the start, so a format change is a value, never a new session: no blink. */
     private fun applyFormat() {
-        val raw = requestedFormat == CameraFormat.Raw && rawSource != RawSource.None
+        // With the lens chooser the chip's RAW stands on a lens without one: that shot is a JPG with the lens's line (-1103).
+        val lensesOfferRaw = lensSet?.lenses?.any { it.rawSize != null } == true
+        val raw = requestedFormat == CameraFormat.Raw && (rawSource != RawSource.None || lensesOfferRaw)
         if (requestedFormat == CameraFormat.Raw && !raw && phase == EnginePhase.Streaming) {
             log("engine=platform event=format reason=RAW asked for, but this session carries no RAW stream; staying on JPG")
         }
@@ -691,12 +893,12 @@ internal class PlatformCameraEngine(
         return shotOps.withLock {
             val flash = if (currentFlash == FlashMode.Torch) FlashMode.Torch else FlashMode.Off
             val heapBefore = camera.heapUsedBytes()
-            val lock = camera.lockExposure(PreviewControls(currentFlash, aeLock = true, awbLock = true), timeouts.lockMillis)
+            val lock = camera.lockExposure(PreviewControls(currentFlash, aeLock = true, awbLock = true, lensCrop = appliedCrop), timeouts.lockMillis)
             log("engine=platform event=burst_lock outcome=$lock")
             try {
                 val result = camera.burst(
                     frames,
-                    StillControls(flash, jpegOrientationDegrees = 0, noiseReductionOff = chosen.noiseReductionOffOffered, aeAwbLocked = lock is LockOutcome.Locked),
+                    StillControls(flash, jpegOrientationDegrees = 0, noiseReductionOff = chosen.noiseReductionOffOffered, aeAwbLocked = lock is LockOutcome.Locked, lensCrop = appliedCrop),
                     timeouts.burstMillis,
                 )
                 result.fold(
