@@ -18314,3 +18314,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Observed:** the owner sent the planner's drafted request (with the owner's edits and signature, linking zynergy-labs.com/Forager/forecast) to Dr Sergei Põlme at sergei.polme@gmail.com (the FungalTraits paper's correspondence address), copying Dr Leho Tedersoo (leho.tedersoo@ut.ee) and Dr Nadejda Soudzilovskaia (n.a.soudzilovskaia@cml.leidenuniv.nl, from the 2020 FungalRoot paper). The owner's screenshot (kept off GitHub) shows a delivery failure at 2026-10-15 13:31 PDT for the Leiden address only: not listed in that domain's directory. The owner, verbatim: "One isn't working, but the rest should go through".
 **Current addresses found by the planner (pages read, hidden addresses decoded by the planner):** Dr Põlme, University of Tartu Natural History Museum and Botanical Garden (Director; Director of Collections), sergei.polme@ut.ee (math.ut.ee staff contacts, Cloudflare-encoded, decoded); Dr Soudzilovskaia, Research Professor, Hasselt University, nadia.Soudzilovskaia@uhasselt.be (uhasselt.be who-is-who, hex-encoded, decoded).
 **Notes:** Written by the planner by hand, on branch records-after-173. Waiting on a reply; fallback per the planner's recommendation: build an own list from openly licensed data if none in about a week. Next free ID -1071.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1071
+**Timestamp:** 2026-10-16T02:01:09Z
+**Continues:** 2026-09-28-1062, 2026-09-28-1070
+**Title:** Build T7 now on FungalTraits ahead of the authors' permission, a local copy only; scope an alternative list in case the answer is no (owner)
+**The owner, verbatim:** "Let's go ahead and begin building from it in anticipation of approval. The worst case is they say no and we have to rebuild anyway. At least for now we can make progress so time isn't wasted. Also, scope out plans for an alternative just in case".
+**What it sets:** T7's build starts: the code the proposals list (-1061, -1062), including the membership join, built against FungalTraits. The FungalTraits table is fetched once and kept outside every repository (on /mnt/work), its sha256 and source recorded; no copy is committed or published until permission (-1036, -1070). The build stops before any presence or outcome count is read (-1030's first point of no return, which this does not lift) and before any fit; the planner brings that step to the owner. In parallel, a read-only scoping of an alternative membership list from openly licensed sources. Decision rows D133 onward record -1062's rulings and this one in the forecast repository.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1072.
