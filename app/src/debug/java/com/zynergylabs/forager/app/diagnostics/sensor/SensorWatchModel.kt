@@ -186,7 +186,7 @@ internal object ZoomPlan {
         if (!requested.isFinite() || requested <= 0f) {
             return ZoomClamp.Rejected(requested, "a zoom ratio is a finite number above 0; $requested is not")
         }
-        val applied = requested.coerceIn(range.min, range.max)
+        val applied = requested
         return ZoomClamp.Valid(requested = requested, applied = applied, clamped = applied != requested)
     }
 
