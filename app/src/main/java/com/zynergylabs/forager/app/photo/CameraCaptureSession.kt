@@ -132,9 +132,19 @@ internal interface CameraCaptureSession {
  * One RAW+JPEG shot, its JPG already on disk. Exactly one of [dng] and [dngUnavailable] is set: the writer's input, or why
  * the camera's metadata could not make one (a value the DNG needs was not reported; never guessed, CLAUDE.md).
  */
-internal class RawShot(val dng: DngImage?, val dngUnavailable: String?) {
+internal class RawShot(
+    val dng: DngImage?,
+    val dngUnavailable: String?,
+    /**
+     * The shot was taken on a lens that cannot give RAW, with RAW chosen (dev branch only, dispatch 2026-10-16-04, RECORD
+     * -1103 and -1105): the JPG is the photo and the dialog says so in the lens's own words ([RAW_LENS_UNSUPPORTED_MESSAGE]).
+     * False on every shot today's camera takes.
+     */
+    val lensWithoutRaw: Boolean = false,
+) {
     init {
         require((dng == null) != (dngUnavailable == null)) { "a RawShot carries either the image or the reason it has none" }
+        require(!lensWithoutRaw || dng == null) { "a shot from a lens without RAW carries no DNG input" }
     }
 }
 

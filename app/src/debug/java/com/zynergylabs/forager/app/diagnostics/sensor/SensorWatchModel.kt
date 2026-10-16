@@ -262,3 +262,19 @@ internal object MainWideChooser {
     /** Within 0.01: the characteristics are floats from one table, so they match exactly in practice; this only absorbs rounding. */
     private fun close(a: Float, b: Float): Boolean = kotlin.math.abs(a - b) < 0.01f
 }
+
+/**
+ * How wide a lens sees, from characteristics only: focal length over sensor diagonal, which is proportional to the zoom
+ * factor the lens gives. Divided by the main wide's own value it is the lens's zoom number (0.58 for the ultra-wide, 2.89
+ * for the 3x telephoto on the S26). Shared by the reach probe's roles ([ReachRoles]) and the lens chooser
+ * (`photo/engine/LensChooser.kt`, dispatch 2026-10-16-04), which was the restatement the Phase 1 report suggested folding
+ * into one rule. Null when the focal length or the sensor size is not read.
+ */
+internal object LensView {
+    fun of(focalLengths: List<Float>, physicalSizeMm: List<Float>?): Double? {
+        val focal = focalLengths.firstOrNull() ?: return null
+        val size = physicalSizeMm?.takeIf { it.size == 2 } ?: return null
+        val diagonal = kotlin.math.sqrt(size[0].toDouble() * size[0] + size[1].toDouble() * size[1])
+        return if (diagonal > 0 && focal > 0f) focal / diagonal else null
+    }
+}

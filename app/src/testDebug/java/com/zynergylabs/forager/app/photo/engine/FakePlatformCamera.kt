@@ -59,6 +59,21 @@ internal class FakePlatformCamera(
     /** When set, the open waits for it: an open still pending when the dialog closes. */
     var openGate: CompletableDeferred<Unit>? = null
 
+    /** When set, a configure waits for it: a lens switch still under way (dispatch 2026-10-16-04). */
+    var configureGate: CompletableDeferred<Unit>? = null
+
+    /** Every stream plan asked for, in order: which lens each session carried. */
+    val plans = mutableListOf<StreamPlan>()
+
+    /** The lens the session carries, or null for the logical streams. */
+    var configuredLens: Lens? = null
+        private set
+
+    /** What each viewfinder frame reports: the streaming lens's focus and AF state, and the crop the camera achieved. */
+    var frameFocusDiopters: Float? = null
+    var frameAfState: Int? = null
+    var frameCropAchieved: Double? = null
+
     private var events: ((DeviceEvent) -> Unit)? = null
     private var onFrame: ((PreviewFrame) -> Unit)? = null
     private var availability: (() -> Unit)? = null
@@ -80,10 +95,19 @@ internal class FakePlatformCamera(
     }
 
     override suspend fun configure(facts: CameraFacts, preview: PreviewTarget, plan: StreamPlan): ConfigureOutcome {
-        calls += "configure:raw=${plan.raw}"
+        calls += "configure:raw=${plan.raw}" + (plan.lens?.let { ":lens=${it.physicalId}" } ?: "")
+        plans += plan
+        configureGate?.await()
+        val lens = plan.lens
         val outcome = configureOutcome.let { configured ->
-            if (!plan.raw && configured is ConfigureOutcome.Configured) ConfigureOutcome.Configured(RawSource.None, "fake: no RAW stream asked for") else configured
+            when {
+                configured !is ConfigureOutcome.Configured -> configured
+                !plan.raw -> ConfigureOutcome.Configured(RawSource.None, "fake: no RAW stream asked for")
+                lens != null -> ConfigureOutcome.Configured(RawSource.Physical(lens.physicalId), "fake: lens ${lens.physicalId}'s physical streams")
+                else -> configured
+            }
         }
+        configuredLens = if (outcome is ConfigureOutcome.Configured) lens else null
         sessionConfigured = outcome is ConfigureOutcome.Configured
         return outcome
     }
@@ -104,7 +128,17 @@ internal class FakePlatformCamera(
     /** One viewfinder frame, 33.3 ms after the last, as the running repeating request would produce it. */
     fun deliverFrame(aeState: Int? = PlatformStates.AE_CONVERGED, activePhysicalId: String? = MAIN_WIDE) {
         frameCounter += 1
-        onFrame?.invoke(PreviewFrame(sensorTimestampNanos = frameCounter * FRAME_NANOS, aeState = aeState, awbState = 2, activePhysicalId = activePhysicalId))
+        onFrame?.invoke(
+            PreviewFrame(
+                sensorTimestampNanos = frameCounter * FRAME_NANOS,
+                aeState = aeState,
+                awbState = 2,
+                activePhysicalId = activePhysicalId,
+                focusDiopters = frameFocusDiopters,
+                afState = frameAfState,
+                cropAchieved = frameCropAchieved,
+            ),
+        )
     }
 
     override suspend fun precapture(controls: PreviewControls, timeoutMillis: Long): PrecaptureOutcome {
@@ -233,6 +267,9 @@ internal class FakePlatformCamera(
                 physicalCameras = Probed.Supported(emptyList(), "fake"),
             )
         }
+
+        /** [facts] with a lens set: the lens chooser's camera (dispatch 2026-10-16-04). */
+        fun lensFacts(lenses: LensSet = LensFixtures.s26Set()) = facts().copy(lenses = lenses)
 
         fun facts(
             hasFlashUnit: Boolean = true,
