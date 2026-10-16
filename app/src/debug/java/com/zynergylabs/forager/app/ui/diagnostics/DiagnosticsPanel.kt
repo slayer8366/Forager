@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.photo.engine.CameraEngineRow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -105,6 +106,7 @@ internal fun DiagnosticsPanel(onBack: () -> Unit, modifier: Modifier = Modifier)
         modifier = modifier,
         syntheticForecastSwitch = remember(context) { appSyntheticForecastSwitch(context) },
         walkLoggerSwitch = remember(context) { appWalkLoggerSwitch(context) },
+        showCameraEngineRow = true,
     )
 }
 
@@ -166,6 +168,8 @@ internal fun DiagnosticsPanel(
     syntheticForecastSwitch: SyntheticForecastSwitch? = null,
     /** The "Walk logger" toggle's switch (dispatch 2026-09-28-532, Amendment 3); no toggle row when `null`. */
     walkLoggerSwitch: WalkLoggerSwitch? = null,
+    /** The "Camera engine A" prototype's switch row (dispatch 2026-10-16-02); off in the page's own tests, as the other rows are. */
+    showCameraEngineRow: Boolean = false,
 ) {
     var viewingLog by remember { mutableStateOf(false) }
     if (viewingLog) {
@@ -201,6 +205,7 @@ internal fun DiagnosticsPanel(
         ) {
             syntheticForecastSwitch?.let { SyntheticForecastRow(it) }
             walkLoggerSwitch?.let { WalkLoggerRow(it) }
+            if (showCameraEngineRow) CameraEngineRow()
             shareError?.let { message ->
                 Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(DIAGNOSTICS_SHARE_ERROR_TAG))
             }

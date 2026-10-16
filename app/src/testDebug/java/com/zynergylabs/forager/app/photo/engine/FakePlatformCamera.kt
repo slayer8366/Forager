@@ -81,7 +81,9 @@ internal class FakePlatformCamera(
 
     override suspend fun configure(facts: CameraFacts, preview: PreviewTarget, plan: StreamPlan): ConfigureOutcome {
         calls += "configure:raw=${plan.raw}"
-        val outcome = configureOutcome
+        val outcome = configureOutcome.let { configured ->
+            if (!plan.raw && configured is ConfigureOutcome.Configured) ConfigureOutcome.Configured(RawSource.None, "fake: no RAW stream asked for") else configured
+        }
         sessionConfigured = outcome is ConfigureOutcome.Configured
         return outcome
     }
