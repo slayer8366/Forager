@@ -82,6 +82,9 @@ internal interface PinCamera {
 internal class PinProbe(
     private val camera: PinCamera,
     private val log: (String) -> Unit,
+    // Stub for the tests-first commit (dispatch 2026-10-16-01): accepted, not yet used.
+    @Suppress("unused") private val attemptTimeoutMillis: Long = ATTEMPT_TIMEOUT_MILLIS,
+    @Suppress("unused") private val handBackTimeoutMillis: Long = HANDBACK_TIMEOUT_MILLIS,
 ) {
     /**
      * Surveys, borrows, makes the three attempts in order, and hands back. True when the borrow succeeded and the camera
@@ -184,6 +187,12 @@ internal class PinProbe(
     companion object {
         /** "Take one RAW frame and a short burst." */
         const val BURST_FRAMES = 4
+
+        /** One attempt's ceiling (dispatch 2026-10-16-01: "a per-attempt timeout, so no attempt can hang the probe"). */
+        const val ATTEMPT_TIMEOUT_MILLIS = 45_000L
+
+        /** The hand-back's ceiling, above its own bounded waits. */
+        const val HANDBACK_TIMEOUT_MILLIS = 30_000L
 
         /**
          * One attempt in one word, for the planner's table: `main_wide` when every frame that arrived is attributed to
