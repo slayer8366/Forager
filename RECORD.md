@@ -18422,3 +18422,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Reading:** for Forager, RAW capture already stays on the main wide sensor by platform contract (-1078), and a burst through the platform interface can pin it explicitly with a physical stream. JPG capture follows the phone's own switching, which only zoom (and a boundary refocus) triggered here, not close focus or dim light at 1x.
 **Not yet run:** the S22; the probe's stall fixed and the control attempt.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1080.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1080
+**Timestamp:** 2026-10-16T09:43:59Z
+**Continues:** 2026-09-28-1070, 2026-09-28-1071
+**Title:** Dr Sergei Põlme, FungalTraits' corresponding author, agrees to Forager keeping a dated copy of FungalTraits in its public repository
+**Observed:** the owner's screenshot (kept off GitHub) of a reply from Sergei Põlme, received 2026-10-16 00:22 in the owner's timezone, addressed to the owner with Dr Leho Tedersoo copied, answering the owner's request of 2026-10-15 23:09 (the quoted message: keeping a dated, unmodified copy of the FungalTraits and FungalRoot tables, or the genus and lifestyle columns only, in the public repository, with citation and credit, non-commercial use). His words, verbatim: "Hi Brandon! I support such initiatives where science can contribute to public knowledge, so it is fine by me. Best Sergei". The owner, verbatim: "We have a go".
+**What it settles:** -1036's licence block on FungalTraits, for the request as asked: a dated, unmodified copy (or its genus and lifestyle columns) in the public forecast repository, cited (Põlme et al. 2020, Fungal Diversity 105: 1-16) and credited on published maps, used non-commercially. M1 (a) can proceed as written. Not covered: FungalRoot's Table S2 (Dr Soudzilovskaia's copy bounced, -1070; no reply), which T7 does not need. **Caveat, stated plainly:** the University of Pretoria repository marks the item "© 2021, Mushroom Research Foundation" (the journal's publisher); the corresponding author's consent is strong evidence for this use and is recorded as such, not as a licence from that publisher.
+**Next, each for the owner:** whether to commit the frozen copy (or only its genus and lifestyle columns) now; recording the consent in the forecast repository (DATA_REGISTER and a decision row); the four counting rules before V9 (-1075); a thank-you reply (the owner's own).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1081.
