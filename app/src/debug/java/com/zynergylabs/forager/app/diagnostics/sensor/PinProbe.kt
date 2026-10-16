@@ -141,7 +141,7 @@ internal class PinProbe(
         } finally {
             val returned = withContext(NonCancellable) {
                 try {
-                    camera.handBack()
+                    if (borrowed) camera.handBack() else PinHandback(platformClosed = true, cameraxBack = true, detail = null)
                 } catch (error: Exception) {
                     PinHandback(platformClosed = false, cameraxBack = false, detail = "handing the camera back threw: $error")
                 }
