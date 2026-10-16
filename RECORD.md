@@ -18325,3 +18325,13 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** "Let's go ahead and begin building from it in anticipation of approval. The worst case is they say no and we have to rebuild anyway. At least for now we can make progress so time isn't wasted. Also, scope out plans for an alternative just in case".
 **What it sets:** T7's build starts: the code the proposals list (-1061, -1062), including the membership join, built against FungalTraits. The FungalTraits table is fetched once and kept outside every repository (on /mnt/work), its sha256 and source recorded; no copy is committed or published until permission (-1036, -1070). The build stops before any presence or outcome count is read (-1030's first point of no return, which this does not lift) and before any fit; the planner brings that step to the owner. In parallel, a read-only scoping of an alternative membership list from openly licensed sources. Decision rows D133 onward record -1062's rulings and this one in the forecast repository.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1072.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1072
+**Timestamp:** 2026-10-16T02:03:09Z
+**Title:** Restore points in all three repositories, and a planner handoff to restart from (owner)
+**The owner, verbatim:** "Back up the repo into a branch so we can restart here".
+**Done:** snapshot branches pushed at the heads of 2026-10-16T02:02Z: Forager snapshot-2026-10-15-main (402489ae), -dev (296a3420), -records-after-173 (56fe3b2a); forager-forecast snapshot-2026-10-15-main (b9127e58), -t7-build (169cd63e), -t6b-host-genera (b0a0e889); zynergy-site snapshot-2026-10-15-main (b22cca5a). Handoff-file: prompts/preserved/2026-10-15-planner-handoff.md (this branch), replacing 2026-10-14-planner-handoff.md as the start point; that file's next-free-ID line went stale after -1047 and is superseded here, not edited.
+**Notes:** Written by the planner by hand, on branch records-after-173. The snapshot of records-after-173 predates this entry and the handoff file. Next free ID -1073.
