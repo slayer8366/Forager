@@ -439,7 +439,6 @@ internal class PlatformCameraEngine(
         streaming.value = false
         log("engine=platform event=fallback reason=$reason")
         withContext(NonCancellable) {
-            releaseCamera()
             target.value?.let { surface ->
                 target.value = null
                 surface.release()
