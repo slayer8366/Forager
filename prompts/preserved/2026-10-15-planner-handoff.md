@@ -16,7 +16,7 @@ Written by the planner (Rowan Waymark) at the owner's word ("Back up the repo in
 |---|---|---|
 | Forager | `snapshot-2026-10-15-main` | `402489ae` |
 | Forager | `snapshot-2026-10-15-dev` | `296a3420` |
-| Forager | `snapshot-2026-10-15-records-after-173` | `56fe3b2a` |
+| Forager | `snapshot-2026-10-15-records-after-173` | `57d8842f` (moved after writing, to include RECORD -1072 and this file) |
 | forager-forecast | `snapshot-2026-10-15-main` | `b9127e58` |
 | forager-forecast | `snapshot-2026-10-15-t7-build` | `169cd63e` |
 | forager-forecast | `snapshot-2026-10-15-t6b-host-genera` | `b0a0e889` |
