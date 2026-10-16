@@ -544,8 +544,8 @@ private fun ShutterCluster(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            readout(Alignment.CenterHorizontally)
             lensControls?.invoke(false, deviceRotation, displayRotation)
+            readout(Alignment.CenterHorizontally)
             Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                 ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
             }
