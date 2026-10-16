@@ -94,7 +94,7 @@ private fun LensButton(lens: Lens, lit: Boolean, deviceRotation: Int?, displayRo
  */
 internal fun Modifier.lensPinch(engine: PlatformCameraEngine): Modifier = pointerInput(engine) {
     detectTransformGestures { _, _, zoomChange, _ ->
-        if (zoomChange != 1f) engine.onPinch(zoomChange)
+        if (zoomChange != 1f) engine.onPinch(1f)
     }
 }
 
