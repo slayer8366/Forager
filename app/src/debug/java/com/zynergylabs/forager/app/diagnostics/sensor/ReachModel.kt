@@ -99,7 +99,12 @@ internal data class ReachFrame(
 )
 
 /** Where an attempt stopped, when it stopped early. */
-internal enum class ReachStage(val id: String) { CHARACTERISTICS("characteristics"), OPEN("open"), QUERY("query"), CONFIGURE("configure"), CAPTURE("capture") }
+internal enum class ReachStage(val id: String) {
+    CHARACTERISTICS("characteristics"), OPEN("open"), QUERY("query"), CONFIGURE("configure"), CAPTURE("capture"),
+
+    /** The attempt threw or was cut off without saying where. */
+    UNKNOWN("unknown"),
+}
 
 internal data class ReachResult(
     val attempt: ReachAttempt,
@@ -158,29 +163,213 @@ internal object ReachVerdict {
     /** A planned step not made, with its reason. */
     const val NOT_ATTEMPTED = "not_attempted"
 
-    fun of(result: ReachResult): String = TODO("stub")
+    /**
+     * An attempt's outcome in one word. Read in this order: cut off; failed before the camera was asked; the open
+     * refused; the session query's no; the session refused; then, with a session running, whether RAW arrived on every
+     * stream asked for. Nothing is inferred from a missing reading: no RAW frame is `reachable_no_raw`, never RAW.
+     */
+    fun of(result: ReachResult): String {
+        if (result.timedOut) return TIMED_OUT
+        if (result.stoppedAt == ReachStage.CHARACTERISTICS || result.stoppedAt == ReachStage.UNKNOWN) return FAILED
+        if (!result.opened) return REFUSED
+        if (result.sessionQuery == "not supported") return UNSUPPORTED
+        if (result.configured != true) return REFUSED
+        if (result.rawSize == null) return REACHABLE_NO_RAW
+        val arrivedOn = result.frames.filter { it.error == null && it.sensorTimestampNs != null }.map { it.streamCameraId }.toSet()
+        return if (result.streamIds.isNotEmpty() && result.streamIds.all { it in arrivedOn }) REACHABLE_RAW else REACHABLE_NO_RAW
+    }
 }
 
 internal object ReachPlan {
     /** The operating limit on RAW size, the fast-burst probe's: the binned ~12 MP, never a full-resolution mode. */
     const val RAW_PIXEL_LIMIT = 16_000_000L
 
-    fun plan(survey: ReachSurvey, rawPixelLimit: Long = RAW_PIXEL_LIMIT): List<PlannedReach> = TODO("stub")
+    /**
+     * For each back camera in the order found: (a) through each listed logical camera that names it, (b) a direct open,
+     * or the reason none is made when the ID is not listed; then (c) every pair of a listed logical camera's back
+     * physical cameras. A pair is made only when both offer one RAW size within the limit: the platform's multi-camera
+     * guarantee is that a logical camera's RAW stream "can be replaced with two streams of identical type and size"
+     * from two of its physical cameras (CameraDevice's documentation, READ for the pin probe), and no wider pair is
+     * guaranteed. Front cameras are enumerated and not attempted (dispatch: "for each back camera").
+     */
+    fun plan(survey: ReachSurvey, rawPixelLimit: Long = RAW_PIXEL_LIMIT): List<PlannedReach> {
+        val byId = survey.cameras.associateBy { it.cameraId }
+        val listedLogicals = survey.cameras.filter { it.inCameraIdList && it.physicalIds.isNotEmpty() }.map { it.cameraId }.toSet()
+        val steps = mutableListOf<PlannedReach>()
+        for (camera in survey.cameras) {
+            if (camera.facing == null) {
+                steps += PlannedReach.Skip(
+                    "unread_${camera.cameraId}", camera.cameraId, "any",
+                    "camera ${camera.cameraId}'s facing could not be read (error ${camera.error}), so it is not known to be a back camera; not attempted",
+                )
+                continue
+            }
+            if (camera.facing != "BACK") continue
+            for (logical in camera.logicalIds.filter { it in listedLogicals }) {
+                steps += PlannedReach.Run(ReachAttempt.ThroughLogical(logical, camera.cameraId))
+            }
+            steps += if (camera.inCameraIdList) {
+                PlannedReach.Run(ReachAttempt.Direct(camera.cameraId))
+            } else {
+                PlannedReach.Skip(
+                    "direct_${camera.cameraId}", camera.cameraId, "direct",
+                    "camera ${camera.cameraId} is not in getCameraIdList ${survey.cameraIdList}; not opened directly",
+                )
+            }
+        }
+        for (logicalId in listedLogicals.sortedBy { id -> survey.cameras.indexOfFirst { it.cameraId == id } }) {
+            val backs = byId.getValue(logicalId).physicalIds.mapNotNull { byId[it] }.filter { it.facing == "BACK" }
+            for (i in backs.indices) for (j in i + 1 until backs.size) {
+                val a = backs[i]
+                val b = backs[j]
+                val label = "pair_${logicalId}_${a.cameraId}_${b.cameraId}"
+                val shared = largestWithin(a.rawSizes.filter { it in b.rawSizes }, rawPixelLimit)
+                steps += if (shared != null) {
+                    PlannedReach.Run(ReachAttempt.TwoStreams(logicalId, a.cameraId, b.cameraId, shared))
+                } else {
+                    PlannedReach.Skip(
+                        label, logicalId, "pair",
+                        "cameras ${a.cameraId} ${a.rawSizes} and ${b.cameraId} ${b.rawSizes} share no RAW size at or under " +
+                            "${rawPixelLimit / 1_000_000} MP; the platform guarantees a pair of physical streams of identical type and size only",
+                    )
+                }
+            }
+        }
+        return steps
+    }
 
-    /** The largest `WxH` in [sizes] at or under [limit] pixels; null when none is. */
-    fun largestWithin(sizes: List<String>, limit: Long = RAW_PIXEL_LIMIT): String? = TODO("stub")
+    /** The largest `WxH` in [sizes] at or under [limit] pixels; null when none is. A size that does not parse is never chosen. */
+    fun largestWithin(sizes: List<String>, limit: Long = RAW_PIXEL_LIMIT): String? =
+        sizes.mapNotNull { text -> pixels(text)?.let { text to it } }.filter { it.second <= limit }.maxByOrNull { it.second }?.first
+
+    /** Width times height of a `WxH`; null when it does not parse. */
+    fun pixels(size: String): Long? {
+        val parts = size.split('x')
+        if (parts.size != 2) return null
+        val w = parts[0].toLongOrNull() ?: return null
+        val h = parts[1].toLongOrNull() ?: return null
+        return if (w > 0 && h > 0) w * h else null
+    }
 }
 
 internal object ReachRoles {
-    /** Each camera ID's role, from characteristics only. */
-    fun assign(survey: ReachSurvey): Map<String, String> = TODO("stub")
+    /**
+     * Each camera ID's role, from characteristics only: `logical` for a camera with physical cameras, `front`, the main
+     * wide ([MainWideChooser] on the first listed back logical camera), and every other back camera by its field of
+     * view against the main wide's: the ratio of focal length over sensor diagonal, written as a zoom factor. Under
+     * 0.85 is `ultra_wide_<f>x`, over 1.15 `telephoto_<f>x`, between `wide_<f>x`. With no main wide, or a camera whose
+     * focal length or size is unread, it is only `back`; `unknown` when its facing is unread.
+     */
+    fun assign(survey: ReachSurvey): Map<String, String> {
+        val byId = survey.cameras.associateBy { it.cameraId }
+        val mainId = survey.cameras.firstOrNull { it.inCameraIdList && it.facing == "BACK" && it.physicalIds.isNotEmpty() }?.let { logical ->
+            val physicals = logical.physicalIds.mapNotNull { byId[it] }.map { it.toLensFacts() }
+            (MainWideChooser.choose(logical.toLensFacts(), physicals) as? MainWideChoice.Chosen)?.cameraId
+        }
+        val mainView = mainId?.let { byId[it] }?.let { view(it) }
+        return survey.cameras.associate { camera ->
+            camera.cameraId to when {
+                camera.physicalIds.isNotEmpty() -> "logical"
+                camera.facing == null -> "unknown"
+                camera.facing == "FRONT" -> "front"
+                camera.facing != "BACK" -> camera.facing?.lowercase() ?: "unknown"
+                camera.cameraId == mainId -> "main_wide"
+                else -> {
+                    val own = view(camera)
+                    if (own == null || mainView == null) {
+                        "back"
+                    } else {
+                        val factor = own / mainView
+                        val text = String.format(java.util.Locale.ROOT, "%.1fx", factor)
+                        when {
+                            factor < 0.85 -> "ultra_wide_$text"
+                            factor > 1.15 -> "telephoto_$text"
+                            else -> "wide_$text"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Focal length over sensor diagonal: proportional to the zoom factor a lens gives. */
+    private fun view(camera: CameraEntry): Double? {
+        val focal = camera.focalLengths.firstOrNull() ?: return null
+        val size = camera.physicalSizeMm?.takeIf { it.size == 2 } ?: return null
+        val diagonal = kotlin.math.sqrt(size[0].toDouble() * size[0] + size[1].toDouble() * size[1])
+        return if (diagonal > 0 && focal > 0f) focal / diagonal else null
+    }
+
+    private fun CameraEntry.toLensFacts() =
+        LensFacts(cameraId, inCameraIdList, focalLengths, physicalSizeMm, cfa, pixelArray, rawSizes, capabilities, error)
 }
 
 internal object ReachSummary {
-    fun burstRate(frames: List<ReachFrame>): BurstRate? = TODO("stub")
+    /** The burst frames that arrived, by sensor timestamp: (n - 1) over first to last. Null for fewer than two. */
+    fun burstRate(frames: List<ReachFrame>): BurstRate? {
+        val times = frames.filter { it.kind == "burst" && it.error == null }.mapNotNull { it.sensorTimestampNs }.sorted()
+        if (times.size < 2) return null
+        val spanNs = times.last() - times.first()
+        if (spanNs <= 0L) return null
+        return BurstRate(times.size, spanNs / 1_000_000.0, (times.size - 1) * 1_000_000_000.0 / spanNs)
+    }
 
-    /** One row per back camera and one per pair, in the order the cameras were found. */
-    fun rows(survey: ReachSurvey, roles: Map<String, String>, outcomes: List<ReachOutcome>): List<ReachRow> = TODO("stub")
+    /** One row per back camera and one per pair, in the order the plan made them. */
+    fun rows(survey: ReachSurvey, roles: Map<String, String>, outcomes: List<ReachOutcome>): List<ReachRow> {
+        val rows = mutableListOf<ReachRow>()
+        val singles = outcomes.filter { it.planned.method() != "pair" }.groupBy { it.planned.cameraId }
+        for (camera in survey.cameras) {
+            val mine = singles[camera.cameraId] ?: continue
+            rows += row(camera.cameraId, roles[camera.cameraId] ?: "unknown", mine)
+        }
+        for (pair in outcomes.filter { it.planned.method() == "pair" }) {
+            val (logical, ids) = pairIds(pair.planned)
+            rows += row(ids, "pair_on_$logical", listOf(pair))
+        }
+        return rows
+    }
 
-    fun table(device: String?, rows: List<ReachRow>): String = TODO("stub")
+    private fun row(cameraId: String, role: String, outcomes: List<ReachOutcome>): ReachRow {
+        val reached = outcomes.filter { it.verdict == ReachVerdict.REACHABLE_RAW && it.result != null }
+        return ReachRow(
+            cameraId = cameraId,
+            role = role,
+            outcomes = outcomes.map { it.planned.method() to it.verdict },
+            reachableRaw = reached.map { it.planned.method() },
+            rawSize = reached.firstNotNullOfOrNull { it.result?.rawSize },
+            burstFps = reached.mapNotNull { o -> o.result?.let { burstRate(it.frames)?.framesPerSecond } }.maxOrNull(),
+        )
+    }
+
+    private fun PlannedReach.method(): String = when (this) {
+        is PlannedReach.Run -> attempt.method
+        is PlannedReach.Skip -> method
+    }
+
+    /** A pair's logical camera and its `a+b`, from the attempt or, for a pair not made, from its label. */
+    private fun pairIds(planned: PlannedReach): kotlin.Pair<String, String> = when (planned) {
+        is PlannedReach.Run -> (planned.attempt as ReachAttempt.TwoStreams).let { it.logicalId to "${it.first}+${it.second}" }
+        is PlannedReach.Skip -> planned.label.removePrefix("pair_").split('_').let { parts ->
+            planned.cameraId to parts.drop(1).joinToString("+")
+        }
+    }
+
+    /**
+     * The per-phone table, one row a line under a heading: camera, role, reachable how, RAW size, frame rate. "Reachable
+     * how" lists the methods that gave RAW, with every other outcome in brackets; `none` when nothing gave RAW.
+     */
+    fun table(device: String?, rows: List<ReachRow>): String {
+        val lines = mutableListOf(device ?: "this phone (its model was not read)", "camera | role | reachable how | RAW size | frame rate")
+        for (row in rows) {
+            val others = row.outcomes.filter { it.second != ReachVerdict.REACHABLE_RAW }.joinToString("; ") { "${it.first}: ${it.second}" }
+            val how = when {
+                row.reachableRaw.isEmpty() -> "none ($others)"
+                others.isEmpty() -> row.reachableRaw.joinToString(", ")
+                else -> "${row.reachableRaw.joinToString(", ")} ($others)"
+            }
+            val rate = row.burstFps?.let { String.format(java.util.Locale.ROOT, "%.1f fps", it) } ?: "-"
+            lines += "${row.cameraId} | ${row.role} | $how | ${row.rawSize ?: "-"} | $rate"
+        }
+        return lines.joinToString("\n")
+    }
 }
