@@ -176,7 +176,7 @@ internal object ReachVerdict {
         if (result.configured != true) return REFUSED
         if (result.rawSize == null) return REACHABLE_NO_RAW
         val arrivedOn = result.frames.filter { it.error == null && it.sensorTimestampNs != null }.map { it.streamCameraId }.toSet()
-        return if (result.streamIds.isNotEmpty() && result.streamIds.all { it in arrivedOn }) REACHABLE_RAW else REACHABLE_NO_RAW
+        return if (result.streamIds.isNotEmpty() && result.streamIds.any { it in arrivedOn }) REACHABLE_RAW else REACHABLE_NO_RAW
     }
 }
 
