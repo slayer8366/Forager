@@ -82,6 +82,8 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMod
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
         levelProvider = levelProvider,
         viewfinder = { modifier -> engine.Viewfinder(modifier, held = LocalNaturalOrientationHold.current) },
+        // Dev branch only (dispatch 2026-10-16-04): engine A's lens row; null on CameraX, so no row.
+        lensControls = engine.lensControls,
     )
 }
 

@@ -91,6 +91,14 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
     @Volatile private var afContinuous = false
     @Volatile private var lensShadingMapOn = false
 
+    // The lens chooser (dispatch 2026-10-16-04).
+    @Volatile private var lensChars: Map<String, CameraCharacteristics> = emptyMap()
+    /** The lens whose physical streams the session carries, or null for the logical streams of before. */
+    @Volatile private var streamingLens: Lens? = null
+    /** SCALER_CROP_REGION is a per-lens request key (availablePhysicalCameraRequestKeys): on the S22, not on the S26 (the dumpsys tables, READ). */
+    @Volatile private var cropPerLens = false
+    @Volatile private var logicalZoomRange: android.util.Range<Float>? = null
+
     // ── Describe ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
     override fun describe(): CameraDescription = try {
@@ -152,6 +160,7 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
         val raw = rawCaptureSize(capabilities)
         val notes = mutableListOf<String>()
         val (mainWide, mainWideNote) = chooseMainWide(id, c, raw, notes)
+        val (lenses, lensNote) = readLensSet(id, c)
         val nrModes = c.get(CameraCharacteristics.NOISE_REDUCTION_AVAILABLE_NOISE_REDUCTION_MODES)?.toList().orEmpty()
         afContinuous = c.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES)?.contains(CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE) == true
         lensShadingMapOn = c.get(CameraCharacteristics.STATISTICS_INFO_AVAILABLE_LENS_SHADING_MAP_MODES)
@@ -173,6 +182,8 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
                 noiseReductionOffOffered = CaptureRequest.NOISE_REDUCTION_MODE_OFF in nrModes,
                 capabilities = capabilities,
                 notes = notes,
+                lenses = lenses,
+                lensNote = lensNote,
             ),
         )
     }
@@ -191,6 +202,44 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
 
     private fun physicalIds(c: CameraCharacteristics): List<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) c.physicalCameraIds.sorted() else emptyList()
+
+    /**
+     * The lens chooser's lenses behind the logical camera [id] (dispatch 2026-10-16-04), read from characteristics by the
+     * shared rules ([buildLensSet]). Null with the reason when there is no lens set: the engine then runs as before.
+     */
+    private fun readLensSet(id: String, c: CameraCharacteristics): Pair<LensSet?, String> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null to "the lens chooser needs API 28 (physical streams)"
+        val physical = physicalIds(c)
+        if (physical.isEmpty()) return null to "camera $id is not a logical multi-camera"
+        val chars = physical.mapNotNull { pid -> runCatching { pid to manager.getCameraCharacteristics(pid) }.getOrNull() }.toMap()
+        lensChars = chars
+        cropPerLens = runCatching { c.availablePhysicalCameraRequestKeys?.contains(CaptureRequest.SCALER_CROP_REGION) == true }.getOrDefault(false)
+        logicalZoomRange = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) c.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE) else null
+        val cropNote = "crop region per lens ${if (cropPerLens) "offered" else "not offered (the logical zoom ratio is asked instead)"}, logical zoom range $logicalZoomRange"
+        return when (val outcome = buildLensSet(lensReading(id, c), chars.map { (pid, pc) -> lensReading(pid, pc) })) {
+            is LensSetOutcome.Built -> outcome.set to (outcome.notes + cropNote).joinToString("; ")
+            is LensSetOutcome.NoLenses -> null to outcome.reason
+        }
+    }
+
+    private fun lensReading(id: String, c: CameraCharacteristics): LensReading {
+        val map = c.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        fun sizes(format: Int) = map?.getOutputSizes(format)?.map { PixelSize(it.width, it.height) }.orEmpty()
+        return LensReading(
+            cameraId = id,
+            back = c.get(CameraCharacteristics.LENS_FACING) == CameraMetadata.LENS_FACING_BACK,
+            focalLengths = c.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)?.toList().orEmpty(),
+            physicalSizeMm = c.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)?.let { listOf(it.width, it.height) },
+            cfa = c.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT),
+            jpegSizes = sizes(ImageFormat.JPEG),
+            previewSizes = map?.getOutputSizes(SurfaceTexture::class.java)?.map { PixelSize(it.width, it.height) }.orEmpty(),
+            rawCapable = c.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)?.contains(CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_RAW) == true,
+            rawSizes = sizes(ImageFormat.RAW_SENSOR),
+            activeArray = c.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)?.let { PixelSize(it.width(), it.height()) },
+            minFocusDiopters = c.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE),
+            sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION),
+        )
+    }
 
     /**
      * The main wide behind a logical camera (RECORD -1079): the one physical camera whose focal length, sensor size and
@@ -280,7 +329,10 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
 
     override suspend fun configure(facts: CameraFacts, preview: PreviewTarget, plan: StreamPlan): ConfigureOutcome {
         val opened = device ?: return ConfigureOutcome.Failed("no device is open")
-        val surface = (preview as? Camera2PreviewTarget)?.surface ?: return ConfigureOutcome.Failed("the viewfinder's surface is not a camera2 one")
+        val target = preview as? Camera2PreviewTarget ?: return ConfigureOutcome.Failed("the viewfinder's surface is not a camera2 one")
+        val surface = target.surface
+        plan.lens?.let { lens -> return configureLens(opened, target, lens, plan.raw) }
+        streamingLens = null
         closeSessionAndWait()
         closeReaders()
         previewSurface = surface
@@ -320,6 +372,88 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
             return ConfigureOutcome.Configured(candidate, notes.joinToString("; "))
         }
         return ConfigureOutcome.Failed("no stream combination configured (${notes.joinToString("; ")})")
+    }
+
+    /**
+     * The lens chooser's session: the viewfinder, the JPEG and (where the lens has one and the session takes it) the RAW
+     * stream, all physical streams of [lens] on the logical camera, at the lens's own sizes. The viewfinder surface is the
+     * same one throughout, so on a lens switch the view keeps its last frame until the new lens draws (RECORD -1107).
+     */
+    private suspend fun configureLens(opened: CameraDevice, target: Camera2PreviewTarget, lens: Lens, wantRaw: Boolean): ConfigureOutcome {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return ConfigureOutcome.Failed("physical streams need API 28")
+        closeSessionAndWait()
+        closeReaders()
+        target.setBufferSize(lens.previewSize.width, lens.previewSize.height)
+        val surface = target.surface
+        previewSurface = surface
+        val jpeg = ImageReader.newInstance(lens.jpegSize.width, lens.jpegSize.height, ImageFormat.JPEG, JPEG_MAX_IMAGES)
+        jpegReader = jpeg
+        val raw = lens.rawSize?.takeIf { wantRaw }?.let { ImageReader.newInstance(it.width, it.height, ImageFormat.RAW_SENSOR, RAW_MAX_IMAGES) }
+        rawReader = raw
+        val notes = mutableListOf<String>()
+        for (withRaw in listOfNotNull(true.takeIf { raw != null }, false)) {
+            val outputs = buildList {
+                add(OutputConfiguration(surface).also { it.setPhysicalCameraId(lens.physicalId) })
+                add(OutputConfiguration(jpeg.surface).also { it.setPhysicalCameraId(lens.physicalId) })
+                if (withRaw && raw != null) add(OutputConfiguration(raw.surface).also { it.setPhysicalCameraId(lens.physicalId) })
+            }
+            val label = "lens ${lens.physicalId} ${if (withRaw) "with" else "without"} RAW"
+            val query = querySupport(opened, outputs)
+            notes += "$label: isSessionConfigurationSupported $query"
+            if (query == "not supported") continue
+            val configured = createSession(opened, outputs)
+            if (configured == null) {
+                notes += "$label: onConfigureFailed"
+                continue
+            }
+            session = configured
+            streamingLens = lens
+            val source = if (withRaw) RawSource.Physical(lens.physicalId) else RawSource.None
+            rawSource = source
+            rawChars = lensChars[lens.physicalId] ?: chars
+            if (!withRaw) {
+                raw?.close()
+                rawReader = null
+            }
+            return ConfigureOutcome.Configured(source, notes.joinToString("; "))
+        }
+        streamingLens = null
+        return ConfigureOutcome.Failed("lens ${lens.physicalId}: no stream combination configured (${notes.joinToString("; ")})")
+    }
+
+    /**
+     * A zoom on the streaming lens: its own crop region where the phone takes one per lens (the S22), otherwise the logical
+     * camera's zoom ratio, which the platform says a physical stream's view may not be narrower than (LOGICAL_MULTI_CAMERA;
+     * the S26, where no per-lens key is listed). What the camera did is read back from each result ([cropAchieved]).
+     */
+    private fun applyCrop(builder: CaptureRequest.Builder, crop: LensCrop?) {
+        crop ?: return
+        val region = crop.region
+        if (cropPerLens && region != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            builder.setPhysicalCameraKey(CaptureRequest.SCALER_CROP_REGION, android.graphics.Rect(region.left, region.top, region.right, region.bottom), crop.lensId)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val asked = crop.zoom.toFloat()
+            builder.set(CaptureRequest.CONTROL_ZOOM_RATIO, logicalZoomRange?.clamp(asked) ?: asked)
+        }
+    }
+
+    @SuppressLint("NewApi") // only called with a lens crop, which only exists from API 28
+    private fun newRequest(opened: CameraDevice, template: Int, crop: LensCrop?): CaptureRequest.Builder =
+        if (crop != null && cropPerLens && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            opened.createCaptureRequest(template, setOf(crop.lensId))
+        } else {
+            opened.createCaptureRequest(template)
+        }
+
+    /** The streaming lens's own result, where the platform gives one. */
+    private fun lensResult(result: TotalCaptureResult): CaptureResult? = streamingLens?.let { physicalResult(result, it.physicalId) }
+
+    /** How far the lens was actually cropped: its active array's width over the crop region its own result reports. */
+    private fun cropAchieved(result: TotalCaptureResult): Double? {
+        val lens = streamingLens ?: return null
+        val active = lens.activeArray ?: return null
+        val region = lensResult(result)?.get(CaptureResult.SCALER_CROP_REGION) ?: return null
+        return if (region.width() > 0) active.width.toDouble() / region.width() else null
     }
 
     private fun outputsFor(surface: Surface, jpeg: ImageReader, raw: ImageReader?, source: RawSource): List<OutputConfiguration> = buildList {
@@ -398,9 +532,10 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
     private fun previewRequest(controls: PreviewControls): CaptureRequest.Builder? {
         val opened = device ?: return null
         val surface = previewSurface ?: return null
-        return opened.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
+        return newRequest(opened, CameraDevice.TEMPLATE_PREVIEW, controls.lensCrop).apply {
             addTarget(surface)
             apply3A(this, controls)
+            applyCrop(this, controls.lensCrop)
         }
     }
 
@@ -408,11 +543,15 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
         override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
             latestResult = result
             val sink = frameSink ?: return
+            val own = lensResult(result)
             val frame = PreviewFrame(
                 sensorTimestampNanos = result.get(CaptureResult.SENSOR_TIMESTAMP) ?: SystemClock.elapsedRealtimeNanos(),
                 aeState = result.get(CaptureResult.CONTROL_AE_STATE),
                 awbState = result.get(CaptureResult.CONTROL_AWB_STATE),
                 activePhysicalId = activeId(result),
+                focusDiopters = own?.get(CaptureResult.LENS_FOCUS_DISTANCE) ?: result.get(CaptureResult.LENS_FOCUS_DISTANCE),
+                afState = own?.get(CaptureResult.CONTROL_AF_STATE) ?: result.get(CaptureResult.CONTROL_AF_STATE),
+                cropAchieved = cropAchieved(result),
             )
             main.post { sink(frame) }
         }
@@ -458,7 +597,8 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
 
     private fun stillRequest(still: StillControls, targets: List<Surface>): CaptureRequest? {
         val opened = device ?: return null
-        return opened.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
+        return newRequest(opened, CameraDevice.TEMPLATE_STILL_CAPTURE, still.lensCrop).apply {
+            applyCrop(this, still.lensCrop)
             targets.forEach { addTarget(it) }
             previewSurface?.let { addTarget(it) } // the viewfinder keeps drawing through the shot
             apply3A(this, PreviewControls(still.flash, aeLock = still.aeAwbLocked, awbLock = still.aeAwbLocked))
@@ -482,7 +622,7 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
         val done = withTimeoutOrNull(STILL_TIMEOUT_MILLIS) { shot.done.await() } ?: error("no JPEG within $STILL_TIMEOUT_MILLIS ms")
         reader.setOnImageAvailableListener(null, null)
         done.failure?.let { error(it) }
-        JpegFrame(done.jpegWidth, done.jpegHeight, done.result?.let { activeId(it) })
+        JpegFrame(done.jpegWidth, done.jpegHeight, done.result?.let { activeId(it) }, done.result?.let { cropAchieved(it) })
     }
 
     override suspend fun captureRawJpeg(still: StillControls, jpegDestination: File): Result<RawJpegFrame> = runCatching {
@@ -516,7 +656,7 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
             else -> null
         }
         RawJpegFrame(
-            jpeg = JpegFrame(done.jpegWidth, done.jpegHeight, total?.let { activeId(it) }),
+            jpeg = JpegFrame(done.jpegWidth, done.jpegHeight, total?.let { activeId(it) }, total?.let { cropAchieved(it) }),
             rawSource = source,
             rawActivePhysicalId = when (source) {
                 is RawSource.Physical -> source.physicalId.takeIf { rawResult != null }
@@ -645,6 +785,7 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
         }
         closeReaders()
         rawSource = RawSource.None
+        streamingLens = null
         latestResult = null
         return ReleaseOutcome(closed, detail)
     }
@@ -886,6 +1027,12 @@ private fun ColorSpaceTransform.toSRationals(): List<SRational> {
  */
 internal class Camera2PreviewTarget(private val texture: SurfaceTexture) : PreviewTarget {
     val surface: Surface = Surface(texture)
+
+    /** The stream's buffer size: the lens chooser's lenses each configure at their own viewfinder size. */
+    @Synchronized
+    fun setBufferSize(width: Int, height: Int) {
+        if (!released) texture.setDefaultBufferSize(width, height)
+    }
     private var sessionDone = false
     private var viewDone = false
     private var released = false

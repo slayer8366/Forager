@@ -13,6 +13,7 @@ import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraEngine
 import com.zynergylabs.forager.app.photo.CameraSessionState
 import com.zynergylabs.forager.app.photo.FlashMode
+import com.zynergylabs.forager.app.photo.LensControlsSlot
 import com.zynergylabs.forager.app.photo.RawShot
 import java.io.File
 
@@ -102,6 +103,18 @@ internal class EngineASession(
     override suspend fun capture(destination: File): Result<Unit> = active.capture(destination)
 
     override suspend fun captureRaw(jpegDestination: File): Result<RawShot> = active.captureRaw(jpegDestination)
+
+    /**
+     * The lens row (dispatch 2026-10-16-04): the platform engine's, while it runs and has a lens set; none once CameraX has
+     * taken over, so the fallback camera is today's camera exactly. Both reads are Compose state, so the row leaves in the
+     * frame the fallback lands.
+     */
+    override val lensControls: LensControlsSlot?
+        get() = null // STUB (tests first)
+
+    private val platformLensRow: LensControlsSlot = { vertical, deviceRotation, displayRotation ->
+        LensRow(platform, vertical, deviceRotation, displayRotation)
+    }
 
     @Composable
     override fun Viewfinder(modifier: Modifier, held: Boolean) {

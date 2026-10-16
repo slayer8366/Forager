@@ -37,7 +37,20 @@ data class DngImage(
     val lensShading: LensShadingMap? = null,
     val orientation: Int,                      // TIFF Orientation 1..8
     val baselineExposure: SRational? = null,
+    /**
+     * DefaultCropOrigin and DefaultCropSize, or null to write neither (every file before the lens chooser, and every file a
+     * release build writes). Added on the dev branch only (dispatch 2026-10-16-04, RECORD -1106: "a nullable crop field,
+     * null by default"), last and defaulted, so every existing caller and every existing file is unchanged.
+     */
+    val defaultCrop: DngDefaultCrop? = null,
 )
+
+/**
+ * The DNG's default crop (DNG 1.7.1.0, tags 50719 and 50720), in raw image coordinates relative to the ActiveArea's
+ * top-left: H is across, V is down, as the specification orders them. The lens chooser sets it from the zoom at capture
+ * (RECORD -1107, "Hard crop"); the pixel data is never cut.
+ */
+data class DngDefaultCrop(val originH: Int, val originV: Int, val sizeH: Int, val sizeV: Int)
 
 sealed interface DngWriteResult {
     data class Written(val bytes: Long) : DngWriteResult
