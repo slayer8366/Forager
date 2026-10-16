@@ -18753,3 +18753,14 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **Planner's slip, disclosed:** testing step 5 by adb, the planner's first return used am start, which opened the Maps tab instead of the camera (a fault in the method, not the engine). A second attempt by blind taps landed in a landscape layout, opened today's Journal entry editor, and was backed out with Back, with no text entered. Steps 5 and 6 were then done by the owner's hands.
 **Not yet run:** the switch-off check that today's camera is unchanged was only partly done: CameraX opened and streamed in step 7, but no CameraX photo was taken. The S22: the reach probe and all seven checks. Tablet: none.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1099.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1099
+**Timestamp:** 2026-10-16T17:20:19Z
+**Continues:** 2026-09-28-1098
+**Title:** Engine A's "in use" message on the S26: it showed very briefly once, then the camera came straight back (owner)
+**The owner, verbatim:** "The in use message appeared very briefly once, and instantly switched over after".
+**Reading:** this closes -1098 step 6's open item. The message appears while another app holds the camera, and clears by itself when the camera is free. The planner reads the single brief showing as the moment between returning to Forager and the other app letting go. That reading is inferred from the log's disconnected, waiting and recovered sequence, not observed frame by frame. Today's CameraX camera recovers without any message (-1089), so a brief flash of text is new behaviour that the UX auditor should weigh before A ships: noted for the parity work, not a fault.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1100.
