@@ -1,22 +1,33 @@
 # RECORD.md
 
-Forager's record of dispatched work. Each piece of work opens with an intent
-entry, written before anything is built, stating what will change, where the
-change stops, what it is expected to do, and when it counts as finished or
-abandoned. It closes with exactly one terminal entry saying what happened.
-Dispatches that open no intent (a pulse, a build the operator declined, a
-live exercise of the dispatch hook) are recorded by a dispatch note, so every
-preserved prompt under `prompts/preserved/` is accounted for by some entry.
+Forager's record of dispatched work, decisions and what happened. Each piece
+of work opens with an intent entry, written before anything is built, stating
+what will change, where the change stops, what it is expected to do, and when
+it counts as finished or abandoned. It closes with exactly one closing entry:
+a terminal, or an outcome that carries Closes. Twelve entry types are in use:
+intent, terminal, continuation, decision, outcome, observation, finding,
+device-note, correction, merge, dispatch-note and handoff. Every entry carries
+its Kind, its ID and a Timestamp read from the clock, and ends by saying who
+wrote it and on which branch. A decision quotes the owner verbatim and is
+recorded once, after any clarifying, not once for every re-ask.
 
 This file is append-only. Nothing already committed is edited or removed; a
-correction is a new entry that points at the one it corrects.
+correction is a new entry that points at the one it corrects. The one
+exception is this header, rewritten on 2026-10-16 at the owner's word
+("Update both formats to match current standards"); entry 2026-09-28-1111 quotes the
+header it replaced.
 
-What makes an entry well formed is defined in `check_record.py`, and how
-entries bind to preserved prompts in `check_prompts.py`, not here. Run both
-before committing a change to this file. The existing records in
-`docs/audits/` stay where they are and are not migrated into this store.
+What makes an entry well formed is defined in E-GD's RECORDING.md
+(github.com/slayer8366/E-GD-Philosophy, branch Test-1), which was written
+from this record's own practice. The check_record.py and check_prompts.py
+this header used to name were removed from this repository on 2026-09-27,
+with the hooks (docs/audits/2026-09-27-kit-hooks-disabled.md). E-GD's
+check_record.py implements RECORDING.md for E-GD's own record, but it expects
+IDs of the form YYYY-MM-DD-NN, so it is not run here, and entries here are
+checked by reading. The existing records in docs/audits/ stay where they are
+and are not migrated into this store; docs/audits/README.md indexes them.
 
-Design: `docs/process/accountability-design.md`.
+Design: docs/process/accountability-design.md. Method: RECORDING.md in E-GD.
 
 ## Entries
 
@@ -18972,3 +18983,93 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 **The owner, verbatim:** "Yellow number (Recommended)"; "Yes, use the lens's full size (Recommended)"; "Yes, S26 first (Recommended)".
 **What the answers set:** the active lens's number is yellow, the others white, all outlined; on the S26 each lens's own size is 4080x3060 (3648x2736 on the 3x), so engine A's 1x JPGs there are 4080x3060; the lens chooser goes on dev and is checked on the S26, then the S22. The device APK is CI run 38969009155's (the same tree), kept at ~/Zynergy/device-evidence/2026-10-16-lens-chooser-apk/.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1111.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1111
+**Timestamp:** 2026-10-16T23:30:35Z
+**Title:** RECORD.md's header rewritten to the E-GD curator's text, at the owner's word; the replaced header is quoted here
+**The owner, verbatim:** the curator's header was pasted by the owner, headed "From the EGD curator:". The curator's text cites the owner's word "Update both formats to match current standards". To the planner's questions: "Yes, apply it (Recommended)"; on the second format: "Only RECORD.md here".
+**Planner's checks before applying:**
+- The twelve kinds named are exactly those in use: continuation 330, intent 243, decision 226, terminal 166, dispatch-note 128, merge 92, outcome 41, observation 21, correction 13, device-note 11, handoff 5, finding 3.
+- check_record.py and check_prompts.py are absent from this branch.
+- docs/audits/2026-09-27-kit-hooks-disabled.md, docs/process/accountability-design.md and docs/audits/README.md exist on main.
+- E-GD-Philosophy's Test-1 branch (f1209440) has RECORDING.md, which says its checker needs YYYY-MM-DD-NN IDs.
+**Done:** the header above "## Entries" was replaced word for word with the curator's text, its placeholder "<ID>" filled with this entry's ID. Nothing below "## Entries" changed; the planner diffed the entries before and after.
+**The header it replaced, verbatim:**
+> # RECORD.md
+> 
+> Forager's record of dispatched work. Each piece of work opens with an intent
+> entry, written before anything is built, stating what will change, where the
+> change stops, what it is expected to do, and when it counts as finished or
+> abandoned. It closes with exactly one terminal entry saying what happened.
+> Dispatches that open no intent (a pulse, a build the operator declined, a
+> live exercise of the dispatch hook) are recorded by a dispatch note, so every
+> preserved prompt under `prompts/preserved/` is accounted for by some entry.
+> 
+> This file is append-only. Nothing already committed is edited or removed; a
+> correction is a new entry that points at the one it corrects.
+> 
+> What makes an entry well formed is defined in `check_record.py`, and how
+> entries bind to preserved prompts in `check_prompts.py`, not here. Run both
+> before committing a change to this file. The existing records in
+> `docs/audits/` stay where they are and are not migrated into this store.
+> 
+> Design: `docs/process/accountability-design.md`.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1112.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1112
+**Timestamp:** 2026-10-16T23:30:35Z
+**Closes:** 2026-09-28-1082
+**Outcome:** done
+**Observed:** dispatch 2026-10-16-01 was delivered as PR #232 (-1088), merged into dev (-1091), and run on both phones. On the S26 (-1095) and the S22 (-1101), all four back lenses give RAW through logical camera 0. The probe completed and handed back on both phones. The pin probe's stall is fixed: the stall was reproduced in a test that failed for its reason, and no device run stalled.
+**Deviations:** -1088, the outcome that reported the build, carried Continues where RECORDING.md asks for Closes; this terminal is the intent's one closing entry. The coder's calls beyond the dispatch are listed in -1088.
+**Notes:** Written by the planner by hand, on branch records-after-173, under the header of -1111. Next free ID -1113.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1113
+**Timestamp:** 2026-10-16T23:30:35Z
+**Closes:** 2026-09-28-1083
+**Outcome:** done
+**Observed:** dispatch 2026-10-16-02's prototype was delivered as PR #233 (-1089) and merged into dev (-1091). Its seven device checks passed on the S26 (-1098, -1099) and the S22 (-1101). The owner chose engine A (-1102). The lens chooser, item (2) of the intent, was designed with the owner (-1103, -1104, -1107) and dispatched separately (-1105).
+**Deviations:** -1089 carried Continues where Closes was needed. On the S22 only one hold was photographed (-1101).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1114.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1114
+**Timestamp:** 2026-10-16T23:30:35Z
+**Closes:** 2026-09-28-1085
+**Outcome:** done
+**Observed:** dispatch 2026-10-16-03's draft was filed (-1092), revised for -1094, adopted with all recommended answers (-1097), and merged into pre-main as docs/process/qa-philosophy.md by PR #235 (-1100).
+**Deviations:** -1092 carried Continues where Closes was needed. The draft ran over its length aim (about 3,600 words against 1,500), which the auditor disclosed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1115.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1115
+**Timestamp:** 2026-10-16T23:30:35Z
+**Corrects:** 2026-09-28-1082, 2026-09-28-1083, 2026-09-28-1085, 2026-09-28-1105, 2026-09-28-1088, 2026-09-28-1089, 2026-09-28-1092
+**Notes:** Read against E-GD's RECORDING.md (-1111), these entries fall short of the standard:
+- Intents -1082, -1083 (the previous planner's) and -1085, -1105 (this planner's) lack the required fields Scope boundary, Baseline, the two predictions, Finish line and Abort conditions. Their dispatch files carry the scope, the stops and the finish in prose: preserved/2026-10-16-01.md to -04.md.
+- Outcomes -1088, -1089 and -1092 used Continues where their intents needed a closing entry. Terminals -1112, -1113 and -1114 now close those intents.
+
+For -1105, still open, the missing fields, stated now:
+- **Scope boundary:** dev only. Debug source plus dev-only commits in the src/main files listed in -1109; no change to main, pre-main or release builds; CameraX unchanged.
+- **Baseline:** dev 2511960c at dispatch, and be46972e after the merge (-1110).
+- **Prediction (outcome, planner):** on both phones the row shows the lens numbers, a tap switches lens without a black frame, a pinch zooms and lights the lens in use, zoomed JPGs come out zoomed at each lens's own size, and a zoomed RAW validates with DefaultCrop set to the zoom over the full mosaic.
+- **Prediction (mechanism, planner):** the S22 crops per lens through the physical crop region. The S26, offering none, crops through the logical zoom, and whether its physical JPG is cropped is the one uncertain point.
+- **Finish line:** the 12-step device check (in preserved/2026-10-16-04-phase2-report.md) run on the S26 and the S22, then recorded.
+- **Abort conditions:** the dispatch's stops; the camera left dead; main or a release build changed.
+
+Earlier intents in this record were not re-read against RECORDING.md for this correction. The planner follows RECORDING.md from this entry on.
+
+Written by the planner by hand, on branch records-after-173. Next free ID -1116.
