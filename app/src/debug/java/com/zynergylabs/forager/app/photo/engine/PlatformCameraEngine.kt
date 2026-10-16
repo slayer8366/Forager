@@ -260,7 +260,6 @@ internal class PlatformCameraEngine(
         streaming.value = false
         if (phase != EnginePhase.Disconnected) phase = EnginePhase.Paused
         log("engine=platform event=paused reason=the dialog's lifecycle stopped (background or screen off); the camera is released")
-        scope.launch { releaseCamera() }
     }
 
     private fun startRun() {
