@@ -31,7 +31,11 @@ internal data class FrameReading(
 internal data class SwitchEvent(val from: String, val to: String, val before: FrameReading, val after: FrameReading) {
     /** What differs between the two results: `zoom`, `focus`, `exposure` (exposure time or ISO). */
     val changed: List<String>
-        get() = TODO("built in the next commit")
+        get() = buildList {
+            if (before.zoomRatio != after.zoomRatio) add("zoom")
+            if (before.focusDistanceDiopters != after.focusDistanceDiopters) add("focus")
+            if (before.exposureTimeNs != after.exposureTimeNs || before.iso != after.iso) add("exposure")
+        }
 }
 
 /** What the watch does with one result: log its frame line (or not, by the rate limit), and log a switch (or not). */
@@ -67,12 +71,83 @@ internal data class WatchSummary(
  * Called from one callback thread and read at stop from another, so every method is synchronized.
  */
 internal class SwitchDetector(private val minIntervalNanos: Long = MIN_INTERVAL_NANOS) {
+    private var lastWithId: FrameReading? = null
+    private var lastLoggedPreviewNanos: Long? = null
+    private var framesSeen = 0
+    private var previewLogged = 0
+    private var previewSkipped = 0
+    private var stills = 0
+    private var switches = 0
+    private val byId = LinkedHashMap<String, Int>()
+    private var withoutId = 0
+    private var firstId: String? = null
+    private var zoomMin: Float? = null
+    private var zoomMax: Float? = null
+    private var firstArrival: Long? = null
+    private var lastArrival: Long? = null
 
     @Synchronized
-    fun observe(reading: FrameReading): Observation = TODO("built in the next commit")
+    fun observe(reading: FrameReading): Observation {
+        framesSeen++
+        if (firstArrival == null) firstArrival = reading.arrivalNanos
+        lastArrival = reading.arrivalNanos
+        reading.zoomRatio?.let { z ->
+            zoomMin = zoomMin?.let { minOf(it, z) } ?: z
+            zoomMax = zoomMax?.let { maxOf(it, z) } ?: z
+        }
+
+        val logFrame = if (reading.still) {
+            stills++
+            true
+        } else {
+            val last = lastLoggedPreviewNanos
+            if (last == null || reading.arrivalNanos - last >= minIntervalNanos) {
+                lastLoggedPreviewNanos = reading.arrivalNanos
+                previewLogged++
+                true
+            } else {
+                previewSkipped++
+                false
+            }
+        }
+
+        val id = reading.activePhysicalId
+        var switch: SwitchEvent? = null
+        if (id == null) {
+            withoutId++
+        } else {
+            byId[id] = (byId[id] ?: 0) + 1
+            if (firstId == null) firstId = id
+            val previous = lastWithId
+            val previousId = previous?.activePhysicalId
+            if (previous != null && previousId != null && previousId != id) {
+                switches++
+                switch = SwitchEvent(from = previousId, to = id, before = previous, after = reading)
+            }
+            lastWithId = reading
+        }
+        return Observation(logFrame = logFrame, switch = switch)
+    }
 
     @Synchronized
-    fun summary(): WatchSummary = TODO("built in the next commit")
+    fun summary(): WatchSummary {
+        val first = firstArrival
+        val last = lastArrival
+        return WatchSummary(
+            framesSeen = framesSeen,
+            previewFramesLogged = previewLogged,
+            previewFramesSkipped = previewSkipped,
+            stills = stills,
+            switches = switches,
+            framesByPhysicalId = LinkedHashMap(byId),
+            framesWithoutId = withoutId,
+            firstPhysicalId = firstId,
+            lastPhysicalId = lastWithId?.activePhysicalId,
+            zoomMin = zoomMin,
+            zoomMax = zoomMax,
+            spanMs = if (first != null && last != null) (last - first) / 1_000_000.0 else null,
+        )
+    }
 
     companion object {
         const val MAX_PREVIEW_LINES_PER_SECOND = 5
@@ -107,12 +182,19 @@ internal object ZoomPlan {
     const val MIN_HOLD_MILLIS = 500L
     const val MAX_HOLD_MILLIS = 120_000L
 
-    fun clamp(requested: Float, range: ZoomRange): ZoomClamp = TODO("built in the next commit")
+    fun clamp(requested: Float, range: ZoomRange): ZoomClamp {
+        if (!requested.isFinite() || requested <= 0f) {
+            return ZoomClamp.Rejected(requested, "a zoom ratio is a finite number above 0; $requested is not")
+        }
+        val applied = requested.coerceIn(range.min, range.max)
+        return ZoomClamp.Valid(requested = requested, applied = applied, clamped = applied != requested)
+    }
 
-    fun steps(requested: List<Float>, range: ZoomRange): List<ZoomStep> = TODO("built in the next commit")
+    fun steps(requested: List<Float>, range: ZoomRange): List<ZoomStep> =
+        requested.mapIndexed { index, ratio -> ZoomStep(index, ratio, ratio.isFinite() && ratio >= range.min && ratio <= range.max) }
 
     /** The hold asked for, kept between [MIN_HOLD_MILLIS] and [MAX_HOLD_MILLIS]; [default] when none was asked for. */
-    fun hold(requested: Long?, default: Long): Long = TODO("built in the next commit")
+    fun hold(requested: Long?, default: Long): Long = (requested ?: default).coerceIn(MIN_HOLD_MILLIS, MAX_HOLD_MILLIS)
 }
 
 /** What the characteristics say about one camera, logical or physical. [error] when they could not be read. */
@@ -145,5 +227,38 @@ internal sealed interface MainWideChoice {
  * No match, or more than one, is reported as not found with every candidate's facts, never guessed.
  */
 internal object MainWideChooser {
-    fun choose(logical: LensFacts, physicals: List<LensFacts>): MainWideChoice = TODO("built in the next commit")
+    fun choose(logical: LensFacts, physicals: List<LensFacts>): MainWideChoice {
+        val focal = logical.focalLengths.firstOrNull()
+        val size = logical.physicalSizeMm
+        if (logical.error != null || focal == null || size == null || size.size != 2 || logical.cfa == null) {
+            return MainWideChoice.NotFound(
+                "the logical camera ${logical.cameraId}'s own facts are incomplete (focal ${logical.focalLengths}, size $size, " +
+                    "CFA ${logical.cfa}, error ${logical.error}), so nothing can be matched to them",
+            )
+        }
+        val matches = physicals.filter { p ->
+            val pSize = p.physicalSizeMm.orEmpty()
+            p.error == null &&
+                p.focalLengths.any { close(it, focal) } &&
+                pSize.size == 2 && close(pSize[0], size[0]) && close(pSize[1], size[1]) &&
+                p.cfa == logical.cfa
+        }
+        val candidates = physicals.joinToString("; ") { p ->
+            "${p.cameraId}: focal ${p.focalLengths}, size ${p.physicalSizeMm}, CFA ${p.cfa}" + (p.error?.let { ", unreadable: $it" } ?: "")
+        }
+        val wanted = "focal $focal mm, size ${size[0]}x${size[1]} mm, CFA ${logical.cfa}"
+        return when (matches.size) {
+            1 -> MainWideChoice.Chosen(
+                matches.single().cameraId,
+                "the one physical camera with the logical camera's own $wanted (the default active physical camera); candidates: $candidates",
+            )
+            0 -> MainWideChoice.NotFound("no physical camera has the logical camera's $wanted; candidates: $candidates")
+            else -> MainWideChoice.NotFound(
+                "${matches.size} physical cameras (${matches.joinToString { it.cameraId }}) have the logical camera's $wanted; none is chosen",
+            )
+        }
+    }
+
+    /** Within 0.01: the characteristics are floats from one table, so they match exactly in practice; this only absorbs rounding. */
+    private fun close(a: Float, b: Float): Boolean = kotlin.math.abs(a - b) < 0.01f
 }
