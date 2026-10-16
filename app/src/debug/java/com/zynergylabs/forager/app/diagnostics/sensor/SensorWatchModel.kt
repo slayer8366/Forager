@@ -241,7 +241,7 @@ internal object MainWideChooser {
             p.error == null &&
                 p.focalLengths.any { close(it, focal) } &&
                 pSize.size == 2 && close(pSize[0], size[0]) && close(pSize[1], size[1]) &&
-                p.cfa == logical.cfa
+                true
         }
         val candidates = physicals.joinToString("; ") { p ->
             "${p.cameraId}: focal ${p.focalLengths}, size ${p.physicalSizeMm}, CFA ${p.cfa}" + (p.error?.let { ", unreadable: $it" } ?: "")
