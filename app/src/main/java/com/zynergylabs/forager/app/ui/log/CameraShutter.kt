@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.photo.LensControlsSlot
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -53,6 +54,11 @@ internal fun ShutterCluster(
     /** "Take photo", or "Cancel timer" while a countdown runs. */
     shutterDescription: String,
     onShutter: () -> Unit,
+    /**
+     * The lens row (dev branch only, dispatch 2026-10-16-04), between the readout and the shutter: fixed against the
+     * shutter, with the message line on its far side, so a message appearing never moves it (RECORD -1106).
+     */
+    lensControls: LensControlsSlot? = null,
 ) {
     val readout: @Composable (horizontalAlignment: Alignment.Horizontal) -> Unit = { alignment ->
         Column(horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {

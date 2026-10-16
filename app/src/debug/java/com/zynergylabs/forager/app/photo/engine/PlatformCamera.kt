@@ -92,6 +92,12 @@ internal data class CameraFacts(
     /** What the chip and the probe line read, as `CameraXCaptureSession.capabilities` reports them. */
     val capabilities: CameraCapabilities,
     val notes: List<String> = emptyList(),
+    /**
+     * The phone's real back lenses for the lens chooser (dispatch 2026-10-16-04), or null for no row, with [lensNote]
+     * saying why. Null keeps the engine exactly as it was before the lens chooser: logical viewfinder and JPEG streams.
+     */
+    val lenses: LensSet? = null,
+    val lensNote: String = "",
 )
 
 internal sealed interface DeviceEvent {
@@ -111,8 +117,13 @@ internal sealed interface OpenOutcome {
     data class Failed(val reason: String) : OpenOutcome
 }
 
-/** What the session carries: the viewfinder, the JPEG and, where offered, the RAW stream. */
-internal data class StreamPlan(val raw: Boolean)
+/**
+ * What the session carries: the viewfinder, the JPEG and, where offered, the RAW stream. With [lens] set (the lens
+ * chooser), all three are physical streams of that one lens, at its own sizes: the documented-safe combination for a
+ * hidden physical camera (preview + JPEG + RAW, the RAW table of `CameraDevice`, through its logical camera, the
+ * LOGICAL_MULTI_CAMERA notes; Phase 1 report item 3).
+ */
+internal data class StreamPlan(val raw: Boolean, val lens: Lens? = null)
 
 internal sealed interface ConfigureOutcome {
     /** [rawSource] says where the RAW stream comes from: the pinned physical camera, the logical camera, or none. */
@@ -137,7 +148,13 @@ internal interface PreviewTarget {
 }
 
 /** What the repeating viewfinder request carries. */
-internal data class PreviewControls(val flash: FlashMode, val aeLock: Boolean = false, val awbLock: Boolean = false)
+internal data class PreviewControls(
+    val flash: FlashMode,
+    val aeLock: Boolean = false,
+    val awbLock: Boolean = false,
+    /** The lens chooser's zoom on the streaming lens, or null without the lens chooser (no crop, as before). */
+    val lensCrop: LensCrop? = null,
+)
 
 /** What a still request carries. [jpegOrientationDegrees] is the request's `JPEG_ORIENTATION`. */
 internal data class StillControls(
@@ -146,6 +163,8 @@ internal data class StillControls(
     /** Asked on every RAW request where offered (RECORD -1064). */
     val noiseReductionOff: Boolean,
     val aeAwbLocked: Boolean = false,
+    /** The zoom the shot is taken at, as [PreviewControls.lensCrop]. */
+    val lensCrop: LensCrop? = null,
 )
 
 /** One viewfinder frame's result. States are the platform's `CONTROL_AE_STATE` / `CONTROL_AWB_STATE` values. */
@@ -154,6 +173,12 @@ internal data class PreviewFrame(
     val aeState: Int?,
     val awbState: Int?,
     val activePhysicalId: String?,
+    /** The streaming lens's LENS_FOCUS_DISTANCE in diopters, for the close-focus rule; null when not reported. */
+    val focusDiopters: Float? = null,
+    /** The streaming lens's CONTROL_AF_STATE. */
+    val afState: Int? = null,
+    /** How far the camera actually cropped the lens (its active array over the result's crop region); null when not read. */
+    val cropAchieved: Double? = null,
 )
 
 internal sealed interface PrecaptureOutcome {
@@ -168,7 +193,13 @@ internal sealed interface LockOutcome {
 }
 
 /** A still's JPEG on disk: its encoded size (the unrotated frame the orientation tag describes) and which sensor took it. */
-internal data class JpegFrame(val width: Int, val height: Int, val activePhysicalId: String?)
+internal data class JpegFrame(
+    val width: Int,
+    val height: Int,
+    val activePhysicalId: String?,
+    /** As [PreviewFrame.cropAchieved], for the shot's own result: logged beside the crop asked for. */
+    val cropAchieved: Double? = null,
+)
 
 /**
  * The JPEG on disk and the RAW frame of the same exposure. [readings] builds the DNG input once the orientation is known

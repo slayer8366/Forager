@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.rawCaptureSize
 import com.zynergylabs.forager.app.domain.LevelProvider
 import com.zynergylabs.forager.app.domain.model.PhotoSource
+import com.zynergylabs.forager.app.photo.LensControlsSlot
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
@@ -155,6 +156,8 @@ internal fun InAppCameraDialog(
     /** The RAW shot step (dispatch 2026-10-15-01); the production one unless a test passes its own. */
     rawShotSaver: RawShotSaver? = null,
     viewfinder: @Composable (Modifier) -> Unit,
+    /** Dev branch only (dispatch 2026-10-16-04): engine A's lens row, directly above the shutter; null (every CameraX camera) for none. */
+    lensControls: LensControlsSlot? = null,
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
     // have taken. The photos themselves are already handed over and safe either way.
@@ -412,6 +415,7 @@ internal fun InAppCameraDialog(
                 shutterEnabled = shutterEnabled,
                 shutterDescription = if (countdownSeconds != null) CANCEL_TIMER_DESCRIPTION else SHUTTER_DESCRIPTION,
                 onShutter = onShutter,
+                lensControls = lensControls,
             )
         }
         // Last, so it draws and takes touches above the strip and the shutter band; its BackHandler,
