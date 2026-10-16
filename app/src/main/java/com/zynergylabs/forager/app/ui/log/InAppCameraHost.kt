@@ -7,7 +7,7 @@ import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
-import com.zynergylabs.forager.app.photo.CameraXCaptureSession
+import com.zynergylabs.forager.app.photo.CameraEngineSeam
 import com.zynergylabs.forager.app.sensor.AndroidLevelProvider
 
 /**
@@ -65,7 +65,10 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMod
     // stayed attached to the closed one, so the picture froze (the owner: "It didn't switch over at all"). The option and
     // the key went together; anything that brings back a value that can change while the camera is open must either key the
     // viewfinder on its session or apply the value without a new session (docs/archive/camera-portrait-lock.md).
-    val session = remember { CameraXCaptureSession(context) }
+    // Dev branch only (dispatch 2026-10-16-02): the engine comes from the one factory, CameraX unless the debug build's
+    // switch chose the prototype. Read once per open camera, so a switch takes effect at the next open (CameraEngine.kt).
+    val engine = remember { CameraEngineSeam.create(context) }
+    val session = engine.session
     InAppCameraDialog(
         session = session,
         cameraCaptureFiles = cameraCaptureFiles,
@@ -78,7 +81,7 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMod
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
         levelProvider = levelProvider,
-        viewfinder = { modifier -> session.Viewfinder(modifier, held = LocalNaturalOrientationHold.current) },
+        viewfinder = { modifier -> engine.Viewfinder(modifier, held = LocalNaturalOrientationHold.current) },
     )
 }
 
