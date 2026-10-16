@@ -18458,3 +18458,16 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Planner's answer, recorded so the reasoning survives:** because averaging is automatic for every format but RAW (-974, -1044), B's borrow-and-return pause would fall on every ordinary JPG photo, not occasionally. A's risks are the size of the rebuild (viewfinder and the locked camera screen, focus and exposure, flash, orientation tags, recovery when the camera is taken), the loss of the camera library's device fixes on phones not tested here, and no automated camera tests. The planner now recommends A built as a second camera engine behind the existing CameraCaptureSession interface, with CameraX kept as the automatic fallback, rolled out on the owner's phones, then testers, then everyone. Not yet the owner's decision. On reach: not zero. The main wide is reachable by a physical stream (-1079); the S26 lists the ultra-wide as camera 2; telephotos switch in by zoom with JPG; direct opens of unlisted physical IDs are refused.
 **Change:** dispatch 2026-10-16-01: dev only; the stall reproduced in a test and fixed, with per-attempt timeouts; enumeration of every camera; per back camera, RAW by physical stream, by direct open where listed, and a two-stream pair attempt, each with a verdict and burst rate. Branch camera-reach, PR into dev.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1083.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1083
+**Timestamp:** 2026-10-16T11:37:42Z
+**Continues:** 2026-09-28-1082
+**Title:** Test camera engine A for manageability: a platform-camera prototype behind CameraCaptureSession on the dev build, CameraX the default and fallback; a lens chooser to be designed after the reach results (owner)
+**Dispatch-file:** preserved/2026-10-16-02.md
+**The owner, verbatim:** "1 let's test the revised A to see if it's manageable. B at that point can still be a convenient back up if we decide against it" and "2 let's see if we can give an option for users to choose a camera, like the Samsung app does."
+**Change (1):** dispatch 2026-10-16-02: a prototype engine with viewfinder (main wide pinned by a physical stream), focus and exposure matching today's, flash with precapture, single JPG and RAW captures matching stage 2 (noise reduction off on RAW), an in-session 8-frame burst with no hand-over, disconnect recovery, automatic fallback to CameraX; measurements; a feature inventory with parity estimates and a plain manageability assessment. Dev only, behind a debug switch; any seam in dev-only commits; main and release unchanged. Branch camera-engine-a, PR into dev. B stays the backup.
+**(2):** a lens chooser (the phone maker's camera app's lens buttons, described generically) is a user-facing feature: the planner designs it with the owner as a step path, with prior art, after the camera-reach results (-1082) show which lenses give RAW. Not dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1084.
