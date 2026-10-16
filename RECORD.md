@@ -18335,3 +18335,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **The owner, verbatim:** "Back up the repo into a branch so we can restart here".
 **Done:** snapshot branches pushed at the heads of 2026-10-16T02:02Z: Forager snapshot-2026-10-15-main (402489ae), -dev (296a3420), -records-after-173 (56fe3b2a); forager-forecast snapshot-2026-10-15-main (b9127e58), -t7-build (169cd63e), -t6b-host-genera (b0a0e889); zynergy-site snapshot-2026-10-15-main (b22cca5a). Handoff-file: prompts/preserved/2026-10-15-planner-handoff.md (this branch), replacing 2026-10-14-planner-handoff.md as the start point; that file's next-free-ID line went stale after -1047 and is superseded here, not edited.
 **Notes:** Written by the planner by hand, on branch records-after-173. The snapshot of records-after-173 predates this entry and the handoff file. Next free ID -1073.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1073
+**Timestamp:** 2026-10-16T02:09:38Z
+**Continues:** 2026-09-28-1071
+**Title:** Alternatives to FungalTraits scoped: plan B (an own cited list, blind of FungalTraits) and plan C (a hand list); the T7 loader to read a normalised list through an adapter
+**Observed:** prompts/preserved/2026-10-15-11-membership-list-alternatives.md (read only). Premises: no membership module existed at t7-build 169cd63; under M4 (a) the comparison group is one genus (Laetiporus), so a general wood-rot list is not needed now. Plan B: per genus recorded in the box, a lifestyle class and certainty, each cited, compiled by a session that never sees the local FungalTraits copy, versioned by sha256 and decision rows, reviewed under D18 (mixed and uncertain rows, the most-recorded genera and a 10% sample); about two agent sessions. Plan C: a short hand list of well-known PNW ectomycorrhizal genera with one citation each; hours; narrower and judgement-based. Sources: Tedersoo and Smith 2013 lineage review (CC BY-NC-ND 3.0, cite per genus, don't reproduce), Varga et al. 2019 (CC BY 4.0), Tedersoo et al. 2018 classification (CC BY 4.0), FUNGuild (its 2016 paper states GPL; its repository states none), Wikidata (CC0, 12 genera), US Forest Service reports (public domain as federal works, inferred). GBIF and UNITE hold no genus lifestyle lists. FungalTraits re-hosts carry no licence; -1036 stands.
+**Planner's call (architecture, within CLAUDE.md's rule on wrapping external data):** the T7 coder was told to load a project-owned normalised list (genus, key, class, certainty, source, note, with sha256) with FungalTraits behind an adapter, and to prove a second list drives the same join, so a swap costs a decision row and a re-run.
+**For the owner:** Q1 an own compiled list of genus facts under CC BY-NC 4.0, or outside advice first; Q2 FUNGuild as a source; Q3 non-commercial no-derivatives papers as cited references only; Q4 start plan B now (blind) or after a no or about a week of silence; Q6 "the lineage review plus one agreeing source" as the rule for "clear".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1074.
