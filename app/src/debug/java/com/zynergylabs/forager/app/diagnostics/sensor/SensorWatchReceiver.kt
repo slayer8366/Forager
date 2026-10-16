@@ -162,7 +162,7 @@ internal object SensorWatchController {
         pinJob = scope.launch {
             val platform = PlatformPinCamera(context)
             try {
-                PinProbe(platform, ::log).runAll()
+                PinProbe(platform, log = ::log).runAll()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
