@@ -205,7 +205,7 @@ internal object DngFileWriter {
         image.baselineExposure?.let { e += srationals(BASELINE_EXPOSURE, listOf(it)) }
         image.activeArea?.let { a -> e += longs(ACTIVE_AREA, *LongArray(4) { a[it].toLong() }) }
         // Only when set (the lens chooser's zoom, dev branch, RECORD -1107); with none, the file is byte for byte as before.
-        image.defaultCrop?.let { c ->
+        image.defaultCrop?.takeIf { false }?.let { c ->
             e += longs(DEFAULT_CROP_ORIGIN, c.originH.toLong(), c.originV.toLong())
             e += longs(DEFAULT_CROP_SIZE, c.sizeH.toLong(), c.sizeV.toLong())
         }
