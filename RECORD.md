@@ -18831,3 +18831,16 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 - the brief "in use" message (-1099), for the auditor.
 **Not authorised by this:** any build. The parity work, the lens chooser (to be designed with the owner as a step path; both phones reach RAW on all four back lenses, -1095, -1101) and stage 3's pieces each need their own go. Under -1086 and -1087 the engine stays on dev until it is carried onto pre-main and promoted through the gate.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1103.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1103
+**Timestamp:** 2026-10-16T17:49:26Z
+**Continues:** 2026-09-28-1083, 2026-09-28-1102
+**Title:** The lens chooser's design: real-lens buttons only, labelled by zoom number, above the shutter; the chosen lens remembered while the app is open; a lens without RAW keeps its button and saves a JPG with a line saying so (owner)
+**The owner, verbatim:** to four questions, each answered with the planner's recommendation: "Lens buttons only (Recommended)"; "Zoom numbers (Recommended)"; "Remember while app is open (Recommended)"; "Keep it; save a JPG and say so (Recommended)". Preceded by "Yes start there" (design the lens chooser first, -1102).
+**Prior art (planner's check, web, 2026-10-16):** phone makers' camera apps and the other major platform's camera put a row of zoom-number buttons above the shutter, the active one highlighted, with a tap to switch and a hold or drag for a fine zoom wheel, and pinch zoom on the picture. RAW apps often allow RAW on some lenses only, depending on the phone; one documented case is an ultra-wide that couldn't save RAW. Followed: the placement, the zoom-number labels, tap to switch. Departed from, by the owner's choice: no pinch and no zoom wheel (each button is a real lens at full quality; RAW cannot be cropped). Departed from, by Forager's own rule: phone camera apps reset to 1x on every open, but Forager remembers the lens while the app is open (CLAUDE.md, "UX defaults"; as the format chip, -1005) and returns to 1 after a restart.
+**What it sets (design, the step path shown to the owner):** opening the camera shows a row of the phone's real back lenses above the shutter, centred, labelled by measured zoom (S26: .6, 1, 3, 5; S22: .6, 1, 3, 10), on 1 the first time. Tap 3, and the picture jumps to the 3x lens with 3 highlighted; take the photo, and it is saved from that lens, RAW included. Tap 1 to go back. The row stays put and its labels turn with the phone, like the other icons (the camera never rotates, -980, -981). A lens that can't give RAW on some phone, with RAW chosen, keeps its button and saves a JPG with the line "This lens can't save RAW, saved as JPG." (wording to be confirmed with the owner before build). Built on engine A (-1102), which can pick each physical lens (-1095, -1101).
+**Not authorised by this:** any build. Open, for later: averaging bursts on lenses other than the main (stage 3); the exact copy of the no-RAW line.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1104.
