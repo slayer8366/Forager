@@ -29,7 +29,7 @@ internal fun surfaceRotationDegrees(surfaceRotation: Int): Int = when (surfaceRo
 internal fun jpegOrientationDegrees(sensorOrientation: Int, surfaceRotation: Int, facing: CameraFacing): Int {
     val dest = surfaceRotationDegrees(surfaceRotation)
     return when (facing) {
-        CameraFacing.Back -> (sensorOrientation - dest + 360) % 360
+        CameraFacing.Back -> (sensorOrientation + dest) % 360
         CameraFacing.Front -> (sensorOrientation + dest) % 360
     }
 }
