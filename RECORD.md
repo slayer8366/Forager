@@ -18303,3 +18303,14 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Processing modes:** by default the still template reports noise reduction, hot pixel, shading, edge and tonemap all HIGH_QUALITY; the NR-off run reports NR and hot pixel OFF, the shading run shading OFF. **Planner's measurement:** after removing each frame's overall brightness (spread under 0.07%) and keeping fine-scale differences (a 5x5 high-pass) in low-texture areas, the temporal noise variance is the same in every run (green 7.15 default, 7.18 NR off, 7.29 manual, 7.23 shading off; red 8.22 to 8.32) and neighbouring residuals are uncorrelated (about -0.03, the high-pass's own small bias). So on the S22 those modes change nothing in the RAW data: its RAW is not noise-reduced or hot-pixel-corrected by the phone. (A first pass without the high-pass read correlations of 0.6 to 0.9, from low-frequency frame-to-frame change, not noise; it is not cited.)
 **Not yet measured:** the S26; a tripod and outdoor light; the swap with CameraX's exposure handed to manual settings (which would remove most of the 2.6 s wait; the manual run shows manual exposure works).
 **Notes:** Written by the planner by hand, on branch records-after-173. dev now carries the dev-tools commit and six probe commits above main cb25b582; main has since moved to 402489ae (documents only); dev's rebase is now unblocked. Next free ID -1070.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1070
+**Timestamp:** 2026-10-16T01:53:48Z
+**Continues:** 2026-09-28-1037
+**Title:** The permission email to the fungal-list authors went out; one copy bounced
+**Observed:** the owner sent the planner's drafted request (with the owner's edits and signature, linking zynergy-labs.com/Forager/forecast) to Dr Sergei Põlme at sergei.polme@gmail.com (the FungalTraits paper's correspondence address), copying Dr Leho Tedersoo (leho.tedersoo@ut.ee) and Dr Nadejda Soudzilovskaia (n.a.soudzilovskaia@cml.leidenuniv.nl, from the 2020 FungalRoot paper). The owner's screenshot (kept off GitHub) shows a delivery failure at 2026-10-15 13:31 PDT for the Leiden address only: not listed in that domain's directory. The owner, verbatim: "One isn't working, but the rest should go through".
+**Current addresses found by the planner (pages read, hidden addresses decoded by the planner):** Dr Põlme, University of Tartu Natural History Museum and Botanical Garden (Director; Director of Collections), sergei.polme@ut.ee (math.ut.ee staff contacts, Cloudflare-encoded, decoded); Dr Soudzilovskaia, Research Professor, Hasselt University, nadia.Soudzilovskaia@uhasselt.be (uhasselt.be who-is-who, hex-encoded, decoded).
+**Notes:** Written by the planner by hand, on branch records-after-173. Waiting on a reply; fallback per the planner's recommendation: build an own list from openly licensed data if none in about a week. Next free ID -1071.
