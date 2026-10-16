@@ -24,9 +24,9 @@ internal interface ReachCamera {
  */
 internal class ReachProbe(
     private val camera: ReachCamera,
-    private val log: (String) -> Unit,
     private val attemptTimeoutMillis: Long = ATTEMPT_TIMEOUT_MILLIS,
     private val handBackTimeoutMillis: Long = HANDBACK_TIMEOUT_MILLIS,
+    private val log: (String) -> Unit,
 ) {
     /** True when every planned attempt was made (whatever its verdict) and the camera was confirmed handed back. */
     suspend fun runAll(burstFrames: Int = BURST_FRAMES): Boolean = TODO("stub")

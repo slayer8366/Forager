@@ -96,7 +96,7 @@ class ReachProbeSequencerTest {
     private suspend fun TestScope.probe(camera: Camera, attemptTimeout: Long = 45_000L, handBackTimeout: Long = 30_000L): Boolean? {
         camera.clock = { currentTime }
         return withTimeoutOrNull(TEN_MINUTES) {
-            ReachProbe(camera, { lines += it }, attemptTimeoutMillis = attemptTimeout, handBackTimeoutMillis = handBackTimeout).runAll()
+            ReachProbe(camera, attemptTimeoutMillis = attemptTimeout, handBackTimeoutMillis = handBackTimeout) { lines += it }.runAll()
         }
     }
 
@@ -184,7 +184,7 @@ class ReachProbeSequencerTest {
             gate.await()
             ReachFixtures.reached(attempt, burst)
         })
-        val job = launch { ReachProbe(camera, { lines += it }).runAll() }
+        val job = launch { ReachProbe(camera) { lines += it }.runAll() }
         runCurrent()
         job.cancel()
         job.join()
