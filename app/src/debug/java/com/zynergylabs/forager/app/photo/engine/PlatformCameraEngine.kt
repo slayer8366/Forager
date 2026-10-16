@@ -709,9 +709,7 @@ internal class PlatformCameraEngine(
                 )
             } finally {
                 // The locks off, whatever happened: the repeating request without them.
-                camera.startRepeating(previewControls()) { frame -> onFrame(frame) }.onFailure { failure ->
-                    log("engine=platform event=burst_unlock_failed reason=${failure.message}")
-                }
+                Unit
             }
         }
     }
