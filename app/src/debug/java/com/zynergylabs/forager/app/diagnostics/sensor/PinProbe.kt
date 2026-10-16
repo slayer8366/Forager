@@ -1,5 +1,9 @@
 package com.zynergylabs.forager.app.diagnostics.sensor
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+
 /** Part 3's three ways of getting RAW from the main wide sensor only, in the dispatch's order. */
 internal enum class PinAttempt(val id: String) {
     /** Logical camera 0 with the RAW output's physical camera set to the main wide. */
@@ -79,8 +83,103 @@ internal class PinProbe(
     private val camera: PinCamera,
     private val log: (String) -> Unit,
 ) {
-    /** True when the camera was confirmed handed back. */
-    suspend fun runAll(burstFrames: Int = BURST_FRAMES): Boolean = TODO("built in the next commit")
+    /**
+     * Surveys, borrows, makes the three attempts in order, and hands back. True when the borrow succeeded and the camera
+     * was confirmed handed back; an attempt that fails is a finding, logged, and does not make the run false.
+     */
+    suspend fun runAll(burstFrames: Int = BURST_FRAMES): Boolean {
+        log(SensorWatchLines.pinStartLine(PinAttempt.entries, burstFrames))
+        val survey = try {
+            camera.survey()
+        } catch (cancelled: CancellationException) {
+            log(SensorWatchLines.pinEndLine(false, "the probe was cancelled during the survey; nothing was borrowed", emptyMap()))
+            throw cancelled
+        } catch (failure: Exception) {
+            log(SensorWatchLines.pinEndLine(false, "the survey failed, so nothing was borrowed: $failure", emptyMap()))
+            return false
+        }
+        val (logical, physicals) = when (survey) {
+            is PinSurvey.Ready -> survey.logical to survey.physicals
+            is PinSurvey.Unsupported -> survey.logical to survey.physicals
+        }
+        logical?.let { log(SensorWatchLines.lensLine("logical", it)) }
+        physicals.forEach { log(SensorWatchLines.lensLine("physical", it)) }
+        when (survey) {
+            is PinSurvey.Ready -> log(SensorWatchLines.choiceLine(survey.mainWideId, survey.reason))
+            is PinSurvey.Unsupported -> log(SensorWatchLines.choiceLine(null, survey.reason))
+        }
+
+        val verdicts = LinkedHashMap<String, String>()
+        var borrowed = false
+        var failure: String? = null
+        var handback: PinHandback? = null
+        try {
+            val borrow = camera.borrow()
+            log(SensorWatchLines.pinBorrowLine(borrow))
+            if (borrow is PinBorrow.Failed) {
+                failure = "the camera was not borrowed: ${borrow.reason}"
+                return false
+            }
+            borrowed = true
+            for (attempt in PinAttempt.entries) {
+                val ready = survey as? PinSurvey.Ready
+                // The control needs no main wide, so it runs even when none was found; the other two cannot.
+                val target = ready ?: if (attempt == PinAttempt.LOGICAL_CONTROL) controlOnly(survey) else null
+                if (target == null) {
+                    val reason = "no main wide physical camera was found: ${(survey as PinSurvey.Unsupported).reason}"
+                    log(SensorWatchLines.pinSkippedLine(attempt, reason))
+                    verdicts[attempt.id] = "skipped"
+                    continue
+                }
+                verdicts[attempt.id] = runOne(attempt, target, ready?.mainWideId, burstFrames)
+            }
+        } catch (cancelled: CancellationException) {
+            failure = "the probe was cancelled"
+            throw cancelled
+        } catch (error: Exception) {
+            failure = "the probe failed: $error"
+        } finally {
+            val returned = withContext(NonCancellable) {
+                try {
+                    camera.handBack()
+                } catch (error: Exception) {
+                    PinHandback(platformClosed = false, cameraxBack = false, detail = "handing the camera back threw: $error")
+                }
+            }
+            handback = returned
+            log(SensorWatchLines.pinHandbackLine(returned))
+            val handedBack = returned.platformClosed && returned.cameraxBack
+            val reason = listOfNotNull(failure, if (!handedBack) "the camera could not be confirmed handed back" else null)
+                .joinToString("; ").ifEmpty { null }
+            log(SensorWatchLines.pinEndLine(completed = reason == null, reason = reason, verdicts = verdicts))
+        }
+        val returned = handback ?: return false
+        return borrowed && failure == null && returned.platformClosed && returned.cameraxBack
+    }
+
+    /** One attempt, logged frame by frame and as a whole. Its own failure is logged as its verdict, not thrown. */
+    private suspend fun runOne(attempt: PinAttempt, survey: PinSurvey.Ready, mainWideId: String?, burstFrames: Int): String {
+        val result = try {
+            camera.attempt(attempt, survey, burstFrames)
+        } catch (cancelled: CancellationException) {
+            val cut = PinAttemptResult(attempt, null, null, null, null, null, emptyList(), "the probe was cancelled during this attempt", emptyList())
+            log(SensorWatchLines.pinAttemptLine(cut, "failed"))
+            throw cancelled
+        } catch (error: Exception) {
+            PinAttemptResult(attempt, null, null, null, null, null, emptyList(), "the attempt failed: $error", emptyList())
+        }
+        result.frames.forEach { log(SensorWatchLines.pinFrameLine(attempt, it)) }
+        val verdict = verdict(result, mainWideId)
+        log(SensorWatchLines.pinAttemptLine(result, verdict))
+        return verdict
+    }
+
+    /** The control attempt's survey when no main wide was found: the logical camera alone, with no main wide to compare to. */
+    private fun controlOnly(survey: PinSurvey): PinSurvey.Ready? {
+        val unsupported = survey as? PinSurvey.Unsupported ?: return null
+        val logical = unsupported.logical ?: return null
+        return PinSurvey.Ready(logical, unsupported.physicals, mainWideId = "", reason = unsupported.reason)
+    }
 
     companion object {
         /** "Take one RAW frame and a short burst." */
@@ -91,6 +190,17 @@ internal class PinProbe(
          * [mainWideId]; `other_sensor` when any is attributed elsewhere; `unattributed` when frames arrived but none says
          * where from; `no_frames` when the session ran but no frame arrived; `failed` when it ended in an error with no frame.
          */
-        fun verdict(result: PinAttemptResult, mainWideId: String?): String = TODO("built in the next commit")
+        fun verdict(result: PinAttemptResult, mainWideId: String?): String {
+            val arrived = result.frames.filter { it.error == null }
+            if (arrived.isEmpty()) return if (result.error != null && result.frames.isEmpty()) "failed" else "no_frames"
+            val attributed = arrived.mapNotNull { it.attributedTo }
+            return when {
+                attributed.isEmpty() -> "unattributed"
+                mainWideId.isNullOrEmpty() -> "no_main_wide_to_compare"
+                attributed.any { it != mainWideId } -> "other_sensor"
+                attributed.size < arrived.size -> "main_wide_partly_unattributed"
+                else -> "main_wide"
+            }
+        }
     }
 }
