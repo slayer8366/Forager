@@ -2,7 +2,7 @@
 
 Written by the planner (Rowan Waymark) at the owner's word ("Back up the repo into a branch so we can restart here"). It replaces `2026-10-14-planner-handoff.md` as the starting point. That file's "Next free RECORD ID" line went stale after -1047; this file is right.
 
-**Next free RECORD ID: -1078.** The records worktree is `~/.cache/forager-wt/records`, on branch `records-after-173`.
+**Next free RECORD ID: -1079.** The records worktree is `~/.cache/forager-wt/records`, on branch `records-after-173`.
 
 **Read first:**
 - `~/Zynergy/Forager/CLAUDE.md`;

@@ -18396,3 +18396,15 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Change:** dev-only, under app/src/debug: a watch mode logging the active physical camera ID per preview frame (rate-limited) and per still, with zoom, focus distance, exposure and switch lines; an adb zoom stepper through 0.6x to 100x as the range allows, returning to 1.0; three pinning attempts through the platform interface (a physical stream for the main wide on logical 0, the physical camera opened directly, a logical control at 1.0). Branch sensor-watch from dev 296a3420; PR into dev. No real zoom feature (B) is built; that waits for the map.
 **Finish line:** the coder's report; the planner merges into dev and runs it with the owner on the S22 and the S26 (zoom steps, close focus, dim light, pinning), then tabulates the map.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1078.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1078
+**Timestamp:** 2026-10-16T04:45:19Z
+**Continues:** 2026-09-28-1077
+**Title:** Sensor watch merged into dev; first S26 result: with RAW bound, the main wide sensor stays active from 0.6x to 10x
+**Build:** PR #231 (sensor-watch, head 347cefe8; CI 38847969759: 5,158 tests, 0 failures, 24 skipped; tests first, stub run 38846705577 failing exactly its 57 tests; seven revert checks, each compiled and each failing only its own tests, per the coder; all paths under app/src/debug or testDebug). dev backed up (dev-20261016T041655Z-296a3420.bundle) and the PR rebase-merged: e01df333, eec76f4e. Coder's verify findings: camera 0's zoom range is 0.6 to 10 on both phones; the platform documents that with a RAW stream configured a logical camera keeps its default physical camera active and does not switch; physical camera 5 is not openable by apps (only 0, 1 and 3 are listed). Coder's calls beyond the dispatch, accepted by the planner: the watch uses the camera-level session capture callback (library-internal, suppressed with reason); zoom reaches the dialog's camera by reflection and reports itself unavailable if that fails; a single zoom returns to 1.0 after its hold.
+**Device run (S26, the owner's word "Done" after unlocking and opening the camera, format RAW):** the APK installed with adb install -r. Watch on: the dialog's use cases were Preview and ImageCapture RAW_JPEG. Zoom steps 0.6, 1, 1.5, 2, 2.9, 3, 3.1, 5, 9.9, 10 (20 and above outside the range), each applied unclamped: active physical camera 5 (the main wide) on all 233 frames logged, no switch during any hold; zoom returned to 1.0. Evidence ~/Zynergy/device-evidence/2026-10-15-sensor-switch-s26/raw-zoomsteps.jsonl (off GitHub).
+**Not yet run:** the steps with JPG chosen, close focus, dim light, pinning, and the S22: the S26 dropped off USB as the format menu was opened.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1079.
