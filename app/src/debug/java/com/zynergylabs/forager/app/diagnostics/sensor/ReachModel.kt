@@ -292,13 +292,8 @@ internal object ReachRoles {
         }
     }
 
-    /** Focal length over sensor diagonal: proportional to the zoom factor a lens gives. */
-    private fun view(camera: CameraEntry): Double? {
-        val focal = camera.focalLengths.firstOrNull() ?: return null
-        val size = camera.physicalSizeMm?.takeIf { it.size == 2 } ?: return null
-        val diagonal = kotlin.math.sqrt(size[0].toDouble() * size[0] + size[1].toDouble() * size[1])
-        return if (diagonal > 0 && focal > 0f) focal / diagonal else null
-    }
+    /** Focal length over sensor diagonal: proportional to the zoom factor a lens gives ([LensView], shared with the lens chooser). */
+    private fun view(camera: CameraEntry): Double? = LensView.of(camera.focalLengths, camera.physicalSizeMm)
 
     private fun CameraEntry.toLensFacts() =
         LensFacts(cameraId, inCameraIdList, focalLengths, physicalSizeMm, cfa, pixelArray, rawSizes, capabilities, error)

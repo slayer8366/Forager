@@ -92,6 +92,9 @@ internal sealed interface RawShotOutcome {
 /** RECORD -1003, the owner's approved words, verbatim. */
 internal const val RAW_NOT_CLEAN_MESSAGE = "The RAW file couldn't be cleaned of camera details, so this photo was saved as JPG."
 
+/** The lens chooser's line (dispatch 2026-10-16-04, item 7), approved as written by the owner (RECORD -1105). Dev branch only. */
+internal const val RAW_LENS_UNSUPPORTED_MESSAGE = "This lens can't save RAW, saved as JPG."
+
 /** Amendment 1, item 5, the planner's words. */
 internal const val RAW_LOW_STORAGE_MESSAGE = "Storage is low, so this photo was saved as JPG."
 

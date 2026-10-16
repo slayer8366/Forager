@@ -22,7 +22,16 @@ internal interface CameraEngine {
     /** [held]: the camera's content is held in the device's natural frame (`NaturalOrientationHold`, RECORD -985). */
     @Composable
     fun Viewfinder(modifier: Modifier, held: Boolean)
+
+    /**
+     * The lens chooser's row (dispatch 2026-10-16-04, dev branch only), or null for no row: CameraX's engine has none, so
+     * today's camera is unchanged. The dialog places it directly above the shutter, with the message line above it.
+     */
+    val lensControls: LensControlsSlot? get() = null
 }
+
+/** The lens row: [vertical] when the shutter band runs along a side edge; both rotation terms as the strip's chips take them. */
+internal typealias LensControlsSlot = @Composable (vertical: Boolean, deviceRotation: Int?, displayRotation: Int) -> Unit
 
 /** The engine factory. CameraX unless a debug build has installed another; read once per camera open. */
 internal object CameraEngineSeam {

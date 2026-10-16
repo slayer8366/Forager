@@ -183,6 +183,24 @@ internal class PlatformCameraEngine(
     private var latestActivePhysical: String? = null
     private var loggedRotationFallback = false
 
+    // STUB (tests first, dispatch 2026-10-16-04): the lens chooser's members, so the tests compile; nothing behind them yet.
+    var lensSet: LensSet? by mutableStateOf(null)
+        private set
+    var litLens: Lens? by mutableStateOf(null)
+        private set
+    var zoom: Double by mutableStateOf(1.0)
+        private set
+    var previewScale: Float by mutableStateOf(1f)
+        private set
+    var viewfinderPreviewSize: com.zynergylabs.forager.app.domain.PixelSize? by mutableStateOf(null)
+        private set
+    var viewfinderSensorOrientation: Int? by mutableStateOf(null)
+        private set
+
+    fun onLensTapped(lensId: String) = Unit
+
+    fun onPinch(factor: Float) = Unit
+
     // ── Open, lifecycle, close ────────────────────────────────────────────────────────────────────────────────────────
 
     override fun open(lifecycleOwner: LifecycleOwner) {

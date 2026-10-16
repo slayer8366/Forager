@@ -9,7 +9,10 @@ import android.view.OrientationEventListener
 import android.view.Surface
 import android.view.TextureView
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -83,6 +86,13 @@ internal fun PlatformViewfinder(engine: PlatformCameraEngine, modifier: Modifier
     val view = remember { TextureView(context) }
     val isHeld by rememberUpdatedState(held)
 
+    // Re-applied when the lens or the zoom changes the transform's inputs (Compose state on the engine).
+    val transformHook = remember { TransformHook() }
+    LaunchedEffect(engine) {
+        snapshotFlow { Triple(engine.viewfinderPreviewSize, engine.viewfinderSensorOrientation, engine.previewScale) }
+            .collect { transformHook.apply?.invoke() }
+    }
+
     DisposableEffect(view, engine) {
         var current: Camera2PreviewTarget? = null
         var disposed = false
@@ -91,12 +101,20 @@ internal fun PlatformViewfinder(engine: PlatformCameraEngine, modifier: Modifier
             val windowRotation = view.display?.rotation ?: Surface.ROTATION_0
             engine.displayRotation = windowRotation
             val rotation = if (isHeld) Surface.ROTATION_0 else windowRotation
-            view.setTransform(previewMatrix(view.width, view.height, facts.previewSize, facts.sensorOrientation, rotation))
+            // The lens chooser (dispatch 2026-10-16-04): the streaming lens's own size and orientation, and the part of the
+            // zoom the camera did not crop itself, about the centre. Without a lens set these are the facts' own, scale 1.
+            val size = engine.viewfinderPreviewSize ?: facts.previewSize
+            val orientation = engine.viewfinderSensorOrientation ?: facts.sensorOrientation
+            val matrix = previewMatrix(view.width, view.height, size, orientation, rotation)
+            val extra = engine.previewScale
+            if (extra != 1f) matrix.postScale(extra, extra, view.width / 2f, view.height / 2f)
+            view.setTransform(matrix)
         }
+        transformHook.apply = { applyTransform() }
         val listener = object : TextureView.SurfaceTextureListener {
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
                 if (disposed) return
-                engine.facts?.previewSize?.let { size -> surface.setDefaultBufferSize(size.width, size.height) }
+                (engine.viewfinderPreviewSize ?: engine.facts?.previewSize)?.let { size -> surface.setDefaultBufferSize(size.width, size.height) }
                 val target = Camera2PreviewTarget(surface)
                 current = target
                 applyTransform()
@@ -121,6 +139,7 @@ internal fun PlatformViewfinder(engine: PlatformCameraEngine, modifier: Modifier
         view.surfaceTextureListener = listener
         view.surfaceTexture?.takeIf { view.isAvailable }?.let { listener.onSurfaceTextureAvailable(it, view.width, view.height) }
         onDispose {
+            transformHook.apply = null
             disposed = true
             // The session stops drawing into the surface now; the view lets go of it when it is detached, which calls
             // onSurfaceTextureDestroyed above, and only then is the texture released.
@@ -128,7 +147,15 @@ internal fun PlatformViewfinder(engine: PlatformCameraEngine, modifier: Modifier
         }
     }
 
-    AndroidView(factory = { view }, modifier = modifier)
+    // The pinch is on a box around the view, so it reaches the gesture whatever the view does with touches.
+    Box(modifier = modifier.lensPinch(engine)) {
+        AndroidView(factory = { view }, modifier = Modifier.matchParentSize())
+    }
+}
+
+/** The viewfinder's way to re-apply its transform from outside the surface listener; held across recompositions. */
+private class TransformHook {
+    var apply: (() -> Unit)? = null
 }
 
 /**
