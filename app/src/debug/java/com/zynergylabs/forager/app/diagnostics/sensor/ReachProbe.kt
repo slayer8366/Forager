@@ -111,7 +111,7 @@ internal class ReachProbe(
         } catch (cancelled: CancellationException) {
             log(ReachLines.attemptLine(empty(attempt, "the probe was cancelled during this attempt"), ReachVerdict.FAILED))
             throw cancelled
-        } catch (error: Exception) {
+        } catch (error: IllegalArgumentException) {
             empty(attempt, "the attempt failed: $error")
         }
         result.frames.forEach { log(ReachLines.frameLine(attempt, it)) }
