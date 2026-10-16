@@ -18383,3 +18383,16 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Observed (planner, from the read-only dumpsys captures and the saved DNGs):** both probes opened logical camera 0, a logical multi-camera made of physical cameras 2, 5, 6 and 7. S22: physical 5 is the main wide (6.4 mm lens, 9.6x7.2 mm sensor, 4000x3000, GRBG); the ultra-wide (camera 2, 2.2 mm) is 4000x3000 but RGGB; the telephotos (6 and 7, 7.9 mm and 27.2 mm) are 3648x2736. The S22 burst DNGs are 4000x3000 GRBG, so main wide. S26: physical 5 is the main wide (6.5 mm, 9.79x7.34 mm, 4080x3060, GBRG); the ultra-wide (camera 2, 2.2 mm) is 4080x3060 but GRBG; the telephotos are 3648x2736 or other. The S26 burst DNGs are 4080x3060 GBRG, so main wide. The stage 2 RAW photos (-1038, -1042, -1043) match the same sizes and layouts, so main wide too.
 **Gap:** neither probe nor the stage 2 path logs the capture result's active physical camera, and a logical camera may switch physical sensors (by zoom, light or close focus, inferred; not observed), which would put a different sensor, colour layout and noise profile into a burst. **Planner's recommendation for the production burst (stage 3):** open the main wide physical camera explicitly, or log the active physical camera on every frame and refuse to average frames from different sensors; carry the same check into the plain RAW path.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1077.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1077
+**Timestamp:** 2026-10-16T03:25:06Z
+**Continues:** 2026-09-28-1076
+**Title:** Sensor watch on the dev build: which physical camera feeds camera 0 by zoom, focus distance and light, with a dev-only zoom stepper; and whether the main sensor can be pinned (owner)
+**Dispatch-file:** preserved/2026-10-15-12.md
+**The owner, verbatim:** "We should probably figure out the sensor situation first, see which camera applies when." then "Maybe implement a zoom first. See if it switches with that." Offered A (a zoom control inside a dev-only test, stepped over USB) or B (a real zoom feature in the camera, designed after the map is known), with the planner recommending A: "Go for A for now".
+**Change:** dev-only, under app/src/debug: a watch mode logging the active physical camera ID per preview frame (rate-limited) and per still, with zoom, focus distance, exposure and switch lines; an adb zoom stepper through 0.6x to 100x as the range allows, returning to 1.0; three pinning attempts through the platform interface (a physical stream for the main wide on logical 0, the physical camera opened directly, a logical control at 1.0). Branch sensor-watch from dev 296a3420; PR into dev. No real zoom feature (B) is built; that waits for the map.
+**Finish line:** the coder's report; the planner merges into dev and runs it with the owner on the S22 and the S26 (zoom steps, close focus, dim light, pinning), then tabulates the map.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1078.
