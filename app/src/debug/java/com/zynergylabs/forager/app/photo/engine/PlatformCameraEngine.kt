@@ -580,7 +580,7 @@ internal class PlatformCameraEngine(
             val shutter = camera.nowNanos()
             val precapture = precaptureIfNeeded(flash)
             val frame = try {
-                camera.captureRawJpeg(StillControls(flash, degrees, noiseReductionOff = chosen.noiseReductionOffOffered), jpegDestination)
+                camera.captureRawJpeg(StillControls(flash, degrees, noiseReductionOff = false), jpegDestination)
             } finally {
                 if (precapture) camera.endPrecapture(previewControls())
             }
