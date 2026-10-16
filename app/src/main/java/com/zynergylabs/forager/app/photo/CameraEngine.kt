@@ -30,7 +30,7 @@ internal object CameraEngineSeam {
     @Volatile
     var factory: ((Context) -> CameraEngine?)? = null
 
-    fun create(context: Context): CameraEngine = factory?.invoke(context) ?: CameraXEngine(CameraXCaptureSession(context))
+    fun create(context: Context): CameraEngine = CameraXEngine(CameraXCaptureSession(context))
 }
 
 /** Today's engine, exactly as the slot built it: one [CameraXCaptureSession] and its own viewfinder. */
