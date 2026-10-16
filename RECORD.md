@@ -18347,3 +18347,16 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Planner's call (architecture, within CLAUDE.md's rule on wrapping external data):** the T7 coder was told to load a project-owned normalised list (genus, key, class, certainty, source, note, with sha256) with FungalTraits behind an adapter, and to prove a second list drives the same join, so a swap costs a decision row and a re-run.
 **For the owner:** Q1 an own compiled list of genus facts under CC BY-NC 4.0, or outside advice first; Q2 FUNGuild as a source; Q3 non-commercial no-derivatives papers as cited references only; Q4 start plan B now (blind) or after a no or about a week of silence; Q6 "the lineage review plus one agreeing source" as the rule for "clear".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1074.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1074
+**Timestamp:** 2026-10-16T02:40:44Z
+**Continues:** 2026-09-28-1067, 2026-09-28-1069
+**Title:** S26 Ultra: no public full-resolution RAW (2x2-binned 12 MP); platform RAW bursts at 30 frames a second; its noise-reduction, hot-pixel and shading modes leave the RAW unchanged
+**The owner, verbatim:** "S26 plugged in".
+**Camera tables (read only, adb shell dumpsys media.camera, Android 17, SM-S948U):** camera driver interface AIDL v1.3 (newer than the S22's 3.5). The main back camera (logical 0; physical 2, 5, 6, 7): 4080x3060 RAW, GBRG, hardware level 3, capabilities include RAW, MANUAL_SENSOR, BURST_CAPTURE, MANUAL_POST_PROCESSING; no ULTRA_HIGH_RESOLUTION_SENSOR or REMOSAIC_REPROCESSING on any camera (0 matches). Several physical cameras report pixelArraySizeMaximumResolution 4080x3060, the same as the default, with binningFactor 2x2, and maximum-resolution stream configurations only at 1920x1080. So, as on the S22, no larger-than-12 MP RAW is offered to apps; the main sensor reads 2x2-binned (about 50 MP underneath, inferred from the factor). Evidence at ~/Zynergy/device-evidence/2026-10-15-stage3-platform-s26/ (off GitHub).
+**Fast-burst run:** the dev APK 1.0.3371+g93be8eb5 installed on the owner's S26 with adb install -r (data kept). CameraX CLOSED at 56 ms, platform device opened at 459 ms, session configured at 659 ms (PRIV 1440x1080 + RAW 4080x3060); AE and AWB converged at 1,195 ms and locked at 1,370 ms; first RAW frame 1,545 ms after the trigger. All four runs: 8 of 8 frames, 29.93 frames a second, 234 ms first to last, 8 of 8 DNGs written; heap peak 114 to 118 MB of 268 MB. Hand-back: CameraX OPEN 434 ms and the viewfinder live 568 ms after hand-back began; the chip still read RAW. Default modes HIGH_QUALITY; NR and hot pixel OFF and shading OFF reported as requested. **Planner's measurement** (same method as -1069): fine-scale temporal noise identical across runs (green 42.66 default, 42.65 NR off, 42.38 manual, 42.99 shading off; blue 38.01 to 38.18), neighbour correlation about -0.05 (the high-pass's bias). The S26's RAW is not changed by those modes.
+**Cleanup:** the 32 test DNGs were pulled (frames.tar), then removed from the S26's app storage (files/raw-burst-test), as the probe's own instructions set out.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1075.
