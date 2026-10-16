@@ -105,7 +105,7 @@ internal class ReachProbe(
     private suspend fun runOne(step: PlannedReach.Run, burstFrames: Int): ReachOutcome {
         val attempt = step.attempt
         val result = try {
-            withTimeout(attemptTimeoutMillis) { camera.attempt(attempt, burstFrames) }
+            camera.attempt(attempt, burstFrames)
         } catch (timeout: TimeoutCancellationException) {
             empty(attempt, "the attempt did not finish within $attemptTimeoutMillis ms and was cut off", timedOut = true)
         } catch (cancelled: CancellationException) {
