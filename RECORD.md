@@ -18471,3 +18471,13 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Change (1):** dispatch 2026-10-16-02: a prototype engine with viewfinder (main wide pinned by a physical stream), focus and exposure matching today's, flash with precapture, single JPG and RAW captures matching stage 2 (noise reduction off on RAW), an in-session 8-frame burst with no hand-over, disconnect recovery, automatic fallback to CameraX; measurements; a feature inventory with parity estimates and a plain manageability assessment. Dev only, behind a debug switch; any seam in dev-only commits; main and release unchanged. Branch camera-engine-a, PR into dev. B stays the backup.
 **(2):** a lens chooser (the phone maker's camera app's lens buttons, described generically) is a user-facing feature: the planner designs it with the owner as a step path, with prior art, after the camera-reach results (-1082) show which lenses give RAW. Not dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1084.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1084
+**Timestamp:** 2026-10-16T11:43:00Z
+**Title:** Planner handoff to a new session, with three subagents still running (owner)
+**Handoff-file:** prompts/preserved/2026-10-16-planner-handoff.md (this branch), replacing 2026-10-15-planner-handoff.md as the start point. The owner, verbatim: "Let's hand off to a new session".
+**Running at handoff:** the T7 full run (forecast t7-build at dccb1f4: V9 counted, one fold timed at 646 s, an 18.7-hour fit projected and proceeding); the camera-reach probe (Forager camera-reach at d12c7bad); the engine A prototype (camera-engine-a, not yet pushed). Their reports reach only the old session; the handoff says how to check and resume each. The W42 reminder (Saturday 17:00Z) is bound to the old session; the daily t6b-night restart after 07:00 PDT is a manual step; both are in the handoff with commands.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1085.
