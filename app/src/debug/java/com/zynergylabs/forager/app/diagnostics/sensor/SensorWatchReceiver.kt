@@ -30,6 +30,8 @@ import kotlinx.coroutines.launch
  * adb shell am broadcast -n com.zynergylabs.forager.app/.diagnostics.sensor.SensorWatchReceiver -a com.zynergylabs.forager.app.debug.SENSOR_ZOOM_STEPS
  * # Part 3: the three pinning attempts
  * adb shell am broadcast -n com.zynergylabs.forager.app/.diagnostics.sensor.SensorWatchReceiver -a com.zynergylabs.forager.app.debug.SENSOR_PIN
+ * # Reach (dispatch 2026-10-16-01): every camera enumerated, RAW attempted on each back camera, a per-phone table
+ * adb shell am broadcast -n com.zynergylabs.forager.app/.diagnostics.sensor.SensorWatchReceiver -a com.zynergylabs.forager.app.debug.SENSOR_REACH
  * ```
  *
  * Each returns at once; the work runs on [SensorWatchController]'s own scope and reports only through the log.
@@ -55,6 +57,7 @@ class SensorWatchReceiver : BroadcastReceiver() {
             }
             ACTION_ZOOM_STEPS -> SensorWatchController.zoomSteps(app, holdMillis(extras?.get(EXTRA_HOLD)))
             ACTION_PIN -> SensorWatchController.pin(app)
+            ACTION_REACH -> SensorWatchController.reach(app)
             else -> Log.w(SensorWatchLines.TAG, "Ignored a broadcast with action ${intent.action}.")
         }
     }
@@ -66,6 +69,7 @@ class SensorWatchReceiver : BroadcastReceiver() {
         const val ACTION_ZOOM = "com.zynergylabs.forager.app.debug.SENSOR_ZOOM"
         const val ACTION_ZOOM_STEPS = "com.zynergylabs.forager.app.debug.SENSOR_ZOOM_STEPS"
         const val ACTION_PIN = "com.zynergylabs.forager.app.debug.SENSOR_PIN"
+        const val ACTION_REACH = "com.zynergylabs.forager.app.debug.SENSOR_REACH"
         const val EXTRA_ON = "on"
         const val EXTRA_RATIO = "ratio"
         const val EXTRA_HOLD = "hold_ms"
@@ -85,6 +89,7 @@ internal object SensorWatchController {
     private var limitJob: Job? = null
     private var zoomJob: Job? = null
     private var pinJob: Job? = null
+    private var reachJob: Job? = null
 
     /** The watch turns itself off after this long, so a forgotten one does not run all day. */
     private const val WATCH_LIMIT_MILLIS = 10 * 60 * 1_000L
@@ -134,6 +139,10 @@ internal object SensorWatchController {
             log(SensorWatchLines.busyLine(asked, "the pinning probe holds the camera; try again when its pin_end line is logged"))
             return
         }
+        if (reachJob?.isActive == true) {
+            log(SensorWatchLines.busyLine(asked, "the reach probe holds the camera; try again when its reach_end line is logged"))
+            return
+        }
         val previous = zoomJob
         zoomJob = scope.launch {
             previous?.cancelAndJoin()
@@ -159,6 +168,10 @@ internal object SensorWatchController {
             log(SensorWatchLines.busyLine("pin", "a zoom command is running; try again when its zoom_end line is logged"))
             return
         }
+        if (reachJob?.isActive == true) {
+            log(SensorWatchLines.busyLine("pin", "the reach probe holds the camera; try again when its reach_end line is logged"))
+            return
+        }
         pinJob = scope.launch {
             val platform = PlatformPinCamera(context)
             try {
@@ -170,6 +183,28 @@ internal object SensorWatchController {
                 log(SensorWatchLines.pinEndLine(false, "the probe failed outside its steps: $failure", emptyMap()))
             } finally {
                 platform.close()
+            }
+        }
+    }
+
+    /** The reach probe (dispatch 2026-10-16-01). It borrows the camera, so it refuses while the pin probe or a zoom runs, and they refuse while it runs. */
+    fun reach(context: Context) {
+        when {
+            reachJob?.isActive == true -> log(SensorWatchLines.busyLine("reach", "the reach probe is already running"))
+            pinJob?.isActive == true -> log(SensorWatchLines.busyLine("reach", "the pinning probe holds the camera; try again when its pin_end line is logged"))
+            zoomJob?.isActive == true -> log(SensorWatchLines.busyLine("reach", "a zoom command is running; try again when its zoom_end line is logged"))
+            else -> reachJob = scope.launch {
+                val platform = PlatformReachCamera(context)
+                try {
+                    ReachProbe(platform, log = ::log).runAll()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    // runAll hands back in its own finally; this catches only what escapes it, and says so.
+                    log(ReachLines.endLine(false, "the probe failed outside its steps: $failure", emptyMap()))
+                } finally {
+                    platform.close()
+                }
             }
         }
     }
