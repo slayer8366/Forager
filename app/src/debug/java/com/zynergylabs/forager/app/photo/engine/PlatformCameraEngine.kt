@@ -508,8 +508,21 @@ internal class PlatformCameraEngine(
 
     private fun updatePreviewScale(achieved: Double?) {
         val requested = appliedCrop?.crop ?: 1.0
-        previewScale = if (achieved == null || achieved <= 0.0) 1f else (requested / achieved).coerceIn(1.0, requested).toFloat()
+        val scale = if (achieved == null || achieved <= 0.0) 1f else (requested / achieved).coerceIn(1.0, requested).toFloat()
+        // Logged when the reading changes, so the device check sees whether the phone crops the lens itself (the S26 lists no
+        // per-lens crop key, RECORD -1106) or the viewfinder is making up the zoom.
+        if (achieved != null) {
+            val line = "engine=platform event=viewfinder_crop lens=${appliedCrop?.lensId} crop_requested=${fmt(requested)} " +
+                "crop_achieved=${fmt(achieved)} view_scale=${fmt(scale.toDouble())}"
+            if (line != lastCropLine) {
+                lastCropLine = line
+                log(line)
+            }
+        }
+        previewScale = scale
     }
+
+    private var lastCropLine: String? = null
 
     /**
      * Brings the camera to [targetLens] at the current zoom: a new session when the lens changes (the picture holds its last
