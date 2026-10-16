@@ -18526,3 +18526,35 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Planner's note:** -1086 recorded the owner's choice of the planner's recommended option, "Pre-main + experiments (Recommended)". This entry corrects it at the owner's word. -1086 is not edited.
 **Done with this entry:** the planner profile on branch methodology-main-gate is corrected to match, and the planner's memory is reverted to "rebase dev onto main".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1088.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1088
+**Timestamp:** 2026-10-16T12:28:50Z
+**Continues:** 2026-09-28-1082
+**Corrects:** 2026-09-28-1079, the label "the 10x telephoto" for S26 physical camera 7
+**Title:** Camera reach probe built and the pin probe's stall fixed: PR #232 into dev, green, unmerged, not yet run on a phone; S26 camera 7 is an about-5x telephoto, not 10x
+**Report-file:** preserved/2026-10-16-01-report.md (the coder's completion report, forwarded verbatim by the previous planner session and filed unedited)
+**Build:** PR #232 (camera-reach, head a73fcdb0, base dev; tests first d12c7bad, compile fix 2b21e5cd). According to the coder: the failing-first run 38895799216 had 34 failures, exactly the dispatch's 34 tests, including the stall reproduced in PinProbeStallTest ("runAll never returned: the probe stalled after the refused direct open"); eight revert checks (r1 to r8, runs 38899507291 to 38899603938), each compiled with 91 tests and each failing only its own tests. Extra branches camera-reach-wip-backup and camera-reach-revert-r1 to r8 are for the tidiness pass.
+**Planner's checks (gh, 2026-10-16):** PR #232 is OPEN and MERGEABLE at a73fcdb0; CI run 38897615693 succeeded on that head (pull_request); all 14 changed files are under app/src/debug or app/src/testDebug; no @Ignore is added and no assertion line is removed in the diff. Not re-run by the planner: the failing-first counts and the revert checks.
+**Coder's findings:** the old probe did start attempt 3 and it never returned (correcting -1079's "never ran"). The camera open and the session configure had no time limit, and both now have 5 s. Which wait hung on the S26, and whether the main thread was blocked, could not be determined.
+**Coder's calls beyond the dispatch, accepted by the planner:**
+- the verdicts timed_out, failed and not_attempted;
+- configure refusals logged as refused, stoppedAt configure;
+- a no from the session query logged as unsupported;
+- pairs only where both cameras share a RAW size within a 16 MP operating limit, one frame each;
+- direct opens only for listed IDs;
+- front cameras listed, not attempted;
+- roles from the field-of-view ratio;
+- reachable_no_raw for a camera without RAW;
+- the pin probe's borrow and hand-back reused;
+- PinProbe's constructor takes log last.
+**Correction to -1079:** the coder computed camera 7 at about 4.9x the main wide. The planner recomputed it from ~/Zynergy/device-evidence/2026-10-15-stage3-platform-s26/dumpsys-media-camera.txt (focal length over sensor diagonal):
+- the main wide (5): 6.5 mm on 9.792x7.344 mm;
+- camera 6: 7.0 mm on 3.648x2.736 mm, giving 2.89x;
+- camera 7: 18.6 mm on 5.712x4.284 mm, giving 4.91x.
+
+So camera 7 is an about-5x telephoto, which the phone switched to at 9.9x to 10x zoom (-1079). -1079's "the 10x telephoto" was a label taken from the zoom step, and it stands corrected here, not edited. Why the phone waits until 10x to use it is not known.
+**Not yet done:** the merge into dev and the device runs on the S26 then the S22 (dispatch 2026-10-16-01, "The planner runs it"). Both wait for the owner's word and a phone. camera-engine-a, also into dev, is based on eec76f4e. If PinProbe's changed constructor affects it, that shows when its PR is merged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1089.
