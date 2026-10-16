@@ -13,6 +13,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -241,9 +243,11 @@ class LensRowTouchTest {
         composeRule.waitForIdle()
 
         assertEquals(RAW_LENS_UNSUPPORTED_MESSAGE, "This lens can't save RAW, saved as JPG.")
-        val notice = composeRule.onNodeWithTag(CAMERA_NOTICE_TAG).fetchSemanticsNode()
-        val text = notice.config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString("") { it.text }
-        assertEquals("This lens can't save RAW, saved as JPG.", text)
+        // The notice slot's own text, exactly: the tag is on OverlayText's box, the text on the filled pass inside it.
+        val texts = composeRule.onAllNodes(hasAnyAncestor(hasTestTag(CAMERA_NOTICE_TAG)), useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .flatMap { node -> node.config.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.Text) { emptyList() }.map { it.text } }
+        assertEquals(listOf("This lens can't save RAW, saved as JPG."), texts)
         assertNull("saved as a JPG, with no RAW file", (captured.single() as CameraCapturePhotoSource).rawFile)
         assertEquals("the row did not move", rowBefore, bounds(LENS_ROW_TAG))
     }
