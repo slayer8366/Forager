@@ -147,7 +147,7 @@ internal class PinProbe(
             // Bounded (dispatch 2026-10-16-01): a hand-back that hangs is reported as not handed back, never waited on for ever.
             val returned = withContext(NonCancellable) {
                 try {
-                    withTimeout(handBackTimeoutMillis) { camera.handBack() }
+                    camera.handBack()
                 } catch (timeout: TimeoutCancellationException) {
                     PinHandback(platformClosed = false, cameraxBack = false, detail = "the hand-back did not finish within $handBackTimeoutMillis ms: the dialog's camera may be dead")
                 } catch (error: Exception) {
