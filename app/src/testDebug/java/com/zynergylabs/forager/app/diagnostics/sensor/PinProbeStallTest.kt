@@ -33,9 +33,6 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PinProbeStallTest {
 
-    private val logical = LensFacts("0", true, listOf(6.5f), listOf(9.792f, 7.344f), 2, "4080x3060", listOf("4080x3060"), listOf(0, 3, 11))
-    private val main = LensFacts("5", false, listOf(6.5f), listOf(9.792f, 7.344f), 2, "4080x3060", listOf("4080x3060"), listOf(0, 3))
-    private val ready = PinSurvey.Ready(logical, listOf(main), "5", "matches the logical camera")
 
     /** The S26's attempt 2, as its log line reads (pin.jsonl, READ). */
     private fun refusedDirect() = PinAttemptResult(
@@ -64,7 +61,7 @@ class PinProbeStallTest {
         var cameraxReleased = false
         var platformOpen = false
 
-        override suspend fun survey(): PinSurvey = ready.also { calls += "survey" }
+        override suspend fun survey(): PinSurvey = READY.also { calls += "survey" }
 
         override suspend fun borrow(): PinBorrow {
             calls += "borrow"
@@ -105,7 +102,7 @@ class PinProbeStallTest {
                 PinAttempt.LOGICAL_CONTROL -> openThenHang()
             }
         })
-        val ok = withTimeoutOrNull(TEN_MINUTES) { PinProbe(camera, { lines += it }, attemptTimeoutMillis = 45_000L).runAll() }
+        val ok = withTimeoutOrNull(TEN_MINUTES) { PinProbe(camera, attemptTimeoutMillis = 45_000L) { lines += it }.runAll() }
 
         assertNotNull("runAll never returned: the probe stalled after the refused direct open, as on the S26 (RECORD -1079). Calls: ${camera.calls}", ok)
         assertEquals(allThree, camera.calls)
@@ -131,7 +128,7 @@ class PinProbeStallTest {
                 PinAttempt.LOGICAL_CONTROL -> openThenHang()
             }
         })
-        val ok = withTimeoutOrNull(TEN_MINUTES) { PinProbe(camera, { lines += it }, attemptTimeoutMillis = 45_000L).runAll() }
+        val ok = withTimeoutOrNull(TEN_MINUTES) { PinProbe(camera, attemptTimeoutMillis = 45_000L) { lines += it }.runAll() }
 
         assertNotNull("runAll never returned. Calls: ${camera.calls}", ok)
         assertEquals(allThree, camera.calls)
@@ -144,7 +141,7 @@ class PinProbeStallTest {
     fun `a hand-back that never finishes is cut off at its own timeout and reported as not handed back`() = runTest {
         val camera = Camera(attemptBehaviour = { frames(it) }, handBackBehaviour = { hang() })
         val ok = withTimeoutOrNull(TEN_MINUTES) {
-            PinProbe(camera, { lines += it }, attemptTimeoutMillis = 45_000L, handBackTimeoutMillis = 30_000L).runAll()
+            PinProbe(camera, attemptTimeoutMillis = 45_000L, handBackTimeoutMillis = 30_000L) { lines += it }.runAll()
         }
 
         assertNotNull("runAll never returned: the hand-back held the probe", ok)
@@ -164,6 +161,9 @@ class PinProbeStallTest {
     }
 
     private companion object {
+        val LOGICAL = LensFacts("0", true, listOf(6.5f), listOf(9.792f, 7.344f), 2, "4080x3060", listOf("4080x3060"), listOf(0, 3, 11))
+        val MAIN = LensFacts("5", false, listOf(6.5f), listOf(9.792f, 7.344f), 2, "4080x3060", listOf("4080x3060"), listOf(0, 3))
+        val READY = PinSurvey.Ready(LOGICAL, listOf(MAIN), "5", "matches the logical camera")
         const val DAY_MILLIS = 24 * 60 * 60 * 1_000L
         const val TEN_MINUTES = 10 * 60 * 1_000L
     }
