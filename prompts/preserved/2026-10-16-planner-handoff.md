@@ -26,7 +26,7 @@ A new session cannot receive their reports. Check each on GitHub:
    - The V9 count is done: `46792fe`, `docs/audits/2026-10-16-t7-v9-counts.md`.
    - One fold was timed: `dccb1f4`, 646 s, projecting **18.7 h of fits** (under the 24 h stop), so the full fit is proceeding.
    - Outputs go to `/mnt/work/Zynergy/forecast-data/t7/`; the report will be `docs/audits/2026-10-16-t7-fit-report.md`.
-   - The fit may run inside the old session's process. If that session closes, check whether a fit process or user unit is still running (`ps -ef | grep -i t7`, `systemctl --user list-units`). If it died, restart it from the fit script on `t7-build`, which has a cache.
+   - **Checked at handoff:** the fit runs detached in its own systemd scope (`run-p2116775-…scope`, process 2116775, `scripts/t7_fit.py fit /mnt/work/Zynergy/forecast-data/t7/fit docs/audits/2026-10-16-t7-fit --threads 4`). Its parent is the user's systemd manager, not the coder's shell, so it should survive the old session closing. Check with `systemctl --user list-units | grep run-p2116775`. When it ends, read its evidence folder and write or finish the fit report if the coder could not. If it died, restart it from the same command; the fit script has a cache.
 2. **Camera reach probe** (Forager branch `camera-reach`, dispatch `2026-10-16-01`, RECORD -1082).
    - Fixes the pin probe's stall and maps RAW reach for every physical camera.
    - Last seen head `d12c7bad`; a PR into dev comes when it is done.
