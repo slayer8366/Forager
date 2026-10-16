@@ -18958,3 +18958,17 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 - on the S26, the lens's own full size is 4080x3060 (no 4000x3000 is listed), so 1x JPGs on engine A there become 4080x3060.
 **Not yet done:** the merge into dev and the device check (12 steps, S26 then S22).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1110.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1110
+**Timestamp:** 2026-10-16T22:51:27Z
+**PR:** 236
+**Head:** lens-chooser (4590cee5)
+**Base:** dev
+**Merge-commit:** dev 2511960c to be46972e (rebase merge, pinned to the PR's head); dev's tree equals 4590cee5's
+**Backup:** dev-20261016T225054Z-2511960c.bundle (verified)
+**The owner, verbatim:** "Yellow number (Recommended)"; "Yes, use the lens's full size (Recommended)"; "Yes, S26 first (Recommended)".
+**What the answers set:** the active lens's number is yellow, the others white, all outlined; on the S26 each lens's own size is 4080x3060 (3648x2736 on the 3x), so engine A's 1x JPGs there are 4080x3060; the lens chooser goes on dev and is checked on the S26, then the S22. The device APK is CI run 38969009155's (the same tree), kept at ~/Zynergy/device-evidence/2026-10-16-lens-chooser-apk/.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1111.
