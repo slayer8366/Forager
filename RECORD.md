@@ -18585,3 +18585,73 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **For the owner:** (1) noise reduction on the JPG of a RAW shot (one exposure means one request, so that JPG is unsmoothed too; two requests give it smoothing back from a different exposure); (2) flash and the burst (the burst fires no flash). The A-or-B decision waits for the device checks.
 **Not yet done:** the merges into dev (#232 first, then #233; both edit src/debug/AndroidManifest.xml), and the seven device checks on the S26 then the S22, with the switch on and off. These wait for the owner's word and a phone.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1090.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1090
+**Timestamp:** 2026-10-16T12:42:22Z
+**Continues:** 2026-09-28-1089, 2026-09-28-1064
+**Title:** A RAW shot is one exposure, and its JPG is unsmoothed too (owner); flash during automatic bursts is left to stage 3
+**The owner, verbatim:** to the planner's question on the JPG beside a RAW shot under engine A: "One exposure, both unsmoothed (Recommended)". To what happens when the flash fires once ordinary photos are automatic bursts: "Decide at stage 3".
+**What it sets:** a RAW shot is taken as one request. The RAW and the JPG beside it (its preview, thumbnail and placeholder) come from the same exposure, and both have the phone's noise reduction OFF. This keeps -1064 exactly, and the preview shows the same instant as the RAW. In dim light the preview will look grainier than today's: today's camera library takes RAW shots with the phone's default noise reduction (-1064: "applies when the RAW capture path is next changed"). The prototype's choice stands as built (-1089). The flash rule for bursts is not decided; the prototype's burst fires no flash and is a test tool.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1091.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1091
+**Timestamp:** 2026-10-16T12:42:22Z
+**Repository:** Forager
+**Merges:**
+- pre-main fast-forwarded ff0c84f4..402489ae (main's head) at 2026-10-16T12:39Z by the planner's push; pre-main held no commit of its own.
+- PR #232 (camera-reach, head a73fcdb0) into dev at 12:40:19Z: dev eec76f4e to 2397b7e9 (389d2d13, 045164c9, 2397b7e9). dev's tree equals a73fcdb0's tree.
+- PR #233 (camera-engine-a, head 8c33f1b8, marked ready from draft) into dev at 12:40:59Z: dev 2397b7e9 to 2511960c (3fa9868c, 2f3674af, 46c573ba, 2511960c).
+**Method:** rebase merges, each pinned to the PR's tested head with --match-head-commit, as dev's earlier PRs were merged (-1053, -1069, -1078).
+**Backup:** dev-20261016T124003Z-eec76f4e.bundle in ~/Zynergy/forager-repo-backups/ (refs/remotes/origin/dev at eec76f4e), verified, sha256 f3d42c3726e862ff6079…
+**The owner, verbatim:** to "Go ahead with bringing pre-main level with main?": "Yes, push it (Recommended)". The planner's first push at about 12:30Z had been refused by the session's permission check (-1086); this retry followed the owner's word. To "Merge both camera helpers' work into dev (backing it up first), then run the checks on the S26 first and the S22 after?": "Yes, both, S26 first (Recommended)".
+**Planner's checks:** before #233's merge, a trial merge of 8c33f1b8 onto 2397b7e9 (git merge-tree) was clean. Both PRs edit app/src/debug/AndroidManifest.xml, in different places. dev's tree after the merge equals the trial tree 1b1aeb5a. The combination of #232 and #233 was untested by CI at merge; dev's push run on 2511960c is awaited before anything is installed on a phone.
+**Not yet done:** dev's CI on 2511960c; the device runs (reach probe, then engine A's seven checks) on the S26, then the S22.
+**Notes:** Written by the planner by hand, on branch records-after-173. Branches left for the tidiness pass: camera-reach, camera-reach-wip-backup, camera-reach-revert-r1 to r8, camera-engine-a, and engine A's seven revert branches. Next free ID -1092.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1092
+**Timestamp:** 2026-10-16T12:42:22Z
+**Continues:** 2026-09-28-1085
+**Title:** The UX auditor's QA philosophy draft is filed: 13 principles in the owner's words, 8 proposed (A1 to A8), 24 questions for the owner
+**Report-file:** preserved/2026-10-16-03-report.md (the auditor's completion report, filed unedited)
+**Observed:** branch qa-philosophy-draft at f46740f9 (158d6a46, c6c625c6, f46740f9) from main 402489ae; one file, docs/process/qa-philosophy-draft.md, 227 lines, about 3,600 words with its appendices (over the dispatch's aim of 1,500, which the auditor disclosed). The auditor confirmed no QA philosophy existed on main, pre-main, dev or records-after-173.
+- The thirteen principles in the owner's words, each quoted with its source:
+  - Don't make me think;
+  - report results honestly;
+  - honest, then one step beyond;
+  - every failure has a fallback;
+  - nothing fully obstructs the map;
+  - Back retraces the way in;
+  - the camera screen never rotates;
+  - what the user set stays set;
+  - data reads at a glance;
+  - polish is even, and smooth;
+  - measured against what people already know;
+  - Forager never identifies a mushroom;
+  - no developer tools in what the public gets.
+- The auditor's eight proposals:
+  - A1, starts and doesn't crash on a real phone;
+  - A2, an update never costs records;
+  - A3, accessible;
+  - A4, survives interruption;
+  - A5, nothing unfinished;
+  - A6, known bugs listed;
+  - A7, public words stay true;
+  - A8, battery cost stated.
+- The verdict definitions, what only a phone can show, and questions 1 to 24.
+- Where prior art disagrees with an owner ruling: the camera's fixed layout against the accessibility standard's orientation item (Q15), and the platform backup kept off (Q22). Two rulings pull different ways in Q17.
+**Planner's checks:** the branch is pushed and matches the report; the diff from 402489ae is the one file. The planner read sections 1 to 5 in full and the questions as reported.
+**Premise corrections, the auditor's:**
+- Back is defined in -383, with -255 one instance of it.
+- "Remove every trace" is -926, not -930.
+**One of the auditor's "could not check" items is answered by the record:** the corrected privacy policy is live on the site (-1068).
+**For the owner:** questions 1 to 24, numbered for a phone answer. The auditor revises from the answers, and the ruled version goes into pre-main as docs/process/qa-philosophy.md on the owner's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1093.
