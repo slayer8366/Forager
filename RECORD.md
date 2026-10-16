@@ -18558,3 +18558,30 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 So camera 7 is an about-5x telephoto, which the phone switched to at 9.9x to 10x zoom (-1079). -1079's "the 10x telephoto" was a label taken from the zoom step, and it stands corrected here, not edited. Why the phone waits until 10x to use it is not known.
 **Not yet done:** the merge into dev and the device runs on the S26 then the S22 (dispatch 2026-10-16-01, "The planner runs it"). Both wait for the owner's word and a phone. camera-engine-a, also into dev, is based on eec76f4e. If PinProbe's changed constructor affects it, that shows when its PR is merged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1089.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1089
+**Timestamp:** 2026-10-16T12:36:12Z
+**Continues:** 2026-09-28-1083
+**Title:** Camera engine A prototype built: draft PR #233 into dev, green, not yet run on a phone. The coder's tentative read is that A is manageable, at the cost of the camera library's device fixes. Two choices for the owner
+**Report-file:** preserved/2026-10-16-02-report.md (the coder's completion report, forwarded verbatim by the previous planner session and filed unedited)
+**Build:** PR #233 (camera-engine-a, a draft, head 8c33f1b8, base dev):
+- the seam e265c81d, a new photo/CameraEngine.kt and 3 changed lines in ui/log/InAppCameraHost.kt, in a dev-only commit;
+- tests first 016839de;
+- a test-host fix f7e1f025;
+- the build 8c33f1b8, about 2,600 lines of debug source and 1,370 of tests in photo/engine/.
+
+According to the coder: the stub run 38897205517 had 45 failures, exactly the 45 new tests. Four of them first failed for the wrong reason (no host activity), and after f7e1f025 the re-run 38898771752 failed all four on the stubs. The test fake was changed in the build commit to honour a plan with no RAW stream, which is flagged by the coder. Seven revert checks (runs 38900533735 to 38900556937) each compiled with 45 tests and each failed only its predicted tests.
+**Planner's checks (gh, 2026-10-16):** PR #233 is OPEN, a draft and MERGEABLE at 8c33f1b8; CI run 38898928304 succeeded on that head (pull_request); 22 files changed, all under app/src/debug or app/src/testDebug except the two seam files; no @Ignore is added and no assertion line is removed. The planner read the seam diff in full. With no factory installed, CameraEngineSeam.create returns CameraXEngine(CameraXCaptureSession(context)), and its Viewfinder calls the session's own Viewfinder with the same held value, so the default path is today's. Not re-run by the planner: the failing-first counts and the revert checks.
+**Coder's findings:**
+- Today's camera has continuous autofocus with auto exposure and white balance, and no tap-to-focus.
+- The camera library carries 63 device fixes (11 for flash) that A doesn't have.
+- The camera2 file (about 900 lines) can't be tested off a phone.
+- Estimate: 2 to 4 weeks of device work on the two phones to reach parity, then an open-ended tail on testers' phones.
+- The fallback catches errors and missing frames, but not a wrong-colour or underexposed flash shot.
+- The main-wide rule duplicates camera-reach's MainWideChooser on purpose.
+**For the owner:** (1) noise reduction on the JPG of a RAW shot (one exposure means one request, so that JPG is unsmoothed too; two requests give it smoothing back from a different exposure); (2) flash and the burst (the burst fires no flash). The A-or-B decision waits for the device checks.
+**Not yet done:** the merges into dev (#232 first, then #233; both edit src/debug/AndroidManifest.xml), and the seven device checks on the S26 then the S22, with the switch on and off. These wait for the owner's word and a phone.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1090.
