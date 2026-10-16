@@ -45,6 +45,8 @@ import com.zynergylabs.forager.app.diagnostics.burst.findPreviewView
 import java.util.Collections
 import java.util.Locale
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellationException
@@ -115,6 +117,9 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
     private val openDevices: MutableList<CameraDevice> = Collections.synchronizedList(mutableListOf())
     private val deviceEvents: MutableList<String> = Collections.synchronizedList(mutableListOf())
     private val closedSignals: MutableMap<String, CompletableDeferred<Unit>> = Collections.synchronizedMap(HashMap())
+
+    /** Opens asked for that have not yet had their first answer (onOpened, onError, onDisconnected, or a throw). */
+    private val pendingOpens = AtomicInteger(0)
 
     // ── Survey ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -249,7 +254,7 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
             val outputs = listOf(OutputConfiguration(previewImages.surface), rawOutput)
             sessionQuery = querySession(opened, outputs)
 
-            val configuredSession = configureSession(opened, outputs)
+            val configuredSession = configureSessionBounded(opened, outputs)
             configured = configuredSession != null
             if (configuredSession == null) {
                 return result(
@@ -306,6 +311,10 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
     override suspend fun handBack(): PinHandback {
         checkMainThread()
         val details = mutableListOf<String>()
+        // An open an attempt was cut off from may still answer; wait for it, so its device is closed below, not after CameraX reopens.
+        if (!awaitCondition(OPEN_TIMEOUT_MILLIS) { pendingOpens.get() == 0 }) {
+            details += "${pendingOpens.get()} camera open(s) had not answered within $OPEN_TIMEOUT_MILLIS ms of the hand-back"
+        }
         // Any device an attempt could not see close is closed again first, so CameraX's reopen never meets one.
         synchronized(openDevices) { openDevices.toList() }.forEach { closeDevice(it, details) }
         val platformClosed = synchronized(openDevices) { openDevices.isEmpty() }
@@ -458,21 +467,37 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
         return frames
     }
 
-    private suspend fun openDevice(cameraId: String): CameraDevice = suspendCancellableCoroutine { continuation ->
+    /**
+     * Opens [cameraId], bounded (dispatch 2026-10-16-01): an open that reports neither onOpened, onError nor
+     * onDisconnected within [OPEN_TIMEOUT_MILLIS] throws, so the attempt ends and its `finally` runs. A device that opens
+     * after that closes itself in its own callback, and the hand-back waits for any open still unanswered.
+     */
+    private suspend fun openDevice(cameraId: String): CameraDevice =
+        withTimeoutOrNull(OPEN_TIMEOUT_MILLIS) { openDeviceUnbounded(cameraId) }
+            ?: throw IllegalStateException("camera $cameraId reported neither onOpened, onError nor onDisconnected within $OPEN_TIMEOUT_MILLIS ms")
+
+    private suspend fun openDeviceUnbounded(cameraId: String): CameraDevice = suspendCancellableCoroutine { continuation ->
+        val answered = AtomicBoolean(false)
+        fun answer() {
+            if (answered.compareAndSet(false, true)) pendingOpens.decrementAndGet()
+        }
         val callback = object : CameraDevice.StateCallback() {
             override fun onOpened(camera: CameraDevice) {
+                answer()
                 deviceEvents += "camera ${camera.id} onOpened@${fmt(now())}"
                 openDevices += camera
                 if (continuation.isActive) continuation.resume(camera) else camera.close()
             }
 
             override fun onDisconnected(camera: CameraDevice) {
+                answer()
                 deviceEvents += "camera ${camera.id} onDisconnected@${fmt(now())}"
                 camera.close()
                 if (continuation.isActive) continuation.resumeWithException(IllegalStateException("disconnected before it opened"))
             }
 
             override fun onError(camera: CameraDevice, error: Int) {
+                answer()
                 deviceEvents += "camera ${camera.id} onError ${PlatformBurstCameraImpl.deviceErrorName(error)}@${fmt(now())}"
                 camera.close()
                 if (continuation.isActive) continuation.resumeWithException(IllegalStateException("onError ${PlatformBurstCameraImpl.deviceErrorName(error)}"))
@@ -484,11 +509,15 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
                 closedSignals.remove(camera.id)?.complete(Unit)
             }
         }
+        pendingOpens.incrementAndGet()
         try {
             manager.openCamera(cameraId, callback, handler)
         } catch (failure: CameraAccessException) {
+            // A refused open may still post onDisconnected or onError to the callback (inferred, not verified); either way it is answered.
+            answer()
             continuation.resumeWithException(IllegalStateException("openCamera threw CameraAccessException reason ${failure.reason}: ${failure.message}"))
         } catch (failure: Exception) {
+            answer()
             continuation.resumeWithException(IllegalStateException("openCamera threw $failure"))
         }
     }
@@ -521,6 +550,17 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
             "the query threw: $failure"
         }
     }
+
+    /** One configure's answer: the session, or null for onConfigureFailed. */
+    private class Configured(val session: CameraCaptureSession?)
+
+    /**
+     * Configures, bounded (dispatch 2026-10-16-01): null for onConfigureFailed; a configure that reports neither callback
+     * within [CONFIGURE_TIMEOUT_MILLIS] throws. A session configured after that closes itself in its own callback.
+     */
+    private suspend fun configureSessionBounded(device: CameraDevice, outputs: List<OutputConfiguration>): CameraCaptureSession? =
+        (withTimeoutOrNull(CONFIGURE_TIMEOUT_MILLIS) { Configured(configureSession(device, outputs)) }
+            ?: throw IllegalStateException("the session reported neither onConfigured nor onConfigureFailed within $CONFIGURE_TIMEOUT_MILLIS ms")).session
 
     @Suppress("DEPRECATION") // createCaptureSessionByOutputConfigurations is deprecated at API 30 but is the one form at the app's minSdk 26.
     private suspend fun configureSession(device: CameraDevice, outputs: List<OutputConfiguration>): CameraCaptureSession? =
@@ -663,6 +703,8 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
         const val CAMERAX_CLOSE_TIMEOUT_MILLIS = 3_000L
         const val SETTLE_TIMEOUT_MILLIS = 3_000L
         const val DEVICE_CLOSE_TIMEOUT_MILLIS = 3_000L
+        const val OPEN_TIMEOUT_MILLIS = 5_000L
+        const val CONFIGURE_TIMEOUT_MILLIS = 5_000L
         const val HANDBACK_TIMEOUT_MILLIS = 5_000L
         const val BASE_TIMEOUT_MILLIS = 2_000L
         const val PER_FRAME_TIMEOUT_MILLIS = 1_000L

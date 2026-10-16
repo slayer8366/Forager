@@ -2,7 +2,9 @@ package com.zynergylabs.forager.app.diagnostics.sensor
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 /** Part 3's three ways of getting RAW from the main wide sensor only, in the dispatch's order. */
 internal enum class PinAttempt(val id: String) {
@@ -81,9 +83,9 @@ internal interface PinCamera {
  */
 internal class PinProbe(
     private val camera: PinCamera,
-    // Stub for the tests-first commit (dispatch 2026-10-16-01): accepted, not yet used. Before [log], so a trailing log lambda still binds.
-    @Suppress("unused") private val attemptTimeoutMillis: Long = ATTEMPT_TIMEOUT_MILLIS,
-    @Suppress("unused") private val handBackTimeoutMillis: Long = HANDBACK_TIMEOUT_MILLIS,
+    // Before [log], so a trailing log lambda still binds.
+    private val attemptTimeoutMillis: Long = ATTEMPT_TIMEOUT_MILLIS,
+    private val handBackTimeoutMillis: Long = HANDBACK_TIMEOUT_MILLIS,
     private val log: (String) -> Unit,
 ) {
     /**
@@ -142,9 +144,12 @@ internal class PinProbe(
         } catch (error: Exception) {
             failure = "the probe failed: $error"
         } finally {
+            // Bounded (dispatch 2026-10-16-01): a hand-back that hangs is reported as not handed back, never waited on for ever.
             val returned = withContext(NonCancellable) {
                 try {
-                    camera.handBack()
+                    withTimeout(handBackTimeoutMillis) { camera.handBack() }
+                } catch (timeout: TimeoutCancellationException) {
+                    PinHandback(platformClosed = false, cameraxBack = false, detail = "the hand-back did not finish within $handBackTimeoutMillis ms: the dialog's camera may be dead")
                 } catch (error: Exception) {
                     PinHandback(platformClosed = false, cameraxBack = false, detail = "handing the camera back threw: $error")
                 }
@@ -160,10 +165,22 @@ internal class PinProbe(
         return borrowed && failure == null && returned.platformClosed && returned.cameraxBack
     }
 
-    /** One attempt, logged frame by frame and as a whole. Its own failure is logged as its verdict, not thrown. */
+    /**
+     * One attempt, logged frame by frame and as a whole. Its own failure is logged as its verdict, not thrown; one that
+     * does not finish within [attemptTimeoutMillis] is cut off and logged `timed_out` (dispatch 2026-10-16-01: on the S26
+     * the probe logged nothing after the refused direct open, RECORD -1079, and two of the platform attempt's waits had
+     * no bound), so the next attempt and the hand-back still run.
+     */
     private suspend fun runOne(attempt: PinAttempt, survey: PinSurvey.Ready, mainWideId: String?, burstFrames: Int): String {
         val result = try {
-            camera.attempt(attempt, survey, burstFrames)
+            withTimeout(attemptTimeoutMillis) { camera.attempt(attempt, survey, burstFrames) }
+        } catch (timeout: TimeoutCancellationException) {
+            val cut = PinAttemptResult(
+                attempt, null, null, null, null, null, emptyList(),
+                "the attempt did not finish within $attemptTimeoutMillis ms and was cut off", emptyList(),
+            )
+            log(SensorWatchLines.pinAttemptLine(cut, TIMED_OUT))
+            return TIMED_OUT
         } catch (cancelled: CancellationException) {
             val cut = PinAttemptResult(attempt, null, null, null, null, null, emptyList(), "the probe was cancelled during this attempt", emptyList())
             log(SensorWatchLines.pinAttemptLine(cut, "failed"))
@@ -193,6 +210,9 @@ internal class PinProbe(
 
         /** The hand-back's ceiling, above its own bounded waits. */
         const val HANDBACK_TIMEOUT_MILLIS = 30_000L
+
+        /** The verdict of an attempt the probe cut off. */
+        const val TIMED_OUT = "timed_out"
 
         /**
          * One attempt in one word, for the planner's table: `main_wide` when every frame that arrived is attributed to
