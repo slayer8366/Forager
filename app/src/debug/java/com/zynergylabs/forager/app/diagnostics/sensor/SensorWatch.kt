@@ -119,7 +119,7 @@ internal class SensorWatch(
         detector = null
         heldByUser = false
         val notes = try {
-            camera.stopResults()
+            emptyList<String>()
         } catch (failure: Exception) {
             listOf("stopping the results threw: $failure; the callback may still be registered")
         }
