@@ -18815,3 +18815,19 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 **Not done:** the other three holds on the S22 (the S26 covered all four, -1098); the tablet.
 **The S26's 7 test photos:** the owner said "Delete the test ones". The S26 was unplugged when the S22 was connected, so they are not yet deleted.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1102.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1102
+**Timestamp:** 2026-10-16T17:40:36Z
+**Continues:** 2026-09-28-1082, 2026-09-28-1083, 2026-09-28-1098, 2026-09-28-1101
+**Title:** Camera engine A is chosen: Forager runs the camera itself through the platform camera interface, with CameraX kept as the automatic fallback (owner)
+**The owner, verbatim:** "I accept your recommendation", to the planner's "I'd recommend A, with today's camera kept as the automatic fallback", after both phones' device checks (-1098, -1101).
+**What it sets:** A, as recommended in -1082: a second camera engine behind CameraCaptureSession, CameraX kept as the automatic fallback, rolled out on the owner's phones, then testers, then everyone. B (borrowing the camera for bursts) is not pursued. The known costs, stated to the owner:
+- the camera library's 63 device-specific fixes, 11 of them for flash, which A doesn't have;
+- about 2 to 4 weeks of device work to reach parity, by the coder's estimate (-1089), then an open-ended tail on testers' phones;
+- a fallback that doesn't catch a wrong-colour or dark flash shot;
+- the brief "in use" message (-1099), for the auditor.
+**Not authorised by this:** any build. The parity work, the lens chooser (to be designed with the owner as a step path; both phones reach RAW on all four back lenses, -1095, -1101) and stage 3's pieces each need their own go. Under -1086 and -1087 the engine stays on dev until it is carried onto pre-main and promoted through the gate.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1103.
