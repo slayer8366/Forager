@@ -19073,3 +19073,19 @@ For -1105, still open, the missing fields, stated now:
 Earlier intents in this record were not re-read against RECORDING.md for this correction. The planner follows RECORDING.md from this entry on.
 
 Written by the planner by hand, on branch records-after-173. Next free ID -1116.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1116
+**Timestamp:** 2026-10-16T23:31:48Z
+**Title:** Forager's dispatch format, written to match E-GD's RECORDING.md and dispatch skills, as docs/process/dispatch-format.md on pre-main (owner)
+**The owner, verbatim:** "And dispatch format too", following -1111's header change.
+**Change:** a new document, docs/process/dispatch-format.md, defining the sections of a Forager dispatch file (prompts/preserved/), in an order that gives each intent the fields RECORDING.md requires, and saying how the dispatch, its intent and its closing entry relate.
+**Scope boundary:** that one new file, on branch dispatch-format from pre-main 53900892, as a PR into pre-main. No change to past dispatch files (preserved as written), to CLAUDE.md, to the record's header, or to app code.
+**Baseline:** pre-main 53900892. The format exists only in practice: the planner profile's "Dispatching work" (docs/process/planner-profile.md), the dispatches themselves, and E-GD Test-1's skills/dispatch-authoring and dispatch-as-file and RECORDING.md's intent fields (lines 30 to 36).
+**Prediction (outcome, planner):** the document lists 13 sections in order, each mapped to an intent field or to evidence; the next dispatch written to it yields an intent with every RECORDING.md field.
+**Prediction (mechanism, coder):** none. The planner writes it, and no coder is dispatched.
+**Finish line:** the PR is green, the owner's word to merge is given, and it is merged into pre-main, closed by a terminal.
+**Abort conditions:** the owner rejects the format, or it conflicts with CLAUDE.md (CLAUDE.md wins).
+**Notes:** Written by the planner by hand, on branch records-after-173. -1115 gave -1105 a mechanism prediction "(planner)", where RECORDING.md assigns the mechanism prediction to the coder; that is disclosed here, and the coder's mechanism is in -1109's report. Next free ID -1117.
