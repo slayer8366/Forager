@@ -18779,3 +18779,39 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **The owner, verbatim:** "2 and 3 go ahead and merge when ready", "2 a" (-1097).
 **Observed:** docs/process/qa-philosophy.md, Forager's QA philosophy as adopted under -1094 and -1097, is on pre-main. It is documents only, one file. CI run 38937441348 succeeded on the head, and the PR was merged with a merge commit pinned to that head. It reaches main at the next promotion. From now on the UX auditor audits each promotion against it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1101.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1101
+**Timestamp:** 2026-10-16T17:26:46Z
+**Continues:** 2026-09-28-1095, 2026-09-28-1098
+**Title:** S22: every back lens gives RAW, including a true 10x telephoto; engine A passes preview, photos in one hold, flash, burst (8 of 8 at 30 fps), leaving and returning, another camera app, and fallback; three more holds and the S26's test photos are left
+**The owner, verbatim:** "Delete the test ones. S22 plugged in".
+**Install:** no Forager service was running and the camera was free. The battery was at 24% and charging. dev 1.0.3382+g2511960c was installed with adb install -r over 1.0.3371. Evidence is at ~/Zynergy/device-evidence/2026-10-16-camera-reach-s22/ and 2026-10-16-engine-a-s22/ (off GitHub).
+**Reach probe:** completed in about 20 s; the hand-back had platformClosed and cameraxBack both true.
+
+| Camera | Role | RAW size | Frame rate |
+|---|---|---|---|
+| 0 | logical, direct | 4000x3000 | 30.0 fps |
+| 2 | ultra-wide 0.6x, direct and through 0 | 4000x3000 | 30.0 fps |
+| 5 | main wide, through 0 | 4000x3000 | 30.0 fps |
+| 6 | telephoto 2.9x, through 0 | 3648x2736 | 23.3 fps |
+| 7 | telephoto 10.0x, through 0 | 3648x2736 | 26.2 fps |
+
+Pairs 2+5 and 6+7 were reachable. 5, 6 and 7 were not opened directly, being unlisted. No attempt timed out or failed.
+**Engine A (the planner drove the S22 over adb, reading the screen before each tap):**
+1. Preview: open in 253 ms, first frame in 1,029 ms, 29.9 to 30.0 frames a second, RAW pinned to camera 5.
+2. Photos: one JPG (295 ms shutter to saved) and one RAW (299 ms), both in the same hold with tag 1; noise reduction 0.
+3. Flash On: precapture settled in 202 ms; RAW with flash 525 ms.
+4. Burst: locked at 16.7 ms and ISO 83; 8 of 8 frames at 30.0 fps, 233 ms first to last, 439 ms shutter to last frame; camera 5, noise reduction 0, no failures.
+5. Leaving and returning: released on Home; on return through the launcher it reopened and was streaming 0.8 s later.
+6. Another camera app: the phone's own camera app took camera 0; engine A logged disconnected, waiting, then recovered, and Forager held camera 0 again on return.
+7. Fallback: forced, and CameraX opened.
+
+One RAW photo was then taken on CameraX (today's camera) and saved as a DNG and JPG.
+
+All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any file. Afterwards the engine was set back to camerax with the flag off.
+**Not done:** the other three holds on the S22 (the S26 covered all four, -1098); the tablet.
+**The S26's 7 test photos:** the owner said "Delete the test ones". The S26 was unplugged when the S22 was connected, so they are not yet deleted.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1102.
