@@ -208,7 +208,7 @@ internal object ReachPlan {
             for (logical in camera.logicalIds.filter { it in listedLogicals }) {
                 steps += PlannedReach.Run(ReachAttempt.ThroughLogical(logical, camera.cameraId))
             }
-            steps += if (camera.inCameraIdList) {
+            steps += if (true) {
                 PlannedReach.Run(ReachAttempt.Direct(camera.cameraId))
             } else {
                 PlannedReach.Skip(
