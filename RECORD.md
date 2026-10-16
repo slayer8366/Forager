@@ -18863,3 +18863,16 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 **Before build, unverified:** whether ForagerDngWriter already writes default-crop tags; which desktop raw editors honour them (to be checked, not assumed); and how the averaging bursts of stage 3 treat a cropped zoom.
 **Not authorised by this:** any build.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1105.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1105
+**Timestamp:** 2026-10-16T20:13:23Z
+**Continues:** 2026-09-28-1103, 2026-09-28-1104
+**Title:** The lens chooser on engine A, dev only: a coder verifies and reports first, then builds on the planner's go; the camera reopens on the last lens at that lens's own zoom (owner)
+**Dispatch-file:** preserved/2026-10-16-04.md
+**The owner, verbatim:** "Start from the chosen lens' own zoom. Other than that, start it" (to the planner's full step path, including the line "This lens can't save RAW, saved as JPG." and "Start a coder on the lens chooser now?").
+**What it sets:** on reopening, the camera starts on the lens last chosen, at that lens's own zoom; a pinched zoom is not remembered. This corrects -1104's restated step 5, which the planner had written as remembering the zoom too. The no-RAW line's wording is approved as written.
+**Change:** dispatch 2026-10-16-04. Phase 1 is read only: the DNG default-crop tags in ForagerDngWriter; which raw editors honour them; how engine A switches lens and crops; the label rule; where the lens memory lives; what zoom means for stage 3; touch interception. The coder reports and stops. Phase 2, on the planner's go, builds on branch lens-chooser from dev, as a PR into dev. Tests first, real coordinate touches and a pinch, revert checks, CI only. Main and release are unchanged, and CameraX is unchanged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1106.
