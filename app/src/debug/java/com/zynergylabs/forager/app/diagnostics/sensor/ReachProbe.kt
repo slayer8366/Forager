@@ -122,7 +122,7 @@ internal class ReachProbe(
 
     /** The hand-back, bounded; one that throws or overruns is not handed back. */
     private suspend fun boundedHandBack(): PinHandback = try {
-        withTimeout(handBackTimeoutMillis) { camera.handBack() }
+        camera.handBack()
     } catch (timeout: TimeoutCancellationException) {
         PinHandback(platformClosed = false, cameraxBack = false, detail = "the hand-back did not finish within $handBackTimeoutMillis ms: the dialog's camera may be dead")
     } catch (error: Exception) {
