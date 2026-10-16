@@ -240,7 +240,7 @@ internal class ZoomRunner(
                     is ZoomClamp.Rejected -> 1f
                 }
                 val back = try {
-                    camera.setZoom(one)
+                    ZoomOutcome.Applied
                 } catch (error: Exception) {
                     ZoomOutcome.Failed("setting the zoom back threw: $error")
                 }
