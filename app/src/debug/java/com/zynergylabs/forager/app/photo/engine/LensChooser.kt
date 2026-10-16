@@ -339,7 +339,7 @@ internal class CloseFocusRule {
 
     companion object {
         const val FRAMES_TO_DECIDE = 15
-        const val NEAR_LIMIT = 0.95f
+        const val NEAR_LIMIT = 1.5f
         const val FAR_ENOUGH = 0.8f
 
         /** CaptureResult.CONTROL_AF_STATE values, restated so this file needs no camera2 import. */
