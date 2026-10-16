@@ -18677,3 +18677,30 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **The owner, verbatim:** "For the philosophy, running on a device is recommended. Also add an option for an emulator run it device check itself isn't available".
 **What it sets:** this answers the draft's question 23 (the auditor's own walk-through). A real device is the recommended way. Where a device check isn't available, an emulator run is an allowed fallback. The auditor revises the draft to say this and marks which checks an emulator can't stand in for. The planner adds the laptop's limits: the emulator is a heavy job, run only when no Gradle build or heavy forecast job is running, and the report states "emulator, not a phone" wherever it was used. Questions 1 to 22 and 24 stay open.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1095.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1095
+**Timestamp:** 2026-10-16T16:59:03Z
+**Continues:** 2026-09-28-1088, 2026-09-28-1093
+**Title:** S26 camera reach: every back camera delivers RAW through physical streams on logical camera 0 (ultra-wide, main wide, about-3x and about-5x telephotos), at 23 to 30 frames a second; the probe completed and handed back
+**The owner, verbatim:** "the S26 is plugged in"; "S26 was unlocked. You can open Forager app yourself if you need to. Camera on".
+**Install:** before installing, the planner checked that no Forager service was running and no camera client was active. The dev APK 1.0.3382+g2511960c (CI run 38902248085, re-run green) was installed with adb install -r, keeping the owner's data. Forager held camera 0 when the probe was triggered.
+**Observed (reach probe, dispatch 2026-10-16-01; evidence ~/Zynergy/device-evidence/2026-10-16-camera-reach-s26/reach.jsonl, 100 lines, off GitHub):** the probe completed in about 20 s. The borrow closed CameraX in 75 ms, and the hand-back had platformClosed true and cameraxBack true; after the run the camera client was Forager on camera 0. The reach table:
+
+| Camera | Role | How it is reached | RAW size | Frame rate |
+|---|---|---|---|---|
+| 0 | logical | direct (the active physical camera was 5) | 4080x3060 | 30.0 fps |
+| 2 | ultra-wide, 0.6x | through logical 0, and direct | 4080x3060 | 30.0 fps |
+| 5 | main wide | through logical 0 | 4080x3060 | 30.0 fps |
+| 6 | telephoto, 2.9x | through logical 0 | 3648x2736 | 26.3 fps |
+| 7 | telephoto, 4.9x | through logical 0 | 4080x3060 | 23.3 fps |
+
+- Each physical stream's 9 frames came from its own camera: activePhysicalId was 2, 5, 6 and 7 respectively.
+- Direct opens of 5, 6 and 7 were not attempted, because they are not listed.
+- RAW pairs 2+5, 2+7 and 5+7 were reachable, one frame each. Pairs with camera 6 were not attempted, since its RAW size differs.
+- No attempt timed out, failed or was refused.
+**Reading:** on the S26, RAW is reachable from all four back lenses inside one session on logical camera 0. That is what a lens chooser (-1083) can offer there. RECORD -1088's correction of camera 7 to about 5x is confirmed by the probe's own role assignment.
+**Not yet run:** the S22 reach probe, and engine A's seven device checks on both phones.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1096.
