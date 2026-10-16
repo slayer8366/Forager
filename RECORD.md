@@ -18655,3 +18655,14 @@ According to the coder: the stub run 38897205517 had 45 failures, exactly the 45
 **One of the auditor's "could not check" items is answered by the record:** the corrected privacy policy is live on the site (-1068).
 **For the owner:** questions 1 to 24, numbered for a phone answer. The auditor revises from the answers, and the ruled version goes into pre-main as docs/process/qa-philosophy.md on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1093.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1093
+**Timestamp:** 2026-10-16T13:13:01Z
+**Continues:** 2026-09-28-1091
+**Title:** dev CI on 2511960c (#232 and #233 together): the first attempt failed 1 test in the parked intermittent group, and the one re-run passed with 5,237 tests and 0 failures
+**Observed:** push run 38902248085 on dev 2511960c, attempt 1, at 12:57Z: 5,237 tests, 1 failed, 24 skipped. The failure was MushroomLogViewModelWiringTest, "a find deleted through the Journal's ViewModel leaves the Maps tab's records", AssertionError at MushroomLogViewModelWiringTest.kt:80. That is the parked intermittent group (-348/-349): the same case and line failed on PR #181's head (-600) and on back-by #199's first run, neither of which touched it, and passed on re-run both times. Neither #232 nor #233 touches the Journal, the map records or that test, and the test passed in both PRs' own runs (38897615693, 38898928304). One re-run of the failed job at 12:59Z passed (success, by 13:12Z). The re-run's unit-test report, downloaded and counted by the planner from its JUnit XML: 5,237 tests, 0 failures, 0 errors, 24 skipped, which is 5,158 + 34 + 45. The run's debug APK is kept at ~/Zynergy/device-evidence/2026-10-16-dev-2511960c-apk/ (off GitHub).
+**Next:** the device runs on the S26, then the S22: the reach probe (dispatch 2026-10-16-01), then engine A's seven checks (dispatch 2026-10-16-02), on the owner's "Yes, both, S26 first" (-1091).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1094.
