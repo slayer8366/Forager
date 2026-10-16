@@ -52,5 +52,22 @@
                 <action android:name="com.zynergylabs.forager.app.debug.PLATFORM_BURST" />
             </intent-filter>
         </receiver>
+        <!-- The sensor watch (dispatch 2026-10-15-12): which physical camera feeds the dialog's camera, by zoom, focus
+             distance and light; a zoom stepper on the dialog's camera that always returns to 1.0; and three attempts at
+             pinning RAW to the main wide sensor. Debug builds only; guarded by DUMP like the receivers above. Nothing is
+             saved but log lines. The four actions and their extras are listed in SensorWatchReceiver's own comment (an
+             XML comment cannot hold the double hyphen the extras need). Read:
+               adb logcat -v raw -s SensorWatch -->
+        <receiver
+            android:name="com.zynergylabs.forager.app.diagnostics.sensor.SensorWatchReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.zynergylabs.forager.app.debug.SENSOR_WATCH" />
+                <action android:name="com.zynergylabs.forager.app.debug.SENSOR_ZOOM" />
+                <action android:name="com.zynergylabs.forager.app.debug.SENSOR_ZOOM_STEPS" />
+                <action android:name="com.zynergylabs.forager.app.debug.SENSOR_PIN" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
