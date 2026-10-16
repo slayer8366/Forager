@@ -173,7 +173,7 @@ internal class PinProbe(
      */
     private suspend fun runOne(attempt: PinAttempt, survey: PinSurvey.Ready, mainWideId: String?, burstFrames: Int): String {
         val result = try {
-            withTimeout(attemptTimeoutMillis) { camera.attempt(attempt, survey, burstFrames) }
+            camera.attempt(attempt, survey, burstFrames)
         } catch (timeout: TimeoutCancellationException) {
             val cut = PinAttemptResult(
                 attempt, null, null, null, null, null, emptyList(),
