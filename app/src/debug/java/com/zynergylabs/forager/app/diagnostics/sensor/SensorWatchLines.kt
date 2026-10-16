@@ -256,8 +256,8 @@ internal object SensorWatchLines {
     /** camera2's `SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_*`, by value. */
     private val CFAS = listOf("RGGB", "GRBG", "GBRG", "BGGR", "RGB", "MONO", "NIR")
 
-    /** One JSON object, keys in the order added. */
-    private class JsonLine {
+    /** One JSON object, keys in the order added. Internal so the reach probe's lines ([ReachLines]) write the same way. */
+    internal class JsonLine {
         private val parts = mutableListOf<String>()
 
         private fun put(key: String, value: String): JsonLine = apply { parts += "${quote(key)}:$value" }
