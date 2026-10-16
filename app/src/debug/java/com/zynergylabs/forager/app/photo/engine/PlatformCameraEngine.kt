@@ -429,7 +429,7 @@ internal class PlatformCameraEngine(
             log("engine=platform event=camera_free reason=the dialog is in the background; it reopens on return")
             return
         }
-        if (runJob?.isActive != true) startRun()
+        if (runJob?.isActive != true) Unit
     }
 
     private suspend fun fallBack(reason: String) {
