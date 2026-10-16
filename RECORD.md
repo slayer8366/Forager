@@ -18844,3 +18844,22 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 **What it sets (design, the step path shown to the owner):** opening the camera shows a row of the phone's real back lenses above the shutter, centred, labelled by measured zoom (S26: .6, 1, 3, 5; S22: .6, 1, 3, 10), on 1 the first time. Tap 3, and the picture jumps to the 3x lens with 3 highlighted; take the photo, and it is saved from that lens, RAW included. Tap 1 to go back. The row stays put and its labels turn with the phone, like the other icons (the camera never rotates, -980, -981). A lens that can't give RAW on some phone, with RAW chosen, keeps its button and saves a JPG with the line "This lens can't save RAW, saved as JPG." (wording to be confirmed with the owner before build). Built on engine A (-1102), which can pick each physical lens (-1095, -1101).
 **Not authorised by this:** any build. Open, for later: averaging bursts on lenses other than the main (stage 3); the exact copy of the no-RAW line.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1104.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1104
+**Timestamp:** 2026-10-16T20:03:06Z
+**Continues:** 2026-09-28-1103
+**Supersedes:** 2026-09-28-1103, its "real-lens buttons only, no pinch"
+**Title:** Pinch zoom is added to the lens chooser: the best real lens is chosen automatically and the rest is cropped; a RAW keeps its whole frame with the DNG's standard crop instruction; a JPG is enlarged to full size; zoom goes up to 2x past the longest lens (owner)
+**The owner, verbatim:** "Pinch zooming should work. If RAW can't be natively cropped then maybe it can be cropped afterwards using the zoom metrics caught at capture". Then, to three questions, each answered with the planner's recommendation: "Whole frame + crop note (Recommended)"; "Enlarged to full size (Recommended)"; "2x past the longest lens (Recommended)".
+**What it sets:**
+- Pinch zooms smoothly. The camera uses the longest real lens whose view still covers the zoom, and crops the rest; that lens's button lights. Tapping a button still jumps to that lens.
+- A RAW at an in-between zoom is the chosen lens's full untouched mosaic plus the DNG's standard default-crop tags, set from the zoom at capture, so editors that honour them open it cropped and the full frame stays recoverable (consistent with -1056's real RAW).
+- A JPG at an in-between zoom is saved at the usual 4000x3000, enlarged from the crop, as phone camera apps do.
+- Pinch reaches 2x past the longest lens: S26 up to 10, S22 up to 20.
+- The rest of -1103 stands: the zoom-number buttons above the shutter, remembered while the app is open, the no-RAW line.
+**Before build, unverified:** whether ForagerDngWriter already writes default-crop tags; which desktop raw editors honour them (to be checked, not assumed); and how the averaging bursts of stage 3 treat a cropped zoom.
+**Not authorised by this:** any build.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1105.
