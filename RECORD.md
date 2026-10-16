@@ -18933,3 +18933,28 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 **The owner, verbatim:** "So full PNW forecast model done by tomorrow?", then "Go ahead and publish what we have so far". The planner warned that this is -1030's third point of no return. It said that the only T7 map so far is the smoke run's, made with the weighting bug fixed in 41f9c79 and not publishable; that the full fit was still running; that no D18 review exists; and that the credits are incomplete (the FungalTraits citation, and SCANFI missing from the attribution, V14). The planner asked what and when. Answer: "T7 map after review (Recommended)".
 **What it sets:** when the T7 full fit finishes (forecast t7-build, report docs/audits/2026-10-16-t7-fit-report.md), the planner brings its verdict against the P10 bar. If it clears the bar, an independent D18 review runs. If the review holds, the PNW relative-habitat map goes on the site as a pilot layer, labelled a pilot, with full attribution: Põlme et al. 2020 for FungalTraits (-1080), SCANFI, and the other licences V14 listed. If it misses the bar, nothing is published, and the result comes to the owner. The smoke-run outputs are never published. The D40 merge of the forecast branches and the site PR's merge are still brought to the owner by name when they are ready, as the planner said in this exchange.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1109.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1109
+**Timestamp:** 2026-10-16T21:41:32Z
+**Continues:** 2026-09-28-1105, 2026-09-28-1107
+**Title:** Lens chooser built on engine A: PR #236 into dev, green (5,280 tests, 0 failures), not yet run on a phone; two calls for the owner (the highlight colour, the S26's JPG size)
+**Report-file:** preserved/2026-10-16-04-phase2-report.md (filed unedited)
+**Build:** PR #236 (lens-chooser, head 4590cee5, base dev 2511960c): 06530ea7 tests first, e3cbc68a the build, ab48c2a1 a test-harness read fix, 4590cee5 a log line. According to the coder, of 43 new tests 35 failed over the stubs for their reason and 8 passed over them, so those 8 are not shown to bite: one property, one no-crop case, three close-focus negatives and three controls. Five revert checks (runs 38967039947 to 38967117793) each compiled and failed with an edit-specific message.
+**Planner's checks (gh):**
+- PR #236 is OPEN and MERGEABLE at 4590cee5, and CI run 38969009155 succeeded on it.
+- 24 files changed. The src/main ones (DngFileWriter, DngImageLimits, DngContract, CameraCaptureSession, CameraEngine, RawShotSaver, InAppCameraDialog, InAppCameraHost) add 69 lines and remove 1, in dev-only commits, each null, false or empty by default. One test file is under src/test.
+- No @Ignore added and no assertion line removed.
+**Coder's calls, accepted by the planner (technical):**
+- The close-focus rule: switch to the main lens after 15 frames (about 0.5 s) at 95% or more of the telephoto's minimum-focus diopters while not focused; switch back when the main lens reads farther than the limit with a 0.8 margin; it never fires without a focus distance, and that is logged.
+- All streams are physical on the chosen lens; a lens that won't configure falls back to CameraX; a lens whose RAW won't configure gets the no-RAW line.
+- The S22 crops per lens; the S26 uses the overall zoom setting, since it offers no per-lens crop.
+- A pinched lens is remembered; the close-focus stand-in is not.
+- The shutter waits up to 3 s for a lens switch.
+**For the owner:**
+- the lit lens's number shown in yellow (the camera's existing colour for meaning), with the others white;
+- on the S26, the lens's own full size is 4080x3060 (no 4000x3000 is listed), so 1x JPGs on engine A there become 4080x3060.
+**Not yet done:** the merge into dev and the device check (12 steps, S26 then S22).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1110.
