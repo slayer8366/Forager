@@ -240,7 +240,7 @@ internal object LensMemory {
  * own zoom (-1105: "Start from the chosen lens' own zoom"), or on the main wide.
  */
 internal class LensChoice(val set: LensSet, rememberedId: String?) {
-    var wanted: Lens = set.byId(rememberedId) ?: set.main
+    var wanted: Lens = set.main
         private set
     var zoom: Double = wanted.zoom
         private set
