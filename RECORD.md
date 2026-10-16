@@ -18922,3 +18922,14 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 **Planner's calls stand (-1106):** DngContract.kt gains a nullable crop field, in a dev-only commit; the lens memory is process-wide; the row is fixed directly above the shutter, with messages above it.
 **Next:** the planner gives the coder Phase 2's go (dispatch 2026-10-16-04).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1108.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1108
+**Timestamp:** 2026-10-16T20:38:40Z
+**Continues:** 2026-09-28-1030, 2026-09-28-1081
+**Title:** T7's habitat map is to be published as a pilot layer once the fit finishes, clears the P10 bar and passes an independent review, with full credits; not published if it misses the bar (owner; the third point of no return, conditionally)
+**The owner, verbatim:** "So full PNW forecast model done by tomorrow?", then "Go ahead and publish what we have so far". The planner warned that this is -1030's third point of no return. It said that the only T7 map so far is the smoke run's, made with the weighting bug fixed in 41f9c79 and not publishable; that the full fit was still running; that no D18 review exists; and that the credits are incomplete (the FungalTraits citation, and SCANFI missing from the attribution, V14). The planner asked what and when. Answer: "T7 map after review (Recommended)".
+**What it sets:** when the T7 full fit finishes (forecast t7-build, report docs/audits/2026-10-16-t7-fit-report.md), the planner brings its verdict against the P10 bar. If it clears the bar, an independent D18 review runs. If the review holds, the PNW relative-habitat map goes on the site as a pilot layer, labelled a pilot, with full attribution: Põlme et al. 2020 for FungalTraits (-1080), SCANFI, and the other licences V14 listed. If it misses the bar, nothing is published, and the result comes to the owner. The smoke-run outputs are never published. The D40 merge of the forecast branches and the site PR's merge are still brought to the owner by name when they are ready, as the planner said in this exchange.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1109.
