@@ -81,10 +81,10 @@ internal interface PinCamera {
  */
 internal class PinProbe(
     private val camera: PinCamera,
-    private val log: (String) -> Unit,
-    // Stub for the tests-first commit (dispatch 2026-10-16-01): accepted, not yet used.
+    // Stub for the tests-first commit (dispatch 2026-10-16-01): accepted, not yet used. Before [log], so a trailing log lambda still binds.
     @Suppress("unused") private val attemptTimeoutMillis: Long = ATTEMPT_TIMEOUT_MILLIS,
     @Suppress("unused") private val handBackTimeoutMillis: Long = HANDBACK_TIMEOUT_MILLIS,
+    private val log: (String) -> Unit,
 ) {
     /**
      * Surveys, borrows, makes the three attempts in order, and hands back. True when the borrow succeeded and the camera
