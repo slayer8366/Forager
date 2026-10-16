@@ -78,10 +78,16 @@ internal class LensSet(lenses: List<Lens>) {
  * The button's number (-1103): below 1 it is the tenths without the leading zero (0.58 is `.6`); from 1 up it is the
  * nearest whole number (2.89 is `3`, 4.91 is `5`, 9.99 is `10`). Measured, never a marketing figure.
  */
-internal fun lensLabel(zoom: Double): String = "" // STUB (tests first)
+internal fun lensLabel(zoom: Double): String {
+    if (zoom < 1.0) {
+        val tenths = (zoom * 10).roundToInt()
+        return if (tenths >= 10) "1" else ".$tenths"
+    }
+    return zoom.roundToInt().toString()
+}
 
 /** How much of [lens]'s frame a zoom crops away: 1.0 at the lens's own zoom, 2.0 at twice it. Never below 1. */
-internal fun cropFor(zoom: Double, lens: Lens): Double = 1.0 // STUB (tests first)
+internal fun cropFor(zoom: Double, lens: Lens): Double = (zoom / lens.zoom).coerceAtLeast(1.0)
 
 /**
  * The crop region for [crop] on an active array of [active]: centred (both phones report CENTER_ONLY cropping, the dumpsys
@@ -89,7 +95,6 @@ internal fun cropFor(zoom: Double, lens: Lens): Double = 1.0 // STUB (tests firs
  * crop starts on the same colour-filter phase.
  */
 internal fun cropRegion(active: PixelSize, crop: Double): PixelRect {
-    if (active.width > 0) return PixelRect(0, 0, active.width, active.height) // STUB (tests first)
     val width = evenAtMost((active.width / crop).roundToInt(), active.width)
     val height = evenAtMost((active.height / crop).roundToInt(), active.height)
     val left = evenFloor((active.width - width) / 2)
@@ -113,7 +118,7 @@ internal fun cropRegion(active: PixelSize, crop: Double): PixelRect {
  * left, bottom, right, as `DngImage.activeArea`), with even origin and size so the crop keeps the CFA phase.
  */
 internal fun dngDefaultCrop(width: Int, height: Int, activeArea: IntArray?, crop: Double): DngDefaultCrop? {
-    if (crop <= 1.0 + CROP_EPSILON || crop > 0) return null // STUB (tests first)
+    if (crop <= 1.0 + CROP_EPSILON) return null
     val areaWidth = activeArea?.let { it[3] - it[1] } ?: width
     val areaHeight = activeArea?.let { it[2] - it[0] } ?: height
     val sizeH = evenAtMost((areaWidth / crop).roundToInt(), areaWidth)
@@ -128,14 +133,13 @@ internal fun dngDefaultCrop(width: Int, height: Int, activeArea: IntArray?, crop
 
 /** A lens's own full-size JPG (-1107): its largest 4:3 JPEG size, or its largest size of any shape if it lists no 4:3. */
 internal fun lensJpegSize(sizes: List<PixelSize>): PixelSize? {
-    if (sizes.isNotEmpty()) return sizes.last() // STUB (tests first)
     val fourByThree = sizes.filter { abs(it.width.toDouble() / it.height - 4.0 / 3.0) < 0.01 }
     return fourByThree.ifEmpty { sizes }.maxByOrNull { it.width.toLong() * it.height }
 }
 
 /** The RAW size a lens binds at: `domain/CameraFormat.kt`'s `rawCaptureSize` rule, applied to one lens's own RAW sizes. */
 internal fun lensRawSize(rawCapable: Boolean, sizes: List<PixelSize>): PixelSize? {
-    if (!rawCapable || sizes.isNotEmpty()) return null // STUB (tests first)
+    if (!rawCapable) return null
     val admissible = sizes.filter { it.width.toLong() * it.height <= RAW_MAX_PIXELS }
     if (admissible.isEmpty()) return null
     val bound = STANDARD_RAW_SELECTOR_BOUND
@@ -199,7 +203,7 @@ internal fun buildLensSet(logical: LensReading, physicals: List<LensReading>): L
         if (raw == null) notes += "camera ${reading.cameraId}: no RAW within the operating limit; its shots are JPG"
         Lens(
             physicalId = reading.cameraId,
-            zoom = 1.0, // STUB (tests first)
+            zoom = if (reading.cameraId == mainId) 1.0 else view / mainView,
             isMain = reading.cameraId == mainId,
             sensorOrientation = reading.sensorOrientation ?: logical.sensorOrientation ?: 90,
             jpegSize = jpeg,
@@ -242,14 +246,12 @@ internal class LensChoice(val set: LensSet, rememberedId: String?) {
         private set
 
     fun tap(lens: Lens) {
-        return // STUB (tests first)
         wanted = set.byId(lens.physicalId) ?: return
         zoom = wanted.zoom
         LensMemory.lastLensId = wanted.physicalId
     }
 
     fun pinch(factor: Float) {
-        if (factor.isFinite()) return // STUB (tests first)
         if (!factor.isFinite() || factor <= 0f) return
         zoom = set.clamp(zoom * factor)
         wanted = set.lensFor(zoom)
@@ -286,7 +288,7 @@ internal class CloseFocusRule {
     private var farFrames = 0
     private var lastMain: FocusReading? = null
 
-    fun applies(wanted: Lens, main: Lens): Boolean = false && // STUB (tests first)
+    fun applies(wanted: Lens, main: Lens): Boolean =
         !wanted.isMain && wanted.zoom > main.zoom && wanted.minFocusDiopters > 0f && wanted.minFocusDiopters < main.minFocusDiopters
 
     /** The wanted lens changed. Returns whether [tooClose] changed. */
