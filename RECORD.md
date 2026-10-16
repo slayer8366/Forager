@@ -18876,3 +18876,31 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 **What it sets:** on reopening, the camera starts on the lens last chosen, at that lens's own zoom; a pinched zoom is not remembered. This corrects -1104's restated step 5, which the planner had written as remembering the zoom too. The no-RAW line's wording is approved as written.
 **Change:** dispatch 2026-10-16-04. Phase 1 is read only: the DNG default-crop tags in ForagerDngWriter; which raw editors honour them; how engine A switches lens and crops; the label rule; where the lens memory lives; what zoom means for stage 3; touch interception. The coder reports and stops. Phase 2, on the planner's go, builds on branch lens-chooser from dev, as a PR into dev. Tests first, real coordinate touches and a pinch, revert checks, CI only. Main and release are unchanged, and CameraX is unchanged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1106.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1106
+**Timestamp:** 2026-10-16T20:23:30Z
+**Continues:** 2026-09-28-1105
+**Corrects:** 2026-09-28-1104, its premise that editors honouring the DNG crop tags "open it cropped, and the full frame stays recoverable"
+**Title:** Lens chooser, Phase 1: the build is feasible, but three premises fail (the RAW crop tags, the telephotos' JPG size, a picture blank of about half a second on each lens switch); the planner's camera-table read settles the coder's open facts
+**Report-file:** preserved/2026-10-16-04-phase1-report.md (filed unedited)
+**Coder's findings (read, with file and line in the report):**
+- ForagerDngWriter writes no crop tags.
+- The DNG specification's DefaultCrop is for edge margins, and DefaultUserCrop (DNG 1.4) is the user's crop. darktable hard-cuts DefaultCrop, so the full frame can't be recovered there, and it offers DefaultUserCrop only as a crop the user can switch on. LibRaw applies neither unless the app asks, and ignores crops tighter than 0.55. RawTherapee ignores both. Adobe's editor is unverified.
+- A lens switch means a new camera session: estimated 0.45 to 0.55 s of frozen picture on the S26 and about 0.8 s on the S22.
+- The pinch floor is 0.58x.
+- The lens memory can be a process-wide object in the debug build.
+- The row must not move when the message line above the shutter grows.
+- DngContract.kt needs the planner's approval to change.
+**Planner's read (adb shell dumpsys media.camera on the S22, saved to ~/Zynergy/device-evidence/2026-10-16-camera-tables-s22/; the S26 from 2026-10-15's saved tables):**
+- Minimum focus distance: the main wide 10 cm (10 diopters) on both phones; the 3x telephoto 40 cm (2.5); the S26's 5x and the S22's 10x 80 cm (1.25).
+- Largest JPG: S22 cameras 6 and 7, 3648x2736; S26 camera 6, 3648x2736; S26 camera 7, 4080x3060.
+- Crop region is a per-lens request key on the S22 (cropRegion and zoomRatio among availablePhysicalCameraRequestKeys). Not found in the first such listing on the S26, so the S26 is undetermined.
+**Planner's calls (technical, stated to the owner):**
+- DngContract.kt may gain a nullable crop field, null by default, in a dev-only commit.
+- The lens memory is a process-wide object, so it is kept while the app's process lives, including after backing out and returning.
+- The row sits in a fixed place directly above the shutter, with the message line above the row, so the row never moves.
+**For the owner:** the RAW crop note; JPG size on 3648x2736 lenses; what happens during a lens switch; close focus with the telephotos.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1107.
