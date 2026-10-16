@@ -69,5 +69,20 @@
                 <action android:name="com.zynergylabs.forager.app.debug.SENSOR_PIN" />
             </intent-filter>
         </receiver>
+        <!-- Camera engine A, the manageability prototype (dispatch 2026-10-16-02): chooses the camera dialog's engine
+             (CameraX by default), forces its fallback, runs its in-session 8-frame RAW burst and logs its summary. Debug
+             builds only; guarded by DUMP like the receivers above. The actions and extras are listed in
+             CameraEngineReceiver's own comment. Read:
+               adb logcat -v raw -s CameraEngineA -->
+        <receiver
+            android:name="com.zynergylabs.forager.app.photo.engine.CameraEngineReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.zynergylabs.forager.app.debug.CAMERA_ENGINE" />
+                <action android:name="com.zynergylabs.forager.app.debug.CAMERA_ENGINE_BURST" />
+                <action android:name="com.zynergylabs.forager.app.debug.CAMERA_ENGINE_SUMMARY" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
