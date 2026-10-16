@@ -115,6 +115,7 @@ internal class SwitchDetector(private val minIntervalNanos: Long = MIN_INTERVAL_
         var switch: SwitchEvent? = null
         if (id == null) {
             withoutId++
+            lastWithId = reading
         } else {
             byId[id] = (byId[id] ?: 0) + 1
             if (firstId == null) firstId = id
