@@ -18904,3 +18904,21 @@ All three DNGs pass exiftool -validate and are 4000x3000. No Make or GPS in any 
 - The row sits in a fixed place directly above the shutter, with the message line above the row, so the row never moves.
 **For the owner:** the RAW crop note; JPG size on 3648x2736 lenses; what happens during a lens switch; close focus with the telephotos.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1107.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1107
+**Timestamp:** 2026-10-16T20:33:14Z
+**Continues:** 2026-09-28-1106
+**Supersedes:** 2026-09-28-1104's RAW crop wording ("editors that honour them open it cropped and the full frame stays recoverable") and its JPG size for the 3648x2736 lenses
+**Title:** Lens chooser after Phase 1: the RAW carries a hard crop (DNG DefaultCrop); JPGs are saved at the lens's own size; on a lens switch the picture holds and the shutter waits; too close for the telephoto, the main lens is used zoomed (owner)
+**The owner, verbatim:** to four questions: "Hard crop" (the planner had recommended the suggested crop, DefaultUserCrop); "Lens's own size (Recommended)"; "Hold last picture, shutter waits (Recommended)"; "Use the main lens, zoomed (Recommended)".
+**What it sets:**
+- **The RAW crop.** A zoomed RAW keeps the lens's whole untouched mosaic in the file, with DefaultCropOrigin and DefaultCropSize set to the zoom. As stated to the owner: darktable opens it zoomed and can't recover the rest there, while LibRaw-based apps (unless they opt in) and RawTherapee ignore it. Adobe's editor is unverified. This departs from the DNG specification's stated use of DefaultCrop (edge margins); the alternative, DefaultUserCrop, was considered and not chosen. The mosaic itself is never cut, so -1056's real RAW holds.
+- **JPG size.** A JPG is saved at the chosen lens's own full size, enlarged by the camera from any crop: 4000x3000 on the main and ultra-wide lenses and the S26's 5x (4080x3060 lens), and 3648x2736 on the 3x lenses and the S22's 10x. There is no software re-encode. -1104's "the usual 4000x3000" is narrowed to "the lens's own full size".
+- **Lens switch.** The picture holds its last frame; the new lens's button lights at once; a shutter press waits until the new lens is streaming.
+- **Close focus.** When the subject is closer than the chosen telephoto can focus (3x: 40 cm; the S26's 5x and the S22's 10x: 80 cm), the main lens is used, cropped to the zoom, and its button lights.
+**Planner's calls stand (-1106):** DngContract.kt gains a nullable crop field, in a dev-only commit; the lens memory is process-wide; the row is fixed directly above the shutter, with messages above it.
+**Next:** the planner gives the coder Phase 2's go (dispatch 2026-10-16-04).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1108.
