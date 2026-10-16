@@ -101,7 +101,7 @@ internal class SwitchDetector(private val minIntervalNanos: Long = MIN_INTERVAL_
             true
         } else {
             val last = lastLoggedPreviewNanos
-            if (last == null || reading.arrivalNanos - last >= minIntervalNanos) {
+            if (last == null || reading.arrivalNanos - last >= 0L) {
                 lastLoggedPreviewNanos = reading.arrivalNanos
                 previewLogged++
                 true
