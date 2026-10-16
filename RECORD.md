@@ -18512,3 +18512,17 @@ Its bottom edge has none. This replaces -976's "the bottom bar can stay as is".
 **Not retroactive:** the coders already running (camera-reach and camera-engine-a, both into dev; the T7 run in forager-forecast) continue as dispatched.
 **State at writing:** pre-main is at ff0c84f4, 943 commits behind main 402489ae, with none of its own. The planner's fast-forward push to main's head was refused by the session's permission check, and was not retried by another route. It waits for the owner. Dev at eec76f4e is based on main 402489ae, which is the commit pre-main will be brought level with, so dev's base does not change yet. dev's next rebase targets pre-main, and waits until the two camera PRs into dev are merged (the -1068 precedent). The old planner session was messaged (about 12:30Z) to forward its helpers' reports verbatim to this session and to write no records.
 **Notes:** Written by the planner by hand, on branch records-after-173. The planner profile (docs/process/planner-profile.md) is updated through pre-main, so it reaches main at the next promotion. Next free ID -1087.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1087
+**Timestamp:** 2026-10-16T12:26:11Z
+**Continues:** 2026-09-28-1086
+**Supersedes:** 2026-09-28-1086, point (3), dev's base only
+**Title:** Dev stays main plus the running experiments, always rebased onto current main to show they work on production (owner; supersedes -1086's "pre-main plus experiments")
+**The owner, verbatim:** "Dev is main + any experiment we have running. It is always rebased to current main to reflect workability".
+**What it sets:** dev is current main, plus the dev-tools commit (-930, unchanged), plus the running experiments. It is rebased onto origin/main after every main update, as before -1086. It is not based on pre-main. The rest of -1086 stands: dev is never merged into main or pre-main; an experiment chosen to ship is carried onto pre-main without dev tools, then promoted through the gate. Small tasks on pre-main reach a phone through the plain pre-main build checked at promotion, not through dev.
+**Planner's note:** -1086 recorded the owner's choice of the planner's recommended option, "Pre-main + experiments (Recommended)". This entry corrects it at the owner's word. -1086 is not edited.
+**Done with this entry:** the planner profile on branch methodology-main-gate is corrected to match, and the planner's memory is reverted to "rebase dev onto main".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1088.
