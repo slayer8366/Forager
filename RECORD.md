@@ -19373,3 +19373,19 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1136.
 **Observed:** main equals pre-main's head, and dev is rebased (-1135). All four parts of the outcome prediction held: CI passed, the auditor passed, the trees are equal, and dev rebased clean.
 **Deviations:** the auditor raised two notes on the documents (-1132), carried to a follow-up. During the run the owner changed the gate (-1133) and the auditor rule (-1134).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1137.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1137
+**Timestamp:** 2026-10-17T02:38:42Z
+**Title:** A second independent review of the T7 PNW fit, on Fable, independent of the first (owner, -1134)
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-16-t7-fit-review-2.md on branch t7-fit-review-2 (fa79a22). It carries the first review's dispatch unchanged beside it.
+**Change:** a second review report, docs/audits/2026-10-16-t7-fit-review-2.md, on forecast branch t7-fit-review-2, answering the same questions as -1128.
+**Scope boundary:** as -1128's, plus independence. It doesn't read t7-fit-review, anything after b5c3d26 on other forecast branches, or Forager RECORD after -1126 except -1127, -1134 and this entry.
+**Baseline:** t7-build b5c3d26; the same outputs and cache as -1128.
+**Prediction (outcome, planner):** the same as -1128's. Where the two reviews differ, the difference is the finding the owner's rule exists to surface.
+**Prediction (mechanism, coder):** to be written by the reviewer before computing.
+**Finish line:** the report pushed. The planner then compares the two reviews and brings both to the owner, before any publishing yes (-1127).
+**Abort conditions:** as -1128's.
+**Notes:** Written by the planner by hand, on branch records-after-173. The reviewer is a fresh subagent started with model fable. Next free ID -1138.
