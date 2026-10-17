@@ -66,7 +66,6 @@ class CameraEngineReceiver : BroadcastReceiver() {
         ZoomFormSwitch.form = form
         val engine = ActivePlatformEngine.current
         Log.i(ENGINE_LOG_TAG, "engine=switch event=zoom_form value=${form.id} (${if (engine != null) "applied to the open camera" else "takes effect at the next camera open"})")
-        engine?.onZoomFormChanged()
     }
 
     companion object {
