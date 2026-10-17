@@ -19113,3 +19113,10 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1116.
 **Observed:** the dispatch format is merged into pre-main (-1117), as the finish line set. The outcome prediction's first half holds: 13 sections, in order, each mapped to an intent field or to evidence. Its second half, that the next dispatch yields a complete intent, is not yet tested; no dispatch has been written since.
 **Deviations:** none. The open-intents check the planner proposed alongside it is not adopted; the owner was asked and has not answered.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1119.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1119
+**Timestamp:** 2026-10-17T01:59:46Z
+**Notes:** The owner, verbatim: "Can you write out the auditor framework we discussed earlier, for EGD?". Written as prompts/preserved/2026-10-16-05-auditor-framework-for-egd.md: the production gate and UX auditor in project-independent form, for E-GD's curator to adopt, adapt or reject. Sources: -1085 to -1087, -1092, -1094, -1097, -1100. It is marked untested in practice, since no promotion has yet been audited. Not pushed to E-GD-Philosophy; the planner has not been asked to, and that repository is the curator's. Written by the planner by hand, on branch records-after-173. Next free ID -1120.
