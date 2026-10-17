@@ -19833,3 +19833,25 @@ This also answers -1156 item 5: B can be done, and D only partly.
 **Timestamp:** 2026-10-17T07:28:48Z
 **Corrects:** 2026-09-28-1126
 **Notes:** -1126 says, among the coder's readings, that the verify report's "25 level III blocks" is in fact 26. That correction was itself wrong. Both independent reviews (-1144, -1145) and part A (-1161) count 25: 25 keys in table_meta.json and 25 names in the verify report's list. 25 is right. -1126 is not edited. Written by the planner by hand, on branch records-after-173. Next free ID -1163.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1163
+**Timestamp:** 2026-10-17T07:29:40Z
+**Title:** T7 part B: a 250 m distance-to-road-or-trail layer from public sources, wired as optional bands, no fit (owner, -1160)
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-17-t7-part-b.md (t7-strengthen-plan edfb32d), for Hazel Cairnwright
+**Change:**
+- verify which forests publish trails, and the NTD's trail sources;
+- fetch the NTD state files (OR, WA, ID, MT, CA), the Forest Service roads and trails, and BLM's trails, one at a time, checked and registered with quoted licences;
+- build the distance layers (combined, roads, trails) on the T7 grid, with a manifest;
+- wire them as optional, off-by-default predictor bands;
+- write the attribution line;
+- add decision rows from D148.
+**Scope boundary:** branch t7-part-b from t7-part-a b85bbc66, as a PR into t7-build, plus /mnt/work/Zynergy/forecast-data/access/. No main, t6b folder or job, existing T7 outputs, count, fit, publishing or Forager.
+**Baseline:** t7-part-a b85bbc66 (D147 the newest row); searches at t7-searches 532e0d5; /mnt/work has 12 GB free (df at writing); downloads of about 1 to 1.5 GB per the searches report.
+**Prediction (outcome, planner):** a complete layer over the box's study cells, with forest interiors far from roads and lowlands near.
+**Prediction (mechanism, coder):** in Hazel's first report, before downloading.
+**Finish line:** the layer and its manifest built; its sources registered; a PR into t7-build green and unmerged; a coverage table by level III block, with the forests that lacked trails.
+**Abort conditions:** a source not public domain or CC BY; a block left uncovered by missing trails (report, don't substitute); a download failing its stated size or checksum; a wrong premise; anything needing a count or fit.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1164.
