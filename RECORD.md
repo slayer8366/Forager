@@ -20539,3 +20539,32 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Pre-merge:** c8df0b97
 **Backup:** pre-main-20261017T174137Z-c8df0b97.bundle (verified)
 **Notes:** The owner, verbatim: "Merge 247". Known-bugs row 3 (the search summary's month after a language switch, -1197); documents only. Both checks passed at 1e2e2b9c. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1201.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1201
+**Timestamp:** 2026-10-17T20:56:08Z
+**Title:** Production checklist taken in the planner's order; the untrue crash lines removed from the website's privacy and delete-data pages (owner)
+**The owner, verbatim:** "Start on your suggested order"; to the wording: "OK, publish it (Recommended)".
+**What it sets:**
+- **The order:** website wording, then a release compile on CI, then the phone checks (with the camera run on 2026-10-18), then Elder's audit and the promotion, then the production build once Play access arrives, then the store listing. Tidiness runs alongside.
+- **The wording:** remove the privacy page's "Crash traces, written locally…" bullet; delete-data drops "and any crash reports"; both dated 17 October 2026. zynergy-site PR #17, merged by the planner after the preview check.
+**The planner's check:** no `UncaughtExceptionHandler` anywhere in app/src on Forager main, and the repository's own privacy policy has no crash-trace line, so both website lines were untrue. Known bug #1 covered the delete-data line; the privacy line was found while writing this answer.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1202.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1202
+**Timestamp:** 2026-10-17T20:56:08Z
+**Title:** CI compiles the release version on every push, with no signing key (owner, -1201)
+**Dispatch-file:** preserved/2026-10-17-04.md, for Hazel Cairnwright
+**Change:** a release-compile step in ci.yml, taking the release variant as far as it goes without a key or the signing guard, with a positive control showing it catches a release-only break.
+**Scope boundary:** ci.yml (existing steps unchanged) and the README's CI paragraph, on branch release-compile-ci as a PR into pre-main. Not the signing guard, keys or secrets, R8, main, dev, Gradle on the laptop, RECORD or the audits index.
+**Baseline:** ci.yml on pre-main has no release task; the guard blocks assembleRelease and bundleRelease without an identity; lintRelease ran on CI without a secret (-1194).
+**Prediction (outcome, planner):** release compiles cleanly on pre-main; the step adds a few minutes.
+**Prediction (mechanism, coder):** in Hazel's first message.
+**Finish line:** a PR into pre-main, green with the release step, merged on the owner's word.
+**Abort conditions:** release doesn't compile on pre-main (report it, don't fix it); compiling needs a key, a secret or a change to the guard; a wrong premise; anything touching main or dev.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1203.
