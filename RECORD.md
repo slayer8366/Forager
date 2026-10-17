@@ -19626,3 +19626,11 @@ Not re-run on the S22, since they share code with the S26 runs that passed: memo
 - **(iii) Allowed:** the  line reports the lens session's own sizes, as part of item 3's log fixes.
 
 Go for Phase 2a (diagnostics and the forms switch; no fix yet). Written by the planner by hand, on branch records-after-173. Next free ID -1151.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1151
+**Timestamp:** 2026-10-17T04:13:54Z
+**Corrects:** 2026-09-28-1150
+**Notes:** In -1150, call (i) reads "the adb-only  debug extra", with a blank where the extra's name should be. The planner wrote the name in backticks inside a shell here-document, so the shell tried to run it as a command and dropped it. The line should read: "the adb-only zoom_form debug extra (--es zoom_form crop|lens_ratio|logical_ratio) in Phase 2a". The filed Phase 1 summary used a quoted here-document and is intact. -1150 is not edited. From now on the planner writes record entries with a quoted here-document, or without backticks. Written by the planner by hand, on branch records-after-173. Next free ID -1152.
