@@ -19345,3 +19345,31 @@ Its report comes to the owner. Nothing is published without a separate yes after
 - PR #239 merges on its Opus audit (-1132). The rule applies from the next audit.
 **Disclosed by the planner:** the QA philosophy's drafting audit (-1092), the promotion audit (-1132) and the running T7 review (-1128) were all Opus subagents, the same model as the coders, before this rule.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1135.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1135
+**Timestamp:** 2026-10-17T02:38:08Z
+**PR:** 239
+**Head:** pre-main (91f99e3f)
+**Base:** main
+**Merge-commit:** 969ecf0a0a3a4244dbe1ab534fe47e6d99050252
+**Pre-merge:** 402489ae
+**Backup:** main-20261017T023727Z-402489ae.bundle (verified)
+**Notes:** The first promotion through the gate (-1086, as amended by -1133).
+- **Gate.** CI push run 38994535977 succeeded at 91f99e3f; the UX auditor passed it (-1132; an Opus audit, accepted by the owner under -1134); the owner's approval: "Merge pre-main into main". The PR's own run 38994795222, on the same tree, was still running at the merge.
+- **Result.** main's tree equals pre-main's. dev was backed up (dev-20261017T023746Z-be46972e.bundle, verified) and rebased onto 969ecf0a: range-diff shows 20 of 20 commits unchanged, and the tree outside docs/process is identical. It was pushed with --force-with-lease on be46972e, and dev is now d94e16f4.
+
+Written by the planner by hand, on branch records-after-173. Next free ID -1136.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1136
+**Timestamp:** 2026-10-17T02:38:08Z
+**Closes:** 2026-09-28-1131
+**Outcome:** done
+**Observed:** main equals pre-main's head, and dev is rebased (-1135). All four parts of the outcome prediction held: CI passed, the auditor passed, the trees are equal, and dev rebased clean.
+**Deviations:** the auditor raised two notes on the documents (-1132), carried to a follow-up. During the run the owner changed the gate (-1133) and the auditor rule (-1134).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1137.
