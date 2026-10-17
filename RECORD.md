@@ -20712,3 +20712,16 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **Does not gate:** the lens-fix camera run, which is on dev only (-1149).
 - **Text fixes:** Elder's items 1 and 2 in PR #250 (documents only, into pre-main).
 **Notes:** Written by the planner by hand, on branch records-after-173. The T7 checks are to be written down as one device-check file before they run, as was done for the lint check. Next free ID -1213.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-1213
+**Timestamp:** 2026-10-17T23:56:41Z
+**Continues:** 2026-09-28-1212
+**Notes:** The older T7 device checks are written down as preserved/2026-10-17-07-t7-phone-checks.md, beside the lint check (-06), before they run. A read-only helper found the sources.
+- **Parts C (credits) and D1 (steady climb)** quote existing steps: docs/audits/2026-10-13-sources-and-credits-report.md:155-167 and 2026-10-11-journal-entry-height-final-report.md:118-121, both on main. C1 gains the landscape repeat its title promised.
+- **Parts A (tablet hold) and B (outlines and rail)** had only one-line items (PR #223, #224 and #221 bodies). The planner wrote their steps and pass conditions here for the first time, from those items and -985, -986, -991 and -959.
+- **D2 (a sudden climb, lift or steep road) is new,** for the owner's "how well it handles sudden elevation" (-924), which step 9 doesn't test. The planner predicts, inferred and untested, that it may read low: BarometricHeight.kt treats a rise faster than 0.5 m/s as a pressure blip. A low reading is a finding for the owner, not a phone fault.
+- **Unknown until the tablet is in hand:** its current Android version (-80 saw 16) and its natural orientation. PR #224's completion report, with its device items, was not found in any committed file.
+Written by the planner by hand, on branch records-after-173. Next free ID -1214.
