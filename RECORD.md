@@ -20648,3 +20648,10 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Pre-merge:** b7a9382e
 **Backup:** pre-main-20261017T230850Z-b7a9382e.bundle (verified)
 **Notes:** The owner, verbatim: "Merge w49", read by the planner as PR #249. Documents only: the README's dev-tools lines corrected; known-bugs row 1 resolved (-1205). All three checks passed. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1209.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1209
+**Timestamp:** 2026-10-17T23:35:30Z
+**Notes:** Google Play production access granted for Forager (com.zynergylabs.forager.app). The owner shared a Play Console email titled "Congratulations! Your app has been granted Google Play production access"; the screenshot is described here, not stored. The owner, verbatim: "Meanwhile, my app has been granted production access. Let's get started on finishing the release build". Applied for 2026-10-15 (-1059); granted by 2026-10-17. Written by the planner by hand, on branch records-after-173. Next free ID -1210.
