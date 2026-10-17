@@ -20029,3 +20029,39 @@ PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with
 **Finish line:** the comparison pushed; the plan written and shown to the owner, with its decisions.
 **Abort conditions:** a query service refusing or rate-limiting (back off and report); an account needed; a licence that can't be read at source.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1173.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1173
+**Timestamp:** 2026-10-17T08:25:10Z
+**Closes:** 2026-09-28-1165
+**Outcome:** done
+**Observed:** Hazel Cairnwright's report; forecast PR #3 (t7-part-c into t7-build), left unmerged.
+
+**Step 1 (condition 2 clustered by block, reading (a)):**
+- full minus A, within weather cells, with the block interval: +0.0540 (+0.0160, +0.0639). Condition 2 passes;
+- full minus B on the same basis: +0.0474 (−0.0043, +0.0762). This is not a P10b condition;
+- P10b on the existing run still fails, on condition 1;
+- the D145 amendment was appended, its original text unedited.
+
+**Step 2 (the saprotroph count, D155):**
+- 669 genera meet D146, with 9 excluded; the main run takes the 535 with no secondary lifestyle, the side run 125 more;
+- main run: 17,403 thinned in the box, 9,591 entering a fit, 47 genera alone;
+- side run: 24,272 in the box, 14,163 entering;
+- no overlap with the mycorrhizal group (the count refuses to run otherwise);
+- the main run reaches the 30-presence minimum in 13 of the 17 forested blocks in the fit, all 13 shared with the mycorrhizal group's 14;
+- 84% of entering presences are in four western blocks.
+- **Plain answer:** condition 3 can be tested over 13 shared blocks. Only a fit can show whether its interval clears zero.
+
+**Tests:** t7-part-a 688 and t7-part-c 695 tests, 0 failures; ruff clean; 9 revert checks, each failing only its own edit.
+**Deviations:**
+- **The merge came before step 1's evidence.** The planner merged PR #2 (-1170) when its checks were green at 691d2ee. The step 1 evidence commit da25950 came after, so it reaches t7-build only through PR #3. The planner's "step 1 pushed" condition was read as met one commit early. No harm, but disclosed.
+- **Hazel's own slip:** the side run adds 125 genera, not 122 (only 6 of the nine had a secondary lifestyle).
+- **Hazel's calls, accepted by the planner:**
+  - family-only records join neither saprotroph run;
+  - a genus listed on two FungalTraits rows is refused;
+  - both counts are reported, over the whole box and over entering presences;
+  - condition 2 is reported for the side runs as well.
+- **For the owner, not acted on:** Mycena, Marasmius, Hygrocybe and Morchella have a secondary lifestyle, so they are in the side run only. Armillaria (primarily litter saprotroph, secondary plant pathogen) is in the side run.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1174.
