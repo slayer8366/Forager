@@ -20,6 +20,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.ui.adaptive.FixedWindowInfo
+import com.zynergylabs.forager.app.ui.adaptive.statedSize
 import java.io.File
 import java.time.LocalDate
 import kotlin.math.abs
@@ -89,7 +90,7 @@ class FindPagePhotoCapFollowsTheWindowTest {
         val tall = photo("tall", 200, 400)
         var configurationHeight = -1
         composeRule.setContent {
-            configurationHeight = LocalConfiguration.current.screenHeightDp
+            configurationHeight = LocalConfiguration.current.statedSize().height.value.toInt()
             val window = FixedWindowInfo(LocalWindowInfo.current, DpSize(360.dp, 300.dp), LocalDensity.current.density)
             CompositionLocalProvider(LocalWindowInfo provides window) {
                 LogEntryReportScreen(entry = find.copy(photos = listOf(tall)), onEdit = {}, onDeleteEntry = {}, onBack = {})
