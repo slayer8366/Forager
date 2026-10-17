@@ -20268,3 +20268,23 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Title:** Phase 1 of the T7 re-fit starts (owner)
 **The owner, verbatim:** "Yes, start the coder on phase 1 of the re-fit".
 **Notes:** Hazel Cairnwright starts as an Opus helper on Phase 1 only, reading the dispatch file herself. Phase 2 still needs the owner's separate go. Written by the planner by hand, on branch records-after-173. Next free ID -1185.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1185
+**Timestamp:** 2026-10-17T10:40:37Z
+**Title:** The nine past edits and removals the record's history check reports are accepted (owner)
+**The owner, verbatim:** "I accept these nine past edits and removals."
+**Accepts-violation:**
+    c8f63838ad sundown alert entries -215, -219, -220, -221 and the sundown lines in -212, -214, -216, -218 removed at the owner's word ("B remove them all")
+    4162d6d7b8 dispatch-note -235 and its two references in -236 removed at the owner's word ("Undo this")
+    09d2103899 dispatch-notes -234, -237, -238 and the F5 redo lines in -236 removed at the owner's word ("Remove -237 and all references to F5 beyond the audit")
+    f18b14cb09 dispatch -451, first written as -449 (the decision's number), renumbered in place
+    0bda73e88e entry -638 removed at the owner's word ("Delete it from the file")
+    36407260c5 entry separators and Kind lines added inside -802 and -803; layout only, no text changed
+    fe3f3ae3f9 a maker's name removed from -844 on the owner's instruction (-846)
+    11794f55f9 the record's header rewritten to E-GD's text on the owner's word (-1111)
+    bebeb5736b terminal 2026-09-27-64 written inside a merge commit
+**What it sets:** E-GD's check_record.py lists these nine as accepted instead of failing the history check. Any other past or future violation still fails.
+**Notes:** Written by the planner by hand, on branch records-after-173. Wording proposed by E-GD's curator, Clio, from the history check at 8ef027ca. Next free ID -1186.
