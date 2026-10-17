@@ -19563,3 +19563,28 @@ The format was set back to JPG and the engine to camerax.
 **Left behind:** four test photos from this check (the 5x and 3x JPGs, and the 1.55x JPG and RAW), for deletion.
 **Not done:** the S22 run of the same check.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1148.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1148
+**Timestamp:** 2026-10-17T03:57:43Z
+**Closes:** 2026-09-28-1105
+**Outcome:** partial
+**Observed:** the lens chooser (PR #236, on dev) was checked on both phones.
+- **S26 (-1147):** every step passes.
+- **S22 (evidence ~/Zynergy/device-evidence/2026-10-17-lens-chooser-s22/, off GitHub):**
+  - **Passes:** the row reads ".6 1 3 10" with per-lens crop offered; taps on .6 (708 ms) and 1 (559 to 617 ms); close focus kept the main lens near and moved itself onto the real 10x lens when aimed far (the shot taken on lens 7, 3648x2736, framed as a 10x lens); the RAW crop notes are correct and validate.
+  - **Fails:** the zoom between lenses is never applied to the JPG.
+    - With the main lens standing in at 9.99x, crop_achieved was 1.00 and the saved JPG is the plain 1x view, while the viewfinder showed a stretched 10x.
+    - With a pinch to 3.18x on the 3x lens (crop 1.10), crop_achieved was again 1.00 and the JPG uncropped.
+**Deviations:**
+- The S22 does not apply the per-lens crop region the engine sets, although it lists cropRegion among its per-lens request keys. The cause is undetermined.
+- The planner first attributed the 9.99x case to the S22's 8x maximum digital zoom per lens (read from the saved camera tables). The 1.10x case disproves that as the cause. Corrected here, and told to the owner in the same message.
+**Deferred (to a fix dispatch, not yet authorised):**
+- the S22 zoom crop, with logging before any fix, and the S26's overall-zoom path a candidate premise to check;
+- the telephoto log's crop units (-1147);
+- the silent first close-focus try (-1147).
+
+Not re-run on the S22, since they share code with the S26 runs that passed: memory, turns, the CameraX check.
+**Notes:** Written by the planner by hand, on branch records-after-173. The S22's engine was set back to camerax; its format stays RAW, as it was before the check. Test photos on the S22 test phone remain. Next free ID -1149.
