@@ -19925,3 +19925,32 @@ This also answers -1156 item 5: B can be done, and D only partly.
 
 The D145 amendment and D155 record these.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1168
+**Timestamp:** 2026-10-17T07:43:51Z
+**Continues:** 2026-09-28-1163
+**Title:** Part B's access layer: roads (closed roads included) in the main fit; trails only in a side check, with Umatilla and Wallowa-Whitman marked unpublished; federal trail sources only (owner); three more states and the download checks (planner)
+**The owner, verbatim:** "Roads in the main fit (Recommended)"; "Federal sources only (Recommended)"; "Yes, count them (Recommended)".
+**The facts, from Hazel's part B verify report (2026-10-17; nothing downloaded):**
+- the box also covers northern Utah, Nevada and Wyoming (about 302,000 eligible cells, including the informative Wasatch and Uinta Mountains block);
+- the NTD catalogue's sizes are about 4.6% above the bytes served, so the stated-size check would fail every file;
+- the Umatilla and Wallowa-Whitman national forests publish trail records almost without geometry (0 of 549 and 3 of 936), in the informative Blue Mountains block;
+- the NTD's trails come partly from six state agencies and one volunteer trail group, whose own terms were not found;
+- the Forest Service roads file includes roads closed to motor vehicles (Wallowa-Whitman: 2,250 open, 8,260 closed).
+**What it sets:**
+- **Owner:**
+  - the main fit uses the distance-to-road band, with closed roads included;
+  - the trails band is built, but used only in a side check, with the two forests' cells marked "trails not published", not filled;
+  - trail lines are taken only from federal sources (Forest Service, BLM, National Park Service, Fish and Wildlife Service); state and volunteer segments are dropped until their terms are confirmed.
+- **Planner, technical:**
+  - add the NTD files for UT, NV and WY (about 390 MB more);
+  - verify NTD downloads by their multipart ETags, and other files by served length plus a recorded sha256;
+  - measure distances in grid-plane metres (ESRI:102008), matching the 250 m cells; the up-to-6% scale difference doesn't change rank order;
+  - remove BLM trails duplicated in the NTD by taking the minimum distance;
+  - pad the box by about 50 km;
+  - report the Canadian border effect, not fix it;
+  - use the full California file as dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1169.
