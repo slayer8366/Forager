@@ -20103,3 +20103,18 @@ PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with
 - The prediction held: OSM has more length; Eagle Cap is OSM-only; the Forest Service adds names, numbers and uses.
 **Open, for the owner:** drop USGS from the reference layer (-445 included it)? The researcher's proposed names and its role notes are with the owner.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1176.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1176
+**Timestamp:** 2026-10-17T08:36:04Z
+**Continues:** 2026-09-28-1175
+**Supersedes:** 2026-09-28-445, its listing of USGS among the agency reference layers
+**Title:** Trail navigation keeps the original plan; USGS is dropped from the reference layer; the research role is named Juniper Sounding (owner)
+**The owner, verbatim:** "1 yes we stick with the original plan. I was trying to be ambitious, but I want to be accurate and have the best data than throwing anything possible." And: "3 Welcome aboard, Juniper Sounding".
+**What it sets:**
+- -445 stands: OpenStreetMap is the routable base; agency trails are a separate reference layer, never merged into the route network.
+- The reference layer is the Forest Service's and BLM's trails only. USGS's transportation trails are dropped: they added 0 km in all seven areas (-1175).
+- **The research role** (read-only research: method committed before data, licences quoted at source, never downloading whole datasets or signing agreements) is named **Juniper Sounding**. The owner chose it from the role's three proposals. In the role's own words: "the juniper lives in the dry BLM country as well as the forest, so it covers the whole map; a sounding is a depth taken by lowering a line and reading it, one bounded measurement at a time, never draining the lake." It runs on Fable.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1177.
