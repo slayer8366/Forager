@@ -74,6 +74,15 @@ internal class FakePlatformCamera(
     var frameAfState: Int? = null
     var frameCropAchieved: Double? = null
 
+    /** The zoom form and the request-and-result reading each frame reports (dispatch 2026-10-17-01). */
+    var frameZoomFormUsed: ZoomForm? = null
+    var frameZoomDiag: FrameZoomDiag? = null
+
+    /** What each still's own result reports, as the frame fields above. */
+    var stillCropAchieved: Double? = null
+    var stillZoomFormUsed: ZoomForm? = null
+    var stillZoomDiag: FrameZoomDiag? = null
+
     private var events: ((DeviceEvent) -> Unit)? = null
     private var onFrame: ((PreviewFrame) -> Unit)? = null
     private var availability: (() -> Unit)? = null
@@ -137,6 +146,8 @@ internal class FakePlatformCamera(
                 focusDiopters = frameFocusDiopters,
                 afState = frameAfState,
                 cropAchieved = frameCropAchieved,
+                zoomFormUsed = frameZoomFormUsed,
+                zoomDiag = frameZoomDiag,
             ),
         )
     }
@@ -158,7 +169,7 @@ internal class FakePlatformCamera(
             return Result.failure(IllegalStateException(reason))
         }
         writeFixture(destination)
-        return Result.success(JpegFrame(JPEG.width, JPEG.height, MAIN_WIDE))
+        return Result.success(stillFrame())
     }
 
     override suspend fun captureRawJpeg(still: StillControls, jpegDestination: File): Result<RawJpegFrame> {
@@ -171,7 +182,7 @@ internal class FakePlatformCamera(
         writeFixture(jpegDestination)
         return Result.success(
             RawJpegFrame(
-                jpeg = JpegFrame(JPEG.width, JPEG.height, MAIN_WIDE),
+                jpeg = stillFrame(),
                 rawSource = RawSource.Physical(MAIN_WIDE),
                 rawActivePhysicalId = MAIN_WIDE,
                 noiseReductionModeReported = 0,
@@ -180,6 +191,8 @@ internal class FakePlatformCamera(
             ),
         )
     }
+
+    private fun stillFrame() = JpegFrame(JPEG.width, JPEG.height, MAIN_WIDE, stillCropAchieved, stillZoomFormUsed, stillZoomDiag)
 
     override suspend fun lockExposure(controls: PreviewControls, timeoutMillis: Long): LockOutcome {
         calls += "lock:ae=${controls.aeLock},awb=${controls.awbLock}"
