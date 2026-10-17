@@ -20696,3 +20696,19 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - Item 4: the check is filed as preserved/2026-10-17-06-phone-check.md, Hazel's seven steps with Elder's A and B added. Build: the app-debug-apk artifact of run 39077884108 (pre-main push, b91de824), confirmed present.
 - Item 1 is the planner's own miss in PR #249 (it fixed the ui row and not the row below). The planner checked the package list from source: alert, data, domain, export, importgpx, location, map, net, photo, sensor, service and ui; no crash.
 **Notes:** Written by the planner by hand, on branch records-after-173. Items 1 and 2 go to the owner. Next free ID -1212.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1212
+**Timestamp:** 2026-10-17T23:52:18Z
+**Continues:** 2026-09-28-1211, 2026-09-28-924
+**Title:** The production release's phone gate: the lint check plus the older T7 device checks; the camera run (dev only) does not gate; Elder's two text items fixed (owner)
+**The owner, verbatim:** "The camera run is dev still so it shouldn't need to gate release"; to whether the older T7 device checks gate this release: "Yes, they gate it"; to the two text fixes: "Yes (Recommended)".
+**What it sets:**
+- **Gates the promotion and the production build:**
+  - the lint phone check (preserved/2026-10-17-06);
+  - the older T7 checks: the tablet camera hold (-985), the outlines and rail with real insets, the Sources & credits links (2026-10-14 handoff, "Waiting on the owner" 2), and the sudden elevation change (-924, journal step 9).
+- **Does not gate:** the lens-fix camera run, which is on dev only (-1149).
+- **Text fixes:** Elder's items 1 and 2 in PR #250 (documents only, into pre-main).
+**Notes:** Written by the planner by hand, on branch records-after-173. The T7 checks are to be written down as one device-check file before they run, as was done for the lint check. Next free ID -1213.
