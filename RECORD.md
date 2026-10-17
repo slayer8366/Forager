@@ -19685,3 +19685,16 @@ Go for Phase 2a (diagnostics and the forms switch; no fix yet). Written by the p
 - (6) focus readings also while the main lens stands in.
 **Not yet:** the device run (S22, then S26), then the fix for item 1, chosen from that run's evidence.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1155.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1155
+**Timestamp:** 2026-10-17T05:26:53Z
+**Notes:** The owner, verbatim: "Go ahead and write that plan" (the T7 strengthening plan, -1146). Written as forager-forecast docs/dispatch/2026-10-17-t7-strengthen-plan.md on branch t7-strengthen-plan (4515c44, from t7-build b5c3d26). It has four parts:
+- A, the reviews' fixes;
+- B, a finer effort layer (distance to roads and trails), with its licence to be checked at source;
+- C, a second comparison group of litter and soil saprotroph genera, to isolate the host-specific signal;
+- D, independent interior presence data, found first by a read-only search.
+
+It also proposes a stricter bar, P10b, fixed before any re-fit: block-clustered above B, within-cell above effort, the host-specific contrast above zero, and independent data where any exist. It lays out the order with the three points of no return, and six numbered decisions for the owner, each with a recommendation. A document only: nothing is authorised to build. Written by the planner by hand, on branch records-after-173. Next free ID -1156.
