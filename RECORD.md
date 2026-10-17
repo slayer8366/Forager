@@ -20460,3 +20460,29 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
   - a single-colour icon comes later, as a design task.
 - **Lint on CI (T3):** a lint job on the debug variant, failing on any error, with no baseline. LogNotTimber, NewerVersionAvailable and GradleDependency are switched off on CI, each with its reason. It lands in the same PR as the fixes, a PR into pre-main merged on the owner's word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1196.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1196
+**Timestamp:** 2026-10-17T16:52:35Z
+**Continues:** 2026-09-28-1192, 2026-09-28-1195
+**Observed:** Hazel Cairnwright's lint Phase 2: PR #246 (lint-fixes, head 2b6215e1, from pre-main 1fe2ab8d) into pre-main, unmerged. The planner checked that both CI checks are green ("Build, test, publish APK" and the new "Android lint (debug)").
+- **Lint on the head:** 0 errors, 7 warnings, all items left as ruled: AndroidGradlePluginVersion ×2, ClickableViewAccessibility ×2, InlinedApi, UsableSpace and MonochromeLauncherIcon. The three totals agree.
+- **Tests:** 4,936 in 663 files, 0 failures, 24 skipped. pre-main has 4,923 in 658, with the same 24 skipped; the +13 tests are the new ones.
+- **Failing first:** run 39047096142 had 11 failures, each for its own reason. The month tests were sharpened and re-run (39047632746) so that each failure names the language on screen.
+- **Seven revert checks** (scratch-lint-fixes-revert-1 to -7), each failing only on its own edit. Revert 6 failed the lint job itself (Range), which shows lint on CI blocks an error.
+- **Lint switched off on CI,** each with its reason: LogNotTimber, NewerVersionAvailable, GradleDependency. AndroidGradlePluginVersion stays on: it was not shown to depend on what is online.
+**Deviations:**
+- **A wrong premise in Hazel's Phase 1 plain words:** the screen-size findings concern accuracy, not staleness after rotation. The rotation steps of the phone check will probably show no change, which is expected.
+- **Hazel's calls:**
+  - `android:fullBackupContent="false"` added, since lint asks for it once the rules file is in;
+  - two ModifierParameter fixes add a root modifier rather than renaming;
+  - four rotation tests now also provide the window;
+  - a README paragraph;
+  - seven revert branches pushed;
+  - a temporary worktree left on disk;
+  - a scratch merge commit without the Co-Authored-By line, not amended.
+- **Found, not fixed:** activeSearchSummary (AvailabilitySearchUi.kt:685) still uses the device locale, which lint doesn't flag.
+**Not tested:** the map's five density reads (no Robolectric path); real window insets; phone-to-phone transfer; split screen. A seven-step phone check (S22 first) is in Hazel's report.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1197.
