@@ -20258,3 +20258,13 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Finish line:** Phase 1: a draft PR, the registered specimen file, the trial log, the report and stop. Phase 2: the re-fit report and evidence, the PR green and unmerged; then two Sorrel reviews on other models.
 **Abort conditions:** an owner-level choice; a wrong premise; a licence other than CC0 or CC BY in the specimens; under 2 GB free on /mnt/work; any write to the judged run's folders; a test having to be weakened; two failed attempts at one symptom; Phase 2 without the go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1184.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1184
+**Timestamp:** 2026-10-17T09:56:41Z
+**Continues:** 2026-09-28-1183
+**Title:** Phase 1 of the T7 re-fit starts (owner)
+**The owner, verbatim:** "Yes, start the coder on phase 1 of the re-fit".
+**Notes:** Hazel Cairnwright starts as an Opus helper on Phase 1 only, reading the dispatch file herself. Phase 2 still needs the owner's separate go. Written by the planner by hand, on branch records-after-173. Next free ID -1185.
