@@ -20288,3 +20288,29 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
     bebeb5736b terminal 2026-09-27-64 written inside a merge commit
 **What it sets:** E-GD's check_record.py lists these nine as accepted instead of failing the history check. Any other past or future violation still fails.
 **Notes:** Written by the planner by hand, on branch records-after-173. Wording proposed by E-GD's curator, Clio, from the history check at 8ef027ca. Next free ID -1186.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1186
+**Timestamp:** 2026-10-17T11:04:31Z
+**Continues:** 2026-09-28-1183
+**Observed:** Hazel Cairnwright's Phase 1 report on the T7 re-fit. Branch t7-refit e8f818da (from t7-build 5c1a9df1, checked), draft PR #5 into t7-build, unmerged. The report is docs/audits/2026-10-17-t7-refit-phase1.md. No full fit has run.
+- **Built:**
+  - the table rebuilt into t7/refit/ with all three access bands, matching the judged table on every existing array;
+  - dist_road_m in every model that carries effort, in effort's interaction group, held on the map at the background median, outside the area of applicability, and in P6's check;
+  - side runs (M2, the licence track, Laetiporus, saprotroph main and side, and the trails check on dist_any_m);
+  - condition 3 with one joint block resampling;
+  - P10b written to fit_report.json, with P10 beside it marked "no verdict".
+- **The specimen download:** one request, key 0032050-260928105237408, DOI 10.15468/dl.5mvzg2, fetched once. 122,622,731 bytes, sha256 28efb80e…34ad (re-hashed by the planner, equal). Size, 256,778 records and 212 datasets all match what the aggregator states. After filtering, 6,026 records are kept (1,650 CC0 and 4,376 CC BY; BY-NC excluded); 751 are in the interior sub-box, 390 of them in eligible cells. Registered in DATA_REGISTER.
+- **Tests:** 19 new, each seen failing over stubs; 9 revert checks, each biting its own edit; 727 tests, 0 failures, ruff clean (local; the PR shows no CI result yet).
+- **Smoke trial:** 1,330 s, peak 2,676 MB, every section written; condition 4 "pending"; 13 shared forested blocks.
+- **Phase 2 estimate:** about 16.5 h (16 to 21 h) at 4 threads; the trails check adds about 20 to 25 min. /mnt/work has 4.9 GB free.
+- **The coder's mechanism prediction:** A rises; condition 2 shrinks the most; condition 1 stays inside zero; condition 3 is uncertain with a wide interval; the map moves away from road-side lowland forest.
+**Deviations:**
+- **A wrong premise, caught:** t7_fit.py named its map folder t7/pnw-<UTC date>, so a re-fit on 2026-10-17 would have written into the judged run's folder. It now takes --out and refuses the judged folders.
+- **Environmental:** /tmp has 1.5 GB free, so four t6b host-genera tests fail their 2 GB check unless the suite's temp folder is on /mnt/work. Reported, not touched.
+- **The first status wait** failed on a transient DNS error before any fetch; the poll now retries.
+- **The coder's calls,** listed in the report's "Calls beyond the dispatch" (twelve). The planner accepts them, including the verdict guard (no "pass" while condition 4 is unruled) and t7/refit/outputs/ as the map folder.
+**Open, for the owner:** access's monotone direction; condition 4's scoring, background and records.
+**Notes:** Written by the planner by hand, on branch records-after-173. The forecast audits index row for the report is the planner's to add. Next free ID -1187.
