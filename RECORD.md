@@ -20170,3 +20170,22 @@ Both are documents only, with their checks passed; each was merged with a merge 
 - **An unexplained test failure:** one local full-suite run under the memory cap had 8 failures in test_t6b_host_genera.py and test_t6b_us_half_runner.py (a runner stage counted 0 units where 1 was expected). It didn't reproduce in three further runs, and the files pass on b85bbc66. Reported, not touched; the cause is unknown.
 - **Not measured:** the Canadian border effect (about 84,000 cells); the edge effect beside the masked forests.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1179.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1179
+**Timestamp:** 2026-10-17T09:32:22Z
+**Title:** Planner handoff to a new session (owner)
+**Handoff-file:** prompts/preserved/2026-10-17-planner-handoff.md (this branch), replacing 2026-10-16-planner-handoff.md as the start point.
+**The owner, verbatim:** "Context window is getting full, so we will have to hand this off to another session window. I'll meet you over there".
+**At handoff:**
+- **Running:** no helper; t6b-night until 07:00 PDT.
+- **Awaiting the owner:**
+  - forecast PRs #3 and #4 into t7-build;
+  - the T7 re-fit (the second point of no return);
+  - the lens-fix device run;
+  - the known-bugs list.
+- **Reminders bound to this session,** which the new one must re-create: the 07:02 PDT t6b restart and the 10:00 PDT W42 check.
+- **Open-intents check at handoff:** -1149 (lens fixes) is open and in progress. Every other intent from this session is closed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1180.
