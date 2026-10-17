@@ -19609,3 +19609,20 @@ Not re-run on the S22, since they share code with the S26 runs that passed: memo
 **Finish line:** item 1 fixed and shown on the S22 at 2x, 3.18x and the 10x stand-in; items 2 to 4 built; a PR into dev, green and unmerged; the planner's device check on the S22, then the S26.
 **Abort conditions:** a wrong premise; src/main or a release build needed; a test weakened; an owner-level behaviour (such as capping a zoom); two failed attempts.
 **Notes:** Written by the planner by hand, on branch records-after-173. The phases: Phase 1 reads and reports; Phase 2a builds diagnostics for a device run; the fix follows its evidence. Next free ID -1150.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1150
+**Timestamp:** 2026-10-17T04:13:39Z
+**Continues:** 2026-09-28-1149
+**Notes:** Hazel's Phase 1 report is filed as preserved/2026-10-17-01-phase1-report.md (the planner's summary of her message; the original marks each claim R, I or CND).
+
+**Prediction (mechanism, coder):** the S22's camera service passes a per-lens crop region to the HAL without converting it, and the HAL frames physical streams from zoom ratio, so the crop is ignored. The fix: a per-lens CONTROL_ZOOM_RATIO equal to the crop, with the crop region at the full array, falling back to the logical zoom ratio.
+
+**The planner's calls on her three questions (technical; they change nothing the owner rules on, and the owner is told):**
+- **(i) Granted:** the adb-only  debug extra in Phase 2a. Today's form stays the default, and nothing changes unless the extra is sent. It lets one device round tell H1 from H3 and H7, instead of fixing on a guess.
+- **(ii) OIS:** requested only where advertised: on the S22, per lens. On the S26 nothing is requested outside its listed values; the mode is only logged, to learn whether the phone stabilizes by default. If the S26's zoom proves shaky, it goes to the owner.
+- **(iii) Allowed:** the  line reports the lens session's own sizes, as part of item 3's log fixes.
+
+Go for Phase 2a (diagnostics and the forms switch; no fix yet). Written by the planner by hand, on branch records-after-173. Next free ID -1151.
