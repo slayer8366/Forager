@@ -1,0 +1,39 @@
+Totals: before 349 after 337 (delta -12)
+Issues by site (id, file; lines ignored): still 337, gone 12, new 0
+
+  id                                       before  after  delta  status
+  UnrememberedMutableState                      7      0     -7  gone
+  ComposableNaming                              5      0     -5  gone
+  LogNotTimber                                259    259     +0  still
+  UseKtx                                       15     15     +0  still
+  ModifierParameter                            14     14     +0  still
+  AutoboxingStateCreation                       9      9     +0  still
+  NewerVersionAvailable                         8      8     +0  still
+  GradleDependency                              7      7     +0  still
+  LocalContextResourcesRead                     5      5     +0  still
+  NonObservableLocale                           5      5     +0  still
+  ConfigurationScreenWidthHeight                4      4     +0  still
+  AndroidGradlePluginVersion                    2      2     +0  still
+  ClickableViewAccessibility                    2      2     +0  still
+  DataExtractionRules                           1      1     +0  still
+  InlinedApi                                    1      1     +0  still
+  MonochromeLauncherIcon                        1      1     +0  still
+  ObsoleteSdkInt                                1      1     +0  still
+  Range                                         1      1     +0  still
+  SuspiciousIndentation                         1      1     +0  still
+  UsableSpace                                   1      1     +0  still
+
+Gone sites:
+  ComposableNaming x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenGpxImportTest.kt
+  ComposableNaming x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenJournalEntriesStateTest.kt
+  ComposableNaming x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenJournalShortWindowTest.kt
+  ComposableNaming x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenJournalStateTest.kt
+  ComposableNaming x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenLandscapeB3DestinationsTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationCardArrowsSideBySideTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationCardFitAcrossWidthsTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationHudButtonPlacementTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationHudKindInStatusTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationHudQuickSettingsWidthTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationInfoLayoutTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/map/JournalEntriesChipTest.kt
+New sites:

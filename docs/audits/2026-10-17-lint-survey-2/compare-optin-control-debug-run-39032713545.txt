@@ -1,0 +1,29 @@
+Totals: before 349 after 352 (delta +3)
+Issues by site (id, file; lines ignored): still 349, gone 0, new 3
+
+  id                                       before  after  delta  status
+  UnsafeOptInUsageError                         0      3     +3  new
+  LogNotTimber                                259    259     +0  still
+  UseKtx                                       15     15     +0  still
+  ModifierParameter                            14     14     +0  still
+  AutoboxingStateCreation                       9      9     +0  still
+  NewerVersionAvailable                         8      8     +0  still
+  GradleDependency                              7      7     +0  still
+  UnrememberedMutableState                      7      7     +0  still
+  ComposableNaming                              5      5     +0  still
+  LocalContextResourcesRead                     5      5     +0  still
+  NonObservableLocale                           5      5     +0  still
+  ConfigurationScreenWidthHeight                4      4     +0  still
+  AndroidGradlePluginVersion                    2      2     +0  still
+  ClickableViewAccessibility                    2      2     +0  still
+  DataExtractionRules                           1      1     +0  still
+  InlinedApi                                    1      1     +0  still
+  MonochromeLauncherIcon                        1      1     +0  still
+  ObsoleteSdkInt                                1      1     +0  still
+  Range                                         1      1     +0  still
+  SuspiciousIndentation                         1      1     +0  still
+  UsableSpace                                   1      1     +0  still
+
+Gone sites:
+New sites:
+  UnsafeOptInUsageError x3 app/src/main/java/com/zynergylabs/forager/app/photo/CameraXRawCapture.kt
