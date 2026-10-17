@@ -20582,3 +20582,21 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Pre-merge:** b22cca5a
 **Backup:** zynergy-site-main-20261017T205635Z-b22cca5a.bundle (verified)
 **Notes:** The owner, verbatim: "OK, publish it (Recommended)" (-1201). The Cloudflare Pages check passed. The preview (5c5b0a46.zynergy-site.pages.dev) was read by the planner before the merge: no "Crash traces" and no "any crash reports" on either page, the new delete-data sentence present, and both pages dated 17 October 2026. Merged with a merge commit, pinned to the head. Known bug #1 is fixed on the site; its row on pre-main still reads Open until it is updated. Written by the planner by hand, on branch records-after-173. Next free ID -1204.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1204
+**Timestamp:** 2026-10-17T21:17:49Z
+**Continues:** 2026-09-28-1202
+**Observed:** Hazel Cairnwright's report. PR #248 (release-compile-ci, head a9e40251, from pre-main b774cac5) into pre-main, unmerged. The planner checked all three checks green, including the new "Release compiles and packages (unsigned)", and that the diff is ci.yml and README.md only.
+- **The new job** runs `packageRelease packageReleaseBundle`. The guard (wired to assembleRelease and bundleRelease) never enters the task graph, and no key is used. It took 5 min 31 s, in parallel with the other jobs, so wall time is unchanged.
+- **It checks its own run:** the required tasks are present, the guard is absent, and an APK and a bundle exist. Only the Gradle log is uploaded.
+- **Release lint-vital runs too,** pulled in by packageRelease (not predicted).
+- **Positive control** on scratch/release-compile-positive-control (13dd6ac3): a src/main reference to a debug-only class. The new job failed at compileReleaseKotlin ("Unresolved reference 'PreviewActivity'"), while the debug build, the unit tests (4,936, 0 failures) and lint all passed on the same commit.
+**Deviations:**
+- **A commit message slip, not amended:** b3053432's message mentions a README edit that only landed in a9e40251.
+- **Hazel's calls, accepted by the planner:** a separate job; the bundle task added; the job's self-checks; the uploaded log; the scratch branch kept.
+- **Found outside scope, not fixed:** the README still describes app/src/debug, app/src/release and debug-build diagnostics (README.md:44-45, :73-74, :147), none of which exists on pre-main since -930.
+**Not covered:** signing, the artifact's contents, release unit tests, R8; whether lint-vital would fail on a release-only error.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1205.
