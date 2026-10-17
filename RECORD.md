@@ -19411,3 +19411,27 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1136.
 **Finish line:** the PR merged into pre-main on green (the owner's "Go ahead with the follow up" read as covering that merge, as with -1120), and the CLAUDE.md line shown to the owner.
 **Abort conditions:** CI red for a cause in this change; any file outside docs/process/ in the diff.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1139.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1139
+**Timestamp:** 2026-10-17T02:56:28Z
+**PR:** 240
+**Head:** qa-followup (a6b9af8d)
+**Base:** pre-main
+**Merge-commit:** 68df94d45cd70f488ee5737feaeaefbe1c955b9e
+**Pre-merge:** 91f99e3f
+**Backup:** pre-main-20261017T025618Z-91f99e3f.bundle (verified)
+**Notes:** The owner, verbatim: "Go ahead with the follow up"; for the CLAUDE.md line: "Yes, go ahead". Five files: planner-profile.md, qa-philosophy.md, dispatch-format.md, a new known-bugs.md, and one line in CLAUDE.md, placed after "Verify your base branch before you start" with line 253 unmoved. CI run 38996058166 succeeded on the head. Written by the planner by hand, on branch records-after-173. Next free ID -1140.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1140
+**Timestamp:** 2026-10-17T02:56:28Z
+**Closes:** 2026-09-28-1138
+**Outcome:** done
+**Observed:** merged into pre-main (-1139). The E-GD addendum was committed on records-after-173 (0cf51a26), and the CLAUDE.md line was shown to the owner and approved.
+**Deviations:** the scope grew by one file, CLAUDE.md, after the owner approved the line ("Yes, go ahead"); -1138 had excluded it pending that word. The known-bugs list holds two cited entries; the owner's own triage list is still to come.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1141.
