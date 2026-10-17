@@ -19252,3 +19252,27 @@ Its report comes to the owner. Nothing is published without a separate yes after
 **Finish line:** the report pushed with a verdict (blocking, should-fix, notes) and the two one-line answers on publishing wording and on what would strengthen the signal. Then brought to the owner, who gives any publishing yes separately (-1127).
 **Abort conditions:** a figure that can't be reproduced; a hash mismatch; evidence the fix was tuned to the verdict; anything that would change a fixed threshold, sample or seed; a wrong premise; anything needing a publish step.
 **Notes:** Written by the planner by hand, on branch records-after-173. The reviewer is a fresh subagent, independent of the T7 builder. Next free ID -1129.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1129
+**Timestamp:** 2026-10-17T02:20:30Z
+**PR:** 238
+**Head:** profile-check-from-source (093d9779)
+**Base:** pre-main
+**Merge-commit:** 91f99e3f78a683c3c5f65cc83123cfab63c31da8
+**Pre-merge:** 462bb8ba
+**Backup:** pre-main-20261017T022021Z-462bb8ba.bundle (verified)
+**Notes:** The owner, verbatim: "1 yes", "2 yes" (-1120). Two bullets were added to docs/process/planner-profile.md. CI run 38993496803 succeeded on the head, and the merge was pinned to it. Written by the planner by hand, on branch records-after-173. Next free ID -1130.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1130
+**Timestamp:** 2026-10-17T02:20:30Z
+**Closes:** 2026-09-28-1120
+**Outcome:** done
+**Observed:** merged into pre-main (-1129). The diff was the two bullets in one file, as predicted, and CI passed. The open-intents check was first run under -1120, before this merge: 73 of 245 intents open, and five recent ones closed by -1121 to -1125.
+**Deviations:** none.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1131.
