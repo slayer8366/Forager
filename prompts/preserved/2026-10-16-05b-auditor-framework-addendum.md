@@ -21,3 +21,5 @@ Written by Forager's planner on 2026-10-16, after the framework document was com
 - It caught two real gaps in the planner's own documents.
 - The phone-check path is still untested.
 - The known-bugs list (A6) now exists as `docs/process/known-bugs.md`, with statuses open, hold and resolved, and the two fields the shipping rule reads: live or new, and serious or not.
+
+**5. Named roles, as a general method** (Forager RECORD -1141, -1142). Forager names its roles and keeps a profile for each, modelling how the role behaves, so any session in that role works the same way. The owner: "EGD may adopt it but to make it general, the profiles should have the roles name themselves based on the project and its scope." In Forager, each role proposed three names drawn from the project's world (woods, foraging, wayfinding), and the owner picked.

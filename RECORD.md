@@ -19457,3 +19457,14 @@ The owner picks. Step 2, after the names: a profile per role, modelled on docs/p
 **Finish line:** the four profiles merged (the three Forager ones into pre-main; the curator's in E-GD), each opening with the name and how it was chosen.
 **Abort conditions:** the owner withdraws the idea; a role declines to propose.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1142.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1142
+**Timestamp:** 2026-10-17T03:08:05Z
+**Continues:** 2026-09-28-1141
+**Title:** Role names are for Forager's team only (coder, UX auditor, independent reviewer); as a general method, for E-GD to adopt, each role names itself from its project and scope (owner)
+**The owner, verbatim:** "This is the Forager team only. EGD may adopt it but to make it general, the profiles should have the roles name themselves based on the project and its scope."
+**What it sets:** the E-GD curator is not named here. The planner's request to it was withdrawn by message, and its profile, if any, is E-GD's to decide. -1141's finish line narrows to three Forager profiles. Nine proposals are in, three per role, and are with the owner to pick. For E-GD: each role names itself from the project it serves and that project's scope. That is added to the framework addendum for the curator.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1143.
