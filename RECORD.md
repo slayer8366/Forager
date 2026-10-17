@@ -19276,3 +19276,20 @@ Its report comes to the owner. Nothing is published without a separate yes after
 **Observed:** merged into pre-main (-1129). The diff was the two bullets in one file, as predicted, and CI passed. The open-intents check was first run under -1120, before this merge: 73 of 245 intents open, and five recent ones closed by -1121 to -1125.
 **Deviations:** none.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1131.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1131
+**Timestamp:** 2026-10-17T02:24:23Z
+**Title:** The first promotion through the gate: pre-main into main, documents only (owner)
+**Dispatch-file:** preserved/2026-10-16-06.md (the auditor's part)
+**The owner, verbatim:** "Merge pre-main into main".
+**Change:** main moves from 402489ae to pre-main's head (91f99e3f, 14 commits). That brings three documents into main: docs/process/qa-philosophy.md, docs/process/dispatch-format.md, and docs/process/planner-profile.md's new sections. No app code.
+**Scope boundary:** a promotion PR from pre-main into main, merged with a merge commit after main is backed up. dev is then rebased onto main under the standing rule (-1087), with a backup. No app change, no Play build.
+**Baseline:** main 402489ae; pre-main 91f99e3f (CI run 38994535977 in progress at writing); git diff main..pre-main is 3 files, +331 −1.
+**Prediction (outcome, planner):** CI passes on pre-main's head; the auditor reports "pass, no change a user would meet"; the merged main's tree equals pre-main's; dev rebases with no conflict.
+**Prediction (mechanism, coder):** to be written by the auditor before reading the diff (dispatch 2026-10-16-06).
+**Finish line:** main equals pre-main's head and dev is rebased onto it, both recorded. The owner's "Merge pre-main into main" is the approval, read as conditional on a clean auditor report; any item comes back to the owner first.
+**Abort conditions:** CI red on pre-main; an auditor item or a fail; any file outside docs/process/ in the diff; a conflict on dev's rebase.
+**Notes:** Written by the planner by hand, on branch records-after-173. This is the gate's first use, on a documents-only promotion; it doesn't test the phone check. Next free ID -1132.
