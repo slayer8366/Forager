@@ -19435,3 +19435,25 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1136.
 **Observed:** merged into pre-main (-1139). The E-GD addendum was committed on records-after-173 (0cf51a26), and the CLAUDE.md line was shown to the owner and approved.
 **Deviations:** the scope grew by one file, CLAUDE.md, after the owner approved the line ("Yes, go ahead"); -1138 had excluded it pending that word. The known-bugs list holds two cited entries; the owner's own triage list is still to come.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1141.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1141
+**Timestamp:** 2026-10-17T03:06:41Z
+**Title:** Names and profiles for the team's roles: each role proposes three names and the owner picks; then a profile per role, written from the record (owner)
+**The owner, verbatim:** "I have a name for you, Rowan Waymark, you chose it yourself. I want to name my other team mates, or have them name themselves. That way each role can have a profile that models their behavior." Then, to the planner's questions: roles "Coder,UX auditor,Independent reviewer,E-GD curator"; naming "Each role proposes, you pick (Recommended)".
+**Change:** step 1, now: a session in each role reads that role's work and proposes three names, each with a line on why:
+- the coder on Opus;
+- the UX auditor on Fable;
+- the independent reviewer on Fable;
+- the E-GD curator in its own session, by message.
+
+The owner picks. Step 2, after the names: a profile per role, modelled on docs/process/planner-profile.md, written from the record. The coder, auditor and reviewer profiles go into Forager's docs/process/ through pre-main; the curator's goes into E-GD, written by the curator.
+**Scope boundary:** step 1 writes nothing; the proposals come back as messages. No profile is written before the owner picks.
+**Baseline:** docs/process/planner-profile.md on pre-main 68df94d4. Its naming account: "The owner, 2026-10-07: 'Rowan it is'".
+**Prediction (outcome, planner):** three proposals per role, each tied to the role's character in the record; the owner picks four names.
+**Prediction (mechanism, coder):** none; no build.
+**Finish line:** the four profiles merged (the three Forager ones into pre-main; the curator's in E-GD), each opening with the name and how it was chosen.
+**Abort conditions:** the owner withdraws the idea; a role declines to propose.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1142.
