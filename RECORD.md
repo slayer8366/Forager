@@ -19518,3 +19518,19 @@ The owner picks. Step 2, after the names: a profile per role, modelled on docs/p
 **Deviations:** its own prediction scored 3 of 7 wrong in substance.
 **Comparing the two reviews (the planner's reading):** they agree on every number and every substantive finding. They differ only in classing the "mycorrhizal habitat" label as blocking (Opus) or as not to be used without being blocking (Fable). Each added one analysis the other lacked: Opus the gain shares and B-map correlation, Fable the within-cell AUC. Both received the planner's dispatch, including its prediction, so they shared the prompt even though their models differed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1146.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1146
+**Timestamp:** 2026-10-17T03:30:40Z
+**Continues:** 2026-09-28-1144, 2026-09-28-1145, 2026-09-28-1127
+**Title:** T7 is not published; it is strengthened first: a test that doesn't ride on search effort, and a second comparison group, then a fresh review (owner)
+**The owner, verbatim:** "Hold; strengthen first (Recommended)". The other options offered were "Publish as a narrow pilot" and "Hold; move on to T8".
+**What it sets:** nothing from T7 is published, and -1030's third point of no return stays closed. The next T7 work, not yet planned or dispatched, will be:
+- a test of the habitat signal that doesn't depend on reporting effort: a finer effort layer, a within-area test, or independent presences from the unsearched interior;
+- a second comparison group that shares the forests but not the host relationship;
+- the reviews' should-fix items: the "26 blocks" correction, the weight fix's reach, the selection caveat, a decision row for rule 4.
+
+Then a fresh independent review, on a different model from the coder (-1134). The planner brings a plan to the owner before any build.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1147.
