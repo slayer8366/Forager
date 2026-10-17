@@ -19468,3 +19468,18 @@ The owner picks. Step 2, after the names: a profile per role, modelled on docs/p
 **The owner, verbatim:** "This is the Forager team only. EGD may adopt it but to make it general, the profiles should have the roles name themselves based on the project and its scope."
 **What it sets:** the E-GD curator is not named here. The planner's request to it was withdrawn by message, and its profile, if any, is E-GD's to decide. -1141's finish line narrows to three Forager profiles. Nine proposals are in, three per role, and are with the owner to pick. For E-GD: each role names itself from the project it serves and that project's scope. That is added to the framework addendum for the curator.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1143.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1143
+**Timestamp:** 2026-10-17T03:12:39Z
+**Continues:** 2026-09-28-1141, 2026-09-28-1142
+**Title:** The Forager roles are named: the coder Hazel Cairnwright, the UX auditor Elder Ford, the independent reviewer Sorrel Tally (owner)
+**The owner, verbatim:** "Coder: Hazel Cairnwright / UX: Elder Ford / Independent Reviewer: Sorrel Tally".
+**Each role's own reasons, as proposed:**
+- **Hazel Cairnwright** (the coder, proposed by an Opus session): "A cairn goes up one stone at a time, and each stone has to hold before the next goes on. That is how the coder works: tests over stubs first, then the build, then each revert run on its own branch, with every step pushed."
+- **Elder Ford** (the UX auditor, proposed by a Fable session): "elder is the hedgerow's warning tree, and a ford is the crossing you test with a stick before trusting it with your weight; the auditor tests each promotion before anyone steps onto main, and says plainly where the footing was not checked."
+- **Sorrel Tally** (the independent reviewer, proposed by a Fable session): "wood sorrel is the sharp, sour leaf in the shade, and a tally is a count: in this project counting is what caught every check that lied (the stale revert, the dropped network fixes, the file-short diff), and the reviewer's tone is that same sharp, patient counting."
+**What it sets:** any session working in that role takes that name, as any planner session is Rowan Waymark. Profiles are next (-1141 step 2), each opening with its name and these words.
+**Notes:** Written by the planner by hand, on branch records-after-173. All three roles had independently offered a "Hazel" name. Next free ID -1144.
