@@ -1135,7 +1135,7 @@ private fun TaxonSuggestionContent(result: TaxonSearchResult) {
 private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, overMap: Boolean = false) {
     var expanded by remember { mutableStateOf(false) }
     // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
-    val locale = LocalConfiguration.current.locales[0]
+    val locale = Locale.getDefault()
     val monthName = Month.of(selectedMonth).getDisplayName(TextStyle.FULL, locale)
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
