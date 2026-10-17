@@ -19968,3 +19968,21 @@ The D145 amendment and D155 record these.
 - **Not stated:** which version was sent.
 
 It promises a link to the first PNW results, owed to him when anything from the forecast is published. Written by the planner by hand, on branch records-after-173. Next free ID -1170.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1170
+**Timestamp:** 2026-10-17T07:53:56Z
+**Repository:** forager-forecast
+**PR:** 2
+**Head:** t7-part-a (691d2ee7)
+**Base:** t7-build
+**Merge-commit:** 9ad04ba0e8a571a04d16fb040cb8b0660688528b
+**Pre-merge:** b5c3d26f
+**Backup:** forecast-t7-build-20261017T075350Z-b5c3d26f.bundle (verified)
+**Notes:** The owner, verbatim: "Go ahead and have part A go into the T7 working branch (PR #2)" (-1166). As set there, the merge waited for -1165's step 1:
+- c94ae0c: P10b condition 2 clustered by level III block, reading (a);
+- 691d2ee: D145's dated amendment.
+
+PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with a merge commit, pinned to that head. t7-build now carries part A and the corrected bar. Step 2 (the saprotroph count) continues on t7-part-c. Written by the planner by hand, on branch records-after-173. Next free ID -1171.
