@@ -19761,3 +19761,28 @@ These become forecast decision rows from D145 when part A is built.
 **Finish line:** the report pushed, with a recommendation per part (the best usable source, or "none usable" and why).
 **Abort conditions:** a source needing download, an account or an agreement is named and not used.
 **Notes:** Written by the planner by hand, on branch records-after-173. Run by a fresh session on Fable, apart from the coder's model. Next free ID -1159.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1159
+**Timestamp:** 2026-10-17T05:44:11Z
+**Closes:** 2026-09-28-1158
+**Outcome:** done
+**Observed:** forecast t7-searches 532e0d5, docs/audits/2026-10-17-t7-searches.md (read-only; record counts from the aggregator's API with limit=0).
+
+**Part B: usable.**
+- **Sources:** the USGS National Transportation Dataset ("public domain transportation data"; acknowledgment of USGS "would be appreciated"); Forest Service National Forest System Roads and Trails (CC BY 4.0); BLM trails (public domain). Census TIGER is redundant with the NTD.
+- **Excluded:** OpenStreetMap (ODbL share-alike).
+- **The map would need one new attribution line,** naming USGS, the Forest Service and BLM.
+- **To confirm before any download:** which of the box's forests publish trails; the NTD's per-feature trail sources.
+
+**Part D: no open systematic interior survey exists.**
+- The Northwest Forest Plan surveys cover the spotted owl's range, west of the interior blocks.
+- **One usable set, with limits:** herbarium specimen records (PRESERVED_SPECIMEN), independent of D26 by construction, since D26 is HUMAN_OBSERVATION only. There are 28,934 Agaricomycetes records in the interior sub-box. Licences: CC0 for most collections; CC BY for WTU; CC BY-NC for WSP and Michigan.
+- **The limits:** mostly old (modal years 1954 to 1968; 1,185 since 2000); coarse (303 records at 250 m or better, 2,620 at 1 km or better); opportunistic, so independent of the reporting platforms but not of access.
+- **The portal's OSC and Idaho collections** ask users not to redistribute without permission.
+
+**Prediction:** held. A public-domain road layer exists, and independent interior data are sparse and opportunistic.
+**Deviations:** none. Sources needing agreements (the Montana Natural Heritage Program) were named and not used.
+**Notes:** Run by a fresh session on Fable. Written by the planner by hand, on branch records-after-173. Next free ID -1160.
