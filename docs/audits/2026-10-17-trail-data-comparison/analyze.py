@@ -14,7 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pyproj import Transformer
-from shapely.geometry import LineString, MultiLineString, box as shp_box, shape
+from shapely import STRtree
+from shapely.geometry import LineString, MultiLineString, Point, box as shp_box, shape
 from shapely.ops import unary_union
 
 BOXES = {
@@ -125,11 +126,19 @@ def near_share(segs, other_lines, dist):
 
 
 def components(segs):
-    """Connected pieces with vertices snapped to SNAP_M; returns (n_pieces, largest share)."""
+    """Connected pieces; returns (n_pieces, largest piece's share of length).
+
+    Two lines are joined when an end of one lies within SNAP_M of the other line (anywhere
+    along it, not only at its ends). First version rounded every vertex to a SNAP_M grid and
+    joined lines sharing a grid cell; that split ends 0.1 m apart across a cell boundary and
+    reported Mount Hood's Forest Service terra trails as 12 pieces when 48 of 68 segment ends
+    lie within 1 m of another segment (extra_checks.py). Replaced 2026-10-17 before the report's
+    findings were written; results.md was regenerated.
+    """
     lines = all_lines(segs)
     if not lines:
         return None, None
-    parent = {}
+    parent = list(range(len(lines)))
 
     def find(a):
         while parent[a] != a:
@@ -142,18 +151,17 @@ def components(segs):
         if ra != rb:
             parent[ra] = rb
 
-    key = lambda c: (round(c[0] / SNAP_M), round(c[1] / SNAP_M))  # noqa: E731
-    line_root = []
+    tree = STRtree(lines)
     for i, l in enumerate(lines):
-        ks = [key(c) for c in l.coords]
-        for k in ks:
-            parent.setdefault(k, k)
-        for a, b in zip(ks, ks[1:]):
-            union(a, b)
-        line_root.append(ks[0])
+        for c in (l.coords[0], l.coords[-1]):
+            p = Point(c)
+            for j in tree.query(p.buffer(SNAP_M)):
+                j = int(j)
+                if j != i and lines[j].distance(p) <= SNAP_M:
+                    union(i, j)
     comp_len = defaultdict(float)
-    for l, k in zip(lines, line_root):
-        comp_len[find(k)] += l.length
+    for i, l in enumerate(lines):
+        comp_len[find(i)] += l.length
     tot = sum(comp_len.values())
     return len(comp_len), max(comp_len.values()) / tot if tot else None
 
@@ -249,7 +257,10 @@ def analyze_box(i, raw):
         for sg in segs:
             sg["props"]["_layer"] = layer
         blm_by_layer[layer] = {"count": len(segs), "length_km": total_length(segs) / 1000, "error": err}
-        blm.extend(segs)
+        # Layer 7 ("Trails Managed for Public") republishes layers 2 to 6: in box 4 its 76 rows carry
+        # the same FAMS_IDs as layers 4 and 5 together (checked 2026-10-17). It is counted, not merged.
+        if layer != 7:
+            blm.extend(segs)
     r["errors"] = {"fs": fs_err, "tnm": tnm_err}
 
     # OSM summary

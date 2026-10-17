@@ -1,0 +1,1846 @@
+[
+ {
+  "box": 1,
+  "name": "mount-hood",
+  "centre": [
+   45.33,
+   -121.78
+  ],
+  "bbox_swne": [
+   45.28508444125045,
+   -121.84388922552407,
+   45.37491555874955,
+   -121.71611077447594
+  ],
+  "epsg": 32610,
+  "clip_area_km2": 99.91236306196863,
+  "errors": {
+   "fs": null,
+   "tnm": null
+  },
+  "osm": {
+   "endpoint": "https://overpass-api.de/api/interpreter",
+   "osm_base_timestamp": "2026-10-17T08:07:36Z",
+   "ways": 185,
+   "length_km": 160.62894250126422,
+   "excluded_sidewalk_crossing": {
+    "sidewalk": 1
+   },
+   "by_highway": {
+    "track": 40,
+    "path": 138,
+    "footway": 7
+   },
+   "length_km_by_highway": {
+    "track": 25.485761484342124,
+    "path": 131.87893128668972,
+    "footway": 3.264249730232362
+   },
+   "attributes": {
+    "name": 0.4864864864864865,
+    "trail number (ref)": 0.2918918918918919,
+    "allowed use (access/foot/bicycle/horse/motor_vehicle)": 0.6594594594594595,
+    "closure/season (seasonal, opening_hours, access=no)": 0.010810810810810811,
+    "difficulty (sac_scale, mtb:scale, trail_visibility)": 0.1783783783783784,
+    "surface": 0.4756756756756757,
+    "operator": 0.021621621621621623,
+    "informal=yes": 0.04864864864864865
+   }
+  },
+  "fs": {
+   "segments": 70,
+   "length_km": 142.53065095313164,
+   "terra_segments": 37,
+   "terra_length_km": 88.7213924139352,
+   "by_trail_type": {
+    "SNOW": 33,
+    "TERRA": 37
+   },
+   "attribute_subset": {
+    "TrailNFS_Basic": 70
+   },
+   "admin_org": {
+    "060609": 70
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 0.0,
+    "closure/season (any *_restricted)": 0.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 0.05714285714285714
+   },
+   "attributes_terra": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 0.0,
+    "closure/season (any *_restricted)": 0.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 0.08108108108108109
+   },
+   "restricted_values": {
+    "N/A": 70
+   },
+   "allowed_terra_use_values": {
+    "N/A": 70
+   }
+  },
+  "tnm": {
+   "segments": 181,
+   "length_km": 122.50880642749938,
+   "federal_segments": 181,
+   "federal_length_km": 122.50880642749938,
+   "nonfederal_segments": 0,
+   "nonfederal_length_km": 0.0,
+   "by_originator": {
+    "U.S. Forest Service / FS": 181
+   },
+   "by_trailtype": {
+    "Snow Trail": 84,
+    "Terra Trail": 97
+   },
+   "source_descriptions": {
+    "USFS Trails Update 03/2026": 181
+   },
+   "sourceeditdate": {
+    "min": "2026-03-29",
+    "median": "2026-03-29",
+    "max": "2026-03-29",
+    "n": 181
+   },
+   "loaddate": {
+    "min": "2026-07-22",
+    "median": "2026-07-22",
+    "max": "2026-07-22",
+    "n": 181
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   },
+   "attributes_federal": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   }
+  },
+  "blm": {
+   "segments": 0,
+   "length_km": 0.0,
+   "by_layer": {
+    "2": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "3": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "4": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "5": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "6": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "7": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    }
+   },
+   "field_names": [],
+   "attributes": {
+    "name (ROUTE_PRMRY_NM)": null,
+    "trail number (FAMS_ID or ROUTE_PLAN_ID)": null,
+    "allowed use (PLAN_ALLOW_MODE_TRNSPRT, PLAN_MODE_TRNSPRT, PLAN_OHV_ROUTE_DSGNTN)": null,
+    "closure/season (PLAN_SEASON_RSTRCT_CODE, PLAN_ACCESS_RSTRCT)": null,
+    "difficulty/class (none in schema; OBSRVE_ROUTE_USE_CLASS is a use class)": null,
+    "surface (OBSRVE_SRFCE_TYPE)": null,
+    "accuracy stated (ACCURACY_FT)": null
+   }
+  },
+  "federal_merged": {
+   "segments": 70,
+   "length_km": 142.53065095313164,
+   "tnm_rows_added_beyond_fs_blm": 0,
+   "tnm_added_length_km": 0.0
+  },
+  "overlap": {
+   "federal_near_osm_15m": 0.8233543615065462,
+   "osm_near_federal_15m": 0.6095236208558477,
+   "federal_near_osm_50m": 0.8941034133762807,
+   "osm_near_federal_50m": 0.6869578028696374,
+   "fs_near_tnm_15m": 1.0,
+   "tnm_near_fs_15m": 1.0,
+   "federal_only_km_15m": 25.17741784250354,
+   "osm_only_km_15m": 62.721807853647896,
+   "osm_only_km_by_highway": {
+    "track": 17.423355061168934,
+    "path": 42.08071462811331,
+    "footway": 3.2177381643656853
+   }
+  },
+  "connectivity": {
+   "osm": {
+    "pieces": 22,
+    "largest_share": 0.663669552210683,
+    "length_km": 160.62894250126422
+   },
+   "osm_path_footway_only": {
+    "pieces": 22,
+    "largest_share": 0.7596904039438261,
+    "length_km": 135.14318101692209
+   },
+   "fs": {
+    "pieces": 15,
+    "largest_share": 0.3859199700365606,
+    "length_km": 142.53065095313164
+   },
+   "tnm": {
+    "pieces": 13,
+    "largest_share": 0.49044838899195864,
+    "length_km": 122.50880642749938
+   },
+   "blm": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "federal_merged": {
+    "pieces": 15,
+    "largest_share": 0.3859199700365606,
+    "length_km": 142.53065095313164
+   }
+  },
+  "offset": {
+   "matched": 60,
+   "sampled": 20,
+   "median_m": 2.575026744653812,
+   "q1_m": 2.070958454136148,
+   "q3_m": 4.377442509207272,
+   "per_segment_m": [
+    1.4,
+    1.8,
+    1.8,
+    2.0,
+    2.1,
+    2.1,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.7,
+    3.4,
+    3.7,
+    4.0,
+    4.2,
+    4.4,
+    5.2,
+    16.9,
+    33.7,
+    38.0
+   ]
+  },
+  "offset_fs_vs_tnm": {
+   "matched": 70,
+   "sampled": 20,
+   "median_m": 0.9273153653577665,
+   "q1_m": 0.6645543393831949,
+   "q3_m": 1.1482678756385507,
+   "per_segment_m": [
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.7,
+    0.7,
+    0.8,
+    0.9,
+    0.9,
+    0.9,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.1,
+    1.2,
+    1.2,
+    1.2,
+    1.3,
+    1.3
+   ]
+  }
+ },
+ {
+  "box": 2,
+  "name": "eagle-cap",
+  "centre": [
+   45.2,
+   -117.26
+  ],
+  "bbox_swne": [
+   45.15508444125045,
+   -117.32374308558177,
+   45.244915558749554,
+   -117.19625691441824
+  ],
+  "epsg": 32611,
+  "clip_area_km2": 99.9194331562941,
+  "errors": {
+   "fs": null,
+   "tnm": null
+  },
+  "osm": {
+   "endpoint": "https://overpass-api.de/api/interpreter",
+   "osm_base_timestamp": "2026-10-17T08:09:35Z",
+   "ways": 100,
+   "length_km": 99.47835803379806,
+   "excluded_sidewalk_crossing": {},
+   "by_highway": {
+    "path": 99,
+    "footway": 1
+   },
+   "length_km_by_highway": {
+    "path": 98.89759773900242,
+    "footway": 0.5807602947956311
+   },
+   "attributes": {
+    "name": 0.48,
+    "trail number (ref)": 0.39,
+    "allowed use (access/foot/bicycle/horse/motor_vehicle)": 0.18,
+    "closure/season (seasonal, opening_hours, access=no)": 0.0,
+    "difficulty (sac_scale, mtb:scale, trail_visibility)": 0.14,
+    "surface": 0.67,
+    "operator": 0.02,
+    "informal=yes": 0.04
+   }
+  },
+  "fs": {
+   "segments": 0,
+   "length_km": 0.0,
+   "terra_segments": 0,
+   "terra_length_km": 0.0,
+   "by_trail_type": {},
+   "attribute_subset": {},
+   "admin_org": {},
+   "attributes": {
+    "name": null,
+    "trail number": null,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": null,
+    "closure/season (any *_restricted)": null,
+    "difficulty/class (trail_class, typical_trail_grade)": null,
+    "surface": null,
+    "accessibility_status": null
+   },
+   "attributes_terra": {
+    "name": null,
+    "trail number": null,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": null,
+    "closure/season (any *_restricted)": null,
+    "difficulty/class (trail_class, typical_trail_grade)": null,
+    "surface": null,
+    "accessibility_status": null
+   },
+   "restricted_values": {},
+   "allowed_terra_use_values": {}
+  },
+  "tnm": {
+   "segments": 0,
+   "length_km": 0.0,
+   "federal_segments": 0,
+   "federal_length_km": 0.0,
+   "nonfederal_segments": 0,
+   "nonfederal_length_km": 0.0,
+   "by_originator": {},
+   "by_trailtype": {},
+   "source_descriptions": {},
+   "sourceeditdate": null,
+   "loaddate": null,
+   "attributes": {
+    "name": null,
+    "trail number": null,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": null,
+    "closure/season (seasonopen)": null,
+    "difficulty/class": null,
+    "surface": null
+   },
+   "attributes_federal": {
+    "name": null,
+    "trail number": null,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": null,
+    "closure/season (seasonopen)": null,
+    "difficulty/class": null,
+    "surface": null
+   }
+  },
+  "blm": {
+   "segments": 0,
+   "length_km": 0.0,
+   "by_layer": {
+    "2": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "3": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "4": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "5": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "6": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "7": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    }
+   },
+   "field_names": [],
+   "attributes": {
+    "name (ROUTE_PRMRY_NM)": null,
+    "trail number (FAMS_ID or ROUTE_PLAN_ID)": null,
+    "allowed use (PLAN_ALLOW_MODE_TRNSPRT, PLAN_MODE_TRNSPRT, PLAN_OHV_ROUTE_DSGNTN)": null,
+    "closure/season (PLAN_SEASON_RSTRCT_CODE, PLAN_ACCESS_RSTRCT)": null,
+    "difficulty/class (none in schema; OBSRVE_ROUTE_USE_CLASS is a use class)": null,
+    "surface (OBSRVE_SRFCE_TYPE)": null,
+    "accuracy stated (ACCURACY_FT)": null
+   }
+  },
+  "federal_merged": {
+   "segments": 0,
+   "length_km": 0.0,
+   "tnm_rows_added_beyond_fs_blm": 0,
+   "tnm_added_length_km": 0.0
+  },
+  "overlap": {
+   "federal_near_osm_15m": null,
+   "osm_near_federal_15m": 0.0,
+   "federal_near_osm_50m": null,
+   "osm_near_federal_50m": 0.0,
+   "fs_near_tnm_15m": null,
+   "tnm_near_fs_15m": null,
+   "federal_only_km_15m": 0,
+   "osm_only_km_15m": 99.47835803379806,
+   "osm_only_km_by_highway": {
+    "path": 98.89759773900242,
+    "footway": 0.5807602947956311
+   }
+  },
+  "connectivity": {
+   "osm": {
+    "pieces": 7,
+    "largest_share": 0.972545286416962,
+    "length_km": 99.47835803379806
+   },
+   "osm_path_footway_only": {
+    "pieces": 7,
+    "largest_share": 0.972545286416962,
+    "length_km": 99.47835803379806
+   },
+   "fs": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "tnm": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "blm": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "federal_merged": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   }
+  },
+  "offset": {
+   "matched": 0,
+   "sampled": 0,
+   "median_m": null,
+   "q1_m": null,
+   "q3_m": null,
+   "per_segment_m": []
+  },
+  "offset_fs_vs_tnm": {
+   "matched": 0,
+   "sampled": 0,
+   "median_m": null,
+   "q1_m": null,
+   "q3_m": null,
+   "per_segment_m": []
+  }
+ },
+ {
+  "box": 3,
+  "name": "chamberlain-basin",
+  "centre": [
+   45.37,
+   -115.2
+  ],
+  "bbox_swne": [
+   45.325084441250446,
+   -115.26393439286547,
+   45.41491555874955,
+   -115.13606560713454
+  ],
+  "epsg": 32611,
+  "clip_area_km2": 99.89033077793681,
+  "errors": {
+   "fs": null,
+   "tnm": null
+  },
+  "osm": {
+   "endpoint": "https://overpass-api.de/api/interpreter",
+   "osm_base_timestamp": "2026-10-17T08:10:36Z",
+   "ways": 8,
+   "length_km": 50.29313552113718,
+   "excluded_sidewalk_crossing": {},
+   "by_highway": {
+    "path": 8
+   },
+   "length_km_by_highway": {
+    "path": 50.29313552113718
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number (ref)": 1.0,
+    "allowed use (access/foot/bicycle/horse/motor_vehicle)": 0.625,
+    "closure/season (seasonal, opening_hours, access=no)": 0.0,
+    "difficulty (sac_scale, mtb:scale, trail_visibility)": 0.0,
+    "surface": 0.625,
+    "operator": 0.0,
+    "informal=yes": 0.0
+   }
+  },
+  "fs": {
+   "segments": 10,
+   "length_km": 59.34469821357692,
+   "terra_segments": 10,
+   "terra_length_km": 59.34469821357692,
+   "by_trail_type": {
+    "TERRA": 10
+   },
+   "attribute_subset": {
+    "TrailNFS_MGMT": 10
+   },
+   "admin_org": {
+    "041206": 10
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 1.0,
+    "closure/season (any *_restricted)": 1.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 0.0
+   },
+   "attributes_terra": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 1.0,
+    "closure/season (any *_restricted)": 1.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 0.0
+   },
+   "restricted_values": {
+    "null": 10
+   },
+   "allowed_terra_use_values": {
+    "21": 10
+   }
+  },
+  "tnm": {
+   "segments": 18,
+   "length_km": 59.343142916014294,
+   "federal_segments": 18,
+   "federal_length_km": 59.343142916014294,
+   "nonfederal_segments": 0,
+   "nonfederal_length_km": 0.0,
+   "by_originator": {
+    "U.S. Forest Service / FS": 18
+   },
+   "by_trailtype": {
+    "Terra Trail": 18
+   },
+   "source_descriptions": {
+    "USFS Trails Update 03/2026": 18
+   },
+   "sourceeditdate": {
+    "min": "2026-03-29",
+    "median": "2026-03-29",
+    "max": "2026-03-29",
+    "n": 18
+   },
+   "loaddate": {
+    "min": "2026-05-20",
+    "median": "2026-05-20",
+    "max": "2026-05-20",
+    "n": 18
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   },
+   "attributes_federal": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   }
+  },
+  "blm": {
+   "segments": 0,
+   "length_km": 0.0,
+   "by_layer": {
+    "2": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "3": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "4": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "5": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "6": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "7": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    }
+   },
+   "field_names": [],
+   "attributes": {
+    "name (ROUTE_PRMRY_NM)": null,
+    "trail number (FAMS_ID or ROUTE_PLAN_ID)": null,
+    "allowed use (PLAN_ALLOW_MODE_TRNSPRT, PLAN_MODE_TRNSPRT, PLAN_OHV_ROUTE_DSGNTN)": null,
+    "closure/season (PLAN_SEASON_RSTRCT_CODE, PLAN_ACCESS_RSTRCT)": null,
+    "difficulty/class (none in schema; OBSRVE_ROUTE_USE_CLASS is a use class)": null,
+    "surface (OBSRVE_SRFCE_TYPE)": null,
+    "accuracy stated (ACCURACY_FT)": null
+   }
+  },
+  "federal_merged": {
+   "segments": 10,
+   "length_km": 59.34469821357692,
+   "tnm_rows_added_beyond_fs_blm": 0,
+   "tnm_added_length_km": 0.0
+  },
+  "overlap": {
+   "federal_near_osm_15m": 0.46761334609295796,
+   "osm_near_federal_15m": 0.5520559187058782,
+   "federal_near_osm_50m": 0.6350494366533431,
+   "osm_near_federal_50m": 0.755327092944851,
+   "fs_near_tnm_15m": 1.0,
+   "tnm_near_fs_15m": 1.0000000000000002,
+   "federal_only_km_15m": 31.594325309049438,
+   "osm_only_km_15m": 22.528512386416555,
+   "osm_only_km_by_highway": {
+    "path": 22.52851238641656
+   }
+  },
+  "connectivity": {
+   "osm": {
+    "pieces": 2,
+    "largest_share": 0.9998626312270493,
+    "length_km": 50.29313552113718
+   },
+   "osm_path_footway_only": {
+    "pieces": 2,
+    "largest_share": 0.9998626312270493,
+    "length_km": 50.29313552113718
+   },
+   "fs": {
+    "pieces": 4,
+    "largest_share": 0.6451491191263687,
+    "length_km": 59.34469821357692
+   },
+   "tnm": {
+    "pieces": 3,
+    "largest_share": 0.7651326451651035,
+    "length_km": 59.343142916014294
+   },
+   "blm": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "federal_merged": {
+    "pieces": 4,
+    "largest_share": 0.6451491191263687,
+    "length_km": 59.34469821357692
+   }
+  },
+  "offset": {
+   "matched": 8,
+   "sampled": 8,
+   "median_m": 11.027101178537333,
+   "q1_m": 4.527664540537248,
+   "q3_m": 15.543393023058877,
+   "per_segment_m": [
+    3.7,
+    4.4,
+    4.8,
+    8.8,
+    13.3,
+    13.6,
+    16.2,
+    39.3
+   ]
+  },
+  "offset_fs_vs_tnm": {
+   "matched": 10,
+   "sampled": 10,
+   "median_m": 0.8890619061747465,
+   "q1_m": 0.7011752347530393,
+   "q3_m": 1.0545714870735639,
+   "per_segment_m": [
+    0.6,
+    0.6,
+    0.7,
+    0.7,
+    0.8,
+    1.0,
+    1.0,
+    1.0,
+    1.1,
+    1.1
+   ]
+  }
+ },
+ {
+  "box": 4,
+  "name": "oregon-badlands",
+  "centre": [
+   43.97,
+   -121.05
+  ],
+  "bbox_swne": [
+   43.92508444125045,
+   -121.11240842721105,
+   44.01491555874955,
+   -120.98759157278894
+  ],
+  "epsg": 32610,
+  "clip_area_km2": 99.85879481938382,
+  "errors": {
+   "fs": null,
+   "tnm": null
+  },
+  "osm": {
+   "endpoint": "https://overpass-api.de/api/interpreter",
+   "osm_base_timestamp": "2026-10-17T08:11:41Z",
+   "ways": 101,
+   "length_km": 150.03175501863228,
+   "excluded_sidewalk_crossing": {},
+   "by_highway": {
+    "track": 35,
+    "path": 53,
+    "footway": 13
+   },
+   "length_km_by_highway": {
+    "track": 32.402684545640305,
+    "path": 91.04337640323901,
+    "footway": 26.585694069752982
+   },
+   "attributes": {
+    "name": 0.3069306930693069,
+    "trail number (ref)": 0.0,
+    "allowed use (access/foot/bicycle/horse/motor_vehicle)": 0.46534653465346537,
+    "closure/season (seasonal, opening_hours, access=no)": 0.06930693069306931,
+    "difficulty (sac_scale, mtb:scale, trail_visibility)": 0.06930693069306931,
+    "surface": 0.49504950495049505,
+    "operator": 0.0,
+    "informal=yes": 0.0
+   }
+  },
+  "fs": {
+   "segments": 0,
+   "length_km": 0.0,
+   "terra_segments": 0,
+   "terra_length_km": 0.0,
+   "by_trail_type": {},
+   "attribute_subset": {},
+   "admin_org": {},
+   "attributes": {
+    "name": null,
+    "trail number": null,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": null,
+    "closure/season (any *_restricted)": null,
+    "difficulty/class (trail_class, typical_trail_grade)": null,
+    "surface": null,
+    "accessibility_status": null
+   },
+   "attributes_terra": {
+    "name": null,
+    "trail number": null,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": null,
+    "closure/season (any *_restricted)": null,
+    "difficulty/class (trail_class, typical_trail_grade)": null,
+    "surface": null,
+    "accessibility_status": null
+   },
+   "restricted_values": {},
+   "allowed_terra_use_values": {}
+  },
+  "tnm": {
+   "segments": 75,
+   "length_km": 54.65322017554437,
+   "federal_segments": 75,
+   "federal_length_km": 54.65322017554437,
+   "nonfederal_segments": 0,
+   "nonfederal_length_km": 0.0,
+   "by_originator": {
+    "Bureau of Land Management / BLM": 75
+   },
+   "by_trailtype": {
+    "Terra Trail": 75
+   },
+   "source_descriptions": {
+    "BLM Trails Update 03/2026": 75
+   },
+   "sourceeditdate": {
+    "min": "2026-03-17",
+    "median": "2026-03-17",
+    "max": "2026-03-17",
+    "n": 75
+   },
+   "loaddate": {
+    "min": "2026-07-22",
+    "median": "2026-07-22",
+    "max": "2026-07-22",
+    "n": 75
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 0.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 1.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   },
+   "attributes_federal": {
+    "name": 1.0,
+    "trail number": 0.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 1.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   }
+  },
+  "blm": {
+   "segments": 75,
+   "length_km": 54.64591790209169,
+   "by_layer": {
+    "2": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "3": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "4": {
+     "count": 2,
+     "length_km": 2.0233816399489926,
+     "error": null
+    },
+    "5": {
+     "count": 73,
+     "length_km": 52.6225362621427,
+     "error": null
+    },
+    "6": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "7": {
+     "count": 75,
+     "length_km": 54.64591790209169,
+     "error": null
+    }
+   },
+   "field_names": [
+    "ACCURACY_FT",
+    "ADMIN_ST",
+    "BLM_MILES",
+    "COORD_SRC2",
+    "COORD_SRC_TYPE",
+    "DEF_FET2",
+    "DEF_FET_TYPE",
+    "DSTRBTE_EXTRNL_CODE",
+    "EXSTNG_AUTH_CODE",
+    "FAMS_ID",
+    "FLTP_CODE",
+    "GIS_MILES",
+    "GlobalID",
+    "NEPA_DOC_NUM",
+    "OBJECTID",
+    "OBSRVE_ROUTE_USE_CLASS",
+    "OBSRVE_SRFCE_TYPE",
+    "OHV_DSGNTN_LIM_EXPLAIN",
+    "OHV_ROUTE_DSGNTN_LIM",
+    "PLAN_ACCESS_RSTRCT",
+    "PLAN_ADD_MODE_TRNSPRT_RSTRT_CD",
+    "PLAN_ALLOW_MODE_TRNSPRT",
+    "PLAN_ASSET_CLASS",
+    "PLAN_MODE_TRNSPRT",
+    "PLAN_OHV_ROUTE_DSGNTN",
+    "PLAN_PRMRY_ROUTE_MNGT_OBJTV",
+    "PLAN_ROUTE_DSGNTN_AUTH",
+    "PLAN_SEASON_RSTRCT_CODE",
+    "ROUTE_PLAN_ID",
+    "ROUTE_PRMRY_NM",
+    "ROUTE_SCNDRY_SPCL_DSGNTN_NM",
+    "ROUTE_SPCL_DSGNTN_TYPE",
+    "Shape_Length",
+    "TMA_ID",
+    "TMP_ID",
+    "_layer"
+   ],
+   "attributes": {
+    "name (ROUTE_PRMRY_NM)": 1.0,
+    "trail number (FAMS_ID or ROUTE_PLAN_ID)": 1.0,
+    "allowed use (PLAN_ALLOW_MODE_TRNSPRT, PLAN_MODE_TRNSPRT, PLAN_OHV_ROUTE_DSGNTN)": 1.0,
+    "closure/season (PLAN_SEASON_RSTRCT_CODE, PLAN_ACCESS_RSTRCT)": 1.0,
+    "difficulty/class (none in schema; OBSRVE_ROUTE_USE_CLASS is a use class)": 1.0,
+    "surface (OBSRVE_SRFCE_TYPE)": 1.0,
+    "accuracy stated (ACCURACY_FT)": 1.0
+   }
+  },
+  "federal_merged": {
+   "segments": 75,
+   "length_km": 54.64591790209169,
+   "tnm_rows_added_beyond_fs_blm": 0,
+   "tnm_added_length_km": 0.0
+  },
+  "overlap": {
+   "federal_near_osm_15m": 0.9953094218558738,
+   "osm_near_federal_15m": 0.3705079692242778,
+   "federal_near_osm_50m": 0.9999494868153894,
+   "osm_near_federal_50m": 0.37681643672791904,
+   "fs_near_tnm_15m": null,
+   "tnm_near_fs_15m": 0.0,
+   "federal_only_km_15m": 0.2563209481772666,
+   "osm_only_km_15m": 94.44379414752447,
+   "osm_only_km_by_highway": {
+    "track": 32.34799649167542,
+    "path": 55.08936297700996,
+    "footway": 7.006434678839111
+   }
+  },
+  "connectivity": {
+   "osm": {
+    "pieces": 15,
+    "largest_share": 0.853838011735993,
+    "length_km": 150.03175501863228
+   },
+   "osm_path_footway_only": {
+    "pieces": 8,
+    "largest_share": 0.941199969301465,
+    "length_km": 117.62907047299198
+   },
+   "fs": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "tnm": {
+    "pieces": 4,
+    "largest_share": 0.9121417600245939,
+    "length_km": 54.65322017554437
+   },
+   "blm": {
+    "pieces": 4,
+    "largest_share": 0.9120865300201129,
+    "length_km": 54.64591790209169
+   },
+   "federal_merged": {
+    "pieces": 4,
+    "largest_share": 0.9120865300201129,
+    "length_km": 54.64591790209169
+   }
+  },
+  "offset": {
+   "matched": 73,
+   "sampled": 20,
+   "median_m": 3.0336331408132193,
+   "q1_m": 1.8573175783565443,
+   "q3_m": 4.7731622669897344,
+   "per_segment_m": [
+    0.8,
+    1.4,
+    1.5,
+    1.7,
+    1.8,
+    1.9,
+    2.0,
+    2.1,
+    2.8,
+    2.9,
+    3.1,
+    3.2,
+    3.5,
+    3.9,
+    4.2,
+    5.0,
+    5.2,
+    5.4,
+    5.6,
+    6.1
+   ]
+  },
+  "offset_fs_vs_tnm": {
+   "matched": 0,
+   "sampled": 0,
+   "median_m": null,
+   "q1_m": null,
+   "q3_m": null,
+   "per_segment_m": []
+  }
+ },
+ {
+  "box": 5,
+  "name": "cape-perpetua",
+  "centre": [
+   44.3,
+   -124.04
+  ],
+  "bbox_swne": [
+   44.255084441250446,
+   -124.10275815952066,
+   44.34491555874955,
+   -123.97724184047935
+  ],
+  "epsg": 32610,
+  "clip_area_km2": 99.87762433983214,
+  "errors": {
+   "fs": null,
+   "tnm": null
+  },
+  "osm": {
+   "endpoint": "https://overpass-api.de/api/interpreter",
+   "osm_base_timestamp": "2026-10-17T08:12:43Z",
+   "ways": 155,
+   "length_km": 89.6638743651806,
+   "excluded_sidewalk_crossing": {
+    "sidewalk": 1
+   },
+   "by_highway": {
+    "track": 67,
+    "footway": 76,
+    "path": 7,
+    "steps": 5
+   },
+   "length_km_by_highway": {
+    "track": 61.14516166378916,
+    "footway": 18.43314864298848,
+    "path": 10.04467867237958,
+    "steps": 0.04088538602337373
+   },
+   "attributes": {
+    "name": 0.2967741935483871,
+    "trail number (ref)": 0.2838709677419355,
+    "allowed use (access/foot/bicycle/horse/motor_vehicle)": 0.3161290322580645,
+    "closure/season (seasonal, opening_hours, access=no)": 0.0,
+    "difficulty (sac_scale, mtb:scale, trail_visibility)": 0.0,
+    "surface": 0.5935483870967742,
+    "operator": 0.2709677419354839,
+    "informal=yes": 0.0
+   }
+  },
+  "fs": {
+   "segments": 8,
+   "length_km": 21.749363727172312,
+   "terra_segments": 8,
+   "terra_length_km": 21.749363727172312,
+   "by_trail_type": {
+    "TERRA": 8
+   },
+   "attribute_subset": {
+    "TrailNFS_MGMT": 8
+   },
+   "admin_org": {
+    "061208": 8
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 1.0,
+    "closure/season (any *_restricted)": 1.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 1.0
+   },
+   "attributes_terra": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 1.0,
+    "closure/season (any *_restricted)": 1.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 1.0
+   },
+   "restricted_values": {
+    "null": 8
+   },
+   "allowed_terra_use_values": {
+    "321": 7,
+    "21": 1
+   }
+  },
+  "tnm": {
+   "segments": 11,
+   "length_km": 21.753441400892267,
+   "federal_segments": 11,
+   "federal_length_km": 21.753441400892267,
+   "nonfederal_segments": 0,
+   "nonfederal_length_km": 0.0,
+   "by_originator": {
+    "U.S. Forest Service / FS": 11
+   },
+   "by_trailtype": {
+    "Terra Trail": 11
+   },
+   "source_descriptions": {
+    "USFS Trails Update 03/2026": 11
+   },
+   "sourceeditdate": {
+    "min": "2026-03-29",
+    "median": "2026-03-29",
+    "max": "2026-03-29",
+    "n": 11
+   },
+   "loaddate": {
+    "min": "2026-07-22",
+    "median": "2026-07-22",
+    "max": "2026-07-22",
+    "n": 11
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   },
+   "attributes_federal": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   }
+  },
+  "blm": {
+   "segments": 0,
+   "length_km": 0.0,
+   "by_layer": {
+    "2": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "3": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "4": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "5": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "6": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "7": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    }
+   },
+   "field_names": [],
+   "attributes": {
+    "name (ROUTE_PRMRY_NM)": null,
+    "trail number (FAMS_ID or ROUTE_PLAN_ID)": null,
+    "allowed use (PLAN_ALLOW_MODE_TRNSPRT, PLAN_MODE_TRNSPRT, PLAN_OHV_ROUTE_DSGNTN)": null,
+    "closure/season (PLAN_SEASON_RSTRCT_CODE, PLAN_ACCESS_RSTRCT)": null,
+    "difficulty/class (none in schema; OBSRVE_ROUTE_USE_CLASS is a use class)": null,
+    "surface (OBSRVE_SRFCE_TYPE)": null,
+    "accuracy stated (ACCURACY_FT)": null
+   }
+  },
+  "federal_merged": {
+   "segments": 8,
+   "length_km": 21.749363727172312,
+   "tnm_rows_added_beyond_fs_blm": 0,
+   "tnm_added_length_km": 0.0
+  },
+  "overlap": {
+   "federal_near_osm_15m": 0.6864657633596174,
+   "osm_near_federal_15m": 0.16601256606331746,
+   "federal_near_osm_50m": 0.8964675815696805,
+   "osm_near_federal_50m": 0.22458716602930506,
+   "fs_near_tnm_15m": 1.0,
+   "tnm_near_fs_15m": 1.0,
+   "federal_only_km_15m": 6.819170153612998,
+   "osm_only_km_15m": 74.77854449863806,
+   "osm_only_km_by_highway": {
+    "track": 61.00313246940544,
+    "footway": 11.070741621380979,
+    "path": 2.6637850218282657,
+    "steps": 0.04088538602337373
+   }
+  },
+  "connectivity": {
+   "osm": {
+    "pieces": 79,
+    "largest_share": 0.19586032733804415,
+    "length_km": 89.6638743651806
+   },
+   "osm_path_footway_only": {
+    "pieces": 37,
+    "largest_share": 0.6157920228532862,
+    "length_km": 28.518712701391436
+   },
+   "fs": {
+    "pieces": 5,
+    "largest_share": 0.42162452984768706,
+    "length_km": 21.749363727172312
+   },
+   "tnm": {
+    "pieces": 5,
+    "largest_share": 0.42165124896424006,
+    "length_km": 21.753441400892267
+   },
+   "blm": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "federal_merged": {
+    "pieces": 5,
+    "largest_share": 0.42162452984768706,
+    "length_km": 21.749363727172312
+   }
+  },
+  "offset": {
+   "matched": 7,
+   "sampled": 7,
+   "median_m": 3.874645576631476,
+   "q1_m": 1.8665683762832854,
+   "q3_m": 16.05867039508871,
+   "per_segment_m": [
+    1.5,
+    1.9,
+    2.7,
+    3.9,
+    7.8,
+    16.1,
+    20.3
+   ]
+  },
+  "offset_fs_vs_tnm": {
+   "matched": 8,
+   "sampled": 8,
+   "median_m": 0.7638682428792032,
+   "q1_m": 0.7033952072533014,
+   "q3_m": 0.8780508474829328,
+   "per_segment_m": [
+    0.6,
+    0.7,
+    0.7,
+    0.8,
+    0.8,
+    0.8,
+    0.9,
+    1.0
+   ]
+  }
+ },
+ {
+  "box": 6,
+  "name": "tiger-mountain",
+  "centre": [
+   47.5,
+   -121.98
+  ],
+  "bbox_swne": [
+   47.45508444125045,
+   -122.04648343662066,
+   47.54491555874955,
+   -121.91351656337935
+  ],
+  "epsg": 32610,
+  "clip_area_km2": 99.96456739347536,
+  "errors": {
+   "fs": null,
+   "tnm": null
+  },
+  "osm": {
+   "endpoint": "https://overpass-api.de/api/interpreter",
+   "osm_base_timestamp": "2026-10-17T08:13:46Z",
+   "ways": 1054,
+   "length_km": 225.50642619772046,
+   "excluded_sidewalk_crossing": {
+    "sidewalk": 621,
+    "crossing": 333
+   },
+   "by_highway": {
+    "track": 61,
+    "path": 270,
+    "footway": 649,
+    "bridleway": 13,
+    "steps": 61
+   },
+   "length_km_by_highway": {
+    "track": 25.17702814376437,
+    "path": 98.45236788048183,
+    "footway": 96.35478560799552,
+    "bridleway": 4.910258840544908,
+    "steps": 0.6119857249338114
+   },
+   "attributes": {
+    "name": 0.23434535104364326,
+    "trail number (ref)": 0.0,
+    "allowed use (access/foot/bicycle/horse/motor_vehicle)": 0.38330170777988615,
+    "closure/season (seasonal, opening_hours, access=no)": 0.006641366223908918,
+    "difficulty (sac_scale, mtb:scale, trail_visibility)": 0.019924098671726755,
+    "surface": 0.6461100569259962,
+    "operator": 0.0730550284629981,
+    "informal=yes": 0.009487666034155597
+   }
+  },
+  "fs": {
+   "segments": 0,
+   "length_km": 0.0,
+   "terra_segments": 0,
+   "terra_length_km": 0.0,
+   "by_trail_type": {},
+   "attribute_subset": {},
+   "admin_org": {},
+   "attributes": {
+    "name": null,
+    "trail number": null,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": null,
+    "closure/season (any *_restricted)": null,
+    "difficulty/class (trail_class, typical_trail_grade)": null,
+    "surface": null,
+    "accessibility_status": null
+   },
+   "attributes_terra": {
+    "name": null,
+    "trail number": null,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": null,
+    "closure/season (any *_restricted)": null,
+    "difficulty/class (trail_class, typical_trail_grade)": null,
+    "surface": null,
+    "accessibility_status": null
+   },
+   "restricted_values": {},
+   "allowed_terra_use_values": {}
+  },
+  "tnm": {
+   "segments": 11,
+   "length_km": 8.976935410325545,
+   "federal_segments": 0,
+   "federal_length_km": 0.0,
+   "nonfederal_segments": 11,
+   "nonfederal_length_km": 8.976935410325545,
+   "by_originator": {
+    "Washington State Parks and Recreation Commission / State": 11
+   },
+   "by_trailtype": {
+    "Terra Trail": 11
+   },
+   "source_descriptions": {
+    "Washington State Trails 01/2020": 11
+   },
+   "sourceeditdate": null,
+   "loaddate": {
+    "min": "2020-03-06",
+    "median": "2020-03-06",
+    "max": "2020-03-06",
+    "n": 11
+   },
+   "attributes": {
+    "name": 0.6363636363636364,
+    "trail number": 0.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 1.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 0.0
+   },
+   "attributes_federal": {
+    "name": null,
+    "trail number": null,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": null,
+    "closure/season (seasonopen)": null,
+    "difficulty/class": null,
+    "surface": null
+   }
+  },
+  "blm": {
+   "segments": 0,
+   "length_km": 0.0,
+   "by_layer": {
+    "2": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "3": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "4": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "5": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "6": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "7": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    }
+   },
+   "field_names": [],
+   "attributes": {
+    "name (ROUTE_PRMRY_NM)": null,
+    "trail number (FAMS_ID or ROUTE_PLAN_ID)": null,
+    "allowed use (PLAN_ALLOW_MODE_TRNSPRT, PLAN_MODE_TRNSPRT, PLAN_OHV_ROUTE_DSGNTN)": null,
+    "closure/season (PLAN_SEASON_RSTRCT_CODE, PLAN_ACCESS_RSTRCT)": null,
+    "difficulty/class (none in schema; OBSRVE_ROUTE_USE_CLASS is a use class)": null,
+    "surface (OBSRVE_SRFCE_TYPE)": null,
+    "accuracy stated (ACCURACY_FT)": null
+   }
+  },
+  "federal_merged": {
+   "segments": 0,
+   "length_km": 0.0,
+   "tnm_rows_added_beyond_fs_blm": 0,
+   "tnm_added_length_km": 0.0
+  },
+  "overlap": {
+   "federal_near_osm_15m": null,
+   "osm_near_federal_15m": 0.0,
+   "federal_near_osm_50m": null,
+   "osm_near_federal_50m": 0.0,
+   "fs_near_tnm_15m": null,
+   "tnm_near_fs_15m": 0.0,
+   "federal_only_km_15m": 0,
+   "osm_only_km_15m": 225.50642619772046,
+   "osm_only_km_by_highway": {
+    "track": 25.17702814376437,
+    "path": 98.45236788048183,
+    "footway": 96.35478560799552,
+    "bridleway": 4.910258840544908,
+    "steps": 0.6119857249338114
+   }
+  },
+  "connectivity": {
+   "osm": {
+    "pieces": 254,
+    "largest_share": 0.6041495343452716,
+    "length_km": 225.50642619772046
+   },
+   "osm_path_footway_only": {
+    "pieces": 228,
+    "largest_share": 0.6474577258213583,
+    "length_km": 200.32939805395608
+   },
+   "fs": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "tnm": {
+    "pieces": 5,
+    "largest_share": 0.6752302968445959,
+    "length_km": 8.976935410325545
+   },
+   "blm": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "federal_merged": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   }
+  },
+  "offset": {
+   "matched": 0,
+   "sampled": 0,
+   "median_m": null,
+   "q1_m": null,
+   "q3_m": null,
+   "per_segment_m": []
+  },
+  "offset_fs_vs_tnm": {
+   "matched": 0,
+   "sampled": 0,
+   "median_m": null,
+   "q1_m": null,
+   "q3_m": null,
+   "per_segment_m": []
+  }
+ },
+ {
+  "box": 7,
+  "name": "three-sisters",
+  "centre": [
+   44.1,
+   -121.8
+  ],
+  "bbox_swne": [
+   44.05508444125045,
+   -121.86254548662185,
+   44.14491555874955,
+   -121.73745451337814
+  ],
+  "epsg": 32610,
+  "clip_area_km2": 99.88719288846568,
+  "errors": {
+   "fs": null,
+   "tnm": null
+  },
+  "osm": {
+   "endpoint": "https://overpass-api.de/api/interpreter",
+   "osm_base_timestamp": "2026-10-17T08:14:47Z",
+   "ways": 28,
+   "length_km": 63.433550480298194,
+   "excluded_sidewalk_crossing": {},
+   "by_highway": {
+    "path": 28
+   },
+   "length_km_by_highway": {
+    "path": 63.433550480298194
+   },
+   "attributes": {
+    "name": 0.6428571428571429,
+    "trail number (ref)": 0.32142857142857145,
+    "allowed use (access/foot/bicycle/horse/motor_vehicle)": 0.35714285714285715,
+    "closure/season (seasonal, opening_hours, access=no)": 0.03571428571428571,
+    "difficulty (sac_scale, mtb:scale, trail_visibility)": 0.4642857142857143,
+    "surface": 0.39285714285714285,
+    "operator": 0.0,
+    "informal=yes": 0.0
+   }
+  },
+  "fs": {
+   "segments": 15,
+   "length_km": 58.38241230730213,
+   "terra_segments": 15,
+   "terra_length_km": 58.38241230730213,
+   "by_trail_type": {
+    "TERRA": 15
+   },
+   "attribute_subset": {
+    "TrailNFS_MGMT": 15
+   },
+   "admin_org": {
+    "060101": 4,
+    "061801": 10,
+    "060105": 1
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 1.0,
+    "closure/season (any *_restricted)": 1.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 0.0
+   },
+   "attributes_terra": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (any *_managed/accpt or allowed_terra_use)": 1.0,
+    "closure/season (any *_restricted)": 1.0,
+    "difficulty/class (trail_class, typical_trail_grade)": 1.0,
+    "surface": 1.0,
+    "accessibility_status": 0.0
+   },
+   "restricted_values": {
+    "null": 15
+   },
+   "allowed_terra_use_values": {
+    "21": 15
+   }
+  },
+  "tnm": {
+   "segments": 29,
+   "length_km": 58.34805249464942,
+   "federal_segments": 29,
+   "federal_length_km": 58.34805249464942,
+   "nonfederal_segments": 0,
+   "nonfederal_length_km": 0.0,
+   "by_originator": {
+    "U.S. Forest Service / FS": 29
+   },
+   "by_trailtype": {
+    "Terra Trail": 29
+   },
+   "source_descriptions": {
+    "USFS Trails Update 03/2026": 29
+   },
+   "sourceeditdate": {
+    "min": "2026-03-29",
+    "median": "2026-03-29",
+    "max": "2026-03-29",
+    "n": 29
+   },
+   "loaddate": {
+    "min": "2026-07-22",
+    "median": "2026-07-22",
+    "max": "2026-07-22",
+    "n": 29
+   },
+   "attributes": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   },
+   "attributes_federal": {
+    "name": 1.0,
+    "trail number": 1.0,
+    "allowed use (hikerpedestrian/bicycle/packsaddle/motorcycle)": 0.0,
+    "closure/season (seasonopen)": 0.0,
+    "difficulty/class": 0.0,
+    "surface": 1.0
+   }
+  },
+  "blm": {
+   "segments": 0,
+   "length_km": 0.0,
+   "by_layer": {
+    "2": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "3": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "4": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "5": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "6": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    },
+    "7": {
+     "count": 0,
+     "length_km": 0.0,
+     "error": null
+    }
+   },
+   "field_names": [],
+   "attributes": {
+    "name (ROUTE_PRMRY_NM)": null,
+    "trail number (FAMS_ID or ROUTE_PLAN_ID)": null,
+    "allowed use (PLAN_ALLOW_MODE_TRNSPRT, PLAN_MODE_TRNSPRT, PLAN_OHV_ROUTE_DSGNTN)": null,
+    "closure/season (PLAN_SEASON_RSTRCT_CODE, PLAN_ACCESS_RSTRCT)": null,
+    "difficulty/class (none in schema; OBSRVE_ROUTE_USE_CLASS is a use class)": null,
+    "surface (OBSRVE_SRFCE_TYPE)": null,
+    "accuracy stated (ACCURACY_FT)": null
+   }
+  },
+  "federal_merged": {
+   "segments": 15,
+   "length_km": 58.38241230730213,
+   "tnm_rows_added_beyond_fs_blm": 0,
+   "tnm_added_length_km": 0.0
+  },
+  "overlap": {
+   "federal_near_osm_15m": 0.7919438461422162,
+   "osm_near_federal_15m": 0.7119420234044931,
+   "federal_near_osm_50m": 0.8612647099461963,
+   "osm_near_federal_50m": 0.7804604707488129,
+   "fs_near_tnm_15m": 0.9995959756073385,
+   "tnm_near_fs_15m": 0.9999999999999999,
+   "federal_only_km_15m": 12.14682015759662,
+   "osm_only_km_15m": 18.272540199623645,
+   "osm_only_km_by_highway": {
+    "path": 18.272540199623634
+   }
+  },
+  "connectivity": {
+   "osm": {
+    "pieces": 4,
+    "largest_share": 0.6998171062144799,
+    "length_km": 63.433550480298194
+   },
+   "osm_path_footway_only": {
+    "pieces": 4,
+    "largest_share": 0.6998171062144799,
+    "length_km": 63.433550480298194
+   },
+   "fs": {
+    "pieces": 10,
+    "largest_share": 0.7234235801546613,
+    "length_km": 58.38241230730213
+   },
+   "tnm": {
+    "pieces": 6,
+    "largest_share": 0.7363615634140713,
+    "length_km": 58.34805249464942
+   },
+   "blm": {
+    "pieces": null,
+    "largest_share": null,
+    "length_km": 0.0
+   },
+   "federal_merged": {
+    "pieces": 10,
+    "largest_share": 0.7234235801546613,
+    "length_km": 58.38241230730213
+   }
+  },
+  "offset": {
+   "matched": 13,
+   "sampled": 13,
+   "median_m": 3.111294527942531,
+   "q1_m": 2.0654895073504163,
+   "q3_m": 8.120386933243962,
+   "per_segment_m": [
+    0.7,
+    1.8,
+    2.0,
+    2.1,
+    2.1,
+    2.3,
+    3.1,
+    3.3,
+    3.9,
+    6.1,
+    10.1,
+    16.2,
+    28.3
+   ]
+  },
+  "offset_fs_vs_tnm": {
+   "matched": 15,
+   "sampled": 15,
+   "median_m": 0.9987446000744113,
+   "q1_m": 0.8651732835522447,
+   "q3_m": 1.1254642236380659,
+   "per_segment_m": [
+    0.5,
+    0.6,
+    0.6,
+    0.9,
+    0.9,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.1,
+    1.1,
+    1.1,
+    1.2,
+    1.2
+   ]
+  }
+ }
+]
