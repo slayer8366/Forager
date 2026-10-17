@@ -19658,3 +19658,30 @@ Go for Phase 2a (diagnostics and the forms switch; no fix yet). Written by the p
 **Observed:** names chosen (-1143) and profiles merged into pre-main (-1152). The E-GD curator was excluded by the owner (-1142); its request was withdrawn and the general method was given to E-GD in the framework addendum.
 **Deviations:** the scope narrowed from four roles to three (-1142). Rowan's existing profile was updated, at the owner's "Need a profile for Rowan still".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1154.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1154
+**Timestamp:** 2026-10-17T04:50:00Z
+**Continues:** 2026-09-28-1149
+**Title:** Hazel's Phase 2a built: zoom diagnostics, the zoom_form switch, OIS on the S22, the log units and focus readings; PR #242 into dev, green; no zoom fix yet
+**Observed (Hazel's report; the planner checked the PR, its CI and its paths):**
+- **Commits:** branch lens-fixes-2a from dev d94e16f4; 14b8a5e4 tests first (25 new: 23 failed for their reason over stubs, 2 passed, later made to bite by revert checks 7 and 8); b572977f the build.
+- **Planner's checks (gh):** PR #242 is OPEN and MERGEABLE at b572977f; CI run 39003062216 succeeded (5,305 tests, 0 failures, 24 skipped = 5,280 + 25); all 9 changed files are under app/src/debug or testDebug photo/engine; no @Ignore and no removed assertion.
+- **Revert checks:** eight (runs 39002990780 to 39003036714), each with a clean compile log, failing only its own tests, restored from a saved copy, with the forward line confirmed at the remote head.
+- **Built:**
+  - zoom_form switch (crop, lens_ratio, logical_ratio, auto = today's), applied to an open camera;
+  - crop_diag lines (requested and resulting crop, zoom ratio and OIS, per lens and logical, plus the OIS template defaults), and lens_static lines;
+  - OIS ON per lens where offered and listed (the S22);
+  - crop_achieved in lens units, and the configured line with the lens's own sizes;
+  - focus_reading once a second while a telephoto is wanted.
+**Hazel's calls beyond the dispatch, accepted by the planner:**
+- (1) the auto value;
+- (2) an unsupported form falls back to today's, with a note;
+- (3) the lens-units reading also feeds the viewfinder's made-up zoom, which is inferred and to be watched on the S26;
+- (4) OIS makes the S22's logical_ratio requests carry per-lens settings, a possible confound, noted for reading the run;
+- (5) lens_ratio clamps the 9.99x stand-in to the lens's 8x range. Accepted for the diagnostic only: any cap in the eventual fix is an owner decision;
+- (6) focus readings also while the main lens stands in.
+**Not yet:** the device run (S22, then S26), then the fix for item 1, chosen from that run's evidence.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1155.
