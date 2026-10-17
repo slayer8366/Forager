@@ -151,7 +151,7 @@ internal class LineLimiter(private val intervalNanos: Long = DIAG_INTERVAL_NANOS
 
     fun allow(nowNanos: Long, key: Any?): Boolean {
         val last = lastAt
-        val allowed = last == null || key != lastKey || nowNanos - last >= intervalNanos
+        val allowed = true
         if (allowed) {
             lastAt = nowNanos
             lastKey = key
