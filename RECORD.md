@@ -19890,3 +19890,14 @@ This also answers -1156 item 5: B can be done, and D only partly.
 **Finish line:** step 1 pushed to PR #2, with condition 2's result reported; step 2's count report pushed, with a PR into t7-build left unmerged and the plain answer on condition 3.
 **Abort conditions:** a wrong premise; lifestyle values different from those named; overlap with the main group; anything needing a fit; decision-row wording the owner hasn't given.
 **Notes:** Written by the planner by hand, on branch records-after-173. Two Hazel sessions run in parallel, on part B and on part C. Decision-row numbers are coordinated by the planner: part B takes D148 and later, so part C takes the next free after it, with the planner assigning numbers if both are ready. Next free ID -1166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1166
+**Timestamp:** 2026-10-17T07:36:36Z
+**Continues:** 2026-09-28-1161, 2026-09-28-1165
+**Title:** Part A merges into the T7 working branch: forecast PR #2 into t7-build (owner; D40's word naming the branch)
+**The owner, verbatim:** "Go ahead and have part A go into the T7 working branch (PR #2)".
+**What it sets:** PR #2 (t7-part-a into t7-build) is merged by the planner, with a verified backup of t7-build first. **Timing (the planner's call, told to the owner):** the merge waits until step 1 of -1165 (P10b condition 2 clustered by block, appended to PR #2 by the part C Hazel session) is pushed and its checks pass. That way the working branch receives part A with the corrected bar in one merge, rather than a second PR afterwards.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1167.
