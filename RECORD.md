@@ -20409,3 +20409,16 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Finish line:** Phase 1: both branches pushed, the report, stop. Phase 2: a PR into pre-main, green, merged on the owner's word.
 **Abort conditions:** lint failing on CI after one retry; release lint needing a secret (report it and continue with debug); totals that disagree, unexplained; a wrong premise; anything that would change main, pre-main or dev.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1193.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1193
+**Timestamp:** 2026-10-17T12:23:49Z
+**PR:** 245
+**Head:** main (969ecf0a)
+**Base:** pre-main
+**Merge-commit:** 1fe2ab8dc33841817026516b6465cb8b36fffcc8
+**Pre-merge:** b221e85b
+**Backup:** pre-main-20261017T120800Z-b221e85b.bundle (verified)
+**Notes:** The owner, verbatim: "Get pre main current with main" (-1191). CI ("Build, test, publish APK") passed. Merged with a merge commit, pinned to the head. pre-main is now 0 commits behind main and 12 ahead, and the merge changed no file (diff b221e85b to 1fe2ab8d is empty). Written by the planner by hand, on branch records-after-173. Next free ID -1194.
