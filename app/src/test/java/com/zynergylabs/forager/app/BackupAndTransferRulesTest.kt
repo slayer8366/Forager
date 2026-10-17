@@ -45,7 +45,11 @@ class BackupAndTransferRulesTest {
 
     @Test
     fun `backup stays off in the merged manifest`() {
-        assertEquals("false", mergedManifestApplication().getAttributeNS(androidNs, "allowBackup"))
+        val application = mergedManifestApplication()
+        assertEquals("false", application.getAttributeNS(androidNs, "allowBackup"))
+        // Android 11 and below: allowBackup="false" already turns every form off; fullBackupContent="false" says the
+        // same in the attribute lint reads for those versions (lint DataExtractionRules, second form).
+        assertEquals("false", application.getAttributeNS(androidNs, "fullBackupContent"))
     }
 
     @Test
