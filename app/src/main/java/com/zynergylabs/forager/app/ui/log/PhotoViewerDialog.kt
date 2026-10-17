@@ -376,7 +376,7 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
                 }
                 val centre = Offset(viewport.width / 2f, viewport.height / 2f)
                 // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
-                val zoomLabel = String.format(LocalConfiguration.current.locales[0], "Zoom %.1f×", scale)
+                val zoomLabel = String.format(java.util.Locale.getDefault(), "Zoom %.1f×", scale)
 
                 Image(
                     bitmap = loaded,
