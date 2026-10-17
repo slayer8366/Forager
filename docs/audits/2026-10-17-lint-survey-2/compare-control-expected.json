@@ -1,0 +1,15 @@
+{
+  "after_total": 5,
+  "before_total": 5,
+  "gone_sites": ["GoneB x1 app/b.kt", "MovedD x1 app/d.kt", "Shrunk x1 app/c.kt"],
+  "id_status_counts": {"gone": 1, "new": 1, "still": 3},
+  "ids": {
+    "GoneB": {"after": 0, "before": 1, "status": "gone"},
+    "KeptA": {"after": 1, "before": 1, "status": "still"},
+    "MovedD": {"after": 1, "before": 1, "status": "still"},
+    "NewW": {"after": 2, "before": 0, "status": "new"},
+    "Shrunk": {"after": 1, "before": 2, "status": "still"}
+  },
+  "new_sites": ["MovedD x1 app/e.kt", "NewW x2 app/f.kt"],
+  "sites": {"gone": 3, "new": 3, "still": 2}
+}

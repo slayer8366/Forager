@@ -1,0 +1,31 @@
+{
+  "report": {"format": "6", "by": "lint control-0.0.0"},
+  "total_issues": 5,
+  "total_locations": 7,
+  "issues_with_several_locations": 1,
+  "by_severity": {"Error": 2, "Warning": 3},
+  "by_category": {
+    "Correctness": {"Error": 2, "Warning": 1},
+    "Performance": {"Warning": 2}
+  },
+  "by_id": {
+    "ControlErrorA": {
+      "count": 2,
+      "severities": {"Error": 2},
+      "categories": {"Correctness": 2},
+      "examples": ["app/src/main/AndroidManifest.xml:7", "app/src/main/java/Foo.kt:12"]
+    },
+    "ControlWarnB": {
+      "count": 1,
+      "severities": {"Warning": 1},
+      "categories": {"Correctness": 1},
+      "examples": ["app/src/main/res/values/strings.xml:3"]
+    },
+    "ControlWarnC": {
+      "count": 2,
+      "severities": {"Warning": 2},
+      "categories": {"Performance": 2},
+      "examples": ["app/src/main/res/layout/x.xml:21", "app/build.gradle.kts:99"]
+    }
+  }
+}

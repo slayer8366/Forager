@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-made control BEFORE for compare_lint_runs.py (dispatch 2026-10-17-03). Not lint output. 5 issues: KeptA@a.kt, GoneB@b.kt, Shrunk@c.kt x2, MovedD@d.kt -->
+<issues format="6" by="lint control-0.0.0">
+    <issue id="KeptA" severity="Error" message="m" category="Correctness" priority="5" summary="s">
+        <location file="/home/runner/work/Forager/Forager/app/a.kt" line="1"/>
+    </issue>
+    <issue id="GoneB" severity="Warning" message="m" category="Correctness" priority="5" summary="s">
+        <location file="/home/runner/work/Forager/Forager/app/b.kt" line="2"/>
+    </issue>
+    <issue id="Shrunk" severity="Warning" message="m" category="Correctness" priority="5" summary="s">
+        <location file="/home/runner/work/Forager/Forager/app/c.kt" line="3"/>
+    </issue>
+    <issue id="Shrunk" severity="Warning" message="m" category="Correctness" priority="5" summary="s">
+        <location file="/home/runner/work/Forager/Forager/app/c.kt" line="9"/>
+    </issue>
+    <issue id="MovedD" severity="Warning" message="m" category="Correctness" priority="5" summary="s">
+        <location file="/home/runner/work/Forager/Forager/app/d.kt" line="4"/>
+    </issue>
+</issues>
