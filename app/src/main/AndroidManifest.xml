@@ -138,11 +138,16 @@
       This is not the withdrawn ruling 2 above, which used rules *instead of* allowBackup="false".
       Its worry, a rule that is silently inert, is what BackupAndTransferRulesTest checks against the
       merged manifest; whether a transfer really carries nothing is a device check.
+      android:fullBackupContent="false": lint then asks for the pre-Android 12 attribute as well. On
+      Android 11 and below allowBackup="false" already turns every form of backup and transfer off, so
+      this changes nothing there; it is the same "no" said in the attribute those versions also read.
+      A boolean, not a second rules file, so there is no second list to keep in step.
     -->
     <application
         android:name=".ForagerApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
