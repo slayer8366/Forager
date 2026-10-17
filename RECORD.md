@@ -19725,3 +19725,39 @@ It also proposes a stricter bar, P10b, fixed before any re-fit: block-clustered 
 
 These become forecast decision rows from D145 when part A is built.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1157.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1157
+**Timestamp:** 2026-10-17T05:31:24Z
+**Title:** T7 part A: the reviews' fixes, the new figures reported for every fit, P10b as a function, decision rows D145 to D147 (owner, -1156)
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-17-t7-part-a.md (t7-strengthen-plan 3062626), for Hazel Cairnwright
+**Change:**
+- correcting lines for "26 blocks" (25) and the weighting fix's reach;
+- base minus B, within-cell AUC and block-clustered intervals reported by the fit script;
+- P10b written and tested, but not wired to any run;
+- decision rows D145 (P10b), D146 (the saprotroph comparison rule) and D147 (rule 4 applied to presences entering the fit).
+**Scope boundary:** branch t7-part-a from t7-build b5c3d26, as a PR into t7-build. No main, no count of a new group, no fit, no t6b folder, no publishing, no Forager.
+**Baseline:** t7-build b5c3d26; D144 the newest row; t7_fit.py:550 and :569-571; t7/metrics.py (premises to re-check).
+**Prediction (outcome, planner):** the recomputed figures match the reviews' (base minus B +0.0008 (−0.0009, +0.0026); within-cell full 0.548 and A 0.494; block-clustered full minus B (−0.00041, +0.00811)). P10b fails on the existing run.
+**Prediction (mechanism, coder):** in Hazel's first report.
+**Finish line:** the PR into t7-build green (ruff, pytest) and unmerged, with the figures matched and P10b's verdict on the existing run reported.
+**Abort conditions:** a wrong premise; anything needing a new count or fit; a figure that doesn't reproduce; decision-row wording the owner hasn't given.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1158.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1158
+**Timestamp:** 2026-10-17T05:31:24Z
+**Title:** Read-only searches for T7 parts B and D: a road and trail effort proxy and its licence; independent interior presence data (owner, -1156)
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-17-t7-searches.md (t7-strengthen-plan 3062626)
+**Change:** one report, docs/audits/2026-10-17-t7-searches.md, on branch t7-searches.
+**Scope boundary:** read-only web and documentation research. No dataset downloads, no bulk queries, no accounts or agreements; nothing outside its branch.
+**Baseline:** the plan's section 3, parts B and D, and the forecast data licence CC BY-NC 4.0 (D110).
+**Prediction (outcome, planner):** at least one public-domain road layer covering the box exists; independent interior presence data will be sparse, opportunistic or behind agreements.
+**Prediction (mechanism, coder):** not applicable (research); the researcher states its search strategy first.
+**Finish line:** the report pushed, with a recommendation per part (the best usable source, or "none usable" and why).
+**Abort conditions:** a source needing download, an account or an agreement is named and not used.
+**Notes:** Written by the planner by hand, on branch records-after-173. Run by a fresh session on Fable, apart from the coder's model. Next free ID -1159.
