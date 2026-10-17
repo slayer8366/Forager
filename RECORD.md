@@ -20635,3 +20635,16 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Observed:** -1204's report, and PR #248 merged into pre-main (-1206). CI now compiles and packages the release version, unsigned, on every push and PR.
 **Deferred:** a lint-vital positive control for release, and release unit tests, both noted as not covered (-1204).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1208.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1208
+**Timestamp:** 2026-10-17T23:09:02Z
+**PR:** 249
+**Head:** readme-dev-tools-gone (29fc2d19)
+**Base:** pre-main
+**Merge-commit:** b91de8240d344c058542f871b18dd72b54cd838e
+**Pre-merge:** b7a9382e
+**Backup:** pre-main-20261017T230850Z-b7a9382e.bundle (verified)
+**Notes:** The owner, verbatim: "Merge w49", read by the planner as PR #249. Documents only: the README's dev-tools lines corrected; known-bugs row 1 resolved (-1205). All three checks passed. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1209.
