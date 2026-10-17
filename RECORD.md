@@ -19698,3 +19698,30 @@ Go for Phase 2a (diagnostics and the forms switch; no fix yet). Written by the p
 - D, independent interior presence data, found first by a read-only search.
 
 It also proposes a stricter bar, P10b, fixed before any re-fit: block-clustered above B, within-cell above effort, the host-specific contrast above zero, and independent data where any exist. It lays out the order with the three points of no return, and six numbered decisions for the owner, each with a recommendation. A document only: nothing is authorised to build. Written by the planner by hand, on branch records-after-173. Next free ID -1156.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1156
+**Timestamp:** 2026-10-17T05:30:24Z
+**Continues:** 2026-09-28-1155
+**Title:** T7 strengthening plan, all six decisions as recommended: part A now; the stricter bar P10b (conditions 1 to 3, and 4 if independent data exist); the two read-only searches; the saprotroph comparison rule fixed now, counted later (owner)
+**The owner, verbatim:** "I'll take your recommendations", to the six decisions in forecast docs/dispatch/2026-10-17-t7-strengthen-plan.md section 6 (t7-strengthen-plan 4515c44).
+**What it sets:**
+1. **Part A runs now:**
+   - the "26 to 25" correcting line;
+   - the weighting fix's reach stated correctly;
+   - base minus B and the within-cell AUC printed beside every pooled AUC;
+   - a decision row for D144's rule 4 applied to entering presences.
+2. **The bar for showing T7 is P10b,** replacing P10 (D140) for any re-fit. The full model must be:
+   - above B, with the block-clustered interval above zero;
+   - above effort-only within weather cells, with its interval above zero;
+   - above zero on the host-specific contrast (the mycorrhizal gain minus the saprotroph group's), with its interval above zero;
+   - and, if part D finds usable independent data, ranking those presences above background, with its interval above zero.
+3. **One read-only search session:** a road and trail layer and its licence; independent PNW interior presence data, their coverage and licence. Nothing is downloaded.
+4. **The second comparison group:** mushroom-forming genera whose FungalTraits primary lifestyle is litter or soil saprotroph, at least 30 presences per genus, rarer genera pooled. Fixed now; counting them is -1030's first point of no return, after the searches.
+5. **What to do if parts B to D can't be done:** decided after the searches report.
+6. **The map's name:** decided at publishing, if it ever passes.
+
+These become forecast decision rows from D145 when part A is built.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1157.
