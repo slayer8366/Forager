@@ -19236,3 +19236,19 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1116.
 
 Its report comes to the owner. Nothing is published without a separate yes after it. -1030's third point of no return is closed again until then.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1128.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1128
+**Timestamp:** 2026-10-17T02:19:18Z
+**Title:** Independent review (D18) of the T7 PNW fit, with the owner's caveats as its main questions
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-16-t7-fit-review.md on branch t7-fit-review (d911bf2)
+**Change:** a review report, docs/audits/2026-10-16-t7-fit-review.md, with an index row, on forecast branch t7-fit-review. It answers: habitat or search effort; whether the gain is mycorrhizal-specific; whether the weighting fix stands independently of the verdict; the usual D18 recomputations; and a first description of the map in words.
+**Scope boundary:** write only on t7-fit-review and its evidence folder. Read only: t7-build, /mnt/work/Zynergy/forecast-data/t7/, the D26 data and Forager's RECORD. Nothing under the t6b folder, forecast main, the site, any publish command, or the Forager app.
+**Baseline:** t7-build b5c3d26 (report) and 17bb84e (evidence); the fit ran at 41f9c79; the outputs' manifest sha256 is f041714e…49d5; 42 cached prediction files.
+**Prediction (outcome, planner):** the headline AUCs and weather-cell intervals reproduce to within rounding; the block-clustered intervals include zero; the fix is mechanically required; the map is dominated by the effort surface's pattern.
+**Prediction (mechanism, coder):** to be written by the reviewer at the top of its report before computing, and added to the record by continuation.
+**Finish line:** the report pushed with a verdict (blocking, should-fix, notes) and the two one-line answers on publishing wording and on what would strengthen the signal. Then brought to the owner, who gives any publishing yes separately (-1127).
+**Abort conditions:** a figure that can't be reproduced; a hash mismatch; evidence the fix was tuned to the verdict; anything that would change a fixed threshold, sample or seed; a wrong premise; anything needing a publish step.
+**Notes:** Written by the planner by hand, on branch records-after-173. The reviewer is a fresh subagent, independent of the T7 builder. Next free ID -1129.
