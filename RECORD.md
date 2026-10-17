@@ -19389,3 +19389,25 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1136.
 **Finish line:** the report pushed. The planner then compares the two reviews and brings both to the owner, before any publishing yes (-1127).
 **Abort conditions:** as -1128's.
 **Notes:** Written by the planner by hand, on branch records-after-173. The reviewer is a fresh subagent started with model fable. Next free ID -1138.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1138
+**Timestamp:** 2026-10-17T02:40:22Z
+**Title:** The QA follow-up: bring the planner profile, QA philosophy and dispatch format into line with -1133 and -1134, fix the auditor's two notes, and start the known-bugs list (owner)
+**The owner, verbatim:** "Go ahead with the follow up". Before that: "It's a tool for passing pre main into main cleanly. We do this pretty good now, so the rules we have are simply what we already do. Just codified".
+**Change:**
+- planner-profile.md: the gate as three steps (CI, the auditor on a different model, the owner); phone checks and walks proposed per promotion; the upgrade check only when storage changes; the auditor's session rule; a pointer to qa-philosophy.md section 3; the planner writes audit-index rows.
+- qa-philosophy.md: section 3 and the decisions list amended by -1133 and -1134, with the originals marked superseded, not deleted.
+- dispatch-format.md: the finish-line example (note 1), and the audit-index line.
+- A new docs/process/known-bugs.md: statuses open, hold and resolved (the owner's), plus "live or new" and "serious or not", seeded only with entries the planner can cite, each marked for the owner to confirm.
+- The CLAUDE.md line drafted for the owner to see, not committed.
+- An addendum for the E-GD framework document (the model rule, and the gate change).
+**Scope boundary:** docs/process/ on branch qa-followup from pre-main 91f99e3f, as a PR into pre-main; the addendum on records-after-173. No CLAUDE.md change, no app code.
+**Baseline:** pre-main 91f99e3f. The passages to change were read just now: planner-profile.md lines 51 to 66; qa-philosophy.md lines 87 to 110 and its decisions 11, 12 and 23; dispatch-format.md lines 27 and 50.
+**Prediction (outcome, planner):** the diff touches only docs/process/ (three files changed, one new); CI passes; the next promotion's auditor, on Fable, finds no contradiction between the three documents on the gate.
+**Prediction (mechanism, coder):** none. The planner writes it, and no coder is dispatched.
+**Finish line:** the PR merged into pre-main on green (the owner's "Go ahead with the follow up" read as covering that merge, as with -1120), and the CLAUDE.md line shown to the owner.
+**Abort conditions:** CI red for a cause in this change; any file outside docs/process/ in the diff.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1139.
