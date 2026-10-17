@@ -59,6 +59,7 @@ import android.hardware.camera2.CameraCaptureSession as PlatformCaptureSession
  * with `OUTPUT_FORMAT_RAW_JPEG`, the capture-result callback, and the lens-shading map asked for. A new use case for a new
  * path; the JPG capture's own builder is untouched (CLAUDE.md, building).
  */
+@OptIn(markerClass = [ExperimentalCamera2Interop::class])
 internal fun buildRawJpegImageCapture(results: CaptureResultCollector): ImageCapture {
     val builder = ImageCapture.Builder()
         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
