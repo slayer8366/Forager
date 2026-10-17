@@ -19872,3 +19872,21 @@ This also answers -1156 item 5: B can be done, and D only partly.
   - "unspecified_saprotroph" is outside the rule as worded (litter or soil).
 - **Not passed:** the fit (the second point of no return) and publishing (the third).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1165.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1165
+**Timestamp:** 2026-10-17T07:35:48Z
+**Title:** P10b condition 2 clustered by block (amending part A), then T7 part C: count the saprotroph comparison group (owner, -1164)
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-17-t7-part-c.md (t7-strengthen-plan 2baa537), for a second Hazel Cairnwright session
+**Change:**
+- **Step 1:** condition 2's interval clustered by level III block on PR #2 (t7-part-a); D145 amended by an appended line; condition 2 recomputed on the existing cache.
+- **Step 2:** on branch t7-part-c, count the litter and soil saprotroph genera under D144's rules (unspecified_saprotroph excluded). Report by genus, side and block; check non-overlap with the main group; answer plainly whether condition 3 can be tested; add a decision row.
+**Scope boundary:** t7-part-a (step 1) and t7-part-c (step 2, a PR into t7-build) plus /mnt/work/.../t7/v9c/. Not main, the t6b folder or job, the part B branch or folder, any fit, publishing or Forager.
+**Baseline:** t7-part-a b85bbc66; D147 the newest row; the FungalTraits lifestyle values as named; D26's sha256 as V9 checked; scripts/t7_v9_counts.py (premises to re-check).
+**Prediction (outcome, planner):** the saprotroph group is smaller than the main group's 23,069. Whether it meets the per-block minimum in most forested blocks is uncertain.
+**Prediction (mechanism, coder):** in Hazel's first report.
+**Finish line:** step 1 pushed to PR #2, with condition 2's result reported; step 2's count report pushed, with a PR into t7-build left unmerged and the plain answer on condition 3.
+**Abort conditions:** a wrong premise; lifestyle values different from those named; overlap with the main group; anything needing a fit; decision-row wording the owner hasn't given.
+**Notes:** Written by the planner by hand, on branch records-after-173. Two Hazel sessions run in parallel, on part B and on part C. Decision-row numbers are coordinated by the planner: part B takes D148 and later, so part C takes the next free after it, with the planner assigning numbers if both are ready. Next free ID -1166.
