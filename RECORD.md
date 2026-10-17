@@ -20331,3 +20331,17 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **Accepted by the planner (-1186):** the verdict guard (no "pass" while condition 4 is unevaluated) and the map folder t7/refit/outputs/.
 **Not passed:** Phase 2 (-1030's second point of no return) still needs the owner's go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decision rows from D156 record these in the forecast repository. Next free ID -1188.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1188
+**Timestamp:** 2026-10-17T11:12:08Z
+**Continues:** 2026-09-28-1183, 2026-09-28-1187
+**Title:** The re-fit: build -1187's rulings, then Phase 2 once they are green (owner; -1030's second point of no return passed for the T7 PNW re-fit)
+**The owner, verbatim:** "1 yes", to "Start Hazel on building your four rulings now? It's a short build, and no full fit runs."; "2 yes go ahead", to "when that's done and green: may Phase 2, the full re-fit (about 16.5 hours), start right away".
+**What it sets:**
+- Hazel builds -1187's rulings (access −1; condition 4 by the area mean against a road-matched background, the whole box carrying the verdict and the interior beside it), tests first, with a smoke trial and decision rows from D156, and stops.
+- **The planner checks** that the build is pushed, its tests and revert checks pass, PR #5's CI is green and the trial ran. Then the planner relays the start of Phase 2 without asking the owner again. Phase 2 is the full re-fit into t7/refit/, with the map in t7/refit/outputs/.
+- **Not passed:** publishing or showing anything (the third point of no return).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1189.
