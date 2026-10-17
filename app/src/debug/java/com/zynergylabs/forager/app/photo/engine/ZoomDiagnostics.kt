@@ -141,7 +141,7 @@ internal fun lensOisRequest(lensOisModes: List<Int>, lensOisKeyListed: Boolean):
 internal fun cropInLensUnits(reported: Double?, used: ZoomForm?, lens: Lens?): Double? {
     reported ?: return null
     if (used != ZoomForm.LogicalRatio || lens == null || lens.zoom <= 0.0) return reported
-    return reported / lens.zoom
+    return reported
 }
 
 /** At most one line per [intervalNanos] for an unchanged key; a changed key is logged at once. */
