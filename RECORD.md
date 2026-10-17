@@ -19855,3 +19855,20 @@ This also answers -1156 item 5: B can be done, and D only partly.
 **Finish line:** the layer and its manifest built; its sources registered; a PR into t7-build green and unmerged; a coverage table by level III block, with the forests that lacked trails.
 **Abort conditions:** a source not public domain or CC BY; a block left uncovered by missing trails (report, don't substitute); a download failing its stated size or checksum; a wrong premise; anything needing a count or fit.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1164
+**Timestamp:** 2026-10-17T07:35:09Z
+**Continues:** 2026-09-28-1161, 2026-09-28-1160
+**Title:** P10b condition 2's interval is clustered by level III block, like condition 1; the saprotroph comparison group may now be counted (owner; -1030's first point of no return passed for that group)
+**The owner, verbatim:** "Fix it now" (the planner's recommendation to cluster condition 2 by block, decided before any new result is read); "Go ahead" (counting part C).
+**What it sets:**
+- **D145's condition 2:** the full model's within-weather-cell AUC is above effort-only's, with its interval clustered by **level III block** above zero (not by weather cell). This is fixed before any re-fit.
+- **Part C:** count the presences of mushroom-forming genera whose FungalTraits primary lifestyle is litter or soil saprotroph (D146) in the box, under the main group's counting rules (D144: fruitbody types, family-only records out of the main run, one presence per genus per 250 m cell, at least 30 for a genus to count alone, rarer genera pooled).
+- **The planner's readings, stated:**
+  - D144's rules carry over unchanged, matching the plan's "on the same design".
+  - "unspecified_saprotroph" is outside the rule as worded (litter or soil).
+- **Not passed:** the fit (the second point of no return) and publishing (the third).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1165.
