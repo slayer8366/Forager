@@ -20655,3 +20655,19 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **ID:** 2026-09-28-1209
 **Timestamp:** 2026-10-17T23:35:30Z
 **Notes:** Google Play production access granted for Forager (com.zynergylabs.forager.app). The owner shared a Play Console email titled "Congratulations! Your app has been granted Google Play production access"; the screenshot is described here, not stored. The owner, verbatim: "Meanwhile, my app has been granted production access. Let's get started on finishing the release build". Applied for 2026-10-15 (-1059); granted by 2026-10-17. Written by the planner by hand, on branch records-after-173. Next free ID -1210.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1210
+**Timestamp:** 2026-10-17T23:42:34Z
+**Title:** Elder's audit of the second promotion, pre-main b91de824 into main 969ecf0a (owner)
+**The owner, verbatim:** "Yes, start now (Recommended)", to starting Elder's audit now with phone items marked "not seen on a phone"; the store listing check later ("Later").
+**Change:** none; read only. Elder Ford, on Fable, audits the 25 commits from main to pre-main (lint fixes and lint on CI, the release compile on CI, README and process documents) under docs/process/auditor-profile.md, and reports a verdict and notes to the planner.
+**Scope boundary:** read only, with no files written, no PR, no merge and no Gradle on the laptop.
+**Baseline:** main 969ecf0a; pre-main b91de824; pre-main's CI green on all three jobs.
+**Prediction (outcome, planner):** pass with notes. The phone items (the lint fixes' rotation and phone-transfer checks, owed for -1197) are marked "not seen on a phone".
+**Prediction (mechanism, coder):** not applicable (an audit); Elder writes its own before reading the diff.
+**Finish line:** Elder's report, filed by the planner, then the owner's approval once the phone checks are done.
+**Abort conditions:** a premise wrong about the branch heads; anything that needs a write.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1211.
