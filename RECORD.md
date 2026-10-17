@@ -19089,3 +19089,27 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1116.
 **Finish line:** the PR is green, the owner's word to merge is given, and it is merged into pre-main, closed by a terminal.
 **Abort conditions:** the owner rejects the format, or it conflicts with CLAUDE.md (CLAUDE.md wins).
 **Notes:** Written by the planner by hand, on branch records-after-173. -1115 gave -1105 a mechanism prediction "(planner)", where RECORDING.md assigns the mechanism prediction to the coder; that is disclosed here, and the coder's mechanism is in -1109's report. Next free ID -1117.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1117
+**Timestamp:** 2026-10-17T01:45:06Z
+**PR:** 237
+**Head:** dispatch-format (74342e0e)
+**Base:** pre-main
+**Merge-commit:** 462bb8ba797d5df126e857cc4e62b548c44cbc5f
+**Pre-merge:** 53900892
+**Backup:** pre-main-20261017T014448Z-53900892.bundle (verified)
+**Notes:** The owner, verbatim: "Merge 237 into pre main". docs/process/dispatch-format.md, one file, documents only. CI run 38981966461 succeeded on the head, and the merge was pinned to it. It reaches main at the next promotion. Written by the planner by hand, on branch records-after-173. Next free ID -1118.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1118
+**Timestamp:** 2026-10-17T01:45:06Z
+**Closes:** 2026-09-28-1116
+**Outcome:** done
+**Observed:** the dispatch format is merged into pre-main (-1117), as the finish line set. The outcome prediction's first half holds: 13 sections, in order, each mapped to an intent field or to evidence. Its second half, that the next dispatch yields a complete intent, is not yet tested; no dispatch has been written since.
+**Deviations:** none. The open-intents check the planner proposed alongside it is not adopted; the owner was asked and has not answered.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1119.
