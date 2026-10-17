@@ -20010,3 +20010,22 @@ PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with
 - **Comparison:** against OpenStreetMap's trails, which are richer but ODbL. Share-alike applies to a derived database, not to the app.
 - **Separation:** the copies under /mnt/work belong to the forecast. The app would need its own fetch, kept apart from the forecast data.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1172.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1172
+**Timestamp:** 2026-10-17T08:04:41Z
+**Title:** A plan for trail navigation's trail data, with a read-only sampled comparison of federal trail data against OpenStreetMap trails (owner)
+**Dispatch-file:** preserved/2026-10-17-02.md (the comparison, run by a research helper on Fable)
+**The owner, verbatim:** "Write the plan. See about using it alongside OSM trail data to see if it helps any."
+**Change:**
+- (1) A comparison report on Forager branch trail-data-comparison, for 6 to 8 sample areas of about 10 km: length, overlap, connectivity, attributes and median offset of federal trails against OSM trails, with licences read at source.
+- (2) The planner's plan, docs/plans/trail-navigation-data.md on a branch from pre-main, drawing on (1), the navigation plan and the own-map-tiles plan, ending in decisions for the owner. The plan goes into pre-main on the owner's word.
+**Scope boundary:** read only. No national downloads, bulk queries or accounts; no app code; nothing in the forecast repository, /mnt/work or the T7 work.
+**Baseline:** Forager pre-main 746d8489. The navigation plan names no trail data source, and own-map-tiles uses OSM for the basemap (both read from main, -1171). The federal sources and their terms are as in forecast t7-searches 532e0d5 and -1168.
+**Prediction (outcome, planner):** OSM has more length, especially near cities. Federal data adds official names, numbers and uses, and some backcountry trails. In Eagle Cap, federal geometry is nearly absent.
+**Prediction (mechanism, coder):** not applicable (research); the helper states its sampling and matching method first.
+**Finish line:** the comparison pushed; the plan written and shown to the owner, with its decisions.
+**Abort conditions:** a query service refusing or rate-limiting (back off and report); an account needed; a licence that can't be read at source.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1173.
