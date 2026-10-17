@@ -22,6 +22,9 @@ import kotlinx.coroutines.launch
  * adb shell am broadcast -n com.zynergylabs.forager.app/.photo.engine.CameraEngineReceiver -a com.zynergylabs.forager.app.debug.CAMERA_ENGINE --es engine camerax
  * # Force the fallback at the next open (and turn it off again).
  * adb shell am broadcast -n com.zynergylabs.forager.app/.photo.engine.CameraEngineReceiver -a com.zynergylabs.forager.app.debug.CAMERA_ENGINE --ez force_fallback true
+ * # How the lens chooser asks the zoom inside a lens (dispatch 2026-10-17-01): crop, lens_ratio, logical_ratio, or auto
+ * # (today's form, the default). Takes effect at once on an open camera, and holds until the process ends or auto is sent.
+ * adb shell am broadcast -n com.zynergylabs.forager.app/.photo.engine.CameraEngineReceiver -a com.zynergylabs.forager.app.debug.CAMERA_ENGINE --es zoom_form lens_ratio
  * # With the camera dialog open on engine A: the 8-frame RAW burst, and the summary line.
  * adb shell am broadcast -n com.zynergylabs.forager.app/.photo.engine.CameraEngineReceiver -a com.zynergylabs.forager.app.debug.CAMERA_ENGINE_BURST
  * adb shell am broadcast -n com.zynergylabs.forager.app/.photo.engine.CameraEngineReceiver -a com.zynergylabs.forager.app.debug.CAMERA_ENGINE_SUMMARY
@@ -44,6 +47,7 @@ class CameraEngineReceiver : BroadcastReceiver() {
             CameraEngineSwitch.forceFallback = intent.getBooleanExtra(EXTRA_FORCE_FALLBACK, false)
             Log.i(ENGINE_LOG_TAG, "engine=switch event=force_fallback value=${CameraEngineSwitch.forceFallback} (takes effect at the next camera open)")
         }
+        if (intent.hasExtra(EXTRA_ZOOM_FORM)) onZoomForm(intent.getStringExtra(EXTRA_ZOOM_FORM))
         val name = intent.getStringExtra(EXTRA_ENGINE) ?: return
         val choice = CameraEngineChoice.entries.firstOrNull { it.id == name }
         if (choice == null) {
@@ -51,6 +55,18 @@ class CameraEngineReceiver : BroadcastReceiver() {
             return
         }
         CameraEngineSwitch.select(choice)
+    }
+
+    private fun onZoomForm(value: String?) {
+        val form = parseZoomForm(value)
+        if (form == null) {
+            Log.w(ENGINE_LOG_TAG, "engine=switch event=ignored zoom_form=$value reason=not one of ${ZoomForm.entries.map { it.id }}")
+            return
+        }
+        ZoomFormSwitch.form = form
+        val engine = ActivePlatformEngine.current
+        Log.i(ENGINE_LOG_TAG, "engine=switch event=zoom_form value=${form.id} (${if (engine != null) "applied to the open camera" else "takes effect at the next camera open"})")
+        engine?.onZoomFormChanged()
     }
 
     companion object {

@@ -225,6 +225,10 @@ internal class PlatformCameraEngine(
     private var switchStartedNanos = 0L
     private var loggedNoFocus = false
 
+    // Phase 2a diagnostics (dispatch 2026-10-17-01): each line at most once a second, a changed request or lens at once.
+    private val cropDiagLimiter = LineLimiter()
+    private val focusLimiter = LineLimiter()
+
     // ── Open, lifecycle, close ────────────────────────────────────────────────────────────────────────────────────────
 
     override fun open(lifecycleOwner: LifecycleOwner) {
@@ -385,9 +389,13 @@ internal class PlatformCameraEngine(
                 configuredTarget = surface
                 // A session asked for no RAW stream carries none, whatever the camera reports back.
                 rawSource = if (plan.raw) configured.rawSource else RawSource.None
+                // A lens session's own sizes (dispatch 2026-10-17-01, -1150 call iii); the logical camera's without a lens set.
+                val preview = lens?.previewSize ?: chosen.previewSize
+                val jpeg = lens?.jpegSize ?: chosen.jpegSize
+                val raw = if (lens != null) lens.rawSize else chosen.rawSize
                 log(
-                    "engine=platform event=configured raw_source=${label(configured.rawSource)} preview=${chosen.previewSize} " +
-                        "jpeg=${chosen.jpegSize} raw=${chosen.rawSize ?: "none"} main_wide=${chosen.mainWidePhysicalId ?: "none"} note=${configured.note}",
+                    "engine=platform event=configured raw_source=${label(configured.rawSource)} preview=$preview " +
+                        "jpeg=$jpeg raw=${raw ?: "none"} main_wide=${chosen.mainWidePhysicalId ?: "none"} note=${configured.note}",
                 )
                 if (lens != null && plan.raw && configured.rawSource == RawSource.None) {
                     log("engine=platform event=lens_no_raw lens=${lens.physicalId} reason=the session would not carry this lens's RAW stream; its shots are JPG")
@@ -493,7 +501,12 @@ internal class PlatformCameraEngine(
         val c = choice ?: return
         val set = lensSet ?: return
         val streamingLens = appliedLens ?: return
-        updatePreviewScale(frame.cropAchieved)
+        updatePreviewScale(cropInLensUnits(frame.cropAchieved, frame.zoomFormUsed, streamingLens))
+        frame.zoomDiag?.let { diag ->
+            if (cropDiagLimiter.allow(frame.sensorTimestampNanos, diag.plan to streamingLens.physicalId)) {
+                log(cropDiagLine("preview", diag, streamingLens, appliedCrop))
+            }
+        }
         if (frame.focusDiopters == null && !loggedNoFocus) {
             loggedNoFocus = true
             log("engine=platform event=close_focus_inactive reason=the lens ${streamingLens.physicalId} reports no focus distance")
@@ -506,6 +519,24 @@ internal class PlatformCameraEngine(
             litLens = targetLens()
             requestLensUpdate("close_focus")
         }
+        logFocusReading(frame, streamingLens, c.wanted, set.main)
+    }
+
+    /**
+     * The close-focus rule's readings while a telephoto is wanted (dispatch 2026-10-17-01, item 4), once a second: so a
+     * case where nothing fires (RECORD -1147's first try) shows what the rule saw. The rule itself is unchanged.
+     */
+    private fun logFocusReading(frame: PreviewFrame, streamingLens: Lens, wanted: Lens, main: Lens) {
+        if (!closeFocus.applies(wanted, main)) return
+        if (!focusLimiter.allow(frame.sensorTimestampNanos, streamingLens.physicalId to wanted.physicalId)) return
+        val nearLimit = wanted.minFocusDiopters * CloseFocusRule.NEAR_LIMIT
+        log(
+            "engine=platform event=focus_reading streaming=${streamingLens.physicalId} wanted=${wanted.physicalId} " +
+                "focus_diopters=${frame.focusDiopters ?: "unreported"} af_state=${frame.afState ?: "unreported"} " +
+                "min_focus_diopters=${wanted.minFocusDiopters} near_limit=${String.format(java.util.Locale.ROOT, "%.3f", nearLimit)} " +
+                "near_frames=${closeFocus.nearFrames} far_frames=${closeFocus.farFrames} frames_to_decide=${CloseFocusRule.FRAMES_TO_DECIDE} " +
+                "too_close=${closeFocus.tooClose}",
+        )
     }
 
     private fun updatePreviewScale(achieved: Double?) {
@@ -673,6 +704,7 @@ internal class PlatformCameraEngine(
                 "main_wide=${chosen.mainWidePhysicalId ?: "none"} (${chosen.mainWideNote}) nr_off_offered=${chosen.noiseReductionOffOffered}",
         )
         chosen.notes.forEach { log("engine=platform event=camera_note $it") }
+        chosen.lensStatics.forEach { log(lensStaticLine(it)) }
         viewfinderPreviewSize = chosen.previewSize
         viewfinderSensorOrientation = chosen.sensorOrientation
         val set = chosen.lenses
@@ -771,14 +803,15 @@ internal class PlatformCameraEngine(
             val precapture = precaptureIfNeeded(flash)
             val crop = appliedCrop
             val frame = try {
-                camera.captureJpeg(StillControls(flash, degrees, noiseReductionOff = false, lensCrop = crop), destination)
+                camera.captureJpeg(StillControls(flash, degrees, noiseReductionOff = false, lensCrop = crop, zoomForm = zoomForm()), destination)
             } finally {
                 if (precapture) camera.endPrecapture(previewControls())
             }
             frame.fold(
                 onSuccess = { jpeg ->
                     val outcome = withContext(ioDispatcher) { reapplyIntendedOrientation(destination, degrees, Size(jpeg.width, jpeg.height)) }
-                    log("engine=platform event=jpg_shot request_degrees=$degrees size=${jpeg.width}x${jpeg.height} active_physical=${jpeg.activePhysicalId ?: "unreported"} tag=${describe(outcome)}" + cropText(crop, jpeg.cropAchieved))
+                    log("engine=platform event=jpg_shot request_degrees=$degrees size=${jpeg.width}x${jpeg.height} active_physical=${jpeg.activePhysicalId ?: "unreported"} tag=${describe(outcome)}" + cropText(crop, jpeg))
+                    logShotDiag("jpg", crop, jpeg)
                     log(metrics.shot(ShotKind.Jpg, shutter, camera.nowNanos()))
                     log(metrics.heap("jpg_shot", camera.heapUsedBytes()))
                     Result.success(Unit)
@@ -810,7 +843,7 @@ internal class PlatformCameraEngine(
             val precapture = precaptureIfNeeded(flash)
             val crop = appliedCrop
             val frame = try {
-                camera.captureRawJpeg(StillControls(flash, degrees, noiseReductionOff = chosen.noiseReductionOffOffered, lensCrop = crop), jpegDestination)
+                camera.captureRawJpeg(StillControls(flash, degrees, noiseReductionOff = chosen.noiseReductionOffOffered, lensCrop = crop, zoomForm = zoomForm()), jpegDestination)
             } finally {
                 if (precapture) camera.endPrecapture(previewControls())
             }
@@ -825,8 +858,9 @@ internal class PlatformCameraEngine(
             log(
                 "engine=platform event=raw_shot raw_source=${label(captured.rawSource)} active_physical=${captured.rawActivePhysicalId ?: "unreported"} " +
                     "noise_reduction=${captured.noiseReductionModeReported ?: "unreported"} noise_reduction_off_asked=${chosen.noiseReductionOffOffered} " +
-                    "request_degrees=$degrees jpg_tag=${describe(outcome)} dng_orientation=$dngOrientation" + cropText(crop, captured.jpeg.cropAchieved),
+                    "request_degrees=$degrees jpg_tag=${describe(outcome)} dng_orientation=$dngOrientation" + cropText(crop, captured.jpeg),
             )
+            logShotDiag("raw", crop, captured.jpeg)
             if (captured.rawSource is RawSource.Physical && captured.rawActivePhysicalId != null && captured.rawActivePhysicalId != captured.rawSource.physicalId) {
                 log("engine=platform event=raw_sensor_mismatch pinned=${captured.rawSource.physicalId} reported=${captured.rawActivePhysicalId}")
             }
@@ -859,10 +893,20 @@ internal class PlatformCameraEngine(
 
     // ── Flash and format ──────────────────────────────────────────────────────────────────────────────────────────────
 
-    private fun previewControls() = PreviewControls(currentFlash, lensCrop = appliedCrop)
+    private fun previewControls() = PreviewControls(currentFlash, lensCrop = appliedCrop, zoomForm = zoomForm())
 
-    private fun cropText(crop: LensCrop?, achieved: Double?): String =
-        if (crop == null) "" else " lens=${crop.lensId} zoom=${fmt(crop.zoom)} crop_requested=${fmt(crop.crop)} crop_achieved=${achieved?.let { fmt(it) } ?: "unreported"}"
+    /** The shot's crop asked and achieved, both in the lens's own units (dispatch 2026-10-17-01, item 3). */
+    private fun cropText(crop: LensCrop?, jpeg: JpegFrame): String {
+        crop ?: return ""
+        val achieved = cropInLensUnits(jpeg.cropAchieved, jpeg.zoomFormUsed, lensSet?.byId(crop.lensId))
+        return " lens=${crop.lensId} zoom=${fmt(crop.zoom)} crop_requested=${fmt(crop.crop)} crop_achieved=${achieved?.let { fmt(it) } ?: "unreported"}"
+    }
+
+    /** Every shot's `crop_diag` line, not rate-limited: the shot is what the device run compares with the photo. */
+    private fun logShotDiag(kind: String, crop: LensCrop?, jpeg: JpegFrame) {
+        val diag = jpeg.zoomDiag ?: return
+        log(cropDiagLine(kind, diag, crop?.let { lensSet?.byId(it.lensId) }, crop))
+    }
 
     override fun setFlashMode(mode: FlashMode) {
         if (!flashUnit) {
@@ -908,12 +952,12 @@ internal class PlatformCameraEngine(
         return shotOps.withLock {
             val flash = if (currentFlash == FlashMode.Torch) FlashMode.Torch else FlashMode.Off
             val heapBefore = camera.heapUsedBytes()
-            val lock = camera.lockExposure(PreviewControls(currentFlash, aeLock = true, awbLock = true, lensCrop = appliedCrop), timeouts.lockMillis)
+            val lock = camera.lockExposure(PreviewControls(currentFlash, aeLock = true, awbLock = true, lensCrop = appliedCrop, zoomForm = zoomForm()), timeouts.lockMillis)
             log("engine=platform event=burst_lock outcome=$lock")
             try {
                 val result = camera.burst(
                     frames,
-                    StillControls(flash, jpegOrientationDegrees = 0, noiseReductionOff = chosen.noiseReductionOffOffered, aeAwbLocked = lock is LockOutcome.Locked, lensCrop = appliedCrop),
+                    StillControls(flash, jpegOrientationDegrees = 0, noiseReductionOff = chosen.noiseReductionOffOffered, aeAwbLocked = lock is LockOutcome.Locked, lensCrop = appliedCrop, zoomForm = zoomForm()),
                     timeouts.burstMillis,
                 )
                 result.fold(
@@ -954,7 +998,13 @@ internal class PlatformCameraEngine(
     fun summary(): String = metrics.summary() + " phase=$phase fell_back=$fellBack"
 
     /** The adb switch changed the zoom form: the running viewfinder request is replaced, so the next frames use it. */
-    fun onZoomFormChanged() = Unit
+    fun onZoomFormChanged() {
+        log("engine=platform event=zoom_form form=${zoomForm().id}")
+        if (!isOpen || fellBack || !streaming.value) return
+        camera.startRepeating(previewControls()) { frame -> onFrame(frame) }.onFailure { failure ->
+            log("engine=platform event=zoom_form_failed form=${zoomForm().id} reason=${failure.message}")
+        }
+    }
 
     private fun describe(outcome: OrientationReapplyOutcome): String = when (outcome) {
         is OrientationReapplyOutcome.Rewritten -> "rewritten(${outcome.fromTag}->${outcome.toTag})"
