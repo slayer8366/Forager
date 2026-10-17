@@ -1,0 +1,7 @@
+box 1 mount-hood: 186 ways; oldest 2013-09-11, median 2021-10-03, newest 2026-10-04; edited in last two years 10%; median year 2021
+box 2 eagle-cap: 101 ways; oldest 2021-03-18, median 2021-09-18, newest 2026-10-13; edited in last two years 37%; median year 2021
+box 3 chamberlain-basin: 8 ways; oldest 2020-08-27, median 2025-11-29, newest 2025-11-29; edited in last two years 62%; median year 2025
+box 4 oregon-badlands: 101 ways; oldest 2012-11-10, median 2022-06-01, newest 2026-03-29; edited in last two years 36%; median year 2022
+box 5 cape-perpetua: 158 ways; oldest 2016-02-02, median 2024-11-05, newest 2026-08-01; edited in last two years 73%; median year 2024
+box 6 tiger-mountain: 1071 ways; oldest 2010-03-18, median 2024-02-19, newest 2026-10-12; edited in last two years 45%; median year 2024
+box 7 three-sisters: 28 ways; oldest 2017-11-27, median 2021-08-03, newest 2026-07-13; edited in last two years 18%; median year 2021

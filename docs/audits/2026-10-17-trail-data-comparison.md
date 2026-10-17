@@ -142,7 +142,19 @@ Connectivity (pieces, largest piece's share of length): OSM 22 / 66%, FS 15 / 39
 
 ## When the OSM ways were last edited
 
-OSM-LAST-EDIT-PENDING
+One further small query per box (`fetch_osm_meta.py`, ids, tags and meta only, no geometry) for the same ways' last-edit timestamps; summarised by `osm_dates.py` in `osm-dates.txt`. The main Overpass instance refused boxes 1 and 6 three times each (502, then 500 twice) on the first pass and answered both on a retry a few minutes later; the retries are in `query-log.tsv`. Counts differ by one or two from the geometry tables because these ways are not clipped to the box.
+
+| # | Area | Ways | Oldest edit | Median edit | Newest edit | Edited in the last two years |
+|---|---|---|---|---|---|---|
+| 1 | Mount Hood | 186 | 2013-09-11 | 2021-10-03 | 2026-10-04 | 10% |
+| 2 | Eagle Cap | 101 | 2021-03-18 | 2021-09-18 | 2026-10-13 | 37% |
+| 3 | Chamberlain Basin | 8 | 2020-08-27 | 2025-11-29 | 2025-11-29 | 62% |
+| 4 | Oregon Badlands | 101 | 2012-11-10 | 2022-06-01 | 2026-03-29 | 36% |
+| 5 | Cape Perpetua | 158 | 2016-02-02 | 2024-11-05 | 2026-08-01 | 73% |
+| 6 | Tiger Mountain | 1,071 | 2010-03-18 | 2024-02-19 | 2026-10-12 | 45% |
+| 7 | Three Sisters | 28 | 2017-11-27 | 2021-08-03 | 2026-07-13 | 18% |
+
+A way's timestamp is its last edit of any kind (a tag change counts), so this is an upper bound on how recently its line was checked. Read against the federal labels (Forest Service and BLM republished March 2026; Forest Service metadata May 2025): the federal layers are refreshed as a whole on a schedule, OSM is refreshed way by way and unevenly, with the busy areas (Mount Hood, Three Sisters) having a median edit five years old and every box having edits from this year. Neither source states when a line was last verified on the ground.
 
 ## Licences, read at source
 
