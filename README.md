@@ -41,8 +41,7 @@ Source paths named below that do not start with a top-level folder are under
     the bubble first, then the fan; and Back from a journal entry opened from a bubble's "kept in" line returns
     to the map with that bubble and the fan it was opened from.
   - **Forecast layers.** Two colour-field layers for forecast data exist in the map, but the app has no real
-    source for that data today: the debug build draws a synthetic test set behind a Diagnostics switch, and
-    the release build reports that there is no forecast data.
+    source for that data today, so every build reports that there is no forecast data.
 - **Journal** has two sides, **Entries** and **Records**. Entries are the trip write-ups you author; an
   entry can keep finds, photos, waypoints and tracks. Records holds All, Finds, Tracks, Waypoints and Offline
   maps. A find can carry photos, taken with the camera or imported. Recorded tracks can be exported as GPX.
@@ -70,8 +69,8 @@ installs the SDK pieces CI uses. The Gradle wrapper pins Gradle 9.7.0.
 ./gradlew testDebugUnitTest      # the unit tests (on the JVM; Robolectric stands in for Android)
 ```
 
-The app runs on Android 8.0 (API 26) and up and targets API 37. It has debug and release variants; the debug
-build adds the Diagnostics switch and the synthetic forecast data described above.
+The app runs on Android 8.0 (API 26) and up and targets API 37. It has debug and release variants, built
+from the same source; development tools are not part of either (removed 2026-10-12, RECORD -930).
 
 ## Continuous integration
 
@@ -150,10 +149,10 @@ What the code talks to, and what each needs. No API key or token for any of them
 
 | Path | What it is |
 |---|---|
-| `app/` | the Android app: `app/src/main`, `app/src/debug`, `app/src/release`, `app/src/test` (JVM tests), `app/src/androidTest` |
+| `app/` | the Android app: `app/src/main`, `app/src/test` (JVM tests), `app/src/testDebug` (JVM tests run against the debug build only), `app/src/androidTest` |
 | `app/src/main/java/.../domain/` | the rules: ranking, trips, tracks, records |
 | `.../data/` | the Room database, the iNaturalist and Open-Meteo clients, repositories, backup |
-| `.../ui/` | Compose screens: `availability` (tabs, search, settings), `map`, `log` (Journal), `track`, `backup`, `crash`, `theme`, `motion`, `adaptive` |
+| `.../ui/` | Compose screens: `availability` (tabs, search, settings), `map`, `log` (Journal), `track`, `backup`, `credits`, `format`, `theme`, `motion`, `adaptive` |
 | `.../map/` | MapLibre set-up and the offline-region repository |
 | `.../photo/`, `.../location/`, `.../sensor/`, `.../service/`, `.../alert/`, `.../export/`, `.../crash/`, `.../net/` | camera and photo storage; location; compass and level; the recording service; alerts; GPX export; crash files; the HTTP user-agent |
 | `data/species-index/` | how the bundled species-name index is built, and its inputs |
