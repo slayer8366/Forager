@@ -375,7 +375,7 @@ private fun ReportPhotos(photos: List<LogPhoto>, onOpen: (String) -> Unit) {
 @Composable
 private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
     // The window's own height, not Configuration.screenHeightDp (lint ConfigurationScreenWidthHeight; see currentWindowWidthClass).
-    val heightCap = minOf(REPORT_PHOTO_MAX_HEIGHT, LocalWindowInfo.current.containerDpSize.height * REPORT_PHOTO_WINDOW_FRACTION)
+    val heightCap = minOf(REPORT_PHOTO_MAX_HEIGHT, (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * REPORT_PHOTO_WINDOW_FRACTION).dp)
     DecodedPhoto(
         relativePath = photo.relativePath,
         // No fillMaxWidth: the width is the row's (its Box gives a maximum and no minimum), and DecodedPhoto's own aspect
