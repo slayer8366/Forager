@@ -19310,3 +19310,20 @@ Its report comes to the owner. Nothing is published without a separate yes after
 - **Not checked by the auditor:** CI at 91f99e3f, still running when it read.
 **Planner's reading:** the gate ran as designed, and the auditor caught real gaps in the planner's own documents that the planner hadn't seen. This promotion's condition, a clean report, is met. The notes go to a small follow-up on pre-main, with the close-out items (a known-bugs list, the upgrade-check procedure, a pointer in CLAUDE.md) if the owner agrees.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1133.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1133
+**Timestamp:** 2026-10-17T02:30:10Z
+**Continues:** 2026-09-28-1132
+**Supersedes:** 2026-09-28-1086, its gate step 2 (a phone check for every promotion with app code); 2026-09-28-1097, its answers to questions 12 (a field walk for recording, navigation, alerts or position) and 11 (the upgrade check), as gate steps
+**Title:** Phone checks and field walks are not gate steps: the planner proposes one per promotion when the change needs it, and the owner decides; the upgrade check runs only when a promotion changes how records are stored (owner)
+**The owner, verbatim:** "Field walks and device checks aren't always necessary, so don't add those as gates". To the planner's follow-up questions: "Planner proposes, you decide (Recommended)"; on the upgrade check, "Only when storage changes (Recommended)".
+**What it sets:**
+- **The gate** is: CI green on pre-main; the UX auditor's report; the owner's approval for public use.
+- **Phone checks and field walks** are proposed by the planner for each promotion that needs one, with the reason, and the owner confirms or skips. The auditor marks anything not seen on a phone as "not seen on a phone", so the gap stays visible.
+- **The upgrade check** (the owner's signed Play build over the live version, holding test records) runs only when a promotion changes how records are stored, such as a database migration or a file format. Otherwise it is skipped.
+- **The known-bugs list** (A6) is unaffected and still to be set up. Its fields are proposed and awaiting the owner's word: statuses open, hold, resolved, unconfirmed, won't fix; live or new; serious or normal.
+**To update:** the planner profile's "Branches and the road to main", and the QA philosophy's section 3 and its decisions list, both on pre-main, in the follow-up.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1134.
