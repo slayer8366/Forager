@@ -19986,3 +19986,27 @@ It promises a link to the first PNW results, owed to him when anything from the 
 - 691d2ee: D145's dated amendment.
 
 PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with a merge commit, pinned to that head. t7-build now carries part A and the corrected bar. Step 2 (the saprotroph count) continues on t7-part-c. Written by the planner by hand, on branch records-after-173. Next free ID -1171.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1171
+**Timestamp:** 2026-10-17T08:02:03Z
+**Continues:** 2026-09-28-1168
+**Title:** Direction: plan to use the federal trail data gathered for T7 part B for Forager's trail navigation (owner); scope only, not a go
+**The owner, verbatim:** "Let's also plan to use the trail maps for trail navigation".
+**What it sets:** the trail lines fetched for T7 part B (-1168) are a candidate data source for the app's trail navigation, which belongs to the next update (-904). Before any build, the planner brings a short plan to the owner.
+**The planner's check, read from Forager main:**
+- docs/navigation/2026-10-01-navigator-completion-plan.md names no trail data source;
+- docs/plans/own-map-tiles.md uses OpenStreetMap for the basemap.
+**For the plan to weigh:**
+- **Licences, for the app** (attribution text in the app, written as each licence requires): Forest Service roads and trails CC BY 4.0; BLM public domain; USGS NTD "None", with acknowledgment appreciated.
+- **Gaps:**
+  - Umatilla and Wallowa-Whitman publish almost no trail geometry;
+  - the state and volunteer segments were dropped for T7 (-1168), and for the app they would need their terms confirmed;
+  - coverage is the US only.
+- **Routing:** federal trail lines may not join up as a routable network, so whether a route can be followed end to end needs checking.
+- **Packaging:** whether trails ship inside the app's own offline map tiles (own-map-tiles) or as a separate layer.
+- **Comparison:** against OpenStreetMap's trails, which are richer but ODbL. Share-alike applies to a derived database, not to the app.
+- **Separation:** the copies under /mnt/work belong to the forecast. The app would need its own fetch, kept apart from the forecast data.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1172.
