@@ -19786,3 +19786,50 @@ These become forecast decision rows from D145 when part A is built.
 **Prediction:** held. A public-domain road layer exists, and independent interior data are sparse and opportunistic.
 **Deviations:** none. Sources needing agreements (the Montana Natural Heritage Program) were named and not used.
 **Notes:** Run by a fresh session on Fable. Written by the planner by hand, on branch records-after-173. Next free ID -1160.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1160
+**Timestamp:** 2026-10-17T07:28:48Z
+**Continues:** 2026-09-28-1159, 2026-09-28-1156
+**Title:** T7: build the roads-and-trails access layer from public sources; museum specimen records as P10b's independent test, with stated limits; count the saprotroph group only after part A (owner)
+**The owner, verbatim:** "Yes, from the public sources (Recommended)"; "Yes, with stated limits (Recommended)"; "After part A lands (Recommended)".
+**What it sets:**
+- **Part B:** a 250 m distance-to-road-or-trail layer built from the USGS National Transportation Dataset, the Forest Service's roads and trails and BLM's trails (public domain or CC BY), with one new attribution line. First confirm which box forests publish trails and the NTD's trail sources.
+- **Part D, P10b condition 4:** preserved-specimen records from CC0 and CC BY collections only, placed within 1 km (about 2,600 interior records), with their age and scale printed beside the result. Stated as independent of the reporting platforms, not of access.
+- **Part C:** counted only after part A lands; it is -1030's first point of no return, asked again then.
+
+This also answers -1156 item 5: B can be done, and D only partly.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1161.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1161
+**Timestamp:** 2026-10-17T07:28:48Z
+**Closes:** 2026-09-28-1157
+**Outcome:** done
+**Observed:** Hazel Cairnwright's part A, forecast PR #2 (t7-part-a b85bbc66 into t7-build), checks passing, unmerged.
+- **Corrections:** "26 to 25 blocks" (25 keys in table_meta.json; 25 names in the verify report), and the weighting fix's reach, both appended as sections.
+- **New code:**
+  - metrics.py gains within-cell AUCs and their differences, and P10b as a three-state verdict (pass, fail or incomplete; D145);
+  - t7_fit.py reports base minus B, block-clustered and within-cell figures for every fit, plus a read-only `figures` command;
+  - decision rows D145, D146 and D147.
+- **Recomputed from the existing cache:** every review figure matched (base minus B +0.00081 (−0.00093, +0.00256); within-cell A/B/base/full 0.494/0.500/0.539/0.548; block-clustered full minus B (−0.00041, +0.00811)). New: within-cell full minus B +0.047 (+0.029, +0.065).
+- **P10b on the existing run:** fail on condition 1, pass on condition 2, conditions 3 and 4 not supplied. That is as the planner predicted.
+- **Tests:** 682 local tests, ruff clean; 13 of 14 new tests failed first; seven revert checks each failed on their own edit.
+**Deviations:**
+- The mechanism prediction was not sent as a separate first report before building; Hazel disclosed it.
+- A stubs commit was pushed with lint errors, fixed in the next.
+- **For the owner:** condition 2's interval resamples weather cells, which treats them as independent. Clustered by block it might not pass, and that wasn't computed.
+- Hazel's calls accepted by the planner: the three-state verdict; condition 1 over all blocks; the `figures` command; D146's open points left for part C's dispatch (whether D144's counting rules carry over; unspecified_saprotroph).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1162.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1162
+**Timestamp:** 2026-10-17T07:28:48Z
+**Corrects:** 2026-09-28-1126
+**Notes:** -1126 says, among the coder's readings, that the verify report's "25 level III blocks" is in fact 26. That correction was itself wrong. Both independent reviews (-1144, -1145) and part A (-1161) count 25: 25 keys in table_meta.json and 25 names in the verify report's list. 25 is right. -1126 is not edited. Written by the planner by hand, on branch records-after-173. Next free ID -1163.
