@@ -20374,3 +20374,38 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **ID:** 2026-09-28-1190
 **Timestamp:** 2026-10-17T11:55:34Z
 **Notes:** Phase 2 of the T7 re-fit (-1183, -1188) started at 2026-10-17T11:48:56Z as the user unit t7-refit.service. It runs Hazel's command at 0560daee, with a clean worktree, monotone −1, 4 threads, a 5G memory cap and Nice 10. The work dir is t7/refit/ and the map goes to t7/refit/outputs/. First log lines: 15,624 presences, 500,000 background; access held at 258.3 m; 17 of 18 forested blocks in the fit. The estimate is 16 to 21 h, ending about 04:00 to 09:00Z on 2026-10-18 (inferred). The planner set a reminder to check the unit. Written by the planner by hand, on branch records-after-173. Next free ID -1191.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1191
+**Timestamp:** 2026-10-17T12:11:02Z
+**Continues:** 2026-09-28-926
+**Title:** pre-main brought level with main; a fresh lint count first, then the D4 fixes and lint on CI on a later go (owner)
+**The owner, verbatim:** "Get pre main current with main and let's run some linting tests. We had some planned for the next update when we go live"; "Count first, then fix (Recommended)"; "Yes, start now (Recommended)".
+**What it sets:**
+- **pre-main:** main is merged into pre-main through PR #245, after a verified backup (pre-main-20261017T120800Z-b221e85b.bundle). Main's only commit not in pre-main was 969ecf0a, the #239 promotion's merge commit, and a test merge changed no file.
+- **Lint:** Hazel runs a fresh count on CI against pre-main, nothing fixed, compared with -925's 376, with a proposed "everything reasonable" list (D4, -926) and a lint-on-CI proposal (T3). Fixes and the CI job wait for the owner's go after the counts.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1192.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1192
+**Timestamp:** 2026-10-17T12:11:02Z
+**Title:** A fresh Android lint count on pre-main (Phase 1); the D4 fixes and lint on CI later, on the owner's go (owner, -1191)
+**Dispatch-file:** preserved/2026-10-17-03.md, for Hazel Cairnwright
+**Change:**
+- **Phase 1:**
+  - a scratch branch from pre-main carrying only the October lint job and output-only lint settings, run on CI;
+  - the debug variant, plus the release variant if that needs no secret;
+  - a report on branch lint-survey-2 with three agreeing totals, the comparison with October, the errors by file and line, the RAW opt-in check, a plain-words D4 list and a T3 proposal.
+  Then stop.
+- **Phase 2:** the approved fixes and a lint job in CI, as a PR into pre-main.
+**Scope boundary:** branches scratch-lint-survey-2 and lint-survey-2 only. No change to main, pre-main, dev, records-after-173 or the audits index. No fix, baseline or disabled check in Phase 1. No secrets. The build job unchanged. No Gradle on the laptop.
+**Baseline:** pre-main level with main after PR #245 (b221e85b before it); ci.yml has no lint job and takes workflow_dispatch; scratch-lint-survey 2fb9b012; lint-survey ce75f629; the seven shipped-code errors were unfixed as of 2026-10-15 (inventory section 2).
+**Prediction (outcome, planner):** a total near 376; the seven shipped errors and DataExtractionRules still present; LogNotTimber still dominant; a few new findings in the RAW camera code.
+**Prediction (mechanism, coder):** in Hazel's first message.
+**Finish line:** Phase 1: both branches pushed, the report, stop. Phase 2: a PR into pre-main, green, merged on the owner's word.
+**Abort conditions:** lint failing on CI after one retry; release lint needing a secret (report it and continue with debug); totals that disagree, unexplained; a wrong premise; anything that would change main, pre-main or dev.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1193.
