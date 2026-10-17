@@ -20526,3 +20526,16 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - the search-summary fix (known-bugs row 3, PR #247);
 - the four owner items left this round (-1195).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1200.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1200
+**Timestamp:** 2026-10-17T17:41:47Z
+**PR:** 247
+**Head:** known-bugs-search-summary (1e2e2b9c)
+**Base:** pre-main
+**Merge-commit:** b774cac5af446a1f3fef7bafe38e367817296f4e
+**Pre-merge:** c8df0b97
+**Backup:** pre-main-20261017T174137Z-c8df0b97.bundle (verified)
+**Notes:** The owner, verbatim: "Merge 247". Known-bugs row 3 (the search summary's month after a language switch, -1197); documents only. Both checks passed at 1e2e2b9c. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1201.
