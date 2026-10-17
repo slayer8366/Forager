@@ -19327,3 +19327,21 @@ Its report comes to the owner. Nothing is published without a separate yes after
 - **The known-bugs list** (A6) is unaffected and still to be set up. Its fields are proposed and awaiting the owner's word: statuses open, hold, resolved, unconfirmed, won't fix; live or new; serious or normal.
 **To update:** the planner profile's "Branches and the road to main", and the QA philosophy's section 3 and its decisions list, both on pre-main, in the follow-up.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1134.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1134
+**Timestamp:** 2026-10-17T02:37:22Z
+**Continues:** 2026-09-28-1133, 2026-09-28-1128
+**Title:** Auditors and independent reviewers run on a different model from the one that coded the work, Fable here; a second T7 review runs on Fable beside the Opus one; the first promotion merges on its Opus audit (owner)
+**The owner, verbatim:** "Auditor sessions can be ran by the planner in a separate session, or by the operator in another window. It shouldn't be held by the same coder model that implemented it." Then, of "model": "Opus model, Fable, Sonnet, Haiku, for example. It's useful because the same model shares blind spots." To the planner's questions:
+- the audit model: "Fable for us, but in general just another model altogether. Maybe ChatGPT or Gemini if the user has no claude subscription";
+- the running T7 review: "Let it finish, add a second";
+- the promotion: "Merge on the Opus audit".
+**What it sets:**
+- An auditor or independent reviewer is a separate session, started by the planner or opened by the operator in another window, and runs on a different model from the coder. Forager's coders are Opus, so its auditors and reviewers run on Fable. As a general rule (for E-GD): any other model, including another provider's where no Claude subscription is available.
+- The Opus T7 review (-1128) finishes. A second T7 review runs on Fable, independently, without reading the first, and the two are compared.
+- PR #239 merges on its Opus audit (-1132). The rule applies from the next audit.
+**Disclosed by the planner:** the QA philosophy's drafting audit (-1092), the promotion audit (-1132) and the running T7 review (-1128) were all Opus subagents, the same model as the coders, before this rule.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1135.
