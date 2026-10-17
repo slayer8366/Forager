@@ -130,7 +130,7 @@ internal const val OIS_ON = 1
  * lists the key per lens (the S22); otherwise nothing is asked, and only the result's mode is logged (the S26).
  */
 internal fun lensOisRequest(lensOisModes: List<Int>, lensOisKeyListed: Boolean): Int? =
-    if (lensOisKeyListed && OIS_ON in lensOisModes) OIS_ON else null
+    if (OIS_ON in lensOisModes) OIS_ON else null
 
 /**
  * The crop a result reports, in the streaming lens's own units, as `crop_requested` is (dispatch item 3). Under the
