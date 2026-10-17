@@ -20233,3 +20233,28 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **Condition 3 (the host-specific contrast):** the saprotroph main run (D155) is fitted exactly as the mycorrhizal group is, with the same chosen configurations and the same background. Each group's gain is its full model minus its model A. The contrast is the mycorrhizal gain minus the saprotroph gain, with one interval that resamples whole level III blocks across both groups together. The 13 shared forested blocks (-1173) are reported beside it.
 - **The specimen download (condition 4)** is Phase 1 of the re-fit dispatch, with the wiring and a small trial run. Phase 1 stops and reports. Phase 2, the full re-fit, is -1030's second point of no return and runs only on the owner's separate go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1183.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1183
+**Timestamp:** 2026-10-17T09:46:35Z
+**Title:** The T7 re-fit under P10b: Phase 1 (specimen download, road band as access, condition 3, P10b wired, trial run), then Phase 2, the full re-fit, on the owner's separate go (owner, -1182)
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-17-t7-refit.md (t7-strengthen-plan c608b8c), for Hazel Cairnwright. Written at the owner's word "Write the dispatch from the prior session". Not started: no coder until the owner says so.
+**Change:**
+- **Phase 1:**
+  - dist_road_m enters every model that carries effort, held on the map, outside the area of applicability;
+  - a trails side check;
+  - condition 3 on the same design, with a joint block interval;
+  - one specimen download (CC0 and CC BY, 1 km or better, the main run's genera), registered;
+  - P10b wired into the fit, with P10 reported beside it;
+  - a smoke trial and a time estimate.
+  It stops on: access's monotone constraint, condition 4's scoring, background and test population, and a costly trails check.
+- **Phase 2:** the full re-fit, in a new work dir, and its report.
+**Scope boundary:** branch t7-refit from t7-build 5c1a9df1 (a PR into t7-build, unmerged), plus /mnt/work .../t7/specimens/ and t7/refit/; decision rows from D156. Not main, the t6b folders or job, the judged run's t7/fit/ and t7/pnw-2026-10-17/, v9, v9c or the access layer (read only), publishing, the site or Forager.
+**Baseline:** t7-build 5c1a9df1 with D155 the newest row (no D151 to D154 found on any remote branch); t7_fit.py reads no access band; effort is the only held, monotone feature; p10b is wired into no run; /mnt/work has 6.4 GB free; the last fit took 51,072 s at 4 threads.
+**Prediction (outcome, planner):** Phase 1 runs end to end, with condition 4's scoring left open. In Phase 2, the road band lifts model A and full minus A shrinks. Condition 1 is expected to fail still. Whether any condition passes is uncertain.
+**Prediction (mechanism, coder):** in Hazel's Phase 1 report.
+**Finish line:** Phase 1: a draft PR, the registered specimen file, the trial log, the report and stop. Phase 2: the re-fit report and evidence, the PR green and unmerged; then two Sorrel reviews on other models.
+**Abort conditions:** an owner-level choice; a wrong premise; a licence other than CC0 or CC BY in the specimens; under 2 GB free on /mnt/work; any write to the judged run's folders; a test having to be weakened; two failed attempts at one symptom; Phase 2 without the go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1184.
