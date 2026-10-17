@@ -20314,3 +20314,20 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **The coder's calls,** listed in the report's "Calls beyond the dispatch" (twelve). The planner accepts them, including the verdict guard (no "pass" while condition 4 is unruled) and t7/refit/outputs/ as the map folder.
 **Open, for the owner:** access's monotone direction; condition 4's scoring, background and records.
 **Notes:** Written by the planner by hand, on branch records-after-173. The forecast audits index row for the report is the planner's to add. Next free ID -1187.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1187
+**Timestamp:** 2026-10-17T11:10:54Z
+**Continues:** 2026-09-28-1186
+**Title:** T7 re-fit, Phase 1's open items: access monotone decreasing; condition 4 by the area mean, against a road-matched background, over the whole box with the interior beside it (owner)
+**The owner, verbatim:** "Yes, always fewer (Recommended)"; "Average over its area (Recommended)"; "Matched to road distance (Recommended)"; "Whole box, interior beside (Recommended)".
+**What it sets:**
+- **Access:** dist_road_m is monotone decreasing (−1). Farther from a road never raises the score.
+- **Condition 4's scoring:** each specimen's score is the map's mean over its stated uncertainty circle. Background points are scored the same way, at the same radii.
+- **Condition 4's background:** cells drawn to match the specimens' road-distance mix.
+- **Condition 4's records:** the whole box's kept specimens on scorable cells carry the verdict. The interior sub-box is reported beside it, with no verdict.
+- **Accepted by the planner (-1186):** the verdict guard (no "pass" while condition 4 is unevaluated) and the map folder t7/refit/outputs/.
+**Not passed:** Phase 2 (-1030's second point of no return) still needs the owner's go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decision rows from D156 record these in the forecast repository. Next free ID -1188.
