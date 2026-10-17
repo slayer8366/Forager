@@ -20568,3 +20568,17 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Finish line:** a PR into pre-main, green with the release step, merged on the owner's word.
 **Abort conditions:** release doesn't compile on pre-main (report it, don't fix it); compiling needs a key, a secret or a change to the guard; a wrong premise; anything touching main or dev.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1203.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1203
+**Timestamp:** 2026-10-17T20:56:46Z
+**Repository:** zynergy-site
+**PR:** 17
+**Head:** crash-lines-removed (8667b73b)
+**Base:** main
+**Merge-commit:** 319871ca6c2eb3b748b1563937986c9840df33b6
+**Pre-merge:** b22cca5a
+**Backup:** zynergy-site-main-20261017T205635Z-b22cca5a.bundle (verified)
+**Notes:** The owner, verbatim: "OK, publish it (Recommended)" (-1201). The Cloudflare Pages check passed. The preview (5c5b0a46.zynergy-site.pages.dev) was read by the planner before the merge: no "Crash traces" and no "any crash reports" on either page, the new delete-data sentence present, and both pages dated 17 October 2026. Merged with a merge commit, pinned to the head. Known bug #1 is fixed on the site; its row on pre-main still reads Open until it is updated. Written by the planner by hand, on branch records-after-173. Next free ID -1204.
