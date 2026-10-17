@@ -20600,3 +20600,38 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **Found outside scope, not fixed:** the README still describes app/src/debug, app/src/release and debug-build diagnostics (README.md:44-45, :73-74, :147), none of which exists on pre-main since -930.
 **Not covered:** signing, the artifact's contents, release unit tests, R8; whether lint-vital would fail on a release-only error.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1205.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1205
+**Timestamp:** 2026-10-17T21:19:56Z
+**Continues:** 2026-09-28-1204
+**Title:** PR #248 merges into pre-main; the README's dev-tools lines corrected and known bug 1 marked resolved, in a documents PR (owner)
+**The owner, verbatim:** "Merge it (Recommended)"; "Yes, write it (Recommended)".
+**What it sets:** PR #248 is merged (-1206). The planner writes PR #249 (documents only): the README's forecast-layers line, variants paragraph, app/src layout and ui package list corrected (no app/src/debug or app/src/release, no Diagnostics switch, no synthetic data, no crash screen, all gone since -930), and known-bugs row 1 Resolved. The owner sees the README changes before it merges.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1206.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1206
+**Timestamp:** 2026-10-17T21:19:01Z
+**PR:** 248
+**Head:** release-compile-ci (a9e40251)
+**Base:** pre-main
+**Merge-commit:** b7a9382ebf03313924052398731d89ca4389ff79
+**Pre-merge:** b774cac5
+**Backup:** pre-main-20261017T211849Z-b774cac5.bundle (verified)
+**Notes:** The owner, verbatim: "Merge it (Recommended)" (-1205). All three checks passed at a9e40251, including the new release-compile job. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1207.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1207
+**Timestamp:** 2026-10-17T21:19:56Z
+**Closes:** 2026-09-28-1202
+**Outcome:** done
+**Observed:** -1204's report, and PR #248 merged into pre-main (-1206). CI now compiles and packages the release version, unsigned, on every push and PR.
+**Deferred:** a lint-vital positive control for release, and release unit tests, both noted as not covered (-1204).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1208.
