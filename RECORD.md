@@ -19588,3 +19588,24 @@ The format was set back to JPG and the engine to camerax.
 
 Not re-run on the S22, since they share code with the S26 runs that passed: memory, turns, the CameraX check.
 **Notes:** Written by the planner by hand, on branch records-after-173. The S22's engine was set back to camerax; its format stays RAW, as it was before the check. Test photos on the S22 test phone remain. Next free ID -1149.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1149
+**Timestamp:** 2026-10-17T04:07:15Z
+**Title:** Lens chooser fixes on engine A: why the S22 ignores the zoom crop, optical stabilization, the telephoto log units, close-focus logging (owner)
+**Dispatch-file:** preserved/2026-10-17-01.md (Hazel Cairnwright; the first dispatch in the new format)
+**The owner, verbatim:** "Yes have Hazel begin". Before it: "It was very shaky in the zoom on the S22".
+**Change:** on engine A (dev only):
+1. evidence for why the S22's JPG ignores the zoom crop, then a fix so the JPG and the viewfinder match;
+2. optical stabilization requested on the lens in use where offered, with the mode logged;
+3. crop_achieved logged in the chosen lens's units;
+4. rate-limited focus readings on the telephotos, so a silent close-focus case can be seen.
+**Scope boundary:** app/src/debug photo/engine and its tests only. No src/main, main, pre-main, release builds, CameraX, close-focus thresholds, RECORD or index.
+**Baseline:** dev d94e16f4; per-lens crop at Camera2PlatformCamera.kt:433, logical zoom at :436, the path choice at :216, the read-back at :455 (all to re-check); the S22's tables (cropRegion and zoomRatio as per-lens keys; max digital zoom 8.0 per lens; logical range 0.6 to 10); OIS offered [0 1] on lenses 5, 6 and 7.
+**Prediction (outcome, planner):** after the fix, a JPG at any zoom on either phone is framed as the viewfinder shows it, and the S22's zoom is steadier.
+**Prediction (mechanism, coder):** to be given in Hazel's Phase 1 report and added by continuation.
+**Finish line:** item 1 fixed and shown on the S22 at 2x, 3.18x and the 10x stand-in; items 2 to 4 built; a PR into dev, green and unmerged; the planner's device check on the S22, then the S26.
+**Abort conditions:** a wrong premise; src/main or a release build needed; a test weakened; an owner-level behaviour (such as capping a zoom); two failed attempts.
+**Notes:** Written by the planner by hand, on branch records-after-173. The phases: Phase 1 reads and reports; Phase 2a builds diagnostics for a device run; the fix follows its evidence. Next free ID -1150.
