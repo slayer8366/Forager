@@ -20065,3 +20065,41 @@ PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with
   - condition 2 is reported for the side runs as well.
 - **For the owner, not acted on:** Mycena, Marasmius, Hygrocybe and Morchella have a secondary lifestyle, so they are in the side run only. Armillaria (primarily litter saprotroph, secondary plant pathogen) is in the side run.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1174.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1174
+**Timestamp:** 2026-10-17T08:28:45Z
+**Corrects:** 2026-09-28-1171, 2026-09-28-1172
+**Notes:**
+- **The wrong premise:** -1171 says "docs/navigation/2026-10-01-navigator-completion-plan.md names no trail data source", and -1172's Baseline repeats it. Both are true of that file, but not of the plans. docs/plans/trail-navigation-and-own-tiles.md (on main and pre-main, written 2026-10-03) records the owner's ruling -445: "OpenStreetMap is the routable base. Public-domain agency trails (Forest Service, BLM, USGS) are a separate reference layer used to flag gaps, never merged into the route network". It also records -447 (trails and roads alike).
+- **The planner's miss:** it searched two documents and missed the third, against "check from source". It found the third only when writing the plan.
+- **What follows:** the owner's "plan to use the trail maps for trail navigation" (-1171) was already decided in that form, and the comparison (-1172) confirms it. So the deliverable became an evidence section added to the existing plan, not a new plan document.
+
+-1171 and -1172 are not edited. Written by the planner by hand, on branch records-after-173. Next free ID -1175.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1175
+**Timestamp:** 2026-10-17T08:28:45Z
+**Closes:** 2026-09-28-1172
+**Outcome:** done
+**Observed:**
+- **The comparison:** by a research helper on Fable, Forager branch trail-data-comparison at 7a10b971, report docs/audits/2026-10-17-trail-data-comparison.md. The method was committed before any data was read; every query is logged; the licences are quoted at source. Seven areas of 10 km:
+  - agreement to about 3 m where both have a trail;
+  - Eagle Cap has OSM only, with no federal geometry;
+  - the Forest Service adds official names, numbers, uses and seasons, plus a few trails OSM lacks (two in Chamberlain Basin, 12.5 km);
+  - BLM's attributes are the richest;
+  - USGS adds 0 km beyond the Forest Service and BLM;
+  - neither source is connected without roads;
+  - no source carries live closures.
+- **The researcher's recommendation:** separate layers, OSM for geometry and routing, the Forest Service and BLM as an overlay; drop USGS.
+- **The plan:** the evidence is added to docs/plans/trail-navigation-and-own-tiles.md as a dated section, on branch trail-navigation-data-plan (3f055af8, from pre-main), with no PR yet. It goes to pre-main on the owner's word.
+**Deviations:**
+- The deliverable changed from a new plan to an addendum (-1174).
+- The comparison's own method corrections after seeing data are recorded in its report: BLM layer 7 republishes layers 2 to 6, and line ends within 1 m are joined.
+- The prediction held: OSM has more length; Eagle Cap is OSM-only; the Forest Service adds names, numbers and uses.
+**Open, for the owner:** drop USGS from the reference layer (-445 included it)? The researcher's proposed names and its role notes are with the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1176.
