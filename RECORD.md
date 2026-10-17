@@ -19217,3 +19217,22 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1116.
 **Coder's readings beyond the plan:** the add-one bands reuse the base model's configurations; the 30-presence rule is applied to fitted presences; the licence track drops cells without CC0/CC BY effort; the under-minimum blocks were read as D139's "uninformative", not a halt; and the verify report's "25 level III blocks" is in fact 26.
 **Next, under -1108:** the bar is cleared, so the independent review runs before anything is published. Brought to the owner with these caveats first.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1127.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1127
+**Timestamp:** 2026-10-17T02:18:28Z
+**Continues:** 2026-09-28-1126
+**Supersedes:** 2026-09-28-1108, its "if the review holds, the map goes on the site"
+**Title:** T7: the independent review runs now, with the caveats as its main questions; publishing becomes a separate yes after the review (owner)
+**The owner, verbatim:** "Review, then decide on publishing (Recommended)". The other options offered were "Review, then publish as ruled" and "Hold T7, rethink".
+**What it sets:** a D18 review of the T7 PNW fit starts now. Its main questions:
+- whether the map shows habitat or search effort;
+- whether the gain is mycorrhizal-specific, given that the comparison group gains more;
+- whether the weighting fix (41f9c79), made after the smoke run's failed bar, stands independently of the verdict;
+- the usual recomputation of the headline numbers with the reviewer's own code;
+- a first look at the map.
+
+Its report comes to the owner. Nothing is published without a separate yes after it. -1030's third point of no return is closed again until then.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1128.
