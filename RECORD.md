@@ -20134,3 +20134,39 @@ PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with
 - **PR #244** (researcher-profile, 72225676): docs/process/researcher-profile.md (Juniper Sounding), and the researcher in the planner profile's team table.
 
 Both are documents only, with their checks passed; each was merged with a merge commit pinned to its head. Both reach main at the next promotion. Written by the planner by hand, on branch records-after-173. Next free ID -1178.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1178
+**Timestamp:** 2026-10-17T09:28:17Z
+**Closes:** 2026-09-28-1163
+**Outcome:** done
+**Observed:** Hazel Cairnwright's part B: forecast PR #4 (t7-part-b into t7-build), CI green (698 passed, 3 skipped), unmerged. No fit, nothing published.
+- **The layer:** /mnt/work/Zynergy/forecast-data/access/pnw-2026-10-17/access_pnw.tif, three bands (dist_road_m, dist_trail_m, dist_any_m; sha256 7748fe0b…d38a), plus trails_unpublished_pnw.tif (the mask) and a manifest.
+  - Exact centre-to-line distance in grid-plane metres (D149), over the 16,674,133 study cells.
+  - Every T7 table cell (6,967,248) has a road value. 218,175 are trail-masked (Umatilla and Wallowa-Whitman, 35% of the Blue Mountains block's table cells).
+  - Road distance at the 90th percentile is 9.5 to 15 km in the Canadian Rockies, the Idaho Batholith and the North Cascades; the median is under 200 m in the Puget Lowland, the Willamette Valley and the Eastern Cascades slopes. The planner's prediction held.
+  - Wired as optional bands, off by default: the main fit takes dist_road_m; the side bands are dist_trail_m and dist_any_m.
+- **Sources:** registered (D148), each verified by multipart ETag or served length plus sha256:
+  - NTD for OR, WA, ID, MT, CA, NV, UT and WY;
+  - Forest Service roads, trails and forest boundaries;
+  - BLM trails.
+- **The owner's rulings as applied:**
+  - 12,301 non-federal NTD trail segments dropped, by source (8,237 of them Utah's);
+  - all 168,049 Forest Service roads kept, including 76,111 closed.
+- **Checks:** spot checks on ten cells agree within 0.005 m. Six revert checks each failed exactly their own test. One test is not shown to bite (the main band is roads).
+**Deviations:**
+- **A wrong premise in -1168:** the NTD has no "Closed Roads" class, so closed roads come from the Forest Service file only.
+- **A licence not read at source:** the Forest Service boundaries' licence (CC BY 4.0) is second-hand. The data.gov pages returned 404, so none of the three Forest Service licences was re-read at source today.
+- **Hazel's calls, accepted by the planner:**
+  - pyogrio 0.13.0 and shapely 2.2.0 pinned;
+  - ferries and tunnels (521 segments) out of the roads band;
+  - only study cells computed;
+  - the boundary file fetched for the mask;
+  - BLM fetched twice after a check fix (sha256 equal);
+  - dist_any_m is NaN where either band is NaN;
+  - rows D148 to D150 used.
+- **An unexplained test failure:** one local full-suite run under the memory cap had 8 failures in test_t6b_host_genera.py and test_t6b_us_half_runner.py (a runner stage counted 0 units where 1 was expected). It didn't reproduce in three further runs, and the files pass on b85bbc66. Reported, not touched; the cause is unknown.
+- **Not measured:** the Canadian border effect (about 84,000 cells); the edge effect beside the masked forests.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1179.
