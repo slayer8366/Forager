@@ -19136,3 +19136,58 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1116.
 **Finish line:** the PR is merged into pre-main on green. The owner's "yes" to adding it by pull request is the word for this merge, as the planner reads it.
 **Abort conditions:** CI red for a cause in this change; any other file in the diff.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1121.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1121
+**Timestamp:** 2026-10-17T02:05:20Z
+**Closes:** 2026-09-28-1048
+**Outcome:** partial; superseded in direction by -1056
+**Observed:** The burst probe was merged into dev (-1053) and run on the S22 in dim light (3.7 fps RAW-only, -1053) and bright light (4.3 fps, -1055). RAW+JPEG lost 7 of 8 frames in both. The owner then redirected to bursts below the camera library (-1056), which were measured on both phones at 30 fps (-1069, -1074).
+**Deviations:** Deferred and then dropped: this probe's S26 run and its speed table for piece 2. The S26 was measured instead through the platform burst (-1074).
+**Notes:** Written by the planner by hand, on branch records-after-173, by the open-intents check (-1120), which found this intent with no closing entry. Next free ID -1122.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1122
+**Timestamp:** 2026-10-17T02:05:20Z
+**Closes:** 2026-09-28-1049
+**Outcome:** done
+**Observed:** The T7 verify report was filed (-1050, forecast t7-pnw-verify 235ef9a), and V15's prior art separately (-1051). V9 and V17 were held, as the intent set.
+**Deviations:** None recorded.
+**Notes:** Written by the planner by hand, on branch records-after-173, by the open-intents check (-1120), which found this intent with no closing entry. Next free ID -1123.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1123
+**Timestamp:** 2026-10-17T02:05:20Z
+**Closes:** 2026-09-28-1063
+**Outcome:** done
+**Observed:** (1) The privacy policy and delete-data page were corrected and published (-1066, -1068; Forager PR #229, site PR #16). (2) The fast-burst test was built (PR #230) and run on the S22 (-1069) and the S26 (-1074): 30 fps, and the phone's NR, hot-pixel and shading modes leave the RAW unchanged.
+**Deviations:** The planner added wording beyond the approval, disclosed in -1066.
+**Notes:** Written by the planner by hand, on branch records-after-173, by the open-intents check (-1120), which found this intent with no closing entry. Next free ID -1124.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1124
+**Timestamp:** 2026-10-17T02:05:20Z
+**Closes:** 2026-09-28-1065
+**Outcome:** done
+**Observed:** The privacy wording was committed and then published (-1066, -1068). The unbinned-RAW bounds research was filed (-1067): the full-resolution route on the S22 is blocked by the maker's camera driver.
+**Deviations:** None recorded.
+**Notes:** Written by the planner by hand, on branch records-after-173, by the open-intents check (-1120), which found this intent with no closing entry. Next free ID -1125.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1125
+**Timestamp:** 2026-10-17T02:05:20Z
+**Closes:** 2026-09-28-1077
+**Outcome:** partial; its open parts superseded by -1082
+**Observed:** The sensor watch was merged into dev (-1078) and run on the S26 (-1078, -1079): the sensor map by zoom, close focus and dim light, and pinning by a physical stream proven. The pin probe stalled after a refused direct open (-1079); the stall was fixed under -1082 (-1088).
+**Deviations:** Deferred and then superseded: the S22 sensor-watch run. The S22's lens reach was mapped instead by the camera-reach probe (-1101).
+**Notes:** Written by the planner by hand, on branch records-after-173, by the open-intents check (-1120), which found this intent with no closing entry. Next free ID -1126.
