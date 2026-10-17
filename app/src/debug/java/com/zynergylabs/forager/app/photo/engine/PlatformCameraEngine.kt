@@ -527,7 +527,6 @@ internal class PlatformCameraEngine(
      * case where nothing fires (RECORD -1147's first try) shows what the rule saw. The rule itself is unchanged.
      */
     private fun logFocusReading(frame: PreviewFrame, streamingLens: Lens, wanted: Lens, main: Lens) {
-        if (!closeFocus.applies(wanted, main)) return
         if (!focusLimiter.allow(frame.sensorTimestampNanos, streamingLens.physicalId to wanted.physicalId)) return
         val nearLimit = wanted.minFocusDiopters * CloseFocusRule.NEAR_LIMIT
         log(
