@@ -321,6 +321,23 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    // SCRATCH BRANCH ONLY (scratch-lint-survey-2; dispatch 2026-10-17-03, RECORD -1192): the
+    // October survey's output-only lint block (scratch-lint-survey 2fb9b012), copied as is except
+    // the text report's file name, which no longer names a variant because this branch lints both
+    // debug and release (one variant per CI job, so the two never write the same file). Report
+    // formats and paths only, plus abortOnError = false so the lint job's own result says whether
+    // lint ran to the end, not whether it found errors. Nothing here changes which checks run or
+    // how severe they are: no baseline, no disable/enable, no severity override, and
+    // checkTestSources, checkGeneratedSources and checkDependencies are left at lint's defaults.
+    lint {
+        abortOnError = false
+        xmlReport = true
+        htmlReport = true
+        sarifReport = true
+        textReport = true
+        textOutput = file("build/reports/lint-results-text.txt")
+    }
 }
 
 /**
