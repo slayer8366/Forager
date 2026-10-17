@@ -893,7 +893,7 @@ internal class PlatformCameraEngine(
 
     // ── Flash and format ──────────────────────────────────────────────────────────────────────────────────────────────
 
-    private fun previewControls() = PreviewControls(currentFlash, lensCrop = appliedCrop, zoomForm = zoomForm())
+    private fun previewControls() = PreviewControls(currentFlash, lensCrop = appliedCrop)
 
     /** The shot's crop asked and achieved, both in the lens's own units (dispatch 2026-10-17-01, item 3). */
     private fun cropText(crop: LensCrop?, jpeg: JpegFrame): String {
