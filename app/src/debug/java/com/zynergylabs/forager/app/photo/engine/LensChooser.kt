@@ -284,8 +284,13 @@ internal class CloseFocusRule {
     var tooClose: Boolean = false
         private set
 
-    private var nearFrames = 0
-    private var farFrames = 0
+    /** Frames in a row counted towards "too close" on the telephoto; read by the focus-reading line, never written outside. */
+    var nearFrames = 0
+        private set
+
+    /** Frames in a row counted towards "far enough" on the main lens standing in; read as [nearFrames] is. */
+    var farFrames = 0
+        private set
     private var lastMain: FocusReading? = null
 
     fun applies(wanted: Lens, main: Lens): Boolean =
