@@ -20671,3 +20671,28 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Finish line:** Elder's report, filed by the planner, then the owner's approval once the phone checks are done.
 **Abort conditions:** a premise wrong about the branch heads; anything that needs a write.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1211.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1211
+**Timestamp:** 2026-10-17T23:50:06Z
+**Continues:** 2026-09-28-1210
+**Title:** Elder's audit of the second promotion: pass with items; one owed phone check carries a real mechanism
+**Report-file:** preserved/2026-10-17-05-promotion-audit-report.md (filed unedited)
+**Observed:**
+- **Verdict:** pass with items. Nothing risks a user's records, safety or trust. Both heads were confirmed against the remote, and CI was green on all three jobs at b91de824 (run 39077884108).
+- **Not seen on a phone:**
+  - **(A)** rotation must update the new window-size reading without the app restarting, which CI can't show (MainActivity handles rotation itself);
+  - **(B)** a glance at the S22's Android version;
+  - **(C)** phone-to-phone transfer carries nothing.
+- **The one user-visible change** in the production build: new-phone setup on Android 12 and later now carries no Forager data, which carries out -116.
+- **Items:**
+  1. README.md:157 still lists a `crash` package and "crash files"; PR #249 missed this row;
+  2. known-bugs.md:29 still says "these two";
+  3. known-bug row 3 may be unreachable, because a language change restarts the activity. Leave it until a phone shows either outcome;
+  4. the phone check wasn't written down anywhere.
+**The planner's actions:**
+- Item 4: the check is filed as preserved/2026-10-17-06-phone-check.md, Hazel's seven steps with Elder's A and B added. Build: the app-debug-apk artifact of run 39077884108 (pre-main push, b91de824), confirmed present.
+- Item 1 is the planner's own miss in PR #249 (it fixed the ui row and not the row below). The planner checked the package list from source: alert, data, domain, export, importgpx, location, map, net, photo, sensor, service and ui; no crash.
+**Notes:** Written by the planner by hand, on branch records-after-173. Items 1 and 2 go to the owner. Next free ID -1212.
