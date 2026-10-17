@@ -98,6 +98,8 @@ internal data class CameraFacts(
      */
     val lenses: LensSet? = null,
     val lensNote: String = "",
+    /** Each lens's and the logical camera's static zoom facts, logged once at open (dispatch 2026-10-17-01). */
+    val lensStatics: List<LensStatic> = emptyList(),
 )
 
 internal sealed interface DeviceEvent {
@@ -154,6 +156,8 @@ internal data class PreviewControls(
     val awbLock: Boolean = false,
     /** The lens chooser's zoom on the streaming lens, or null without the lens chooser (no crop, as before). */
     val lensCrop: LensCrop? = null,
+    /** How the zoom is asked of the camera (dispatch 2026-10-17-01's adb switch); [ZoomForm.Auto] is today's form. */
+    val zoomForm: ZoomForm = ZoomForm.Auto,
 )
 
 /** What a still request carries. [jpegOrientationDegrees] is the request's `JPEG_ORIENTATION`. */
@@ -165,6 +169,7 @@ internal data class StillControls(
     val aeAwbLocked: Boolean = false,
     /** The zoom the shot is taken at, as [PreviewControls.lensCrop]. */
     val lensCrop: LensCrop? = null,
+    val zoomForm: ZoomForm = ZoomForm.Auto,
 )
 
 /** One viewfinder frame's result. States are the platform's `CONTROL_AE_STATE` / `CONTROL_AWB_STATE` values. */
@@ -177,8 +182,15 @@ internal data class PreviewFrame(
     val focusDiopters: Float? = null,
     /** The streaming lens's CONTROL_AF_STATE. */
     val afState: Int? = null,
-    /** How far the camera actually cropped the lens (its active array over the result's crop region); null when not read. */
+    /**
+     * How far the camera cropped the lens as its own result reports it (its active array over the result's crop region);
+     * null when not read. In the main wide's terms under the logical zoom ratio: see [cropInLensUnits].
+     */
     val cropAchieved: Double? = null,
+    /** The zoom form the frame's request used, for reading [cropAchieved] in the lens's units; null when not known. */
+    val zoomFormUsed: ZoomForm? = null,
+    /** The frame's request and result, for the `crop_diag` line; null when not read. */
+    val zoomDiag: FrameZoomDiag? = null,
 )
 
 internal sealed interface PrecaptureOutcome {
@@ -199,6 +211,8 @@ internal data class JpegFrame(
     val activePhysicalId: String?,
     /** As [PreviewFrame.cropAchieved], for the shot's own result: logged beside the crop asked for. */
     val cropAchieved: Double? = null,
+    val zoomFormUsed: ZoomForm? = null,
+    val zoomDiag: FrameZoomDiag? = null,
 )
 
 /**
