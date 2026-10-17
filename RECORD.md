@@ -19483,3 +19483,38 @@ The owner picks. Step 2, after the names: a profile per role, modelled on docs/p
 - **Sorrel Tally** (the independent reviewer, proposed by a Fable session): "wood sorrel is the sharp, sour leaf in the shade, and a tally is a count: in this project counting is what caught every check that lied (the stale revert, the dropped network fixes, the file-short diff), and the reviewer's tone is that same sharp, patient counting."
 **What it sets:** any session working in that role takes that name, as any planner session is Rowan Waymark. Profiles are next (-1141 step 2), each opening with its name and these words.
 **Notes:** Written by the planner by hand, on branch records-after-173. All three roles had independently offered a "Hazel" name. Next free ID -1144.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1144
+**Timestamp:** 2026-10-17T03:28:38Z
+**Closes:** 2026-09-28-1128
+**Outcome:** done
+**Observed:** Sorrel Tally's first T7 review (Opus), forecast t7-fit-review at 2a10348, docs/audits/2026-10-16-t7-fit-review.md.
+- **Reproduction:** every headline figure reproduced exactly with its own code, as did the background sample (sha256).
+- **Effort and band selection:** block-clustered intervals include zero. Base minus B is +0.0008 (−0.0009, +0.0026), so the pass over B depends on choosing the three bands on the held-out blocks.
+- **The map against effort:** correlation with log effort is −0.007. It is high in the unsearched interior (Canadian Rockies, Idaho Batholith, Columbia Mountains) and low in the searched lowlands (Puget, Willamette, Klamath, California foothills). It correlates 0.456 with B's cover-only map. Effort takes 90% of the main model's gain, against 58.5% for Laetiporus.
+- **The weighting fix:** mechanically required for both groups. Unfixed, the main full model splits only on effort, and full equals B. There is no sign it was tuned: committed 6 minutes after the smoke run, the defect was visible in the smoke output. Its own revert check bites.
+- **Counts:** V9 recount exact for Cantharellus, Humaria and Laetiporus. 25 level III blocks is right; the "26" correction is wrong.
+- **The map itself:** no seams or stripes. 46% of shaded cells, and 65 to 66% in the bright interior, lie outside the effort frame.
+- **Verdict:** blocking, the label "mycorrhizal habitat". Should-fix: what shading outside the frame means, the selection caveat beside the pass, the fix's reach, "26" back to 25, a 0.848 slip, a "Canada not modelled" legend line.
+- **Its two answers:** a pilot only as "where mycorrhizal mushrooms are reported relative to search effort, by forest type". To strengthen it: presences or survey data from the unsearched interior, or a contrast against the wood-rot group.
+**Deviations:** the planner's outcome prediction "the map is dominated by the effort surface's pattern" was wrong; the reviewer scored it so. Ran on Opus, the coder's model, before -1134.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1145.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1145
+**Timestamp:** 2026-10-17T03:28:38Z
+**Closes:** 2026-09-28-1137
+**Outcome:** done
+**Observed:** Sorrel Tally's second T7 review (Fable, independent of the first), forecast t7-fit-review-2 at 20da09c, docs/audits/2026-10-16-t7-fit-review-2.md.
+- **Agreement with the first:** every headline figure reproduced; block-clustered intervals include zero; base minus B is +0.0008 (−0.0009, +0.0026). The map's correlation with effort is −0.007, with the same geography (Rockies and Idaho high, searched lowlands low). The comparison group's maps correlate 0.2295. The fix is mechanically required, with the same unfixed figures (A 0.8762; B equals full at 0.8681). 25 blocks is right. 46% of shading lies outside the effort frame. V9 recount exact for Amanita, Craterellus and Humaria. Its own revert check bites, with one disclosed weak grep.
+- **New:** only 0.027% of the AUC's pair mass lies within a single weather cell. On those pairs: full 0.548, base 0.539, B 0.500, A 0.494; the wood-rot group 0.542.
+- **Verdict:** blocking, none. Should-fix: the "26" miscount, "affected less", printing base minus B and a within-cell figure beside the pooled AUC, and a decision row for rule 4.
+- **Its two answers:** a pilot only under narrower wording ("forest types associated with reports of mycorrhizal mushroom genera, search effort held equal"), not "mycorrhizal habitat", not as likelihood. To strengthen it: a within-cell test or a finer effort layer, and a second comparison group sharing forests but not hosts.
+**Deviations:** its own prediction scored 3 of 7 wrong in substance.
+**Comparing the two reviews (the planner's reading):** they agree on every number and every substantive finding. They differ only in classing the "mycorrhizal habitat" label as blocking (Opus) or as not to be used without being blocking (Fable). Each added one analysis the other lacked: Opus the gain shares and B-map correlation, Fable the within-cell AUC. Both received the planner's dispatch, including its prediction, so they shared the prompt even though their models differed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1146.
