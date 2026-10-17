@@ -20189,3 +20189,16 @@ Both are documents only, with their checks passed; each was merged with a merge 
 - **Reminders bound to this session,** which the new one must re-create: the 07:02 PDT t6b restart and the 10:00 PDT W42 check.
 - **Open-intents check at handoff:** -1149 (lens fixes) is open and in progress. Every other intent from this session is closed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1180.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1180
+**Timestamp:** 2026-10-17T09:38:54Z
+**Continues:** 2026-09-28-1179, 2026-09-28-1149
+**Title:** Forecast PRs #3 and #4 merge into t7-build; the lens-fix device run is tomorrow (owner)
+**The owner, verbatim:** "1 merge PR #3 and PR #4 into t7-build"; "2 it will be ran tomorrow".
+**What it sets:**
+- **T7:** part C (PR #3, the saprotroph count) and part B (PR #4, the access layer) go into t7-build, naming each PR as D40 asks. The re-fit is still -1030's second point of no return and is asked separately.
+- **Camera (-1149):** the owner runs the Phase 2a device check on 2026-10-18, using the APK in `~/Zynergy/device-evidence/2026-10-17-lens-fixes-2a-apk/` and Hazel's steps in her Phase 2a report. -1149 stays open.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1181.
