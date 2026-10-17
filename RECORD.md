@@ -19191,3 +19191,29 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1116.
 **Observed:** The sensor watch was merged into dev (-1078) and run on the S26 (-1078, -1079): the sensor map by zoom, close focus and dim light, and pinning by a physical stream proven. The pin probe stalled after a refused direct open (-1079); the stall was fixed under -1082 (-1088).
 **Deviations:** Deferred and then superseded: the S22 sensor-watch run. The S22's lens reach was mapped instead by the camera-reach probe (-1101).
 **Notes:** Written by the planner by hand, on branch records-after-173, by the open-intents check (-1120), which found this intent with no closing entry. Next free ID -1126.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1126
+**Timestamp:** 2026-10-17T02:17:00Z
+**Continues:** 2026-09-28-1081, 2026-09-28-1108
+**Title:** T7 on the PNW: the P10 bar is met by small margins, but effort alone explains nearly all of it, the block-clustered intervals include zero, and the wood-rot comparison group gains more from the same inputs
+**Report-file:** forager-forecast docs/audits/2026-10-16-t7-fit-report.md on t7-build (b5c3d26, pushed). The coder's completion message was forwarded verbatim by the previous planner session; that session's covering line: "This is the last of the three. Nothing recorded or merged on this side; this session writes nothing further."
+**Observed (the planner read the report's Verdict and caveats sections at b5c3d26):**
+- **The fit.** 14.2 h at 41f9c79, finished 2026-10-17T02:07:48Z. 15,624 presences against 500,000 background points.
+- **Pooled held-out AUC.** Full 0.88146; A (effort only) 0.87728; B (effort plus forest) 0.87880.
+- **Against the bar (D140), with weather-cell-clustered 95% intervals.** Full minus A +0.00419 (+0.00211 to +0.00629); full minus B +0.00266 (+0.00100 to +0.00423). The forested blocks are similar. The bar is met.
+- **Reported beside it, with no verdict:**
+  - Effort alone carries almost all of it: every habitat input together adds 0.004.
+  - Block-clustered intervals include zero in all four comparisons.
+  - Block by block it is a split: the full model is above A in 7 of 14 informative blocks.
+  - At level I it loses in Marine West Coast Forests, which hold 8,958 of the presences.
+  - The comparison group (Laetiporus, wood rot) gains +0.0232 over A from the same inputs, and its map's rank correlation with the mycorrhizal map is 0.230, so the gain is not shown to be mycorrhizal-specific.
+  - The licence track does not pass B.
+  - Tuning chose the most regularised configuration in every fold.
+- **Nothing published, shown or viewed;** the rasters and mask map were never opened. There is no D18 review, and CI was not run on t7-build.
+**The planner's flag for the review (-1108):** the weighting fix 41f9c79 was made after the smoke run's P10 "fail" (fit.log, 2026-10-16T11:43:32Z), and the full run then "pass"ed. The fix was mechanical (no split was possible) and was test-first, but the reviewer must confirm it stands independently of the verdict.
+**Coder's readings beyond the plan:** the add-one bands reuse the base model's configurations; the 30-presence rule is applied to fitted presences; the licence track drops cells without CC0/CC BY effort; the under-minimum blocks were read as D139's "uninformative", not a halt; and the verify report's "25 level III blocks" is in fact 26.
+**Next, under -1108:** the bar is cleared, so the independent review runs before anything is published. Brought to the owner with these caveats first.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1127.
