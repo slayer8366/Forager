@@ -59,6 +59,7 @@ class CameraEngineReceiver : BroadcastReceiver() {
         const val ACTION_SUMMARY = "com.zynergylabs.forager.app.debug.CAMERA_ENGINE_SUMMARY"
         const val EXTRA_ENGINE = "engine"
         const val EXTRA_FORCE_FALLBACK = "force_fallback"
+        const val EXTRA_ZOOM_FORM = "zoom_form"
     }
 }
 
