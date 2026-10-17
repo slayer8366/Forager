@@ -20441,3 +20441,22 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **Wrong premises:** the inventory's NonObservableLocale sites (:684 is not flagged; PhotoViewerDialog.kt:378 is missing) and its "about 403" Log calls (an unbounded pattern; lint counts 259). The dispatch's "release-only sources" don't exist on pre-main. The planner's prediction held on the total but not on its cause.
 - **Hazel's calls:** the debug and release matrix; the renamed text report; the opt-in control run; a comparison script with its own control; D4 read as covering UseKtx, ModifierParameter and the test findings.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1195.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1195
+**Timestamp:** 2026-10-17T15:45:33Z
+**Continues:** 2026-09-28-1194, 2026-09-28-926
+**Title:** Lint Phase 2: Hazel's fix list as proposed, the four owner items left as recommended, lint on CI failing on errors, start now (owner)
+**The owner, verbatim:** "Approve as proposed (Recommended)"; "Take all four (Recommended)"; "Yes, as proposed (Recommended)"; "Yes, start now (Recommended)".
+**What it sets:**
+- **Fix** (D4): the 7 shipped-code errors; the stale-after-rotation resources (9); DataExtractionRules (Android 12 and later); the 7 test-code errors and the other test-only findings; UseKtx and the other shorter-code items; ModifierParameter; the 9 hints; the leftover icon folder name. Tests first where behaviour can change. The rotation and phone-transfer fixes get a short phone check afterwards.
+- **Leave:** LogNotTimber (259; the app uses Android's own logger on purpose) and library version updates (17; a separate decision).
+- **The four owner items, all left unchanged this round:**
+  - the map's screen-reader touch note is held for a separate look with a screen reader;
+  - the camera version check lint can't see stays as it is, with no silencing mark;
+  - RAW refusing to save on low space stays;
+  - a single-colour icon comes later, as a design task.
+- **Lint on CI (T3):** a lint job on the debug variant, failing on any error, with no baseline. LogNotTimber, NewerVersionAvailable and GradleDependency are switched off on CI, each with its reason. It lands in the same PR as the fixes, a PR into pre-main merged on the owner's word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1196.
