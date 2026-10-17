@@ -28,7 +28,7 @@ private const val SHORT_WINDOW_MAX_HEIGHT_DP = 480
  * reason [currentWindowWidthClass] does (its doc comment).
  */
 @Composable
-fun isShortWindow(): Boolean = LocalWindowInfo.current.containerDpSize.height < SHORT_WINDOW_MAX_HEIGHT_DP.dp
+fun isShortWindow(): Boolean = LocalConfiguration.current.screenHeightDp < SHORT_WINDOW_MAX_HEIGHT_DP
 
 /**
  * Whether the current window is in landscape, whatever its height: the gate for the phone's landscape
