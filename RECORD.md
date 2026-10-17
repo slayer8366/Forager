@@ -20422,3 +20422,22 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 **Pre-merge:** b221e85b
 **Backup:** pre-main-20261017T120800Z-b221e85b.bundle (verified)
 **Notes:** The owner, verbatim: "Get pre main current with main" (-1191). CI ("Build, test, publish APK") passed. Merged with a merge commit, pinned to the head. pre-main is now 0 commits behind main and 12 ahead, and the merge changed no file (diff b221e85b to 1fe2ab8d is empty). Written by the planner by hand, on branch records-after-173. Next free ID -1194.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1194
+**Timestamp:** 2026-10-17T12:39:24Z
+**Continues:** 2026-09-28-1192
+**Observed:** Hazel Cairnwright's Phase 1 lint report: docs/audits/2026-10-17-lint-survey-2.md on branch lint-survey-2 (216a087c), with the CI scratch branch scratch-lint-survey-2. Base pre-main b221e85b; the diff to 1fe2ab8d is empty. CI run 39031757730 (aec256d7) succeeded, lint for both debug and release. Nothing was fixed. The mechanism prediction was committed (78bff807) 22 s before the run was created.
+- **Totals,** each agreeing three ways: debug 349 (14 errors, 326 warnings, 9 hints); release 337 (release runs no test analysis). October's was 376.
+- **Against October:** 62 gone, all in the removed src/debug; 35 new; 314 unchanged. LogNotTimber 272 → 259. MonochromeLauncherIcon is new, cause not found.
+- **Errors:** the same 7 in shipped code (NonObservableLocale ×5, Range, SuspiciousIndentation), and 7 UnrememberedMutableState in tests. DataExtractionRules is still at AndroidManifest.xml:135.
+- **RAW opt-in:** lint enforces it. With the opt-in removed on the scratch branch, 3 UnsafeOptInUsageError errors appeared (control run 39032713545, lint jobs green, the file restored from a saved copy). The planner checked that the scratch branch's app/src equals pre-main's.
+- **Proposals,** for the owner:
+  - a D4 list in plain words: fix, leave (LogNotTimber 259; version updates 17), and four items for the owner;
+  - T3: lint on CI on debug, failing on errors with no baseline after the fixes; LogNotTimber and the online-version checks switched off.
+**Deviations:**
+- **Wrong premises:** the inventory's NonObservableLocale sites (:684 is not flagged; PhotoViewerDialog.kt:378 is missing) and its "about 403" Log calls (an unbounded pattern; lint counts 259). The dispatch's "release-only sources" don't exist on pre-main. The planner's prediction held on the total but not on its cause.
+- **Hazel's calls:** the debug and release matrix; the renamed text report; the opt-in control run; a comparison script with its own control; D4 read as covering UseKtx, ModifierParameter and the test findings.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1195.
