@@ -19634,3 +19634,27 @@ Go for Phase 2a (diagnostics and the forms switch; no fix yet). Written by the p
 **Timestamp:** 2026-10-17T04:13:54Z
 **Corrects:** 2026-09-28-1150
 **Notes:** In -1150, call (i) reads "the adb-only  debug extra", with a blank where the extra's name should be. The planner wrote the name in backticks inside a shell here-document, so the shell tried to run it as a command and dropped it. The line should read: "the adb-only zoom_form debug extra (--es zoom_form crop|lens_ratio|logical_ratio) in Phase 2a". The filed Phase 1 summary used a quoted here-document and is intact. -1150 is not edited. From now on the planner writes record entries with a quoted here-document, or without backticks. Written by the planner by hand, on branch records-after-173. Next free ID -1152.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1152
+**Timestamp:** 2026-10-17T04:20:10Z
+**PR:** 241
+**Head:** role-profiles (5cb91fbf)
+**Base:** pre-main
+**Merge-commit:** 746d8489c73126a5bbf304fb8f7162e72679ab91
+**Pre-merge:** 68df94d4
+**Backup:** pre-main-20261017T042003Z-68df94d4.bundle (verified)
+**Notes:** The four team profiles: coder-profile.md (Hazel Cairnwright), auditor-profile.md (Elder Ford) and reviewer-profile.md (Sorrel Tally), all new, and planner-profile.md (Rowan Waymark) updated. The owner, verbatim: "Show me the profiles", "Need a profile for Rowan still", then "Yes have Hazel begin" to the planner's "Shall I open the pull request and merge them into pre-main?". CI run 39001323373 succeeded on the head. -1141's finish line (the three Forager profiles merged, plus Rowan's updated) is met. Written by the planner by hand, on branch records-after-173. Next free ID -1153.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1153
+**Timestamp:** 2026-10-17T04:20:10Z
+**Closes:** 2026-09-28-1141
+**Outcome:** done
+**Observed:** names chosen (-1143) and profiles merged into pre-main (-1152). The E-GD curator was excluded by the owner (-1142); its request was withdrawn and the general method was given to E-GD in the framework addendum.
+**Deviations:** the scope narrowed from four roles to three (-1142). Rowan's existing profile was updated, at the owner's "Need a profile for Rowan still".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1154.
