@@ -20202,3 +20202,34 @@ Both are documents only, with their checks passed; each was merged with a merge 
 - **T7:** part C (PR #3, the saprotroph count) and part B (PR #4, the access layer) go into t7-build, naming each PR as D40 asks. The re-fit is still -1030's second point of no return and is asked separately.
 - **Camera (-1149):** the owner runs the Phase 2a device check on 2026-10-18, using the APK in `~/Zynergy/device-evidence/2026-10-17-lens-fixes-2a-apk/` and Hazel's steps in her Phase 2a report. -1149 stays open.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1181.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1181
+**Timestamp:** 2026-10-17T09:44:04Z
+**Repository:** forager-forecast
+**PR:** 3, 4
+**Base:** t7-build
+**Merge-commit:** PR #3 e52f65ed7b1ab5f62f47c242adc217f2fc5d6427 (head t7-part-c 75358029); PR #4 5c1a9df1f9b65a511e8c1f7aeea1c4c9db307446 (head t7-part-b 473bb24e)
+**Pre-merge:** 9ad04ba0 (before #3); e52f65ed (before #4)
+**Backup:** forecast-t7-build-20261017T094352Z-e52f65ed.bundle (verified), taken before #4 only
+**Notes:** The owner, verbatim: "1 merge PR #3 and PR #4 into t7-build" (-1180).
+- **PR #3** merged first with a merge commit, pinned to the head whose checks passed.
+- **PR #4 then conflicted** in docs/planning/DECISIONS.md only: both PRs had added rows at the top of the table. The planner merged t7-build into t7-part-b (473bb24e), kept every row newest first (D155, then D150, D149, D148), and kept D145's amended text. Row count 143 = 139 shared + 1 + 3. The PR's checks passed again at 473bb24e, and it was merged with a merge commit, pinned to that head.
+- **Deviation:** no backup bundle was taken before PR #3, against the practice of -1170. Its pre-merge state 9ad04ba0 is still on the remote, as the merge commit's first parent.
+t7-build now holds parts A, B and C. Written by the planner by hand, on branch records-after-173. Next free ID -1182.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1182
+**Timestamp:** 2026-10-17T09:44:21Z
+**Continues:** 2026-09-28-1168, 2026-09-28-1160, 2026-09-28-1173
+**Title:** T7 re-fit design: road distance as access beside effort; condition 3 on the same design; the specimen download as the re-fit's first phase (owner)
+**The owner, verbatim:** "Access, like effort (Recommended)"; "Yes, as proposed (Recommended)"; "First phase of the re-fit (Recommended)".
+**What it sets:**
+- **The road band's role:** distance to roads (dist_road_m, closed roads included, -1168) enters the model as access, beside effort. It joins the effort-only comparison model A. On the map it is held at one typical value, as effort is, so the map does not rank cells by nearness to roads. It is not a candidate habitat band.
+- **Condition 3 (the host-specific contrast):** the saprotroph main run (D155) is fitted exactly as the mycorrhizal group is, with the same chosen configurations and the same background. Each group's gain is its full model minus its model A. The contrast is the mycorrhizal gain minus the saprotroph gain, with one interval that resamples whole level III blocks across both groups together. The 13 shared forested blocks (-1173) are reported beside it.
+- **The specimen download (condition 4)** is Phase 1 of the re-fit dispatch, with the wiring and a small trial run. Phase 1 stops and reports. Phase 2, the full re-fit, is -1030's second point of no return and runs only on the owner's separate go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1183.
