@@ -19954,3 +19954,17 @@ The D145 amendment and D155 record these.
   - report the Canadian border effect, not fix it;
   - use the full California file as dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1169.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1169
+**Timestamp:** 2026-10-17T07:46:34Z
+**Notes:** The owner's thank-you reply to Dr Sergei Põlme (FungalTraits' corresponding author, -1080), copying Dr Leho Tedersoo, has been sent. The owner, verbatim: "I sent it". It replies to his consent for a dated copy of FungalTraits in the forecast repository.
+- **The draft** was written by the previous planner session and survived only in its transcript; this planner retrieved it.
+- **The planner proposed two changes,** because T7 is now held (-1146) and the reviews don't support "habitat map":
+  - "credit it on any maps we publish that use it", in place of "credit it on the habitat maps";
+  - "when our first Pacific Northwest results are ready", in place of "when the first Pacific Northwest habitat map is ready".
+- **Not stated:** which version was sent.
+
+It promises a link to the first PNW results, owed to him when anything from the forecast is published. Written by the planner by hand, on branch records-after-173. Next free ID -1170.
