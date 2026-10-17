@@ -19120,3 +19120,19 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1116.
 **ID:** 2026-09-28-1119
 **Timestamp:** 2026-10-17T01:59:46Z
 **Notes:** The owner, verbatim: "Can you write out the auditor framework we discussed earlier, for EGD?". Written as prompts/preserved/2026-10-16-05-auditor-framework-for-egd.md: the production gate and UX auditor in project-independent form, for E-GD's curator to adopt, adapt or reject. Sources: -1085 to -1087, -1092, -1094, -1097, -1100. It is marked untested in practice, since no promotion has yet been audited. Not pushed to E-GD-Philosophy; the planner has not been asked to, and that repository is the curator's. Written by the planner by hand, on branch records-after-173. Next free ID -1120.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1120
+**Timestamp:** 2026-10-17T02:04:29Z
+**Title:** Planner profile: "Check from source, not memory" under Dispatching work, and an open-intents check under Keeping the record (owner)
+**The owner, verbatim:** "1 yes", "2 yes". These answer, first, the planner's question whether to add the E-GD curator's line under "Dispatching work" (E-GD record 2026-10-16-10; the owner's words there: "Memory drifts, so always check from source"); and second, whether to add the open-intents check the planner proposed after -1116.
+**Change:** docs/process/planner-profile.md gains two bullets: the curator's line verbatim, after "Verify first, then build" (line 36 at pre-main 462bb8ba); and, under "Keeping the record", the open-intents check: at every handoff and whenever a report lands, the planner lists every intent with no closing entry and closes or continues each.
+**Scope boundary:** that one file, on branch profile-check-from-source from pre-main 462bb8ba, as a PR into pre-main. No other file.
+**Baseline:** pre-main 462bb8ba. The profile's sections, read just now: Dispatching work at line 33, Keeping the record at line 76.
+**Prediction (outcome, planner):** the diff adds exactly two bullets and changes nothing else; CI passes.
+**Prediction (mechanism, coder):** none. The planner edits the file, and no coder is dispatched.
+**Finish line:** the PR is merged into pre-main on green. The owner's "yes" to adding it by pull request is the word for this merge, as the planner reads it.
+**Abort conditions:** CI red for a cause in this change; any other file in the diff.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1121.
