@@ -20118,3 +20118,19 @@ PR #2's checks ("Large-file guard, lint, tests") passed at 691d2ee7. Merged with
 - The reference layer is the Forest Service's and BLM's trails only. USGS's transportation trails are dropped: they added 0 km in all seven areas (-1175).
 - **The research role** (read-only research: method committed before data, licences quoted at source, never downloading whole datasets or signing agreements) is named **Juniper Sounding**. The owner chose it from the role's three proposals. In the role's own words: "the juniper lives in the dry BLM country as well as the forest, so it covers the whole map; a sounding is a depth taken by lowering a line and reading it, one bounded measurement at a time, never draining the lake." It runs on Fable.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1177.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1177
+**Timestamp:** 2026-10-17T08:55:48Z
+**PR:** 243, 244
+**Base:** pre-main
+**Merge-commit:**  PR #243 7d2b4f9a8166a0011d337c0f815c9293efc7d15d; PR #244 b221e85bf0384dd2085d07f6d776e657fa5d61f0;
+**Pre-merge:** 746d8489
+**Backup:** pre-main-20261017T085535Z-746d8489.bundle (verified)
+**Notes:** The owner, verbatim: "Go ahead and send the updates to pre main".
+- **PR #243** (trail-navigation-data-plan, d4d5d845): the dated comparison section in docs/plans/trail-navigation-and-own-tiles.md, with USGS marked dropped (-1176).
+- **PR #244** (researcher-profile, 72225676): docs/process/researcher-profile.md (Juniper Sounding), and the researcher in the planner profile's team table.
+
+Both are documents only, with their checks passed; each was merged with a merge commit pinned to its head. Both reach main at the next promotion. Written by the planner by hand, on branch records-after-173. Next free ID -1178.
