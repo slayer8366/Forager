@@ -19901,3 +19901,27 @@ This also answers -1156 item 5: B can be done, and D only partly.
 **The owner, verbatim:** "Go ahead and have part A go into the T7 working branch (PR #2)".
 **What it sets:** PR #2 (t7-part-a into t7-build) is merged by the planner, with a verified backup of t7-build first. **Timing (the planner's call, told to the owner):** the merge waits until step 1 of -1165 (P10b condition 2 clustered by block, appended to PR #2 by the part C Hazel session) is pushed and its checks pass. That way the working branch receives part A with the corrected bar in one merge, rather than a second PR afterwards.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1167
+**Timestamp:** 2026-10-17T07:42:20Z
+**Continues:** 2026-09-28-1165, 2026-09-28-1164
+**Title:** Part C's three readings, fixed before any count: condition 2 resampled exactly as condition 1; the nine mixed ectomycorrhizal saprotroph genera out; the 131 with a secondary lifestyle to a side run (owner)
+**The owner, verbatim:**
+- on weather cells that straddle blocks: "Same method as the other test (Recommended)";
+- on the nine genera: "Out (Recommended)";
+- on the 131: "Side run, like the main group (Recommended)".
+**Context:** Hazel stopped before computing or counting anything (her report to the planner, 2026-10-17). The facts behind the choices:
+- 374 of the 1,862 weather cells holding pairs span more than one block, carrying 5.9% of the within-cell pair weight;
+- 669 genera meet D146 (litter or soil saprotroph primary lifestyle, mushroom-forming): 660 classed "other, clear" and 9 "ectomycorrhizal, mixed";
+- 131 of the 669 have a secondary lifestyle;
+- the D26 zip's sha256 was re-checked equal; there is no overlap with the main run by construction.
+**What it sets:**
+1. **Condition 2's block interval** uses condition 1's exact resampling: each row's weight is multiplied by its block's draw count, and every within-cell pair is kept. The point estimate is unchanged (+0.0540).
+2. **The nine genera** (Hyaloscypha, Peziza, Entoloma, Hydropus, Sistotrema, Ceratorhiza, Epulorhiza, Tulasnella, Clavariadelphus) are excluded from the saprotroph group.
+3. **The saprotroph main run** takes only genera with no secondary lifestyle. The others go to a side run, as the mycorrhizal group's mixed genera do.
+
+The D145 amendment and D155 record these.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1168.
