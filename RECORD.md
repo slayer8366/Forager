@@ -20486,3 +20486,43 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **Found, not fixed:** activeSearchSummary (AvailabilitySearchUi.kt:685) still uses the device locale, which lint doesn't flag.
 **Not tested:** the map's five density reads (no Robolectric path); real window insets; phone-to-phone transfer; split screen. A seven-step phone check (S22 first) is in Hazel's report.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1197.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1197
+**Timestamp:** 2026-10-17T16:55:20Z
+**Continues:** 2026-09-28-1196
+**Title:** Lint fixes into pre-main now, the phone check before the next promotion; the search-summary language leftover as a small follow-up (owner)
+**The owner, verbatim:** "Merge now, phone check before main (Recommended)"; "Small follow-up later (Recommended)".
+**What it sets:**
+- PR #246 merges into pre-main now. Hazel's seven-step phone check (S22 first) runs before the next promotion to main.
+- The search summary's month (activeSearchSummary, AvailabilitySearchUi.kt:685) goes on the known-bugs list as row 3 (PR #247, documents only), and gets a small fix later.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1198.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1198
+**Timestamp:** 2026-10-17T16:54:38Z
+**PR:** 246
+**Head:** lint-fixes (2b6215e1)
+**Base:** pre-main
+**Merge-commit:** c8df0b9793dfe43a2732dbe304d3b0ede4af480d
+**Pre-merge:** 1fe2ab8d
+**Backup:** pre-main-20261017T165425Z-1fe2ab8d.bundle (verified)
+**Notes:** The owner, verbatim: "Merge now, phone check before main (Recommended)" (-1197). Both checks, "Build, test, publish APK" and "Android lint (debug)", passed at 2b6215e1. Merged with a merge commit, pinned to that head. The lint fixes and lint on CI are now in pre-main. -1192's Phase 2 finish line ("a PR into pre-main, green, merged on the owner's word") is met, apart from the phone check, which is owed before main. Written by the planner by hand, on branch records-after-173. Next free ID -1199.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1199
+**Timestamp:** 2026-10-17T16:55:20Z
+**Closes:** 2026-09-28-1192
+**Outcome:** done
+**Observed:** Phase 1 (-1194) and Phase 2 (-1196) are both complete, and PR #246 is merged into pre-main (-1198).
+**Deferred:**
+- the seven-step phone check, before the next promotion (-1197);
+- the search-summary fix (known-bugs row 3, PR #247);
+- the four owner items left this round (-1195).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1200.
