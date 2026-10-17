@@ -391,7 +391,7 @@ internal class PlatformCameraEngine(
                 rawSource = if (plan.raw) configured.rawSource else RawSource.None
                 // A lens session's own sizes (dispatch 2026-10-17-01, -1150 call iii); the logical camera's without a lens set.
                 val preview = lens?.previewSize ?: chosen.previewSize
-                val jpeg = lens?.jpegSize ?: chosen.jpegSize
+                val jpeg = chosen.jpegSize
                 val raw = if (lens != null) lens.rawSize else chosen.rawSize
                 log(
                     "engine=platform event=configured raw_source=${label(configured.rawSource)} preview=$preview " +
