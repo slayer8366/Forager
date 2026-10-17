@@ -19534,3 +19534,32 @@ The owner picks. Step 2, after the names: a profile per role, modelled on docs/p
 
 Then a fresh independent review, on a different model from the coder (-1134). The planner brings a plan to the owner before any build.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1147.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1147
+**Timestamp:** 2026-10-17T03:46:28Z
+**Continues:** 2026-09-28-1105
+**Title:** Lens chooser device check on the S26: every step passes; close focus silent on a first try, working on the second; a log label to fix; the S22 not yet run
+**The owner, verbatim:** "S26 plugged in, close the open items"; "Aimed"; "Done" (after the pinch); "Done 2"; "Try again"; "Done"; "Done" (after the turns).
+**Install:** no Forager service running and the camera free; CI run 38969009155's APK (1.0.3387+g4e3d31ce, the merged tree) installed with adb install -r, the owner's data kept. The earlier test photos were already gone; no photo files dated 2026-10-16 remained. Evidence at ~/Zynergy/device-evidence/2026-10-17-lens-chooser-s26/ (off GitHub; the owner's home).
+**Observed (S26, the dispatch's steps):**
+1. Opened on engine A: the row reads ".6 1 3 5" above the shutter, 1 lit in yellow, labels turned with the phone; lens zooms 0.58, 1.00, 2.89 and 4.91.
+2. Taps: .6 553 ms, 1 525 ms, 5 488 ms, 3 564 to 617 ms; the picture never went black (mean brightness 53 to 111 mid-switch). With the subject near, tapping 3 or 5 kept the main lens cropped to the zoom, with 1 lit, by the close-focus rule.
+3. Pinch: 1.55x on the main lens, no lens switch, crop achieved 1.55 (so the S26 crops through its overall zoom).
+4. JPGs: 1.55x on lens 5, 4080x3060; 3x on lens 6, 3648x2736; 5x on lens 7, 4080x3060. Each photo was framed as its lens frames.
+5. RAW at 1.55x: full 4080x3060 mosaic, DefaultCropOrigin 726 544, DefaultCropSize 2628 1972 (centred 1.55x), exiftool -validate OK, noise reduction 0.
+6. Tap 3 then the shutter at once: the shot waited for lens 6 to stream and was taken on it.
+7. Close focus: silent on the first try, with no event logged and no readings captured. On the second try, with full logging, lens 6 read 3.69 diopters (about 27 cm, past its 2.5 limit), so the camera switched to the main lens cropped to 2.89x. Later the main lens read 1.01 diopters (about 1 m), so it switched back to 6.
+8. Memory: closing and reopening came back on 3 (remembered=6); after a force-stop it opened on 1 (remembered=none).
+9. Turns: the row's bounds were unchanged to the pixel, and the labels turned.
+10. CameraX selected: no row, normal picture.
+
+The format was set back to JPG and the engine to camerax.
+**Issues found (dev only, for Hazel; not on the known-bugs list, which covers pre-main and main):**
+- On the telephotos, viewfinder_crop and jpg_shot log crop_achieved in main-lens units (4.90 on lens 7 with no crop asked). The photo confirms it is a log label, not a double zoom.
+- The first close-focus try fired nothing. Why is undetermined; there was no logging of the readings then.
+**Left behind:** four test photos from this check (the 5x and 3x JPGs, and the 1.55x JPG and RAW), for deletion.
+**Not done:** the S22 run of the same check.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1148.
