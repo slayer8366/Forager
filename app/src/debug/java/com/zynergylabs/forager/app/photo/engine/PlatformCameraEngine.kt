@@ -122,6 +122,8 @@ internal class PlatformCameraEngine(
     private val forceFallback: () -> Boolean = { false },
     private val orientationSource: OrientationSource = OrientationSource.None,
     private val timeouts: EngineTimeouts = EngineTimeouts(),
+    /** How the zoom is asked of the camera: the adb `zoom_form` switch (dispatch 2026-10-17-01); today's form by default. */
+    private val zoomForm: () -> ZoomForm = { ZoomFormSwitch.form },
 ) : CameraCaptureSession {
 
     /** Called once, after the engine has released the camera, when it gives up: open, configure or stream failed. */
@@ -950,6 +952,9 @@ internal class PlatformCameraEngine(
     }
 
     fun summary(): String = metrics.summary() + " phase=$phase fell_back=$fellBack"
+
+    /** The adb switch changed the zoom form: the running viewfinder request is replaced, so the next frames use it. */
+    fun onZoomFormChanged() = Unit
 
     private fun describe(outcome: OrientationReapplyOutcome): String = when (outcome) {
         is OrientationReapplyOutcome.Rewritten -> "rewritten(${outcome.fromTag}->${outcome.toTag})"
