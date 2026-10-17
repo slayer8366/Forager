@@ -20367,3 +20367,10 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **Hazel's calls, accepted by the planner:** ten background points per specimen; road-band edges at 50, 100, 250, 500, 1,000, 2,000 and 5,000 m; an unweighted AUC for condition 4; its interval by ecoregion-block resampling; "scorable" meaning the specimen's own cell has a map value; the monotone direction as a required argument.
 **What follows:** -1188's checks are met, so the planner relays the start of Phase 2. The audits index rows for both reports are the planner's to add.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1190.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1190
+**Timestamp:** 2026-10-17T11:55:34Z
+**Notes:** Phase 2 of the T7 re-fit (-1183, -1188) started at 2026-10-17T11:48:56Z as the user unit t7-refit.service. It runs Hazel's command at 0560daee, with a clean worktree, monotone −1, 4 threads, a 5G memory cap and Nice 10. The work dir is t7/refit/ and the map goes to t7/refit/outputs/. First log lines: 15,624 presences, 500,000 background; access held at 258.3 m; 17 of 18 forested blocks in the fit. The estimate is 16 to 21 h, ending about 04:00 to 09:00Z on 2026-10-18 (inferred). The planner set a reminder to check the unit. Written by the planner by hand, on branch records-after-173. Next free ID -1191.
