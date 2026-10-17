@@ -519,7 +519,7 @@ class NavigationModeChange {
      * `setMaxZoomPreference` (lint Range: at most 25.5), and the one caller always passed a real cap
      * (lint dispatch 2026-10-17-03).
      */
-    fun leaveNavigation(map: MapLibreMap, maxZoom: Double) {
+    fun leaveNavigation(map: MapLibreMap, maxZoom: Double = Double.MAX_VALUE) {
         expected = null
         active = false
         startZoomGate.reset()
