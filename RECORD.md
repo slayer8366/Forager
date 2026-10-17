@@ -20345,3 +20345,25 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **The planner checks** that the build is pushed, its tests and revert checks pass, PR #5's CI is green and the trial ran. Then the planner relays the start of Phase 2 without asking the owner again. Phase 2 is the full re-fit into t7/refit/, with the map in t7/refit/outputs/.
 - **Not passed:** publishing or showing anything (the third point of no return).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1189.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1189
+**Timestamp:** 2026-10-17T11:48:31Z
+**Continues:** 2026-09-28-1188
+**Observed:** Hazel Cairnwright built -1187's rulings on t7-refit, now at head 0560daee, in draft PR #5, unmerged. The report is docs/audits/2026-10-17-t7-refit-rulings.md.
+- **Code:**
+  - condition 4 is scored by the mean over each specimen's uncertainty circle, against background matched to the specimens' road-distance bands (ten per specimen), with a block-resampled interval;
+  - the interior is reported beside, with no verdict;
+  - access is −1.
+- **Decision rows** D156 (access), D157 (condition 3) and D158 (condition 4), each quoting the owner.
+- **Tests:** 7 new tests, each seen failing over stubs; nine revert checks, each biting its own edit; 734 tests, 0 failures; ruff clean.
+- **CI:** green at 0560daee, checked by the planner.
+- **Smoke trial with the real settings:** 1,235 s, peak 2,700 MB; P10b evaluated on all four conditions; 4,014 of 6,026 specimens scorable (387 in the interior). Plumbing only.
+**Deviations:**
+- **A wrong premise of the planner's:** -1186 and the planner's message said PR #5 showed no CI result. In fact CI runs on draft PRs and e8f818d was already green. The planner had read a pending or empty check rollup as no CI.
+- **Test data fixed twice** after the first implementation run (real grid ids; 64 blocks). Revert checks c4, c7 and c9 show the fixed tests still bite.
+- **Hazel's calls, accepted by the planner:** ten background points per specimen; road-band edges at 50, 100, 250, 500, 1,000, 2,000 and 5,000 m; an unweighted AUC for condition 4; its interval by ecoregion-block resampling; "scorable" meaning the specimen's own cell has a map value; the monotone direction as a required argument.
+**What follows:** -1188's checks are met, so the planner relays the start of Phase 2. The audits index rows for both reports are the planner's to add.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1190.
