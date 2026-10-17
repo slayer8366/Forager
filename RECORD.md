@@ -19293,3 +19293,20 @@ Its report comes to the owner. Nothing is published without a separate yes after
 **Finish line:** main equals pre-main's head and dev is rebased onto it, both recorded. The owner's "Merge pre-main into main" is the approval, read as conditional on a clean auditor report; any item comes back to the owner first.
 **Abort conditions:** CI red on pre-main; an auditor item or a fail; any file outside docs/process/ in the diff; a conflict on dev's rebase.
 **Notes:** Written by the planner by hand, on branch records-after-173. This is the gate's first use, on a documents-only promotion; it doesn't test the phone check. Next free ID -1132.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1132
+**Timestamp:** 2026-10-17T02:26:49Z
+**Continues:** 2026-09-28-1131
+**Title:** The UX auditor's first report: pass, no change a user would meet; two notes on the documents, neither blocking
+**Report-file:** preserved/2026-10-16-06-report.md (filed unedited)
+**Observed:**
+- **Verdict:** pass. The diff is three files in docs/process/ and nothing outside it. None reaches the app, CI, the website or a store listing, and no public text changed.
+- **Note 1:** dispatch-format.md:50's finish-line example says "PR into dev", where ordinary work now goes to pre-main, and "S26 then the S22", where the QA philosophy starts with the S22.
+- **Note 2:** the profile's gate step 2 omits what qa-philosophy.md section 3 also requires: the upgrade check, the field walk and the known-bugs list.
+- **Observation:** the dispatch format bars coders from the audit index while CLAUDE.md has every dispatch append a row, so it is implicit that the planner writes the rows.
+- **Not checked by the auditor:** CI at 91f99e3f, still running when it read.
+**Planner's reading:** the gate ran as designed, and the auditor caught real gaps in the planner's own documents that the planner hadn't seen. This promotion's condition, a clean report, is met. The notes go to a small follow-up on pre-main, with the close-out items (a known-bugs list, the upgrade-check procedure, a pointer in CLAUDE.md) if the owner agrees.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1133.
