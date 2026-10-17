@@ -52,7 +52,7 @@ class WindowClassFollowsTheWindowTest {
         var result: T? = null
         var configurationHeight = -1
         composeRule.setContent {
-            configurationHeight = LocalConfiguration.current.screenHeightDp
+            configurationHeight = LocalConfiguration.current.statedSize().height.value.toInt()
             val window = FixedWindowInfo(LocalWindowInfo.current, size, LocalDensity.current.density)
             CompositionLocalProvider(LocalWindowInfo provides window) { result = read() }
         }

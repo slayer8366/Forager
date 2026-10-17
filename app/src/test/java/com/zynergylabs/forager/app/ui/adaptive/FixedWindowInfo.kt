@@ -34,6 +34,13 @@ internal class FixedWindowInfo(
 }
 
 /**
+ * The window size [this] configuration states (screenWidthDp x screenHeightDp). A test reads it to describe the
+ * configuration it set up; the app itself reads the window, not this (lint ConfigurationScreenWidthHeight). Kept outside
+ * composition, where that check does not apply, because here the configuration's own figure is the point.
+ */
+internal fun Configuration.statedSize(): DpSize = DpSize(screenWidthDp.dp, screenHeightDp.dp)
+
+/**
  * Provides [configuration] and the window it describes together, for a test that simulates a rotation or a resize by
  * changing the configuration's screenWidthDp/screenHeightDp. Where [configuration] is the one already in place, the real
  * window is kept as it is.
@@ -43,11 +50,7 @@ internal fun ProvideConfigurationAndWindow(configuration: Configuration, content
     val window = if (configuration === LocalConfiguration.current) {
         LocalWindowInfo.current
     } else {
-        FixedWindowInfo(
-            LocalWindowInfo.current,
-            DpSize(configuration.screenWidthDp.dp, configuration.screenHeightDp.dp),
-            LocalDensity.current.density,
-        )
+        FixedWindowInfo(LocalWindowInfo.current, configuration.statedSize(), LocalDensity.current.density)
     }
     CompositionLocalProvider(LocalConfiguration provides configuration, LocalWindowInfo provides window, content = content)
 }
