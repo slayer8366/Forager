@@ -21597,3 +21597,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Observed:** PR #255 merged (-1264), green (-1261), passed on the S22 (-1263).
 **Deferred:** the missing map test tag in fullscreen, an existing quirk Hazel flagged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1266.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1266
+**Timestamp:** 2026-10-18T13:19:59Z
+**Title:** Elder's top-up audit of the second promotion: pre-main b91de824 to e61e248a (owner)
+**The owner, verbatim:** "Yes, start after the merge (Recommended)".
+**Change:** none; read only. Elder Ford, on Fable, audits what reached pre-main after the first audit (-1210, -1211): PR #250 (text fixes), #251 (tablet camera), #252 (the tabs, landscape, Journal J5 and slide, Records chips, offline-maps panel), #253 (Ash in the team table) and #255 (the landscape day entry, the rail at the edge, the single credit). It reads them with the owner's S22 and tablet results (-1219, -1220, -1255, -1258, -1263), and gives a verdict on the whole promotion, main 969ecf0a to pre-main e61e248a.
+**Scope boundary:** read only. No files written, no PR or merge, no Gradle on the laptop.
+**Baseline:** main 969ecf0a; pre-main e61e248a; the first audit's report at preserved/2026-10-17-05-promotion-audit-report.md.
+**Prediction (outcome, planner):** pass with items. The height checks are deferred by the owner and listed as not seen on a phone.
+**Prediction (mechanism, coder):** not applicable; Elder writes its own.
+**Finish line:** Elder's report filed; then the owner's approval and the promotion PR.
+**Abort conditions:** a head mismatch; pre-main CI not green at e61e248a; anything that needs a write.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1267.
