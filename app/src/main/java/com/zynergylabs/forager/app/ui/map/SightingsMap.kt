@@ -2707,7 +2707,7 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
 private fun streetWithTopoOverBuilder(source: MapStyleSource.StreetWithTopoOver): Style.Builder {
     val tiles = TileSet("2.2.0", source.topo.tileUrlTemplate).apply {
         setMaxZoom(source.topo.maxZoom.toFloat())
-        setAttribution(source.topo.fullAttribution)
+        attribution = source.topo.fullAttribution
     }
     val layer = RasterLayer(RASTER_LAYER_ID, RASTER_SOURCE_ID).withProperties(
         PropertyFactory.rasterBrightnessMin(1f),
