@@ -333,6 +333,7 @@ internal fun OfflineMapsPanel(
         // picker's three pieces are composed here directly, in CentrePinLocationPicker's own order,
         // so the map can move to the side-by-side layout; this layout is unchanged.
         Column(modifier = Modifier.fillMaxWidth()) {
+            com.zynergylabs.forager.app.ui.map.CentrePinInstruction()
             pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO))
             confirmActions()
         }
