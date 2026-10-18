@@ -22414,3 +22414,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   The phone lost name resolution. The Worker answered normally from the laptop. The owner rules it a network failure, to be ignored.
 - **New finding by the owner:** the app's navigation reverses when the phone is turned to landscape: "A button a user would expect to be at one side ends up on the other." The owner asks that Hazel fix it before release. The behaviour is being confirmed as a step path.
 **Notes:** Written by the planner by hand, on branch records-after-173. The S22 and tablet checks still wait for the build with dispatch 2026-10-18-07. Next free ID -1312.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1312
+**Timestamp:** 2026-10-18T20:05:22Z
+**Continues:** 2026-09-28-1311
+**Title:** The landscape navigation rail runs List at the bottom and Tools at the top, whichever way the phone is turned; fixed before release, dispatch 2026-10-18-08 (owner)
+**The owner, verbatim:** "Please have Hazel fix this before release", then "List is on the left/bottom always, to help you out". That answered the planner's step path, which had the order flipping with the turn direction. The owner's rule is simpler: always bottom.
+**What it sets:**
+- In portrait, List is on the left, unchanged.
+- In landscape, the rail reads List at the bottom up to Tools at the top, in both turn directions. The rail's side is unchanged.
+- **Dispatch:** preserved/2026-10-18-08.md, for Hazel, on branch nav-rail-order from pre-main d942e022, as a PR into pre-main. It stops if TalkBack's reading order needs a choice.
+- **Promotion:** this goes into pre-main before the promotion, with the Offline maps and logo change (-1309). The final S22, S26 and tablet check runs on the build with both.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1313.
