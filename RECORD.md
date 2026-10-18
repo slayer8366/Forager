@@ -20776,3 +20776,25 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1214.
 **Finish line:** a PR into pre-main, green, with the device check, merged on the owner's word after the tablet re-check passes.
 **Abort conditions:** the mechanism doesn't explain 270→180; the fix would change phones or the -985 ruling; a test would have to be weakened; main or dev; two failed attempts at one symptom.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1217.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1217
+**Timestamp:** 2026-10-18T01:07:35Z
+**Continues:** 2026-09-28-1216
+**Title:** The tablet camera restart: Hazel's Phase 1 mechanism, accepted by the planner
+**Prediction (mechanism, coder):**
+- **The cause:** CameraXCaptureSession.kt:831's `DisposableEffect(view, held)` is keyed on the hold flag. That flag is false at ROTATION_0 and true at 90, 180 and 270 (NaturalOrientationHold.kt:65, :107-113). So each turn into or out of 0 detaches and re-attaches the surface provider and switches the viewfinder between SurfaceView (PERFORMANCE) and TextureView (COMPATIBLE), and that rebuilds the camera session.
+- **Not a rebind:** bindToLifecycle is not re-called (InAppCameraDialog.kt:198's keys don't change).
+- **The log agrees:** 8 turns touching 0 and 8 CLOSING lines; 7 turns among 1, 2 and 3 and none.
+- **The fix:** key on "can be held", meaning held, or full screen with smallestScreenWidthDp ≥ 600, so on a full-screen tablet the viewfinder stays COMPATIBLE at all four rotations. Phones and split screen are unchanged.
+**The planner's acceptances:**
+- the 600 dp threshold;
+- a test seam counting surface-provider attachments.
+**Added by the planner:**
+- the device check must show the picture at ROTATION_0 unchanged now that the tablet runs COMPATIBLE there;
+- an unfolded foldable would also always run COMPATIBLE, untested, to be stated;
+- a revert check on the key change itself.
+The planner's own inference in the dispatch (a size change triggering a rebind) was half wrong: it is a key change, not the window size.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1218.
