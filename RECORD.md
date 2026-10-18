@@ -21317,3 +21317,32 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **Next in the forecast** is T8, the weather trigger (-1027), with no habitat claim. T8 starts only on the owner's word.
 **Not done yet:** a decision row in forager-forecast's DECISIONS.md recording this, which needs its own branch and the owner's word to merge (D40).
 **Notes:** Written by the planner by hand, on branch records-after-173. Closes -1146's "Hold; strengthen first" with this outcome. Next free ID -1248.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1248
+**Timestamp:** 2026-10-18T05:25:26Z
+**Title:** T8 plan: the weather trigger model and the joint challenger, with decisions for the owner; nothing downloaded, counted or fitted (owner)
+**The owner, verbatim:** "Go on T8 when ready" (after -1247 stopped T7).
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-17-t8-plan-dispatch.md (t8-plan b603c376), for Ash Transect (Opus), the forecast's coder (-1233).
+**Change:** one plan, docs/dispatch/2026-10-17-t8-trigger-plan.md on t8-plan. It covers:
+- the question in R3's terms;
+- the group or groups;
+- the windows and their randomisation check;
+- how effort enters;
+- the joint challenger;
+- a bar fixed before any result;
+- habitat after T7's stop, and T9's dependence on T7;
+- the archive lag;
+- data and cost;
+- the points of no return;
+- the reviews.
+It ends with numbered decisions for the owner, each with a recommendation.
+**Scope boundary:** the plan file on t8-plan only. No downloads, counts, fits, publishing, main, other branches or t6b. /mnt/work is read for listings only.
+**Baseline:** forecast main f99dbcbf; TASKS.md T8 ("search the windows with randomisation checks, fit the trigger model, fit one joint model…"); T1's calendar result; T6's effort surface; the pilot's ERA5 route; -1027's sequence.
+**Prediction (outcome, planner):** 8 to 12 owner decisions, the largest being the group, how effort enters, and T9's dependence on T7. A recommended start of one group on the PNW with an effort-aware bar.
+**Prediction (mechanism, coder):** at the top of Ash's plan.
+**Finish line:** the plan pushed, and the decisions brought to the owner.
+**Abort conditions:** a premise that changes T8's shape (such as T1 finding no weather skill); anything that needs a download, count or fit to answer.
+**Notes:** Written by the planner by hand, on branch records-after-173. Ash's first task. Next free ID -1249.
