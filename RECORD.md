@@ -21860,3 +21860,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Kept:** the 26 bundles not fully on GitHub (including today's migration and undo bundles); the debug app copies in device-evidence, which the owner didn't include; all device evidence; the two privacy-scrub backup folders.
 - Alder (forecast planner) was told the drive was full and asked to propose, with evidence, what forecast data and worktrees are safe to clear.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1280.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1280
+**Timestamp:** 2026-10-18T14:18:16Z
+**Continues:** 2026-09-28-1276, 2026-09-28-1274, 2026-09-28-1272
+**Supersedes:** -1276's hand-off of the map build and serving work to the Pi planner
+**Title:** The map build and serving work for launch stays on the laptop side with the app planner; the Pi is post-launch planning, not today (owner)
+**The owner, verbatim:** "No session exists. We keep it on the laptop for now. Pi is post launch planning, which won't happen today."
+**What it sets:**
+- The launch map work (the basemap plan's Tracks A1 and A2, including the whole-US Protomaps cut from -1274) is planned by Rowan, with Hazel coding, as -1272 first had it.
+- The Pi, as builder or as anything else, is planning for after launch. -879 and the lifted 08/22 ruling in -1276 stand as written; only the hand-off moves.
+- **Constraint to plan around (planner's estimate, not measured):** a whole-US cut at zoom 15 is likely 10 to 20 GB. The live US archive at zoom 14 is 8.3 GB (2026-10-04 Pi-origin report). The work drive has 4.2 GB free (-1279), and the root drive 8.6 GB.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1281.
