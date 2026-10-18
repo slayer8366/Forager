@@ -25,12 +25,20 @@ export const WORKER = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 const ARCHIVE = "us";
 const LOCAL = "http://localhost:8765";
 
+// The sprite's icon names, recorded in the style's metadata. The app inverts each one for night by name
+// (Style.getImage / addImage), and MapLibre has no call that lists a style's images, so the list travels
+// with the style; the app's copy is checked against this one by a unit test (StreetStyleTest).
+const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here("./assets/sprites/v4/light.json"), "utf8"))).sort();
+
 const allLayers = applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" }));
 
 const style = (assetsBase) => ({
   version: 8,
   name: "Forager Street v1",
-  metadata: { "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs" },
+  metadata: {
+    "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs",
+    "forager:sprite-icons": spriteIcons,
+  },
   sources: {
     protomaps: {
       type: "vector",

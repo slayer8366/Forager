@@ -112,7 +112,8 @@ class MapLibreOfflineMapRepository(
         onProgress: (downloaded: Int, total: Int) -> Unit,
     ): Result<OfflineRegionSummary> = runCatchingCancellable {
         val definition = OfflineTilePyramidRegionDefinition(
-            OFFLINE_STYLE_URL,
+            // OFFLINE_STYLE_URL, unless the own Street is on (StreetStyle.kt): then the Street style.
+            offlineDownloadStyleUrl(),
             region.toLatLngBounds(),
             OfflineMapRepository.MIN_ZOOM,
             OfflineMapRepository.MAX_ZOOM,
@@ -203,6 +204,7 @@ class MapLibreOfflineMapRepository(
                 id = offlineRegion.id,
                 isComplete = status.isComplete,
                 metadata = offlineRegion.metadata,
+                styleUrl = offlineRegion.definition.styleURL,
                 tileCount = status.completedTileCount,
                 sizeBytes = status.completedResourceSize,
             )
@@ -248,6 +250,27 @@ class MapLibreOfflineMapRepository(
 // for a reason that specific theory didn't predict) is recorded there so the theory doesn't get
 // re-tried.
 private const val TAG = "MapLibreOfflineMapRepo"
+
+/**
+ * The style "use offline tiles" should load now ([offlineRenderStyleUrl]), from the style URLs MapLibre's own region
+ * definitions record (`OfflineRegion.getDefinition().getStyleURL()`, checked with `javap` at the pinned `13.5.0`).
+ * With the own Street off it is [OFFLINE_STYLE_URL] and the store is not read at all, so today's map is untouched.
+ * A failed read is logged and gives [OFFLINE_STYLE_URL], the style every region downloaded before the own Street
+ * holds (CLAUDE.md: no fallback that is not logged when it fires).
+ */
+internal suspend fun currentOfflineRenderStyleUrl(context: Context, ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP): String {
+    if (!ownStreet) return OFFLINE_STYLE_URL
+    return try {
+        initializeMapLibre(context.applicationContext)
+        val urls = OfflineManager.getInstance(context.applicationContext).listOfflineRegionsSuspend().map { it.definition.styleURL }
+        offlineRenderStyleUrl(urls, ownStreet)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "Couldn't read the downloaded regions' styles; loading the older offline style.", e)
+        OFFLINE_STYLE_URL
+    }
+}
 
 private fun Region.toLatLngBounds(): LatLngBounds {
     val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)

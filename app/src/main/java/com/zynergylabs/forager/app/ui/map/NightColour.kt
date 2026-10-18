@@ -67,15 +67,21 @@ internal sealed interface NightRecolour {
 }
 
 /**
- * The colour paint properties the offline night recolour walks, by layer type: background, fill and
- * line, the three types `offline-style.json` has. Symbol layers (text, icons) and the overlay layers
- * `SightingsMap` adds after the recolour are not walked.
+ * The colour paint properties the night recolour walks, by layer type: background, fill and line (the three types
+ * `offline-style.json` has), and since dispatch 2026-10-18-05 Part 2 the symbol layers' text, halo and icon colours,
+ * which the own Street style has and the offline style does not (-1288: "Labels are inverted too"). `icon-color` acts
+ * only on SDF icons; the Street sprite's are not SDF, so its icons are inverted as images instead ([nightPixelsOf]).
+ * The overlay layers `SightingsMap` adds after the recolour are not walked.
  */
 internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
     "background" to listOf("background-color"),
     "fill" to listOf("fill-color", "fill-outline-color"),
     "line" to listOf("line-color"),
+    "symbol" to listOf("text-color", "text-halo-color", "icon-color"),
 )
+
+/** [pixels] (ARGB, as `Bitmap.getPixels` gives them) through [nightColorOf], alpha kept: an icon's night look. */
+internal fun nightPixelsOf(pixels: IntArray): IntArray = IntArray(pixels.size) { nightColorOf(pixels[it]) }
 
 /**
  * The night value for one layer colour property: [nightColorOf] of a literal, or of every colour

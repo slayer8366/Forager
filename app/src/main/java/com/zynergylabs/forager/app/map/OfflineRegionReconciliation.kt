@@ -17,6 +17,8 @@ internal class LiveRegion(
     val metadata: ByteArray?,
     val tileCount: Long,
     val sizeBytes: Long,
+    /** The style URL the region was downloaded against, from MapLibre's own region definition; `null` if it names none. */
+    val styleUrl: String? = null,
 )
 
 /**
@@ -92,6 +94,7 @@ internal suspend fun reconcileOfflineRegions(
             tileCount = region.tileCount.toInt(),
             sizeBytes = region.sizeBytes,
             createdAtEpochMillis = row.createdAtEpochMillis,
+            styleUrl = region.styleUrl,
         )
     }
 }

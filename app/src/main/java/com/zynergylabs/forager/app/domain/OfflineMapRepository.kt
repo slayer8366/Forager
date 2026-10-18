@@ -223,4 +223,11 @@ data class OfflineRegionSummary(
      * that re-downloads from its stored centre and radius. [tileCount] and [sizeBytes] are 0 for it.
      */
     val isDownloaded: Boolean = true,
+    /**
+     * The style URL this region was downloaded against, as MapLibre's own region definition records it (dispatch
+     * 2026-10-18-05 Part 2), or `null` when unknown: a region not downloaded on this phone has no definition. Read on
+     * every listing, never stored in Room: the store already holds it, so no schema change carries it. Decides the
+     * "Older map style" notice (RECORD -1294).
+     */
+    val styleUrl: String? = null,
 )

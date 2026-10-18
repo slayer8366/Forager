@@ -158,8 +158,11 @@ const val NAVIGATION_VIEW_ZOOM = 18.0
  * no navigation input, held by `BasemapStyleTest`) does not, so no tile beyond a basemap's limit is
  * ever requested: MapLibre enlarges the deepest tiles instead, softer on Topo.
  */
-fun navigationMaxZoom(basemap: Basemap, navigating: Boolean): Double =
-    if (navigating) maxOf(basemap.maxZoom.toDouble(), NAVIGATION_VIEW_ZOOM) else basemap.maxZoom.toDouble()
+fun navigationMaxZoom(basemap: Basemap, navigating: Boolean): Double {
+    // The operating limit: the basemap's own, or the own Street's 18 when it draws Street (dispatch 2026-10-18-05).
+    val limit = operatingMaxZoom(basemap).toDouble()
+    return if (navigating) maxOf(limit, NAVIGATION_VIEW_ZOOM) else limit
+}
 
 /**
  * MapLibre's [CompassEngine] fed the app's own true heading (ruling A). MapLibre's built-in engine

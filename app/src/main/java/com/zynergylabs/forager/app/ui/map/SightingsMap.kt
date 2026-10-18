@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
@@ -63,6 +64,9 @@ import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
+import com.zynergylabs.forager.app.map.STREET_SPRITE_ICON_NAMES
+import com.zynergylabs.forager.app.map.currentOfflineRenderStyleUrl
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveCause
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
@@ -123,7 +127,10 @@ import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.PropertyValue
 import org.maplibre.android.style.layers.SymbolLayer
+import org.maplibre.android.style.layers.RasterLayer
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.android.style.sources.RasterSource
+import org.maplibre.android.style.sources.TileSet
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
@@ -836,11 +843,14 @@ fun SightingsMap(
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
         // right one. The map shows MapLibre's own blank until then.
+        // With the own Street off (STREET_SERVED_BY_OWN_MAP), this is OFFLINE_STYLE_URL without reading the store.
+        val offlineStyleUrl = if (useOfflineTiles) currentOfflineRenderStyleUrl(context) else OFFLINE_STYLE_URL
         val requested = requestedMapStyle(
             basemap = basemap,
             useOfflineTiles = useOfflineTiles,
             nightMode = nightMode,
             nightModeLoaded = nightModeLoaded,
+            offlineStyleUrl = offlineStyleUrl,
         ) ?: return@LaunchedEffect
         if (!needsStyleReload(appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
@@ -871,10 +881,12 @@ fun SightingsMap(
             cameraMoveClassifier.markAppMove()
             applyCameraRestore(map, it)
         }
-        map.setMaxZoomPreference(basemap.maxZoom.toDouble())
-        val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
+        map.setMaxZoomPreference(operatingMaxZoom(basemap).toDouble())
+        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl)
+        val builder = when (source) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
+            is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
@@ -884,7 +896,11 @@ fun SightingsMap(
             // from its one URL and before the overlays are added, so the overlays' own line and
             // fill layers are never touched. Day, or night off, restyles nothing: the style came
             // fresh from its URI.
-            if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
+            // Since dispatch 2026-10-18-05 Part 2 the same recolour serves the own Street online (loaded by URI too),
+            // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
+            if (requested.night && source !is MapStyleSource.Json) applyOfflineNightRecolour(style)
+            if (requested.night && usesStreetSprite(source)) applyStreetSpriteNight(style)
+            if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
             initializeOverlayLayers(
                 style,
                 density = resources.displayMetrics.density,
@@ -2650,6 +2666,7 @@ private fun dayColourPropertiesOf(layer: Layer): List<Pair<String, PropertyValue
     is BackgroundLayer -> listOf("background-color" to layer.backgroundColor)
     is FillLayer -> listOf("fill-color" to layer.fillColor, "fill-outline-color" to layer.fillOutlineColor)
     is LineLayer -> listOf("line-color" to layer.lineColor)
+    is SymbolLayer -> listOf("text-color" to layer.textColor, "text-halo-color" to layer.textHaloColor, "icon-color" to layer.iconColor)
     else -> emptyList()
 }
 
@@ -2659,6 +2676,9 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
         "fill-color" -> PropertyFactory.fillColor(night.text)
         "fill-outline-color" -> PropertyFactory.fillOutlineColor(night.text)
         "line-color" -> PropertyFactory.lineColor(night.text)
+        "text-color" -> PropertyFactory.textColor(night.text)
+        "text-halo-color" -> PropertyFactory.textHaloColor(night.text)
+        "icon-color" -> PropertyFactory.iconColor(night.text)
         else -> error("offline night does not walk $property")
     }
     is StyleColourValue.Expression -> {
@@ -2668,9 +2688,101 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
             "fill-color" -> PropertyFactory.fillColor(expression)
             "fill-outline-color" -> PropertyFactory.fillOutlineColor(expression)
             "line-color" -> PropertyFactory.lineColor(expression)
+            "text-color" -> PropertyFactory.textColor(expression)
+            "text-halo-color" -> PropertyFactory.textHaloColor(expression)
+            "icon-color" -> PropertyFactory.iconColor(expression)
             else -> error("offline night does not walk $property")
         }
     }
+}
+
+/**
+ * The own Street style with Topographical over it at night ([MapStyleSource.StreetWithTopoOver]; dispatch 2026-10-18-05
+ * Part 2): the Street style by URL, then the topo raster added as the top layer, drawn from the source's minimum zoom
+ * and fading in, with the V1 night paint the raster styles use ([NIGHT_RASTER_PAINT]'s three properties). The SDK
+ * calls were checked with `javap` against the pinned `13.5.0` artifact: `Style.Builder.fromUri`/`withSource`/
+ * `withLayer`, `RasterSource(String, TileSet, int)`, `TileSet(String, String...)` with `setMaxZoom` and
+ * `setAttribution`, `RasterLayer(String, String)` and the raster `PropertyFactory` setters.
+ */
+private fun streetWithTopoOverBuilder(source: MapStyleSource.StreetWithTopoOver): Style.Builder {
+    val tiles = TileSet("2.2.0", source.topo.tileUrlTemplate).apply {
+        setMaxZoom(source.topo.maxZoom.toFloat())
+        setAttribution(source.topo.fullAttribution)
+    }
+    val layer = RasterLayer(RASTER_LAYER_ID, RASTER_SOURCE_ID).withProperties(
+        PropertyFactory.rasterBrightnessMin(1f),
+        PropertyFactory.rasterBrightnessMax(0f),
+        PropertyFactory.rasterHueRotate(180f),
+        PropertyFactory.rasterOpacity(
+            Expression.interpolate(
+                Expression.linear(),
+                Expression.zoom(),
+                Expression.stop(source.topoMinZoom, 0f),
+                Expression.stop(source.topoFadeEndZoom, 1f),
+            ),
+        ),
+    ).apply { minZoom = source.topoMinZoom.toFloat() }
+    return Style.Builder().fromUri(source.streetUri)
+        .withSource(RasterSource(RASTER_SOURCE_ID, tiles, 256))
+        .withLayer(layer)
+}
+
+/**
+ * At Topographical night over the own Street, the Street's labels stop where the topo begins to cover them
+ * (-1291: "The Street labels must not show through that composition"). Run before the overlays are added, so only
+ * the Street style's own symbol layers are touched; the app's markers keep every zoom.
+ */
+private fun hideStreetLabelsUnderTopo(style: Style, maxZoom: Double) {
+    var hidden = 0
+    for (layer in style.layers) {
+        if (layer is SymbolLayer) {
+            layer.maxZoom = maxZoom.toFloat()
+            hidden++
+        }
+    }
+    Log.i(SIGHTINGS_MAP_TAG, "Topo night over Street: $hidden Street label layers end at zoom $maxZoom.")
+}
+
+/**
+ * The own Street's icons at night (-1288, labels and all inverted; dispatch 2026-10-18-05 Part 2). The sprite's
+ * icons are fixed-colour images, not SDF, so no paint property can recolour them (Part 1 report, Q1.3): each one is
+ * read back by name ([STREET_SPRITE_ICON_NAMES]: MapLibre cannot list a style's images), turned through the same V1
+ * transform pixel by pixel ([nightPixelsOf]), and put back under its own name. A missing image, or one with no
+ * density for MapLibre to take its pixel ratio from (`Style.toImage` reads `Bitmap.getDensity`, checked with
+ * `javap` at `13.5.0`), is left in its day colours and counted in the log line, never dropped silently.
+ */
+private fun applyStreetSpriteNight(style: Style) {
+    var inverted = 0
+    val left = mutableListOf<String>()
+    for (name in STREET_SPRITE_ICON_NAMES) {
+        val day: Bitmap? = try {
+            style.getImage(name)
+        } catch (e: RuntimeException) {
+            Log.w(SIGHTINGS_MAP_TAG, "Street night: could not read icon $name; left in its day colours.", e)
+            null
+        }
+        if (day == null) {
+            left += name
+            continue
+        }
+        if (day.density == Bitmap.DENSITY_NONE) {
+            Log.w(SIGHTINGS_MAP_TAG, "Street night: icon $name has no density, so its pixel ratio is unknown; left in its day colours.")
+            left += name
+            continue
+        }
+        val night = day.copy(Bitmap.Config.ARGB_8888, true)
+        val pixels = IntArray(night.width * night.height)
+        night.getPixels(pixels, 0, night.width, 0, 0, night.width, night.height)
+        night.setPixels(nightPixelsOf(pixels), 0, night.width, 0, 0, night.width, night.height)
+        try {
+            style.addImage(name, night)
+            inverted++
+        } catch (e: RuntimeException) {
+            Log.w(SIGHTINGS_MAP_TAG, "Street night: could not set icon $name; left in its day colours.", e)
+            left += name
+        }
+    }
+    Log.i(SIGHTINGS_MAP_TAG, "Street night: $inverted icons inverted, ${left.size} left in day colours${if (left.isEmpty()) "" else ": $left"}.")
 }
 
 private const val SIGHTINGS_MAP_TAG = "SightingsMap"
