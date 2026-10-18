@@ -21024,3 +21024,20 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - Sent to Hazel on PR #252, with two further asks: whether Journal had a search bar in landscape before #252 (restore it if #252 removed it; otherwise report it for the owner), and why the device overlapped the navigation bar when the Robolectric checks didn't.
 **Device:** S22, 1.0.3414+g3a0d5ac9 (PR #252's CI build). The overlap is a device-only finding of the kind CLAUDE.md's zero-insets pitfall describes.
 **Notes:** Written by the planner by hand, on branch records-after-173. A screenshot taken while the phone's own camera app was in front was deleted unviewed. Next free ID -1232.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1232
+**Timestamp:** 2026-10-18T03:18:04Z
+**Title:** Two independent reviews (D18) of the T7 re-fit, on Fable and Sonnet (owner)
+**The owner, verbatim:** "Go ahead and start the reviews."
+**Dispatch-file:** forager-forecast docs/dispatch/2026-10-17-t7-refit-review.md (t7-strengthen-plan 83f02582), for two Sorrel Tally sessions: review 1 on Fable (branch t7-refit-review), review 2 on Sonnet (t7-refit-review-2). Neither is on Opus, the coder's model (-1134). Each is forbidden to read the other.
+**Change:** two review reports with evidence. Nothing else changes.
+**Scope boundary:** read only on t7-refit, t7-build, the t7 data folders and RECORD. Not t6b or its job, forecast main, the site, publishing, the app, the other review, or any refit beyond a small stated one.
+**Baseline:** t7-refit da1f207; code 0560dae; manifest af0fc2dd…48ec; the four conditions as -1230 gives them; the specimen download key 0032050-260928105237408.
+**Prediction (outcome, planner):** both reproduce the figures. Both judge condition 1's pass fragile because of the band selection, and the specimen test weaker than its interval suggests. Neither supports showing the map as mycorrhizal habitat.
+**Prediction (mechanism, coder):** not applicable; each review writes its own before computing.
+**Finish line:** both reports pushed. The planner compares them for the owner, who decides the next step for T7.
+**Abort conditions:** a baseline mismatch; a needed refit beyond a small stated one; anything touching t6b or publishing; one review reading the other.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1233.
