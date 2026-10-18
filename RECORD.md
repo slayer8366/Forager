@@ -22180,3 +22180,21 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Finish line:** the report is pushed, with its hash sent to the planner.
 **Abort conditions:** reading needs a Cloudflare login or token; a premise is wrong in a way that changes Part 2; a design decision can't be met with these tiles.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1299.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1299
+**Timestamp:** 2026-10-18T18:31:54Z
+**Continues:** 2026-09-28-1298
+**Title:** Street from Cloudflare, Part 1 report filed. Three stops: the Worker serves z0-14 from the Pi today; us.pmtiles covers the lower 48 only; some design decisions can't be met at the zooms ruled. Part 2 doesn't fit tonight (Hazel; planner checked two claims)
+**Observed:** report `docs/audits/2026-10-18-street-cloudflare-part1-report.md` on branch street-cloudflare at faae7256, from pre-main 712ff277. Nothing on Cloudflare was changed.
+**What it records:**
+- **The Pi is in the tile path.** Tiles z0-14 are served with `x-forager-origin: pi`; z15 goes through R2 and Protomaps' live build; z16 returns 404. The planner reproduced this with two requests, at z10 and z14, both answering `x-forager-origin: pi`. This contradicts -879 ("nothing live" on the Pi) and the plan's "everything comes from R2". It also applies to today's offline downloads (inferred: they read the same tile routes).
+- **Coverage:** the TileJSON bounds are `[-124.85, 24.4, -66.87, 49.6]` (planner reproduced), the lower 48 only, against -1274's "whole US".
+- **Design limits:** trailhead, viewpoint, ranger station, toilets and drinking water exist only in z15 tiles. Paths first appear at z13. No informal-path field exists. The sprite has no icon for trailhead, parking, campground, picnic site, viewpoint or ranger station.
+- **Deploy:** the deployed Worker matches pre-main's `server/pmtiles-worker/src/`. A rollback copy is saved outside the repository. The Worker redeploys from GitHub (Workers Builds), production branch very likely main (inferred), so a hand deploy would be overwritten by the next push unless auto-deploy is paused. The connector can't deploy or upload.
+- **Price:** about 10 to 14 hours of work to a phone-checkable build, plus two or three phone review rounds and about an hour of the owner's dashboard time. **Not before tonight's release build.** Per -1282 the release ships Street on OpenStreetMap.
+- **Predictions in -1298:** "doesn't fit tonight" held; "needs an owner login" held for wrangler or the dashboard; "path and track kinds, most outdoor POIs, no informal class" held, with the zoom limits above.
+- **Refused read:** `workers_get_worker` was refused by the session's auto-mode permission check, so routes, plan and build settings were not read.
+**Notes:** Written by the planner by hand, on branch records-after-173. Eight owner questions are in the report. Next free ID -1300.
