@@ -22807,3 +22807,19 @@ All three screenshots are kept off GitHub.
 - **The rule, from -1318 and now:** the map does not move or resize when the search bar shows.
 - **Still open:** how the switch line, the bar and the gap fit around a fixed map. Part 1 of -1330, the open-entry hide on the Journal only, and the revert of the strip both stand.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1332.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1332
+**Timestamp:** 2026-10-18T23:31:08Z
+**Continues:** 2026-09-28-1330, 2026-09-28-1331, 2026-09-28-1318
+**Title:** The Journal's search reveal in landscape: the switch line is the header and slides down with the bar; a map under it never moves. The geometry is the planner's reading of the owner's words, to be seen at the phone check (owner)
+**The owner, verbatim:** "Hide the strip to have the chips line sit as a comfortable header. When the search icon is tapped to reveal the search bar, then the line with the chips can slide down along with the search bar to make room." This restates -1330, in answer to the planner's sketch. The standing rules: "No, the maps do not move at all" (-1331), and "Reduce the size of the map so that nothing gets covered" (-1318).
+**What it sets:**
+- With search hidden, the switch line sits at the top as the header, with no strip above it.
+- Tapping 🔍 slides the bar in at the top and the switch line down with it.
+- **The planner's reading, not the owner's stated words:** where a map sits under the switch line (Offline maps in landscape, per Hazel's reading of the code), the map stays at the position it has with search open. The space for the switch line's slide is therefore between the switch line and the map when search is hidden: the bar's height plus about 8 dp. The owner did not confirm this sketch. It is the one layout found that satisfies all three rules, and the owner sees it at the phone check.
+- Other Journal screens behave as at 8c90626f.
+- It is built on revert-journal-search-space with -1330 (1).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1333.
