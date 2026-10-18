@@ -22217,3 +22217,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **(7) Deploy:** Workers Builds auto-deploy is paused while the owner deploys by hand in the dashboard, then turned back on once main has the code.
 - **(8) z15** is read live from Protomaps for now. The Pi planner is to be asked to build to zoom 15.
 **Notes:** Written by the planner by hand, on branch records-after-173. Part 2 still waits for the owner's go (option 1, stop after the report). Next free ID -1301.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-1301
+**Timestamp:** 2026-10-18T18:37:33Z
+**Continues:** 2026-09-28-1300, 2026-09-28-1299
+**Title:** The mapping account is on Workers Paid (owner's account); the Pi planner is told the two tile gaps and that the Pi is in today's tile path (owner)
+**The owner, verbatim:** "1 yes 2 yes", to: "does your mapping account have Workers Paid?" and "may I tell the Pi planner about the two data gaps?"
+**What it records:**
+- **Workers Paid:** confirmed by the owner, not checked by the planner. The workers_get_worker read was refused earlier this session.
+- **Pi planner:** sent by send-message to the Remote Control session "raspberrypi-composed-bunny". It was the only live Raspberry Pi session listed, and the handoff's "raspberrypi-tender-creek" was no longer reachable. Delivery is not confirmed read, and the route reports nothing back. The message, in summary:
+  - the lower-48-only bounds, with Alaska and Hawaii needed before Street switches (-1300), and Puerto Rico missing with no ruling;
+  - z0-14 in R2, z15 live from Protomaps, and a build to z15 asked for;
+  - the Pi is first in today's tile path (`x-forager-origin: pi`), so its tile server must stay up, or the owner be told, until Part 2 removes the Pi-first step.
+**Notes:** Written by the planner by hand, on branch records-after-173. Part 2's go is still open. Next free ID -1302.
