@@ -22252,3 +22252,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Finish line:** a green, unmerged PR, plus the Worker bundle and the R2 folder handed to the owner. The constant stays at raster.
 **Abort conditions:** a Room schema change; a design decision that can't be met even in its -1300 form; anything that would change what today's app sees before the owner deploys; a weakened test.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1303.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1303
+**Timestamp:** 2026-10-18T18:39:51Z
+**Continues:** 2026-09-28-1300, 2026-09-28-1299, 2026-09-28-879
+**Title:** The Pi leaves the live tile path now: the owner deletes the Worker's PI_ORIGIN_URL variable in the dashboard, ahead of Part 2 (owner)
+**The owner, verbatim:** "Yes", to "do you want the quick change that takes the Pi out of serving now?". Also: "Thats the brandonlee1 account", confirming forager-pmtiles' account.
+**What it sets:**
+- **The change:** the owner deletes `PI_ORIGIN_URL` from forager-pmtiles' variables in the Cloudflare dashboard and deploys. With it unset, `fetchFromPi` returns at once and every tile is served from R2 (`server/pmtiles-worker/src/index.ts:277-280` on pre-main, read by the planner).
+- **Expected look:** no visible change. The R2 copy was verified identical to the Pi's (comment at `index.ts:254`; not re-checked).
+- **Known limit:** `wrangler.toml:32` still sets `PI_ORIGIN_URL`, and the Worker redeploys from GitHub. The next deploy from the repository, likely the next update of main, puts the Pi back, until Part 2 or a one-line change to `wrangler.toml` lands.
+- **Check after:** a tile not fetched before answers `x-forager-origin: r2`. Tiles already in Cloudflare's edge cache may still show `pi` for up to a day (max-age 86400, `index.ts:365`).
+- This carries out -879 ("nothing live" on the Pi) early, and Part 2 still removes the Pi-first code (-1300 (1)).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1304.
