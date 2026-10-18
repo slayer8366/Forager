@@ -21518,3 +21518,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Finish line:** a PR into pre-main, green, merged on the owner's word after the S22 re-check.
 **Abort conditions:** a layout choice the drawing doesn't settle; any change to portrait; a test having to be weakened; two failed attempts at one symptom.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1260.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1260
+**Timestamp:** 2026-10-18T12:21:08Z
+**Continues:** 2026-09-28-1259
+**Title:** The landscape entry, rail and credit: Hazel's verify-first; the map is the largest 4:3 box that leaves the info at least 240 dp (owner)
+**Prediction (mechanism, coder),** Hazel's own intent:
+- **The day entry:** the landscape layout is decided in CartographyEntryReportScreen.kt (:397-399, :491-499; a short-window cap of 0.4), keyed on short windows. The split will key on isLandscapeWindow().
+- **The rail:** it is inset because shortLandscapeContentInsets (AvailabilityNavigationUi.kt:393-395) reserves the cut-out on both sides around the Row that holds the rail. The fix gives the rail navigationBars ∪ displayCutout on its own side, and makes the content reserve the cut-out only away from the rail. Maps included.
+- **Seasonal's credits:** at AvailabilitySeasonalUi.kt:334 and :160. Both are replaced by one credit at the tab's foot.
+**The planner's wrong premise, corrected by Hazel:** the dispatch's "finds, tracks and waypoints" lists were removed earlier (-867, -873). The right column holds the header (pinned), the tiles and height profile, the offline switch and the notes.
+**The owner, verbatim:** "Largest that leaves info ≥240 dp (Recommended)". That is about 400×300 dp on the S22 and on tablets, within the 640 dp cap.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1261.
