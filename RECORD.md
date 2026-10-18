@@ -21893,3 +21893,17 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Hazel's topup-items (2026-10-18-03, PR #256) and map-launch-fixes (2026-10-18-04, PR #257)** continue as fresh Hazel helpers started from this session, from the pushed heads 392846f9 and b3ca6a56. The outgoing session's helpers were stopped by its mistaken "stop everything" (meant for another session) and can't be moved.
 - **CI:** all eight runs on those branches and on map-launch-fixes-revert-1 to -6 were in progress or queued at 14:39Z; none is cancelled.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1282.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1282
+**Timestamp:** 2026-10-18T14:49:56Z
+**Continues:** 2026-09-28-1281, 2026-09-28-1274, 2026-09-28-1271
+**Title:** Basemap design decision 2: the app opens on Street by default, from the owner's Cloudflare street map if it is ready at release, otherwise OpenStreetMap's raster tiles; no fall-back while the app is in use (owner)
+**The owner, verbatim:** "OSM maps default, can cloudflare efficiently serve the vector tiles to offset the load, or would that be clunky?", then "Have it open street by default in the app. If cloudflare street map service is available, use it", then, to the planner's question of whether "available" means ready at release (1), answering at the moment inside the app (2), or both (3): "Actually make decision 2 option 1."
+**What it sets:**
+- **Default:** a fresh install opens Maps on Street. Today it opens on Topographical (MapMode.kt:42, per Elder's review; not re-read here). Topographical stays one tap away in Layers.
+- **Source:** if the Cloudflare street map is ready and passes its phone check before the release build, Street uses it. If not, Street ships on OpenStreetMap's raster tiles as today and moves to Cloudflare in a later update.
+- **No switching while the app is in use:** once Street draws from Cloudflare, the app does not fall back to OpenStreetMap when the service doesn't answer. That case is an ordinary map load failure.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 3 to 11 still to come. Next free ID -1283.
