@@ -22069,3 +22069,21 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - No phone check now.
 - **Rejected:** satellite at launch.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decision 11 still to come. Next free ID -1293.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1293
+**Timestamp:** 2026-10-18T17:15:44Z
+**Continues:** 2026-09-28-1270, 2026-09-28-1290, 2026-09-28-1284
+**Title:** PR #256 (top-up items, dispatch 2026-10-18-03) merged into pre-main at 712ff277; its twelve revert branches deleted (owner)
+**The owner, verbatim:** "Merge to remain and install on S22". The planner read "remain" as pre-main and said so before acting.
+**What it records:**
+- **The merge:** PR #256 was merged with a merge commit, gated on head fd9a98ce3d2c977e490ac7651d350a0aa4556c46. pre-main went from e61e248a to 712ff277.
+- **Gates met before the merge:**
+  - all three CI checks passed on fd9a98ce (run 39141055078: 5079 tests, 0 failed, 24 skipped);
+  - GitHub reported the PR mergeable and clean;
+  - the S22 check passed (-1290).
+- **Revert branches deleted:** topup-items-revert-1 to -12 were deleted from GitHub, as -1284 ruled. Their CI runs stay on GitHub. topup-items and topup-items-scratch-base remain.
+- **Consequence for PR #257 (map-launch-fixes):** its green run 39143704391 tested the merge with the old pre-main e61e248a, not 712ff277. It needs pre-main merged in (merge, not rebase) and a green CI before its own merge.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1294.
