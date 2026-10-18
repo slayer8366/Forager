@@ -21300,3 +21300,20 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **They differ only in degree:** review 1 says "stop T7 for the PNW as posed"; review 2 says "stop the mycorrhizal claim; carrying an index is the owner's call".
 **Against the planner's prediction (-1232):** the reproduction held; condition 1's fragility held; the specimen test was stronger than predicted (both reviews).
 **Notes:** Written by the planner by hand, on branch records-after-173. The owner decides T7's next step. Next free ID -1247.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1247
+**Timestamp:** 2026-10-18T05:19:07Z
+**Continues:** 2026-09-28-1246, 2026-09-28-1146
+**Title:** T7 stops for the PNW as posed; the record is kept; nothing is shown (owner)
+**The owner, verbatim:** "Stop T7 as posed; keep the record (Recommended)". The option read: "Both reviews' main call. Nothing shown. Reports and rasters stay as the record; the bolete/tooth-genus and within-block signals noted as leads. The forecast moves on (T8, the weather trigger) without a habitat claim."
+**What it sets:**
+- No further T7 fits on the PNW.
+- **Kept as the record:** the 2026-10-16 fit and the 2026-10-17 re-fit, their reports and four reviews (t7-build, t7-refit and PR #5 as a draft, t7-fit-review, t7-fit-review-2, t7-refit-review, t7-refit-review-2), and the rasters under /mnt/work.
+- **Leads, not plans:** the bolete and tooth-genus gain (Sarcodon, Boletus, Cortinarius), the within-block signals, and the specimen result.
+- Nothing from T7 is shown or published.
+- **Next in the forecast** is T8, the weather trigger (-1027), with no habitat claim. T8 starts only on the owner's word.
+**Not done yet:** a decision row in forager-forecast's DECISIONS.md recording this, which needs its own branch and the owner's word to merge (D40).
+**Notes:** Written by the planner by hand, on branch records-after-173. Closes -1146's "Hold; strengthen first" with this outcome. Next free ID -1248.
