@@ -22445,3 +22445,33 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - The work is built with the rail order (-1312) on branch nav-rail-order.
 - **Also from the screenshots:** the earlier failed download succeeded on retry ("Offline maps 1"), which is consistent with -1311's network reading.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1314.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1314
+**Timestamp:** 2026-10-18T20:20:49Z
+**Continues:** 2026-09-28-1302, 2026-09-28-1300
+**Title:** Street from Cloudflare, Part 2 built: PR #258 green and unmerged; the Worker bundle and the R2 folder handed over; the release switch left at raster (Hazel)
+**Observed:**
+- **The PR:** #258, from street-cloudflare into pre-main, head 632e0dd9. Run 39161623682 is green on all three jobs, with 5,123 tests, 0 failed, 24 skipped (Hazel's count from the JUnit XML). `STREET_SERVED_BY_OWN_MAP = false`. Hazel's report is the Part 2 section of `docs/audits/2026-10-18-street-cloudflare-part1-report.md`.
+- **The Worker:**
+  - the Pi-first step removed;
+  - `/style/street-v1.json` bundled in;
+  - `/fonts/…` and `/sprites/v4/…` read from R2;
+  - `/style/offline.json` and TileJSON unchanged, proved by route tests against the deployed bundle and the new one.
+- **The style:** -1284 to -1289 as -1300 limits them, with 20 web renders outside the repository.
+- **The app,** all behind the switch:
+  - a style URL for Street, online and offline;
+  - the night inversion walks text, halo and icon colours;
+  - zoom capped at 18;
+  - the -1294 notice, read from MapLibre's region definition, so no Room change;
+  - credits that depend on the switch.
+- **Revert checks R1 to R6:** no compile errors, and each failure is specific to its revert. Flipping the switch later updates about nine tests' expectations.
+- **Handover,** outside the repository in `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/handover/`:
+  - `worker/index.js`, sha256 c483ff69…;
+  - `r2-upload/`, 774 files, 14 MB.
+- **Beyond the letter of -1300 (6), disclosed:** once any area is downloaded in the new style, the offline map uses it for older areas too, rather than each area keeping its own look. Brought to the owner as a question.
+- **Not confirmed:** that the dashboard uploads nested folders; and the tile schema of the Pi's coming build.
+- **Prediction in -1302:** "nothing ready before tonight's release build" held for the switch, which stays at raster. The code itself was built faster than the planner predicted.
+**Notes:** Written by the planner by hand, on branch records-after-173. Two owner questions are in the report. Next free ID -1315.
