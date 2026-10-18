@@ -127,6 +127,21 @@ class SearchPillArrivalNoSlideTest {
         composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(COMPACT_NAVIGATION_RAIL_TAG)), useUnmergedTree = true).performClick()
     }
 
+    private fun selected(label: String): Boolean =
+        composeRule.onAllNodes(hasText(label) and hasAnyAncestor(hasTestTag(COMPACT_NAVIGATION_RAIL_TAG))).fetchSemanticsNodes()
+            .any { it.config.getOrElse(SemanticsProperties.Selected) { false } }
+
+    /** Frames advanced, one at a time, until [label]'s rail item reads selected; fails past 30. */
+    private fun framesUntilSelected(label: String): Int {
+        var frames = 0
+        while (!selected(label)) {
+            assertTrue("$label was selected within 30 frames", frames < 30)
+            composeRule.mainClock.advanceTimeByFrame()
+            frames++
+        }
+        return frames
+    }
+
     private fun pillShown(): Boolean = composeRule.onAllNodesWithTag(SEARCH_ENTRY_BAR_TAG, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
     private fun pill(): DpRect = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
 
@@ -142,14 +157,18 @@ class SearchPillArrivalNoSlideTest {
 
         composeRule.mainClock.autoAdvance = false
         open("Journal")
-        repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
-        assertTrue("three frames after arriving on the Journal the pill is gone, not sliding up", !pillShown())
+        // Positive control, and the reference frame: the frame on which the Journal became the selected tab. The first run of
+        // this test counted three frames from the click without it, and failed on the base it was written to pass on.
+        val journalAt = framesUntilSelected("Journal")
+        repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+        assertTrue("two frames after the Journal was selected (frame $journalAt) the pill is gone, not sliding up (pill: ${if (pillShown()) pill() else "none"}, settled $settled)", !pillShown())
 
         open("List")
-        repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
-        assertTrue("three frames after arriving back on List the pill shows", pillShown())
+        val listAt = framesUntilSelected("List")
+        repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+        assertTrue("two frames after List was selected (frame $listAt) the pill shows", pillShown())
         val early = pill()
-        assertEquals("three frames after arriving back on List the pill is at its place, not sliding down (top)", settled.top.value, early.top.value, 0.5f)
+        assertEquals("two frames after arriving back on List the pill is at its place, not sliding down (top)", settled.top.value, early.top.value, 0.5f)
         assertEquals("and at its full height (bottom)", settled.bottom.value, early.bottom.value, 0.5f)
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()

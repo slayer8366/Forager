@@ -5,7 +5,6 @@ import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -51,8 +50,27 @@ abstract class TabsFirstVisitPillTests(private val portrait: String, private val
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    /**
+     * The host declares MainActivity's configChanges, so the turn reaches the same Activity, as on the phone, instead of
+     * recreating it (LandscapeSearchFixesTest's rotatesInPlace, the same reason; without it the first run of this class found no
+     * compose hierarchy after the turn).
+     */
+    private val rotatesInPlace = object : org.junit.rules.ExternalResource() {
+        override fun before() {
+            val app = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
+            val info = android.content.pm.ActivityInfo().apply {
+                packageName = app.packageName
+                name = ComponentActivity::class.java.name
+                configChanges = android.content.pm.ActivityInfo.CONFIG_ORIENTATION or android.content.pm.ActivityInfo.CONFIG_SCREEN_SIZE or
+                    android.content.pm.ActivityInfo.CONFIG_SCREEN_LAYOUT or android.content.pm.ActivityInfo.CONFIG_SMALLEST_SCREEN_SIZE or
+                    android.content.pm.ActivityInfo.CONFIG_KEYBOARD_HIDDEN
+            }
+            Shadows.shadowOf(app.packageManager).addOrUpdateActivity(info)
+        }
+    }
+
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(mapChromeHostActivityRule()).around(composeRule)
+    val rules: RuleChain = RuleChain.outerRule(rotatesInPlace).around(composeRule)
 
     private val map = BubbleMapSlot(emptyList())
     private val roles = MapChromeRoles()
@@ -97,7 +115,7 @@ abstract class TabsFirstVisitPillTests(private val portrait: String, private val
     }
 
     private fun composeView(view: View): View? {
-        if (view is AbstractComposeView || view.javaClass.name.endsWith("AndroidComposeView")) return view
+        if (view.javaClass.name.endsWith("AndroidComposeView")) return view
         if (view is ViewGroup) for (i in 0 until view.childCount) composeView(view.getChildAt(i))?.let { return it }
         return null
     }
@@ -110,9 +128,12 @@ abstract class TabsFirstVisitPillTests(private val portrait: String, private val
     }
 
     protected fun checkFirstVisit(tab: String, rotation: Int) {
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_0)
         val state = withFix(MapChromeScreenState())
         composeRule.setContent { MapChromeTestScreen(state, map, roles) }
         composeRule.waitForIdle()
+        val w = window()
+        assertTrue("positive control: portrait first (window $w)", (w.bottom - w.top) > (w.right - w.left))
         open(tab, landscapeNav = false)
         turn(rotation)
         // Maps has not been shown in this landscape window: what List, Seasonal or Journal shows now is the first visit.
