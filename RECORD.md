@@ -21962,3 +21962,17 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Phone check:** zoom from the state view to a town over a forest. The forest must never fade out on the way.
 - **Rejected for now:** separate conifer and broadleaf shades. Whether the tiles carry `leaf_type` is unverified. Elder lists it as a follow-on.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 5 to 11 still to come. Next free ID -1286.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1286
+**Timestamp:** 2026-10-18T17:00:36Z
+**Continues:** 2026-09-28-1285
+**Title:** Basemap design decision 5, labels: a little bigger than the starting web style, near-black on a light halo (owner)
+**The owner, verbatim:** "D5 with Elder's recommendation"
+**What it sets:**
+- The own Street style's labels are a little bigger than in the web style the plan starts from (`map-style/forager-light.json`, which equals Protomaps' light style, per the plan), and drawn near-black on a light halo.
+- **Phone check:** outdoors in sun, phone at arm's length. A path name must read without squinting.
+- **Rejected:** keeping the web style's size and changing only darkness and halo; bigger still, which fits fewer names on screen.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 6 to 11 still to come. Next free ID -1287.
