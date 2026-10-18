@@ -20938,3 +20938,47 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **The owner, verbatim:** "Move to Maps' spot", to whether the landscape pill on the other tabs should stay centred (recommended) or take Maps' position.
 **What it sets:** in landscape, List, Seasonal and Journal place the pill at Maps' position and width, with all four corners rounded (there is no strip to join), outlined and solid. The page content starts below it. Switching tabs moves nothing. Sent to Hazel as an addition, with a landscape bounds test and a screenshot step; a stop if the free side meets the cut-out or insets badly.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1228.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1228
+**Timestamp:** 2026-10-18T03:06:54Z
+**Continues:** 2026-09-28-1226, 2026-09-28-1227
+**Observed:** Hazel Cairnwright's report. PR #252 (tabs-map-chrome-shape, head a04857e5, from pre-main 0be67a25) into pre-main, unmerged. The planner checked all three checks green.
+- **The change:** List, Seasonal and Journal pass the map's shape parameters to the same SearchEntryBar, ForagerBottomNav and ForagerNavigationRail. The pill fill goes through mapChromeFill (Maps stays 0.8; the tabs are solid). In landscape the pill takes Maps' place and size (0-663 / 0-36 dp under Robolectric); the search panel follows it.
+- **Bounds, before and after** (Robolectric, no insets):
+  - portrait: pill 45 → 40 dp, matching Maps; content up 5 dp;
+  - landscape: pill moves from 51.7-691.7 to 0-663; content up 9 dp, its width unchanged.
+  - The bar and rail bounds already matched.
+- **Failing first:** runs 39089361882 (30 of 40 failing) and 39090014239 (45 of 50).
+- **Six revert checks,** each failing on its own edit.
+- **CI:** 4,990 tests, 0 failures, 24 skipped; lint and the release compile green.
+- **The device check** is in the PR body: nine steps.
+**Deviations, Hazel's calls, accepted by the planner:**
+- AvailabilityScreenLandscapeB3DestinationsTest's "capped and centred" assertion is replaced by "equals the Maps pill's bounds". The old assertion described the B3 layout that -1227 overrides, and the replacement bites under revert 5. **For the owner's notice:** an assertion was replaced, not weakened, on the strength of the owner's ruling.
+- the search panel follows the pill; the notice stays in the column; the 2 dp shadow is kept; test-only semantics in MapChrome.kt.
+- **A slip:** Hazel's test reports briefly filled /tmp once (about 74 MB), cleaned up straight away. The re-fit wrote to /mnt/work and finished successfully.
+**Not tested, device only:**
+- in landscape with the cut-out beside the rail, the rail and the pill's right end may sit a cut-out's width apart between Maps and the tabs (inferred; already true of the rail before);
+- a first visit in landscape before Maps has been shown uses a fallback size, then resizes once.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1229.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1229
+**Timestamp:** 2026-10-18T03:06:54Z
+**Continues:** 2026-09-28-1190, 2026-09-28-1183
+**Title:** The T7 re-fit finished: P10b fails, on conditions 2 and 3; conditions 1 and 4 pass
+**Observed** (t7-refit.service, Result=success, 51,983 s; fit.log in /mnt/work/Zynergy/forecast-data/t7/refit/; read by the planner, Hazel's report and evidence still to come):
+- **Condition 1 passes:** full minus B, block-clustered, +0.00379 [+0.00105, +0.00924].
+- **Condition 2 fails:** full minus A within a weather cell, −0.00722 (point below zero). The within-cell AUCs are A 0.648, B 0.612, base 0.637, full 0.641. Effort plus road access alone ranks within-cell pairs best.
+- **Condition 3 fails:** the host-specific contrast is +0.00279 [−0.00196, +0.01054], and over the 13 shared forested blocks +0.00301 [−0.00156, +0.01022].
+- **Condition 4 passes:** 4,014 specimens against 40,140 road-matched background, AUC minus 0.5 = +0.196 [+0.066, +0.285]. Interior, no verdict: 390 against 3,900, +0.103 [−0.157, +0.240].
+- **P10b: fail.** P10 (D140), with no verdict: pass.
+- **Pooled AUCs:** A 0.888, B 0.889, base 0.891.
+**Predictions against the result:**
+- **The planner's:** "condition 1 still fails" was **wrong**: it passed. "Model A rises, full minus A shrinks" held.
+- **Hazel's:** "A rises clearly; condition 2 shrinks the most" held (it went negative); "condition 3 a wide interval" held.
+**Notes:** Written by the planner by hand, on branch records-after-173. Not shown or published (-1030's third point of no return). Next: Hazel's Phase 2 report and evidence, then two Sorrel reviews on models other than Hazel's. Next free ID -1230.
