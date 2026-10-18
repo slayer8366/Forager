@@ -21157,3 +21157,23 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
   - the evidence points to stopping the chase for a "mycorrhizal habitat" claim; whether to carry the reporting-adjusted index is the owner's call.
 **Against the planner's prediction (-1232):** the reproduction held; condition 1's fragility held; "the specimen test weaker than its interval suggests" was largely wrong (it survives deduplication and the year cut, though not the removal of the largest herbarium).
 **Notes:** Written by the planner by hand, on branch records-after-173. The comparison with review 1 waits for review 1. Next free ID -1240.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1240
+**Timestamp:** 2026-10-18T04:22:30Z
+**Continues:** 2026-09-28-1238
+**Observed:** Hazel Cairnwright's report on PR #252, head 53c98d0f. **CI is red:** 5,021 tests, 3 failures.
+- **Item 1 (pill at the left) is done:** its bounds equal the Maps pill's (0-663 dp with no insets; 48-663 with a 48 dp left navigation bar), so the no-jump tests compare whole bounds again.
+- **Item 3 (search panel solid off the map) is done.**
+- **Item 2 (Journal always shows the pill) is built,** but costs 36 dp of landscape height. Three tests fail:
+  - LandscapeOfflinePickerTest at ROTATION_90 and ROTATION_270: the controls side's scroll area is now 72 dp, and the slider can't be reached;
+  - RecordDetailsSheetTest (short window): the records-chip-tracks chip can't be scrolled to.
+  - Shown to be caused by item 2: revert 10, which restores only the Journal hiding, passes both classes (run 39096456977).
+  - Hazel stopped, because taking the height back elsewhere, or changing what those tests require, is the owner's call.
+- **Item 4, options for the rail squashed by the keyboard:** A, the rail ignores the keyboard as Maps' rail does (Hazel's recommendation); B, it scrolls; C, it compacts; D, it hides. The IME inset reaches the rail through shortLandscapeContentInsets (AvailabilityNavigationUi.kt:392) and the Row's padding (AvailabilityCompactScaffold.kt:941).
+- **Revert checks 9 to 11** each failed only on their own edit.
+- **Tests replaced** because the ruling changed: J5's hidden-header tests now read "always shows, no icon".
+- **Left unused, for the owner:** JournalScreenState.searchHeaderRevealed and ShortWindowJournalHeader's search parameters.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1241.
