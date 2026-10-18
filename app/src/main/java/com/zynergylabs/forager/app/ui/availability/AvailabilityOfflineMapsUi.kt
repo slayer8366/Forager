@@ -190,7 +190,7 @@ internal fun OfflineMapsPanel(
     // Dispatch 2026-10-18-03 (Forager RECORD -1269): the "Pin at" line alone under the map, with no OK and no Cancel. Back leaves
     // the screen, as Cancel did (Cancel here was a no-op: this panel had nothing to cancel back to).
     val confirmActions: @Composable () -> Unit = {
-        CentrePinConfirmActions(state = pinState, onConfirm = onRegionPicked, onCancel = {}, showConfirmButtons = false)
+        CentrePinConfirmActions(state = pinState, onConfirm = onRegionPicked, onCancel = {}, showConfirmButtons = true)
     }
     // Dispatch 2026-10-17-09, RECORD -1243 and -1245 (the owner: "Trim the top text out, the design is intuitive to use without
     // explaining (3 times). Add at the bottom the note on the Continental US vector map. Have the user be faced with the
