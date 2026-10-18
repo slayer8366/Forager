@@ -870,7 +870,7 @@ internal fun JournalTab(
                     // gets out of the way while the list scrolls, with the tighter chip spacing.
                     shortWindow = shortLandscape,
                     // RECORD -1243: in a short window the chips go on the switch line above (recordsChipsOnSwitchLine).
-                    chipsOnSwitchLine = if (shortLandscape) recordsChipsOnSwitchLine else null,
+                    chipsOnSwitchLine = null,
                     backEnabled = backEnabled,
                     onNavigateToWaypoint = onNavigateToWaypoint,
                     reopenWaypointDetails = reopenWaypointDetails,
