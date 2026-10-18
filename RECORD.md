@@ -22103,3 +22103,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Phone check:** after the update, an existing region still draws in aeroplane mode.
 - **Rejected:** no notice; an automatic re-download on Wi-Fi.
 **Notes:** Written by the planner by hand, on branch records-after-173. This completes Elder's eleven design decisions (-1274, -1282, -1284 to -1289, -1291, -1292, -1294). Next free ID -1295.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1295
+**Timestamp:** 2026-10-18T17:27:41Z
+**Continues:** 2026-09-28-1273, 2026-09-28-1283, 2026-09-28-1284, 2026-09-28-1293
+**Title:** Map launch fixes S22 check: all gates pass; landscape credit same as portrait; no start-up message seen; Topo still opens first (owner)
+**The owner, verbatim:** "Topo maps still loads first. Have street default. / 1 pass / 2 pass - pass / 3 pass / 4 pass / 5 pass / 6 text and icon is same as it is in portrait / 7 pass / 8 didn't appear"
+**What it records:**
+- **Device and build:** the S22 Ultra (SM-S908U), Android 16, debug APK 1.0.3446+g98d5a880 from CI run 39143704391. That is PR #257's merge ref at the time, ae80cfed on pre-main e61e248a, checked with `git log`. The planner installed it by `adb install -r`.
+- **Steps,** numbered as the planner gave them; the planner's list folds Hazel's steps 8 and 9 into 7 and 8, and leaves out Hazel's optional step 7, the Network Inspector.
+  - **Steps 1 to 5:** pass. Step 2 also covers night Topo crossfading to Street.
+  - **Step 6** (landscape, an observation): the caption text and the "i" are the same as in portrait.
+  - **Step 7** (every map opens, no message): pass.
+  - **Step 8:** the start-up message didn't appear, so Try again has still never run on a phone.
+- **Not done:** the font-request check over the network (optional; no instrument used). The combined build with pre-main 712ff277 is not phone-checked. CI covers it.
+- **Finding:** the map opens on Topographical. That matches the code: `MapMode.DEFAULT = TOPOGRAPHIC` (`MapMode.kt:42` on pre-main). Decision 2 (-1282) is recorded but not yet built. The owner: "Have street default".
+**Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word. Next free ID -1296.
