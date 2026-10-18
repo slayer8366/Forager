@@ -955,7 +955,6 @@ internal fun CompactMainScaffold(
                         onTabSelected = onBottomNavTabSelected,
                         portEdge = portEdge,
                         // Dispatch 2026-10-17-09: the Maps rail's rounded inner corners and outline, solid here (the default fill).
-                        innerCornerRadius = MAP_CARD_CORNER_RADIUS,
                     )
                 }
                 Column(
@@ -1777,7 +1776,6 @@ internal fun CompactMainScaffold(
                         onTabSelected = onBottomNavTabSelected,
                         portEdge = portEdge,
                         // Dispatch 2026-10-17-09: the Maps rail's rounded inner corners and outline, solid here (the default fill).
-                        innerCornerRadius = MAP_CARD_CORNER_RADIUS,
                     )
                 }
             }
