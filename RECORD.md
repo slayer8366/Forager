@@ -22312,3 +22312,33 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   4. The Maps tab, a Journal entry's map, Records' map and Cartography each draw.
 - **Not re-run on this build:** -1295's caption and credit steps. Their code is unchanged since then, apart from the pre-main merge and the two amendments.
 **Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word. Merging PR #257 needs the owner's word. Next free ID -1307.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1307
+**Timestamp:** 2026-10-18T19:32:40Z
+**Continues:** 2026-09-28-1273, 2026-09-28-1306, 2026-09-28-1284
+**Title:** PR #257 (map launch fixes, dispatch 2026-10-18-04 with Amendments 1 to 3) merged into pre-main at d942e022; its revert branches deleted (owner)
+**The owner, verbatim:** "Merge map-launch-fixes into pre-main"
+**What it records:**
+- **The merge:** a merge commit gated on head 006ce58b. pre-main went from 712ff277 to d942e022.
+- **Gates met before merging:**
+  - all three CI checks passed on 006ce58b (run 39156161080: 5,094 tests, 0 failed, 24 skipped);
+  - mergeable, clean;
+  - the S22 checks passed (-1295, -1306).
+- **In it:**
+  - no glyph requests (-1278 A);
+  - no library User-Agent (-1278 B);
+  - OpenTopoMap's full credit behind the tap (-1278 C);
+  - the map start-up message with Try again (-1283, -1284);
+  - Street as the opening map (-1297);
+  - PI_ORIGIN_URL out of `wrangler.toml` (-1304).
+- **Revert branches** map-launch-fixes-revert-N deleted from GitHub, as -1284 ruled. Their CI runs stay on GitHub.
+- **Next on the release path:**
+  - the promotion PR pre-main to main, on the owner's approval;
+  - the release build from main on the owner's laptop;
+  - the store listing check (T9);
+  - the owner's upload.
+  Merging to main also redeploys the Worker from GitHub, now without PI_ORIGIN_URL (inferred: Workers Builds' production branch is main, per the Part 1 report).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1308.
