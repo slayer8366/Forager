@@ -197,7 +197,7 @@ internal fun OfflineMapsPanel(
     // So the controls start with the Name box, the radius and its slider under it.
     val usContinentalNote: @Composable () -> Unit = {
         Text(
-            OFFLINE_US_CONTINENTAL_NOTE,
+            "",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
