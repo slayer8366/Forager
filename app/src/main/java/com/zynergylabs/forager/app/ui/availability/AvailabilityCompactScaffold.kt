@@ -1038,7 +1038,7 @@ internal fun CompactMainScaffold(
                     }
                     if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld && !journalHidesSearchHeader) {
                         // SearchEntryBar takes no modifier, so its place goes on this wrapper (tabLandscapePillPlace).
-                        Box(modifier = tabLandscapePillPlace) {
+                        Box(modifier = Modifier) {
                         SearchEntryBar(
                             uiState = uiState,
                             distanceUnit = distanceUnit,
