@@ -18,7 +18,7 @@ package com.zynergylabs.forager.app.map
  * The functions take the switch as a parameter, defaulting to the constant, so a unit test can drive both
  * values; production callers pass nothing.
  */
-internal const val STREET_SERVED_BY_OWN_MAP: Boolean = false
+internal const val STREET_SERVED_BY_OWN_MAP: Boolean = true
 
 /**
  * The Street style document, served by the Worker at `/style/street-v1.json` (`server/pmtiles-worker`), built by
