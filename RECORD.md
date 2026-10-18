@@ -21364,3 +21364,21 @@ It ends with numbered decisions for the owner, each with a recommendation.
 - **Ash's inferred reasons for A:** the loss is small; 4 of 7 years favour weather; the loss is concentrated in 2024 and 2025, when chanterelle reports roughly tripled while observing rose about 13%. That jump is unexplained.
 **A planner's error:** after -1247, the planner told the owner that T8's timing question "may do better" than T7's, marked as inferred and untested, without checking T1. T1 had already tested that premise in the PNW and found weather slightly worse than the calendar. Corrected to the owner with this report.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1250.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1250
+**Timestamp:** 2026-10-18T05:29:53Z
+**Continues:** 2026-09-28-1249, 2026-09-28-1027
+**Title:** T8 becomes a second, stricter PNW test of whether weather beats the calendar (owner)
+**The owner, verbatim:** "A: Second, stricter PNW weather test (Recommended)". The option read: "Adjust for search effort, fewer weather measures fixed in advance, must beat the same calendar on the same weeks; first check what drove the 2024–25 jump. Ash writes this as the T8 plan for your rulings."
+**What it sets:**
+- T8's plan is reshaped around T1's unanswered question, with:
+  - a first step explaining the 2024–25 chanterelle jump;
+  - effort from T6;
+  - a small set of weather measures fixed in advance, with a randomisation check;
+  - a bar that must beat T1's calendar on the same held-out weeks, its interval above zero, set before any result.
+- A second "no" is reported as the PNW finding.
+- -1027's sequence otherwise stands. The plan comes back with decisions before any count or fit.
+**Notes:** Written by the planner by hand, on branch records-after-173. This also records how T1 bears on T8, which no earlier decision did. Next free ID -1251.
