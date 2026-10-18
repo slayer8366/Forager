@@ -20982,3 +20982,30 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **The planner's:** "condition 1 still fails" was **wrong**: it passed. "Model A rises, full minus A shrinks" held.
 - **Hazel's:** "A rises clearly; condition 2 shrinks the most" held (it went negative); "condition 3 a wide interval" held.
 **Notes:** Written by the planner by hand, on branch records-after-173. Not shown or published (-1030's third point of no return). Next: Hazel's Phase 2 report and evidence, then two Sorrel reviews on models other than Hazel's. Next free ID -1230.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1230
+**Timestamp:** 2026-10-18T03:13:54Z
+**Closes:** 2026-09-28-1183
+**Outcome:** done
+**Observed:** Hazel Cairnwright's Phase 2 report, forecast t7-refit da1f207: docs/audits/2026-10-17-t7-refit-report.md and docs/audits/2026-10-17-t7-refit/. PR #5 is a draft, CI green (run 39092650299), unmerged. Nothing was shown or published.
+- **P10b fails.**
+  - (1) full minus B, block +0.00379 [+0.00105, +0.00924]: pass;
+  - (2) full minus A within a weather cell, block-resampled, −0.00722 [−0.02570, +0.01614]: fail. The fit.log line in -1229 was the weather-cell interval, which is not the one D145 requires; the block interval is in fit_report.json only, and the verdict is the same;
+  - (3) contrast +0.00279 [−0.00196, +0.01054]: fail;
+  - (4) specimens +0.196 [+0.066, +0.285]: pass.
+- **Caveats that point the other way:**
+  - condition 1's pass rests on three bands (Lithocarpus, Chrysolepis, Arbutus) picked on the same held-out blocks; base minus B is +0.0016 [−0.0013, +0.0067];
+  - the full model loses to A in Marine West Coast Forests (0.885 against 0.886);
+  - the interior specimen test is uncertain on 390 specimens; most specimens are decades old, and about three quarters come from one herbarium;
+  - Laetiporus gains about three times the target group's gain;
+  - tuning hit the grid's edge (c16).
+- **The map:** close to last time's (rank 0.91). The top tenth is still interior mountain conifer forest, shifting toward the Cascades and away from roads (median distance to a road 593 → 793 m).
+- **Hazel's own predictions:** six right, two wrong: full minus A rose slightly, and condition 1 passed. A premise about the old map was described without being read, which is disclosed.
+**Deferred:**
+- the two independent reviews (Sorrel Tally, on models other than Hazel's), on the owner's go;
+- any publishing (-1030's third point of no return);
+- the audits index rows for the report.
+**Notes:** Written by the planner by hand, on branch records-after-173. -1229's reading of condition 2's interval is corrected here, not edited. Next free ID -1231.
