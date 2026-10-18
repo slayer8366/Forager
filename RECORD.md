@@ -21234,3 +21234,14 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - The release waits for this.
 **Also, the owner, verbatim, as a side note:** "since cloudflare is now premium, we can look into expanding the vector maps outside the US". Recorded as direction for after the release; scope only, not a go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Restated as a step path with a sketch and confirmed. Next free ID -1244.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1244
+**Timestamp:** 2026-10-18T05:07:32Z
+**Continues:** 2026-09-28-1243
+**Title:** The Journal search pill slides down when revealed and up when hidden (owner)
+**The owner, verbatim:** "And have the search bar slide up and down when revealing/hiding".
+**What it sets:** in landscape Journal (J5's reveal), the pill slides down into place when revealed, and up out of view when hidden by the icon or by Back. The content moves smoothly with it, using the app's existing motion constants from ui/motion/. Added to PR #252 in this release.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1245.
