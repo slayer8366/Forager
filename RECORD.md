@@ -21688,3 +21688,36 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Finish line:** a PR into pre-main, green, merged on the owner's word after an S22 check.
 **Abort conditions:** another picker changes; the no-slide-on-arrival can't be kept without the key; a test having to be weakened; two failed attempts at one symptom.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1271.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1271
+**Timestamp:** 2026-10-18T13:43:36Z
+**Continues:** 2026-09-28-1267
+**Title:** The basemap launch plan written, with Elder's design review and Juniper's research filed; 16 decisions for the owner
+**Observed:** branch basemap-launch-plan (from pre-main e61e248a), unmerged:
+- docs/plans/2026-10-18-basemap-launch-plan.md;
+- docs/audits/2026-10-18-basemap-design-review.md: Elder, Fable, as received except two public place names replaced, which the file states;
+- docs/audits/2026-10-18-map-services-policy-and-cost-research.md: Juniper, Fable; evidence kept locally at ~/Zynergy/map-launch-research/evidence/.
+**The inputs, in short:**
+- **The state survey:** the workers.dev Worker serves offline only, from a one-off 2026-08-19 US cut; the Pi-first code is still present though -879 ruled it out; tiles.zynergy-labs.com and the zynergy-labs account's paid plan don't exist; the Pi's OR+WA build was never uploaded; the Pi planner has been silent since -604.
+- **Juniper:**
+  - OpenTopoMap, the default map, is the highest risk: downsized, no guarantee, and asks to be told;
+  - OpenStreetMap's server can block without notice;
+  - the demo font server is "Dev only";
+  - the app's User-Agent fallback (ForagerApplication.kt:98-100) sends the traffic OSMF blocks;
+  - OpenTopoMap's credit is shortened;
+  - Cloudflare's paid numbers, quoted.
+- **Elder:** ten launch blockers for the design (coverage, paths, palette with night, labels, POIs, woodland gap, fonts on the domain, marker re-measure, zoom limit, default map) and eleven owner decisions.
+**The plan:**
+- **Track A, the basemap:**
+  - A0: four small items for this release;
+  - A1: serving on the zynergy-labs account at tiles.zynergy-labs.com;
+  - A2: data, Protomaps' US cut now and the own build later;
+  - A3: design;
+  - A4: the app;
+  - A5: checks.
+- **Track B,** the trail map, runs alongside.
+- **Sixteen decisions,** including replacing the 2026-08-22 "never a live tile server" ruling (quoted).
+**Notes:** Written by the planner by hand, on branch records-after-173. The plan goes to pre-main on the owner's word. Next free ID -1272.
