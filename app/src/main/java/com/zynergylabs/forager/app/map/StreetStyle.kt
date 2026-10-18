@@ -68,7 +68,7 @@ internal fun regionHasOlderMapStyle(
     regionStyleUrl: String?,
     isDownloaded: Boolean,
     ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP,
-): Boolean = isDownloaded && regionStyleUrl != null && regionStyleUrl != offlineDownloadStyleUrl(ownStreet)
+): Boolean = regionStyleUrl != null && regionStyleUrl != offlineDownloadStyleUrl(ownStreet)
 
 /**
  * The one-line notice on an older region (-1294; the wording offered in the Part 1 report, question 5, and accepted
