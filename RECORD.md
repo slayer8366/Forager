@@ -21056,3 +21056,30 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **The profile:** forager-forecast docs/process/coder-profile.md, in forecast PR #6 into main, documents only, which merges on the owner's word (D40). It covers rules before data, the points of no return, download checks and registration, long runs as detached units, and the stops.
 - **The team table:** a row in Forager's planner-profile, plus a line in Hazel's profile, in Forager PR #253 into pre-main.
 **Notes:** Written by the planner by hand, on branch records-after-173. Today's re-fit (-1183 to -1230) was coded under the Hazel name, before this. Next free ID -1234.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1234
+**Timestamp:** 2026-10-18T03:29:15Z
+**Repository:** forager-forecast
+**PR:** 6
+**Head:** forecast-coder-profile (3f660285)
+**Base:** main
+**Merge-commit:** f99dbcbf4000133334bac2fd8256a171d9b63224
+**Pre-merge:** b9127e58
+**Backup:** forecast-main-20261018T032907Z-b9127e58.bundle (verified)
+**Notes:** The owner, verbatim: "Merge forager-forecast PR #6 into main" (D40's word naming the branch). Ash Transect's coder profile (-1233); documents only; checks passed. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1235.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1235
+**Timestamp:** 2026-10-18T03:29:33Z
+**PR:** 250
+**Head:** docs-elder-items (df8319fa)
+**Base:** pre-main
+**Merge-commit:** 130b108e3152db2598745c27aaa4b02ff412f460
+**Pre-merge:** 0be67a25
+**Backup:** pre-main-20261018T032921Z-0be67a25.bundle (verified)
+**Notes:** The owner, verbatim: "Merge Forager 253 and 250". Elder's text items 1 and 2 (-1211, -1212); documents only; all three checks passed. Merged with a merge commit, pinned to the head. PR #253 waits for its build check to finish. Written by the planner by hand, on branch records-after-173. Next free ID -1236.
