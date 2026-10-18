@@ -22496,3 +22496,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - (3) stacking it above the "i" and raising the legend;
   - (4) keeping it on the left.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1316.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1316
+**Timestamp:** 2026-10-18T20:30:01Z
+**Continues:** 2026-09-28-1314, 2026-09-28-1300
+**Supersedes:** -1300 (6)'s "each draws in the style it was downloaded with"
+**Title:** Street from Cloudflare: once any area is downloaded in the new style, all offline areas show it; a review build for the S22 after the deploy; PR #258 held until the Pi's build finishes (owner)
+**The owner, verbatim:** "1 option a / 2 yes / The Pi planner estimates it will be finished tonight. Let's hold off 258 until that finishes"
+**What it sets:**
+- **(1) Older offline areas, option (a), as Hazel built it:** once any downloaded area holds the new style, the offline map draws all areas in it, the older ones included, with names. Until then, the older look.
+- **(2)** After the owner deploys the Worker and uploads the R2 folder, the planner builds a review copy with `STREET_SERVED_BY_OWN_MAP` on, for the S22 only, for one daylight round and one night round. It is not for release.
+- **(3)** PR #258 stays unmerged until the Pi planner's US and Canada z15 build finishes, which the Pi planner estimates for tonight.
+- **Planner's caution, to be carried with it:** the Worker redeploys from GitHub when main changes. If #258 reaches main before the owner has uploaded the fonts and icons to R2, the new Worker goes live first. Today's app wouldn't notice, but the order should be: upload to R2 and paste the Worker, or pause auto-deploy, before #258 reaches main.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1317.
