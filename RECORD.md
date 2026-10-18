@@ -22670,3 +22670,45 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Revert checks:** R4 and R4b are valid per Hazel's report (`docs/audits/2026-10-18-journal-search-space-completion-report.md`).
 - **Deleted:** journal-search-space-revert-1 and -2.
 **Notes:** Written by the planner by hand, on branch records-after-173. pre-main now holds everything for the owner's final phone check. Next free ID -1326.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1326
+**Timestamp:** 2026-10-18T22:43:07Z
+**Continues:** 2026-09-28-1324
+**Title:** UI split survey filed: moves alone give most parts their own file; the five largest files keep a core that needs state holders; four decisions for the owner (Hazel)
+**Observed:** report `docs/audits/2026-10-18-ui-split-survey.md` on branch ui-split-survey at 81db63cb (based on 8c90626f). No PR, no index row, no source change.
+**What it records:**
+- **The inventory:** 187 UI files and 54,513 lines. 51 are over 300 lines and 22 over 600.
+- **Moves alone:** SightingsMap sheds about 1,380 lines into 9 files; AvailabilityCompactMapUi splits into 10 files. AvailabilityScreen, AvailabilityCompactScaffold and AvailabilityViewModel move little without state holders, parameter groups or collaborator classes.
+- **Shared hubs left after moves:**
+  - the Maps tab body;
+  - the scaffold;
+  - the screen's Back, notices and drawer;
+  - the map body;
+  - MapSlot's values;
+  - AvailabilityUiState and its ViewModel;
+  - the Journal tab;
+  - the big test classes and fixtures;
+  - the audits index.
+  Strings are not a hub.
+- **Risks:**
+  - the launch crash CI can't see, so s22-launch-check runs on every PR;
+  - touch order over the map, guarded by 19 real-touch test classes;
+  - Stage G's getter rule;
+  - the poll loop;
+  - real insets;
+  - class-keyed lists: the CI skip allowlist and the dex baseline.
+- **First three PRs proposed:**
+  1. the NavigationHud wording rules, about 570 lines;
+  2. the SightingsMap camera, credit and location-dot helpers, about 420 lines;
+  3. the SightingsMap layer and data helpers, about 960 lines.
+  Each carries the Stage F check set and the S22 launch check.
+- **Prediction in -1324:** "the map files hold the hardest seams (movableContentOf…)" was wrong. movableContentOf appears once, in the offline picker. The main map is rebuilt on each return, and what must survive a split is MapCameraMemory and MapReturnMemory (`AvailabilityScreen.kt:983`, `:986`). The prediction "the first PRs can be pure moves" held.
+- **Open for the owner:**
+  - state holders or collaborator classes;
+  - grouping the main screen's parameters;
+  - splitting the big test classes, which moves allowlist entries;
+  - removing four pieces of dead code.
+**Notes:** Written by the planner by hand, on branch records-after-173. The planner's plan follows for the next release. Next free ID -1327.
