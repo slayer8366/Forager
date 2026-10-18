@@ -22547,3 +22547,26 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - The planner's options of the bar covering the chips, or the chips covering the map, were declined.
 - It goes on nav-rail-order with the rail order (-1312) and the untinted drawer (-1313).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1319.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1319
+**Timestamp:** 2026-10-18T21:12:05Z
+**Continues:** 2026-09-28-1309, 2026-09-28-1315, 2026-09-28-1317
+**Title:** PR #259 (Offline maps picker on Street; MapLibre logo beside the "i") merged into pre-main at 75ce3efe under -1317; its revert branches deleted (planner, on the owner's standing word)
+**What it records:**
+- **The merge:** a merge commit gated on head 74967895. pre-main went from d942e022 to 75ce3efe.
+- **Readiness, per -1317:**
+  - all three CI checks green on 74967895 (run 39165320427: 5,101 tests, 0 failures, 24 skipped, per Hazel's count from the JUnit XML);
+  - revert checks R1 to R4 valid;
+  - no stop open;
+  - GitHub CLEAN.
+- **Deleted:** offline-street-logo-revert-1 to -4 and offline-street-logo-logo-check.
+- **Not verified:** the logo placement is checked only as the gravity and margins handed to MapLibre. A real MapView can't be built under Robolectric, so the phone is the check.
+- **Owner questions, from Hazel's report:**
+  1. In the short-landscape case (-954), the "i" sits beside the credit strip, so the logo follows it to the **bottom left**, not the right.
+  2. While navigating on Topo at ROTATION_90, the navigation card may cover the logo's end (estimated).
+  3. The Topo night caption probably wraps in portrait, which predates this change.
+- **Pre-main CI:** push run 39166698263 on 75ce3efe was in progress when this was written.
+**Notes:** Written by the planner by hand, on branch records-after-173. The owner's phone check follows on the pre-main build (-1317). Next free ID -1320.
