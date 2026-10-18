@@ -129,7 +129,7 @@ internal fun naturalHoldQuarterTurns(displayRotation: Int, fullScreen: Boolean):
  * display's own did (the `TextureView`'s correction is `-target`, 0, and the display is at 0); that is device-only.
  */
 internal fun viewfinderInNaturalFrame(held: Boolean, fullScreen: Boolean, smallestScreenWidthDp: Int): Boolean =
-    held || (fullScreen && smallestScreenWidthDp >= LARGE_SCREEN_MIN_SMALLEST_WIDTH_DP)
+    held || fullScreen
 
 /** The platform's large-screen line: a smallest width of 600 dp and up, where the portrait request is ignored. */
 internal const val LARGE_SCREEN_MIN_SMALLEST_WIDTH_DP = 600
