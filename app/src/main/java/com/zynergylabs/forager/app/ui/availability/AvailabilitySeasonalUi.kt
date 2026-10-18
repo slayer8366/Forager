@@ -174,6 +174,7 @@ private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
         SeasonalSampleSizeSummary(distribution)
         FruitingLagChart(distribution, modifier = Modifier.fillMaxWidth())
         FruitingLagBucketCounts(distribution.buckets)
+        OpenMeteoCredit()
 
         HorizontalDivider()
         // The observer-effort caveat: not polish, per this feature's own honesty requirement —
