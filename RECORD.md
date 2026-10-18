@@ -21177,3 +21177,22 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **Tests replaced** because the ruling changed: J5's hidden-header tests now read "always shows, no icon".
 - **Left unused, for the owner:** JournalScreenState.searchHeaderRevealed and ShortWindowJournalHeader's search parameters.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1241.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1241
+**Timestamp:** 2026-10-18T04:51:04Z
+**Continues:** 2026-09-28-1240, 2026-09-28-1238
+**Title:** Journal in landscape: the pill always on top; one line holds the Entries/Records switch, the scrolling chips and the icons; no search icon; the rail ignores the keyboard (owner)
+**The owner, verbatim:**
+- "Just remove the icon, and have it at the top as if the icon were activated. For offline maps, Move the chips to the same level as entries | records line, and remove the search icon. Have the chips be scrollable";
+- "A: Ignore the keyboard, like Maps (Recommended)";
+- with a screenshot of landscape Journal (described, not stored): "On both Entries and Records please. The icons can go on one line where the draft chip is ro save space";
+- then "Icons on the same line as the drafts chip" and "Landscape only".
+**What it sets, landscape only:**
+- **Journal:** the search pill is always shown at the top. Under it is one line: the Entries/Records switch; then the chips, scrolling sideways (the drafts chip on Entries, the record-type chips on Records); then New entry and the list and grid toggles at the right. The magnifier-with-✕ search icon is removed, and the old second line is gone.
+- **The rail** keeps its full height under the keyboard, like Maps (option A).
+- **J5's landscape reveal code** is removed where nothing else reads it.
+- **Portrait** is unchanged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Restated to the owner as a sketch and confirmed before sending. Next free ID -1242.
