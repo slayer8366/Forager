@@ -1928,7 +1928,7 @@ internal fun Modifier.landscapeTabPillFit(farIsLeft: Boolean, need: LandscapeStr
             return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
         }
         val room = constraints.maxWidth
-        val width = (room - landscapeStripWidthPx(room, need, barFloorPx)).coerceIn(0, room)
+        val width = room / 2
         val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
         layout(room, placeable.height) { placeable.place(if (farIsLeft) 0 else room - width, 0) }
     }
