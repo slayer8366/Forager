@@ -20818,3 +20818,21 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - a new test class.
 **Not tested:** the camera's real response on a turn; the picture at ROTATION_0 (inferred unchanged); smoothness and battery at ROTATION_0; foldables (any full-screen device with sw ≥ 600 now always runs COMPATIBLE).
 **Notes:** Written by the planner by hand, on branch records-after-173. The merge waits on the owner's tablet re-check. Next free ID -1219.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1219
+**Timestamp:** 2026-10-18T01:51:30Z
+**Continues:** 2026-09-28-1218, 2026-09-28-1214
+**Title:** Tablet re-check of PR #251: no camera restart across 27 turns; the fix holds on the device
+**Device:** SM-X800, Android 16, natural orientation portrait. Forager debug 1.0.3408+gcb4aa154 (PR #251's CI run 39085815753 APK, sha256 78df97ac…), installed over 3406 with its data kept.
+**The owner, verbatim:** "Done. No screenshots".
+**Observed, logcat 18:49:33 to 18:51:08 PDT** (kept off GitHub at ~/Zynergy/device-evidence/2026-10-17-tablet-camera-fix/logcat-fix-2.txt):
+- **Session 1** (camera OPEN 18:49:33): 13 display rotations, including 0↔1 and 0↔3, with 0 CLOSING and 0 surface re-requests. The log line "Viewfinder in the natural frame: COMPATIBLE … held=true" appears at the open.
+- **One CLOSING at 18:49:59.705,** 3 s after the last rotation. It follows a touch at the screen's edge and the system back gesture (BackPanelController GONE→ENTRY at 18:49:59.558), so the camera was closed by a gesture, not by a turn. The six errorCode=4 lines belong to that close.
+- **Session 2** (reopened 18:50:16): 14 rotations, again 0 CLOSING and 0 surface re-requests; a photo taken at 18:51:08.
+- SurfaceViewImpl 0 times: the tablet stayed in the turnable viewfinder throughout.
+**Reading:** the restart on portrait-landscape turns is gone on the device: 0 restarts across 27 turns, against 8 of 8 before (-1214). The owner saw nothing to report.
+**Not checked:** the picture at ROTATION_0 by screenshot (the owner declined screenshots); smoothness at ROTATION_0; the S22 sanity step of PR #251's device check (phones keep today's viewfinder).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1220.
