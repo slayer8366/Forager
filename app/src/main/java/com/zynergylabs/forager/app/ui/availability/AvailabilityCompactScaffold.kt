@@ -1073,7 +1073,7 @@ internal fun CompactMainScaffold(
                         // hide on the Journal plays one. Every other way the pill comes or goes is as before, at once. Under
                         // reduced motion the reveal is at once too (docs/motion-spec.md §4).
                         key(compactTab()) {
-                        val searchHeaderReduceMotion = LocalReduceMotion.current
+                        val searchHeaderReduceMotion = true
                         androidx.compose.animation.AnimatedVisibility(
                             visible = !journalHidesSearchHeader,
                             enter = if (searchHeaderReduceMotion) {
