@@ -912,7 +912,7 @@ private fun EntryReportLayout(
         val height = if (constraints.hasBoundedHeight) constraints.maxHeight else constraints.minHeight
         val loose = Constraints(maxWidth = width, maxHeight = height)
         if (split) {
-            val boxWidth = minOf(height * 4 / 3, (width - infoMinWidth.roundToPx()).coerceAtLeast(0))
+            val boxWidth = minOf(height * 4 / 3, width)
             val boxHeight = boxWidth * 3 / 4
             val mapPlaceables = mapParts.map { it.measure(Constraints(maxWidth = boxWidth, maxHeight = boxHeight)) }
             val infoWidth = width - boxWidth
