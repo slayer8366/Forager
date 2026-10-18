@@ -20725,3 +20725,27 @@ t7-build now holds parts A, B and C. Written by the planner by hand, on branch r
 - **D2 (a sudden climb, lift or steep road) is new,** for the owner's "how well it handles sudden elevation" (-924), which step 9 doesn't test. The planner predicts, inferred and untested, that it may read low: BarometricHeight.kt treats a rise faster than 0.5 m/s as a pressure blip. A low reading is a finding for the owner, not a phone fault.
 - **Unknown until the tablet is in hand:** its current Android version (-80 saw 16) and its natural orientation. PR #224's completion report, with its device items, was not found in any committed file.
 Written by the planner by hand, on branch records-after-173. Next free ID -1214.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1214
+**Timestamp:** 2026-10-18T01:03:01Z
+**Continues:** 2026-09-28-1213
+**Title:** Tablet camera hold (part A of preserved/2026-10-17-07): A2 to A4 pass; A1's layout holds, but the camera restarts with a black flash on each portrait-landscape turn
+**Device:** the owner's tablet, SM-X800, Android 16 (API 36), build X800XXSBEZH3. Natural orientation portrait (1752×2800). Forager debug 1.0.3406+gb91de824 (pre-main), from CI run 39077884108's APK (sha256 932391ae…95d8), installed over 2752 with its data kept.
+**The owner, verbatim:**
+- "1 the picture rotated and the display flashed black briefly before returning, this happens until holding upside down, the flashing stops when rotating upside down and back sideways. In all cases, the icons and text rotated. 2 to 4 pass as expected";
+- then "A, the whole picture rotated, but the layout stayed where it was supposed to";
+- then, asked whether the scene settles the right way up after the flash: "Done and yes".
+**Observed, logcat 18:01:39 to 18:02:03 PDT** (kept off GitHub at ~/Zynergy/device-evidence/2026-10-17-tablet-camera-hold/logcat-rotation.txt):
+- the display rotates through all four positions (setRotation 0, 3, 2, 1), with the activity's orientation request reported as UNSPECIFIED;
+- at each turn between portrait and landscape, the camera closes (CombinedCameraState CLOSING, CameraDeviceClient errorCode 4 on the stream teardown) and the preview surface is rebuilt ("Surface requested by Preview", 8 times);
+- the 270 to 180 turn rebuilt nothing, which matches the owner's "the flashing stops when rotating upside down";
+- the preview's transform is constant (rotationDegrees 90, targetRotation 0), consistent with the hold;
+- no crash.
+**Reading:**
+- **Holds:** the layout holds portrait, the icons turn, the picture settles upright, photos save upright, the bars and split screen are fine.
+- **Doesn't hold:** at each quarter-turn between portrait and landscape, the camera restarts. The user sees about a second of rotated or black picture. Inferred: the window's size change makes the camera rebind.
+**Not serious** by the known-bugs definition (no crash, no lost record, no wrong position). The code is on main since -986, and not in tester build 3292 (inferred from dates: 3292 is from 497423d6, before -986).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1215.
