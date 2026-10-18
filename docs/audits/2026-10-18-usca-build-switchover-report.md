@@ -73,3 +73,50 @@ asks the Pi first. That was done by the owner, not from the Pi.
 - **Serving back on:** `systemctl enable --now forager-tiles.service forager-tunnel.service`.
 - **Cancel the first build:** `systemctl stop forager-build-usca-first`.
 - **Earlier map-build:** `/opt/forager-build/map-build.prev`.
+
+## Addendum, 13:15: the download restarts itself when it slows, and the build waits on that
+
+**This supersedes the 13:12 row above.** `forager-build-usca-first.service` was stopped before
+it built anything. The download loop it waited on (pid 7567) was stopped too.
+
+**Why.** The owner's suggestion, from experience with long downloads: a restarted download
+starts fast and then slows, so restarting it each time it slows cuts the wait ("repeatedly
+hitting it when it slowed down dropped my wait time significantly"). The day's own figures
+pointed the same way. The 12:50 restart ran at about 1.3 MB/s at first and had fallen to
+153 KB/s by 13:14 (measured over 30 s). The waiting unit had to be replaced along with the
+download, because it waited on that download's pid. Restarting the download alone would have
+left the unit to exit without building.
+
+**What runs now.** The transient unit `forager-usca-fetch-build.service` runs as `forager-build`,
+with the same settings as the 13:12 unit. It runs
+`/srv/forager-build/sources/osm/fetch-then-build-261017.sh`, committed verbatim as
+[`data/2026-10-18-fetch-then-build-261017.sh`](data/2026-10-18-fetch-then-build-261017.sh)
+(sha256 `406dabc420d8b12f…` for both copies, checked by `sha256sum` at commit time). For
+each extract, it:
+- reads the full size from Geofabrik (US 12,212,909,513 bytes, Canada 6,516,972,934);
+- runs `curl -C -` with `--speed-limit 700000 --speed-time 40`, so a connection averaging under
+  0.7 MB/s for 40 s is dropped;
+- pauses 5 s and resumes, until the file reaches its full size, with at most 5,000 connections
+  per file;
+- logs each connection's length, its gain and its speed to the unit's journal.
+
+When both files are complete, `md5sum -c` must pass on both before it execs `build-usca.sh
+--local 261017`. A mismatch exits without building.
+
+**First result, observed.** The first five connections, from 13:15:50 to 13:21:52, lasted 41 to
+116 s and ran at 270, 524, 1,056, 787 and 527 KB/s. Together they gained 244 MB in about 362 s,
+about 690 KB/s, against 153 KB/s just before. That is five connections in the first six minutes
+of one session, not a sustained rate. At that pace both files would finish around 19:00 PDT.
+This is a projection, not yet observed.
+
+**Not verified.**
+- A connection that never reaches 0.7 MB/s now costs one reconnect every 45 s or so. Whether
+  Geofabrik minds that rate is unknown. Nothing from them has been seen.
+- The completion branch, size reached → MD5 → exec, has not run yet. The size check uses
+  `Content-Length` after redirects. If Geofabrik's redirect serves a different length, the loop
+  would end early or never end. The MD5 check catches the first case, not the second.
+- A reboot stops this unit. It would have to be started again with the `systemd-run` line from
+  this session, which is not committed here.
+
+**Undo.** `systemctl stop forager-usca-fetch-build`. The partial file stays, and any later
+`curl -C -` resumes from it.
