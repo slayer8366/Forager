@@ -21401,3 +21401,14 @@ It ends with numbered decisions for the owner, each with a recommendation.
 - **Stays with Rowan:** the Forager app, the production release, this RECORD.md, and vector maps beyond the US (-1243).
 - **The open-intents check:** -1248 (the T8 plan) moves with T8 to the forecast planner and is closed here by handover, not as done. The open app intents are -1226 (the three tabs, PR #252, Hazel at work), the lint phone check and the T7 device checks (-1212, -1213), and the camera lens fixes (-1149).
 **Notes:** Written by the planner by hand, on branch records-after-173. From here on, forecast entries are in the forecast's own record, and this file cites them by that record's IDs. Next free ID -1252.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1252
+**Timestamp:** 2026-10-18T05:40:26Z
+**Closes:** 2026-09-28-1248
+**Outcome:** partial
+**Observed:** Ash's T8 plan reached a full draft with 13 decisions (t8-plan d6f916ae, marked "WIP, paused"), not self-checked, after the premise stop (-1249) and the owner's reshaping (-1250).
+**Deferred:** finishing and self-checking the plan, and bringing its decisions to the owner. This passes to the forecast planner with the rest of the forecast work (-1251) and continues in the forecast's own record.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1253.
