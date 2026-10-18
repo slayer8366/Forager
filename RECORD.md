@@ -21613,3 +21613,23 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Finish line:** Elder's report filed; then the owner's approval and the promotion PR.
 **Abort conditions:** a head mismatch; pre-main CI not green at e61e248a; anything that needs a write.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1267.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1267
+**Timestamp:** 2026-10-18T13:30:14Z
+**Continues:** 2026-09-28-493
+**Title:** Forager's own basemap goes first, with the trail map built alongside and finishing when it lands; Elder reviews what the map's design needs (owner)
+**The owner, verbatim:** "Let's draft a plan for the maps to be set up so we can get on it sooner than later. I expect a lot of users to sign up. Plus the iOS rollout will double that. So better on it now than later." Then "And yes have Juniper check it". Then "Basemap first, trail map side by side and have it finish when it lands. Basemap can roll out fast without a problem. It's the design that we will need to work on, so have Elder take a look at what needs to be done".
+**What it sets:**
+- The own map service (spec 2026-10-04, -492/-493) is split into two tracks:
+  - **(1) the basemap first,** served from the owner's own infrastructure, sized for a public launch and a later iOS app, taking the on-screen maps off third-party servers;
+  - **(2) the trail map and navigation,** built alongside and finishing when it is ready.
+- **The owner's reading:** the basemap's rollout is not the hard part; its design is.
+- **Elder Ford** reviews what the map's design needs before the plan is written.
+- **Inputs to the plan:**
+  - a read-only survey of the map service's state;
+  - Juniper's research into the usage policies of the current tile, font and satellite servers, and Cloudflare's paid limits and costs.
+- This is a plan, not a go to build.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1268.
