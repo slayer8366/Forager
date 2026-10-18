@@ -21245,3 +21245,21 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **The owner, verbatim:** "And have the search bar slide up and down when revealing/hiding".
 **What it sets:** in landscape Journal (J5's reveal), the pill slides down into place when revealed, and up out of view when hidden by the icon or by Back. The content moves smoothly with it, using the app's existing motion constants from ui/motion/. Added to PR #252 in this release.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1245.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1245
+**Timestamp:** 2026-10-18T05:15:47Z
+**Continues:** 2026-09-28-1243
+**Title:** Offline-maps screen: three explanatory lines removed in both orientations; the continental-US note at the bottom; the tile budget shows the figure only (owner)
+**The owner, verbatim:** to Hazel's list (AvailabilityOfflineMapsUi.kt): "Option 1, but do the same for portrait"; to the budget line: "Keep the figure, drop the explanation (Recommended)".
+**What it sets,** on the offline-maps download screen in landscape and portrait:
+- **Removed:**
+  - "Offline downloads cover the continental United States with vector map data. Pan the map below to position the pin, then tap OK to choose where to download." (:189-190);
+  - the centre-pin instruction "Pan the map to position the pin, then confirm." (this screen only; the other pickers keep it);
+  - "No location picked yet — pan the map above and tap OK." and "Download region: <lat>, <lng>" (:198, :200). "Pin at: …" remains.
+- **Moved:** "Offline downloads cover the continental United States with vector map data." becomes the screen's last line.
+- **Trimmed:** "Tile budget: <used> / <limit>" keeps the figure and drops its explanatory sentence.
+- In PR #252, this release.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1246.
