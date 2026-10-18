@@ -21554,3 +21554,11 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Not tested:** the S22's real insets (the tests assumed a 32 dp cut-out); real tablet hardware; rotation keeping the live map without a rebuild.
 **Device:** the PR's CI build (run 39128621114) is installed on the S22 for the owner's re-check.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1262.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1262
+**Timestamp:** 2026-10-18T13:05:31Z
+**Corrects:** 2026-09-28-1261
+**Notes:** -1261's "Device" line says PR #255's build is installed on the S22. It is not: the S22 was not connected when the install ran (adb: device not found), and the planner wrote the line before reading the result. The APK is downloaded at ~/Zynergy/device-evidence/apk-255/ and will be installed when the phone is connected. -1261 is not edited. Written by the planner by hand, on branch records-after-173. Next free ID -1263.
