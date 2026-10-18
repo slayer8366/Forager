@@ -21875,3 +21875,21 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - The Pi, as builder or as anything else, is planning for after launch. -879 and the lifted 08/22 ruling in -1276 stand as written; only the hand-off moves.
 - **Constraint to plan around (planner's estimate, not measured):** a whole-US cut at zoom 15 is likely 10 to 20 GB. The live US archive at zoom 14 is 8.3 GB (2026-10-04 Pi-origin report). The work drive has 4.2 GB free (-1279), and the root drive 8.6 GB.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1281.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1281
+**Timestamp:** 2026-10-18T14:34:52Z
+**Continues:** 2026-09-28-1280, 2026-09-28-1277, 2026-09-28-1276
+**Supersedes:** -1280's "the launch map work stays on the laptop side; the Pi is post-launch"
+**Title:** A Pi planner is downloading and building the maps; the laptop side does what the app needs for proper maps tonight, before release; Cloudflare, not OSM, serves the maps; Hazel's two tasks move to this planner session (owner)
+**The owner, verbatim:**
+- In the outgoing planner's window, 14:28 to 14:32Z: "I have an RPI planner working on the maps download and building. Once that's ready I'll let you know"; "The laptop will do what it needs to to have proper maps tonight before release."; "Cloudflare needs to be front and center for the maps serving, not OSM"; "Send them to the new planner and have them continue there"; "Don't cancel the CI runs / Keep them going" (14:33Z).
+- In this window: "Read the other session", in answer to the planner's question about which of -1280 and those words stands. The words above were read from the outgoing session's own transcript, not from its relay.
+**What it sets:**
+- **The Pi planner builds and downloads the maps.** The owner says when that's ready. This window's 14:18Z "No session exists... Pi is post launch planning" (-1280) is superseded by the later words.
+- **This planner plans the app side** for tonight's release: the app's Street and Topo maps come from the owner's Cloudflare mapping service instead of OpenStreetMap's and OpenTopoMap's public servers (Basemap.kt:113-132, per the outgoing session's relay, not yet re-read here).
+- **Hazel's topup-items (2026-10-18-03, PR #256) and map-launch-fixes (2026-10-18-04, PR #257)** continue as fresh Hazel helpers started from this session, from the pushed heads 392846f9 and b3ca6a56. The outgoing session's helpers were stopped by its mistaken "stop everything" (meant for another session) and can't be moved.
+- **CI:** all eight runs on those branches and on map-launch-fixes-revert-1 to -6 were in progress or queued at 14:39Z; none is cancelled.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1282.
