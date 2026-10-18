@@ -22377,3 +22377,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Dispatch:** preserved/2026-10-18-07.md, for Hazel. Branch offline-street-logo from pre-main d942e022, as a PR into pre-main.
 - **Effect on the promotion:** this change goes into pre-main before the promotion, so the S26 and tablet checks need the build that includes it, or a re-check of steps 3 and 6 on it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1310.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1310
+**Timestamp:** 2026-10-18T19:59:49Z
+**Continues:** 2026-09-28-1305
+**Title:** The Pi's tile server and tunnel are stopped and disabled at the owner's word; the Worker serves the offline style and all tiles from R2 (Pi session report; planner checked)
+**Observed:**
+- **The Pi session's report** (raspberrypi-fizzy-lagoon, by message): the owner ruled "no more serving". The Pi's tile server and tunnel were stopped and disabled at about 12:58 PDT, and the owner had the planner's warning before ruling. origin.zynergy-labs.com no longer serves.
+- **The planner's own check** at 2026-10-18T19:59:49Z, with cache-busting queries:
+  - `/style/offline.json`: 200, in 0.2 s;
+  - `/us.json`: 200;
+  - tiles at z6, z12 and z15: 200, `x-forager-origin: r2`, in about 0.5 to 0.6 s each.
+  So the offline-download path works without the Pi, and there is no timeout wait, because PI_ORIGIN_URL is already unset (-1305).
+- **Build side, per the Pi session:**
+  - `build-usca.sh` (US and Canada, z15, coverage checks including Anchorage, Honolulu and San Juan) is committed on branch pi-build at 92856ef1, and has not run.
+  - The extracts are downloading over Wi-Fi, about 3.5 h to go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1311.
