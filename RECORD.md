@@ -21816,3 +21816,47 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Stays with Rowan:** the app side (A0's launch fixes in flight, A4's app switch) and the design decisions with the owner. The A3 style work is to be settled between the two planners through the owner.
 - "Nothing gets down here" is read as no map build work on the laptop side.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1277.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1277
+**Timestamp:** 2026-10-18T14:09:31Z
+**Continues:** 2026-09-28-1275
+**Title:** A new planner session takes over from the 2026-10-18 handoff; the outgoing session finishes Hazel's two items in flight and then stops (owner)
+**The owner, verbatim:** "1 yes", answering: should the new session take over as planner now, with the old session stopped once Hazel's two builds report?
+**What it sets:**
+- The new session (bridge cse_01APuo5W9KvmdA2SKXfUTLBH) is the app planner from here.
+- The outgoing session keeps Hazel only until topup-items (2026-10-18-03, -1270) and map-launch-fixes (2026-10-18-04, -1273) report back. It sends both reports to the new session and records nothing new; the owner stops it after that.
+- Owner answers for Hazel are relayed through the outgoing session until then. That session holds Hazel, and the new one can't reach Hazel directly.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1278
+**Timestamp:** 2026-10-18T14:09:31Z
+**Continues:** 2026-09-28-1273
+**Title:** Map launch fixes: remove the map's font request, keeping the names printed in the map tiles; a failed map-client install is a map start-up failure; OpenTopoMap's full credit goes in tap-to-reveal attribution (owner)
+**The owner, verbatim:** "3a remove the fonts requests, but keep the text / 3b option i / 3c option c", then "1 yes" to the planner's check: "keep the text" means the place and trail names printed into the map pictures, which removing the font request doesn't touch.
+**What it sets:**
+- **(A)** "glyphs" is dropped from both style builders (BasemapStyles.kt; both are raster-only, so no on-map text depends on it), and the unused font stack is deleted. The software credits entry for the glyph font is updated to match. No font server, no bundled font, no font licence.
+- **(B)** If the map HTTP client can't be installed in MapLibreInitializer's success path, that counts as a map start-up failure: logged, retried, and the map stays blank as on any start-up failure. The library's default User-Agent never goes out. Rejected: (ii) letting the library User-Agent go out, logged; (iii) blocking the OSM and OpenTopoMap tiles behind a message.
+- **(C)** The map caption carries OpenTopoMap's short credit, and the full credit is in the tap-to-reveal attribution. This answers the wrap risk Hazel estimated: about 379 dp of credit against the S22's 384 dp portrait width. Rejected: (a) two lines, (b) a smaller caption, (d) merging duplicate credits.
+- Relayed to Hazel through the outgoing planner session (-1277). B and C went first, then A after the check.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1279
+**Timestamp:** 2026-10-18T14:09:31Z
+**Title:** The full work drive: 28 repository bundles already on GitHub and the main checkout's build output are deleted; Alder is told and asked to propose the forecast side (owner)
+**The owner, verbatim:** "delete the 26 repo bundles, build output, the safe items. Tell Alder the drive is full and have him propose what is safe to clear."
+**What it sets:**
+- Deleted from ~/Zynergy/forager-repo-backups: every bundle whose ref tips were all on a GitHub branch, re-checked just before each deletion. That came to **28 bundles, not the 26 the planner had told the owner**: a hand miscount of a list whose total size (3.7 GB) was right. The same miscount put the remaining bundles at 31; there are 26. Each deleted bundle is listed, with its tip, in that folder's INDEX.md.
+- Deleted: ~/Zynergy/Forager/app/build (0.56 GB, which a build regenerates).
+- /mnt/work went from 34 MB free (06:56 PDT) to 4.2 GB free (93% full).
+- **Kept:** the 26 bundles not fully on GitHub (including today's migration and undo bundles); the debug app copies in device-evidence, which the owner didn't include; all device evidence; the two privacy-scrub backup folders.
+- Alder (forecast planner) was told the drive was full and asked to propose, with evidence, what forecast data and worktrees are safe to clear.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1280.
