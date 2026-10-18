@@ -264,7 +264,6 @@ internal fun OfflineMapsPanel(
     val downloadButton: @Composable (Modifier, PaddingValues) -> Unit = { buttonModifier, padding ->
         Button(
             onClick = {
-                onRegionPicked(pinState.cameraCenter)
                 confirmingDownload = true
             },
             enabled = pinIsAPlace && !isDownloading,
