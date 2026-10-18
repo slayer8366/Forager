@@ -22165,3 +22165,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **(2) The Cloudflare changes for the Street switch** are made from the laptop, by Hazel, under a dispatch. That covers routes, the style file, fonts, icons and cache rules on the mapping service. The account is the owner's existing mapping account, the one that holds the `forager-pmtiles` Worker (`server/pmtiles-worker/wrangler.toml`), not zynergy-labs (-1272). The Pi planner builds and downloads the tile data (-1281).
 - **(3) Tiles for the switch:** option (a), the US archive already in R2 (`us.pmtiles`). It's a cut of Protomaps' 2026-08-19 build to zoom 14, with z15 read live from Protomaps (plan section 2; not re-read here). The Pi planner's fresh download replaces it when it's ready.
 **Notes:** Written by the planner by hand, on branch records-after-173. The Street-switch dispatch is written next; building it waits for the owner's go. Next free ID -1298.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1298
+**Timestamp:** 2026-10-18T18:15:55Z
+**Continues:** 2026-09-28-1297, 2026-09-28-1281, 2026-09-28-1282
+**Title:** Street from the owner's Cloudflare, Part 1: a read-only report on the tiles, the deployed Worker, deploying from the laptop, fonts and icons, the style, the app switch and old regions, with Part 2 priced against tonight's release (planner)
+**Dispatch-file:** preserved/2026-10-18-05.md, for Hazel Cairnwright, when the owner gives the go
+**Scope:** read-only. Only the report and its index row go on a new branch `street-cloudflare`. Nothing is deployed, uploaded or changed on Cloudflare. No Gradle on the laptop.
+**Baseline:** pre-main 712ff277. Cloudflare holds the `forager-pmtiles` Worker, last modified 2026-10-15T17:04:41Z, and the `forager-maps` bucket. Both were read by the planner through the Cloudflare connector, so that connector reaches the mapping account. The laptop has no wrangler on PATH and no wrangler login.
+**Prediction (outcome, planner):** the tiles carry footway, path and track kinds and most of the outdoor POIs, but not an informal-path class; deploying needs an owner login; Part 2 doesn't fit before tonight's release build, so the release ships Street on OpenStreetMap per -1282.
+**Finish line:** the report is pushed, with its hash sent to the planner.
+**Abort conditions:** reading needs a Cloudflare login or token; a premise is wrong in a way that changes Part 2; a design decision can't be met with these tiles.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1299.
