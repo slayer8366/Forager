@@ -21907,3 +21907,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Source:** if the Cloudflare street map is ready and passes its phone check before the release build, Street uses it. If not, Street ships on OpenStreetMap's raster tiles as today and moves to Cloudflare in a later update.
 - **No switching while the app is in use:** once Street draws from Cloudflare, the app does not fall back to OpenStreetMap when the service doesn't answer. That case is an ordinary map load failure.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 3 to 11 still to come. Next free ID -1283.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1283
+**Timestamp:** 2026-10-18T14:56:53Z
+**Continues:** 2026-09-28-1273, 2026-09-28-1278
+**Title:** Map launch fixes: the failing User-Agent test is replaced by two tests; a failed map start-up is to show a message with Try again instead of crashing, fixed before release (owner)
+**The owner, verbatim:** "1 Option 1 / 2 option 1", answering two questions from Hazel's map-launch-fixes report (b28c503d, `docs/audits/2026-10-18-map-launch-fixes-completion-report.md`), as the planner put them.
+**What it sets:**
+- **(1)** `MapUserAgentTest`'s "starting the application installs the client…" pinned the install-anyway behaviour that -1278 (B) removes, and fails at b3ca6a56 (CI 39136088411: 5,064 tests, 1 failure). It is replaced by two tests:
+  - application start where MapLibre's start-up fails installs no client;
+  - a successful install carries the app's User-Agent into MapLibre.
+  `MapLibreInitializerTest`'s "never falls back to MapLibre's default User-Agent", which passes the same before and after (b), may go with it. This is a replacement for a changed behaviour, ruled by the owner, not a weakening.
+- **(2)** A failed MapLibre start-up shows on the map screen as a plain message with Try again, not a crash. Step path, as offered: "Maps > the map can't start > message with Try again > tap > map loads". Fixed before release.
+  - **The case, inferred from code, not seen on a phone:** `MapLibreInitializer.kt:42-49` (map-launch-fixes) logs and rethrows. `SightingsMap.kt:322-326` calls `initializeMapLibre` inside `remember {}` with no catch. Read by the planner, matching Hazel's finding.
+  - This was already true on pre-main for any start-up failure.
+  - The exact message text and the dispatch route are for the planner to bring to the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1284.
