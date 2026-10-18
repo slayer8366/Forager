@@ -21573,3 +21573,27 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Device:** S22 Ultra, Forager debug 1.0.3434+g7a20b27c (PR #255's CI run 39128621114), installed with its data kept.
 **The owner, verbatim:** "Pass 1-3". Steps: (1) the day entry's 4:3 map on the left with its info on the right, scrolling, and Back; (2) the rail reaching the screen edge in both rotations with no icon in the cut-out, on every tab; (3) Seasonal's single Open-Meteo credit at the bottom.
 **Notes:** Written by the planner by hand, on branch records-after-173. This completes the deferred lint step 2 and outline B3 (-1258). Next free ID -1264.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1264
+**Timestamp:** 2026-10-18T13:19:36Z
+**PR:** 255
+**Head:** landscape-entry-rail-credit (427effd1)
+**Base:** pre-main
+**Merge-commit:** e61e248aa417d7c2230c7fc22cdaf0be43214a38
+**Pre-merge:** 7904f18e
+**Backup:** pre-main-20261018T131925Z-7904f18e.bundle (verified)
+**Notes:** The owner, verbatim: "Merge it (Recommended)", after "Pass 1-3" (-1263). All three checks passed. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1265.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1265
+**Timestamp:** 2026-10-18T13:19:36Z
+**Closes:** 2026-09-28-1259
+**Outcome:** done
+**Observed:** PR #255 merged (-1264), green (-1261), passed on the S22 (-1263).
+**Deferred:** the missing map test tag in fullscreen, an existing quirk Hazel flagged.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1266.
