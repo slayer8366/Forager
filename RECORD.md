@@ -21455,3 +21455,27 @@ It ends with numbered decisions for the owner, each with a recommendation.
 **Covered,** per the planner's checklist: Seasonal and List with the pill at the left and a solid search panel; Journal's pill sliding with J5; the Records chips on the switch line; the offline-maps screen (the Name box and slider in view, the one-line buttons, the US note last, the budget figure only); the rail under the keyboard.
 **Not stated:** per-step results. The planner records the owner's overall word, and has seen no per-step evidence.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1256.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1256
+**Timestamp:** 2026-10-18T11:54:12Z
+**PR:** 252
+**Head:** tabs-map-chrome-shape (92ca1adf)
+**Base:** pre-main
+**Merge-commit:** 7904f18e911ddec4844d21883d26d8f997a600d6
+**Pre-merge:** fe0baf4a
+**Backup:** pre-main-20261018T115402Z-fe0baf4a.bundle (verified)
+**Notes:** The owner, verbatim: "Merge it (Recommended)", after "Looks good on S22" (-1255). All three checks passed at 92ca1adf. Merged with a merge commit, pinned to the head. The owner also ruled on the phone checks: "1 to 3 can be done, defer 4 for now" (the lint steps, outline B3 to B5 and the credits links now; the height checks D1 and D2 deferred), and "Do them now". Written by the planner by hand, on branch records-after-173. Next free ID -1257.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1257
+**Timestamp:** 2026-10-18T11:54:12Z
+**Closes:** 2026-09-28-1226
+**Outcome:** done
+**Observed:** PR #252 merged into pre-main (-1256), carrying -1225 to -1253's landscape and tab rulings; checked on the S22 (-1255).
+**Deferred:** the gap between the cut-out and the rail, and the first-visit fallback size in landscape (device only, not reported).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1258.
