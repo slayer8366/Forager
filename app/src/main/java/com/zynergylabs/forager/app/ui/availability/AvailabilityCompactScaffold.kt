@@ -1013,7 +1013,7 @@ internal fun CompactMainScaffold(
                         val farIsLeft = portEdge == ScreenEdge.Right
                         val area = Modifier.absolutePadding(left = if (farIsLeft) navBarFarSide else 0.dp, right = if (farIsLeft) 0.dp else navBarFarSide)
                         if (lastMapsStripWidth > 0.dp) {
-                            area.padding(horizontal = lastMapsStripWidth / 2).fillMaxWidth()
+                            area.absolutePadding(right = lastMapsStripWidth).fillMaxWidth()
                         } else {
                             area.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).fillMaxWidth(0.5f)
                         }
