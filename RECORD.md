@@ -21760,3 +21760,42 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Finish line:** a PR into pre-main, green, merged on the owner's word after an S22 check.
 **Abort conditions:** the User-Agent fallback needs a behaviour choice; the credit wraps; route (a) fails and (b) needs a Cloudflare change; a test would have to be weakened.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1274.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1274
+**Timestamp:** 2026-10-18T13:54:32Z
+**Continues:** 2026-09-28-1272, 2026-09-28-1271
+**Title:** Basemap design decision 1: the whole US is built first, so the own map covers the country from day one (owner)
+**The owner, verbatim:** "Whole US built first", to "Design 1, where does your own Street map show, while only some areas are built?" The option read: "Use Protomaps' US cut so the own map covers the whole country from day one (no fallback needed in the US)." The other options were: the own map where built and the old map elsewhere (recommended), or the own map only, blank elsewhere.
+**What it sets:** the own Street map launches with a whole-US tile set, Protomaps' US cut (plan A2 a), so there is no fallback inside the US. Coverage outside the US remains open (-1243).
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 2 to 11 are still to come, one at a time. Next free ID -1275.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1275
+**Timestamp:** 2026-10-18T13:54:32Z
+**Title:** Planner handoff to a new session (owner)
+**Handoff-file:** prompts/preserved/2026-10-18-planner-handoff.md (this branch), replacing 2026-10-17-planner-handoff.md as the start point.
+**The owner, verbatim:** "Write a handoff" (given in answer to what to clear from the full work drive).
+**At handoff:**
+- **Urgent:** /mnt/work is full (158 MB free). Nothing has been deleted; the candidates are in the handoff.
+- **Running:**
+  - Hazel on topup-items (-1270);
+  - Hazel on map-launch-fixes (-1273), which has three owner questions pending (glyphs, the User-Agent fallback, the credit width).
+- **Awaiting the owner:**
+  - those three questions;
+  - what to clear on the disk;
+  - design decisions 2 to 11;
+  - merges of items 1 and 2 after S22 checks;
+  - promotion approval;
+  - the release build.
+- **The forecast** is all with Alder Bearing.
+- **The open-intents check:**
+  - -1270 and -1273 are open and in progress;
+  - -1267/-1271 (the map plan) are open, awaiting decisions;
+  - -1149 (lens fixes) is open;
+  - every other intent from this session is closed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1276.
