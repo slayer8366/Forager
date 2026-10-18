@@ -228,14 +228,6 @@
       ]
     },
     {
-      "name": "Open Sans, the map's label font",
-      "licence": "Apache-2.0",
-      "credit": [
-        "Digitized data copyright © 2011, Google Corporation."
-      ],
-      "note": "Drawn from glyphs the map fetches from MapLibre's demo server (demotiles.maplibre.org), which were built from the Open Sans in github.com/openmaptiles/fonts. That font file, Open Sans Semibold version 1.10, states: \"Licensed under the Apache License, Version 2.0\"."
-    },
-    {
       "name": "MapLibre Native, the map renderer (Android SDK 13.5.0)",
       "licence": "BSD-2-Clause",
       "credit": [

@@ -35,12 +35,13 @@ class BasemapTest {
     private val minimumUsableMaxZoom = 13
 
     @Test
-    fun `the default basemap is OpenTopoMap, derived from MapMode's default`() {
+    fun `the default basemap is OpenStreetMap's Street, derived from MapMode's default`() {
         // Not USGS Topo (PR #13's original default, deleted from the catalogue entirely once
         // MapMode superseded it): MapMode.DEFAULT is Topographical via OpenStreetMap, because USGS
         // covers the United States only and a US-only opening basemap would break the map outright
         // for every user outside it. See MapMode's own doc comment.
-        assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT)
+        // Was assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT): the opening map became Street (dispatch 2026-10-18-04, Amendment 2; RECORD -1297).
+        assertEquals(Basemap.OSM_STANDARD, Basemap.DEFAULT)
         assertEquals(MapMode.DEFAULT.basemap, Basemap.DEFAULT)
     }
 
@@ -95,5 +96,27 @@ class BasemapTest {
                 basemap.maxZoom >= minimumUsableMaxZoom,
             )
         }
+    }
+
+    /**
+     * Dispatch 2026-10-18-04, item 3. OpenTopoMap's own page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM |
+     * Kartendarstellung: © OpenTopoMap (CC-BY-SA)" (Juniper's research, Q2). The owner's "option c": the short form stays
+     * in the always-visible caption, where the full one would wrap on the S22 in portrait, and the full English form goes
+     * in the tap-to-reveal attribution ([Basemap.fullAttribution]). Both texts are pinned here, and the caption is read
+     * through the function the map's caption draws ([attributionCaption] of [mapCreditsFor]).
+     */
+    @Test
+    fun `OpenTopoMap's caption keeps the short credit and its full credit is the long form`() {
+        assertEquals("© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.fullAttribution)
+        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.attribution)
+        assertEquals(
+            "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
+            attributionCaption(mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false)),
+        )
+    }
+
+    @Test
+    fun `Street's caption and full credit are the same line`() {
+        assertEquals(Basemap.OSM_STANDARD.attribution, Basemap.OSM_STANDARD.fullAttribution)
     }
 }

@@ -19,12 +19,14 @@ import org.maplibre.android.MapLibre
  *
  * [initializeMapLibre] is the one function every entry point calls instead of
  * `MapLibre.getInstance()`; `ForagerApplication.onCreate` calls it at process start so nothing
- * reads or composes a map before MapLibre is initialised (F2).
+ * reads or composes a map before MapLibre is initialised (F2). It also installs the map's HTTP
+ * client, right after the SDK call succeeds ([MapLibreInitializer]'s doc comment).
  */
 private const val TAG = "MapLibreStorage"
 
 private val mapLibreInitializer = MapLibreInitializer(
     getInstance = { context -> MapLibre.getInstance(context) },
+    installHttpClient = { installMapHttpClient() },
     info = { message -> Log.i(TAG, message) },
     error = { message, cause -> Log.e(TAG, message, cause) },
 )

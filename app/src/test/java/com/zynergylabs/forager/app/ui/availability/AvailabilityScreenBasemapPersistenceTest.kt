@@ -202,18 +202,20 @@ class AvailabilityScreenBasemapPersistenceTest {
 
     @Test
     fun `a basemap picked in the sheet survives a restart, with no style released for the default first`() {
-        // First launch: nothing stored, the map opens on Topographical, and Street is picked with real touches.
+        // First launch: nothing stored, the map opens on Street, and Topographical is picked with real touches. (Was the
+        // other way round, opening on Topographical with Street picked, until Street became the opening map:
+        // dispatch 2026-10-18-04, Amendment 2; RECORD -1297.)
         val (firstRepository, firstScope) = launchRepository()
         val firstViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = firstRepository)
         var current by mutableStateOf(firstViewModel)
         composeRule.setContent { key(current) { MapLayersTestScreen(current, slot, AbsentForecastCellStore) } }
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
-        assertEquals(Basemap.OPEN_TOPO_MAP, released().last().basemap)
+        assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
 
         touchLayersRow()
-        composeRule.onNodeWithText("Street").performTouchInput { click() }
-        awaitIdle("Street to be stored") { stored(firstRepository) == "street" }
-        assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
+        composeRule.onNodeWithText("Topographical").performTouchInput { click() }
+        awaitIdle("Topographical to be stored") { stored(firstRepository) == "topographic" }
+        assertEquals(Basemap.OPEN_TOPO_MAP, released().last().basemap)
 
         // The process ends: the first repository lets go of the file.
         release(firstScope)
@@ -236,11 +238,11 @@ class AvailabilityScreenBasemapPersistenceTest {
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
 
         assertEquals(
-            "every render mode the map may draw is the restored Street",
-            listOf(Basemap.OSM_STANDARD),
+            "every render mode the map may draw is the restored Topographical",
+            listOf(Basemap.OPEN_TOPO_MAP),
             released().map { it.basemap }.distinct(),
         )
-        composeRule.onNode(hasContentDescription("Layers: Street map.", substring = true)).assertExists()
+        composeRule.onNode(hasContentDescription("Layers: Topographical map.", substring = true)).assertExists()
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }
 }

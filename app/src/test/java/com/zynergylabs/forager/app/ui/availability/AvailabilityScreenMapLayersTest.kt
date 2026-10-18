@@ -177,10 +177,11 @@ class AvailabilityScreenMapLayersSheetTest {
         setScreen()
         openSheet()
 
-        composeRule.onNodeWithText("Street").touch()
+        // Topographical, away from the opening Street (dispatch 2026-10-18-04, Amendment 2); this picked Street before.
+        composeRule.onNodeWithText("Topographical").touch()
         composeRule.waitForIdle()
 
-        assertEquals(Basemap.OSM_STANDARD, map.renderMode?.basemap)
+        assertEquals(Basemap.OPEN_TOPO_MAP, map.renderMode?.basemap)
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
     }
 

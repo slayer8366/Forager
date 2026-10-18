@@ -93,8 +93,8 @@ import com.zynergylabs.forager.app.ui.log.CartographyUiState
  * what it is handed and counts the plain taps that reach it; and the screen wired to the ViewModel.
  */
 
-/** The Layers row's description at the default basemap (the dispatch, B1). */
-internal const val LAYERS_ROW_DESCRIPTION = "Layers: Topographical map. Choose the map type and overlays."
+/** The Layers row's description at the default basemap (the dispatch, B1): Street since it became the opening map (dispatch 2026-10-18-04, Amendment 2; RECORD -1297); was Topographical. */
+internal const val LAYERS_ROW_DESCRIPTION = "Layers: Street map. Choose the map type and overlays."
 
 /** Both synthetic groups, as the debug store reports them with the switch on. */
 internal val BOTH_FORECAST_GROUPS: Set<String> = COLOUR_FIELDS.map { it.group }.toSet()
@@ -204,7 +204,7 @@ internal fun mapLayersViewModel(
     // Dispatch 2026-09-28-767: the quick menu's "Battery saver". Defaulted to the repository's default, off.
     getBatterySaverEnabled: suspend () -> Result<Boolean> = { Result.success(false) },
     setBatterySaverEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
-    // Dispatch 2026-09-28-708: where the Maps tab's basemap is kept. Defaulted to nothing stored, which opens on Topographical as before.
+    // Dispatch 2026-09-28-708: where the Maps tab's basemap is kept. Defaulted to nothing stored, which opens on the default, Street since Amendment 2 of dispatch 2026-10-18-04.
     basemapPreferences: BasemapPreferenceRepository = InMemoryBasemapPreference(),
     // RECORD -711: where the icon cluster's side and height are kept. Defaulted to nothing stored, which opens it where it always opened.
     clusterPlacements: MapIconClusterPlacementRepository = InMemoryClusterPlacement(),

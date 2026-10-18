@@ -6,6 +6,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
@@ -34,6 +35,21 @@ class BasemapStyleTest {
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun parsedStyle(basemap: Basemap) = json.parseToJsonElement(styleJsonFor(basemap)).jsonObject
+
+    /**
+     * Dispatch 2026-10-18-04, item 1: MapLibre's demo host (`demotiles.maplibre.org`) is not a production service
+     * (Juniper's research, `docs/audits/2026-10-18-map-services-policy-and-cost-research.md` Q4: "Dev only"). Every style
+     * the app builds, day and night, for every basemap, is read in full: no URL in it may point there.
+     */
+    @Test
+    fun `no style the app builds asks MapLibre's demo server for anything`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { night ->
+                val style = styleJsonFor(basemap, night)
+                assertFalse("${basemap.name} (night=$night) still names the demo host: $style", style.contains("demotiles.maplibre.org"))
+            }
+        }
+    }
 
     @Test
     fun `every basemap produces valid, parseable style JSON`() {
@@ -75,28 +91,65 @@ class BasemapStyleTest {
         Basemap.entries.forEach { basemap ->
             val source = parsedStyle(basemap).getValue("sources").jsonObject.getValue(RASTER_SOURCE_ID).jsonObject
             assertEquals(
-                "${basemap.name}: the style JSON's attribution must match Basemap.attribution exactly.",
-                basemap.attribution,
+                "${basemap.name}: the style JSON's attribution must match Basemap.fullAttribution exactly.",
+                basemap.fullAttribution,
                 source.getValue("attribution").jsonPrimitive.content,
             )
         }
     }
 
     /**
-     * The regression guard named in `BasemapStyles.kt`'s own doc comment: a style with no `glyphs`
-     * URL renders every `text-field` (the numbered area-marker labels) as nothing, silently — hit
-     * for real once already and fixed before `MapLibreBasemapPreviewActivity` (the scaffolding that
-     * found it) was deleted. Checked for every basemap, not just one, since [SightingsMap] adds the
-     * label layer on top of whichever basemap happens to be active.
+     * Dispatch 2026-10-18-04, item 3, the owner's "option c": OpenTopoMap's full credit, as its own page asks for it,
+     * goes in the tap-to-reveal attribution, which MapLibre builds from each style source's `attribution`. Read at
+     * topo night too, where the style has the Street source below it with its own credit.
      */
     @Test
-    fun `every basemap's style JSON declares a glyphs URL`() {
+    fun `OpenTopoMap's tap-to-reveal credit is its full credit, day and night`() {
+        val full = "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)"
+        listOf(false, true).forEach { night ->
+            val sources = json.parseToJsonElement(styleJsonFor(Basemap.OPEN_TOPO_MAP, night)).jsonObject.getValue("sources").jsonObject
+            assertEquals("night=$night", full, sources.getValue(RASTER_SOURCE_ID).jsonObject.getValue("attribution").jsonPrimitive.content)
+        }
+        val night = json.parseToJsonElement(styleJsonFor(Basemap.OPEN_TOPO_MAP, night = true)).jsonObject.getValue("sources").jsonObject
+        val attributions = night.values.map { it.jsonObject.getValue("attribution").jsonPrimitive.content }
+        assertEquals(listOf(Basemap.OSM_STANDARD.fullAttribution, full).sorted(), attributions.sorted())
+    }
+
+    /**
+     * Dispatch 2026-10-18-04, item 1 (owner: "remove the fonts requests, but keep the text"). No style declares a
+     * `glyphs` URL, so MapLibre has nowhere to fetch fonts from. This replaces the test that every style declared one:
+     * that guarded the numbered area-marker labels, which left the app with the foraging-areas feature (`192db6c7`),
+     * and no layer the app adds has drawn map text since.
+     */
+    @Test
+    fun `no style declares a glyphs URL, day or night`() {
         Basemap.entries.forEach { basemap ->
-            assertEquals(
-                "${basemap.name}: missing or wrong glyphs URL means area-marker number labels silently render as nothing.",
-                GLYPHS_URL_TEMPLATE,
-                parsedStyle(basemap).getValue("glyphs").jsonPrimitive.content,
-            )
+            listOf(false, true).forEach { night ->
+                val style = json.parseToJsonElement(styleJsonFor(basemap, night)).jsonObject
+                assertFalse("${basemap.name} (night=$night) still declares glyphs: ${style["glyphs"]}", style.containsKey("glyphs"))
+            }
+        }
+    }
+
+    /**
+     * "Keep the text", as the owner confirmed it: the place and trail names are printed into the raster tile images
+     * themselves, so what keeps them is every raster layer still drawing its basemap's own tile template. Read for every
+     * source of every style, day and night (topo night has two).
+     */
+    @Test
+    fun `the raster tiles that carry the map's printed names are untouched`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { night ->
+                val style = json.parseToJsonElement(styleJsonFor(basemap, night)).jsonObject
+                val sources = style.getValue("sources").jsonObject
+                assertEquals(
+                    "${basemap.name} (night=$night): the basemap's own tiles",
+                    listOf(basemap.tileUrlTemplate),
+                    sources.getValue(RASTER_SOURCE_ID).jsonObject.getValue("tiles").jsonArray.map { it.jsonPrimitive.content },
+                )
+                sources.values.forEach { assertEquals("raster", it.jsonObject.getValue("type").jsonPrimitive.content) }
+                style.getValue("layers").jsonArray.forEach { assertEquals("raster", it.jsonObject.getValue("type").jsonPrimitive.content) }
+            }
         }
     }
 

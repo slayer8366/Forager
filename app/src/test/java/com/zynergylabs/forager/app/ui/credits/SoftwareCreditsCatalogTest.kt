@@ -38,12 +38,21 @@ class SoftwareCreditsCatalogTest {
         assertEquals("MIT", licenceOf("NGA Simple Features"))
         assertEquals("MIT", licenceOf("NGA Color"))
         assertEquals("OFL-1.1", licenceOf("Noto Sans"))
-        assertEquals("Apache-2.0", licenceOf("Open Sans"))
         assertEquals("MPL-2.0", licenceOf("The Public Suffix List"))
         listOf("AndroidX", "Retrofit", "OkHttp", "kotlinx").forEach { assertEquals(it, "Apache-2.0", licenceOf(it)) }
         listOf("Compose", "Room", "CameraX").forEach { part ->
             assertTrue("$part is named in the AndroidX entry", libraries.single { it.name.startsWith("AndroidX") }.name.contains(part))
         }
+    }
+
+    /**
+     * Dispatch 2026-10-18-04, item 1: the map fetches no fonts any more (no style declares `glyphs`), so the app ships
+     * and draws no Open Sans, and the page no longer credits a font it does not use. This replaces the line above that
+     * pinned Open Sans's licence, which held while the map fetched its glyphs from MapLibre's demo server.
+     */
+    @Test
+    fun `no map label font is credited, now the map fetches none`() {
+        assertTrue("still credited: ${libraries.map { it.name }}", libraries.none { it.name.startsWith("Open Sans") })
     }
 
     @Test

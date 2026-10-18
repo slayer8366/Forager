@@ -38,14 +38,19 @@ enum class MapMode(
     ;
 
     companion object {
-        /** Topographical, via OpenStreetMap: what the map opens on when nothing is stored. */
-        val DEFAULT = TOPOGRAPHIC
+        /**
+         * Street: what the map opens on when nothing is stored (dispatch 2026-10-18-04, Amendment 2; the owner, "1 go",
+         * RECORD -1297). It was Topographical until then. A stored choice is kept, so anyone who picked Topographical
+         * still opens on it; only someone with nothing stored (a new install, or a user who never picked) opens on Street.
+         */
+        val DEFAULT = STREET
 
         /**
          * Where a stored key that names no mode goes: Topographical. The case it was written for is a
          * removed mode (Satellite, and any later removal), and the owner's answer for anyone who had
          * Satellite chosen was "Topo (Recommended)". Named apart from [DEFAULT] because it is that
-         * answer, not the opening default; the two happen to be equal today.
+         * answer, not the opening default. They were equal until Amendment 2 of dispatch 2026-10-18-04 made the default Street;
+         * this one was deliberately left on Topographical (RECORD -1297).
          */
         val REPLACEMENT_FOR_UNKNOWN = TOPOGRAPHIC
 

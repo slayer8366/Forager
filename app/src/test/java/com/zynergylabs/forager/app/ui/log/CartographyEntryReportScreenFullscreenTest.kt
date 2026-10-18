@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
+import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -167,7 +168,7 @@ class CartographyEntryReportScreenFullscreenTest {
         setScreen()
         enterFullscreen()
 
-        composeRule.onNode(hasContentDescription("Layers: Topographical map. Choose the map type and overlays."))
+        composeRule.onNode(hasContentDescription("Layers: Street map. Choose the map type and overlays."))
             .performTouchInput { click() }
         composeRule.waitForIdle()
 
@@ -202,12 +203,12 @@ class CartographyEntryReportScreenFullscreenTest {
         setScreen()
         enterFullscreen()
         composeRule.onNodeWithContentDescription("Offline maps off").assertIsDisplayed()
-        composeRule.onNode(hasContentDescription("Layers: Topographical map. Choose the map type and overlays."))
+        composeRule.onNode(hasContentDescription("Layers: Street map. Choose the map type and overlays."))
             .assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Offline maps off").performClick()
 
-        composeRule.onNode(hasContentDescription("Layers: Topographical map. Choose the map type and overlays."))
+        composeRule.onNode(hasContentDescription("Layers: Street map. Choose the map type and overlays."))
             .assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Offline maps use one fixed style.").assertDoesNotExist()
     }
@@ -237,9 +238,11 @@ class CartographyEntryReportScreenFullscreenTest {
 
     /** The confirmed state leak this dispatch fixes — see [CartographyEntryReportScreen]'s own doc comment, "Fullscreen." */
     @Test
-    fun `the entry map's own basemap defaults to Topographical, independent of any injected value`() {
+    // Was "…defaults to Topographical…"; the default became Street (dispatch 2026-10-18-04, Amendment 2; RECORD -1297).
+    fun `the entry map's own basemap defaults to the default map, Street, independent of any injected value`() {
         setScreen()
 
         assertEquals(MapMode.DEFAULT.basemap, capturedRenderMode?.basemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedRenderMode?.basemap)
     }
 }

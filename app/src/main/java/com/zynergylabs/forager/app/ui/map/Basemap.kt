@@ -87,8 +87,8 @@ package com.zynergylabs.forager.app.ui.map
  * crediting neither The National Map nor the public-domain status, which is why [attribution] here
  * carries the fuller line instead of trusting that string. MapLibre has its own on-map affordance
  * (`UiSettings.isAttributionEnabled`, an "i" icon that opens a dialog built from each source's own
- * `attribution` field in the style JSON — `BasemapStyles.kt` sets it to this same [attribution]
- * string) but that is tap-to-reveal, not always-drawn the way `CopyrightOverlay` was. [SightingsMap]
+ * `attribution` field in the style JSON — `BasemapStyles.kt` sets it to [fullAttribution], which is
+ * this same [attribution] string except where the full form would wrap the caption) but that is tap-to-reveal, not always-drawn the way `CopyrightOverlay` was. [SightingsMap]
  * therefore also renders [attribution] as a small always-visible Compose caption over the map,
  * so the always-drawn guarantee this app relied on for USGS/ODbL credit doesn't quietly become
  * tap-to-reveal-only as a side effect of the renderer swap.
@@ -109,18 +109,29 @@ enum class Basemap(
      * tile.
      */
     internal val tileUrlTemplate: String,
+    /**
+     * The credit as its source asks for it, for MapLibre's tap-to-reveal attribution: `BasemapStyles.kt` writes it
+     * into each style source's `attribution`, which is what that dialog lists. [attribution] is the always-visible
+     * caption's line. They differ only where the full form would wrap the caption (dispatch 2026-10-18-04, item 3,
+     * the owner's "option c"); otherwise this is [attribution].
+     */
+    val fullAttribution: String = attribution,
 ) {
     OPEN_TOPO_MAP(
         label = "OpenTopoMap",
         description = "Topographic contours and hillshading, worldwide.",
         maxZoom = 17,
-        // Shortened from "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)" -- the
-        // full form wrapped to two lines over the always-visible caption (see SightingsMap.kt),
-        // covering more of the map than a credit line should. Still names all three required
-        // credits (OpenStreetMap, SRTM, OpenTopoMap's CC-BY-SA), just without the "contributors"
-        // qualifier and the " | " separator.
+        // The caption's line is shortened from the full credit below -- the full form wrapped to two
+        // lines over the always-visible caption (see SightingsMap.kt), covering more of the map than
+        // a credit line should. It still names all three required credits (OpenStreetMap, SRTM,
+        // OpenTopoMap's CC-BY-SA), without the "contributors" qualifier and the " | " separator.
         attribution = "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
         tileUrlTemplate = "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+        // OpenTopoMap's page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung:
+        // © OpenTopoMap (CC-BY-SA)" (docs/audits/2026-10-18-map-services-policy-and-cost-research.md, Q2). This
+        // English form goes in the tap-to-reveal attribution and the caption keeps the short line: the owner's
+        // "option c" (dispatch 2026-10-18-04, item 3), chosen over a two-line caption or a smaller one.
+        fullAttribution = "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)",
     ),
 
     OSM_STANDARD(

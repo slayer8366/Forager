@@ -38,11 +38,24 @@ class AvailabilityViewModelBasemapTest {
         mapLayersViewModel(errorLog = errorLog, basemapPreferences = preferences)
 
     @Test
-    fun `nothing stored opens on Topographical, stores nothing and logs nothing`() = runTest(dispatcher) {
+    // Was "nothing stored opens on Topographical…", asserting MapMode.TOPOGRAPHIC; the opening map became Street (dispatch 2026-10-18-04, Amendment 2; RECORD -1297).
+    fun `nothing stored opens on Street, stores nothing and logs nothing`() = runTest(dispatcher) {
         val preferences = InMemoryBasemapPreference(stored = null)
         val vm = viewModel(preferences)
 
         assertNull("the gate is closed until the read lands", vm.uiState.value.mapMode)
+        advanceUntilIdle()
+
+        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals(emptyList<String>(), preferences.writes)
+        assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
+    }
+
+    /** Someone who chose Topographical before the default changed keeps it (CLAUDE.md, UX defaults; RECORD -1297). */
+    @Test
+    fun `a stored Topographical opens on Topographical, stores nothing and logs nothing`() = runTest(dispatcher) {
+        val preferences = InMemoryBasemapPreference(stored = "topographic")
+        val vm = viewModel(preferences)
         advanceUntilIdle()
 
         assertEquals(MapMode.TOPOGRAPHIC, vm.uiState.value.mapMode)
@@ -75,7 +88,8 @@ class AvailabilityViewModelBasemapTest {
     }
 
     @Test
-    fun `a failed read opens on Topographical, is logged, and stores nothing`() = runTest(dispatcher) {
+    // Was "a failed read opens on Topographical…": a failed read opens on the default, now Street (dispatch 2026-10-18-04, Amendment 2; RECORD -1297).
+    fun `a failed read opens on Street, is logged, and stores nothing`() = runTest(dispatcher) {
         val preferences = object : BasemapPreferenceRepository {
             val writes = mutableListOf<String>()
             override suspend fun getBasemapKey(): Result<String?> = Result.failure(IllegalStateException("datastore unreadable"))
@@ -84,9 +98,9 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        assertEquals("the gate must not block forever on a failed read", MapMode.TOPOGRAPHIC, vm.uiState.value.mapMode)
+        assertEquals("the gate must not block forever on a failed read", MapMode.STREET, vm.uiState.value.mapMode)
         assertEquals("the stored value may be fine; nothing overwrites it", emptyList<String>(), preferences.writes)
-        assertEquals(listOf("Couldn't read the stored basemap; opening on Topographical."), logged.filter { "basemap" in it })
+        assertEquals(listOf("Couldn't read the stored basemap; opening on Street."), logged.filter { "basemap" in it })
     }
 
     @Test
@@ -95,11 +109,12 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        vm.onMapModeSelected(MapMode.STREET)
-        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        // Topographical, not Street, since Street became the opening map (Amendment 2): a pick away from what is shown.
+        vm.onMapModeSelected(MapMode.TOPOGRAPHIC)
+        assertEquals(MapMode.TOPOGRAPHIC, vm.uiState.value.mapMode)
         advanceUntilIdle()
 
-        assertEquals(listOf("street"), preferences.writes)
+        assertEquals(listOf("topographic"), preferences.writes)
     }
 
     @Test
@@ -122,10 +137,11 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        vm.onMapModeSelected(MapMode.STREET)
+        // Topographical, away from the opening Street (Amendment 2), so "the pick still holds" is not the default holding.
+        vm.onMapModeSelected(MapMode.TOPOGRAPHIC)
         advanceUntilIdle()
 
-        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals(MapMode.TOPOGRAPHIC, vm.uiState.value.mapMode)
         assertEquals(listOf("Couldn't store the basemap choice."), logged.filter { "basemap" in it })
     }
 }

@@ -31,4 +31,6 @@
     <string name="off_track_notification_title">Off track</string>
     <string name="off_track_notification_text">You\'re moving away from your start point, not toward it.</string>
     <string name="log_entry_no_location">No location set.</string>
+    <string name="map_start_failed">The map couldn\'t start.</string>
+    <string name="map_start_try_again">Try again</string>
 </resources>

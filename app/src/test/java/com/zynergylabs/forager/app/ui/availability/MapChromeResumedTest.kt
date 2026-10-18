@@ -138,35 +138,39 @@ class MapChromeEntryMapTest {
     }
 
     @Test
-    fun `an entry map opened after the Maps tab is set to Street starts on Street`() {
+    // Was "…set to Street starts on Street"; flipped to Topographical when Street became the opening map (dispatch
+    // 2026-10-18-04, Amendment 2; RECORD -1297), so the pick still moves the Maps tab off what it opens on.
+    fun `an entry map opened after the Maps tab is set to Topographical starts on Topographical`() {
         setScreen()
-        pickMapType("Street")
-        openJournal()
-
-        assertEquals(Basemap.OSM_STANDARD, recorder.entryMode()?.basemap)
-    }
-
-    @Test
-    fun `an entry map opened with the Maps tab on its default starts on Topographical`() {
-        setScreen()
+        pickMapType("Topographical")
         openJournal()
 
         assertEquals(Basemap.OPEN_TOPO_MAP, recorder.entryMode()?.basemap)
     }
 
     @Test
-    fun `changing the basemap on the entry map leaves the Maps tab on Street`() {
+    // Was "…starts on Topographical", asserting Basemap.OPEN_TOPO_MAP; the default became Street (Amendment 2, RECORD -1297).
+    fun `an entry map opened with the Maps tab on its default starts on Street`() {
         setScreen()
-        pickMapType("Street")
+        openJournal()
+
+        assertEquals(Basemap.OSM_STANDARD, recorder.entryMode()?.basemap)
+    }
+
+    @Test
+    // Was "…leaves the Maps tab on Street", picking Street first and Topographical on the entry map. Flipped when Street
+    // became the opening map (Amendment 2, RECORD -1297), so both picks still move off what each map shows.
+    fun `changing the basemap on the entry map leaves the Maps tab on Topographical`() {
+        setScreen()
+        pickMapType("Topographical")
         openJournal()
         // Fullscreen (a tap on the preview) brings the map's own Layers control.
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.CARTOGRAPHY_MAP_TEST_TAG).performTouchInput { click(center) }
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
-        // Topographical rather than Satellite since dispatch 2026-09-28-708 removed Satellite: the entry map
-        // starts on the Maps tab's Street, so Topographical is the other choice it can take.
-        pickMapType("Topographical", closeWithBack = false)
-        assertEquals("the entry map took Topographical", Basemap.OPEN_TOPO_MAP, recorder.entryMode()?.basemap)
+        // The entry map starts on the Maps tab's Topographical, so Street is the other choice it can take.
+        pickMapType("Street", closeWithBack = false)
+        assertEquals("the entry map took Street", Basemap.OSM_STANDARD, recorder.entryMode()?.basemap)
 
         // Back leaves fullscreen, which unmounts the sheet with it.
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
@@ -174,7 +178,7 @@ class MapChromeEntryMapTest {
         composeRule.onNodeWithText("Maps").performClick()
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
-        assertEquals("the Maps tab is still on Street", Basemap.OSM_STANDARD, recorder.mapsTabMode()?.basemap)
+        assertEquals("the Maps tab is still on Topographical", Basemap.OPEN_TOPO_MAP, recorder.mapsTabMode()?.basemap)
     }
 
     /**

@@ -260,12 +260,14 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `the map opens on the OpenTopoMap basemap, MapMode's default`() {
+    // Was "…opens on the OpenTopoMap basemap…", asserting Basemap.OPEN_TOPO_MAP; the default became Street (dispatch
+    // 2026-10-18-04, Amendment 2; RECORD -1297).
+    fun `the map opens on the OpenStreetMap Street basemap, MapMode's default`() {
         setScreen()
 
-        // Basemap.DEFAULT resolves through MapMode.DEFAULT (Topographical, via OpenStreetMap) —
+        // Basemap.DEFAULT resolves through MapMode.DEFAULT (Street, via OpenStreetMap) —
         // see MapMode's own doc comment for why this changed from PR #13's USGS Topo default.
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
     }
 
     /**
@@ -370,7 +372,7 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
-    private val mapModeContentDescription = "Layers: Topographical map. Choose the map type and overlays."
+    private val mapModeContentDescription = "Layers: Street map. Choose the map type and overlays."
 
     /**
      * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
@@ -421,25 +423,27 @@ class AvailabilityScreenSettingsPanelTest {
 
     @Test
     fun `tapping the quick-fire icon opens the Layers sheet, and a chip there changes the basemap while the sheet stays open`() {
+        // The map now opens on Street (dispatch 2026-10-18-04, Amendment 2), so the two chips are taken the other way
+        // round: Topographical first, then back to Street. It was Street first, then Topographical.
         setScreen()
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
 
         composeRule.onNodeWithContentDescription(mapModeContentDescription).performClick()
-        composeRule.onNodeWithText("Street").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Topographical").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
+        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
         // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
         // tap, so the other chip is still on screen. Before L0b the picker closed itself here and
         // this asserted Satellite's count was 0; until dispatch 2026-09-28-708 it then went on to
         // Satellite, which that dispatch removed, so it now goes back to Topographical and checks
         // that no Satellite chip is offered.
         composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
-        composeRule.onNodeWithText("Topographical").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Street").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        assertNotEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertNotEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
     }
 
     @Test
@@ -577,7 +581,7 @@ class AvailabilityScreenSettingsPanelTest {
     /**
      * The behavior this project's owner explicitly asked for: offline downloads always use a fixed
      * source internally, so reaching the submenu never depends on which map mode is selected for
-     * live browsing. Topographical is the default (untouched) mode for this test.
+     * live browsing. The default (untouched) mode, Street since Amendment 2 of dispatch 2026-10-18-04, is used here.
      */
     @Test
     fun `Offline Maps is reachable under the default map mode, with no gating message`() {

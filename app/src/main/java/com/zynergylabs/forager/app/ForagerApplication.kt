@@ -10,7 +10,6 @@ import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
 import com.zynergylabs.forager.app.export.TrackGpxExporter
 import com.zynergylabs.forager.app.map.initializeMapLibre
-import com.zynergylabs.forager.app.map.installMapHttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,7 +44,6 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         // AbandonedTrackSweepOnce for what launches it and why.
         container = AppContainer(this, processStartedAtEpochMillis = startedAt)
         initializeMapLibreAtStart()
-        installMapHttpClientAtStart()
         sweepOrphanedCaptures(startedAt)
         deleteStaleGpxExports()
         clearStaleRecordingAlerts()
@@ -73,6 +71,8 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
      * retries on the next call, so it is caught here only so a device where it fails still starts;
      * under Robolectric the native library cannot load, so every unit test that boots this class
      * logs that failure once (an earlier attempt at this call was reverted for throwing there).
+     * The map's HTTP client is installed inside [initializeMapLibre], only once MapLibre is ready
+     * (dispatch 2026-10-18-04); it is no longer a separate start-up step that could run first.
      */
     private fun initializeMapLibreAtStart() {
         try {
@@ -82,22 +82,6 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         } catch (e: LinkageError) {
             // The native library did not load (always, under Robolectric). Already logged by the initializer.
             Log.w(TAG, "MapLibre was not initialised at application start; later callers will retry.")
-        }
-    }
-
-    /**
-     * Gives MapLibre the client that identifies the app to tile servers (dispatch 2026-09-28-325),
-     * after [initializeMapLibreAtStart] because installing it loads a class that needs MapLibre's
-     * application context. A failure is logged here, not swallowed, and leaves MapLibre on its
-     * default client (the library's own User-Agent), so the map still works.
-     */
-    private fun installMapHttpClientAtStart() {
-        try {
-            installMapHttpClient()
-        } catch (e: Exception) {
-            Log.w(TAG, "The map's HTTP client was not installed; tiles go out with MapLibre's default User-Agent.", e)
-        } catch (e: LinkageError) {
-            Log.w(TAG, "The map's HTTP client was not installed; tiles go out with MapLibre's default User-Agent.", e)
         }
     }
 

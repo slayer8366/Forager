@@ -128,7 +128,7 @@ class CartographyEntryMapLayersTest {
         setScreen()
         enterFullscreen()
 
-        composeRule.onNode(hasContentDescription("Layers: Topographical map. Choose the map type and overlays.")).performTouchInput { click() }
+        composeRule.onNode(hasContentDescription("Layers: Street map. Choose the map type and overlays.")).performTouchInput { click() }
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()

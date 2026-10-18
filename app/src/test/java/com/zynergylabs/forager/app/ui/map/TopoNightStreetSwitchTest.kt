@@ -364,14 +364,13 @@ class TopoNightStreetSwitchTest {
     private val TOPO_DAY = listOf(
         "{",
         "  \"version\": 8,",
-        "  \"glyphs\": \"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf\",",
         "  \"sources\": {",
         "    \"basemap\": {",
         "      \"type\": \"raster\",",
         "      \"tiles\": [\"https://a.tile.opentopomap.org/{z}/{x}/{y}.png\"],",
         "      \"tileSize\": 256,",
         "      \"maxzoom\": 17,",
-        "      \"attribution\": \"© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)\"",
+        "      \"attribution\": \"© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)\"",
         "    }",
         "  },",
         "  \"layers\": [",
@@ -383,7 +382,6 @@ class TopoNightStreetSwitchTest {
     private val STREET_DAY = listOf(
         "{",
         "  \"version\": 8,",
-        "  \"glyphs\": \"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf\",",
         "  \"sources\": {",
         "    \"basemap\": {",
         "      \"type\": \"raster\",",
@@ -402,7 +400,6 @@ class TopoNightStreetSwitchTest {
     private val STREET_NIGHT = listOf(
         "{",
         "  \"version\": 8,",
-        "  \"glyphs\": \"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf\",",
         "  \"sources\": {",
         "    \"basemap\": {",
         "      \"type\": \"raster\",",

@@ -167,7 +167,7 @@ class AvailabilityScreenCompactWidthDrawerTest {
         }
 
         val bounds = composeRule
-            .onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.")
+            .onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.")
             .getUnclippedBoundsInRoot()
 
         assertTrue("Width was ${bounds.width}, must be >= 48dp", bounds.width >= 48.dp)

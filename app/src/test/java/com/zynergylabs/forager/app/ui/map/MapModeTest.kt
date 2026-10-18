@@ -12,8 +12,10 @@ import org.junit.Test
 class MapModeTest {
 
     @Test
-    fun `the default map mode is Topographical`() {
-        assertEquals(MapMode.TOPOGRAPHIC, MapMode.DEFAULT)
+    fun `the default map mode is Street`() {
+        // Was "the default map mode is Topographical", asserting assertEquals(MapMode.TOPOGRAPHIC, MapMode.DEFAULT);
+        // the opening map became Street by the owner's ruling (dispatch 2026-10-18-04, Amendment 2; RECORD -1297). REPLACEMENT_FOR_UNKNOWN stays Topographical (below).
+        assertEquals(MapMode.STREET, MapMode.DEFAULT)
     }
 
     @Test

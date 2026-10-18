@@ -1120,7 +1120,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -2444,8 +2444,8 @@ class AvailabilityScreenMapIconStackTest {
     // ── Expanded-panels dispatch: AddActionTile follows the bar's live position (the map mode ──
     // ── popover did too, until map layers L0b replaced it with the Layers sheet)             ──
 
-    /** [MapIconBar]'s layers row, as it reads at this file's default basemap (Topographical). */
-    private val layersRowDescription = "Layers: Topographical map. Choose the map type and overlays."
+    /** [MapIconBar]'s layers row, as it reads at this file's default basemap: Street since it became the opening map (dispatch 2026-10-18-04, Amendment 2; RECORD -1297); was Topographical. */
+    private val layersRowDescription = "Layers: Street map. Choose the map type and overlays."
 
     /** [MapIconBar]'s add row. */
     private val addRowDescription = "Plan a trip or log a find here"
@@ -2589,7 +2589,7 @@ class AvailabilityScreenMapIconStackTest {
      * gone, replaced by the Layers sheet, which is a modal bottom sheet with no anchor to the bar. What
      * still holds, and what these check with real touches, is that the layers row opens it from
      * wherever the bar has been dragged, on either edge, and that the sheet's map-type chips work: a
-     * touch on "Street" changes the row's description. The sheet is its own window, so the touch on
+     * touch on "Topographical" (on "Street" until Street became the opening map) changes the row's description. The sheet is its own window, so the touch on
      * the chip is through the chip's own node rather than the app's root.
      */
     @Test
@@ -2601,10 +2601,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Street").performTouchInput { click() }
+        // Topographical, away from the opening Street (Amendment 2), so the description has to change.
+        composeRule.onNodeWithText("Topographical").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /** The same on the left edge: one drag snaps the bar left and drops it to the bottom of its range. */
@@ -2625,10 +2626,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Street").performTouchInput { click() }
+        // Topographical, away from the opening Street (Amendment 2), so the description has to change.
+        composeRule.onNodeWithText("Topographical").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /**
