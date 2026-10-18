@@ -22146,3 +22146,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   The draft gave the User-Agent in two forms, a short form and then the full string read from `AppUserAgent.kt` (`Forager/<version> (Android <release>; com.zynergylabs.forager.app; +https://zynergy-labs.com; support@zynergy-labs.com)`). Which one the owner pasted isn't known. Both are accurate.
 - **Reply:** none expected. Their FAQ says they can't answer every email.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1297.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1297
+**Timestamp:** 2026-10-18T18:14:22Z
+**Continues:** 2026-09-28-1282, 2026-09-28-1295, 2026-09-28-1281, 2026-09-28-1272
+**Title:** Street becomes the opening map now, as Amendment 2 to dispatch 2026-10-18-04; the Cloudflare side of the Street switch is changed from the laptop, on the existing mapping account; the switch uses the US tile set already in R2 (owner)
+**The owner, verbatim:** "1 go / 2 from the laptop. It's on the [owner's mapping-account email] account. / 3 A". The email is withheld from the repository.
+**What it sets:**
+- **(1) Street as the default.** The owner said go on the step path the planner gave:
+  - a new install opens Maps on Street, with Topographical one tap away;
+  - someone with no stored map choice opens on Street after the update;
+  - someone who chose Topographical keeps it;
+  - the removed-mode replacement (`MapMode.REPLACEMENT_FOR_UNKNOWN`, Topographical, the owner's Satellite answer) is unchanged.
+  Built on map-launch-fixes as Amendment 2 to dispatch 2026-10-18-04, in PR #257.
+- **(2) The Cloudflare changes for the Street switch** are made from the laptop, by Hazel, under a dispatch. That covers routes, the style file, fonts, icons and cache rules on the mapping service. The account is the owner's existing mapping account, the one that holds the `forager-pmtiles` Worker (`server/pmtiles-worker/wrangler.toml`), not zynergy-labs (-1272). The Pi planner builds and downloads the tile data (-1281).
+- **(3) Tiles for the switch:** option (a), the US archive already in R2 (`us.pmtiles`). It's a cut of Protomaps' 2026-08-19 build to zoom 14, with z15 read live from Protomaps (plan section 2; not re-read here). The Pi planner's fresh download replaces it when it's ready.
+**Notes:** Written by the planner by hand, on branch records-after-173. The Street-switch dispatch is written next; building it waits for the owner's go. Next free ID -1298.
