@@ -21653,3 +21653,38 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   5. known bugs carried over;
   6. tablet camera battery and smoothness unmeasured.
 **Notes:** Written by the planner by hand, on branch records-after-173. The owner decides each item, then approves the promotion. Next free ID -1269.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1269
+**Timestamp:** 2026-10-18T13:41:00Z
+**Continues:** 2026-09-28-1268, 2026-09-28-1245
+**Title:** Elder's items before release: the offline-maps screen keeps only Download Maps; the landscape pill sized from the start; the pill's state kept across tabs; the known-bugs list updated (owner)
+**The owner, verbatim:**
+- "Remove both OK and Cancel and just have the Download Maps option.", and to the step path, "Yes, exactly (Recommended)";
+- on item 2, after asking "What is this?" and having it explained, "Fix it (Recommended)";
+- "Fix item 4 too".
+**What it sets:**
+- **The offline-maps screen,** in both orientations: no OK and no Cancel. Download Maps uses the pin's current position, behind the existing confirmation dialog. Back leaves the screen. The other pickers are unchanged.
+- **The landscape pill** is Maps' size from the first visit.
+- **The search pill** keeps its focus and field state across tab switches.
+- **The known-bugs list** is updated for this promotion.
+- Dispatch 2026-10-18-03 (-1270). The release waits for it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1270.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1270
+**Timestamp:** 2026-10-18T13:41:00Z
+**Title:** Elder's top-up items before release (owner, -1269)
+**Dispatch-file:** preserved/2026-10-18-03.md, for Hazel Cairnwright
+**Change:** the four items in -1269.
+**Scope boundary:** AvailabilityOfflineMapsUi.kt, CentrePinLocationPicker.kt (a parameter only), AvailabilityCompactScaffold.kt (the pill's size and key), known-bugs.md and their tests, on branch topup-items as a PR into pre-main. Not the other pickers, the Maps tab, main, dev, Gradle on the laptop, RECORD or the audits index.
+**Baseline:** pre-main e61e248a; Elder's report 2026-10-18-02.
+**Prediction (outcome, planner):** small changes. The pill's size comes from the window; the key gives way to a remembered "first arrival" flag.
+**Prediction (mechanism, coder):** in Hazel's verify-first message.
+**Finish line:** a PR into pre-main, green, merged on the owner's word after an S22 check.
+**Abort conditions:** another picker changes; the no-slide-on-arrival can't be kept without the key; a test having to be weakened; two failed attempts at one symptom.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1271.
