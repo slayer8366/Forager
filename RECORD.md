@@ -21991,3 +21991,20 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Phone check:** at a trailhead area at mid zoom, parking and the trailhead show before any cafe.
 - **Rejected:** outdoor places only, with no shops or cafes at any zoom; a changed list.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 7 to 11 still to come. Next free ID -1288.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1288
+**Timestamp:** 2026-10-18T17:05:22Z
+**Continues:** 2026-09-28-1287
+**Title:** Basemap design decision 7, night: keep pure inversion; the day colours are designed so roads and paths still show inverted; labels invert too (owner)
+**The owner, verbatim:** "Keep Elder's recommendation"
+**What it sets:**
+- Night Maps on the own Street map stays a pure inversion of the day map, as today.
+- The day palette is chosen so roads and paths still stand out after inversion.
+- Labels are inverted too, so names read light on the dark ground.
+- **Phone check:** Night Maps on, at the same trail area as decision 3 (-1284). Roads, paths and names must all read on the dark ground.
+- **Rejected:** a separately designed night palette.
+- **Not decided here:** Elder notes that with one vector style, raster-shader and offline-recolour night become one transform, which must also walk symbol colours (`docs/audits/2026-10-18-basemap-design-review.md`, "Online and offline the same"). That is for the dispatch.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 8 to 11 still to come. Next free ID -1289.
