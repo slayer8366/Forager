@@ -22475,3 +22475,24 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Not confirmed:** that the dashboard uploads nested folders; and the tile schema of the Pi's coming build.
 - **Prediction in -1302:** "nothing ready before tonight's release build" held for the switch, which stays at raster. The code itself was built faster than the planner predicted.
 **Notes:** Written by the planner by hand, on branch records-after-173. Two owner questions are in the report. Next free ID -1315.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1315
+**Timestamp:** 2026-10-18T20:26:44Z
+**Continues:** 2026-09-28-1309
+**Title:** The MapLibre logo goes in a row beside the "i" at the bottom-right, accepting that it overlaps the end of the long Topo caption in portrait (owner)
+**The owner, verbatim:** "Option 1", to the four placements Hazel's stop on dispatch 2026-10-18-07 item 2 offered, as the planner put them. Option 1 was "Beside the 'i'. Simple, but in portrait on Topo the long credit line runs into the logo, the same overlap you saw, just on the other side". The planner recommended option 3, stacked above the "i" with the legend raised.
+**What it sets:**
+- The logo sits bottom-end, in a row with the "i", using `uiSettings.setLogoGravity` and margins in `SightingsMap.kt`, and follows the "i" in each of its placements.
+- **Hazel's estimates, not measured:**
+  - the Street caption (~190 dp) clears it;
+  - the Topo caption (~306 dp) overlaps it on portrait phones (~384 to 412 dp wide);
+  - the Topo night caption may already wrap to two lines.
+- The legend chip is untouched.
+- **Rejected:**
+  - (2) lifting the logo when the two meet;
+  - (3) stacking it above the "i" and raising the legend;
+  - (4) keeping it on the left.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1316.
