@@ -20,7 +20,7 @@ class StreetStyleTest {
     private val servedStyle = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v1.json").readText()).jsonObject
 
     @Test
-    fun `the release switch is raster: Street stays on OpenStreetMap until the owner flips it`() {
+    fun `the release switch is raster, so Street stays on OpenStreetMap until the owner flips it`() {
         // -1302 / dispatch Part 2: "one compile-time constant, set to raster". Flipping it is a later, owner-approved step.
         assertFalse(STREET_SERVED_BY_OWN_MAP)
     }

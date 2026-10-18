@@ -119,7 +119,7 @@ class OfflineNightRecolourTest {
     }
 
     @Test
-    fun `labels invert: near-black text goes near-white and a white halo goes black`() {
+    fun `labels invert, near-black text goes near-white and a white halo goes black`() {
         // V1 by hand: #262626 has mean 38, so each channel becomes 38 + 255 - 76 = 217 (#d9d9d9); white goes to 0.
         assertEquals("rgba(217, 217, 217, 1)", nightLiteral("labels/text-color"))
         assertEquals("rgba(0, 0, 0, 1)", nightLiteral("labels/text-halo-color"))

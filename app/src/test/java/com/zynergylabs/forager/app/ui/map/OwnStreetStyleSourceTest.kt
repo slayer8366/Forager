@@ -17,7 +17,7 @@ import org.junit.Test
 class OwnStreetStyleSourceTest {
 
     @Test
-    fun `switch off: every basemap loads its raster style as before, day and night`() {
+    fun `with the switch off every basemap loads its raster style as before, day and night`() {
         for (basemap in Basemap.entries) for (night in listOf(false, true)) {
             assertEquals(
                 MapStyleSource.Json(styleJsonFor(basemap, night)),
@@ -27,14 +27,14 @@ class OwnStreetStyleSourceTest {
     }
 
     @Test
-    fun `switch on: Street loads the own vector style by URL, day and night`() {
+    fun `with the switch on Street loads the own vector style by URL, day and night`() {
         for (night in listOf(false, true)) {
             assertEquals(MapStyleSource.Uri(STREET_STYLE_URL), mapStyleSourceFor(Basemap.OSM_STANDARD, night, useOfflineTiles = false, ownStreet = true))
         }
     }
 
     @Test
-    fun `switch on: Topographical by day is untouched`() {
+    fun `with the switch on Topographical by day is untouched`() {
         assertEquals(
             MapStyleSource.Json(styleJsonFor(Basemap.OPEN_TOPO_MAP, false)),
             mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = false, useOfflineTiles = false, ownStreet = true),
@@ -42,7 +42,7 @@ class OwnStreetStyleSourceTest {
     }
 
     @Test
-    fun `switch on: Topographical at night is the own Street with topo over it, fading in from 9_5 to 9_7, labels ending at 9_5`() {
+    fun `with the switch on Topographical at night is the own Street with topo over it, fading in from 9_5 to 9_7, labels ending at 9_5`() {
         val source = mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true, useOfflineTiles = false, ownStreet = true)
         assertEquals(MapStyleSource.StreetWithTopoOver(STREET_STYLE_URL, Basemap.OPEN_TOPO_MAP), source)
         source as MapStyleSource.StreetWithTopoOver
