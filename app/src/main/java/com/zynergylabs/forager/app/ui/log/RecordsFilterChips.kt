@@ -95,7 +95,7 @@ internal fun RecordsFilterChipRow(
                 selected = filter == selected,
                 onClick = { onSelect(filter) },
                 iconSize = metrics.iconSize,
-                bringIntoViewWhenSelected = onSwitchLine,
+                bringIntoViewWhenSelected = false,
             )
         }
     }
