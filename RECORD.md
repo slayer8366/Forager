@@ -22751,3 +22751,25 @@ All three screenshots are kept off GitHub.
 - **Limit:** the owner's screenshots were in the light theme and this check ran in the dark theme. The state before each screen may also have differed. The bar's absence is not yet reproduced by the planner on 836916a9.
 - Rotation was set back to its previous value afterwards.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1329.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1329
+**Timestamp:** 2026-10-18T23:16:22Z
+**Continues:** 2026-09-28-1328, 2026-09-28-1327
+**Supersedes:** -1328's conclusion "PR #261 removed the bar", and -1327's reading that the strip caused the missing search bar on List and Seasonal
+**Title:** The missing search bar on List and Seasonal is not from #261: any open Journal entry hides the search bar on every tab, a rule from 2026-10-07 that is also on main. The planner's bisect compared a session with an entry open against one without (Hazel's finding; planner reproduced it)
+**Observed:**
+- **Hazel's probe tests through the real screen,** in landscape at 823x384, on two test-only branches:
+  - List and Seasonal show the pill from a fresh start, and after the Journal with the pill hidden, on both 836916a9 and 8c90626f;
+  - with a Journal entry left open, List shows **no pill on either build** (runs 39175123353 and 39175131489, with no compile errors).
+  - The pill is composed only when `!journalSearchHeld` (`AvailabilityCompactScaffold.kt:1096` at 836916a9, `:1079` at 8c90626f). `journalSearchHeld` includes `isEditingJournalEntry`, with no check of the tab (`:595`).
+  - Since F3 (-44), an entry stays open when you leave the Journal.
+- **The planner reproduced it on the S22,** build 1.0.3472+g8c90626f, the one before #261, in landscape: Journal → New entry → List. **No search bar.**
+- **Why -1328's bisect was wrong:** installing a build restarts the app, and an open entry doesn't survive a restart. So -1328's check ran with no entry open, and the owner's screenshots on 836916a9 were taken with one open. The check never saw the condition that could fail it. That is the CLAUDE.md family "a check that passes because it never saw the data that could fail it". The planner cited it as a cause without verifying the state.
+- **On main:** the same rule is in production (main's `AvailabilityCompactScaffold.kt:1271`).
+**What it leaves open, for the owner:**
+- (a) the fix: should List and Seasonal keep their bar while a Journal entry is open, so the hide applies only on the Journal tab? Hazel has a test for it that fails today on both builds;
+- (b) whether to revert #261 anyway. The revert branch is ready at fd1f9589, with no PR.
+**Notes:** Written by the planner by hand, on branch records-after-173. The draft entry made on the S22 to reproduce this is left in place. Next free ID -1330.
