@@ -112,12 +112,52 @@ Each step's wall time and peak memory are recorded by `tools/peak_rss.py`, since
 installed. The kernel has the memory cgroup disabled, so systemd cannot cap the build's memory.
 The JVM's `-Xmx` caps it, and `OOMScoreAdjust=800` points the kernel at the build first.
 
+## The US + Canada build, `build-usca.sh`
+
+The owner's go of 2026-10-18: the Pi builds a map of the US and Canada, and serves none (RECORD
+-879, -1276). Geofabrik's `us` extract carries Alaska, Hawaii, Puerto Rico and the US Virgin
+Islands. `build-orwa.sh` stays as it is; `build-usca.sh` is a separate script with its own
+`out-usca/`, `status-usca.json` and `failed-usca/latest`, so neither script's output, status or
+kept failure is the other's. The settings are the `USCA_` lines in `pins.env`.
+
+What it does differently from `build-orwa.sh`, and why:
+- **Whole countries.** `us` and `canada` from `north-america/`. Geofabrik numbers each region's
+  sequence separately, so only the two timestamps must agree.
+- **Downloads resume.** `curl -C -` with 20 retries: 19 GB over the Pi's Bluetooth link (about
+  0.2 MB/s) is interrupted more than once. `--local YYMMDD` builds from a pair already in
+  `sources/osm/`, checked against its `.md5` files and headers. It exists because the pair takes
+  about a day to arrive, and by then Geofabrik has published a newer one.
+- **Clipped to the two countries' outlines.** The `us` extract's header box spans -180 to 180
+  because the Aleutians cross the antimeridian. Planetiler gets Geofabrik's `us.poly` and
+  `canada.poly`, joined by `tools/merge_poly.py`, as `--polygon`, so it draws no ocean tiles
+  outside them.
+- **Memory-mapped.** The node map, features and multipolygon geometries are files on disk,
+  named explicitly. The heap stays at 4 GB. Whether that is enough for an input 30 times
+  Oregon + Washington's is untested until the first run.
+- **A disk floor.** It refuses to start the merge with less than `USCA_MIN_FREE_GB` free. That
+  figure is an estimate, not a measurement.
+- **Every routing square is kept.** Alaska is in this build, so the ferry-route squares
+  `build-orwa.sh` dropped are wanted.
+- **A coverage check before publishing.** Each point in `USCA_COVERAGE_POINTS` (one per region
+  the owner named) needs a z15 tile with roads and a `.rd5` square over 100 kB. The check was run
+  against the Oregon + Washington archive on 2026-10-18: Seattle passed with 142 roads, and Miami
+  was refused. `pmtiles tile` exits 0 with no output for a missing tile, so the road count is
+  what catches one.
+- **One good output kept** (`USCA_KEEP_GOOD_OUTPUTS=1`), since each is tens of GB.
+- **It will not run alongside `build-orwa.sh`.** Two builds at once would not fit in memory, and
+  `build-orwa.sh`'s cleanup deletes every extract it did not use. Switch the weekly timer to
+  `systemd/forager-build-usca.service` before 2026-10-25, or turn it off: its next run would
+  delete the US and Canada extracts.
+
 ## Tests and checks
 
 - `python3 -m unittest map-build/tools/test_mvt_decode.py`: the tile decoder, against tiles
   encoded by hand.
 - `python3 -m unittest map-build/tools/test_run_record.py`: the status rules and the manifest's
   dropped squares.
+- `python3 -m unittest map-build/tools/test_merge_poly.py`: joining the two outlines.
+- `bash map-build/tools/test_build_usca_functions.sh`: `build-usca.sh`'s square and tile
+  arithmetic, download resuming and failed-run keeping, loaded from the script itself.
 - `bash map-build/tools/test_build_functions.sh`: `build-orwa.sh`'s square-dropping and
   failed-run keeping, loaded from the script itself.
 - The patch's own tests (`foragerTrail…`, `foragerAccess…` in upstream's `RoadsTest`) run inside

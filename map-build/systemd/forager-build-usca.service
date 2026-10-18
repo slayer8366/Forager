@@ -1,0 +1,47 @@
+# Forager's US + Canada map and routing build (owner's go, 2026-10-18). Not installed yet: it
+# replaces forager-build.service under the weekly timer once the first US + Canada build has
+# worked (owner's answer 3, 2026-10-18). Five days, not four hours: over the Pi's Bluetooth link
+# the two extracts alone take about a day, and the build itself has never been timed at this size.
+# Install: copy to /etc/systemd/system/, point forager-build.timer at it, `systemctl daemon-reload`.
+[Unit]
+Description=Forager map and routing build (US + Canada)
+Documentation=file:/opt/forager-build/map-build/README.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=forager-build
+Group=forager-build
+Environment=HOME=/srv/forager-build
+WorkingDirectory=/srv/forager-build
+ExecStart=/opt/forager-build/map-build/bin/build-usca.sh
+TimeoutStartSec=5d
+
+# Yield to the tile server and the tunnel. The kernel has the memory cgroup disabled
+# (cgroup_disable=memory), so MemoryMax= would be inert here. Memory is bounded by the JVM's -Xmx
+# (pins.env), and the OOM killer is pointed at this build first.
+Nice=10
+IOSchedulingClass=idle
+CPUWeight=20
+OOMScoreAdjust=800
+
+# Hardening, as on the tile units. No MemoryDenyWriteExecute: the JVM's JIT needs it off.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/srv/forager-build
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=1000
