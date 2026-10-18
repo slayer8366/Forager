@@ -21633,3 +21633,23 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - Juniper's research into the usage policies of the current tile, font and satellite servers, and Cloudflare's paid limits and costs.
 - This is a plan, not a go to build.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1268.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1268
+**Timestamp:** 2026-10-18T13:34:50Z
+**Continues:** 2026-09-28-1266
+**Title:** Elder's top-up audit: pass with items, for the whole promotion 969ecf0a → e61e248a
+**Report-file:** preserved/2026-10-18-02-promotion-topup-audit-report.md (filed as received)
+**Observed:**
+- **Verdict:** pass with items. CI was green at e61e248a (run 39131042296). Three tests were removed, each replaced under an owner ruling, and none was ignored.
+- **Not seen on a phone:** D1 and D2 (deferred); the tablet for #252 and #255; the S26; the largest font size; PR #252 steps 6 and 8; tablet camera smoothness at ROTATION_0.
+- **Items for the owner:**
+  1. on the offline-maps screen, Download Maps is greyed until OK is tapped, and nothing now says so, because -1245 removed the lines that did;
+  2. on a first landscape visit, the pill is half width until Maps has been shown, then resizes;
+  3. the known-bugs list was not updated for this promotion;
+  4. the search pill is re-created on each tab switch (inferred, low);
+  5. known bugs carried over;
+  6. tablet camera battery and smoothness unmeasured.
+**Notes:** Written by the planner by hand, on branch records-after-173. The owner decides each item, then approves the promotion. Next free ID -1269.
