@@ -22294,3 +22294,21 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - The Pi's tile server can be stopped without affecting the app. The Pi planner is to be told.
 - **Until PR #257 reaches main:** `wrangler.toml` on main still sets `PI_ORIGIN_URL`, so a deploy from main before then would restore it (Amendment 3, -1304).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1306.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1306
+**Timestamp:** 2026-10-18T19:31:30Z
+**Continues:** 2026-09-28-1295, 2026-09-28-1297, 2026-09-28-1304
+**Title:** Map launch fixes S22 re-check on the final build: all four steps pass; Street opens first after a data clear (owner)
+**The owner, verbatim:** "1 to 4 pass"
+**What it records:**
+- **Device and build:** the S22 Ultra (SM-S908U), Android 16. Debug APK 1.0.3461+gef56fc91 from CI run 39156161080 (5,094 tests, 0 failed). That build is PR #257's merge ref ef56fc91, 006ce58b on pre-main 712ff277, which the planner checked with `git log`. Installed by the planner with `adb install -r`.
+- **Steps, as the planner gave them:**
+  1. After clearing the app's data, Maps opens on Street.
+  2. Topographical, once chosen, survives a force-stop.
+  3. The location picker and Offline maps open normally.
+  4. The Maps tab, a Journal entry's map, Records' map and Cartography each draw.
+- **Not re-run on this build:** -1295's caption and credit steps. Their code is unchanged since then, apart from the pre-main merge and the two amendments.
+**Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word. Merging PR #257 needs the owner's word. Next free ID -1307.
