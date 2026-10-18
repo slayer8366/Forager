@@ -554,7 +554,7 @@ private fun OfflineRegionsSection(
         // RECORD -1245 (the owner: "Keep the figure, drop the explanation (Recommended)"): was followed by "Sizes don't add up to
         // total disk usage — overlapping regions share tiles, so deleting one may free less than its own size suggests."
         Text(
-            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}",
+            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}. Sizes don't add up to total disk usage.",
             style = MaterialTheme.typography.bodySmall,
         )
 
