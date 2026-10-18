@@ -22279,3 +22279,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **The owner, verbatim:** "Take the pi out", to the planner's choice of (1) a one-line change removing `PI_ORIGIN_URL` from `wrangler.toml` on map-launch-fixes, or (2) pausing auto-deploy. The planner read it as option 1, and the dashboard deletion (-1303) is still the owner's step.
 **What it sets:** `server/pmtiles-worker/wrangler.toml` drops `PI_ORIGIN_URL`, in PR #257, so a deploy from the repository keeps the Pi out of the tile path. The Pi-first code is removed later, in Part 2.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1305.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1305
+**Timestamp:** 2026-10-18T19:26:02Z
+**Continues:** 2026-09-28-1303, 2026-09-28-1304
+**Title:** The Pi is out of the live tile path. The owner deleted PI_ORIGIN_URL and deployed; fresh tiles answer from R2 (owner; planner checked)
+**The owner, verbatim:** "Pi origin Delete and deployed"
+**Observed:** at 2026-10-18T19:26:02Z, the planner requested four tiles with a cache-busting query at z9, z11, z13 and z14 (`/us/{z}/{x}/{y}.mvt?cb=…`). All four answered HTTP 200 with `x-forager-origin: r2`. Earlier today the same kind of request answered `pi` at z10 and z14 (-1299).
+**What it records:**
+- -879's "nothing live" on the Pi now holds in practice.
+- The Pi's tile server can be stopped without affecting the app. The Pi planner is to be told.
+- **Until PR #257 reaches main:** `wrangler.toml` on main still sets `PI_ORIGIN_URL`, so a deploy from main before then would restore it (Amendment 3, -1304).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1306.
