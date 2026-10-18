@@ -22636,3 +22636,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - AvailabilityMapControlsUi.kt, 1,368;
 - TrackRecordingViewModel.kt, 1,359.
 **Notes:** Written by the planner by hand, on branch records-after-173. When it starts: a read-only survey first, planned by the planner, built in small PRs with no behaviour change. Next free ID -1324.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1324
+**Timestamp:** 2026-10-18T22:29:38Z
+**Continues:** 2026-09-28-1323
+**Title:** UI split, step 1: a read-only survey of the large UI files and their seams, run alongside the release; nothing lands until the next release (owner)
+**The owner, verbatim:** "I'm ready. We can work this out while we continue the release. It just won't land until next release is all"
+**Dispatch-file:** preserved/2026-10-18-09.md, for Hazel Cairnwright
+**Scope:** read-only. Only the report goes on the new branch ui-split-survey, with no PR. No source change, no Gradle.
+**Baseline:** pre-main 8c90626f, which has 187 UI files; the largest is SightingsMap.kt at 2,753 lines (-1323).
+**Prediction (outcome, planner):**
+- most of the size is in a few files whose composables share private state through the file;
+- the map files hold the hardest seams (`movableContentOf`, touch routing);
+- the first PRs can be pure moves of layout helpers and pure functions.
+**Finish line:** the report is pushed, with its hash sent to the planner. Then the planner's plan goes to the owner.
+**Abort conditions:** none expected. Any seam that can't be judged without building goes under "could not determine".
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1325.
