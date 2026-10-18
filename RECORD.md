@@ -22655,3 +22655,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Finish line:** the report is pushed, with its hash sent to the planner. Then the planner's plan goes to the owner.
 **Abort conditions:** none expected. Any seam that can't be judged without building goes under "could not determine".
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1325.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1325
+**Timestamp:** 2026-10-18T22:36:55Z
+**Continues:** 2026-09-28-1320, 2026-09-28-1317
+**Title:** PR #261 (the Journal reserves the search bar's height in landscape) merged into pre-main at 836916a9 under -1317; its revert branches deleted (planner, on the owner's standing word)
+**What it records:**
+- **The merge:** gated on head ed35e8b2. pre-main went from 8c90626f to 836916a9.
+- **CI:** 39171539012 at aa9d64aa is green on every job, with 5,131 tests, 0 failures, 24 skipped (per Hazel's report). The only change from aa9d64aa to ed35e8b2 is two lines of the completion report (`git diff --stat`, read by the planner). Run 39172914080 on ed35e8b2 was still in progress at the merge.
+- **The one red run,** 39170164409 at 3b2f46b7: `MushroomLogViewModelWiringTest` "a find deleted through the Journal's ViewModel…". That is the known intermittent test, known-bugs row 2, about 6% of runs. It was reported and not touched, and the next run on the same code passed.
+- **Revert checks:** R4 and R4b are valid per Hazel's report (`docs/audits/2026-10-18-journal-search-space-completion-report.md`).
+- **Deleted:** journal-search-space-revert-1 and -2.
+**Notes:** Written by the planner by hand, on branch records-after-173. pre-main now holds everything for the owner's final phone check. Next free ID -1326.
