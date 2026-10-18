@@ -22198,3 +22198,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Predictions in -1298:** "doesn't fit tonight" held; "needs an owner login" held for wrangler or the dashboard; "path and track kinds, most outdoor POIs, no informal class" held, with the zoom limits above.
 - **Refused read:** `workers_get_worker` was refused by the session's auto-mode permission check, so routes, plan and build settings were not read.
 **Notes:** Written by the planner by hand, on branch records-after-173. Eight owner questions are in the report. Next free ID -1300.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1300
+**Timestamp:** 2026-10-18T18:36:41Z
+**Continues:** 2026-09-28-1299, 2026-09-28-1298, 2026-09-28-879, 2026-09-28-1274, 2026-09-28-1284, 2026-09-28-1287, 2026-09-28-1294
+**Title:** Street from Cloudflare, Part 2 shape: Cloudflare only, without the Pi in the tile path; Street switches once Alaska and Hawaii are covered; outdoor places and paths at the zooms the tiles allow; a dot and name for missing icons; old offline areas keep their style; auto-deploy paused while the owner deploys by hand; z15 live from Protomaps for now (owner)
+**The owner, verbatim:** "Accept Hazel's recommendations", to the eight questions in the Part 1 report (`docs/audits/2026-10-18-street-cloudflare-part1-report.md`, street-cloudflare faae7256) as the planner put them.
+**What it sets:**
+- **(1) Cloudflare only.** Part 2's Worker drops the Pi-first step, so tiles come from R2 alone, as -879 ruled. Until Part 2 deploys, the Pi stays in today's tile path, offline downloads included.
+- **(2) The Workers Paid plan:** this is not a recommendation but a check for the owner. Still open.
+- **(3) Coverage:** Street switches to Cloudflare once the Pi's build covers Alaska and Hawaii. `us.pmtiles` is the lower 48 only. This refines -1274.
+- **(4) Zooms:** outdoor places show where the tiles carry them (trailhead, viewpoint, ranger station, toilets and water only at z15), and paths from z13, until the own build lands. This refines -1284 and -1287.
+- **(5) Icons:** the six missing icons (trailhead, parking, campground, picnic site, viewpoint, ranger station) show as a dot with the name for now. Real icons come later.
+- **(6) Old offline areas:** each draws in the style it was downloaded with, plus the -1294 notice on old ones.
+- **(7) Deploy:** Workers Builds auto-deploy is paused while the owner deploys by hand in the dashboard, then turned back on once main has the code.
+- **(8) z15** is read live from Protomaps for now. The Pi planner is to be asked to build to zoom 15.
+**Notes:** Written by the planner by hand, on branch records-after-173. Part 2 still waits for the owner's go (option 1, stop after the report). Next free ID -1301.
