@@ -22362,3 +22362,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   5. The Worker config change: Hazel's note "the app's tiles do not come from this Worker yet" is wrong for offline maps, which do. Elder suggests one check after the merge: download a small region and open it with data off.
 - **Not seen:** anything on the S26 or the tablet; the largest font; the start message on a real screen.
 **Notes:** Written by the planner by hand, on branch records-after-173. The S26 has the plain pre-main build installed (1.0.3461+gd942e022) for the owner's check. Next free ID -1309.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1309
+**Timestamp:** 2026-10-18T19:55:33Z
+**Continues:** 2026-09-28-1297, 2026-09-28-1308
+**Title:** The Offline maps picker always shows Street; the MapLibre logo moves to the bottom-right, clear of the credit caption; dispatch 2026-10-18-07 (owner)
+**The owner, verbatim:** "Offline maps displays topo maps. Have it display the street map" (with an S26 screenshot of Records → Offline maps), then "Always be street." and "And yes have the maps Libre logo on the right". The screenshot is kept off GitHub.
+**What it sets:**
+- **Offline maps picker:** `AvailabilityOfflineMapsUi.kt:187` hard-wires `Basemap.OPEN_TOPO_MAP`. It becomes Street, always, whatever the Layers choice or the default. What gets downloaded is unchanged. Elder had noted the Topo pin as deliberate, for terrain context (-1308 item 2). The owner's word replaces it.
+- **The logo:** in the screenshot, the MapLibre logo sits at the bottom-left under the start of the caption. It moves to the bottom-right on every map, clear of the "i" and the caption, and stays visible unless the licence allows otherwise and the owner says so.
+- **Dispatch:** preserved/2026-10-18-07.md, for Hazel. Branch offline-street-logo from pre-main d942e022, as a PR into pre-main.
+- **Effect on the promotion:** this change goes into pre-main before the promotion, so the S26 and tablet checks need the build that includes it, or a re-check of steps 3 and 6 on it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1310.
