@@ -89,3 +89,12 @@ None are bound to this session now. The W42 and t6b reminders moved to Alder.
 ## The owner's style today
 
 Fast, with short answers, often "(Recommended)". The owner reads screenshots closely, corrects the planner's framing quickly (the separation is planner and coder, not repo), and wants things restated as step paths with sketches before they're built.
+
+## Correction, appended 14:05Z by the same planner
+
+After this handoff was written, the owner ruled (-1276): "Yes I lift the 08/22 ruling. Cost was a factor then, now it isn't. The Pi is the map builder, that decision stands as written. Pi planner is live, let's hand off the task. Nothing gets down here. Moving to Pi".
+
+- **The map build and serving work goes to the Pi planner,** session_019RAXWotCV56kkPRiRVeukE ("raspberrypi-tender-creek"), which has been sent the plan and this handoff. It is **not** "back to the planner, Hazel coding", as section "Standing changes" above says.
+- **The app side stays here:** the A0 launch fixes and A4's app switch, and the owner's design decisions 2 to 11.
+
+The text above is left as written.

@@ -21799,3 +21799,20 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - -1149 (lens fixes) is open;
   - every other intent from this session is closed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1276.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1276
+**Timestamp:** 2026-10-18T13:55:33Z
+**Continues:** 2026-09-28-1272, 2026-09-28-879, 2026-09-28-904
+**Supersedes:** -1272's "Back to me, Hazel codes", for the map build side
+**Title:** The 2026-08-22 live-tile ruling is lifted, since cost was the reason and no longer is; the Pi stays the map builder as -879 has it; the map build task goes to the live Pi planner (owner)
+**The owner, verbatim:** "Yes I lift the 08/22 ruling. Cost was a factor then, now it isn't. The Pi is the map builder, that decision stands as written. Pi planner is live, let's hand off the task. Nothing gets down here. Moving to Pi".
+**What it sets:**
+- The app may draw its on-screen basemap from the owner's own mapping server. -1272's supersession is confirmed, with its reason.
+- -879 stands: Cloudflare serves; the Pi builds and keeps a copy, not as a live fallback.
+- **The map build and serving work** (the basemap plan's Track A1 and A2, and Track B's pipeline) is handed to the Pi planner session (session_019RAXWotCV56kkPRiRVeukE, "raspberrypi-tender-creek", on branch pi-origin), with the plan at branch basemap-launch-plan da66084e.
+- **Stays with Rowan:** the app side (A0's launch fixes in flight, A4's app switch) and the design decisions with the owner. The A3 style work is to be settled between the two planners through the owner.
+- "Nothing gets down here" is read as no map build work on the laptop side.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1277.
