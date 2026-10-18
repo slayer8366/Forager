@@ -860,7 +860,7 @@ internal class CameraXCaptureSession(
             smallestScreenWidthDp = LocalConfiguration.current.smallestScreenWidthDp,
         )
 
-        DisposableEffect(view, naturalFrame) {
+        DisposableEffect(view, held) {
             previewView = view
             val bound = preview
             if (bound == null) {
