@@ -20897,3 +20897,31 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **The owner, verbatim:** "Hold the release for it" (offered: "Next update (Recommended)"); "Yes, take them", to screenshots of the three tabs on the S22, kept on the laptop.
 **What it sets:** the release waits until the Journal, Seasonal and List tabs carry the same look as the main map (PRs #221 and #224), and a re-check has passed. The planner first pins down from screenshots which pieces differ on each tab, then writes the dispatch. The step path is to be confirmed with the owner before any build.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1225.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1225
+**Timestamp:** 2026-10-18T02:08:24Z
+**Continues:** 2026-09-28-1224
+**Title:** List, Seasonal and Journal get the map's search pill and bottom bar shape, solid and outlined; start now (owner)
+**The owner, verbatim:** "Yes, as described (Recommended)"; "Yes, start now (Recommended)".
+**What it sets (the step path confirmed):** on List, Seasonal and Journal, the search line becomes the map's rounded, outlined pill in the same spot, solid, with the divider removed. The bottom bar gets the map's rounded top corners and outline, solid. The content starts below the pill as now. Switching tabs makes no jump. Nothing else changes.
+**The planner's screenshots** (kept off GitHub, ~/Zynergy/device-evidence/2026-10-17-s22-tab-look/): Journal, Maps, Seasonal and List on the S22. Only the search line and the bottom bar differ from Maps; the cards, buttons and the Entries/Records switch are already rounded.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1226.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1226
+**Timestamp:** 2026-10-18T02:08:24Z
+**Title:** The map's pill and bottom bar shape on List, Seasonal and Journal (owner, -1225)
+**Dispatch-file:** preserved/2026-10-17-09.md, for Hazel Cairnwright
+**Change:** the step path in -1225, in portrait, landscape and the tablet's layout, reusing the map's chrome with a solid fill.
+**Scope boundary:** the non-map tabs' search line and bottom bar or rail, the shared chrome helpers and their tests, on branch tabs-map-chrome-shape as a PR into pre-main. Not the Maps tab, the 80% rule over maps, main, dev, the camera, Gradle on the laptop, RECORD or the audits index.
+**Baseline:** pre-main 0be67a25; mapChromeOutline and MapChromeOutlineSides in ui/map/; the tabs' own drawing assumed separate (inferred, to confirm).
+**Prediction (outcome, planner):** a reuse of the map's pieces with a solid fill; small diff; looks only.
+**Prediction (mechanism, coder):** in Hazel's first message.
+**Finish line:** a PR into pre-main, green, with the device check, merged on the owner's word after a screenshot re-check.
+**Abort conditions:** a change that would alter the map; no clear match in landscape or on the tablet; a touch or inset change beyond the look; a test would have to be weakened; two failed attempts at one symptom.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1227.
