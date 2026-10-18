@@ -399,7 +399,7 @@ private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertica
 @Composable
 internal fun shortLandscapeContentInsets(railEdge: ScreenEdge): WindowInsets =
     WindowInsets.statusBars.only(WindowInsetsSides.Top)
-        .add(WindowInsets.displayCutout.only(railEdge.opposite.horizontalInsetsSide()))
+        .add(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
 
 /** The bottom navigation bar (either instance), for tests (dispatch 2026-09-28-104, continuation -12, item 6). */
 internal const val COMPACT_BOTTOM_NAV_TAG = "compact-bottom-nav"
