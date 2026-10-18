@@ -26,6 +26,6 @@ bucket_name = "forager-maps"
 # client (e.g. a future web viewer) ever calls this Worker directly.
 ALLOWED_ORIGINS = "*"
 
-# The Pi tile origin is no longer read (dispatch 2026-10-18-05 Part 2; RECORD -879): every tile comes from
-# R2. The PI_ORIGIN_URL variable and the two Access secrets left on the deployed Worker are unused and can be
-# removed in the dashboard at the owner's convenience.
+# PI_ORIGIN_URL removed: the Pi serves nothing live (RECORD -879, -1303), and since dispatch 2026-10-18-05
+# Part 2 the code no longer reads it either: every tile comes from R2. The two Access secrets left on the
+# deployed Worker are unused and can be removed in the dashboard at the owner's convenience.

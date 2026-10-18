@@ -559,3 +559,52 @@ start these from the top. Write down the build's version name first.
 
 **The row to write:** S22 Ultra (SM-S908U), Android version, build version name, and the results of re-check steps
 1 to 4.
+
+## Update: Amendment 3, the Pi out of the Worker's configuration
+
+**Authorisation:** the owner, "Take the pi out" (RECORD -1304), on the planner's option 1. The dashboard deletion of
+the variable is the owner's step (-1303).
+
+**Change:** `server/pmtiles-worker/wrangler.toml` loses the line `PI_ORIGIN_URL = "https://origin.zynergy-labs.com"`
+from `[vars]`. The three-line comment above it is replaced by one line: the Pi serves nothing live (-879, -1303), and
+dispatch 2026-10-18-05 (Part 2) removes the Pi-first code.
+
+Nothing else was touched:
+- not `src/`;
+- not `ALLOWED_ORIGINS`, the R2 binding or any secret;
+- nothing else under `server/`.
+
+### Verify first
+
+1. **Nothing in the repository reads `PI_ORIGIN_URL` from `wrangler.toml`.** Outside `docs/` and `prompts/`, the name
+   appears only in:
+   - `wrangler.toml` itself;
+   - `src/index.ts`: `:32` (the optional `Env` field), `:278-279` (the unset check) and `:292` (the URL it builds);
+   - the files that mention `wrangler.toml` by name (`STATUS.md`, `server/pmtiles-worker/README.md`,
+     `src/index.ts` comments), none of which reads the value.
+   - `package.json`'s scripts are `wrangler dev`, `wrangler deploy`, `tsc --noEmit` and a dry-run build, and no
+     test reads it.
+2. **The Worker is not covered by CI.** `.github/workflows/ci.yml` has no step for `server/` (no node, npm or wrangler
+   step). So this change is configuration only, and no test checks it.
+
+   With the variable unset, `fetchFromPi` logs "pi-origin: PI_ORIGIN_URL not set, serving from R2" and returns
+   (`src/index.ts:277-280`), so every tile is served from R2. That line runs on every z/x/y tile request. With Workers
+   Logs off (`wrangler.toml`, `[observability] enabled = false`), it reaches only a live `wrangler tail`. Part 2
+   removes it with the rest of the Pi code. Noted, not changed: `src/` is out of scope.
+
+No stop was hit; nothing else in `server/` had to change.
+
+### Evidence and what is not verified
+
+- **The diff:** 4 lines removed, 1 added, all in `wrangler.toml`.
+- **CI:** the Android CI does not build or test the Worker, so a green run says nothing about it.
+- **Not verified here:**
+  - that a deploy from the repository puts dashboard variables back, or that removing this line keeps one out. That
+    is the dispatch's premise about Workers Builds (Part 1 report, street-cloudflare `faae7256`), which I did not
+    re-read.
+  - the Worker's actual behaviour after deploy.
+
+  The check after deploy is -1303's: a tile not fetched before answers `x-forager-origin: r2`. Tiles already in the
+  edge cache may show `pi` for up to a day.
+- **Nothing here is on the phone.** The app's tiles do not come from this Worker yet; the Street switch is a later
+  dispatch.
