@@ -21946,3 +21946,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - all visible from the zoom where a trailhead fits on screen.
   - The phone check: a known trail area at three zooms, outdoors in daylight. The trail must be distinguishable from the forest roads without zooming in.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 4 to 11 still to come. Next free ID -1285.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1285
+**Timestamp:** 2026-10-18T15:40:45Z
+**Continues:** 2026-09-28-1284
+**Title:** Basemap design decision 4, forest colour: one solid green for tree cover from the state view down, a lighter tone for grass and scrub, park boundaries as an outline (owner)
+**The owner, verbatim:** "D4 option 1", to Elder's recommendation as the planner put it, sketched in text.
+**What it sets:**
+- The own Street style draws tree cover in one solid green at every zoom from the state view down. This closes the z7 to z11 fade gap Elder found in the landcover and landuse_park opacity ramps (`docs/audits/2026-10-18-basemap-design-review.md` on basemap-launch-plan, "Forest and land cover").
+- Grass and scrub take a lighter tone.
+- Parks are drawn as an outline, not a fill.
+- **Phone check:** zoom from the state view to a town over a forest. The forest must never fade out on the way.
+- **Rejected for now:** separate conifer and broadleaf shades. Whether the tiles carry `leaf_type` is unverified. Elder lists it as a follow-on.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 5 to 11 still to come. Next free ID -1286.
