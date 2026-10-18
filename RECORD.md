@@ -21382,3 +21382,22 @@ It ends with numbered decisions for the owner, each with a recommendation.
 - A second "no" is reported as the PNW finding.
 - -1027's sequence otherwise stands. The plan comes back with decisions before any count or fit.
 **Notes:** Written by the planner by hand, on branch records-after-173. This also records how T1 bears on T8, which no earlier decision did. Next free ID -1251.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1251
+**Timestamp:** 2026-10-18T05:40:18Z
+**Title:** Forecast work moves to a forecast planner, with its own record in forager-forecast (owner)
+**The owner, verbatim:**
+- "A planner may be necessary to talk with in the forecast repo instead of directly to a coder, since it's a different repo altogether. Open a new planner session, and begin a Forager-forecast planner profile for the repo. They can write the plans for Ash";
+- "Its own record in forager-forecast (Recommended)";
+- "All forecast work (Recommended)".
+**Handoff-file:** forager-forecast docs/planning/handoffs/2026-10-18-planner-handoff.md (branch forecast-planner-profile b5566229), beside the begun profile docs/process/planner-profile.md. Both are on that branch and go to main on the owner's word (D40).
+**At handoff:**
+- **The new session:** session_01BeCyTz4uLqzv9n1u8R42ht, "Forecast planner (forager-forecast)", on the laptop bridge. Its first act is to propose three names and set up the forecast's own record.
+- **Moved to it:** T8 (Ash's draft plan, paused WIP on t8-plan d6f916ae); the W42 publish check (Rowan's reminder deleted); the t6b-night restarts; T7's record (the decision row, the audits index rows, draft PR #5); the debt to Dr Põlme (-1169).
+- **Ash** was paused by Rowan and has finished.
+- **Stays with Rowan:** the Forager app, the production release, this RECORD.md, and vector maps beyond the US (-1243).
+- **The open-intents check:** -1248 (the T8 plan) moves with T8 to the forecast planner and is closed here by handover, not as done. The open app intents are -1226 (the three tabs, PR #252, Hazel at work), the lint phone check and the T7 device checks (-1212, -1213), and the camera lens fixes (-1149).
+**Notes:** Written by the planner by hand, on branch records-after-173. From here on, forecast entries are in the forecast's own record, and this file cites them by that record's IDs. Next free ID -1252.
