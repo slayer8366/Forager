@@ -21533,3 +21533,24 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **The planner's wrong premise, corrected by Hazel:** the dispatch's "finds, tracks and waypoints" lists were removed earlier (-867, -873). The right column holds the header (pinned), the tiles and height profile, the offline switch and the notes.
 **The owner, verbatim:** "Largest that leaves info ≥240 dp (Recommended)". That is about 400×300 dp on the S22 and on tablets, within the 640 dp cap.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1261.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1261
+**Timestamp:** 2026-10-18T13:05:21Z
+**Continues:** 2026-09-28-1259
+**Observed:** Hazel Cairnwright's report. PR #255 (landscape-entry-rail-credit, head 427effd1, from pre-main 7904f18e) into pre-main, unmerged. CI checked green by the planner: 5,054 tests, 0 failures, 24 skipped; lint at 0 errors; the release compile passes.
+- **The landscape day entry:** the map on the left as the largest 4:3 box leaving the info at least 240 dp; the header pinned; then tiles, height profile, the offline switch and notes, scrolling. The single mapSlot call is kept through rotation. Fullscreen and portrait are unchanged.
+- **The rail:** it reserves the cut-out as well as the navigation bar on its own side, so its surface reaches the edge with the icons clear, on every tab including Maps. The content reserves the cut-out only away from the rail.
+- **Seasonal:** one Open-Meteo credit, last on the page, whenever an Open-Meteo figure shows. The two old credits (the fruiting-lag section and the Conditions card) are removed.
+- **Failing first:** run 39127242982 failed for the expected reasons. One test failed for an adjacent reason (the switch wasn't yet in a scroll); one fullscreen test was instrumented rather than guessed (run 39128035537).
+- **Five revert checks,** each failing on its own edit; the compiles were checked.
+**Hazel's calls, accepted by the planner:**
+- the replaced landscape assertions;
+- the dropped window-height test (the split no longer reads it);
+- the replaced credit-placement tests;
+- an existing quirk flagged, not fixed: the map's test tag is missing in fullscreen.
+**Not tested:** the S22's real insets (the tests assumed a 32 dp cut-out); real tablet hardware; rotation keeping the live map without a rebuild.
+**Device:** the PR's CI build (run 39128621114) is installed on the S22 for the owner's re-check.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1262.
