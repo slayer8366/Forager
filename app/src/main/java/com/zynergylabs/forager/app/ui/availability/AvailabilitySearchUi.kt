@@ -265,7 +265,7 @@ internal fun SearchEntryBar(
     // role itself, solid, where no map is behind it.
     val barFill = when {
         pillCorners == null -> if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
-        else -> mapChromeFill((if (isDarkTheme) MapPillColorDark else MapPillColorLight).copy(alpha = 1f), overMap)
+        else -> mapChromeFill((if (isDarkTheme) MapPillColorDark else MapPillColorLight).copy(alpha = 1f), true)
     }
     val barShape = pillCorners?.shape() ?: RectangleShape
     Surface(
