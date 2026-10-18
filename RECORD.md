@@ -22008,3 +22008,17 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Rejected:** a separately designed night palette.
 - **Not decided here:** Elder notes that with one vector style, raster-shader and offline-recolour night become one transform, which must also walk symbol colours (`docs/audits/2026-10-18-basemap-design-review.md`, "Online and offline the same"). That is for the dispatch.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 8 to 11 still to come. Next free ID -1289.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1289
+**Timestamp:** 2026-10-18T17:06:23Z
+**Continues:** 2026-09-28-1288
+**Title:** Basemap design decision 8, maximum zoom: the own Street map stops at zoom 18 (owner)
+**The owner, verbatim:** "Stop at 18"
+**What it sets:**
+- The own Street map's maximum zoom is 18. Nothing new appears past the built detail.
+- **Phone check:** pinch in until it stops. The map must still look sharp, not blurred or blank.
+- **Rejected:** zooming past 18 with over-scaled geometry.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 9 to 11 still to come. Next free ID -1290.
