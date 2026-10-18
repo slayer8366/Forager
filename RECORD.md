@@ -20849,3 +20849,27 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Observed, logcat 18:56:15 PDT** (kept off GitHub): the camera opened with SurfaceViewImpl (the fast PERFORMANCE viewfinder, 4 lines), with no "Viewfinder in the natural frame" line, no TextureViewImpl, and no CLOSING. There were no display rotations: the phone holds portrait as before, so the turn made no rotation.
 **Reading:** phones are unchanged by PR #251, as predicted. With -1219, PR #251's device check is complete; the picture at ROTATION_0 on the tablet was not screenshotted (the owner declined screenshots), and the owner reported nothing wrong.
 **Notes:** Written by the planner by hand, on branch records-after-173. The S22 keeps 3408 for the UI checks (Part B), then gets 3387 back. Next free ID -1221.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1221
+**Timestamp:** 2026-10-18T01:57:51Z
+**PR:** 251
+**Head:** tablet-camera-no-restart (cb4aa154)
+**Base:** pre-main
+**Merge-commit:** 0be67a252ea4e6878ae35bc71cfa8ae8a6c54b4f
+**Pre-merge:** b91de824
+**Backup:** pre-main-20261018T015740Z-b91de824.bundle (verified)
+**Notes:** The owner, verbatim: "Merge 251 to pre-main". All three checks passed; the device check passed on the tablet (-1219) and the S22 (-1220). Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1222.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1222
+**Timestamp:** 2026-10-18T01:57:51Z
+**Closes:** 2026-09-28-1216
+**Outcome:** done
+**Observed:** -1218 (the fix, green), -1219 and -1220 (device checks passed), -1221 (merged into pre-main). The tablet camera keeps running through portrait-landscape turns; phones are unchanged.
+**Deferred:** foldables (untested; any full-screen device with sw ≥ 600 now always runs COMPATIBLE); smoothness at ROTATION_0 (not measured).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1223.
