@@ -21721,3 +21721,42 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Track B,** the trail map, runs alongside.
 - **Sixteen decisions,** including replacing the 2026-08-22 "never a live tile server" ruling (quoted).
 **Notes:** Written by the planner by hand, on branch records-after-173. The plan goes to pre-main on the owner's word. Next free ID -1272.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1272
+**Timestamp:** 2026-10-18T13:49:23Z
+**Continues:** 2026-09-28-1271
+**Supersedes:** the 2026-08-22 ruling "the PMTiles Worker serves offline downloads only and is never a live tile server", for the app; and -481/-879's "zynergy-labs is the launch account", for the mapping service
+**Title:** Map plan rulings: A0's code fixes only; the on-screen map is served from the existing mapping account, kept apart from zynergy-labs; the build side comes back to the planner, with Hazel coding; design decisions one at a time (owner)
+**The owner, verbatim:**
+- "Code fixes only" (A0: fonts off the demo server, the User-Agent fix, OpenTopoMap's full credit; no email to OpenTopoMap);
+- "Option 2. Zynergy-labs is the website and I intentionally created that to keep it separate from the Forager mapping service" (option 2 read: "Yes, from the current account: use the existing paid account and workers.dev host for now");
+- "Back to me, Hazel codes (Recommended)";
+- "I'll go through them" (Elder's eleven design decisions, one at a time).
+**What it sets:**
+- **A0's three code fixes** go into this release: dispatch 2026-10-18-04 (-1273).
+- **The app's on-screen basemap** may be served live from the owner's existing mapping account (the current Worker's), not from zynergy-labs. A custom domain on that account, to replace workers.dev, is left open.
+- **The Pi planner's build side** (-904) returns to the planner, with Hazel coding; the Pi stays the builder machine.
+- **Elder's design decisions** are taken with the owner one at a time.
+**Notes:** Written by the planner by hand, on branch records-after-173. The plan document's account premise (zynergy-labs) is corrected by this ruling and will be amended. Also the planner's call, told to the owner: Hazel's height route H2 for the landscape pill on topup-items. Next free ID -1273.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1273
+**Timestamp:** 2026-10-18T13:49:23Z
+**Title:** The map's launch fixes: fonts off the demo server, no library-default User-Agent, OpenTopoMap's full credit (owner, -1272)
+**Dispatch-file:** preserved/2026-10-18-04.md, for Hazel Cairnwright (a second session, beside topup-items)
+**Change:**
+- glyphs bundled in the app, or served from the mapping Worker;
+- the app's User-Agent on every tile request, with a stop if the fallback needs a behaviour choice;
+- the full OpenTopoMap credit, with a stop if it wraps.
+**Scope boundary:** BasemapStyles.kt, Basemap.kt, ForagerApplication.kt, MapHttpClient.kt, app assets and credits, and server/ for route (b) only, with their tests, on branch map-launch-fixes as a PR into pre-main. Not the offline style, the tiles, the Cloudflare account or secrets, topup-items' files, main, dev, Gradle on the laptop, RECORD or the audits index.
+**Baseline:** pre-main; GLYPHS_URL_TEMPLATE at BasemapStyles.kt:341; the fallback at ForagerApplication.kt:94-103; the credit at Basemap.kt:122.
+**Prediction (outcome, planner):** bundled glyphs work, with no server; the User-Agent can be set on the default client; the full credit fits on one line in landscape and wraps in portrait.
+**Prediction (mechanism, coder):** in Hazel's verify-first message.
+**Finish line:** a PR into pre-main, green, merged on the owner's word after an S22 check.
+**Abort conditions:** the User-Agent fallback needs a behaviour choice; the credit wraps; route (a) fails and (b) needs a Cloudflare change; a test would have to be weakened.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1274.
