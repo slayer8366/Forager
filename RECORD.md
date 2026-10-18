@@ -22233,3 +22233,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - z0-14 in R2, z15 live from Protomaps, and a build to z15 asked for;
   - the Pi is first in today's tile path (`x-forager-origin: pi`), so its tile server must stay up, or the owner be told, until Part 2 removes the Pi-first step.
 **Notes:** Written by the planner by hand, on branch records-after-173. Part 2's go is still open. Next free ID -1302.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1302
+**Timestamp:** 2026-10-18T18:38:09Z
+**Continues:** 2026-09-28-1300, 2026-09-28-1298, 2026-09-28-1299
+**Title:** Street from Cloudflare, Part 2: the Worker without the Pi, with style, font and sprite routes; the Street style from decisions -1284 to -1289 as -1300 limits them; the app switch behind a compile-time constant left at raster (owner's go)
+**The owner, verbatim:** "3 go"
+**Dispatch-file:** preserved/2026-10-18-05.md, section "Part 2", for Hazel Cairnwright
+**Scope:**
+- `server/pmtiles-worker/`, `map-style/`, the app's basemap, offline-style, night recolour and credits code, and their tests, on branch street-cloudflare, as a PR into pre-main.
+- No deploy, upload or Cloudflare change; the owner deploys by hand.
+- No Room schema change. No Gradle on the laptop.
+**Baseline:** pre-main 712ff277; map-launch-fixes (PR #257) unmerged, with Amendment 2 in progress; the Part 1 report at faae7256.
+**Prediction (outcome, planner):** the Worker and style are buildable in hours. The app part lands after #257 merges. The first phone review round asks for colour changes. Nothing is ready before tonight's release build.
+**Finish line:** a green, unmerged PR, plus the Worker bundle and the R2 folder handed to the owner. The constant stays at raster.
+**Abort conditions:** a Room schema change; a design decision that can't be met even in its -1300 form; anything that would change what today's app sees before the owner deploys; a weakened test.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1303.
