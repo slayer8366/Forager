@@ -21976,3 +21976,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Phone check:** outdoors in sun, phone at arm's length. A path name must read without squinting.
 - **Rejected:** keeping the web style's size and changing only darkness and halo; bigger still, which fits fewer names on screen.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 6 to 11 still to come. Next free ID -1287.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1287
+**Timestamp:** 2026-10-18T17:01:21Z
+**Continues:** 2026-09-28-1286
+**Title:** Basemap design decision 6, points of interest: outdoor places from mid zoom, shops and cafes only zoomed into a town (owner)
+**The owner, verbatim:** "Elder's recommendation"
+**What it sets:**
+- From mid zoom, the own Street style shows: trailheads, parking, campgrounds, picnic sites, viewpoints, peaks, toilets, drinking water and ranger stations.
+- Shops and cafes show only when zoomed into a town.
+- **Phone check:** at a trailhead area at mid zoom, parking and the trailhead show before any cafe.
+- **Rejected:** outdoor places only, with no shops or cafes at any zoom; a changed list.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 7 to 11 still to come. Next free ID -1288.
