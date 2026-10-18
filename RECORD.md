@@ -22512,3 +22512,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **(3)** PR #258 stays unmerged until the Pi planner's US and Canada z15 build finishes, which the Pi planner estimates for tonight.
 - **Planner's caution, to be carried with it:** the Worker redeploys from GitHub when main changes. If #258 reaches main before the owner has uploaded the fonts and icons to R2, the new Worker goes live first. Today's app wouldn't notice, but the order should be: upload to R2 and paste the Worker, or pause auto-deploy, before #258 reaches main.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1317.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1317
+**Timestamp:** 2026-10-18T20:30:41Z
+**Continues:** 2026-09-28-1316, 2026-09-28-1086
+**Title:** Tonight's other changes merge into pre-main when ready; only #258 waits for the Pi build (owner)
+**The owner, verbatim:** "But whatever other feature, like street map first, etc, should be merged when ready, if not done yet"
+**What it sets (the planner's reading, stated to the owner):**
+- **PRs covered:** PR #259 (offline-street-logo, dispatch 2026-10-18-07) and the nav-rail-order PR (dispatch 2026-10-18-08).
+- **"Ready" means:** full CI green on the head, revert checks valid, and no open stop.
+- **On ready:** the planner merges each into pre-main without asking for a separate word. Street as the default is already in pre-main (#257, -1307).
+- **Phone checks:** one combined check on the resulting pre-main build, on the S22, the S26 and the tablet, before the promotion. The promotion to main still needs the owner's approval (-1086).
+- Only #258 waits for the Pi build (-1316).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1318.
