@@ -22773,3 +22773,22 @@ All three screenshots are kept off GitHub.
 - (a) the fix: should List and Seasonal keep their bar while a Journal entry is open, so the hide applies only on the Journal tab? Hazel has a test for it that fails today on both builds;
 - (b) whether to revert #261 anyway. The revert branch is ready at fd1f9589, with no PR.
 **Notes:** Written by the planner by hand, on branch records-after-173. The draft entry made on the S22 to reproduce this is left in place. Next free ID -1330.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1330
+**Timestamp:** 2026-10-18T23:26:27Z
+**Continues:** 2026-09-28-1329, 2026-09-28-1327
+**Supersedes:** -1320 (the reserved strip)
+**Title:** Before release: an open Journal entry hides search on the Journal only, so List and Seasonal keep their bar; the strip is removed and the switch line is the Journal's header again, sliding down with the bar when 🔍 is tapped; a small gap between the switch line and the map (owner)
+**The owner, verbatim:**
+- "So i confirmed on the S26 that the search bar works as it should. And opening an entry hides it as it is expected to. But when switching from an open entry to list, or to seasonal, the search bar is empty. When I open an entry, and then back out of it properly, the search bar returns to all tabs as they should";
+- then "Yes. Hide the strip to have the chips line sit as a comfortable header. When the search icon is tapped to reveal the search bar, then the line with the chips can slide down along with the search bar to make room."
+- And earlier: "have the entries | records chip move up slightly from the map".
+**What it sets:**
+- **(1) The fix:** `journalSearchHeld` (`AvailabilityCompactScaffold.kt:595`) hides the search bar only while the Journal tab shows. With an entry open, List and Seasonal show their bar, and on the Journal the entry still hides it, as since -692. Backing out of the entry is unchanged.
+- **(2) The strip goes:** PR #261 is reverted (branch revert-journal-search-space, fd1f9589). The switch line sits at the top of the Journal as its header. Tapping 🔍 slides the bar in and the switch line down with it, as before tonight. The Offline maps map moves and resizes with it again; the owner has accepted that.
+- **(3) The gap:** the switch line sits with a small gap above a map on the Journal, about 8 dp.
+- One PR into pre-main, merged under -1317. The device check restarts on the build with it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1331.
