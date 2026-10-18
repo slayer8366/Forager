@@ -1,8 +1,10 @@
-# Forager's US + Canada map and routing build (owner's go, 2026-10-18). Not installed yet: it
-# replaces forager-build.service under the weekly timer once the first US + Canada build has
-# worked (owner's answer 3, 2026-10-18). Five days, not four hours: over the Pi's Bluetooth link
-# the two extracts alone take about a day, and the build itself has never been timed at this size.
-# Install: copy to /etc/systemd/system/, point forager-build.timer at it, `systemctl daemon-reload`.
+# Forager's US + Canada map and routing build (owner's go, 2026-10-18). Installed 2026-10-18 and
+# run by forager-build.timer in place of forager-build.service, on the owner's later word
+# ("Switch over the timer to us and Canada"), which superseded answer 3's "once the first build
+# has worked". Five days, not four hours: the two extracts alone took most of a day over the Pi's
+# Bluetooth link, and the build itself has never been timed at this size.
+# Install: copy to /etc/systemd/system/, add a forager-build.timer drop-in with
+# `[Timer] Unit=forager-build-usca.service`, `systemctl daemon-reload`.
 [Unit]
 Description=Forager map and routing build (US + Canada)
 Documentation=file:/opt/forager-build/map-build/README.md

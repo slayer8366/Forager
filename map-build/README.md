@@ -145,9 +145,11 @@ What it does differently from `build-orwa.sh`, and why:
   what catches one.
 - **One good output kept** (`USCA_KEEP_GOOD_OUTPUTS=1`), since each is tens of GB.
 - **It will not run alongside `build-orwa.sh`.** Two builds at once would not fit in memory, and
-  `build-orwa.sh`'s cleanup deletes every extract it did not use. Switch the weekly timer to
-  `systemd/forager-build-usca.service` before 2026-10-25, or turn it off: its next run would
-  delete the US and Canada extracts.
+  `build-orwa.sh`'s cleanup deletes every extract it did not use. Since 2026-10-18 the weekly
+  timer runs `forager-build-usca.service`, through the drop-in
+  `/etc/systemd/system/forager-build.timer.d/usca.conf` (owner: "Switch over the timer to us and
+  Canada"). Deleting that drop-in returns the timer to `forager-build.service`. See
+  `docs/audits/2026-10-18-usca-build-switchover-report.md`.
 
 ## Tests and checks
 
