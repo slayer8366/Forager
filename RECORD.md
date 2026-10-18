@@ -20925,3 +20925,16 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Finish line:** a PR into pre-main, green, with the device check, merged on the owner's word after a screenshot re-check.
 **Abort conditions:** a change that would alter the map; no clear match in landscape or on the tablet; a touch or inset change beyond the look; a test would have to be weakened; two failed attempts at one symptom.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1227.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-1227
+**Timestamp:** 2026-10-18T02:19:38Z
+**Continues:** 2026-09-28-1226
+**Title:** The three tabs' chrome: Hazel's verify-first, accepted; in landscape the pill moves to Maps' spot (owner)
+**Prediction (mechanism, coder):** no new composable. The three tabs already call the map's SearchEntryBar, ForagerBottomNav and ForagerNavigationRail with the map-only shape parameters left at their defaults (AvailabilityCompactScaffold.kt:910, :939, :1000-1015, :1706). Passing the map's corners and outline gives the shape. The pill's fill moves to mapChromeFill(role, overMap), so Maps stays at 0.8 and the tabs become solid; today the tabs' search line is 80% over the plain page. The tablet uses the same scaffold.
+**The planner's acceptances:** matching the pill height, so the tabs' content starts about 5 dp higher (told to the owner); test-only semantics for the shape and outline.
+**The owner, verbatim:** "Move to Maps' spot", to whether the landscape pill on the other tabs should stay centred (recommended) or take Maps' position.
+**What it sets:** in landscape, List, Seasonal and Journal place the pill at Maps' position and width, with all four corners rounded (there is no strip to join), outlined and solid. The page content starts below it. Switching tabs moves nothing. Sent to Hazel as an addition, with a landscape bounds test and a screenshot step; a stop if the free side meets the cut-out or insets badly.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1228.
