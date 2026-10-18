@@ -21114,3 +21114,19 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Pre-merge:** 130b108e
 **Backup:** pre-main-20261018T033710Z-130b108e.bundle (verified)
 **Notes:** The owner, verbatim: "Merge Forager 253 and 250". Ash Transect in the planner profile's team table; Hazel's profile names the app (-1233). Documents only; all three checks passed. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1238.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1238
+**Timestamp:** 2026-10-18T03:54:27Z
+**Continues:** 2026-09-28-1236, 2026-09-28-1231
+**Supersedes:** J5's "Hide header; icon reveals it", for Journal in landscape only
+**Title:** Landscape search pill at the left, clear of the navigation bar, for floating keyboards; Journal always shows it in landscape; the search panel solid off the map; rail options under the keyboard (owner)
+**The owner, verbatim:** "Search bar appears, can it move a bit to the left to accommodate floating keyboards? And can it be set in the Journal at the same position at top?" Then "Yes, at the left (Recommended)"; "Always show it"; "Yes, both (Recommended)". The owner sent two S22 screenshots (landscape, full and floating keyboards), described here and not stored.
+**What it sets:**
+- **Position:** in landscape on Seasonal, List and Journal, the pill sits at the left, just clear of the navigation bar or cut-out, at Maps' size, with the search panel under it on the left. This revises -1231's "centered".
+- **Journal:** shows the search pill at the top in landscape at all times. J5's landscape hiding is superseded; J5's own entry is not edited.
+- **The search panel:** solid off the map (it was see-through over the page in the screenshot), 0.8 over the map.
+- **The rail squashed by the full keyboard:** Hazel reports options first; the owner chooses.
+**Notes:** Written by the planner by hand, on branch records-after-173. J5 was quoted to the owner before asking (read-the-ruling). Next free ID -1239.
