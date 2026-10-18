@@ -21479,3 +21479,42 @@ It ends with numbered decisions for the owner, each with a recommendation.
 **Observed:** PR #252 merged into pre-main (-1256), carrying -1225 to -1253's landscape and tab rulings; checked on the S22 (-1255).
 **Deferred:** the gap between the cut-out and the rail, and the first-visit fallback size in landscape (device only, not reported).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1258.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1258
+**Timestamp:** 2026-10-18T12:17:00Z
+**Continues:** 2026-09-28-1212, 2026-09-28-1213
+**Title:** S22 checks: lint rotation, outlines B3 to B5, credits; the landscape day entry, the rail's edge and a doubled credit to fix; the height checks deferred (owner)
+**The owner, verbatim:**
+- "1 to 3 can be done, defer 4 for now";
+- group 1: "1 pass / 2 map is squished in landscape. reduce the size to a 4:3 box, and have it on one side with the info on the other. I propose the map on the left with the info on the right. / 3 pass";
+- confirmed with "Yes, as drawn (Recommended)" and "This release, start now";
+- group 2: "1 Maps tab is fine, but the other tabs have the rail off from the edge. On all tabs: Either have the rail extend fully to the side so there's no cutoff, or move the rail to the edge like the maps tab has it. I propose the first, since it has to extend on the other side to accommodate the navbar anyway. / 2 pass / 3 pass";
+- group 3: "pass, but open meteo is cited twice in the seasonal tab. Once at the bottom is sufficient".
+
+Two landscape screenshots (Maps and Seasonal) are described, not stored.
+**Results:**
+- **Lint check:** step 1 (find page rotation) passes; step 2 (day entry) fails as squished; step 3 (Maps rotation) passes. The backup flag was read by the planner: no ALLOW_BACKUP. S22 Android 16 / API 36.
+- **Outlines:** B4 and B5 pass. B3: the rail is off the edge on the non-Maps tabs.
+- **Credits:** pass, but Seasonal credits Open-Meteo twice.
+- **Deferred by the owner:** D1 and D2, the height checks.
+**What it sets,** in this release: the landscape day entry becomes a 4:3 map on the left with its info on the right, scrolling; the rail's surface reaches the screen edge on every tab; Seasonal keeps one Open-Meteo credit, at the bottom. These go to dispatch 2026-10-18-01 (-1259).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1259.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1259
+**Timestamp:** 2026-10-18T12:17:00Z
+**Title:** The landscape day entry as a 4:3 map beside its info; the rail to the screen edge on every tab; Seasonal's Open-Meteo credit once (owner, -1258)
+**Dispatch-file:** preserved/2026-10-18-01.md, for Hazel Cairnwright
+**Change:** the three fixes in -1258, landscape only, with portrait unchanged.
+**Scope boundary:** the day-entry report screen, the rail and its insets, and Seasonal's credit placement, with their tests, on branch landscape-entry-rail-credit as a PR into pre-main. Not portrait, the find page, main, dev, Gradle on the laptop, RECORD or the audits index.
+**Baseline:** pre-main 7904f18e (PR #252 merged); the rail inset on the non-Maps tabs is suspected to be the cut-out band added before the docked rail (Hazel's earlier inference, to confirm).
+**Prediction (outcome, planner):** a two-pane landscape day entry, the rail flush with the edge, one credit on Seasonal; a small diff on each.
+**Prediction (mechanism, coder):** in Hazel's verify-first message.
+**Finish line:** a PR into pre-main, green, merged on the owner's word after the S22 re-check.
+**Abort conditions:** a layout choice the drawing doesn't settle; any change to portrait; a test having to be weakened; two failed attempts at one symptom.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1260.
