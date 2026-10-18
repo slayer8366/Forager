@@ -20836,3 +20836,16 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Reading:** the restart on portrait-landscape turns is gone on the device: 0 restarts across 27 turns, against 8 of 8 before (-1214). The owner saw nothing to report.
 **Not checked:** the picture at ROTATION_0 by screenshot (the owner declined screenshots); smoothness at ROTATION_0; the S22 sanity step of PR #251's device check (phones keep today's viewfinder).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1220.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1220
+**Timestamp:** 2026-10-18T01:56:53Z
+**Continues:** 2026-09-28-1219
+**Title:** PR #251 on the S22: the phone keeps its usual viewfinder; the tablet photo was upright
+**The owner, verbatim:** "It was upright" (the tablet photo of 18:51:08, taken in landscape; Forager logged its orientation tag as already correct); "It works fine on the S22" (said of build 1.0.3387+g4e3d31ce, which doesn't contain the fix); then "Go ahead with install" and "Done".
+**Device:** S22 Ultra SM-S908U. The previous build, 1.0.3387+g4e3d31ce, was saved first from the phone (~/Zynergy/device-evidence/2026-10-17-s22-pre-251-build/, sha256 c36aba61…), so it can be put back exactly. Commit 4e3d31ce is not in the planner's clone; its source is not established. Then PR #251's 1.0.3408+gcb4aa154 was installed with its data kept.
+**Observed, logcat 18:56:15 PDT** (kept off GitHub): the camera opened with SurfaceViewImpl (the fast PERFORMANCE viewfinder, 4 lines), with no "Viewfinder in the natural frame" line, no TextureViewImpl, and no CLOSING. There were no display rotations: the phone holds portrait as before, so the turn made no rotation.
+**Reading:** phones are unchanged by PR #251, as predicted. With -1219, PR #251's device check is complete; the picture at ROTATION_0 on the tablet was not screenshotted (the owner declined screenshots), and the owner reported nothing wrong.
+**Notes:** Written by the planner by hand, on branch records-after-173. The S22 keeps 3408 for the UI checks (Part B), then gets 3387 back. Next free ID -1221.
