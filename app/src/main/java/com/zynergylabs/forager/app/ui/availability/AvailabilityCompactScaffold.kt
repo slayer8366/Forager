@@ -1007,7 +1007,7 @@ internal fun CompactMainScaffold(
                         } else {
                             WindowInsets.navigationBars.getRight(this, navBarFarSideDirection) - WindowInsets.displayCutout.getRight(this, navBarFarSideDirection)
                         }
-                        px.coerceAtLeast(0).toDp()
+                        0.dp
                     }
                     val tabLandscapePillPlace = if (railBeside) {
                         val farIsLeft = portEdge == ScreenEdge.Right
