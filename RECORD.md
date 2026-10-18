@@ -21263,3 +21263,40 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **Trimmed:** "Tile budget: <used> / <limit>" keeps the figure and drops its explanatory sentence.
 - In PR #252, this release.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1246.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1246
+**Timestamp:** 2026-10-18T05:16:17Z
+**Continues:** 2026-09-28-1232
+**Observed:** review 1 of the T7 re-fit, by Sorrel Tally on Fable, forecast branch t7-refit-review at 4d890d7: docs/audits/2026-10-17-t7-refit-review.md with its evidence. It did not read review 2. The baseline matched.
+- **Reproduction:** all figures reproduced to 1e-9 with independent code. P10b fails on conditions 2 and 3.
+- **Blocking, for showing the map as labelled:**
+  1. P10b fails;
+  2. condition 1 is "not established": 57% of its margin comes from the three selected bands; leave-one-block-out selection changes the chosen set in 20 of 24 folds; its cache-only lower bound is +0.00182 [−0.00129, +0.00733];
+  3. "mycorrhizal" is unsupported. The contrast fails; Laetiporus gains about three times as much; within the group the gain sits in a few bolete and tooth genera (Sarcodon, Boletus, Cortinarius), while Amanita, Russula, Lactarius, Suillus and Cantharellus gain nothing.
+- **Should-fix:**
+  - the selection caveat belongs in the verdict table;
+  - fit.log should print condition 2's block interval;
+  - 23 of the 99 specimen genera have no platform presence;
+  - condition 4's background should be drawn per collecting station;
+  - 3.2 M of the 6.95 M shaded cells lie outside the effort frame;
+  - road distance alone ranks within-cell pairs at 0.654.
+- **Notes:**
+  - D156 is implemented as stated;
+  - monotone −1 is wrong in the Puget Lowland, where presences sit farther from roads inside a cell;
+  - condition 4 is stronger than predicted (block-matched +0.178; other herbaria +0.153 [+0.002, …]) and weakens where it should (0.513 on pairs sharing a cell; outside the four western blocks +0.063 [−0.046, +0.177]; the interior unusable);
+  - the map has no seams or artefacts.
+- **Two revert checks,** both biting.
+- **One-line answers:**
+  - show it? Not with "mycorrhizal", "habitat" for a group, or a 250 m claim. At most a research view, "where reported finds of this fungus group cluster … after allowing for search effort and road access; a relative ranking at tens of kilometres; not a habitat model";
+  - strengthening won't change the verdict (worth running for the record: nested selection and per-station condition 4);
+  - stop T7 for the PNW? Yes, as posed. Keep the record, with the per-genus and within-block signals as leads.
+**The planner's comparison** (two models, neither on Opus, neither reading the other):
+- **They agree on:** the exact reproduction; P10b fails; condition 1 depends on the band selection (42% against 57% of the margin, both failing without it); condition 2 is the road band alone (0.654); "mycorrhizal" is unsupported; condition 4 holds across the whole box but not in the interior, and is a collecting-pattern result; no showing under D145; strengthening is unlikely to flip it; stop the "mycorrhizal habitat" claim.
+- **Review 1 adds:** the selection is unstable (20 of 24 folds); the per-genus split; the Puget Lowland's monotone problem; a 250 m claim is unsupported, so tens of kilometres at most.
+- **Review 2 adds:** condition 4 survives deduplication and the year cut, and crosses zero by a hair without the largest herbarium; the map's movement is regional.
+- **They differ only in degree:** review 1 says "stop T7 for the PNW as posed"; review 2 says "stop the mycorrhizal claim; carrying an index is the owner's call".
+**Against the planner's prediction (-1232):** the reproduction held; condition 1's fragility held; the specimen test was stronger than predicted (both reviews).
+**Notes:** Written by the planner by hand, on branch records-after-173. The owner decides T7's next step. Next free ID -1247.
