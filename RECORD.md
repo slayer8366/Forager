@@ -22037,3 +22037,20 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Steps:** the eight in `docs/audits/2026-10-18-topup-items-completion-report.md`, "S22 device check". Step 2 is the only check on the tile figures following the pin (known-bugs row 6).
 - **Not reported:** the region's place from step 2, and step 7's keyboard observation. Neither is a gate.
 **Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word: the planner has seen no per-step evidence. The merge of PR #256 into pre-main still needs the owner's word. Next free ID -1291.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1291
+**Timestamp:** 2026-10-18T17:12:07Z
+**Continues:** 2026-09-28-1289, 2026-09-28-1282
+**Title:** Basemap design decision 9, Topo at launch: keep OpenTopoMap, write to its maintainers before launch, own contours and hillshade later (owner)
+**The owner, verbatim:** "Option 1.", then "D9 is option 1 yes" when the planner asked whether that meant decision 9 or the merge.
+**What it sets:**
+- **Topo:** Topographical stays on OpenTopoMap's raster tiles at launch. With Street as the default (-1282), Topo carries only the traffic of users who switch to it.
+- **Letter:** someone writes to OpenTopoMap's maintainers before launch. Elder's review cites them asking "bigger projects" to get in touch. Who writes, and what it says, is to come to the owner.
+- **Own topo later:** contours and hillshade from 3DEP, a follow-on (Elder's review, "Topo").
+- **For the dispatch:** once Street is vector, Topo night below zoom 9.5 crossfades over a labelled vector Street (`BasemapStyles.kt:137-138`, per Elder; not re-read here). The Street labels must not show through that composition.
+- **Phone check:** switch to Topographical; nothing changes from today.
+- **Rejected:** the same without writing to OpenTopoMap.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 10 and 11 still to come. The merge of PR #256 is not decided by this. Next free ID -1292.
