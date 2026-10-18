@@ -77,7 +77,6 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
     "background" to listOf("background-color"),
     "fill" to listOf("fill-color", "fill-outline-color"),
     "line" to listOf("line-color"),
-    "symbol" to listOf("text-color", "text-halo-color", "icon-color"),
 )
 
 /** [pixels] (ARGB, as `Bitmap.getPixels` gives them) through [nightColorOf], alpha kept: an icon's night look. */
