@@ -1137,7 +1137,7 @@ internal fun CompactMainScaffold(
                             // beside it here it rounds all four corners and is outlined all round.
                             // Dispatch 2026-10-18-03, item 2: the strip's height as Maps last measured it, else its one line
                             // worked out here (the strip's evening lines are not modelled; listed in known-bugs).
-                            landscapeHeight = if (railBeside) lastMapsStripHeight.takeIf { it > 0.dp } ?: tabPillStripLineHeight else null,
+                            landscapeHeight = if (railBeside) lastMapsStripHeight.takeIf { it > 0.dp } else null,
                             pillCorners = MapCardCorners.ALL,
                             pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                         )
