@@ -21101,3 +21101,16 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **A slip:** Hazel deleted its own revert script while cleaning /tmp, and rewrote it before reverts 7 and 8; there was no other effect.
 **Still device only:** the gap between the cut-out and the rail; the first-visit size in landscape.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1237.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1237
+**Timestamp:** 2026-10-18T03:37:30Z
+**PR:** 253
+**Head:** team-ash-transect (799cac8a)
+**Base:** pre-main
+**Merge-commit:** fe0baf4ae8418a423256db53d178e338795f089c
+**Pre-merge:** 130b108e
+**Backup:** pre-main-20261018T033710Z-130b108e.bundle (verified)
+**Notes:** The owner, verbatim: "Merge Forager 253 and 250". Ash Transect in the planner profile's team table; Hazel's profile names the app (-1233). Documents only; all three checks passed. Merged with a merge commit, pinned to the head. Written by the planner by hand, on branch records-after-173. Next free ID -1238.
