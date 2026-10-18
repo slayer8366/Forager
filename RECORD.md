@@ -22733,3 +22733,21 @@ All three screenshots are kept off GitHub.
 - **New:** the Entries | Records switch gets a small gap, about 8 dp, above a map on the Journal.
 - **The map-resize stutter (-1318)** is back with the revert, as it was before tonight.
 **Notes:** Written by the planner by hand, on branch records-after-173. The planner's ruling to keep the strip on open entries (-1322) was part of what the owner saw as broken. Next free ID -1328.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1328
+**Timestamp:** 2026-10-18T23:08:56Z
+**Continues:** 2026-09-28-1327
+**Title:** Bisect on the S22: the build before the strip shows the search bar on List and Seasonal in landscape, so PR #261 caused the missing bar (planner's own device check)
+**The owner, verbatim:** "Yes run a device check on the S22", then "Do the device check. It's not locked".
+**Observed:**
+- **The build:** debug APK 1.0.3472+g8c90626f, pre-main before #261, from push run 39168046173. The planner installed it with `adb install -r -d` (a downgrade from 1.0.3477+g836916a9), at about 23:05Z.
+- **How the check ran:** the planner set landscape (`settings put system user_rotation 1`), opened Forager, and tapped List, then Seasonal, on the rail. Screenshots were taken with `screencap` and kept outside any repository.
+- **Result:** List and Seasonal both show "October · Search a location" at the top in landscape. The Maps tab shows its own bar.
+- **Comparison:** on 1.0.3477+g836916a9, the owner's S22 screenshots of List and Seasonal in landscape showed no bar.
+- **Conclusion:** the only change between the two builds is PR #261 (8c90626f..836916a9), so #261 removed the bar. The revert (-1327) is the fix.
+- **Limit:** the owner's screenshots were in the light theme and this check ran in the dark theme. The state before each screen may also have differed. The bar's absence is not yet reproduced by the planner on 836916a9.
+- Rotation was set back to its previous value afterwards.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1329.
