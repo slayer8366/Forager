@@ -144,3 +144,62 @@ When it lands, the basemap's tiles switch to its build (A2 b), so the paths gain
 - **Real requests per user;** the cost figures are estimates.
 - **Whether the shortened OpenTopoMap credit was ever enough.** That's a licence question, not answered here; decision 1 makes it moot.
 - **iOS:** this plan serves any client. The iOS app reuses the same style URL and server.
+
+---
+
+## Amendment 1, 2026-10-18 (evening): the owner's rulings since this plan was written
+
+Written by the planner (Rowan Waymark) at the owner's word, "Go on the two items". **The text above is left as written.** Where this amendment and the text above disagree, this amendment holds. Every ruling is quoted in Forager's RECORD on branch `records-after-173`, and each one is cited by its ID here.
+
+### Infrastructure and timing (section 4, decisions 1 to 5)
+
+- **Decision 1, the A0 items:** "Code fixes only" (-1272), so there is **no email** in A0.
+  - **Fonts:** removed, not served. The app's raster maps draw no text of their own, so the font request went (-1278 A).
+  - **User-Agent:** fixed. A failed client install is a failed map start-up (-1278 B).
+  - **OpenTopoMap's credit:** the short form shows in the caption and the full form behind the tap (-1278 C).
+  - **A failed map start-up** shows "The map couldn't start." with Try again (-1283, -1284).
+  - All of this is in PR #257 (dispatch 2026-10-18-04 and its Amendment 1). The S22 check passed (-1295), and the PR is not merged yet.
+  - The email came back in at decision 9 below. See "A conflict to settle".
+- **Decision 2, on-screen tiles from your own server:** yes. The 2026-08-22 ruling is lifted for the app (-1272), because "Cost was a factor then, now it isn't" (-1276).
+- **Decision 3, where it's served from:** **not zynergy-labs.** The owner: "Zynergy-labs is the website and I intentionally created that to keep it separate from the Forager mapping service" (-1272).
+  - It's served from the existing mapping account, the current `forager-pmtiles` Worker on `workers.dev` (`server/pmtiles-worker/wrangler.toml`).
+  - A1's "zynergy-labs account goes on Workers Paid" and `tiles.zynergy-labs.com` are withdrawn.
+  - A custom domain on the mapping account is still open.
+- **Decision 4, data source:** Protomaps' US cut (A2 a), the whole US first (-1274).
+- **Decision 5, who runs the build side:** the owner's Pi planner downloads and builds the maps, and the owner says when that's ready (-1281).
+  - The laptop side, meaning this planner with Hazel coding, does what the app needs "to have proper maps tonight before release" (-1281). The owner: "Cloudflare needs to be front and center for the maps serving, not OSM".
+  - The route there went through -1272, -1276 and -1280, all superseded by -1281.
+
+### Design (section 4, decisions 6 to 16; Elder's numbering in brackets)
+
+| Plan | Elder | Ruling | RECORD |
+|---|---|---|---|
+| 6 | 1, coverage | The whole US first, from Protomaps' US cut, so there's no fallback inside the US. | -1274 |
+| 7 | 2, default | Street by default. Street uses the Cloudflare map **if it is ready and passes its phone check before the release build**; otherwise it ships on OpenStreetMap's raster tiles and moves to Cloudflare in a later update. Nothing switches while the app is in use. | -1282 |
+| 8 | 3, paths | Elder's three styles: dashed red-brown footpaths, dash-dot brown vehicle tracks, dotted faint informal paths, from trailhead zoom. | -1284 |
+| 9 | 4, forest | One solid green from the state view down; a lighter tone for grass and scrub; parks as an outline. Conifer and broadleaf shades come later. | -1285 |
+| 10 | 5, labels | A little bigger than `forager-light.json`, near-black on a light halo. | -1286 |
+| 11 | 6, points of interest | Elder's outdoor list from mid zoom; shops and cafes only when zoomed into a town. | -1287 |
+| 12 | 7, night | Pure inversion, labels included, with day colours chosen to survive it. | -1288 |
+| 13 | 8, zoom | Stops at 18. | -1289 |
+| 14 | 9, Topo | Stays on OpenTopoMap at launch; write to its maintainers before launch; own contours and hillshade later. | -1291 |
+| 15 | 10, satellite | Not at launch; when it returns, trails and labels go over the imagery. | -1292 |
+| 16 | 11, old offline downloads | Keep working until re-downloaded, with a one-line notice in the list; no forced or automatic re-download. | -1294 |
+
+### A conflict to settle
+
+-1272 ruled A0 "Code fixes only", with no email to OpenTopoMap. -1291 (decision 9, option 1) rules "write to its maintainers before launch". The planner didn't point out the conflict when it put decision 9. -1291 is the later word, but it's taken to the owner rather than assumed.
+
+### Not built yet
+
+- **Street as the default.** `MapMode.DEFAULT` is still `TOPOGRAPHIC` (`MapMode.kt:42` on pre-main). The S22 check found Topo opening first (-1295). The behaviour is restated to the owner and awaits a yes.
+- **Track A's A1 (serving), A3 (style) and A4 (app switch).** For tonight, decision 7's condition applies: the Cloudflare Street map ships only if it is ready and passes its own phone check before the release build.
+
+### Premises re-checked for this amendment
+
+- **Read:**
+  - `MapMode.kt:36-42` on pre-main 712ff277;
+  - the Worker's tile content types, `server/pmtiles-worker/src/index.ts:125-129`, which serve vector or raster archives alike;
+  - its edge cache, `:340-365`;
+  - `wrangler.toml`'s `name = "forager-pmtiles"`.
+- **Not re-read:** the plan's other file and line references. The dispatches re-check them.
