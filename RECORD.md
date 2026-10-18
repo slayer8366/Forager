@@ -20749,3 +20749,30 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1214.
 - **Doesn't hold:** at each quarter-turn between portrait and landscape, the camera restarts. The user sees about a second of rotated or black picture. Inferred: the window's size change makes the camera rebind.
 **Not serious** by the known-bugs definition (no crash, no lost record, no wrong position). The code is on main since -986, and not in tester build 3292 (inferred from dates: 3292 is from 497423d6, before -986).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1215.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1215
+**Timestamp:** 2026-10-18T01:04:27Z
+**Continues:** 2026-09-28-1214
+**Title:** The tablet camera's restart on a portrait-landscape turn is fixed before the production release (owner)
+**The owner, verbatim:** "Fix before release" (offered: "Ship, list it, fix next (Recommended)").
+**What it sets:** the release waits for a fix, so that the camera keeps running through the turn on large screens, and for a tablet re-check. Phones are unchanged; the hold's ruling (-985) stands.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1216.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1216
+**Timestamp:** 2026-10-18T01:04:27Z
+**Title:** On a tablet, the camera keeps running through a portrait-landscape turn (owner, -1215)
+**Dispatch-file:** preserved/2026-10-17-08.md, for Hazel Cairnwright
+**Change:** find from the code what closes and rebinds the camera on a 0↔90 turn (it must also explain why 270→180 doesn't), report it, then fix it so the camera and preview survive the turn on large screens. Phones and the hold are unchanged. A device check is written for the owner.
+**Scope boundary:** InAppCameraDialog.kt, NaturalOrientationHold.kt, CameraXCaptureSession.kt and their tests, on branch tablet-camera-no-restart as a PR into pre-main. Not main, dev, the lens and RAW work on dev, phone behaviour, Gradle on the laptop, the tablet, RECORD or the audits index.
+**Baseline:** pre-main b91de824; the log behind -1214 (camera CLOSING and the surface re-requested on each 0↔90 turn; nothing on 270→180; the preview transform constant).
+**Prediction (outcome, planner):** a small change in the camera host so the binding survives a size change; phones unaffected; no flash on the tablet.
+**Prediction (mechanism, coder):** in Hazel's Phase 1 message.
+**Finish line:** a PR into pre-main, green, with the device check, merged on the owner's word after the tablet re-check passes.
+**Abort conditions:** the mechanism doesn't explain 270→180; the fix would change phones or the -985 ruling; a test would have to be weakened; main or dev; two failed attempts at one symptom.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1217.
