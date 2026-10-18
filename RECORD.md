@@ -21412,3 +21412,14 @@ It ends with numbered decisions for the owner, each with a recommendation.
 **Observed:** Ash's T8 plan reached a full draft with 13 decisions (t8-plan d6f916ae, marked "WIP, paused"), not self-checked, after the premise stop (-1249) and the owner's reshaping (-1250).
 **Deferred:** finishing and self-checking the plan, and bringing its decisions to the owner. This passes to the forecast planner with the rest of the forecast work (-1251) and continues in the forecast's own record.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1253.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1253
+**Timestamp:** 2026-10-18T05:54:34Z
+**Continues:** 2026-09-28-1243
+**Title:** The offline-maps panel in phone landscape: OK, Cancel and Download on one line, so the radius slider shows on open (owner)
+**The owner, verbatim:** "C: OK, Cancel and Download on one line" (offered: A, the radius label beside the slider, recommended; B, the Name label inside the box; D, leave it).
+**What it sets:** in landscape, the panel's pinned bottom is "Pin at: …" and then one row: OK, Cancel, Download Maps. That replaces the earlier pinned layout in landscape only. The freed height shows the Name box and the radius slider on open. LandscapeOfflinePickerTest's "reached by scrolling" assertion becomes "in view on open, with real touches", citing this ruling.
+**Notes:** Written by the planner by hand, on branch records-after-173. Hazel measured the slider 18 dp below the fold at 823×384 dp (run 39100889682). Next free ID -1254.
