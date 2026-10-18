@@ -20873,3 +20873,16 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Observed:** -1218 (the fix, green), -1219 and -1220 (device checks passed), -1221 (merged into pre-main). The tablet camera keeps running through portrait-landscape turns; phones are unchanged.
 **Deferred:** foldables (untested; any full-screen device with sw ≥ 600 now always runs COMPATIBLE); smoothness at ROTATION_0 (not measured).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1223.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1223
+**Timestamp:** 2026-10-18T02:04:23Z
+**Continues:** 2026-09-28-1213
+**Title:** Part B (map outlines) on the S22: day and night pass on the main map; the Journal, Seasonal and List tabs still carry the old look
+**Device:** S22 Ultra, Forager debug 1.0.3408+gcb4aa154 (pre-main plus PR #251).
+**The owner, verbatim:** "Outlines look as they should in both light and dark mode. Main map only. The updated UI still needs to be applied to the Journal, the Seasonal, and the List tab, as they all still carry the old UI."
+**Result:** B1 (day) and B2 (night) pass on the main map. B3 (landscape, rail spacing and cut-out), B4 (navigating) and B5 (fullscreen) are not yet reported.
+**Finding, for the owner to scope:** the map-chrome update (PRs #221 and #224: outlines and the rounded strip, bar and rail) reached only the main map. The Journal, Seasonal and List tabs still show the earlier look. Whether that is a release gate or later work is not yet ruled.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1224.
