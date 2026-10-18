@@ -22268,3 +22268,14 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Check after:** a tile not fetched before answers `x-forager-origin: r2`. Tiles already in Cloudflare's edge cache may still show `pi` for up to a day (max-age 86400, `index.ts:365`).
 - This carries out -879 ("nothing live" on the Pi) early, and Part 2 still removes the Pi-first code (-1300 (1)).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1304.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1304
+**Timestamp:** 2026-10-18T18:40:23Z
+**Continues:** 2026-09-28-1303
+**Title:** The Pi leaves the Worker's configuration in the repository too, as Amendment 3 to dispatch 2026-10-18-04, so tonight's update doesn't put it back (owner)
+**The owner, verbatim:** "Take the pi out", to the planner's choice of (1) a one-line change removing `PI_ORIGIN_URL` from `wrangler.toml` on map-launch-fixes, or (2) pausing auto-deploy. The planner read it as option 1, and the dashboard deletion (-1303) is still the owner's step.
+**What it sets:** `server/pmtiles-worker/wrangler.toml` drops `PI_ORIGIN_URL`, in PR #257, so a deploy from the repository keeps the Pi out of the tile path. The Pi-first code is removed later, in Part 2.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1305.
