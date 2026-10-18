@@ -41,6 +41,23 @@ recording rather than hiding:
   `CreateBucket` before some operations (`copy`, `moveto`) — that probe 403s with a scoped token
   even though the actual operation would have succeeded. `--s3-no-check-bucket` skips the probe.
 
+## Routes (dispatch 2026-10-18-05 Part 2)
+
+| Path | What | From |
+|---|---|---|
+| `/{name}/{z}/{x}/{y}.mvt` | a vector tile | R2's `{name}.pmtiles`; z15 from Protomaps' live build through the overflow, cached into R2 |
+| `/{name}.json` | TileJSON | R2's `{name}.pmtiles` header and metadata |
+| `/style/offline.json` | the label-less offline style every pre-Street offline pack was downloaded against; never changed (RECORD -1294) | bundled |
+| `/style/street-v1.json` | Forager's Street style, built by `map-style/generate-street.mjs` | bundled |
+| `/fonts/{stack}/{range}.pbf` | Noto Sans glyphs (SIL OFL; `fonts/OFL.txt` beside them) | R2 `fonts/` |
+| `/sprites/v4/light{,@2x}.{json,png}` | the icon set (MIT, from tangrams; `sprites/LICENSE-MIT.md` beside it) | R2 `sprites/v4/` |
+
+**The Pi is no longer tried first** (RECORD -879: the Pi "Builds the maps and keeps a copy, nothing live").
+Every tile comes from R2. The response header `X-Forager-Origin` still names the source (`r2`).
+
+**Tests:** `npm ci && npm run build && npm test` runs `test/worker.test.mjs` against `dist/index.js`, the
+bundle the dashboard is given, with R2 faked from `test/fixtures/tiny.pmtiles`.
+
 ## What's already done
 
 - `wrangler.toml` is filled in with the real account ID and R2 bucket name (`forager-maps`).
