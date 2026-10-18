@@ -22087,3 +22087,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Revert branches deleted:** topup-items-revert-1 to -12 were deleted from GitHub, as -1284 ruled. Their CI runs stay on GitHub. topup-items and topup-items-scratch-base remain.
 - **Consequence for PR #257 (map-launch-fixes):** its green run 39143704391 tested the merge with the old pre-main e61e248a, not 712ff277. It needs pre-main merged in (merge, not rebase) and a green CI before its own merge.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1294.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1294
+**Timestamp:** 2026-10-18T17:16:13Z
+**Continues:** 2026-09-28-1292
+**Title:** Basemap design decision 11, old offline downloads: keep working until the user re-downloads, with a one-line notice in the offline list; no forced re-download (owner)
+**The owner, verbatim:** "D11 Option 1"
+**What it sets:**
+- Offline regions downloaded against today's `OFFLINE_STYLE_URL` keep drawing after the own Street map launches, until the user downloads them again. They keep working only while that URL serves (Elder's review, "Online and offline the same"), so the Worker must keep serving it.
+- The offline regions list shows a one-line notice on such a region, along the lines of "older map style, download again to update". The exact text is for the dispatch, to come to the owner.
+- No forced and no automatic re-download.
+- **Phone check:** after the update, an existing region still draws in aeroplane mode.
+- **Rejected:** no notice; an automatic re-download on Wi-Fi.
+**Notes:** Written by the planner by hand, on branch records-after-173. This completes Elder's eleven design decisions (-1274, -1282, -1284 to -1289, -1291, -1292, -1294). Next free ID -1295.
