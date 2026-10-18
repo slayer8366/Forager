@@ -21346,3 +21346,21 @@ It ends with numbered decisions for the owner, each with a recommendation.
 **Finish line:** the plan pushed, and the decisions brought to the owner.
 **Abort conditions:** a premise that changes T8's shape (such as T1 finding no weather skill); anything that needs a download, count or fit to answer.
 **Notes:** Written by the planner by hand, on branch records-after-173. Ash's first task. Next free ID -1249.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1249
+**Timestamp:** 2026-10-18T05:28:57Z
+**Continues:** 2026-09-28-1248
+**Observed:** Ash Transect stopped at the premise check, under the dispatch's own stop rule. forecast t8-plan 141f772 holds docs/dispatch/2026-10-17-t8-trigger-plan.md, headed "STOPPED at the premise check"; it is not a plan. Nothing was downloaded, counted or fitted.
+- **T1's PNW result,** re-read by the planner at docs/audits/2026-10-10-pnw-pilot-t1-report.md:288-298 on main: Brier calendar 0.02061 against weather 0.02068; pooled skill −0.0035 [−0.0066, −0.0001]; verdict "worse"; AUC 0.792 against 0.783. The other designs were "worse" or "not shown". The independent review reproduced it. The east box was never run (D123).
+- TASKS.md:41 makes T1's premise the gate for all model work, and T8 assumes a weather signal exists. -1027 chose the full PNW sequence without mentioning T1; no decision row says how T1 bears on T8.
+- **Ash's question for the owner,** with options:
+  - (A), recommended: a second, effort-adjusted PNW weather test with fewer variables fixed in advance, which must beat the calendar on the same weeks;
+  - (B) the east box first, which needs a new download;
+  - (C) stop the weather work, and report "weather didn't beat the calendar" as the PNW finding;
+  - (D) something else.
+- **Ash's inferred reasons for A:** the loss is small; 4 of 7 years favour weather; the loss is concentrated in 2024 and 2025, when chanterelle reports roughly tripled while observing rose about 13%. That jump is unexplained.
+**A planner's error:** after -1247, the planner told the owner that T8's timing question "may do better" than T7's, marked as inferred and untested, without checking T1. T1 had already tested that premise in the PNW and found weather slightly worse than the calendar. Corrected to the owner with this report.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1250.
