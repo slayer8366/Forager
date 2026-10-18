@@ -22792,3 +22792,18 @@ All three screenshots are kept off GitHub.
 - **(3) The gap:** the switch line sits with a small gap above a map on the Journal, about 8 dp.
 - One PR into pre-main, merged under -1317. The device check restarts on the build with it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1331.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1331
+**Timestamp:** 2026-10-18T23:29:19Z
+**Continues:** 2026-09-28-1330
+**Supersedes:** -1330 (2)'s "The Offline maps map moves and resizes with it again; the owner has accepted that"
+**Title:** Correction: the owner never accepted the map moving. The planner inferred it and wrote it down as the owner's (owner)
+**The owner, verbatim:** "No, the maps do not move at all", then "You assumed that, check your source before claiming".
+**What it records:**
+- -1330 recorded, and the planner told the owner, that the Offline maps map moving with the bar was accepted. The owner's words in -1330 say nothing about the map. The claim was the planner's inference from "the line with the chips can slide down along with the search bar to make room", stated as the owner's acceptance.
+- **The rule, from -1318 and now:** the map does not move or resize when the search bar shows.
+- **Still open:** how the switch line, the bar and the gap fit around a fixed map. Part 1 of -1330, the open-entry hide on the Journal only, and the revert of the strip both stand.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1332.
