@@ -20798,3 +20798,23 @@ Written by the planner by hand, on branch records-after-173. Next free ID -1214.
 - a revert check on the key change itself.
 The planner's own inference in the dispatch (a size change triggering a rebind) was half wrong: it is a key change, not the window size.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1218.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1218
+**Timestamp:** 2026-10-18T01:46:42Z
+**Continues:** 2026-09-28-1216
+**Observed:** Hazel Cairnwright's report. PR #251 (tablet-camera-no-restart, head cb4aa154, from pre-main b91de824) into pre-main, unmerged. The planner checked all three checks green and the three files changed: CameraXCaptureSession.kt, NaturalOrientationHold.kt and the new ViewfinderTabletTurnTest.kt.
+- **The fix:** the viewfinder's effect is keyed on viewfinderInNaturalFrame(held, fullScreen, sw), which is held, or full screen with sw ≥ 600. A full-screen tablet stays COMPATIBLE at all four rotations; phones and split screen stay PERFORMANCE.
+- **Failing first:** run 39085412521, with 2 of 4 failing for their own reasons (a turn re-attached the surface 2 times where 1 was expected; ROTATION_0 ran PERFORMANCE where COMPATIBLE was expected).
+- **Four revert checks,** each failing only its own guard. The key reverted to `held` fails the turn test alone.
+- **CI:** 4,940 tests, 0 failed, 24 skipped (+4); lint 0 errors; release compile green.
+- **The device check** is in the PR body: tablet first, with log-read pass conditions (0 CLOSING, 0 "Surface requested by Preview", 0 SurfaceViewImpl over at least 5 rotations), then the S22.
+**Deviations, Hazel's calls, accepted:**
+- a log line reworded ("Viewfinder in the natural frame… held=…");
+- the device check kept in the PR body;
+- four scratch revert branches pushed;
+- a new test class.
+**Not tested:** the camera's real response on a turn; the picture at ROTATION_0 (inferred unchanged); smoothness and battery at ROTATION_0; foldables (any full-screen device with sw ≥ 600 now always runs COMPATIBLE).
+**Notes:** Written by the planner by hand, on branch records-after-173. The merge waits on the owner's tablet re-check. Next free ID -1219.
