@@ -22396,3 +22396,21 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - `build-usca.sh` (US and Canada, z15, coverage checks including Anchorage, Honolulu and San Juan) is committed on branch pi-build at 92856ef1, and has not run.
   - The extracts are downloading over Wi-Fi, about 3.5 h to go.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1311.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1311
+**Timestamp:** 2026-10-18T20:04:01Z
+**Continues:** 2026-09-28-1308, 2026-09-28-1306
+**Title:** Promotion check on the S26 Ultra, plain pre-main build: pass; one offline download failed on a network drop, and the owner rules to ignore it; the owner reports the tab order reversed in landscape (owner)
+**The owner, verbatim:** "S26 pass check" (with two screenshots of Records → Offline maps, landscape and portrait, kept off GitHub), then "I'm telling you the failed download is from network. Ignore it".
+**What it records:**
+- **Device and build:** the S26 Ultra (SM-S948U), Android 17, plain pre-main build 1.0.3461+gd942e022 from push run 39159191337. The planner installed it with `adb install -r`, replacing 1.0.3459+g33fba176, an unplaced build, with the app's data kept.
+- **Steps:** the planner's six promotion steps, pass by the owner's account. The landscape screenshot shows the offline panel with Download Maps only.
+- **The failed download:** "Couldn't download offline maps." at 13:00:04 PDT. The planner read the S26's log:
+  - `Unable to resolve host "forager-pmtiles.brandonlee1-894.workers.dev"`;
+  - `REASON_CONNECTION: Software caused connection abort`.
+  The phone lost name resolution. The Worker answered normally from the laptop. The owner rules it a network failure, to be ignored.
+- **New finding by the owner:** the app's navigation reverses when the phone is turned to landscape: "A button a user would expect to be at one side ends up on the other." The owner asks that Hazel fix it before release. The behaviour is being confirmed as a step path.
+**Notes:** Written by the planner by hand, on branch records-after-173. The S22 and tablet checks still wait for the build with dispatch 2026-10-18-07. Next free ID -1312.
