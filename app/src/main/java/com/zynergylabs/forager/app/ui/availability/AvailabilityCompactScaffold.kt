@@ -889,7 +889,7 @@ internal fun CompactMainScaffold(
             } else if (showRail) {
                 // RECORD -1242: no keyboard in these (see shortLandscapeContentInsets), so the docked rail keeps its full
                 // height under a keyboard; the content column reserves it instead (below).
-                shortLandscapeContentInsets()
+                shortLandscapeContentInsets().add(WindowInsets.ime.only(WindowInsetsSides.Bottom))
             } else if (compactTab() == CompactTab.MAP) {
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
             } else {
@@ -971,7 +971,7 @@ internal fun CompactMainScaffold(
                         .fillMaxHeight()
                         // RECORD -1242: beside the rail, the keyboard is reserved here, on the content column only, not on the
                         // Row (shortLandscapeChromeInsets above), so the page ends above the keyboard and the rail does not.
-                        .then(if (railBeside) Modifier.windowInsetsPadding(WindowInsets.ime.only(WindowInsetsSides.Bottom)) else Modifier),
+                        .then(Modifier),
                 ) {
                     // Landscape B3 (P11, R9): beside the opaque rail, the tab's content is capped at the
                     // readable width and centred in what the rail leaves. Once, here, not per destination.
