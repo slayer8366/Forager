@@ -120,3 +120,12 @@ This is a projection, not yet observed.
 
 **Undo.** `systemctl stop forager-usca-fetch-build`. The partial file stays, and any later
 `curl -C -` resumes from it.
+
+**Restart after a reboot (added 13:30).** The `systemd-run` line that started the unit is now
+committed as
+[`data/2026-10-18-start-fetch-then-build-261017.sh`](data/2026-10-18-start-fetch-then-build-261017.sh),
+with the line unchanged. It refuses to run if the unit is already active. Its properties were
+checked against `systemctl show forager-usca-fetch-build` on the running unit: User, Group,
+WorkingDirectory, Environment, Nice, IOSchedulingClass (3, idle), CPUWeight, OOMScoreAdjust,
+NoNewPrivileges, PrivateTmp, ProtectSystem, ProtectHome, ReadWritePaths and ExecStart all
+match. The script itself has not been run.
