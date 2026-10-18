@@ -21926,3 +21926,23 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - This was already true on pre-main for any start-up failure.
   - The exact message text and the dispatch route are for the planner to bring to the owner.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1284.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1284
+**Timestamp:** 2026-10-18T15:33:07Z
+**Continues:** 2026-09-28-1270, 2026-09-28-1273, 2026-09-28-1283, 2026-09-28-1282
+**Title:** Top-up tile figures checked on the S22 tonight, their test after release; revert branches deleted after merge; go on the map start-up fix as Amendment 1 to dispatch 2026-10-18-04; basemap design decision 3 is Elder's path styles (owner)
+**The owner, verbatim:** "1 and 2 as recommended / Go on the fix / D3 I'll take Elder's recommendation"
+**What it sets:**
+- **Tile figures (topup-items, PR #256):** no test holds the "~N tiles" line and the confirmation's tile figure following the pin. Revert 11, runs 39136921592 and 39138003596: 0/74 failed (Hazel's report, `docs/audits/2026-10-18-topup-items-completion-report.md`). Tonight, S22 step 2 checks it by eye. The test is added after release.
+- **Revert branches:** topup-items-revert-1 to -12 and map-launch-fixes-revert-N are deleted after their PRs merge. Their CI runs stay on GitHub.
+- **Go:** the "map couldn't start" fix (-1283 (2)) is built now, as Amendment 1 to dispatch 2026-10-18-04 on map-launch-fixes. The message is "The map couldn't start." with a "Try again" button, and the route is the planner's recommendation.
+- **Basemap design decision 3, how paths look** (Elder's review, `docs/audits/2026-10-18-basemap-design-review.md` on basemap-launch-plan, decision 3):
+  - dashed red-brown footpaths;
+  - dash-dot brown vehicle tracks;
+  - dotted faint informal paths;
+  - all visible from the zoom where a trailhead fits on screen.
+  - The phone check: a known trail area at three zooms, outdoors in daylight. The trail must be distinguishable from the forest roads without zooming in.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decisions 4 to 11 still to come. Next free ID -1285.
