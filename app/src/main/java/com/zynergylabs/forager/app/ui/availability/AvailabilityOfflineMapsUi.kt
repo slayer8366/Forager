@@ -316,8 +316,8 @@ internal fun OfflineMapsPanel(
                     state = pinState,
                     onConfirm = onRegionPicked,
                     onCancel = {},
-                    trailing = { downloadButton(Modifier.weight(1f), CENTRE_PIN_COMPACT_BUTTON_PADDING) },
                 )
+                downloadButton(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm), ButtonDefaults.ContentPadding)
             },
         )
         confirmDownloadDialog()
