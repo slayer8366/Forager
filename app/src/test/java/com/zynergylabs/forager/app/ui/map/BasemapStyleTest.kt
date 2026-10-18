@@ -149,7 +149,8 @@ class BasemapStyleTest {
         val source = style.getValue("sources").jsonObject.getValue("protomaps").jsonObject
         assertEquals("${host}us.json", source.getValue("url").jsonPrimitive.content)
         // Every http(s) URL in the document, attribution links included, minus the two credit links the licences ask for.
-        val urls = Regex("https?://[^\"\\s<>]+").findAll(text).map { it.value }.toList()
+        // A backslash ends a URL: inside the JSON text the attribution's quotes are escaped (\").
+        val urls = Regex("""https?://[^"\\\s<>]+""").findAll(text).map { it.value }.toList()
         val credits = setOf("https://github.com/protomaps/basemaps", "https://osm.org/copyright")
         val foreign = urls.filterNot { it.startsWith(host) || it in credits }
         assertEquals("URLs in the Street style that are not the owner's host: $foreign", emptyList<String>(), foreign)
