@@ -20886,3 +20886,14 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Result:** B1 (day) and B2 (night) pass on the main map. B3 (landscape, rail spacing and cut-out), B4 (navigating) and B5 (fullscreen) are not yet reported.
 **Finding, for the owner to scope:** the map-chrome update (PRs #221 and #224: outlines and the rounded strip, bar and rail) reached only the main map. The Journal, Seasonal and List tabs still show the earlier look. Whether that is a release gate or later work is not yet ruled.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1224.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1224
+**Timestamp:** 2026-10-18T02:05:19Z
+**Continues:** 2026-09-28-1223
+**Title:** The production release waits for the new map look on the Journal, Seasonal and List tabs (owner)
+**The owner, verbatim:** "Hold the release for it" (offered: "Next update (Recommended)"); "Yes, take them", to screenshots of the three tabs on the S22, kept on the laptop.
+**What it sets:** the release waits until the Journal, Seasonal and List tabs carry the same look as the main map (PRs #221 and #224), and a re-check has passed. The planner first pins down from screenshots which pieces differ on each tab, then writes the dispatch. The step path is to be confirmed with the owner before any build.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1225.
