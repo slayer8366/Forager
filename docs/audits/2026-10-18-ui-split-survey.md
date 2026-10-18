@@ -41,9 +41,12 @@ reasoning, not read. Paths are relative to `app/src/main/java/com/zynergylabs/fo
   move (Stage F), and the frame around the tabs was extracted on its own (Stage G). Both reports set out a check
   method that proves nothing changed (section 7.1). Stage G also caught a move that would have **saved the
   fullscreen preference inverted**, which is exactly the kind of silent change a move can make.
-- **The first three PRs I'd propose are pure moves of plain-value code.** They are the map's helper functions, the
-  navigation card's readout logic, and the compass strip's and record pill's measurement helpers. Each one is checked
-  by the Stage F method plus the phone launch check (section 8).
+- **The first three PRs I'd propose are pure moves of plain-value code.** They are, in order: the navigation card's
+  wording rules; the map's camera, credit and location-dot helpers; and the map's layer and data helpers. Each one is
+  checked by the Stage F method plus the phone launch check (section 8).
+- **The map is not kept alive across tabs, and nothing uses `movableContentOf` for it.** A new map is built each time
+  the Maps tab comes back. The camera and the way back are carried across in two small "memories" held above the tab.
+  The risk for a split is moving those memories, not a keep-alive mechanism (section 9.4).
 
 ---
 
