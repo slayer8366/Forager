@@ -22712,3 +22712,24 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - splitting the big test classes, which moves allowlist entries;
   - removing four pieces of dead code.
 **Notes:** Written by the planner by hand, on branch records-after-173. The planner's plan follows for the next release. Next free ID -1327.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1327
+**Timestamp:** 2026-10-18T23:05:09Z
+**Continues:** 2026-09-28-1320, 2026-09-28-1325
+**Supersedes:** -1320 (the reserved search strip)
+**Title:** The search strip is undone: PR #261 is reverted on pre-main; the search bar is missing on List and Seasonal in landscape on the S22, and the owner wants it back as before the strip; the switch line gets a small gap above the map (owner)
+**The owner, verbatim:**
+- "Journal is missing the search bar icon" (S22, an open entry);
+- "Also, have the entries | records chip move up slightly from the map";
+- "It's also missing on the other panels. We need to have it back to where it was before the strip was added. Bring back the search icon in the journal. Bring back the search bar in the other tabs" (S22 screenshots: List and Seasonal in landscape, empty, with no search bar).
+All three screenshots are kept off GitHub.
+**What it sets:**
+- **Revert:** PR #261's merge, 836916a9, is reverted on pre-main, by a revert PR, CI-green, merged under -1317. This restores the Journal's search exactly as it was at 8c90626f.
+- **The open entry:** the 🔍 hidden on an open entry dates from 2026-10-07 (-692; `AvailabilityCompactScaffold.kt:596`, `:1430`; it is on main too). Only the empty strip there is from tonight.
+- **The missing bar on List and Seasonal:** not yet attributed. The strip's diff wraps the pill for every tab in a new Box (`AvailabilityCompactScaffold.kt:1088-1095` at 836916a9); that is inferred, not confirmed, as the cause. If the bar is still missing after the revert, the cause is in #259 or #260, and is to be found before the promotion.
+- **New:** the Entries | Records switch gets a small gap, about 8 dp, above a map on the Journal.
+- **The map-resize stutter (-1318)** is back with the revert, as it was before tonight.
+**Notes:** Written by the planner by hand, on branch records-after-173. The planner's ruling to keep the strip on open entries (-1322) was part of what the owner saw as broken. Next free ID -1328.
