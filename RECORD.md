@@ -22598,3 +22598,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **The owner, verbatim:** "Keep it that way. That is the change I want", to the planner's question: should TalkBack in landscape read the rail top to bottom, matching what's drawn, with portrait reading List first?
 **What it sets:** the screen-reader order follows the visual order in both orientations, as PR #260 builds it. This settles the question -1320 left open.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1322.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1322
+**Timestamp:** 2026-10-18T21:29:43Z
+**Continues:** 2026-09-28-1312, 2026-09-28-1313, 2026-09-28-1317, 2026-09-28-1321
+**Title:** PR #260 (rail order List at the bottom; Tools drawer without tint) merged into pre-main at 8c90626f under -1317; its revert branches deleted (planner, on the owner's word)
+**The owner, verbatim:** "Go ahead and merge the side rail change to pre-main when ready", and the standing -1317.
+**What it records:**
+- **The merge:** gated on head 7f6facd3, which is Hazel's merge of pre-main 75ce3efe. Only `docs/audits/README.md` conflicted; all 382 rows were kept. pre-main went from 75ce3efe to 8c90626f.
+- **CI:** 39167092691 at 7f6facd3 green on every job, with 5,122 tests, 0 failures, 24 skipped (Hazel's count from the JUnit XML). GitHub CLEAN.
+- **Revert checks** R1 to R3 valid, as in Hazel's report: `docs/audits/2026-10-18-nav-rail-order-completion-report.md`.
+- **Deleted:** nav-rail-order-revert-1 to -3.
+- **Not in it:** the -1320 search-bar strip, which goes on journal-search-space from 8c90626f.
+- **Hazel's two readings for that change, accepted by the planner:**
+  - the -1244 test's moving-line checks become identical-bounds checks, because the ruling replaces that claim;
+  - the strip stays on Journal screens with an entry open ("every Journal screen").
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1323.
