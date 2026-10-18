@@ -21041,3 +21041,18 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Finish line:** both reports pushed. The planner compares them for the owner, who decides the next step for T7.
 **Abort conditions:** a baseline mismatch; a needed refit beyond a small stated one; anything touching t6b or publishing; one review reading the other.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1233.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1233
+**Timestamp:** 2026-10-18T03:21:12Z
+**Title:** forager-forecast gets its own coder, Ash Transect, on Opus, with a profile in that repository (owner)
+**The owner, verbatim:** "The forager-forecast repo should have a separate coder other than Hazel on it. Give the coder for that repo a profile also"; then "Opus, like Hazel (Recommended)"; "In forager-forecast (Recommended)"; "Yes, propose three (Recommended)"; and, from the role's three proposals (Larch Datum, Linden Plumb, Ash Transect), "Ash Transect".
+**In the role's own words:** "A transect is a survey line laid down before the walk starts, and you record only what falls on it, so I fix the counting rules before I read a single number and then follow the line I laid down."
+**What it sets:**
+- From now on, forecast work is dispatched to Ash Transect. Hazel Cairnwright codes the Forager app.
+- Reviews of Ash's work never run on Opus (-1134); they use Fable and Sonnet.
+- **The profile:** forager-forecast docs/process/coder-profile.md, in forecast PR #6 into main, documents only, which merges on the owner's word (D40). It covers rules before data, the points of no return, download checks and registration, long runs as detached units, and the stops.
+- **The team table:** a row in Forager's planner-profile, plus a line in Hazel's profile, in Forager PR #253 into pre-main.
+**Notes:** Written by the planner by hand, on branch records-after-173. Today's re-fit (-1183 to -1230) was coded under the Hazel name, before this. Next free ID -1234.
