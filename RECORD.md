@@ -22617,3 +22617,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - the -1244 test's moving-line checks become identical-bounds checks, because the ruling replaces that claim;
   - the strip stays on Journal screens with an entry open ("every Journal screen").
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1323.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1323
+**Timestamp:** 2026-10-18T22:27:48Z
+**Title:** Direction only: at some point, the UI is split into files of a couple of hundred lines each (owner)
+**The owner, verbatim:** "At some point we need to decouple the UI into a couple hundred lines per file"
+**What it sets:** a direction, not a go and not scheduled. It belongs with the post-release codebase overhaul.
+**Size today,** as read by the planner from pre-main 8c90626f: 187 Kotlin files under `ui/`. The largest:
+- SightingsMap.kt, 2,753 lines;
+- AvailabilityCompactMapUi.kt, 2,097;
+- AvailabilityScreen.kt, 2,072;
+- AvailabilityCompactScaffold.kt, 1,954;
+- AvailabilityViewModel.kt, 1,950;
+- NavigationHud.kt, 1,372;
+- AvailabilityMapControlsUi.kt, 1,368;
+- TrackRecordingViewModel.kt, 1,359.
+**Notes:** Written by the planner by hand, on branch records-after-173. When it starts: a read-only survey first, planned by the planner, built in small PRs with no behaviour change. Next free ID -1324.
