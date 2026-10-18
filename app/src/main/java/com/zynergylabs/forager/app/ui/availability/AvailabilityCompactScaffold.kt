@@ -1093,7 +1093,7 @@ internal fun CompactMainScaffold(
                         val searchHeaderVisibility = remember { MutableTransitionState(!journalHidesSearchHeader) }
                         searchHeaderVisibility.targetState = !journalHidesSearchHeader
                         var searchHeaderSlideTab by remember { mutableStateOf(compactTab()) }
-                        val searchHeaderArriving = searchHeaderSlideTab != compactTab()
+                        val searchHeaderArriving = false
                         LaunchedEffect(compactTab(), searchHeaderVisibility.isIdle) {
                             if (searchHeaderVisibility.isIdle) searchHeaderSlideTab = compactTab()
                         }
