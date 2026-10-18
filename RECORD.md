@@ -21083,3 +21083,21 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 **Pre-merge:** 0be67a25
 **Backup:** pre-main-20261018T032921Z-0be67a25.bundle (verified)
 **Notes:** The owner, verbatim: "Merge Forager 253 and 250". Elder's text items 1 and 2 (-1211, -1212); documents only; all three checks passed. Merged with a merge commit, pinned to the head. PR #253 waits for its build check to finish. Written by the planner by hand, on branch records-after-173. Next free ID -1236.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1236
+**Timestamp:** 2026-10-18T03:36:56Z
+**Continues:** 2026-09-28-1231
+**Observed:** Hazel Cairnwright's follow-up on PR #252, head c1ff8764. The planner checked all three checks green.
+- **Seasonal and List in landscape:** the pill is centred in the space beside the rail, less the navigation bar's inset, at the Maps pill's width and height (Robolectric: 40-703 dp, width 663; with a 48 dp navigation bar on the left, width 615 centred on 395.5, clear of the bar).
+- **Why the device overlapped:** the tabs' column used shortLandscapeContentInsets (AvailabilityNavigationUi.kt:380), which doesn't reserve a navigation bar on the side away from the rail. Maps' pill is padded by mapControlsPadding, which does. Robolectric reports zero insets, so no test saw it.
+- **A new test with real insets,** TabsMapChromeShapeLandscapeNavBarLeftTest, sends a 48 dp left navigation-bar inset. Its control (Maps' pill moving clear of the inset) behaved. It failed on the owner's build for the right reason.
+- **Tests first:** run 39093047106, 13 of 72 failing on centring or width. Revert checks 7 and 8 each failed only on their own edit.
+- **CI:** 5,000 tests, 0 failures, 24 skipped; lint and the release compile green.
+- **Journal in landscape:** the search bar was already hidden before #252, by design. It is J5's owner ruling, "Hide header; icon reveals it" (AvailabilityCompactScaffold.kt:994 at 0be67a25). Nothing was changed. When revealed, it gets the same pill.
+**Hazel's call, accepted by the planner:** the pill matches Maps' width, which is narrower by the navigation bar's width than the owner saw on 1.0.3414 in that direction, so nothing resizes between tabs. This is told to the owner.
+**A slip:** Hazel deleted its own revert script while cleaning /tmp, and rewrote it before reverts 7 and 8; there was no other effect.
+**Still device only:** the gap between the cut-out and the rail; the first-visit size in landscape.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1237.
