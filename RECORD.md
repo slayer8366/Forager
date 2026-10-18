@@ -22587,3 +22587,14 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - It goes on a new branch, journal-search-space, after PR #260.
 - **Not answered and left as built:** TalkBack in landscape reads the rail top to bottom, Tools first and List last, matching what's drawn. The planner recommended keeping it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1321.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1321
+**Timestamp:** 2026-10-18T21:18:54Z
+**Continues:** 2026-09-28-1320, 2026-09-28-1312
+**Title:** In landscape, TalkBack reads the rail in its drawn order, Tools first and List last (owner)
+**The owner, verbatim:** "Keep it that way. That is the change I want", to the planner's question: should TalkBack in landscape read the rail top to bottom, matching what's drawn, with portrait reading List first?
+**What it sets:** the screen-reader order follows the visual order in both orientations, as PR #260 builds it. This settles the question -1320 left open.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1322.
