@@ -22429,3 +22429,19 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Dispatch:** preserved/2026-10-18-08.md, for Hazel, on branch nav-rail-order from pre-main d942e022, as a PR into pre-main. It stops if TalkBack's reading order needs a choice.
 - **Promotion:** this goes into pre-main before the promotion, with the Offline maps and logo change (-1309). The final S22, S26 and tablet check runs on the build with both.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1313.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1313
+**Timestamp:** 2026-10-18T20:08:32Z
+**Continues:** 2026-09-28-1312
+**Title:** The Tools drawer opens with no tint over the rest of the app, in portrait and landscape; tap-outside and Back still close it; Amendment 1 to dispatch 2026-10-18-08 (owner)
+**The owner, verbatim:** "The tool drawer pulled over in landscape mode gives the rest of the app an off color. When opening it, there should be no coloring of the app" (two S26 screenshots, kept off GitHub), then "1 Portrait too. That particular color is a bit non-sleek." and "2 yes same behavior, just no added color".
+**What it sets:**
+- The drawer's scrim, Material3's default at `AvailabilityScreen.kt:1951` (per the planner's grep), becomes transparent in both orientations.
+- Tap-outside and Back still close the drawer.
+- The drawer sheet itself is unchanged: 80% over Maps and solid elsewhere (journal-redesign.md:616).
+- The work is built with the rail order (-1312) on branch nav-rail-order.
+- **Also from the screenshots:** the earlier failed download succeeded on retry ("Offline maps 1"), which is consistent with -1311's network reading.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1314.
