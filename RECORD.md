@@ -22342,3 +22342,23 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   - the owner's upload.
   Merging to main also redeploys the Worker from GitHub, now without PI_ORIGIN_URL (inferred: Workers Builds' production branch is main, per the Part 1 report).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1308.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1308
+**Timestamp:** 2026-10-18T19:49:13Z
+**Continues:** 2026-09-28-1307, 2026-09-28-1268
+**Title:** Elder's top-up audit for the promotion 969ecf0a → d942e022: pass with items
+**Report-file:** preserved/2026-10-18-06-promotion-topup-audit-report.md (filed as received). Elder Ford ran on Fable, read-only.
+**Observed:**
+- **Verdict:** pass with items, with nothing that risks records, safety or trust.
+- **CI at d942e022:** push run 39159191337, all three jobs green. Elder counted the promoted tree's tests from run 39156161080's JUnit artifact (the same tree): 5,094 tests, 0 failures, 24 skipped. 3 tests were removed (the OK/Cancel ones, -1269) and 31 added, with no @Ignore and no assume.
+- **Items for the owner:**
+  1. The start-failure message has no step beyond Try again, and has never been seen on a phone.
+  2. Street becomes the opening map for never-picked users with no note. Worth a line in the release note.
+  3. No test holds the tile figures following the pin (known-bugs row 6).
+  4. Known-bugs is in order; Elder names the two things above as worth knowing.
+  5. The Worker config change: Hazel's note "the app's tiles do not come from this Worker yet" is wrong for offline maps, which do. Elder suggests one check after the merge: download a small region and open it with data off.
+- **Not seen:** anything on the S26 or the tablet; the largest font; the start message on a real screen.
+**Notes:** Written by the planner by hand, on branch records-after-173. The S26 has the plain pre-main build installed (1.0.3461+gd942e022) for the owner's check. Next free ID -1309.
