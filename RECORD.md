@@ -21196,3 +21196,22 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **J5's landscape reveal code** is removed where nothing else reads it.
 - **Portrait** is unchanged.
 **Notes:** Written by the planner by hand, on branch records-after-173. Restated to the owner as a sketch and confirmed before sending. Next free ID -1242.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1242
+**Timestamp:** 2026-10-18T04:52:24Z
+**Continues:** 2026-09-28-1241, 2026-09-28-1238
+**Supersedes:** -1241's Journal landscape row; -1238's "Always show it" for Journal
+**Title:** Journal in landscape stays as J5 (icon reveals the pill); the pill at the left and the solid panel stay; the rail ignores the keyboard (owner)
+**The owner, verbatim:** "Actually wait on thst"; then "Leave landscape as it is"; then "Journal back to J5; keep the rest (Recommended)" and "Still do A (Recommended)".
+**What it sets:**
+- **Kept:**
+  - J5's landscape behaviour for Journal (hidden until the search icon is tapped), with the revealed pill at the left;
+  - the pill at the left on Seasonal and List (-1238 item 1);
+  - the search panel solid off the map (-1238 item 3);
+  - the rail keeping its full height under the keyboard, like Maps (option A).
+- **Dropped:** -1241's one-line Journal row, and -1238's always-shown Journal pill. -1238 and -1241 are not edited.
+- **On "wait":** the planner stopped Hazel at once, before anything more was pushed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1243.
