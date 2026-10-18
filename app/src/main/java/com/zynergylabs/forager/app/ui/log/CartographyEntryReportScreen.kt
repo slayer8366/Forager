@@ -413,7 +413,7 @@ internal fun CartographyEntryReportScreen(
     // right, scrolling on its own (EntryReportLayout). Portrait is as before. The three parts are the same composables in
     // either arrangement, and EntryReportLayout only places them, so the one mapSlot call below never moves in the
     // composition when the phone turns (this file's doc comment, "Fullscreen").
-    val landscapeSplit = isLandscapeWindow()
+    val landscapeSplit = false
 
     @Composable
     fun OfflineRow(horizontalPadding: Dp) {
