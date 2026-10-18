@@ -21442,3 +21442,16 @@ It ends with numbered decisions for the owner, each with a recommendation.
 **Not tested:** real insets, the cut-out and real keyboards; whether "Download Maps" fits on one line at the phone's real font.
 **Device:** the PR's CI build (run 39103050283, 1.0.3429+g17f5c165) is installed on the S22 for the owner's landscape check.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1255.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1255
+**Timestamp:** 2026-10-18T11:51:50Z
+**Continues:** 2026-09-28-1254
+**Title:** PR #252's landscape changes on the S22: looks good (owner)
+**Device:** S22 Ultra, Forager debug 1.0.3429+g17f5c165 (PR #252's CI run 39103050283), reinstalled 2026-10-18 04:25 PDT with its data kept.
+**The owner, verbatim:** "Looks good on S22".
+**Covered,** per the planner's checklist: Seasonal and List with the pill at the left and a solid search panel; Journal's pill sliding with J5; the Records chips on the switch line; the offline-maps screen (the Name box and slider in view, the one-line buttons, the US note last, the budget figure only); the rail under the keyboard.
+**Not stated:** per-step results. The planner records the owner's overall word, and has seen no per-step evidence.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1256.
