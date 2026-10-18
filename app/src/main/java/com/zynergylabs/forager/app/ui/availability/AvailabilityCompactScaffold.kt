@@ -923,7 +923,6 @@ internal fun CompactMainScaffold(
                         onTabSelected = onBottomNavTabSelected,
                         // Dispatch 2026-10-17-09 (RECORD -1224, -1225): the Maps bar's rounded top corners and outline, solid here
                         // (the default fill), so the bar keeps its shape across the tab switch.
-                        topCornerRadius = MAP_CARD_CORNER_RADIUS,
                     )
                 }
             },
