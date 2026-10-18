@@ -21009,3 +21009,18 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - any publishing (-1030's third point of no return);
 - the audits index rows for the report.
 **Notes:** Written by the planner by hand, on branch records-after-173. -1229's reading of condition 2's interval is corrected here, not edited. Next free ID -1231.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1231
+**Timestamp:** 2026-10-18T03:14:50Z
+**Continues:** 2026-09-28-1228, 2026-09-28-1227
+**Title:** PR #252 on the S22 in landscape: the tabs' pill keeps Maps' size but is centred, clear of the navigation bar; Journal shows no search bar (owner)
+**The owner, verbatim:** "In landscape: Journal tab does not have a search bar, but has the outlines in the navigation tab. Seasonal and List both have the search bar and all the outlines, but the search bar is all the way to the left side. It's fine for the camera cutout, but it passes over the navigation bar. It can stay the same size as it is now in those tabs, but have it centered."
+**What it sets:**
+- In landscape on Seasonal and List, the pill keeps Maps' size, centred horizontally between the system navigation bar and the rail, never over the navigation bar.
+- This revises -1227 ("Move to Maps' spot") for position only; the size match stands.
+- Sent to Hazel on PR #252, with two further asks: whether Journal had a search bar in landscape before #252 (restore it if #252 removed it; otherwise report it for the owner), and why the device overlapped the navigation bar when the Robolectric checks didn't.
+**Device:** S22, 1.0.3414+g3a0d5ac9 (PR #252's CI build). The overlap is a device-only finding of the kind CLAUDE.md's zero-insets pitfall describes.
+**Notes:** Written by the planner by hand, on branch records-after-173. A screenshot taken while the phone's own camera app was in front was deleted unviewed. Next free ID -1232.
