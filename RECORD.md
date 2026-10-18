@@ -22022,3 +22022,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Phone check:** pinch in until it stops. The map must still look sharp, not blurred or blank.
 - **Rejected:** zooming past 18 with over-scaled geometry.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 9 to 11 still to come. Next free ID -1290.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1290
+**Timestamp:** 2026-10-18T17:11:31Z
+**Continues:** 2026-09-28-1270, 2026-09-28-1284
+**Title:** Top-up items S22 check: all eight steps pass, by the owner's account (owner)
+**The owner, verbatim:** "All 8 pass"
+**What it records:**
+- **Device:** the S22 Ultra (SM-S908U), Android 16.
+- **Build:** debug APK 1.0.3445+g64ce403f from CI run 39141055078. That is PR #256's merge ref, fd9a98ce on pre-main e61e248a, checked with `git log`. The planner installed it by `adb install -r` at about 17:11Z, replacing 1.0.3434+g7a20b27c with its data kept.
+- **Steps:** the eight in `docs/audits/2026-10-18-topup-items-completion-report.md`, "S22 device check". Step 2 is the only check on the tile figures following the pin (known-bugs row 6).
+- **Not reported:** the region's place from step 2, and step 7's keyboard observation. Neither is a gate.
+**Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word: the planner has seen no per-step evidence. The merge of PR #256 into pre-main still needs the owner's word. Next free ID -1291.
