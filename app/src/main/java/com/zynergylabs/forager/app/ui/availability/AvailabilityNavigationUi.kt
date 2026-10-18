@@ -285,7 +285,7 @@ internal fun ForagerNavigationRail(
         // both to the screen's edge and only the items are padded clear of them, on every tab. Until then this was the
         // navigation bar alone, and beside List, Seasonal and Journal the content insets reserved the cut-out outside the rail,
         // so a strip of page background showed between it and the edge whenever the punch hole was on the rail's side.
-        windowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(portEdge.horizontalInsetsSide()),
+        windowInsets = WindowInsets.navigationBars.only(portEdge.horizontalInsetsSide()),
         modifier = modifier
             .fillMaxHeight()
             .then(if (innerCornerRadius > 0.dp) Modifier.clip(railShape) else Modifier)
