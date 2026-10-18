@@ -21215,3 +21215,22 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **Dropped:** -1241's one-line Journal row, and -1238's always-shown Journal pill. -1238 and -1241 are not edited.
 - **On "wait":** the planner stopped Hazel at once, before anything more was pushed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1243.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1243
+**Timestamp:** 2026-10-18T05:02:26Z
+**Continues:** 2026-09-28-1242
+**Title:** Records in landscape: the chips on the Entries/Records line, centred and scrolling, the selected one in view; the offline-maps panel opens at the Name box, explanatory text trimmed, the continental-US note at the bottom; in this release (owner)
+**The owner, verbatim** (with two landscape screenshots of Journal → Records → Offline maps on the S26, described, not stored): "A few minor things. Have the search bar be the same pill as in other layouts. In offline maps: still have the chips be on the same line as the entries | records. But centered between the entries | records and search icon, scrollable with offline maps showing and highlighted. Trim the top text out, the design is intuitive to use without explaining (3 times). Add at the bottom the note on the Continental US vector map. Have the user be faced with the optional name box at top with the radius slider shown." Then "All of Records, landscape (Recommended)"; "Yes, list them first (Recommended)"; "This release".
+**What it sets, landscape only, in PR #252 after -1242:**
+- **The Journal search pill,** when revealed, matches the other tabs.
+- **Records, every view:** the type chips sit on the Entries/Records line, centred between the switch and the search icon, scrolling, with the selected chip in view and highlighted. The old chip row is gone. The L5a "fits without scrolling" guard is superseded in landscape only; it stays for portrait.
+- **The offline-maps panel:**
+  - opens at the top, with the Name box and the radius slider shown;
+  - the three explanatory lines at the top are removed, after the owner confirms Hazel's list;
+  - the existing continental-US vector-map note goes at the bottom.
+- The release waits for this.
+**Also, the owner, verbatim, as a side note:** "since cloudflare is now premium, we can look into expanding the vector maps outside the US". Recorded as direction for after the release; scope only, not a go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Restated as a step path with a sketch and confirmed. Next free ID -1244.
