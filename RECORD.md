@@ -21423,3 +21423,22 @@ It ends with numbered decisions for the owner, each with a recommendation.
 **The owner, verbatim:** "C: OK, Cancel and Download on one line" (offered: A, the radius label beside the slider, recommended; B, the Name label inside the box; D, leave it).
 **What it sets:** in landscape, the panel's pinned bottom is "Pin at: …" and then one row: OK, Cancel, Download Maps. That replaces the earlier pinned layout in landscape only. The freed height shows the Name box and the radius slider on open. LandscapeOfflinePickerTest's "reached by scrolling" assertion becomes "in view on open, with real touches", citing this ruling.
 **Notes:** Written by the planner by hand, on branch records-after-173. Hazel measured the slider 18 dp below the fold at 823×384 dp (run 39100889682). Next free ID -1254.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1254
+**Timestamp:** 2026-10-18T11:09:20Z
+**Continues:** 2026-09-28-1226
+**Observed:** Hazel Cairnwright's report on PR #252, rulings -1242 to -1253. Head 92ca1adf; CI green, checked by the planner: 5,037 tests, 0 failures, 24 skipped; lint and the release compile pass. The three earlier failures now pass.
+- **-1242:** Journal back to J5 in landscape; the rail keeps its full height under the keyboard (shortLandscapeContentInsets no longer carries the IME; the content column does); the pill at the left and the solid search panel kept.
+- **-1243:** the Records chips on the switch line in landscape, centred and scrolling, with the selected chip brought into view; the revealed Journal pill matches the others.
+- **-1244:** the pill slides on MotionTokens.panelMotionSpec(), and is instant under reduced motion.
+- **-1245:** the offline-maps screen trimmed in both orientations; "Tile budget: N / M"; the continental-US note last. The portrait Name box was not moved.
+- **-1253:** OK, Cancel and Download on one line in landscape; the slider in view on open.
+- **Tests changed where rulings changed behaviour,** each citing its ruling: J5's L3 test, the landscape L5a guard, B3 T1 Records, two settings-panel tests, and LandscapeOfflinePickerTest.
+- **Revert checks 12 to 20** each bit, except 15 (bring-into-view), which is not shown to bite; device step 7e covers it. A revert 12 run that failed to compile was caught and not cited.
+**Hazel's calls, accepted by the planner:** a compact 12 dp button padding on the shared line; an instant reveal under reduced motion; a test tag on the middle slot; journalEntryOpen restored with J5.
+**Not tested:** real insets, the cut-out and real keyboards; whether "Download Maps" fits on one line at the phone's real font.
+**Device:** the PR's CI build (run 39103050283, 1.0.3429+g17f5c165) is installed on the S22 for the owner's landscape check.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1255.
