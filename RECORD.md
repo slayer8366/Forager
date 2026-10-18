@@ -22122,3 +22122,27 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Not done:** the font-request check over the network (optional; no instrument used). The combined build with pre-main 712ff277 is not phone-checked. CI covers it.
 - **Finding:** the map opens on Topographical. That matches the code: `MapMode.DEFAULT = TOPOGRAPHIC` (`MapMode.kt:42` on pre-main). Decision 2 (-1282) is recorded but not yet built. The owner: "Have street default".
 **Notes:** Written by the planner by hand, on branch records-after-173. Recorded on the owner's word. Next free ID -1296.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1296
+**Timestamp:** 2026-10-18T18:11:49Z
+**Continues:** 2026-09-28-1291, 2026-09-28-1272
+**Title:** The owner sent the note to OpenTopoMap; decision 9's email stands over -1272's "no email" (owner)
+**The owner, verbatim:** "Okay draft the email, I'll send it right away", then "Sent as written".
+**What it records:**
+- **Why it was sent:** the planner was asked what the need was. It answered that OpenTopoMap asks for "a short note about the use" (`opentopomap.org/about`, quoted in Juniper's research Q2), that the note is a courtesy and not a condition, and recommended skipping it. The owner chose to send it.
+- **Settles the conflict** the basemap plan's Amendment 1 named (basemap-launch-plan 2c3f4aee): -1291's "write to its maintainers before launch" holds, and -1272's "no email" no longer applies to it.
+- **To:** stefan@opentopomap.org. That is the only address OpenTopoMap publishes, on its Impressum page (`opentopomap.org/credits`, read by the planner today). The about page has none.
+- **Content:** the planner's draft, in chat only, not kept in a file:
+  - Forager is free and not sold;
+  - Topographical is optional, with Street as the default;
+  - live viewing only: no bulk, pre-loading or offline saving from their server;
+  - the app identifies itself;
+  - the caption credit and the full notice on tap;
+  - an own topo layer is planned for later;
+  - "if our use ever becomes a burden … we'll act on it promptly".
+  The draft gave the User-Agent in two forms, a short form and then the full string read from `AppUserAgent.kt` (`Forager/<version> (Android <release>; com.zynergylabs.forager.app; +https://zynergy-labs.com; support@zynergy-labs.com)`). Which one the owner pasted isn't known. Both are accurate.
+- **Reply:** none expected. Their FAQ says they can't answer every email.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1297.
