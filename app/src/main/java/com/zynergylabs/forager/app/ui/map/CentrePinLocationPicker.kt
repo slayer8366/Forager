@@ -236,7 +236,7 @@ internal fun CentrePinConfirmActions(
      * option"): `false` drops OK and Cancel, leaving the "Pin at" line and [trailing] (the offline-maps screen, whose Download
      * Maps reads the pin itself). `true`, the default, is every other picker's, unchanged.
      */
-    showConfirmButtons: Boolean = true,
+    showConfirmButtons: Boolean = false,
 ) {
     CentrePinConfirmRow(
         // UI-defects dispatch, §2: this is the pin's current map position, live from
