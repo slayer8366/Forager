@@ -22570,3 +22570,20 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
   3. The Topo night caption probably wraps in portrait, which predates this change.
 - **Pre-main CI:** push run 39166698263 on 75ce3efe was in progress when this was written.
 **Notes:** Written by the planner by hand, on branch records-after-173. The owner's phone check follows on the pre-main build (-1317). Next free ID -1320.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1320
+**Timestamp:** 2026-10-18T21:17:41Z
+**Continues:** 2026-09-28-1318
+**Supersedes:** -1318's "screens without a map behave as today", for the Journal in landscape
+**Title:** The Journal reserves the search bar's height on every screen in landscape, so the bar drops into empty space and nothing moves; built after #260 merges, as Amendment 3 to dispatch 2026-10-18-08 (owner)
+**The owner, verbatim:** "Option 2". Hazel stopped on -1318 and found two things: portrait never hides the Journal's bar, and Offline maps is the only Journal screen with a map under it. Reserving on Offline maps alone would make the top line jump between chips.
+**What it sets:**
+- In landscape, every Journal screen keeps an empty strip the bar's height above the switch line when the bar is hidden.
+- The bar drops into it, and nothing below moves.
+- Portrait is unchanged.
+- It goes on a new branch, journal-search-space, after PR #260.
+- **Not answered and left as built:** TalkBack in landscape reads the rail top to bottom, Tools first and List last, matching what's drawn. The planner recommended keeping it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1321.
