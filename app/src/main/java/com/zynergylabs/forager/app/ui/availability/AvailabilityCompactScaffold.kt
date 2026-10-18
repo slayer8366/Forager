@@ -1060,7 +1060,6 @@ internal fun CompactMainScaffold(
                             // tabLandscapePillPlace) and its height, the Maps strip's (RECORD -729); with no strip beside it here
                             // it rounds all four corners and is outlined all round.
                             landscapeHeight = lastMapsStripHeight.takeIf { railBeside && it > 0.dp },
-                            pillCorners = MapCardCorners.ALL,
                             pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                         )
                         }
