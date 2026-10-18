@@ -1055,7 +1055,7 @@ internal fun CompactMainScaffold(
                     // Dispatch 2026-10-17-09: RECORD -1238 ("Always show it") replaced this for a while; RECORD -1242 ("Journal
                     // back to J5; keep the rest (Recommended)") restored it as it was. Revealed, the pill takes the same place
                     // as on List and Seasonal (tabLandscapePillPlace).
-                    val journalHidesSearchHeader = showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed
+                    val journalHidesSearchHeader = false
                     // Hiding the header closes its dropdown too, so the dropdown's dismiss scrim
                     // (below) is never left over content with no bar above it.
                     LaunchedEffect(journalHidesSearchHeader) {
