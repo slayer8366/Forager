@@ -1046,7 +1046,7 @@ internal fun CompactMainScaffold(
                     // (dispatch 2026-10-17-09, PR #252): "And can it be set in the Journal at the same position at top?", then
                     // "Always show it". The Journal shows the header in landscape as every other tab does; its row has no
                     // search icon any more (JournalTab).
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld && !(showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed)) {
                         // SearchEntryBar takes no modifier, so its place goes on this wrapper (tabLandscapePillPlace).
                         Box(modifier = tabLandscapePillPlace) {
                         SearchEntryBar(
