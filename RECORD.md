@@ -21562,3 +21562,14 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 **Timestamp:** 2026-10-18T13:05:31Z
 **Corrects:** 2026-09-28-1261
 **Notes:** -1261's "Device" line says PR #255's build is installed on the S22. It is not: the S22 was not connected when the install ran (adb: device not found), and the planner wrote the line before reading the result. The APK is downloaded at ~/Zynergy/device-evidence/apk-255/ and will be installed when the phone is connected. -1261 is not edited. Written by the planner by hand, on branch records-after-173. Next free ID -1263.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1263
+**Timestamp:** 2026-10-18T13:18:48Z
+**Continues:** 2026-09-28-1261
+**Title:** PR #255 on the S22: the landscape day entry, the rail at the edge and the single credit all pass (owner)
+**Device:** S22 Ultra, Forager debug 1.0.3434+g7a20b27c (PR #255's CI run 39128621114), installed with its data kept.
+**The owner, verbatim:** "Pass 1-3". Steps: (1) the day entry's 4:3 map on the left with its info on the right, scrolling, and Back; (2) the rail reaching the screen edge in both rotations with no icon in the cut-out, on every tab; (3) Seasonal's single Open-Meteo credit at the bottom.
+**Notes:** Written by the planner by hand, on branch records-after-173. This completes the deferred lint step 2 and outline B3 (-1258). Next free ID -1264.
