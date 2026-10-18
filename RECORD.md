@@ -21130,3 +21130,30 @@ The planner's own inference in the dispatch (a size change triggering a rebind) 
 - **The search panel:** solid off the map (it was see-through over the page in the screenshot), 0.8 over the map.
 - **The rail squashed by the full keyboard:** Hazel reports options first; the owner chooses.
 **Notes:** Written by the planner by hand, on branch records-after-173. J5 was quoted to the owner before asking (read-the-ruling). Next free ID -1239.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1239
+**Timestamp:** 2026-10-18T03:54:43Z
+**Continues:** 2026-09-28-1232
+**Observed:** review 2 of the T7 re-fit, by Sorrel Tally on Sonnet, forecast branch t7-refit-review-2 at 2152446: docs/audits/2026-10-17-t7-refit-review-2.md with its evidence. It did not read review 1. The baseline matched, including the hashes.
+- **Reproduction:** all four conditions reproduced exactly to five places with its own code. P10b fails.
+- **Blocking:** none against the code or the arithmetic. P10b isn't met; "mycorrhizal" is unsupported.
+- **Should-fix:**
+  1. the add-one selection resamples weather cells while condition 1 resamples blocks; under blocks the kept set changes (Lithocarpus out, Larix in), and the report doesn't say so;
+  2. state the selection optimism, now measured;
+  3. the Laetiporus comparison needs its block interval: mycorrhizal minus Laetiporus is −0.0092 [−0.0348, +0.0184];
+  4. condition 4's clustering (625 records at one coordinate; 4,014 specimens in 860 cells) belongs in the caveats;
+  5. fit.log prints only the weather-cell interval for condition 2.
+- **Condition 1:** without selection it fails (+0.0016 [−0.0013, +0.0067]). With the selection redone leave-one-block-out, +0.0022 [−0.0008, +0.0075], also failing. Selection explains about 42% of the margin.
+- **Road access** is implemented as stated. The road band alone scores 0.654 within a cell, matching the models (A 0.648, full 0.641). Holding access does not visibly remove remote-habitat signal; the map now tilts more toward remote cells.
+- **Condition 4** is more robust than the report says: cells deduplicated +0.167 [+0.086, +0.234]; 2000 and later +0.214; within a block +0.207. Without the largest herbarium, +0.156 [−0.004, +0.279]. It measures where herbarium collectors worked against road-matched forest, not fruiting. The interior is unusable.
+- **The map:** rank 0.912 with 2026-10-16; the moves are regional (up: Olympics, WA Cascades, Wasatch, the north CA and south OR coast; down: OR Coast Range, Idaho panhandle, Columbia Mountains); some straight-edged patches in the shift image are unexplained.
+- **One revert check,** which bit and was restored by sha256.
+- **One-line answers:**
+  - show it? No under D145. If the owner overrides, only as an "experimental relative habitat index … not host-specific, not validated within a weather cell", never "mycorrhizal habitat";
+  - further strengthening is unlikely to flip P10b;
+  - the evidence points to stopping the chase for a "mycorrhizal habitat" claim; whether to carry the reporting-adjusted index is the owner's call.
+**Against the planner's prediction (-1232):** the reproduction held; condition 1's fragility held; "the specimen test weaker than its interval suggests" was largely wrong (it survives deduplication and the year cut, though not the removal of the largest herbarium).
+**Notes:** Written by the planner by hand, on branch records-after-173. The comparison with review 1 waits for review 1. Next free ID -1240.
