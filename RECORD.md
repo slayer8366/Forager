@@ -22823,3 +22823,19 @@ All three screenshots are kept off GitHub.
 - Other Journal screens behave as at 8c90626f.
 - It is built on revert-journal-search-space with -1330 (1).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1333.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1333
+**Timestamp:** 2026-10-18T23:36:25Z
+**Continues:** 2026-09-28-1332
+**Title:** The owner confirms the Journal's reveal layout: the empty strip goes, the switch line moves up into its place when search is hidden, and the switch line always shows (owner)
+**The owner, verbatim:** "The entries and records stay shown, only search is hidden" / "Option 2 just move it up when the search bar isn't shown." / then -1330's sentence again. The owner sent an S22 screenshot of an open entry in landscape, with the empty strip above Entries | Records circled and an arrow pointing up from the switch line into it. The screenshot is kept off GitHub.
+**What it sets:**
+- **Option 2:** the space for the search bar exists only while the bar shows.
+- **Search hidden:** the switch line sits at the top, in the strip's former place.
+- **🔍 tapped:** the bar slides in above the switch line, and the switch line slides down with it.
+- The switch line is never hidden.
+- **The map:** the owner's arrow moves only the switch line, and "the maps do not move at all" (-1331) stands. So -1332's reading holds: a map under the switch line keeps its place, and the switch line's slide happens in the space above the map.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1334.
