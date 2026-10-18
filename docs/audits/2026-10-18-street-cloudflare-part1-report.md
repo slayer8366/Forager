@@ -434,3 +434,133 @@ Nothing. The Part 2 shape in Q6 and Q9 is a proposal for the planner, not a plan
    - **Today:** the closest zoom's pieces are fetched from Protomaps' public build the first time anyone looks at a spot, then kept. As an everyday map, that leans on a server Protomaps asks people not to hotlink.
    - **(a)** Accept it until your own build includes that zoom. **Recommended;** ask the Pi planner to build to zoom 15.
    - **(b)** Stop the data one zoom earlier and enlarge it. Trailheads, toilets and water would then not appear at all.
+
+---
+
+# Part 2: the build (dispatch 2026-10-18-05, "Part 2"; RECORD -1300 to -1302)
+
+Hazel, for Rowan Waymark and the owner. Built 2026-10-18 from about 18:45Z. **The owner's go:** "3 go" (-1302). **The shape:** the owner's "Accept Hazel's recommendations" (-1300), and Workers Paid confirmed by the owner (-1301).
+
+**Nothing was deployed or uploaded.** The owner deploys: the steps are below. **The release switch is at raster** (`STREET_SERVED_BY_OWN_MAP = false`), so today's app is unchanged until the owner approves flipping it.
+
+**Base.** pre-main `712ff277`, checked against the remote. PR #257 (map-launch-fixes) was still open when the app part was reached, so `origin/map-launch-fixes` at `31e055c9` is merged into street-cloudflare (merge `127ef772`), as the dispatch directs. Its four `docs/audits/README.md` rows came in above the Part 1 row; the Part 1 row was moved below them so their "row above" references still point at their own rows. Every row is kept.
+
+## What was built
+
+### 1. The Worker (`server/pmtiles-worker/`)
+
+- **No Pi.** `fetchFromPi` and its call are removed (`src/index.ts`; -879, -1300 (1)). Every tile comes from R2's archive, or from the z15 overflow, which is unchanged (-1300 (8)). The response still says `X-Forager-Origin: r2`. `wrangler.toml` no longer sets `PI_ORIGIN_URL`; the deployed variable and the two Access secrets are unused by the new code and can be removed at the owner's convenience.
+- **New routes:**
+  - `/style/street-v1.json`: the Street style, bundled into the Worker like `offline-style.json`, so it needs no upload.
+  - `/fonts/{stack}/{range}.pbf` and `/sprites/v4/light{,@2x}.{json,png}`: read from R2 under `fonts/` and `sprites/v4/`, cached a week. Only those exact shapes are read; anything else under `/fonts/` or `/sprites/` is a 404 with no R2 read. They are matched before the tile parser, which would otherwise take `/sprites/v4/light.json` for a tileset named `sprites/v4/light`.
+- **Unchanged:** `/style/offline.json` (byte for byte, below), TileJSON (still `maxzoom` 15), the tile path and the archive name (`us`).
+- **Tests:** `test/worker.test.mjs`, nine cases, run with `npm ci && npm run build && npm test` against `dist/index.js`, the bundle the owner pastes. R2 is faked from a 363-byte, three-tile archive (`test/fixtures/tiny.pmtiles`, made by `test/fixtures/make-tiny-pmtiles.py`). The Worker is given the Pi variable and both secrets, as the deployed one has them, so "no Pi request" holds with the Pi configured.
+- **The bundle the owner pastes:** 340.4 KiB, one file, `worker/index.js` in the handover folder, sha256 `c483ff69…b668`. The local build reproduced the deployed bundle exactly from pre-main's source before any change (the only difference a trailing newline), so the build is the same one Workers Builds runs.
+
+### 2. The style (`map-style/`)
+
+- `generate-street.mjs` builds `forager-street-v1.json` from the same pinned Protomaps light layers (5.7.2) with `overrides/forager-street.mjs` applied, and copies it to `server/pmtiles-worker/src/street-style-v1.json`. `forager-light.json` is unchanged (regenerated: no diff).
+- **Why a separate file:** `overrides/forager-colours.json` can only change named colours and hide layers (`generate.mjs:17-50`); dashes, zoom ranges, filters, sizes and an outline layer are layer edits. Every edit names its layer and fails the build if that layer is gone.
+- **What it does, decision by decision:**
+  - **Paths (-1284, -1300 (4)):** `roads_other` is split. Footpaths (`kind_detail` footway, path, steps, bridleway, cycleway) are dashed red-brown `#a8452a`; vehicle tracks are dash-dot brown `#7a5530`; both from z13. No dotted informal layer: the tiles have no field for it; the colour is reserved.
+  - **Forest (-1285):** `landcover` and `landuse_park` are solid at every zoom (no 5-7 fade out, no 6-11 fade in); one green `#a9d39b` for forest and wood; grass, scrub, meadow, heath, cemetery and golf course lighter `#dde9c1`; national parks, parks, protected areas and nature reserves leave the fill and get a dark green outline `#3e7a3a` from z6.
+  - **Labels (-1286):** sizes up 15%, road and path names 14 px, text `#262626` (water `#1f4d86`) on a white 1.75 px halo.
+  - **Points of interest (-1287, -1300 (4), (5)):** the nine outdoor kinds from z12, wherever the tiles carry them; shops and cafes (ten kinds) from z16; nothing else. The six with no icon draw the sprite's `townspot` dot with the name; peaks, toilets and drinking water keep their icons. Outdoor places sort ahead of shops.
+  - **Night (-1288):** roads get coloured fills and darker casings so they survive the inversion (Elder's finding that white roads go black).
+- **Checks:** `npm run check:street` runs `tools/check-style.mjs` on the preview copy (every font range and icon on disk; one icon, `generic_shield-0char`, absent as in `forager-light.json`, reported not failed) and `tools/check-street-night.mjs`: the style is valid against MapLibre's style spec, the Worker's copy is identical, and eleven day/night contrast pairs hold (footpath on ground 4.45 day / 6.47 night; label text on its halo 15.1 / 14.9; table in the script's output). A positive control: setting the footpath to a pale `#d9c9b8` made the check fail on both footpath pairs, then the file was restored from a saved copy and checked.
+- **Renders for the owner's review** (GL JS in headless Firefox, phone-sized 412×800 at 2×, ten places, day and a pixel-exact V1 night of each): `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/renders/`, outside the repository (they show real place names). They are the web engine, not the phone: **the phone is the final word**, especially for labels. The tiles in them came through today's deployed Worker, so z7-14 came from the Pi.
+
+### 3. The app (behind the switch, off)
+
+- **`map/StreetStyle.kt`**, new: `STREET_SERVED_BY_OWN_MAP = false`, `STREET_STYLE_URL`, the zoom limit 18, the notice text, the sprite's icon names, and three rules: the style a download uses, the style the offline map loads, and whether a region shows the older-style notice. Each takes the switch as a parameter defaulting to the constant, so tests drive both values.
+- **Online Street** (`BasemapStyles.kt`): `ownStreetStyleSourceFor` gives Street by URL, and at Topographical night a new `MapStyleSource.StreetWithTopoOver`: the Street style with the topo raster added on top (V1 paint, fading in 9.5 to 9.7) and the Street's labels ending at 9.5 (-1291). `mapStyleSourceFor`'s raster path is unchanged; with the switch off the new function returns `null`.
+- **Zoom 18** (`operatingMaxZoom`, used by the style effect and `navigationMaxZoom`).
+- **Credits:** the caption reads "Protomaps © OpenStreetMap" over the own Street, also under topo at night; the Protomaps row reads "Protomaps (Street and offline maps)"; Noto Sans for the Street's labels (OFL) and the tangrams icons (MIT) are added to `software.json`, marked `onlyWithOwnStreetMap` and listed only with the switch on.
+- **Night:** the recolour walks `text-color`, `text-halo-color` and `icon-color` too (`NightColour.kt`), and runs for any style loaded by URL; the sprite is inverted image by image (`applyStreetSpriteNight`: `Style.getImage`, V1 per pixel, `addImage`), since its icons are not SDF. An image with no density is left in day colours and logged, because `Style.toImage` takes the pixel ratio from `Bitmap.getDensity` (read with `javap`).
+- **Offline:** downloads use `offlineDownloadStyleUrl()`; the map's offline style is `currentOfflineRenderStyleUrl`, which with the switch off returns `OFFLINE_STYLE_URL` without reading the store. Each listed region carries the style URL MapLibre's own definition records (`OfflineRegion.getDefinition().getStyleURL()`, present in 13.5.0 by `javap`), so **no Room change** was needed. An older region's row shows "Older map style. Download again to update."
+- **SDK calls checked with `javap`** against the pinned 13.5.0 `classes.jar` (fetched from Maven Central, SHA-1 matched the published one, then deleted): the region definition's `getStyleURL`, `Style.getImage`/`addImage`, the symbol colour getters and setters, `Layer.setMinZoom`/`setMaxZoom`, `RasterSource(String, TileSet, int)`, `TileSet` with `setMaxZoom`/`setAttribution`, `RasterLayer`, the raster `PropertyFactory` setters, `Style.Builder.fromUri`/`withSource`/`withLayer`.
+- **Since pre-main moved:** PR #257 merged into pre-main at `d942e022` (RECORD -1307) while this was being built. `origin/pre-main` is merged into street-cloudflare at `2c009309` (merge, not rebase). Its only change beyond map-launch-fixes was `PI_ORIGIN_URL` removed from `wrangler.toml` (Amendment 3, -1303, -1304); the conflict with this branch's own comment there was resolved to one comment saying both. The `docs/audits/README.md` conflict kept every row.
+
+## Evidence
+
+**CI, the forward change:** run 39158767231 (`workflow_dispatch`, head `ce08a66e`): all three jobs green; **5,123 tests, 0 failed, 24 skipped** (counted from the run's JUnit XML). New and changed classes in it: `StreetStyleTest` 10, `OwnStreetStyleSourceTest` 9, `OfflineNightRecolourTest` 12, `BasemapStyleTest` 10, `SoftwareCreditsCatalogTest` 7, `OfflineRegionOlderStyleNoticeTest` 4, `OfflineRegionReconciliationTest` 17, all passing. Three runs before it failed and each was fixed for its own reason: 39156738430 did not compile (`TileSet` is a Kotlin class, so `attribution =`, not `setAttribution`); 39157084039 did not compile the tests (colons in test names); 39157687596 had one failure, the new host test, whose URL pattern took the JSON escape's backslash into the two credit links. That last one was the check being wrong, not the style: the fix is to the pattern, and the style is unchanged. The PR's own run is on the merge with pre-main (below).
+
+**Revert checks.** Six branches, `street-cloudflare-revert-1` to `-6`, each one commit on `ce08a66e` changing one line, run with `workflow_dispatch` filtered to the affected classes (R6 unfiltered). **Every revert run's log was searched for compile errors first: none in any of the six**, so each result is that revert's own build. The forward change was never touched: the reverts were made in a separate worktree.
+
+| | One-line revert | Failed | Each failure is one this revert can cause? |
+|---|---|---|---|
+| R1 (`1527b0b3`) | `NightColour.kt`: the `"symbol"` entry removed | 3 of 12: the walk list; "Key labels/text-color is missing"; "expected 85 but was 60" | yes: 25 label colours stop being walked |
+| R2 (`b7c0e2be`) | `StreetStyle.kt`: the offline map loads the Street style whenever the switch is on | 1 of 10: "only older regions expected …offline.json but was …street-v1.json" | yes |
+| R3 (`cbf068f0`) | `StreetStyle.kt`: the notice no longer requires a downloaded region | 1 of 14: "not downloaded on this phone" (`StreetStyleTest`) | yes. The Compose test for that case did **not** fail: its region also has no style URL, so it shows no notice for that reason too. It is reported, not counted as evidence for this line. |
+| R4 (`85d75ca6`) | `BasemapStyles.kt`: the Topographical-night branch removed | 1 of 9: expected `StreetWithTopoOver(…)` | yes |
+| R5 (`14e42fc4`) | `SoftwareCredits.kt`: the switch filter removed | 2 of 7: "credited with the switch off"; "exactly one library's name starts 'Noto Sans'" | yes: both new entries show |
+| R6 (`5abf25dc`) | `StreetStyle.kt`: `STREET_SERVED_BY_OWN_MAP = true` | 16 of 5,123 | yes, and useful beyond this PR: see below |
+
+**What R6 shows.** With the switch on, the app's own pins fail exactly where the own Street changes what the user sees: zoom 19 becomes 18 (`OwnStreetStyleSourceTest`, `NavigationViewTest`), the caption's credit becomes "Protomaps © OpenStreetMap" (`MapLayerPreferencesStateTest`, `MapAttributionListTest` ×2, `TopoNightStreetSwitchTest`, `OfflineStyleSwapTest`), the Protomaps credit row (`SourcesAndCreditsTest`, `StreetStyleTest`), the Street font credit (`SoftwareCreditsCatalogTest` ×2), the notice on today's regions (`OfflineRegionOlderStyleNoticeTest`, `StreetStyleTest`), the download style (`StreetStyleTest`), and Topographical night is no longer a raster JSON (`OfflineStyleSwapTest`, a `ClassCastException` in its own cast). So the release value is pinned from many sides, and **flipping the switch later is a change that has to update about nine existing tests' expectations** to the own Street's, by an owner-approved dispatch. None of those was touched here.
+
+**The Worker:** 9 of 9 route tests pass against the new bundle. Against the **deployed** bundle (the rollback copy), 7 fail and 2 pass: the tile test fails with "the Worker made outbound requests: … origin.zynergy-labs.com/us/14/2651/5776.mvt … CF-Access-Client-Id", the z15 test with the Pi request listed before the overflow's, and the five new-route tests with 404 or a `sprites/v4/dark.pmtiles` R2 read; **`/style/offline.json` and TileJSON pass on both**, which is the byte-for-byte evidence that the offline style and TileJSON are unchanged. The new bundle was restored from a saved copy after that run and its sha256 checked.
+
+**The style:** valid against the style spec; `check-style` and `check-street-night` pass, with the positive control above; renders as listed.
+
+**Not verified, device only:** everything that runs only in MapLibre Native. Which colour forms `SymbolLayer`'s getters hand back (logged, never dropped); whether `Style.getImage` gives a bitmap with a density (logged and left if not); the topo raster added over a URL style; labels at 9.5; a Street region downloading and drawing offline (the 2026-10-04 label check is the precedent, not this code); the notice on a real old region; the zoom stop at 18; the look itself. With the switch off none of this runs in today's app.
+
+## The owner's steps, in order (nothing here has been done)
+
+The handover folder: `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/handover/`
+- `worker/index.js`, the Worker to paste (sha256 `c483ff699f4be6e053f53cd5e3438eaea97a22f821d38b278b5a68a45710b668`);
+- `r2-upload/`, 774 files, 14 MB: `fonts/Noto Sans Regular/` (256 files), `fonts/Noto Sans Medium/` (256), `fonts/Noto Sans Italic/` (256), `fonts/OFL.txt`, `sprites/v4/light.json`, `light.png`, `light@2x.json`, `light@2x.png`, `sprites/LICENSE-MIT.md`. All 772 font and sprite files were compared byte for byte with the pinned archive (basemaps-assets `028c18f7`, whose sha256 `fetch-assets.sh` records): 0 mismatches.
+
+**Deploying the Worker changes nothing today's app shows.** Today's app reads only `/style/offline.json`, TileJSON and tiles from it, all unchanged; tiles already come from R2 since the owner removed `PI_ORIGIN_URL` (-1305). The new routes are read only by a build with the switch on.
+
+1. **Pause auto-deploy** (-1300 (7)). Cloudflare dashboard › Workers & Pages › `forager-pmtiles` › **Settings** › **Builds**. Write down the production branch shown there. Disconnect the repository, or turn off automatic deploys for the production branch if the page offers it.
+2. **Upload fonts and icons.** R2 object storage › `forager-maps` › **Upload**. Drag in the `fonts` folder and the `sprites` folder from `r2-upload/`, keeping their names. When done, open `fonts` › `Noto Sans Regular`: 256 files from `0-255.pbf` to `65280-65535.pbf`. **Do not touch `us.pmtiles` or the `overflow` folder.** If the page will not take folders, or flattens them, stop there and say so: the fallback is a one-command upload from the laptop with an R2 token or `wrangler login`, which needs your sign-in.
+3. **Paste the Worker.** Workers & Pages › `forager-pmtiles` › **Edit code**. Select everything in the editor and delete it, paste the whole of `worker/index.js`, then **Deploy**. Bindings, variables and secrets are settings, not code, and stay as they are.
+4. **Check, from any browser:**
+   - `https://forager-pmtiles.brandonlee1-894.workers.dev/style/offline.json` loads as before;
+   - `…/style/street-v1.json` loads, and its text names only `forager-pmtiles.brandonlee1-894.workers.dev`;
+   - `…/fonts/Noto%20Sans%20Regular/0-255.pbf` downloads a file of about 75 KB;
+   - `…/sprites/v4/light.json` shows a list of icons;
+   - a fresh tile, `…/us/14/2652/5776.mvt`, downloads.
+5. **Leave auto-deploy paused** until main has this Worker code (this PR merged into pre-main, then promoted to main). Then reconnect it with the same production branch as before. Reconnecting earlier would put the old Worker back on the next push to main, and with it the Street routes would 404 (Q3 of Part 1).
+6. **Phone review rounds on the look** (-1284 to -1289 checks). The app's switch is off, so a review needs a separate build with it on, which nobody ships: a review APK from a branch with the one line flipped, built by CI and installed on the S22 by the planner. Each round: the places in Elder's checks at three zooms, outdoors in daylight; then Night Maps on at the same places; then Topographical at night zooming out past 9.5. The colours live in `map-style/overrides/forager-street.mjs`; a round's changes are a new style build and a new Worker paste (steps 3 and 4), or a `street-v2.json` if any region has already been downloaded against v1.
+7. **Flipping the switch** for users is a later dispatch with the owner's word, after the phone review passes and the Pi's build covers Alaska and Hawaii (-1300 (3)).
+
+**Rollback.** Workers & Pages › `forager-pmtiles` › **Deployments** › the deployment from 2026-10-15 › **⋯** › **Rollback**. Or paste `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/deployed-index.js` (sha256 `d92bafa1…55ad`) in step 3's editor and Deploy. The R2 uploads can stay: the old Worker never reads them. Note that rolling back to the 2026-10-15 code puts the Pi-first step back, which only reads `PI_ORIGIN_URL`; with that variable deleted (-1305) the old code still serves from R2.
+
+## When a new US archive lands in R2
+
+- **Same name, same schema** (the Pi's build uploaded over `us.pmtiles`, built with Protomaps' basemap schema): nothing in the Worker, the style or the app changes. Tiles change as caches expire: a day at the Worker's edge cache (`Cache-Control: public, max-age=86400`, per data centre), and on phones per MapLibre's own cache. Offline regions keep the tiles they downloaded until downloaded again. If the new archive goes to z15 (the Pi's profile does, per the coordinator), the Worker serves z15 from it and the overflow path stops being used; the `overflow/` objects in R2 are then dead weight the owner can delete.
+- **Alaska and Hawaii:** covered as soon as the archive's bounds include them; the Worker's TileJSON reports whatever the archive holds.
+- **A different name** (for example `us-2026-11.pmtiles`): the style's source URL names `us.json`, so it needs a new style version (`street-v2.json`), because offline packs are keyed by the style URL.
+- **A different schema** (layer names or `kind` values other than Protomaps v4's): the style would draw blank or partial maps. **Could not determine** which schema the Pi's build profile writes; it should be checked before the upload.
+
+## Part 2: confirmed vs inferred
+
+- **Observed:** the forward CI run and its counts; the six revert runs, their logs free of compile errors and their failures; the Worker tests against both bundles; the style checks and the control; the renders; the handover files against the archive.
+- **Read:** the 13.5.0 API by `javap`; the code cited.
+- **Inferred, device only:** everything in "Not verified" above; that a Street region's stored fonts and icons let older regions draw in the Street style too (the store keys resources by URL; not seen on a phone).
+
+## Part 2: could not determine
+
+- Whether the dashboard's R2 upload takes nested folders (step 2's fallback is written for that).
+- Which tile schema the Pi's build writes.
+- How the design reads on the phone, outdoors.
+
+## Part 2: premises that were wrong
+
+- "The app part goes on top of map-launch-fixes once PR #257 merges": it merged mid-build; both merges are recorded above.
+- None that changed what was built.
+
+## Part 2: decided beyond scope (disclosed; each is the owner's to overrule)
+
+1. **Older offline areas once one Street area exists.** -1300 (6) reads "each draws in the style it was downloaded with". As built, the offline map loads the Street style once **any** downloaded area holds it, and the older style until then (`offlineRenderStyleUrl`). With a mix, the older areas then draw in the Street style too (they gain names), rather than each in its own. Drawing each in its own would mean the map changing style as it pans between areas. Question 1 below.
+2. **Points of interest other than the outdoor list and shops and cafes are dropped** (museums, schools, bus stops and the like): -1287's list and "shops and cafes only zoomed into a town", read as the whole list.
+3. **Left as Protomaps draws them:** the ground colour, water, buildings, shields, tunnels. Steps are drawn as footpaths, not as ticks. None was ruled.
+4. **The dot** for the six missing icons is the sprite's own town dot (`townspot`).
+
+## Part 2: questions for the owner
+
+1. **Older offline areas, once you have downloaded one area in the new look.**
+   - **(a)** All your areas draw in the new look from then on, the older ones too, with names; until then, the older look. **Recommended:** nothing changes look as you move around. *(As built.)*
+   - **(b)** Each area keeps its own look, so the map changes look as you move from an older area into a newer one.
+2. **Ready for the first look on the phone?** After the deploy (steps 1 to 4), the planner can build a review copy of the app with the new Street switched on, for the S22 only. **Recommended:** yes, one round in daylight and one at night.
