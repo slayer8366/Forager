@@ -22528,3 +22528,22 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Phone checks:** one combined check on the resulting pre-main build, on the S22, the S26 and the tablet, before the promotion. The promotion to main still needs the owner's approval (-1086).
 - Only #258 waits for the Pi build (-1316).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1318.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1318
+**Timestamp:** 2026-10-18T20:55:45Z
+**Continues:** 2026-09-28-1317, 2026-09-28-1313
+**Title:** The Journal map no longer resizes when the search bar drops: it is always sized as if the bar were showing, so nothing covers anything; Amendment 2 to dispatch 2026-10-18-08, before release (owner)
+**The owner, verbatim:**
+- "When revealing the search bar in offline maps, the map resizes itself, causing a stutter in the animation. Can the map not be resized upon search drop down?" (two S26 screenshots, kept off GitHub);
+- "Before. It's a small fix";
+- "The chips can move. Just not the map";
+- "Reduce the size of the map so that nothing gets covered. Simple solution."
+**What it sets:**
+- Where a Journal screen shows a map under the chips, the map keeps the size and place it has with the search bar open, at all times.
+- The bar and chips slide into space reserved for them.
+- The planner's options of the bar covering the chips, or the chips covering the map, were declined.
+- It goes on nav-rail-order with the rail order (-1312) and the untinted drawer (-1313).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1319.
