@@ -22054,3 +22054,18 @@ Two landscape screenshots (Maps and Seasonal) are described, not stored.
 - **Phone check:** switch to Topographical; nothing changes from today.
 - **Rejected:** the same without writing to OpenTopoMap.
 **Notes:** Written by the planner by hand, on branch records-after-173. Decisions 10 and 11 still to come. The merge of PR #256 is not decided by this. Next free ID -1292.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1292
+**Timestamp:** 2026-10-18T17:14:09Z
+**Continues:** 2026-09-28-1291
+**Title:** Basemap design decision 10, satellite: not at launch; when it returns, trails and labels are drawn over the imagery (owner)
+**The owner, verbatim:** "D10 option 1"
+**What it sets:**
+- No satellite basemap at launch. The app has none today: `Basemap.kt:44-52` records "Satellite was removed (dispatch 2026-09-28-708)", per Juniper's research. The planner has not re-read it.
+- When satellite returns, the own trails and labels are drawn over the imagery.
+- No phone check now.
+- **Rejected:** satellite at launch.
+**Notes:** Written by the planner by hand, on branch records-after-173. Decision 11 still to come. Next free ID -1293.
