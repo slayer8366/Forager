@@ -23266,7 +23266,7 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   - The message, read by the planner from the JUnit XML: Seasonal's content spans 139 to 1099 dp, which is the 960 column, but the test expected it to start 16 dp inside the column ("expected:<155.0> but was:<139.0>").
   - So the widening took effect, and either the inset or the test's premise is wrong. Hazel is diagnosing on a new branch.
   - The build was installed on the tablet anyway (1.0.3497+gb05db019) for the owner's look.
-- **The cause was the test's premise.** \`SEASONAL_CONTENT_TAG\` shares a layout node with \`verticalScroll\`, which sits before the padding, so it measures the scroll's full-column bounds. The padding is still in place (\`AvailabilitySeasonalUi.kt:94-96\`, read by the planner).
+- **The cause was the test's premise.** `SEASONAL_CONTENT_TAG` shares a layout node with `verticalScroll`, which sits before the padding, so it measures the scroll's full-column bounds. The padding is still in place (`AvailabilitySeasonalUi.kt:94-96`, read by the planner).
   - That is Hazel's reading of Compose's semantics merging, inferred.
   - PR #267 (test-only, head 3d71c0ff) asserts the scroll column equals the 960 column, and that every child sits at least 16 dp in, with a positive control.
   - #267 was merged at 21dc4470 with "[skip ci]", and one pre-main run triggered: 39201526634.
