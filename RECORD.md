@@ -23899,3 +23899,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Deviations:** none.
 **Not checked:** the inset rows on a device (unchanged by this PR).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1399.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1399
+**Timestamp:** 2026-10-19T23:45:27Z
+**Continues:** 2026-09-28-1376, 2026-09-28-1398
+**Title:** UI split Phase 1, PR 8: the map controls' parts (pill, "+" chooser, strip helpers and lines) out of AvailabilityMapControlsUi.kt (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-12.md, for Hazel Cairnwright
+**Scope:** AvailabilityMapControlsUi.kt and new files in ui/availability; branch split-map-controls from pre-main 99597d4d. The compass strip's content stays whole.
+**Baseline:** pre-main 99597d4d.
+**Prediction (outcome, planner):** a pure move with several widenings; the 19 coordinate-touch guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs and the touch-guard list, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder of composition; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. PR 7 (MapChrome.kt) goes to the ui/map helper after PR 6a. Next free ID -1400.
