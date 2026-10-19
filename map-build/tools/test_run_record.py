@@ -105,5 +105,40 @@ class ManifestDroppedTest(unittest.TestCase):
                 self.assertEqual(json.load(f)["dropped_rd5"], [])
 
 
+class ManifestSequenceTest(unittest.TestCase):
+    """build-usca.sh passes every region's sequence (run usca-20261019T185700Z failed at publish,
+    int('us:2415,canada:4945')); build-orwa.sh passes one number."""
+
+    def manifest(self, seq):
+        with tempfile.TemporaryDirectory() as d:
+            for name, body in (("in.pbf", b"abc"), ("src.zip", b"x"), ("out.pmtiles", b"y"), ("pins.env", b"K=v\n")):
+                with open(os.path.join(d, name), "wb") as f:
+                    f.write(body)
+            out = os.path.join(d, "m.json")
+            r = run("manifest", out, "--pins", os.path.join(d, "pins.env"), "--run-dir", d, "--osm-timestamp", "T1",
+                    "--osm-sequence", seq, "--inputs", os.path.join(d, "in.pbf"),
+                    "--sources", os.path.join(d, "src.zip"), "--outputs", os.path.join(d, "out.pmtiles"))
+            if r.returncode != 0:
+                return r, None
+            with open(out) as f:
+                return r, json.load(f)["osm"]["replication_sequence"]
+
+    def test_one_region_is_a_number(self):
+        r, seq = self.manifest("4523")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(seq, 4523)
+
+    def test_several_regions_are_kept_as_written(self):
+        r, seq = self.manifest("us:2415,canada:4945")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(seq, "us:2415,canada:4945")
+
+    def test_anything_else_is_refused(self):
+        for bad in ("", "us:", "us:24x5", ":2415", "us:2415,", "us=2415", "2415.0"):
+            r, seq = self.manifest(bad)
+            self.assertEqual(r.returncode, 2, bad)
+            self.assertIn("--osm-sequence", r.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

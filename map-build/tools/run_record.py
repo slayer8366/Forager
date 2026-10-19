@@ -4,7 +4,7 @@
     run_record.py status FILE --state STATE [--stage S] [--run-id R] [--osm-timestamp T]
                                             [--output DIR] [--message M] [--warnings W1,W2]
     run_record.py manifest OUT.json --pins PINS_ENV --run-dir RUN --osm-timestamp T
-                                    --osm-sequence N --inputs F... --sources F... --outputs F...
+                                    --osm-sequence N|REGION:N,... --inputs F... --sources F... --outputs F...
 
 status: STATE is running, ok, ok_with_warnings, skipped or failed. ok_with_warnings means the
 output was published, but a step after publishing failed; --warnings names those steps. The file
@@ -138,7 +138,25 @@ def cmd_status(a):
     return 0
 
 
+def osm_sequence(text):
+    """A single region's sequence is a number, as build-orwa.sh records it. A build of several
+    regions records each one's, as build-usca.sh does ("us:2415,canada:4945"), because Geofabrik
+    numbers each region separately; that is kept as written, since both scripts read it back only
+    to compare it with the sequence they would build. Anything else is refused, not guessed at."""
+    if text.isdigit():
+        return int(text)
+    parts = text.split(",")
+    if all(len(kv) == 2 and kv[0] and kv[1].isdigit() for kv in (p.split(":") for p in parts)):
+        return text
+    raise ValueError(f"--osm-sequence must be N or REGION:N,REGION:N...: {text!r}")
+
+
 def cmd_manifest(a):
+    try:
+        sequence = osm_sequence(a.osm_sequence)
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
     metrics = []
     metrics_path = os.path.join(a.run_dir, "metrics.jsonl")
     if os.path.exists(metrics_path):
@@ -146,7 +164,7 @@ def cmd_manifest(a):
             metrics = [json.loads(line) for line in f if line.strip()]
     manifest = {
         "built_at": now(),
-        "osm": {"replication_timestamp": a.osm_timestamp, "replication_sequence": int(a.osm_sequence)},
+        "osm": {"replication_timestamp": a.osm_timestamp, "replication_sequence": sequence},
         "inputs": [dict(file_entry(p), published_md5=read_or_missing(p + ".md5")) for p in a.inputs],
         "sources": [dict(file_entry(p), fetched_with=headers(p + ".headers")) for p in a.sources],
         "outputs": [file_entry(p) for p in a.outputs],
