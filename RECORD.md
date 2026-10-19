@@ -23869,3 +23869,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **S22 launch check, planner, about 00:05Z:** APK 1.0.3530+g99f13565, the PR's merge ref (parents e2481972, 57793dfe), from run 39338365596. "PASS: verified (status=verify), launched, process 11701 alive after 8 s, crash buffer empty."
 **Deviations:** 805 lines moved, not the survey's "about 960"; 27 widenings, not the 28 first stated by Hazel (a miscount, the names unchanged) nor the survey's larger set (stroke constants and the dot radius stay private with their readers). Hazel called run 39338365596 a workflow_dispatch run; GitHub reports it as pull_request (merge ref). The planner tested that merge ref, which is the tree that landed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Stale comments that moved unchanged are listed in Hazel's report for a later tidy. Next free ID -1397.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1397
+**Timestamp:** 2026-10-19T23:17:04Z
+**Continues:** 2026-09-28-1376, 2026-09-28-1396
+**Title:** UI split Phase 1, PR 6a: MapBubble.kt (the tapped-thing bubble) into three files (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-11.md, for Hazel Cairnwright
+**Scope:** MapBubble.kt and new files in ui/map; branch split-map-bubble from pre-main ef5f09be.
+**Baseline:** pre-main ef5f09be; the file is 630 lines.
+**Prediction (outcome, planner):** a pure move with a few widenings; the bubble's touch-intercepting shell unchanged; the touch tests identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1398.
