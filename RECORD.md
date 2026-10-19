@@ -23376,3 +23376,15 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **The owner, verbatim:** "The fingerprint check matches"
 **Observed:** the SHA-256 from `keytool -printcert -jarfile app-release.aab` for build 3500 matches `signing/Forager Keys/forager-SHA.txt`, by the owner's account; the planner did not see the output. This closes -1360's "no result was reported", and is the first time the check has been run (it was skipped for 3292, -962).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1362.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1362
+**Timestamp:** 2026-10-19T11:15:15Z
+**Continues:** 2026-09-28-1361, 2026-09-28-962
+**Supersedes:** -1361's "the first time the check has been run (it was skipped for 3292, -962)"
+**Title:** The fingerprint check was also run on 3292 and passed; -962 recorded it only as unreported (owner)
+**The owner, verbatim:** "I ran it on 3292 and it passed also"
+**What it records:** -962 listed the 3292 certificate check under "Not checked" because no result reached the planner then. The planner read that as "skipped" and wrote it into -1361 as fact. Both 3292 and 3500 passed, by the owner's account.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1363.
