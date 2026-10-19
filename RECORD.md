@@ -22951,3 +22951,24 @@ All three screenshots are kept off GitHub.
 - the S22 review copy passes the owner's day and night look.
 If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Notes:** Written by the planner by hand, on branch records-after-173. The owner asks that questions come through the question tool ("walk-through"), which notifies them. Next free ID -1340.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1340
+**Timestamp:** 2026-10-19T01:29:42Z
+**Continues:** 2026-09-28-1338, 2026-09-28-1337
+**Title:** The tablet Journal in landscape: a 960 dp centred column with the same card columns; the top line matches; square maps with info beside; built now (owner)
+**The owner, verbatim,** through the question tool:
+- "A: wider column (Recommended)", to the tablet lists question (A: the same columns in a wider centred column of about 960 dp; B: more columns; C: stretched cards);
+- "Match content (Recommended)", to the top line;
+- "Yes, start now (Recommended)", to building the map half now.
+**What it sets:**
+- On tablets (smallest width 600 dp or more) in landscape, the Journal's 640 dp cap becomes 960 dp, centred. The lists keep their column counts.
+- The top line spans the same width. The planner reads this as one 960 dp cap for every Journal screen, so the line doesn't change width between chips.
+- Offline maps and the entry page get a square map with the info beside it, within that width.
+- In portrait, the square sits on top.
+- Phones are unchanged.
+- **The dispatch premise was wrong:** there is no wide tree or LogPanel (removed in -245). The planner took that premise from the September plan document without checking the code. It is recorded in Amendment 1 to 2026-10-18-10.
+- **Rejected:** B (more columns) and C (stretched cards); a 640 dp top line.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1341.
