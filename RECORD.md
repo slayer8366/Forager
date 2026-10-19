@@ -23068,3 +23068,21 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - Footpaths and tracks keep their inverted night colours (2.43 and 2.80).
 - **Context:** the round 1 previews were copied to the S22 gallery (Pictures/Forager-street-preview-r1), replacing round 0's.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1346.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1346
+**Timestamp:** 2026-10-19T03:04:17Z
+**Continues:** 2026-09-28-1340, 2026-09-28-1338, 2026-09-28-1317
+**Title:** PR #263 (the tablet Journal layout: a 960 dp column, square maps with info beside; known-bugs row 7) merged into pre-main at 0b93dde9 under -1317; its revert branches deleted (planner, on the owner's standing word)
+**What it records:**
+- **The merge:** a merge commit gated on head 0f13928b. pre-main went from e431eba9 to 0b93dde9.
+- **CI:** 39191645892 at 0f13928b, green on all three jobs: 5,149 tests, 0 failures, 24 skipped (Hazel's count from the JUnit XML). GitHub reported CLEAN.
+- **Revert checks R1 to R6:**
+  - each failed for its own edit, with 0 compile errors and the head SHAs checked;
+  - R6 (the large-screen gate always true) failed all 10 phone cases, which proves phones are unchanged.
+  - Hazel caught and redid a first read of the revert results that had downloaded the same report six times. That is recorded in `docs/audits/2026-10-18-tablet-journal-layout-completion-report.md`.
+- **Measured under Robolectric** (zero insets): the landscape tablet map is 720×720, with the controls at 240 dp. **Not verified:** on the real tablet, with real insets, the height should decide the square.
+- **Deleted:** tablet-journal-layout-revert-1 to -6.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next: the pre-main build for the owner's tablet check, then Elder's top-up audit. Next free ID -1347.
