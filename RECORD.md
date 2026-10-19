@@ -23840,3 +23840,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Deviations:** about 218 lines, not the predicted 250; all four had no caller, as predicted.
 **Not done:** comments elsewhere that still describe the removed picker in the present tense (for example `MapChrome.kt:507`) were left as written, per the dispatch.
 **Notes:** Written by the planner by hand, on branch records-after-173. PR 5 (AvailabilitySettingsUi.kt) can start. Next free ID -1395.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1395
+**Timestamp:** 2026-10-19T22:55:59Z
+**Continues:** 2026-09-28-1376, 2026-09-28-1394
+**Title:** UI split Phase 1, PR 5: AvailabilitySettingsUi.kt (the Tools drawer and Settings) into four files (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-10.md, for Hazel Cairnwright
+**Scope:** AvailabilitySettingsUi.kt and new files in ui/availability; branch split-settings-ui from pre-main e2481972.
+**Baseline:** pre-main e2481972; the file is 661 lines.
+**Prediction (outcome, planner):** a pure move; two inset-reading rows travel unchanged; suite identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any change to inset code; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1396.
