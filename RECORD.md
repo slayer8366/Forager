@@ -23012,3 +23012,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   3. Day and night review rounds.
   4. The Pi's US and Canada file replaces us.pmtiles when it is ready.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1343.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1343
+**Timestamp:** 2026-10-19T02:20:07Z
+**Continues:** 2026-09-28-1342, 2026-09-28-1288
+**Title:** Street style, first review round: water at night is drawn a lighter blue rather than its inverted colour; the day blue stays (owner)
+**The owner, verbatim:** "Pretty slick. I like the blue of the water, but looking at creeks is a bit dark against the other dark colors. Can the water be a little bit lighter in blue color?" Then, through the question tool, "Night only, lighter (Recommended)". The options were night only / both day and night / day only.
+**What it sets:**
+- In street-v1's night mode, water (rivers, creeks, lakes) is a lighter blue that reads clearly against the dark green. That is one named exception to -1288's pure inversion.
+- The day water colour is unchanged.
+- **Seen in:** Hazel's web previews, which were copied to the S22's gallery (Pictures/Forager-street-preview). In 06-forest-trails-z14-night the creeks are dark teal on dark green.
+- Applied on street-cloudflare (PR #258, held under -1316), with previews regenerated for the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1344.
