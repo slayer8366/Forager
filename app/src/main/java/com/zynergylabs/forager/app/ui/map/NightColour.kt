@@ -132,7 +132,7 @@ internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: S
     if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
         return NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
     }
-    val layerNight = STREET_NIGHT_LAYER_COLOURS[property.layerId]
+    val layerNight: String? = null
     if (layerNight != null && property.property == "line-color") {
         return NightRecolour.Recoloured(property, StyleColourValue.Literal(layerNight))
     }
