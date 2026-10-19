@@ -78,7 +78,8 @@ abstract class NavigationRailEvenSpacingTests(private val widthDp: Int) {
     private val t = 1_700_000_000_000L
     private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 104.9, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
-    private val labels = listOf("List", "Seasonal", "Maps", "Journal", "Tools")
+    /** The rail's items top to bottom: Tools highest, List lowest (RECORD -1312; until then List to Tools). */
+    private val labels = listOf("Tools", "Journal", "Maps", "Seasonal", "List")
 
     private fun setScreen() {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)

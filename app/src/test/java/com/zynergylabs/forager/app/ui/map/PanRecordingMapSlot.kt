@@ -26,14 +26,24 @@ import com.zynergylabs.forager.app.domain.model.Region
  * without any gesture, so a picker that must tell a pan from a programmatic move could not be
  * tested with it. The drag reaches the picker only through the [MapSlot] parameters a real map
  * would use.
+ *
+ * Dispatch 2026-10-18-07 (Forager RECORD -1309): it also records every distinct basemap it is handed
+ * ([basemaps]), the `renderMode.basemap` the real map draws, so a picker's basemap is read from what the
+ * map was actually given.
  */
 internal class PanRecordingMapSlot(private val panTo: LatLng) {
     val regions = mutableListOf<Region>()
+    val basemaps = mutableListOf<Basemap>()
+
+    /** Whether it has been handed a night render mode, so a night check knows the night frame was composed. */
+    var nightSeen = false
 
     val slot: MapSlot = { region, _, renderMode, _, _, _, _, onCameraIdle, modifier ->
         val currentGesture by rememberUpdatedState(renderMode.onUserCameraGesture)
         val currentIdle by rememberUpdatedState(onCameraIdle)
         SideEffect { if (regions.lastOrNull() != region) regions += region }
+        SideEffect { if (basemaps.lastOrNull() != renderMode.basemap) basemaps += renderMode.basemap }
+        SideEffect { if (renderMode.night) nightSeen = true }
         Box(
             modifier
                 .fillMaxSize()

@@ -593,6 +593,10 @@ internal fun CompactMainScaffold(
             if (holdSearchAfterEntry && journalLeavingPages.count == 0) holdSearchAfterEntry = false
         }
         val journalSearchHeld = isEditingJournalEntry || entryJustClosed || (holdSearchAfterEntry && journalLeavingPages.count > 0)
+        // RECORD -1330 to -1333: see JournalSearchPillRoom. Its full height is the pill's landscape height, set where the pill's
+        // slot is composed, after composition (SideEffect).
+        val journalSearchPillRoom = remember { JournalSearchPillRoom() }
+        val journalSearchPillRoomDensity = LocalDensity.current
         // Search-focus-and-hide dispatch, Item 1: tried and deliberately NOT built here. The natural
         // generalization of the established LaunchedEffect(showSearchDropdown) pattern just above
         // — LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus(force = true) }, firing on
@@ -1076,7 +1080,16 @@ internal fun CompactMainScaffold(
                     LaunchedEffect(journalHidesSearchHeader) {
                         if (journalHidesSearchHeader) showSearchDropdown = false
                     }
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
+                    // RECORD -1330 (the owner: "when switching from an open entry to list, or to seasonal, the search bar is empty"): an
+                    // open Journal entry hides the bar on the Journal only, as -692 set it there. An entry stays open when the tab
+                    // changes (F3), and until -1330 this held the bar off List and Seasonal too, whichever tab showed.
+                    // RECORD -1330 to -1333: the pill's slot is measured here for a map under the Journal's switch line, which keeps
+                    // its place while the line slides down with the pill (JournalSearchPillRoom). The Box is always composed, so a
+                    // hidden pill measures 0.
+                    val journalSearchPillFullHeight = if (railBeside) lastMapsStripHeight.takeIf { it > 0.dp } ?: tabPillStripLineHeight else 0.dp
+                    SideEffect { journalSearchPillRoom.fullHeightPx = with(journalSearchPillRoomDensity) { journalSearchPillFullHeight.roundToPx() } }
+                    Box(modifier = Modifier.measuresJournalSearchPill(journalSearchPillRoom)) {
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !(journalSearchHeld && compactTab() == CompactTab.JOURNAL)) {
                         // Dispatch 2026-10-17-09, RECORD -1244 (the owner: "And have the search bar slide up and down when
                         // revealing/hiding"): J5's reveal on the Journal (journalHidesSearchHeader) slides the pill down into place
                         // from above, and back up out of view, while the content below follows it (the expand and shrink), on
@@ -1146,6 +1159,7 @@ internal fun CompactMainScaffold(
                         Box(modifier = readableContentCap) { SearchNotice(uiState) }
                         }
                         }
+                    }
                     }
 
                     // Switches to the Journal tab and starts the entry there — the gallery's own edit
@@ -1503,7 +1517,7 @@ internal fun CompactMainScaffold(
                                 modifier = Modifier.fillMaxSize(),
                             )
                             CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
-                            CompactTab.JOURNAL -> CompositionLocalProvider(LocalLeavingPages provides journalLeavingPages) { JournalTab(
+                            CompactTab.JOURNAL -> CompositionLocalProvider(LocalLeavingPages provides journalLeavingPages, LocalJournalSearchPillRoom provides journalSearchPillRoom.takeIf { railBeside }) { JournalTab(
                                 uiState = logUiState,
                                 onOpenCameraForLogEntry = { onOpenCamera(InAppCameraTarget.LOG_ENTRY) },
                                 onOpenCameraForAlbum = { onOpenCamera(InAppCameraTarget.ALBUM) },

@@ -243,12 +243,22 @@ class LandscapeOfflinePickerTest {
             assertTrue("the map ($mapRect) is on the punch-hole side, right of the controls ($okRect)", mapRect.left >= okRect.right)
         }
         assertEquals("the map runs to the bottom of the window", window.bottom.value, mapRect.bottom.value, 0.5f)
+        // RECORD -1330 to -1333 (the owner: "the line with the chips can slide down along with the search bar to make room";
+        // "No, the maps do not move at all") replaced this claim: the map now stands where it is with search open, the search
+        // pill's height plus JOURNAL_MAP_TOP_GAP below the chip row while search is hidden. Was
+        // `assertEquals("the map starts where the controls side does, under the chip row", chipRow.bottom, mapRect.top, 0.5f)`.
+        val chipRow = bounds(composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.RECORDS_FILTER_CHIP_ROW_TAG))
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.SHORT_SEARCH_TAG).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        val pill = bounds(composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG))
         assertEquals(
-            "the map starts where the controls side does, under the chip row",
-            bounds(composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.RECORDS_FILTER_CHIP_ROW_TAG)).bottom.value,
+            "with search hidden, the map starts the search pill's height (${pill.bottom - pill.top}) plus $JOURNAL_MAP_TOP_GAP below the chip row",
+            (chipRow.bottom + (pill.bottom - pill.top) + JOURNAL_MAP_TOP_GAP).value,
             mapRect.top.value,
             0.5f,
         )
+        assertEquals("with search open, the map has not moved", mapRect.top.value, bounds(mapNode()).top.value, 0.5f)
     }
 
     @Test fun `L1 at ROTATION_90 the map is full height on the punch-hole side and the controls by the rail`() = checkSides(Surface.ROTATION_90)

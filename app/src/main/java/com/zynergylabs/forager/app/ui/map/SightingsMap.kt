@@ -1311,19 +1311,31 @@ fun SightingsMap(
     var creditWidthPx by remember { mutableIntStateOf(0) }
     val besideCreditGapPx = with(LocalDensity.current) { ATTRIBUTION_BESIDE_CREDIT_GAP_DP.dp.roundToPx() }
     val creditBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
+    val logoBesideAttributionOffsetPx = with(LocalDensity.current) { (ATTRIBUTION_BUTTON_DP + LOGO_ATTRIBUTION_GAP_DP).dp.roundToPx() }
     LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection, attributionBesideCredit, creditWidthPx, creditBottomPx) {
         val map = mapLibreMap ?: return@LaunchedEffect
         val defaults = attributionDefaultMargins ?: return@LaunchedEffect
         val isRtl = layoutDirection == LayoutDirection.Rtl
+        val attributionGravity: Int
+        val attributionMargins: IntArray
         if (attributionBesideCredit && creditWidthPx > 0) {
-            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.START)
-            val (left, top, right, bottom) = attributionBesideCreditMarginsPx(defaults, creditWidthPx, besideCreditGapPx, creditBottomPx, isRtl)
-            map.uiSettings.setAttributionMargins(left, top, right, bottom)
+            attributionGravity = Gravity.BOTTOM or Gravity.START
+            attributionMargins = attributionBesideCreditMarginsPx(defaults, creditWidthPx, besideCreditGapPx, creditBottomPx, isRtl)
         } else {
-            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
-            val (left, top, right, bottom) = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = isRtl)
-            map.uiSettings.setAttributionMargins(left, top, right, bottom)
+            attributionGravity = Gravity.BOTTOM or Gravity.END
+            attributionMargins = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = isRtl)
         }
+        map.uiSettings.setAttributionGravity(attributionGravity)
+        val (left, top, right, bottom) = attributionMargins
+        map.uiSettings.setAttributionMargins(left, top, right, bottom)
+        // Dispatch 2026-10-18-07, RECORD -1309 and -1315 (the owner: "And yes have the maps Libre logo on the right"; then option
+        // 1, a row beside the "i" at the bottom end, accepting that it meets the end of the long Topo caption in portrait). The
+        // logo follows the "i" wherever the "i" goes, just past it on the side away from the edge (logoBesideAttribution).
+        // It was MapLibre's default until then, bottom-start at 4 dp, under the start of the caption. Kept visible.
+        val logo = logoBesideAttribution(attributionGravity, attributionMargins, logoBesideAttributionOffsetPx, isRtl)
+        map.uiSettings.setLogoGravity(logo.gravity)
+        val (logoLeft, logoTop, logoRight, logoBottom) = logo.margins
+        map.uiSettings.setLogoMargins(logoLeft, logoTop, logoRight, logoBottom)
     }
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
@@ -1908,6 +1920,31 @@ internal fun attributionBesideCreditMarginsPx(defaults: IntArray, creditWidthPx:
     val start = creditWidthPx + gapPx
     return if (isRtl) intArrayOf(left, top, start, creditBottomPx) else intArrayOf(start, top, right, creditBottomPx)
 }
+
+/**
+ * Where MapLibre's logo goes, as a gravity and `[left, top, right, bottom]` px margins for `UiSettings.setLogoGravity` and
+ * `setLogoMargins` (dispatch 2026-10-18-07, RECORD -1309 and -1315, the owner's option 1): in a row with the attribution button
+ * ("i"), just past it on the side away from the map's edge. Same gravity as the button, same margins except on that side, where
+ * [offsetPx] (the button's side plus the gap, [ATTRIBUTION_BUTTON_DP] + [LOGO_ATTRIBUTION_GAP_DP]) is added. Which index that is
+ * follows the convention [attributionMarginsPx] and [attributionBesideCreditMarginsPx] already use for the button: at the bottom
+ * end, the right (index 2) in a left-to-right layout and the left (0) in a right-to-left one; at the bottom start (RECORD -954,
+ * the short landscape window), the left (0), or the right (2) in right-to-left. Bottoms are shared, so the logo (88 x 23 dp in
+ * MapLibre 13.5.0) and the button (21 dp) sit on one line. The pure half, so it is a unit test (`LogoBesideAttributionTest`);
+ * what MapLibre draws there is device-only, since a real MapView cannot be built under Robolectric.
+ */
+internal fun logoBesideAttribution(attributionGravity: Int, attributionMargins: IntArray, offsetPx: Int, isRtl: Boolean): LogoPlacement {
+    val atEnd = (attributionGravity and Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == Gravity.END
+    val side = if (atEnd) (if (isRtl) 0 else 2) else (if (isRtl) 2 else 0)
+    val margins = attributionMargins.copyOf()
+    margins[side] += offsetPx
+    return LogoPlacement(gravity = attributionGravity, margins = margins)
+}
+
+/** MapLibre's logo placement: see [logoBesideAttribution]. */
+internal class LogoPlacement(val gravity: Int, val margins: IntArray)
+
+/** The gap between the attribution button's assumed square ([ATTRIBUTION_BUTTON_DP]) and the logo beside it, in dp. */
+internal const val LOGO_ATTRIBUTION_GAP_DP = 4f
 
 /** RECORD -954: the gap between the map credit strip's end and the attribution button beside it. */
 internal const val ATTRIBUTION_BESIDE_CREDIT_GAP_DP = 4f

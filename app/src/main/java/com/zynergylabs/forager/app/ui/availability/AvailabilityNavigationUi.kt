@@ -239,7 +239,8 @@ internal fun ForagerBottomNav(
  * rotations.
  *
  * The same destinations, labels, icons, colours and selection behaviour as [ForagerBottomNav], in
- * the same order top to bottom ([CompactTab.entries]), sharing its `onTabSelected` handler, so a
+ * [RAIL_ORDER_TOP_TO_BOTTOM]: the bar's left-to-right order read from the bottom up, List lowest and Tools highest (RECORD
+ * -1312; until then [CompactTab.entries] top to bottom, List highest). It shares the bar's `onTabSelected` handler, so a
  * tab switch is one piece of logic in either orientation. [CompactTab.TOOLS] highlights on
  * [isDrawerOpen] exactly as it does there. No header Search action yet: that comes with P8's
  * search sheet in B2 (R14).
@@ -332,7 +333,7 @@ internal fun ForagerNavigationRail(
             verticalArrangement = RailItemsEvenly,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            CompactTab.entries.forEach { tab ->
+            RAIL_ORDER_TOP_TO_BOTTOM.forEach { tab ->
                 NavigationRailItem(
                     selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
                     onClick = { onTabSelected(tab) },
@@ -347,6 +348,22 @@ internal fun ForagerNavigationRail(
         }
     }
 }
+
+/**
+ * Dispatch 2026-10-18-08, RECORD -1312 (the owner, from the S26 promotion check: "the app's navigation tab had the icons reversed
+ * when going from portrait to landscape. A button a user would expect to be at one side ends up on the other", then "List is on
+ * the left/bottom always"): the rail's items, top to bottom. The bottom bar's left-to-right order, [CompactTab.entries], read from
+ * the bottom up, so List is lowest and Tools highest, in both landscape rotations (the rail is on the screen's right in both,
+ * `mainWindowRailEdgeFor`). The one place the rail's order is decided: every rail, over the map and beside the other tabs, on a
+ * phone and a tablet, is a [ForagerNavigationRail], which reads only this. The bar's order is not changed.
+ *
+ * The list itself is reversed, not the arrangement, so the semantics tree runs in the same order as the screen, top to bottom, and
+ * a screen reader reads the rail as it is drawn: Tools first, List last. Rejected: keeping [CompactTab.entries] and laying the items
+ * out from the bottom, which would leave the tree List first while the screen shows List last, so the reading order would rest on
+ * how the platform sorts by position rather than on this list. With no room at all [RailItemsEvenly] still stacks from the top, so
+ * in that case it is now List, not Tools, that is squeezed at the bottom.
+ */
+internal val RAIL_ORDER_TOP_TO_BOTTOM: List<CompactTab> = CompactTab.entries.reversed()
 
 /** The least gap between two rail items: Material's NavigationRail spaces its items 4 dp apart. Declared before
  * [RailItemsEvenly], whose initializer reads it: a top-level property is initialised in file order (CI run 38515463361 at

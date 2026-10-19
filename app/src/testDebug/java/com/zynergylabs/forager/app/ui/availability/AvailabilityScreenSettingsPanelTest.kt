@@ -595,9 +595,18 @@ class AvailabilityScreenSettingsPanelTest {
         ).assertCountEquals(0)
     }
 
+    /**
+     * Dispatch 2026-10-18-07 (Forager RECORD -1309; the owner: "Offline maps displays topo maps. Have it display the street
+     * map", then, asked whether it should always be Street or follow the Layers choice, "Always be street."). Until then this
+     * test was `the Offline Maps submenu always resolves the picker map to OpenTopoMap`, ending
+     * `assertEquals(Basemap.OPEN_TOPO_MAP, capturedOfflinePickerBasemap)`: the behaviour that ruling replaces. The Maps tab is
+     * set to Topographical here, so a picker that followed the Layers choice would fail this, not only one pinned to Topo.
+     */
     @Test
-    fun `the Offline Maps submenu always resolves the picker map to OpenTopoMap`() {
-        setScreen()
+    fun `the Offline Maps submenu always resolves the picker map to Street, even with the Maps tab on Topographical`() {
+        setScreen(uiState = SEARCHED_STATE.copy(mapMode = MapMode.TOPOGRAPHIC))
+        composeRule.waitForIdle()
+        assertEquals("premise: the Maps tab's map is on Topographical", Basemap.OPEN_TOPO_MAP, capturedBasemap)
         openOfflineMapsSubTab()
         // A synchronizing node query (as every other test in this file that reads capture state
         // right after a click already has, via assertIsDisplayed/assertIsNotEnabled) is what
@@ -605,7 +614,7 @@ class AvailabilityScreenSettingsPanelTest {
         // doesn't guarantee it here.
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
 
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedOfflinePickerBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedOfflinePickerBasemap)
     }
 
     /**

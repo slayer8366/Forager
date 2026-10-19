@@ -13,9 +13,17 @@ package com.zynergylabs.forager.app.ui.availability
 // Two things worth knowing rather than re-deriving:
 // - For the pending offline style swap (Stage 2e-ii, see MapSlot.kt's deliberately inert
 //   offline-region parameter and MapLibreOfflineMapRepository's OFFLINE_STYLE_URL): the region
-//   picker below pins `basemap = Basemap.OPEN_TOPO_MAP` in its CentrePinLocationPicker call. If
-//   the offline style is meant to show inside the picker, that pin is the exact line 2e-ii
-//   touches. This move changed its file, not its shape. Nothing here touches MapLibre
+//   picker below pins its basemap in its CentrePinMap call. If the offline style is meant to show
+//   inside the picker, that pin is the exact line 2e-ii touches. This move changed its file, not
+//   its shape. The pin was `Basemap.OPEN_TOPO_MAP` until dispatch 2026-10-18-07 (Forager RECORD
+//   -1309; the owner, from a screenshot of this screen showing Topo: "Offline maps displays topo
+//   maps. Have it display the street map", then, asked whether it should always be Street or
+//   follow the Layers choice, "Always be street."). It is `Basemap.OSM_STANDARD` now, named
+//   directly rather than read from `MapMode.DEFAULT` (which is also Street today), so a later
+//   change to the app's opening map does not move this one, and rather than the Layers choice,
+//   which the owner turned down. Night mode is unchanged (Street's night paint, as on the Maps
+//   tab), and so is what gets downloaded: the Worker's offline style, which this picker map has
+//   never shown. Nothing here touches MapLibre
 //   initialisation (initializeMapLibre lives in MapLibreStorage.kt and is called only from
 //   SightingsMap and MapLibreOfflineMapRepository); this panel reaches the map through MapSlot.
 // - CartographyEntryEditScreen (log package) has its own *private* function also named
@@ -123,11 +131,12 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * Download Maps option"). Until then it fired from the picker's own OK, which this screen no longer
  * has; every other picker keeps OK and Cancel. See [CentrePinLocationPicker]'s class doc comment for
  * why every location-placing site in this app, this one included, replaced long-press with a fixed
- * centre pin (an accessibility decision, not a style one). [Basemap.OPEN_TOPO_MAP] here
- * is only terrain context for choosing *where* to download — this picker map is unrelated to which
- * source the download itself actually reads from underneath. Was `Basemap.USGS_TOPO` (US-only)
- * until [MapMode] removed it from the app entirely; [Basemap.OPEN_TOPO_MAP] is the worldwide
- * equivalent, a better fit for a picker with no reason to inherit a US-only limit it never needed.
+ * centre pin (an accessibility decision, not a style one). [Basemap.OSM_STANDARD] here
+ * is only context for choosing *where* to download — this picker map is unrelated to which
+ * source the download itself actually reads from underneath. Always Street since dispatch
+ * 2026-10-18-07 (Forager RECORD -1309; the owner: "Always be street."), whatever the Layers choice;
+ * see this file's header comment. Before that it was [Basemap.OPEN_TOPO_MAP], and before that
+ * `Basemap.USGS_TOPO` (US-only), until [MapMode] removed it from the app entirely.
  *
  * Before anything is picked, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so the
  * picker opens on the device's location when there is one ([AvailabilityUiState.offlineMapPickerDefaultCenter])
@@ -185,8 +194,8 @@ internal fun OfflineMapsPanel(
     // CartographyEntryReportScreen's fullscreen relies on), losing the camera the pin reads.
     val pickerMap = remember(pinState, mapSlot) {
         movableContentOf { night: Boolean, mapModifier: Modifier ->
-            // Basemap.OPEN_TOPO_MAP: the pin this file's header comment names for Stage 2e-ii.
-            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.OPEN_TOPO_MAP, night = night, modifier = mapModifier)
+            // Always Street (dispatch 2026-10-18-07, RECORD -1309): the pin this file's header comment names, for Stage 2e-ii too.
+            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.OSM_STANDARD, night = night, modifier = mapModifier)
         }
     }
     // Dispatch 2026-10-18-03 (Forager RECORD -1269): the "Pin at" line alone under the map, with no OK and no Cancel. Back leaves
@@ -453,7 +462,9 @@ private fun OfflineMapsSideBySide(
             }
         }
         if (controlsFirst) controls()
-        map(Modifier.weight(1f).fillMaxHeight())
+        // RECORD -1330 to -1333 (the owner: "No, the maps do not move at all"): on the Journal the map stands below the room the
+        // search pill has not taken, plus a small gap, so it keeps its place while the switch line slides down with the pill.
+        map(Modifier.weight(1f).fillMaxHeight().journalSearchGap(LocalJournalSearchPillRoom.current))
         if (!controlsFirst) controls()
     }
 }

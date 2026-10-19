@@ -22,10 +22,12 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.PAN_RECORDING_MAP_TAG
 import com.zynergylabs.forager.app.ui.map.PanRecordingMapSlot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -128,6 +130,37 @@ class OfflineMapsPanelPickerTest {
         assertEquals("no new region may reach the map after the pan", regionsAtPan, map.regions.toList())
         confirm()
         assertEquals(PANNED, picked)
+    }
+
+    /**
+     * Dispatch 2026-10-18-07 (Forager RECORD -1309; the owner: "Offline maps displays topo maps. Have it display the street
+     * map", then "Always be street."): the picker's map is handed Street, and only Street, from its first frame and after a
+     * pan, by day and by night. Read from what the map slot was given, not from the panel's source.
+     */
+    @Test
+    fun `the picker's map is always Street, by day and by night, before and after a pan`() {
+        val night = mutableStateOf(false)
+        composeRule.setContent {
+            OfflineMapsPanel(
+                uiState = uiState.value,
+                distanceUnit = DistanceUnit.MILES,
+                currentTime = CurrentTimeProvider { 0L },
+                mapSlot = map.slot,
+                isNightMode = night.value,
+                onRegionPicked = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+            )
+        }
+        composeRule.waitForIdle()
+        assertEquals(listOf(Basemap.OSM_STANDARD), map.basemaps.toList())
+        panTheMap()
+        composeRule.runOnIdle { night.value = true }
+        composeRule.waitForIdle()
+        assertTrue("the map must have been composed again at night", map.nightSeen)
+        assertEquals(listOf(Basemap.OSM_STANDARD), map.basemaps.toList())
     }
 
     /** F2's other half: before any pan, the late device centre does move the picker (today's behaviour, kept). */

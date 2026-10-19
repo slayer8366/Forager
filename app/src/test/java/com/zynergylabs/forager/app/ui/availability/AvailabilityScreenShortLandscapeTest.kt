@@ -76,7 +76,7 @@ import org.robolectric.shadows.ShadowDisplay
  * the content lies beside it.
  *
  * Everything is driven through the real [AvailabilityScreen]. The rail's five labels are also
- * checked as geometry — one vertical column, in [CompactTab] order top to bottom — because a bottom
+ * checked as geometry — one vertical column, Tools at the top down to List at the bottom (RECORD -1312) — because a bottom
  * bar puts the same labels in one row, and the wide tree has no "Journal" or "Tools" at all.
  *
  * **Rotation.** Robolectric reports `ROTATION_90` and `ROTATION_270` distinctly through
@@ -130,15 +130,15 @@ class AvailabilityScreenShortLandscapeTest {
 
     private fun railExists(): Boolean = composeRule.onAllNodesWithTag(RAIL_TAG).fetchSemanticsNodes().isNotEmpty()
 
-    /** The rail's five labels, top to bottom, asserted to be one column in [RAIL_LABELS] order, inside the rail. */
+    /** The rail's five labels, top to bottom, asserted to be one column in [RAIL_LABELS_TOP_TO_BOTTOM] order, inside the rail. */
     private fun assertRailColumn(): List<DpRect> {
-        val labels = RAIL_LABELS.map { bounds(it) }
+        val labels = RAIL_LABELS_TOP_TO_BOTTOM.map { bounds(it) }
         val centreX = labels.first().centreX()
         labels.forEachIndexed { i, b ->
-            assertEquals("${RAIL_LABELS[i]} is in the rail's one column", centreX, b.centreX(), 1f)
+            assertEquals("${RAIL_LABELS_TOP_TO_BOTTOM[i]} is in the rail's one column", centreX, b.centreX(), 1f)
             if (i > 0) {
                 assertTrue(
-                    "${RAIL_LABELS[i]} (top ${b.top}) is below ${RAIL_LABELS[i - 1]} (top ${labels[i - 1].top})",
+                    "${RAIL_LABELS_TOP_TO_BOTTOM[i]} (top ${b.top}) is below ${RAIL_LABELS_TOP_TO_BOTTOM[i - 1]} (top ${labels[i - 1].top})",
                     b.top > labels[i - 1].bottom,
                 )
             }
@@ -146,8 +146,8 @@ class AvailabilityScreenShortLandscapeTest {
         val rail = railBounds()
         val root = rootBounds()
         labels.forEachIndexed { i, b ->
-            assertTrue("${RAIL_LABELS[i]} lies inside the rail: $b in $rail", b.isInside(rail))
-            assertTrue("${RAIL_LABELS[i]} lies inside the window: $b in $root", b.top >= root.top && b.bottom <= root.bottom)
+            assertTrue("${RAIL_LABELS_TOP_TO_BOTTOM[i]} lies inside the rail: $b in $rail", b.isInside(rail))
+            assertTrue("${RAIL_LABELS_TOP_TO_BOTTOM[i]} lies inside the window: $b in $root", b.top >= root.top && b.bottom <= root.bottom)
         }
         return labels
     }
@@ -541,8 +541,11 @@ private const val RAIL_TAG = "compact-navigation-rail"
 /** The fewest click-actionable nodes the Map tab can have (the cluster alone has more); fewer means nothing was checked. */
 private const val MIN_MAP_CONTROLS = 5
 
-/** [CompactTab]'s labels in its declared order — the rail's top-to-bottom order. */
+/** [CompactTab]'s labels in its declared order: the bottom bar's left-to-right order. Until RECORD -1312 also the rail's top to bottom. */
 private val RAIL_LABELS = listOf("List", "Seasonal", "Maps", "Journal", "Tools")
+
+/** The rail's labels top to bottom since RECORD -1312 (the owner: "List is on the left/bottom always"): Tools highest, List lowest. */
+private val RAIL_LABELS_TOP_TO_BOTTOM = listOf("Tools", "Journal", "Maps", "Seasonal", "List")
 
 /** How far inside the map area each sample point sits from the edge being sampled. */
 private val EDGE_SAMPLE_INSET = 4.dp
