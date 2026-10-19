@@ -23311,3 +23311,26 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   4. There is no completion report or index row for #264 to #267; to file after the release.
 - The known-bugs list is complete for A6.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1358.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1358
+**Timestamp:** 2026-10-19T05:12:21Z
+**Continues:** 2026-09-28-1356, 2026-09-28-1357, 2026-09-28-1086
+**Title:** The promotion: PR #268, pre-main 21dc4470 into main, merged at 19aa1058 on the owner's approval, with all -1086 gates met (planner)
+**The owner, verbatim:** "Looks good. Ship it." and "I approve the promotion to main" (-1356). The conditions were Elder's review with no block and green pre-main CI (-1357).
+**What it records:**
+- **The merge:** main went from 969ecf0a to 19aa1058. main's tree equals pre-main's (adce07a1, read with `git rev-parse`).
+- **The gates,** listed in PR #268's body:
+  - CI 39201526634 green at 21dc4470;
+  - device checks on the S22, S26 and tablet;
+  - Elder's three top-up audits, each pass with items;
+  - the owner's approval.
+  - The one override: #265 and #266 had no branch CI (-1354, -1355).
+- **The Worker,** checked by the planner just after the merge: a fresh z11 tile answered 200 with `x-forager-origin: r2`, and `/style/offline.json` answered 200. Whether Workers Builds' redeploy had run by then was not checked.
+- **Next, on the owner's laptop:**
+  - the release build from main (the signing keys are only there);
+  - the store listing check, T9;
+  - the owner's upload to production.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1359.
