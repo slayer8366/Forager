@@ -22894,3 +22894,20 @@ All three screenshots are kept off GitHub.
 - **The S26:** the owner reports a pass. When the planner last saw it, it had 1.0.3461+gd942e022, and it was not connected when e431eba9 was built. Which build the owner checked on is unconfirmed.
 - **The tablet:** the owner is checking it.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1337.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1337
+**Timestamp:** 2026-10-19T01:14:50Z
+**Continues:** 2026-09-28-1336
+**Title:** The tablet passes the final check as written; the owner finds the tablet's Journal layout squished and wants a square map with the info beside it, and the entry page spread out the same way (owner)
+**The owner, verbatim:** "Tablet passed the checks as written, but the layout in journal mode is squished unapologetically. The tall map in tablet mode would look better as a 1:1 box with the info next to it. Journal entry page can be spread further apart in the same way." Two photos of the tablet in landscape are kept off GitHub. They show Offline maps, with a tall narrow Street map beside a narrow panel in the middle of the screen and wide empty margins, and the Journal's Entries list in a narrow column.
+**What it records:**
+- **Tablet result:** pass, by the owner's account. Which build is not stated. The photos show Street in the Offline maps picker and the rail with List at the bottom, so it has tonight's changes.
+- **New request, not yet scheduled:**
+  - on the tablet, the Journal's map is a square (1:1) with its info beside it;
+  - the Journal's content uses the width rather than a narrow centred column;
+  - the entry page is spread out the same way.
+  Timing is to be asked: this release or the next.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1338.
