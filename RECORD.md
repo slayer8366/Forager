@@ -22934,3 +22934,20 @@ All three screenshots are kept off GitHub.
   - tablet: pass on the checks, with this layout work pending;
   - Elder's audit covers up to d942e022, so the rest of tonight's range needs a top-up before the promotion.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1339.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1339
+**Timestamp:** 2026-10-19T01:28:17Z
+**Continues:** 2026-09-28-1316, 2026-09-28-1282
+**Title:** The Cloudflare Street map goes in this release if it passes the owner's phone review (owner)
+**The owner, verbatim:** "Confirm: yes this release". This answers the planner's question: does the Cloudflare Street go into this release if it passes the owner's phone review?
+**What it sets:** the launch release includes PR #258, with `STREET_SERVED_BY_OWN_MAP` flipped on, provided all of the following happen in order before the release build:
+- the Pi's US and Canada build finishes;
+- its tile schema matches what street-v1.json expects (the planner checks this);
+- it is uploaded to R2;
+- the owner deploys the Worker and the fonts and icons;
+- the S22 review copy passes the owner's day and night look.
+If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
+**Notes:** Written by the planner by hand, on branch records-after-173. The owner asks that questions come through the question tool ("walk-through"), which notifies them. Next free ID -1340.
