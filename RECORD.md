@@ -23450,3 +23450,86 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **What it corrects:** -1360 read the Submission 7 "Published" screen as the release. The planner did not ask what Submission 7 contained, and the earlier "Draft release" line was in view. What Submission 7 published is inferred (likely the country targeting, perhaps the listing), not known.
 **Next:** the owner sends draft release 3500 for review from Production. The live app is still 3292 on closed testing.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1367.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1367
+**Timestamp:** 2026-10-19T20:08:29Z
+**Continues:** 2026-09-28-1366, 2026-09-28-1360
+**Title:** Forager's first production release is out: 3500 (1.0.3500+g19aa1058) from main, through a new release made from the bundle library (owner)
+**The owner, verbatim:** "New day. Update is out, all boxes are ticked for production."
+**What it records:**
+- After -1366 found the draft gone ("No releases" on Production), the owner made a new release from the uploaded bundle 3500 (Add from library), with the release notes from -1360, and sent it. The planner has not seen the console after that; "out" and "all boxes ticked" are the owner's account.
+- Main is 19aa1058, the promotion (-1358); signing checked (-1361, -1362); listing and data safety (-1360, -1363); privacy policy live (-1365).
+- This settles -1366: 3500 is published. The production-access email, the bundle, the listing and the policy all describe the same build.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1368.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1368
+**Timestamp:** 2026-10-19T20:08:29Z
+**Closes:** 2026-09-28-1266
+**Outcome:** completed
+**Observed:** Elder's top-up audit filed: pass with items, for 969ecf0a → e61e248a (outcome -1268, report preserved/2026-10-18-02). Its items were taken up in -1269 and built by -1270.
+**Deviations:** none.
+**Notes:** Written by the planner by hand, on branch records-after-173, closing an intent the 2026-10-19 handoff left open (profile, 'Check for open intents'). Next free ID -1369.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1369
+**Timestamp:** 2026-10-19T20:08:29Z
+**Closes:** 2026-09-28-1270
+**Outcome:** partial
+**Observed:** Top-up items built as PR #256, S22 check all eight steps pass (-1290), merged into pre-main at 712ff277 (-1293), and shipped in 3500 via the promotion (-1358).
+**Deviations:** no test holds the tile figures following the pin; added after release per -1284.
+**Deferred:** the tile-figure test (known-bugs row 6).
+**Notes:** Written by the planner by hand, on branch records-after-173, closing an intent the 2026-10-19 handoff left open (profile, 'Check for open intents'). Next free ID -1370.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1370
+**Timestamp:** 2026-10-19T20:08:29Z
+**Closes:** 2026-09-28-1273
+**Outcome:** completed
+**Observed:** Map launch fixes built as PR #257 with Amendments 1 to 3 (start-up message, Street default, PI_ORIGIN_URL out), S22 checks pass (-1295, -1306), merged at d942e022 (-1307), shipped in 3500 (-1358).
+**Deviations:** glyphs were dropped rather than bundled or served (-1278 A, the owner's choice); the start-up message has never been seen on a phone.
+**Notes:** Written by the planner by hand, on branch records-after-173, closing an intent the 2026-10-19 handoff left open (profile, 'Check for open intents'). Next free ID -1371.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1371
+**Timestamp:** 2026-10-19T20:08:29Z
+**Closes:** 2026-09-28-1298
+**Outcome:** completed
+**Observed:** Part 1 report filed on street-cloudflare at faae7256 (outcome -1299): the Pi was in the tile path, us.pmtiles is lower 48 only, some design decisions limited by zoom. The three predictions held as -1299 lists.
+**Deviations:** none.
+**Notes:** Written by the planner by hand, on branch records-after-173, closing an intent the 2026-10-19 handoff left open (profile, 'Check for open intents'). Next free ID -1372.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1372
+**Timestamp:** 2026-10-19T20:08:29Z
+**Closes:** 2026-09-28-1302
+**Outcome:** completed
+**Observed:** Part 2 built as PR #258, green and unmerged, with the Worker bundle and R2 folder handed over and the switch at raster (outcome -1314). Night colours added in rounds 1 and 2 (-1343 to -1345).
+**Deviations:** -1339 aimed it at this release; -1342 moved it to the next, so it did not ship.
+**Deferred:** PR #258's merge, deploy and phone review rounds: held under -1316 and -1342 for the next release.
+**Notes:** Written by the planner by hand, on branch records-after-173, closing an intent the 2026-10-19 handoff left open (profile, 'Check for open intents'). Next free ID -1373.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1373
+**Timestamp:** 2026-10-19T20:08:29Z
+**Closes:** 2026-09-28-1324
+**Outcome:** partial
+**Observed:** The UI split survey filed on ui-split-survey at 81db63cb (outcome -1326); the mechanism prediction about movableContentOf was wrong, the 'pure moves first' prediction held.
+**Deviations:** none.
+**Deferred:** the planner's plan to the owner, written when the owner asks (handoff item 6).
+**Notes:** Written by the planner by hand, on branch records-after-173, closing an intent the 2026-10-19 handoff left open (profile, 'Check for open intents'). Next free ID -1374.
