@@ -102,15 +102,95 @@ internal const val WATER_SOURCE_LAYER = "water"
 private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", "line-color")
 
 /**
- * The own Street's night for one colour property: [STREET_NIGHT_WATER] for a water fill or line (a layer drawn from
- * [sourceLayer] `water`), and [offlineNightRecolourOf]'s pure inversion for everything else, water labels included.
+ * The own Street's night line colours by layer (RECORD -1345, the owner: "Roads (Recommended), Railways + boundaries
+ * (Recommended)"): the inversion left these at 1.0 to 1.5:1 on the night forest (Part 1 report, round 1). Tunnels keep
+ * the inversion. The design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-street.mjs`, recorded in
+ * the style's metadata; `NightExceptionsTest` holds the two equal and each colour to 2.5:1 on the night forest, grass
+ * and ground.
  */
-internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: String?): NightRecolour =
+internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
+    "roads_minor_casing" to "#c4bcae", // minor road edge, 3.21:1 on the night forest
+    "roads_bridges_minor_casing" to "#c4bcae",
+    "roads_minor_service_casing" to "#b3ab9d", // service road edge, 2.65:1
+    "roads_major" to "#e0ad4f", // major road centre, 2.95:1; links take the major palette
+    "roads_bridges_major" to "#e0ad4f",
+    "roads_link" to "#e0ad4f",
+    "roads_bridges_link" to "#e0ad4f",
+    "roads_highway" to "#f0c060", // highway centre, 3.57:1
+    "roads_bridges_highway" to "#f0c060",
+    "roads_rail" to "#b4bec0", // railways, 3.18:1
+    "boundaries" to "#bdbdbd", // 3.21:1
+    "boundaries_country" to "#bdbdbd",
+)
+
+/**
+ * The own Street's night for one colour property: [STREET_NIGHT_WATER] for a water fill or line (a layer drawn from
+ * [sourceLayer] `water`), a [STREET_NIGHT_LAYER_COLOURS] colour for those layers' lines, and [offlineNightRecolourOf]'s
+ * pure inversion for everything else, labels included.
+ */
+internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: String?): NightRecolour {
     if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
-        NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
-    } else {
-        offlineNightRecolourOf(property)
+        return NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
     }
+    val layerNight = STREET_NIGHT_LAYER_COLOURS[property.layerId]
+    if (layerNight != null && property.property == "line-color") {
+        return NightRecolour.Recoloured(property, StyleColourValue.Literal(layerNight))
+    }
+    return offlineNightRecolourOf(property)
+}
+
+/**
+ * An icon whose ring takes its own night colour (RECORD -1345, "Place dots + icon rings (Recommended)"): [dayRing] and
+ * [dayFill] are the colours the sprite draws the ring and its inside with, [nightRing] the ring's night colour. As
+ * RGB, no alpha.
+ */
+internal data class IconRingNight(val dayRing: Int, val dayFill: Int, val nightRing: Int)
+
+/**
+ * The own Street's icons whose rings read too dark inverted (1.0 to 1.4:1 on the night forest): the place dot, and the
+ * toilets and drinking-water icons. The design's copy is `NIGHT_ICON_RINGS` in `map-style/overrides/forager-street.mjs`.
+ */
+internal val STREET_NIGHT_ICON_RINGS: Map<String, IconRingNight> = mapOf(
+    "townspot" to IconRingNight(dayRing = 0x868686, dayFill = 0xF3F3F3, nightRing = 0xD6D6D6),
+    "toilets" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
+    "drinking_water" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
+)
+
+/**
+ * How far, in RGB levels, a pixel may sit from the line between an icon's ring and fill colours and still count as part
+ * of that ring or its edge. The sprite's own anti-aliasing sits on that line (its edge pixels are mixes of the two);
+ * a symbol drawn inside the icon in another colour does not, and keeps the plain inversion.
+ */
+private const val RING_TOLERANCE = 16.0
+
+/**
+ * One icon's night pixels with its ring kept light ([ring]); without one, [nightPixelsOf]. A pixel on the ring-to-fill
+ * line at fraction `t` from the ring becomes the same mix of [IconRingNight.nightRing] and the fill's inversion, so the
+ * ring's anti-aliased edge stays smooth; every other pixel is the plain inversion. Alpha is kept.
+ */
+internal fun nightIconPixelsOf(pixels: IntArray, ring: IconRingNight?): IntArray {
+    if (ring == null) return nightPixelsOf(pixels)
+    fun ch(c: Int, shift: Int) = (c shr shift) and 0xFF
+    val ringRgb = intArrayOf(ch(ring.dayRing, 16), ch(ring.dayRing, 8), ch(ring.dayRing, 0))
+    val fillRgb = intArrayOf(ch(ring.dayFill, 16), ch(ring.dayFill, 8), ch(ring.dayFill, 0))
+    val nightFill = nightColorOf((0xFF shl 24) or ring.dayFill)
+    val nightFillRgb = intArrayOf(ch(nightFill, 16), ch(nightFill, 8), ch(nightFill, 0))
+    val nightRingRgb = intArrayOf(ch(ring.nightRing, 16), ch(ring.nightRing, 8), ch(ring.nightRing, 0))
+    val axis = DoubleArray(3) { (fillRgb[it] - ringRgb[it]).toDouble() }
+    val axisLength2 = axis.sumOf { it * it }
+    return IntArray(pixels.size) { i ->
+        val p = pixels[i]
+        val rgb = intArrayOf(ch(p, 16), ch(p, 8), ch(p, 0))
+        val t = (DoubleArray(3) { (rgb[it] - ringRgb[it]) * axis[it] }.sum() / axisLength2).coerceIn(0.0, 1.0)
+        val distance2 = (0 until 3).sumOf { val d = rgb[it] - (ringRgb[it] + t * axis[it]); d * d }
+        if (distance2 > RING_TOLERANCE * RING_TOLERANCE) {
+            nightColorOf(p)
+        } else {
+            val out = IntArray(3) { (nightRingRgb[it] + t * (nightFillRgb[it] - nightRingRgb[it])).roundToInt().coerceIn(0, 255) }
+            (p and 0xFF000000.toInt()) or (out[0] shl 16) or (out[1] shl 8) or out[2]
+        }
+    }
+}
 
 /** [pixels] (ARGB, as `Bitmap.getPixels` gives them) through [nightColorOf], alpha kept: an icon's night look. */
 internal fun nightPixelsOf(pixels: IntArray): IntArray = IntArray(pixels.size) { nightColorOf(pixels[it]) }

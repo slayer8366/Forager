@@ -9,7 +9,7 @@
 // standard for maps: a path or casing line at 3:1 against the ground reads at arm's length; text at 4.5:1.
 import fs from "node:fs";
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
-import { COLOURS } from "../overrides/forager-street.mjs";
+import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_COLOURS } from "../overrides/forager-street.mjs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
@@ -65,6 +65,20 @@ const exceptions = [
   ["night water on night grass", COLOURS.nightWater, night(COLOURS.grass), 3],
   ["night water on night ground", COLOURS.nightWater, night(GROUND), 3],
 ];
+// -1345: roads, railways and boundaries at 2.5:1 (the owner accepted the service edge at 2.65 and the major road
+// centre at 2.95 on the night forest); the icon rings at 3:1. Every layer named must exist in the style.
+const styleLayers = new Set(JSON.parse(text).layers.map((l) => l.id));
+for (const [layer, colour] of Object.entries(NIGHT_LAYER_COLOURS)) {
+  if (!styleLayers.has(layer)) problems.push(`night exception for a layer the style does not have: ${layer}`);
+  for (const [name, ground] of [["forest", night(COLOURS.forest)], ["grass", night(COLOURS.grass)], ["ground", night(GROUND)]]) {
+    exceptions.push([`night ${layer} on night ${name}`, colour, ground, 2.5]);
+  }
+}
+for (const [icon, { night: colour }] of Object.entries(NIGHT_ICON_RINGS)) {
+  for (const [name, ground] of [["forest", night(COLOURS.forest)], ["grass", night(COLOURS.grass)], ["ground", night(GROUND)]]) {
+    exceptions.push([`night ${icon} ring on night ${name}`, colour, ground, 3]);
+  }
+}
 for (const [what, colour, against, min] of exceptions) {
   const ratio = contrast(colour, against);
   const line = `${what}: ${colour} on ${against} ${ratio.toFixed(2)}:1 (minimum ${min})`;

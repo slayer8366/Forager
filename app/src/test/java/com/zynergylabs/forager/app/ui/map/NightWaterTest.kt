@@ -81,8 +81,9 @@ class NightWaterTest {
         val labels = water.filter { it.first.startsWith("water_label") || it.first == "water_waterway_label" }
         assertTrue("the water labels are walked", labels.isNotEmpty())
         labels.forEach { assertTrue("${it.first} keeps the inversion", (it.third as NightRecolour.Recoloured).night != night) }
-        // Everything not drawn from water is the plain inversion, unchanged.
-        outcomes.filter { it.second != WATER_SOURCE_LAYER }.forEach { (id, _, outcome) ->
+        // Everything not drawn from water is the plain inversion, unchanged, apart from the -1345 layer exceptions,
+        // which NightExceptionsTest holds.
+        outcomes.filter { it.second != WATER_SOURCE_LAYER && it.first !in STREET_NIGHT_LAYER_COLOURS }.forEach { (id, _, outcome) ->
             assertEquals(id, offlineNightRecolourOf(outcome.property), outcome)
         }
     }

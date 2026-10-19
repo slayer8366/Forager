@@ -603,3 +603,33 @@ Night colours are V1 of the day colours, measured against the night ground `#242
 | Buildings (fill) | `#333333` | 1.27 / 2.09 / 1.03 | low priority: a fill, not a line | |
 
 Two notes on the table. The icon figures are each icon's two most common opaque colours read from the pinned sprite, not a rendered measurement. A road's centre and edge read together, so lightening the edges alone may be enough for minor and service roads; the major road and highway centres are the ones that go darkest.
+
+**Round 1 evidence, recorded with round 2's commit so it is one CI run:**
+- **Revert check R7** (`street-cloudflare-revert-7`, `946c8d14`, one line in `NightColour.kt`: water takes the plain inversion again), run 39189885290, filtered to `NightWaterTest` and `OfflineNightRecolourTest`: no compile errors in the log; 16 tests, exactly 1 failed, "water expected:<Literal(text=#8ec5f0)> but was:<Literal(text=rgba(0, 88, 100, 1))>", the failure this revert causes.
+- **PR #258 run 39189870461** on `c4319adb` (after pre-main `e431eba9` was merged in): all three jobs green, 5,164 tests, 0 failed, 24 skipped; `NightWaterTest` 4 of 4. The PR had been unable to run CI while it conflicted with pre-main; the merge fixed that.
+
+---
+
+# Part 2, review round 2: roads, railways, boundaries and icon rings at night (RECORD -1345)
+
+**The owner, verbatim (-1345),** through the question tool: "Roads (Recommended), Railways + boundaries (Recommended), Place dots + icon rings (Recommended)". "Trails a touch brighter" was not chosen: footpaths and tracks keep their inverted night colours.
+
+**Built**, the same way as the water: in the night recolour, for the own Street style only, so the offline style and today's app are unchanged.
+- **Lines, by layer** (`STREET_NIGHT_LAYER_COLOURS` in `NightColour.kt`; the design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-street.mjs`, recorded in the style's metadata as `forager:night-layers`):
+
+| Feature | Layers | Night colour | On night forest / grass / ground |
+|---|---|---|---|
+| Minor road edge | `roads_minor_casing`, `roads_bridges_minor_casing` | `#c4bcae` | 3.21 / 6.54 / 8.52 |
+| Service road edge | `roads_minor_service_casing` | `#b3ab9d` | 2.65 / 5.41 / 7.05 |
+| Major road centre | `roads_major`, `roads_bridges_major`, `roads_link`, `roads_bridges_link` (links take the major palette by day too) | `#e0ad4f` | 2.95 / 6.02 / 7.84 |
+| Highway centre | `roads_highway`, `roads_bridges_highway` | `#f0c060` | 3.57 / 7.28 / 9.48 |
+| Railways | `roads_rail` | `#b4bec0` | 3.18 / 6.49 / 8.45 |
+| Boundaries | `boundaries`, `boundaries_country` | `#bdbdbd` | 3.21 / 6.56 / 8.54 |
+
+  Tunnels keep the inversion, as they keep their grey by day. Edges not chosen (the major road and highway casings) keep the inversion.
+- **Icon rings** (`STREET_NIGHT_ICON_RINGS`, `nightIconPixelsOf`; the design's `NIGHT_ICON_RINGS`, metadata `forager:night-icon-rings`): the place dot's ring `#868686` goes to `#d6d6d6` (4.15 / 8.47 / 11.04), the toilets and drinking-water rings `#8780ab` to `#c6bfea` (3.46 / 7.06 / 9.20). The sprite's icons are pictures, so this is per pixel: a pixel on the line between the ring's and the inside's day colours (within 16 levels) becomes the same mix of the night ring and the inside's inversion, which keeps the anti-aliased edge smooth; every other pixel is the plain inversion. In the toilets and drinking-water icons the figure inside is drawn in the ring's colour, so it turns light with the ring.
+- **Checks:** `NightExceptionsTest` (6 tests): the app's two tables equal the design's metadata; every line exception is 2.5:1 or better and every ring 3:1 or better on the night forest, grass and ground (computed with the app's `nightColorOf`); each named layer exists in the served style and its line takes the exception; footpaths, tracks, tunnels and the unchosen edges keep the inversion; the ring, inside, edge and an unrelated pixel each come out as worked by hand. `NightWaterTest`'s "everything else is the plain inversion" now excludes the -1345 layers, which this test holds instead. `check-street-night` adds the same 45 pairs; its positive control, the highway put back to its inverted `#965f02`, fails at 1.13:1 on the forest.
+- **The floor is 2.5:1 for the lines**, not the 3:1 the water and rings meet, because the owner accepted the service road edge at 2.65 and the major road centre at 2.95 on the night forest.
+- **The Worker bundle** changed only by the style's metadata: the handover `worker/index.js` is rebuilt, sha256 `5842211db679e56ce76ed7b3bc31a78416fe2ee9e8dc2e484035086b7f9df79c` (9/9 route tests). `r2-upload/` is unchanged.
+
+**The previews** were regenerated into `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/renders/`, 20 files, overwriting round 1's. The night style script now also applies the layer exceptions and the icon rings, from the style's own metadata, the way `nightIconPixelsOf` does. A thin horizontal line across some views (for example `04-park-visitor-area-z15.5`, day and night) is a tile seam in the web engine's drawing at fractional zoom; it was in round 0's renders too and is not part of the style.

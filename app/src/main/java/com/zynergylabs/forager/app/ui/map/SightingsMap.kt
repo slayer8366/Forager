@@ -2820,7 +2820,8 @@ private fun applyStreetSpriteNight(style: Style) {
         val night = day.copy(Bitmap.Config.ARGB_8888, true)
         val pixels = IntArray(night.width * night.height)
         night.getPixels(pixels, 0, night.width, 0, 0, night.width, night.height)
-        night.setPixels(nightPixelsOf(pixels), 0, night.width, 0, 0, night.width, night.height)
+        // The place dot and the toilets and drinking-water icons keep a light ring (RECORD -1345); the rest invert.
+        night.setPixels(nightIconPixelsOf(pixels, STREET_NIGHT_ICON_RINGS[name]), 0, night.width, 0, 0, night.width, night.height)
         try {
             style.addImage(name, night)
             inverted++

@@ -77,6 +77,37 @@
       "text": "#262626",
       "waterText": "#1f4d86",
       "halo": "#ffffff"
+    },
+    "forager:night-layers": {
+      "roads_minor_casing": "#c4bcae",
+      "roads_bridges_minor_casing": "#c4bcae",
+      "roads_minor_service_casing": "#b3ab9d",
+      "roads_major": "#e0ad4f",
+      "roads_bridges_major": "#e0ad4f",
+      "roads_link": "#e0ad4f",
+      "roads_bridges_link": "#e0ad4f",
+      "roads_highway": "#f0c060",
+      "roads_bridges_highway": "#f0c060",
+      "roads_rail": "#b4bec0",
+      "boundaries": "#bdbdbd",
+      "boundaries_country": "#bdbdbd"
+    },
+    "forager:night-icon-rings": {
+      "townspot": {
+        "ring": "#868686",
+        "fill": "#f3f3f3",
+        "night": "#d6d6d6"
+      },
+      "toilets": {
+        "ring": "#8780ab",
+        "fill": "#dcebfa",
+        "night": "#c6bfea"
+      },
+      "drinking_water": {
+        "ring": "#8780ab",
+        "fill": "#dcebfa",
+        "night": "#c6bfea"
+      }
     }
   },
   "sources": {

@@ -53,6 +53,37 @@ export const COLOURS = {
   halo: "#ffffff",
 };
 
+/**
+ * Night exceptions by layer (RECORD -1345; -1344: "we can go outside the purity for the UX"): the night colour the app
+ * draws for these layers' line colour instead of the inversion, which read at 1.0 to 1.5:1 on the night forest
+ * (Part 1 report, round 1). Tunnels keep the inversion, as they keep their grey by day. The app holds its own copy
+ * (NightColour.kt, STREET_NIGHT_LAYER_COLOURS), checked equal to this one through the style's metadata.
+ */
+export const NIGHT_LAYER_COLOURS = {
+  roads_minor_casing: "#c4bcae", // minor road edge
+  roads_bridges_minor_casing: "#c4bcae",
+  roads_minor_service_casing: "#b3ab9d", // service road edge
+  roads_major: "#e0ad4f", // major road centre (links take the major palette)
+  roads_bridges_major: "#e0ad4f",
+  roads_link: "#e0ad4f",
+  roads_bridges_link: "#e0ad4f",
+  roads_highway: "#f0c060", // highway centre
+  roads_bridges_highway: "#f0c060",
+  roads_rail: "#b4bec0", // railways
+  boundaries: "#bdbdbd",
+  boundaries_country: "#bdbdbd",
+};
+
+/**
+ * Night exceptions for icon rings (-1345): the ring's own night colour, the rest of the icon inverted. `ring` and
+ * `fill` are the day colours the sprite draws the ring and its inside with (read from the pinned sprite).
+ */
+export const NIGHT_ICON_RINGS = {
+  townspot: { ring: "#868686", fill: "#f3f3f3", night: "#d6d6d6" }, // the place dot
+  toilets: { ring: "#8780ab", fill: "#dcebfa", night: "#c6bfea" },
+  drinking_water: { ring: "#8780ab", fill: "#dcebfa", night: "#c6bfea" },
+};
+
 /** The design's outdoor list (-1287), in the tiles' own kind names (Part 1, Q1.3). */
 export const OUTDOOR_KINDS = [
   "trailhead", "parking", "camp_site", "picnic_site", "viewpoint", "peak", "toilets", "drinking_water", "ranger_station",
