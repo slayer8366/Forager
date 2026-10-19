@@ -23252,4 +23252,12 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - Built as Amendment 4 to dispatch 2026-10-18-10, on tablet-list-seasonal-960:
   - the branch commits carry `[skip ci]`;
   - one pre-main CI run is triggered after the merge (the owner's "Trigger the pre-main CI but no other branches run CI for this. Just this task").
+**The merge, added to this entry so the topic stays in one place (-1354's precedent):**
+- PR #266 was merged into pre-main at b05db019, gated on head 06ad0ef8, with the merge subject "… [skip ci]".
+- **The change:**
+  - `contentCapWidth` in `AvailabilityCompactScaffold.kt` is 960 on large screens;
+  - Seasonal's own inner cap is 960 on a large screen in landscape.
+  - Phones, and Seasonal on a tablet in portrait, stay at 640.
+- **Hazel's note:** Seasonal's 640 cap was deliberate, for reading width (`AvailabilitySeasonalUi.kt:71-75`). The owner's answer overrides it on tablets in landscape, so Seasonal's text and table run about 928 dp wide there.
+- **Tests:** written, not compiled. One pre-main run was triggered on b05db019 (39199565610). The run on 019c339d (39198777067), for #265, was already running and is left to finish.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1356.
