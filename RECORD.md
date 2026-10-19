@@ -23403,3 +23403,20 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Why it still holds:** photos and RAW files stay in app-private storage (`FilePhotoStore.kt:21`); backups go only to a folder the user picks; the app's outside hosts on main are iNaturalist, Open-Meteo and the map servers, all https, with no crash, analytics or device-ID service.
 **What it closes:** -1360's open data-safety review. With the listing fixes in -1360, T9 is done. Still open: the privacy policy's map-server wording.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1364.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1364
+**Timestamp:** 2026-10-19T11:34:47Z
+**Continues:** 2026-09-28-1363, 2026-09-28-1360
+**Title:** Privacy policy: remove the two map hosts the app no longer contacts (USGS, MapLibre demo fonts) and the closed-test wording, in the repo copy and on the website (owner)
+**The owner, verbatim:** "Approve as shown (Recommended)", to the before-and-after text the planner showed.
+**Dispatch-file:** preserved/2026-10-19-01.md, for Hazel Cairnwright
+**Scope:** `docs/legal/privacy-policy.md` (PR into pre-main) and zynergy-site `privacy/index.html` (PR into its main, left unmerged for the owner to publish). Documents only; no app change.
+**Baseline:** pre-main 21dc4470 (tree equal to main 19aa1058); zynergy-site origin/main 585edaa. The two copies already differ in date (2026-10-15 and 17 October).
+**Prediction (outcome, planner):** the three edits are exact; the diff finds the site's 17 October changes as small wording differences that carry back cleanly.
+**Finish line:** both PRs open with their heads reported, the repo PR merged into pre-main under -1317's readiness, the site PR waiting on the owner.
+**Abort conditions:** a premise is wrong; a difference between copies that is not plainly the newer version of the same sentence.
+**Also recorded:** the Cloudflare invoice for $5.00 (IN-84526798, due 2026-10-19), shown by the owner, is the Workers Paid plan confirmed in -1301.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1365.
