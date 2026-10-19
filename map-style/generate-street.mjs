@@ -11,7 +11,7 @@
 //   forager-street-v1.preview.json    fonts and icons from serve.py, for the preview and tools/check-style.mjs.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
-import { applyStreetDesign } from "./overrides/forager-street.mjs";
+import { applyStreetDesign, COLOURS } from "./overrides/forager-street.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -38,6 +38,8 @@ const style = (assetsBase) => ({
   metadata: {
     "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs",
     "forager:sprite-icons": spriteIcons,
+    // The design's colours, day and the night exceptions (-1343), for the app's tests to read.
+    "forager:palette": COLOURS,
   },
   sources: {
     protomaps: {

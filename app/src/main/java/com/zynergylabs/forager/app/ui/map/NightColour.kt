@@ -80,6 +80,38 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
     "symbol" to listOf("text-color", "text-halo-color", "icon-color"),
 )
 
+/**
+ * The own Street's night water: a lighter blue than the inversion gives, on every water fill and line (rivers, creeks,
+ * lakes, the sea). RECORD -1343, the owner: "I like the blue of the water, but looking at creeks is a bit dark against
+ * the other dark colors. Can the water be a little bit lighter in blue color?", then "Night only, lighter
+ * (Recommended)". It is the one named exception to -1288's pure inversion; -1344 allows such exceptions where an
+ * inverted colour reads poorly ("we can go outside the purity for the UX").
+ *
+ * The inversion gave `#005864` (the day `#80deea`), 1.35:1 on the night forest; this is 3.28:1 on the night forest
+ * `#436d35`, 6.68:1 on the night grass `#2d3911` and 8.70:1 on the night ground `#24211c` (`NightWaterTest`, and
+ * `map-style/tools/check-street-night.mjs`, which reads the same colour from the style's design file). The day water
+ * colour is unchanged. Only the own Street takes it: the offline style keeps its inverted water, so today's app is
+ * unchanged.
+ */
+internal const val STREET_NIGHT_WATER = "#8ec5f0"
+
+/** The vector source layer the own Street's water is drawn from (Protomaps' `water`). */
+internal const val WATER_SOURCE_LAYER = "water"
+
+/** The colour properties [streetNightRecolourOf] gives [STREET_NIGHT_WATER]: fills and lines, never label text. */
+private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", "line-color")
+
+/**
+ * The own Street's night for one colour property: [STREET_NIGHT_WATER] for a water fill or line (a layer drawn from
+ * [sourceLayer] `water`), and [offlineNightRecolourOf]'s pure inversion for everything else, water labels included.
+ */
+internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: String?): NightRecolour =
+    if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
+        NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
+    } else {
+        offlineNightRecolourOf(property)
+    }
+
 /** [pixels] (ARGB, as `Bitmap.getPixels` gives them) through [nightColorOf], alpha kept: an icon's night look. */
 internal fun nightPixelsOf(pixels: IntArray): IntArray = IntArray(pixels.size) { nightColorOf(pixels[it]) }
 

@@ -42,6 +42,11 @@ export const COLOURS = {
   minorCasing: "#9c9486",
   service: "#f4f0e6",
   serviceCasing: "#aaa294",
+  // Water at night (RECORD -1343): drawn this lighter blue instead of its inversion (#005864, which nearly vanished on
+  // the night forest). Day water is Protomaps' own #80deea, unchanged. The app draws it
+  // (NightColour.kt, STREET_NIGHT_WATER); this is its design value, recorded in the style's metadata and held equal
+  // to the app's by NightWaterTest. Night forest 3.28:1, night grass 6.68:1, night ground 8.70:1.
+  nightWater: "#8ec5f0",
   // Labels: near-black on a light halo (-1286); at night they invert to near-white on near-black.
   text: "#262626",
   waterText: "#1f4d86",

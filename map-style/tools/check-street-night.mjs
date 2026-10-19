@@ -58,6 +58,20 @@ for (const [what, colour, against, min] of checks) {
   console.log(line);
   if (day < min || dark < min) problems.push(line);
 }
+// Night exceptions (RECORD -1343, -1344): colours the app draws at night instead of the inversion. Checked as night
+// colours as they are, against the inverted grounds they sit on, at the line threshold (3:1).
+const exceptions = [
+  ["night water on night forest", COLOURS.nightWater, night(COLOURS.forest), 3],
+  ["night water on night grass", COLOURS.nightWater, night(COLOURS.grass), 3],
+  ["night water on night ground", COLOURS.nightWater, night(GROUND), 3],
+];
+for (const [what, colour, against, min] of exceptions) {
+  const ratio = contrast(colour, against);
+  const line = `${what}: ${colour} on ${against} ${ratio.toFixed(2)}:1 (minimum ${min})`;
+  console.log(line);
+  if (ratio < min) problems.push(line);
+}
+
 if (problems.length) {
   console.log("PROBLEMS:\n  " + problems.join("\n  "));
   process.exit(1);

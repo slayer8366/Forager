@@ -898,7 +898,8 @@ fun SightingsMap(
             // fresh from its URI.
             // Since dispatch 2026-10-18-05 Part 2 the same recolour serves the own Street online (loaded by URI too),
             // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
-            if (requested.night && source !is MapStyleSource.Json) applyOfflineNightRecolour(style)
+            // The own Street takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
+            if (requested.night && source !is MapStyleSource.Json) applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source))
             if (requested.night && usesStreetSprite(source)) applyStreetSpriteNight(style)
             if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
             initializeOverlayLayers(
@@ -2624,7 +2625,7 @@ internal const val SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX = 3f
  * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
  * is unverified until a device run; a form this does not read shows up in these log lines.
  */
-private fun applyOfflineNightRecolour(style: Style) {
+private fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = false) {
     var recoloured = 0
     var left = 0
     for (layer in style.layers) {
@@ -2640,6 +2641,8 @@ private fun applyOfflineNightRecolour(style: Style) {
                     LayerColourProperty(layer.id, property, StyleColourValue.Literal(value.toString())),
                     "value of type ${value.value?.javaClass?.name} is neither a colour string nor an expression",
                 )
+            } else if (streetWater) {
+                streetNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer))
             } else {
                 offlineNightRecolourOf(LayerColourProperty(layer.id, property, colourValue))
             }
@@ -2659,6 +2662,13 @@ private fun applyOfflineNightRecolour(style: Style) {
         }
     }
     Log.i(SIGHTINGS_MAP_TAG, "Offline night: $recoloured colour properties recoloured, $left left in day colours.")
+}
+
+/** [layer]'s vector source layer, for the night water exception; `null` for a layer with none. */
+private fun sourceLayerOf(layer: Layer): String? = when (layer) {
+    is FillLayer -> layer.sourceLayer
+    is LineLayer -> layer.sourceLayer
+    else -> null
 }
 
 /** [layer]'s colour properties the offline night walks ([NIGHT_RECOLOURED_PROPERTIES]), with their day values. */

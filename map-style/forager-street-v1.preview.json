@@ -57,7 +57,27 @@
       "train_station",
       "university",
       "zoo"
-    ]
+    ],
+    "forager:palette": {
+      "footpath": "#a8452a",
+      "track": "#7a5530",
+      "informalPath": "#b9876b",
+      "forest": "#a9d39b",
+      "grass": "#dde9c1",
+      "parkOutline": "#3e7a3a",
+      "highway": "#f0b95c",
+      "highwayCasing": "#a8782c",
+      "major": "#f6d68f",
+      "majorCasing": "#b4924c",
+      "minor": "#ffffff",
+      "minorCasing": "#9c9486",
+      "service": "#f4f0e6",
+      "serviceCasing": "#aaa294",
+      "nightWater": "#8ec5f0",
+      "text": "#262626",
+      "waterText": "#1f4d86",
+      "halo": "#ffffff"
+    }
   },
   "sources": {
     "protomaps": {
