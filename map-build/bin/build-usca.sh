@@ -397,22 +397,38 @@ routing_in="$run/$USCA_EXTRACT_NAME-routing.osm.pbf"
 rm -f -- "${routing_parts[@]}"
 log "routing input: $(osmium fileinfo -e -g data.count.nodes "$routing_in") nodes, $(osmium fileinfo -e -g data.count.ways "$routing_in") ways"
 
-set_stage brouter
-br="$run/brouter"
-band_in="$run/routing-band.osm.pbf"
-profiles="$BROUTER_HOME/profiles2"
-bjava=("$JAVA" "-Xmx$USCA_BROUTER_XMX" -cp "$BROUTER_HOME/brouter-$BROUTER_VERSION-all.jar")
-mkdir -p "$run/out/segments"
+set_stage routing-bands
+# Every band is cut and counted before BRouter runs on any of them, so a band list that no longer
+# fits stops the run in minutes, naming every band over the limit, rather than hours in at the
+# first band that is too big. The first band list was drawn from a highway-and-ferry cut and
+# would have put the last band at about 187M nodes of this input (826.8M; run
+# usca-20261019T130011Z, stopped before any band ran).
+band_files=(); over=()
 for band in $USCA_ROUTING_BANDS; do
   IFS=: read -r bw be <<<"$band"
   lo=$(( bw - USCA_ROUTING_BAND_MARGIN < -180 ? -180 : bw - USCA_ROUTING_BAND_MARGIN ))
   hi=$(( be + USCA_ROUTING_BAND_MARGIN > 180 ? 180 : be + USCA_ROUTING_BAND_MARGIN ))
+  f="$run/routing-band_${bw}_${be}.osm.pbf"
   "${TIMED[@]}" "routing-band-$band" -- osmium extract -b "$lo,-90,$hi,90" -s complete_ways --overwrite \
-    -o "$band_in" "$routing_in"
-  nodes="$(osmium fileinfo -e -g data.count.nodes "$band_in")"
-  [[ "$nodes" -le "$USCA_BROUTER_MAX_BAND_NODES" ]] \
-    || die "routing band $band holds $nodes nodes, over USCA_BROUTER_MAX_BAND_NODES ($USCA_BROUTER_MAX_BAND_NODES); split it"
+    -o "$f" "$routing_in"
+  nodes="$(osmium fileinfo -e -g data.count.nodes "$f")"
   log "routing band $band: $nodes nodes (extract $lo to $hi)"
+  [[ "$nodes" -le "$USCA_BROUTER_MAX_BAND_NODES" ]] || over+=("$band ($nodes)")
+  band_files+=("$f")
+done
+[[ ${#over[@]} -eq 0 ]] \
+  || die "routing bands over USCA_BROUTER_MAX_BAND_NODES ($USCA_BROUTER_MAX_BAND_NODES): ${over[*]}; split them in USCA_ROUTING_BANDS"
+rm -f -- "$routing_in"
+
+set_stage brouter
+br="$run/brouter"
+profiles="$BROUTER_HOME/profiles2"
+bjava=("$JAVA" "-Xmx$USCA_BROUTER_XMX" -cp "$BROUTER_HOME/brouter-$BROUTER_VERSION-all.jar")
+mkdir -p "$run/out/segments"
+bands=($USCA_ROUTING_BANDS)
+for k in "${!bands[@]}"; do
+  band="${bands[$k]}"; band_in="${band_files[$k]}"
+  IFS=: read -r bw be <<<"$band"
   rm -rf -- "$br"
   mkdir -p "$br"/{nodetiles,waytiles,waytiles55,nodes55,unodes55,segments,no-elevation}
   # The three steps of BRouter's process_pbf_planet.sh at v1.7.10, as in build-orwa.sh: no
@@ -433,8 +449,9 @@ for band in $USCA_ROUTING_BANDS; do
     if (( bw <= x && x < be )); then mv -- "$f" "$run/out/segments/"; kept=$((kept + 1)); fi
   done
   log "routing band $band: $kept squares kept"
+  rm -f -- "$band_in"
 done
-rm -rf -- "$br" "$band_in" "$routing_in"
+rm -rf -- "$br"
 # Each .rd5's file date is set to the extract's (WayLinker stamps its own run time inside).
 touch -d "$osm_ts" "$run/out/segments/"*.rd5
 
