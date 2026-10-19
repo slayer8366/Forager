@@ -115,8 +115,10 @@ The JVM's `-Xmx` caps it, and `OOMScoreAdjust=800` points the kernel at the buil
 ## The US + Canada build, `build-usca.sh`
 
 The owner's go of 2026-10-18: the Pi builds a map of the US and Canada, and serves none (RECORD
--879, -1276). Geofabrik's `us` extract carries Alaska, Hawaii, Puerto Rico and the US Virgin
-Islands. `build-orwa.sh` stays as it is; `build-usca.sh` is a separate script with its own
+-879, -1276). Geofabrik's `us` extract carries Alaska and Hawaii, but not Puerto Rico or the US
+Virgin Islands. They are listed as its subregions, but the extract holds no data for either
+(2026-10-19), so they are still to be added as regions of their own, and San Juan is out of the
+coverage points until then. `build-orwa.sh` stays as it is; `build-usca.sh` is a separate script with its own
 `out-usca/`, `status-usca.json` and `failed-usca/latest`, so neither script's output, status or
 kept failure is the other's. The settings are the `USCA_` lines in `pins.env`.
 

@@ -3,8 +3,9 @@
 # BRouter routing data (.rd5), from Geofabrik's us and canada extracts merged into one. The owner's
 # go of 2026-10-18 (Pi session, raspberrypi-composed-bunny): US and Canada, "Canadians are using
 # the app too"; the Pi builds and keeps a copy and serves nothing (RECORD -879, -1276). The whole
-# US means Alaska, Hawaii and Puerto Rico too, which Geofabrik's us extract carries (RECORD -1274,
-# -1300). Run as the build user, by hand (`sudo -u forager-build ...`) or by
+# US means Alaska, Hawaii and Puerto Rico too (RECORD -1274, -1300). Geofabrik's us extract carries
+# Alaska and Hawaii but not Puerto Rico or the US Virgin Islands, which are still to be added as
+# regions of their own (pins.env, 2026-10-19). Run as the build user, by hand (`sudo -u forager-build ...`) or by
 # forager-build-usca.service.
 #
 # Usage: build-usca.sh [--fetch-only] [--force] [--local YYMMDD] [--basemap FILE]
@@ -39,7 +40,7 @@
 #     held only ferry routes to Alaska; Alaska is in this build.
 #   - Before publishing, sample points in each country and territory the owner named must have a
 #     z15 tile with roads in it and a plausibly sized .rd5 square, so a build that silently lost
-#     Alaska, Hawaii, Puerto Rico or Canada is refused.
+#     Alaska, Hawaii, Canada or, once it is a region, Puerto Rico is refused.
 #   - A free-disk floor before the merge (USCA_MIN_FREE_GB): the build shares the root filesystem
 #     with the rest of the Pi.
 #
