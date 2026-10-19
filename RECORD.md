@@ -23103,3 +23103,24 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   Known-bugs row 2 gives "about 6% of CI runs". Today's rate looks higher. The count of full runs is the planner's rough tally, not an exact census.
 - **Action:** `gh run rerun 39192861476 --failed`. The test was not touched. The promotion gate needs CI green on pre-main.
 **Notes:** Written by the planner by hand, on branch records-after-173. This is a datum for the owner's parked flake hunt (memory "flake-hunt-deferred"; -348, -349). Next free ID -1348.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1348
+**Timestamp:** 2026-10-19T03:33:16Z
+**Continues:** 2026-09-28-1346, 2026-09-28-1340
+**Title:** Tablet check of the tablet Journal layout on pre-main 0b93dde9, by the planner over adb at the owner's word: square maps and the wider column hold on the real tablet; the entry page wasn't seen (no entry with a map); the search bar isn't aligned with the column
+**The owner, verbatim:** "Tablet plugged in. Go ahead with the check"
+**Observed on the tablet** (SM-X800, Android 16; physical 2800×1752 in landscape), debug 1.0.3491+g0b93dde9. The planner installed it with `adb install -r`, replacing 1.0.3484+ge431eba9, with the data kept. Rotation was set by `user_rotation` and restored afterwards (auto-rotate back on). The screenshots were deleted afterwards, because they show a real location.
+- **Journal → Entries, landscape:** the switch line, 🔍 and ✏ sit in a centred block about 930 dp wide. One entry showed. **Pass.**
+- **Records, landscape:** the switch line and all five chips sit on one line inside the block. **Pass.**
+- **Offline maps, landscape:**
+  - the map is square (about 745 dp at 1.4 px per dp from the screenshot), Street, with Name, Radius, tiles, Downloaded Maps, Pin and Download Maps beside it;
+  - the logo sits bottom-right beside the "i".
+  - With 🔍 opened, the map's edges were identical in both screenshots, and the switch line moved down.
+  - **Pass.**
+- **Offline maps, portrait:** the square map spans the width, with the info under it. **Pass.**
+- **Observation, not a gate:** in landscape on the tablet, the revealed search bar starts at the screen's left edge and runs about 1,040 dp. It is not aligned with the centred 960 dp block beneath it.
+- **Not checked:** the entry page with a map (no entry on the tablet has a map); the other landscape rotation; the Maps tab layout beyond a glance. On the Maps tab, the logo sat bottom-left beside the "i" and the caption: the short-landscape placement (-1315).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1349.
