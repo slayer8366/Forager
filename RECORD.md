@@ -23629,3 +23629,15 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** the report, with the dry run shown.
 **Abort conditions:** a premise wrong; anything needing root.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1380.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1380
+**Timestamp:** 2026-10-19T20:21:42Z
+**Continues:** 2026-09-28-1367
+**Supersedes:** -1367's "Forager's first production release is out"
+**Title:** Release 3500 is in Google's review, not yet out; every owner step for it is done (owner)
+**The owner, verbatim:** "It's in review, but everything I need to do is done". Also: "I know this is reverse of your recommendation, but I feel the smaller adds can be taken out before we get to the big boss", read by the planner as the smaller post-release items first and the own Street map (-1374's recommended pick, not chosen) after.
+**What it records:** -1367 recorded "Update is out" as published. The release was sent and is waiting on Google's review; the owner has nothing left to do for it. The planner records it as out only when the owner reports it live.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1381.
