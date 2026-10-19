@@ -23334,3 +23334,16 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   - the store listing check, T9;
   - the owner's upload to production.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1359.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1359
+**Timestamp:** 2026-10-19T05:16:49Z
+**Continues:** 2026-09-28-1358
+**Title:** Planner handoff written for the next session (owner)
+**The owner, verbatim:** "Write a hand off for the next session and I'll meet you over there"
+**What it sets:** prompts/preserved/2026-10-19-planner-handoff.md replaces 2026-10-18-planner-handoff.md as the start point.
+- main is at 19aa1058, the production promotion. The release build, T9 and the upload are next, on the owner's laptop.
+- After the release: Elder's items, the Street style (#258, held), the Pi build, and the UI split plan.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1360.
