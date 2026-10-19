@@ -23724,3 +23724,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Dex report:** the nine listed methods identical; the scanned total +1, a compiler-generated `<clinit>` from the split `WhenMappings` class (Hazel, from dexdump). Ruled by the planner as not the stop the dispatch meant.
 - **S22 launch check, run by the planner at about 21:31Z:** the APK from run 39326150437 is version 1.0.3509+g4eb16989, the PR's merge ref (parents 0d4bae4e and 14e320f5, read with `git log`), which is what landed. "PASS: verified (status=verify), launched, process 24645 alive after 8 s, crash buffer empty." Before installing, the planner read the S22: no Forager service running, launcher in front, 1.0.3484 installed; data kept (`install -r`).
 **Notes:** Written by the planner by hand, on branch records-after-173. #272 re-merges pre-main before its own check. Next free ID -1387.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1387
+**Timestamp:** 2026-10-19T21:32:46Z
+**Continues:** 2026-09-28-1376, 2026-09-28-1386
+**Title:** UI split Phase 1, PR 4: RecordDetailsSheet.kt split into five files (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-07.md, for Hazel Cairnwright (the helper that built PR 1)
+**Scope:** RecordDetailsSheet.kt and new files in ui/log; branch split-record-details from pre-main 7dc82ab2.
+**Baseline:** pre-main 7dc82ab2; the file is 736 lines, unchanged since the survey.
+**Prediction (outcome, planner):** a pure move with a few widenings; the misplaced KDoc at :633-638 travels exactly; suite identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any difference in tests, declarations or the dex report beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. PR 3 (SightingsMap layers) waits for #272 under the freeze rule. Next free ID -1388.
