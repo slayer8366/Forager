@@ -23213,3 +23213,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - Phones are unchanged.
 - Built as Amendment 3 to dispatch 2026-10-18-10, on branch tablet-search-bar-2, before release.
 **Notes:** Written by the planner by hand, on branch records-after-173. The owner's earlier "search bar in the journal… For tablets" (relayed in -1350's work) was mainly about these two tabs. The planner read it as the Journal only. Next free ID -1354.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1354
+**Timestamp:** 2026-10-19T04:13:48Z
+**Continues:** 2026-09-28-1353, 2026-09-28-1352, 2026-09-28-1086
+**Title:** The owner overrides CI for the two tablet search-bar fixes: the List/Seasonal change merges with no CI run, and the promotion may go without a green pre-main run on it (owner, one-case override)
+**The owner, verbatim:** "Skip the CI on these", then, through the question tool, "Skip CI entirely". The planner's options were: don't wait on tests; skip the tablet re-look too; skip CI entirely. The option the owner chose carried this note: "no app file gets built for the tablet, and the promotion goes to main without a green CI on pre-main (your override, for these two fixes only)."
+**What it sets:**
+- **Amendment 3 (List/Seasonal bar, -1353):** built and merged into pre-main with no CI run. Its commits and the merge carry `[skip ci]`. No revert check, and no tablet look before the promotion.
+- **PR #264 (the Journal bar)** already had a green PR run (39195879726). The pre-main push run after its merge was already running at this ruling, and is left to finish, not cancelled.
+- **This is a one-case override, not a rule change:** -1086's promotion gate (CI green on pre-main) stands for everything else.
+- **Planner's caution, given before the ruling:** with no CI, nothing compiles or tests the List/Seasonal change before the release build on the owner's laptop. That build is its first compile.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1355.
