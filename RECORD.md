@@ -23884,3 +23884,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1398.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1398
+**Timestamp:** 2026-10-19T23:45:02Z
+**Closes:** 2026-09-28-1395
+**Outcome:** completed
+**Observed:**
+- PR #277 (UI split Phase 1, PR 5: AvailabilitySettingsUi.kt into four files) merged into pre-main at 99597d4d under the standing word, gated on head 299abf35, which contains pre-main ef5f09be (the merge touched none of its files). Backup bundle of ef5f09be, verified.
+- **Proofs (Hazel):** colour-moved diff fully classified; 29 declarations, differing only in five widenings (`CompactSettingsTab`, `ThemeModeSection`, `NightModeMapsSection`, `DistanceUnitSection`, `SettingsRadioRow`); three files `cmp`-identical with bite runs; suite identical (5,160 cases; 33 settings, sundown and drawer classes, 292 cases, in both). AvailabilitySettingsUi.kt 661 → 289; new files 203, 98, 124. Dex report byte-identical. The two inset-reading rows did not move.
+- **S22 launch check, planner, about 00:50Z:** APK 1.0.3532+g299abf35 from workflow_dispatch run 39341540216 (the head, which contains pre-main, so the tree that landed). "PASS: verified (status=verify), launched, process 17278 alive after 8 s, crash buffer empty."
+**Deviations:** none.
+**Not checked:** the inset rows on a device (unchanged by this PR).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1399.
