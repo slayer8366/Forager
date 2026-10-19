@@ -23027,3 +23027,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Seen in:** Hazel's web previews, which were copied to the S22's gallery (Pictures/Forager-street-preview). In 06-forest-trails-z14-night the creeks are dark teal on dark green.
 - Applied on street-cloudflare (PR #258, held under -1316), with previews regenerated for the owner.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1344.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1344
+**Timestamp:** 2026-10-19T02:20:37Z
+**Continues:** 2026-09-28-1343, 2026-09-28-1288
+**Supersedes:** -1288's "pure inversion" as a strict rule
+**Title:** Night mode starts from inversion but may depart from it wherever that reads better (owner)
+**The owner, verbatim:** "Pure inversion is easy yes, but we can go outside the purity for the UX."
+**What it sets:**
+- The own Street map's night mode is the inverted day map by default.
+- Any feature whose inverted colour reads poorly may get its own night colour. Water is the first case (-1343).
+- Each departure is named in the style and checked by the day/night contrast check, so night stays readable.
+- The previews and the owner's phone review decide each case.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1345.
