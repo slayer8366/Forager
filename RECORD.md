@@ -23710,3 +23710,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a green PR with the revert shown, merged on the owner's word.
 **Abort conditions:** the reshape not provably the same.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1386.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1386
+**Timestamp:** 2026-10-19T21:32:15Z
+**Continues:** 2026-09-28-1377, 2026-09-28-1376
+**Title:** PR #271 (UI split Phase 1, PR 1: the navigation card's rules into four files) merged into pre-main at 7dc82ab2 under the standing word; S22 launch check passed (planner)
+**What it records:**
+- **The merge:** gated on head 14e320f5 (Hazel's merge of pre-main 0d4bae4e, which touched none of the five files). pre-main 0d4bae4e → 7dc82ab2. Backup bundle of pre-main 0d4bae4e in `~/Zynergy/forager-repo-backups/`, verified.
+- **Gates (-1376):** CI 39326150437 (pull_request, head 14e320f5) green on all three jobs; 5,160 cases, 0 differences case by case from the pre-main baseline 39320596586 (Hazel's count from the JUnit XML). The five proofs: colour-moved diff fully classified; 63 declarations equal; four files `cmp`-identical to their ranges, with bite runs shown; line counts NavigationHud.kt 1,372 → 894 plus 62, 111, 106 and 235. No widening needed (the survey's "about 570 lines" was 454). `.github` untouched.
+- **Dex report:** the nine listed methods identical; the scanned total +1, a compiler-generated `<clinit>` from the split `WhenMappings` class (Hazel, from dexdump). Ruled by the planner as not the stop the dispatch meant.
+- **S22 launch check, run by the planner at about 21:31Z:** the APK from run 39326150437 is version 1.0.3509+g4eb16989, the PR's merge ref (parents 0d4bae4e and 14e320f5, read with `git log`), which is what landed. "PASS: verified (status=verify), launched, process 24645 alive after 8 s, crash buffer empty." Before installing, the planner read the S22: no Forager service running, launcher in front, 1.0.3484 installed; data kept (`install -r`).
+**Notes:** Written by the planner by hand, on branch records-after-173. #272 re-merges pre-main before its own check. Next free ID -1387.
