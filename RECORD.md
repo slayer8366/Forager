@@ -23148,3 +23148,22 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   - -1325 merged #261 while its head's run 39172914080 was still in progress. That run finished red on row 2's test, and -1325 never recorded it.
   - -1329 cites main's `:1271`; the bare hide on every tab is main's `:998`. The conclusion stands.
 **Notes:** Written by the planner by hand, on branch records-after-173. -1325 and -1329 are corrected by this entry, not edited. Next free ID -1350.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1350
+**Timestamp:** 2026-10-19T03:38:46Z
+**Continues:** 2026-09-28-1349, 2026-09-28-1348, 2026-09-28-1315
+**Title:** Before release: the tablet's search bar is aligned to the 960 dp column, and the known-bugs list gets Elder's updates; the short-landscape logo at bottom-left stays (owner)
+**The owner, verbatim,** through the question tool:
+- "Fix before release (Recommended)" for the tablet search bar;
+- "OK as is (Recommended)" for the logo following the "i" to the bottom-left in short landscape;
+- "Yes, add them (Recommended)" for the known-bugs updates.
+**What it sets:**
+- Amendment 2 to dispatch 2026-10-18-10:
+  - the tablet search bar sits inside the centred 960 dp block;
+  - known-bugs row 2's rate is updated, row 7's Where is corrected, and two new rows are added (the logo over the Topo caption, and the probable two-line Topo night caption).
+- It goes in one PR into pre-main, merged under -1317, followed by a short tablet re-check.
+- -1319's owner question 1 is answered: the logo keeps beside the "i", bottom-left in short landscape.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1351.
