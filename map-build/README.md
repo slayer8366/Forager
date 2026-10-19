@@ -143,11 +143,17 @@ What it does differently from `build-orwa.sh`, and why:
   against the Oregon + Washington archive on 2026-10-18: Seattle passed with 142 roads, and Miami
   was refused. `pmtiles tile` exits 0 with no output for a missing tile, so the road count is
   what catches one.
-- **A cut-down routing input.** BRouter's cutter ran out of its 2 GB heap 134M nodes into the
-  full 2.4B-node merge on the first run (2026-10-19). Each extract is cut with `osmium
-  tags-filter` to the ways `all.brf` gives a cost to (`highway`, `railway`, `waterway`, `route`),
-  the nodes they use, route relations and turn restrictions (`USCA_ROUTING_FILTER`), and the two
-  cuts are merged for BRouter. The full merge is now read only by Planetiler.
+- **Routing in bands, from a cut-down input.** BRouter's cutter holds about 16 bytes per node of
+  its input: on the first run (2026-10-19) its 2 GB heap ran out 134M nodes into the 2.4B-node
+  merge. Each extract is cut with `osmium tags-filter` to the ways `all.brf` gives a cost to
+  (`highway`, `railway`, `waterway`, `route`), the nodes they use, route relations and turn
+  restrictions (`USCA_ROUTING_FILTER`). Even that is about 480M nodes, too many for the Pi, so
+  the merged cut is split into longitude bands (`USCA_ROUTING_BANDS`), each extracted with a
+  margin and its ways whole (`osmium extract -s complete_ways`). BRouter runs once per band and
+  keeps only the squares whose west edge is in the band. A band over
+  `USCA_BROUTER_MAX_BAND_NODES` stops the run before BRouter starts. Checked on Canada built
+  whole and in two bands: all 106 squares identical apart from the run time WayLinker stamps
+  into each.
 - **`--basemap FILE` reuses a finished basemap.** The first run's 7h44m basemap finished and the
   run then failed at routing; the owner's word was to keep it and move on. With `--basemap`,
   Planetiler and the full merge are skipped, FILE is hard-linked into the output, and the run
@@ -169,8 +175,8 @@ What it does differently from `build-orwa.sh`, and why:
   dropped squares.
 - `python3 -m unittest map-build/tools/test_merge_poly.py`: joining the two outlines.
 - `bash map-build/tools/test_build_usca_functions.sh`: `build-usca.sh`'s square and tile
-  arithmetic, download resuming, failed-run keeping and the `--basemap` snapshot check, loaded
-  from the script itself.
+  arithmetic, download resuming, failed-run keeping, the `--basemap` snapshot check and the routing bands'
+  layout and square ownership, loaded from the script itself.
 - `bash map-build/tools/test_build_functions.sh`: `build-orwa.sh`'s square-dropping and
   failed-run keeping, loaded from the script itself.
 - The patch's own tests (`foragerTrail…`, `foragerAccess…` in upstream's `RoadsTest`) run inside

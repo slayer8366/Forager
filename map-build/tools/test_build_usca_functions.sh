@@ -17,8 +17,8 @@ ln -s 20261017T202051Z "$OUT/current"
 echo "log line" > "$log_file"
 log() { echo "LOG $*"; }
 
-eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^basemap_matches() {/,/^}/p' "$script")"
-declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches >/dev/null \
+eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p' "$script")"
+declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge >/dev/null \
   || { echo "FAIL: functions not loaded"; exit 1; }
 
 pass=0
@@ -78,5 +78,21 @@ check "a basemap whose metadata has no snapshot is refused" '! basemap_matches "
 pmtiles() { return 1; }
 check "unreadable metadata is refused" '! basemap_matches "$T/bm/forager-usca.pmtiles" 2026-10-17T20:20:51Z 2415 >/dev/null'
 unset -f pmtiles
+
+# --- routing_bands_ok and rd5_west_edge: which band builds which square ----------------------------
+check "contiguous bands from -180 to 180 are accepted" 'routing_bands_ok -180:-115 -115:-100 -100:-90 -90:-80 -80:180'
+check "one band over everything is accepted" 'routing_bands_ok -180:180'
+check "a gap between bands is refused" '! routing_bands_ok -180:-115 -110:180'
+check "an overlap between bands is refused" '! routing_bands_ok -180:-115 -120:180'
+check "bands that stop short of 180 are refused" '! routing_bands_ok -180:-80'
+check "bands that start east of -180 are refused" '! routing_bands_ok -175:180'
+check "an edge off a 5-degree line is refused" '! routing_bands_ok -180:-112 -112:180'
+check "a band running west is refused" '! routing_bands_ok -180:-100 -100:-115 -115:180'
+check "no bands at all is refused" '! routing_bands_ok'
+check "a band that is not WEST:EAST is refused" '! routing_bands_ok -180:x'
+check "W125_N45 starts at -125" '[[ "$(rd5_west_edge /x/segments/W125_N45.rd5)" == -125 ]]'
+check "E170_N50, the Aleutians past 180, starts at 170" '[[ "$(rd5_west_edge E170_N50.rd5)" == 170 ]]'
+check "W5_S10 starts at -5" '[[ "$(rd5_west_edge W5_S10.rd5)" == -5 ]]'
+check "a file that is not a square is refused" '! rd5_west_edge /x/segments/bordernodes.dat'
 
 echo "ok: $pass checks"

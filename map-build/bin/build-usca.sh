@@ -154,6 +154,28 @@ print(15, x, y)
 EOF
 }
 
+routing_bands_ok() { # band...: each WEST:EAST, contiguous from -180 to 180, on 5-degree lines
+  local prev=-180 b w e
+  [[ $# -gt 0 ]] || return 1
+  for b in "$@"; do
+    IFS=: read -r w e <<<"$b"
+    [[ "$w" =~ ^-?[0-9]+$ && "$e" =~ ^-?[0-9]+$ ]] || return 1
+    (( w == prev && e > w && w % 5 == 0 && e % 5 == 0 )) || return 1
+    prev=$e
+  done
+  (( prev == 180 ))
+}
+
+rd5_west_edge() { # file: the west edge of the square a .rd5 covers, e.g. W125_N45.rd5 -> -125
+  local n="${1##*/}"
+  n="${n%%_*}"
+  case "$n" in
+    W[0-9]*) echo "-${n#W}" ;;
+    E[0-9]*) echo "${n#E}" ;;
+    *) return 1 ;;
+  esac
+}
+
 basemap_matches() { # file timestamp sequence: does the archive's metadata name this snapshot?
   # Planetiler records the merged extract's header in the archive's metadata, and the merge stamps
   # that header with the extracts' timestamp and the first region's sequence (section 4), so these
@@ -350,10 +372,19 @@ fi
 
 # --- 6. The routing data -----------------------------------------------------------------------
 # BRouter's cutter ran out of a 2 GB heap 134M nodes into the full 2.4B-node merge (run
-# usca-20261019T011311Z, OutOfMemoryError in TinyDenseLongMap). It keeps only the ways all.brf
-# gives a cost to, so it is handed those ways, the nodes they use, route relations and turn
-# restrictions, cut from each extract and merged (the owner's choice, 2026-10-19).
+# usca-20261019T011311Z, OutOfMemoryError in TinyDenseLongMap), and holds about 16 bytes per node
+# of its input whatever the input (measured again on the cut-down Canada input, 33M nodes in 512
+# MB). So it is handed only what reaches the .rd5 squares, and that in bands it can hold (the
+# owner's choices A and finer regions, 2026-10-19):
+#   - each extract cut to the ways all.brf gives a cost to, the nodes they use, route relations and
+#     turn restrictions (USCA_ROUTING_FILTER), and the cuts merged;
+#   - that cut into longitude bands (USCA_ROUTING_BANDS), each with USCA_ROUTING_BAND_MARGIN
+#     degrees either side and every way that touches it whole (osmium extract -s complete_ways);
+#   - BRouter's three steps run on each band, keeping only the squares whose west edge is inside
+#     the band. On the Canada input built whole and in two bands, all 106 squares matched byte
+#     for byte apart from the time WayLinker stamps into each (2026-10-19).
 set_stage routing-input
+routing_bands_ok $USCA_ROUTING_BANDS || die "USCA_ROUTING_BANDS must run from -180 to 180 on 5-degree lines: $USCA_ROUTING_BANDS"
 read -r -a routing_filter <<<"$USCA_ROUTING_FILTER"
 routing_parts=()
 for i in "${inputs[@]}"; do
@@ -368,22 +399,43 @@ log "routing input: $(osmium fileinfo -e -g data.count.nodes "$routing_in") node
 
 set_stage brouter
 br="$run/brouter"
-mkdir -p "$br"/{nodetiles,waytiles,waytiles55,nodes55,unodes55,segments,no-elevation}
+band_in="$run/routing-band.osm.pbf"
 profiles="$BROUTER_HOME/profiles2"
 bjava=("$JAVA" "-Xmx$USCA_BROUTER_XMX" -cp "$BROUTER_HOME/brouter-$BROUTER_VERSION-all.jar")
-# The three steps of BRouter's process_pbf_planet.sh at v1.7.10, as in build-orwa.sh: no database
-# pseudo-tags and no elevation data (RECORD -476).
-(cd "$br" && "${TIMED[@]}" brouter-cut -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.OsmFastCutter \
-  "$profiles/lookups.dat" nodetiles waytiles nodes55 waytiles55 bordernids.dat relations.dat restrictions.dat \
-  "$profiles/all.brf" "$profiles/trekking.brf" "$profiles/softaccess.brf" "$routing_in")
-(cd "$br" && "${TIMED[@]}" brouter-unify -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.PosUnifier \
-  nodes55 unodes55 bordernids.dat bordernodes.dat no-elevation)
-(cd "$br" && "${TIMED[@]}" brouter-link -- "${bjava[@]}" -DskipEncodingCheck=true btools.mapcreator.WayLinker \
-  unodes55 waytiles55 bordernodes.dat restrictions.dat "$profiles/lookups.dat" "$profiles/all.brf" segments rd5)
 mkdir -p "$run/out/segments"
-mv "$br"/segments/*.rd5 "$run/out/segments/"
-rm -rf -- "$br"
-# .rd5 files carry no date of their own; stamp them with the extract's.
+for band in $USCA_ROUTING_BANDS; do
+  IFS=: read -r bw be <<<"$band"
+  lo=$(( bw - USCA_ROUTING_BAND_MARGIN < -180 ? -180 : bw - USCA_ROUTING_BAND_MARGIN ))
+  hi=$(( be + USCA_ROUTING_BAND_MARGIN > 180 ? 180 : be + USCA_ROUTING_BAND_MARGIN ))
+  "${TIMED[@]}" "routing-band-$band" -- osmium extract -b "$lo,-90,$hi,90" -s complete_ways --overwrite \
+    -o "$band_in" "$routing_in"
+  nodes="$(osmium fileinfo -e -g data.count.nodes "$band_in")"
+  [[ "$nodes" -le "$USCA_BROUTER_MAX_BAND_NODES" ]] \
+    || die "routing band $band holds $nodes nodes, over USCA_BROUTER_MAX_BAND_NODES ($USCA_BROUTER_MAX_BAND_NODES); split it"
+  log "routing band $band: $nodes nodes (extract $lo to $hi)"
+  rm -rf -- "$br"
+  mkdir -p "$br"/{nodetiles,waytiles,waytiles55,nodes55,unodes55,segments,no-elevation}
+  # The three steps of BRouter's process_pbf_planet.sh at v1.7.10, as in build-orwa.sh: no
+  # database pseudo-tags and no elevation data (RECORD -476).
+  (cd "$br" && "${TIMED[@]}" "brouter-cut-$band" -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.OsmFastCutter \
+    "$profiles/lookups.dat" nodetiles waytiles nodes55 waytiles55 bordernids.dat relations.dat restrictions.dat \
+    "$profiles/all.brf" "$profiles/trekking.brf" "$profiles/softaccess.brf" "$band_in")
+  (cd "$br" && "${TIMED[@]}" "brouter-unify-$band" -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.PosUnifier \
+    nodes55 unodes55 bordernids.dat bordernodes.dat no-elevation)
+  (cd "$br" && "${TIMED[@]}" "brouter-link-$band" -- "${bjava[@]}" -DskipEncodingCheck=true btools.mapcreator.WayLinker \
+    unodes55 waytiles55 bordernodes.dat restrictions.dat "$profiles/lookups.dat" "$profiles/all.brf" segments rd5)
+  kept=0
+  for f in "$br"/segments/*.rd5; do
+    [[ -e "$f" ]] || continue
+    x="$(rd5_west_edge "$f")" || die "cannot read the square of $(basename "$f")"
+    # A square outside the band's own range holds only the margin's part of it; its own band
+    # builds it whole.
+    if (( bw <= x && x < be )); then mv -- "$f" "$run/out/segments/"; kept=$((kept + 1)); fi
+  done
+  log "routing band $band: $kept squares kept"
+done
+rm -rf -- "$br" "$band_in" "$routing_in"
+# Each .rd5's file date is set to the extract's (WayLinker stamps its own run time inside).
 touch -d "$osm_ts" "$run/out/segments/"*.rd5
 
 # --- 7. Validate before publishing -------------------------------------------------------------
