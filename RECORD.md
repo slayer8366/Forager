@@ -23293,3 +23293,21 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   - tablet: -1337, -1348, -1351, and the owner's look at b05db019.
   - Nothing after e431eba9 has been seen on a phone. The changes since are tablet-gated.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1357.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1357
+**Timestamp:** 2026-10-19T05:11:16Z
+**Continues:** 2026-09-28-1356, 2026-09-28-1349
+**Title:** Elder's third top-up audit (0b93dde9..21dc4470): pass with items, none a block; pre-main CI at 21dc4470 green. -1356's conditions are met
+**Report-file:** preserved/2026-10-18-12-promotion-topup-audit-3-report.md, filed as received; Elder Ford on Fable, read-only.
+**Observed:**
+- **Run 39201526634 at 21dc4470:** all three jobs green, with 5,160 tests and 0 failures. The planner's own watcher also read "success".
+- **Elder's items:**
+  1. The List and Seasonal tests are not revert-checked; a revert check is recommended after the release.
+  2. Seasonal is about 928 dp wide on the tablet (the owner's choice), and it isn't recorded whether the owner looked at it.
+  3. Tablet portrait widths differ between tabs (pre-existing).
+  4. There is no completion report or index row for #264 to #267; to file after the release.
+- The known-bugs list is complete for A6.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1358.
