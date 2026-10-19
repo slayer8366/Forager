@@ -17,8 +17,8 @@ ln -s 20261017T202051Z "$OUT/current"
 echo "log line" > "$log_file"
 log() { echo "LOG $*"; }
 
-eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p' "$script")"
-declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch >/dev/null \
+eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^basemap_matches() {/,/^}/p' "$script")"
+declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches >/dev/null \
   || { echo "FAIL: functions not loaded"; exit 1; }
 
 pass=0
@@ -60,5 +60,23 @@ check "the run's outputs, coverage and log are kept" '[[ "$(cat "$K/out/forager-
 check "FAILED.txt names the run, stage and exit" 'grep -q "run usca-r2 failed at stage validate with exit 1" "$K/FAILED.txt"'
 check "current is untouched" '[[ "$(readlink "$OUT/current")" == 20261017T202051Z ]]'
 check "build-orwa.sh's kept failure is not touched" '[[ ! -e "$FB_SRV/failed/latest" ]]'
+
+# --- basemap_matches: a reused basemap must name the extracts' snapshot ---------------------------
+# The metadata keys are the ones the 2026-10-19 archive carries (planetiler 0.10.2).
+mkdir -p "$T/bm"; echo "archive" > "$T/bm/forager-usca.pmtiles"; : > "$T/bm/empty.pmtiles"
+pmtiles() { # stands in for pmtiles show --metadata
+  printf '{"planetiler:osm:osmosisreplicationtime": "2026-10-17T20:20:51Z", "planetiler:osm:osmosisreplicationseq": "2415", "type": "baselayer"}\n'
+}
+check "a basemap from these extracts is accepted" 'basemap_matches "$T/bm/forager-usca.pmtiles" 2026-10-17T20:20:51Z 2415 >/dev/null'
+check "a basemap from another snapshot is refused" '! basemap_matches "$T/bm/forager-usca.pmtiles" 2026-10-24T20:21:02Z 2415 >/dev/null'
+check "a basemap with another sequence is refused" '! basemap_matches "$T/bm/forager-usca.pmtiles" 2026-10-17T20:20:51Z 2416 >/dev/null'
+check "the refusal names both snapshots" '[[ "$(basemap_matches "$T/bm/forager-usca.pmtiles" 2026-10-24T20:21:02Z 2422)" == *"2026-10-17T20:20:51Z sequence 2415"*"2026-10-24T20:21:02Z sequence 2422"* ]]'
+check "a missing basemap is refused" '! basemap_matches "$T/bm/nothing.pmtiles" 2026-10-17T20:20:51Z 2415 >/dev/null'
+check "an empty basemap is refused" '! basemap_matches "$T/bm/empty.pmtiles" 2026-10-17T20:20:51Z 2415 >/dev/null'
+pmtiles() { printf '{"type": "baselayer"}\n'; }
+check "a basemap whose metadata has no snapshot is refused" '! basemap_matches "$T/bm/forager-usca.pmtiles" 2026-10-17T20:20:51Z 2415 >/dev/null'
+pmtiles() { return 1; }
+check "unreadable metadata is refused" '! basemap_matches "$T/bm/forager-usca.pmtiles" 2026-10-17T20:20:51Z 2415 >/dev/null'
+unset -f pmtiles
 
 echo "ok: $pass checks"

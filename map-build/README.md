@@ -143,6 +143,16 @@ What it does differently from `build-orwa.sh`, and why:
   against the Oregon + Washington archive on 2026-10-18: Seattle passed with 142 roads, and Miami
   was refused. `pmtiles tile` exits 0 with no output for a missing tile, so the road count is
   what catches one.
+- **A cut-down routing input.** BRouter's cutter ran out of its 2 GB heap 134M nodes into the
+  full 2.4B-node merge on the first run (2026-10-19). Each extract is cut with `osmium
+  tags-filter` to the ways `all.brf` gives a cost to (`highway`, `railway`, `waterway`, `route`),
+  the nodes they use, route relations and turn restrictions (`USCA_ROUTING_FILTER`), and the two
+  cuts are merged for BRouter. The full merge is now read only by Planetiler.
+- **`--basemap FILE` reuses a finished basemap.** The first run's 7h44m basemap finished and the
+  run then failed at routing; the owner's word was to keep it and move on. With `--basemap`,
+  Planetiler and the full merge are skipped, FILE is hard-linked into the output, and the run
+  stops at once unless FILE's metadata names the extracts' replication timestamp and sequence.
+  `versions.txt`, which the manifest carries, records that the basemap was reused.
 - **One good output kept** (`USCA_KEEP_GOOD_OUTPUTS=1`), since each is tens of GB.
 - **It will not run alongside `build-orwa.sh`.** Two builds at once would not fit in memory, and
   `build-orwa.sh`'s cleanup deletes every extract it did not use. Since 2026-10-18 the weekly
@@ -159,7 +169,8 @@ What it does differently from `build-orwa.sh`, and why:
   dropped squares.
 - `python3 -m unittest map-build/tools/test_merge_poly.py`: joining the two outlines.
 - `bash map-build/tools/test_build_usca_functions.sh`: `build-usca.sh`'s square and tile
-  arithmetic, download resuming and failed-run keeping, loaded from the script itself.
+  arithmetic, download resuming, failed-run keeping and the `--basemap` snapshot check, loaded
+  from the script itself.
 - `bash map-build/tools/test_build_functions.sh`: `build-orwa.sh`'s square-dropping and
   failed-run keeping, loaded from the script itself.
 - The patch's own tests (`foragerTrail…`, `foragerAccess…` in upstream's `RoadsTest`) run inside

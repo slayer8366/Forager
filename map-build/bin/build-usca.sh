@@ -7,7 +7,7 @@
 # -1300). Run as the build user, by hand (`sudo -u forager-build ...`) or by
 # forager-build-usca.service.
 #
-# Usage: build-usca.sh [--fetch-only] [--force] [--local YYMMDD]
+# Usage: build-usca.sh [--fetch-only] [--force] [--local YYMMDD] [--basemap FILE]
 #   --fetch-only    download and check the extracts and sources, then stop
 #   --force         build even if the extracts are the ones the current output was built from
 #   --local YYMMDD  build from us-YYMMDD.osm.pbf and canada-YYMMDD.osm.pbf already in sources/osm,
@@ -15,6 +15,14 @@
 #                   which extract is current. Over the Pi's Bluetooth link the pair takes about a
 #                   day to arrive, by which time Geofabrik has published a newer one, and the
 #                   normal path would start downloading again.
+#   --basemap FILE  use FILE, a forager-usca.pmtiles an earlier run built, instead of running
+#                   Planetiler, and skip the full merge that only Planetiler reads. FILE's metadata
+#                   must name the extracts' replication timestamp and sequence, or the run stops.
+#                   It is hard-linked into the output, so it must be on the same filesystem as
+#                   FB_SRV, and a failed run leaves it where it was. The first US + Canada run
+#                   finished its 7h44m basemap and then failed at the routing step (run
+#                   usca-20261019T011311Z); the owner's word on 2026-10-19 was to keep that
+#                   basemap and move on, not build it again.
 #
 # A separate script from build-orwa.sh, which stays as it is (CLAUDE.md: new capability is a new
 # path). Its own output, status and kept-failure directories, so neither script's `current`,
@@ -45,13 +53,15 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=../pins.env
 source "$here/pins.env"
 
-fetch_only=0; force=0; local_date=""
+fetch_only=0; force=0; local_date=""; basemap=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --fetch-only) fetch_only=1 ;;
     --force) force=1 ;;
     --local) [[ $# -ge 2 && "$2" =~ ^[0-9]{6}$ ]] || { echo "--local needs a date as YYMMDD" >&2; exit 2; }
       local_date="$2"; shift ;;
+    --basemap) [[ $# -ge 2 && -n "$2" ]] || { echo "--basemap needs a .pmtiles file" >&2; exit 2; }
+      basemap="$(readlink -f -- "$2")"; shift ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -144,6 +154,23 @@ print(15, x, y)
 EOF
 }
 
+basemap_matches() { # file timestamp sequence: does the archive's metadata name this snapshot?
+  # Planetiler records the merged extract's header in the archive's metadata, and the merge stamps
+  # that header with the extracts' timestamp and the first region's sequence (section 4), so these
+  # two keys say which pair of extracts a basemap was built from.
+  local meta
+  [[ -s "$1" ]] || { echo "basemap check: $1 is missing or empty"; return 1; }
+  meta="$(pmtiles show --metadata "$1")" || { echo "basemap check: cannot read $1's metadata"; return 1; }
+  python3 - "$meta" "$2" "$3" <<'EOF'
+import json, sys
+m = json.loads(sys.argv[1])
+got = (m.get("planetiler:osm:osmosisreplicationtime"), m.get("planetiler:osm:osmosisreplicationseq"))
+if got != (sys.argv[2], sys.argv[3]):
+    print(f"basemap check: built from {got[0]} sequence {got[1]}; the extracts are {sys.argv[2]} sequence {sys.argv[3]}")
+    sys.exit(1)
+EOF
+}
+
 curl_resume() { # url dest: resume into dest.part, then move into place
   if [[ -s "$2" && ! -e "$2.part" ]]; then mv "$2" "$2.part"; fi  # a partial file from an earlier run
   curl -fL --retry "$USCA_DOWNLOAD_RETRIES" --retry-all-errors --retry-delay 30 -C - \
@@ -200,6 +227,11 @@ if [[ $fetch_only -eq 0 && $force -eq 0 && -f "$OUT/current/manifest.json" ]]; t
       --message "no new extract"
     trap - EXIT; cleanup_scratch; exit 0
   fi
+fi
+# Checked here, before anything long runs, so a basemap from other extracts stops the run at once.
+if [[ -n "$basemap" ]]; then
+  basemap_matches "$basemap" "$osm_ts" "${seq[$first]}" || die "--basemap: $basemap was not built from these extracts"
+  log "--basemap: $basemap was built from $osm_ts, sequence ${seq[$first]}; Planetiler will not run"
 fi
 
 # --- 2. Extracts: download (resuming), check MD5, check the header timestamp -------------------
@@ -270,14 +302,18 @@ free_gb="$(df --output=avail -BG "$FB_SRV" | tail -1 | tr -dc 0-9)"
   || die "only ${free_gb} GB free under $FB_SRV; this build needs at least $USCA_MIN_FREE_GB GB (USCA_MIN_FREE_GB)"
 log "${free_gb} GB free under $FB_SRV (floor $USCA_MIN_FREE_GB GB)"
 merged="$run/$USCA_EXTRACT_NAME.osm.pbf"
-# osmium merge 1.15.0 drops the replication timestamp and the bounding boxes from the header
-# (build-orwa.sh, checked on synthetic files 2026-10-04), so the timestamp is set here and the
-# bounds come from the inputs.
-"${TIMED[@]}" merge -- osmium merge "${inputs[@]}" -o "$merged" \
-  --output-header="osmosis_replication_timestamp=$osm_ts" \
-  --output-header="osmosis_replication_sequence_number=${seq[$first]}"
-[[ "$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$merged")" == "$osm_ts" ]] \
-  || die "merged header lacks the replication timestamp"
+# Only Planetiler reads the full merge (routing has its own, smaller one in section 6), so a run
+# with --basemap skips it.
+if [[ -z "$basemap" ]]; then
+  # osmium merge 1.15.0 drops the replication timestamp and the bounding boxes from the header
+  # (build-orwa.sh, checked on synthetic files 2026-10-04), so the timestamp is set here and the
+  # bounds come from the inputs.
+  "${TIMED[@]}" merge -- osmium merge "${inputs[@]}" -o "$merged" \
+    --output-header="osmosis_replication_timestamp=$osm_ts" \
+    --output-header="osmosis_replication_sequence_number=${seq[$first]}"
+  [[ "$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$merged")" == "$osm_ts" ]] \
+    || die "merged header lacks the replication timestamp"
+fi
 bounds="$(python3 "$here/tools/union_bounds.py" "${inputs[@]}")" || die "an input has no header bounding box"
 echo "$bounds" > "$run/bounds.txt"
 poly="$run/$USCA_EXTRACT_NAME.poly"
@@ -285,21 +321,51 @@ python3 "$here/tools/merge_poly.py" "$USCA_EXTRACT_NAME" "$poly" "${polys[@]}" |
 log "bounds from the inputs' headers: computed (not logged, as in build-orwa.sh); Planetiler limited to the outlines of: $USCA_REGIONS"
 
 # --- 5. The map --------------------------------------------------------------------------------
-set_stage planetiler
-pt="$run/planetiler"
-mkdir -p "$pt/data/sources" "$run/out"
-for f in "${sources[@]}"; do ln -s "$f" "$pt/data/sources/$(basename "$f")"; done
-ln -s "$merged" "$pt/data/sources/$USCA_EXTRACT_NAME.osm.pbf"
+mkdir -p "$run/out"
 pmtiles_out="$run/out/$USCA_EXTRACT_NAME.pmtiles"
-# No --download: every source is already in data/sources, so nothing is fetched out of sight.
-(cd "$pt" && "${TIMED[@]}" planetiler -- "$JAVA" "-Xmx$USCA_PLANETILER_XMX" -jar "$BASEMAP_JAR" \
-  --area="$USCA_EXTRACT_NAME" --bounds="$bounds" --polygon="$poly" --maxzoom="$MAXZOOM" \
-  --output="$pmtiles_out" --tmpdir="$pt/tmp" --http_user_agent="$HTTP_USER_AGENT" \
-  --storage=mmap --nodemap_storage=mmap --nodemap_type="$USCA_NODEMAP_TYPE" --nodemap_madvise=true \
-  --multipolygon_geometry_storage=mmap)
-rm -rf -- "$pt/tmp"  # tens of GB; the routing step needs the room
+if [[ -n "$basemap" ]]; then
+  set_stage basemap
+  # A hard link, not a copy: the archive is tens of GB. If this run fails, keep_failed_run moves
+  # the link and FILE itself stays where it was.
+  ln -- "$basemap" "$pmtiles_out" \
+    || die "--basemap: cannot hard-link $basemap into $run/out; it must be on the same filesystem as $FB_SRV"
+  # The manifest carries versions.txt, so the output says its basemap was not built by this run.
+  echo "basemap: reused from $basemap (--basemap), not built by this run" >> "$run/versions.txt"
+  log "basemap: $basemap linked into the output"
+else
+  set_stage planetiler
+  pt="$run/planetiler"
+  mkdir -p "$pt/data/sources"
+  for f in "${sources[@]}"; do ln -s "$f" "$pt/data/sources/$(basename "$f")"; done
+  ln -s "$merged" "$pt/data/sources/$USCA_EXTRACT_NAME.osm.pbf"
+  # No --download: every source is already in data/sources, so nothing is fetched out of sight.
+  (cd "$pt" && "${TIMED[@]}" planetiler -- "$JAVA" "-Xmx$USCA_PLANETILER_XMX" -jar "$BASEMAP_JAR" \
+    --area="$USCA_EXTRACT_NAME" --bounds="$bounds" --polygon="$poly" --maxzoom="$MAXZOOM" \
+    --output="$pmtiles_out" --tmpdir="$pt/tmp" --http_user_agent="$HTTP_USER_AGENT" \
+    --storage=mmap --nodemap_storage=mmap --nodemap_type="$USCA_NODEMAP_TYPE" --nodemap_madvise=true \
+    --multipolygon_geometry_storage=mmap)
+  rm -rf -- "$pt/tmp"  # tens of GB; the routing step needs the room
+  rm -f -- "$merged"   # nothing after Planetiler reads it
+fi
 
 # --- 6. The routing data -----------------------------------------------------------------------
+# BRouter's cutter ran out of a 2 GB heap 134M nodes into the full 2.4B-node merge (run
+# usca-20261019T011311Z, OutOfMemoryError in TinyDenseLongMap). It keeps only the ways all.brf
+# gives a cost to, so it is handed those ways, the nodes they use, route relations and turn
+# restrictions, cut from each extract and merged (the owner's choice, 2026-10-19).
+set_stage routing-input
+read -r -a routing_filter <<<"$USCA_ROUTING_FILTER"
+routing_parts=()
+for i in "${inputs[@]}"; do
+  part="$run/routing-$(basename "$i")"
+  "${TIMED[@]}" "routing-filter-$(basename "$i" .osm.pbf)" -- osmium tags-filter "$i" "${routing_filter[@]}" -o "$part"
+  routing_parts+=("$part")
+done
+routing_in="$run/$USCA_EXTRACT_NAME-routing.osm.pbf"
+"${TIMED[@]}" routing-merge -- osmium merge "${routing_parts[@]}" -o "$routing_in"
+rm -f -- "${routing_parts[@]}"
+log "routing input: $(osmium fileinfo -e -g data.count.nodes "$routing_in") nodes, $(osmium fileinfo -e -g data.count.ways "$routing_in") ways"
+
 set_stage brouter
 br="$run/brouter"
 mkdir -p "$br"/{nodetiles,waytiles,waytiles55,nodes55,unodes55,segments,no-elevation}
@@ -309,7 +375,7 @@ bjava=("$JAVA" "-Xmx$USCA_BROUTER_XMX" -cp "$BROUTER_HOME/brouter-$BROUTER_VERSI
 # pseudo-tags and no elevation data (RECORD -476).
 (cd "$br" && "${TIMED[@]}" brouter-cut -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.OsmFastCutter \
   "$profiles/lookups.dat" nodetiles waytiles nodes55 waytiles55 bordernids.dat relations.dat restrictions.dat \
-  "$profiles/all.brf" "$profiles/trekking.brf" "$profiles/softaccess.brf" "$merged")
+  "$profiles/all.brf" "$profiles/trekking.brf" "$profiles/softaccess.brf" "$routing_in")
 (cd "$br" && "${TIMED[@]}" brouter-unify -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.PosUnifier \
   nodes55 unodes55 bordernids.dat bordernodes.dat no-elevation)
 (cd "$br" && "${TIMED[@]}" brouter-link -- "${bjava[@]}" -DskipEncodingCheck=true btools.mapcreator.WayLinker \
