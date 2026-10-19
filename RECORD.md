@@ -23533,3 +23533,34 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Deviations:** none.
 **Deferred:** the planner's plan to the owner, written when the owner asks (handoff item 6).
 **Notes:** Written by the planner by hand, on branch records-after-173, closing an intent the 2026-10-19 handoff left open (profile, 'Check for open intents'). Next free ID -1374.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1374
+**Timestamp:** 2026-10-19T20:13:24Z
+**Continues:** 2026-09-28-1367, 2026-09-28-1357, 2026-09-28-1365
+**Title:** Post-release work picked: laptop scratch fix (done), release clean-up (go), UI split plan; tablet portrait widths left as they are; the repo copy of the privacy policy is the master (owner)
+**The owner, verbatim,** through the question tool: "Laptop scratch fix, UI split plan, Release clean-up" (the own Street map not picked now); then "Work drive + weekly sweep (Recommended)", "Go (Recommended)" for the clean-up dispatch, "Leave as is" for tablet portrait widths, and "Repo is master (Recommended)" for the privacy policy.
+**What it sets:**
+- **Scratch, done by the planner:** `/mnt/work/scratch/` created; a user timer `tmp-sweep.timer` (Sundays 03:30 PDT, first run 2026-10-25) runs `~/.local/bin/tmp-sweep.sh`, which deletes a top-level `/tmp` entry of the owner's only when nothing in it changed for 2 days, skips `claude-*`, `cc-*` and system entries, and logs each deletion to `~/.local/state/tmp-sweep.log`. No system settings changed. The coder-profile line goes in the clean-up dispatch; Alder is told for Ash's profile.
+- **Clean-up:** dispatch preserved/2026-10-19-02.md (intent -1375).
+- **Tablet portrait:** Journal and List fill the width, Seasonal keeps its 640 dp reading column (Elder's third audit, item 3; inferred, not seen). The owner leaves it.
+- **Privacy policy:** `docs/legal/privacy-policy.md` is the master. The 14 differences (Hazel's list in -1365's work) are settled with the owner one by one, then the website is made to match by hand. The repo's "generated from" claim must then say "kept in step by hand".
+- **UI split:** the planner writes the plan from the survey (-1326) and brings it to the owner; nothing built without a go.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1375.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1375
+**Timestamp:** 2026-10-19T20:13:24Z
+**Continues:** 2026-09-28-1374, 2026-09-28-1357
+**Title:** Release clean-up: revert checks for the List/Seasonal tablet tests, completion reports for #264 to #267, warnings fixed only where behaviour cannot change, the scratch line in the coder profile (owner)
+**Dispatch-file:** preserved/2026-10-19-02.md, for Hazel Cairnwright
+**Scope:** branch release-cleanup from pre-main b2d2f4d5, one PR into pre-main; scratch branches for reverts; CI only. Not the audits index, RECORD, test assertions or the CI allowlist.
+**Baseline:** pre-main b2d2f4d5 (main 19aa1058 plus #269). Four untested-by-revert tests at TabletJournalLayoutTest.kt:489-495; 23 Kotlin warnings from the owner's release build.
+**Prediction (outcome, planner):** each revert fails its own List or Seasonal tests; about half the warnings are group (a); the six `launch(Job)` calls and the bottom-sheet deprecations come back as owner questions.
+**Finish line:** a green PR into pre-main with the report, and group (b) brought to the owner.
+**Abort conditions:** a revert that cannot fail its tests (the test would then be proven not to hold its claim, itself a finding to report); a group (a) fix that changes a test's result.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1376.
