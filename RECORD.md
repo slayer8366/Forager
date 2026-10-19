@@ -23668,3 +23668,45 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Deviations:** none. The prediction "small fixes for edge cases" understated it: one fix was a safety bug the planner wrote.
 **Not checked:** delete mode on the real /tmp (first run 2026-10-25); a write landing in the instant between check and delete; other users' processes.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1383.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1383
+**Timestamp:** 2026-10-19T21:15:42Z
+**Continues:** 2026-09-28-1375, 2026-09-28-1376
+**Title:** PR #270 (release clean-up) merged into pre-main at 0d4bae4e on the owner's word (owner)
+**The owner, verbatim:** "Merge (Recommended)", to "Merge the release clean-up (PR #270) into pre-main?"
+**What it records:**
+- **The merge:** gated on head 9ac0698a; pre-main b2d2f4d5 → 0d4bae4e. Backup: `~/Zynergy/forager-repo-backups/pre-main-20261019T211508Z-b2d2f4d5.bundle` (verified).
+- **Gates:** CI 39320192990 green on all three jobs, 5,160 tests, 0 failures, 24 skipped (Hazel's count from the JUnit XML; the planner confirmed the run's conclusion and head). GitHub CLEAN. The planner read the PR's file list (9 files) and searched its diff for added `@Ignore` or `assume` and removed assertions: none.
+- **In it:** 11 of 22 warnings fixed; the coder-profile scratch line; the completion report for #264 to #267 (`docs/audits/2026-10-19-tablet-search-bar-and-columns-completion-report.md`). Index row not yet written by the planner.
+- **Revert checks** R1 to R3 each failed on its own measurement (runs 39318390675, 39318493894, 39318501705), compile logs clean, 29 tests in each sample, baseline 39318277121 green.
+- **Hazel's disclosed slip:** a first runner chained R1 to R3 without stopping on errors and stacked two unpushed local commits; never run, deleted, re-done with a runner that stops on error.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1384.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1384
+**Timestamp:** 2026-10-19T21:15:42Z
+**Closes:** 2026-09-28-1375
+**Outcome:** completed
+**Observed:** PR #270 merged (-1383). The prediction held in part: the reverts each failed their own tests; 12 warnings were judged safe, not "about half", and one of them (`null -> Unit`) did not compile and was restored; the `launch(Job)` calls and sheet states went to the owner as predicted and were left (-1376).
+**Deviations:** the warning count was 22, not the dispatch's 23; one safe fix restored after a compile error.
+**Notes:** Written by the planner by hand, on branch records-after-173. The List content check and the last safe warning follow as -1385 (owner: "Add it (Recommended)", "Yes, with the List test (Recommended)"). Next free ID -1385.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1385
+**Timestamp:** 2026-10-19T21:15:42Z
+**Continues:** 2026-09-28-1384
+**Title:** List's content checked in the tablet column, and the last safe warning cleared by reading the state once (owner)
+**Dispatch-file:** preserved/2026-10-19-06.md, for Hazel Cairnwright
+**Scope:** branch list-content-check from pre-main 0d4bae4e; a test tag, one assertion, and `AvailabilityCompactMapUi.kt:2070-2074`; one PR into pre-main.
+**Baseline:** pre-main 0d4bae4e; release job prints 11 app warnings.
+**Prediction (outcome, planner):** the content revert fails only the new assertion; the warning count drops to 10 (the group (b) ones).
+**Finish line:** a green PR with the revert shown, merged on the owner's word.
+**Abort conditions:** the reshape not provably the same.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1386.
