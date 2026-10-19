@@ -22873,3 +22873,24 @@ All three screenshots are kept off GitHub.
   - The entry map holds still from the end of its arrival through the close.
 - **Deleted:** revert-journal-search-space-revert-1 and -2.
 **Notes:** Written by the planner by hand, on branch records-after-173. The device check restarts on the next pre-main build. Next free ID -1336.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1336
+**Timestamp:** 2026-10-19T01:12:20Z
+**Continues:** 2026-09-28-1335, 2026-09-28-1311
+**Title:** Final check on the S22, pre-main e431eba9, run by the planner by adb at the owner's word: steps 1 to 7 pass; step 8 only partly checked; the owner reports the S26 passed, but the build on it is unconfirmed
+**The owner, verbatim:** "S26 passed. Do the S22 device check while I check the tablet"
+**Observed on the S22 Ultra** (SM-S908U), Android 16, debug 1.0.3484+ge431eba9 from push run 39181134387. The planner ran it with `pm clear`, taps, `user_rotation` and `screencap`. The screenshots were deleted afterwards, because they show a real location.
+1. **Street first:** after clearing the data, Maps opened on Street. Topographical, once picked, was still showing after a force-stop and reopen. **Pass.**
+2. **Offline maps:** shows Street in portrait and landscape while the Maps tab is on Topographical. In landscape there is only Download Maps, with no OK or Cancel. **Pass.**
+3. **The logo:** at the bottom-right beside the "i", on Street and on Topo in portrait, and on the landscape Offline maps picker. On Topo in portrait it overlaps the end of the caption, as accepted in -1315. The short-landscape Maps tab case was not looked at. **Pass.**
+4. **The rail in landscape** (one rotation, user_rotation 1): Tools at the top, then Journal, Maps, Seasonal, and List at the bottom. **Pass.** The other rotation was not run.
+5. **The Tools drawer:** opened with no tint on the content behind it, and a tap outside closed it. **Pass.** Back was not tried.
+6. **The Journal in landscape,** on Offline maps: with search hidden, the switch line is at the top and there is space above the map. Tapping 🔍 put the bar at the top and the switch line below it. **The map's top edge did not move** (it was at the same place in both screenshots), and it went back on close. **Pass.** Screenshots can't show whether there is a stutter. **Observation:** the right-hand panel (Name, Radius) moves down with the reveal, pushing "Downloaded Maps" off the bottom. Nobody has ruled on that panel.
+7. **New entry open, then List, then Seasonal:** both show the search bar. On the Journal, the entry shows no 🔍 and the switch line sits at the top. **Pass.**
+8. **Every map opens:** the Maps tab and Offline maps opened. The entry, Records, Cartography and location-picker maps were **not checked**, because the cleared phone had no tracks, finds or entry map.
+- **The S26:** the owner reports a pass. When the planner last saw it, it had 1.0.3461+gd942e022, and it was not connected when e431eba9 was built. Which build the owner checked on is unconfirmed.
+- **The tablet:** the owner is checking it.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1337.
