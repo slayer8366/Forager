@@ -23794,3 +23794,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - The content check bites: revert 2 (run 39328396841) failed exactly the two List tests on the content's end edge (779 vs 1099), Hazel's prediction. Revert 1 (run 39326494053) was a no-op, the caller's `fillMaxSize()` overriding the edit.
 **Deviations:** two revert attempts, not one; the report-line correction (`:165` → `:88-92`) appended to the #270 report, original kept.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1392.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1392
+**Timestamp:** 2026-10-19T22:11:04Z
+**Continues:** 2026-09-28-1376
+**Title:** Remove the four pieces of dead UI code the survey found, as its own PR (owner)
+**Dispatch-file:** preserved/2026-10-19-09.md, for Hazel Cairnwright
+**Scope:** AvailabilityCompactMapUi.kt, CartographyEntryReportScreen.kt, MapChrome.kt and the files that import or name the four; branch remove-dead-ui from pre-main 70bc9489. Not PR 3's or PR 4's files.
+**Baseline:** pre-main 70bc9489.
+**Prediction (outcome, planner):** all four have no caller; about 250 lines removed; the suite identical; a handful of KDoc links turned to plain text.
+**Finish line:** a green PR with the S22 launch check passed, merged under the Phase 1 standing word.
+**Abort conditions:** any caller, or any other code change needed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Started now rather than after PR 4 (the plan's order), because a helper is free and the files don't overlap PR 3 or PR 4. Next free ID -1393.
