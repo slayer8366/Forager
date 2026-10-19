@@ -22972,3 +22972,22 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **The dispatch premise was wrong:** there is no wide tree or LogPanel (removed in -245). The planner took that premise from the September plan document without checking the code. It is recorded in Amendment 1 to 2026-10-18-10.
 - **Rejected:** B (more columns) and C (stretched cards); a 640 dp top line.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1341.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1341
+**Timestamp:** 2026-10-19T01:30:33Z
+**Continues:** 2026-09-28-1339, 2026-09-28-1301
+**Title:** The Pi's US and Canada build won't finish tonight (estimated about a day, unmeasured). Its schema is Protomaps v4.15.2, the one street-v1 expects, under a different archive name (Pi session report)
+**Observed,** per the Pi session raspberrypi-fizzy-lagoon, by message at about 01:26Z:
+- **The build:** `build-usca.sh` run usca-20261019T011311Z started at 18:13 PDT and is in its merge stage. Planetiler at this size has never been timed on the Pi; the estimate is about a day. Nothing goes to R2 without the planner's check and the owner's go.
+- **Name:** forager-usca.pmtiles (`USCA_EXTRACT_NAME`, map-build/pins.env on pi-build), not us.pmtiles. The R2 key can be renamed at upload. Whether the Worker reads the archive's internal name is unchecked.
+- **Schema:**
+  - Protomaps basemaps at commit ca93fc06, tiles 4.15.2, on Planetiler 0.10.2. That is the Protomaps v4 schema street-v1 is built for (planner's reading of -1314).
+  - Layers: boundaries, buildings, earth, landcover, landuse, places, pois, roads, water.
+  - A local patch adds sac_scale, trail_visibility, **informal**, tracktype, surface and foot to roads. So an informal-path field will exist, which -1299 found missing from us.pmtiles.
+- **Expected header:** mvt, gzip, z0 to 15, with wide bounds because of the Aleutians.
+- **Coverage gate:** eight points, including Anchorage, Honolulu and San Juan, each needing a z15 tile with roads and a routing square.
+**Consequence:** under -1339 and -1282, the Cloudflare Street can't pass its steps before tonight's release build unless the owner changes something. The owner is asked.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1342.
