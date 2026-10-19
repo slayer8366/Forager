@@ -22991,3 +22991,24 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Coverage gate:** eight points, including Anchorage, Honolulu and San Juan, each needing a z15 tile with roads and a routing square.
 **Consequence:** under -1339 and -1282, the Cloudflare Street can't pass its steps before tonight's release build unless the owner changes something. The owner is asked.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1342.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1342
+**Timestamp:** 2026-10-19T02:13:29Z
+**Continues:** 2026-09-28-1314, 2026-09-28-1316, 2026-09-28-1339
+**Title:** Work on Forager's own Street map starts now, for the next release, keeping #258's design (decisions 3 to 8); no OSM-look matching (owner)
+**The owner, verbatim:** "I also think we should immediately begin work on drawing our own maps, starting with street. Make it look close to OSM style we have now both night and day." Then, through the question tool:
+- "Keep #258's design", to: OSM look plus trails and POIs / OSM look only / keep #258's design;
+- "Start now, next release (Recommended)", to: start now for the next release / start now for this release.
+**What it sets:**
+- The own Street map is #258's street-v1, from decisions 3 to 8. Its day and night review starts now, aimed at the next release. Tonight's release goes ahead as planned.
+- The owner's first wording ("close to OSM style") is set aside by their own choice of "Keep #258's design".
+- -1339 (Cloudflare Street in this release if it passes) is now moot for tonight, because the review targets the next release.
+- **Next steps, to be put to the owner:**
+  1. The owner's hand deploy of the Worker and the R2 fonts and icons (Hazel's handover). Auto-deploy stays paused through tonight's promotion, or main's redeploy would put the old Worker back.
+  2. The planner builds an S22 review copy with the switch on, reading today's us.pmtiles (the lower 48).
+  3. Day and night review rounds.
+  4. The Pi's US and Canada file replaces us.pmtiles when it is ready.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1343.
