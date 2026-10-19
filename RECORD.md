@@ -23641,3 +23641,14 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **The owner, verbatim:** "It's in review, but everything I need to do is done". Also: "I know this is reverse of your recommendation, but I feel the smaller adds can be taken out before we get to the big boss", read by the planner as the smaller post-release items first and the own Street map (-1374's recommended pick, not chosen) after.
 **What it records:** -1367 recorded "Update is out" as published. The release was sent and is waiting on Google's review; the owner has nothing left to do for it. The planner records it as out only when the owner reports it live.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1381.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1381
+**Timestamp:** 2026-10-19T20:22:24Z
+**Continues:** 2026-09-28-1380, 2026-09-28-1376, 2026-09-28-1375
+**Title:** Elder audits the small-items batch together once it is all in pre-main (owner)
+**The owner, verbatim:** "Have Elder review it when done", then, through the question tool, "The small-items batch (Recommended)", whose option read: "Once the clean-up, the UI split moves and the dead-code removal are all in pre-main, Elder audits them together, as for a promotion."
+**What it sets:** when the release clean-up (-1375), the UI split Phase 1 moves (from -1377 on) and the dead-code removal have merged into pre-main, the planner starts Elder Ford (Fable, read only) on the range since main 19aa1058, against the QA philosophy, before any promotion. If Phase 1 runs long, the planner asks the owner whether to audit what has landed by then.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1382.
