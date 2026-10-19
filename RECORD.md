@@ -23388,3 +23388,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **The owner, verbatim:** "I ran it on 3292 and it passed also"
 **What it records:** -962 listed the 3292 certificate check under "Not checked" because no result reached the planner then. The planner read that as "skipped" and wrote it into -1361 as fact. Both 3292 and 3500 passed, by the owner's account.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1363.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1363
+**Timestamp:** 2026-10-19T11:32:50Z
+**Continues:** 2026-09-28-1360
+**Title:** Play's live Data safety answers match the app at build 3500; nothing to resubmit (owner's screenshots; planner checked against main)
+**Observed:** four Play Console screenshots from the owner (kept off GitHub), read against `docs/legal/forager-data-safety-2026-09-10.csv` on main and the code:
+- collects or shares data: yes; encrypted in transit: yes; no account creation and no outside login; deletion requests: yes, URL https://www.zynergy-labs.com/delete-data/ (answers HTTP 200);
+- data types: Location, Approximate and Precise, only; every other category 0;
+- preview: Location shared and collected (both kinds), deletion link, encrypted in transit. Save was greyed out: no changes were made.
+**Why it still holds:** photos and RAW files stay in app-private storage (`FilePhotoStore.kt:21`); backups go only to a folder the user picks; the app's outside hosts on main are iNaturalist, Open-Meteo and the map servers, all https, with no crash, analytics or device-ID service.
+**What it closes:** -1360's open data-safety review. With the listing fixes in -1360, T9 is done. Still open: the privacy policy's map-server wording.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1364.
