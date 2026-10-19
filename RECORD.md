@@ -23167,3 +23167,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - It goes in one PR into pre-main, merged under -1317, followed by a short tablet re-check.
 - -1319's owner question 1 is answered: the logo keeps beside the "i", bottom-left in short landscape.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1351.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-1351
+**Timestamp:** 2026-10-19T03:55:00Z
+**Continues:** 2026-09-28-1349, 2026-09-28-1348
+**Title:** On the tablet, two of Elder's unseen items now seen: the rail reads List at the bottom at ROTATION_270 too, and Back closes the untinted Tools drawer (planner's adb check, owner's word)
+**The owner, verbatim:** "The tablet is ready for you to use."
+**Observed on the tablet** (SM-X800, Android 16), build 1.0.3491+g0b93dde9, by the planner over adb. Screenshots were deleted afterwards.
+- **The rail at the other landscape rotation:** `dumpsys window` read ROTATION_270. The rail, on the right, reads Tools at the top, then Journal, Maps, Seasonal, and List at the bottom. **Pass.** -1336 covered the other rotation on the S22.
+- **The Tools drawer:** tapping Tools opened it from the right, with no tint on the content behind. Back closed it, and the rail showed again. **Pass.**
+- **The open search panel** at ROTATION_270 also starts at the screen's left edge. That is the case Amendment 2 to 2026-10-18-10 covers.
+- Rotation was restored to auto-rotate afterwards.
+**Still unseen:** TalkBack's actual reading; the entry page with a map on the tablet.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1352.
