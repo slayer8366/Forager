@@ -22853,3 +22853,23 @@ All three screenshots are kept off GitHub.
 - The test for "the map does not move" checks the entry map holds still from the end of its arrival until the entry closes.
 - **Hazel's measurement,** filtered run 39178444793: the map's top runs from -252 to 48 dp over about 15 frames on opening.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1335.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1335
+**Timestamp:** 2026-10-19T00:31:32Z
+**Continues:** 2026-09-28-1330, 2026-09-28-1333, 2026-09-28-1334, 2026-09-28-1317
+**Title:** PR #262 merged into pre-main at e431eba9 under -1317. It reverts #261, hides search for an open entry on the Journal only, and fixes the Journal's reveal in landscape so the switch line slides down with the bar while a map under it never moves (planner, on the owner's standing word)
+**What it records:**
+- **The merge:** gated on head 0048040b. pre-main went from 836916a9 to e431eba9.
+- **CI:** 39179637908 at bc3e6963 is green on all three jobs. 0048040b changes only the completion report and the audits index (`git diff --stat`, read by the planner). A run on 0048040b, 39181005412, was in progress at the merge.
+- **Revert checks:**
+  - R5 (part 1): run 39177184588, the two part-1 tests fail;
+  - R6 (the map's room): run 39178994354, the four Offline maps map tests fail.
+  Per Hazel's report, R6's two entry-map failures predate bc3e6963's -1334 adjustment.
+- **Hazel's measured results:**
+  - Offline maps in landscape, both rotations: the map holds at the same bounds through the reveal, and the switch line goes 0 → 36 dp and back.
+  - The entry map holds still from the end of its arrival through the close.
+- **Deleted:** revert-journal-search-space-revert-1 and -2.
+**Notes:** Written by the planner by hand, on branch records-after-173. The device check restarts on the next pre-main build. Next free ID -1336.
