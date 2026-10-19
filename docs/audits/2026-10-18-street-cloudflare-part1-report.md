@@ -564,3 +564,42 @@ The handover folder: `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/han
    - **(a)** All your areas draw in the new look from then on, the older ones too, with names; until then, the older look. **Recommended:** nothing changes look as you move around. *(As built.)*
    - **(b)** Each area keeps its own look, so the map changes look as you move from an older area into a newer one.
 2. **Ready for the first look on the phone?** After the deploy (steps 1 to 4), the planner can build a review copy of the app with the new Street switched on, for the S22 only. **Recommended:** yes, one round in daylight and one at night.
+
+---
+
+# Part 2, review round 1: night water (RECORD -1343, -1344)
+
+**The owner, verbatim (-1343):** "Pretty slick. I like the blue of the water, but looking at creeks is a bit dark against the other dark colors. Can the water be a little bit lighter in blue color?", then "Night only, lighter (Recommended)". **-1344:** "Pure inversion is easy yes, but we can go outside the purity for the UX."
+
+**Built (commit `d6497155`):**
+- At night the own Street's water fills and lines (the `water` fill, `water_stream`, `water_river`: rivers, creeks, lakes and the sea) are drawn `#8ec5f0` instead of the inversion's `#005864`. Day water is unchanged (`#80deea`). Water labels keep the inversion.
+- Where it lives: `NightColour.kt`, `STREET_NIGHT_WATER` and `streetNightRecolourOf`, called by the night recolour only for the own Street style (`streetWater = usesStreetSprite(source)`). The offline style keeps its inverted water, so today's app is unchanged. Layers are told apart by their vector source layer (`FillLayer`/`LineLayer.getSourceLayer()`, read with `javap` at 13.5.0).
+- Contrast: `#8ec5f0` is 3.28:1 on the night forest `#436d35`, 6.68:1 on the night grass `#2d3911`, 8.70:1 on the night ground `#24211c`. The inversion gave 1.35:1 on the forest.
+- The design value is `nightWater` in `map-style/overrides/forager-street.mjs`, recorded in the style's metadata (`forager:palette`). `NightWaterTest` holds the app's constant equal to it, holds 3:1 or better on the night forest and grass (computed with the app's own `nightColorOf`), checks that every water fill and line in the served style takes it while every other property is the plain inversion, and checks that the offline path's water is still inverted. `check-street-night` checks the same three pairs; its positive control, the inverted `#005864`, fails all three.
+- The Worker bundle changed only by the style's metadata: the handover `worker/index.js` is rebuilt, sha256 `1ef4df8ef0a40a14f5a69202a161b77eb3c1287bbf0d19afbeed4d4bb1506e38` (9/9 route tests).
+- pre-main `e431eba9` merged in (merge `368f125e`); the index conflict kept every row.
+
+**The previews were regenerated** into `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/renders/`, 20 files, overwriting round 0's. **The night images are now drawn the way the app draws night**, not as before: round 0's night images were the day render inverted pixel by pixel, which could not show a per-feature exception. Now each night image is the style with every walked colour put through V1 (the app's `nightColorOf`), the water set to `#8ec5f0`, and the icons from a V1-inverted copy of the sprite (the app inverts each icon image the same way). Script: `~/Zynergy/device-evidence/2026-10-18-street-cloudflare/scripts/night_style.py`. The map controls in the corners stay light in the night images; the app's own chrome is not part of this.
+
+## Other features that read weakly at night (measured; nothing applied, the owner chooses)
+
+Night colours are V1 of the day colours, measured against the night ground `#24211c`, night forest `#436d35` and night grass `#2d3911` (WCAG contrast). The proposed colours are night exceptions like the water's, each checked at the same three grounds.
+
+| Feature | Night now | Ground / forest / grass | Proposed night colour | Ground / forest / grass |
+|---|---|---|---|---|
+| Minor road edge (casing) | `#776f61` | 3.23 / **1.22** / 2.48 | `#c4bcae` | 8.52 / 3.21 / 6.54 |
+| Minor road centre | `#000000` | **1.31** / 3.48 / **1.70** | leave: the edge carries it once lightened | |
+| Service road edge | `#696153` | 2.62 / **1.01** / 2.02 | `#b3ab9d` | 7.05 / 2.65 / 5.41 |
+| Major road centre | `#634300` | **1.78** / **1.49** / **1.37** | `#e0ad4f` | 7.84 / 2.95 / 6.02 |
+| Highway centre | `#965f02` | 3.01 / **1.13** / 2.31 | `#f0c060` | 9.48 / 3.57 / 7.28 |
+| Railway | `#495355` | 2.03 / **1.31** / **1.56** | `#b4bec0` | 8.45 / 3.18 / 6.49 |
+| Boundaries | `#525252` | 2.05 / **1.29** / **1.58** | `#bdbdbd` | 8.54 / 3.21 / 6.56 |
+| The dot (six outdoor places, and towns), its ring | `#797979` | 3.68 / **1.39** / 2.83 | `#d6d6d6` | 11.04 / 4.15 / 8.47 |
+| Toilets and drinking-water icons, their ring | `#655e89` | 2.69 / **1.01** / 2.06 | `#c6bfea` | 9.20 / 3.46 / 7.06 |
+| Footpaths (dashes) | `#ed8a6f` | 6.47 / 2.43 / 4.97 | optional `#f6a58b` | 8.15 / 3.07 / 6.26 |
+| Vehicle tracks | `#cfaa85` | 7.44 / 2.80 / 5.71 | optional `#e2c09c` | 9.36 / 3.52 / 7.19 |
+| Park outline | `#9cd898` | 9.69 / 3.65 / 7.44 | none needed | |
+| Labels (text on halo) | `#d9d9d9` on `#000000` | 14.9 on their own halo | none needed | |
+| Buildings (fill) | `#333333` | 1.27 / 2.09 / 1.03 | low priority: a fill, not a line | |
+
+Two notes on the table. The icon figures are each icon's two most common opaque colours read from the pinned sprite, not a rendered measurement. A road's centre and edge read together, so lightening the edges alone may be enough for minor and service roads; the major road and highway centres are the ones that go darkest.
