@@ -23420,3 +23420,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Abort conditions:** a premise is wrong; a difference between copies that is not plainly the newer version of the same sentence.
 **Also recorded:** the Cloudflare invoice for $5.00 (IN-84526798, due 2026-10-19), shown by the owner, is the Workers Paid plan confirmed in -1301.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1365.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1365
+**Timestamp:** 2026-10-19T11:56:56Z
+**Closes:** 2026-09-28-1364
+**Outcome:** completed
+**Observed:**
+- Hazel's three edits in both copies, then a stop at step 4: the copies differ in about 14 places of content, not only register (already recorded as diverged in 7dd60224). The owner, through the question tool: "Ship the 3 edits now (Recommended)" and, of the site's Beta testing section, "Leave it for now (Recommended)". Nothing was carried between copies.
+- Forager PR #269 (head b8e26408, docs only, `[skip ci]`) merged into pre-main at b2d2f4d5; zynergy-site PR #19 (head 1d1d7cde) merged into its main at df15222b. The owner: "Merge both (Recommended)". The planner read both diffs on GitHub before merging: one file each, the three edits only.
+- **Live check, planner, at 11:56Z:** zynergy-labs.com/privacy/ reads "Last updated: 19 October 2026 … on Google Play", with no `nationalmap` or `demotiles`, about 30 s after the merge.
+- **Listing, same session:** the owner accepted the four listing lines through the question tool (lower-48 offline note, "anywhere in the world", "Every outing becomes an entry", the eating disclaimer). Whether the console's listing now holds the final text is not checked.
+**Deviations:** none from the dispatch. The prediction that the diff would carry back cleanly was wrong: it stopped.
+**Deferred to the post-release list:** reconciling the two policy copies (Hazel's B list, 14 items, in the report relayed this session), including the site's Beta testing section and the repo's untrue "generated from" claim.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1366.
