@@ -23779,3 +23779,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1391.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1391
+**Timestamp:** 2026-10-19T22:10:13Z
+**Closes:** 2026-09-28-1385
+**Outcome:** completed
+**Observed:**
+- PR #273 merged into pre-main at 70bc9489 on the owner's word (-1389), gated on head daf2a0ee, which contains pre-main 7c4681de (the merge touched none of #273's files). Backup bundle of 7c4681de, verified. No `@Ignore`, `assume` or removed assertion in the diff (planner's search).
+- CI 39331213779 on daf2a0ee green on all three jobs; 5,160 tests, 0 failures (Hazel's count); release job 10 app warnings, all group (b).
+- **S22 launch check, planner, about 22:20Z:** APK 1.0.3517+gdaf2a0ee. "PASS: verified (status=verify), launched, process 32411 alive after 8 s, crash buffer empty." No Forager service running before install.
+- The content check bites: revert 2 (run 39328396841) failed exactly the two List tests on the content's end edge (779 vs 1099), Hazel's prediction. Revert 1 (run 39326494053) was a no-op, the caller's `fillMaxSize()` overriding the edit.
+**Deviations:** two revert attempts, not one; the report-line correction (`:165` → `:88-92`) appended to the #270 report, original kept.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1392.
