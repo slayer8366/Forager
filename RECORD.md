@@ -23043,3 +23043,28 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - Each departure is named in the style and checked by the day/night contrast check, so night stays readable.
 - The previews and the owner's phone review decide each case.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1345.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1345
+**Timestamp:** 2026-10-19T02:47:57Z
+**Continues:** 2026-09-28-1344, 2026-09-28-1343
+**Title:** Street style, round 2: roads, railways, boundaries, place dots and icon rings get their own night colours; trails stay as they are (owner)
+**The owner, verbatim,** through the question tool: "Roads (Recommended), Railways + boundaries (Recommended), Place dots + icon rings (Recommended)". "Trails a touch brighter" was not chosen.
+**What it sets:** Hazel's proposed night colours, measured against the night forest (`docs/audits/2026-10-18-street-cloudflare-part1-report.md`, round 1, on street-cloudflare):
+
+| Feature | Now | Proposed | Contrast now → proposed |
+|---|---|---|---|
+| Minor road edge | #776f61 | #c4bcae | 1.22 → 3.21 |
+| Service road edge | #696153 | #b3ab9d | 1.01 → 2.65 |
+| Major road centre | #634300 | #e0ad4f | 1.49 → 2.95 |
+| Highway centre | #965f02 | #f0c060 | 1.13 → 3.57 |
+| Railway | #495355 | #b4bec0 | 1.31 → 3.18 |
+| Boundaries | #525252 | #bdbdbd | 1.29 → 3.21 |
+| Place-dot ring | #797979 | #d6d6d6 | 1.39 → 4.15 |
+| Toilets and drinking-water icon ring | #655e89 | #c6bfea | 1.01 → 3.46 |
+
+- Footpaths and tracks keep their inverted night colours (2.43 and 2.80).
+- **Context:** the round 1 previews were copied to the S22 gallery (Pictures/Forager-street-preview-r1), replacing round 0's.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1346.
