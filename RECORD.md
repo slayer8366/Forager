@@ -23183,3 +23183,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - Rotation was restored to auto-rotate afterwards.
 **Still unseen:** TalkBack's actual reading; the entry page with a map on the tablet.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1352.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1352
+**Timestamp:** 2026-10-19T04:08:42Z
+**Continues:** 2026-09-28-1350, 2026-09-28-1317
+**Title:** PR #264 (the tablet search bar and its open panel in the 960 dp column; known-bugs updates) merged into pre-main under -1317; its revert branch deleted (planner, on the owner's standing word)
+**What it records:**
+- **The merge:** gated on head 6d28f4f9. The PR's full CI run was green, and GitHub reported CLEAN.
+- **Revert check:** tablet-search-bar-revert-1 (d885472c), run 39197332501. The log shows 0 compile errors, and 62 tests ran with 2 failures: `TabletJournalLayoutTest` "landscape tablet at ROTATION_270 / ROTATION_90 the revealed search bar and its open panel sit in the 960 dp column" (`:396`). Both are this change's own tests (read by the planner from the job log).
+- **Deleted:** tablet-search-bar-revert-1.
+- **Known-bugs updates per -1350:** row 2's rate, row 7's Where, and two new rows. This is per the commit message; the planner has not re-read the rows.
+**Notes:** Written by the planner by hand, on branch records-after-173. Hazel's report is not yet in. Next: pre-main CI, then a tablet look. Next free ID -1353.
