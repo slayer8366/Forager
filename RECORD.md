@@ -23197,3 +23197,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Deleted:** tablet-search-bar-revert-1.
 - **Known-bugs updates per -1350:** row 2's rate, row 7's Where, and two new rows. This is per the commit message; the planner has not re-read the rows.
 **Notes:** Written by the planner by hand, on branch records-after-173. Hazel's report is not yet in. Next: pre-main CI, then a tablet look. Next free ID -1353.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1353
+**Timestamp:** 2026-10-19T04:13:00Z
+**Continues:** 2026-09-28-1352, 2026-09-28-1350
+**Supersedes:** -1238's "at the left", for tablets only
+**Title:** On tablets, List and Seasonal's search bar and open panel line up with their content column, as the Journal's do; phones keep the bar at the left (owner)
+**The owner, verbatim:** "Yes move those tabs also. Those were the ones I was mainly complaining about", then, through the question tool, "Line up with their content (Recommended)". The alternatives were the Journal's 960 dp everywhere, or widening those tabs to 960.
+**What it sets:**
+- On tablets in landscape, on List and Seasonal, the bar and its open panel are centred at their content column's width (640 dp per Hazel; to be confirmed), edges aligned.
+- The Journal keeps 960 dp (#264).
+- Phones are unchanged.
+- Built as Amendment 3 to dispatch 2026-10-18-10, on branch tablet-search-bar-2, before release.
+**Notes:** Written by the planner by hand, on branch records-after-173. The owner's earlier "search bar in the journal… For tablets" (relayed in -1350's work) was mainly about these two tabs. The planner read it as the Journal only. Next free ID -1354.
