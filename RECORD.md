@@ -22911,3 +22911,26 @@ All three screenshots are kept off GitHub.
   - the entry page is spread out the same way.
   Timing is to be asked: this release or the next.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1338.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1338
+**Timestamp:** 2026-10-19T01:19:31Z
+**Continues:** 2026-09-28-1337, 2026-09-28-1336
+**Title:** The S26 passed on build 3484; the Offline maps panel moving down on the reveal is accepted as a quirk for now; the tablet's Journal layout is fixed before the launch release, dispatch 2026-10-18-10 (owner)
+**The owner, verbatim:** "I checked build 3484. / The panel moving down is fine. It's not a main feature and that can be a quirk for now. / Fix it before. This is our launch, and the actual usage for tablets is small, but not non-existent. I want it to at least appear polished and intentional."
+**What it sets:**
+- **The S26:** the final check passed on 1.0.3484+ge431eba9 (pre-main e431eba9), by the owner's account. That closes -1336's open question.
+- **The Offline maps right-hand panel** sliding down with the search reveal is accepted for now, and is to go on the known-bugs list as a quirk.
+- **The tablet Journal layout** (-1337) is built before the launch:
+  - a square map with its info beside it;
+  - the entry page and the lists use the width;
+  - phones unchanged.
+  The phone's 640 dp cap (P11) has no recorded reason beyond O4, and the owner's words set the tablet's layout. The dispatch is preserved/2026-10-18-10.md, and it stops on any layout choice the owner hasn't made.
+- **Promotion state:**
+  - S22: pass, with partial step 8 (-1336);
+  - S26: pass;
+  - tablet: pass on the checks, with this layout work pending;
+  - Elder's audit covers up to d942e022, so the rest of tonight's range needs a top-up before the promotion.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1339.
