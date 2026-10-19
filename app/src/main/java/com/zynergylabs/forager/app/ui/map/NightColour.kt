@@ -107,7 +107,7 @@ private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", 
  */
 internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: String?): NightRecolour =
     if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
-        NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
+        offlineNightRecolourOf(property)
     } else {
         offlineNightRecolourOf(property)
     }
