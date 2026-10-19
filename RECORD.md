@@ -23436,3 +23436,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Deviations:** none from the dispatch. The prediction that the diff would carry back cleanly was wrong: it stopped.
 **Deferred to the post-release list:** reconciling the two policy copies (Hazel's B list, 14 items, in the report relayed this session), including the site's Beta testing section and the repo's untrue "generated from" claim.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1366.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1366
+**Timestamp:** 2026-10-19T12:36:14Z
+**Continues:** 2026-09-28-1360
+**Supersedes:** -1360's title and claim that build 3500 is published
+**Title:** Build 3500 is not published: the bundle is a draft. Submission 7's "Published" at 04:02 PDT was other console changes, not the release (owner's screenshots)
+**The owner, verbatim:** "I don't think my release submitted", then "It shows uploaded".
+**Observed,** from the owner's Play Console screenshots (kept off GitHub): All app bundles lists 3500 (uploaded Oct 19, 10:49 AM) as Inactive and the Oct 13 bundle (3292) as Active; 3500.aab (1.0.3500+g19aa1058) reads "Draft, Uploaded today, 3:49 AM". The earlier Production screenshot read "Inactive · Draft release: 3500".
+**What it corrects:** -1360 read the Submission 7 "Published" screen as the release. The planner did not ask what Submission 7 contained, and the earlier "Draft release" line was in view. What Submission 7 published is inferred (likely the country targeting, perhaps the listing), not known.
+**Next:** the owner sends draft release 3500 for review from Production. The live app is still 3292 on closed testing.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1367.
