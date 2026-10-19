@@ -23124,3 +23124,27 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Observation, not a gate:** in landscape on the tablet, the revealed search bar starts at the screen's left edge and runs about 1,040 dp. It is not aligned with the centred 960 dp block beneath it.
 - **Not checked:** the entry page with a map (no entry on the tablet has a map); the other landscape rotation; the Maps tab layout beyond a glance. On the Maps tab, the logo sat bottom-left beside the "i" and the caption: the short-landscape placement (-1315).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1349.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1349
+**Timestamp:** 2026-10-19T03:37:25Z
+**Continues:** 2026-09-28-1346, 2026-09-28-1308
+**Title:** Elder's second top-up audit, main 969ecf0a → pre-main 0b93dde9: pass with items (seven, none a block); two planner slips in the record found
+**Report-file:** preserved/2026-10-18-11-promotion-topup-audit-2-report.md (filed as received). Elder Ford ran on Fable, read-only.
+**Observed:**
+- **Verdict:** pass with items. CI at 0b93dde9: attempt 1 red on known-bugs row 2's test; attempt 2 green (5,149 tests, 0 failures). The tree is identical to the green PR head.
+- **Tests in the range:** 0 removed, 55 added, 3 replaced in place, each quoting its old assertion. ci.yml is untouched.
+- **Items:**
+  1. The row 2 test's rate tonight is 3 of 27 full runs, about 11%.
+  2. The rail order departs from convention (an owner ruling). Worth a release-note line.
+  3. With the drawer undimmed, a tap on the rail behind it only closes the drawer (owner ruling -1313; recorded, not raised).
+  4. Row 7 is mislabelled "New": the panel jump is already live on main, as a cruder jump.
+  5. Tablet: the search pill isn't aligned to the 960 column (the planner saw this too on the tablet, -1348).
+  6. The short-landscape Maps tab logo sits bottom-left; the owner hasn't answered that (-1319 question 1).
+  7. Known-bugs needs: row 2's rate; row 7's label; new rows for the logo over the Topo caption, and the probable two-line Topo night caption.
+- **Planner slips found:**
+  - -1325 merged #261 while its head's run 39172914080 was still in progress. That run finished red on row 2's test, and -1325 never recorded it.
+  - -1329 cites main's `:1271`; the bare hide on every tab is main's `:998`. The conclusion stands.
+**Notes:** Written by the planner by hand, on branch records-after-173. -1325 and -1329 are corrected by this entry, not edited. Next free ID -1350.
