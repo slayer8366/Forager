@@ -23260,4 +23260,5 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   - Phones, and Seasonal on a tablet in portrait, stay at 640.
 - **Hazel's note:** Seasonal's 640 cap was deliberate, for reading width (`AvailabilitySeasonalUi.kt:71-75`). The owner's answer overrides it on tablets in landscape, so Seasonal's text and table run about 928 dp wide there.
 - **Tests:** written, not compiled. One pre-main run was triggered on b05db019 (39199565610). The run on 019c339d (39198777067), for #265, was already running and is left to finish.
+- **Run 39198777067 (019c339d) was cancelled** at the owner's word ("Stop that first one and let the last one go"), so that 39199565610 (b05db019), which covers everything in it, could start. It was in progress and had no result. b05db019 started right after.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1356.
