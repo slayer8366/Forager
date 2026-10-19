@@ -23564,3 +23564,68 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a green PR into pre-main with the report, and group (b) brought to the owner.
 **Abort conditions:** a revert that cannot fail its tests (the test would then be proven not to hold its claim, itself a finding to report); a group (a) fix that changes a test's result.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1376.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1376
+**Timestamp:** 2026-10-19T20:21:03Z
+**Continues:** 2026-09-28-1374, 2026-09-28-1375, 2026-09-28-1326
+**Title:** The planner writes no code or scripts; UI split Phase 1 goes, two helpers in parallel, under a standing merge word; dead code removed in its own PR; the risky warning fixes are left; forecast PR #10 to merge (owner)
+**The owner, verbatim,** through the question tool:
+- "Have all coders do the write work. Planner is a read only role. But go on your parallel option", to the Phase 1 go;
+- asked what "read only" covers (code and scripts, plans, dispatch files, record entries): "Code and scripts (Recommended)";
+- "Standing word (Recommended)" for merging each Phase 1 PR into pre-main;
+- "Yes, own small PR (Recommended)" for removing the survey's four pieces of dead code;
+- "Merge it (Recommended)" for forager-forecast PR #10 (relayed to Alder);
+- "Leave them (Recommended)" for the group (b) warnings in -1375 (six `launch(Job)` calls, two `MenuBook` icons, two bottom-sheet states).
+**What it sets:**
+- **Planner's role:** no code and no scripts, however small; plans, dispatches and record entries stay the planner's. The planner's own /tmp sweep script and timer (-1374) were written before this ruling; a coder reviews and takes them over (dispatch preserved/2026-10-19-05.md, intent -1379). Disclosed: the planner wrote them.
+- **Phase 1** of `docs/plans/2026-10-19-ui-split-plan.md` starts with PR 1 (dispatch 2026-10-19-03, intent -1377) and PR 2 (2026-10-19-04, intent -1378), one helper per folder. **Standing merge word:** the planner merges each when CI is green, the five proofs are complete and the S22 launch check passes; any difference found stops and comes to the owner.
+- **Clean-up (-1375):** the planner answered Hazel's verify-first as technical calls: R1 narrowed to List only; five warnings moved to the safe group (`contentPadding` → `contentPaddingWithoutLabel`, identical in the library's code; `queue.poll()!!` in TrackSelfJoin); the List test's missing content assertion to be reported, not added, and brought to the owner. The warning count is 22, not 23 (Hazel, from CI's release-compile log).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1377.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1377
+**Timestamp:** 2026-10-19T20:21:03Z
+**Continues:** 2026-09-28-1376
+**Title:** UI split Phase 1, PR 1: the navigation card's plain rules out of NavigationHud.kt into four files (owner)
+**Dispatch-file:** preserved/2026-10-19-03.md, for Hazel Cairnwright
+**Scope:** NavigationHud.kt and four new files in ui/availability; branch split-navhud-rules.
+**Baseline:** pre-main b2d2f4d5.
+**Prediction (outcome, planner):** about 570 lines move; the declaration set differs only by the size constants made internal; the suite is identical case by case.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any difference in tests, declarations or the dex report.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1378.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1378
+**Timestamp:** 2026-10-19T20:21:03Z
+**Continues:** 2026-09-28-1376
+**Title:** UI split Phase 1, PR 2: the map's camera, credit and location-dot helpers out of SightingsMap.kt into three files (owner)
+**Dispatch-file:** preserved/2026-10-19-04.md, for Hazel Cairnwright
+**Scope:** SightingsMap.kt and three new files in ui/map; branch split-map-camera-credit.
+**Baseline:** pre-main b2d2f4d5.
+**Prediction (outcome, planner):** about 420 lines move; the three misplaced KDoc blocks travel exactly; the suite is identical; the S22 launch check passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any difference in tests, declarations or the dex report.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1379.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1379
+**Timestamp:** 2026-10-19T20:21:03Z
+**Continues:** 2026-09-28-1376
+**Title:** Review and take over the planner's /tmp sweep script and timer (owner)
+**Dispatch-file:** preserved/2026-10-19-05.md, for Hazel Cairnwright
+**Scope:** ~/.local/bin/tmp-sweep.sh and the two user systemd units; no repo change.
+**Baseline:** pre-main b2d2f4d5.
+**Prediction (outcome, planner):** small fixes for edge cases (odd names, unreadable entries), plus a dry-run flag.
+**Finish line:** the report, with the dry run shown.
+**Abort conditions:** a premise wrong; anything needing root.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1380.
