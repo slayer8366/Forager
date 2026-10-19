@@ -23652,3 +23652,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **The owner, verbatim:** "Have Elder review it when done", then, through the question tool, "The small-items batch (Recommended)", whose option read: "Once the clean-up, the UI split moves and the dead-code removal are all in pre-main, Elder audits them together, as for a promotion."
 **What it sets:** when the release clean-up (-1375), the UI split Phase 1 moves (from -1377 on) and the dead-code removal have merged into pre-main, the planner starts Elder Ford (Fable, read only) on the range since main 19aa1058, against the QA philosophy, before any promotion. If Phase 1 runs long, the planner asks the owner whether to audit what has landed by then.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1382.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1382
+**Timestamp:** 2026-10-19T20:32:02Z
+**Closes:** 2026-09-28-1379
+**Outcome:** completed
+**Observed:** Hazel's review of the planner's /tmp sweep (dispatch 2026-10-19-05), report relayed in this session:
+- **A real safety bug in the planner's script, reproduced before the fix:** an error from the "anything recent inside?" check (an unreadable subfolder) read the same as "nothing recent", so a folder in use could be partly deleted. Fixed: the check's exit code is read, and anything not fully readable is kept and logged.
+- Also fixed: folders held open by running programs (open files, mapped files, sockets, working directories) are kept; age uses ctime, which can't be backdated; failures are logged and exit non-zero; names with spaces or newlines; no crossing mounts; a lock against two runs at once; a `--dry-run` flag. The two systemd units were reviewed and left unchanged.
+- 14 fixture cases on a scratch folder, all as expected. The originals are kept at `/mnt/work/scratch/tmp-sweep/orig/`.
+- **Planner's own check, read only, 20:31Z:** `tmp-sweep.sh --dry-run` printed "would delete 0, failed 0, kept in use 2" and exited 0; the timer is enabled, next run Sun 2026-10-25 03:30 PDT; no log written by the dry run, as Hazel said.
+**Deviations:** none. The prediction "small fixes for edge cases" understated it: one fix was a safety bug the planner wrote.
+**Not checked:** delete mode on the real /tmp (first run 2026-10-25); a write landing in the instant between check and delete; other users' processes.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1383.
