@@ -23347,3 +23347,21 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - main is at 19aa1058, the production promotion. The release build, T9 and the upload are next, on the owner's laptop.
 - After the release: Elder's items, the Street style (#258, held), the Pi build, and the UI split plan.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1360.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1360
+**Timestamp:** 2026-10-19T11:13:19Z
+**Continues:** 2026-09-28-1358, 2026-09-28-1356
+**Title:** Forager's first production release is published: 3500 (1.0.3500+g19aa1058) from main, in all 178 countries, with the revised store description and release notes (owner)
+**The owner, verbatim:** "Publishing went very fast too", with a Play Console screenshot (kept off GitHub): Submission 7, changes submitted Oct 19, 2026, 3:51 AM, status Published on Oct 19, 2026, 4:02 AM (Pacific, by the console's clock against the planner's `date -u`).
+**What it records:**
+- **The build:** the owner ran `./gradlew bundleRelease` on the laptop from main 19aa1058. The production track's draft read "3500 (1.0.3500+g19aa1058)" in the owner's earlier screenshot, matching main's commit count (3500, read by the planner with `git rev-list --count`).
+- **First attempt killed by memory:** the kernel's global out-of-memory killer ended two Java processes (about 2.6 and 2.9 GB) at 03:29 and 03:34Z. The cause was 4.3 GB of helpers' scratch in `/tmp`, which is a RAM disk on this laptop, with swap full. At the owner's word ("Yes, delete them"), the planner deleted `/tmp` entries older than six hours, skipping the live sessions' folder and system entries: `/tmp` went to 1.2 GB and available memory from 3.7 to 5.6 GB. Alder held the forecast coder and the overnight job at the owner's "Have the laptop coder pause for a bit"; that hold is still in place until the owner says go.
+- **The signing check** (the bundle's SHA-256 against forager-SHA.txt) was given to the owner; no result was reported to the planner.
+- **Production access:** granted earlier, per -1209's notes (applied for in -1058). The planner wrongly raised it as a possible blocker tonight and corrected that.
+- **Countries:** all 178 targeted, the owner's choice ("Keep all 178"), because iNaturalist and the other features work worldwide; offline downloads cover the lower 48 states only, and the description says so.
+- **T9, store listing:** the planner checked the owner's description against main. Three claims were fixed: the camera permission (the app now declares CAMERA, `AndroidManifest.xml:23`), where location goes (map servers see the area viewed), and the beta line. Added at the owner's word: backup and restore, "all but your backups" on uninstall, section headings, worldwide iNaturalist, and the lower-48 offline line. The final pasted text was not read back by the planner. Data-safety answers were not reviewed, and the privacy policy's map-server wording was not checked.
+- **Release notes:** the planner's draft from all 72 app commits since 3292 (497423d6), with the owner's edits: RAW left out ("Leave it out") and "Camera UI fixes".
+**Notes:** Written by the planner by hand, on branch records-after-173. Open after the release: the data-safety review, the privacy policy's map-server line, closing entries for -1266, -1270, -1273, -1298, -1302 and -1324, and the handoff's post-release list. Next free ID -1361.
