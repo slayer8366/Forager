@@ -23235,3 +23235,21 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - The first compile will be the owner's release build, or any later CI run on pre-main.
 - The pre-main push run on e0975dec (#264) was in progress at the merge. It covers #264, not #265.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1355.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1355
+**Timestamp:** 2026-10-19T04:25:02Z
+**Continues:** 2026-09-28-1354, 2026-09-28-1353, 2026-09-28-1340
+**Supersedes:** -1353's 640 dp column for List and Seasonal on tablets
+**Title:** On tablets, List and Seasonal widen to the Journal's 960 dp column, so all three tabs match; built under the same CI pattern as -1354 (owner)
+**The owner, verbatim:** "Good. Make season and list the same", then, through the question tool, "Same as the Journal (960)". The other options were "Same as each other (done)" and "Something else".
+**What it sets:**
+- On tablets beside the rail, List and Seasonal content is capped at 960 dp and centred, as the Journal is.
+- The search bar and its open panel line up with it.
+- Phones keep 640 dp.
+- Built as Amendment 4 to dispatch 2026-10-18-10, on tablet-list-seasonal-960:
+  - the branch commits carry `[skip ci]`;
+  - one pre-main CI run is triggered after the merge (the owner's "Trigger the pre-main CI but no other branches run CI for this. Just this task").
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1356.
