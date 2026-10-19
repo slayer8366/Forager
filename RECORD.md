@@ -23809,3 +23809,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a green PR with the S22 launch check passed, merged under the Phase 1 standing word.
 **Abort conditions:** any caller, or any other code change needed.
 **Notes:** Written by the planner by hand, on branch records-after-173. Started now rather than after PR 4 (the plan's order), because a helper is free and the files don't overlap PR 3 or PR 4. Next free ID -1393.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1393
+**Timestamp:** 2026-10-19T22:32:30Z
+**Closes:** 2026-09-28-1387
+**Outcome:** completed
+**Observed:**
+- PR #275 (UI split Phase 1, PR 4: RecordDetailsSheet.kt into five files) merged into pre-main at a9c154bb under the standing word, gated on head 22947c80, which contains pre-main 70bc9489 (neither of its two pre-main merges touched its files). Backup bundle of 70bc9489, verified.
+- **Proofs (Hazel):** colour-moved diff fully classified (including two `@Composable` lines too short for move detection, shown identical by proof 3); 73 declarations, differing only in the 11 accepted widenings; four files `cmp`-identical with bite runs on three failure kinds; suite identical, 5,160 cases, baseline 39328525450 vs head 39328636404 and merged head 39333751630. RecordDetailsSheet.kt 736 → 201; new files 97, 226, 136, 132.
+- **Dex:** the nine listed methods identical; scanned total +6: four getters for the widened `Dp` values and two `<clinit>` methods (Hazel, from dexdump). Ruled by the planner as compiler-generated, not the stop meant, as for PR 1.
+- **S22 launch check, planner, about 22:55Z:** APK 1.0.3521+g22947c80. "PASS: verified (status=verify), launched, process 5217 alive after 8 s, crash buffer empty." No Forager service running before install.
+**Deviations:** none. The prediction held.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1394.
