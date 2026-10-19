@@ -23086,3 +23086,20 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Measured under Robolectric** (zero insets): the landscape tablet map is 720×720, with the controls at 240 dp. **Not verified:** on the real tablet, with real insets, the height should decide the square.
 - **Deleted:** tablet-journal-layout-revert-1 to -6.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next: the pre-main build for the owner's tablet check, then Elder's top-up audit. Next free ID -1347.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1347
+**Timestamp:** 2026-10-19T03:17:04Z
+**Continues:** 2026-09-28-1346, 2026-09-28-1335
+**Title:** pre-main's push CI on 0b93dde9 failed one test in the parked flaky group (known-bugs row 2), on a tree identical to a green PR head; the failed job is re-run; the group failed in 3 of roughly 12 full runs today (planner)
+**Observed:**
+- **The failure:** run 39192861476 at 0b93dde9, 5,149 tests and 1 failed: `MushroomLogViewModelWiringTest` "an album photo deleted through the Journal's ViewModel leaves the Maps tab's records" (`:98`).
+- **Same code as a green run:** the tree of 0b93dde9 equals that of PR #263's head 0f13928b (both 1c88bf63), and run 39191645892 on 0f13928b was green.
+- **Today's red runs in this class:**
+  - 39170164409 (3b2f46b7) and 39172914080 (ed35e8b2), both "a find deleted…";
+  - this one, "an album photo deleted…".
+  Known-bugs row 2 gives "about 6% of CI runs". Today's rate looks higher. The count of full runs is the planner's rough tally, not an exact census.
+- **Action:** `gh run rerun 39192861476 --failed`. The test was not touched. The promotion gate needs CI green on pre-main.
+**Notes:** Written by the planner by hand, on branch records-after-173. This is a datum for the owner's parked flake hunt (memory "flake-hunt-deferred"; -348, -349). Next free ID -1348.
