@@ -23739,3 +23739,43 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any difference in tests, declarations or the dex report beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. PR 3 (SightingsMap layers) waits for #272 under the freeze rule. Next free ID -1388.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1388
+**Timestamp:** 2026-10-19T21:54:59Z
+**Continues:** 2026-09-28-1378, 2026-09-28-1386
+**Title:** PR #272 (UI split Phase 1, PR 2: the map's camera, credit and location-dot helpers into three files) merged into pre-main at 7c4681de under the standing word; S22 launch check passed on both splits together (planner)
+**What it records:**
+- **The merge:** gated on head 85383518, which contains pre-main 7dc82ab2 (checked with `git merge-base --is-ancestor`); pre-main 7dc82ab2 → 7c4681de. Backup bundle of 7dc82ab2, verified.
+- **Gates:** CI 39328283670 (workflow_dispatch, head 85383518) green on all three jobs; 5,160 cases, 0 differences from baseline 39320782834 (Hazel's count). Proofs 1 to 3 re-run against 0d4bae4e after #270 touched SightingsMap.kt (:988, :990, inside the function, now :972, :974); not re-run after #271 (no `ui/map` file in that merge). 105 declarations, differing only in the four widenings (`applyCameraRestore`, `applyCameraFrame`, `activateLiveLocationIfPermitted`, `SIGHTINGS_MAP_TAG`). SightingsMap.kt 2,753 → 2,309; new files 98, 170, 199. Dex: the same nine methods; total −3 helper accessors, +1 `<clinit>`.
+- **S22 launch check, planner, about 21:52Z:** APK 1.0.3512+g85383518. "PASS: verified (status=verify), launched, process 30346 alive after 8 s, crash buffer empty." No Forager service running before install.
+- **Hazel's corrections, disclosed:** the run first cited for bfaaa08b (39326152344) was the pull_request run, not Hazel's own dispatch run; same tree, results stand. The committed dex baseline file is stale on pre-main (6 new, 3 grew, all in AvailabilityCompactScaffoldKt, AvailabilityScreenKt and JournalTabKt), predating this work.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1389.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1389
+**Timestamp:** 2026-10-19T21:54:59Z
+**Continues:** 2026-09-28-1385
+**Title:** PR #273 (the List content check and the last safe warning) merges once it has caught up with pre-main and passed the S22 launch check (owner)
+**The owner, verbatim:** "Merge when checked (Recommended)", whose option read: "Hazel merges in the latest pre-main, CI re-runs, I run the S22 check, then I merge. Any failure comes back to you."
+**What it records:** #273 (head a8eb8e5e, CI 39326533271 green, 5,160 tests) adds `LIST_CONTENT_TAG` and a content-edge assertion, and reads `pendingAction` once. Revert 1 (run 39326494053) changed nothing measurable: the caller's `fillMaxSize()` overrode the edit, so the check rightly passed and proved nothing. Revert 2 (run 39328396841, at the call site) failed exactly the two List tests on "List's content … ends where the column … ends expected:<1099.0> but was:<779.0>", Hazel's recorded prediction. The release job prints 10 app warnings, all group (b).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1390.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1390
+**Timestamp:** 2026-10-19T21:54:59Z
+**Continues:** 2026-09-28-1388
+**Title:** UI split Phase 1, PR 3: the map's layer and data helpers out of SightingsMap.kt into six files (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-08.md, for Hazel Cairnwright
+**Scope:** SightingsMap.kt and six new files in ui/map; branch split-map-layers from pre-main 7c4681de.
+**Baseline:** pre-main 7c4681de; SightingsMap.kt 2,309 lines.
+**Prediction (outcome, planner):** about 900 lines move; the widest widening list of the series; SightingsMap.kt ends near 1,400 lines; suite identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1391.
