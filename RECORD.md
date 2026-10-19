@@ -23227,20 +23227,11 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **PR #264 (the Journal bar)** already had a green PR run (39195879726). The pre-main push run after its merge was already running at this ruling, and is left to finish, not cancelled.
 - **This is a one-case override, not a rule change:** -1086's promotion gate (CI green on pre-main) stands for everything else.
 - **Planner's caution, given before the ruling:** with no CI, nothing compiles or tests the List/Seasonal change before the release build on the owner's laptop. That build is its first compile.
+**The merge, recorded here at the owner's word ("Record it as -1354, since it's still talking about that topic"):**
+- PR #265 was merged into pre-main at 019c339d, gated on head 8357b1d3, with the merge subject "… [skip ci]". pre-main went from e0975dec to 019c339d, and no push run started on 019c339d.
+- **The change:** one condition removed in `AvailabilityCompactScaffold.kt`. On tablets, the bar and its open panel take each tab's own column through `readableContentCap`: 960 dp on the Journal, 640 dp on List and Seasonal. Phones are unchanged.
+- **Hazel's verify-first:** List's and Seasonal's columns are both 640 dp, with 16 dp inner padding (`AvailabilityCompactScaffold.kt:1008-1012`, `AvailabilitySeasonalUi.kt:79-90`), so there was no stop.
+- **Tests:** written in `TabletJournalLayoutTest`, never compiled or run. Hazel checked by reading only that the names resolve.
+- The first compile will be the owner's release build, or any later CI run on pre-main.
+- The pre-main push run on e0975dec (#264) was in progress at the merge. It covers #264, not #265.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1355.
-
----
-
-**Kind:** merge
-**ID:** 2026-09-28-1355
-**Timestamp:** 2026-10-19T04:15:46Z
-**Continues:** 2026-09-28-1353, 2026-09-28-1354
-**Title:** PR #265 (List and Seasonal's search bar lines up with their 640 dp column on tablets) merged into pre-main at 019c339d with no CI, on the owner's override (planner)
-**What it records:**
-- **The merge:** gated on head 8357b1d3, with the merge subject "… [skip ci]". pre-main went from e0975dec to 019c339d. No push run started on 019c339d; `gh run list` shows the latest pre-main run is e0975dec's.
-- **The change:** one condition removed in `AvailabilityCompactScaffold.kt`. On tablets, the bar takes each tab's own column (960 dp Journal, 640 dp List and Seasonal) through `readableContentCap`. Phones are unchanged.
-- **Tests:** written in `TabletJournalLayoutTest`, and never compiled or run. Hazel checked by reading only that the names resolve.
-- **Verify-first, per Hazel:** List's and Seasonal's columns are both 640 dp, with 16 dp inner padding (`AvailabilityCompactScaffold.kt:1008-1012`, `AvailabilitySeasonalUi.kt:79-90`), so there was no stop.
-- **The first compile of this code** will be the owner's release build, or any later CI run on pre-main.
-- **Pre-main state:** the push run on e0975dec (#264) was in progress at the merge. It covers #264 but not #265.
-**Notes:** Written by the planner by hand, on branch records-after-173. tablet-search-bar-2 has no revert branches. Next free ID -1356.
