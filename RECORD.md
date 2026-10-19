@@ -23261,4 +23261,9 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Hazel's note:** Seasonal's 640 cap was deliberate, for reading width (`AvailabilitySeasonalUi.kt:71-75`). The owner's answer overrides it on tablets in landscape, so Seasonal's text and table run about 928 dp wide there.
 - **Tests:** written, not compiled. One pre-main run was triggered on b05db019 (39199565610). The run on 019c339d (39198777067), for #265, was already running and is left to finish.
 - **Run 39198777067 (019c339d) was cancelled** at the owner's word ("Stop that first one and let the last one go"), so that 39199565610 (b05db019), which covers everything in it, could start. It was in progress and had no result. b05db019 started right after.
+- **The first compile and test of #265 and #266:** pre-main run 39199565610 at b05db019.
+  - Build green. Tests: 5,160 run, 2 failed, both new #266 tests: "landscape tablet at ROTATION_270 / ROTATION_90 Seasonal's content, search bar and open panel share the 960 dp column".
+  - The message, read by the planner from the JUnit XML: Seasonal's content spans 139 to 1099 dp, which is the 960 column, but the test expected it to start 16 dp inside the column ("expected:<155.0> but was:<139.0>").
+  - So the widening took effect, and either the inset or the test's premise is wrong. Hazel is diagnosing on a new branch.
+  - The build was installed on the tablet anyway (1.0.3497+gb05db019) for the owner's look.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1356.
