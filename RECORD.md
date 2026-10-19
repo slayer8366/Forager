@@ -23824,3 +23824,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **S22 launch check, planner, about 22:55Z:** APK 1.0.3521+g22947c80. "PASS: verified (status=verify), launched, process 5217 alive after 8 s, crash buffer empty." No Forager service running before install.
 **Deviations:** none. The prediction held.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1394.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1394
+**Timestamp:** 2026-10-19T22:55:37Z
+**Closes:** 2026-09-28-1392
+**Outcome:** completed
+**Observed:**
+- PR #274 (dead UI code removed) merged into pre-main at e2481972 under the Phase 1 standing word, gated on head d48f4cae, which contains pre-main a9c154bb. Backup bundle of a9c154bb, verified.
+- **Removed:** `MapModePicker`, `MapFloatingIconButton`, `MAP_MODE_PICKER_TAG` (MapChrome.kt), `navigationChromeTransitions` (AvailabilityCompactMapUi.kt), `ReportItem` and `ReportItemsSection` (CartographyEntryReportScreen.kt); 14 imports. 9 files, +13 −218. Hazel's caller check found none (no call, function reference, preview or string). 13 KDoc links became plain text with "(removed 2026-10-19, RECORD -1392)", one of them in a test file's header comment (comment only, by the planner's call).
+- **Proof (Hazel):** two before/after pairs of full CI runs, identical test by test (5,160 tests, 24 skipped); the same 10 release warnings; `git grep -w` leaves only plain-text mentions.
+- **S22 launch check, planner, about 23:30Z:** APK 1.0.3525+g04fb204f, the PR's merge ref (parents a9c154bb, d48f4cae). "PASS: verified (status=verify), launched, process 8477 alive after 8 s, crash buffer empty." The planner's diff search hit "assume" once, inside a KDoc sentence, not a test assumption.
+**Deviations:** about 218 lines, not the predicted 250; all four had no caller, as predicted.
+**Not done:** comments elsewhere that still describe the removed picker in the present tense (for example `MapChrome.kt:507`) were left as written, per the dispatch.
+**Notes:** Written by the planner by hand, on branch records-after-173. PR 5 (AvailabilitySettingsUi.kt) can start. Next free ID -1395.
