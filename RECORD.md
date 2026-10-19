@@ -22839,3 +22839,17 @@ All three screenshots are kept off GitHub.
 - The switch line is never hidden.
 - **The map:** the owner's arrow moves only the switch line, and "the maps do not move at all" (-1331) stands. So -1332's reading holds: a map under the switch line keeps its place, and the switch line's slide happens in the space above the map.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1334.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1334
+**Timestamp:** 2026-10-19T00:06:35Z
+**Continues:** 2026-09-28-1333, 2026-09-28-682
+**Title:** The entry map's slide-in when an entry opens stays; "the map does not move" means it holds still once it has arrived (owner)
+**The owner, verbatim:** "That map sliding is fine since it's acting like it's opening the map. The animation makes it look intentional. Keep it."
+**What it sets:**
+- The entry report's map keeps its grow-in on opening. That was the planner's call in -682 ("E2/E3 grow in like rows", `CartographyEntryReportScreen.kt`, `GrowIn`), and the owner now confirms it.
+- The test for "the map does not move" checks the entry map holds still from the end of its arrival until the entry closes.
+- **Hazel's measurement,** filtered run 39178444793: the map's top runs from -252 to 48 dp over about 15 frames on opening.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1335.
