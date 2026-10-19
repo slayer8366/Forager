@@ -23855,3 +23855,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any change to inset code; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1396.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1396
+**Timestamp:** 2026-10-19T23:16:42Z
+**Closes:** 2026-09-28-1390
+**Outcome:** completed
+**Observed:**
+- PR #276 (UI split Phase 1, PR 3: the map's layer and data helpers into six files) merged into pre-main at ef5f09be under the standing word, gated on head 57793dfe, which contains pre-main e2481972 (three pre-main merges, none touching its seven files). Backup bundle of e2481972, verified.
+- **Proofs (Hazel):** colour-moved diff fully classified (one short repeated comment line shown identical by proof 3); 77 declarations, differing only in 27 `private` → `internal` (six functions and 21 id aliases); six files `cmp`-identical with bite runs; suite identical in two like-for-like pairs (5,160 cases). SightingsMap.kt 2,309 → 1,466; new files 197, 106, 210, 241, 91, 49. Dex: the same nine methods; total −3 (four `access$` helpers gone, one `<clinit>` added).
+- **S22 launch check, planner, about 00:05Z:** APK 1.0.3530+g99f13565, the PR's merge ref (parents e2481972, 57793dfe), from run 39338365596. "PASS: verified (status=verify), launched, process 11701 alive after 8 s, crash buffer empty."
+**Deviations:** 805 lines moved, not the survey's "about 960"; 27 widenings, not the 28 first stated by Hazel (a miscount, the names unchanged) nor the survey's larger set (stroke constants and the dot radius stay private with their readers). Hazel called run 39338365596 a workflow_dispatch run; GitHub reports it as pull_request (merge ref). The planner tested that merge ref, which is the tree that landed.
+**Notes:** Written by the planner by hand, on branch records-after-173. Stale comments that moved unchanged are listed in Hazel's report for a later tidy. Next free ID -1397.
