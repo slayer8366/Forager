@@ -23365,3 +23365,14 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **T9, store listing:** the planner checked the owner's description against main. Three claims were fixed: the camera permission (the app now declares CAMERA, `AndroidManifest.xml:23`), where location goes (map servers see the area viewed), and the beta line. Added at the owner's word: backup and restore, "all but your backups" on uninstall, section headings, worldwide iNaturalist, and the lower-48 offline line. The final pasted text was not read back by the planner. Data-safety answers were not reviewed, and the privacy policy's map-server wording was not checked.
 - **Release notes:** the planner's draft from all 72 app commits since 3292 (497423d6), with the owner's edits: RAW left out ("Leave it out") and "Camera UI fixes".
 **Notes:** Written by the planner by hand, on branch records-after-173. Open after the release: the data-safety review, the privacy policy's map-server line, closing entries for -1266, -1270, -1273, -1298, -1302 and -1324, and the handoff's post-release list. Next free ID -1361.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1361
+**Timestamp:** 2026-10-19T11:14:31Z
+**Continues:** 2026-09-28-1360
+**Title:** The production bundle's signing fingerprint matches the upload key (owner)
+**The owner, verbatim:** "The fingerprint check matches"
+**Observed:** the SHA-256 from `keytool -printcert -jarfile app-release.aab` for build 3500 matches `signing/Forager Keys/forager-SHA.txt`, by the owner's account; the planner did not see the output. This closes -1360's "no result was reported", and is the first time the check has been run (it was skipped for 3292, -962).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1362.
