@@ -23271,3 +23271,25 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   - PR #267 (test-only, head 3d71c0ff) asserts the scroll column equals the 960 column, and that every child sits at least 16 dp in, with a positive control.
   - #267 was merged at 21dc4470 with "[skip ci]", and one pre-main run triggered: 39201526634.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1356.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1356
+**Timestamp:** 2026-10-19T04:56:06Z
+**Continues:** 2026-09-28-1355, 2026-09-28-1349, 2026-09-28-1086
+**Title:** The owner approves shipping pre-main to main, after Elder's top-up review of the four tablet changes and a green pre-main CI run (owner)
+**The owner, verbatim:** "Looks good. Ship it.", on the tablet build 1.0.3497+gb05db019. To the planner's "When should I merge?", the owner asked "Did Elder do the audit?". Told that Elder's review stopped at 0b93dde9 and that #264 to #267 were unreviewed, the owner answered, through the question tool, "Yes, then ship (Recommended)".
+**What it sets:**
+- The promotion pre-main → main is approved for public use, under -1086. It merges when both of these are in:
+  - Elder's third top-up review (range 0b93dde9..21dc4470) gives no block;
+  - pre-main run 39201526634 at 21dc4470 is green.
+- If either fails, the planner stops and asks the owner.
+- **Then:** the release build from main on the owner's laptop; the store listing check (T9); the owner's upload.
+- Merging to main redeploys the Worker from GitHub. Main then has no PI_ORIGIN_URL, which matches what is live (-1305).
+- **Device gates:**
+  - S22: -1336, on e431eba9;
+  - S26: -1338, on build 3484;
+  - tablet: -1337, -1348, -1351, and the owner's look at b05db019.
+  - Nothing after e431eba9 has been seen on a phone. The changes since are tablet-gated.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1357.
