@@ -117,3 +117,28 @@ again. Answers, verbatim:
   locally only, with nothing public and nothing uploaded, so the design is judged on the real trail
   data. The earlier note that trail styling is "checked by eye only after the upload" is withdrawn.
 - **Who leads:** "Aspen, with Rowan kept informed (Recommended)". Unchanged.
+
+## A designer role, 2026-10-20
+
+The owner, verbatim: "Check the Forager profiles for the proper designer". No designer profile
+exists in `docs/process/` on `pre-main`, `main` or `records-after-173` (`git ls-tree`, searched for
+profile and design). Design had been delegated to the planner: "You're the designer", in
+`docs/plans/journal-redesign.md:29` (O2), `docs/plans/landscape-phone-design.md:169` (O4),
+`understory-design-system.md:1247` and RECORD line 1727.
+
+The owner, verbatim: "Set up a designer role". Then, through the question tool:
+
+- **Name:** "Sage Wayfinder". It was proposed with the line: "Wayfinding is designing so people
+  find their way without asking; sage is a forager's plant and a word for judgment."
+- **Where:** "pre-main, beside the team (Recommended)". The option read: "The designer serves the
+  whole app, not just the Pi; Rowan's side merges it and adds the designer to the team table."
+- **Model:** "Fable (Recommended)". The option noted that Elder Ford also runs on Fable, so a design
+  and its audit would share a model.
+
+**The plan:** the Pi planner writes `docs/process/designer-profile.md` on its own branch cut from
+`origin/pre-main`, from the design record, and relays it to Rowan through the owner to merge and
+add to the team table.
+
+**Pending, and about to change:** dispatch pi-17, the map design's Phase 1, was written for a Pi
+coder with the planner leading the design. With a designer named, who runs the map design is the
+owner's to confirm.
