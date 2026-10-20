@@ -47,7 +47,7 @@ import kotlin.math.hypot
  * locate or restored on a tab return, since the compass-facing modes are navigation's alone.
  */
 internal fun plainMapFollowing(springBack: Boolean, navigating: Boolean, cameraMode: Int?): Boolean =
-    springBack && !navigating && cameraMode != null && cameraMode != CameraMode.NONE
+    springBack && cameraMode != null && cameraMode != CameraMode.NONE
 
 /**
  * The plain map's location options with the nudge: the ordinary ones ([liveLocationComponentOptions],
