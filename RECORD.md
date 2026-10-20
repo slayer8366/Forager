@@ -24768,3 +24768,16 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Phase 2.2 complete:** SightingsMap.kt 1,466 → 720 lines, with the holder (SightingsMapState) and ten group files (forecast cells, location dot, navigation view, attribution insets, fan, style reload, data refresh, lifecycle, listeners, layout); every effect, listener and DisposableEffect in its old order. Owed: the owner's phone walk (-1458) on the pre-main build that holds #315. Deferred to a later comment pass: two stale pointers inside SightingsMapLayout.kt (Sorrel, #315), the dangling KDoc links noted in -1452/-1456, and the loose "skipped when unchanged" wording in four map PR bodies (-1457).
 - **Series state:** 2.1: 8 of 12 bundles merged, bundle 9 (#319) in review, the combined required-parameter PR next; 2.4: 3 of 9 merged, PR 4 (#318) in review, PR 5 building; 2.2 and 2.7 complete.
 **Notes:** Written by the planner by hand. Next free ID -1460.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1460
+**Timestamp:** 2026-10-20T09:38:55Z
+**Continues:** 2026-09-28-1434, 2026-09-28-1459
+**Title:** Phase 2.8: the Journal engines (MushroomLogViewModel, CartographyViewModel) collaborators, verify-first (owner's Phase 2 go)
+**Dispatch-file:** preserved/2026-10-19-34.md, for Hazel Cairnwright
+**Scope:** ui/log/MushroomLogViewModel.kt and ui/log/CartographyViewModel.kt, with new collaborator files in ui/log; read-only until the planner's go. The editingEntryMutex stays one object owned by the ViewModel. From pre-main 52bb4db4.
+**Finish line:** as the dispatch's report section; PRs merged under the standing word after proofs, Sorrel's review and the S22 launch check.
+**Abort conditions:** the dispatch's stops; any possible nested lock acquisition; any change to when a job starts or stops.
+**Notes:** Written by the planner by hand. Next free ID -1461.
