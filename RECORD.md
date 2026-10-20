@@ -25078,3 +25078,26 @@ Hazel has the go for Part 2. The stop limit is about 11 production files.
 **Finish line:** as dispatch 2026-10-19-35. Then the owner's 2.3 walk (-1465): a search notice showing, a bubble below the strip, landscape while navigating, the L cluster and the notice on the same side, the bubble minY regression, and Sorrel's landscape strip-height observation (-1466).
 **Abort conditions:** the dispatch's stops; any reorder of children, effects or remembers; any remember re-keyed or moved below the tab.
 **Notes:** Written by the planner by hand. Next free ID -1475.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1475
+**Timestamp:** 2026-10-20T20:34:23Z
+**Continues:** 2026-09-28-1474, 2026-09-28-1466
+**Title:** Phase 2.3 closes with one comment-only PR; the landscape bubble strip-height bug is to be fixed now (owner)
+**Observed:**
+- **Hazel's verify-first for dispatch 2026-10-19-38 (base 03bf2e42).**
+  - The tab file is byte-identical to #328's merge; #336 and #337 did not touch it.
+  - **Planner's premise wrong:** #325 and #328 were "PR 1 of 2" and "PR 2 of 2", so there was no remaining order to recover.
+  - **What is left in CompactMapTab is mostly what must stay:** focusOverride and cameraCenter keyed remembers, the else-branch conditional remembers, the tapped initializer's order, the dialogs' body-scope reads, the limit reads (the minY history), the BackHandler's position and the nine children's order.
+  - **Candidate A,** a holder over the eight interaction states, would cut about 10 lines.
+- **Sorrel's -1466 observation, confirmed from the code (read, not run).**
+  - Rotation does not recreate the activity (configChanges). The size States survive the turn.
+  - compassStripHeightPx is written in portrait (CompactMapTopStrip.kt:137) and zeroed only on dispose or when navigation starts. So in landscape the bubble's top limit, bubbleMinY at AvailabilityCompactMapUi.kt:518, uses the stale portrait height in place of the one-line floor.
+  - Nothing else reads it in landscape.
+  - It makes CompactMapLayoutState.kt:58-60 and AvailabilityCompactScaffold.kt:1753-1754 false after a measured portrait strip. Pre-existing.
+**Decision:**
+- **2.3 closes with option (1).** The planner chose one comment-only PR with Sorrel's three #328 nits, and no Candidate A. The Phase 2 plan row's "the children read it" is superseded by #325's choice: the reads stay in the body, for the minY history.
+- **The owner, asked as a step path** ("Maps tab upright > turn the phone to landscape > tap a marker > the bubble opens lower than it should ... The fix: in landscape, the bubble always opens just below the landscape bar, as it does if you start in landscape"), chose "Fix now, show me (Recommended)", described as "A small fix with before/after S22 screenshots in landscape; it closes 2.3 together with the comment PR." That is a build go. Hazel does a verify-first on the fix as a separate PR. The planner takes before/after S22 screenshots in landscape.
+**Notes:** Written by the planner by hand. Next free ID -1476.
