@@ -244,3 +244,26 @@ is intact. Verbatim:
 running. Three old transient `forager-usca-*` units still show as failed, from the 2026-10-18 and
 2026-10-19 runs already recorded. `~/map-design-scratch` and `.claude/worktrees/map-design` are
 still in place, undeleted.
+
+## Hazel's prior art checked; dispatch pi-18 and brief sage-01 written, 2026-10-20
+
+The owner, verbatim: "Go ahead. But check for prior art because Hazel drafted some fine looking
+maps." What the planner found, read at source:
+
+- **Hazel's drafts are Street v1 itself,** on `street-cloudflare` `5b270ac4`. The renders are about
+  20 web renders (RECORD −1314 on `records-after-173`), by "GL JS in headless Firefox, phone-sized
+  412×800 at 2×, ten places, day and a pixel-exact V1 night". The source is
+  `docs/audits/2026-10-18-street-cloudflare-part1-report.md`, Part 2. They are kept on the laptop
+  under `~/Zynergy/device-evidence/` and in the S22 gallery (−1343, −1345). Neither is on the Pi
+  (`ls`: no `~/Zynergy`). The render script is not in the repository.
+- **Informal trails are already ruled:** "dotted faint informal paths" (−1284). The colour is
+  reserved at `forager-street.mjs:28-29` on `street-cloudflare`. That leaves `sac_scale` and
+  `trail_visibility` as the open design.
+- **pi-17's scratch** was built on plain Protomaps light from `pre-main`, not on Street v1
+  (`~/map-design-scratch/build-variants.mjs`). pi-18 starts from Street v1 instead. The scratch is
+  left in place.
+
+Written: `prompts/preserved/2026-10-20-pi-18.md`, for a Pi coder. Part A renders Street v1 on the
+new map by Hazel's method; Part B builds Sage's variants. Also written:
+`prompts/preserved/2026-10-20-sage-01.md`, Sage's brief, sent after Part A. Neither has been sent,
+and each waits for the owner's go.
