@@ -225,3 +225,34 @@ sequence. A US + Canada basemap would therefore pass for a four-region run. San 
 the coverage points in the same change.
 
 The islands take two squares, `W70_N15` and `W65_N15`, both inside the last band.
+
+## Addendum, 2026-10-19 20:55 PDT: Sunday's weekly build would run out of disk (pi-01); the leftovers inventoried (pi-02)
+
+From the Pi coders' reports on dispatches `2026-10-19-pi-01` and `-pi-02` (Phase 1, read-only).
+The planner spot-checked the figures marked so.
+
+- **The first build only fit because about 58 GB was freed while it ran.** The 18:50 PDT deletions
+  on 2026-10-18 were the switchover session's removal of the served archives and the orwa output,
+  in the sudo log (spot-checked). The 21:05 move of the extracts to the SD card was the other part.
+  Its lowest free space was about 45 GB (inferred, from read figures), at the end of Planetiler's
+  archive stage.
+- **Planetiler's feature file peaked at 104 GB, not 73.** The 73 GB was its size at the end of
+  osm_pass2. Planetiler's own summary, `features 104GB`, is spot-checked. The archive was 33 GB.
+- **Sunday 2026-10-25, unchanged, is projected about 29 GB short** (inferred, range −26 to −31),
+  in the archive stage, about 6½ h into Planetiler. The reasons:
+  - the new extracts (18.8 GB) are on the NVMe;
+  - the published basemap (34 GB) stays until the new one publishes;
+  - the leftovers are still there.
+- **`USCA_MIN_FREE_GB` (110) would pass** at about 120 GiB, so it does not protect a full run. A
+  full run needs about 146 GiB at the merge (inferred).
+- **Freeing every leftover frees 19.86 GB** (planner re-derived 16.737 + 3.118). That is still about
+  9 GB short. The planner's "about 23 GB" double-counted the hard-linked 7.6 GB cut, and its "0 to
+  25 GB margin" was wrong.
+- **The last two weekly firings, 2026-10-11 and 10-18, failed at DNS:** `curl: (6) Could not
+  resolve host: download.geofabrik.de`, spot-checked. Whether Wi-Fi fixed that is not determined.
+- **`curl_resume` has never run here against the network,** and it has no speed limit or restart
+  for a download that slows.
+- **The leftovers are still in place.** The owner ruled per item in the planner's window. The
+  coder declined to act on the planner's relay, citing the dispatch's "given in the coder's window"
+  against the profile's "in Aspen's own window". That conflict is the planner's, and it goes to the
+  owner.
