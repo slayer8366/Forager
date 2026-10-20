@@ -87,7 +87,10 @@ restore_setting() { # key original
 cleanup() {
   status=$?
   if [ "$ENTERED_FULLSCREEN" -eq 1 ]; then
-    if dump 2>/dev/null && tap_desc "Exit fullscreen" 2>/dev/null; then
+    # Not tap_desc: its failure path exits, and an exit here would skip restoring the rotation.
+    if dump && xy="$(query desc "Exit fullscreen")"; then
+      # shellcheck disable=SC2086
+      tap_xy $xy
       echo "Cleanup: left fullscreen"
     else
       echo "WARNING: the map may still be in fullscreen; this script entered it and could not leave it" >&2
@@ -109,10 +112,24 @@ cleanup() {
 trap cleanup EXIT
 
 # --- Helpers over a fresh uiautomator dump. ---------------------------------------------------
+# A fresh dump of the app's window, or return 1 with the reason in DUMP_ERR. Both copies of the
+# previous dump are deleted first: when uiautomator cannot dump (it reports "could not get idle
+# state" while the launcher animates), it leaves the old file on the phone, and reading that would
+# check a screen that is no longer there (seen on this script's own Home-mid-run test, 2026-10-20).
+# The dump must also be of the app: a dump of the launcher or any other window is refused.
+DUMP_ERR=""
 dump() {
-  "${ADB[@]}" shell uiautomator dump /sdcard/window_dump.xml >/dev/null 2>&1 || return 1
-  "${ADB[@]}" exec-out cat /sdcard/window_dump.xml >"$DUMP" 2>/dev/null || return 1
-  [ -s "$DUMP" ]
+  local out top
+  rm -f "$DUMP"
+  "${ADB[@]}" shell rm -f /sdcard/window_dump.xml
+  out="$("${ADB[@]}" shell uiautomator dump /sdcard/window_dump.xml 2>&1 | tr -d '\r')"
+  command grep -q 'dumped to' <<<"$out" || { DUMP_ERR="uiautomator could not dump the screen: $out"; return 1; }
+  "${ADB[@]}" exec-out cat /sdcard/window_dump.xml >"$DUMP" 2>/dev/null
+  [ -s "$DUMP" ] || { DUMP_ERR="the screen dump came back empty"; return 1; }
+  top="$(python3 -I -c 'import sys, xml.etree.ElementTree as ET
+n = ET.parse(sys.argv[1]).getroot().find("node")
+print("" if n is None else n.get("package", ""))' "$DUMP")"
+  [ "$top" = "$PKG" ] || { DUMP_ERR="the app is not on screen (the window shown belongs to '${top:-nothing}')"; return 1; }
 }
 
 # query MODE ARG: prints a result from the last dump, exit 1 if not found. Modes:
@@ -169,7 +186,7 @@ PY
 tap_xy() { "${ADB[@]}" shell input tap "$1" "$2"; sleep "$SETTLE"; }
 tap_by() { # mode arg: tap the node's centre from a fresh dump
   local xy
-  dump || return 1
+  dump || fail "$DUMP_ERR"
   xy="$(query "$1" "$2")" || return 1
   # shellcheck disable=SC2086
   tap_xy $xy
@@ -209,7 +226,7 @@ back_until_gone() { # mode arg description: Back, up to three times, until the n
   local i
   for i in 1 2 3; do
     "${ADB[@]}" shell input keyevent KEYCODE_BACK; sleep "$SETTLE"
-    dump || fail "uiautomator dump failed"
+    dump || fail "$DUMP_ERR"
     query "$1" "$2" >/dev/null || return 0
   done
   fail "$3 is still open after three Back presses"
@@ -217,7 +234,7 @@ back_until_gone() { # mode arg description: Back, up to three times, until the n
 
 go_tab() { # label
   tap_by nav "$1" || fail "bottom-nav '$1' not found (is the app in front, on its main screen?)"
-  dump || fail "uiautomator dump failed"
+  dump || fail "$DUMP_ERR"
   need navselected "$1" "the '$1' tab selected"
 }
 
@@ -250,8 +267,8 @@ STEP="auto-rotate off"
 # Out of any drawer or search panel left open, without pressing Back blindly (a Back on the main
 # screen can arm the app's exit).
 STEP="start state"
-dump || fail "uiautomator dump failed"
-if query desc "Close navigation menu" >/dev/null; then tap_desc "Close navigation menu" || fail "could not close the open drawer"; dump; fi
+dump || fail "$DUMP_ERR"
+if query desc "Close navigation menu" >/dev/null; then tap_desc "Close navigation menu" || fail "could not close the open drawer"; dump || fail "$DUMP_ERR"; fi
 if query text "Set on map" >/dev/null; then back_until_gone text "Set on map" "the search panel"; fi
 if query desc "Exit fullscreen" >/dev/null; then fail "the map was already in fullscreen; leave it and run again, so this script never changes it"; fi
 
@@ -272,17 +289,17 @@ for orientation in portrait landscape; do
   STEP="$orientation: map fullscreen"
   tap_desc "Fullscreen" || fail "Fullscreen button not found"
   ENTERED_FULLSCREEN=1
-  dump || fail "uiautomator dump failed"
+  dump || fail "$DUMP_ERR"
   need desc "Exit fullscreen" "the Exit fullscreen button"
   shoot map-fullscreen "$orientation"
   tap_desc "Exit fullscreen" || fail "Exit fullscreen button not found"
-  dump || fail "uiautomator dump failed"
+  dump || fail "$DUMP_ERR"
   need desc "Fullscreen" "the map out of fullscreen"
   ENTERED_FULLSCREEN=0
 
   STEP="$orientation: search"
   tap_by textsuffix "Search a location" || fail "the search bar ('<month> · Search a location') not found"
-  dump || fail "uiautomator dump failed"
+  dump || fail "$DUMP_ERR"
   # "Set on map" (only checked, never tapped) rather than "Search coordinates": in landscape the
   # panel opens scrolled, with the coordinates rows above its top edge (first run, 2026-10-20).
   need text "Set on map" "the open search panel"
@@ -291,14 +308,14 @@ for orientation in portrait landscape; do
 
   STEP="$orientation: tools"
   tap_by nav Tools || fail "bottom-nav 'Tools' not found"
-  dump || fail "uiautomator dump failed"
+  dump || fail "$DUMP_ERR"
   need desc "Close navigation menu" "the Tools drawer"
   need text "Settings" "the drawer's Settings row"
   shoot tools "$orientation"
 
   STEP="$orientation: settings"
   tap_by text "Settings" || fail "Settings row not found"
-  dump || fail "uiautomator dump failed"
+  dump || fail "$DUMP_ERR"
   need text "Units" "the Settings page"
   shoot settings "$orientation"
   back_until_gone desc "Close navigation menu" "the Tools drawer"
