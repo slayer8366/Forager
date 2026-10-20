@@ -24801,3 +24801,16 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - *Test gap:* the picker download's over-budget early return has no test by name (Sorrel, #318).
 - *Comment pass:* stale links to `AvailabilityViewModel.loadOfflineRegions` in AvailabilityUiState.kt:205, OfflineRegionsList.kt:42 and EntryReferenceCounts.kt:67 (Sorrel, #318).
 **Notes:** Written by the planner by hand. Next free ID -1462.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1462
+**Timestamp:** 2026-10-20T09:59:08Z
+**Continues:** 2026-09-28-1434, 2026-09-28-1459
+**Title:** Phase 2.3: the Maps tab body (CompactMapTab) layout holder, verify-first (owner's Phase 2 go)
+**Dispatch-file:** preserved/2026-10-19-35.md, for Hazel Cairnwright
+**Scope:** ui/availability/AvailabilityCompactMapUi.kt and new files; read-only until the planner's go. The two map memories and the nine children's composition order unchanged. From pre-main 52bb4db4.
+**Finish line:** as the dispatch's report section; PRs merged under the standing word after proofs, the touch guards, Sorrel's review, the S22 launch check and the screenshot pass.
+**Abort conditions:** the dispatch's stops; any reorder of the children; any remember re-keyed or moved below the tab.
+**Notes:** 2.1's final PR #321 brings the screen to 18 parameters (from 142); approved pending Sorrel's review of #321. Written by the planner by hand. Next free ID -1463.
