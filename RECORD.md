@@ -24729,3 +24729,15 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Test gap added to the owner's list (-1454):** the three planned-trip failure paths (load, save, delete error messages) have no test (Hazel, confirmed by Sorrel).
 - **Series state:** 2.1: 7 of 12 bundles merged; 2.2: PRs 1 to 9 merged, PR 10 (layout) building; 2.4: PR 1 merged, PR 2+3 on CI; 2.7 complete.
 **Notes:** Written by the planner by hand. Next free ID -1457.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1457
+**Timestamp:** 2026-10-20T09:23:32Z
+**Continues:** 2026-09-28-1437, 2026-09-28-1434
+**Title:** Wrong premise in the planner's go for map PR 10 (the layout): the 19 real-touch guards cannot see SightingsMap's layout; the proof is the phone (planner's slip, caught by Hazel)
+**What happened:** the planner told the map helper that "the 19 real-touch guards are the key proof" for PR 10 (#315). Hazel found that every screen test puts a stub in the map slot (`AvailabilityScreenLayoutTest.kt:132`, "The tag the stub map slot carries; the real SightingsMap has no tag", and `:1062`), and the only test that composes the real slot (`MapStartGateTest`) gets the start-failure message, because MapLibre cannot load under Robolectric. So the guards prove the chrome over the map still routes touches, but cannot fail on a change to `SightingsMapLayout`. This is CLAUDE.md's "a check that passes because it never saw the data that could fail it".
+**What replaced it:** the S22. For #315 (1.0.3604+g728357c7): launch check PASS; the screenshot run (16 tab changes) with an empty crash buffer; and a real adb drag across the map in portrait, before and after screenshots showing the map panned with the drag and the location dot moving with it, the chrome unchanged. Pinch, rotate, the nudge and flick while following, and touches through the cover after a tab return remain for the owner's walk.
+**Also:** Hazel notes that the "skipped when inputs unchanged" wording in #298, #302, #307 and #310's bodies is loose in the same way #311's was (the holder is unstable, though strong skipping compares instances); left as is, as no behaviour depends on it.
+**Notes:** Written by the planner by hand. Next free ID -1458.
