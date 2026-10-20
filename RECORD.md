@@ -24814,3 +24814,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** as the dispatch's report section; PRs merged under the standing word after proofs, the touch guards, Sorrel's review, the S22 launch check and the screenshot pass.
 **Abort conditions:** the dispatch's stops; any reorder of the children; any remember re-keyed or moved below the tab.
 **Notes:** 2.1's final PR #321 brings the screen to 18 parameters (from 142); approved pending Sorrel's review of #321. Written by the planner by hand. Next free ID -1463.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1463
+**Timestamp:** 2026-10-20T10:10:03Z
+**Continues:** 2026-09-28-1459, 2026-09-28-1461
+**Title:** #319, #321 (Phase 2.1 complete: the main screen takes 18 parameters, from 142), #318 and #320 (2.4 offline maps and region deletes) merged into pre-main after the combined S22 check on 52bb4db4
+**Observed:**
+- Pre-main 52bb4db4's push run 39401981456: all three jobs green; combined S22 check 1.0.3645+g52bb4db4, PASS (covers #317 and #315, the last map PR). **This build holds the whole Phase 2.2 map split and is on the S22 for the owner's phone walk (-1458).**
+- Then #319 at 84d6999a, #321 at d494dc0d, #318 at 716a3573, #320 at dcda3f94, each gated on its approved head.
+- **Per PR:** suite identical; S22 PASS on its own build (1.0.3604+g90b71fcf, 1.0.3607+g09fc6f0b, 1.0.3628+g36e5f692, 1.0.3629+gcce027f7). Sorrel: #319 approve with nits; **#321 approve (no nits on the code)**, with 89 calls compared one by one and field names confirmed unique across all twelve bundles; #318 approve with nits; #320 approve with one nit, finding the test that drives the clear-time region commit.
+- **Phase 2.1 complete:** AvailabilityScreen's 142 parameters (25 required) → 18 (6 plain, 12 bundles; 4 required: uiState, searchInputs, offlineMaps, settings). Ten PRs: #297, #300, #303, #306, #309, #312, #314, #317, #319, #321. AvailabilityScreen's largest method fell from 411 registers to 297.
+- **Owner's test-gap list, addition:** the test that caught the bubble minY regression is @Ignore'd (AvailabilityScreenMapIconStackTest.kt:1403-1405), so the suite can't see that regression return (Hazel, 2.3 verify-first).
+- **Series state:** 2.1, 2.2 and 2.7 complete; 2.4: 5 of 9 merged, PR 6 building; 2.3: verify-first accepted, PR 1 building; 2.8: verify-first accepted (-1461), PR 1 building.
+**Notes:** Written by the planner by hand. Next free ID -1464.
