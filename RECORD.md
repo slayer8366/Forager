@@ -23991,3 +23991,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Deviations:** the grouping changed as above.
 **Not checked:** touch order on a real device beyond the Robolectric guards.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1405.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1405
+**Timestamp:** 2026-10-20T01:00:55Z
+**Continues:** 2026-09-28-1404
+**Title:** UI split Phase 1, PR 9b: the Maps tab's strip slot, chips and both navigation cards (with F/G/H) out of AvailabilityCompactMapUi.kt (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-15.md, for Hazel Cairnwright
+**Scope:** AvailabilityCompactMapUi.kt and new files in ui/availability; branch split-maps-tab-b from pre-main 395fa429.
+**Baseline:** pre-main 395fa429; the file is 1,629 lines.
+**Prediction (outcome, planner):** about 650 lines move; the file ends near 950; the 19 guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs and the guard table, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1406.
