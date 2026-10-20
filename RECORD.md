@@ -24712,3 +24712,20 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **2.7 is complete:** five collaborators (pending deletes, lists, route ticks, poller, take-up memory), every loop's start and stop decided in the ViewModel at its old position. Worktrees removed; remote branches kept.
 - **Series state:** 2.1: 6 of 12 bundles merged; 2.2: PRs 1 to 8 merged (PR 9, lifecycle and listeners, building; PR 10, layout, after); 2.4: verify-first accepted (-1454), PR 1 building.
 **Notes:** Written by the planner by hand. Next free ID -1456.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1456
+**Timestamp:** 2026-10-20T09:07:18Z
+**Continues:** 2026-09-28-1455
+**Title:** Phase 2 PRs #311 (2.2 lifecycle and listeners), #314 (2.1 records bundle) and #313 (2.4 planned trips) merged into pre-main after the combined S22 check on 3bd1ce55
+**Observed:**
+- Pre-main 3bd1ce55's push run 39394111748: all three jobs green; combined S22 check 1.0.3630+g3bd1ce55, PASS (covers #310, #308, #312).
+- Then #311 at f18f7f81, #314 at a7879c90, #313 at d41566e9, each gated on its approved head.
+- **#311:** S22 PASS (1.0.3602+g50c7de51); the screenshot run left and returned to the map on 16 tab changes with an empty crash buffer, the app alive, and ForagerMapsComeback showing the cover handing over at the first full frame and releasing. **Sorrel:** approve with nits; all three moved bodies recomputed independently; the listener registration order and DisposableEffect creation order verified line by line. Nits (an unused import and stale pointers) go into map PR 10; Sorrel's note that the holder is unstable (so its groups likely never skip) is to be corrected in #311's body.
+- **#314:** S22 PASS (1.0.3601+g942a3f70); Sorrel: approve with nits (12 defaults, 12=12=12 and every call-site value verified). Two KDoc wording nits go into bundle PR 8.
+- **#313:** S22 PASS (1.0.3625+g60198d46); Sorrel: approve with nits, suite recomputed from the XML (Sorrel's first tally counted zero files and was caught by printing the counts); AvailabilityViewModelPlannedTripsTest exercises the moved code through init and the public entry points.
+- **Test gap added to the owner's list (-1454):** the three planned-trip failure paths (load, save, delete error messages) have no test (Hazel, confirmed by Sorrel).
+- **Series state:** 2.1: 7 of 12 bundles merged; 2.2: PRs 1 to 9 merged, PR 10 (layout) building; 2.4: PR 1 merged, PR 2+3 on CI; 2.7 complete.
+**Notes:** Written by the planner by hand. Next free ID -1457.
