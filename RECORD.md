@@ -24352,3 +24352,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the Stage F proofs, CI green, the S22 launch check passed, merged under the standing word. Then Phase 1 is complete and Elder's audit of the small-items batch is next (-1381).
 **Abort conditions:** a premise wrong; any test difference; any edit to the screen, frame or class bodies; a difference beyond compiler-generated methods.
 **Notes:** Written by the planner by hand. Next free ID -1430.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1430
+**Timestamp:** 2026-10-20T04:19:19Z
+**Closes:** 2026-09-28-1429
+**Outcome:** completed
+**Observed:**
+- PR #291 (UI split Phase 1, PR 10g: the leftover small declarations) merged into pre-main at 263c21f4, gated on head ed40ae52; pre-main was still 014fc599, so the checked tree is the landed tree. **Phase 1 of the UI split is complete.**
+- **Correction to -1429:** its Scope and Title say seven files and "four ViewModels" in a way that adds to seven. The dispatch covers **six** source files (AvailabilityScreen.kt, AvailabilityCompactScaffold.kt and four ViewModels), and the dispatch file was corrected in 9e239a4b (planner's miscount).
+- **Files:** seven new files (AvailabilityScreenDeclarations 37, CompactScaffoldLandscapePill 68, CompactScaffoldSnackbar 51, AvailabilityViewModelDefaults 72, MushroomLogEditRules 36, CartographyDecisionMappers 68, TrackRecordingConstants 23; the last name is the planner's). Sources: Screen 2,070 → 2,039, Scaffold 1,992 → 1,900, AvailabilityViewModel 1,950 → 1,888, MushroomLog 1,264 → 1,232, Cartography 863 → 802, TrackRecording 1,359 → 1,339. Fifteen accepted widenings; twelve imports used only by moved code dropped; KEEP_MAP_THROUGH_TAB_FADE moved unchanged (true). The screen, the frame, the four classes, their Back handlers, inset reads, lock and poll loop unedited.
+- **Proofs (Hazel):** zebra diff fully classified; declaration sets 1,090/1,090 apart from the widenings; seven bodies `cmp`-identical with bite runs (one-line error, range one line short; a buggy first revert pattern disclosed); suite identical case by case, pre-main push run 39364408315 against head run 39366694107 (5,160 cases); `.github` unchanged.
+- **Planner's ruling on the dex stop:** the header total went 225,108 → 225,105 with the nine over-256 lines identical. The -3 was traced by dexdump: six `access$` accessors gone (private functions now internal), one getter added (SNACKBAR_SURFACE_MARGIN), one net `<clinit>`, one Compose `$stable` `<clinit>`. Accepted, same kind as PRs 7, 8, 10b, 10d and 10e.
+- **S22** (run 39366694107): 1.0.3591+ged40ae52, PASS.
+- **Phase 1 totals today:** 19 split PRs (#271, #272, #274 onward to #291), plus the dead-code removal, the release clean-up (#270) and the List check (#273); every one with identical suites and an S22 launch check. Next: the owner's call on one unused size value found by 9c, then Elder's audit of the small-items batch (-1381).
