@@ -28,7 +28,6 @@ import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
-import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -240,11 +239,25 @@ class MushroomLogViewModel(
     /** See this class's own doc comment, "Serialized editing-entry mutations," for what this guards and why. */
     private val editingEntryMutex = Mutex()
 
-    /** The one find whose delete is pending (journal redesign J4) — see [requestDeleteEntry]. */
-    private val findDeletes = PendingDeleteSlot<String, MushroomLogEntry> { it.id }
-
-    /** The one gallery photo whose delete is pending (journal redesign J4b L3) — see [requestDeleteGalleryPhoto]. */
-    private val photoDeletes = PendingDeleteSlot<String, GalleryPhoto> { it.photo.id }
+    /**
+     * The one find and the one album photo whose delete is pending (journal redesign J4, J4b L3), moved
+     * to their own class by UI split Phase 2.8 PR 5. It reads and writes this screen's state through the
+     * getter and setter here, launches in this ViewModel's own scope, and is handed [editingEntryMutex]
+     * itself, by reference. Declared above `init`, and must stay there, as [gallery] is.
+     */
+    private val pendingDeletes = MushroomLogPendingDeletes(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        editingEntryMutex = editingEntryMutex,
+        pendingDeleteCommitScope = pendingDeleteCommitScope,
+        deleteEntry = deleteEntry,
+        deleteGalleryPhoto = deleteGalleryPhoto,
+        onFindDeleted = onFindDeleted,
+        onPhotoDeleted = onPhotoDeleted,
+        reloadGalleryPhotos = { loadGalleryPhotos() },
+        reloadEntries = { loadEntries() },
+    )
 
     /**
      * The photo album (Workstream G2, standalone photos, J4b), moved to its own class by UI split Phase
@@ -655,151 +668,27 @@ class MushroomLogViewModel(
         }
     }
 
+    /** The find report's or edit form's Delete: the find becomes pending. See [MushroomLogPendingDeletes.requestDeleteEntry]. */
+    fun requestDeleteEntry(id: String) = pendingDeletes.requestDeleteEntry(id)
+
+    /** The snackbar's Undo: see [MushroomLogPendingDeletes.undoDeleteEntry]. */
+    fun undoDeleteEntry(id: String) = pendingDeletes.undoDeleteEntry(id)
+
+    /** The snackbar ended without Undo: see [MushroomLogPendingDeletes.commitDeleteEntry]. */
+    fun commitDeleteEntry(id: String) = pendingDeletes.commitDeleteEntry(id)
+
+    override fun onCleared() {
+        // Journal redesign J4: a find still pending is committed here, since no snackbar is left to
+        // end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        pendingDeletes.commitOnCleared()
+    }
+
     /**
      * Removes the entry's own row and its photo *references* only — see
      * [DeleteMushroomLogEntryUseCase]'s own doc comment for why this reversed L1's original
      * file-deleting behavior under gallery ownership. No photo lookup needed any more: nothing left
      * downstream of [deleteEntry] touches the entry's photos.
      */
-    /**
-     * The find report's (or edit form's) Delete (journal redesign J4, owner ruling "Keep inside the
-     * report (Recommended)"): the find becomes pending instead of being deleted. Its report or form
-     * closes, as it did when the delete ran at once, and it is left out of
-     * [MushroomLogUiState.hidingPendingDelete]'s lists — the Finds gallery, the Finds chip's count,
-     * the All logbook — while the Undo snackbar shows. The real delete ([deleteEntry], unchanged) runs
-     * from [commitDeleteEntry] when the snackbar ends without Undo, from here when a second find is
-     * deleted while this one is pending (the first is committed then), or from [onCleared].
-     *
-     * Inside [editingEntryMutex], like every other write to [MushroomLogUiState.editingEntry]: a photo
-     * attach still in flight for this find lands before the form closes rather than reopening it
-     * afterwards. The displaced find's commit is launched after the lock is released — the lock is
-     * not reentrant.
-     *
-     * A draft is found in [MushroomLogUiState.draftEntries] or, when it was never left, as the open
-     * [MushroomLogUiState.editingEntry] itself. An id found nowhere is logged and pends nothing.
-     */
-    fun requestDeleteEntry(id: String) {
-        viewModelScope.launch {
-            val displaced = editingEntryMutex.withLock {
-                val state = _uiState.value
-                val entry = state.entries.firstOrNull { it.id == id }
-                    ?: state.draftEntries.firstOrNull { it.id == id }
-                    ?: state.editingEntry?.takeIf { it.id == id }
-                if (entry == null) {
-                    Log.w(TAG, "A delete was asked for find '$id', which is not loaded; nothing pended.")
-                    return@withLock null
-                }
-                val displaced = findDeletes.pend(entry, entryReferenceCount = null)
-                _uiState.update {
-                    it.copy(
-                        pendingDelete = findDeletes.pending,
-                        editingEntry = it.editingEntry?.takeUnless { open -> open.id == id },
-                        // The displaced find leaves its Undo window in this same update: it is never in neither.
-                        committedFindDeleteIds = if (displaced == null) it.committedFindDeleteIds else it.committedFindDeleteIds + displaced.id,
-                    )
-                }
-                displaced
-            }
-            displaced?.let(::commitFindDelete)
-        }
-    }
-
-    /**
-     * The snackbar's Undo: the pending find shows again, in the list it was in; its report stays
-     * closed. Nothing was deleted, so nothing is restored. A draft that was open and never left sat in
-     * no list; it goes into [MushroomLogUiState.draftEntries] now, which is where leaving it would have
-     * put it.
-     */
-    fun undoDeleteEntry(id: String) {
-        val entry = findDeletes.undo(id)
-        if (entry == null) {
-            Log.w(TAG, "Undo for find '$id' came after its delete was committed; nothing to undo.")
-        }
-        _uiState.update { state ->
-            val listed = state.entries.any { it.id == id } || state.draftEntries.any { it.id == id }
-            state.copy(
-                pendingDelete = findDeletes.pending,
-                draftEntries = if (entry != null && entry.isDraft && !listed) state.draftEntries + entry else state.draftEntries,
-            )
-        }
-    }
-
-    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending find's delete runs, once. */
-    fun commitDeleteEntry(id: String) {
-        val entry = findDeletes.commit(id)
-        // The find is marked committed (commitFindDelete's first update) before the pending marker is cleared,
-        // so the Maps tab never sees a moment in which it is neither (dispatch 2026-09-28-312, item 9).
-        entry?.let(::commitFindDelete)
-        _uiState.update { it.copy(pendingDelete = findDeletes.pending) }
-    }
-
-    /**
-     * The real delete of a find whose pending time is over. It leaves [MushroomLogUiState.entries]/
-     * [MushroomLogUiState.draftEntries] at once, so it does not flash back between the snackbar
-     * closing and the delete finishing; the delete itself runs inside [editingEntryMutex] as
-     * [onDeleteEntry]'s does. A failed delete puts it back where it was and reports the failure the
-     * way [onDeleteEntry] does.
-     */
-    private fun commitFindDelete(entry: MushroomLogEntry) {
-        val before = _uiState.value
-        val entriesIndex = before.entries.indexOfFirst { it.id == entry.id }
-        val draftsIndex = before.draftEntries.indexOfFirst { it.id == entry.id }
-        _uiState.update { state ->
-            state.copy(
-                entries = state.entries.filterNot { it.id == entry.id },
-                draftEntries = state.draftEntries.filterNot { it.id == entry.id },
-                committedFindDeleteIds = state.committedFindDeleteIds + entry.id,
-            )
-        }
-        viewModelScope.launch {
-            editingEntryMutex.withLock {
-                deleteEntry(entry.id).fold(
-                    onSuccess = {
-                        _uiState.update { it.copy(saveErrorMessage = null) }
-                        onFindDeleted(entry.id)
-                    },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't delete entry '${entry.id}'.", error)
-                        _uiState.update { state ->
-                            state.copy(
-                                entries = state.entries.reinsert(entry, entriesIndex),
-                                draftEntries = state.draftEntries.reinsert(entry, draftsIndex),
-                                committedFindDeleteIds = state.committedFindDeleteIds - entry.id,
-                                saveErrorMessage = "Couldn't delete that entry.",
-                            )
-                        }
-                    },
-                )
-            }
-        }
-    }
-
-    /** [entry] back at [index] when it was in this list ([index] >= 0) and is not there now. */
-    private fun List<MushroomLogEntry>.reinsert(entry: MushroomLogEntry, index: Int): List<MushroomLogEntry> =
-        if (index < 0 || any { it.id == entry.id }) this else toMutableList().apply { add(index.coerceAtMost(size), entry) }
-
-    override fun onCleared() {
-        // Journal redesign J4: a find still pending is committed here, since no snackbar is left to
-        // end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
-        findDeletes.takeAny()?.let { entry ->
-            pendingDeleteCommitScope.launch {
-                deleteEntry(entry.id).onFailure { error ->
-                    Log.w(TAG, "Couldn't delete find '${entry.id}' pending when the screen closed; it is still saved.", error)
-                }
-            }
-        }
-        // J4b L3: the same for a pending gallery photo — its rows, then its file.
-        photoDeletes.takeAny()?.let { photo ->
-            pendingDeleteCommitScope.launch {
-                deleteGalleryPhoto(photo.photo) { error ->
-                    Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}' pending when the screen closed.", error)
-                }.onFailure { error ->
-                    Log.w(TAG, "Couldn't delete photo '${photo.photo.id}' pending when the screen closed; it is still saved.", error)
-                }
-            }
-        }
-    }
-
     fun onDeleteEntry(id: String) {
         viewModelScope.launch {
             editingEntryMutex.withLock {
@@ -987,98 +876,14 @@ class MushroomLogViewModel(
     /** Deletes a gallery photo at once, after its dialog: see [MushroomLogGallery.onDeleteGalleryPhoto]. */
     fun onDeleteGalleryPhoto(photo: GalleryPhoto) = gallery.onDeleteGalleryPhoto(photo)
 
-    /**
-     * An album photo's Delete (journal redesign J4b L3: the tile's long-press menu, or its "Delete"
-     * accessibility action): the photo becomes pending instead of being deleted, held in J4's
-     * [PendingDeleteSlot]. It is left out of [MushroomLogUiState.hidingPendingDelete]'s gallery and
-     * finds' photo lists while the Undo snackbar shows.
-     *
-     * **The file delete waits too.** What is deferred is the whole [deleteGalleryPhoto] call, rows
-     * then file ([DeleteGalleryPhotoUseCase], unchanged): nothing runs until [commitDeleteGalleryPhoto]
-     * (the snackbar ended without Undo), a second photo delete displacing this one, or [onCleared].
-     * J0 B1 found a photo restorable only this way, since the JPEG is gone once its file is deleted.
-     *
-     * The reference count held with it is how many Cartography (journal) entries keep the photo,
-     * read from [MushroomLogUiState.cartographyEntryPhotoReferenceCounts] now (missing counts as
-     * zero, as the old confirm dialog read it). The drawer's gallery and the album's own trash
-     * button still delete at once after their dialog, through [onDeleteGalleryPhoto].
-     */
-    fun requestDeleteGalleryPhoto(photoId: String) {
-        val state = _uiState.value
-        val photo = state.galleryPhotos.firstOrNull { it.photo.id == photoId }
-        if (photo == null) {
-            Log.w(TAG, "A delete was asked for gallery photo '$photoId', which is not loaded; nothing pended.")
-            return
-        }
-        val displaced = photoDeletes.pend(photo, entryReferenceCount = state.cartographyEntryPhotoReferenceCounts[photoId] ?: 0)
-        _uiState.update {
-            it.copy(
-                pendingPhotoDelete = photoDeletes.pending,
-                committedPhotoDeleteIds = if (displaced == null) it.committedPhotoDeleteIds else it.committedPhotoDeleteIds + displaced.photo.id,
-            )
-        }
-        displaced?.let(::commitGalleryPhotoDelete)
-    }
+    /** An album photo's Delete: the photo becomes pending. See [MushroomLogPendingDeletes.requestDeleteGalleryPhoto]. */
+    fun requestDeleteGalleryPhoto(photoId: String) = pendingDeletes.requestDeleteGalleryPhoto(photoId)
 
-    /** The snackbar's Undo: the pending photo shows again. Nothing was deleted, row or file, so nothing is restored. */
-    fun undoDeleteGalleryPhoto(photoId: String) {
-        if (photoDeletes.undo(photoId) == null) {
-            Log.w(TAG, "Undo for gallery photo '$photoId' came after its delete was committed; nothing to undo.")
-        }
-        _uiState.update { it.copy(pendingPhotoDelete = photoDeletes.pending) }
-    }
+    /** The snackbar's Undo: see [MushroomLogPendingDeletes.undoDeleteGalleryPhoto]. */
+    fun undoDeleteGalleryPhoto(photoId: String) = pendingDeletes.undoDeleteGalleryPhoto(photoId)
 
-    /** The snackbar ended without Undo: the pending photo's delete runs, once — its rows, then its file. */
-    fun commitDeleteGalleryPhoto(photoId: String) {
-        val photo = photoDeletes.commit(photoId)
-        // Marked committed before the pending marker is cleared: see commitDeleteEntry.
-        photo?.let(::commitGalleryPhotoDelete)
-        _uiState.update { it.copy(pendingPhotoDelete = photoDeletes.pending) }
-    }
-
-    /**
-     * The real delete of a photo whose pending time is over: [onDeleteGalleryPhoto]'s call, with the
-     * photo taken out of [MushroomLogUiState.galleryPhotos] at once so it does not flash back before
-     * the reload. A failed row delete puts it back where it was and reports the failure the way
-     * [onDeleteGalleryPhoto] does (the use case then never reaches the file).
-     */
-    private fun commitGalleryPhotoDelete(photo: GalleryPhoto) {
-        val index = _uiState.value.galleryPhotos.indexOfFirst { it.photo.id == photo.photo.id }
-        _uiState.update { state ->
-            state.copy(
-                galleryPhotos = state.galleryPhotos.filterNot { it.photo.id == photo.photo.id },
-                committedPhotoDeleteIds = state.committedPhotoDeleteIds + photo.photo.id,
-            )
-        }
-        viewModelScope.launch {
-            deleteGalleryPhoto(photo.photo) { error ->
-                Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}'.", error)
-            }.fold(
-                onSuccess = {
-                    _uiState.update { it.copy(saveErrorMessage = null) }
-                    onPhotoDeleted(photo.photo.id)
-                    loadGalleryPhotos()
-                    // As onDeleteGalleryPhoto: loadEntries() takes editingEntryMutex itself.
-                    loadEntries()
-                },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't delete photo '${photo.photo.id}' from the gallery.", error)
-                    _uiState.update { state ->
-                        val restored = if (index < 0 || state.galleryPhotos.any { it.photo.id == photo.photo.id }) {
-                            state.galleryPhotos
-                        } else {
-                            state.galleryPhotos.toMutableList().apply { add(index.coerceAtMost(size), photo) }
-                        }
-                        state.copy(
-                            galleryPhotos = restored,
-                            committedPhotoDeleteIds = state.committedPhotoDeleteIds - photo.photo.id,
-                            saveErrorMessage = "Couldn't delete that photo.",
-                        )
-                    }
-                },
-            )
-        }
-    }
+    /** The snackbar ended without Undo: see [MushroomLogPendingDeletes.commitDeleteGalleryPhoto]. */
+    fun commitDeleteGalleryPhoto(photoId: String) = pendingDeletes.commitDeleteGalleryPhoto(photoId)
 
     /**
      * Clears [MushroomLogUiState.saveErrorMessage] once its one-shot Toast has been shown — see
