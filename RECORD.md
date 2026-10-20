@@ -24933,3 +24933,22 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Step 2.** Asked whether the plain map should spring back from a small nudge as it does while navigating, the owner chose "Yes, on the plain map too", which was described as new behaviour "planned and confirmed step by step before any build". No build until the step path is confirmed and a go is given.
 - **The walk's step 2 text was wrong.** It described navigation-only behaviour. That was the planner's premise error, made by writing the step from code.
 **Notes:** Written by the planner by hand. Next free ID -1469.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1469
+**Timestamp:** 2026-10-20T16:39:02Z
+**Continues:** 2026-09-28-1468
+**Title:** Plain-map spring-back: step path confirmed and go given, built after the step 3 fix
+**Decision:**
+- **Step path confirmed by the owner** (planner's message, 2026-10-20). With the map following you (locate on):
+  1. Nudge the map: it moves with your finger, stiffly, about half as far.
+  2. Lift early (under about 1 cm): it springs back to following, with a slight bounce, in about a quarter second.
+  3. Drag further or flick: it lets go and stops following; the locate button shows "not following", as now.
+  4. Pinch: zooms and keeps following.
+
+  The same as navigating (dispatch 2026-09-28-463), except that the plain map has no "Return to Route"; locate brings following back, as now.
+- **The owner chose "Yes, build it after step 3 (Recommended)":** "Same steps as navigating. Built after the step 3 fix, because both touch the map's following code. Go given now."
+- **The dispatch** is written when dispatch 2026-10-19-36 has merged, against that base.
+**Notes:** Written by the planner by hand. Next free ID -1470.
