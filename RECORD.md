@@ -25212,3 +25212,23 @@ Then Phase 2 is complete, followed by Elder's audit and the owner's promotion de
   In the last three the return stays pending.
 **Decision:** the owner chose "Bug list, check later (Recommended)": "Put it on the bug list with Hazel's write-up, including the open question of whether the Offline maps section can fail to open. No work now." The planner adds a known-bugs row in the next docs PR into pre-main. The wrong comment at :1074-1076 goes on the comment-and-tidy list.
 **Notes:** Written by the planner by hand. Next free ID -1480.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1480
+**Timestamp:** 2026-10-20T22:10:32Z
+**Continues:** 2026-09-28-1472
+**Title:** Trail styling into Street v1 (PR #258), verify-first (dispatch 2026-10-19-41); pre-main b60d7fba checked
+**Dispatch-file:** preserved/2026-10-19-41.md, for Hazel Cairnwright
+**Observed:**
+- **The hand-over.** Aspen Meridian (Pi planner) handed over Sage's finished trail design by cross-session message: pi-build 4d31ebf1, prompts/preserved/2026-10-20-trail-design-handover-rowan.md. The owner's word in Aspen's window was "Hand to Rowan (Recommended)". The planner asked the owner in its own window, and the owner chose "Yes, start it now (Recommended)", to a question naming a third Hazel building it into #258 alongside Phase 2 and a phone review build with Street on.
+- **#258** (street-cloudflare at 5b270ac4) is open into pre-main and now conflicts with pre-main, per the planner's trial merge.
+- **Pre-main b60d7fba:** push CI green (run 39503746885). Combined S22 check PASS (1.0.3703+gb60d7fba).
+**Scope:** map-style generator and checks on street-cloudflare, merging pre-main into it. No change to the app's default map, no legend, SightingsMap.kt untouched.
+**Finish line:**
+- #258 carries the trail spec, with tests and revert checks;
+- one debug APK with Street on, for the owner's phone review;
+- #258's own merge remains a later decision.
+**Abort conditions:** the dispatch's stops.
+**Notes:** Written by the planner by hand. Next free ID -1481.
