@@ -24647,3 +24647,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **S22:** 1.0.3621+g226a92fb, PASS.
 - The branch `dev-rebased-02a544cd` is kept on the remote.
 **Notes:** Written by the planner by hand. Next free ID -1452.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1452
+**Timestamp:** 2026-10-20T08:06:03Z
+**Continues:** 2026-09-28-1450
+**Title:** Phase 2 PRs #306, #302, #307, #305 and #309 merged into pre-main; combined S22 checks on pre-main aead6f08, 34143076 and 3d6606c6 passed
+**Observed:**
+- #306 (2.1 map-controls bundle) at 3d6606c6; then, after pre-main 3d6606c6's push run (39387062574, all three jobs green) passed the combined S22 check (1.0.3615+g3d6606c6, PASS): #302 (2.2 navigation view and attribution insets) at 19a7d61c, #307 (2.2 marker fan) at cb417022, #305 (2.7 poller, loop 2) at 6d26142c, #309 (2.1 finds-log bundle) at a6343324. Each gated on its approved head.
+- **Per PR:** suite identical; S22 PASS on its own build (1.0.3598+gce32f774, 1.0.3598+g2c28b71b, 1.0.3599+ga532d275, 1.0.3599+g4232269b, 1.0.3599+gd7304079); **Sorrel: approve with nits, no defect, for all five** (#306 and #309 with the suite recomputed by Sorrel from the XML; #305 with the launch, cancel, reset and poll-order tables verified at both commits; #307 with the moved body diffed by Sorrel).
+- **Screenshot pass on #302:** credit line, "i" and logo unchanged in portrait and landscape; the location dot showed the approximate state while GPS warmed up after install, then the full fix (both render correctly).
+- **Earlier combined checks:** pre-main aead6f08 (run 39384166870; 1.0.3611) and 34143076 (run 39386082250; 1.0.3613), both PASS. Merges were held while 3d6606c6's run completed, because each push to pre-main cancels the previous push run.
+- **Owed on a device, for the owner's walk at the end of the map series:** the marker fan (open a stack, tap a fanned marker, pan to fold, open in the Journal and come back so it reopens), and forecast cells with the layer on.
+- **Notes kept:** #305's body now carries its suite and dex figures (Sorrel's should-fix); four stale `beginPolling` mentions in test comments are left, since Phase 2 changes no test files; a dangling `[logUiState]` link goes into 2.1 PR 6.
+**Notes:** Written by the planner by hand. Next free ID -1453.
