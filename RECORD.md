@@ -24569,3 +24569,27 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **dev (-1087: rebased onto main after every main update):** dev is cbd8c40a, 22 commits on 969ecf0a; it was not rebased after the 3500 promotion (19aa1058) either. A trial rebase onto 02a544cd in a throwaway worktree **conflicted on the first commit** (41d777ef, the dev-tools commit, -930). Aborted, worktree removed; **dev untouched**. Brought to the owner (abort condition of the promotion procedure, -1135's pattern).
 - Phase 2 drafts may now merge into pre-main as each passes its proofs, review and S22 check (-1434's condition met).
 **Notes:** Written by the planner by hand. Next free ID -1446.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1446
+**Timestamp:** 2026-10-20T06:46:22Z
+**Continues:** 2026-09-28-1445, 2026-09-28-1087
+**Title:** dev is rebased onto main 02a544cd by a helper now, with conflicts resolved without changing any experiment, proved on CI, and pushed by the planner after a backup (owner)
+**The owner, verbatim, through the question tool:** "Hazel rebases it now (Recommended)", whose option read: "One helper re-applies the 22 dev commits onto main, resolving each conflict without changing what an experiment does, and proves it on CI. I back dev up first and push only after a clean result; any conflict whose resolution would need a decision comes to you. Runs alongside Phase 2."
+**Notes:** Written by the planner by hand. Next free ID -1447.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1447
+**Timestamp:** 2026-10-20T06:46:22Z
+**Continues:** 2026-09-28-1446
+**Title:** Rebase dev (cbd8c40a, 22 commits on 969ecf0a) onto main 02a544cd on a new branch; the planner moves dev after proof
+**Dispatch-file:** preserved/2026-10-19-32.md, for Hazel Cairnwright
+**Scope:** branch dev-rebased-02a544cd only; dev, main and pre-main untouched by the helper.
+**Baseline:** dev cbd8c40a; main 02a544cd; the trial rebase conflicted on 41d777ef.
+**Finish line:** range-diff explained, CI green, S22 launch check on the dev APK, dev moved with force-with-lease after logging its hash.
+**Abort conditions:** a resolution that would change an experiment's or main's behaviour, or that can't be told; any experiment test lost or changed in outcome.
+**Notes:** Written by the planner by hand. Next free ID -1448.
