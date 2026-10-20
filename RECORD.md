@@ -24663,3 +24663,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Owed on a device, for the owner's walk at the end of the map series:** the marker fan (open a stack, tap a fanned marker, pan to fold, open in the Journal and come back so it reopens), and forecast cells with the layer on.
 - **Notes kept:** #305's body now carries its suite and dex figures (Sorrel's should-fix); four stale `beginPolling` mentions in test comments are left, since Phase 2 changes no test files; a dangling `[logUiState]` link goes into 2.1 PR 6.
 **Notes:** Written by the planner by hand. Next free ID -1453.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1453
+**Timestamp:** 2026-10-20T08:25:46Z
+**Continues:** 2026-09-28-1434, 2026-09-28-1450
+**Title:** Phase 2.4: the main screen's engine (AvailabilityViewModel) collaborators, verify-first; 2.7 complete pending #308's merge (owner's Phase 2 go)
+**Dispatch-file:** preserved/2026-10-19-33.md, for Hazel Cairnwright
+**Scope:** ui/availability/AvailabilityViewModel.kt and new collaborator files in ui/availability; read-only until the planner's go. AvailabilityUiState's shape unchanged. From pre-main a6343324.
+**Baseline:** pre-main a6343324.
+**Finish line:** as the dispatch's report section; PRs merged under the standing word after proofs, Sorrel's review and the S22 launch check.
+**Abort conditions:** the dispatch's stops; a split needing a change to AvailabilityUiState's shape; any change to when a job starts or stops.
+**Notes:** 2.7's five PRs are all approved by Sorrel (#293, #299, #304, #305 merged; #308 queued). Written by the planner by hand. Next free ID -1454.
