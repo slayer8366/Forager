@@ -25129,3 +25129,28 @@ Hazel has the go for Part 2. The stop limit is about 11 production files.
 - **Phase 2.3 complete:** #325, #328, #339, #340.
 - The owner's 2.3 walk items from -1465 remain owed: a search notice showing, a bubble below the strip, landscape while navigating, the L cluster and the notice on the same side.
 **Notes:** Written by the planner by hand. Next free ID -1477.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1477
+**Timestamp:** 2026-10-20T21:52:57Z
+**Continues:** 2026-09-28-1434, 2026-09-28-1476
+**Title:** Phase 2.5 (the frame) and 2.6 (the main screen body), verify-first, in parallel (dispatches 2026-10-19-39 and -40)
+**Dispatch-file:** preserved/2026-10-19-39.md and preserved/2026-10-19-40.md, each for Hazel Cairnwright
+**Scope:**
+- **2.5:** AvailabilityCompactScaffold.kt and new files only.
+- **2.6:** AvailabilityScreen.kt and new files only.
+- Each stops if it needs the other's file.
+- Covered by the owner's Phase 2 go (-1434).
+**Baseline:** pre-main b60d7fba. Scaffold 1,900 lines; screen 1,786 lines, with seven BackHandlers at :1088 to :1177.
+**Finish line:** both series merged under the standing word after proofs, the touch guards, Sorrel's review and the S22 launch check, plus:
+- S22 portrait and landscape screenshots for any PR that moves screen-edge code (2.5);
+- an S22 Back walk for any PR that moves Back handlers (2.6).
+
+Then Phase 2 is complete, followed by Elder's audit and the owner's promotion decision.
+**Abort conditions:**
+- the dispatches' stops;
+- any change to Back order, the map memories or the composition order;
+- either series touching the other's file.
+**Notes:** Written by the planner by hand. Next free ID -1478.
