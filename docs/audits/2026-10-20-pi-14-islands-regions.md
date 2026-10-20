@@ -147,3 +147,152 @@ region block and the README's US + Canada section say the islands are regions of
 - After the change: every suite passes; the existing checks pass unedited, run with
   `USCA_REGIONS="us canada"`.
 - Each revert check fails only the checks of its own edit.
+
+## Phase 2: built, 2026-10-20
+
+No premise was false and the basemap stop did not apply (Phase 1), so Phase 2 went ahead.
+
+### Commits on `pi-islands`
+
+- `698d8da8`: Phase 1, this record's first section.
+- `8dd93a16`: the tests, committed failing.
+- `6e4c6ba6`: the change, in `build-usca.sh`, `pins.env` and the README.
+- This record's Phase 2 section is the commit after them.
+
+### Failing first (observed, against the unchanged script at `8dd93a16`)
+
+- `test_build_usca_functions.sh`: 22 of 24 new checks failed. The failures were "command not found"
+  for the four new functions, and the pins (regions, the unlisted-regions pin, the two points). The
+  two that passed test the existing `rd5_square` and `rd5_west_edge` on the new points, which are
+  facts and not changes.
+  - Two slips in the test were caught there and fixed before the commit. First, refusal checks
+    written `! f ...` passed with `f` undefined; each now requires `declare -F f` first. Second, a
+    pin check read a variable the test had itself set; it now unsets it before sourcing `pins.env`.
+- `test_build_usca_disk.sh`: 2 failed. The old island extracts were left in place, because
+  `us/puerto-rico-[0-9]*` matches nothing. The keep checks and the `us canada` guard passed, by
+  design.
+- `test_build_usca_run.sh`: 21 failed, as predicted.
+  - R6 stopped at the state stage: "could not read the size of puerto-rico-261017.osm.pbf: no
+    Content-Length for https://download.geofabrik.de/north-america/puerto-rico-261017.osm.pbf".
+  - R7 and every R8 stopped at "--local: .../sources/osm/us/puerto-rico-261017.osm.pbf or its .md5
+    is missing".
+  - R2b failed: no sidecar yet.
+  - R6b passed (2), by design. So did R8's "before routing" check, vacuously, since the run stopped
+    earlier. One check, R6's "no path-named directory", first passed vacuously because the card
+    directory was never made. It now requires the directories to exist.
+  - R1 to R5, run with `USCA_REGIONS="us canada"`, passed unedited, 38 as before. They also passed
+    with the restructured stand-in before any script change.
+- `test_merge_poly.py`: the two new four-outline tests passed before the change, as predicted.
+  `merge_poly.py` is unchanged, so they are coverage of existing code, not evidence for this change.
+
+### Revert checks (observed)
+
+One per behaviour, by `revert.py` in the session's scratchpad. For each case it:
+- saved a copy;
+- applied one exact edit, refused unless the old text occurred exactly once;
+- checked that the reverted file parses with `bash -n`;
+- ran the affected suite;
+- restored from the saved copy and compared the sha256: every case matched.
+
+After all cases, `git diff --stat HEAD` was empty, and the forward change was confirmed present by
+grep (3 `region_url_dir "$s"`, 2 `write_basemap_regions "$pmtiles_out"`, 1 `basemap_regions_match "$basemap"`).
+
+| Reverted | Failed | Read as |
+|---|---|---|
+| size URL to flat | run, 11, all R6 | state stage, the 404 size message |
+| `.md5` URL to flat | run, 9, all R6 | fetch-extracts, exit 22 (curl's 404) |
+| download URL to flat | run, 9, all R6 | fetch-extracts, exit 1 (the download failed) |
+| `--local` name to the path | run, 9, all R7 and R8 | "--local: .../us/puerto-rico-261017.osm.pbf ... missing" |
+| cleanup's stem line removed | disk, 2 | the two island-removal checks |
+| `.poly` URL to the stem | run, 10, R6, R7 and R8-four | fetch-sources, exit 22 (404) |
+| `.poly` local name to the path | run, 10, the same | fetch-sources, exit 1 |
+| the `basemap_regions_match` call removed | run, 3, R8-none and R8-two | the island-less basemaps accepted |
+| the unlisted-regions branch made to refuse | functions 1, run 4 | R2 refused: "no .../kept.pmtiles.regions; an archive without one was built from us canada" |
+| the sidecar after Planetiler removed | run, 1 | R7's `.regions` check |
+| the sidecar after `--basemap` removed | run, 1 | R2b |
+| the stem-uniqueness test removed | functions, 1 | "two regions with one stem are refused" |
+| `pins.env` regions back to `us canada` | functions, 1 | the regions pin check |
+| `pins.env` points without the two islands | functions, 3 | San Juan, Charlotte Amalie, and the seven-then-more check |
+
+Every failure in each case is one that edit can produce. None names another edit's check.
+
+### The full suite (observed, at `6e4c6ba6`)
+
+| Suite | Before | After |
+|---|---|---|
+| `test_build_usca_disk.sh` | 89 | 95 |
+| `test_build_usca_run.sh` | 38 | 62 |
+| `test_build_usca_functions.sh` | 37 | 61 |
+| `test_build_usca_stop.sh` | 27 | 27 |
+| `test_build_functions.sh` | 14 | 14 |
+| Python: merge_poly, mvt_decode, run_record | 5, 6, 11 | 7, 6, 11 |
+
+The new totals match the checks added: disk 6, run 24, functions 24, Python 2.
+
+### Not tested
+
+- **Real Geofabrik downloads of a nested region** through `curl_resume`. The stand-in serves by URL
+  path and answers 404 for the flat URL, as Geofabrik did when read (observed 05:29Z). But no
+  `.osm.pbf` was fetched.
+- **Planetiler, BRouter and validation on the islands.** The stand-ins stop at BRouter's first step,
+  so the coverage check on San Juan and Charlotte Amalie has not run on real data. The merge did
+  run, through real osmium: 8 nodes from four tiny extracts.
+- **The USVI square's real size.** About 250 kB is an estimate (Phase 1).
+- **The island 261017 files' header timestamps.** They are inferred to be 2026-10-17T20:20:51Z, like
+  the us and canada 261017 files. Reading them needs the files.
+- **A failed `.md5` fetch ends the run with curl's exit 22 and no "FAILED:" line** (observed in the
+  `.md5` revert). This is so for `us` and `canada` today too, so it was left as it is.
+
+### What the first rebuild with the islands needs (inferred unless marked)
+
+- **The basemap must be built again.** No existing archive holds the islands. Today's kept basemap
+  has no `.regions` file, so a four-region `--basemap` run refuses it at the state stage, in
+  seconds (R8). Planetiler took 7h44m on us + canada (measured, 2026-10-19). The islands add 0.4%
+  of input, so expect about the same. Then routing, validation and publish: the last such run took
+  4h22m (22:59–03:21Z, audit). That is about 12 hours in all.
+- **Downloads.**
+  - With a new snapshot, the four 261018 extracts are 18,812,042,605 bytes (HEAD, 05:29Z); the
+    islands' share is 77,209,152.
+  - With `--local 261017`, the us and canada 261017 files must still be on the card. That was not
+    checked here, since the card's files are out of bounds. The two island 261017 files
+    (77,197,534 bytes, `200` at Geofabrik at 05:29Z) and their `.md5` files would have to be put
+    on the card, linked from `sources/osm` as `puerto-rico-261017.osm.pbf` and
+    `us-virgin-islands-261017.osm.pbf`, by hand. That is a download, which waits for the owner's go.
+  - If their headers carried another snapshot, the run would stop at the same-snapshot check,
+    before any build.
+  - At the 2026-10-18 Wi-Fi rate (about 0.9 MB/s), the islands take under two minutes, and on the
+    tether (about 0.2 MB/s) under seven.
+- **Disk.**
+  - Free space read by `df` at 05:33Z: NVMe 165,683,728,384 bytes, card 100,409,962,496 bytes.
+  - A full 261018 run needs 157,061,743,709 bytes on the NVMe, by the script's own
+    `planetiler_need` and `with_margin`. That leaves 8,621,984,675 to spare. Without the islands
+    the need would be 156,417,124,499, so they cost 644,619,210 bytes of margin.
+  - The card needs 42,624,085,210 bytes for a full download.
+  - `--local 261017`: the NVMe needs 157,020,310,761 and the card 23,807,079,981, plus the islands'
+    download.
+- **No skip.** The published manifest's sequence is `us:2415,canada:4945` (audit). A four-region
+  run's string differs, so the skip check does not stop it.
+
+### The USVI floor, proposed, not built
+
+If the owner or planner wants the floor to fit the square, a fourth field on a coverage point,
+`name:lon:lat:min-bytes`, would let Charlotte Amalie carry its own floor, for example 50,000,
+while the rest keep 100,000. The point name and coordinates stay as pinned. That is a new
+capability, and it is left for the planner. As built, a USVI square under 100,000 bytes refuses
+the run at validation. It does not publish one.
+
+### Calls made beyond the dispatch
+
+- `regions_ok`, a check on the region list (path syntax, one stem per region), run before the
+  network stage.
+- A `--basemap` run writes its own `.regions` for the archive it links, so a reused basemap's
+  output can be reused again.
+- The test's stand-in Geofabrik now serves by URL path, and R1 to R5 are pinned to `us canada`.
+  Their checks are unedited.
+- `pins.env` no longer quotes the `us.poly` east-edge longitude, which the old comment carried.
+  That figure stays in the audit record, and leaving it out keeps the repo's coordinates to the
+  pinned points.
+- The test fixtures place the islands' nodes on the two coverage points, inside whole-degree
+  boxes, and `test_merge_poly.py` uses made-up rectangles. No Geofabrik vertex is committed.
+- Read-only extras: Hawaii's HEAD, for the size ratio, and `df` on the two filesystems, which reads
+  no file on either.
