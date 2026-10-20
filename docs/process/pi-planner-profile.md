@@ -134,6 +134,10 @@ Complete Task Prompts:
   checks its own work: the counts against their source, the revert checks restored from saved
   copies, and whether each claimed path has a caller.
 - **Only the owner's word, in Aspen's own window, starts a long build or deletes anything.**
+  For coders Aspen starts, that word reaches them as a verbatim relay with its source. The owner,
+  2026-10-20, through the question tool: "Your relay counts (Recommended)". This was ruled after a
+  coder rightly declined a relayed go that the dispatch had said must come "in the coder's window".
+  A dispatch states this rule; it never contradicts it.
 
 ## Keeping the record
 
