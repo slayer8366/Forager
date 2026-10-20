@@ -39,13 +39,14 @@ check "Honolulu's z15 tile" '[[ "$(z15_tile -157.8583 21.3069)" == "15 2015 1439
 check "the tile at 0,0 is the centre one" '[[ "$(z15_tile 0.0001 -0.0001)" == "15 16384 16384" ]]'
 
 # --- curl_resume: a partial file from an earlier run is resumed, not discarded ------------------
-USCA_DOWNLOAD_RETRIES=0; HTTP_USER_AGENT=test
+USCA_DOWNLOAD_SPEED_LIMIT=1; USCA_DOWNLOAD_SPEED_TIME=1; USCA_DOWNLOAD_PAUSE=0; USCA_DOWNLOAD_MAX_RESTARTS=3; HTTP_USER_AGENT=test
 mkdir -p "$T/dl"; printf 'first half' > "$T/dl/x.osm.pbf"
 curl() { # stands in for curl: records the partial file it was handed, then "finishes" it
   local out=""; while [[ $# -gt 0 ]]; do [[ "$1" == -o ]] && out="$2"; shift; done
   cat "$out" > "$T/dl/seen"; printf ' second half' >> "$out"
 }
-curl_resume "https://example.invalid/x.osm.pbf" "$T/dl/x.osm.pbf"
+# Its third argument is the size Geofabrik gives, "first half second half", 22 bytes (pi-09, F).
+curl_resume "https://example.invalid/x.osm.pbf" "$T/dl/x.osm.pbf" 22
 check "the partial file was handed to curl to resume" '[[ "$(cat "$T/dl/seen")" == "first half" ]]'
 check "the finished file is in place and the .part is gone" '[[ "$(cat "$T/dl/x.osm.pbf")" == "first half second half" && ! -e "$T/dl/x.osm.pbf.part" ]]'
 unset -f curl

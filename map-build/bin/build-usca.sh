@@ -29,7 +29,12 @@
 # path). Its own output, status and kept-failure directories, so neither script's `current`,
 # status or failed run is the other's. What differs from build-orwa.sh, and why:
 #   - The extracts are whole countries under north-america/, not states under us/.
-#   - Downloads resume (curl -C -) and retry 20 times: 19 GB over Bluetooth will be interrupted.
+#   - Downloads resume (curl -C -) in a loop of their own that starts a new connection whenever one
+#     slows below a floor or stalls, up to a cap (pins.env, USCA_DOWNLOAD_*): 19 GB over Bluetooth
+#     will be interrupted, and curl's own --retry resends the offset it started from (pi-09).
+#   - The extracts and the merged extract live on the SD card (USCA_CARD_DIR), linked from
+#     sources/osm, so the NVMe holds only Planetiler's files while the published map stays in place
+#     until the new one is done (owner, 2026-10-20: "always keep the last map").
 #   - Planetiler is limited to Geofabrik's outlines of the two countries (--polygon). The us
 #     extract's header box spans -180 to 180 because the Aleutians cross the antimeridian, so the
 #     box alone would fill ocean tiles across the whole band.
@@ -41,8 +46,11 @@
 #   - Before publishing, sample points in each country and territory the owner named must have a
 #     z15 tile with roads in it and a plausibly sized .rd5 square, so a build that silently lost
 #     Alaska, Hawaii, Canada or, once it is a region, Puerto Rico is refused.
-#   - A free-disk floor before the merge (USCA_MIN_FREE_GB): the build shares the root filesystem
-#     with the rest of the Pi.
+#   - A disk check in bytes on both disks, computed from the inputs' sizes and the ratios measured
+#     on the 261017 run (pins.env, USCA_DISK_*), at the state stage before anything downloads and
+#     again at the merge: the build shares the root filesystem with the rest of the Pi.
+#   - Before asking Geofabrik anything, it waits (bounded) for a default route and for the host to
+#     resolve: two weekly firings failed at name lookup.
 #
 # Both outputs are published together or not at all. On any failure, a stop by hand included, the
 # previous output and the `current` link are left untouched, the run's log is kept, its scratch
@@ -87,6 +95,9 @@ TIMED=(python3 "$here/tools/peak_rss.py")
 
 run_id="usca-$(date -u +%Y%m%dT%H%M%SZ)"
 run="$FB_SRV/work/$run_id"
+# On the SD card (B and C): the extracts, linked from $SRC/osm, and this run's merged extract.
+CARD_OSM="$USCA_CARD_DIR/sources-osm"
+card_run="$USCA_CARD_DIR/work/$run_id"
 mkdir -p "$SRC/osm" "$SRC/aux" "$OUT" "$LOGS" "$run"
 log_file="$LOGS/$run_id.log"
 exec > >(tee -a "$log_file") 2>&1
@@ -106,6 +117,13 @@ cleanup_scratch() {
   # Remove this run's large working files; the log stays in $LOGS.
   if [[ -d "$run" && "$run" == "$FB_SRV/work/"* ]]; then
     rm -rf -- "$run"
+  fi
+  remove_card_run
+}
+remove_card_run() { # this run's directory on the card, which holds only the merged extract (C)
+  # card_run is unset where only this block is taken from the script (test_build_usca_stop.sh).
+  if [[ -n "${card_run:-}" && -d "$card_run" && "$card_run" == "$USCA_CARD_DIR/work/"* ]]; then
+    rm -rf -- "$card_run"
   fi
 }
 # The latest failed run's outputs, kept for inspection, as build-orwa.sh does; its own directory.
@@ -215,17 +233,183 @@ if got != (sys.argv[2], sys.argv[3]):
 EOF
 }
 
-curl_resume() { # url dest: resume into dest.part, then move into place
-  if [[ -s "$2" && ! -e "$2.part" ]]; then mv "$2" "$2.part"; fi  # a partial file from an earlier run
-  curl -fL --retry "$USCA_DOWNLOAD_RETRIES" --retry-all-errors --retry-delay 30 -C - \
-    -A "$HTTP_USER_AGENT" -o "$2.part" "$1"
-  mv "$2.part" "$2"
+curl_resume() { # url dest bytes: resume into dest.part until it holds bytes, then move into place
+  # One connection at a time, each resuming with -C -. curl gives a connection up when it averages
+  # under USCA_DOWNLOAD_SPEED_LIMIT bytes/s for USCA_DOWNLOAD_SPEED_TIME seconds, which catches a
+  # stall too; after a pause the next resumes, up to USCA_DOWNLOAD_MAX_RESTARTS connections. As in
+  # the loop that fetched the 261017 pair (2026-10-18), with a floor for the Bluetooth link. Not
+  # curl's own --retry: with -C - it resends the offset it started from, so every retry downloads
+  # again what the last one already had (measured against a local server, pi-09 Phase 1).
+  local url="$1" dest="$2" want="$3" n=0 have now rc t0
+  if [[ -s "$dest" && ! -e "$dest.part" ]]; then mv -- "$dest" "$dest.part"; fi  # from an earlier run
+  have="$(stat -c %s -- "$dest.part" 2>/dev/null || echo 0)"
+  while (( have < want )); do
+    if (( n >= USCA_DOWNLOAD_MAX_RESTARTS )); then
+      echo "${dest##*/}: gave up after $n connections (USCA_DOWNLOAD_MAX_RESTARTS) at $have of $want bytes; $dest.part is kept for the next run"
+      return 1
+    fi
+    (( n == 0 )) || sleep "$USCA_DOWNLOAD_PAUSE"
+    t0=$SECONDS; rc=0
+    curl -fL -sS -C - --connect-timeout 30 --speed-limit "$USCA_DOWNLOAD_SPEED_LIMIT" --speed-time "$USCA_DOWNLOAD_SPEED_TIME" \
+      -A "$HTTP_USER_AGENT" -o "$dest.part" "$url" || rc=$?
+    n=$((n + 1))
+    now="$(stat -c %s -- "$dest.part" 2>/dev/null || echo 0)"
+    log "${dest##*/}: connection $n ended (curl exit $rc) after $(( SECONDS - t0 ))s, +$(( now - have )) bytes; $now of $want bytes" >&2
+    have=$now
+  done
+  if (( have != want )); then
+    echo "${dest##*/}: $have bytes, more than the $want Geofabrik gives for it; $dest.part left for inspection"
+    return 1
+  fi
+  mv -- "$dest.part" "$dest"
+}
+
+card_ready() { # is the card mounted, with its extracts directory writable? (B and C)
+  mountpoint -q -- "$USCA_CARD_MOUNT" || { echo "$USCA_CARD_MOUNT is not a mounted filesystem"; return 1; }
+  if ! mkdir -p -- "$CARD_OSM" 2>/dev/null || [[ ! -w "$CARD_OSM" ]]; then echo "cannot write $CARD_OSM"; return 1; fi
+}
+
+fetch_extract() { # url name bytes: download onto the card, and link it from $SRC/osm under the same name (B)
+  local link="$SRC/osm/$2"
+  if [[ -e "$link" && ! -L "$link" ]]; then
+    echo "$link is a regular file; extracts now live on the card and are linked from $SRC/osm (move it to $CARD_OSM and link it, or remove it)"
+    return 1
+  fi
+  card_ready || return 1
+  curl_resume "$1" "$CARD_OSM/$2" "$3" || return 1
+  ln -sfn -- "$CARD_OSM/$2" "$link"
+}
+
+remove_old_extracts() { # every extract of this script's regions but this run's inputs: link, card file, .md5, .headers
+  # The card's files are walked as well as the links (B): at 18.8 GB a week, links removed alone
+  # would fill the card in about five weeks. So a link's card file goes, and so does a card file no
+  # link names. A link to anywhere else loses only the link. build-orwa.sh's extracts are left alone.
+  local s f i keep base target
+  for s in $USCA_REGIONS; do
+    for f in "$SRC/osm/$s-"[0-9]*.osm.pbf "$CARD_OSM/$s-"[0-9]*.osm.pbf; do
+      [[ -e "$f" || -L "$f" ]] || continue
+      base="${f##*/}"; keep=0
+      for i in "${inputs[@]}"; do [[ "$base" == "${i##*/}" ]] && keep=1; done
+      [[ $keep -eq 1 ]] && continue
+      if [[ -L "$f" ]]; then
+        target="$(readlink -- "$f")"
+        [[ "$target" == "$CARD_OSM/$base" ]] \
+          || warn remove-old-extracts "$f links to $target, not to the card; removed the link only"
+      fi
+      if rm -f -- "$f" "$f.md5" "$f.headers"; then log "removed old extract $base ($f)"
+      else warn remove-old-extracts "could not remove old extract $f"; fi
+    done
+  done
+}
+
+remote_size() { # url: the file's size in bytes, from a HEAD request's Content-Length
+  local n
+  n="$(curl -sSfIL -A "$HTTP_USER_AGENT" "$1" | tr -d '\r' | awk 'tolower($1) == "content-length:" { n = $2 } END { print n }')" || true
+  [[ "$n" =~ ^[0-9]+$ ]] || { echo "no Content-Length for $1"; return 1; }
+  echo "$n"
+}
+
+planetiler_need() { # input-bytes: Planetiler's peak on the NVMe, from the ratios measured on the 261017 run (D)
+  python3 - "$1" "$USCA_DISK_FEATURES_RATIO" "$USCA_DISK_ARCHIVE_RATIO" "$USCA_DISK_MULTIPOLYGON_RATIO" <<'EOF'
+from decimal import Decimal, ROUND_CEILING
+import sys
+print((Decimal(sys.argv[1]) * sum(Decimal(r) for r in sys.argv[2:])).to_integral_value(rounding=ROUND_CEILING))
+EOF
+}
+
+with_margin() { # bytes: plus USCA_DISK_MARGIN_PERCENT of them, and at least USCA_DISK_MARGIN_MIN_BYTES more
+  local m=$(( $1 * USCA_DISK_MARGIN_PERCENT / 100 ))
+  (( m >= USCA_DISK_MARGIN_MIN_BYTES )) || m=$USCA_DISK_MARGIN_MIN_BYTES
+  echo $(( $1 + m ))
+}
+
+gb() { # bytes: as GB (10^9 bytes), for reading only; every check is done in bytes
+  awk -v b="$1" 'BEGIN { printf "%.1f GB", b / 1e9 }'
+}
+
+check_disk() { # name dir need-bytes why: is there need-bytes free on dir's filesystem?
+  local free
+  free="$(df -B1 --output=avail -- "$2" 2>/dev/null | tail -1 | tr -dc 0-9)"
+  [[ -n "$free" ]] || { echo "$1 ($2): cannot read its free space"; return 1; }
+  if (( free < $3 )); then
+    echo "$1 ($2): $free bytes free ($(gb "$free")), this run needs $3 bytes ($(gb "$3")): $4; short by $(( $3 - free )) bytes (GB = 10^9 bytes)"
+    return 1
+  fi
+  echo "$1 ($2): $free bytes free ($(gb "$free")), this run needs $3 bytes ($(gb "$3")): $4"
+}
+
+disk_check() { # input-bytes download-bytes: room on both disks for this run? (D) Prints each check.
+  # The NVMe holds Planetiler's files; the card the downloads and the merged extract. A --basemap
+  # run has no Planetiler, so no ratios: it keeps the fixed floor it had, in bytes, since its
+  # routing stage's disk need has not been measured. --fetch-only writes only to the card.
+  local in="$1" dl="$2" nvme="" card="" why_n="" why_c="" p ok=0
+  if [[ $fetch_only -eq 1 ]]; then
+    :
+  elif [[ -n "$basemap" ]]; then
+    nvme="$USCA_BASEMAP_RUN_MIN_FREE_BYTES"; why_n="the fixed floor for a --basemap run (USCA_BASEMAP_RUN_MIN_FREE_BYTES)"
+  else
+    p="$(planetiler_need "$in")" || { echo "cannot compute Planetiler's need"; return 1; }
+    nvme="$(with_margin "$p")"
+    why_n="Planetiler, (features $USCA_DISK_FEATURES_RATIO + archive $USCA_DISK_ARCHIVE_RATIO + multipolygon $USCA_DISK_MULTIPOLYGON_RATIO) x $in input bytes = $p, plus $(( nvme - p )) margin"
+  fi
+  if [[ $fetch_only -eq 0 && -z "$basemap" ]]; then
+    card="$(with_margin $(( dl + in )))"; why_c="$dl to download + $in for the merged extract, plus $(( card - dl - in )) margin"
+  elif (( dl > 0 )); then
+    card="$(with_margin "$dl")"; why_c="$dl to download, plus $(( card - dl )) margin"
+  fi
+  if [[ -n "$nvme" ]]; then check_disk NVMe "$FB_SRV" "$nvme" "$why_n" || ok=1; fi
+  if [[ -n "$card" ]]; then
+    if card_ready; then check_disk card "$USCA_CARD_DIR" "$card" "$why_c" || ok=1; else ok=1; fi
+  fi
+  return $ok
+}
+
+run_disk_check() { # input-bytes download-bytes: disk_check, each line logged, or the run stops
+  local out l
+  if out="$(disk_check "$1" "$2")"; then
+    while IFS= read -r l; do [[ -z "$l" ]] || log "$l"; done <<<"$out"
+  else
+    die "not enough room: $(tr '\n' ' ' <<<"$out")"
+  fi
+}
+
+has_default_route() { # [route-file ipv6-route-file]: is there a default route in the kernel's tables?
+  # Read from /proc: `ip route` needs netlink, which the unit's RestrictAddressFamilies leaves out
+  # (measured, pi-09 Phase 1). IPv6's unreachable default on lo does not count.
+  awk 'NR > 1 && $2 == "00000000" { f = 1 } END { exit !f }' "${1:-/proc/net/route}" 2>/dev/null && return 0
+  awk '$1 == "00000000000000000000000000000000" && $2 == "00" && $10 != "lo" { f = 1 } END { exit !f }' \
+    "${2:-/proc/net/ipv6_route}" 2>/dev/null
+}
+
+wait_for_network() { # host: wait, at most USCA_NETWORK_WAIT_SECONDS, for a default route and the host to resolve (G)
+  local waited=0 missing
+  while :; do
+    missing=()
+    has_default_route || missing+=("no default route")
+    getent hosts "$1" >/dev/null 2>&1 || missing+=("$1 does not resolve")
+    [[ ${#missing[@]} -gt 0 ]] || return 0
+    if (( waited >= USCA_NETWORK_WAIT_SECONDS )); then
+      echo "after $waited s: ${missing[*]/%/;}" | sed 's/;$//'
+      return 1
+    fi
+    (( waited > 0 )) || log "waiting up to ${USCA_NETWORK_WAIT_SECONDS}s for the network: ${missing[*]}" >&2
+    sleep "$USCA_NETWORK_POLL_SECONDS"
+    waited=$(( waited + USCA_NETWORK_POLL_SECONDS ))
+  done
 }
 
 curl_get() { # url dest: download to dest.part with the response headers, then move into place
   curl -sSfL --retry 3 --retry-delay 10 -A "$HTTP_USER_AGENT" -D "$2.headers" -o "$2.part" "$1"
   mv "$2.part" "$2"
 }
+
+# --- 0. The network, before asking Geofabrik anything (not for --local) ------------------------
+if [[ -z "$local_date" ]]; then
+  set_stage network
+  geofabrik_host="${USCA_GEOFABRIK_BASE#*://}"; geofabrik_host="${geofabrik_host%%/*}"
+  net="$(wait_for_network "$geofabrik_host")" || die "the network is not up: $net"
+  log "network up: a default route, and $geofabrik_host resolves"
+fi
 
 # --- 1. Which extracts, and are they new? ------------------------------------------------------
 set_stage state
@@ -277,6 +461,24 @@ if [[ -n "$basemap" ]]; then
   basemap_matches "$basemap" "$osm_ts" "${seq[$first]}" || die "--basemap: $basemap was not built from these extracts"
   log "--basemap: $basemap was built from $osm_ts, sequence ${seq[$first]}; Planetiler will not run"
 fi
+# Room on both disks, from the extracts' sizes: Geofabrik's Content-Length, or the files' own for
+# --local. Checked here so an over-size week fails in minutes, not a day of downloading in (D).
+declare -A size
+in_bytes=0; dl_bytes=0
+for s in $USCA_REGIONS; do
+  if [[ -n "$local_date" ]]; then
+    size[$s]="$(stat -L -c %s -- "$SRC/osm/${file[$s]}")"
+  else
+    size[$s]="$(remote_size "$USCA_GEOFABRIK_BASE/${file[$s]}")" || die "could not read the size of ${file[$s]}: ${size[$s]}"
+    # What a run before this one left on the card: a partial download, or the whole file.
+    got="$(stat -c %s -- "$CARD_OSM/${file[$s]}.part" 2>/dev/null || stat -c %s -- "$CARD_OSM/${file[$s]}" 2>/dev/null || echo 0)"
+    (( got <= size[$s] )) || got=0
+    dl_bytes=$(( dl_bytes + size[$s] - got ))
+  fi
+  in_bytes=$(( in_bytes + size[$s] ))
+done
+log "inputs: $in_bytes bytes, $dl_bytes of them still to download"
+run_disk_check "$in_bytes" "$dl_bytes"
 
 # --- 2. Extracts: download (resuming), check MD5, check the header timestamp -------------------
 set_stage fetch-extracts
@@ -286,8 +488,9 @@ for s in $USCA_REGIONS; do
   if [[ -z "$local_date" ]]; then
     curl -sSf -A "$HTTP_USER_AGENT" -o "$f.md5" "$USCA_GEOFABRIK_BASE/${file[$s]}.md5"
     if [[ ! -s "$f" ]] || ! (cd "$SRC/osm" && md5sum -c --quiet "$f.md5" >/dev/null 2>&1); then
-      log "downloading ${file[$s]}"
-      curl_resume "$USCA_GEOFABRIK_BASE/${file[$s]}" "$f"
+      log "downloading ${file[$s]} (${size[$s]} bytes) to $CARD_OSM"
+      dl="$(fetch_extract "$USCA_GEOFABRIK_BASE/${file[$s]}" "${file[$s]}" "${size[$s]}")" \
+        || die "download of ${file[$s]} failed: $dl"
     fi
   fi
   (cd "$SRC/osm" && md5sum -c --quiet "$f.md5") || die "MD5 mismatch for ${file[$s]}"
@@ -341,14 +544,16 @@ fi
 
 # --- 4. Room to work, then merge into one extract, stamped with its own timestamp ---------------
 set_stage merge
-free_gb="$(df --output=avail -BG "$FB_SRV" | tail -1 | tr -dc 0-9)"
-[[ "$free_gb" -ge "$USCA_MIN_FREE_GB" ]] \
-  || die "only ${free_gb} GB free under $FB_SRV; this build needs at least $USCA_MIN_FREE_GB GB (USCA_MIN_FREE_GB)"
-log "${free_gb} GB free under $FB_SRV (floor $USCA_MIN_FREE_GB GB)"
-merged="$run/$USCA_EXTRACT_NAME.osm.pbf"
+# The state stage's check again, from the files now here, with nothing left to download.
+in_bytes=0
+for i in "${inputs[@]}"; do in_bytes=$(( in_bytes + $(stat -L -c %s -- "$i") )); done
+run_disk_check "$in_bytes" 0
 # Only Planetiler reads the full merge (routing has its own, smaller one in section 6), so a run
-# with --basemap skips it.
+# with --basemap skips it and makes nothing on the card. The merge is written to the card (C),
+# where Planetiler reads it, and removed once Planetiler is done, or by cleanup_scratch.
 if [[ -z "$basemap" ]]; then
+  mkdir -p -- "$card_run"
+  merged="$card_run/$USCA_EXTRACT_NAME.osm.pbf"
   # osmium merge 1.15.0 drops the replication timestamp and the bounding boxes from the header
   # (build-orwa.sh, checked on synthetic files 2026-10-04), so the timestamp is set here and the
   # bounds come from the inputs.
@@ -390,6 +595,7 @@ else
     --multipolygon_geometry_storage=mmap)
   rm -rf -- "$pt/tmp"  # tens of GB; the routing step needs the room
   rm -f -- "$merged"   # nothing after Planetiler reads it
+  remove_card_run      # and its directory on the card
 fi
 
 # --- 6. The routing data -----------------------------------------------------------------------
@@ -561,17 +767,9 @@ for d in "${olds[@]}"; do
   else warn remove-old-outputs "could not remove old output $d"; fi
 done
 
-# Keep only this output's extracts among this script's regions; build-orwa.sh's are left alone.
-for s in $USCA_REGIONS; do
-  for f in "$SRC/osm/$s-"[0-9]*.osm.pbf; do
-    [[ -e "$f" ]] || continue
-    keep=0
-    for i in "${inputs[@]}"; do [[ "$f" == "$i" ]] && keep=1; done
-    [[ $keep -eq 1 ]] && continue
-    if rm -f -- "$f" "$f.md5" "$f.headers"; then log "removed old extract $(basename "$f")"
-    else warn remove-old-extracts "could not remove old extract $(basename "$f")"; fi
-  done
-done
+# Keep only this output's extracts among this script's regions, the card files with their links;
+# build-orwa.sh's are left alone.
+remove_old_extracts
 
 cleanup_scratch || warn remove-scratch "could not remove the scratch directory $run"
 

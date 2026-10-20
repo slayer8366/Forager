@@ -125,8 +125,13 @@ kept failure is the other's. The settings are the `USCA_` lines in `pins.env`.
 What it does differently from `build-orwa.sh`, and why:
 - **Whole countries.** `us` and `canada` from `north-america/`. Geofabrik numbers each region's
   sequence separately, so only the two timestamps must agree.
-- **Downloads resume.** `curl -C -` with 20 retries: 19 GB over the Pi's Bluetooth link (about
-  0.2 MB/s) is interrupted more than once. `--local YYMMDD` builds from a pair already in
+- **Downloads resume, and restart when they slow.** Each connection resumes with `curl -C -` and
+  is given up when it averages under `USCA_DOWNLOAD_SPEED_LIMIT` (50 kB/s) for
+  `USCA_DOWNLOAD_SPEED_TIME` (120 s); the next starts after a pause, up to
+  `USCA_DOWNLOAD_MAX_RESTARTS`. curl's own `--retry` is not used: with `-C -` it resends the
+  offset it started from. 19 GB over the Pi's Bluetooth link (about 0.2 MB/s) is interrupted more
+  than once. Before asking Geofabrik anything, the script waits up to an hour for a default route
+  and for the host to resolve. `--local YYMMDD` builds from a pair already in
   `sources/osm/`, checked against its `.md5` files and headers. It exists because the pair takes
   about a day to arrive, and by then Geofabrik has published a newer one.
 - **Clipped to the two countries' outlines.** The `us` extract's header box spans -180 to 180
@@ -136,8 +141,17 @@ What it does differently from `build-orwa.sh`, and why:
 - **Memory-mapped.** The node map, features and multipolygon geometries are files on disk,
   named explicitly. The heap stays at 4 GB. Whether that is enough for an input 30 times
   Oregon + Washington's is untested until the first run.
-- **A disk floor.** It refuses to start the merge with less than `USCA_MIN_FREE_GB` free. That
-  figure is an estimate, not a measurement.
+- **The SD card holds the extracts and the merge.** Downloads go to
+  `/mnt/archive/forager-build/sources-osm/`, linked from `sources/osm/` with their `.md5` beside
+  the link, and each run's merged extract to `/mnt/archive/forager-build/work/<run>/`, removed
+  after Planetiler. So the published map stays on the NVMe until the new one is done (owner,
+  2026-10-20: "always keep the last map"). The old-extract cleanup removes a link's card file
+  with it. The run refuses to write to the card unless `/mnt/archive` is mounted.
+- **A disk check in bytes, on both disks.** At the state stage, from Geofabrik's Content-Length
+  (or the files' sizes for `--local`), and again at the merge. The NVMe needs Planetiler's peak,
+  (5.61 + 1.82 + 0.16) times the inputs' bytes, from the 261017 run; the card needs what is left
+  to download plus the merged extract. Each gets a 10% margin, at least 5 GB. A `--basemap` run
+  keeps its old fixed floor, 110 GiB, in bytes. The ratios and their sources are in `pins.env`.
 - **Every routing square is kept.** Alaska is in this build, so the ferry-route squares
   `build-orwa.sh` dropped are wanted.
 - **A coverage check before publishing.** Each point in `USCA_COVERAGE_POINTS` (one per region

@@ -1,0 +1,236 @@
+#!/usr/bin/env bash
+# End-to-end tests of build-usca.sh's disk layout (dispatch 2026-10-20-pi-09, parts B, C, D and G):
+# the real script, copied unchanged into a temporary tree, run from its own entry point with its
+# own arguments. Only the outside world is stood in for: Geofabrik (a `curl` on PATH that serves
+# tiny extracts), the two disks' free space (`df`), the card's mount (`mountpoint`), name lookup
+# (`getent`), Java (Planetiler and BRouter) and `pmtiles`. osmium and the Python tools are the real
+# ones, run on tiny OSM files made here. Both "disks" are directories under one temporary
+# directory; nothing touches /srv/forager-build, /mnt/archive or /opt.
+#
+# Each run stops itself where the check needs it to (BRouter's first step fails on purpose), so
+# the publish stage is not reached here; the old-extract cleanup it calls is tested on its own in
+# test_build_usca_disk.sh.
+#
+# Run: bash map-build/tools/test_build_usca_run.sh   (runs every check; exits non-zero on a failure)
+set -euo pipefail
+here="$(cd "$(dirname "$0")/.." && pwd)"
+T="$(mktemp -d)"
+trap '[[ -n "${KEEP_T:-}" ]] || rm -rf -- "$T"' EXIT
+ME="$(id -un)"
+command -v osmium >/dev/null || { echo "FAIL: osmium is needed"; exit 1; }
+
+# --- The tree: the script under test, its tools, and pins.env with this test's paths -----------
+mkdir -p "$T/tree/map-build/bin" "$T/tree/map-build/tools"
+cp "$here/bin/build-usca.sh" "$T/tree/map-build/bin/"
+cp "$here/tools/"*.py "$T/tree/map-build/tools/"
+cmp -s "$here/bin/build-usca.sh" "$T/tree/map-build/bin/build-usca.sh" || { echo "FAIL: copy differs"; exit 1; }
+{
+  cat "$here/pins.env"
+  echo "# --- test_build_usca_run.sh: this test's paths ---"
+  echo "FB_OPT=$T/opt"
+  echo "FB_USER=$ME"
+  echo "USCA_CARD_MOUNT=$T/card"
+  echo "USCA_CARD_DIR=$T/card/forager-build"
+  echo "USCA_DOWNLOAD_PAUSE=0"
+  echo "USCA_NETWORK_WAIT_SECONDS=0"
+  echo 'FB_SRV=$STUB_FB_SRV'
+} > "$T/tree/map-build/pins.env"
+source "$here/pins.env"   # for the jar names
+mkdir -p "$T/opt/jdk/bin" "$T/opt/basemap" "$T/opt/brouter/profiles2"
+echo jar > "$T/opt/basemap/$BASEMAPS_JAR_NAME"; echo jar > "$T/opt/brouter/brouter-$BROUTER_VERSION-all.jar"
+CARD_DIR="$T/card/forager-build"
+
+# --- Tiny extracts, as Geofabrik's would be: header timestamp, sequence and bounding box ---------
+TS=2026-10-17T20:20:51Z
+mkdir -p "$T/geofabrik"
+printf 'n1 v1 x-122.33 y47.60\nn2 v1 x-122.34 y47.61\nw1 v1 Thighway=path Nn1,n2\n' > "$T/us.opl"
+printf 'n11 v1 x-79.38 y43.65\nn12 v1 x-79.39 y43.66\nw11 v1 Thighway=track Nn11,n12\n' > "$T/canada.opl"
+osmium extract -b -125,45,-120,50 --set-bounds "$T/us.opl" -o "$T/geofabrik/us-261017.osm.pbf" \
+  --output-header=osmosis_replication_timestamp=$TS --output-header=osmosis_replication_sequence_number=2415
+osmium extract -b -80,43,-79,44 --set-bounds "$T/canada.opl" -o "$T/geofabrik/canada-261017.osm.pbf" \
+  --output-header=osmosis_replication_timestamp=$TS --output-header=osmosis_replication_sequence_number=4945
+for s in us canada; do (cd "$T/geofabrik" && md5sum "$s-261017.osm.pbf" > "$s-261017.osm.pbf.md5"); done
+
+# --- Stand-ins on PATH ----------------------------------------------------------------------------
+mkdir -p "$T/stub"
+cat > "$T/stub/df" <<'EOF'
+#!/usr/bin/env bash
+# df -B1 --output=avail DIR, from STUB_NVME_FREE and STUB_CARD_FREE
+d="${!#}"; echo "    Avail"
+if [[ "$d" == "$STUB_T/card"* ]]; then echo "${STUB_CARD_FREE:-500000000000}"; else echo "${STUB_NVME_FREE:-500000000000}"; fi
+EOF
+cat > "$T/stub/mountpoint" <<'EOF'
+#!/usr/bin/env bash
+[[ "${STUB_CARD_MOUNTED:-1}" == 1 && "${!#}" == "$STUB_T/card" ]]
+EOF
+cat > "$T/stub/getent" <<'EOF'
+#!/usr/bin/env bash
+echo "getent $*" >> "$STUB_T/calls.log"
+[[ "${STUB_RESOLVES:-1}" == 1 ]] && echo "192.0.2.1 $2"
+EOF
+cat > "$T/stub/pmtiles" <<'EOF'
+#!/usr/bin/env bash
+case "$1 $2" in
+  "show --metadata") printf '{"planetiler:osm:osmosisreplicationtime": "2026-10-17T20:20:51Z", "planetiler:osm:osmosisreplicationseq": "2415"}\n' ;;
+  *) echo "pmtiles stub" ;;
+esac
+EOF
+cat > "$T/stub/curl" <<'EOF'
+#!/usr/bin/env bash
+# Geofabrik, as far as build-usca.sh asks it: state.txt, a HEAD of -latest (a redirect to the
+# dated file), a HEAD of the dated file (its Content-Length), the .md5, and the extract, resumed
+# from the -o file's size with -C -. With STUB_SLOW_FIRST=1 each extract's first connection sends
+# half and ends as a speed-limit abort does (exit 28).
+head=0; out=""; resume=0; url=""; prev=""
+for a in "$@"; do
+  case "$a" in -I|-sSfI|-sSIL|-sSfIL) head=1 ;; esac
+  [[ "$prev" == -o ]] && out="$a"
+  [[ "$prev" == -C && "$a" == - ]] && resume=1
+  prev="$a"; url="$a"
+done
+name="${url##*/}"; G="$STUB_T/geofabrik"
+off=0; [[ $resume -eq 1 && -n "$out" && -e "$out" ]] && off=$(stat -c %s "$out")
+echo "curl $([[ $head -eq 1 ]] && echo HEAD || echo GET) $name offset=$off" >> "$STUB_T/calls.log"
+case "$head:$name" in
+  0:state.txt) seqn=2415; [[ "$url" == *canada-updates* ]] && seqn=4945
+    printf 'sequenceNumber=%s\ntimestamp=2026-10-17T20\\:20\\:51Z\n' "$seqn" ;;
+  1:*-latest.osm.pbf) r="${name%-latest.osm.pbf}"
+    printf 'HTTP/1.1 302 Found\r\nLocation: https://download.geofabrik.de/north-america/%s-261017.osm.pbf\r\n\r\n' "$r" ;;
+  1:*.osm.pbf) printf 'HTTP/1.1 200 OK\r\nContent-Length: %s\r\n\r\n' "$(stat -c %s "$G/$name")" ;;
+  0:*.md5) cp "$G/$name" "$out" ;;
+  0:*.osm.pbf) size=$(stat -c %s "$G/$name")
+    if [[ "${STUB_SLOW_FIRST:-0}" == 1 && $off -eq 0 ]]; then
+      head -c $(( size / 2 )) "$G/$name" >> "$out"; echo "curl: (28) Operation too slow" >&2; exit 28
+    fi
+    tail -c +$(( off + 1 )) "$G/$name" >> "$out" ;;
+  *) echo "curl stub: unexpected $*" >&2; exit 22 ;;
+esac
+EOF
+cat > "$T/opt/jdk/bin/java" <<'EOF'
+#!/usr/bin/env bash
+# Planetiler (-jar) records where the merged extract it reads is, and what is in the card's work
+# directory; BRouter's first step records the card's work directory again, then fails, so the run
+# ends there and cleanup_scratch runs.
+C="$STUB_T/card/forager-build/work"
+case " $* " in
+  *" -version "*) echo 'openjdk version "stub"' ;;
+  *" -jar "*) m="$(readlink -f data/sources/forager-usca.osm.pbf)"
+    { echo "merged=$m"; echo "merged_bytes=$(stat -c %s "$m" 2>/dev/null || echo missing)"
+      echo "card_work=$(ls -A "$C" 2>/dev/null | tr '\n' ' ')"; } > "$STUB_T/planetiler.rec"
+    for a in "$@"; do if [[ "$a" == --output=* ]]; then echo archive > "${a#--output=}"; fi; done ;;
+  *" btools.mapcreator.OsmFastCutter "*)
+    { if [[ -e "$C" ]]; then echo "card_work_exists=yes"; echo "card_work=$(find "$C" -mindepth 1 | tr '\n' ' ')"
+      else echo "card_work_exists=no"; fi; } > "$STUB_T/cut.rec"
+    exit 1 ;;
+  *) echo "java stub: unexpected $*" >&2; exit 1 ;;
+esac
+EOF
+chmod 755 "$T/stub/"* "$T/opt/jdk/bin/java"
+
+fails=0; pass=0
+check() { if eval "$2"; then pass=$((pass + 1)); else echo "FAIL: $1"; fails=$((fails + 1)); fi; }
+status_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]) or "")' "$1" "$2" 2>/dev/null; }
+
+new_srv() { # name [local]: a fresh FB_SRV with its sources; "local" also puts the 261017 pair on the card
+  S="$T/srv-$1"; rm -rf -- "$S" "$CARD_DIR" "$T/calls.log" "$T/planetiler.rec" "$T/cut.rec"
+  mkdir -p "$S/sources/osm" "$S/sources/aux"
+  for f in natural_earth_vector.gpkg.zip daylight-landcover.gpkg qrank.csv.gz pgf-encoding.zip \
+    water-polygons-split-3857.zip land-polygons-split-3857.zip; do echo x > "$S/sources/aux/$f"; done
+  printf 'us\n1\n  -125 45\n  -120 45\n  -120 50\n  -125 50\nEND\nEND\n' > "$S/sources/aux/us.poly"
+  printf 'canada\n1\n  -80 43\n  -79 43\n  -79 44\n  -80 44\nEND\nEND\n' > "$S/sources/aux/canada.poly"
+  if [[ "${2:-}" == local ]]; then
+    mkdir -p "$CARD_DIR/sources-osm"
+    for s in us canada; do
+      cp "$T/geofabrik/$s-261017.osm.pbf" "$CARD_DIR/sources-osm/"
+      ln -s "$CARD_DIR/sources-osm/$s-261017.osm.pbf" "$S/sources/osm/$s-261017.osm.pbf"
+      cp "$T/geofabrik/$s-261017.osm.pbf.md5" "$S/sources/osm/"
+    done
+  fi
+  : > "$T/calls.log"
+}
+build() { # args...: runs the copied script; sets rc and L, the run's log
+  rc=0
+  env PATH="$T/stub:$PATH" STUB_T="$T" STUB_FB_SRV="$S" bash "$T/tree/map-build/bin/build-usca.sh" "$@" \
+    > "$T/out.txt" 2>&1 || rc=$?
+  L="$(ls -1 "$S/logs/"usca-*.log 2>/dev/null | tail -1)"; L="${L:-$T/out.txt}"
+  run_id="$(basename "$L" .log)"
+}
+show() { echo "  $1: exit $rc, status $(status_field "$S/status-usca.json" state) at $(status_field "$S/status-usca.json" stage); $(grep -E 'FAILED|bytes free|not a mounted|connection [0-9]+ ended' "$L" | sed 's/^[^]]*] //' | tr '\n' '|')"; }
+
+# --- R1. --local, the full path: the merge goes to the card, and is gone before routing ---------
+new_srv r1 local
+build --local 261017
+show "R1 --local"
+check "R1: the run reached BRouter's first step (it fails there on purpose)" '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]'
+check "C: Planetiler read the merged extract from the card's work directory for this run" \
+  'grep -qx "merged=$CARD_DIR/work/$run_id/forager-usca.osm.pbf" "$T/planetiler.rec"'
+check "C: the merged extract on the card was not empty when Planetiler ran" '! grep -qx "merged_bytes=missing" "$T/planetiler.rec" && ! grep -qx "merged_bytes=0" "$T/planetiler.rec"'
+check "C: no merged extract was ever under the NVMe's work directory" \
+  '[[ -z "$(grep -l "merged=$S/" "$T/planetiler.rec" 2>/dev/null)" ]]'
+check "C: after Planetiler, the merged extract and its directory are gone from the card" \
+  'grep -qx "card_work_exists=yes" "$T/cut.rec" && grep -qx "card_work=" "$T/cut.rec"'
+check "C: on failure nothing of this run is left on the card" '[[ ! -e "$CARD_DIR/work/$run_id" ]]'
+check "C: and the card's extracts are untouched" '[[ -f "$CARD_DIR/sources-osm/us-261017.osm.pbf" && -f "$CARD_DIR/sources-osm/canada-261017.osm.pbf" ]]'
+check "D: both disks were checked at the state stage" '[[ $(grep -c "\[state\] NVMe" "$L") -eq 1 && $(grep -c "\[state\] card" "$L") -eq 1 ]]'
+check "D: and again at the merge" '[[ $(grep -c "\[merge\] NVMe" "$L") -eq 1 && $(grep -c "\[merge\] card" "$L") -eq 1 ]]'
+check "D: the old GiB floor is gone from the log" '! grep -q "GB free under" "$L"'
+check "G: a --local run does not wait for the network" '! grep -q "^getent" "$T/calls.log" && ! grep -q "\[network\]" "$L"'
+
+# --- R2. --local --basemap: no merge, so nothing on the card, and the card is not required -------
+new_srv r2 local
+cp "$T/geofabrik/us-261017.osm.pbf" "$S/kept.pmtiles"
+STUB_CARD_MOUNTED=0 build --local 261017 --basemap "$S/kept.pmtiles"
+show "R2 --local --basemap, card reported unmounted"
+check "C: a --basemap run reaches routing with the card reported unmounted, as before B and C" \
+  '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]'
+check "C: a --basemap run never makes a work directory on the card" 'grep -qx "card_work_exists=no" "$T/cut.rec"'
+check "D: a --basemap run checks the NVMe against its fixed floor, in bytes" 'grep -q "\[state\] NVMe.*118111600640 bytes" "$L"'
+check "D: a --basemap run with nothing to download makes no card check" '! grep -q "\] card" "$L"'
+
+# --- R3. The download path, --fetch-only: to the card, linked, one slow connection restarted -----
+new_srv r3
+STUB_SLOW_FIRST=1 build --fetch-only
+show "R3 download, --fetch-only, first connection of each slowed"
+check "R3: the fetch-only run finished" '[[ $rc -eq 0 && "$(status_field "$S/status-usca.json" stage)" == fetch-only ]]'
+for s in us canada; do
+  check "B: $s-261017 is on the card, whole" 'cmp -s "$CARD_DIR/sources-osm/$s-261017.osm.pbf" "$T/geofabrik/$s-261017.osm.pbf"'
+  check "B: sources/osm/$s-261017.osm.pbf is a link to the card file" \
+    '[[ -L "$S/sources/osm/$s-261017.osm.pbf" && "$(readlink "$S/sources/osm/$s-261017.osm.pbf")" == "$CARD_DIR/sources-osm/$s-261017.osm.pbf" ]]'
+  check "B: its .md5 is a regular file in sources/osm" '[[ -f "$S/sources/osm/$s-261017.osm.pbf.md5" && ! -L "$S/sources/osm/$s-261017.osm.pbf.md5" ]]'
+  check "F: $s's second connection resumed where the first stopped" \
+    'grep -qx "curl GET $s-261017.osm.pbf offset=$(( $(stat -c %s "$T/geofabrik/$s-261017.osm.pbf") / 2 ))" "$T/calls.log"'
+done
+check "B: the MD5 check passed through the links" '[[ $(grep -c "MD5 good" "$L") -eq 2 ]]'
+check "B: nothing was downloaded onto the NVMe" '[[ -z "$(find "$S" -name "*.osm.pbf*" -type f ! -name "*.md5")" ]]'
+check "G: the run waited for the network before the state stage" \
+  'grep -q "^getent hosts download.geofabrik.de" "$T/calls.log" && grep "stage start" "$L" | head -1 | grep -q "\[network\]"'
+check "D: the state stage read each extract's size from a HEAD of the dated file" \
+  '[[ $(grep -c "^curl HEAD us-261017.osm.pbf" "$T/calls.log") -ge 1 && $(grep -c "^curl HEAD canada-261017.osm.pbf" "$T/calls.log") -ge 1 ]]'
+
+# --- R4. An over-size week is refused at the state stage, before any download --------------------
+new_srv r4
+STUB_NVME_FREE=1000 build
+show "R4 download, NVMe with 1000 bytes free"
+check "D: the run fails at the state stage" '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]]'
+check "D: the failure gives the NVMe's free bytes and the shortfall" 'grep -q "FAILED: .*1000 bytes free.*short by" "$L"'
+check "D: no extract was downloaded" '! grep -q "^curl GET .*osm.pbf " "$T/calls.log" && [[ ! -e "$CARD_DIR/sources-osm/us-261017.osm.pbf" ]]'
+# The card short instead, with the NVMe roomy.
+new_srv r4b
+STUB_CARD_FREE=1000 build
+check "D: a short card also fails the run at the state stage, before any download" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]] && grep -q "FAILED: .*card.*1000 bytes free" "$L" && ! grep -q "^curl GET .*osm.pbf " "$T/calls.log"'
+new_srv r4c
+STUB_CARD_MOUNTED=0 build
+check "B: an unmounted card fails the run at the state stage, naming the mount" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]] && grep -q "FAILED: .*$T/card is not a mounted filesystem" "$L"'
+
+# --- R5. No network: the run fails at its own stage, naming what was missing ---------------------
+new_srv r5
+STUB_RESOLVES=0 build
+show "R5 download, name lookup failing"
+check "G: the run fails at the network stage" '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == network ]]'
+check "G: the failure names the host that did not resolve" 'grep -q "FAILED: .*download.geofabrik.de does not resolve" "$L"'
+check "G: Geofabrik was never asked" '! grep -q "^curl" "$T/calls.log"'
+
+if [[ $fails -gt 0 ]]; then echo "FAILED: $fails checks failed, $pass passed"; exit 1; fi
+echo "ok: $pass checks"
