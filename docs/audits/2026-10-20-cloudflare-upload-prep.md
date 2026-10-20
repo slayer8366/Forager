@@ -407,3 +407,26 @@ The owner, through the question tool, verbatim:
 - From z15 the full ladder applies: easy `[8, g]`, unknown `[4, g]`, rough and hard `[2, g]`.
 
 The planner reads hard's z14 dash from the option's wording.
+
+## Revision 2 drawn: the trail design as ruled, 2026-10-20
+
+From the coder's report, with the planner's own checks marked.
+
+- **The build:** 90 layers. Four layers were added for z14 up to below z15: unknown and hard, each
+  clear and faint, with `[4, g]` and hard in `#7a1e10` at +0.4 width. The z15+ ladder is revision 1's,
+  with its `minzoom` 14 → 15 the only change; the coder compared the styles layer by layer.
+  `check-style` passes. The night style recolours 101 colours, with none unparsed.
+- **Checked by the planner:**
+  - 11 of 11 PNGs.
+  - Mt Rainier z15, day and night, revision 1 against revision 2: `ImageChops.difference` bbox
+    `None`, meaning pixel-identical.
+  - Viewed `shots-b3/day/mt-rainier-paradise-z14.png`: every trail dashed, and the one dotted line
+    is the single informal feature.
+  - Only the two preview servers are listening, on 127.0.0.1. The worktree is clean.
+- **Contrast:** informal's night colour `#bb8a6f` is 2.01 on night forest, inside the owner's band.
+  The 2.5 floor is kept on night grass (4.09) and night ground (5.33), and both pass. The coder kept
+  the floor there; the planner accepts it, since it passes either way. The one remaining listed
+  failure is the pure inversion of `#a0735a` on forest (1.72). The app does not draw that for this
+  layer, because the night exception replaces it.
+- **The preview** for the owner is `styles/variant-a-r2-local.json` (day), with its `-night.json`,
+  and the swatch `swatch3.html`.
