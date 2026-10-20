@@ -282,3 +282,13 @@ another window isn't a go for me". The owner chose "Yes, merge both" there, and 
 RECORD. Rowan did not find the merge offer in RECORD. Its source is Rowan's reply of 2026-10-20,
 item 5's coordination note, quoted earlier in this record: "I'll merge the Sage Wayfinder profile
 and add Sage to the team table when the owner sends it." It was a message, not a RECORD entry.
+
+## pi-18 Part A prep reviewed; premise 3 corrected; the owner's go, 2026-10-20
+
+The coder's prep report confirmed premises 1, 2, 4, 5, 6 and 7. It found premise 3, the night method,
+false as worded; the correction is in pi-18's amendment. Measured by the coder: at Mt Rainier
+(Paradise), z15, 153 road features carry `sac_scale` with 2 values, `trail_visibility` with 2 and
+`informal` with 1. Forest Park, 565 features, carries none of the three. **For Sage:** trail tags are
+sparse, so untagged trails are the common case, and every variant must read well for them. Node 22
+meets every `engines` requirement. The owner, verbatim: "Allow (Recommended)" for the downloads, and
+"The app's way (Recommended)" for night.
