@@ -24632,3 +24632,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **2.1 dex figures superseded by Hazel in #297's and #300's bodies:** the earlier counts used the report at a 1-register floor and missed 1-register methods; recounted, no method outside the app changed in any step.
 - **Clarification of -1444 (Sorrel's note on #304):** "every launch and cancel of every loop stays in a ViewModel function" means **the decisions**: every condition and every call that starts or stops a loop stays in the ViewModel function where it was (copyFromWatch, stopReturn, clearRecordingState, startRecording, takeUpRunningRecording, startReturn, onCleared), at the same position, synchronously, on viewModelScope. The collaborator may hold the literal `scope().launch` and `job?.cancel()` statements behind `begin()`, `end()` and `cancel()`. This is the shape the 2.7 dispatch and the coder's verify-first described.
 **Notes:** Written by the planner by hand. Next free ID -1451.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1451
+**Timestamp:** 2026-10-20T07:38:20Z
+**Closes:** 2026-09-28-1447
+**Outcome:** completed
+**Observed:**
+- **dev moved cbd8c40a → 226a92fb** with `--force-with-lease=dev:cbd8c40a`; the prior hash is logged in ~/Zynergy/forager-repo-backups/pre-main-hashes.log. dev is now main 02a544cd plus 23 commits: the 22 rebased (3 with conflicts resolved: dev tools, lens tests, lens build, each applied where Phase 1 moved the code) plus one lint-fix commit per -1449.
+- **Proof (Hazel):** range-diff 19 '=' and 3 '!'; the experiments' change set is the same line for line apart from two imports a split needs; run 39385492631 on 226a92fb: all three jobs green, **lint 0 errors** (22 before the fix), 5,542 tests with 0 failures, identical case by case to the pre-fix run; no experiment test lost or changed outcome against old dev 39004053276 or main 39382138548.
+- **The lint fix (226a92fb):** `Camera2PlatformCamera.kt:507` guard now API 35 (Android 12-14 log "unreported" instead of trying the reading; read, not run on those versions); annotations on the guarded reads in AndroidWalkLogPlatform (one function-scope suppress, accepted), DebugDiagnostics, PlatformPinCamera and PlatformReachCamera, each citing its guard. The three setPhysicalCameraId calls are reached only on API 28+ through their data, so none came back to the owner.
+- **S22:** 1.0.3621+g226a92fb, PASS.
+- The branch `dev-rebased-02a544cd` is kept on the remote.
+**Notes:** Written by the planner by hand. Next free ID -1452.
