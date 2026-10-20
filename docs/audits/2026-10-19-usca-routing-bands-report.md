@@ -326,3 +326,52 @@ into `/opt/forager-build/map-build`; the previous copy, `d5ed9eec`, is now `map-
 - `test_build_usca_stop.sh` was run from `/opt`, so it tested the installed files: "ok: 27 checks".
 - No test units are left behind. The timer is still disabled.
 - The planner confirmed `COMMIT` and the installed trap line with its own reads.
+
+## Addendum, 2026-10-20 04:55Z: a full build fits, keeping the last map (pi-09), merged into pi-build, not installed
+
+The owner's words, verbatim: "No, always keep the last map (Recommended)" and "Yes, build it
+(Recommended)". The coder's own records are `docs/audits/2026-10-20-pi-09-disk-fit-phase1.md` and
+`-completion.md`. `pi-disk-fit` (`de48f2d5`..`4a378991`) was merged into `pi-build` at `9588d0df`.
+
+**What changed:**
+
+- **Downloads and the merged extract go on the SD card,** and the cleanup removes old card
+  extracts.
+- **A byte-based disk check runs at the state stage and at the merge.** Features 5.61×, archive
+  1.82× and multipolygon 0.16× the input; a 10% margin, minimum 5e9 bytes.
+- **Downloads now use a resume loop:** abort under 50 kB/s for 120 s, pause 10 s, at most 500
+  connections.
+- **A bounded wait for the network.**
+- **The repo's unit gains `ReadWritePaths=-/mnt/archive/forager-build`.**
+
+**Found on the way (measured by the coder):**
+
+- curl's `--retry` with `-C -` re-sends the starting offset. Today's installed `curl_resume`
+  re-downloads from the start after each interruption.
+- `ip route` fails under the unit's `RestrictAddressFamilies`.
+- The 2026-10-18 restart loop's 900 KB/s was on Wi-Fi.
+
+**Review:**
+
+- **The planner re-ran every suite from the branch:** disk 69, run 36, functions 37, stop 27,
+  orwa 14, Python 22. After the merge, disk, run and functions passed again.
+- **The planner read the card cleanup by hand.** It only touches `us-` and `canada-` dated
+  extracts, never this run's inputs.
+- **Revert checks:** one per behaviour, each restored from a copy. The coder's first cleanup revert
+  passed everything; that exposed a redundant line, which was removed (`f20bdba1`).
+- **The coder corrected its own commit message's false "37 checks"** in `f70c1535`.
+
+**Sunday under the new check (inferred):**
+
+- With the leftovers still present, the run is refused at the state stage, about 9.9e9 bytes short,
+  within minutes.
+- With them cleared, it passes with about 10e9 of slack and about 24e9 of real headroom at the low
+  point.
+
+**Not installed.** Installing needs the owner's go: the scripts and pins into `/opt`, and the unit
+into `/etc` with `daemon-reload`.
+
+**Untested:** a real Geofabrik download through the loop; Planetiler reading from the card; publish
+end to end; the installed unit; and how much the ratios move from week to week.
+
+**Proposed, not built:** a per-link speed floor, 700 kB/s on Wi-Fi.
