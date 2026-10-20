@@ -185,7 +185,7 @@ internal class PlainMapNudge(
      * as before.
      */
     fun beforeLocate() {
-        if (!springBack() || navigating() || map.cameraMode() != CameraMode.NONE) return
+        if (!springBack() || navigating()) return
         if (map.paddingShown()) {
             Log.i(NAVIGATION_VIEW_LOG_TAG, "nudge: locate with a give left on screen; clearing it first")
             map.clearPaddingKeepingPicture()
