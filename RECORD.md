@@ -25101,3 +25101,31 @@ Hazel has the go for Part 2. The stop limit is about 11 production files.
 - **2.3 closes with option (1).** The planner chose one comment-only PR with Sorrel's three #328 nits, and no Candidate A. The Phase 2 plan row's "the children read it" is superseded by #325's choice: the reads stay in the body, for the minY history.
 - **The owner, asked as a step path** ("Maps tab upright > turn the phone to landscape > tap a marker > the bubble opens lower than it should ... The fix: in landscape, the bubble always opens just below the landscape bar, as it does if you start in landscape"), chose "Fix now, show me (Recommended)", described as "A small fix with before/after S22 screenshots in landscape; it closes 2.3 together with the comment PR." That is a build go. Hazel does a verify-first on the fix as a separate PR. The planner takes before/after S22 screenshots in landscape.
 **Notes:** Written by the planner by hand. Next free ID -1476.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1476
+**Timestamp:** 2026-10-20T21:52:01Z
+**Continues:** 2026-09-28-1474, 2026-09-28-1475
+**Title:** #339 (2.3 comment nits) and #340 (landscape bubble strip-height fix) merged into pre-main; Phase 2.3 complete
+**Observed:**
+- **#339** (d791141a), comment-only: Sorrel's three #328 nits.
+  - Suite identical to 39492153887 (run 39493063752); dex report identical in all 26,143 lines.
+  - S22 launch PASS (1.0.3699+gd791141a).
+  - Sorrel: approve, with one nit: the inlined reason omits the source comment's opening clause, which the credit line does not list.
+  - Merged at 89a4b7fb.
+- **#340** (6a534ad1): `else layout.compassStripHeightPx = 0` in CompactMapTopStrip's LaunchedEffect(railPortEdge), and the CompactMapLayoutState.kt:33 KDoc.
+  - **New test:** LandscapeStripHeightTest (4 cases: real screen, stub map, same-Activity turn, real onSightingTap). It failed first on the pre-fix code in run 39496570808 (0 compile errors, 4/4 failing with "card top 84.0.dp, dot 66.0.dp, tail 12.0.dp").
+  - **Revert checks:** R1 (39500370580) failed with the landscape message; R2 (39501365459) failed at the upright guard. Both had 0 compile errors.
+  - **Suite:** identical to 39492153887 apart from the 4 new cases. Touch guards (282 cases) identical. Dex: one lambda goes from 4 to 5 registers.
+  - **S22:** launch PASS (1.0.3700+g6a534ad1). Hazel's before/after screenshots used the same sighting each time. Card top below the landscape bar: before-turned 184 px; before-started-landscape 118; after-turned 118; after-started-landscape 118. The fix holds to the pixel. The screenshots stay in /mnt/work/scratch/s22-check/pr340-shots/ and could not be delivered to the owner from this session (no project thread).
+  - **Sorrel:** approve, with three nits:
+    - CompactMapLayoutState.kt:58-60 "not measured" should say the portrait height;
+    - the new CompactMapTopStrip.kt:137 comment's "as above" points at nothing;
+    - the test's turn() does not assert the landscape strip.
+  - The comments in CompactMapLayoutState.kt:32-33 and AvailabilityCompactScaffold.kt:484-486 and :1753-1754 are now true.
+  - Merged at b60d7fba.
+- **Phase 2.3 complete:** #325, #328, #339, #340.
+- The owner's 2.3 walk items from -1465 remain owed: a search notice showing, a bubble below the strip, landscape while navigating, the L cluster and the notice on the same side.
+**Notes:** Written by the planner by hand. Next free ID -1477.
