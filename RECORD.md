@@ -24781,3 +24781,23 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** as the dispatch's report section; PRs merged under the standing word after proofs, Sorrel's review and the S22 launch check.
 **Abort conditions:** the dispatch's stops; any possible nested lock acquisition; any change to when a job starts or stops.
 **Notes:** Written by the planner by hand. Next free ID -1461.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1461
+**Timestamp:** 2026-10-20T09:43:55Z
+**Continues:** 2026-09-28-1460, 2026-09-28-1454
+**Title:** Planner's technical rulings on Phase 2.8's verify-first (the Journal engines); #318 approved; additions to the owner's lists
+**What it sets (planner, technical):**
+- **CartographyViewModel:** five collaborators (pending deletes, as #293's shape; entry edits with persist; entry opening; entry exits; shown-on-map). It has no mutex.
+- **MushroomLogViewModel:** four collaborators (pending deletes, gallery, capture location, entry photos). **The edit-session core (onStartNewEntry, onOpenEntry … onLeaveEditingIncidentally, onDeleteEntry) stays in the class, beside its serialisation rules and the editingEntryMutex**, which the ViewModel owns and passes to collaborators by reference.
+- **The existing onAddPhoto → patchCameraCaptureLocationIntoFind → promoteCaptureFixToFind path** (:858 under the lock, which launches an un-awaited coroutine that later takes the lock at :1041) is accepted as it stands: the later acquisition queues on the Mutex in a separate coroutine rather than nesting, it predates the split, and the split keeps it at the same position. Recorded as reasoning, not a test.
+- Neither ViewModel stores or cancels a Job; untracked launches move whole with their functions.
+- PR order: C1, C2+C5, C3+C4, M2, M1, M3, M4.
+**#318 (2.4 offline maps):** Sorrel: approve with nits, no defect; suite recomputed from the XML; both downloads' decision paths verified step by step.
+**Owner's lists, additions:**
+- *No production caller:* `AvailabilityViewModel.onDeleteOfflineRegion` is bound by 12 test rigs as the screen's delete callback, where production binds the pending delete (Sorrel, #318); removing it would touch 13 test files, and those rigs exercise a path the shipped app doesn't take.
+- *Test gap:* the picker download's over-budget early return has no test by name (Sorrel, #318).
+- *Comment pass:* stale links to `AvailabilityViewModel.loadOfflineRegions` in AvailabilityUiState.kt:205, OfflineRegionsList.kt:42 and EntryReferenceCounts.kt:67 (Sorrel, #318).
+**Notes:** Written by the planner by hand. Next free ID -1462.
