@@ -24232,3 +24232,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1421.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1421
+**Timestamp:** 2026-10-20T02:59:56Z
+**Closes:** 2026-09-28-1415
+**Outcome:** completed
+**Observed:**
+- PR #287 (UI split Phase 1, PR 9c: the Maps tab's bottom chrome and pickers out of AvailabilityCompactMapUi.kt) merged into pre-main at c92cab97, gated on head 4c21508d, which contains pre-main 5501fe22. pre-main was still 5501fe22 at merge, so the checked tree is the landed tree. Backup per -1417: prior hash in `~/Zynergy/forager-repo-backups/pre-main-hashes.log`.
+- **Proofs (Hazel, reported to the previous planner session):** suite identical, 691 XML files and 5,160 cases (5,136 pass, 24 skipped), case by case against the pre-merge run 39355032977 and pre-main's 39358696386; the 19 guards at 32 classes and 282 cases; dex +3 traced to #284, none from this PR; every 9a/9b/9c proof re-run with `command grep` and an independent Python version, all identical. AvailabilityCompactMapUi.kt ends at 724 lines (2,080 at the start of the day).
+- **S22 launch check** (this planner, workflow_dispatch run 39358741238): 1.0.3561+g4c21508d installed, verified, cold-launched, process alive after 8 s, crash buffer empty.
+- **Session handover:** the previous planner session (bridge) lost its connection at about 02:44Z, and its six helpers stopped. A new planner session took over. At 02:53Z the laptop ran out of memory, and the kernel killed a 7.4 GB `pytest` in a terminal, which was not Forager work. That event also ended this session's first set of replacement helpers. PRs 10a, 10b, 10d, 10e and 10f were re-dispatched to fresh helpers to finish the steps left over, against the same dispatch files.
+- **The owner, verbatim, through the question tool,** on whether the standing merge word and batching carry over to the new session: "Yes, carry on (Recommended)". The planner had merged #287 before asking, relying on the earlier session's word (-1376), and the merge was flagged as unreviewed. The question was asked after the merge, not before (planner's slip).
