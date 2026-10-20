@@ -385,3 +385,25 @@ From the coder's report, with the planner's own checks marked.
   1.5 px wide, too thin for three dash lengths that all read as dashes; that is inferred from the
   renders and the widths. Under CLAUDE.md's two-failures rule, no third dash guess is made. The
   question goes to the owner.
+
+## The owner's rulings on revision 1, 2026-10-20
+
+The owner, through the question tool, verbatim:
+
+- **Zoom 14:** "Show from zoom 15 (Recommended)". The option read: "At zoom 14 all trails look like
+  today's dash, except hard ones keep their dark warning colour and faint ones their gaps.
+  Easy/rough show one step closer, where they read clearly. Nothing looks broken."
+- **Base dash:** "Longer dash (Recommended)". Unknown becomes `[4, g]`.
+- **Informal at night:** "Accept the range (Recommended)". This sets a per-layer band of about 1.9 to
+  2.3 on the night forest for informal, below the footpath's 2.43, in place of the 2.5 exception
+  floor for that layer. It is not a widened floor.
+
+**What that means for the spec:**
+
+- From z14 to below z15, easy and rough draw with the unknown dash, `[4, g]`.
+- Hard at z14 takes the dark colour and the +0.4 width, with `[4, g]` rather than `[2, g]`, so it
+  reads as dashes and not dots.
+- The faint gap shows from z14.
+- From z15 the full ladder applies: easy `[8, g]`, unknown `[4, g]`, rough and hard `[2, g]`.
+
+The planner reads hard's z14 dash from the option's wording.
