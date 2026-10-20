@@ -161,6 +161,8 @@ class DebugDiagnostics private constructor(
     }
 
     /** On [executor]. [Violation] is a `Throwable`, so its stack is the offending call's. */
+    // Called only from installStrictMode's penaltyListener, inside its SDK_INT >= P branch.
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
     private fun recordViolation(violation: Violation) {
         val kind = violation.javaClass.simpleName
         val stack = violation.stackTraceToString()

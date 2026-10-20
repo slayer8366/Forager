@@ -216,12 +216,16 @@ internal class PlatformReachCamera(private val context: Context) : ReachCamera {
             previewReader.setOnImageAvailableListener({ it.acquireLatestImage()?.close() }, handler)
             val previewOutput = OutputConfiguration(previewReader.surface)
             // With no RAW to ask for, a physical camera is reached by a preview stream bound to it instead.
+            // physicalBound comes only from a plan built on physical IDs, which survey() reads only at SDK_INT >= P.
+            @Suppress("NewApi") // Kotlin's annotation: SuppressLint cannot target an expression
             if (raw == null && physicalBound) previewOutput.setPhysicalCameraId(streams.single())
             val rawReaders = if (raw == null) {
                 emptyList()
             } else {
                 streams.map { ImageReader.newInstance(raw.width, raw.height, ImageFormat.RAW_SENSOR, RAW_MAX_IMAGES).also { readers += it } }
             }
+            // As above: physicalBound is true only on a plan built from physical IDs read at SDK_INT >= P.
+            @SuppressLint("NewApi")
             val rawOutputs = rawReaders.mapIndexed { i, reader ->
                 OutputConfiguration(reader.surface).also { if (physicalBound) it.setPhysicalCameraId(streams[i]) }
             }

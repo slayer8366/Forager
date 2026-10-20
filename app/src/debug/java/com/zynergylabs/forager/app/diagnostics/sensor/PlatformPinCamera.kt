@@ -250,6 +250,8 @@ internal class PlatformPinCamera(private val context: Context) : PinCamera {
             previewImages.setOnImageAvailableListener({ it.acquireLatestImage()?.close() }, handler)
             previewReader = previewImages
             val rawOutput = OutputConfiguration(rawImages.surface)
+            // physicalStreamId is non-null only with a main wide, which survey() finds only past its SDK_INT < P return.
+            @Suppress("NewApi") // Kotlin's annotation: SuppressLint cannot target an expression
             if (physicalStreamId != null) rawOutput.setPhysicalCameraId(physicalStreamId)
             val outputs = listOf(OutputConfiguration(previewImages.surface), rawOutput)
             sessionQuery = querySession(opened, outputs)
