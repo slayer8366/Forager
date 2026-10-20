@@ -81,3 +81,27 @@ already been superseded before this session asked.
 
 **The lesson for the Pi planner:** before calling a ruling standing, check the other lines of work
 where the owner may have ruled since. A ruling read from one record is a claim about that record.
+
+## Re-asked after the correction, 2026-10-20: the upload plan ruled; the map design comes first
+
+The owner, verbatim: "Ask those questions again". The three upload questions were re-asked through
+the question tool without the stale storage premise. The cost was already approved. Answers,
+verbatim:
+
+- **The swap:** "Overwrite 'us' in place (Recommended)".
+- **Timing:** "After the design, without waiting for the islands". So the US + Canada map is
+  uploaded once the design is settled, and the islands come in a later upload.
+- **Rollback:** "No rollback copy". The old `us.pmtiles` is gone once overwritten.
+
+**Before that, on the design itself.** The owner, verbatim: "Or better yet, maybe we can design
+the maps first." Answers through the question tool:
+
+- **Scope:** "Everything together".
+- **Preview:** "On the laptop, as it is now". The laptop preview reads the live old `us` map, so
+  the new trail keys cannot be seen there until the upload. The trail styling is therefore designed
+  from established conventions, and checked by eye only after the upload.
+- **Who leads:** "Aspen, with Rowan kept informed (Recommended)".
+
+**Note.** The look is set by the style (`map-style/`, and the offline style the Worker and app use),
+not by the archive. Overwriting `us.pmtiles` changes the data. Whether the new style ships with or
+after the upload is the design dispatch's question.
