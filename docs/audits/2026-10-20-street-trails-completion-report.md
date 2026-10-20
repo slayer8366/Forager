@@ -219,3 +219,30 @@ K3 was caught only by the equality case.
     every footpath draws as unknown.
   - Tiles carry a one-day edge cache.
 - **Informal and faint together:** informal wins, as Sage built it. The owner was not asked separately.
+
+## Update: Sorrel's F1, taken by the planner
+
+The finding K3 exposed is closed in `3f5a13bd` (test-only). This update adds to the record above and does not replace it.
+
+**The fix.** NightExceptionsTest's "keep the inversion" case now reads every `roads_path_*` layer except the two
+informal ones from the served style. That is 16 layers: the 15 non-informal footpath layers plus the track. The case
+also requires at least 16, so a prefix that stops matching cannot leave it empty. The three road-edge ids are still
+named, and each is checked to exist.
+
+**Revert check K5.** Branch `scratch-street-trails-K5` on `3f5a13bd`, run 39512405148, filtered to the three night
+classes:
+- The edit gives `roads_path_hard_clear` the exception `#ffad9f` in both the served style's `forager:night-layers` and
+  `NightColour.kt`.
+- The log has 0 ` e: ` lines and the Kotlin compile tasks ran.
+- Exactly 1 of 23 failed: the inversion case, at `roads_path_hard_clear`. The equality case passes, as predicted,
+  because both sides gained the same entry. Before this fix, nothing would have failed.
+
+**Suite.** PR run 39512373955 on `3f5a13bd` is green: 5,229 tests, 0 failed, 24 skipped.
+- Against pre-main 39503746885: the result is the same as before, with 0 status changes, the same 2 only-base and
+  the same 42 only-head cases.
+- Against 39507620624: identical, all 5,229 cases.
+
+**Review build.** `street-trails-review` has `3f5a13bd` merged in (`8e018087`) and differs from `street-cloudflare`
+only in the switch line. Run 39512408161 failed exactly R6's 16 cases by name.
+
+**The owner's ruling (RECORD -1482):** where a path is both informal and faint, informal wins, as built.
