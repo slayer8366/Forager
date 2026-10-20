@@ -536,3 +536,46 @@ script's own check.
   points and used made-up rectangles for the outlines. The planner reads this as within the
   privacy rule, which covers walk positions and real routes.
 - **Install, and the rebuild,** wait for the owner's go.
+
+## Addendum, 2026-10-20 06:30Z: routes follow trails on the published squares (pi-13, read-only)
+
+The owner's word, verbatim: "Yes, write the route-check dispatch". The checks ran BRouter's
+`hiking-mountain` profile, under `-Xmx512m`, against `out-usca/current/segments`. The coder ran
+them from 05:24 to 05:52Z and measured every figure. The scratch directory was removed, and the
+planner confirmed it was gone.
+
+| Route | Band | Length | Share on the named trail |
+|---|---|---|---|
+| A. Ramona Falls Trailhead to Ramona Falls ("Ramona") | −125:−120 | 5,411 m | **0.0** |
+| B. Johnston Canyon to Upper Falls ("Johnston") | −120:−110 | 2,497 m | 0.901 |
+| B2. Lake Louise to Lake Agnes Tea House ("Lake Agnes") | −120:−110 | 3,826 m | 0.660, including a 0.6 km walk-in |
+| C. Glen Alps Trailhead to Flattop Mountain ("Flattop") | −180:−125 | 2,037 m | 0.867 |
+| D. McAfee Knob to Tinker Cliffs ("Appalachian"), **crossing −80** | −85:−80 / −80:−75 | 8,615 m | 0.983 |
+| E. Pittock Mansion to Witch's Castle ("Wildwood") | −125:−120 | 2,635 m | 0.942 |
+
+- **D, the band edge.** The track crosses −80 once, in an 88 m step that is the Appalachian Trail's
+  own segment, matching the trail's nodes at 0 m. No step in the track is longer. The route is
+  within 0.2% of the trail's own length between its ends, and the reverse route is identical. So
+  the bands join for routing at this edge, as they did byte for byte for Canada.
+- **A, Ramona Falls.** The route is identical, metre for metre, to the Oregon + Washington result
+  recorded in `docs/audits/2026-10-04-pi-build-part1-report.md`, step 4, which the planner
+  re-read. BRouter takes the Sandy River and Pacific Crest Trail side of the loop, not Ramona Falls
+  Trail #797. The planner's prediction of "80% or more" for A contradicted the source the dispatch
+  itself cited. That is the planner's slip.
+- **Positive control (`trekking`, a bike profile).** E dropped from 0.942 to 0.132, on residential
+  streets, which shows the share measure can fail. The control said nothing for A and C, where
+  `trekking` takes the same trails.
+- **The planner's prediction, scored:**
+  - every route produced: right;
+  - each at least 80% on the named trail: wrong for A, and B2 at 0.66 would also miss;
+  - the band edge has no gap: right;
+  - the control is clearly lower: partly right.
+- **Not checked:**
+  - the other eight band edges and the antimeridian;
+  - Hawaii;
+  - elevation: every route reports `filtered ascend = 0`, consistent with squares built without
+    elevation data.
+- **Noted:**
+  - a 4-box US `osmium extract` reached at least 5.7 GB resident;
+  - BRouter printed its integer-encoded route ends into the session's local transcript, outside the
+    repo. They are named public places, not walk positions, and nothing reached the repo.
