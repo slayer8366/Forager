@@ -25154,3 +25154,36 @@ Then Phase 2 is complete, followed by Elder's audit and the owner's promotion de
 - any change to Back order, the map memories or the composition order;
 - either series touching the other's file.
 **Notes:** Written by the planner by hand. Next free ID -1478.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1478
+**Timestamp:** 2026-10-20T21:59:38Z
+**Continues:** 2026-09-28-1477
+**Title:** Planner's rulings on the 2.5 and 2.6 verify-firsts: smaller series; Journal pass-through, insets and the Back handlers not moved
+**Observed:**
+- **2.5 verify-first (Hazel, b60d7fba).**
+  - CompactMainScaffold is 1,699 lines, not the plan's 1,663: a stale premise. The survey's two mechanical moves are already done.
+  - Holders: H1 ScaffoldSearchDropdownState and H2 ScaffoldMeasurements, built from the existing States, with no remember moved and no key changed.
+  - The frame's one BackHandler (:530) stays in place.
+  - 11 screen-edge reads were mapped.
+  - All 19 touch guards reach the frame.
+- **2.6 verify-first (Hazel, b60d7fba).**
+  - BackHandler in activity-compose 1.13.0 registers in a DisposableEffect, keyed by position, with enabled pushed by LifecycleStartEffect (read from the jar).
+  - **The comment at AvailabilityScreen.kt:1074-1076 ("at most one is ever enabled") is wrong.** The tools-return handler (:1101) can be enabled together with :1091, :1151, :1159 or :1177, and there declaration order decides. These overlaps are untested, as is :1101's fullscreen-restore branch.
+  - Survey 9.4's memory line numbers are stale (:717 and :720 now).
+**Decision (the planner's technical rulings):**
+- **2.5:** PRs 1 to 4 only: search dropdown, Maps tab call plus H2, header search pill, snackbar host.
+  - Derived locals are passed as values, since they are recomputed each composition from inputs read in the frame's own scope.
+  - **Not moved, decided beyond scope:**
+    - the Journal tab call: about 80 values passed straight through, a second giant signature for about 139 lines;
+    - the insets holder: the riskiest screen-edge code for little separation.
+  - The unused local searchBarHeight (:442) stays and goes on the comment-and-tidy list.
+  - Screenshots, portrait and both landscapes, on every 2.5 PR.
+- **2.6:** series (a): the holder plus waypoint navigation, the map input builders, the journal return, the drawer host. Effects stay in the body, as dispatched.
+  - **The seven BackHandlers stay in place.** The only order-deciding cases are untested, and the argument for moving them is partly inferred.
+  - The frame call (:1434-1636) is untouched, because 2.5 keeps the frame's signature.
+  - The wrong comment and the overlaps are listed for the owner; the owner will be asked whether today's winners are what Back should do.
+- **Phase 2 plan rows 2.5 and 2.6 are superseded by these rulings** where they differ.
+**Notes:** Written by the planner by hand. Next free ID -1479.
