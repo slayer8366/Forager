@@ -43,7 +43,7 @@ check "card_run is this run's directory on the card" '[[ "$card_run" == "$USCA_C
 
 # Stand-ins for the commands the functions call. The card is "mounted" unless card_mounted=0.
 card_mounted=1
-mountpoint() { [[ "$2" == "$USCA_CARD_MOUNT" && $card_mounted -eq 1 ]]; }
+mountpoint() { [[ "${!#}" == "$USCA_CARD_MOUNT" && $card_mounted -eq 1 ]]; }
 nvme_free=0; card_free=0
 df() { # as `df -B1 --output=avail DIR` prints it: a header, then the bytes
   local d="${!#}"
@@ -76,19 +76,22 @@ check "the refusal is in bytes, with what is free, what is needed and the shortf
 check "the refusal shows the arithmetic: the ratios and the input bytes" '[[ "$out" == *5.61*1.82*0.16*"$I input bytes"* ]]'
 # Passes: once the leftovers are freed, 146,510,110,720 + 19,860,000,000 = 166,370,110,720 bytes,
 # 9,994,322,170 more than the need. The card needs the download (I) and the merged extract (I),
-# 2 x 18,729,882,447 = 37,459,764,894, plus 10%, 41,205,741,383, of its 100,409,962,496 free.
+# 2 x 18,729,882,447 = 37,459,764,894. 10% of that is 3,745,976,489, under the 5,000,000,000
+# minimum, so the margin is the minimum: 42,459,764,894 of its 100,409,962,496 free.
 nvme_free=166370110720
 out="$(disk_check $I $I 2>&1)" && rc=0 || rc=$?
 echo "  disk_check, Sunday after the cleanup: rc=$rc; $out"
 check "D passes the same run once the leftovers are freed" '[[ $rc -eq 0 ]]'
-check "the pass names both disks' needs in bytes" '[[ "$out" == *"166370110720 bytes free"*"156375788550 bytes"* && "$out" == *"100409962496 bytes free"*"41205741383 bytes"* ]]'
-# The card refuses on its own: 40,000,000,000 free is 1,205,741,383 bytes short.
+check "the pass names both disks' needs in bytes" '[[ "$out" == *"166370110720 bytes free"*"156375788550 bytes"* && "$out" == *"100409962496 bytes free"*"42459764894 bytes"*"plus 5000000000 margin"* ]]'
+# The card refuses on its own: 40,000,000,000 free is 2,459,764,894 bytes short.
 card_free=40000000000
 out="$(disk_check $I $I 2>&1)" && rc=0 || rc=$?
-check "D refuses when the card is short, though the NVMe has room" '[[ $rc -ne 0 && "$out" == *"short by 1205741383 bytes"* ]]'
+check "D refuses when the card is short, though the NVMe has room" '[[ $rc -ne 0 && "$out" == *"short by 2459764894 bytes"* ]]'
 # Nothing left to download (--local, or the merge's second check): the card needs only the merge.
-card_free=20604870691   # I + 10% = 20,602,870,691, plus 2,000,000
+card_free=23729882447   # I + the 5,000,000,000 minimum margin, exactly
 check "with nothing to download, the card needs only the merged extract" 'disk_check $I 0 >/dev/null 2>&1'
+card_free=23729882446
+check "and one byte less is refused" '[[ "$(disk_check $I 0 2>&1)" == *"short by 1 bytes"* ]]'
 card_free=100409962496
 card_mounted=0
 out="$(disk_check $I 0 2>&1)" && rc=0 || rc=$?
@@ -106,7 +109,7 @@ card_mounted=1; nvme_free=166370110720; card_free=1000
 check "a --basemap run that downloads needs the card for the download" '[[ "$(disk_check $I $I 2>&1)" == *"card ("*"1000 bytes free"*"short by"* ]]'
 basemap=""
 # --fetch-only: downloads only, so no NVMe need.
-fetch_only=1; nvme_free=0; card_free=$(( I + I / 10 + 1 ))
+fetch_only=1; nvme_free=0; card_free=$(( I + 5000000000 ))
 check "a fetch-only run needs only the download and its margin on the card" 'disk_check $I $I >/dev/null 2>&1'
 fetch_only=0
 
@@ -129,7 +132,9 @@ curl() { # stands in for curl: each connection adds one chunk; the first two "ti
 }
 want=$(( 3 * 7 ))   # "chunk1 chunk2 chunk3 " is 21 bytes
 sleeps=()
-out="$(curl_resume https://example.invalid/x.osm.pbf "$T/dl/x.osm.pbf" $want 2>&1)" && rc=0 || rc=$?
+# Not in a $(...) subshell, so the sleep stand-in's record reaches this shell.
+curl_resume https://example.invalid/x.osm.pbf "$T/dl/x.osm.pbf" $want > "$T/dl/out" 2>&1 && rc=0 || rc=$?
+out="$(cat "$T/dl/out")"
 echo "  curl_resume, two slow connections then one that finishes: rc=$rc"
 check "F: three connections, the first two slowed and restarted" '[[ $rc -eq 0 && $(wc -l < "$calls") -eq 3 ]]'
 check "F: the file is whole, in place, and the .part is gone" '[[ "$(cat "$T/dl/x.osm.pbf" 2>/dev/null)" == "chunk1 chunk2 chunk3 " && ! -e "$T/dl/x.osm.pbf.part" ]]'

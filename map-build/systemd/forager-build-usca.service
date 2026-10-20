@@ -35,6 +35,12 @@ PrivateDevices=yes
 ProtectSystem=strict
 ProtectHome=yes
 ReadWritePaths=/srv/forager-build
+# The SD card's build directory: the extracts and each run's merged extract (dispatch
+# 2026-10-20-pi-09, parts B and C). ProtectSystem=strict leaves /mnt/archive read-only otherwise.
+# The leading "-" lets the unit start when the card is not mounted, so build-usca.sh's own check
+# (mountpoint -q) stops the run with a message and a failed status, rather than systemd refusing
+# to start it with no status written.
+ReadWritePaths=-/mnt/archive/forager-build
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectKernelLogs=yes
