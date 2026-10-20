@@ -24753,3 +24753,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Scope:** 12 steps on the S22 (touch, following and the nudge, tab return, background, restyle and night, glyph taps, rotate with a bubble, the marker fan and its reopen, search framing; optional forecast cells and a short recording). Assembled from the device steps in #307, #310, #311 and #315.
 **Finish line:** the owner's pass or fail per step, recorded in their words.
 **Notes:** Written by the planner by hand. Next free ID -1459.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1459
+**Timestamp:** 2026-10-20T09:37:22Z
+**Continues:** 2026-09-28-1456, 2026-09-28-1457
+**Title:** #316 (2.4 settings and map display), #317 (2.1 navigation bundle) and #315 (2.2 layout, the last map PR) merged into pre-main; Phase 2.2 (the map) complete in code
+**Observed:**
+- #316 at 0e377701 (merged before its combined check, because pre-main's d41566e9 run sat queued behind the helpers' runs; the next run covered it). Pre-main 0e377701's push run 39399741501: all three jobs green; combined S22 check 1.0.3639+g0e377701, PASS (covers #311, #314, #313, #316).
+- Then #317 at 1ee29bb4 and #315 at 52bb4db4, each gated on its approved head.
+- **Per PR:** suite identical; S22 PASS on its own build (1.0.3626+gb058b52e, 1.0.3603+gaea4c4f5, 1.0.3604+g728357c7); Sorrel: approve with nits, no defect, for all three (suites recomputed by Sorrel for #316 and #317; #315's moved body recomputed, 106/106). #315: a real adb drag on the map in portrait panned it with the finger (-1457).
+- **Phase 2.2 complete:** SightingsMap.kt 1,466 → 720 lines, with the holder (SightingsMapState) and ten group files (forecast cells, location dot, navigation view, attribution insets, fan, style reload, data refresh, lifecycle, listeners, layout); every effect, listener and DisposableEffect in its old order. Owed: the owner's phone walk (-1458) on the pre-main build that holds #315. Deferred to a later comment pass: two stale pointers inside SightingsMapLayout.kt (Sorrel, #315), the dangling KDoc links noted in -1452/-1456, and the loose "skipped when unchanged" wording in four map PR bodies (-1457).
+- **Series state:** 2.1: 8 of 12 bundles merged, bundle 9 (#319) in review, the combined required-parameter PR next; 2.4: 3 of 9 merged, PR 4 (#318) in review, PR 5 building; 2.2 and 2.7 complete.
+**Notes:** Written by the planner by hand. Next free ID -1460.
