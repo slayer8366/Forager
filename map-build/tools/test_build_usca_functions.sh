@@ -100,4 +100,69 @@ check "E170_N50, the Aleutians past 180, starts at 170" '[[ "$(rd5_west_edge E17
 check "W5_S10 starts at -5" '[[ "$(rd5_west_edge W5_S10.rd5)" == -5 ]]'
 check "a file that is not a square is refused" '! rd5_west_edge /x/segments/bordernodes.dat'
 
+# --- Regions with a path (dispatch 2026-10-20-pi-14) ----------------------------------------------
+# Puerto Rico and the USVI are nested under us/ at Geofabrik. These checks run on to the end and
+# count their failures, so the failing-first run reads every one, not only the first.
+eval "$(sed -n '/^region_url_dir() {/,/^}/p; /^regions_ok() {/,/^}/p; /^basemap_regions_match() {/,/^}/p; /^write_basemap_regions() {/,/^}/p' "$script")"
+nfail=0
+check_on() { if (set +u; eval "$2"); then pass=$((pass + 1)); else echo "FAIL: $1"; nfail=$((nfail + 1)); fi; }
+USCA_GEOFABRIK_BASE=https://download.geofabrik.de/north-america
+check_on "build-usca.sh defines region_url_dir, regions_ok, basemap_regions_match and write_basemap_regions" \
+  'declare -F region_url_dir regions_ok basemap_regions_match write_basemap_regions >/dev/null'
+check_on "a bare region's dated files are served from the base itself, as before" \
+  '[[ "$(region_url_dir us)" == https://download.geofabrik.de/north-america && "$(region_url_dir canada)" == https://download.geofabrik.de/north-america ]]'
+check_on "a nested region's dated files are served from its directory" \
+  '[[ "$(region_url_dir us/puerto-rico)" == https://download.geofabrik.de/north-america/us && "$(region_url_dir us/us-virgin-islands)" == https://download.geofabrik.de/north-america/us ]]'
+check_on "the four regions are a valid list" 'regions_ok us canada us/puerto-rico us/us-virgin-islands >/dev/null'
+check_on "us canada alone is a valid list" 'regions_ok us canada >/dev/null'
+check_on "two regions with one stem are refused, naming the stem" \
+  'declare -F regions_ok >/dev/null && ! regions_ok us canada x/us >/dev/null && [[ "$(regions_ok us canada x/us)" == *"us"*"x/us"* ]]'
+check_on "a region with an empty segment, a leading or trailing slash, .. or capitals is refused" \
+  'declare -F regions_ok >/dev/null && ! regions_ok us/ >/dev/null && ! regions_ok /us >/dev/null && ! regions_ok us//pr >/dev/null && ! regions_ok ../us >/dev/null && ! regions_ok US >/dev/null'
+check_on "no regions at all is refused" 'declare -F regions_ok >/dev/null && ! regions_ok >/dev/null'
+
+# The sidecar: written next to an archive, read back by --basemap.
+mkdir -p "$T/side"; echo archive > "$T/side/forager-usca.pmtiles"
+S4="us:2416,canada:4946,us/puerto-rico:3282,us/us-virgin-islands:1791"; S2="us:2416,canada:4946"; TS4=2026-10-18T20:25:06Z
+write_basemap_regions "$T/side/forager-usca.pmtiles" "$TS4" "$S4" 2>/dev/null || true
+check_on "write_basemap_regions writes the timestamp and the sequence string, two lines, beside the archive" \
+  '[[ "$(cat "$T/side/forager-usca.pmtiles.regions" 2>/dev/null)" == "$(printf "timestamp=%s\nsequence=%s" "$TS4" "$S4")" ]]'
+USCA_BASEMAP_UNLISTED_REGIONS="us canada"
+USCA_REGIONS="us canada us/puerto-rico us/us-virgin-islands"
+check_on "a sidecar naming this run's four regions and snapshot is accepted" \
+  'basemap_regions_match "$T/side/forager-usca.pmtiles" "$TS4" "$S4" >/dev/null'
+printf 'timestamp=%s\nsequence=%s\n' "$TS4" "$S2" > "$T/side/two.pmtiles.regions"; echo archive > "$T/side/two.pmtiles"
+check_on "a four-region run refuses a basemap whose sidecar names us and canada only" \
+  'declare -F basemap_regions_match >/dev/null && ! basemap_regions_match "$T/side/two.pmtiles" "$TS4" "$S4" >/dev/null'
+check_on "the refusal names both region lists" \
+  '[[ "$(basemap_regions_match "$T/side/two.pmtiles" "$TS4" "$S4")" == *"$S2"*"$S4"* ]]'
+check_on "a sidecar from another snapshot is refused" \
+  'declare -F basemap_regions_match >/dev/null && ! basemap_regions_match "$T/side/forager-usca.pmtiles" 2026-10-25T20:21:00Z "$S4" >/dev/null'
+echo archive > "$T/side/old.pmtiles"
+check_on "a four-region run refuses a basemap with no sidecar" 'declare -F basemap_regions_match >/dev/null && ! basemap_regions_match "$T/side/old.pmtiles" "$TS4" "$S4" >/dev/null'
+check_on "and says the sidecar is missing" '[[ "$(basemap_regions_match "$T/side/old.pmtiles" "$TS4" "$S4")" == *"old.pmtiles.regions"* ]]'
+USCA_REGIONS="us canada"
+check_on "a us canada run accepts a basemap with no sidecar, as today's kept basemap is accepted" \
+  'basemap_regions_match "$T/side/old.pmtiles" 2026-10-17T20:20:51Z "us:2415,canada:4945" >/dev/null'
+check_on "a us canada run with a sidecar still checks it" \
+  'declare -F basemap_regions_match >/dev/null && ! basemap_regions_match "$T/side/forager-usca.pmtiles" "$TS4" "$S2" >/dev/null'
+
+# The pins: the four regions, us first, and a coverage point in each island, in the last band.
+P="$(unset USCA_REGIONS USCA_COVERAGE_POINTS USCA_ROUTING_BANDS; source "$here/pins.env"; printf '%s|%s|%s' "$USCA_REGIONS" "$USCA_COVERAGE_POINTS" "$USCA_ROUTING_BANDS")"
+IFS='|' read -r pr pc pb <<<"$P"
+check_on "pins.env's USCA_REGIONS is us, canada, Puerto Rico and the USVI, us first" \
+  '[[ "$pr" == "us canada us/puerto-rico us/us-virgin-islands" ]]'
+check_on "pins.env's USCA_BASEMAP_UNLISTED_REGIONS is us canada" \
+  '[[ "$(unset USCA_BASEMAP_UNLISTED_REGIONS; source "$here/pins.env"; echo "${USCA_BASEMAP_UNLISTED_REGIONS:-}")" == "us canada" ]]'
+check_on "San Juan is back in the coverage points" '[[ " $pc " == *" san-juan:-66.1057:18.4655 "* ]]'
+check_on "Charlotte Amalie is in the coverage points" '[[ " $pc " == *" charlotte-amalie:-64.9307:18.3419 "* ]]'
+check_on "the seven earlier points are unchanged" \
+  '[[ "$pc" == "seattle:-122.3350:47.6080 miami:-80.1918:25.7617 anchorage:-149.9003:61.2181 honolulu:-157.8583:21.3069 toronto:-79.3832:43.6532 whitehorse:-135.0568:60.7212 st-johns:-52.7126:47.5615 "* ]]'
+check_on "Charlotte Amalie is in W65_N15, San Juan in W70_N15" \
+  '[[ "$(rd5_square -64.9307 18.3419)" == W65_N15 && "$(rd5_square -66.1057 18.4655)" == W70_N15 ]]'
+last="${pb##* }"; lw="${last%%:*}"; le="${last##*:}"
+check_on "both squares' west edges are in the last band, $last" \
+  'for q in W70_N15 W65_N15; do x="$(rd5_west_edge $q.rd5)"; (( lw <= x && x < le )) || exit 1; done'
+
+if [[ $nfail -gt 0 ]]; then echo "FAILED: $nfail checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"
