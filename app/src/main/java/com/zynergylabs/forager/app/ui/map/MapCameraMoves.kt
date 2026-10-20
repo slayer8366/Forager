@@ -56,7 +56,7 @@ internal fun cameraTargetTakenAsApplied(
     isGpsTracking: Boolean,
     target: Pair<Region, LatLng?>,
     lastAppliedCameraTarget: Pair<Region, LatLng?>?,
-): Pair<Region, LatLng?>? = if (isGpsTracking) target else lastAppliedCameraTarget
+): Pair<Region, LatLng?>? = lastAppliedCameraTarget
 
 /**
  * Whether [request] moves the camera now: a request is applied once per id, and never while GPS
