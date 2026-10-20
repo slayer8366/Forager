@@ -24172,3 +24172,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **S22 launch check, planner, about 03:25Z:** APK 1.0.3552+gcfa7d4b8 from workflow_dispatch run 39354935785. "PASS: verified (status=verify), launched, process 10866 alive after 8 s, crash buffer empty."
 **Deviations:** none. The file's header (:29-31) is now stale, left word for word.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1417.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1417
+**Timestamp:** 2026-10-20T02:06:52Z
+**Continues:** 2026-09-28-1416, 2026-09-28-1406
+**Title:** The work drive filled during the #283 merge; the planner's backup-then-merge step did not stop when the backup failed, so #283 merged without a local backup. Today's 12 older pre-main bundles deleted at the owner's word; backups from here are the commit hash, since pre-main is on GitHub (planner's slip; owner)
+**The owner, verbatim,** through the question tool: "Delete, keep newest (Recommended)", whose option read: "Frees about 1.6 GB now. For the rest of Phase 1 I back up only the commit hash and branch on GitHub (a small file), since pre-main is already safe there."
+**What it records:**
+- **The cause:** /mnt/work reached 141 MB free. The planner had made a full pre-main bundle (about 139 MB) before each of 13 merges today (1.7 GB), and six helpers' scratch held about 5 GB, mostly downloaded APKs and CI artifacts.
+- **The slip:** the planner's command ran the bundle and the merge as separate steps joined by `;`, so when the bundle failed ("fatal: write error: No space left on device"), the merge of #283 still ran. Nothing was lost: pre-main 0e16b32a, the commit before that merge, is on GitHub. But the backup-first gate did not hold. From here every gated step is joined so a failure stops the next.
+- **Freed:** the planner's own downloaded S22 test builds (1.1 GB, all still on GitHub); the 12 older pre-main bundles of today (each confirmed contained in origin/pre-main before deleting; 068a139a's kept); helpers told to keep only small proof files. /mnt/work is at 6.5 GB free.
+- **Touch-guard counts reconciled (planner's reading of the reports):** the same 19 guard files were reported as 32 concrete classes and 282 cases (PRs 8, 9a, 9b) or 28 and 278 (10a, 10b). The difference is the two files that hold extra sibling classes (AvailabilityScreenLandscapeB2Test: B2Turn, PortraitStripTnum; AvailabilityScreenShortLandscapeTest: TurnToShortLandscape, PortraitBottomNavPin), one case each. Every PR also compared the whole suite case by case, so nothing went unchecked.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1418.
