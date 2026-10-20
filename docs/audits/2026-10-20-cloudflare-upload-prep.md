@@ -443,3 +443,28 @@ The handover's spec is the build target. The r2 diff is reference only, and the 
 as a per-layer rule. #258 now conflicts with `pre-main`, so Hazel will merge `pre-main` into
 `street-cloudflare` first, by merge and not rebase. The Pi preview stays up until the owner says
 stop. Rowan will report when the phone build is in the owner's hands.
+
+## The Cloudflare side for the trail phone review, 2026-10-20
+
+Rowan relayed the owner's "Aspen arranges it (Recommended)". The planner then asked the owner in its
+own window. Verbatim: "Upload now (Recommended)"; for the fonts and icons, "The Pi coder
+(Recommended)".
+
+**Read live by the planner:**
+
+- `street-v1.json`, fonts and sprites return 404.
+- `/us.json` is version 4.15.2, z0–15, with no trail keys on `roads`.
+- Tiles come from `r2`.
+- Main's `wrangler.toml` sets no `PI_ORIGIN_URL`.
+
+**Correction:** the Pi has **no** rclone remote (no config file). This record's earlier
+"read-only remote" came from a 2026-10-05 and 2026-10-18 claim and was not re-checked.
+
+**The owner's manual steps** are Hazel's steps, from the Street report on `street-cloudflare`:
+
+1. Pause the Worker's auto-deploy.
+2. Create an R2 Object Read & Write key for `forager-maps` only, and store it on the Pi as remote
+   `r2`.
+3. Later, paste the Worker bundle Rowan sends.
+
+Dispatch `prompts/preserved/2026-10-20-pi-19.md` covers the upload.
