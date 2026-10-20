@@ -267,3 +267,18 @@ Written: `prompts/preserved/2026-10-20-pi-18.md`, for a Pi coder. Part A renders
 new map by Hazel's method; Part B builds Sage's variants. Also written:
 `prompts/preserved/2026-10-20-sage-01.md`, Sage's brief, sent after Part A. Neither has been sent,
 and each waits for the owner's go.
+
+## Sage's profile merged into pre-main, 2026-10-20 (Rowan)
+
+Rowan reported by `send_message` that #338 merged the profile into `pre-main` at `d1e9ebbe`.
+Checked by the planner with `git diff --stat 30cbf9bc origin/pre-main`: two files, +111 lines.
+`designer-profile.md` is identical to `28b26d13` (empty diff), and `9b2e45cc` adds one team-table
+row to `planner-profile.md`:
+"Sage Wayfinder | designer: designs and proposes what a person sees; a coder builds | Fable |
+`designer-profile.md`".
+
+Rowan took the go in Rowan's own window, not from the relay. Rowan, verbatim: "a go given in
+another window isn't a go for me". The owner chose "Yes, merge both" there, and Rowan records it in
+RECORD. Rowan did not find the merge offer in RECORD. Its source is Rowan's reply of 2026-10-20,
+item 5's coordination note, quoted earlier in this record: "I'll merge the Sage Wayfinder profile
+and add Sage to the team table when the owner sends it." It was a message, not a RECORD entry.
