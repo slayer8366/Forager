@@ -434,3 +434,25 @@ code, which was removed.
   (500) partway through a 12 GB extract. The `.part` file is kept and the next run resumes it
   (inferred).
 - **Install** waits for the owner's go.
+
+## Addendum, 2026-10-20 05:40Z: the per-link download floor installed (pi-12), from a session the owner opened
+
+The first attempt was refused by Claude Code's auto-mode check before the installer ran, and
+nothing changed. On the owner's word ("Write a dispatch for me to paste into a separate coder
+session, and I'll manually approve it"), the owner ran the dispatch in their own coder session and
+approved it there.
+
+- **The coder's report, as pasted by the owner:**
+  - `/opt` `COMMIT` went from `e5c72e41` to `23d59d33`;
+  - `bin`, `tools` and `pins.env` diffs are empty;
+  - from `/opt`: disk 89, run 38, stop 27, functions 37;
+  - no test units are left;
+  - the timer is still disabled.
+- **The planner re-checked on the Pi:**
+  - `COMMIT` is `23d59d33`;
+  - the diffs against the worktree are empty;
+  - the timer is disabled;
+  - the installed `download_floor` reads `wlan0` and chooses the Wi-Fi floor, 700000 B/s over 40 s.
+
+**Still open:** the leftover cleanup, pi-02 Phase 2. It has a paste-ready dispatch at `23d59d33`
+for the owner's own session. Then re-enabling the timer, after this week, on the owner's word.
