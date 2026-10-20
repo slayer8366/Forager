@@ -25232,3 +25232,23 @@ Then Phase 2 is complete, followed by Elder's audit and the owner's promotion de
 - #258's own merge remains a later decision.
 **Abort conditions:** the dispatch's stops.
 **Notes:** Written by the planner by hand. Next free ID -1481.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1481
+**Timestamp:** 2026-10-20T22:17:34Z
+**Continues:** 2026-09-28-1480
+**Title:** Trail styling: planner's rulings on Hazel's verify-first; the Cloudflare side goes to Aspen (owner)
+**Observed:**
+- Hazel's verify-first for dispatch 2026-10-19-41.
+- **The merge.** #258 conflicts with pre-main in three files: docs/audits/README.md, SightingsMap.kt (code moved by the UI split into MapStyleReload.kt and OfflineNightRecolourApply.kt), and AvailabilityOfflineMapsUi.kt (OfflineRegionRow moved to OfflineRegionsList.kt). MapStyleReload.kt auto-merged silently, without #258's hunks.
+- **The switch.** STREET_SERVED_BY_OWN_MAP is a compile-time const (StreetStyle.kt:21).
+- **Spec size.** The spec needs 17 trail layers (90 in total).
+- **Engine.** line-dasharray has no data-driven support on Native per style-spec 26.4.4. That it is unsupported in 13.5.0 is inferred, not read.
+- **Blockers for a phone review:** the Worker returns 404 for /style/street-v1.json (curl), and the live archive per pi-build's upload-prep doc is the old one, without trail fields (not checked by Hazel).
+- **App changes forced by the spec:** NightColour.kt gains two informal entries. NightExceptionsTest gets a per-layer band, and the dead roads_path_foot id is replaced. The OfflineNightRecolourTest count goes from 85 to 101.
+**Decision:**
+- **The planner's rulings:** the merge resolutions, including the OfflineRegionsList.kt port, are approved. The app changes (a) to (d) are approved as forced by the spec. The review build is a never-merged branch street-trails-review with the switch flipped. The band edges are exactly 1.9 and 2.3.
+- **The owner,** asked how to handle the Cloudflare side, chose "Aspen arranges it (Recommended)": "I ask Aspen (who prepared the upload) to bring you the deploy and the upload steps for your go; Hazel's build waits for it." Aspen has been told by message. The Worker deploy needs #258's new commit.
+**Notes:** Written by the planner by hand. Next free ID -1482.
