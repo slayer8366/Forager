@@ -294,6 +294,36 @@ check "cleanup: build-orwa.sh's extracts are left alone" '[[ -f "$SRC/osm/oregon
 check "cleanup: a link to a file off the card loses the link only, with a warning" \
   '[[ ! -L "$SRC/osm/canada-261003.osm.pbf" && -f "$T/elsewhere.osm.pbf" && "$out" == *"warnings=remove-old-extracts"* ]]'
 
+# --- The cleanup for nested regions, by stem (dispatch 2026-10-20-pi-14) --------------------------
+# The islands are us/puerto-rico and us/us-virgin-islands at Geofabrik, but their files are named by
+# stem, puerto-rico-YYMMDD.osm.pbf, in sources/osm and on the card.
+for x in puerto-rico-261010 us-virgin-islands-261010 puerto-rico-261017 us-virgin-islands-261017; do
+  echo "$x" > "$C/$x.osm.pbf"; ln -s "$C/$x.osm.pbf" "$SRC/osm/$x.osm.pbf"
+  echo "md5 $x" > "$SRC/osm/$x.osm.pbf.md5"
+done
+echo "orphan" > "$C/puerto-rico-261003.osm.pbf"
+# First a us canada run, as today's: us's glob, us-[0-9]*, must not reach us-virgin-islands-*. This
+# passes before the change too, by design: it guards the stem glob against over-reaching.
+inputs=("$SRC/osm/us-261017.osm.pbf" "$SRC/osm/canada-261017.osm.pbf")
+USCA_REGIONS="us canada"; warnings=()
+out="$(remove_old_extracts 2>&1; echo "warnings=${warnings[*]}")"
+check "cleanup, us canada: the islands' extracts are left alone" \
+  '[[ -L "$SRC/osm/us-virgin-islands-261010.osm.pbf" && -f "$C/us-virgin-islands-261010.osm.pbf" && -f "$C/puerto-rico-261003.osm.pbf" ]]'
+inputs=("$SRC/osm/us-261017.osm.pbf" "$SRC/osm/canada-261017.osm.pbf" "$SRC/osm/puerto-rico-261017.osm.pbf"
+  "$SRC/osm/us-virgin-islands-261017.osm.pbf")
+USCA_REGIONS="us canada us/puerto-rico us/us-virgin-islands"; warnings=()
+out="$(remove_old_extracts 2>&1; echo "warnings=${warnings[*]}")"
+echo "  remove_old_extracts, four regions: $(tr '\n' ' ' <<<"$out")"
+check "cleanup, islands: an old island link, its card file and its .md5 are removed" \
+  '[[ ! -L "$SRC/osm/puerto-rico-261010.osm.pbf" && ! -e "$C/puerto-rico-261010.osm.pbf" && ! -e "$SRC/osm/puerto-rico-261010.osm.pbf.md5" && ! -L "$SRC/osm/us-virgin-islands-261010.osm.pbf" && ! -e "$C/us-virgin-islands-261010.osm.pbf" && ! -e "$SRC/osm/us-virgin-islands-261010.osm.pbf.md5" ]]'
+check "cleanup, islands: an old island card file with no link is removed" '[[ ! -e "$C/puerto-rico-261003.osm.pbf" ]]'
+check "cleanup, islands: this run's island extracts are kept, with their links and .md5" \
+  '[[ "$(cat "$SRC/osm/puerto-rico-261017.osm.pbf")" == puerto-rico-261017 && "$(cat "$SRC/osm/us-virgin-islands-261017.osm.pbf")" == us-virgin-islands-261017 && -f "$SRC/osm/puerto-rico-261017.osm.pbf.md5" && -f "$SRC/osm/us-virgin-islands-261017.osm.pbf.md5" ]]'
+check "cleanup, islands: us's and canada's current extracts are kept" \
+  '[[ "$(cat "$SRC/osm/us-261017.osm.pbf")" == us-261017 && "$(cat "$SRC/osm/canada-261017.osm.pbf")" == canada-261017 ]]'
+check "cleanup, islands: no warning, and no path-named directory anywhere" \
+  '[[ "$out" == *"warnings=" && "$out" != *"warnings=remove"* && ! -e "$SRC/osm/us" && ! -e "$C/us" ]]'
+
 # --- C: the merged extract's directory on the card ----------------------------------------------
 mkdir -p "$card_run" "$run" 2>/dev/null && echo merged > "$card_run/forager-usca.osm.pbf" || echo "  (no card_run to set up)"
 cleanup_scratch

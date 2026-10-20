@@ -11,6 +11,12 @@
 # the publish stage is not reached here; the old-extract cleanup it calls is tested on its own in
 # test_build_usca_disk.sh.
 #
+# Puerto Rico and the USVI (dispatch 2026-10-20-pi-14) are nested regions at Geofabrik,
+# us/puerto-rico and us/us-virgin-islands, so the stand-in Geofabrik serves files by their URL path
+# and answers 404 for any other, as the real one does for a flat island URL (observed 2026-10-20).
+# R1 to R5 run with USCA_REGIONS="us canada", as they did before the islands, so they stay the
+# record that us and canada behave as before; R6 to R8 run the four regions.
+#
 # Run: bash map-build/tools/test_build_usca_run.sh   (runs every check; exits non-zero on a failure)
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -35,6 +41,7 @@ cmp -s "$here/bin/build-usca.sh" "$T/tree/map-build/bin/build-usca.sh" || { echo
   echo "USCA_NETWORK_WAIT_SECONDS=0"
   echo "USCA_ROUTE_FILE=$T/route"
   echo 'FB_SRV=$STUB_FB_SRV'
+  echo '[[ -z "${STUB_USCA_REGIONS:-}" ]] || USCA_REGIONS="$STUB_USCA_REGIONS"'
 } > "$T/tree/map-build/pins.env"
 source "$here/pins.env"   # for the jar names
 mkdir -p "$T/opt/jdk/bin" "$T/opt/basemap" "$T/opt/brouter/profiles2"
@@ -53,7 +60,29 @@ osmium extract -b -125,45,-120,50 --set-bounds "$T/us.opl" -o "$T/geofabrik/us-2
   --output-header=osmosis_replication_timestamp=$TS --output-header=osmosis_replication_sequence_number=2415
 osmium extract -b -80,43,-79,44 --set-bounds "$T/canada.opl" -o "$T/geofabrik/canada-261017.osm.pbf" \
   --output-header=osmosis_replication_timestamp=$TS --output-header=osmosis_replication_sequence_number=4945
-for s in us canada; do (cd "$T/geofabrik" && md5sum "$s-261017.osm.pbf" > "$s-261017.osm.pbf.md5"); done
+# The islands' nodes sit on the two coverage points; their boxes are whole degrees around them.
+printf 'n21 v1 x-66.1057 y18.4655\nn22 v1 x-66.1057 y18.4655\nw21 v1 Thighway=residential Nn21,n22\n' > "$T/puerto-rico.opl"
+printf 'n31 v1 x-64.9307 y18.3419\nn32 v1 x-64.9307 y18.3419\nw31 v1 Thighway=residential Nn31,n32\n' > "$T/us-virgin-islands.opl"
+osmium extract -b -67,18,-66,19 --set-bounds "$T/puerto-rico.opl" -o "$T/geofabrik/puerto-rico-261017.osm.pbf" \
+  --output-header=osmosis_replication_timestamp=$TS --output-header=osmosis_replication_sequence_number=3282
+osmium extract -b -65,18,-64,19 --set-bounds "$T/us-virgin-islands.opl" -o "$T/geofabrik/us-virgin-islands-261017.osm.pbf" \
+  --output-header=osmosis_replication_timestamp=$TS --output-header=osmosis_replication_sequence_number=1791
+for s in us canada puerto-rico us-virgin-islands; do (cd "$T/geofabrik" && md5sum "$s-261017.osm.pbf" > "$s-261017.osm.pbf.md5"); done
+# What the stand-in serves, laid out by URL path under download.geofabrik.de as Geofabrik lays it
+# out: each region's dated file, .md5, state.txt and .poly under its path's directory. Each .md5
+# names the bare file, as Geofabrik's do (read 2026-10-20).
+W="$T/served/north-america"
+mkdir -p "$W/us"
+for r in us:2415 canada:4945 us/puerto-rico:3282 us/us-virgin-islands:1791; do
+  path="${r%%:*}"; st="${path##*/}"; d="$W"; [[ "$path" == */* ]] && d="$W/${path%/*}"
+  cp "$T/geofabrik/$st-261017.osm.pbf" "$T/geofabrik/$st-261017.osm.pbf.md5" "$d/"
+  mkdir -p "$W/$path-updates"
+  printf 'sequenceNumber=%s\ntimestamp=2026-10-17T20\\:20\\:51Z\n' "${r##*:}" > "$W/$path-updates/state.txt"
+done
+printf 'us\n1\n  -125 45\n  -120 45\n  -120 50\n  -125 50\nEND\nEND\n' > "$W/us.poly"
+printf 'canada\n1\n  -80 43\n  -79 43\n  -79 44\n  -80 44\nEND\nEND\n' > "$W/canada.poly"
+printf 'puerto-rico\n1\n  -67 18\n  -66 18\n  -66 19\n  -67 19\nEND\nEND\n' > "$W/us/puerto-rico.poly"
+printf 'us-virgin-islands\n1\n  -65 18\n  -64 18\n  -64 19\n  -65 19\nEND\nEND\n' > "$W/us/us-virgin-islands.poly"
 
 # --- Stand-ins on PATH ----------------------------------------------------------------------------
 mkdir -p "$T/stub"
@@ -82,9 +111,11 @@ EOF
 cat > "$T/stub/curl" <<'EOF'
 #!/usr/bin/env bash
 # Geofabrik, as far as build-usca.sh asks it: state.txt, a HEAD of -latest (a redirect to the
-# dated file), a HEAD of the dated file (its Content-Length), the .md5, and the extract, resumed
-# from the -o file's size with -C -. With STUB_SLOW_FIRST=1 each extract's first connection sends
-# half and ends as a speed-limit abort does (exit 28).
+# dated file), a HEAD of the dated file (its Content-Length), the .md5, the .poly and the extract,
+# resumed from the -o file's size with -C -. Each is served from $STUB_T/served by its URL path, and
+# a path with nothing there is a 404 (curl -f's exit 22), as at Geofabrik. With STUB_SLOW_FIRST=1
+# each extract's first connection sends half and ends as a speed-limit abort does (exit 28).
+# calls.log keeps the file names, as before the islands; urls.log has every URL whole.
 head=0; out=""; resume=0; url=""; prev=""; sl=""; st=""
 for a in "$@"; do
   case "$a" in -I|-sSfI|-sSIL|-sSfIL) head=1 ;; esac
@@ -94,23 +125,26 @@ for a in "$@"; do
   [[ "$prev" == --speed-time ]] && st="$a"
   prev="$a"; url="$a"
 done
-name="${url##*/}"; G="$STUB_T/geofabrik"
+name="${url##*/}"; rel="${url#https://download.geofabrik.de/}"; F="$STUB_T/served/$rel"
 off=0; [[ $resume -eq 1 && -n "$out" && -e "$out" ]] && off=$(stat -c %s "$out")
 echo "curl $([[ $head -eq 1 ]] && echo HEAD || echo GET) $name offset=$off" >> "$STUB_T/calls.log"
+echo "$([[ $head -eq 1 ]] && echo HEAD || echo GET) $url" >> "$STUB_T/urls.log"
 [[ -z "$sl$st" ]] || echo "$name speed-limit=$sl speed-time=$st" >> "$STUB_T/speed.log"
+not_found() { echo "curl: (22) The requested URL returned error: 404" >&2; exit 22; }
+if [[ $head -eq 1 && "$name" == *-latest.osm.pbf ]]; then
+  dated="${rel%-latest.osm.pbf}-261017.osm.pbf"
+  [[ -f "$STUB_T/served/$dated" ]] || not_found
+  printf 'HTTP/1.1 302 Found\r\nLocation: https://download.geofabrik.de/%s\r\n\r\n' "$dated"; exit 0
+fi
+[[ -f "$F" ]] || not_found
 case "$head:$name" in
-  0:state.txt) seqn=2415; [[ "$url" == *canada-updates* ]] && seqn=4945
-    printf 'sequenceNumber=%s\ntimestamp=2026-10-17T20\\:20\\:51Z\n' "$seqn" ;;
-  1:*-latest.osm.pbf) r="${name%-latest.osm.pbf}"
-    printf 'HTTP/1.1 302 Found\r\nLocation: https://download.geofabrik.de/north-america/%s-261017.osm.pbf\r\n\r\n' "$r" ;;
-  1:*.osm.pbf) printf 'HTTP/1.1 200 OK\r\nContent-Length: %s\r\n\r\n' "$(stat -c %s "$G/$name")" ;;
-  0:*.md5) cp "$G/$name" "$out" ;;
-  0:*.osm.pbf) size=$(stat -c %s "$G/$name")
+  1:*) printf 'HTTP/1.1 200 OK\r\nContent-Length: %s\r\n\r\n' "$(stat -c %s "$F")" ;;
+  0:*.osm.pbf) size=$(stat -c %s "$F")
     if [[ "${STUB_SLOW_FIRST:-0}" == 1 && $off -eq 0 ]]; then
-      head -c $(( size / 2 )) "$G/$name" >> "$out"; echo "curl: (28) Operation too slow" >&2; exit 28
+      head -c $(( size / 2 )) "$F" >> "$out"; echo "curl: (28) Operation too slow" >&2; exit 28
     fi
-    tail -c +$(( off + 1 )) "$G/$name" >> "$out" ;;
-  *) echo "curl stub: unexpected $*" >&2; exit 22 ;;
+    tail -c +$(( off + 1 )) "$F" >> "$out" ;;
+  0:*) if [[ -n "$out" ]]; then cp "$F" "$out"; else cat "$F"; fi ;;
 esac
 EOF
 cat > "$T/opt/jdk/bin/java" <<'EOF'
@@ -123,8 +157,10 @@ case " $* " in
   *" -version "*) echo 'openjdk version "stub"' ;;
   *" -jar "*) m="$(readlink -f data/sources/forager-usca.osm.pbf)"
     { echo "merged=$m"; echo "merged_bytes=$(stat -c %s "$m" 2>/dev/null || echo missing)"
+      echo "merged_nodes=$(osmium fileinfo -e -g data.count.nodes "$m" 2>/dev/null || echo missing)"
       echo "card_work=$(ls -A "$C" 2>/dev/null | tr '\n' ' ')"; } > "$STUB_T/planetiler.rec"
-    for a in "$@"; do if [[ "$a" == --output=* ]]; then echo archive > "${a#--output=}"; fi; done ;;
+    for a in "$@"; do if [[ "$a" == --output=* ]]; then echo archive > "${a#--output=}"; fi; done
+    for a in "$@"; do if [[ "$a" == --polygon=* ]]; then cp "${a#--polygon=}" "$STUB_T/polygon.rec"; fi; done ;;
   *" btools.mapcreator.OsmFastCutter "*)
     { if [[ -e "$C" ]]; then echo "card_work_exists=yes"; echo "card_work=$(find "$C" -mindepth 1 | tr '\n' ' ')"
       else echo "card_work_exists=no"; fi; } > "$STUB_T/cut.rec"
@@ -138,26 +174,31 @@ fails=0; pass=0
 check() { if eval "$2"; then pass=$((pass + 1)); else echo "FAIL: $1"; fails=$((fails + 1)); fi; }
 status_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]) or "")' "$1" "$2" 2>/dev/null; }
 
-new_srv() { # name [local]: a fresh FB_SRV with its sources; "local" also puts the 261017 pair on the card
-  S="$T/srv-$1"; rm -rf -- "$S" "$CARD_DIR" "$T/calls.log" "$T/planetiler.rec" "$T/cut.rec" "$T/speed.log"
+REGIONS="us canada"   # USCA_REGIONS for the runs, until R6
+new_srv() { # name [local]: a fresh FB_SRV with its sources; "local" also puts REGIONS' 261017 files on the card
+  # us.poly and canada.poly are put in sources/aux, as before, unless NO_POLYS=1; the islands' are
+  # always left for the run to fetch.
+  S="$T/srv-$1"; rm -rf -- "$S" "$CARD_DIR" "$T/calls.log" "$T/urls.log" "$T/planetiler.rec" "$T/cut.rec" "$T/speed.log" "$T/polygon.rec"
   mkdir -p "$S/sources/osm" "$S/sources/aux"
   for f in natural_earth_vector.gpkg.zip daylight-landcover.gpkg qrank.csv.gz pgf-encoding.zip \
     water-polygons-split-3857.zip land-polygons-split-3857.zip; do echo x > "$S/sources/aux/$f"; done
-  printf 'us\n1\n  -125 45\n  -120 45\n  -120 50\n  -125 50\nEND\nEND\n' > "$S/sources/aux/us.poly"
-  printf 'canada\n1\n  -80 43\n  -79 43\n  -79 44\n  -80 44\nEND\nEND\n' > "$S/sources/aux/canada.poly"
+  if [[ "${NO_POLYS:-0}" != 1 ]]; then
+    printf 'us\n1\n  -125 45\n  -120 45\n  -120 50\n  -125 50\nEND\nEND\n' > "$S/sources/aux/us.poly"
+    printf 'canada\n1\n  -80 43\n  -79 43\n  -79 44\n  -80 44\nEND\nEND\n' > "$S/sources/aux/canada.poly"
+  fi
   if [[ "${2:-}" == local ]]; then
     mkdir -p "$CARD_DIR/sources-osm"
-    for s in us canada; do
+    for s in $REGIONS; do s="${s##*/}"
       cp "$T/geofabrik/$s-261017.osm.pbf" "$CARD_DIR/sources-osm/"
       ln -s "$CARD_DIR/sources-osm/$s-261017.osm.pbf" "$S/sources/osm/$s-261017.osm.pbf"
       cp "$T/geofabrik/$s-261017.osm.pbf.md5" "$S/sources/osm/"
     done
   fi
-  : > "$T/calls.log"
+  : > "$T/calls.log"; : > "$T/urls.log"
 }
 build() { # args...: runs the copied script; sets rc and L, the run's log
   rc=0
-  env PATH="$T/stub:$PATH" STUB_T="$T" STUB_FB_SRV="$S" bash "$T/tree/map-build/bin/build-usca.sh" "$@" \
+  env PATH="$T/stub:$PATH" STUB_T="$T" STUB_FB_SRV="$S" STUB_USCA_REGIONS="$REGIONS" bash "$T/tree/map-build/bin/build-usca.sh" "$@" \
     > "$T/out.txt" 2>&1 || rc=$?
   L="$(ls -1 "$S/logs/"usca-*.log 2>/dev/null | tail -1)"; L="${L:-$T/out.txt}"
   run_id="$(basename "$L" .log)"
@@ -193,6 +234,11 @@ check "C: a --basemap run reaches routing with the card reported unmounted, as b
 check "C: a --basemap run never makes a work directory on the card" 'grep -qx "card_work_exists=no" "$T/cut.rec"'
 check "D: a --basemap run checks the NVMe against its fixed floor, in bytes" 'grep -q "\[state\] NVMe.*118111600640 bytes" "$L"'
 check "D: a --basemap run with nothing to download makes no card check" '! grep -q "\] card" "$L"'
+
+# --- R2b. The --basemap run of R2 writes the sidecar for the run's regions (pi-14) ------------------
+K="$S/failed-usca/latest/out"
+check "R2b: a us canada --basemap run writes the archive's .regions beside it, naming us and canada" \
+  '[[ "$(cat "$K/forager-usca.pmtiles.regions" 2>/dev/null)" == "$(printf "timestamp=2026-10-17T20:20:51Z\nsequence=us:2415,canada:4945")" ]]'
 
 # --- R3. The download path, --fetch-only: to the card, linked, one slow connection restarted -----
 new_srv r3
@@ -242,6 +288,82 @@ show "R5 download, name lookup failing"
 check "G: the run fails at the network stage" '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == network ]]'
 check "G: the failure names the host that did not resolve" 'grep -q "FAILED: .*download.geofabrik.de does not resolve" "$L"'
 check "G: Geofabrik was never asked" '! grep -q "^curl" "$T/calls.log"'
+
+# --- R6. Four regions, --fetch-only: every URL from the path, every local name from the stem -------
+B=https://download.geofabrik.de/north-america
+REGIONS="us canada us/puerto-rico us/us-virgin-islands"
+NO_POLYS=1 new_srv r6
+NO_POLYS=1 build --fetch-only
+show "R6 four regions, --fetch-only"
+expect_urls() { # the URLs one --fetch-only run asks for, in order, for the regions given
+  local r st d
+  for r in "$@"; do echo "GET $B/$r-updates/state.txt"; echo "HEAD $B/$r-latest.osm.pbf"; done
+  for r in "$@"; do st="${r##*/}"; d="$B"; [[ "$r" == */* ]] && d="$B/${r%/*}"; echo "HEAD $d/$st-261017.osm.pbf"; done
+  for r in "$@"; do st="${r##*/}"; d="$B"; [[ "$r" == */* ]] && d="$B/${r%/*}"; echo "GET $d/$st-261017.osm.pbf.md5"; echo "GET $d/$st-261017.osm.pbf"; done
+  for r in "$@"; do echo "GET $B/$r.poly"; done
+}
+check "R6: the four-region fetch-only run finished" '[[ $rc -eq 0 && "$(status_field "$S/status-usca.json" stage)" == fetch-only ]]'
+check "R6: the URLs asked for are exactly these, in this order" \
+  '[[ "$(cat "$T/urls.log")" == "$(expect_urls us canada us/puerto-rico us/us-virgin-islands)" ]] || { diff <(expect_urls us canada us/puerto-rico us/us-virgin-islands) "$T/urls.log" | head -8; false; }'
+for st in puerto-rico us-virgin-islands; do
+  check "R6: $st-261017 is on the card under its stem, whole" 'cmp -s "$CARD_DIR/sources-osm/$st-261017.osm.pbf" "$T/geofabrik/$st-261017.osm.pbf"'
+  check "R6: sources/osm/$st-261017.osm.pbf is a link to that card file, with its .md5 beside it" \
+    '[[ "$(readlink "$S/sources/osm/$st-261017.osm.pbf")" == "$CARD_DIR/sources-osm/$st-261017.osm.pbf" && -f "$S/sources/osm/$st-261017.osm.pbf.md5" ]]'
+  check "R6: its outline is sources/aux/$st.poly, Geofabrik's" 'cmp -s "$S/sources/aux/$st.poly" "$W/us/$st.poly"'
+done
+check "R6: no directory named after a region's path, in sources or on the card" \
+  '[[ -d "$CARD_DIR/sources-osm" && -d "$S/sources/aux" && -z "$(find "$S/sources" "$CARD_DIR" -mindepth 1 -type d -name us)" ]]'
+check "R6: all four extracts' MD5 and header timestamp passed" '[[ $(grep -c "MD5 good" "$L") -eq 4 ]]'
+in4=0; for st in us canada puerto-rico us-virgin-islands; do in4=$(( in4 + $(stat -c %s "$T/geofabrik/$st-261017.osm.pbf") )); done
+check "R6: the disk check's input total is all four extracts' bytes, all of them to download" \
+  'grep -q "inputs: $in4 bytes, $in4 of them still to download" "$L"'
+
+# --- R6b. us canada, --fetch-only: the same URLs as before the islands -----------------------------
+# Passes before the change too, by design: it is the record that us and canada are unchanged.
+REGIONS="us canada"
+NO_POLYS=1 new_srv r6b
+NO_POLYS=1 build --fetch-only
+check "R6b: us canada asks for exactly the URLs it asked for before the islands" \
+  '[[ $rc -eq 0 && "$(cat "$T/urls.log")" == "$(expect_urls us canada)" ]] || { diff <(expect_urls us canada) "$T/urls.log" | head -8; false; }'
+check "R6b: and names its files as before" \
+  '[[ -L "$S/sources/osm/us-261017.osm.pbf" && -L "$S/sources/osm/canada-261017.osm.pbf" && -f "$S/sources/aux/us.poly" && -f "$S/sources/aux/canada.poly" && $(ls "$S/sources/osm" | wc -l) -eq 4 ]]'
+
+# --- R7. Four regions, --local: the islands' files by stem, merged, outlined, and in the sidecar -----
+REGIONS="us canada us/puerto-rico us/us-virgin-islands"
+new_srv r7 local
+build --local 261017
+show "R7 four regions, --local"
+K="$S/failed-usca/latest/out"
+check "R7: the four-region --local run reached BRouter's first step" '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]'
+check "R7: Planetiler read a merge of all four extracts, 8 nodes" 'grep -qx "merged_nodes=8" "$T/planetiler.rec"'
+check "R7: Planetiler's outline joins the four regions' outlines, in order" \
+  '[[ "$(grep "^forager-usca-" "$T/polygon.rec" 2>/dev/null | tr "\n" " ")" == "forager-usca-1-1 forager-usca-2-1 forager-usca-3-1 forager-usca-4-1 " ]]'
+check "R7: the islands' outlines were fetched from their paths" \
+  'grep -qx "GET $B/us/puerto-rico.poly" "$T/urls.log" && grep -qx "GET $B/us/us-virgin-islands.poly" "$T/urls.log"'
+check "R7: the disk check's input total is all four extracts' bytes" 'grep -q "\[state\] inputs: $in4 bytes, 0 of them still to download" "$L"'
+check "R7: the archive's .regions names the four regions, us first, and the snapshot" \
+  '[[ "$(cat "$K/forager-usca.pmtiles.regions" 2>/dev/null)" == "$(printf "timestamp=2026-10-17T20:20:51Z\nsequence=us:2415,canada:4945,us/puerto-rico:3282,us/us-virgin-islands:1791")" ]]'
+
+# --- R8. Four regions, --basemap: an archive that does not name them is refused at once -----------
+for v in none two four; do
+  new_srv "r8-$v" local
+  cp "$T/geofabrik/us-261017.osm.pbf" "$S/kept.pmtiles"
+  case $v in
+    two) printf 'timestamp=2026-10-17T20:20:51Z\nsequence=us:2415,canada:4945\n' > "$S/kept.pmtiles.regions" ;;
+    four) printf 'timestamp=2026-10-17T20:20:51Z\nsequence=us:2415,canada:4945,us/puerto-rico:3282,us/us-virgin-islands:1791\n' > "$S/kept.pmtiles.regions" ;;
+  esac
+  build --local 261017 --basemap "$S/kept.pmtiles"
+  show "R8 four regions, --basemap, sidecar $v"
+  case $v in
+    none) check "R8: a basemap with no .regions is refused for a four-region run, at the state stage" \
+            '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]] && grep -q "FAILED: --basemap: .*kept.pmtiles.regions" "$L"'
+          check "R8: and before routing or any link into the output" '[[ ! -f "$T/cut.rec" && ! -e "$S/failed-usca/latest/out/forager-usca.pmtiles" ]]' ;;
+    two) check "R8: a basemap whose .regions names us and canada only is refused, naming both lists" \
+            '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]] && grep -q "FAILED: --basemap: .*us:2415,canada:4945; this run .*us/us-virgin-islands:1791" "$L"' ;;
+    four) check "R8: a basemap whose .regions names the four regions is accepted, and the run reaches routing" \
+            '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]' ;;
+  esac
+done
 
 if [[ $fails -gt 0 ]]; then echo "FAILED: $fails checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"
