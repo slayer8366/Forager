@@ -24952,3 +24952,31 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **The owner chose "Yes, build it after step 3 (Recommended)":** "Same steps as navigating. Built after the step 3 fix, because both touch the map's following code. Go given now."
 - **The dispatch** is written when dispatch 2026-10-19-36 has merged, against that base.
 **Notes:** Written by the planner by hand. Next free ID -1470.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1470
+**Timestamp:** 2026-10-20T17:30:02Z
+**Continues:** 2026-09-28-1468, 2026-09-28-1469
+**Title:** #336 (the map keeps its view on return, walk step 3) merged into pre-main; spring-back dispatched (2026-10-19-37)
+**Observed:**
+- **#336** (Hazel, option (b)) adds `cameraTargetTakenAsApplied` in MapCameraMoves.kt and an else branch in MapDataRefresh.kt: two production files, +22 lines.
+  - **Tests:** 9 new plain-function tests. Four bite (B, C, no tab switch, cold start with permission). The revert run 39460655906 at 6790b03c had 0 compile errors and four failures, each with a message specific to the edit; the forward line was confirmed afterwards. Five guards are labelled "not shown to bite".
+  - **Suite:** identical to 39448152717 apart from the 9 new cases. Touch guards (282 cases) identical. Dex +1 method.
+  - **S22:** launch PASS (1.0.3690+gd0367f16).
+  - **Sorrel (Fable):** approve with nits. Every decision row traced; suite recomputed.
+  - Merged at 30cbf9bc.
+- **Premise corrections:**
+  - The Journal's "Show on map" sends no camera request (it writes `shownOnMap`, which draws the entry). The dispatch's "still moves" item 3 was the planner's wrong premise.
+  - The same stale-target jump also happened without a tab switch, on any refresh re-key: recording's roughly 15 s trail update, a marker tap, a style swap. #336 covers it.
+  - The centre-pin picker gets the same fix.
+- **S22 rerun with simulated GPS** (owner's "Yes" in the planner's window) on 1.0.3690+gd0367f16:
+  - A, B and C kept zoom 14.0, and B and C now log `cover: SHOW`.
+  - D (drag, then a basemap swap with no tab switch) kept the dragged view.
+  - E (a search after a drag) framed.
+  - Cleanup: providers removed; `appops get` reads "MOCK_LOCATION: default"; the Mock Location Record is empty. Cached mock last-known fixes, about 200 m north, remain until real fixes replace them. pre-main 5fd0d4f4 reinstalled.
+- **Open, found in E:** typing "Canby" and then "Portland" in the S22's search bar showed "No matches for …". Search then ran around the current position. Cause not determined (S22 without a SIM on Wi-Fi, the geocoder, or a defect). The owner's walk step 10 (a place search) passed on the S26.
+- **Open, still-phone gap:** why B and C logged SHOW on 5fd0d4f4 on a still phone is not explained by the code (Hazel, Sorrel). It is moot under #336.
+**Decision:** dispatch 2026-10-19-37 (plain-map spring-back, per RECORD -1469) goes to Hazel, verify-first, on base 30cbf9bc.
+**Notes:** Written by the planner by hand. Next free ID -1471.
