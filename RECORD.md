@@ -24911,3 +24911,25 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
   - **Step 9:** by design (RECORD -262). The map is rebuilt on return and FanReopenCoordinator reopens the fan.
 - The pre-main push CI on 5fd0d4f4, then the combined S22 check, follow.
 **Notes:** Written by the planner by hand. Next free ID -1468.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1468
+**Timestamp:** 2026-10-20T16:38:00Z
+**Continues:** 2026-09-28-1467
+**Title:** Walk step 3 confirmed as an old bug and fixed now (dispatch 2026-10-19-36); plain-map spring-back wanted; #335's combined check
+**Observed:**
+- **pre-main 5fd0d4f4:** push CI green (run 39448152717). Combined S22 check PASS (1.0.3688+g5fd0d4f4).
+- **First S22 observation (Hazel, still phone):** no zoom-out on 3500 or pre-main in cases A, B or C. Every return logged `cover: SHOW`, and the target never went stale.
+- **The owner chose "Allow fake GPS on S22".** Hazel set mock_location on the shell, fed gps and network test providers, and moved the position about 67 m between app open and the locate tap.
+  - **A (following when leaving):** zoom kept, `cover: SHOW`.
+  - **B (after a flick) and C (after a nudge):** `cover: MOVE_PENDING`, and the map went to the located region at about zoom 12.
+  - **Builds:** identical on 3500 (19aa1058) and pre-main 5fd0d4f4. **The diagnosis holds and the bug is pre-existing.**
+  - **Cleanup:** providers removed; `appops get` reads "MOCK_LOCATION: default"; the Mock Location Record is empty. Cached last-known fixes marked mock (about 100 m north) remain until real fixes replace them.
+  - The owner's "Following me, zoomed in" most likely came after the walk's step 2 flick ended following (inferred).
+**Decision:**
+- **Step 3.** The owner, asked as a step path ("come back to Maps > the map is exactly where you left it, same place and same zoom; only a new search or a tap on locate moves it"), chose "Yes, fix it now (Recommended)": "a small, separate map fix into pre-main now, while the map code is fresh, ahead of 2.5 and 2.6." This is a build go. Dispatch 2026-10-19-36 goes to Hazel, verify-first.
+- **Step 2.** Asked whether the plain map should spring back from a small nudge as it does while navigating, the owner chose "Yes, on the plain map too", which was described as new behaviour "planned and confirmed step by step before any build". No build until the step path is confirmed and a go is given.
+- **The walk's step 2 text was wrong.** It described navigation-only behaviour. That was the planner's premise error, made by writing the step from code.
+**Notes:** Written by the planner by hand. Next free ID -1469.
