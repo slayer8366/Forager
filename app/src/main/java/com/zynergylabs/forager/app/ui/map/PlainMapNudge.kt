@@ -84,7 +84,6 @@ class PlainNudgeLeftover {
     fun onRelease(action: Int, plainMap: Boolean, stillFollowing: Boolean): Boolean {
         if (action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL) return false
         if (!plainMap) {
-            lastShown = null
             return false
         }
         val padding = lastShown ?: return false
