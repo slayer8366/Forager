@@ -149,3 +149,13 @@ name what it describes.
 - **Some time estimates ran short.**
 
 Each is recorded where it happened.
+
+## Correction, 2026-10-20, by the next Pi planner session
+
+Appended on the owner's go ("2 go"); the text above is unchanged.
+
+- **The dispatch list under "The record" is incomplete.** It names `2026-10-19-pi-01` to `-pi-05`
+  and `2026-10-20-pi-08` to `-pi-17`. `prompts/preserved/2026-10-19-pi-06.md` (the disk-fit study)
+  and `prompts/preserved/2026-10-19-pi-07.md` (the hand-stop fix) also exist on `pi-build`. Both
+  carry a 2026-10-19 file name and say they were written 2026-10-20 03:52Z. Checked with
+  `git ls-tree origin/pi-build prompts/preserved/` at `58011da4`.
