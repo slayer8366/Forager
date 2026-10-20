@@ -57,7 +57,7 @@ internal fun plainMapFollowing(springBack: Boolean, navigating: Boolean, cameraM
 internal fun plainMapNudgeOptions(context: Context, look: PositionLook): LocationComponentOptions {
     val density = context.resources.displayMetrics.density
     return liveLocationComponentOptions(context, look = look).toBuilder()
-        .trackingGesturesManagement(true)
+        .trackingGesturesManagement(false)
         .trackingInitialMoveThreshold(NAVIGATION_NUDGE_THRESHOLD_DP * density)
         .trackingMultiFingerMoveThreshold(NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP * density)
         .build()
