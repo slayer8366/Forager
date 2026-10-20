@@ -186,7 +186,6 @@ internal class PlainMapNudge(
             Log.i(NAVIGATION_VIEW_LOG_TAG, "nudge: locate with a give left on screen; clearing it first")
             map.clearPaddingKeepingPicture()
         }
-        leftover.forget()
     }
 
     /** The map is going away. */
