@@ -64,3 +64,20 @@ So replacing 8.8 GB with 34 GB costs about $0.36 a month (inferred).
 - Whether the app's style and the new archive's schema agree. Both are Protomaps 4.15.2 (inferred:
   the old archive's version from the 2026-10-04 handoff, the new one from its metadata). The new
   trail keys are extra fields.
+
+## Correction, 2026-10-20: the storage ruling quoted above was stale
+
+The section "Ruled by the owner" says the cost answer "supersedes, for this map, the 2026-10-05
+ruling 'Stay below storage limit…'". The owner corrected that, verbatim: "I gave the go already
+when the forecast was put up on the website, your record is stale". So the 2026-10-05 ruling had
+already been superseded before this session asked.
+
+- The planner read only the Pi's and `pi-build`'s records, not the forecast side's, and so treated
+  a superseded ruling as standing.
+- Where that earlier go is recorded is **not checked** here. It is in the forecast work, not in
+  this record.
+- The planner's reading of it, to be corrected if wrong: the go covers spending past R2's free tier.
+- This session's "Yes, ~$0.36/month is fine" stands either way.
+
+**The lesson for the Pi planner:** before calling a ruling standing, check the other lines of work
+where the owner may have ruled since. A ruling read from one record is a claim about that record.
