@@ -24528,3 +24528,31 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** PR merged under the standing word after the S22 launch check; then the promotion PR into main, merged with the owner's approval (-1441).
 **Abort conditions:** a row's status unclear from the code; any non-comment code change.
 **Notes:** Written by the planner by hand. Next free ID -1443.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1443
+**Timestamp:** 2026-10-20T06:26:37Z
+**Closes:** 2026-09-28-1442
+**Outcome:** completed
+**Observed:**
+- PR #294 (tidy-ups before promoting Phase 1) merged into pre-main at 2e6a7efe, gated on head 014afa74 (cut from 1ce100c4; the merge's tree equals the head's tree). Four files: known-bugs.md, docs/audits/README.md, and two comment lines.
+- **Known bugs, checked by Hazel against main 19aa1058 (`--is-ancestor` plus reading main's code):** rows 4, 5, 6, 8 and 9 New → Live (shipped in 3500, RECORD -1367); row 7's cell rewritten (it was "Live, in a cruder form", now "Live (shipped in 3500…); before 3500, in a cruder form…"; accepted); row 3 already Live; rows 1 and 2 not app code. Elder's inference held for every row.
+- **Index row** for docs/audits/2026-10-19-tablet-search-bar-and-columns-completion-report.md (RECORD -1375, -1383), written by Hazel at the dispatch's instruction and noted as such.
+- **Finding, not changed:** the same two comment blocks also name `MapTab`, removed earlier (3e973bbc), outside this dispatch.
+- CI run 39378348393: green, suite identical to 39376276205 case by case. **S22:** 1.0.3595+g014afa74, PASS.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1444
+**Timestamp:** 2026-10-20T06:26:37Z
+**Continues:** 2026-09-28-1436, 2026-09-28-1437, 2026-09-28-1439
+**Title:** Planner's technical rulings on the first Phase 2 verify-firsts (2.1, 2.2, 2.7), and the first PRs' state; recorded because Sorrel found them only in messages
+**What it sets (planner, technical; none changes what a user sees):**
+- **2.1 bundles:** twelve bundles plus six plain parameters (uiState, currentTime, mapSlot, cameraCaptureFiles, compassProvider, computeTrueHeading). Nine bundles one per PR; **the three bundles holding required parameters (Settings, OfflineMaps, SearchInputs) in one final PR**, one commit each, so the 82 test files (81 in src/test, 1 in src/testDebug) change once. Bundles are public data classes (the screen is public). **No `remember` wrapping**; any change in skipping named per PR, and each bundle's field types checked for stability (Sorrel showed the camera bundle's are all stable, so its skipping is unchanged).
+- **2.2 map:** a thin holder over the existing State objects (getters and setters, nothing copied); fanSpace, the keyed remembers, the conditional calls and the captured values stay parameters; **group functions are ordinary `internal @Composable` functions, not inline (option A)**, so the compiled function really splits (the 2026-10-08 verifier crash); the narrower recomposition scope is named per PR, and any observable rerun is a stop. About ten PRs; batches 2+3, 4+5 and 7+8; PR 9 (lifecycle and listeners) and PR 10 (layout) alone.
+- **2.7 recording:** five collaborators (pending deletes, lists, route ticks, poller, take-up memory); **every launch and cancel of every loop stays in a ViewModel function**, and take-up's orchestration stays in the class. `removeWaypoint` has no production caller (moved with PR 2, not deleted; for the owner).
+**Observed so far:** draft #297 (2.1 camera bundle): suite identical, S22 PASS (1.0.3595+g276bd069), **Sorrel: approve with nits, no defect**. Draft #295 (2.2 holder only): suite identical, S22 PASS (1.0.3595+gf7c6b5d8). Draft #293 (2.7 pending deletes): suite identical; a KDoc link fix in CI. Draft #296 (S22 screenshot set): 16/16 on the S22, fails cleanly; baseline set kept at /mnt/work/scratch/s22-shots/1.0.3593+ga71a6c58/ (outside every repository).
+**Notes:** Written by the planner by hand. Next free ID -1445.
