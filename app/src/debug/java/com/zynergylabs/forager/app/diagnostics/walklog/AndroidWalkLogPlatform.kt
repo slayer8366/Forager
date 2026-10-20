@@ -94,6 +94,8 @@ class AndroidWalkLogPlatform(
         }
     }
 
+    // Lint cannot see the guard: each read runs only inside put(name, minSdk), which checks SDK_INT >= minSdk first.
+    @SuppressLint("NewApi")
     @androidx.annotation.RequiresApi(30)
     private fun readGnssCapabilities(): GnssCapabilitiesRecord {
         val caps = locationManager.gnssCapabilities

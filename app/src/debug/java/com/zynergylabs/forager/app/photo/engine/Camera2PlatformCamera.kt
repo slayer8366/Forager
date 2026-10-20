@@ -504,7 +504,7 @@ internal class Camera2PlatformCamera(context: Context) : PlatformCamera {
             logicalZoomRatio = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) result.get(CaptureResult.CONTROL_ZOOM_RATIO) else null,
             logicalCrop = result.get(CaptureResult.SCALER_CROP_REGION)?.pixels(),
             activePhysicalId = activeId(result),
-            activePhysicalCrop = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            activePhysicalCrop = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
                 result.get(CaptureResult.LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_SENSOR_CROP_REGION)?.pixels()
             } else {
                 null
