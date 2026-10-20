@@ -24619,3 +24619,16 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Observed (Hazel):** the 22 commits rebased onto 02a544cd; 3 conflicts (dev tools, lens tests, lens build) resolved by applying dev's edits where Phase 1 moved the code; range-diff 19 '=' and 3 '!'; the experiments' change set is the same line for line apart from two imports a split needs; suite on run 39382863963: 5,542 tests, 0 failed, no test changed outcome against old dev or main; build and release jobs green. **Lint red, 22 NewApi errors, all in dev's debug code** (old dev never ran lint; main 02a544cd is green). One looks like a real bug: `Camera2PlatformCamera.kt:508` reads an API 35 field under an API 31 guard (inferred; not seen on a phone; the S22 and S26 are newer).
 **The owner, verbatim, through the question tool:** "Fix on the branch (Recommended)", whose option read: "One small commit: mark the 21 guarded spots so the check accepts them (no behaviour change), and tighten the one guard to Android 15, so older phones skip that reading instead of crashing. On your phones nothing changes. Then I move dev."
 **Notes:** Any of the three setPhysicalCameraId calls found unguarded comes back to the owner. Written by the planner by hand. Next free ID -1450.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1450
+**Timestamp:** 2026-10-20T07:22:28Z
+**Continues:** 2026-09-28-1448, 2026-09-28-1444
+**Title:** Phase 2 PRs #299 (2.7 lists), #303 (2.1 entry-report bundle) and #304 (2.7 route ticks, loop 1) merged into pre-main; -1444's loop wording clarified
+**Observed:**
+- #299 at 535534f7 (S22 PASS 1.0.3597+gafe14aaf; Sorrel: approve with nits, suite compared case by case by Sorrel from the XML); #303 at aead6f08 (S22 PASS 1.0.3597+g5377f2af; Sorrel: approve with nits; trial merge onto pre-main clean); #304 at 34143076 (S22 PASS 1.0.3598+g94845c49; Sorrel: approve with nits, the launch-and-cancel table verified at both commits). No defect in any.
+- **2.1 dex figures superseded by Hazel in #297's and #300's bodies:** the earlier counts used the report at a 1-register floor and missed 1-register methods; recounted, no method outside the app changed in any step.
+- **Clarification of -1444 (Sorrel's note on #304):** "every launch and cancel of every loop stays in a ViewModel function" means **the decisions**: every condition and every call that starts or stops a loop stays in the ViewModel function where it was (copyFromWatch, stopReturn, clearRecordingState, startRecording, takeUpRunningRecording, startReturn, onCleared), at the same position, synchronously, on viewModelScope. The collaborator may hold the literal `scope().launch` and `job?.cancel()` statements behind `begin()`, `end()` and `cancel()`. This is the shape the 2.7 dispatch and the coder's verify-first described.
+**Notes:** Written by the planner by hand. Next free ID -1451.
