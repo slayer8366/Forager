@@ -24859,3 +24859,29 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Owner's test-gap list, addition:** no test for onSetEntryGroupIncluded's two logged paths (Hazel, #326).
 - The combined S22 check for #325 and #326 follows, on pre-main 01deb017's push build.
 **Notes:** Written by the planner by hand. Next free ID -1466.
+
+---
+
+**Kind:** ruling
+**ID:** 2026-09-28-1466
+**Timestamp:** 2026-10-20T14:30:16Z
+**Continues:** 2026-09-28-1454, 2026-09-28-1461, 2026-09-28-1465
+**Title:** Phase 2.4 and 2.8 fully built; #327, #328, #329, #330, #331, #332, #333, #334 approved by Sorrel; three planner rulings; phone checks paused for a Google prompt on the S22
+**Observed:**
+- **Approved by Sorrel (Fable), none merged, every suite identical case by case (Sorrel recomputed from the JUnit XML for #329, #330, #331, #332, #333, #334; #327 and #328 on conclusions only):**
+  - #327 (2.4 PR 8, search runs, AvailabilitySearchRuns): approve with nits. Its clearSearch KDoc-link nit and doubled blank lines are fixed in #330's 90fc0885.
+  - #328 (2.3 PR 2, Maps tab helpers): approve with nits (three comment-only, carried to the next 2.3 dispatch).
+  - #329 (2.8 C3+C4, Cartography entry opening and exits): approve with nits (PR body says 288 lines, file is 284).
+  - #330 (2.4 PR 9, live location, AvailabilityLiveLocation): approve with nits (PR-body only). AvailabilityViewModel.kt 1,888 → 979 lines across 2.4. AvailabilityViewModelLiveFixTest's 15 cases reach the moved code.
+  - #331 (2.8 M2, gallery), #332 (M1, pending deletes), #333 (M3, capture location), #334 (M4, entry photos): approve with nits, the last approve. Lock sites 18 throughout: after #334, 12 in the ViewModel, 3 EntryPhotos, 2 PendingDeletes, 1 CaptureLocation, 0 Gallery; one Mutex passed by reference. #334's 7e1b1437 and 61c93f40 fold in the #332 and #333 class-KDoc nits. MushroomLogViewModel.kt 1,232 → 767, CartographyViewModel.kt 802 → 284.
+- **Stacks:** #330 carries #324 and #327. #331 → #329's branch, #332 → #331, #333 → #332, #334 → #333; the planner retargets each to pre-main as the one below merges; any fix on a lower branch is merged up, never rebased.
+- **Slips disclosed by Hazel:** the 2.8 lock-site count was 16 in the verify-first, 18 in fact (#331's table is right); the M2 report's method count before was 25,368, not 25,371; #327's commit claimed a KDoc fix not yet made (made in 90fc0885); #334's 61c93f40 message has a garbled phrase, left unamended. A pull_request run was briefly read in place of a dispatch run on #327 and caught before citing.
+- **Owner's test-gap list, additions:** no test asserts "Photo gallery unavailable.", gallery "Couldn't add that photo.", "Couldn't remove that photo.", onPullPhoto's "Couldn't add that photo.", "Couldn't attach that photo.", the Mushroom pending-delete "not loaded" and "Undo came after commit" logs, "Couldn't delete that entry." for a failed pending find delete, the failed capture-patch log; the onAddPhoto → patchCameraCaptureLocationIntoFind → promoteCaptureFixToFind queue-not-nest path is reasoning, untested. Sorrel (#328, inferred): after a measured portrait compass strip, a turn to landscape may leave the old height in use for the bubble clearance; a test turning to landscape would tell; belongs to the 2.3 owner walk.
+- **Comment-pass list, additions:** MushroomLogGallery.kt "this ViewModel" / "this class's own" (#331); [CameraAbsenceWatcher] unresolved link; MushroomLogViewModelTest.kt:410, :1955 links to the moved patchCameraCaptureLocation; MushroomLogEntryPhotos.kt:17-18 cites -1460 where the lock ruling is -1461.
+- **S22 paused:** a Google account-recovery prompt appeared on the S22 during #328's screenshot run; the planner tapped nothing and deleted its screenshot of it; no phone checks until the owner has dealt with it. Pre-main 01deb017's push CI is green (run 39422514235); its combined check, then #324's merge, wait on the phone.
+**Decision:**
+- loadRecentSearches stays in AvailabilityViewModel, reaching AvailabilitySearchRuns as a callback (#327's a3c155e2), over a suspending setter; it calls a suspend function inside the inline `_uiState.update`, and moving it would change retry behaviour. Body byte-identical.
+- MushroomLogEntryPhotos takes `gallery` and `captureLocation` as objects, not lambdas, so `patchCameraCaptureLocationIntoFind(photoId = …, findId = …)` keeps its named arguments (two Strings that a positional call could swap). Live references, nothing copied; Sorrel confirmed both are constructed before it and nothing reads them during construction.
+- The four-deep 2.8 stack stands (Hazel's reasoning: no history rewrite, retarget leaves diffs unchanged, trial merges clean).
+- 2.5 and 2.6 stay undispatched until the S22 queue moves.
+**Notes:** Written by the planner by hand. Next free ID -1467.
