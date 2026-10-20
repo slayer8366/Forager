@@ -23944,3 +23944,33 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. A fresh helper takes it, because the previous ui/map helper's context is long after four dispatches. Next free ID -1402.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1402
+**Timestamp:** 2026-10-20T00:36:11Z
+**Closes:** 2026-09-28-1399
+**Outcome:** completed
+**Observed:**
+- PR #279 (UI split Phase 1, PR 8: the map controls' parts into six files) merged into pre-main at 4ab2ee9b under the standing word, gated on head d8b5ba73, which contains pre-main 496536e1. Backup bundle of 496536e1, verified.
+- **Proofs (Hazel):** 38 declarations, differing only in four widenings (`CompassElevationStripContent`, `StripNavigatingReadout`, `StripEveningLine`, `stripHeadingText`); all six files and the kept file `cmp`-identical, with bite runs including the two-range file's first range; suite identical (5,160 cases); **the 19 coordinate-touch guards present and passing in every run, 282 cases**, counted by concrete class. AvailabilityMapControlsUi.kt 1,367 → 525, with `CompassElevationStripContent` whole; new files 202, 237, 150, 139, 52, 192. Dex: the nine methods identical; total +5 (three `<clinit>`, two `<init>` for more ComposableSingletons holders), accepted as compiler-generated. Initialisation order: no cycle, read not tested.
+- **S22 launch check, planner, about 00:42Z:** APK 1.0.3539+gd8b5ba73 from workflow_dispatch run 39346709739. "PASS: verified (status=verify), launched, process 24008 alive after 8 s, crash buffer empty."
+**Deviations:** none.
+**Not checked:** touch order on a real device beyond the Robolectric guards.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1403.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1403
+**Timestamp:** 2026-10-20T00:36:11Z
+**Continues:** 2026-09-28-1376, 2026-09-28-1402
+**Title:** UI split Phase 1, PR 9a: the Maps tab's first children (position state, map host, card sums, bubble, cluster host) out of AvailabilityCompactMapUi.kt (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-14.md, for Hazel Cairnwright (a fresh helper)
+**Scope:** AvailabilityCompactMapUi.kt and new files in ui/availability; branch split-maps-tab-a from pre-main 4ab2ee9b. CompactMapTab stays, unreordered.
+**Baseline:** pre-main 4ab2ee9b; the file is 2,080 lines.
+**Prediction (outcome, planner):** a pure move of about 500 lines with several widenings; the 19 guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs and the guard table, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. A fresh helper, as the previous ui/availability helper has done four dispatches. Next free ID -1404.
