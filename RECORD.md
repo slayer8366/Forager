@@ -25064,3 +25064,17 @@ Hazel has the go for Part 2. The stop limit is about 11 production files.
   - The planner's case 7 premise was wrong. Long-press on the Maps tab does nothing on #337 and on pre-main 30cbf9bc alike: CompactMapMapSlot passes an empty long-press handler, and adding goes through the + button and the centre-pin picker (MapSlot.kt:27-33). No regression.
 - **Merged at 03bf2e42.**
 **Notes:** Written by the planner by hand. Next free ID -1474.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1474
+**Timestamp:** 2026-10-20T20:28:38Z
+**Continues:** 2026-09-28-1462, 2026-09-28-1473
+**Title:** Phase 2.3 continued: the rest of the Maps tab body, verify-first (dispatch 2026-10-19-38)
+**Dispatch-file:** preserved/2026-10-19-38.md, for Hazel Cairnwright
+**Scope:** ui/availability/AvailabilityCompactMapUi.kt and new files in its package, on pre-main 03bf2e42 or later. #325 and #328 are merged. The order of the remaining PRs is re-derived, since the previous helper's verify-first message is not in the repository. Sorrel's three #328 comment nits are folded into the first PR. Covered by the owner's Phase 2 go (-1434).
+**Baseline:** pre-main 03bf2e42 (#337 merged). #336 and #337 touched the map files and AvailabilityScreen.kt, not AvailabilityCompactMapUi.kt (premise to check).
+**Finish line:** as dispatch 2026-10-19-35. Then the owner's 2.3 walk (-1465): a search notice showing, a bubble below the strip, landscape while navigating, the L cluster and the notice on the same side, the bubble minY regression, and Sorrel's landscape strip-height observation (-1466).
+**Abort conditions:** the dispatch's stops; any reorder of children, effects or remembers; any remember re-keyed or moved below the tab.
+**Notes:** Written by the planner by hand. Next free ID -1475.
