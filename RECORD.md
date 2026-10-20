@@ -24741,3 +24741,15 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **What replaced it:** the S22. For #315 (1.0.3604+g728357c7): launch check PASS; the screenshot run (16 tab changes) with an empty crash buffer; and a real adb drag across the map in portrait, before and after screenshots showing the map panned with the drag and the location dot moving with it, the chrome unchanged. Pinch, rotate, the nudge and flick while following, and touches through the cover after a tab return remain for the owner's walk.
 **Also:** Hazel notes that the "skipped when inputs unchanged" wording in #298, #302, #307 and #310's bodies is loose in the same way #311's was (the holder is unstable, though strong skipping compares instances); left as is, as no behaviour depends on it.
 **Notes:** Written by the planner by hand. Next free ID -1458.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1458
+**Timestamp:** 2026-10-20T09:28:33Z
+**Continues:** 2026-09-28-1457, 2026-09-28-1452
+**Title:** The owner's phone walk for Phase 2.2 (the map split), written; handed over when #315 has merged and the pre-main build is on the S22
+**Dispatch-file:** preserved/2026-10-20-phase2-map-phone-walk.md, for the owner
+**Scope:** 12 steps on the S22 (touch, following and the nudge, tab return, background, restyle and night, glyph taps, rotate with a bubble, the marker fan and its reopen, search framing; optional forecast cells and a short recording). Assembled from the device steps in #307, #310, #311 and #315.
+**Finish line:** the owner's pass or fail per step, recorded in their words.
+**Notes:** Written by the planner by hand. Next free ID -1459.
