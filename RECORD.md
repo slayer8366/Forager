@@ -24845,3 +24845,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **The owner's phone walk** (-1458) is under way on the owner's S26, build 1.0.3658 (the commit is not yet identified: pre-main was 3656 at the time; asked the owner for the +g suffix). The S22 was used for the two waiting launch checks once the owner said the walk was on the S26.
 - **Owner's test-gap list, additions (Hazel, Sorrel, #323):** no test pends the open Journal entry (the editor-closing branch of requestDeleteEntry); no test asserts on its three log messages.
 **Notes:** Written by the planner by hand. Next free ID -1465.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1465
+**Timestamp:** 2026-10-20T12:28:40Z
+**Continues:** 2026-09-28-1464, 2026-09-28-1462
+**Title:** #325 (2.3 Maps tab layout holder, PR 1) and #326 (2.8 Cartography entry edits and shown-on-map) merged into pre-main
+**Observed:**
+- #325 at 496952bd: suite identical; the 19 touch guards (278 cases, by concrete class) identical; S22 PASS (1.0.3647+g4ed50fd0) with the screenshot run (16 shots: landscape strip, L cluster and rail, search panel; empty crash buffer). **Sorrel:** approve with nits; every read and write of the three strip sizes in the same place; each limit function token-identical to the old expression; the nine children's order and the two map memories untouched. Owed for an owner walk at the end of 2.3: a search notice showing, a bubble open below the strip, landscape while navigating, the L cluster and the notice on the same side (and the bubble minY regression, whose test is @Ignore'd).
+- #326 at 01deb017: suite identical; S22 PASS (1.0.3647+gbc577f58); **Sorrel:** approve with nits, suite recomputed from the XML; no persist caller left in the ViewModel. CartographyViewModel.kt 802 → 581 lines.
+- **Owner's test-gap list, addition:** no test for onSetEntryGroupIncluded's two logged paths (Hazel, #326).
+- The combined S22 check for #325 and #326 follows, on pre-main 01deb017's push build.
+**Notes:** Written by the planner by hand. Next free ID -1466.
