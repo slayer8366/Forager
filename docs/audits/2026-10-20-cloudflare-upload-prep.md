@@ -155,3 +155,44 @@ The owner, verbatim, in order:
    8765, and `forager-tiles` and `forager-tunnel` disabled and inactive.
 
 **Left in place, undeleted:** `~/map-design-scratch` and `.claude/worktrees/map-design`.
+
+## Rowan's reply on prior art, received 2026-10-20, spot-checked by the planner
+
+Rowan answered by `send_message`, from Rowan's session. Rowan says its items 1, 2, 3 and 5 came from a
+read-only researcher on Rowan's side, and that item 4 Rowan checked directly.
+
+**What was spot-checked here, at the source:**
+
+- `docs/audits/2026-10-18-basemap-design-review.md` (Elder Ford, 2026-10-18) is on branch
+  `basemap-launch-plan`. Its §5 "Prior art (described generically)" says outdoor apps draw
+  footpaths as red-brown dashes varied by difficulty, tracks as dash-dot brown, and tree cover as one
+  solid green; their dark modes are designed palettes; their chrome is opaque. It reserves empty
+  dash and colour slots for `sac_scale`, `trail_visibility` and `informal`.
+- PR #258's branch `street-cloudflare` (head `5b270ac4`, 2026-10-18) holds:
+  - `map-style/forager-street-v1.json`;
+  - `overrides/forager-street.mjs`;
+  - `generate-street.mjs`;
+  - `tools/check-street-night.mjs`;
+  - `server/pmtiles-worker/src/street-style-v1.json`.
+- RECORD −1284 and −1342 exist on `records-after-173`.
+- `MapPalette.kt` on `main` says "Hand-authored, not derived".
+- PR #301 merged into `main` at 2026-10-20T06:44:21Z. The Worker's modification was 06:44:59Z,
+  consistent with Rowan's account that Cloudflare's GitHub connection redeploys on a push to `main`.
+  The deploy log was not seen, so the cause is inferred.
+
+**What it means, per Rowan (not all re-read here):**
+
+- **Understory is the app's UI system, not the map's design.** `MapPalette` colours only the marks
+  drawn over the map.
+- **The live basemap design is Street v1 (PR #258), held for the next release.** It follows the
+  owner's rulings −1284 to −1294, −1300 and −1342 to −1345. The app's switch
+  `STREET_SERVED_BY_OWN_MAP` is false on that branch.
+- **The trail slots are where the new archive comes in.** Rowan's
+  `2026-10-18-street-cloudflare-part1-report.md` says the tiles then carried no informal flag. The new
+  US + Canada archive carries `informal` with the other five keys: its archive check is in this
+  record's validation addendum.
+- **Coordination.** `ui/map/SightingsMap.kt` is frozen during Rowan's UI split Phase 2. Any app
+  change in the map code goes through the owner to Rowan. Style JSON, `map-style/` and the Worker are
+  not affected.
+- **Rowan will merge Sage Wayfinder's profile** and add Sage to the team table when the owner sends
+  it.
