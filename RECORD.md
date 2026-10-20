@@ -24556,3 +24556,16 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **2.7 recording:** five collaborators (pending deletes, lists, route ticks, poller, take-up memory); **every launch and cancel of every loop stays in a ViewModel function**, and take-up's orchestration stays in the class. `removeWaypoint` has no production caller (moved with PR 2, not deleted; for the owner).
 **Observed so far:** draft #297 (2.1 camera bundle): suite identical, S22 PASS (1.0.3595+g276bd069), **Sorrel: approve with nits, no defect**. Draft #295 (2.2 holder only): suite identical, S22 PASS (1.0.3595+gf7c6b5d8). Draft #293 (2.7 pending deletes): suite identical; a KDoc link fix in CI. Draft #296 (S22 screenshot set): 16/16 on the S22, fails cleanly; baseline set kept at /mnt/work/scratch/s22-shots/1.0.3593+ga71a6c58/ (outside every repository).
 **Notes:** Written by the planner by hand. Next free ID -1445.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1445
+**Timestamp:** 2026-10-20T06:45:19Z
+**Continues:** 2026-09-28-1441, 2026-09-28-1443
+**Title:** Promotion PR #301 merged: main 19aa1058 → 02a544cd (pre-main 2e6a7efe), UI split Phase 1 and the small-items batch; not a Play release. dev's rebase onto main stopped on a conflict
+**Observed:**
+- Gates as listed in #301's body: pre-main push run 39380324543 at 2e6a7efe green (all three jobs); S22 launch checks per PR and on trees identical to 1ce100c4 and 2e6a7efe; Elder pass with items (-1440), items 1, 3, 5 fixed in #294; the owner's "Tidy, then promote (Recommended)" (-1441). The prior main hash is logged in ~/Zynergy/forager-repo-backups/pre-main-hashes.log. main's push CI on 02a544cd started (run 39382138548).
+- **dev (-1087: rebased onto main after every main update):** dev is cbd8c40a, 22 commits on 969ecf0a; it was not rebased after the 3500 promotion (19aa1058) either. A trial rebase onto 02a544cd in a throwaway worktree **conflicted on the first commit** (41d777ef, the dev-tools commit, -930). Aborted, worktree removed; **dev untouched**. Brought to the owner (abort condition of the promotion procedure, -1135's pattern).
+- Phase 2 drafts may now merge into pre-main as each passes its proofs, review and S22 check (-1434's condition met).
+**Notes:** Written by the planner by hand. Next free ID -1446.
