@@ -23974,3 +23974,20 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs and the guard table, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. A fresh helper, as the previous ui/availability helper has done four dispatches. Next free ID -1404.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1404
+**Timestamp:** 2026-10-20T01:00:38Z
+**Closes:** 2026-09-28-1403
+**Outcome:** completed
+**Observed:**
+- PR #281 (UI split Phase 1, PR 9a: four of the Maps tab's children out of AvailabilityCompactMapUi.kt) merged into pre-main at 395fa429 under the standing word, gated on head 585a6da3, cut from pre-main 4ab2ee9b (unchanged since). Backup bundle of 4ab2ee9b, verified.
+- **Planner's technical call at verify-first:** F/G/H (`cardTopLimitInRootPx`, `WALKER_DOT_CLEARANCE`, `navigationChromeFromBottomTransitions`) left for PR 9b with the landscape card that alone uses them, saving two widenings. 9a moved A/B, D, I and J into `MapIconClusterPositionState.kt`, `CompactMapMapSlot.kt`, `CompactMapBubble.kt`, `CompactMapIconCluster.kt`, widening three (`CompactMapMapSlot`, `CompactMapBubble`, `CompactMapIconCluster`).
+- **Proofs (Hazel):** `CompactMapTab` (293-927) byte-unchanged, so its nine calls keep their order; 20 declarations, differing only in the three widenings; four files `cmp`-identical with bite runs; suite identical (baseline push 39348576206 at 4ab2ee9b, head workflow_dispatch 39348954167); **the 19 touch guards, 32 concrete classes, 282 cases, all passing before and after**. AvailabilityCompactMapUi.kt 2,080 → 1,629; new files 124, 141, 106, 138. Dex report identical (225,086 methods).
+- **Beyond the dispatch, accepted by the planner:** two imports unused even at base (`ReadWriteProperty`, `KProperty`) were dropped with the rest; imports matched by name may include a few named only in comments (build clean).
+- **S22 launch check, planner, about 01:08Z:** APK 1.0.3541+g585a6da3. "PASS: verified (status=verify), launched, process 28324 alive after 8 s, crash buffer empty."
+**Deviations:** the grouping changed as above.
+**Not checked:** touch order on a real device beyond the Robolectric guards.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1405.
