@@ -24270,3 +24270,56 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **The correction:** the -1421 terminal for #287 keeps its ID. The 03:09:28Z decision entry is to be read and cited as **-1423**. Its content is unchanged and still valid, including the owner's verbatim "Batch, check combined (Recommended)" and the five S22 checks it lists. Neither entry is edited in place.
 **Also from the earlier session's handover, for the record:** its helpers are stopped and will change nothing; its five S22 checks at about 03:05Z all passed (listed in -1423); the S22 was left on 1.0.3562+g9bac47b9.
 **Notes:** Written by the planner by hand. Next free ID -1424.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1424
+**Timestamp:** 2026-10-20T03:26:25Z
+**Closes:** 2026-09-28-1413
+**Outcome:** completed
+**Observed:**
+- PR #288 (UI split Phase 1, PR 10d: the navigation card's composables out of NavigationHud.kt) merged into pre-main at ca05321d under the standing word and the batch ruling (-1423), gated on head 9bac47b9 (contains 5501fe22; pre-main was c92cab97, #287 only, no shared file).
+- **Files:** NavigationInfo.kt +267, NavigationCardParts.kt +198, NavigationCardLines.kt +231, NavigationHud.kt -642. Eight accepted widenings.
+- **Proofs (Hazel, re-derived after the handover):** suite identical, 691 files and 5,160 cases, case by case against bff42d13's run 39356902994 and pre-main 5501fe22's 39358696386 (sha256-identical tables); 28 navigation classes and the 19 guard files (30 concrete classes) pass; dex +5 exactly the accepted getters and `<clinit>`s, over-256 list identical; declaration sets 28/28 and imports re-checked with `command grep`. **PR 6b re-check with `command grep`: no difference.**
+- **S22** (run 39358756335): 1.0.3562+g9bac47b9 installed, verified, cold-launched, alive after 8 s, crash buffer empty.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1425
+**Timestamp:** 2026-10-20T03:26:25Z
+**Closes:** 2026-09-28-1409
+**Outcome:** completed
+**Observed:**
+- PR #285 (UI split Phase 1, PR 10b: AvailabilityMapIconCluster.kt split) merged into pre-main at 797c14e5, gated on head 831e3e4c; none of its 4 files changed on pre-main since 5501fe22 (batch ruling, -1423).
+- **Files:** AvailabilityMapIconCluster.kt 939 → 660, MapIconClusterState.kt 191, LandscapeLCluster.kt 83, MapControlToasts.kt 34. Drag code untouched. Two widenings.
+- **Proofs (Hazel):** suite identical case by case across head 39358761886, pre-main 39358696386 and pre-merge d50dbf0b 39354970920 (5,160 cases); the 19 guards at 32 concrete classes and 282 cases; byte identity with seven bite runs; dex +1, the getter from the CONTROL_PILL_GAP widening (accepted by the planner, same kind as PRs 7 and 8); `command grep` re-check no difference. Not verified: runtime initialisation order of LandscapeLClusterKt's new `<clinit>` (read, not tested).
+- **S22** (run 39362531889): 1.0.3563+g831e3e4c, PASS (alive after 8 s, crash buffer empty).
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1426
+**Timestamp:** 2026-10-20T03:26:25Z
+**Closes:** 2026-09-28-1420
+**Outcome:** completed
+**Observed:**
+- PR #289 (UI split Phase 1, PR 10f: the camera's shutter and parts out of InAppCameraDialog.kt) merged into pre-main at 3c5b96ee, gated on head e3df59cf; no shared file with pre-main's changes since 5501fe22.
+- **Files:** InAppCameraDialog.kt 674 → 466; CameraShutter.kt 158; InAppCameraParts.kt 77. `InAppCameraDialog` and `swallowTouchesBelow` byte-identical (base 54-480 = head 40-466), so the orientation calls and layer order are untouched. Two widenings (ShutterCluster, stripChips). Stale comment listed, not edited: InAppCameraDialog.kt head :95-96 still says the window follows the device (`SENSOR`); the code requests portrait.
+- **Proofs (Hazel):** five proofs with bite runs; suite identical case by case (5,160 cases), naming 31 camera, touch, orientation, RAW and format classes; dex report identical (one synthetic lambda renumbered); `.github` unchanged.
+- **S22** (run 39362477405): 1.0.3559+ge3df59cf, installed with `install -r -d` (keeps data) over 3562, PASS.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1427
+**Timestamp:** 2026-10-20T03:26:25Z
+**Closes:** 2026-09-28-1419
+**Outcome:** completed
+**Observed:**
+- PR #290 (UI split Phase 1, PR 10e: the Journal files' movable parts) merged into pre-main at e8f0c31c, gated on head ad203992; no shared file with pre-main's changes since 5501fe22.
+- **Files:** JournalTab.kt 1,088 → 917, CartographyScreen.kt 810 → 744, CartographyEntryReportScreen.kt 957 → 783; six new files (JournalSwitch 56, JournalDestinations 55, JournalFindsPages 75, CartographyEntriesPages 73, report Parts 58, report Layout 126). The three screens, their Back handlers and the report's map call byte-identical. Six widenings. LANDSCAPE_ENTRY_INFO_MIN_WIDTH moved to CartographyEntryReportLayout.kt, still imported by OfflineMapsSideBySide.kt.
+- **Proofs (Hazel):** five proofs with bite runs on both JournalSwitch ranges; suite identical case by case (5,160 cases). **Accepted by the planner:** dex +1 (`JournalSwitchKt$WhenMappings.<clinit>`, compiler-generated, over-256 list identical) and seven already-unused imports dropped (import-only edit).
+- **S22** (run 39362504890): 1.0.3560+gad203992, installed with `install -r -d`, PASS.
+- **Planner's slip (no effect):** fresh CI builds of 10b, 10e, 10f and 10a were started to get a higher build number for the phone. The build number comes from the commit, so they could not. The earlier session's `install -r -d` was the right method.
