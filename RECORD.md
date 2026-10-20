@@ -24504,3 +24504,27 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - Push run 39376276205 at 1ce100c4: all three jobs green; 691 suites, 5,160 tests, 0 failures, 24 skipped (counted by Elder from the XML). The last S22 PASS (a71a6c58) is on a tree identical to 1ce100c4.
 - **Items:** (1) known-bugs.md's "Where" column is stale since 3500 shipped (rows 4, 5, 6, 8, 9 read "New"; now live); (2) no new known bug from the range; (3) the #270 completion report has no docs/audits/README.md row; (4) S22 results are the record's word, not Elder's; (5) two comment mentions of removed names lack the "(removed …)" note (Theme.kt:168, AvailabilityMapOverlaysUi.kt:332); (6) **premise in -1433 wrong**: two test files changed, not one (the second a one-line header comment from #274); (7) two #270 bytecode claims taken on the coder's reading.
 **Notes:** Written by the planner by hand. Next free ID -1441.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1441
+**Timestamp:** 2026-10-20T06:01:47Z
+**Continues:** 2026-09-28-1440
+**Title:** Tidy Elder's items 1, 3 and 5 in a small docs-only PR, then promote pre-main to main; no Play release implied (owner)
+**The owner, verbatim, through the question tool:** "Tidy, then promote (Recommended)", whose option read: "One small docs-only PR first: mark known bugs 4, 5, 6, 8 and 9 as live (they shipped in 3500), add the missing audit index row, and add the '(removed)' note to two comments. Then I open the promotion PR into main. No Play release; that stays your call."
+**Notes:** The rows named are Elder's inference; the dispatch has each one checked against main 19aa1058 before it is changed. Written by the planner by hand. Next free ID -1442.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1442
+**Timestamp:** 2026-10-20T06:01:47Z
+**Continues:** 2026-09-28-1441
+**Title:** Tidy-ups before promoting Phase 1: known-bugs Where column checked against 3500, the #270 report's index row, two "(removed)" notes
+**Dispatch-file:** preserved/2026-10-19-31.md, for Hazel Cairnwright
+**Scope:** docs/process/known-bugs.md (Where cells only), docs/audits/README.md (one row), two comment lines. From pre-main 1ce100c4.
+**Baseline:** pre-main 1ce100c4; push run 39376276205 green.
+**Finish line:** PR merged under the standing word after the S22 launch check; then the promotion PR into main, merged with the owner's approval (-1441).
+**Abort conditions:** a row's status unclear from the code; any non-comment code change.
+**Notes:** Written by the planner by hand. Next free ID -1443.
