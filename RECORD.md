@@ -24490,3 +24490,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** as the dispatch's report section; draft PRs until Phase 1 is promoted (-1434).
 **Abort conditions:** the dispatch's stops; any change to when a loop starts or stops.
 **Notes:** Written by the planner by hand. Next free ID -1440.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1440
+**Timestamp:** 2026-10-20T06:00:34Z
+**Closes:** 2026-09-28-1433
+**Title:** Elder's audit of the small-items batch (main 19aa1058 → pre-main 1ce100c4): pass with items, none a block; nothing a user meets
+**Report-file:** preserved/2026-10-19-26-batch-audit-report.md, filed as received; Elder Ford, dispatched on Fable, read-only.
+**Observed (from the report):**
+- Elder's own multiset check on all 19 split PRs: zero code lines differ apart from header comments; kept files deletions-only apart from the declared widenings; 102 visibility changes, all private → internal; inset lines identical across the range; no init-order cycle in the new files.
+- Push run 39376276205 at 1ce100c4: all three jobs green; 691 suites, 5,160 tests, 0 failures, 24 skipped (counted by Elder from the XML). The last S22 PASS (a71a6c58) is on a tree identical to 1ce100c4.
+- **Items:** (1) known-bugs.md's "Where" column is stale since 3500 shipped (rows 4, 5, 6, 8, 9 read "New"; now live); (2) no new known bug from the range; (3) the #270 completion report has no docs/audits/README.md row; (4) S22 results are the record's word, not Elder's; (5) two comment mentions of removed names lack the "(removed …)" note (Theme.kt:168, AvailabilityMapOverlaysUi.kt:332); (6) **premise in -1433 wrong**: two test files changed, not one (the second a one-line header comment from #274); (7) two #270 bytecode claims taken on the coder's reading.
+**Notes:** Written by the planner by hand. Next free ID -1441.
