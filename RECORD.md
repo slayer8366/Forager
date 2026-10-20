@@ -24384,3 +24384,31 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** PR merged under the standing word; Elder's audit dispatched with its own intent.
 **Abort conditions:** a reader found; any test difference.
 **Notes:** Written by the planner by hand. Next free ID -1432.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1432
+**Timestamp:** 2026-10-20T05:42:53Z
+**Closes:** 2026-09-28-1431
+**Outcome:** completed
+**Observed:**
+- PR #292 (remove the unused `LANDSCAPE_HUD_MAX_WIDTH`) merged into pre-main at 1ce100c4, gated on head a71a6c58; pre-main was still 263c21f4. Diff: AvailabilityCompactMapUi.kt −3 (blank, KDoc, val), LandscapeChromeWidth.kt:15 link changed to a plain dated note. Wrong premise in the dispatch, found by Hazel: the declaration was not at the end of the file.
+- **Reader check (Hazel):** five hits for the name tree-wide: the declaration, the KDoc link, and three dated docs, left untouched; nothing in test, kts, pro or resources.
+- **CI:** first head run 39372145004 red with one failure, `MushroomLogViewModelWiringTest` "a find deleted through the Journal's ViewModel leaves the Maps tab's records" at :80 ("the snapshot still holds the deleted find: onFindDeleted is not wired"). **A sighting of known-bugs row 2**, recorded in the PR body, test not touched. Re-run as a new workflow_dispatch on the same SHA, 39374475066: green, identical case by case to baseline 39368926211 (5,160 cases). Dex −2 traced: the field, its getter and the class's `<clinit>`.
+- **S22** (run 39374475066): 1.0.3593+ga71a6c58, PASS.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1433
+**Timestamp:** 2026-10-20T05:42:53Z
+**Continues:** 2026-09-28-1381, 2026-09-28-1431, 2026-09-28-1432
+**Title:** Elder's audit of the small-items batch, main 19aa1058 → pre-main 1ce100c4 (owner)
+**Dispatch-file:** preserved/2026-10-19-26.md, for Elder Ford, dispatched on Fable (the coders ran on Opus)
+**Scope:** the range main 19aa1058..pre-main 1ce100c4: #269, #270, #273, #274, the 19 split PRs, #292. Read-only.
+**Baseline:** 24 first-parent commits; 108 files, +10,909/−9,960; `.github` unchanged; one test file +7.
+**Prediction (outcome, planner):** pass with items, no block.
+**Finish line:** Elder's report filed as received; the promotion to main brought to the owner with it.
+**Abort conditions:** a block from Elder, which goes to the owner before any promotion.
+**Notes:** Written by the planner by hand. Next free ID -1434.
