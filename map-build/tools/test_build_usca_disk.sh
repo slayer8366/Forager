@@ -6,7 +6,9 @@
 #   C  the merged extract's directory on the card is removed by cleanup_scratch;
 #   D  a byte-based need on each disk, from the ratios pinned in pins.env;
 #   F  curl_resume restarts a slow or stalled connection, resuming with -C -, up to a cap;
-#   G  wait_for_network waits, bounded, for a default route and a resolving host.
+#   G  wait_for_network waits, bounded, for a default route and a resolving host;
+#   L  each connection's floor is the one for the link carrying the default route when it starts
+#      (dispatch 2026-10-20-pi-11): Wi-Fi's, or the conservative one for anything else or no route.
 # The functions are taken from the script itself with sed, as test_build_usca_functions.sh does,
 # and run against fake trees for both disks in a temporary directory. Nothing here touches
 # /srv/forager-build or /mnt/archive. The whole script, run end to end, is test_build_usca_run.sh.
@@ -27,7 +29,8 @@ warnings=()
 warn() { echo "WARN $2"; warnings+=("$1"); }
 
 fns=(cleanup_scratch remove_card_run card_ready curl_resume fetch_extract remove_old_extracts remote_size
-  planetiler_need with_margin check_disk disk_check gb has_default_route wait_for_network)
+  planetiler_need with_margin check_disk disk_check gb has_default_route wait_for_network
+  default_route_iface download_floor)
 expr=""
 for f in "${fns[@]}"; do expr+="/^$f() {/,/^}/p; "; done
 eval "$(sed -n "$expr /^CARD_OSM=/p; /^card_run=/p" "$script")"
@@ -120,7 +123,26 @@ curl() { printf 'HTTP/1.1 200 OK\r\n\r\n'; }
 check "remote_size fails when there is no Content-Length, and says so" '[[ "$(remote_size https://example.invalid/x 2>&1)" == *"no Content-Length"* ]] && ! remote_size https://example.invalid/x >/dev/null 2>&1'
 unset -f curl
 
+# --- Routing tables, as /proc/net/route prints them (columns as the kernel writes them) ----------
+# Iface Destination Gateway Flags RefCnt Use Metric Mask MTU Window IRTT. Gateways are made up.
+rt_head='Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\tMTU\tWindow\tIRTT'
+rt() { # file iface:metric...: a table with a default route through each iface, and one subnet route
+  local f="$1" e; shift
+  { printf "$rt_head\n"
+    for e in "$@"; do printf '%s\t00000000\t0100000A\t0003\t0\t0\t%s\t00000000\t0\t0\t0\n' "${e%%:*}" "${e##*:}"; done
+    printf 'wlan0\t0000000A\t00000000\t0001\t0\t0\t600\t00FFFFFF\t0\t0\t0\n'; } > "$f"
+}
+rt "$T/rt-tether" bnep0:750
+rt "$T/rt-wifi" wlan0:600
+rt "$T/rt-both" wlan0:600 bnep0:750          # the shape the Pi's table had on 2026-10-20 (observed)
+rt "$T/rt-both-tether-lower" wlan0:600 bnep0:100
+rt "$T/rt-usb" usb0:700
+rt "$T/rt-wlp" wlp1s0:600
+rt "$T/rt-none"                               # a subnet route only
+
 # --- F: curl_resume restarts a slow or stalled connection, resuming each time ---------------------
+# On the tether's table, so these checks do not depend on which link this machine is on (L below).
+USCA_ROUTE_FILE="$T/rt-tether"
 USCA_DOWNLOAD_PAUSE=7; USCA_DOWNLOAD_MAX_RESTARTS=4; HTTP_USER_AGENT=test
 mkdir -p "$T/dl"
 calls="$T/dl/calls"; : > "$calls"
@@ -155,6 +177,63 @@ printf '0123456789' > "$T/dl/z.osm.pbf.part"
 curl() { return 0; }
 check "F: a file larger than its Content-Length is refused" '! curl_resume https://example.invalid/z.osm.pbf "$T/dl/z.osm.pbf" 5 >/dev/null 2>&1 && [[ ! -e "$T/dl/z.osm.pbf" ]]'
 unset -f curl
+
+# --- L: the floor for the link carrying the default route, chosen before each connection --------
+# Asserted on the arguments curl was actually given, and on each connection's logged line.
+check "L: the pinned Wi-Fi floor is 700000 bytes/s over 40 s, for interfaces matching wl*" \
+  '(source "$here/pins.env"; [[ "$USCA_DOWNLOAD_SPEED_LIMIT_WIFI $USCA_DOWNLOAD_SPEED_TIME_WIFI $USCA_WIFI_IFACE_PATTERN" == "700000 40 wl*" ]])'
+check "L: the conservative floor is still 50000 bytes/s over 120 s" \
+  '(source "$here/pins.env"; [[ "$USCA_DOWNLOAD_SPEED_LIMIT $USCA_DOWNLOAD_SPEED_TIME" == "50000 120" ]])'
+USCA_DOWNLOAD_SPEED_LIMIT_WIFI=700000; USCA_DOWNLOAD_SPEED_TIME_WIFI=40; USCA_WIFI_IFACE_PATTERN='wl*'
+USCA_DOWNLOAD_PAUSE=0
+one_conn() { # route-file: one connection that finishes the file; leaves curl's arguments in $calls, the log in $T/dl/out
+  : > "$calls"; rm -f "$T/dl/l.osm.pbf" "$T/dl/l.osm.pbf.part"
+  USCA_ROUTE_FILE="$1"
+  curl() { local out="" a prev=""; for a in "$@"; do [[ "$prev" == -o ]] && out="$a"; prev="$a"; done
+    printf '%s\n' "$*" >> "$calls"; printf 'abcd' >> "$out"; }
+  curl_resume https://example.invalid/l.osm.pbf "$T/dl/l.osm.pbf" 4 > "$T/dl/out" 2>&1 && rc=0 || rc=$?
+  unset -f curl
+}
+floor_is() { [[ $rc -eq 0 && $(wc -l < "$calls") -eq 1 ]] && grep -q -- "--speed-limit $1 --speed-time $2 " "$calls"; }
+one_conn "$T/rt-wifi"
+check "L: a Wi-Fi default route: curl gets the Wi-Fi floor" 'floor_is 700000 40'
+check "L: and the connection's line names the link and the floor" \
+  'grep -q "connection 1 ended .*; link wlan0, Wi-Fi floor 700000 bytes/s over 40 s" "$T/dl/out"'
+one_conn "$T/rt-both"
+check "L: Wi-Fi and the tether both up, Wi-Fi's metric lower: the Wi-Fi floor" 'floor_is 700000 40 && grep -q "link wlan0, Wi-Fi floor" "$T/dl/out"'
+one_conn "$T/rt-tether"
+check "L: a tether default route: curl gets the conservative floor" 'floor_is 50000 120'
+check "L: and the line names the tether and the default floor" \
+  'grep -q "connection 1 ended .*; link bnep0, default floor 50000 bytes/s over 120 s" "$T/dl/out"'
+one_conn "$T/rt-both-tether-lower"
+check "L: both up, the tether's metric lower though listed second: the tether's floor" 'floor_is 50000 120 && grep -q "link bnep0, default floor" "$T/dl/out"'
+one_conn "$T/rt-usb"
+check "L: any other link, here usb0, gets the conservative floor" 'floor_is 50000 120 && grep -q "link usb0, default floor" "$T/dl/out"'
+one_conn "$T/rt-wlp"
+check "L: a Wi-Fi interface with a predictable name, wlp1s0, matches wl*" 'floor_is 700000 40 && grep -q "link wlp1s0, Wi-Fi floor" "$T/dl/out"'
+one_conn "$T/rt-none"
+check "L: no default route: the conservative floor" 'floor_is 50000 120'
+check "L: and the line says there was no default route, and where it looked" \
+  'grep -q "connection 1 ended .*; no default route in $T/rt-none, default floor 50000 bytes/s over 120 s" "$T/dl/out"'
+one_conn "$T/rt-missing"
+check "L: a route table that cannot be read: the conservative floor, and the line says so" \
+  'floor_is 50000 120 && grep -q "; cannot read $T/rt-missing, default floor 50000 bytes/s over 120 s" "$T/dl/out"'
+# The link changes between connections: Wi-Fi drops mid-download and the tether takes the default
+# route. The stand-in swaps the table after the first connection, which ends as a speed abort does.
+: > "$calls"; rm -f "$T/dl/m.osm.pbf" "$T/dl/m.osm.pbf.part"
+cp "$T/rt-wifi" "$T/rt-live"; USCA_ROUTE_FILE="$T/rt-live"
+curl() { local out="" a prev=""; for a in "$@"; do [[ "$prev" == -o ]] && out="$a"; prev="$a"; done
+  printf '%s\n' "$*" >> "$calls"; printf 'ab' >> "$out"
+  if [[ $(wc -l < "$calls") -eq 1 ]]; then cp "$T/rt-tether" "$T/rt-live"; return 28; fi; }
+curl_resume https://example.invalid/m.osm.pbf "$T/dl/m.osm.pbf" 4 > "$T/dl/out" 2>&1 && rc=0 || rc=$?
+unset -f curl
+echo "  curl_resume, Wi-Fi then the tether: rc=$rc; $(tr '\n' '|' < "$T/dl/out")"
+check "L: the route changes between connections: two connections, the file whole" '[[ $rc -eq 0 && $(wc -l < "$calls") -eq 2 && "$(cat "$T/dl/m.osm.pbf")" == abab ]]'
+check "L: the first connection, on Wi-Fi, had the Wi-Fi floor" 'sed -n 1p "$calls" | grep -q -- "--speed-limit 700000 --speed-time 40 "'
+check "L: the second, after the switch, had the tether's floor" 'sed -n 2p "$calls" | grep -q -- "--speed-limit 50000 --speed-time 120 "'
+check "L: each connection's line names its own link" \
+  'grep -q "connection 1 ended (curl exit 28).*link wlan0, Wi-Fi floor" "$T/dl/out" && grep -q "connection 2 ended (curl exit 0).*link bnep0, default floor" "$T/dl/out"'
+USCA_ROUTE_FILE="$T/rt-tether"
 
 # --- B: the download goes to the card, and sources/osm links to it -------------------------------
 curl() { local a out="" prev=""; for a in "$@"; do [[ "$prev" == -o ]] && out="$a"; prev="$a"; done; printf 'pbf!' >> "$out"; }

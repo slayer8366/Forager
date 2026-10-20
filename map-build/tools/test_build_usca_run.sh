@@ -33,12 +33,16 @@ cmp -s "$here/bin/build-usca.sh" "$T/tree/map-build/bin/build-usca.sh" || { echo
   echo "USCA_CARD_DIR=$T/card/forager-build"
   echo "USCA_DOWNLOAD_PAUSE=0"
   echo "USCA_NETWORK_WAIT_SECONDS=0"
+  echo "USCA_ROUTE_FILE=$T/route"
   echo 'FB_SRV=$STUB_FB_SRV'
 } > "$T/tree/map-build/pins.env"
 source "$here/pins.env"   # for the jar names
 mkdir -p "$T/opt/jdk/bin" "$T/opt/basemap" "$T/opt/brouter/profiles2"
 echo jar > "$T/opt/basemap/$BASEMAPS_JAR_NAME"; echo jar > "$T/opt/brouter/brouter-$BROUTER_VERSION-all.jar"
 CARD_DIR="$T/card/forager-build"
+# The routing table curl_resume reads before each connection (pi-11): Wi-Fi carries the default
+# route, with the tether up behind it at a higher metric, as on the Pi on 2026-10-20 (observed).
+printf 'Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\nwlan0\t00000000\t0100000A\t0003\t0\t0\t600\t00000000\nbnep0\t00000000\t0100000B\t0003\t0\t0\t750\t00000000\n' > "$T/route"
 
 # --- Tiny extracts, as Geofabrik's would be: header timestamp, sequence and bounding box ---------
 TS=2026-10-17T20:20:51Z
@@ -81,16 +85,19 @@ cat > "$T/stub/curl" <<'EOF'
 # dated file), a HEAD of the dated file (its Content-Length), the .md5, and the extract, resumed
 # from the -o file's size with -C -. With STUB_SLOW_FIRST=1 each extract's first connection sends
 # half and ends as a speed-limit abort does (exit 28).
-head=0; out=""; resume=0; url=""; prev=""
+head=0; out=""; resume=0; url=""; prev=""; sl=""; st=""
 for a in "$@"; do
   case "$a" in -I|-sSfI|-sSIL|-sSfIL) head=1 ;; esac
   [[ "$prev" == -o ]] && out="$a"
   [[ "$prev" == -C && "$a" == - ]] && resume=1
+  [[ "$prev" == --speed-limit ]] && sl="$a"
+  [[ "$prev" == --speed-time ]] && st="$a"
   prev="$a"; url="$a"
 done
 name="${url##*/}"; G="$STUB_T/geofabrik"
 off=0; [[ $resume -eq 1 && -n "$out" && -e "$out" ]] && off=$(stat -c %s "$out")
 echo "curl $([[ $head -eq 1 ]] && echo HEAD || echo GET) $name offset=$off" >> "$STUB_T/calls.log"
+[[ -z "$sl$st" ]] || echo "$name speed-limit=$sl speed-time=$st" >> "$STUB_T/speed.log"
 case "$head:$name" in
   0:state.txt) seqn=2415; [[ "$url" == *canada-updates* ]] && seqn=4945
     printf 'sequenceNumber=%s\ntimestamp=2026-10-17T20\\:20\\:51Z\n' "$seqn" ;;
@@ -132,7 +139,7 @@ check() { if eval "$2"; then pass=$((pass + 1)); else echo "FAIL: $1"; fails=$((
 status_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]) or "")' "$1" "$2" 2>/dev/null; }
 
 new_srv() { # name [local]: a fresh FB_SRV with its sources; "local" also puts the 261017 pair on the card
-  S="$T/srv-$1"; rm -rf -- "$S" "$CARD_DIR" "$T/calls.log" "$T/planetiler.rec" "$T/cut.rec"
+  S="$T/srv-$1"; rm -rf -- "$S" "$CARD_DIR" "$T/calls.log" "$T/planetiler.rec" "$T/cut.rec" "$T/speed.log"
   mkdir -p "$S/sources/osm" "$S/sources/aux"
   for f in natural_earth_vector.gpkg.zip daylight-landcover.gpkg qrank.csv.gz pgf-encoding.zip \
     water-polygons-split-3857.zip land-polygons-split-3857.zip; do echo x > "$S/sources/aux/$f"; done
@@ -200,6 +207,10 @@ for s in us canada; do
   check "F: $s's second connection resumed where the first stopped" \
     'grep -qx "curl GET $s-261017.osm.pbf offset=$(( $(stat -c %s "$T/geofabrik/$s-261017.osm.pbf") / 2 ))" "$T/calls.log"'
 done
+check "L: every extract connection was given the Wi-Fi floor, 700000 bytes/s over 40 s" \
+  '[[ $(grep -c "osm.pbf speed-limit=700000 speed-time=40$" "$T/speed.log") -eq 4 && $(wc -l < "$T/speed.log") -eq 4 ]]'
+check "L: each connection's line in the run's log names the link and the floor" \
+  '[[ $(grep -c "connection [12] ended .*; link wlan0, Wi-Fi floor 700000 bytes/s over 40 s" "$L") -eq 4 ]]'
 check "B: the MD5 check passed through the links" '[[ $(grep -c "MD5 good" "$L") -eq 2 ]]'
 check "B: nothing was downloaded onto the NVMe" '[[ -z "$(find "$S" -name "*.osm.pbf*" -type f ! -name "*.md5")" ]]'
 check "G: the run waited for the network before the state stage" \

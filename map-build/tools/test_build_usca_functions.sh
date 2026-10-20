@@ -17,7 +17,7 @@ ln -s 20261017T202051Z "$OUT/current"
 echo "log line" > "$log_file"
 log() { echo "LOG $*"; }
 
-eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p' "$script")"
+eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^default_route_iface() {/,/^}/p; /^download_floor() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p' "$script")"
 declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge >/dev/null \
   || { echo "FAIL: functions not loaded"; exit 1; }
 
@@ -40,6 +40,10 @@ check "the tile at 0,0 is the centre one" '[[ "$(z15_tile 0.0001 -0.0001)" == "1
 
 # --- curl_resume: a partial file from an earlier run is resumed, not discarded ------------------
 USCA_DOWNLOAD_SPEED_LIMIT=1; USCA_DOWNLOAD_SPEED_TIME=1; USCA_DOWNLOAD_PAUSE=0; USCA_DOWNLOAD_MAX_RESTARTS=3; HTTP_USER_AGENT=test
+# A tether's routing table, so curl_resume's floor (pi-11) does not depend on this machine's link.
+USCA_DOWNLOAD_SPEED_LIMIT_WIFI=2; USCA_DOWNLOAD_SPEED_TIME_WIFI=2; USCA_WIFI_IFACE_PATTERN='wl*'
+printf 'Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\nbnep0\t00000000\t0100000A\t0003\t0\t0\t750\t00000000\n' > "$T/route"
+USCA_ROUTE_FILE="$T/route"
 mkdir -p "$T/dl"; printf 'first half' > "$T/dl/x.osm.pbf"
 curl() { # stands in for curl: records the partial file it was handed, then "finishes" it
   local out=""; while [[ $# -gt 0 ]]; do [[ "$1" == -o ]] && out="$2"; shift; done
