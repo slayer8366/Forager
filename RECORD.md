@@ -24337,3 +24337,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Planner's ruling on the report:** three KDoc links were left dangling, because the move dropped the only imports that resolved them (`MapIconBar`, `CentrePinLocationPickerOverlay`, `LazyColumn`). The three imports were restored in 233d6f08, matching how 10d and 6b kept KDoc-only imports. The diff from f81c8e76 is exactly three added import lines.
 - **Proofs (Hazel, re-derived after the handover):** merge clean (merge-tree identical); suite identical case by case on f81c8e76 against pre-merge e8f7db4d and pre-main 5501fe22, and on 233d6f08 (run 39362622790) against f81c8e76's 39358749140 (5,160 cases); 108 concrete touch-guard classes, 1,107 cases, identical; dex +8 as accepted; `command grep` re-runs show no difference. Not re-run: the dex report on 233d6f08 (import lines only; inferred unchanged).
 - **S22** (run 39362622790): 1.0.3564+g233d6f08, PASS.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1429
+**Timestamp:** 2026-10-20T03:47:43Z
+**Continues:** 2026-09-28-1423, 2026-09-28-1428
+**Title:** UI split Phase 1, PR 10g, the last Phase 1 PR: the leftover small declarations of AvailabilityScreen.kt, AvailabilityCompactScaffold.kt and four ViewModels into new files (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-24.md, for Hazel Cairnwright
+**Scope:** the listed top-level declarations after (or before) the main functions and classes of seven files; the screen, the frame, the four classes, their Back handlers, inset reads, lock and poll loop stay unedited. From pre-main 014fc599.
+**Baseline:** pre-main 014fc599. Batch check: pre-main's push run 39364408315 on 014fc599 (all three jobs green) passed the S22 launch check, 1.0.3585+g014fc599 (verified, cold-launched, alive after 8 s, crash buffer empty), which closes the -1423 batch (#287, #288, #285, #289, #290, #286).
+**Prediction (outcome, planner):** about 250 lines move into six or seven new files; suite identical; dex differs at most by compiler-generated getters and `<clinit>`s from widenings; S22 passes.
+**Finish line:** a PR into pre-main with the Stage F proofs, CI green, the S22 launch check passed, merged under the standing word. Then Phase 1 is complete and Elder's audit of the small-items batch is next (-1381).
+**Abort conditions:** a premise wrong; any test difference; any edit to the screen, frame or class bodies; a difference beyond compiler-generated methods.
+**Notes:** Written by the planner by hand. Next free ID -1430.
