@@ -134,7 +134,7 @@ internal fun BoxScope.CompactMapTopStrip(
                 // The strip's own height (item 2), for what sits below it, as before only while not navigating: navigating, the
                 // card grows down by the navigation info, and what sat below the strip keeps the clearance it had while the
                 // navigation display replaced the strip (dispatch 2026-10-12-08 changes none of it).
-                .onSizeChanged { if (!isNavigating) layout.compassStripHeightPx = it.height }
+                .onSizeChanged { if (!isNavigating && layout.landscapeStripWidthPx < 0) layout.compassStripHeightPx = it.height }
         }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
         contentWidth = false,
         // RECORD -735: the crossed-out compass for no compass or an unreliable one in a short landscape window; portrait keeps the
