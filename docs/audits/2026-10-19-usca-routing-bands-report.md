@@ -314,3 +314,15 @@ corrected. The 2026-10-18 weekly failure was the tether being down (no network),
 **Cleanup (pi-02 Phase 2): not done.** Claude Code's permission check refused the coder's first
 delete as irreversible. Nothing was deleted. The planner did not route around it, and gave the
 owner the commands to run by hand.
+
+## Addendum, 2026-10-20 04:12Z: the hand-stop fix installed (pi-08)
+
+The owner's word, verbatim: "Install now (Recommended)". At 21:07 PDT the installer put `dfb1ac45`
+into `/opt/forager-build/map-build`; the previous copy, `d5ed9eec`, is now `map-build.prev`.
+
+- `bin` and `tools` match the checkout. The only difference was the checkout's git-ignored
+  `__pycache__`, which the installer correctly does not copy. The coder stopped on it, and the
+  planner cleared it as not a committed diff.
+- `test_build_usca_stop.sh` was run from `/opt`, so it tested the installed files: "ok: 27 checks".
+- No test units are left behind. The timer is still disabled.
+- The planner confirmed `COMMIT` and the installed trap line with its own reads.
