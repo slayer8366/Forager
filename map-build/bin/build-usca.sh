@@ -44,9 +44,9 @@
 #   - A free-disk floor before the merge (USCA_MIN_FREE_GB): the build shares the root filesystem
 #     with the rest of the Pi.
 #
-# Both outputs are published together or not at all. On any failure the previous output and the
-# `current` link are left untouched, the run's log is kept, its scratch files are removed,
-# status-usca.json says which stage failed, and the script exits non-zero.
+# Both outputs are published together or not at all. On any failure, a stop by hand included, the
+# previous output and the `current` link are left untouched, the run's log is kept, its scratch
+# files are removed, status-usca.json says which stage failed, and the script exits non-zero.
 set -euo pipefail
 umask 022
 
@@ -126,6 +126,12 @@ keep_failed_run() { # exit-code
 on_exit() {
   local code=$?
   if [[ $code -ne 0 ]]; then
+    if [[ -n "$stopped_by" ]]; then
+      # A stop signals tee too (KillMode=control-group, or Ctrl-C's process group), so a write
+      # to it fails and errexit ends this trap before the run is kept (pi-04; pi-07's
+      # pi07-test-0). Write to the log file itself instead.
+      exec >>"$log_file" 2>&1
+    fi
     "${RECORD[@]}" status "$STATUS" --state failed --stage "$stage" --run-id "$run_id" \
       ${osm_ts:+--osm-timestamp "$osm_ts"} --message "exit $code; log $log_file; outputs kept in $FAILED_KEEP" || true
     log "run failed with exit $code; previous outputs untouched; this run's outputs kept in $FAILED_KEEP"
@@ -133,6 +139,21 @@ on_exit() {
     cleanup_scratch
   fi
 }
+# A stop by hand (`systemctl stop`, Ctrl-C) ends the run with exit 128+N, so on_exit records it as
+# failed. Without these traps bash still runs on_exit, but $? is the last finished command's
+# status, usually 0, and on_exit then did nothing: the status stayed "running" (2026-10-19,
+# usca-20261019T130011Z; pi-04). The signals are ignored from here on, so on_exit and everything
+# it forks cannot be cut short by a second or late one; systemd's SIGKILL after TimeoutStopSec
+# still bounds it. The unit then ends "failed" with that exit status, not "Deactivated successfully".
+stopped_by=""
+on_signal() { # name exit-code
+  trap '' TERM INT HUP
+  stopped_by="$1"
+  exit "$2"
+}
+trap 'on_signal TERM 143' TERM
+trap 'on_signal INT 130' INT
+trap 'on_signal HUP 129' HUP
 trap on_exit EXIT
 
 rd5_square() { # lon lat: the name of BRouter's 5-degree square holding the point, e.g. W125_N45

@@ -109,6 +109,8 @@ expect_recorded() { # name exit-code
 start_unit pi07-test-1 stop
 "${SUDO[@]}" systemctl stop pi07-test-1
 expect_recorded "stop" 143
+check "stop: the unit ends failed with exit status 143, not \"Deactivated successfully\"" \
+  '[[ "$(systemctl show -p Result --value pi07-test-1) $(systemctl show -p ExecMainStatus --value pi07-test-1)" == "exit-code 143" ]]'
 
 # --- 2. systemctl stop during a step run through peak_rss.py, as every heavy step is ------------
 start_unit pi07-test-2 stop-timed
