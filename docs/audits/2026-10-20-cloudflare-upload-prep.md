@@ -360,3 +360,28 @@ From the coder's report, with the planner's own checks marked.
 **The planner's call:** Sage revises the short dashes and rules on gaps 1 to 3 as design
 proposals. Then the coder redraws, with Flattop z15 framed on a trail and Mount Niblock Route
 framed. Nothing goes to the owner until it has been redrawn.
+
+## Revision 1 drawn: rough still reads as dots at z14; stop guessing, 2026-10-20
+
+From the coder's report, with the planner's own checks marked.
+
+- **Renders:** 22 of 22. Checked by the planner: 4 swatch, 9 day and 9 night. Only the two preview
+  servers are listening, on 127.0.0.1, and no Firefox process is left. One cleanup `rm -rf` was
+  refused by the permission system. The coder did not route around it; nothing needs removing.
+- **What it shows.** Observed by the planner in `shots-b2/swatch/swatch-day-z14.png`. Confirmed by
+  the coder on the map at Mt Rainier z14, z15 and z16.
+  - At z14, rough `[2, 1.5]` and the fallback `[2.5, 1.5]` still read as a fine dotted line.
+    Hard's colour carries it, and hard-faint reads as dashes.
+  - At z15, rough reads as short dashes, "only just".
+  - At z16 the difference is clear.
+  - Easy, unknown and the faint gap read well at z14.
+- **Found:** a faint trail that is not informal, Bench and Snow Lake Trail at Mt Rainier
+  ("horrible", hiking). It reads clearly broken at z15. Mount Niblock Route, hard and faint, reads at
+  night as a sparse bright short dash, as intended.
+- **Contrast:** informal `#a0735a` passes by day (3.10 on ground, 2.45 on forest). The night
+  exception `#bb8a6f` is 2.01, inside the pending 1.9 to 2.3 band. The committed floors were not
+  moved.
+- **The planner's reading:** this is the second fix on the same symptom. At z14 the line is about
+  1.5 px wide, too thin for three dash lengths that all read as dashes; that is inferred from the
+  renders and the widths. Under CLAUDE.md's two-failures rule, no third dash guess is made. The
+  question goes to the owner.
