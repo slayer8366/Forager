@@ -125,35 +125,45 @@ class LandscapeEntryReportTest {
             CompositionLocalProvider(LocalWindowInfo provides windowInfo) {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(),
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = recordingSlot,
-                cartographyUiState = CartographyUiState(entries = listOf(entry), editingEntry = editing),
-                onCloseCartographyEntry = { closes++; editing = null },
-                getCartographyEntryMapData = { _, _ -> mapData },
-                getCartographyEntryOfflineRegion = { _, _ -> region },
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = CartographyUiState(entries = listOf(entry), editingEntry = editing),
+                    onCloseCartographyEntry = { closes++; editing = null },
+                ),
+                entryReportData = AvailabilityScreenEntryReportData(
+                    getCartographyEntryMapData = { _, _ -> mapData },
+                    getCartographyEntryOfflineRegion = { _, _ -> region },
+                ),
             )
             }
         }
@@ -208,15 +218,31 @@ class LandscapeEntryReportTest {
         assertSplit()
     }
 
-    /** A landscape tablet: the height would allow a map wider than the 640 dp column, so 240 dp of info decides the size. */
+    /**
+     * A landscape tablet. Dispatch 2026-10-18-10 (RECORD -1337, the owner: "The tall map in tablet mode would look better as a 1:1
+     * box with the info next to it. Journal entry page can be spread further apart in the same way"; -1340: the Journal's column
+     * 960 dp on a large screen) replaced this case's 4:3 box in the 640 dp column. It was
+     * `landscape tablet the map box is limited by the 240 dp info column, still 4 by 3 and on the left`, which ran [assertSplit]
+     * (`assertEquals("the map ($map) is 4:3", mapWidth * 3f / 4f, mapHeight, 1f)`) and then
+     * `assertEquals("the info column is exactly 240 dp", 240f, (report.right - map.right).value, 1f)`. Now the page is the 960 dp
+     * column and the map a square on the left, the largest that fits the height and leaves the info 240 dp. The phone's split
+     * ([assertSplit], above) is unchanged. `TabletJournalLayoutTest` holds the owner's tablet sizes in both orientations.
+     */
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land")
-    fun `landscape tablet the map box is limited by the 240 dp info column, still 4 by 3 and on the left`() {
+    fun `landscape tablet the map is a square on the left, the largest that leaves the info 240 dp, in the 960 dp column`() {
         setScreen()
-        assertSplit()
         val report = bounds(ENTRY_REPORT_TAG)
         val map = bounds(CARTOGRAPHY_MAP_TEST_TAG)
-        assertEquals("the info column is exactly 240 dp", 240f, (report.right - map.right).value, 1f)
+        val mapWidth = (map.right - map.left).value
+        val mapHeight = (map.bottom - map.top).value
+        val reportHeight = (report.bottom - report.top).value
+        assertEquals("the page is the tablet's 960 dp column", TABLET_JOURNAL_CONTENT_MAX_WIDTH.value, (report.right - report.left).value, 1f)
+        assertEquals("the map ($map) is square", mapWidth, mapHeight, 1f)
+        assertEquals("the map is at the page's left ($report)", report.left.value, map.left.value, 0.5f)
+        assertEquals("the map is the largest square that fits the height ($reportHeight) and leaves 240 dp", minOf(reportHeight, TABLET_JOURNAL_CONTENT_MAX_WIDTH.value - 240f), mapWidth, 1f)
+        assertTrue("the info column (${info()}) is right of the map", info().left.value >= map.right.value - 0.5f)
+        assertTrue("the info column beside the map is at least 240 dp", (report.right - map.right).value >= 240f - 0.5f)
     }
 
     @Test

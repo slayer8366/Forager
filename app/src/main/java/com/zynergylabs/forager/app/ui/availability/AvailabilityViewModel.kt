@@ -7,7 +7,6 @@ import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository
-import com.zynergylabs.forager.app.domain.AvailabilitySearchResult
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -21,16 +20,13 @@ import com.zynergylabs.forager.app.domain.GetSightingsUseCase
 import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
-import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.NoLastKnownLocation
-import com.zynergylabs.forager.app.domain.acceptLiveFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
-import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapRecords
@@ -48,29 +44,15 @@ import com.zynergylabs.forager.app.domain.estimateServedOfflineTileCount
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
-import com.zynergylabs.forager.app.domain.model.defaultOfflineMapRadiusKm
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
-import com.zynergylabs.forager.app.domain.OfflineRegionSummary
-import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
-import com.zynergylabs.forager.app.domain.ForecastAvailability
-import com.zynergylabs.forager.app.domain.MapRecordKind
-import com.zynergylabs.forager.app.domain.isoWeekStart
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
-import com.zynergylabs.forager.app.ui.map.layers.LayerState
-import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
-import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
-import com.zynergylabs.forager.app.ui.map.layers.moveColourField
-import com.zynergylabs.forager.app.ui.map.layers.restoreMapLayersState
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -120,7 +102,7 @@ class AvailabilityViewModel(
      * already uses here, and `MushroomLogViewModel`'s `getPhotoEntryReferenceCount`. Defaulted so
      * the thirteen existing suites that construct this ViewModel and never touch this setting need
      * no stub apiece; `MainActivity` wires both to the real repository. `Result`-returning, so the
-     * read and write fold exactly the way [loadNightModePreferences] does.
+     * read and write fold exactly the way [AvailabilitySettingsPrefs.loadNightModePreferences] does.
      */
     private val getAutoSaveLocationToPhotos: suspend () -> Result<Boolean> = { Result.success(true) },
     private val setAutoSaveLocationToPhotos: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
@@ -184,69 +166,183 @@ class AvailabilityViewModel(
     private val _uiState = MutableStateFlow(AvailabilityUiState(mapIconClusterPlacement = null))
     val uiState: StateFlow<AvailabilityUiState> = _uiState.asStateFlow()
 
-    /** The region+month+filter the current [AvailabilityUiState.sightings] were fetched for, or null if none fetched yet. */
-    private var loadedSightingsQuery: Triple<Region, Int, TaxonFilter>? = null
-
-    /** The region+month+filter the current [AvailabilityUiState.seasonalPattern] was fetched for, or null if none fetched yet. */
-    private var loadedSeasonalPatternQuery: Triple<Region, Int, TaxonFilter>? = null
-
-    /**
-     * RECORD -723: the parent of every fetch a search starts (the ranked list, rainfall, today's forecast, trip
-     * windows, and the map's sightings and the seasonal pattern fetched for it), so [clearSearch] can cancel the
-     * ones still running; otherwise a fetch finishing after Clear would put the cleared search back. A child of
-     * the ViewModel's own scope, so it is cancelled with it; a supervisor, so one failed fetch cancels no other,
-     * as when each was launched on the scope directly.
-     */
-    private var searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
-
-    /**
-     * RECORD -725: the region, month and filter of the search last run ([refresh]), which the map's sightings and
-     * the seasonal pattern are fetched for. Read instead of the UI state's current values because picking a species
-     * suggestion now selects it without searching ("no search yet"); the map must go on showing the search that ran,
-     * not fetch the newly picked species for the old region. Null before any search and after [clearSearch].
-     */
-    private var activeSearch: Triple<Region, Int, TaxonFilter>? = null
-    private var taxonSearchJob: Job? = null
-
-    /**
-     * The one live collection of [LocationTracker.fixes] feeding [AvailabilityUiState.liveFix] —
-     * see [collectLiveFixes]. Tracked so [onLocationPermissionGranted] can tell "still collecting"
-     * from "collected once, completed, nothing listening any more", which is the first-launch bug.
-     */
-    private var liveFixJob: Job? = null
-
-    /** The one offline region whose delete is pending (journal redesign J4) — see [requestDeleteOfflineRegion]. */
-    private val offlineRegionDeletes = PendingDeleteSlot<Long, OfflineRegionSummary> { it.id }
-
     /**
      * Whether the hosting Activity is between `ON_START` and `ON_STOP`. Gates every start of
-     * [collectLiveFixes] so a start cannot be triggered from the background — see
+     * [AvailabilityLiveLocation.begin] so a start cannot be triggered from the background — see
      * [onEnteredForeground].
      */
     private var isForegrounded: Boolean = false
 
+    // The collaborators below must stay above `init`: Kotlin runs property initializers and `init` in source
+    // order, and `init` calls them (UI split Phase 2.4).
+
+    /**
+     * The planned trips, moved to their own class by UI split Phase 2.4 PR 1. It writes this screen's state
+     * through the setter here and launches in this ViewModel's own scope.
+     */
+    private val plannedTrips = AvailabilityPlannedTrips(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        getPlannedTrips = getPlannedTrips,
+        savePlannedTrip = savePlannedTrip,
+        deletePlannedTrip = deletePlannedTrip,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The settings this screen stores, moved to their own class by UI split Phase 2.4 PR 2. It writes this
+     * screen's state through the setter here and launches in this ViewModel's own scope.
+     */
+    private val settingsPrefs = AvailabilitySettingsPrefs(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        mapPreferencesRepository = mapPreferencesRepository,
+        unitSystemPreferenceRepository = unitSystemPreferenceRepository,
+        appThemePreferenceRepository = appThemePreferenceRepository,
+        getAutoSaveLocationToPhotos = getAutoSaveLocationToPhotos,
+        setAutoSaveLocationToPhotos = setAutoSaveLocationToPhotos,
+        getSundownAlertsEnabled = getSundownAlertsEnabled,
+        setSundownAlertsEnabled = setSundownAlertsEnabled,
+        getDarknessMarginMinutes = getDarknessMarginMinutes,
+        setDarknessMarginMinutes = setDarknessMarginMinutes,
+        onDarknessMarginStored = onDarknessMarginStored,
+        getOffTrackReminderEnabled = getOffTrackReminderEnabled,
+        setOffTrackReminderEnabled = setOffTrackReminderEnabled,
+        getBatterySaverEnabled = getBatterySaverEnabled,
+        setBatterySaverEnabled = setBatterySaverEnabled,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The Maps tab's records, layers, basemap and icon cluster placement, moved to their own class by UI
+     * split Phase 2.4 PR 3. It reads and writes this screen's state through the getter and setter here and
+     * launches in this ViewModel's own scope.
+     */
+    private val mapDisplay = AvailabilityMapDisplay(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        getMapRecords = getMapRecords,
+        forecastCellStore = forecastCellStore,
+        today = today,
+        mapLayerPreferencesRepository = mapLayerPreferencesRepository,
+        basemapPreferenceRepository = basemapPreferenceRepository,
+        mapIconClusterPlacementRepository = mapIconClusterPlacementRepository,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The offline-map picker, the region list and the two downloads' launches, moved to their own class by UI
+     * split Phase 2.4 PR 4. Whether a download starts stays in [onDownloadAgain] and [onDownloadOfflineMaps].
+     * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
+     */
+    private val offlineMaps = AvailabilityOfflineMaps(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        offlineMapRepository = offlineMapRepository,
+        mapPreferencesRepository = mapPreferencesRepository,
+        locationProvider = locationProvider,
+        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The one offline region whose delete is pending (journal redesign J4), moved to its own class by UI split
+     * Phase 2.4 PR 5. It reads and writes this screen's state through the getter and setter here and launches
+     * in this ViewModel's own scope; [onCleared] commits what is still pending, at the same point as before.
+     */
+    private val offlineRegionDeletes = AvailabilityOfflineRegionDeletes(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        pendingDeleteCommitScope = pendingDeleteCommitScope,
+        offlineMapRepository = offlineMapRepository,
+        errorLog = errorLog,
+        dropFromMapRecords = { id -> mapDisplay.dropOfflineRegionFromMapRecords(id) },
+        reloadOfflineRegions = { offlineMaps.loadOfflineRegions() },
+    )
+
+    /**
+     * Where the waypoint navigation is kept across the process, and whether the walker chose one here, moved
+     * to their own class by UI split Phase 2.4 PR 6. [onNavigateToWaypoint] and [onStopWaypointNavigation]
+     * stay in this class: they pause and resume the return. It writes this screen's state through the setter
+     * here and launches in this ViewModel's own scope.
+     */
+    private val waypointNavigationStore = AvailabilityWaypointNavigationStore(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        waypointNavigationRepository = waypointNavigationRepository,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
+     * class by UI split Phase 2.4 PR 7. Whether a lookup starts, and each cancel, stay in this class's
+     * functions: [onTaxonSearchQueryChanged], [onDismissTaxonSuggestions] and [clearSearch]. It writes this
+     * screen's state through the setter here and launches in this ViewModel's own scope.
+     */
+    private val speciesLookup = AvailabilitySpeciesLookup(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        searchTaxa = searchTaxa,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The search's fetches and what they were fetched for, moved to their own class by UI split Phase 2.4 PR 8:
+     * the parent job every search fetch runs in, the search last run, and the queries the map's sightings and
+     * the seasonal pattern were loaded for. Whether each fetch starts, and the cancel and renewal of the parent,
+     * stay in this class's functions: [refresh], [onMapTabSelected], [onSeasonalTabSelected] and [clearSearch].
+     * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
+     */
+    private val searchRuns = AvailabilitySearchRuns(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        getAvailability = getAvailability,
+        loadRecentSearches = { loadRecentSearches() },
+        getSightings = getSightings,
+        getConditions = getConditions,
+        getTripWindows = getTripWindows,
+        getSeasonalPattern = getSeasonalPattern,
+        getTodaysForecast = getTodaysForecast,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The live fix: the one collection of [LocationTracker.fixes] and what it writes, moved to its own class by
+     * UI split Phase 2.4 PR 9. Whether it starts or stops stays in [onEnteredForeground], [onLeftForeground] and
+     * [onLocationPermissionGranted], gated by [isForegrounded] as before. It writes this screen's state through
+     * the setter here and launches in this ViewModel's own scope.
+     */
+    private val liveLocation = AvailabilityLiveLocation(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        locationTracker = locationTracker,
+        lastKnownLocation = lastKnownLocation,
+    )
+
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
         // up front rather than waiting on a region the way sightings and trip windows do.
-        loadPlannedTrips()
+        plannedTrips.loadPlannedTrips()
         // Same reasoning, and the reason it matters more here: the picker is how somebody with no
         // connection gets back to a result at all, so it has to be populated before the first
         // search rather than as a side effect of one.
         loadRecentSearches()
-        loadOfflineRegions()
-        loadOfflineMapPreferences()
-        loadUnitSystemPreference()
-        loadNightModePreferences()
-        loadAutoSaveLocationToPhotos()
-        loadSundownPreferences()
-        loadOffTrackReminder()
-        loadBatterySaver()
-        loadMapFullscreenPreference()
-        loadThemeModePreference()
-        loadMapLayerPreferences()
-        loadBasemapPreference()
-        loadMapIconClusterPlacement()
-        loadWaypointNavigation()
+        offlineMaps.loadOfflineRegions()
+        offlineMaps.loadOfflineMapPreferences()
+        settingsPrefs.loadUnitSystemPreference()
+        settingsPrefs.loadNightModePreferences()
+        settingsPrefs.loadAutoSaveLocationToPhotos()
+        settingsPrefs.loadSundownPreferences()
+        settingsPrefs.loadOffTrackReminder()
+        settingsPrefs.loadBatterySaver()
+        settingsPrefs.loadMapFullscreenPreference()
+        settingsPrefs.loadThemeModePreference()
+        mapDisplay.loadMapLayerPreferences()
+        mapDisplay.loadBasemapPreference()
+        mapDisplay.loadMapIconClusterPlacement()
+        waypointNavigationStore.loadWaypointNavigation()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
         // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
         // not stop -- so the OS listener stayed registered while the app was backgrounded and
@@ -280,7 +376,7 @@ class AvailabilityViewModel(
      */
     fun onEnteredForeground() {
         isForegrounded = true
-        if (liveFixJob?.isActive != true) collectLiveFixes()
+        if (!liveLocation.isCollecting) liveLocation.begin()
     }
 
     /**
@@ -306,71 +402,14 @@ class AvailabilityViewModel(
      */
     fun onLeftForeground() {
         isForegrounded = false
-        liveFixJob?.cancel()
-        liveFixJob = null
-    }
-
-    /**
-     * Starts collecting [LocationTracker.fixes] into [AvailabilityUiState.liveFix].
-     *
-     * **First-launch dispatch (owner-found on device):** on a fresh install the app's very first
-     * collection of `fixes` happens here, at construction, *before* the OS permission dialog has
-     * been shown — and [LocationTracker.fixes]' own contract is to emit
-     * [LocationFix.PermissionDenied] once and **complete** when permission isn't held at
-     * collection start. The flow didn't go silent; it terminated. `collect` returned, this
-     * coroutine ended, and nothing collected again for the life of the process — so the compass
-     * strip read "Elevation unavailable · Coordinates unavailable" until a restart, whose
-     * construction-time collection then found the permission already held. Heading was fine
-     * (a different sensor, no permission), and the map's own puck was fine (MapLibre's activation
-     * is re-invoked from events, not subscribed once in an init block) — which is exactly the shape
-     * this ViewModel lacked. A denied/unsupported permission still just never emits an Update here;
-     * the strip's own "unavailable" text covers that honestly, unchanged.
-     */
-    private fun collectLiveFixes() {
-        liveFixJob = viewModelScope.launch {
-            readLastKnownLocation()
-            locationTracker.fixes.collect { fix ->
-                // Location-accuracy dispatch, item 1: the one place the live fix is gated. A fix
-                // worse than LIVE_FIX_MAX_ACCURACY_METERS is dropped and the previous one held —
-                // and a held fix ages into the HUD's stale display on purpose; see acceptLiveFix's
-                // own doc comment for the threshold, the null rule, and the alternative refused.
-                if (fix is LocationFix.Update && acceptLiveFix(fix)) {
-                    // The whole fix, accuracy and timestamp included — see
-                    // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
-                    _uiState.update { it.copy(liveFix = fix) }
-                } else if (fix is LocationFix.Update) {
-                    onRefusedFix(fix)
-                }
-            }
-        }
-    }
-
-    /**
-     * Dispatch 2026-09-28-510: a fix the gate refused is still held, as the approximate reading, beside
-     * [AvailabilityUiState.liveFix] and never in it. The gate itself, and what "held" means for the
-     * gated fix, are unchanged: everything that acts reads [AvailabilityUiState.liveFix] alone, and the
-     * screen decides what to show from both ([com.zynergylabs.forager.app.domain.shownPosition]).
-     */
-    private fun onRefusedFix(fix: LocationFix.Update) {
-        _uiState.update { it.copy(approximateFix = fix) }
-    }
-
-    /**
-     * Dispatch 2026-09-28-510: the platform's own last known position, read each time collection starts
-     * (each foreground, and after a permission grant, when it may first be readable). Shown greyed until
-     * anything newer arrives; never moved into [AvailabilityUiState.liveFix]. None held is the ordinary
-     * case on a fresh phone and changes nothing.
-     */
-    private fun readLastKnownLocation() {
-        val known = lastKnownLocation.lastKnown() ?: return
-        _uiState.update { it.copy(lastKnownFix = known) }
+        liveLocation.cancel()
     }
 
     /**
      * The OS just granted location permission — `MainActivity`'s one permission launcher reports
      * this from its result callback, for either action it was launched for. Starts a fresh
      * collection of [LocationTracker.fixes] if the construction-time one has already completed
-     * (see [collectLiveFixes]: it completes, rather than idling, when permission wasn't held at
+     * (see [AvailabilityLiveLocation.begin]: it completes, rather than idling, when permission wasn't held at
      * its start). The tracker re-checks permission at every collection start, so the new
      * collection is the one that actually registers OS listeners.
      *
@@ -390,13 +429,12 @@ class AvailabilityViewModel(
         // path the grant arrives from a launcher callback while the app is visible, so this is
         // true; ON_START would start it anyway if it were not.
         if (!isForegrounded) return
-        if (liveFixJob?.isActive == true) return
-        collectLiveFixes()
+        if (liveLocation.isCollecting) return
+        liveLocation.begin()
     }
 
-    fun onRadiusChanged(radiusKm: Int) {
-        _uiState.update { it.copy(radiusKm = Region.clampRadiusKm(radiusKm)) }
-    }
+    /** The search radius slider: see [AvailabilitySpeciesLookup.onRadiusChanged]. */
+    fun onRadiusChanged(radiusKm: Int) = speciesLookup.onRadiusChanged(radiusKm)
 
     fun onMonthSelected(month: Int) {
         _uiState.update { it.copy(selectedMonth = month) }
@@ -405,39 +443,14 @@ class AvailabilityViewModel(
 
     fun onTaxonSearchQueryChanged(query: String) {
         _uiState.update { it.copy(taxonSearchQuery = query, taxonSearchHasNoResults = false) }
-        taxonSearchJob?.cancel()
+        speciesLookup.cancel()
 
         if (query.trim().length < SearchTaxaUseCase.MIN_QUERY_LENGTH) {
             _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false, taxonSearchErrorMessage = null) }
             return
         }
 
-        taxonSearchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE_MS)
-            _uiState.update { it.copy(isSearchingTaxa = true, taxonSearchErrorMessage = null) }
-            searchTaxa(query).fold(
-                onSuccess = { results ->
-                    _uiState.update {
-                        it.copy(
-                            isSearchingTaxa = false,
-                            taxonSearchResults = results,
-                            taxonSearchHasNoResults = results.isEmpty(),
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Species search failed.", error)
-                    _uiState.update {
-                        it.copy(
-                            isSearchingTaxa = false,
-                            taxonSearchResults = emptyList(),
-                            taxonSearchHasNoResults = false,
-                            taxonSearchErrorMessage = "Species search failed.",
-                        )
-                    }
-                },
-            )
-        }
+        speciesLookup.beginLookup(query)
     }
 
     /**
@@ -449,29 +462,12 @@ class AvailabilityViewModel(
      * close.
      */
     fun onDismissTaxonSuggestions() {
-        taxonSearchJob?.cancel()
+        speciesLookup.cancel()
         _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false, taxonSearchHasNoResults = false) }
     }
 
-    fun onTaxonSearchResultSelected(result: TaxonSearchResult) {
-        val filter = result.toFilter()
-        _uiState.update {
-            it.copy(
-                taxonFilter = filter,
-                foragingSelection = ForagingSelection.fromSearchResult(result),
-                // The query that produced the list [result] was picked from — remembered here,
-                // at the one point it's guaranteed non-blank (a result can't have been picked
-                // from an empty query), so it survives taxonSearchQuery being cleared right below.
-                lastTaxonSearchQuery = it.taxonSearchQuery,
-                taxonSearchQuery = "",
-                taxonSearchResults = emptyList(),
-                taxonSearchHasNoResults = false,
-            )
-        }
-        // RECORD -725, the owner: "instead of having it automatically search, just keep the keyboard open and fill
-        // it in, no search yet". The species is selected (the bar's summary names it) and nothing is fetched; the
-        // next search the user runs carries it. Before this, a region already searched was searched again here.
-    }
+    /** A species suggestion picked: see [AvailabilitySpeciesLookup.onTaxonSearchResultSelected]. */
+    fun onTaxonSearchResultSelected(result: TaxonSearchResult) = speciesLookup.onTaxonSearchResultSelected(result)
 
     /**
      * Reopens the suggestion dropdown for the last species search, so picking a different result
@@ -487,13 +483,11 @@ class AvailabilityViewModel(
         if (query.isNotBlank()) onTaxonSearchQueryChanged(query)
     }
 
-    fun onManualLatChanged(text: String) {
-        _uiState.update { it.copy(manualLatText = text) }
-    }
+    /** The manual latitude field: see [AvailabilitySpeciesLookup.onManualLatChanged]. */
+    fun onManualLatChanged(text: String) = speciesLookup.onManualLatChanged(text)
 
-    fun onManualLngChanged(text: String) {
-        _uiState.update { it.copy(manualLngText = text) }
-    }
+    /** The manual longitude field: see [AvailabilitySpeciesLookup.onManualLngChanged]. */
+    fun onManualLngChanged(text: String) = speciesLookup.onManualLngChanged(text)
 
     fun searchManualCoordinates() {
         val state = _uiState.value
@@ -569,230 +563,29 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(locateMeStatus = LocateMeStatus.PermissionDenied) }
     }
 
-    /**
-     * The Maps tab was shown (map layers L0b, B2 and B5): `AvailabilityScreen` calls this every time
-     * the tab comes into view, compact or wide, which is this data's freshness mechanism. It reloads
-     * every saved record the tab draws ([getMapRecords]), so a find saved on the Journal tab is on the
-     * map the next time the map is shown, and asks the forecast store which groups it has data for in
-     * this ISO week. A kind whose read failed is logged here and drawn as absent; the other kinds still
-     * draw (CLAUDE.md, Errors).
-     */
-    fun onMapShown() {
-        viewModelScope.launch { loadMapRecords() }
-        viewModelScope.launch {
-            val week = isoWeekStart(today())
-            val groups = when (val availability = forecastCellStore.availability(week)) {
-                ForecastAvailability.NoForecastData -> emptySet()
-                is ForecastAvailability.Groups -> availability.groups
-            }
-            _uiState.update { it.copy(forecastWeek = week, forecastGroups = groups) }
-        }
-    }
+    /** See [AvailabilityMapDisplay.onMapShown]. */
+    fun onMapShown() = mapDisplay.onMapShown()
 
-    /**
-     * A find's delete has finished (dispatch 2026-09-28-291): the map no longer holds it. The records are a
-     * snapshot taken when the tab was shown, and while the delete was pending the screen hid the find with a
-     * filter; once the delete commits that filter stops, so the snapshot itself must lose the find or it is
-     * drawn, and collected by a fan, again. Removed from the snapshot rather than re-read: the database row
-     * is already gone, so there is nothing to wait for and no read that could still see it.
-     */
-    fun onFindDeleted(id: String) {
-        _uiState.update { state ->
-            state.copy(mapRecords = state.mapRecords.copy(findMarkers = state.mapRecords.findMarkers.filterNot { it.recordId == id }))
-        }
-    }
+    /** See [AvailabilityMapDisplay.onFindDeleted]. */
+    fun onFindDeleted(id: String) = mapDisplay.onFindDeleted(id)
 
-    /**
-     * An album photo's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
-     * photo markers. Removed from the snapshot, not re-read, for the same reason.
-     */
-    fun onPhotoDeleted(id: String) {
-        _uiState.update { state ->
-            state.copy(mapRecords = state.mapRecords.copy(photoMarkers = state.mapRecords.photoMarkers.filterNot { it.recordId == id }))
-        }
-    }
+    /** See [AvailabilityMapDisplay.onPhotoDeleted]. */
+    fun onPhotoDeleted(id: String) = mapDisplay.onPhotoDeleted(id)
 
-    /**
-     * An offline region's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
-     * region circles. A record's id here is the region's id as a string, as [GetMapRecordsUseCase] makes it.
-     * Called from [commitOfflineRegionDelete]'s own success path, so no wiring through `MainActivity` is needed.
-     */
-    private fun dropOfflineRegionFromMapRecords(id: Long) {
-        _uiState.update { state ->
-            state.copy(
-                mapRecords = state.mapRecords.copy(
-                    offlineRegionCircles = state.mapRecords.offlineRegionCircles.filterNot { it.recordId == id.toString() },
-                ),
-            )
-        }
-    }
+    /** See [AvailabilityMapDisplay.onMapLayerVisibilityChanged]. */
+    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) = mapDisplay.onMapLayerVisibilityChanged(layerId, visible)
 
-    /** The Maps tab's saved records, read now; the read [onMapShown] does and [reloadAfterRestore] repeats. */
-    private suspend fun loadMapRecords() {
-        val records = getMapRecords()
-        records.failures.forEach { failure ->
-            errorLog.w(TAG, "Couldn't load ${mapRecordKindLabel(failure.kind)} for the map.", failure.error)
-        }
-        _uiState.update { it.copy(mapRecords = records) }
-    }
+    /** See [AvailabilityMapDisplay.onMapLayerOpacityChanged]. */
+    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) = mapDisplay.onMapLayerOpacityChanged(layerId, opacity)
 
-    /**
-     * The Layers sheet switched [layerId] (map layers L0b, B1 and B3): shown at once, then stored. A
-     * failed write is logged; the choice still holds for this session.
-     */
-    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) {
-        _uiState.update { state ->
-            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(visible = visible) })
-        }
-        storeLayerChoice { mapLayerPreferencesRepository.setLayerVisible(layerId, visible) }
-    }
+    /** See [AvailabilityMapDisplay.onColourFieldMoved]. */
+    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) = mapDisplay.onColourFieldMoved(layerId, move)
 
-    /**
-     * The Layers sheet's opacity slider moved for [layerId]: the L0a multiplier, 0 to 1. A value
-     * outside that range is refused and logged, never clamped (CLAUDE.md, Errors; `LayerState`'s own
-     * rule), and nothing is stored.
-     */
-    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) {
-        if (!(opacity in 0f..1f)) {
-            errorLog.w(
-                TAG,
-                "Refused a map layer opacity of $opacity for $layerId: outside 0 to 1.",
-                IllegalArgumentException("opacity $opacity"),
-            )
-            return
-        }
-        _uiState.update { state ->
-            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(opacity = opacity) })
-        }
-        storeLayerChoice { mapLayerPreferencesRepository.setLayerOpacity(layerId, opacity) }
-    }
+    /** See [AvailabilityMapDisplay.onMapModeSelected]. */
+    fun onMapModeSelected(mode: MapMode) = mapDisplay.onMapModeSelected(mode)
 
-    /**
-     * The Layers sheet moved a colour field one place ("Move up", "Move down", or a step of its drag
-     * handle). The whole colour-field order is stored, bottom to top. A move past either end changes
-     * nothing and stores nothing. The map draws the new order at its next style load (terminal
-     * `2026-09-27-72`, Deviations 4).
-     */
-    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) {
-        val before = _uiState.value.mapLayers
-        val after = moveColourField(before, MAP_LAYER_REGISTRY, layerId, move)
-        if (after == before) return
-        _uiState.update { it.copy(mapLayers = after) }
-        storeLayerChoice { mapLayerPreferencesRepository.setLayerOrder(after.reorderableOrder) }
-    }
-
-    private fun storeLayerChoice(write: suspend () -> Result<Unit>) {
-        viewModelScope.launch {
-            write().onFailure { error -> errorLog.w(TAG, "Couldn't store a map layer choice.", error) }
-        }
-    }
-
-    /**
-     * The stored layer choices, at start (map layers L0b, B3). Every stored choice the registry does
-     * not allow is refused, logged one by one, and left at its default (`restoreMapLayersState`); a
-     * failed read is logged and leaves every layer at its default ("On by default").
-     */
-    private fun loadMapLayerPreferences() {
-        viewModelScope.launch {
-            mapLayerPreferencesRepository.getMapLayerPreferences().fold(
-                onSuccess = { stored ->
-                    val restored = restoreMapLayersState(stored, MAP_LAYER_REGISTRY)
-                    restored.rejected.forEach { line ->
-                        errorLog.w(TAG, "Refused a stored map layer choice: $line", IllegalStateException(line))
-                    }
-                    _uiState.update { it.copy(mapLayers = restored.state) }
-                },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the map layer choices.", error) },
-            )
-        }
-    }
-
-    /**
-     * The Maps tab's basemap was picked, from the Layers sheet or the quick-fire picker (dispatch
-     * 2026-09-28-708): shown at once, then stored. A failed write is logged; the choice still holds
-     * for this session, as a layer choice's does ([storeLayerChoice]).
-     */
-    fun onMapModeSelected(mode: MapMode) {
-        _uiState.update { it.copy(mapMode = mode) }
-        storeBasemap(mode)
-    }
-
-    /**
-     * RECORD -711: a drag of the icon cluster ended, so its side and height (both orientations) are
-     * stored, and kept here so a recreated screen restores the latest rather than the launch value. A
-     * failed write is logged; the placement still holds for this session.
-     */
-    fun onMapIconClusterPlacementChanged(placement: MapIconClusterPlacement) {
-        _uiState.update { it.copy(mapIconClusterPlacement = placement) }
-        viewModelScope.launch {
-            mapIconClusterPlacementRepository.setMapIconClusterPlacement(placement)
-                .onFailure { error -> errorLog.w(TAG, "Couldn't store the map icon cluster's position.", error) }
-        }
-    }
-
-    /**
-     * The stored icon cluster placement, at start (RECORD -711). Nothing stored is
-     * [MapIconClusterPlacement.DEFAULT], where it always opened; a failed read is logged and also opens
-     * there, storing nothing. Either way [AvailabilityUiState.mapIconClusterPlacement] is set, which is what
-     * lets the screen draw the cluster. A drag that ended before the read landed wins over it.
-     */
-    private fun loadMapIconClusterPlacement() {
-        viewModelScope.launch {
-            val restored = mapIconClusterPlacementRepository.getMapIconClusterPlacement().fold(
-                onSuccess = { it ?: MapIconClusterPlacement.DEFAULT },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read the map icon cluster's position; opening it where it always opened.", error)
-                    MapIconClusterPlacement.DEFAULT
-                },
-            )
-            _uiState.update { if (it.mapIconClusterPlacement == null) it.copy(mapIconClusterPlacement = restored) else it }
-        }
-    }
-
-    private fun storeBasemap(mode: MapMode) {
-        viewModelScope.launch {
-            basemapPreferenceRepository.setBasemapKey(mode.storageKey)
-                .onFailure { error -> errorLog.w(TAG, "Couldn't store the basemap choice.", error) }
-        }
-    }
-
-    /**
-     * The stored basemap, at start (dispatch 2026-09-28-708). Nothing stored opens on
-     * [MapMode.DEFAULT], as every launch did before the choice persisted. A stored key naming no map
-     * type (Satellite's, removed by the same dispatch, or anything else) opens on
-     * [MapMode.REPLACEMENT_FOR_UNKNOWN] (owner: "Topo (Recommended)"), is logged (CLAUDE.md: no unlogged
-     * fallback), and the replacement is stored, so the log line fires once, not on every launch. A
-     * failed read is logged and opens on [MapMode.DEFAULT], storing nothing: the stored value may be
-     * fine and the next launch may read it.
-     *
-     * Every outcome sets [AvailabilityUiState.mapMode], which is what releases the map's style gate,
-     * so it cannot hold the map blank. A pick made before the read lands wins over the read.
-     */
-    private fun loadBasemapPreference() {
-        viewModelScope.launch {
-            val restored = basemapPreferenceRepository.getBasemapKey().fold(
-                onSuccess = { key ->
-                    if (key == null) {
-                        MapMode.DEFAULT
-                    } else {
-                        MapMode.forStoredKey(key) ?: MapMode.REPLACEMENT_FOR_UNKNOWN.also { replacement ->
-                            errorLog.w(
-                                TAG,
-                                "The stored basemap \"$key\" names no map type; opening on ${replacement.label} and storing that.",
-                                IllegalStateException("unknown basemap key $key"),
-                            )
-                            storeBasemap(replacement)
-                        }
-                    }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read the stored basemap; opening on ${MapMode.DEFAULT.label}.", error)
-                    MapMode.DEFAULT
-                },
-            )
-            _uiState.update { if (it.mapMode == null) it.copy(mapMode = restored) else it }
-        }
-    }
+    /** See [AvailabilityMapDisplay.onMapIconClusterPlacementChanged]. */
+    fun onMapIconClusterPlacementChanged(placement: MapIconClusterPlacement) = mapDisplay.onMapIconClusterPlacementChanged(placement)
 
     /**
      * Called when the map tab becomes visible. Sightings are fetched lazily, only for the
@@ -800,30 +593,11 @@ class AvailabilityViewModel(
      * map view the user never opens shouldn't cost an extra API call.
      */
     fun onMapTabSelected() {
-        val query = activeSearch ?: return
+        val query = searchRuns.activeSearch ?: return
         val (region, month, filter) = query
-        if (loadedSightingsQuery == query) return
+        if (searchRuns.loadedSightingsQuery == query) return
 
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoadingSightings = true, sightingsErrorMessage = null) }
-            getSightings(region, month, filter).fold(
-                onSuccess = { page ->
-                    loadedSightingsQuery = query
-                    _uiState.update {
-                        it.copy(isLoadingSightings = false, sightings = page.sightings)
-                    }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load sightings for the map.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoadingSightings = false,
-                            sightingsErrorMessage = "Couldn't load sightings for the map.",
-                        )
-                    }
-                },
-            )
-        }
+        searchRuns.fetchSightings(query, region, month, filter)
     }
 
     /**
@@ -834,91 +608,19 @@ class AvailabilityViewModel(
      * repeat on every tab switch.
      */
     fun onSeasonalTabSelected() {
-        val query = activeSearch ?: return
+        val query = searchRuns.activeSearch ?: return
         val (region, month, filter) = query
-        if (loadedSeasonalPatternQuery == query) return
+        if (searchRuns.loadedSeasonalPatternQuery == query) return
 
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoadingSeasonalPattern = true, seasonalPatternErrorMessage = null) }
-            getSeasonalPattern(region, month, filter).fold(
-                onSuccess = { distribution ->
-                    loadedSeasonalPatternQuery = query
-                    _uiState.update { it.copy(isLoadingSeasonalPattern = false, seasonalPattern = distribution) }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load the seasonal pattern.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoadingSeasonalPattern = false,
-                            seasonalPattern = null,
-                            seasonalPatternErrorMessage = "Couldn't load the seasonal pattern.",
-                        )
-                    }
-                },
-            )
-        }
+        searchRuns.fetchSeasonalPattern(query, region, month, filter)
     }
 
     private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
-        activeSearch = Triple(region, month, filter)
-        // A new search invalidates any sightings loaded for a previous region/month/filter.
-        loadedSightingsQuery = null
-        _uiState.update {
-            // searchSerial: so the screen fetches the sightings again even when this search is the one
-            // already showing (RECORD -723; see AvailabilityUiState.searchSerial).
-            it.copy(sightings = emptyList(), sightingsErrorMessage = null, searchSerial = it.searchSerial + 1)
-        }
-
-        // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
-        loadedSeasonalPatternQuery = null
-        _uiState.update {
-            it.copy(seasonalPattern = null, seasonalPatternErrorMessage = null)
-        }
+        searchRuns.startNewSearch(region, month, filter)
 
         // Read now, while the selection is the one this search was started for.
         val speciesGroup = speciesGroupToStore(filter)
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            getAvailability(region, month, filter, speciesGroup).fold(
-                onSuccess = { result ->
-                    _uiState.update { state ->
-                        when (result) {
-                            is AvailabilitySearchResult.Live -> state.copy(
-                                isLoading = false,
-                                forecast = result.forecast,
-                                isShowingCachedResults = false,
-                                cachedResultsAsOfEpochMillis = null,
-                            )
-                            // Both fields set together, from one result, so the banner can never
-                            // be shown without the age it is supposed to state.
-                            is AvailabilitySearchResult.Cached -> state.copy(
-                                isLoading = false,
-                                forecast = result.forecast,
-                                isShowingCachedResults = true,
-                                cachedResultsAsOfEpochMillis = result.cachedAtEpochMillis,
-                            )
-                        }
-                    }
-                },
-                onFailure = { error ->
-                    // Live failed and nothing was cached for this exact search, so there are no
-                    // results on screen at all: the cached-results flags are cleared rather than
-                    // left over from a previous search the banner would then mislabel.
-                    errorLog.w(TAG, "Search failed.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isShowingCachedResults = false,
-                            cachedResultsAsOfEpochMillis = null,
-                            errorMessage = "Request failed. Check your connection and try again.",
-                        )
-                    }
-                },
-            )
-            // Either outcome can have changed the cache: a live search writes a new entry (and may
-            // evict one), and a cache hit moves its entry to the front of the LRU order.
-            loadRecentSearches()
-        }
+        searchRuns.fetchAvailability(region, month, filter, speciesGroup)
 
         // Recent rainfall is only meaningful for the current month: searching "what's typical
         // in November" while it's April doesn't make today's rain relevant to that answer.
@@ -926,45 +628,12 @@ class AvailabilityViewModel(
             // Independent of the forecast fetch above: a conditions failure must not block or
             // fail the main forecast, same independence pattern as onMapTabSelected's sightings
             // fetch.
-            viewModelScope.launch(searchJobs) {
-                _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
-                getConditions(region).fold(
-                    onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
-                    onFailure = { error ->
-                        errorLog.w(TAG, "Couldn't load recent rainfall.", error)
-                        _uiState.update {
-                            it.copy(
-                                isLoadingConditions = false,
-                                conditions = null,
-                                // Not belief-changing — the user wanted rainfall data, not a report
-                                // on the network. See docs/error-presentation-spec.md's per-field
-                                // table: neutral "unavailable" wording, not "Couldn't load...".
-                                conditionsErrorMessage = "Rainfall data unavailable.",
-                            )
-                        }
-                    },
-                )
-            }
+            searchRuns.fetchConditions(region)
             // Independent fetch from the one above: a separate provider method (and, in
             // production, a separate identical-parameter request — see GetTodaysForecastUseCase's
             // own doc comment for why that duplication is accepted rather than threaded through
             // GetTripWindowsUseCase's unrelated, already-tested return type).
-            viewModelScope.launch(searchJobs) {
-                _uiState.update { it.copy(isLoadingTodaysForecast = true, todaysForecastErrorMessage = null) }
-                getTodaysForecast(region).fold(
-                    onSuccess = { forecast -> _uiState.update { it.copy(isLoadingTodaysForecast = false, todaysForecast = forecast) } },
-                    onFailure = { error ->
-                        errorLog.w(TAG, "Couldn't load today's forecast.", error)
-                        _uiState.update {
-                            it.copy(
-                                isLoadingTodaysForecast = false,
-                                todaysForecast = null,
-                                todaysForecastErrorMessage = "Forecast unavailable.",
-                            )
-                        }
-                    },
-                )
-            }
+            searchRuns.fetchTodaysForecast(region)
         } else {
             _uiState.update {
                 it.copy(
@@ -982,22 +651,7 @@ class AvailabilityViewModel(
         // conditions above they are fetched regardless of which month is selected for the ranked
         // list — browsing "what's typical in November" in August doesn't make this week's rain
         // and forecast irrelevant to planning a trip this week.
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoadingTripWindows = true, tripWindowsErrorMessage = null) }
-            getTripWindows(region).fold(
-                onSuccess = { report -> _uiState.update { it.copy(isLoadingTripWindows = false, tripWindowReport = report) } },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load trip-window weather.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoadingTripWindows = false,
-                            tripWindowReport = null,
-                            tripWindowsErrorMessage = "Couldn't load trip-window weather.",
-                        )
-                    }
-                },
-            )
-        }
+        searchRuns.fetchTripWindows(region)
     }
 
     /**
@@ -1017,25 +671,11 @@ class AvailabilityViewModel(
     }
 
     /**
-     * Re-runs one of the drawer's recent searches: restores the region, month and filter it was
-     * made with, then goes through the ordinary [refresh] flow.
-     *
-     * Deliberately **not** a "load this from the cache" path. [refresh] already tries live first
-     * and falls back to the cache, so tapping a recent search while online returns fresh results
-     * for it rather than replaying a stored copy, and tapping the same one offline lands on the
-     * cached copy with the banner that says so. A separate cache-only path would have been a
-     * second way to reach results, with its own failure and staleness rules to keep in step.
-     *
-     * The radius and coordinate fields are restored alongside the search itself so the drawer's
-     * slider, the manual-coordinate boxes and the summary strip all describe the search that just
-     * ran — the same fields [useCurrentLocation] fills in for the same reason.
-     */
-    /**
      * RECORD -723, the search bar's Clear: "One tap removes the observations from the map, clears the bar's summary
      * back to 'Search a location', and leaves recent searches untouched." The search's region and every result
      * fetched for it go: the map's sightings, the ranked list, rainfall, today's forecast, trip windows and the
      * seasonal pattern, so no tab goes on showing results for a search the bar says is not there. Fetches still
-     * running are cancelled first ([searchJobs]). Kept: recent searches, the month, the radius and the coordinate
+     * running are cancelled first ([AvailabilitySearchRuns.cancelRunning]). Kept: recent searches, the month, the radius and the coordinate
      * fields, which are the user's settings for the next search, not results.
      *
      * RECORD -750, item 3 (the owner: "simply reset the search panel back to default and clear the name"), replacing
@@ -1044,13 +684,11 @@ class AvailabilityViewModel(
      * suggestion was picked from, so the bar's summary reads its default again ("<month> · Search a location").
      */
     fun clearSearch() {
-        searchJobs.cancel()
+        searchRuns.cancelRunning()
         // RECORD -750, item 3: a species lookup still running would put its suggestions back over a reset field.
-        taxonSearchJob?.cancel()
-        searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
-        activeSearch = null
-        loadedSightingsQuery = null
-        loadedSeasonalPatternQuery = null
+        speciesLookup.cancel()
+        searchRuns.renewParent()
+        searchRuns.forgetSearch()
         _uiState.update {
             it.copy(
                 region = null,
@@ -1087,6 +725,20 @@ class AvailabilityViewModel(
         }
     }
 
+    /**
+     * Re-runs one of the drawer's recent searches: restores the region, month and filter it was
+     * made with, then goes through the ordinary [refresh] flow.
+     *
+     * Deliberately **not** a "load this from the cache" path. [refresh] already tries live first
+     * and falls back to the cache, so tapping a recent search while online returns fresh results
+     * for it rather than replaying a stored copy, and tapping the same one offline lands on the
+     * cached copy with the banner that says so. A separate cache-only path would have been a
+     * second way to reach results, with its own failure and staleness rules to keep in step.
+     *
+     * The radius and coordinate fields are restored alongside the search itself so the drawer's
+     * slider, the manual-coordinate boxes and the summary strip all describe the search that just
+     * ran — the same fields [useCurrentLocation] fills in for the same reason.
+     */
     fun onRecentSearchSelected(summary: CachedSearchSummary) {
         val region = summary.region
         _uiState.update {
@@ -1107,95 +759,23 @@ class AvailabilityViewModel(
         refresh(region, summary.month, summary.filter)
     }
 
-    private fun loadPlannedTrips(): Job {
-        return viewModelScope.launch {
-            getPlannedTrips().fold(
-                onSuccess = { trips -> _uiState.update { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null) } },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load planned trips.", error)
-                    _uiState.update {
-                        it.copy(plannedTripsErrorMessage = "Couldn't load planned trips.")
-                    }
-                },
-            )
-        }
-    }
+    /** The trip-planning flow's confirmed pin: see [AvailabilityPlannedTrips.onPlaceTripPin]. */
+    fun onPlaceTripPin(location: LatLng, date: LocalDate, name: String) = plannedTrips.onPlaceTripPin(location, date, name)
 
-    /** Called from the trip-planning flow once a date and name are confirmed for a pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]. */
-    fun onPlaceTripPin(location: LatLng, date: LocalDate, name: String) {
-        viewModelScope.launch {
-            savePlannedTrip(location, date, name).fold(
-                onSuccess = { loadPlannedTrips() },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't save the planned trip.", error)
-                    _uiState.update {
-                        it.copy(plannedTripsErrorMessage = "Couldn't save the planned trip.")
-                    }
-                },
-            )
-        }
-    }
+    fun onDeletePlannedTrip(id: String) = plannedTrips.onDeletePlannedTrip(id)
 
-    fun onDeletePlannedTrip(id: String) {
-        viewModelScope.launch {
-            deletePlannedTrip(id).fold(
-                onSuccess = { loadPlannedTrips() },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't delete the planned trip.", error)
-                    _uiState.update {
-                        it.copy(plannedTripsErrorMessage = "Couldn't delete the planned trip.")
-                    }
-                },
-            )
-        }
-    }
+    /** See [AvailabilityOfflineMaps.onOfflineMapLatChanged]. */
+    fun onOfflineMapLatChanged(text: String) = offlineMaps.onOfflineMapLatChanged(text)
 
-    fun onOfflineMapLatChanged(text: String) {
-        _uiState.update { it.copy(offlineMapLatText = text) }
-    }
+    /** See [AvailabilityOfflineMaps.onOfflineMapLngChanged]. */
+    fun onOfflineMapLngChanged(text: String) = offlineMaps.onOfflineMapLngChanged(text)
 
-    fun onOfflineMapLngChanged(text: String) {
-        _uiState.update { it.copy(offlineMapLngText = text) }
-    }
+    /** See [AvailabilityOfflineMaps.onOfflineMapRadiusChanged]. */
+    fun onOfflineMapRadiusChanged(radiusKm: Int) = offlineMaps.onOfflineMapRadiusChanged(radiusKm)
 
-    fun onOfflineMapRadiusChanged(radiusKm: Int) {
-        // Touched: from here on the radius is the user's and the per-unit default never moves it —
-        // see AvailabilityUiState.offlineMapRadiusTouched.
-        // Clamped to the offline radius's own ceiling (OfflineMapRepository.MAX_RADIUS_KM, sized to the
-        // tile budget), not the search radius's Region.clampRadiusKm it used to share.
-        _uiState.update { it.copy(offlineMapRadiusKm = OfflineMapRepository.clampRadiusKm(radiusKm), offlineMapRadiusTouched = true) }
-    }
+    /** See [AvailabilityOfflineMaps.onOfflineMapNameChanged]. */
+    fun onOfflineMapNameChanged(text: String) = offlineMaps.onOfflineMapNameChanged(text)
 
-    fun onOfflineMapNameChanged(text: String) {
-        _uiState.update { it.copy(offlineMapNameText = text) }
-    }
-
-    /**
-     * Called every time the "Offline Maps" submenu is opened. Two things happen:
-     *
-     * 1. Always tries the device's current location as the picker's opening default, overriding
-     *    whatever centre was showing before (including a centre [loadOfflineMapPreferences]
-     *    restored from a prior pick). The project owner's own call, after using the
-     *    last-picked-centre default the design doc originally specified: opening the picker away
-     *    from home is more common than opening it away from wherever was last downloaded, so "near
-     *    me" should win on every open, not just the first. A denial or unavailable fix leaves
-     *    whatever centre was already showing in place rather than clearing a good default just
-     *    because this particular fetch failed.
-     *
-     * 2. Re-reads [OfflineMapRepository.listRegions] rather than trusting whatever
-     *    [loadOfflineRegions] loaded once at ViewModel construction. Hardware testing found the
-     *    list could come up empty right after a cold start with many regions already on disk
-     *    (survived the restart). The cause, from the device logs, was not the native store still
-     *    starting: the start-up read threw `MapLibreConfigurationException` because MapLibre was
-     *    not yet initialised (fixed by initialising it in `ForagerApplication.onCreate`, dispatch
-     *    2026-09-28-106). Re-reading on open is good practice regardless: this screen should show
-     *    current state whenever it's opened.
-     *
-     * Both calls are safe unconditionally: [LocationProvider.getCurrentLocation] only checks
-     * whether permission is already granted, never triggering the OS permission dialog itself, and
-     * a `listRegions` re-read has no side effect beyond what [loadOfflineRegions] already does on
-     * every call.
-     */
     /**
      * "Download again" on a region restored from a backup (owner, "1 B"). It downloads from the row's stored centre and
      * radius through the same [OfflineMapRepository.download] a new download uses, held to the same tile budget. The
@@ -1219,338 +799,46 @@ class AvailabilityViewModel(
             return
         }
         _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
-        viewModelScope.launch {
-            offlineMapRepository.download(row.name, row.region) { downloaded, total ->
-                _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
-            }.fold(
-                onSuccess = { downloadedRegion ->
-                    offlineMapRepository.replaceRegion(row.id, downloadedRegion.id).onFailure { error ->
-                        errorLog.w(TAG, "Downloaded ${row.name} again, but couldn't move region ${row.id}'s references to ${downloadedRegion.id}.", error)
-                    }
-                    _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Succeeded) }
-                    loadOfflineRegions()
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't download offline maps again.", error)
-                    _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Failed("Couldn't download offline maps.")) }
-                },
-            )
-        }
+        offlineMaps.beginDownloadAgain(row)
     }
 
     /**
      * Reads everything this ViewModel holds from the database again, after a restore, and returns when it is done:
-     * the planned trips ([loadPlannedTrips]), the offline regions with their reference counts ([loadOfflineRegions]),
-     * and the Maps tab's records ([loadMapRecords]). The journal highlights are derived from those, the entries and the
+     * the planned trips ([AvailabilityPlannedTrips.loadPlannedTrips]), the offline regions with their reference counts ([AvailabilityOfflineMaps.loadOfflineRegions]),
+     * and the Maps tab's records ([AvailabilityMapDisplay.loadMapRecords]). The journal highlights are derived from those, the entries and the
      * waypoints, in the screen, so they follow. `loadRecentSearches` is not reloaded: the search cache is not restored.
      */
     suspend fun reloadAfterRestore() {
         // A restore can bring a deleted record back: what was committed to deletion is forgotten first.
         _uiState.update { it.copy(committedOfflineRegionDeleteIds = emptySet()) }
-        loadPlannedTrips().join()
-        loadOfflineRegions().join()
-        loadMapRecords()
+        plannedTrips.loadPlannedTrips().join()
+        offlineMaps.loadOfflineRegions().join()
+        mapDisplay.loadMapRecords()
     }
 
-    fun onOfflineMapsOpened() {
-        viewModelScope.launch {
-            val result = locationProvider.getCurrentLocation()
-            if (result is LocationResult.Success) {
-                _uiState.update { it.copy(offlineMapPickerDefaultCenter = LatLng(result.lat, result.lng)) }
-            }
-        }
-        loadOfflineRegions()
-    }
+    /** See [AvailabilityOfflineMaps.onOfflineMapsOpened]. */
+    fun onOfflineMapsOpened() = offlineMaps.onOfflineMapsOpened()
 
-    /**
-     * Reads every region currently on disk — once at startup, and again every time
-     * [onOfflineMapsOpened] fires. Same reasoning as [loadPlannedTrips] for the startup call:
-     * downloaded regions have nothing to do with the region search, so this isn't gated behind one.
-     *
-     * A read failure (e.g. a corrupt metadata blob) is reported via
-     * [AvailabilityUiState.offlineRegionsErrorMessage] — but per the error-presentation spec's
-     * belief-changing rule, this is a region-*list-load* failure, not a download failure: the user
-     * isn't in the middle of an action here, they just want to see what's already on disk, so this
-     * renders as an absorbed, neutral read-failure the same way [conditionsErrorMessage]/
-     * [plannedTripsErrorMessage] do, not with the error-red treatment [onDownloadOfflineMaps]'s
-     * failure gets. The prior list is kept on a failed refresh rather than cleared, so a transient
-     * read error doesn't make regions that are still on disk disappear.
-     */
-    private fun loadOfflineRegions(): Job {
-        return viewModelScope.launch {
-            offlineMapRepository.listRegions().fold(
-                onSuccess = { downloaded ->
-                    // Regions restored from a backup with no tiles here are listed after the downloaded ones (owner, "1 B").
-                    // Dispatch 2026-09-28-658 (M2): a failed read of them is a partial list, and the
-                    // screen says so, rather than showing the downloaded ones as if they were all.
-                    var partialMessage: String? = null
-                    val restored = offlineMapRepository.listNotDownloadedRegions().getOrElse { error ->
-                        errorLog.w(TAG, "Couldn't read restored offline regions; showing the downloaded ones only, and saying so.", error)
-                        partialMessage = RESTORED_REGIONS_UNREADABLE_MESSAGE
-                        emptyList()
-                    }
-                    val regions = downloaded + restored
-                    _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = partialMessage) }
-                    // One query per region — see TrackRecordingViewModel.loadWaypoints' identical
-                    // choice for why this scale doesn't need a batched read.
-                    val counts = regions.associate { it.id to getOfflineRegionReferenceCount(it.id) }
-                    _uiState.update { it.copy(offlineRegionEntryReferenceCounts = counts) }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read offline regions.", error)
-                    _uiState.update { it.copy(offlineRegionsErrorMessage = "Couldn't read offline regions.") }
-                },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onAutoSaveLocationToPhotosChanged]. */
+    fun onAutoSaveLocationToPhotosChanged(enabled: Boolean) = settingsPrefs.onAutoSaveLocationToPhotosChanged(enabled)
 
-    /**
-     * Restores the picker's remembered radius and the staleness badge threshold from
-     * [MapPreferencesRepository] — both remembered user intent rather than derived state. The
-     * restored centre only matters as a fallback now: [onOfflineMapsOpened] overrides it with the
-     * device's current location on every open when that succeeds — this is what the picker shows
-     * before that ever runs, or if a later location fetch fails.
-     *
-     * A read failure here leaves the built-in fallbacks in place
-     * ([AvailabilityUiState.offlineMapPickerDefaultCenter] stays `null`,
-     * [AvailabilityUiState.offlineStaleThresholdDays] stays [com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS])
-     * rather than blocking the picker on a preferences read that isn't essential to using it — this
-     * is deliberately not surfaced to [AvailabilityUiState] at all, since there is no belief for the
-     * user to hold about a preference they never see; the throwable is still logged, not silently
-     * discarded, per CLAUDE.md.
-     */
-    private fun loadOfflineMapPreferences() {
-        viewModelScope.launch {
-            mapPreferencesRepository.getLastPickedRegion().fold(
-                onSuccess = { region ->
-                    if (region != null) {
-                        _uiState.update {
-                            it.copy(
-                                offlineMapPickerDefaultCenter = LatLng(region.lat, region.lng),
-                                // Clamped: a radius picked before the ceiling shrank to
-                                // OfflineMapRepository.MAX_RADIUS_KM (up to 50 km) is restored at the
-                                // ceiling, not above the slider's own range.
-                                offlineMapRadiusKm = OfflineMapRepository.clampRadiusKm(region.radiusKm),
-                                // A restored last-picked radius is the user's own — see
-                                // AvailabilityUiState.offlineMapRadiusTouched.
-                                offlineMapRadiusTouched = true,
-                            )
-                        }
-                    }
-                },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the last-picked offline region.", error) },
-            )
-            mapPreferencesRepository.getStaleThresholdDays().fold(
-                onSuccess = { days -> _uiState.update { it.copy(offlineStaleThresholdDays = days) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the offline staleness threshold.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onBatterySaverChanged]. */
+    fun onBatterySaverChanged(enabled: Boolean) = settingsPrefs.onBatterySaverChanged(enabled)
 
-    /**
-     * Restores Settings' "Night Maps" checkbox — same read-failure treatment as
-     * [loadOfflineMapPreferences], plus the cold-launch gate (colour build C1): either way the read
-     * ends, [AvailabilityUiState.nightModeMapsLoaded] becomes `true` in the same update, so the map
-     * loads its first style knowing the answer. A failed read falls back to day, logged.
-     */
-    private fun loadNightModePreferences() {
-        viewModelScope.launch {
-            mapPreferencesRepository.getNightModeMaps().fold(
-                onSuccess = { night -> _uiState.update { it.copy(nightModeMaps = night, nightModeMapsLoaded = true) } },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read the night-maps preference.", error)
-                    _uiState.update { it.copy(nightModeMaps = false, nightModeMapsLoaded = true) }
-                },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onOffTrackReminderChanged]. */
+    fun onOffTrackReminderChanged(enabled: Boolean) = settingsPrefs.onOffTrackReminderChanged(enabled)
 
-    /** Restores the "Automatically Save Location to Photos" preference — same read-failure treatment as [loadNightModePreferences]: log, and leave the on-by-default state alone. */
-    private fun loadAutoSaveLocationToPhotos() {
-        viewModelScope.launch {
-            getAutoSaveLocationToPhotos().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(autoSaveLocationToPhotos = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the photo-location preference.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onSundownAlertsEnabledChanged]. */
+    fun onSundownAlertsEnabledChanged(enabled: Boolean) = settingsPrefs.onSundownAlertsEnabledChanged(enabled)
 
-    /**
-     * Settings' "Automatically Save Location to Photos" checkbox. Reflects the new value in state
-     * immediately and persists in the background, the same shape and the same
-     * not-essential-to-using-it failure treatment as [onNightModeMapsChanged] below.
-     *
-     * **The two ViewModels read this preference independently, on purpose.** This one holds it to
-     * render the checkbox; `MushroomLogViewModel` re-reads it from the same repository at the
-     * moment it is about to capture a position. Nothing is pushed from here to there, so there is
-     * no window in which the find path acts on a value this screen has already changed.
-     */
-    fun onAutoSaveLocationToPhotosChanged(enabled: Boolean) {
-        _uiState.update { it.copy(autoSaveLocationToPhotos = enabled) }
-        viewModelScope.launch {
-            setAutoSaveLocationToPhotos(enabled).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the photo-location preference.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onDarknessMarginChanged]. */
+    fun onDarknessMarginChanged(minutes: Int) = settingsPrefs.onDarknessMarginChanged(minutes)
 
-    /** Restores the Sundown section's two settings; a failed read is logged and leaves the default (on, one hour) showing. */
-    private fun loadSundownPreferences() {
-        viewModelScope.launch {
-            getSundownAlertsEnabled().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(sundownAlertsEnabled = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether the sundown alerts are on; the default, on, is shown.", error) },
-            )
-            getDarknessMarginMinutes().fold(
-                onSuccess = { minutes -> _uiState.update { it.copy(darknessMarginMinutes = minutes) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the darkness margin; the default is shown.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onNightModeMapsChanged]. */
+    fun onNightModeMapsChanged(night: Boolean) = settingsPrefs.onNightModeMapsChanged(night)
 
-    /** Restores "Off-track reminder"; a failed read is logged and leaves the default, on, showing. */
-    private fun loadOffTrackReminder() {
-        viewModelScope.launch {
-            getOffTrackReminderEnabled().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(offTrackReminderEnabled = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether the off-track reminder is on; the default, on, is shown.", error) },
-            )
-        }
-    }
-
-    /** Restores "Battery saver"; a failed read is logged and leaves the default, off, showing. */
-    private fun loadBatterySaver() {
-        viewModelScope.launch {
-            getBatterySaverEnabled().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(batterySaverEnabled = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether Battery saver is on; the default, off, is shown.", error) },
-            )
-        }
-    }
-
-    /**
-     * The quick menu's "Battery saver" switch (dispatch 2026-09-28-767). Shown at once and stored in the
-     * background; storing it is what moves every fix request to the new interval, mid-recording included.
-     * A failed store is logged and the switch goes back to what is stored, so it never shows a rate the
-     * phone is not being asked at.
-     */
-    fun onBatterySaverChanged(enabled: Boolean) {
-        _uiState.update { it.copy(batterySaverEnabled = enabled) }
-        viewModelScope.launch {
-            setBatterySaverEnabled(enabled).onFailure { error ->
-                errorLog.w(TAG, "Couldn't store whether Battery saver is on; the switch shows what is stored.", error)
-                _uiState.update { it.copy(batterySaverEnabled = !enabled) }
-            }
-        }
-    }
-
-    /**
-     * Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626). Shown at once and stored in
-     * the background; the off-track rule reads the stored value when it next decides to alert.
-     */
-    fun onOffTrackReminderChanged(enabled: Boolean) {
-        _uiState.update { it.copy(offTrackReminderEnabled = enabled) }
-        viewModelScope.launch {
-            setOffTrackReminderEnabled(enabled).onFailure { error -> errorLog.w(TAG, "Couldn't store whether the off-track reminder is on.", error) }
-        }
-    }
-
-    /**
-     * Settings' "Sundown alerts" checkbox. Gates the notifications only: the sundown line stays
-     * (the owner's step path, RECORD -592). Shown at once and stored in the background, as
-     * [onAutoSaveLocationToPhotosChanged] is; the watch reads the stored value at its next tick.
-     */
-    fun onSundownAlertsEnabledChanged(enabled: Boolean) {
-        _uiState.update { it.copy(sundownAlertsEnabled = enabled) }
-        viewModelScope.launch {
-            setSundownAlertsEnabled(enabled).onFailure { error -> errorLog.w(TAG, "Couldn't store whether the sundown alerts are on.", error) }
-        }
-    }
-
-    /**
-     * Settings' "Dark under trees" choice. Shown at once; once stored, the sundown line is told
-     * ([onDarknessMarginStored]) so its start-back time moves at once (the owner's step path).
-     */
-    fun onDarknessMarginChanged(minutes: Int) {
-        _uiState.update { it.copy(darknessMarginMinutes = minutes) }
-        viewModelScope.launch {
-            setDarknessMarginMinutes(minutes).fold(
-                onSuccess = { onDarknessMarginStored(minutes) },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't store the darkness margin; the line and the alerts keep the one stored.", error) },
-            )
-        }
-    }
-
-    /**
-     * Settings' "Night Maps" checkbox. Updates [AvailabilityUiState.nightModeMaps] immediately —
-     * the map should not wait on a DataStore round-trip to reflect what was just checked — then
-     * persists in the background; a persist failure is logged but not surfaced, the same
-     * not-essential-to-using-it treatment [loadNightModePreferences] gives a read failure.
-     */
-    fun onNightModeMapsChanged(night: Boolean) {
-        _uiState.update { it.copy(nightModeMaps = night) }
-        viewModelScope.launch {
-            mapPreferencesRepository.setNightModeMaps(night).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the night-maps preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * Restores whether the Maps tab was left in fullscreen — same read-failure treatment as
-     * [loadNightModePreferences]: a failed read logs and leaves [AvailabilityUiState.persistedMapFullscreen]
-     * `null`, so the screen simply starts as it always did. See
-     * [com.zynergylabs.forager.app.domain.MapPreferencesRepository.getMapFullscreen] for the precedent this sets.
-     */
-    private fun loadMapFullscreenPreference() {
-        viewModelScope.launch {
-            mapPreferencesRepository.getMapFullscreen().fold(
-                onSuccess = { fullscreen -> _uiState.update { it.copy(persistedMapFullscreen = fullscreen) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the map-fullscreen preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * The screen entered or left fullscreen by a user action (the icon bar's toggle, system back,
-     * or leaving the Maps tab). Persists in the background; a persist failure is logged but not
-     * surfaced, the same treatment [onNightModeMapsChanged] gives. Deliberately does *not* update
-     * [AvailabilityUiState.persistedMapFullscreen]: that field is the launch-time value the screen
-     * applies once, and the screen's own live flag is the source of truth after that.
-     */
-    fun onMapFullscreenChanged(fullscreen: Boolean) {
-        viewModelScope.launch {
-            mapPreferencesRepository.setMapFullscreen(fullscreen).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the map-fullscreen preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * Whether the walker has started or ended a waypoint navigation since this ViewModel was made. A kept
-     * navigation read after that ([loadWaypointNavigation]) is older than what they just did, so it is not
-     * applied over it.
-     */
-    private var waypointNavigationChosenHere = false
-
-    /**
-     * Picks the waypoint navigation back up when the app opens (dispatch 2026-09-28-502, Amendment 1, "Pick
-     * navigation back up"). A failed read is logged and nothing is resumed. Whether that waypoint still
-     * exists is the screen's to judge, once the waypoints have loaded (`waypointNavigationTarget`).
-     */
-    private fun loadWaypointNavigation() {
-        viewModelScope.launch {
-            waypointNavigationRepository.getCurrent().fold(
-                onSuccess = { kept ->
-                    if (kept != null && !waypointNavigationChosenHere) _uiState.update { it.copy(waypointNavigation = kept) }
-                },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the waypoint navigation to pick back up; none is resumed.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onMapFullscreenChanged]. */
+    fun onMapFullscreenChanged(fullscreen: Boolean) = settingsPrefs.onMapFullscreenChanged(fullscreen)
 
     /**
      * "Navigate" on waypoint [waypointId] (dispatch 2026-09-28-502, plan tasks T8 and T9), with or without a
@@ -1560,7 +848,7 @@ class AvailabilityViewModel(
      * moment with neither on: no new start zoom (the planner's ruling).
      */
     fun onNavigateToWaypoint(waypointId: String) {
-        waypointNavigationChosenHere = true
+        waypointNavigationStore.waypointNavigationChosenHere = true
         val current = _uiState.value.waypointNavigation
         val resumesReturn = when {
             current != null -> current.resumesReturn
@@ -1572,7 +860,7 @@ class AvailabilityViewModel(
         }
         val navigation = WaypointNavigation(waypointId, resumesReturn)
         _uiState.update { it.copy(waypointNavigation = navigation) }
-        keepWaypointNavigation(navigation)
+        waypointNavigationStore.keepWaypointNavigation(navigation)
     }
 
     /**
@@ -1581,92 +869,18 @@ class AvailabilityViewModel(
      * ruling). Nothing to end does nothing.
      */
     fun onStopWaypointNavigation() {
-        waypointNavigationChosenHere = true
+        waypointNavigationStore.waypointNavigationChosenHere = true
         val ending = _uiState.value.waypointNavigation ?: return
         _uiState.update { it.copy(waypointNavigation = null) }
-        keepWaypointNavigation(null)
+        waypointNavigationStore.keepWaypointNavigation(null)
         if (ending.resumesReturn) returnLeg.resume()
     }
 
-    /** Writes [navigation] to the store; a failure is logged, and the navigation on screen carries on regardless. */
-    private fun keepWaypointNavigation(navigation: WaypointNavigation?) {
-        viewModelScope.launch {
-            waypointNavigationRepository.setCurrent(navigation).onFailure { error ->
-                errorLog.w(TAG, "Couldn't keep the waypoint navigation; it will not be picked back up if the app is closed.", error)
-            }
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onThemeModeChanged]. */
+    fun onThemeModeChanged(mode: AppThemeMode) = settingsPrefs.onThemeModeChanged(mode)
 
-    /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [loadOfflineMapPreferences]. */
-    private fun loadThemeModePreference() {
-        viewModelScope.launch {
-            appThemePreferenceRepository.getThemeMode().fold(
-                onSuccess = { mode -> _uiState.update { it.copy(themeMode = mode) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the app theme preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * Settings' theme choice — the app-wide theme [MainActivity][com.zynergylabs.forager.app.MainActivity]
-     * resolves and renders via [com.zynergylabs.forager.app.ui.theme.ForagerTheme]. Same immediate-update-then-
-     * persist shape as [onNightModeMapsChanged].
-     */
-    fun onThemeModeChanged(mode: AppThemeMode) {
-        _uiState.update { it.copy(themeMode = mode) }
-        viewModelScope.launch {
-            appThemePreferenceRepository.setThemeMode(mode).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the app theme preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * The one place the display unit changes, from the persisted read at startup and from Settings'
-     * toggle alike (radius-default dispatch, Item 2). Alongside the unit it applies the offline-map
-     * radius's per-unit default — [defaultOfflineMapRadiusKm]: 8 km, which displays as "5 mi", when
-     * the unit is miles; 10 km when it is kilometres — but only while the radius is still untouched
-     * ([AvailabilityUiState.offlineMapRadiusTouched]). Selected by the unit, never converted from
-     * one canonical value: a single stored default cannot be round in both units (15 km read as
-     * "9 mi"; 5 mi is 8.05 km). Re-applies on every unit change while untouched, so a user who has
-     * never set a radius and switches to kilometres gets 10 km, not a converted 8; once they have
-     * touched it, or a last-picked region restored it, it is theirs and never moves.
-     */
-    private fun applyUnitSystem(system: UnitSystem) {
-        _uiState.update {
-            it.copy(
-                unitSystem = system,
-                offlineMapRadiusKm = if (it.offlineMapRadiusTouched) it.offlineMapRadiusKm else defaultOfflineMapRadiusKm(system.distanceUnit),
-            )
-        }
-    }
-
-    /**
-     * Restores the persisted unit system at startup — see [AvailabilityUiState.unitSystem]'s own
-     * doc comment for the bug this fixes. A read failure keeps [AvailabilityUiState.unitSystem] at
-     * its default rather than surfacing an error the user never asked for, the same reasoning
-     * [loadOfflineMapPreferences] applies to its own reads; the throwable is still logged.
-     */
-    private fun loadUnitSystemPreference() {
-        viewModelScope.launch {
-            unitSystemPreferenceRepository.getUnitSystem().fold(
-                onSuccess = { system -> applyUnitSystem(system) },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the saved unit system.", error) },
-            )
-        }
-    }
-
-    /** The Settings panel's Metric/Imperial choice — updates the UI immediately and persists in the background. */
-    fun onUnitSystemSelected(system: UnitSystem) {
-        applyUnitSystem(system)
-        viewModelScope.launch {
-            unitSystemPreferenceRepository.setUnitSystem(system).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't save the selected unit system.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onUnitSystemSelected]. */
+    fun onUnitSystemSelected(system: UnitSystem) = settingsPrefs.onUnitSystemSelected(system)
 
     /**
      * The Settings control's existing callback, kept by name so `AvailabilityScreen.kt`'s plumbing
@@ -1693,7 +907,7 @@ class AvailabilityViewModel(
      *
      * A download failure is belief-changing — the user just tapped Download and is owed a yes or
      * no — so it's reported through [AvailabilityUiState.offlineDownloadStatus] with the error-red
-     * treatment, unlike [loadOfflineRegions]'s neutral read-failure.
+     * treatment, unlike [AvailabilityOfflineMaps.loadOfflineRegions]'s neutral read-failure.
      */
     fun onDownloadOfflineMaps() {
         val state = _uiState.value
@@ -1732,219 +946,31 @@ class AvailabilityViewModel(
         }
 
         _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
-        viewModelScope.launch {
-            offlineMapRepository.download(name, region) { downloaded, total ->
-                _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
-            }.fold(
-                onSuccess = {
-                    _uiState.update {
-                        it.copy(
-                            offlineDownloadStatus = OfflineMapStatus.Succeeded,
-                            offlineMapLatText = "",
-                            offlineMapLngText = "",
-                            offlineMapNameText = "",
-                        )
-                    }
-                    loadOfflineRegions()
-                    viewModelScope.launch { mapPreferencesRepository.setLastPickedRegion(region) }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't download offline maps.", error)
-                    _uiState.update {
-                        it.copy(offlineDownloadStatus = OfflineMapStatus.Failed("Couldn't download offline maps."))
-                    }
-                },
-            )
-        }
+        offlineMaps.beginDownload(name, region)
     }
 
-    /**
-     * Per-region delete, replacing the old all-or-nothing delete. A failure here is reported
-     * through the same neutral, non-belief-changing channel [loadOfflineRegions] uses
-     * ([AvailabilityUiState.offlineRegionsErrorMessage]), not [AvailabilityUiState.offlineDownloadStatus]
-     * — deletion isn't a download, and the region simply staying in the list on failure already
-     * shows the delete didn't take effect, the same signal a stale list already carries.
-     */
-    /**
-     * A swipe on an offline region's Records row (journal redesign J4): the region becomes pending —
-     * hidden from [AvailabilityUiState.visibleOfflineRegions] at once, its tiles still on disk — and
-     * the Undo snackbar shows. The real delete ([OfflineMapRepository.deleteRegion], MapLibre's tile
-     * delete and then the row, unchanged) runs from [commitDeleteOfflineRegion] when the snackbar
-     * ends without Undo, from here when a second region is swiped while this one is pending (the
-     * first is committed then), or from [onCleared]. That deferral is the only thing that makes Undo
-     * possible for a region at all: deleted tiles can only come back by a re-download, under a new
-     * MapLibre id (J0 B1).
-     *
-     * A region still downloading is never a row here: [OfflineMapRepository.listRegions] only lists
-     * complete regions (it deletes incomplete ones), and [AvailabilityUiState.offlineRegions] is only
-     * ever that list, so there is no downloading region to swipe.
-     *
-     * Reference count: the loaded one, a missing entry counting as zero as
-     * [AvailabilityUiState.offlineRegionEntryReferenceCounts] documents. An id not in the list is
-     * logged and pends nothing.
-     */
-    fun requestDeleteOfflineRegion(id: Long) {
-        val state = _uiState.value
-        val region = state.offlineRegions.firstOrNull { it.id == id }
-        if (region == null) {
-            errorLog.w(TAG, "A delete was asked for offline region $id, which is not loaded; nothing pended.", IllegalStateException("no region $id"))
-            return
-        }
-        val displaced = offlineRegionDeletes.pend(region, state.offlineRegionEntryReferenceCounts[id] ?: 0)
-        _uiState.update {
-            it.copy(
-                pendingOfflineRegionDelete = offlineRegionDeletes.pending,
-                // The displaced region leaves its Undo window in this same update: it is never in neither.
-                committedOfflineRegionDeleteIds = if (displaced == null) it.committedOfflineRegionDeleteIds else it.committedOfflineRegionDeleteIds + displaced.id,
-            )
-        }
-        displaced?.let(::commitOfflineRegionDelete)
-    }
+    /** A swipe on an offline region's Records row: see [AvailabilityOfflineRegionDeletes.requestDeleteOfflineRegion]. */
+    fun requestDeleteOfflineRegion(id: Long) = offlineRegionDeletes.requestDeleteOfflineRegion(id)
 
-    /** The snackbar's Undo: the pending region shows again. No tile was deleted, so nothing is restored. */
-    fun undoDeleteOfflineRegion(id: Long) {
-        if (offlineRegionDeletes.undo(id) == null) {
-            errorLog.w(TAG, "Undo for offline region $id came after its delete was committed; nothing to undo.", IllegalStateException("region $id not pending"))
-        }
-        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
-    }
+    /** The snackbar's Undo: see [AvailabilityOfflineRegionDeletes.undoDeleteOfflineRegion]. */
+    fun undoDeleteOfflineRegion(id: Long) = offlineRegionDeletes.undoDeleteOfflineRegion(id)
 
-    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending region's tile and row delete runs, once. */
-    fun commitDeleteOfflineRegion(id: Long) {
-        val region = offlineRegionDeletes.commit(id)
-        // Marked committed (commitOfflineRegionDelete's first update) before the pending marker is cleared, so the
-        // Maps tab never sees a moment in which the region is neither (dispatch 2026-09-28-312, item 9).
-        region?.let(::commitOfflineRegionDelete)
-        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
-    }
-
-    /**
-     * The real delete of a region whose pending time is over. It leaves [AvailabilityUiState.offlineRegions]
-     * at once, so it does not flash back between the snackbar closing and MapLibre finishing; a failed
-     * delete puts it back where it was and reports the failure the way [onDeleteOfflineRegion] does.
-     */
-    private fun commitOfflineRegionDelete(region: OfflineRegionSummary) {
-        val index = _uiState.value.offlineRegions.indexOfFirst { it.id == region.id }
-        _uiState.update { state ->
-            state.copy(
-                offlineRegions = state.offlineRegions.filterNot { it.id == region.id },
-                committedOfflineRegionDeleteIds = state.committedOfflineRegionDeleteIds + region.id,
-            )
-        }
-        viewModelScope.launch {
-            offlineMapRepository.deleteRegion(region.id).fold(
-                onSuccess = {
-                    dropOfflineRegionFromMapRecords(region.id)
-                    loadOfflineRegions()
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't delete that region.", error)
-                    _uiState.update { state ->
-                        val restored = if (state.offlineRegions.any { it.id == region.id }) {
-                            state.offlineRegions
-                        } else {
-                            state.offlineRegions.toMutableList().apply { add(index.coerceIn(0, size), region) }
-                        }
-                        state.copy(
-                            offlineRegions = restored,
-                            committedOfflineRegionDeleteIds = state.committedOfflineRegionDeleteIds - region.id,
-                            offlineRegionsErrorMessage = "Couldn't delete that region.",
-                        )
-                    }
-                },
-            )
-        }
-    }
+    /** The snackbar ended without Undo: see [AvailabilityOfflineRegionDeletes.commitDeleteOfflineRegion]. */
+    fun commitDeleteOfflineRegion(id: Long) = offlineRegionDeletes.commitDeleteOfflineRegion(id)
 
     override fun onCleared() {
-        // Journal redesign J4: a region still pending is committed here, since no snackbar is left
+        // Journal redesign J4: a region still pending is committed there, since no snackbar is left
         // to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
-        offlineRegionDeletes.takeAny()?.let { region ->
-            pendingDeleteCommitScope.launch {
-                offlineMapRepository.deleteRegion(region.id).onFailure { error ->
-                    errorLog.w(TAG, "Couldn't delete offline region ${region.id} pending when the screen closed; its tiles are still on disk.", error)
-                }
-            }
-        }
+        offlineRegionDeletes.commitOnCleared()
     }
 
-    fun onDeleteOfflineRegion(id: Long) {
-        viewModelScope.launch {
-            offlineMapRepository.deleteRegion(id).fold(
-                onSuccess = { loadOfflineRegions() },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't delete that region.", error)
-                    _uiState.update {
-                        it.copy(offlineRegionsErrorMessage = "Couldn't delete that region.")
-                    }
-                },
-            )
-        }
-    }
+    /** See [AvailabilityOfflineMaps.onDeleteOfflineRegion]. */
+    fun onDeleteOfflineRegion(id: Long) = offlineMaps.onDeleteOfflineRegion(id)
 
-    private companion object {
+    internal companion object {
         /** RECORD -750, item 3: what a fresh start shows, which Clear puts the species selection back to. */
         val DEFAULT_STATE = AvailabilityUiState()
         const val SEARCH_DEBOUNCE_MS = 300L
         const val TAG = "AvailabilityViewModel"
     }
 }
-
-/** [MapLayersState] with [layerId]'s state changed by [change]. */
-private fun MapLayersState.withLayer(layerId: String, change: (LayerState) -> LayerState): MapLayersState =
-    copy(layers = layers + (layerId to change(stateOf(layerId))))
-
-/** How a failed kind reads in the log line: "Couldn't load tracks for the map." */
-private fun mapRecordKindLabel(kind: MapRecordKind): String = when (kind) {
-    MapRecordKind.FINDS -> "finds"
-    MapRecordKind.PHOTOS -> "photos"
-    MapRecordKind.TRACKS -> "tracks"
-    MapRecordKind.OFFLINE_REGIONS -> "offline regions"
-}
-
-/**
- * The default [MapLayerPreferencesRepository] for the suites that construct this ViewModel and never
- * touch the Layers sheet, the same shape as this class's other defaulted capabilities: nothing stored,
- * every write accepted. `MainActivity` passes the real `map_preferences` store.
- */
-private object NoStoredMapLayerPreferences : MapLayerPreferencesRepository {
-    override suspend fun getMapLayerPreferences(): Result<MapLayerPreferences> = Result.success(MapLayerPreferences.NONE)
-
-    override suspend fun setLayerVisible(layerId: String, visible: Boolean): Result<Unit> = Result.success(Unit)
-
-    override suspend fun setLayerOpacity(layerId: String, opacity: Float): Result<Unit> = Result.success(Unit)
-
-    override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.success(Unit)
-}
-
-/**
- * The default [BasemapPreferenceRepository] for the suites that construct this ViewModel and never
- * touch the basemap: nothing stored, so the map opens on [MapMode.DEFAULT]; every write accepted.
- * `MainActivity` passes the real `map_preferences` store.
- */
-private object NoStoredBasemap : BasemapPreferenceRepository {
-    override suspend fun getBasemapKey(): Result<String?> = Result.success(null)
-
-    override suspend fun setBasemapKey(key: String): Result<Unit> = Result.success(Unit)
-}
-
-/** The default [MapIconClusterPlacementRepository] for suites that never move the cluster: nothing stored, every write accepted. */
-private object NoStoredMapIconClusterPlacement : MapIconClusterPlacementRepository {
-    override suspend fun getMapIconClusterPlacement(): Result<MapIconClusterPlacement?> = Result.success(null)
-
-    override suspend fun setMapIconClusterPlacement(placement: MapIconClusterPlacement): Result<Unit> = Result.success(Unit)
-}
-
-/**
- * Shown above the Offline maps list when the regions restored from a backup could not be read, so the
- * list holds only the downloaded ones (dispatch 2026-09-28-658, M2). The owner's wording (RECORD -660,
- * Amendment 1 to -658). Reopening Offline maps reads both lists again.
- */
-internal const val RESTORED_REGIONS_UNREADABLE_MESSAGE =
-    "Couldn't read the regions from your backup. Showing downloaded regions only. Reopen Offline maps to try again."
-
-/**
- * The banner when "Use current location", now the search panel's Search button, gets no fix. The owner's wording (RECORD -700:
- * "Option 1, but only refer to "Set on map" since that is right there."): Set on map sits beside Search in that panel.
- */
-internal const val COULD_NOT_FIND_LOCATION_MESSAGE = "Couldn't find your location. Tap Set on map to choose a place."

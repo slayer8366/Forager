@@ -2,9 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowRailEdgeFor
-import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.EntryGroup
-import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
 import com.zynergylabs.forager.app.domain.waypointNavigationTarget
 import com.zynergylabs.forager.app.ui.log.JournalTopTab
@@ -173,8 +171,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
-import com.zynergylabs.forager.app.domain.CameraFormat
-import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableIntStateOf
@@ -219,49 +215,32 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.BuildConfig
-import com.zynergylabs.forager.app.domain.CachedSearchSummary
-import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ForagingSelection
 import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
-import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
-import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
-import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
-import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
 import com.zynergylabs.forager.app.domain.model.DailyWeather
-import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
-import com.zynergylabs.forager.app.domain.model.GalleryPhoto
-import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
-import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
-import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
-import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
-import com.zynergylabs.forager.app.domain.model.Track
-import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
-import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
 import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
@@ -275,25 +254,17 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
-import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
-import com.zynergylabs.forager.app.ui.log.CartographyUiState
-import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
-import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
-import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
 import com.zynergylabs.forager.app.ui.log.FindOverView
 import com.zynergylabs.forager.app.ui.log.JournalEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
-import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
 import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
-import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.domain.GpxImportOutcome
-import com.zynergylabs.forager.app.importgpx.GpxImportNotice
 import com.zynergylabs.forager.app.importgpx.gpxImportMessage
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.OPEN_IN_JOURNAL_LABEL
@@ -306,7 +277,6 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
-import com.zynergylabs.forager.app.ui.map.MapFloatingIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
@@ -319,16 +289,12 @@ import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
 import com.zynergylabs.forager.app.ui.map.MapForecastFeed
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
-import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
-import com.zynergylabs.forager.app.domain.ForecastCellStore
-import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
@@ -342,9 +308,7 @@ import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import com.zynergylabs.forager.app.ui.track.RecordingNotice
 import java.time.Instant
-import java.time.LocalDate
 import java.time.Month
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -356,15 +320,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlinx.coroutines.delay
-
-internal enum class ResultsTab(val label: String) {
-    LIST("List"),
-    MAP("Maps"),
-    SEASONAL("Seasonal"),
-}
-
-/** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
-private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
 
 /**
  * Map-first layout: the results (map or ranked list) own the content area, and everything set far
@@ -400,32 +355,8 @@ private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
 @Composable
 fun AvailabilityScreen(
     uiState: AvailabilityUiState,
-    onUseCurrentLocation: () -> Unit,
-    onManualLatChanged: (String) -> Unit,
-    onManualLngChanged: (String) -> Unit,
-    onSearchManualCoordinates: () -> Unit,
-    onRadiusChanged: (Int) -> Unit,
-    onMonthSelected: (Int) -> Unit,
-    onMapTabSelected: () -> Unit,
-    onSeasonalTabSelected: () -> Unit,
-    onTaxonSearchQueryChanged: (String) -> Unit,
-    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
-    onDismissTaxonSuggestions: () -> Unit,
-    onReopenTaxonSuggestions: () -> Unit,
-    /** Called when a date and name are confirmed for a trip pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]. */
-    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
-    onDeletePlannedTrip: (String) -> Unit,
-    /**
-     * Called when one of the recent searches is tapped; see [RecentSearchesSection]. Reached from
-     * [SearchDropdown].
-     */
-    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
-    /**
-     * RECORD -723: the search bar's Clear, shown only while a search is showing (a region is set). MainActivity
-     * wires it to [AvailabilityViewModel.clearSearch]. Defaulted to a no-op only so the many screen tests that
-     * never show Clear need not pass it.
-     */
-    onClearSearch: () -> Unit = {},
+    /** Search and trip callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenSearchInputs]. Required: 15 of its 16 fields were required parameters here and stay required. */
+    searchInputs: AvailabilityScreenSearchInputs,
     /**
      * Where "now" comes from for the relative times this screen renders — the offline banner's
      * "saved 3 hours ago" and the recent-searches picker's "cached 2 days ago".
@@ -437,290 +368,29 @@ fun AvailabilityScreen(
      * so this stays optional for callers that render neither.
      */
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
-    /** Set by panning the picker map to the centre pin and confirming, in the Offline Maps submenu — see `OfflineMapsPanel`. */
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
-    /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
-    onNightModeMapsChanged: (Boolean) -> Unit,
-    /** "Automatically Save Location to Photos" — see [AvailabilityUiState.autoSaveLocationToPhotos]; set from the camera's Location chip (Settings until dispatch 2026-09-28-707, then also the camera's gear panel until dispatch 2026-10-13-03). Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
-    /** Settings' "Sundown alerts" (dispatch 2026-09-28-592) — see [AvailabilityUiState.sundownAlertsEnabled]. */
-    onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
-    /** Settings' "Dark under trees" (dispatch 2026-09-28-592) — see [AvailabilityUiState.darknessMarginMinutes]. */
-    onDarknessMarginChanged: (Int) -> Unit = {},
-    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626) — see [AvailabilityUiState.offTrackReminderEnabled]. */
-    onOffTrackReminderChanged: (Boolean) -> Unit = {},
-    /** The quick menu's "Battery saver" (dispatch 2026-09-28-767) — see [AvailabilityUiState.batterySaverEnabled]. */
-    onBatterySaverChanged: (Boolean) -> Unit = {},
-    /**
-     * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127): its state and callbacks.
-     * Defaulted, so a caller with no backup still composes the section, inert.
-     */
-    backup: BackupControls = BackupControls(),
-    /** Counts up when the person taps Done on the restore page: go to the Maps tab and close the drawer. */
-    returnToMapRequest: Int = 0,
-    /** Counts up when a backup notification is tapped: open the Backup section in Tools, then Settings. */
-    openBackupRequest: Int = 0,
-    /**
-     * RECORD -660/-661: a settings file was found corrupt and reset, and the one-time message is owed.
-     * Shown as a snackbar that stays until dismissed, with a "Settings" action that opens Settings;
-     * [onSettingsResetNoticeShown] is called as it is shown, so it is shown once. Defaulted to nothing owed.
-     */
-    settingsResetNoticePending: Boolean = false,
-    onSettingsResetNoticeShown: () -> Unit = {},
-    /**
-     * Plan T16: a finished GPX import to show, from the in-app "Import GPX" or from Open with or Share.
-     * The screen goes to Journal > Records > Tracks with the first new track's details open, and says the
-     * outcome's message ([gpxImportMessage]) as a Toast, then calls [onGpxImportNoticeShown] with its seq.
-     * `null` (the default) is nothing pending.
-     */
-    gpxImportNotice: GpxImportNotice? = null,
-    onGpxImportNoticeShown: (Long) -> Unit = {},
-    /** Plan T16: Records > Tracks > "Import GPX", given the picked file. `null` (the default) shows no button. */
-    onGpxFilePicked: ((android.net.Uri) -> Unit)? = null,
-    /** "Download again" on a restored offline region. */
-    onDownloadAgain: (Long) -> Unit = {},
-    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
-    onThemeModeChanged: (AppThemeMode) -> Unit,
-    /**
-     * The Maps tab entered or left fullscreen by a user action — persisted across restarts, see
-     * [AvailabilityUiState.persistedMapFullscreen]. Called only from the three user-driven
-     * mutation sites (the icon bar's toggle, system back, leaving the Maps tab), never from an
-     * effect on the flag — see `isMapFullscreen`'s own doc comment for why. Defaulted so callers
-     * that don't persist (tests) need not care.
-     */
-    onMapFullscreenChanged: (Boolean) -> Unit = {},
-    /**
-     * The mushroom log's own state, read by the Journal tab ([JournalTab]).
-     * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
-     * to do with the log don't need to pass log-specific state and callbacks just to compile.
-     */
-    logUiState: MushroomLogUiState = MushroomLogUiState(),
+    /** Offline maps' callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenOfflineMaps]. Required: 7 of its 8 fields were required parameters here and stay required. */
+    offlineMaps: AvailabilityScreenOfflineMaps,
+    /** Settings' callbacks and the settings-reset notice (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenSettings]. Required: 2 of its 10 fields were required parameters here and stay required. */
+    settings: AvailabilityScreenSettings,
+    /** Settings' Backup section, the backup and restore requests, and the GPX import's notice and picker (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenBackupAndImport]. Defaulted, as its six fields were when they were parameters here. */
+    backupAndImport: AvailabilityScreenBackupAndImport = AvailabilityScreenBackupAndImport(),
+    /** The Maps tab's controls: fullscreen, locate, the Layers sheet, basemap and icon cluster (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenMapControls]. Defaulted, as its nine fields were when they were parameters here. */
+    mapControls: AvailabilityScreenMapControls = AvailabilityScreenMapControls(),
+    /** The finds log's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenFindsLog]. Defaulted, as its 19 fields were when they were parameters here. */
+    findsLog: AvailabilityScreenFindsLog = AvailabilityScreenFindsLog(),
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
-    /**
-     * Which surface the in-app camera is open for, or null when closed. Retained by
-     * `InAppCameraViewModel` across Activity recreation, and composed by this screen **above the
-     * window-width branch** so a rotation's width-class flip does not dispose it — see
-     * [InAppCameraHost] for the bug and the decision.
-     */
-    inAppCameraTarget: InAppCameraTarget? = null,
-    onOpenCamera: (InAppCameraTarget) -> Unit = {},
-    onCloseCamera: () -> Unit = {},
-    /** The camera dialog itself; defaults to CameraX. A slot for the same reason [mapSlot] is one: CameraX cannot run under Robolectric. */
-    inAppCamera: InAppCameraSlot = CameraXInAppCamera,
-    /** The camera's persisted grid mode and the way to change it, from `CameraGridModeViewModel`. Defaulted like the camera's other inputs. */
-    cameraGridMode: GridMode = GridMode.Off,
-    onCameraGridModeChanged: (GridMode) -> Unit = {},
-    /** The camera's remembered format and the way to change it, from `CameraFormatViewModel` (dispatch 2026-10-15-01). Defaulted like the camera's other inputs. */
-    cameraFormat: CameraFormat = CameraFormat.Jpg,
-    onCameraFormatChanged: (CameraFormat) -> Unit = {},
-    /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
-    onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
-    onOpenLogEntry: (String) -> Unit = {},
-    onCloseLogEntry: () -> Unit = {},
-    onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
-    /** Begins editing the currently-open (committed) entry — see [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onStartEditingEntry]'s own doc comment. A no-op if it's already a draft. */
-    onStartEditingLogEntry: () -> Unit = {},
-    /**
-     * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
-     * ViewModel operation ([com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onOpenEntryForEditing]),
-     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. A find tile's long-press Edit
-     * in [JournalTab] calls it.
-     */
-    onOpenLogEntryForEditing: (String) -> Unit = {},
-    /** Save — commits the currently-open entry. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
-    onSaveLogEntry: () -> Unit = {},
-    /** Cancel — the only exit that discards anything. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onCancelEditing]'s own doc comment. */
-    onCancelLogEntryEditing: () -> Unit = {},
-    /** Leaving without answering — tab switch, backgrounding, back — persists the draft without committing. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onLeaveEditingIncidentally]'s own doc comment. */
-    onLeaveLogEntryEditingIncidentally: () -> Unit = {},
-    /** Discards a draft by id outright — the compact scaffold's "Discard" Snackbar action target, since by the time it's tapped [logUiState].editingEntry is already null. Same operation as [onDeleteLogEntry]. */
-    onDiscardLogDraft: (String) -> Unit = {},
-    onAddLogPhoto: (PhotoSource) -> Unit = {},
-    onRemoveLogPhoto: (LogPhoto) -> Unit = {},
-    onPullLogPhoto: (LogPhoto) -> Unit = {},
-    onDeleteLogEntry: (String) -> Unit = {},
-    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
-    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — the album's own Camera/Import buttons (the Journal's Entries album). */
-    onAddGalleryPhoto: (PhotoSource) -> Unit = {},
-    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [JournalTab]'s identical parameter. */
-    onSaveLogErrorDismissed: () -> Unit = {},
-    /** Journal Stage 2b's new authored entity — see [com.zynergylabs.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
-    cartographyUiState: CartographyUiState = CartographyUiState(),
-    onOpenCartographyEntry: (String) -> Unit = {},
-    onStartCartographyEntry: (LocalDate) -> Unit = {},
-    onCloseCartographyEntry: () -> Unit = {},
-    onCartographyTextChanged: (String) -> Unit = {},
-    onCartographyTagsChanged: (List<String>) -> Unit = {},
-    onSetFindDecision: (String, Boolean) -> Unit = { _, _ -> },
-    onSetTrackDecision: (String, Boolean) -> Unit = { _, _ -> },
-    onSetWaypointDecision: (String, Boolean) -> Unit = { _, _ -> },
-    onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
-    /** Data part A (dispatch 2026-09-28-667): a group switch in the entry editor's "In this entry" panel, `CartographyViewModel.onSetEntryGroupIncluded`. */
-    onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
-    onToggleKeptPhoto: (String) -> Unit = {},
-    /** Entry-photo-acquisition dispatch, Item 2. See [CartographyScreen]'s own doc comment on this same parameter. */
-    onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = {},
-    onFinishCartographyEntry: () -> Unit = {},
-    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Threaded straight through to CartographyScreen, whose own lifecycle observer also uses it for the backgrounding-return prompt's Commit option (pending-edit-and-fixes dispatch, Item 1). */
-    onSaveCartographyEntry: () -> Unit = {},
-    /** The leave-prompt's Discard option — device-check patch, Item 1. */
-    onDiscardCartographyEntryChanges: () -> Unit = {},
-    /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See CartographyScreen's own lifecycle-observer doc comment. */
-    onSaveCartographyEntryAsDraft: () -> Unit = {},
-    onDeleteCartographyEntry: (String) -> Unit = {},
-    /**
-     * An Entries card's swipe Delete (journal redesign J4b L2): a *pending* delete with Undo
-     * (`CartographyViewModel.requestDeleteEntry`), passed to `JournalTab`.
-     * `null` (the default) leaves the cards without the swipe.
-     */
-    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
-    /**
-     * J8-3: shows or hides a saved entry on the Maps tab (`CartographyViewModel.onSetShownOnMap`): the
-     * entry report's "Show on map" and "Hide from map", and the Maps-tab chip's "Hide"
-     * and "Hide all". Defaulted, so the many tests of this screen that never show an entry are unchanged.
-     */
-    onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
-    /** Clears [cartographyUiState]'s `shownOnMapErrorMessage` once its Toast has shown (J8, continuation `2026-09-28-65`). */
-    onCartographyShownOnMapErrorDismissed: () -> Unit = {},
-    /**
-     * Clears [cartographyUiState]'s `saveErrorMessage` once its Toast has shown. That Toast is hosted
-     * by the Journal itself, [JournalTab], not here, so this is
-     * threaded to it (intent `2026-09-28-68`, continuation `2026-09-28-76`).
-     */
-    onCartographySaveErrorDismissed: () -> Unit = {},
-    /**
-     * An album photo's long-press Delete (J4b L3): a *pending* delete with Undo
-     * (`MushroomLogViewModel.requestDeleteGalleryPhoto`), for the compact tree's album only. `null`
-     * (the default) leaves the photos without the menu.
-     */
-    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
-    /**
-     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
-     * composable's doc comment. Defaulted to always report nothing resolved, same reasoning as
-     * [logUiState]: the many existing tests of this screen that never open a Cartography entry
-     * don't need to pass a real resolver just to compile.
-     */
-    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ ->
-        CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
-    },
-    /**
-     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i —
-     * see that composable's doc comment. Defaulted for the same reason [getCartographyEntryMapData]
-     * is: the many existing tests of this screen that never open a Cartography entry don't need a
-     * real resolver just to compile.
-     */
-    getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
-    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. Defaulted like [getCartographyEntryMapData]. */
-    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
-    /**
-     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own fullscreen recenter button —
-     * fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." Defaulted for
-     * the same reason [getCartographyEntryMapData] is.
-     */
-    getCartographyEntryCurrentLocation: suspend () -> LocationResult = { LocationResult.LocationUnavailable },
-    /**
-     * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
-     * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
-     * Activity (see `MainActivity`'s `pendingLocationAction`) rather than requesting it here.
-     */
-    onLocateMe: () -> Unit = {},
-    /**
-     * Whether a track is currently being recorded, and [MapIconBar]'s start/stop toggle for it —
-     * that bar's 5th row (fullscreen, orientation-reset, GPS/locate-me, map mode, **record**,
-     * return-to-vehicle, search, add), not the compass/elevation/MGRS strip: record and
-     * return-to-vehicle moved out of the strip and into the icon bar on 2026-08-26 (see
-     * `map-redesign.md`'s "Icon stack: superseded from 5 to a 7-icon stopgap" section), and the
-     * bar itself grew from floating circles to one panel bar the same session (see [MapIconBar]'s
-     * own doc comment for the current 8-row shape). **Corrected 2026-08-28** — this comment
-     * previously described the pre-2026-08-26 placement. See `MainActivity`'s `LaunchedEffect` on
-     * [isRecording] for what actually starts/stops [com.zynergylabs.forager.app.service.TrackRecordingService].
-     */
-    isRecording: Boolean = false,
-    onToggleRecording: () -> Unit = {},
-    /** Set when the most recent [onToggleRecording]-triggered start failed or was refused — shown as a one-shot Toast in [CompactMapTab], the same [LaunchedEffect]-on-a-status-field shape as its existing `locateMeStatus` Toast. */
-    startRecordingErrorMessage: String? = null,
-    /**
-     * Alert-delivery dispatch, Item 3: the one-time silenced-phone warning for the recording that
-     * just started — shown once as a `SnackbarDuration.Long` Snackbar in the map Scaffold's existing
-     * host, no action button (the copy never tells the user to change a setting). Keyed on its id so
-     * the same text re-shows on a later trip. See [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.tripStartWarning].
-     */
-    tripStartWarning: RecordingNotice? = null,
-    /**
-     * Timestamp-filter dispatch, Item 3: the once-per-recording notice that most of the active
-     * track is being excluded as network-provider fixes — same host, same shape as
-     * [tripStartWarning]. See [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.networkFixesNotice].
-     */
-    networkFixesNotice: RecordingNotice? = null,
-    /**
-     * Dispatch 2026-09-28-626 (plan T14): the off-track reminder's background prompt, shown once in
-     * the same host as [tripStartWarning]; a tap anywhere on it opens Forager's App info page. See
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.backgroundRunPrompt].
-     */
-    backgroundRunPrompt: RecordingNotice? = null,
-    /**
-     * The active track's recorded points, oldest first — see [com.zynergylabs.forager.app.ui.map.MapSlot]'s own
-     * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
-     */
-    breadcrumbPoints: List<LatLng> = emptyList(),
-    /**
-     * Saved waypoints — independent of any track recording, per [Waypoint]'s own doc comment.
-     * Rendered as pins on the map ([com.zynergylabs.forager.app.ui.map.MapSlot]) and listed, with delete, in
-     * the Tools drawer's "Waypoints" section ([WaypointsSection]).
-     */
-    waypoints: List<Waypoint> = emptyList(),
-    /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
-    waypointsErrorMessage: String? = null,
-    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in [WaypointsSection]'s own confirm dialog. */
-    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
-    /** Called with the placed location and the confirmed name when "Drop a waypoint" is chosen from [ThreeWayActionDialog] — see [WaypointNameDialog]. */
-    onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
-    onDeleteWaypoint: (String) -> Unit = {},
-    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
-    onDeleteTrack: ((String) -> Unit)? = null,
-    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
-    tracksErrorMessage: String? = null,
-    /**
-     * Bearing/distance/elevation difference back to the active track's start point, from the
-     * device's current position — `null` whenever nothing is being recorded, no fix has come in
-     * yet, or no breadcrumb has landed to compute a start from. See [ReturnToStartInfo]'s own doc
-     * comment for why there's no ETA, and [CompassElevationStripContent] for where this renders.
-     */
-    returnToStart: ReturnToStartInfo? = null,
-    /** Whether the walker has said they're heading back — see [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.startReturn]'s own doc comment. */
-    isReturning: Boolean = false,
-    /**
-     * RECORD -844, -845: the return has just ended on arrival and the navigation display holds "Arrived",
-     * with the start ringed, until the ViewModel's hold ends; see
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.isArrivalHeld]. Counts as navigating, so
-     * the display stays up for the hold and then closes to the plain map.
-     */
-    isArrivalHeld: Boolean = false,
-    /** Set once [isReturning] and the walker has gone off the path they walked out, until back on it — see `OffTrackJudge` (dispatch 2026-09-28-425). */
-    isOffTrack: Boolean = false,
-    /**
-     * The recording's sundown line (dispatch 2026-09-28-592, plan task T3), from
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.sundownLine]: the strip shows it while
-     * recording, the navigation display once Return or Navigate is tapped. `null` with no recording.
-     */
-    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = null,
-    /**
-     * This recording's Back by (dispatch 2026-09-28-645, plan task T15), from
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.backBy]: the quick menu's top line,
-     * the gear's dot, and the strip's line in its last hour. `null` with none set or no recording.
-     */
-    recordingBackBy: com.zynergylabs.forager.app.domain.BackByShown? = null,
-    /** The quick menu's "+1 h", "+2 h", "+3 h" and picked time: [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.setBackBy]. */
-    onBackByChoice: (com.zynergylabs.forager.app.domain.BackByChoice) -> Unit = {},
-    /** The quick menu's "Clear": [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.clearBackBy]. */
-    onClearBackBy: () -> Unit = {},
-    onToggleReturning: () -> Unit = {},
+    /** The in-app camera's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenCamera]. Defaulted, as its eight fields were when they were parameters here. */
+    cameraInputs: AvailabilityScreenCamera = AvailabilityScreenCamera(),
+    /** Journal entries' state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenJournalEntries]. Defaulted, as its 22 fields were when they were parameters here. */
+    journalEntries: AvailabilityScreenJournalEntries = AvailabilityScreenJournalEntries(),
+    /** The Journal's entry report and cards' readers (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenEntryReportData]. Defaulted, as its four fields were when they were parameters here. */
+    entryReportData: AvailabilityScreenEntryReportData = AvailabilityScreenEntryReportData(),
+    /** Track recording inputs (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenRecording]. Defaulted, as its 11 fields were when they were parameters here. */
+    recording: AvailabilityScreenRecording = AvailabilityScreenRecording(),
+    /** Saved waypoints, tracks and pending-delete notices (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenRecords]. Defaulted, as its 12 fields were when they were parameters here. */
+    records: AvailabilityScreenRecords = AvailabilityScreenRecords(),
+    /** Return and waypoint navigation inputs (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenNavigation]. Defaulted, as its 11 fields were when they were parameters here. */
+    navigation: AvailabilityScreenNavigation = AvailabilityScreenNavigation(),
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
      * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
@@ -735,96 +405,160 @@ fun AvailabilityScreen(
      */
     computeTrueHeading: ComputeTrueHeadingUseCase = remember { ComputeTrueHeadingUseCase(AndroidDeclinationProvider()) },
     /**
-     * Navigation HUD stage one's target — the active track's origin waypoint
-     * ([com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.originWaypoint]), `null` when there is
-     * none. Threaded separately from [waypoints] because it decides which of them the *map* draws
-     * ([mapVisibleWaypoints]) as well as what the HUD points at.
-     */
-    navigationTarget: Waypoint? = null,
-    /**
-     * The route home while returning (dispatch 2026-09-28-423, plan task T6), read from
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.routeHome] by [returnRouteOf].
-     * The HUD's needle, large figure and "Try again" come from it; see [NavigationHud]. Not
-     * nullable: this screen's HUD is the return HUD, and a return is always in route mode (the
-     * planner's ruling), so no caller can put it in the straight-line mode by leaving this out.
-     * [ReturnRoute.Pending] until there is a result, as `MainActivity` passes it.
-     */
-    returnRoute: ReturnRoute = ReturnRoute.Pending,
-    /** The way back drawn on the map while returning (dispatch 2026-09-28-497); `null` draws none. */
-    routeLine: RouteLine? = null,
-    /** The HUD's "Try again": `TrackRecordingViewModel.retryRoute`. */
-    onRetryRoute: () -> Unit = {},
-    /**
-     * Dispatch 2026-09-28-502 (plan tasks T8 and T9): "Navigate" on a waypoint, given its id
-     * (`AvailabilityViewModel.onNavigateToWaypoint`). Offered in the Maps tab's bubbles, the waypoint's
-     * details sheet and the Records rows; `null` (the default) offers it nowhere, as [onDeleteTrack]
-     * does for its delete.
-     */
-    onNavigateToWaypoint: ((String) -> Unit)? = null,
-    /** Dispatch 2026-09-28-502: ends the waypoint navigation (`AvailabilityViewModel.onStopWaypointNavigation`). */
-    onStopWaypointNavigation: () -> Unit = {},
-    /**
-     * Dispatch 2026-09-28-502: whether [waypoints] has been read yet (`TrackRecordingUiState.waypointsLoaded`).
-     * Until it has, a waypoint being navigated to that is missing from it is waited for, not taken as
-     * deleted. `true` by default: a caller that hands a list has loaded it.
-     */
-    waypointsLoaded: Boolean = true,
-    /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
-    /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
-    onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
-    /**
-     * Every recorded track, for the Settings "Recorded Tracks" export panel — see
-     * [com.zynergylabs.forager.app.ui.track.TrackExportPanel]'s own doc comment. Empty by default, same
-     * [breadcrumbPoints]/[waypoints] shape above: the real list is [trackUiState.tracks][com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.tracks],
-     * threaded in by `MainActivity`.
-     */
-    tracks: List<Track> = emptyList(),
-    /** Refreshes [tracks] — called whenever the export panel opens, mirroring [onOfflineMapsOpened]'s own "reload on open" shape. */
-    onTracksOpened: () -> Unit = {},
-    /**
-     * GPX full-record export dispatch: the unfiltered read for a shared track's `<extensions>`
-     * block — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Empty by default,
-     * same [tracks]/[waypoints] shape above; the real function is
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.getFullRecord], threaded in by
-     * `MainActivity`.
-     */
-    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
-    /**
-     * The Journal's pending deletes, one per record type at most (journal redesign J4): each is shown
-     * as an Undo snackbar in this screen's one snackbar host, the same slot "Saved to Drafts" and
-     * the trip-start warning use, so it docks where those do and outlives a
-     * Journal tab change. `MainActivity` builds them from the owning ViewModels' pending state; see
-     * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
-     */
-    pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
-    /**
-     * Map layers L0b. [onMapShown] runs every time the Maps tab comes into view (the Maps
-     * bottom-nav tab or rail item), which
-     * is how the saved records and the forecast availability stay fresh (the dispatch, B2:
-     * `AvailabilityViewModel.onMapShown`). The next three are the Layers sheet's changes, and
-     * [forecastCellStore] is where the Maps tab's colour fields read their cells (the app's one store,
-     * `AppContainer.forecastCellStore`). All defaulted, so no other caller changes.
-     */
-    onMapShown: () -> Unit = {},
-    onMapLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
-    onMapLayerOpacityChanged: (String, Float) -> Unit = { _, _ -> },
-    onColourFieldMoved: (String, ColourFieldMove) -> Unit = { _, _ -> },
-    forecastCellStore: ForecastCellStore = AbsentForecastCellStore,
-    /**
-     * Dispatch 2026-09-28-708: the Maps tab's basemap was picked, so the ViewModel can store it
-     * ([AvailabilityViewModel.onMapModeSelected]). Defaulted, so no other caller changes.
-     */
-    onMapModeSelected: (MapMode) -> Unit = {},
-    /**
-     * RECORD -711: a drag of the Maps tab's icon cluster ended, so the ViewModel can store its side and
-     * height ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). Defaulted, so no other caller changes.
-     */
-    onMapIconClusterPlacementChanged: (MapIconClusterPlacement) -> Unit = {},
 ) {
+    // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
+    val inAppCameraTarget = cameraInputs.inAppCameraTarget
+    val onOpenCamera = cameraInputs.onOpenCamera
+    val onCloseCamera = cameraInputs.onCloseCamera
+    val inAppCamera = cameraInputs.inAppCamera
+    val cameraGridMode = cameraInputs.cameraGridMode
+    val onCameraGridModeChanged = cameraInputs.onCameraGridModeChanged
+    val cameraFormat = cameraInputs.cameraFormat
+    val onCameraFormatChanged = cameraInputs.onCameraFormatChanged
+    // Phase 2.1 (dispatch 2026-10-19-28): the backup and import bundle, unpacked under the parameter names it replaced.
+    val backup = backupAndImport.backup
+    val returnToMapRequest = backupAndImport.returnToMapRequest
+    val openBackupRequest = backupAndImport.openBackupRequest
+    val gpxImportNotice = backupAndImport.gpxImportNotice
+    val onGpxImportNoticeShown = backupAndImport.onGpxImportNoticeShown
+    val onGpxFilePicked = backupAndImport.onGpxFilePicked
+    // Phase 2.1 (dispatch 2026-10-19-28): the entry report data bundle, unpacked under the parameter names it replaced.
+    val getCartographyEntryMapData = entryReportData.getCartographyEntryMapData
+    val getCartographyEntryOfflineRegion = entryReportData.getCartographyEntryOfflineRegion
+    val getSavedTrackPaths = entryReportData.getSavedTrackPaths
+    val getCartographyEntryCurrentLocation = entryReportData.getCartographyEntryCurrentLocation
+    // Phase 2.1 (dispatch 2026-10-19-28): the map controls bundle, unpacked under the parameter names it replaced.
+    val onMapFullscreenChanged = mapControls.onMapFullscreenChanged
+    val onLocateMe = mapControls.onLocateMe
+    val onMapShown = mapControls.onMapShown
+    val onMapLayerVisibilityChanged = mapControls.onMapLayerVisibilityChanged
+    val onMapLayerOpacityChanged = mapControls.onMapLayerOpacityChanged
+    val onColourFieldMoved = mapControls.onColourFieldMoved
+    val forecastCellStore = mapControls.forecastCellStore
+    val onMapModeSelected = mapControls.onMapModeSelected
+    val onMapIconClusterPlacementChanged = mapControls.onMapIconClusterPlacementChanged
+    // Phase 2.1 (dispatch 2026-10-19-28): the findsLog bundle, unpacked under the parameter names it replaced.
+    val logUiState = findsLog.logUiState
+    val onStartLogEntry = findsLog.onStartLogEntry
+    val onOpenLogEntry = findsLog.onOpenLogEntry
+    val onCloseLogEntry = findsLog.onCloseLogEntry
+    val onLogEntryChanged = findsLog.onLogEntryChanged
+    val onStartEditingLogEntry = findsLog.onStartEditingLogEntry
+    val onOpenLogEntryForEditing = findsLog.onOpenLogEntryForEditing
+    val onSaveLogEntry = findsLog.onSaveLogEntry
+    val onCancelLogEntryEditing = findsLog.onCancelLogEntryEditing
+    val onLeaveLogEntryEditingIncidentally = findsLog.onLeaveLogEntryEditingIncidentally
+    val onDiscardLogDraft = findsLog.onDiscardLogDraft
+    val onAddLogPhoto = findsLog.onAddLogPhoto
+    val onRemoveLogPhoto = findsLog.onRemoveLogPhoto
+    val onPullLogPhoto = findsLog.onPullLogPhoto
+    val onDeleteLogEntry = findsLog.onDeleteLogEntry
+    val onDeleteGalleryPhoto = findsLog.onDeleteGalleryPhoto
+    val onAddGalleryPhoto = findsLog.onAddGalleryPhoto
+    val onSaveLogErrorDismissed = findsLog.onSaveLogErrorDismissed
+    val onRequestDeleteGalleryPhoto = findsLog.onRequestDeleteGalleryPhoto
+    // Phase 2.1 (dispatch 2026-10-19-28): the journalEntries bundle, unpacked under the parameter names it replaced.
+    val cartographyUiState = journalEntries.cartographyUiState
+    val onOpenCartographyEntry = journalEntries.onOpenCartographyEntry
+    val onStartCartographyEntry = journalEntries.onStartCartographyEntry
+    val onCloseCartographyEntry = journalEntries.onCloseCartographyEntry
+    val onCartographyTextChanged = journalEntries.onCartographyTextChanged
+    val onCartographyTagsChanged = journalEntries.onCartographyTagsChanged
+    val onSetFindDecision = journalEntries.onSetFindDecision
+    val onSetTrackDecision = journalEntries.onSetTrackDecision
+    val onSetWaypointDecision = journalEntries.onSetWaypointDecision
+    val onSetOfflineRegionDecision = journalEntries.onSetOfflineRegionDecision
+    val onSetEntryGroupIncluded = journalEntries.onSetEntryGroupIncluded
+    val onToggleKeptPhoto = journalEntries.onToggleKeptPhoto
+    val onAcquirePhotoForCartographyEntry = journalEntries.onAcquirePhotoForCartographyEntry
+    val onFinishCartographyEntry = journalEntries.onFinishCartographyEntry
+    val onSaveCartographyEntry = journalEntries.onSaveCartographyEntry
+    val onDiscardCartographyEntryChanges = journalEntries.onDiscardCartographyEntryChanges
+    val onSaveCartographyEntryAsDraft = journalEntries.onSaveCartographyEntryAsDraft
+    val onDeleteCartographyEntry = journalEntries.onDeleteCartographyEntry
+    val onRequestDeleteCartographyEntry = journalEntries.onRequestDeleteCartographyEntry
+    val onSetCartographyEntryShownOnMap = journalEntries.onSetCartographyEntryShownOnMap
+    val onCartographyShownOnMapErrorDismissed = journalEntries.onCartographyShownOnMapErrorDismissed
+    val onCartographySaveErrorDismissed = journalEntries.onCartographySaveErrorDismissed
+    // Phase 2.1 (dispatch 2026-10-19-28): the records bundle, unpacked under the parameter names it replaced.
+    val waypoints = records.waypoints
+    val waypointsErrorMessage = records.waypointsErrorMessage
+    val waypointEntryReferenceCounts = records.waypointEntryReferenceCounts
+    val onDropWaypoint = records.onDropWaypoint
+    val onDeleteWaypoint = records.onDeleteWaypoint
+    val onDeleteTrack = records.onDeleteTrack
+    val tracksErrorMessage = records.tracksErrorMessage
+    val waypointsLoaded = records.waypointsLoaded
+    val tracks = records.tracks
+    val onTracksOpened = records.onTracksOpened
+    val getFullRecord = records.getFullRecord
+    val pendingDeleteNotices = records.pendingDeleteNotices
+    // Phase 2.1 (dispatch 2026-10-19-28): the navigation bundle, unpacked under the parameter names it replaced.
+    val returnToStart = navigation.returnToStart
+    val isReturning = navigation.isReturning
+    val isArrivalHeld = navigation.isArrivalHeld
+    val isOffTrack = navigation.isOffTrack
+    val onToggleReturning = navigation.onToggleReturning
+    val navigationTarget = navigation.navigationTarget
+    val returnRoute = navigation.returnRoute
+    val routeLine = navigation.routeLine
+    val onRetryRoute = navigation.onRetryRoute
+    val onNavigateToWaypoint = navigation.onNavigateToWaypoint
+    val onStopWaypointNavigation = navigation.onStopWaypointNavigation
+    // Phase 2.1 (dispatch 2026-10-19-28): the recording bundle, unpacked under the parameter names it replaced.
+    val isRecording = recording.isRecording
+    val onToggleRecording = recording.onToggleRecording
+    val startRecordingErrorMessage = recording.startRecordingErrorMessage
+    val tripStartWarning = recording.tripStartWarning
+    val networkFixesNotice = recording.networkFixesNotice
+    val backgroundRunPrompt = recording.backgroundRunPrompt
+    val breadcrumbPoints = recording.breadcrumbPoints
+    val recordingSundownLine = recording.recordingSundownLine
+    val recordingBackBy = recording.recordingBackBy
+    val onBackByChoice = recording.onBackByChoice
+    val onClearBackBy = recording.onClearBackBy
+    // Phase 2.1 (dispatch 2026-10-19-28): the settings bundle, unpacked under the parameter names it replaced.
+    val onNightModeMapsChanged = settings.onNightModeMapsChanged
+    val onAutoSaveLocationToPhotosChanged = settings.onAutoSaveLocationToPhotosChanged
+    val onSundownAlertsEnabledChanged = settings.onSundownAlertsEnabledChanged
+    val onDarknessMarginChanged = settings.onDarknessMarginChanged
+    val onOffTrackReminderChanged = settings.onOffTrackReminderChanged
+    val onBatterySaverChanged = settings.onBatterySaverChanged
+    val settingsResetNoticePending = settings.settingsResetNoticePending
+    val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
+    val onThemeModeChanged = settings.onThemeModeChanged
+    val onDistanceUnitSelected = settings.onDistanceUnitSelected
+    // Phase 2.1 (dispatch 2026-10-19-28): the offlineMaps bundle, unpacked under the parameter names it replaced.
+    val onOfflineMapLatChanged = offlineMaps.onOfflineMapLatChanged
+    val onOfflineMapLngChanged = offlineMaps.onOfflineMapLngChanged
+    val onOfflineMapRadiusChanged = offlineMaps.onOfflineMapRadiusChanged
+    val onOfflineMapNameChanged = offlineMaps.onOfflineMapNameChanged
+    val onOfflineMapsOpened = offlineMaps.onOfflineMapsOpened
+    val onDownloadOfflineMaps = offlineMaps.onDownloadOfflineMaps
+    val onDeleteOfflineRegion = offlineMaps.onDeleteOfflineRegion
+    val onDownloadAgain = offlineMaps.onDownloadAgain
+    // Phase 2.1 (dispatch 2026-10-19-28): the searchInputs bundle, unpacked under the parameter names it replaced.
+    val onUseCurrentLocation = searchInputs.onUseCurrentLocation
+    val onManualLatChanged = searchInputs.onManualLatChanged
+    val onManualLngChanged = searchInputs.onManualLngChanged
+    val onSearchManualCoordinates = searchInputs.onSearchManualCoordinates
+    val onRadiusChanged = searchInputs.onRadiusChanged
+    val onMonthSelected = searchInputs.onMonthSelected
+    val onMapTabSelected = searchInputs.onMapTabSelected
+    val onSeasonalTabSelected = searchInputs.onSeasonalTabSelected
+    val onTaxonSearchQueryChanged = searchInputs.onTaxonSearchQueryChanged
+    val onTaxonSearchResultSelected = searchInputs.onTaxonSearchResultSelected
+    val onDismissTaxonSuggestions = searchInputs.onDismissTaxonSuggestions
+    val onReopenTaxonSuggestions = searchInputs.onReopenTaxonSuggestions
+    val onPlaceTripPin = searchInputs.onPlaceTripPin
+    val onDeletePlannedTrip = searchInputs.onDeletePlannedTrip
+    val onRecentSearchSelected = searchInputs.onRecentSearchSelected
+    val onClearSearch = searchInputs.onClearSearch
+
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
     // Saveable, like compactTab below (journal redesign J2, second coder; planner's call in
@@ -1165,6 +899,8 @@ fun AvailabilityScreen(
         nightModeLoaded = uiState.nightModeMapsLoaded && (uiState.mapMode != null || chosenMapMode != null),
         layers = drawnMapLayers,
         forecast = forecastFeed,
+        // Dispatch 2026-10-19-37: the Maps tab's map springs back from a small nudge while following.
+        nudgeSpringBack = true,
     )
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
     // comment. mapMode above is persisted the same way since dispatch 2026-09-28-708.
@@ -2048,25 +1784,3 @@ fun AvailabilityScreen(
         camera = inAppCamera,
     )
 }
-
-/** The compact Tools drawer's sheet, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
-internal const val TOOLS_DRAWER_SHEET_TAG = "tools-drawer-sheet"
-
-/**
- * Where the Tools drawer's "Offline maps" row was tapped (RECORD -871): the bottom-nav tab and its results tab, the
- * Journal's top tab and Records chip as they were, and whether the map was fullscreen. Back from Records puts these
- * back under the reopened drawer; see `toolsReturn` in [AvailabilityScreen].
- */
-private data class ToolsOfflineMapsReturn(
-    val compactTab: CompactTab,
-    val selectedTab: ResultsTab,
-    val journalTopTab: JournalTopTab,
-    val recordsFilter: RecordsSubTab,
-    val mapFullscreen: Boolean,
-)
-
-/**
- * Dispatch 2026-09-28-502, Amendment 1: what the walker is told when the waypoint they are navigating to
- * was deleted, meanwhile or while the app was closed. Provisional words, accepted by the planner.
- */
-internal const val WAYPOINT_NAVIGATION_GONE_TEXT = "Stopped navigating: that waypoint was deleted."

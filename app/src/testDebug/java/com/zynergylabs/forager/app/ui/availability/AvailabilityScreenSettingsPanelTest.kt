@@ -73,7 +73,7 @@ import org.robolectric.annotation.Config
  * Two pieces of [AvailabilityScreen], measured headlessly:
  *
  * 1. The quick-fire mode icon over the map's own top-right corner, and that tapping it opens
- *    [MapModePicker], and that tapping a mode chip there actually changes which [Basemap] the map
+ *    `MapModePicker` (removed 2026-10-19, RECORD -1392), and that tapping a mode chip there actually changes which [Basemap] the map
  *    slot receives — not just that an icon is somewhere on screen. Settings' old "Choose Maps
  *    Service" section is gone entirely — see [com.zynergylabs.forager.app.ui.map.MapMode]'s own doc comment for
  *    what superseded it — so this file no longer tests it.
@@ -142,32 +142,40 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = CapturingMapSlot,
-                tracks = tracks,
+                records = AvailabilityScreenRecords(
+                    tracks = tracks,
+                ),
             )
         }
     }
@@ -184,37 +192,43 @@ class AvailabilityScreenSettingsPanelTest {
             var current by remember { mutableStateOf(initial) }
             AvailabilityScreen(
                 uiState = current,
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = { text -> current = current.copy(offlineMapLatText = text) },
-                onOfflineMapLngChanged = { text -> current = current.copy(offlineMapLngText = text) },
-                onOfflineMapRadiusChanged = { radius -> current = current.copy(offlineMapRadiusKm = radius) },
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
-                onAutoSaveLocationToPhotosChanged = { enabled ->
-                    current = current.copy(autoSaveLocationToPhotos = enabled)
-                    capturedAutoSaveLocation = enabled
-                },
-                onThemeModeChanged = { mode ->
-                    current = current.copy(themeMode = mode)
-                    capturedThemeMode = mode
-                },
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = { text -> current = current.copy(offlineMapLatText = text) },
+                    onOfflineMapLngChanged = { text -> current = current.copy(offlineMapLngText = text) },
+                    onOfflineMapRadiusChanged = { radius -> current = current.copy(offlineMapRadiusKm = radius) },
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
+                    onAutoSaveLocationToPhotosChanged = { enabled ->
+                        current = current.copy(autoSaveLocationToPhotos = enabled)
+                        capturedAutoSaveLocation = enabled
+                    },
+                    onThemeModeChanged = { mode ->
+                        current = current.copy(themeMode = mode)
+                        capturedThemeMode = mode
+                    },
+                ),
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -753,30 +767,36 @@ class AvailabilityScreenSettingsPanelTest {
                         ),
                     ),
                 ),
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = CapturingMapSlot,
             )
         }

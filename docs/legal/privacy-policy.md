@@ -1,7 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-10-15.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
-including its Google Play closed test.
+**Last updated: 2026-10-19.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
 actually does; where a claim comes from a particular file, that file is named so the claim can be
@@ -57,8 +56,7 @@ send.
 | iNaturalist (`api.inaturalist.org`) | Latitude and longitude of the searched area, a radius, a month, taxon filters (`INaturalistApi.kt`) | Which species have been observed near that place at that time of year |
 | Open-Meteo (`api.open-meteo.com`) | Latitude and longitude, forecast/past day counts (`OpenMeteoApi.kt`) | Rain, soil moisture and soil temperature for the trip window |
 | Open-Meteo archive (`archive-api.open-meteo.com`) | Latitude and longitude, a date range (`OpenMeteoArchiveApi.kt`) | Historical rainfall, for the fruiting-lag calculation |
-| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`), USGS (`basemap.nationalmap.gov`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`) | Drawing the map |
-| MapLibre demo tiles (`demotiles.maplibre.org`) | Font glyph ranges for map labels (`BasemapStyles.kt`) | Map label rendering |
+| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`) | Drawing the map |
 | `forager-pmtiles.brandonlee1-894.workers.dev` — a Cloudflare Worker operated by the developer | The offline map style, and vector map tiles by `z/x/y` (`OfflineStyle.kt`, `server/pmtiles-worker/`) | The offline basemap, and downloading an offline region |
 
 As with any HTTP request, each of these also reveals your IP address and ordinary request metadata

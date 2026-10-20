@@ -44,3 +44,14 @@ fun isLandscapeWindow(): Boolean = LocalConfiguration.current.orientation == Con
 /** Short, or landscape: the gate for a rule that was "short" and is meant to follow the landscape layouts too. */
 @Composable
 fun isShortOrLandscapeWindow(): Boolean = isShortWindow() || isLandscapeWindow()
+
+/**
+ * Whether the window is a large screen, a tablet or an unfolded foldable: its smallest width is at least
+ * [com.zynergylabs.forager.app.ui.log.LARGE_SCREEN_MIN_SMALLEST_WIDTH_DP] (600 dp, the same threshold the camera's natural-frame
+ * hold uses). Dispatch 2026-10-18-10 (Forager RECORD -1337, -1338, -1340): the gate for the tablet Journal's wider column and square
+ * maps. Every phone, in either orientation, is under it (the S22 Ultra's smallest width is 384 dp), so a phone's layout never reads
+ * true here. A separate function, not a case threaded into [isLandscapeWindow] (CLAUDE.md, Building).
+ */
+@Composable
+fun isLargeScreenWindow(): Boolean =
+    LocalConfiguration.current.smallestScreenWidthDp >= com.zynergylabs.forager.app.ui.log.LARGE_SCREEN_MIN_SMALLEST_WIDTH_DP

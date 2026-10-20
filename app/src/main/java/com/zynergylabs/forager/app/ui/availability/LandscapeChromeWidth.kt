@@ -12,7 +12,7 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
  * How wide the compass strip and the navigation display may be in the short-landscape Map tab without reaching the
  * search bar (dispatch 2026-09-28-685, Amendment 1, RECORD -694; the owner: "Stay beside the search bar, '…'
  * (Recommended)"). On the S22 at font scale 2.0 the strip (content-width) and the display (full width up to
- * [LANDSCAPE_HUD_MAX_WIDTH]) grew from the rail's side across the centre line and over the bar, and nothing bounded
+ * `LANDSCAPE_HUD_MAX_WIDTH` (removed 2026-10-20, RECORD -1431)) grew from the rail's side across the centre line and over the bar, and nothing bounded
  * them by it. Now they stay in the room between the rail-side controls edge and the bar's end; text that does not fit
  * there ends in "…" on one line, so nothing gets taller and the central third's clearance is unchanged.
  *

@@ -195,137 +195,151 @@ class AvailabilityScreenBackNavigationTest {
             var cartographyState by remember { mutableStateOf(cartographyUiState) }
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = viewModel::useCurrentLocation,
-                onManualLatChanged = viewModel::onManualLatChanged,
-                onManualLngChanged = viewModel::onManualLngChanged,
-                onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                onRadiusChanged = viewModel::onRadiusChanged,
-                onMonthSelected = viewModel::onMonthSelected,
-                onMapTabSelected = viewModel::onMapTabSelected,
-                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = viewModel::onPlaceTripPin,
-                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onThemeModeChanged = viewModel::onThemeModeChanged,
-                isRecording = isReturning,
-                isReturning = isReturning,
-                onToggleReturning = onToggleReturning,
-                navigationTarget = if (isReturning) {
-                    com.zynergylabs.forager.app.domain.model.Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)
-                } else {
-                    null
-                },
-                logUiState = logState,
-                onStartLogEntry = { location, date ->
-                    // Workstream L4b: a brand-new entry is a draft, never added to entries at
-                    // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
-                    // doc comment.
-                    logState = logState.copy(
-                        editingEntry = com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(
-                            id = "started-entry",
-                            location = location,
-                            date = date,
-                        ),
-                    )
-                },
-                onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
-                onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
-                onLeaveLogEntryEditingIncidentally = {
-                    // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
-                    // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
-                    // own doc comment.
-                    logState.editingEntry?.let { current ->
-                        val committed = current.copy(isDraft = false)
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = viewModel::useCurrentLocation,
+                    onManualLatChanged = viewModel::onManualLatChanged,
+                    onManualLngChanged = viewModel::onManualLngChanged,
+                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                    onRadiusChanged = viewModel::onRadiusChanged,
+                    onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                ),
+                recording = AvailabilityScreenRecording(
+                    isRecording = isReturning,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = isReturning,
+                    onToggleReturning = onToggleReturning,
+                    navigationTarget = if (isReturning) {
+                        com.zynergylabs.forager.app.domain.model.Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)
+                    } else {
+                        null
+                    },
+                ),
+                findsLog = AvailabilityScreenFindsLog(
+                    logUiState = logState,
+                    onStartLogEntry = { location, date ->
+                        // Workstream L4b: a brand-new entry is a draft, never added to entries at
+                        // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
+                        // doc comment.
                         logState = logState.copy(
-                            entries = if (logState.entries.any { it.id == committed.id }) {
-                                logState.entries.map { if (it.id == committed.id) committed else it }
-                            } else {
-                                logState.entries + committed
-                            },
+                            editingEntry = com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(
+                                id = "started-entry",
+                                location = location,
+                                date = date,
+                            ),
+                        )
+                    },
+                    onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
+                    onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
+                    onLeaveLogEntryEditingIncidentally = {
+                        // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
+                        // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
+                        // own doc comment.
+                        logState.editingEntry?.let { current ->
+                            val committed = current.copy(isDraft = false)
+                            logState = logState.copy(
+                                entries = if (logState.entries.any { it.id == committed.id }) {
+                                    logState.entries.map { if (it.id == committed.id) committed else it }
+                                } else {
+                                    logState.entries + committed
+                                },
+                                editingEntry = null,
+                            )
+                        }
+                    },
+                ),
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = cartographyState,
+                    onOpenCartographyEntry = { id ->
+                        cartographyState = cartographyState.copy(
+                            editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
+                        )
+                    },
+                    onStartCartographyEntry = { date ->
+                        val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
+                        cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
+                    },
+                    onCloseCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            cartographyState = cartographyState.copy(
+                                entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
+                                    cartographyState.entries.map { if (it.id == current.id) current else it }
+                                } else {
+                                    cartographyState.entries
+                                },
+                            )
+                        }
+                        cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                    },
+                    onCartographyTextChanged = { text ->
+                        cartographyState.editingEntry?.let { current ->
+                            val edited = current.copy(text = text)
+                            cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
+                        }
+                    },
+                    onFinishCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            val committed = current.copy(isDraft = false)
+                            cartographyState = cartographyState.copy(
+                                entries = cartographyState.entries + committed,
+                                draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
+                                editingEntry = committed,
+                            )
+                        }
+                    },
+                    onSaveCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            cartographyState = cartographyState.copy(
+                                entries = if (cartographyState.entries.any { it.id == current.id }) {
+                                    cartographyState.entries.map { if (it.id == current.id) current else it }
+                                } else {
+                                    cartographyState.entries + current
+                                },
+                                hasUnsavedChanges = false,
+                            )
+                        }
+                    },
+                    onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
+                    onSaveCartographyEntryAsDraft = {
+                        cartographyState.editingEntry?.let { current ->
+                            val demoted = current.copy(isDraft = true)
+                            cartographyState = cartographyState.copy(
+                                entries = cartographyState.entries.filterNot { it.id == demoted.id },
+                                draftEntries = cartographyState.draftEntries + demoted,
+                            )
+                        }
+                        cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                    },
+                    onDeleteCartographyEntry = { id ->
+                        cartographyState = cartographyState.copy(
+                            entries = cartographyState.entries.filterNot { it.id == id },
+                            draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
                             editingEntry = null,
                         )
-                    }
-                },
-                cartographyUiState = cartographyState,
-                onOpenCartographyEntry = { id ->
-                    cartographyState = cartographyState.copy(
-                        editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
-                    )
-                },
-                onStartCartographyEntry = { date ->
-                    val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
-                    cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
-                },
-                onCloseCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        cartographyState = cartographyState.copy(
-                            entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
-                                cartographyState.entries.map { if (it.id == current.id) current else it }
-                            } else {
-                                cartographyState.entries
-                            },
-                        )
-                    }
-                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
-                },
-                onCartographyTextChanged = { text ->
-                    cartographyState.editingEntry?.let { current ->
-                        val edited = current.copy(text = text)
-                        cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
-                    }
-                },
-                onFinishCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        val committed = current.copy(isDraft = false)
-                        cartographyState = cartographyState.copy(
-                            entries = cartographyState.entries + committed,
-                            draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
-                            editingEntry = committed,
-                        )
-                    }
-                },
-                onSaveCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        cartographyState = cartographyState.copy(
-                            entries = if (cartographyState.entries.any { it.id == current.id }) {
-                                cartographyState.entries.map { if (it.id == current.id) current else it }
-                            } else {
-                                cartographyState.entries + current
-                            },
-                            hasUnsavedChanges = false,
-                        )
-                    }
-                },
-                onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
-                onSaveCartographyEntryAsDraft = {
-                    cartographyState.editingEntry?.let { current ->
-                        val demoted = current.copy(isDraft = true)
-                        cartographyState = cartographyState.copy(
-                            entries = cartographyState.entries.filterNot { it.id == demoted.id },
-                            draftEntries = cartographyState.draftEntries + demoted,
-                        )
-                    }
-                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
-                },
-                onDeleteCartographyEntry = { id ->
-                    cartographyState = cartographyState.copy(
-                        entries = cartographyState.entries.filterNot { it.id == id },
-                        draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
-                        editingEntry = null,
-                    )
-                },
+                    },
+                ),
                 compassProvider = BackNavFakeCompassProvider,
                 mapSlot = BackNavStubMapSlot,
             )

@@ -329,7 +329,7 @@ internal fun ObservationBubble(
  * render identically to the unfiltered view. [label] is `"<species> (<count>)"`, computed by each
  * caller from the same [Sighting] list the map actually draws (see [MapTab]'s own doc comment on
  * `mapTaxonFilterLabel` for why it isn't read from [AvailabilityForecast] directly). Same
- * theme-aware, 80%-opacity fill as [ObservationBubble]/`MapIconBar`/`MapModePicker` — one visual
+ * theme-aware, 80%-opacity fill as [ObservationBubble]/`MapIconBar`/`MapModePicker` (removed 2026-10-19, RECORD -1392) — one visual
  * language for every control floating over the map.
  *
  * No shadow (J8 follow-ups, continuation `2026-09-28-87`, item 3; the planner's ruling, "Layered fills

@@ -44,6 +44,8 @@ import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
 import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import com.zynergylabs.forager.app.ui.credits.OpenMeteoCredit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -74,6 +76,10 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
     // READABLE_CONTENT_MAX_WIDTH is that constraint; COMPACT keeps fillMaxWidth exactly as
     // before, since a phone-width screen never approaches that cap anyway.
     val windowWidthClass = currentWindowWidthClass()
+    // Amendment 4 to dispatch 2026-10-18-10 (RECORD -1355, the owner: "Same as the Journal (960)"): beside the rail on a large
+    // screen the tab is the 960 dp column the scaffold gives it, in place of this 640 dp readable cap, whose reasoning above the
+    // owner's choice overrides there. Portrait on a tablet, and phones, keep 640.
+    val seasonalMaxWidth = if (isLargeScreenWindow() && isLandscapeWindow()) TABLET_JOURNAL_CONTENT_MAX_WIDTH else READABLE_CONTENT_MAX_WIDTH
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -82,7 +88,7 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
                     if (windowWidthClass == WindowWidthClass.COMPACT) {
                         Modifier.fillMaxWidth()
                     } else {
-                        Modifier.widthIn(max = READABLE_CONTENT_MAX_WIDTH).fillMaxWidth()
+                        Modifier.widthIn(max = seasonalMaxWidth).fillMaxWidth()
                     },
                 )
                 .verticalScroll(rememberScrollState())
@@ -154,6 +160,13 @@ private fun seasonalShowsOpenMeteoFigures(uiState: AvailabilityUiState): Boolean
  * `internal` since landscape B3 (R9): the compact scaffold caps every tab beside the landscape rail with it.
  */
 internal val READABLE_CONTENT_MAX_WIDTH = 640.dp
+
+/**
+ * Dispatch 2026-10-18-10 (Forager RECORD -1340, the owner's "A: wider column (Recommended)": the same columns in a wider centred
+ * column of about 960 dp): the Journal's content cap beside the landscape rail on a large screen (smallest width 600 dp or more),
+ * in place of [READABLE_CONTENT_MAX_WIDTH]. Rejected by the owner: more columns across the full width, and stretched cards.
+ */
+internal val TABLET_JOURNAL_CONTENT_MAX_WIDTH = 960.dp
 
 /** Lets [AvailabilityScreenAdaptiveLayoutTest] measure the readable-width column directly. */
 const val SEASONAL_CONTENT_TAG = "seasonal-content"

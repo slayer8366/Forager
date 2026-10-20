@@ -1,22 +1,13 @@
 package com.zynergylabs.forager.app.ui.log
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
+// UI split Phase 1, PR 10f (dispatch 2026-10-19-23): the shutter moved to CameraShutter.kt; the tags, the RAW shot step and the strip chips to InAppCameraParts.kt.
+
 import com.zynergylabs.forager.app.ui.motion.StateCrossfade
-import androidx.compose.foundation.LocalIndication
-import com.zynergylabs.forager.app.ui.motion.pressBounce
 import android.content.res.Configuration
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -32,15 +23,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.rawCaptureSize
@@ -50,7 +37,6 @@ import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
-import com.zynergylabs.forager.app.photo.RawShotOutcome
 import com.zynergylabs.forager.app.photo.RawShotSaver
 import com.zynergylabs.forager.app.photo.rawShotSaverFor
 import com.zynergylabs.forager.app.photo.CaptureCountdown
@@ -477,198 +463,4 @@ private fun Modifier.swallowTouchesBelow(): Modifier = pointerInput(Unit) {
             awaitPointerEvent().changes.forEach { it.consume() }
         }
     }
-}
-
-/**
- * The shutter band's contents: the shutter hard against the charger-port edge, the count (and a
- * failure) inboard of it. Along a horizontal edge — portrait, the port edge at the bottom — that is
- * a column with the shutter last; along a vertical edge it is a row with the shutter outermost,
- * mirrored by which side the port is on. One composable for all three, because the difference is
- * an axis and an order, and separate copies are how the halves drift apart.
- *
- * The shutter is always the outermost child, with the count inboard. That ordering is the point:
- * the shutter's distance from the edge the thumb wraps around is what the motor habit is built on.
- * Every glyph turns in place by [rotateWithDevice]; the shutter is a disc and has nothing to turn.
- */
-@Composable
-private fun ShutterCluster(
-    edge: ScreenEdge,
-    deviceRotation: Int?,
-    /** The dialog-level window rotation, not read here — see the CameraStrip call site for why. */
-    displayRotation: Int,
-    captureError: String?,
-    /** A notice about a photo that was saved (a RAW shot kept as JPG): the normal colour, not the error colour (RECORD -1019). */
-    captureNotice: String?,
-    photosTaken: Int,
-    shutterEnabled: Boolean,
-    /** "Take photo", or "Cancel timer" while a countdown runs. */
-    shutterDescription: String,
-    onShutter: () -> Unit,
-) {
-    val readout: @Composable (horizontalAlignment: Alignment.Horizontal) -> Unit = { alignment ->
-        Column(horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            captureNotice?.let { message ->
-                OverlayText(
-                    message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_NOTICE_TAG),
-                )
-            }
-            captureError?.let { message ->
-                OverlayText(
-                    message,
-                    fill = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_ERROR_TAG),
-                )
-            }
-            OverlayText(
-                photoCountLabel(photosTaken),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_COUNT_TAG),
-            )
-        }
-    }
-    if (edge.isHorizontal) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            readout(Alignment.CenterHorizontally)
-            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
-            }
-        }
-    } else {
-        val portOnRight = edge == ScreenEdge.Right
-        Row(
-            modifier = Modifier.padding(Spacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (portOnRight) {
-                readout(Alignment.End)
-                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
-            } else {
-                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
-                readout(Alignment.Start)
-            }
-        }
-    }
-}
-
-/**
- * The shutter: a plain ringed disc, the shape every camera app has trained people to recognise,
- * with the overlay rule's black ring at its outer edge — drawn inside the same 72 dp, so the disc
- * reads over a white scene without moving.
- */
-@Composable
-private fun ShutterButton(enabled: Boolean, description: String, onClick: () -> Unit) {
-    // Amendment 2 to motion Part 1 (RECORD -659, the owner: "Shutter yes, rows no"): the disc dips on a press and springs back,
-    // not under reduced motion. The touch box, its circular clip, the ripple, the tag and the description stay on the outer node,
-    // as they were; only the drawn disc, on the inner node, bounces.
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier
-            .size(SHUTTER_SIZE_DP.dp)
-            .clip(CircleShape)
-            .clickable(interactionSource = interactionSource, indication = LocalIndication.current, enabled = enabled, onClick = onClick)
-            .semantics { contentDescription = description }
-            .testTag(CAMERA_SHUTTER_TAG),
-    ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .pressBounce(interactionSource)
-                .clip(CircleShape)
-                .background(if (enabled) OverlayFill else OverlayFill.copy(alpha = DISABLED_SHUTTER_ALPHA))
-                // Drawing only, at the full 72 dp: the black ring at the outer edge, then the white ring inset by it. The first
-                // cut put the padding before the tag and the tagged node shrank 1.5 dp; the tag is on the outer node now, which
-                // the padding here cannot touch.
-                .overlayRing()
-                .padding(OVERLAY_OUTLINE_WIDTH / 2)
-                .border(SHUTTER_RING_DP.dp, OverlayFill.copy(alpha = SHUTTER_RING_ALPHA), CircleShape),
-        )
-    }
-}
-
-/**
- * "No photos yet" / "1 photo taken" / "4 photos taken". Singular is not decoration: the count is
- * the only feedback a session gives, so it should read like a sentence rather than a counter.
- */
-internal fun photoCountLabel(count: Int): String = when (count) {
-    0 -> "No photos yet"
-    1 -> "1 photo taken"
-    else -> "$count photos taken"
-}
-
-private const val SHUTTER_SIZE_DP = 72
-private const val SHUTTER_RING_DP = 4
-private const val SHUTTER_RING_ALPHA = 0.6f
-private const val DISABLED_SHUTTER_ALPHA = 0.4f
-
-internal const val IN_APP_CAMERA_TAG = "in-app-camera"
-internal const val CAMERA_SHUTTER_TAG = "in-app-camera-shutter"
-internal const val CAMERA_SHUTTER_BAND_TAG = "in-app-camera-shutter-band"
-internal const val CAMERA_COUNT_TAG = "in-app-camera-count"
-internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
-internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
-internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
-internal const val SHUTTER_DESCRIPTION = "Take photo"
-internal const val CANCEL_TIMER_DESCRIPTION = "Cancel timer"
-internal const val CAMERA_COUNTDOWN_TAG = "in-app-camera-countdown"
-internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
-internal const val CAMERA_NOTICE_TAG = "in-app-camera-notice"
-
-/** What a RAW shot came to, for the screen: a photo (with a [notice] when it was kept as JPG only), or no photo at all. */
-internal sealed interface RawShotScreenOutcome {
-    data class Saved(val source: CameraCapturePhotoSource, val notice: String?) : RawShotScreenOutcome
-    data object Failed : RawShotScreenOutcome
-}
-
-/**
- * One RAW shot through the shot step (Amendment 1, item 3): the camera writes the JPG and hands back the sensor data, and
- * [saver] writes and checks the DNG, or says why the JPG is the whole photo. A shot whose JPG did not save is a failed
- * shot, exactly as a JPG shot's is.
- */
-internal suspend fun takeRawShot(session: CameraCaptureSession, saver: RawShotSaver, capture: CameraCaptureFiles.Capture): RawShotScreenOutcome {
-    val shot = session.captureRaw(capture.file).getOrElse { return RawShotScreenOutcome.Failed }
-    return when (val outcome = saver.save(shot)) {
-        is RawShotOutcome.Kept -> RawShotScreenOutcome.Saved(CameraCapturePhotoSource(capture, rawFile = outcome.dng), notice = null)
-        is RawShotOutcome.JpgOnly -> RawShotScreenOutcome.Saved(CameraCapturePhotoSource(capture), notice = outcome.message)
-    }
-}
-
-/**
- * The strip's chips for this session, in order along the edge: Flash, Timer, Grid, Location
- * (decision B8, Closed decision A), then the gear (dispatch 2026-09-28-707), always present. The flash chip only when the bound camera has a flash unit: it
- * would hide itself anyway, but a chip that composes nothing would still take a slot. Read in
- * composition, so the chip arrives when the bind reports the unit. The Timer chip always
- * (2026-09-26), the grid chip always (2026-09-22), and the Location chip always (2026-09-26):
- * every camera can time a shot, draw a grid and show the photo-location setting.
- */
-private fun stripChips(
-    session: CameraCaptureSession,
-    timerMode: TimerMode,
-    onTimerModeChanged: (TimerMode) -> Unit,
-    gridMode: GridMode,
-    onGridModeChanged: (GridMode) -> Unit,
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    onOpenCameraSettings: () -> Unit,
-    onOpenFormatMenu: () -> Unit,
-): List<StripChip> = buildList {
-    if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
-    // The format chip, after the flash as the owner's mockup draws it (dispatch 2026-10-15-01), only where the probe
-    // offers RAW within the operating limit; elsewhere there is no chip and nothing changes (RECORD -974).
-    if (rawCaptureSize(session.capabilities) != null) {
-        add { deviceRotation, displayRotation -> FormatChip(session.outputFormat, onOpenFormatMenu, deviceRotation, displayRotation) }
-    }
-    add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
-    add { deviceRotation, displayRotation -> GridChip(gridMode, onGridModeChanged, deviceRotation, displayRotation) }
-    add { deviceRotation, displayRotation ->
-        LocationChip(autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, deviceRotation, displayRotation)
-    }
-    add { deviceRotation, displayRotation -> CameraSettingsChip(onOpenCameraSettings, deviceRotation, displayRotation) }
 }

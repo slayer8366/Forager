@@ -164,49 +164,61 @@ class AvailabilityScreenInAppCameraTest {
             ProvideConfigurationAndWindow(configuration) {
                 AvailabilityScreen(
                     uiState = SEARCHED_STATE.copy(autoSaveLocationToPhotos = autoSaveLocation),
-                    onUseCurrentLocation = {},
-                    onManualLatChanged = {},
-                    onManualLngChanged = {},
-                    onSearchManualCoordinates = {},
-                    onRadiusChanged = {},
-                    onMonthSelected = {},
-                    onMapTabSelected = {},
-                    onSeasonalTabSelected = {},
-                    onTaxonSearchQueryChanged = {},
-                    onTaxonSearchResultSelected = {},
-                    onDismissTaxonSuggestions = {},
-                    onReopenTaxonSuggestions = {},
-                    onPlaceTripPin = { _, _, _ -> },
-                    onDeletePlannedTrip = {},
-                    onRecentSearchSelected = {},
-                    onOfflineMapLatChanged = {},
-                    onOfflineMapLngChanged = {},
-                    onOfflineMapRadiusChanged = {},
-                    onOfflineMapNameChanged = {},
-                    onOfflineMapsOpened = {},
-                    onDownloadOfflineMaps = {},
-                    onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
-                    onAutoSaveLocationToPhotosChanged = { requested ->
-                        autoSaveLocationRequests += requested
-                        autoSaveLocation = requested
-                    },
+                    searchInputs = AvailabilityScreenSearchInputs(
+                        onUseCurrentLocation = {},
+                        onManualLatChanged = {},
+                        onManualLngChanged = {},
+                        onSearchManualCoordinates = {},
+                        onRadiusChanged = {},
+                        onMonthSelected = {},
+                        onMapTabSelected = {},
+                        onSeasonalTabSelected = {},
+                        onTaxonSearchQueryChanged = {},
+                        onTaxonSearchResultSelected = {},
+                        onDismissTaxonSuggestions = {},
+                        onReopenTaxonSuggestions = {},
+                        onPlaceTripPin = { _, _, _ -> },
+                        onDeletePlannedTrip = {},
+                        onRecentSearchSelected = {},
+                    ),
+                    offlineMaps = AvailabilityScreenOfflineMaps(
+                        onOfflineMapLatChanged = {},
+                        onOfflineMapLngChanged = {},
+                        onOfflineMapRadiusChanged = {},
+                        onOfflineMapNameChanged = {},
+                        onOfflineMapsOpened = {},
+                        onDownloadOfflineMaps = {},
+                        onDeleteOfflineRegion = {},
+                    ),
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                        onAutoSaveLocationToPhotosChanged = { requested ->
+                            autoSaveLocationRequests += requested
+                            autoSaveLocation = requested
+                        },
+                    ),
                     mapSlot = boxMapSlot,
-                    inAppCameraTarget = target,
-                    onOpenCamera = { opened += it; target = it },
-                    onCloseCamera = { closed++; target = null },
-                    inAppCamera = fakeCamera,
-                    cameraGridMode = cameraGridMode,
-                    onCameraGridModeChanged = { gridModeRequests += it },
-                    onAddLogPhoto = { logEntryPhotos += it },
-                    onAddGalleryPhoto = { albumPhotos += it },
-                    onAcquirePhotoForCartographyEntry = { cartographyPhotos += it },
-                    cartographyUiState = cartographyState,
-                    onStartCartographyEntry = { date ->
-                        val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
-                        cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
-                    },
+                    cameraInputs = AvailabilityScreenCamera(
+                        inAppCameraTarget = target,
+                        onOpenCamera = { opened += it; target = it },
+                        onCloseCamera = { closed++; target = null },
+                        inAppCamera = fakeCamera,
+                        cameraGridMode = cameraGridMode,
+                        onCameraGridModeChanged = { gridModeRequests += it },
+                    ),
+                    findsLog = AvailabilityScreenFindsLog(
+                        onAddLogPhoto = { logEntryPhotos += it },
+                        onAddGalleryPhoto = { albumPhotos += it },
+                    ),
+                    journalEntries = AvailabilityScreenJournalEntries(
+                        onAcquirePhotoForCartographyEntry = { cartographyPhotos += it },
+                        cartographyUiState = cartographyState,
+                        onStartCartographyEntry = { date ->
+                            val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
+                            cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
+                        },
+                    ),
                 )
             }
         }

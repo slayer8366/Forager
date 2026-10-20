@@ -123,7 +123,7 @@ internal fun joinedTrackRoute(points: List<TrackPoint>, epsilonMeters: Double = 
     val queue = PriorityQueue<QueueEntry>()
     queue.add(QueueEntry(0.0, source))
     while (queue.isNotEmpty()) {
-        val entry = queue.poll()
+        val entry = queue.poll()!!
         val u = entry.node
         if (u == 0) break
         if (entry.distance > distance[u]) continue

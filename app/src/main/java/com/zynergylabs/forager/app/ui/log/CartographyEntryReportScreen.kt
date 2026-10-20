@@ -29,14 +29,12 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,7 +42,6 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -70,8 +67,6 @@ import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.HIDE_FROM_MAP_LABEL
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
@@ -93,14 +88,12 @@ import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
-import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.util.UUID
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.unit.Constraints
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.launch
 import com.zynergylabs.forager.app.ui.format.displayDate
@@ -414,6 +407,10 @@ internal fun CartographyEntryReportScreen(
     // either arrangement, and EntryReportLayout only places them, so the one mapSlot call below never moves in the
     // composition when the phone turns (this file's doc comment, "Fullscreen").
     val landscapeSplit = isLandscapeWindow()
+    // Dispatch 2026-10-18-10 (RECORD -1337, the owner: "The tall map in tablet mode would look better as a 1:1 box with the info
+    // next to it. Journal entry page can be spread further apart in the same way"; -1340): on a large screen the map is a square, on
+    // the left beside the details in landscape, on top with the details under it in portrait. A phone keeps the 4:3 box.
+    val mapAspectRatio = if (isLargeScreenWindow()) 1f else 4f / 3f
 
     @Composable
     fun OfflineRow(horizontalPadding: Dp) {
@@ -446,6 +443,7 @@ internal fun CartographyEntryReportScreen(
         split = landscapeSplit && entryMapShown && !isMapFullscreen,
         fullscreen = isMapFullscreen,
         infoMinWidth = LANDSCAPE_ENTRY_INFO_MIN_WIDTH,
+        squareMap = mapAspectRatio == 1f,
         modifier = modifier.fillMaxWidth().testTag(ENTRY_REPORT_TAG),
         header = {
         // Hidden via composition (an if, not an opacity/size-zero modifier), same convention
@@ -539,7 +537,7 @@ internal fun CartographyEntryReportScreen(
                     // L2 (dispatch 2026-09-28-47): see shortWindowEntryMapHeight.
                     Modifier.fillMaxWidth().shortWindowEntryMapHeight(shortWindowMapCap)
                 } else {
-                    Modifier.fillMaxWidth().aspectRatio(4f / 3f)
+                    Modifier.fillMaxWidth().aspectRatio(mapAspectRatio)
                 }.testTag(CARTOGRAPHY_MAP_TEST_TAG),
             ) {
                 // One call, textually, regardless of isMapFullscreen — see this file's own doc
@@ -781,183 +779,5 @@ internal fun CartographyEntryReportScreen(
     }
 }
 
-/** The report header's overflow menu, for tests. */
-internal const val ENTRY_OVERFLOW_MENU_TAG = "entry-overflow-menu"
-
-/** The entry delete dialog, for tests. */
-internal const val ENTRY_DELETE_DIALOG_TAG = "entry-delete-dialog"
-
-/**
- * Data part A (dispatch 2026-09-28-667) put it in the owner's word, "include" for "keep" (RECORD
- * -656), and "offline maps" for "offline regions", as the editor's panel names them.
- *
- * Reported verbatim per the Stage 2d dispatch's own instruction ("write the wording yourself... and
- * report the exact string you used, so the owner can adjust it") — a `const val` so the exact text
- * is visible in code, not buried in a chained string-builder call. Deliberately not a copy of
- * [LogEntryReportScreen]'s own empty-state text: a find and a Cartography entry hold different
- * things (a find is an observation record with taxonomic fields; a Cartography entry is a day
- * assembled from that day's records), so this names what an entry actually holds rather than
- * echoing the find screen's wording.
- */
-private const val EMPTY_ENTRY_MESSAGE =
-    "This entry has nothing included yet. An entry can hold the finds, tracks, waypoints, offline " +
-        "maps, and photos you choose to include from a day's records, plus anything you write. " +
-        "Tap the three-dot menu, then Edit, to add something."
-
-/** Reported verbatim, same reasoning as [EMPTY_ENTRY_MESSAGE] — the toggle's own label, Journal Stage 2e-i. */
-private const val OFFLINE_TOGGLE_LABEL = "Offline map"
-
-/**
- * Reported verbatim, same reasoning as [EMPTY_ENTRY_MESSAGE]. States the tradeoff plainly rather than
- * dressing it up as a warning — the current offline style is a hosting-cost constraint the owner
- * intends to lift later, not a design choice, but it is today's reality and a user should not meet it
- * as a surprise the first time they flip this switch.
- */
-private const val OFFLINE_TOGGLE_CAPTION = "Offline maps show shapes only — no place names, road names, or icons."
-
-/**
- * The entry map's waypoint pins (M1): each resolved marker, named by the entry's own snapshot of that
- * waypoint (`CartographyEntry.waypointDecisions`), which is what the entry's text lists too. A marker
- * the entry has no decision for keeps the placeholder name it always had.
- */
-internal fun entryMapWaypoints(entry: CartographyEntry, markers: List<RecordPoint>): List<Waypoint> = markers.map { marker ->
-    Waypoint(
-        id = marker.recordId,
-        lat = marker.at.lat,
-        lng = marker.at.lng,
-        altitude = null,
-        name = entry.waypointDecisions.firstOrNull { it.waypointId == marker.recordId }?.name ?: "Waypoint",
-        note = "",
-        createdAtEpochMillis = 0L,
-    )
-}
-
-/** Lets tests distinguish "the map section rendered" from "nothing resolved, no map section at all" without depending on [mapSlot]'s own real content — see this file's own doc comment, "No map section at all while loading, or if nothing resolved." */
-/**
- * L2 (dispatch `prompts/preserved/2026-09-28-47.md`; the device evidence is
- * `docs/audits/2026-09-28-backlog-device-check-part-b-run-record.md`, item 7). **The rule:** in a
- * short window (under 480 dp tall, `isShortWindow`, whatever the orientation) the entry map's
- * preview is 4:3 by its width, as everywhere else, but never taller than this fraction of the
- * window's height: 40%, which is **153.6 dp** in the S22 Ultra's 384 dp landscape window.
- *
- * Why a cap was needed at all: in the 640 dp landscape column a 4:3 map is 480 dp tall, taller than
- * the whole window. `aspectRatio` measures it at 480 dp regardless, and Compose centres an oversized
- * child on its slot, so the map was drawn about 104 dp above its own slot, over the header row, and
- * the offline row and the text below got no height at all.
- *
- * Why 40%: what else must fit beside it in that window, measured headless at `w823dp-h384dp-land`:
- * the Journal's 48 dp short-window row and the report's 64 dp header row take 112 dp of the 384, so
- * a 154 dp map leaves about 118 dp for the offline-map row (about 64 dp on a device) and the start
- * of the scrolling text. Half the window (192 dp) would leave the text about 16 dp once the offline
- * row shows. Rejected: capping the width too, to keep 4:3 (205 x 154 dp), which wastes the column
- * for no gain, since a tap still opens the fullscreen map.
- */
-internal const val SHORT_WINDOW_MAP_HEIGHT_FRACTION = 0.4f
-
-/**
- * L2's map box: the full width it is given, and a height of 3/4 of that width, but no more than
- * [cap] and never more than the incoming constraints allow, so the box can never be measured taller
- * than its slot (the overflow `aspectRatio` produced). A layout modifier rather than `heightIn` on
- * `aspectRatio`, because `aspectRatio` falls back to its unconstrained size when nothing satisfies
- * the constraints, which is the overflow itself.
- */
-private fun Modifier.shortWindowEntryMapHeight(cap: Dp): Modifier = layout { measurable, constraints ->
-    val width = constraints.maxWidth
-    val height = minOf(width * 3 / 4, cap.roundToPx()).coerceIn(constraints.minHeight, constraints.maxHeight)
-    val placeable = measurable.measure(Constraints.fixed(width, height))
-    layout(width, height) { placeable.place(0, 0) }
-}
-
-internal const val CARTOGRAPHY_MAP_TEST_TAG = "cartography-entry-map"
-
-/** The day entry report's own bounds, and its scrolling info column, for tests (dispatch 2026-10-18-01). */
-internal const val ENTRY_REPORT_TAG = "cartography-entry-report"
-internal const val ENTRY_REPORT_INFO_TAG = "cartography-entry-report-info"
-
-/**
- * Dispatch 2026-10-18-01, the owner's answer to the planner's Q1 (RECORD -1260): "Largest that leaves info ≥240 dp
- * (Recommended)". Beside the landscape map the info column keeps at least this width. Every tab's content beside the rail is
- * capped at 640 dp ([com.zynergylabs.forager.app.ui.availability.READABLE_CONTENT_MAX_WIDTH]), so "4:3, as large as fits the
- * height" cannot always hold: on a landscape tablet a map as tall as the window would be wider than the whole column. Rejected
- * alternatives the owner was shown: the map at most half the width (320 x 240 everywhere), and lifting the 640 dp cap for the
- * entry, which reaches into the Journal tab's layout.
- */
-internal val LANDSCAPE_ENTRY_INFO_MIN_WIDTH = 240.dp
-
-/**
- * The day entry's three parts, placed. Not a Row or a Column chosen by orientation: a measure policy that only places, so
- * [header], [map] and [body] are the same composables in either arrangement and the map's one mapSlot call keeps its place in
- * the composition when the phone turns (MainActivity handles rotation itself, so a rebuilt map would be a real MapView torn
- * down; [CartographyEntryReportScreen]'s doc comment, "Fullscreen").
- *
- * - Not [split] (portrait, and any window without a map or with the map fullscreen): stacked as before. The header at the top
- *   at its own height; the map under it at its own height, at most what is left (all of it in [fullscreen]); the body takes
- *   the rest exactly, as the `weight(1f)` it replaced did.
- * - [split] (dispatch 2026-10-18-01, a landscape window with a map): the map on the left in a 4:3 box, the largest whose
- *   height fits and which leaves [infoMinWidth] beside it; the header at the top of the right side, pinned; the body under it
- *   taking the rest of the right side's height exactly, so it scrolls on its own.
- */
-@Composable
-private fun EntryReportLayout(
-    split: Boolean,
-    fullscreen: Boolean,
-    infoMinWidth: Dp,
-    header: @Composable () -> Unit,
-    map: @Composable () -> Unit,
-    body: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Layout(contents = listOf(header, map, body), modifier = modifier) { (headerParts, mapParts, bodyParts), constraints ->
-        val width = constraints.maxWidth
-        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else constraints.minHeight
-        val loose = Constraints(maxWidth = width, maxHeight = height)
-        if (split) {
-            val boxWidth = minOf(height * 4 / 3, (width - infoMinWidth.roundToPx()).coerceAtLeast(0))
-            val boxHeight = boxWidth * 3 / 4
-            val mapPlaceables = mapParts.map { it.measure(Constraints(maxWidth = boxWidth, maxHeight = boxHeight)) }
-            val infoWidth = width - boxWidth
-            val headerPlaceables = headerParts.map { it.measure(Constraints(maxWidth = infoWidth, maxHeight = height)) }
-            val headerHeight = headerPlaceables.maxOfOrNull { it.height } ?: 0
-            val bodyPlaceables = bodyParts.map { it.measure(Constraints.fixed(infoWidth, (height - headerHeight).coerceAtLeast(0))) }
-            layout(width, height) {
-                mapPlaceables.forEach { it.place(0, 0) }
-                headerPlaceables.forEach { it.place(boxWidth, 0) }
-                bodyPlaceables.forEach { it.place(boxWidth, headerHeight) }
-            }
-        } else {
-            val headerPlaceables = headerParts.map { it.measure(loose) }
-            val headerHeight = headerPlaceables.maxOfOrNull { it.height } ?: 0
-            val mapRoom = (height - headerHeight).coerceAtLeast(0)
-            val mapPlaceables = mapParts.map {
-                it.measure(if (fullscreen) Constraints.fixed(width, mapRoom) else Constraints(maxWidth = width, maxHeight = mapRoom))
-            }
-            val mapHeight = mapPlaceables.maxOfOrNull { it.height } ?: 0
-            val bodyPlaceables = bodyParts.map { it.measure(Constraints.fixed(width, (mapRoom - mapHeight).coerceAtLeast(0))) }
-            layout(width, height) {
-                headerPlaceables.forEach { it.place(0, 0) }
-                mapPlaceables.forEach { it.place(0, headerHeight) }
-                bodyPlaceables.forEach { it.place(0, headerHeight + mapHeight) }
-            }
-        }
-    }
-}
-
 /** Lets tests select the offline-map [Switch] directly, rather than relying on an untagged toggleable-semantics query. */
 internal const val OFFLINE_TOGGLE_TEST_TAG = "cartography-entry-offline-toggle"
-
-private data class ReportItem(val title: String, val subtitle: String?)
-
-/** One category of kept items — omitted entirely when [items] is empty, never shown with a "nothing yet" placeholder. See this file's own doc comment for why. */
-@Composable
-private fun ReportItemsSection(title: String, items: List<ReportItem>) {
-    if (items.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        items.forEach { item ->
-            Column {
-                Text(item.title, style = MaterialTheme.typography.bodyMedium)
-                item.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-        }
-    }
-}

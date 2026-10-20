@@ -213,7 +213,7 @@ internal fun FindsGalleryScreen(
             JournalNewItemButton(
                 text = "New find",
                 icon = Icons.Filled.Eco,
-                onClick = onAddEntry!!,
+                onClick = onAddEntry,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).testTag(FINDS_FAB_TAG),
             )
         }

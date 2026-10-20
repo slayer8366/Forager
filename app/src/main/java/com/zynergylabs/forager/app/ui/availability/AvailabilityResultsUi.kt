@@ -87,7 +87,9 @@ internal fun ListTab(
     modifier: Modifier = Modifier,
 ) {
     Column(
+        // The tag goes first, so its bounds are the whole Column (the tab's column), not the content inside the 16 dp padding.
         modifier = modifier
+            .testTag(LIST_CONTENT_TAG)
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -105,6 +107,12 @@ internal fun ListTab(
         ResultsSection(uiState = uiState, distanceUnit = distanceUnit, onViewOnMap = onViewOnMap, modifier = Modifier.weight(1f))
     }
 }
+
+/**
+ * [ListTab]'s own Column, so a test can measure List's content (dispatch 2026-10-19-06, RECORD -1385): on a tablet beside the
+ * rail it spans the 960 dp column (TabletJournalLayoutTest).
+ */
+const val LIST_CONTENT_TAG = "list-content"
 
 /**
  * Says out loud that the ranking below came out of the offline cache rather than off the network,

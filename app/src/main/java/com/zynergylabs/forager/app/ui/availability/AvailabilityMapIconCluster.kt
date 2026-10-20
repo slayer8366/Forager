@@ -5,10 +5,6 @@ import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.ui.unit.Density
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.animation.core.AnimationVector1D
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -22,7 +18,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +46,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -70,7 +64,6 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -86,7 +79,6 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
@@ -146,154 +138,6 @@ import kotlin.reflect.KProperty
  * whatever its size (dispatch 2026-09-28-246). The owner's ruling of 2026-09-29, "Never on portrait or
  * tablet mode", is superseded for a landscape tablet by -246.
  */
-
-/**
- * Everything the cluster holds and measures. The user-set values (side, minimised, offset) live in
- * [position], held by the caller so they survive leaving and returning (CLAUDE.md, "UX defaults"); the rest
- * is measurement, re-taken on every mount.
- */
-internal class MapIconClusterState(
-    val position: MapIconClusterPositionState,
-) {
-    /** The compact scaffold's rail and punch-hole edges; both null except in a short landscape window, and always null on the tablet. Set each composition. */
-    var railPortEdge: ScreenEdge? = null
-    var punchHoleEdge: ScreenEdge? = null
-
-    /** A short landscape window's own cluster (Landscape B2, S6), with its own position fields. Compact-only. */
-    val landscape: Boolean get() = railPortEdge != null && punchHoleEdge != null
-
-    var isMinimized: Boolean
-        get() = if (landscape) position.landscapeIsMinimized else position.isMinimized
-        set(value) { if (landscape) position.landscapeIsMinimized = value else position.isMinimized = value }
-
-    /**
-     * Whether the cluster is on the window's left. In a short landscape window the side is stored as port or
-     * punch-hole (so turning the phone keeps it on the same device edge) and translated here; otherwise it is
-     * the portrait side unchanged.
-     */
-    var isOnLeftSide: Boolean
-        get() {
-            if (fixedLeft) return true
-            return savedOnLeftSide
-        }
-        set(value) {
-            // RECORD -955: while fixed, a side is never written, so the saved one is what returns.
-            if (fixedLeft) return
-            val port = railPortEdge
-            val punch = punchHoleEdge
-            if (port != null && punch != null) {
-                position.landscapeOnPortSide = (if (value) ScreenEdge.Left else ScreenEdge.Right) == port
-            } else {
-                position.isOnLeftSide = value
-            }
-        }
-
-    /** The side the user saved (the one [isOnLeftSide] reads whenever the bar is not [fixedLeft]). */
-    val savedOnLeftSide: Boolean
-        get() {
-            val port = railPortEdge
-            val punch = punchHoleEdge
-            return if (port != null && punch != null) (if (position.landscapeOnPortSide) port else punch) == ScreenEdge.Left else position.isOnLeftSide
-        }
-
-    /**
-     * RECORD -955, the owner: "There's no friendly way to keep the icon bar on the right in landscape mode. I say we keep it on the
-     * left in landscape"; "The screen left"; "Only have it fixed in a) landscape and b) with navigation mode on. Those two conditions
-     * must be met to have it fixed to the left. Else it can be set on the right as an option for the user". True while both hold:
-     * the bar is on the screen's left and cannot be dragged or snapped across. Never written into the saved side ([isOnLeftSide]'s
-     * setter does nothing while it holds), so when either condition ends the saved side returns. Set by [MapIconCluster].
-     */
-    var fixedLeft by mutableStateOf(false)
-
-    /** The offset the user last dragged the cluster to, the only thing a drag writes (the single source of truth); [displayedOffsetPx] is what is drawn. */
-    var userChosenOffsetPx: Float
-        get() = if (landscape) position.landscapeUserChosenOffsetPx else position.userChosenOffsetPx
-        set(value) { if (landscape) position.landscapeUserChosenOffsetPx = value else position.userChosenOffsetPx = value }
-
-    val displayedOffsetPx: Animatable<Float, AnimationVector1D>
-        get() = if (landscape) position.landscapeDisplayedOffsetPx else position.displayedOffsetPx
-
-    /** Whether this orientation's height was just restored and not yet fitted to measured bounds (RECORD -711); see [MapIconClusterPositionState.snapRestoredPortrait]. */
-    var snapRestored: Boolean
-        get() = if (landscape) position.snapRestoredLandscape else position.snapRestoredPortrait
-        set(value) { if (landscape) position.snapRestoredLandscape = value else position.snapRestoredPortrait = value }
-
-    /** Horizontal drag accumulated only during a gesture, read at its end to decide a side flip, then reset. */
-    var horizontalDragPx by mutableFloatStateOf(0f)
-
-    /** The glide from the finger to the cluster's side after a drag (motion Part 1, item 6). See [ClusterGlide]. */
-    val glide = ClusterGlide()
-
-    /** The map pane's real measured height and top in the root, written by the caller's content box: what the clamps are against. */
-    var mapContentBoxHeightPx by mutableFloatStateOf(0f)
-    var mapContentBoxTopInRootPx by mutableFloatStateOf(0f)
-
-    /** The map pane's left in the root, written with the top above; with [clusterBoundsInRoot] it gives the cluster's rectangle in the map's own pixels (attribution clearance, dispatch 2026-09-29-57, item 1). */
-    var mapContentBoxLeftInRootPx by mutableFloatStateOf(0f)
-
-    /** The cluster container's measured bounds in the root, written by the container only; null until first measured. */
-    var clusterBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
-
-    /** The cluster container's real measured height and width, written by the container only; kept while minimised. */
-    var clusterHeightPx by mutableFloatStateOf(0f)
-    var clusterWidthPx by mutableFloatStateOf(0f)
-
-    /** The bar's own vertical centre relative to the container's top, so the panels' anchors and handles' mid-height follow the bar, not the container. */
-    var centreInClusterPx by mutableFloatStateOf(0f)
-
-    /** The bottom navigation's measured height (the compact tree); 0 where there is none (the tablet). */
-    var bottomNavHeightPx by mutableFloatStateOf(0f)
-
-    /** The legend chip's top edge in the content box's coordinates, or null while none shows: a further lowest edge for the cluster. */
-    var legendChipTopPx: Float? by mutableStateOf(null)
-
-    /**
-     * T11 fixes (RECORD -766, P4): the navigation display's bottom edge in the root while navigating, written by the display;
-     * null while not navigating. What the landscape L slides down below ([navigationSlideApplies]).
-     */
-    var navigationDisplayBottomInRootPx: Float? by mutableStateOf(null)
-
-    /** RECORD -955: the landscape navigation card's bounds in the root while shown, written by the card; for its evening-line limit. */
-    var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
-
-    /**
-     * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster
-     * (its top less the offset it was placed at), so the slide's floor is a plain difference and does not move as the bar does.
-     */
-    var clusterRestTopInRootPx by mutableFloatStateOf(0f)
-
-    /**
-     * RECORD -770: in a landscape window, where the bar's top is at the lowest the L may go with the pill beside "+" (the bar
-     * alone, at the bottom of what the clamps allow); null until measured. The navigation display reads it to keep the bar's
-     * overlap within the Fullscreen row ([eveningLineFits]).
-     */
-    var navigationLowestBarTopInRootPx: Float? by mutableStateOf(null)
-
-    val sideAlignment: Alignment get() = if (isOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
-
-    /**
-     * Where a panel anchored to the cluster (AddActionTile) opens: the bar's live side and drag offset, plus
-     * the bar's own centre relative to the container's. Each caller adds its own row's anchor on top.
-     */
-    fun panelAnchorOffset(density: Density): DpOffset = with(density) {
-        DpOffset(
-            x = (if (isOnLeftSide) MAP_ICON_BAR_EDGE_INSET else -MAP_ICON_BAR_EDGE_INSET) + horizontalDragPx.toDp(),
-            y = (displayedOffsetPx.value + centreInClusterPx - clusterHeightPx / 2f).toDp(),
-        )
-    }
-}
-
-@Composable
-internal fun rememberMapIconClusterState(
-    position: MapIconClusterPositionState,
-    railPortEdge: ScreenEdge? = null,
-    punchHoleEdge: ScreenEdge? = null,
-): MapIconClusterState {
-    val state = remember { MapIconClusterState(position) }
-    state.railPortEdge = railPortEdge
-    state.punchHoleEdge = punchHoleEdge
-    return state
-}
 
 /**
  * The cluster: composed as a child of the map pane's `Box`, after the map and what sits over it, before the
@@ -599,7 +443,7 @@ internal fun BoxScope.MapIconCluster(
         state.horizontalDragPx = 0f
         // RECORD -711: a drag has ended, so its side and height are stored (AvailabilityScreen watches this).
         state.position.onDragSettled()
-        if (glides && from != null) {
+        if (glides) {
             state.glide.fromLeftInRootPx = from
             startGlide()
         }
@@ -798,105 +642,8 @@ internal fun BoxScope.MapIconCluster(
     }
 }
 
-/**
- * Gap between [MapIconBar]'s bottom edge and [ControlPill]'s top edge — matches [MapIconBar]'s own
- * `Spacing.sm` inset from the screen edge, so the pill reads as continuing the same margin rather
- * than sitting at an arbitrarily different distance. Icon-bar-unify-container dispatch: now the
- * cluster container Column's own `spacedBy`, no longer an offset from a measured bottom edge —
- * the gap was structural (produced by `Modifier.offset`, not padding in a shared parent), and
- * unifying the container is what changed how it is expressed. It is filled by the container at
- * [com.zynergylabs.forager.app.ui.map.MAP_ICON_CLUSTER_CONTAINER_ALPHA] and no longer passes touches to the
- * map, which is intentional; the two `@Ignore`d gap-touch tests in
- * `AvailabilityScreenMapIconStackTest` now carry a false premise on top of the Robolectric reason
- * they were parked for, and are left for the owner's own separate look.
- */
-private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
-
-/**
- * The icon cluster in a short landscape window, as an L (dispatch 2026-09-28-160; the owner: "Oh yeah on either side it looks like an
- * L. On the right side it just looks like an inverse L", and, on the height, "A"). [bar] (MapIconBar, five 48 dp rows, 240 dp) on top, an
- * 8 dp gap, then [pill] (ControlPill turned horizontal, 96 by 48): its outer end flush with the bar's outer edge, so record sits
- * exactly under the bar's column and return extends inboard, towards the middle of the screen; mirrored with the cluster's side. 296 dp in all.
- *
- * Replaces the side-by-side `ShortLandscapeClusterRow` (Part 1 layout fixes, "option A", planner message `2026-09-28-99`), which
- * sat inside a filled container; this draws nothing around the two shapes. The Column has no fill and no pointer input, so what is
- * outside them is the map's. Compact-only: the tablet never sets [MapIconClusterState.landscape].
- */
-@Composable
-private fun LandscapeLCluster(
-    onLeftSide: Boolean,
-    /**
-     * T11 fixes (RECORD -766, P4; the owner: "Have the recording pill to the left side of the + button on the icon bar, rather
-     * than below it. Same L, more compact", while navigating on the display's side): 0 is the pill under the bar, as above; 1
-     * is the pill beside "+", the bar's last row, on its inboard side, its bottom on the bar's bottom, so the L is the bar's
-     * 240 dp tall. Between the two the pill moves across first and then up (an L-shaped path), so at no point does it pass over
-     * a bar button: every button keeps its own touches mid-move, and the move is in the layout, so touches follow it.
-     */
-    pillBeside: Float = 0f,
-    bar: @Composable () -> Unit,
-    pill: @Composable () -> Unit,
-) {
-    val gapPx = with(LocalDensity.current) { CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR.roundToPx() }
-    androidx.compose.ui.layout.Layout(contents = listOf(bar, pill)) { (barMeasurables, pillMeasurables), _ ->
-        val loose = androidx.compose.ui.unit.Constraints()
-        val b = barMeasurables.first().measure(loose)
-        val p = pillMeasurables.first().measure(loose)
-        val across = (pillBeside * 2f).coerceIn(0f, 1f)
-        val up = (pillBeside * 2f - 1f).coerceIn(0f, 1f)
-        // The pill's outer end, from the bar's outer edge inward: 0 under the bar (flush with it), the bar's width and the gap
-        // beside "+". Its top: the gap under the bar, then level with "+".
-        val pillInset = ((b.width + gapPx) * across).roundToInt()
-        val pillTop = (b.height + gapPx + (-gapPx - p.height) * up).roundToInt()
-        val width = maxOf(b.width, pillInset + p.width)
-        val height = maxOf(b.height, pillTop + p.height)
-        layout(width, height) {
-            if (onLeftSide) {
-                b.place(0, 0)
-                p.place(pillInset, pillTop)
-            } else {
-                b.place(width - b.width, 0)
-                p.place(width - pillInset - p.width, pillTop)
-            }
-        }
-    }
-}
-
-/**
- * T11 fixes (RECORD -766, P4): whether the landscape L slides below the navigation display. Only in a landscape window (the
- * L), only while navigating, and only with the L on the display's side, which is the rail side (the display sits in the rail
- * side's top corner): the right at ROTATION_90, the left at ROTATION_270. The owner's words were "Right side only, left side
- * doesn't get this"; asked whether "right" meant the screen's right or the display's side, the owner answered "Follow the
- * display (Recommended)" (RECORD -768): a bar on the display's side, at either rotation.
- * Portrait, and the L on the other side, never change.
- */
-internal fun navigationSlideApplies(landscape: Boolean, isNavigating: Boolean, clusterOnLeftSide: Boolean, displayEdge: ScreenEdge?): Boolean =
-    landscape && isNavigating && displayEdge != null && clusterOnLeftSide == (displayEdge == ScreenEdge.Left)
-
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
-
-/**
- * The cluster's glide after a drag (motion Part 1, dispatch 2026-09-28-652 item 6; scout B14, B15). Holds no layout: the
- * cluster is laid out where it belongs the moment the finger lifts, as it always was, and [clusterGlideDraw] draws it from
- * [fromLeftInRootPx] (where it was under the finger) to that layout as [remaining] runs from 1 to 0.
- */
-internal class ClusterGlide {
-    /** How much of the glide is still to run: 1 at the finger, 0 landed (and whenever none is running). On the cluster's own navigation spec. */
-    var remaining by mutableFloatStateOf(0f)
-
-    /** The running glide, cancelled by a new drag. */
-    internal var job: Job? = null
-
-    /** The glided box's left edge in the root when the finger lifted. */
-    var fromLeftInRootPx = 0f
-
-    internal var clusterCoordinates: LayoutCoordinates? = null
-    internal var handleCoordinates: LayoutCoordinates? = null
-
-    /** The left edge in the root of whichever box is showing: the restore handle's while [minimized], the cluster's otherwise. */
-    fun leftInRootPx(minimized: Boolean): Float? =
-        (if (minimized) handleCoordinates else clusterCoordinates)?.takeIf { it.isAttached }?.positionInRoot()?.x
-}
 
 /**
  * Draws this box translated from where [glide] started to where it is laid out, by the part of the glide still to run. Drawing
@@ -911,29 +658,3 @@ private fun Modifier.clusterGlideDraw(glide: ClusterGlide, minimized: Boolean): 
         val dx = if (remaining == 0f || at == null) 0f else (glide.fromLeftInRootPx - at.positionInRoot().x) * remaining
         translate(left = dx) { this@drawWithContent.drawContent() }
     }
-
-/**
- * The two one-shot Toasts the map's controls raise, shared by the phone's Maps tab and the tablet's map: a
- * locate-me that was refused or failed, and a start-recording that was refused. Moved out of `CompactMapTab`
- * unchanged (J6c).
- */
-@Composable
-internal fun MapControlToasts(locateMeStatus: LocateMeStatus, startRecordingErrorMessage: String?) {
-    val context = LocalContext.current
-    LaunchedEffect(locateMeStatus) {
-        when (locateMeStatus) {
-            LocateMeStatus.PermissionDenied ->
-                Toast.makeText(context, "Location permission denied. Can't center on your position.", Toast.LENGTH_SHORT).show()
-            LocateMeStatus.Unavailable ->
-                Toast.makeText(context, "Couldn't determine your location.", Toast.LENGTH_SHORT).show()
-            else -> Unit
-        }
-    }
-    // Same one-shot-per-transition shape as the locateMeStatus effect above: a refused/failed
-    // startRecording() is an event ("the action you just took didn't happen"), not a persistent
-    // condition — the field only clears on the next successful startRecording() (see
-    // TrackRecordingViewModel), so a banner would outlive the moment it's relevant.
-    LaunchedEffect(startRecordingErrorMessage) {
-        startRecordingErrorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
-    }
-}

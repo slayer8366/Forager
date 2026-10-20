@@ -12,23 +12,19 @@ import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
-import com.zynergylabs.forager.app.domain.LOST_AFTER_MILLIS
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
-import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.StartEditingLogEntryUseCase
 import com.zynergylabs.forager.app.domain.UpdatePhotoLocationUseCase
-import com.zynergylabs.forager.app.domain.ageMillis
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
-import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -111,6 +107,14 @@ import kotlinx.coroutines.sync.withLock
  * disk-I/O-and-write critical section, so those critical sections run one at a time, in the order
  * the user's actions arrived (Kotlin's `Mutex` grants a contended lock to waiters in FIFO order).
  *
+ * **Where the critical sections live (UI split Phase 2.8, dispatch 2026-10-19-34).** Still this one
+ * `Mutex`, owned here and passed by reference, never copied, to the collaborators that now hold some of
+ * the critical sections: [MushroomLogPendingDeletes] (`requestDeleteEntry`, `commitFindDelete`),
+ * [MushroomLogCaptureLocation] (`promoteCaptureFixToFind`) and [MushroomLogEntryPhotos] (`onAddPhoto`,
+ * `onRemovePhoto`, `onPullPhoto`). The rest are in this class. [MushroomLogGallery] is not given it.
+ * The handler names below are this class's public functions, most of which now delegate to those
+ * collaborators.
+ *
  * **What's deliberately outside the lock:** [onEntryEdited]'s own *immediate* local reflection of a
  * keystroke (`_uiState.update` before its `launch`) — locking that too would add input lag to the
  * hottest path in this class for no correctness gain, since nothing else ever re-touches
@@ -122,9 +126,18 @@ import kotlinx.coroutines.sync.withLock
  * function call, not a nested acquisition, so it cannot deadlock.
  *
  * **No handler acquires [editingEntryMutex] while already holding it.** Checked directly, not
- * assumed: the one place a handler calls another editing-entry mutator
- * ([onDeleteGalleryPhoto] → [loadEntries]) is exactly the case above, where the caller never holds
- * the lock itself first. [onOpenEntryForEditing] below is deliberately its own critical section
+ * assumed: the places a handler calls another editing-entry mutator are all the case above, where the
+ * caller never holds the lock itself first. [onDeleteGalleryPhoto] → [loadEntries] was the first.
+ * Corrected 2026-10-20 (Sorrel's review of #332): it was never the only one. The album photo's
+ * committed pending delete ([MushroomLogPendingDeletes.commitGalleryPhotoDelete], in this class until
+ * Phase 2.8 moved it) and the camera-capture fix patch (`requestAndPatchCaptureFix`, in
+ * [MushroomLogCaptureLocation]) call [loadEntries] the same way, and [reloadAfterRestore] joins it
+ * before taking its own lock. One path is taken while holding the lock and leads to an acquisition:
+ * [onAddPhoto] → `patchCameraCaptureLocationIntoFind` (in [MushroomLogCaptureLocation]) launches a
+ * coroutine that later reaches `promoteCaptureFixToFind`'s lock. Nobody awaits that coroutine, so it
+ * queues behind the holder rather than nesting (the planner's ruling in 2.8's verify-first; Sorrel's
+ * review of #333; reasoning, not a test).
+ * [onOpenEntryForEditing] below is deliberately its own critical section
  * with its own inline logic, not `withLock { onOpenEntry(id); onStartEditingEntry() }` calling the
  * two existing public methods — that shape would have this function's own lock acquisition wait on
  * itself, a guaranteed deadlock on first use, since Kotlin's `Mutex` is not reentrant.
@@ -154,7 +167,7 @@ import kotlinx.coroutines.sync.withLock
  *
  * ## Camera-capture location: a fire-and-forget follow-up write (photo-geodata dispatch)
  *
- * [locationProvider] is only ever read from [patchCameraCaptureLocation], never awaited by
+ * [locationProvider] is only ever read from [MushroomLogCaptureLocation.patchCameraCaptureLocation], never awaited by
  * [onAddPhoto]/[onAddGalleryPhoto] themselves. This was a genuine, reported tension in the
  * dispatch's own two instructions — "read GPS at capture" and "never block/delay capture" — that
  * directly reusing [LocationProvider.getCurrentLocation] cannot satisfy simultaneously, since that
@@ -195,10 +208,10 @@ class MushroomLogViewModel(
      * lambda), the one live collection of fixes that runs whenever the app is foregrounded and is
      * not gated on a recording. A plain function rather than the other ViewModel or its state
      * flow, the same shape as [getPhotoEntryReferenceCount]: this class needs one value at one
-     * moment, never a subscription. Never awaited — see [freshDeviceLocation].
+     * moment, never a subscription. Never awaited — see [MushroomLogCaptureLocation.freshDeviceLocation].
      */
     private val currentFix: () -> LocationFix.Update? = { null },
-    /** Clock for [freshDeviceLocation]'s age check, injected so a test can fix a fix's age. */
+    /** Clock for [MushroomLogCaptureLocation.freshDeviceLocation]'s age check, injected so a test can fix a fix's age. */
     private val now: () -> Long = System::currentTimeMillis,
     /**
      * Settings' "Automatically Save Location to Photos" preference, read at the moment it is about
@@ -240,11 +253,84 @@ class MushroomLogViewModel(
     /** See this class's own doc comment, "Serialized editing-entry mutations," for what this guards and why. */
     private val editingEntryMutex = Mutex()
 
-    /** The one find whose delete is pending (journal redesign J4) — see [requestDeleteEntry]. */
-    private val findDeletes = PendingDeleteSlot<String, MushroomLogEntry> { it.id }
+    /**
+     * The one find and the one album photo whose delete is pending (journal redesign J4, J4b L3), moved
+     * to their own class by UI split Phase 2.8 PR 5. It reads and writes this screen's state through the
+     * getter and setter here, launches in this ViewModel's own scope, and is handed [editingEntryMutex]
+     * itself, by reference. Declared above `init`, and must stay there, as [gallery] is.
+     */
+    private val pendingDeletes = MushroomLogPendingDeletes(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        editingEntryMutex = editingEntryMutex,
+        pendingDeleteCommitScope = pendingDeleteCommitScope,
+        deleteEntry = deleteEntry,
+        deleteGalleryPhoto = deleteGalleryPhoto,
+        onFindDeleted = onFindDeleted,
+        onPhotoDeleted = onPhotoDeleted,
+        reloadGalleryPhotos = { loadGalleryPhotos() },
+        reloadEntries = { loadEntries() },
+    )
 
-    /** The one gallery photo whose delete is pending (journal redesign J4b L3) — see [requestDeleteGalleryPhoto]. */
-    private val photoDeletes = PendingDeleteSlot<String, GalleryPhoto> { it.photo.id }
+    /**
+     * The photo album (Workstream G2, standalone photos, J4b), moved to its own class by UI split Phase
+     * 2.8 PR 4. It writes this screen's state through the setter here and launches in this ViewModel's
+     * own scope. It is not given [editingEntryMutex]. Declared above `init`, and must stay there: `init`
+     * calls [loadGalleryPhotos].
+     */
+    private val gallery = MushroomLogGallery(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        getGalleryPhotos = getGalleryPhotos,
+        getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
+        addPhotoToGallery = addPhotoToGallery,
+        deleteGalleryPhoto = deleteGalleryPhoto,
+        onPhotoDeleted = onPhotoDeleted,
+        reloadEntries = { loadEntries() },
+        patchCameraCaptureLocation = { photoId -> captureLocation.patchCameraCaptureLocation(photoId) },
+    )
+
+    /**
+     * The held fix for a new find and the camera-capture location follow-ups, moved to their own class
+     * by UI split Phase 2.8 PR 6. It reads and writes this screen's state through the getter and setter
+     * here, launches in this ViewModel's own scope, and is handed [editingEntryMutex] itself, by
+     * reference. Declared above `init`, and must stay there, as [gallery] is.
+     */
+    private val captureLocation = MushroomLogCaptureLocation(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        editingEntryMutex = editingEntryMutex,
+        locationProvider = locationProvider,
+        updatePhotoLocation = updatePhotoLocation,
+        saveEntry = saveEntry,
+        currentFix = currentFix,
+        now = now,
+        autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+        reloadGalleryPhotos = { loadGalleryPhotos() },
+        reloadEntries = { loadEntries() },
+    )
+
+    /**
+     * The open find's photos (attach, remove, pull from the album), moved to their own class by UI split
+     * Phase 2.8 PR 7. It reads and writes this screen's state through the getter and setter here,
+     * launches in this ViewModel's own scope, and is handed [editingEntryMutex] itself, by reference. It
+     * takes [gallery] and [captureLocation] as objects, so it must be declared after both. Declared above
+     * `init`, and must stay there, as they are.
+     */
+    private val entryPhotos = MushroomLogEntryPhotos(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        editingEntryMutex = editingEntryMutex,
+        addPhoto = addPhoto,
+        removePhoto = removePhoto,
+        pullPhotoIntoEntry = pullPhotoIntoEntry,
+        gallery = gallery,
+        captureLocation = captureLocation,
+        reloadGalleryPhotos = { loadGalleryPhotos() },
+    )
 
     init {
         loadEntries()
@@ -324,29 +410,8 @@ class MushroomLogViewModel(
         }
     }
 
-    /** Loads [MushroomLogUiState.galleryPhotos] for the photo album — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
-    fun loadGalleryPhotos(): Job {
-        return viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingGalleryPhotos = true, galleryLoadErrorMessage = null) }
-            getGalleryPhotos().fold(
-                onSuccess = { photos ->
-                    _uiState.update { it.copy(galleryPhotos = photos, isLoadingGalleryPhotos = false) }
-                    // One query per photo — see TrackRecordingViewModel.loadWaypoints' identical
-                    // choice for why this scale doesn't need a batched read.
-                    val counts = photos.associate { it.photo.id to getPhotoEntryReferenceCount(it.photo.id) }
-                    _uiState.update { it.copy(cartographyEntryPhotoReferenceCounts = counts) }
-                },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't load the photo gallery.", error)
-                    _uiState.update {
-                        // Same "not belief-changing" reasoning as loadEntries' own failure path —
-                        // the photos are on disk; only the read failed.
-                        it.copy(isLoadingGalleryPhotos = false, galleryLoadErrorMessage = "Photo gallery unavailable.")
-                    }
-                },
-            )
-        }
-    }
+    /** Loads the photo album: see [MushroomLogGallery.loadGalleryPhotos]. */
+    fun loadGalleryPhotos(): Job = gallery.loadGalleryPhotos()
 
     /**
      * Starts and immediately persists a new, entirely-unrecorded entry — at [location] if one is
@@ -361,7 +426,7 @@ class MushroomLogViewModel(
                 // Find-location-at-creation dispatch, Fix 1: a caller that supplies a point (the
                 // map's tapped or centred point) keeps it; a caller that supplies none (the
                 // Journal's own "+") gets whatever fresh fix the device has in hand, or nothing.
-                createEntry(location ?: freshDeviceLocation(), date).fold(
+                createEntry(location ?: captureLocation.freshDeviceLocation(), date).fold(
                     onSuccess = { entry -> _uiState.update { it.copy(editingEntry = entry, saveErrorMessage = null) } },
                     onFailure = { error ->
                         Log.w(TAG, "Couldn't start a new log entry.", error)
@@ -370,47 +435,6 @@ class MushroomLogViewModel(
                 )
             }
         }
-    }
-
-    /**
-     * The device's held fix as a [LatLng], or `null` — find-location-at-creation dispatch, Fix 1.
-     * Takes what [currentFix] has in hand and never waits for one: under canopy the first fix can
-     * arrive late or never, and a find must save either way (the dispatch's own constraint).
-     *
-     * **Age bound, a decision recorded here rather than inherited.** `AvailabilityViewModel` holds
-     * its last accepted fix indefinitely once fixes stop, and its collector stops on every
-     * background, so the held fix can be from a walk hours ago when the app is next opened on a
-     * sofa with no fix yet. Stamping a find with that would produce a location that looks exactly
-     * as authoritative as a real one, which is the failure this app exists to avoid. The bound
-     * reused is the HUD's own [LOST_AFTER_MILLIS] (5 min): the one age at which this app already
-     * says a fix is not a current position and withholds distance and bearing on it. Same judgement,
-     * same number, by reference so the two cannot drift. Not tighter: the HUD's "stale" band
-     * (30 s) is a display cue, and a find logged half a minute after the last accepted fix is at
-     * the same spot for any practical purpose. Discarding a held fix for age is logged, so the
-     * fallback never fires silently; no fix at all is the ordinary case and is not logged.
-     *
-     * What is not bounded here: accuracy. `AvailabilityViewModel`'s collector already refuses fixes
-     * worse than 50 m before they are held (`LiveFixGate`), so every fix this reads passed that. It also
-     * refuses every fix not from GPS (dispatch 2026-09-28-527), so a find never takes a network position
-     * from here. The camera's own capture path does not come through here (the -527 report, stop 1).
-     */
-    private suspend fun freshDeviceLocation(): LatLng? {
-        // Owner ruling, 2026-09-14: the setting gates every automatic location capture, finds
-        // included, not only the ones attached to a photo. A location the *caller* supplied (the
-        // map's tapped or centred point) never reaches here — onStartNewEntry only falls back to
-        // this when it was given none — so switching the setting off cannot override a point the
-        // user actually chose.
-        if (!autoSaveLocationToPhotos()) {
-            Log.i(TAG, "Starting a find without a location: \"Automatically Save Location to Photos\" is off.")
-            return null
-        }
-        val fix = currentFix() ?: return null
-        val ageMillis = fix.ageMillis(now())
-        if (ageMillis >= LOST_AFTER_MILLIS) {
-            Log.i(TAG, "Starting a find without a location: the held fix is ${ageMillis / 1_000}s old, past the $LOST_AFTER_MILLIS ms bound.")
-            return null
-        }
-        return LatLng(fix.lat, fix.lng)
     }
 
     /**
@@ -658,151 +682,27 @@ class MushroomLogViewModel(
         }
     }
 
+    /** The find report's or edit form's Delete: the find becomes pending. See [MushroomLogPendingDeletes.requestDeleteEntry]. */
+    fun requestDeleteEntry(id: String) = pendingDeletes.requestDeleteEntry(id)
+
+    /** The snackbar's Undo: see [MushroomLogPendingDeletes.undoDeleteEntry]. */
+    fun undoDeleteEntry(id: String) = pendingDeletes.undoDeleteEntry(id)
+
+    /** The snackbar ended without Undo: see [MushroomLogPendingDeletes.commitDeleteEntry]. */
+    fun commitDeleteEntry(id: String) = pendingDeletes.commitDeleteEntry(id)
+
+    override fun onCleared() {
+        // Journal redesign J4: a find still pending is committed here, since no snackbar is left to
+        // end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        pendingDeletes.commitOnCleared()
+    }
+
     /**
      * Removes the entry's own row and its photo *references* only — see
      * [DeleteMushroomLogEntryUseCase]'s own doc comment for why this reversed L1's original
      * file-deleting behavior under gallery ownership. No photo lookup needed any more: nothing left
      * downstream of [deleteEntry] touches the entry's photos.
      */
-    /**
-     * The find report's (or edit form's) Delete (journal redesign J4, owner ruling "Keep inside the
-     * report (Recommended)"): the find becomes pending instead of being deleted. Its report or form
-     * closes, as it did when the delete ran at once, and it is left out of
-     * [MushroomLogUiState.hidingPendingDelete]'s lists — the Finds gallery, the Finds chip's count,
-     * the All logbook — while the Undo snackbar shows. The real delete ([deleteEntry], unchanged) runs
-     * from [commitDeleteEntry] when the snackbar ends without Undo, from here when a second find is
-     * deleted while this one is pending (the first is committed then), or from [onCleared].
-     *
-     * Inside [editingEntryMutex], like every other write to [MushroomLogUiState.editingEntry]: a photo
-     * attach still in flight for this find lands before the form closes rather than reopening it
-     * afterwards. The displaced find's commit is launched after the lock is released — the lock is
-     * not reentrant.
-     *
-     * A draft is found in [MushroomLogUiState.draftEntries] or, when it was never left, as the open
-     * [MushroomLogUiState.editingEntry] itself. An id found nowhere is logged and pends nothing.
-     */
-    fun requestDeleteEntry(id: String) {
-        viewModelScope.launch {
-            val displaced = editingEntryMutex.withLock {
-                val state = _uiState.value
-                val entry = state.entries.firstOrNull { it.id == id }
-                    ?: state.draftEntries.firstOrNull { it.id == id }
-                    ?: state.editingEntry?.takeIf { it.id == id }
-                if (entry == null) {
-                    Log.w(TAG, "A delete was asked for find '$id', which is not loaded; nothing pended.")
-                    return@withLock null
-                }
-                val displaced = findDeletes.pend(entry, entryReferenceCount = null)
-                _uiState.update {
-                    it.copy(
-                        pendingDelete = findDeletes.pending,
-                        editingEntry = it.editingEntry?.takeUnless { open -> open.id == id },
-                        // The displaced find leaves its Undo window in this same update: it is never in neither.
-                        committedFindDeleteIds = if (displaced == null) it.committedFindDeleteIds else it.committedFindDeleteIds + displaced.id,
-                    )
-                }
-                displaced
-            }
-            displaced?.let(::commitFindDelete)
-        }
-    }
-
-    /**
-     * The snackbar's Undo: the pending find shows again, in the list it was in; its report stays
-     * closed. Nothing was deleted, so nothing is restored. A draft that was open and never left sat in
-     * no list; it goes into [MushroomLogUiState.draftEntries] now, which is where leaving it would have
-     * put it.
-     */
-    fun undoDeleteEntry(id: String) {
-        val entry = findDeletes.undo(id)
-        if (entry == null) {
-            Log.w(TAG, "Undo for find '$id' came after its delete was committed; nothing to undo.")
-        }
-        _uiState.update { state ->
-            val listed = state.entries.any { it.id == id } || state.draftEntries.any { it.id == id }
-            state.copy(
-                pendingDelete = findDeletes.pending,
-                draftEntries = if (entry != null && entry.isDraft && !listed) state.draftEntries + entry else state.draftEntries,
-            )
-        }
-    }
-
-    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending find's delete runs, once. */
-    fun commitDeleteEntry(id: String) {
-        val entry = findDeletes.commit(id)
-        // The find is marked committed (commitFindDelete's first update) before the pending marker is cleared,
-        // so the Maps tab never sees a moment in which it is neither (dispatch 2026-09-28-312, item 9).
-        entry?.let(::commitFindDelete)
-        _uiState.update { it.copy(pendingDelete = findDeletes.pending) }
-    }
-
-    /**
-     * The real delete of a find whose pending time is over. It leaves [MushroomLogUiState.entries]/
-     * [MushroomLogUiState.draftEntries] at once, so it does not flash back between the snackbar
-     * closing and the delete finishing; the delete itself runs inside [editingEntryMutex] as
-     * [onDeleteEntry]'s does. A failed delete puts it back where it was and reports the failure the
-     * way [onDeleteEntry] does.
-     */
-    private fun commitFindDelete(entry: MushroomLogEntry) {
-        val before = _uiState.value
-        val entriesIndex = before.entries.indexOfFirst { it.id == entry.id }
-        val draftsIndex = before.draftEntries.indexOfFirst { it.id == entry.id }
-        _uiState.update { state ->
-            state.copy(
-                entries = state.entries.filterNot { it.id == entry.id },
-                draftEntries = state.draftEntries.filterNot { it.id == entry.id },
-                committedFindDeleteIds = state.committedFindDeleteIds + entry.id,
-            )
-        }
-        viewModelScope.launch {
-            editingEntryMutex.withLock {
-                deleteEntry(entry.id).fold(
-                    onSuccess = {
-                        _uiState.update { it.copy(saveErrorMessage = null) }
-                        onFindDeleted(entry.id)
-                    },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't delete entry '${entry.id}'.", error)
-                        _uiState.update { state ->
-                            state.copy(
-                                entries = state.entries.reinsert(entry, entriesIndex),
-                                draftEntries = state.draftEntries.reinsert(entry, draftsIndex),
-                                committedFindDeleteIds = state.committedFindDeleteIds - entry.id,
-                                saveErrorMessage = "Couldn't delete that entry.",
-                            )
-                        }
-                    },
-                )
-            }
-        }
-    }
-
-    /** [entry] back at [index] when it was in this list ([index] >= 0) and is not there now. */
-    private fun List<MushroomLogEntry>.reinsert(entry: MushroomLogEntry, index: Int): List<MushroomLogEntry> =
-        if (index < 0 || any { it.id == entry.id }) this else toMutableList().apply { add(index.coerceAtMost(size), entry) }
-
-    override fun onCleared() {
-        // Journal redesign J4: a find still pending is committed here, since no snackbar is left to
-        // end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
-        findDeletes.takeAny()?.let { entry ->
-            pendingDeleteCommitScope.launch {
-                deleteEntry(entry.id).onFailure { error ->
-                    Log.w(TAG, "Couldn't delete find '${entry.id}' pending when the screen closed; it is still saved.", error)
-                }
-            }
-        }
-        // J4b L3: the same for a pending gallery photo — its rows, then its file.
-        photoDeletes.takeAny()?.let { photo ->
-            pendingDeleteCommitScope.launch {
-                deleteGalleryPhoto(photo.photo) { error ->
-                    Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}' pending when the screen closed.", error)
-                }.onFailure { error ->
-                    Log.w(TAG, "Couldn't delete photo '${photo.photo.id}' pending when the screen closed; it is still saved.", error)
-                }
-            }
-        }
-    }
-
     fun onDeleteEntry(id: String) {
         viewModelScope.launch {
             editingEntryMutex.withLock {
@@ -826,394 +726,29 @@ class MushroomLogViewModel(
         }
     }
 
-    fun onAddPhoto(source: PhotoSource) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSavingPhoto = true) }
-            editingEntryMutex.withLock {
-                // Read fresh, inside the critical section — not before acquiring it. Two photo
-                // operations issued back to back must apply in the order issued: if this captured
-                // editingEntry at call time instead, a second operation queued behind this one would
-                // compute its own result from the *same* pre-this-operation snapshot, and its later
-                // apply would silently discard this one's photo when it lands. See this class's own
-                // "Serialized editing-entry mutations" doc comment — the same principle
-                // onStartEditingEntry's guard applies, extended to every photo mutator.
-                val entry = _uiState.value.editingEntry ?: return@withLock rescueCaptureWithNoEditingEntry(source)
-                addPhoto(entry, source).fold(
-                    onSuccess = { updated ->
-                        _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
-                        // A freshly added photo is a new gallery row the album's already-loaded
-                        // state doesn't know about yet — without this, it wouldn't appear there until
-                        // the ViewModel is recreated. Detach has no equivalent need: it never removes a
-                        // gallery row, only a reference nothing in this screen currently displays.
-                        loadGalleryPhotos()
-                        // Photo-geodata dispatch: see this class's own "Camera-capture location" doc
-                        // comment. The newly persisted photo is always the last element of updated's
-                        // photos list — AddPhotoToLogEntryUseCase's own entry.copy(photos = entry.photos + photo).
-                        // Find-location-at-creation dispatch, Fix 2: this branch, and only this
-                        // branch, also promotes the fix to the find's own foundAt when it has none.
-                        // GalleryImportPhotoSource never enters here (its location is EXIF, read in
-                        // FilePhotoStore, and can be from another place and year); onPullPhoto has
-                        // no location path at all.
-                        if (source is CameraCapturePhotoSource) {
-                            patchCameraCaptureLocationIntoFind(photoId = updated.photos.last().id, findId = entry.id)
-                        }
-                    },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't attach a photo to entry '${entry.id}'.", error)
-                        _uiState.update {
-                            it.copy(isSavingPhoto = false, saveErrorMessage = "Couldn't attach that photo.")
-                        }
-                    },
-                )
-            }
-        }
-    }
+    /** Attaches a new photo to the open find: see [MushroomLogEntryPhotos.onAddPhoto]. */
+    fun onAddPhoto(source: PhotoSource) = entryPhotos.onAddPhoto(source)
 
-    /**
-     * A capture came back for a find that is no longer being edited. **It is saved to the album
-     * rather than dropped**, which is this app's rule everywhere else: a capture that succeeds is
-     * never lost, and the album is where it goes when there is nowhere better — also the first
-     * place a user looks for a photo they cannot find.
-     *
-     * ## Do not delete this as dead code: the state is reachable, and here is the sequence
-     *
-     * **This handling is defensive, and it is also on a path a user can walk.** Both, and the
-     * second is the one a future reader is likely to doubt, so it is written out: edit a find in
-     * the Journal, open the in-app camera, background the app, come back inside four minutes — so
-     * the camera is still open, see [CameraAbsenceWatcher] — and press the shutter.
-     *
-     * What clears the entry on the way out is `AvailabilityScreen`'s own `ON_STOP` observer, which
-     * runs the incidental-exit auto-save when a find is open and no photo acquisition is in
-     * flight. The in-app camera does not set that in-flight flag: it was narrowed to the gallery
-     * picker and the permission dialog when the camera became a `Dialog` that never leaves the
-     * Activity (`PhotoAcquisitionLaunchers`). Correct for *opening* the camera, which no longer
-     * causes an `ON_STOP` at all — but a genuine backgrounding while the camera is open is not
-     * guarded, and it clears `editingEntry` while the dialog, which lives above it in
-     * `InAppCameraViewModel`, survives untouched. The shutter is then live over a find that is no
-     * longer open.
-     *
-     * The commissioning dispatch described this state as "not reachable by normal means", reached
-     * only by sudden process death. The sequence above was read out of the tree rather than
-     * reproduced on a device, and is recorded here because the doc's purpose — stopping someone
-     * removing handling they cannot reproduce — is served better by a reproduction than by an
-     * assurance. It covers the process-death case too; that case simply is not the only one.
-     *
-     * Until 2026-09-17 this path dropped the source with no persist, no `release()` and no log —
-     * the photo lost, the scratch file leaking into `captures/` until the next startup sweep, and
-     * nothing anywhere recording it. Found while building the absence timeout. **This is the only
-     * path in the app that drops an unpersisted capture**: `onRemovePhoto` and `onPullPhoto` guard
-     * the same way but act on an already-persisted `LogPhoto`, and the Cartography camera persists
-     * through [onAddGalleryPhoto] first, so its own no-entry guard can skip an attach but never
-     * loses a photo.
-     *
-     * ## Two things
-     *
-     * The album save is the user's remedy. The Toast is what stops them looking on the find where
-     * they expected the photo — the only thing that closes that gap at the moment it opens.
-     *
-     * The message goes out through [MushroomLogUiState.saveErrorMessage], which is this screen's
-     * one transient-message channel — `JournalTab` and `LogPanel` both show it as a Toast and clear
-     * it. The field is named for errors and this message is not one; reusing it is deliberate,
-     * because the alternative was a parallel field threaded through five files to reach the same
-     * `Toast.makeText`. Recorded as a naming wart rather than hidden.
-     *
-     * `release()` is not called here directly: [AddPhotoToGalleryUseCase] reaches
-     * `FilePhotoStore.persist`, which releases the source in a `finally` whether the copy succeeds
-     * or fails. That is the same path the ordinary album save uses, so the scratch file goes by the
-     * mechanism that already exists rather than a second one written for this case.
-     */
-    private suspend fun rescueCaptureWithNoEditingEntry(source: PhotoSource) {
-        addPhotoToGallery(source).fold(
-            onSuccess = { _ ->
-                _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = PHOTO_SAVED_TO_ALBUM_MESSAGE) }
-                loadGalleryPhotos()
-            },
-            onFailure = { _ ->
-                _uiState.update { it.copy(isSavingPhoto = false, saveErrorMessage = "Couldn't save that photo.") }
-            },
-        )
-    }
+    /** The album's own Camera/Import: see [MushroomLogGallery.onAddGalleryPhoto]. */
+    fun onAddGalleryPhoto(source: PhotoSource, onPersisted: (String) -> Unit = {}) = gallery.onAddGalleryPhoto(source, onPersisted)
 
-    /**
-     * Standalone-photos dispatch: acquires [source] via the album's own Camera/Import
-     * buttons — persisted and added to the gallery only, never attached to anything (see
-     * [AddPhotoToGalleryUseCase]'s own doc comment for why this stops one step short of
-     * [onAddPhoto]). No [editingEntryMutex] needed: unlike [onAddPhoto], this never reads or writes
-     * [MushroomLogUiState.editingEntry] at all.
-     *
-     * [onPersisted] — entry-photo-acquisition dispatch, Item 2: fired with the new photo's id on
-     * success, before this function's own `loadGalleryPhotos()` refresh but after the write has
-     * landed. Defaults to a no-op, so every call site before this dispatch is unaffected. Exists so
-     * `MainActivity` can compose "persist to the standalone gallery" (owned here) with "attach to
-     * the Cartography entry the user is standing in" (`CartographyViewModel.onToggleKeptPhoto`,
-     * owned there) at the one place both ViewModels are already visible, without
-     * `CartographyViewModel` growing its own copy of [AddPhotoToGalleryUseCase] — which would not
-     * only duplicate this function's own persist logic, but leave [MushroomLogUiState.galleryPhotos]
-     * stale: [GetGalleryPhotosUseCase] is a one-shot suspend call, not a reactive `Flow`, so a write
-     * from a use case this ViewModel never called would never be reflected here on its own. Reusing
-     * this function whole — persist, refresh, and (for a camera capture) the GPS patch below — keeps
-     * a photo acquired from inside an entry indistinguishable, everywhere else in the app, from one
-     * acquired from the Album or a find.
-     */
-    fun onAddGalleryPhoto(source: PhotoSource, onPersisted: (String) -> Unit = {}) {
-        viewModelScope.launch {
-            addPhotoToGallery(source).fold(
-                onSuccess = { photo ->
-                    _uiState.update { it.copy(saveErrorMessage = null) }
-                    onPersisted(photo.id)
-                    loadGalleryPhotos()
-                    // Photo-geodata dispatch: see this class's own "Camera-capture location" doc comment.
-                    if (source is CameraCapturePhotoSource) {
-                        patchCameraCaptureLocation(photo.id)
-                    }
-                },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't add a photo to the gallery.", error)
-                    _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
-                },
-            )
-        }
-    }
+    /** Removes a photo from the open find: see [MushroomLogEntryPhotos.onRemovePhoto]. */
+    fun onRemovePhoto(photo: LogPhoto) = entryPhotos.onRemovePhoto(photo)
 
-    /**
-     * Fire-and-forget: requests a live GPS fix and, only if one resolves, patches it onto the
-     * already-persisted gallery photo [photoId] — see this class's own "Camera-capture location"
-     * doc comment for the full reasoning. Launched from [onAddPhoto]/[onAddGalleryPhoto] without
-     * being awaited, so this never delays the capture flow those functions already completed by the
-     * time this runs. [LocationResult.PermissionDenied]/[LocationResult.LocationUnavailable] are
-     * both silently accepted, same as [LogPhoto.latitude]/[LogPhoto.longitude] being `null` is the
-     * ordinary case, not an error — nothing here surfaces a user-facing failure for "no fix came
-     * back." Refreshes both galleries/entries on a successful patch, mirroring
-     * [onDeleteGalleryPhoto]'s own dual-refresh, so a photo already visible on screen picks up its
-     * new coordinate without the user needing to leave and return.
-     */
-    private fun patchCameraCaptureLocation(photoId: String) {
-        viewModelScope.launch { requestAndPatchCaptureFix(photoId) }
-    }
+    /** References an album photo from the open find: see [MushroomLogEntryPhotos.onPullPhoto]. */
+    fun onPullPhoto(photo: LogPhoto) = entryPhotos.onPullPhoto(photo)
 
-    /**
-     * [patchCameraCaptureLocation] for a capture taken from inside a find — find-location-at-
-     * creation dispatch, Fix 2. Same fire-and-forget fix request and photo patch, then one more
-     * step: if the find [findId] still has no `foundAt`, the same fix becomes its location. A
-     * separate function rather than a flag on [patchCameraCaptureLocation], so the Album's own
-     * camera path (no find to promote into) keeps the function it always had. Only [onAddPhoto]'s
-     * `CameraCapturePhotoSource` branch calls this — see the comment there for why Import and From
-     * Album never can.
-     */
-    private fun patchCameraCaptureLocationIntoFind(photoId: String, findId: String) {
-        viewModelScope.launch {
-            val location = requestAndPatchCaptureFix(photoId) ?: return@launch
-            promoteCaptureFixToFind(findId, LatLng(location.lat, location.lng))
-        }
-    }
+    /** Deletes a gallery photo at once, after its dialog: see [MushroomLogGallery.onDeleteGalleryPhoto]. */
+    fun onDeleteGalleryPhoto(photo: GalleryPhoto) = gallery.onDeleteGalleryPhoto(photo)
 
-    /** The shared half of both camera follow-ups: requests the fix and, if one resolves, patches it onto [photoId]. Returns the fix so a caller can use it further, `null` when none came back. */
-    private suspend fun requestAndPatchCaptureFix(photoId: String): LocationResult.Success? {
-        // The one choke point for both camera paths: gating here stops the coordinate reaching the
-        // photo row *and*, because the find variant promotes what this returns, stops it reaching
-        // the find's foundAt. Checked before the provider is asked at all, so switching the setting
-        // off means no position is requested, not one requested and then discarded.
-        if (!autoSaveLocationToPhotos()) {
-            Log.i(TAG, "Not capturing a location for photo '$photoId': \"Automatically Save Location to Photos\" is off.")
-            return null
-        }
-        val location = locationProvider.getCurrentLocation() as? LocationResult.Success ?: return null
-        updatePhotoLocation(photoId, location.lat, location.lng).fold(
-            onSuccess = {
-                loadGalleryPhotos()
-                loadEntries()
-            },
-            onFailure = { error ->
-                Log.w(TAG, "Couldn't patch a location fix onto photo '$photoId'.", error)
-            },
-        )
-        return location
-    }
+    /** An album photo's Delete: the photo becomes pending. See [MushroomLogPendingDeletes.requestDeleteGalleryPhoto]. */
+    fun requestDeleteGalleryPhoto(photoId: String) = pendingDeletes.requestDeleteGalleryPhoto(photoId)
 
-    /**
-     * Writes [location] to find [findId]'s `foundAt` only if that find is the one still open for
-     * editing and has no location yet — never over a location the user set or the map supplied.
-     * Under [editingEntryMutex] like every other editing-entry mutation, and persisted the way
-     * [onEntryEdited] persists a keystroke. The fix can take up to the provider's own 20 s to
-     * resolve; if the user has closed the find by then, nothing is written and that is logged.
-     */
-    private suspend fun promoteCaptureFixToFind(findId: String, location: LatLng) {
-        editingEntryMutex.withLock {
-            val entry = _uiState.value.editingEntry
-            if (entry == null || entry.id != findId) {
-                Log.i(TAG, "Capture fix not promoted: find '$findId' is no longer open for editing.")
-                return@withLock
-            }
-            if (entry.foundAt != null) return@withLock
-            val located = entry.copy(foundAt = location)
-            _uiState.update { it.copy(editingEntry = located) }
-            saveEntry(located).fold(
-                onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't save the capture fix as find '$findId''s location.", error)
-                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
-                },
-            )
-        }
-    }
+    /** The snackbar's Undo: see [MushroomLogPendingDeletes.undoDeleteGalleryPhoto]. */
+    fun undoDeleteGalleryPhoto(photoId: String) = pendingDeletes.undoDeleteGalleryPhoto(photoId)
 
-    fun onRemovePhoto(photo: LogPhoto) {
-        viewModelScope.launch {
-            editingEntryMutex.withLock {
-                // See onAddPhoto's own comment on reading fresh inside the lock — same reasoning.
-                val entry = _uiState.value.editingEntry ?: return@withLock
-                removePhoto(entry, photo).fold(
-                    onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't remove a photo from entry '${entry.id}'.", error)
-                        _uiState.update { it.copy(saveErrorMessage = "Couldn't remove that photo.") }
-                    },
-                )
-            }
-        }
-    }
-
-    /** Workstream G3: references an existing gallery [photo] from the currently-editing entry — a reference only, never a new file (see [PullPhotoIntoEntryUseCase]'s own doc comment). */
-    fun onPullPhoto(photo: LogPhoto) {
-        viewModelScope.launch {
-            editingEntryMutex.withLock {
-                // See onAddPhoto's own comment on reading fresh inside the lock — same reasoning.
-                val entry = _uiState.value.editingEntry ?: return@withLock
-                pullPhotoIntoEntry(entry, photo).fold(
-                    onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't pull photo '${photo.id}' into entry '${entry.id}'.", error)
-                        _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
-                    },
-                )
-            }
-        }
-    }
-
-    /**
-     * Workstream G3: deletes [photo] from the gallery — the user has already confirmed, including
-     * seeing how many entries reference it (the removed Photo Gallery screen's confirmation flow; since J4b the
-     * album's long-press Delete is a pending delete that names the same count in its Undo snackbar). Refreshes both the gallery and the entry list on success: an entry left
-     * open in the background (e.g. across a tab switch — nothing closes [MushroomLogUiState.editingEntry]
-     * on its own) must not keep showing a reference to a photo that no longer exists. See this
-     * class's own doc comment on the [loadEntries] hazard for why that refresh no longer risks
-     * discarding in-progress typing.
-     */
-    fun onDeleteGalleryPhoto(photo: GalleryPhoto) {
-        viewModelScope.launch {
-            deleteGalleryPhoto(photo.photo) { error ->
-                Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}'.", error)
-            }.fold(
-                onSuccess = {
-                    // Committed from the moment the row is gone, so a map-records load that read it before cannot draw it.
-                    _uiState.update { it.copy(saveErrorMessage = null, committedPhotoDeleteIds = it.committedPhotoDeleteIds + photo.photo.id) }
-                    onPhotoDeleted(photo.photo.id)
-                    loadGalleryPhotos()
-                    // Deliberately not acquiring editingEntryMutex here first — loadEntries()
-                    // acquires and releases its own below. Calling into it is not a nested
-                    // acquisition, since this function never holds the lock itself.
-                    loadEntries()
-                },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't delete photo '${photo.photo.id}' from the gallery.", error)
-                    _uiState.update { it.copy(saveErrorMessage = "Couldn't delete that photo.") }
-                },
-            )
-        }
-    }
-
-    /**
-     * An album photo's Delete (journal redesign J4b L3: the tile's long-press menu, or its "Delete"
-     * accessibility action): the photo becomes pending instead of being deleted, held in J4's
-     * [PendingDeleteSlot]. It is left out of [MushroomLogUiState.hidingPendingDelete]'s gallery and
-     * finds' photo lists while the Undo snackbar shows.
-     *
-     * **The file delete waits too.** What is deferred is the whole [deleteGalleryPhoto] call, rows
-     * then file ([DeleteGalleryPhotoUseCase], unchanged): nothing runs until [commitDeleteGalleryPhoto]
-     * (the snackbar ended without Undo), a second photo delete displacing this one, or [onCleared].
-     * J0 B1 found a photo restorable only this way, since the JPEG is gone once its file is deleted.
-     *
-     * The reference count held with it is how many Cartography (journal) entries keep the photo,
-     * read from [MushroomLogUiState.cartographyEntryPhotoReferenceCounts] now (missing counts as
-     * zero, as the old confirm dialog read it). The drawer's gallery and the album's own trash
-     * button still delete at once after their dialog, through [onDeleteGalleryPhoto].
-     */
-    fun requestDeleteGalleryPhoto(photoId: String) {
-        val state = _uiState.value
-        val photo = state.galleryPhotos.firstOrNull { it.photo.id == photoId }
-        if (photo == null) {
-            Log.w(TAG, "A delete was asked for gallery photo '$photoId', which is not loaded; nothing pended.")
-            return
-        }
-        val displaced = photoDeletes.pend(photo, entryReferenceCount = state.cartographyEntryPhotoReferenceCounts[photoId] ?: 0)
-        _uiState.update {
-            it.copy(
-                pendingPhotoDelete = photoDeletes.pending,
-                committedPhotoDeleteIds = if (displaced == null) it.committedPhotoDeleteIds else it.committedPhotoDeleteIds + displaced.photo.id,
-            )
-        }
-        displaced?.let(::commitGalleryPhotoDelete)
-    }
-
-    /** The snackbar's Undo: the pending photo shows again. Nothing was deleted, row or file, so nothing is restored. */
-    fun undoDeleteGalleryPhoto(photoId: String) {
-        if (photoDeletes.undo(photoId) == null) {
-            Log.w(TAG, "Undo for gallery photo '$photoId' came after its delete was committed; nothing to undo.")
-        }
-        _uiState.update { it.copy(pendingPhotoDelete = photoDeletes.pending) }
-    }
-
-    /** The snackbar ended without Undo: the pending photo's delete runs, once — its rows, then its file. */
-    fun commitDeleteGalleryPhoto(photoId: String) {
-        val photo = photoDeletes.commit(photoId)
-        // Marked committed before the pending marker is cleared: see commitDeleteEntry.
-        photo?.let(::commitGalleryPhotoDelete)
-        _uiState.update { it.copy(pendingPhotoDelete = photoDeletes.pending) }
-    }
-
-    /**
-     * The real delete of a photo whose pending time is over: [onDeleteGalleryPhoto]'s call, with the
-     * photo taken out of [MushroomLogUiState.galleryPhotos] at once so it does not flash back before
-     * the reload. A failed row delete puts it back where it was and reports the failure the way
-     * [onDeleteGalleryPhoto] does (the use case then never reaches the file).
-     */
-    private fun commitGalleryPhotoDelete(photo: GalleryPhoto) {
-        val index = _uiState.value.galleryPhotos.indexOfFirst { it.photo.id == photo.photo.id }
-        _uiState.update { state ->
-            state.copy(
-                galleryPhotos = state.galleryPhotos.filterNot { it.photo.id == photo.photo.id },
-                committedPhotoDeleteIds = state.committedPhotoDeleteIds + photo.photo.id,
-            )
-        }
-        viewModelScope.launch {
-            deleteGalleryPhoto(photo.photo) { error ->
-                Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}'.", error)
-            }.fold(
-                onSuccess = {
-                    _uiState.update { it.copy(saveErrorMessage = null) }
-                    onPhotoDeleted(photo.photo.id)
-                    loadGalleryPhotos()
-                    // As onDeleteGalleryPhoto: loadEntries() takes editingEntryMutex itself.
-                    loadEntries()
-                },
-                onFailure = { error ->
-                    Log.w(TAG, "Couldn't delete photo '${photo.photo.id}' from the gallery.", error)
-                    _uiState.update { state ->
-                        val restored = if (index < 0 || state.galleryPhotos.any { it.photo.id == photo.photo.id }) {
-                            state.galleryPhotos
-                        } else {
-                            state.galleryPhotos.toMutableList().apply { add(index.coerceAtMost(size), photo) }
-                        }
-                        state.copy(
-                            galleryPhotos = restored,
-                            committedPhotoDeleteIds = state.committedPhotoDeleteIds - photo.photo.id,
-                            saveErrorMessage = "Couldn't delete that photo.",
-                        )
-                    }
-                },
-            )
-        }
-    }
+    /** The snackbar ended without Undo: see [MushroomLogPendingDeletes.commitDeleteGalleryPhoto]. */
+    fun commitDeleteGalleryPhoto(photoId: String) = pendingDeletes.commitDeleteGalleryPhoto(photoId)
 
     /**
      * Clears [MushroomLogUiState.saveErrorMessage] once its one-shot Toast has been shown — see
@@ -1226,39 +761,7 @@ class MushroomLogViewModel(
         _uiState.update { it.copy(saveErrorMessage = null) }
     }
 
-    private companion object {
+    internal companion object {
         const val TAG = "MushroomLog"
     }
 }
-
-/**
- * Shown when a capture lands with no find open — see
- * [MushroomLogViewModel.rescueCaptureWithNoEditingEntry]. **Says where the photo went, not that
- * something went wrong** (owner's wording, 2026-09-17): the user's problem at that moment is
- * finding their picture. Internal
- * rather than private so the test asserts the string the user sees rather than a copy of it.
- */
-internal const val PHOTO_SAVED_TO_ALBUM_MESSAGE = "Photo saved to album."
-
-/**
- * Whether [current] is a re-edit's draft that still equals its committed parent in [entries]: the
- * case [MushroomLogViewModel.onLeaveEditingIncidentally] deletes rather than keeps (see that
- * function's doc comment for why the comparison is exact). The one definition, shared with
- * [leaveKeepsDraft].
- */
-internal fun isUnchangedReEdit(current: MushroomLogEntry, entries: List<MushroomLogEntry>): Boolean {
-    val parent = current.draftOfEntryId?.let { parentId -> entries.firstOrNull { it.id == parentId } } ?: return false
-    return current.copy(id = parent.id, isDraft = false, draftOfEntryId = null) == parent
-}
-
-/**
- * Whether leaving [left] by [MushroomLogViewModel.onLeaveEditingIncidentally] leaves a draft row in
- * Drafts (intent 2026-09-28-44, F1; the owner: "Snackbar only for real drafts"). False for a
- * committed find that was only viewed (the leave only closes it) and for an unchanged re-edit (the
- * leave deletes its draft copy); true for a new find's draft and a changed re-edit. The "Saved to
- * Drafts" snackbar is offered exactly when this is true, so that it is never offered for a
- * committed find and never says a draft was saved when none was.
- */
-internal fun leaveKeepsDraft(left: MushroomLogEntry, entries: List<MushroomLogEntry>): Boolean =
-    left.isDraft && !isUnchangedReEdit(left, entries)
-

@@ -26,6 +26,7 @@ The owner, 2026-10-16: "Forager team: Rowan, Hazel, Elder, and Sorrel." On 2026-
 | Elder Ford | UX auditor: audits each promotion into main | Fable | `auditor-profile.md` |
 | Sorrel Tally | independent reviewer: reviews research results (D18) | Fable | `reviewer-profile.md` |
 | Juniper Sounding | researcher: read-only research, licences quoted at source | Fable | `researcher-profile.md` |
+| Sage Wayfinder | designer: designs and proposes what a person sees; a coder builds | Fable | `designer-profile.md` |
 
 The audit and the review never run on the coder's model (-1134). The owner: "It's useful because the same model shares blind spots." Rowan tells each helper its name in its prompt.
 

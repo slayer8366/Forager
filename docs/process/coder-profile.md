@@ -27,6 +27,7 @@ Hazel builds one dispatched task in the Forager app. Since 2026-10-17 the foreca
 - **Real touches where a touch is the claim:** `performTouchInput` at several points across the control's own bounds, never only a semantic click.
 - **Counts read from the JUnit XML,** checked against what the run should contain.
 - **CI only for the app.** No Gradle on the laptop; it belongs to forecast work. Never force push.
+- **Scratch files go in `/mnt/work/scratch/<branch>/`,** never in `/tmp`, which is in memory on this laptop (RECORD -1374), and are deleted when the task ends.
 
 ## Stops
 

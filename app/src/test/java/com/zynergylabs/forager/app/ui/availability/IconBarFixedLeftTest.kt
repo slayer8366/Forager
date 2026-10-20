@@ -81,11 +81,17 @@ abstract class IconBarFixedLeftTests(private val rotation: Int, private val land
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix, mapIconClusterPlacement = savedRight),
-                isRecording = true,
-                isReturning = returning,
-                navigationTarget = start,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
-                onMapIconClusterPlacementChanged = { writes += it },
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    navigationTarget = start,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
+                ),
+                mapControls = AvailabilityScreenMapControls(
+                    onMapIconClusterPlacementChanged = { writes += it },
+                ),
                 compassProvider = object : CompassProvider {
                     override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(45f, HeadingUncertainty.Estimated(2f), 0L))
                 },
@@ -94,13 +100,36 @@ abstract class IconBarFixedLeftTests(private val rotation: Int, private val land
                 }),
                 currentTime = CurrentTimeProvider { t + 1_000L },
                 mapSlot = map,
-                onUseCurrentLocation = {}, onManualLatChanged = {}, onManualLngChanged = {}, onSearchManualCoordinates = {},
-                onRadiusChanged = {}, onMonthSelected = {}, onMapTabSelected = {}, onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {}, onTaxonSearchResultSelected = {}, onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {}, onPlaceTripPin = { _, _, _ -> }, onDeletePlannedTrip = {}, onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {}, onOfflineMapLngChanged = {}, onOfflineMapRadiusChanged = {}, onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {}, onDownloadOfflineMaps = {}, onDeleteOfflineRegion = {}, onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
             )
         }
         settle()

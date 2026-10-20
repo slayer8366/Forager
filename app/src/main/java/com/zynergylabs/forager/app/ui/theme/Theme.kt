@@ -165,7 +165,7 @@ fun ForagerTheme(
 /**
  * The [darkTheme] a [ForagerTheme] ancestor actually resolved to — for the handful of call sites
  * across the map screen (`MapIconBar`'s accent colors, the map icon stack's own surface color, the
- * compass strip, `MapModePicker`, `MapFloatingIconButton`, `AddActionTile`) that pick a color by
+ * compass strip, `MapModePicker` (removed 2026-10-19, RECORD -1392), `MapFloatingIconButton` (removed 2026-10-19, RECORD -1392), `AddActionTile`) that pick a color by
  * light/dark theme but sit too far below [AvailabilityUiState.darkTheme] in the composable tree —
  * several calls deep through `MapIconBar`/`CompactMapTab`/`MapTab` — to take it as a parameter
  * without threading it through every intermediate signature. Calling [isSystemInDarkTheme] directly

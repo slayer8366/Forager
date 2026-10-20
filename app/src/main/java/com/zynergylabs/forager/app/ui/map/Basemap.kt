@@ -37,7 +37,7 @@ package com.zynergylabs.forager.app.ui.map
  *
  * Not from this enum directly. [MapMode] names exactly two, Street and Topographical (both
  * OpenStreetMap-derived), picked from the Layers sheet's "Map type" row (`MapLayersSheet`) or the
- * map's own quick-fire [MapModePicker]. See [MapMode]'s own doc comment for the full picture,
+ * map's own quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392). See [MapMode]'s own doc comment for the full picture,
  * including what this superseded (a two-tier service/mode split, and PR #13's original USGS Topo
  * default), and for how the choice persists across restarts.
  *

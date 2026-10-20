@@ -26,6 +26,10 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSearchInputs
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.Instant
@@ -76,32 +80,40 @@ class TrackSheetDataTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(),
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = STUB_MAP,
-                tracks = listOf(HILL, FLAT),
+                records = AvailabilityScreenRecords(
+                    tracks = listOf(HILL, FLAT),
+                ),
                 currentTime = CurrentTimeProvider { NOW },
             )
         }

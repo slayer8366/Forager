@@ -2,7 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 /**
  * The two basemap looks a user picks between: Street and Topographical, both OpenStreetMap-derived,
- * from the Layers sheet's "Map type" row (`MapLayersSheet`) or the quick-fire [MapModePicker].
+ * from the Layers sheet's "Map type" row (`MapLayersSheet`) or the quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392).
  * Replaced the deleted `MapService` entirely, per the project owner's own request.
  *
  * `MapService` used to split this choice into two decisions with two different lifetimes — which

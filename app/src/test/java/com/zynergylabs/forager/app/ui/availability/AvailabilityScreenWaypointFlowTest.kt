@@ -154,52 +154,60 @@ class AvailabilityScreenWaypointFlowTest {
             var pendingWaypoint by remember { mutableStateOf<PendingDelete<Waypoint>?>(null) }
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = viewModel::useCurrentLocation,
-                onManualLatChanged = viewModel::onManualLatChanged,
-                onManualLngChanged = viewModel::onManualLngChanged,
-                onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                onRadiusChanged = viewModel::onRadiusChanged,
-                onMonthSelected = viewModel::onMonthSelected,
-                onMapTabSelected = viewModel::onMapTabSelected,
-                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = viewModel::onPlaceTripPin,
-                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onThemeModeChanged = viewModel::onThemeModeChanged,
-                waypoints = waypoints,
-                waypointsErrorMessage = waypointsErrorMessage,
-                onDropWaypoint = { location, name ->
-                    droppedWaypoints += location to name
-                    waypoints = waypoints + Waypoint(
-                        id = "waypoint-${waypoints.size + 1}",
-                        lat = location.lat,
-                        lng = location.lng,
-                        altitude = null,
-                        name = name,
-                        note = "",
-                        createdAtEpochMillis = 0L,
-                    )
-                },
-                onDeleteWaypoint = { id ->
-                    deletedWaypointIds += id
-                    pendingWaypoint = waypoints.firstOrNull { it.id == id }?.let { PendingDelete(it, entryReferenceCount = 0, token = deletedWaypointIds.size.toLong()) }
-                    waypoints = waypoints.filterNot { it.id == id }
-                },
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = viewModel::useCurrentLocation,
+                    onManualLatChanged = viewModel::onManualLatChanged,
+                    onManualLngChanged = viewModel::onManualLngChanged,
+                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                    onRadiusChanged = viewModel::onRadiusChanged,
+                    onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                ),
                 mapSlot = TriggerableWaypointMapSlot,
-                pendingDeleteNotices = listOfNotNull(
-                    waypointDeleteNotice(pendingWaypoint, onUndo = { pendingWaypoint = null }, onCommit = { pendingWaypoint = null }),
+                records = AvailabilityScreenRecords(
+                    waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
+                    onDropWaypoint = { location, name ->
+                        droppedWaypoints += location to name
+                        waypoints = waypoints + Waypoint(
+                            id = "waypoint-${waypoints.size + 1}",
+                            lat = location.lat,
+                            lng = location.lng,
+                            altitude = null,
+                            name = name,
+                            note = "",
+                            createdAtEpochMillis = 0L,
+                        )
+                    },
+                    onDeleteWaypoint = { id ->
+                        deletedWaypointIds += id
+                        pendingWaypoint = waypoints.firstOrNull { it.id == id }?.let { PendingDelete(it, entryReferenceCount = 0, token = deletedWaypointIds.size.toLong()) }
+                        waypoints = waypoints.filterNot { it.id == id }
+                    },
+                    pendingDeleteNotices = listOfNotNull(
+                        waypointDeleteNotice(pendingWaypoint, onUndo = { pendingWaypoint = null }, onCommit = { pendingWaypoint = null }),
+                    ),
                 ),
             )
         }

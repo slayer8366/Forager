@@ -31,6 +31,18 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackupAndImport
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReportData
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntries
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecording
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSearchInputs
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
@@ -514,251 +526,275 @@ class MainActivity : ComponentActivity() {
 
                 AvailabilityScreen(
                     uiState = uiState,
-                    onUseCurrentLocation = {
-                        pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
-                        requestLocationPermission.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
-                    onLocateMe = {
-                        pendingLocationAction = PendingLocationAction.LOCATE_ME
-                        requestLocationPermission.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
-                    onManualLatChanged = viewModel::onManualLatChanged,
-                    onManualLngChanged = viewModel::onManualLngChanged,
-                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                    onRadiusChanged = viewModel::onRadiusChanged,
-                    onMonthSelected = viewModel::onMonthSelected,
-                    onMapTabSelected = viewModel::onMapTabSelected,
-                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                    onPlaceTripPin = viewModel::onPlaceTripPin,
-                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                    onClearSearch = viewModel::clearSearch,
-                    currentTime = container.currentTimeProvider,
-                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    // Journal redesign J4: a region row's swipe asks for a pending delete; the
-                    // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
-                    onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
-                    onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
-                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                    onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
-                    onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
-                    onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
-                    onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
-                    onBatterySaverChanged = viewModel::onBatterySaverChanged,
-                    backup = backupViewModel.controls(backupUiState),
-                    returnToMapRequest = backupUiState.returnToMapRequest,
-                    openBackupRequest = openBackupRequest,
-                    settingsResetNoticePending = settingsResetPending,
-                    onSettingsResetNoticeShown = container.settingsResetNotice::shown,
-                    gpxImportNotice = gpxImportNotice,
-                    onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
-                    onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
-                    onDownloadAgain = viewModel::onDownloadAgain,
-                    onThemeModeChanged = viewModel::onThemeModeChanged,
-                    onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
-                    onMapShown = viewModel::onMapShown,
-                    onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
-                    onMapModeSelected = viewModel::onMapModeSelected,
-                    onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
-                    onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
-                    onColourFieldMoved = viewModel::onColourFieldMoved,
-                    forecastCellStore = container.forecastCellStore,
-                    // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
-                    // out of the lists the screen gets.
-                    logUiState = logUiState.hidingPendingDelete(),
-                    cameraCaptureFiles = container.cameraCaptureFiles,
-                    inAppCameraTarget = inAppCameraTarget,
-                    onOpenCamera = inAppCameraViewModel::open,
-                    onCloseCamera = inAppCameraViewModel::close,
-                    cameraGridMode = cameraGridMode,
-                    onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
-                    cameraFormat = cameraFormat,
-                    onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
-                    onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
-                    onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
-                    onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
-                    onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
-                    onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
-                    onOpenLogEntryForEditing = mushroomLogViewModel::onOpenEntryForEditing,
-                    onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
-                    onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
-                    onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
-                    onDiscardLogDraft = mushroomLogViewModel::onDeleteEntry,
-                    onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
-                    onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
-                    onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
-                    // J4: the find report's (and edit form's) Delete asks for a pending delete; the
-                    // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
-                    onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
-                    onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
-                    onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
-                    onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
-                    // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
-                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
-                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
-                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
-                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
-                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
-                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
-                    onSetFindDecision = cartographyViewModel::onSetFindDecision,
-                    onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
-                    onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
-                    onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
-                    onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
-                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
-                    // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
-                    // ViewModels are already visible, rather than giving CartographyViewModel its
-                    // own copy of AddPhotoToGalleryUseCase — see MushroomLogViewModel.onAddGalleryPhoto's
-                    // own doc comment on `onPersisted` for why that would leave
-                    // MushroomLogUiState.galleryPhotos stale. Persist (and, for a camera capture,
-                    // the GPS patch) is entirely MushroomLogViewModel's own existing, unmodified
-                    // pipeline; only the id comes back here, to attach it to whichever entry
-                    // CartographyViewModel currently has open.
-                    onAcquirePhotoForCartographyEntry = { source ->
-                        mushroomLogViewModel.onAddGalleryPhoto(source) { id -> cartographyViewModel.onToggleKeptPhoto(id) }
-                    },
-                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
-                    onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
-                    onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
-                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
-                    // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
-                    // the message once shown (continuation 2026-09-28-76).
-                    onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
-                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
-                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
-                    // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
-                    // all, and the Toast of a failed one (continuation 2026-09-28-65).
-                    onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
-                    onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
-                    onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
-                    getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
-                    // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
-                    getSavedTrackPaths = { entryId ->
-                        container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
-                            androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
-                            emptyMap()
-                        }
-                    },
-                    getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
-                    getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
-                    isRecording = trackUiState.isRecording,
-                    onToggleRecording = {
-                        if (trackUiState.isRecording) {
-                            trackRecordingViewModel.stopRecording()
-                        } else if (!hasLocationPermission(this@MainActivity)) {
-                            // Confirmed crash's primary fix: never even ask the ViewModel to start
-                            // (never creates the Track row, never sets activeTrack) when the
-                            // foreground service could not possibly start without crashing — see
-                            // the location-permission comment in this class.
-                            trackRecordingViewModel.onStartRecordingPermissionDenied(
-                                getString(R.string.track_recording_needs_location),
+                    searchInputs = AvailabilityScreenSearchInputs(
+                        onUseCurrentLocation = {
+                            pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
+                            requestLocationPermission.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                ),
                             )
-                        } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        },
+                        onManualLatChanged = viewModel::onManualLatChanged,
+                        onManualLngChanged = viewModel::onManualLngChanged,
+                        onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                        onRadiusChanged = viewModel::onRadiusChanged,
+                        onMonthSelected = viewModel::onMonthSelected,
+                        onMapTabSelected = viewModel::onMapTabSelected,
+                        onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                        onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                        onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                        onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                        onPlaceTripPin = viewModel::onPlaceTripPin,
+                        onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                        onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                        onClearSearch = viewModel::clearSearch,
+                    ),
+                    currentTime = container.currentTimeProvider,
+                    backupAndImport = AvailabilityScreenBackupAndImport(
+                        backup = backupViewModel.controls(backupUiState),
+                        returnToMapRequest = backupUiState.returnToMapRequest,
+                        openBackupRequest = openBackupRequest,
+                        gpxImportNotice = gpxImportNotice,
+                        onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
+                        onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
+                    ),
+                    offlineMaps = AvailabilityScreenOfflineMaps(
+                        onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                        onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                        onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                        onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                        onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                        onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                        // Journal redesign J4: a region row's swipe asks for a pending delete; the
+                        // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
+                        onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
+                        onDownloadAgain = viewModel::onDownloadAgain,
+                    ),
+                    settings = AvailabilityScreenSettings(
+                        onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
+                        onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                        onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
+                        onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
+                        onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
+                        onBatterySaverChanged = viewModel::onBatterySaverChanged,
+                        settingsResetNoticePending = settingsResetPending,
+                        onSettingsResetNoticeShown = container.settingsResetNotice::shown,
+                        onThemeModeChanged = viewModel::onThemeModeChanged,
+                    ),
+                    mapControls = AvailabilityScreenMapControls(
+                        onLocateMe = {
+                            pendingLocationAction = PendingLocationAction.LOCATE_ME
+                            requestLocationPermission.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                ),
+                            )
+                        },
+                        onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
+                        onMapShown = viewModel::onMapShown,
+                        onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
+                        onMapModeSelected = viewModel::onMapModeSelected,
+                        onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
+                        onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
+                        onColourFieldMoved = viewModel::onColourFieldMoved,
+                        forecastCellStore = container.forecastCellStore,
+                    ),
+                    cameraCaptureFiles = container.cameraCaptureFiles,
+                    cameraInputs = AvailabilityScreenCamera(
+                        inAppCameraTarget = inAppCameraTarget,
+                        onOpenCamera = inAppCameraViewModel::open,
+                        onCloseCamera = inAppCameraViewModel::close,
+                        cameraGridMode = cameraGridMode,
+                        onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
+                        cameraFormat = cameraFormat,
+                        onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
+                    ),
+                    journalEntries = AvailabilityScreenJournalEntries(
+                        // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
+                        cartographyUiState = cartographyUiState.hidingPendingDelete(),
+                        onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                        onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                        onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                        onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                        onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                        onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                        onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                        onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                        onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                        onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
+                        onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                        // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
+                        // ViewModels are already visible, rather than giving CartographyViewModel its
+                        // own copy of AddPhotoToGalleryUseCase — see MushroomLogViewModel.onAddGalleryPhoto's
+                        // own doc comment on `onPersisted` for why that would leave
+                        // MushroomLogUiState.galleryPhotos stale. Persist (and, for a camera capture,
+                        // the GPS patch) is entirely MushroomLogViewModel's own existing, unmodified
+                        // pipeline; only the id comes back here, to attach it to whichever entry
+                        // CartographyViewModel currently has open.
+                        onAcquirePhotoForCartographyEntry = { source ->
+                            mushroomLogViewModel.onAddGalleryPhoto(source) { id -> cartographyViewModel.onToggleKeptPhoto(id) }
+                        },
+                        onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                        onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                        onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                        onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                        // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
+                        // the message once shown (continuation 2026-09-28-76).
+                        onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
+                        onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                        onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                        // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
+                        // all, and the Toast of a failed one (continuation 2026-09-28-65).
+                        onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
+                        onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+                    ),
+                    findsLog = AvailabilityScreenFindsLog(
+                        // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
+                        // out of the lists the screen gets.
+                        logUiState = logUiState.hidingPendingDelete(),
+                        onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
+                        onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
+                        onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
+                        onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
+                        onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
+                        onOpenLogEntryForEditing = mushroomLogViewModel::onOpenEntryForEditing,
+                        onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
+                        onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
+                        onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
+                        onDiscardLogDraft = mushroomLogViewModel::onDeleteEntry,
+                        onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
+                        onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
+                        onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
+                        // J4: the find report's (and edit form's) Delete asks for a pending delete; the
+                        // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
+                        onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
+                        onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
+                        onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
+                        onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
+                        onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
+                    ),
+                    entryReportData = AvailabilityScreenEntryReportData(
+                        getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                        // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
+                        getSavedTrackPaths = { entryId ->
+                            container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
+                                androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
+                                emptyMap()
                             }
-                            // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
-                            // too sparse to evaluate against a reference map app's own recording. Testers already
-                            // run that app concurrently, so the extra GPS draw is a cost already
-                            // committed either way — see startRecording()'s own default-parameter
-                            // doc comment for why this is an explicit override here rather than a
-                            // changed default: a future non-tester-build caller should still get
-                            // BALANCED unless it deliberately asks otherwise.
-                            trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
-                        }
-                    },
-                    startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
-                    tripStartWarning = trackUiState.tripStartWarning,
-                    backgroundRunPrompt = trackUiState.backgroundRunPrompt,
-                    networkFixesNotice = trackUiState.networkFixesNotice,
-                    breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    // Journal redesign J4: the visible list leaves out a waypoint whose delete is
-                    // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
-                    // included; a row's swipe asks for that pending delete.
-                    waypoints = trackUiState.visibleWaypoints,
-                    waypointsErrorMessage = trackUiState.waypointsErrorMessage,
-                    waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
-                    onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
-                    onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
-                    returnToStart = trackUiState.returnToStart,
-                    isReturning = trackUiState.isReturning,
-                    isArrivalHeld = trackUiState.isArrivalHeld,
-                    isOffTrack = trackUiState.isOffTrack,
-                    recordingSundownLine = trackUiState.sundownLine,
-                    recordingBackBy = trackUiState.backBy,
-                    onBackByChoice = trackRecordingViewModel::setBackBy,
-                    onClearBackBy = trackRecordingViewModel::clearBackBy,
-                    onToggleReturning = {
-                        // RECORD -845: while "Arrived" is held the control is the display's exit, and closes it.
-                        if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
-                    },
+                        },
+                        getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
+                        getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
+                    ),
+                    recording = AvailabilityScreenRecording(
+                        isRecording = trackUiState.isRecording,
+                        onToggleRecording = {
+                            if (trackUiState.isRecording) {
+                                trackRecordingViewModel.stopRecording()
+                            } else if (!hasLocationPermission(this@MainActivity)) {
+                                // Confirmed crash's primary fix: never even ask the ViewModel to start
+                                // (never creates the Track row, never sets activeTrack) when the
+                                // foreground service could not possibly start without crashing — see
+                                // the location-permission comment in this class.
+                                trackRecordingViewModel.onStartRecordingPermissionDenied(
+                                    getString(R.string.track_recording_needs_location),
+                                )
+                            } else {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                                // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
+                                // too sparse to evaluate against a reference map app's own recording. Testers already
+                                // run that app concurrently, so the extra GPS draw is a cost already
+                                // committed either way — see startRecording()'s own default-parameter
+                                // doc comment for why this is an explicit override here rather than a
+                                // changed default: a future non-tester-build caller should still get
+                                // BALANCED unless it deliberately asks otherwise.
+                                trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+                            }
+                        },
+                        startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
+                        tripStartWarning = trackUiState.tripStartWarning,
+                        backgroundRunPrompt = trackUiState.backgroundRunPrompt,
+                        networkFixesNotice = trackUiState.networkFixesNotice,
+                        breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
+                        recordingSundownLine = trackUiState.sundownLine,
+                        recordingBackBy = trackUiState.backBy,
+                        onBackByChoice = trackRecordingViewModel::setBackBy,
+                        onClearBackBy = trackRecordingViewModel::clearBackBy,
+                    ),
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
-                    navigationTarget = trackUiState.originWaypoint,
-                    returnRoute = returnRouteOf(trackUiState.routeHome),
-                    routeLine = trackUiState.routeLine,
-                    onRetryRoute = trackRecordingViewModel::retryRoute,
-                    // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
-                    onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
-                    onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
-                    waypointsLoaded = trackUiState.waypointsLoaded,
-                    // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
-                    // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
-                    // pending delete, and never for a track that is still recording.
-                    tracks = trackUiState.visibleTracks,
-                    onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
-                    tracksErrorMessage = trackUiState.tracksErrorMessage,
-                    onTracksOpened = trackRecordingViewModel::loadTracks,
-                    getFullRecord = trackRecordingViewModel::getFullRecord,
-                    pendingDeleteNotices = listOfNotNull(
-                        waypointDeleteNotice(
-                            trackUiState.pendingWaypointDelete,
-                            onUndo = trackRecordingViewModel::undoRemoveWaypoint,
-                            onCommit = trackRecordingViewModel::commitRemoveWaypoint,
-                        ),
-                        trackDeleteNotice(
-                            trackUiState.pendingTrackDelete,
-                            onUndo = trackRecordingViewModel::undoRemoveTrack,
-                            onCommit = trackRecordingViewModel::commitRemoveTrack,
-                        ),
-                        offlineRegionDeleteNotice(
-                            uiState.pendingOfflineRegionDelete,
-                            onUndo = viewModel::undoDeleteOfflineRegion,
-                            onCommit = viewModel::commitDeleteOfflineRegion,
-                        ),
-                        findDeleteNotice(
-                            logUiState.pendingDelete,
-                            onUndo = mushroomLogViewModel::undoDeleteEntry,
-                            onCommit = mushroomLogViewModel::commitDeleteEntry,
-                        ),
-                        cartographyEntryDeleteNotice(
-                            cartographyUiState.pendingDelete,
-                            onUndo = cartographyViewModel::undoDeleteEntry,
-                            onCommit = cartographyViewModel::commitDeleteEntry,
-                        ),
-                        galleryPhotoDeleteNotice(
-                            logUiState.pendingPhotoDelete,
-                            onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
-                            onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
+                    navigation = AvailabilityScreenNavigation(
+                        returnToStart = trackUiState.returnToStart,
+                        isReturning = trackUiState.isReturning,
+                        isArrivalHeld = trackUiState.isArrivalHeld,
+                        isOffTrack = trackUiState.isOffTrack,
+                        onToggleReturning = {
+                            // RECORD -845: while "Arrived" is held the control is the display's exit, and closes it.
+                            if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
+                        },
+                        navigationTarget = trackUiState.originWaypoint,
+                        returnRoute = returnRouteOf(trackUiState.routeHome),
+                        routeLine = trackUiState.routeLine,
+                        onRetryRoute = trackRecordingViewModel::retryRoute,
+                        // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
+                        onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                        onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                    ),
+                    records = AvailabilityScreenRecords(
+                        // Journal redesign J4: the visible list leaves out a waypoint whose delete is
+                        // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
+                        // included; a row's swipe asks for that pending delete.
+                        waypoints = trackUiState.visibleWaypoints,
+                        waypointsErrorMessage = trackUiState.waypointsErrorMessage,
+                        waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
+                        onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
+                        onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
+                        waypointsLoaded = trackUiState.waypointsLoaded,
+                        // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
+                        // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
+                        // pending delete, and never for a track that is still recording.
+                        tracks = trackUiState.visibleTracks,
+                        onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
+                        tracksErrorMessage = trackUiState.tracksErrorMessage,
+                        onTracksOpened = trackRecordingViewModel::loadTracks,
+                        getFullRecord = trackRecordingViewModel::getFullRecord,
+                        pendingDeleteNotices = listOfNotNull(
+                            waypointDeleteNotice(
+                                trackUiState.pendingWaypointDelete,
+                                onUndo = trackRecordingViewModel::undoRemoveWaypoint,
+                                onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                            ),
+                            trackDeleteNotice(
+                                trackUiState.pendingTrackDelete,
+                                onUndo = trackRecordingViewModel::undoRemoveTrack,
+                                onCommit = trackRecordingViewModel::commitRemoveTrack,
+                            ),
+                            offlineRegionDeleteNotice(
+                                uiState.pendingOfflineRegionDelete,
+                                onUndo = viewModel::undoDeleteOfflineRegion,
+                                onCommit = viewModel::commitDeleteOfflineRegion,
+                            ),
+                            findDeleteNotice(
+                                logUiState.pendingDelete,
+                                onUndo = mushroomLogViewModel::undoDeleteEntry,
+                                onCommit = mushroomLogViewModel::commitDeleteEntry,
+                            ),
+                            cartographyEntryDeleteNotice(
+                                cartographyUiState.pendingDelete,
+                                onUndo = cartographyViewModel::undoDeleteEntry,
+                                onCommit = cartographyViewModel::commitDeleteEntry,
+                            ),
+                            galleryPhotoDeleteNotice(
+                                logUiState.pendingPhotoDelete,
+                                onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
+                                onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
+                            ),
                         ),
                     ),
                 )
