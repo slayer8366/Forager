@@ -122,15 +122,16 @@ class NightExceptionsTest {
     @Test
     fun `footpaths, tracks, tunnels and road edges not chosen keep the inversion`() {
         // Dispatch 2026-10-19-41: Street v1's one footpath layer, roads_path_foot, became one layer per trail group; hard
-        // trails keep the inversion (#7a1e10 to #ffad9f). Each id is checked to exist, so a renamed layer fails here.
-        val ids = listOf(
-            "roads_path_steps", "roads_path_unknown_z13", "roads_path_hard_z13", "roads_path_unknown_z14_faint",
-            "roads_path_hard_z14_clear", "roads_path_unknown_clear", "roads_path_easy_faint", "roads_path_rough_clear",
-            "roads_path_hard_faint", "roads_path_track", "roads_tunnels_minor_casing", "roads_major_casing_late",
-            "roads_highway_casing_late",
-        )
-        val styleIds = style.getValue("layers").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }.toSet()
-        assertEquals(emptyList<String>(), ids.filter { it !in styleIds })
+        // trails keep the inversion (#7a1e10 to #ffad9f). Every path layer in the style but the two informal ones, read
+        // from the style itself so a layer added later is covered without editing this list (Sorrel's F1: a hand list
+        // had covered 9 of the 15). The road edges are named; each is checked to exist, so a renamed layer fails here.
+        val styleIds = style.getValue("layers").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }
+        val pathIds = styleIds.filter { it.startsWith("roads_path_") && !it.startsWith("roads_path_informal") }
+        // The 15 non-informal footpath layers and the track; fewer would mean the prefix stopped matching the paths.
+        assertTrue("only ${pathIds.size} path layers read from the style: $pathIds", pathIds.size >= 16)
+        val edges = listOf("roads_tunnels_minor_casing", "roads_major_casing_late", "roads_highway_casing_late")
+        assertEquals(emptyList<String>(), edges.filter { it !in styleIds })
+        val ids = pathIds + edges
         for (id in ids) {
             val property = LayerColourProperty(id, "line-color", StyleColourValue.Literal("#a8452a"))
             assertEquals(id, offlineNightRecolourOf(property), streetNightRecolourOf(property, "roads"))
