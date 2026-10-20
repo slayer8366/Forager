@@ -160,7 +160,7 @@ internal class PlainMapNudge(
                 Log.i(NAVIGATION_VIEW_LOG_TAG, "touch released: mode=${map.cameraMode()}, travel=${"%.0f".format(hypot(event.x - downX, event.y - downY) / density)} dp")
             }
         }
-        if (leftover.onRelease(event.actionMasked, plainMap, stillFollowing = following)) map.clearPaddingKeepingPicture()
+        leftover.onRelease(event.actionMasked, plainMap, stillFollowing = following)
     }
 
     /** The map is going away. */
