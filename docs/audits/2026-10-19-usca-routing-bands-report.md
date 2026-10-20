@@ -499,3 +499,40 @@ minutes (inferred from the ratios).
 
 **Open:** re-enabling the weekly timer, after this week, on the owner's word ("Keep paused this
 week (Recommended)").
+
+## Addendum, 2026-10-20 06:10Z: Puerto Rico and the USVI as regions (pi-14), merged into pi-build, not installed
+
+The owner's word, verbatim: "Write the Puerto Rico dispatch", and on starting it, "You start a coder
+now (Recommended)". The coder's record is `docs/audits/2026-10-20-pi-14-islands-regions.md`.
+`pi-islands` (`698d8da8`..`f6398e59`) was merged into `pi-build`.
+
+**What changed:**
+
+- `USCA_REGIONS` is now `us canada us/puerto-rico us/us-virgin-islands`. Each region's path builds
+  its URLs, and its stem names its files, globs and outlines. Nothing changes for `us` and `canada`.
+- Each archive gets a `.regions` sidecar. `--basemap` refuses unless the sidecar names this run's
+  regions. The kept basemap has no sidecar, so it is accepted for `us canada` only, through
+  `USCA_BASEMAP_UNLISTED_REGIONS`.
+- San Juan is back in the coverage points, and Charlotte Amalie is added.
+- `merge_poly` is tested with four outlines.
+
+**Review:**
+
+- The planner re-ran every suite from the branch: disk 95, run 62, functions 61, stop 27, orwa 14,
+  Python 24. After the merge, disk, run and functions passed again.
+- The coder ran 14 revert checks, each restored by sha256.
+- The coder also wrote an index row on its branch, which is the planner's serialization point. The
+  merge kept every row.
+
+**Once installed, the next full build includes the islands.** That needs a basemap rebuild, about
+12 h in all (inferred). With a fresh snapshot, the NVMe has about 8.6e9 bytes to spare at the
+script's own check.
+
+**Open:**
+
+- **The USVI's routing square.** It is estimated at about 250 kB against the 100 kB floor. That is a
+  shaky estimate: a square under the floor would refuse the run at validation, about 12 h in.
+- **Coordinates in test fixtures.** The coder put the islands' test nodes on the two pinned coverage
+  points and used made-up rectangles for the outlines. The planner reads this as within the
+  privacy rule, which covers walk positions and real routes.
+- **Install, and the rebuild,** wait for the owner's go.
