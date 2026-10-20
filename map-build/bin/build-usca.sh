@@ -240,11 +240,11 @@ default_route_iface() { # the interface of the IPv4 default route the kernel use
   # Read from USCA_ROUTE_FILE, /proc/net/route unless a test names another: `ip route` needs
   # netlink, which the unit leaves out (pi-09). Wi-Fi and the tether can both hold a default route
   # at once (metrics 600 and 750, observed 2026-10-20), so the first one listed is not enough.
-  # Prints nothing when there is no default route; exits 2 when the table cannot be read.
+  # Prints nothing when there is no default route. When the table cannot be read, awk's own exit
+  # (non-zero, with its reason on stderr) is this function's, and download_floor says so.
   local f="${USCA_ROUTE_FILE:-/proc/net/route}"
-  [[ -r "$f" ]] || return 2
   awk 'NR > 1 && $2 == "00000000" && (best == "" || $7 + 0 < metric) { best = $1; metric = $7 + 0 }
-    END { if (best != "") print best }' "$f" || return 2
+    END { if (best != "") print best }' "$f"
 }
 
 download_floor() { # prints "limit time what": the floor for the next connection, and why (pi-11)
