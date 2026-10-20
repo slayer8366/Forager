@@ -198,7 +198,7 @@ All agree with Sage's figures to within 0.05.
   itself is 2.43 on night forest. Sage proposes a per-layer band of 1.9 to 2.3, with `#bb8a6f`. That
   is the owner's question.
 
-Sage's text, verbatim:
+Sage's text. **The first two sections are verbatim. From §1's bullets on, the planner condensed it, keeping every value, option and ruling.** An earlier push of this file called the whole text verbatim, and that was wrong. The full text exists only in the planner session's transcript.
 
 ## The flaw, confirmed, and why it happened
 
