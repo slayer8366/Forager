@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
 # One build of Forager's US + Canada map (forager-usca.pmtiles, z0-z15, with trail attributes) and
-# BRouter routing data (.rd5), from Geofabrik's us and canada extracts merged into one. The owner's
-# go of 2026-10-18 (Pi session, raspberrypi-composed-bunny): US and Canada, "Canadians are using
-# the app too"; the Pi builds and keeps a copy and serves nothing (RECORD -879, -1276). The whole
-# US means Alaska, Hawaii and Puerto Rico too (RECORD -1274, -1300). Geofabrik's us extract carries
-# Alaska and Hawaii but not Puerto Rico or the US Virgin Islands, which are still to be added as
-# regions of their own (pins.env, 2026-10-19). Run as the build user, by hand (`sudo -u forager-build ...`) or by
-# forager-build-usca.service.
+# BRouter routing data (.rd5), from Geofabrik's extracts of the regions in USCA_REGIONS merged into
+# one: us, canada, and Puerto Rico and the US Virgin Islands. The owner's go of 2026-10-18 (Pi
+# session, raspberrypi-composed-bunny): US and Canada, "Canadians are using the app too"; the Pi
+# builds and keeps a copy and serves nothing (RECORD -879, -1276). The whole US means Alaska, Hawaii
+# and Puerto Rico too (RECORD -1274, -1300). Geofabrik's us extract carries Alaska and Hawaii but
+# not the two islands, so they are regions of their own, each its own extract nested under us/ at
+# Geofabrik (pins.env; dispatch 2026-10-20-pi-14, owner: "Write the Puerto Rico dispatch"). Run as
+# the build user, by hand (`sudo -u forager-build ...`) or by forager-build-usca.service.
 #
 # Usage: build-usca.sh [--fetch-only] [--force] [--local YYMMDD] [--basemap FILE]
 #   --fetch-only    download and check the extracts and sources, then stop
 #   --force         build even if the extracts are the ones the current output was built from
-#   --local YYMMDD  build from us-YYMMDD.osm.pbf and canada-YYMMDD.osm.pbf already in sources/osm,
-#                   checked against their .md5 files and their headers, without asking Geofabrik
-#                   which extract is current. Over the Pi's Bluetooth link the pair takes about a
+#   --local YYMMDD  build from each region's STEM-YYMMDD.osm.pbf already in sources/osm (us-,
+#                   canada-, puerto-rico-, us-virgin-islands-YYMMDD.osm.pbf), checked against their
+#                   .md5 files and their headers, without asking Geofabrik which extract is
+#                   current. Over the Pi's Bluetooth link the extracts take about a
 #                   day to arrive, by which time Geofabrik has published a newer one, and the
 #                   normal path would start downloading again.
 #   --basemap FILE  use FILE, a forager-usca.pmtiles an earlier run built, instead of running
 #                   Planetiler, and skip the full merge that only Planetiler reads. FILE's metadata
-#                   must name the extracts' replication timestamp and sequence, or the run stops.
+#                   must name the extracts' replication timestamp and sequence, and FILE.regions
+#                   must name this run's regions, or the run stops; a FILE with no .regions
+#                   predates it and is accepted only for a us canada run (basemap_regions_match).
 #                   It is hard-linked into the output, so it must be on the same filesystem as
 #                   FB_SRV, and a failed run leaves it where it was. The first US + Canada run
 #                   finished its 7h44m basemap and then failed at the routing step (run
@@ -28,7 +32,8 @@
 # A separate script from build-orwa.sh, which stays as it is (CLAUDE.md: new capability is a new
 # path). Its own output, status and kept-failure directories, so neither script's `current`,
 # status or failed run is the other's. What differs from build-orwa.sh, and why:
-#   - The extracts are whole countries under north-america/, not states under us/.
+#   - The extracts are whole countries under north-america/, not states under us/, and the two
+#     islands, nested under us/; a region's path builds its URLs, its stem its file names.
 #   - Downloads resume (curl -C -) in a loop of their own that starts a new connection whenever one
 #     slows below a floor or stalls, up to a cap (pins.env, USCA_DOWNLOAD_*): 19 GB over Bluetooth
 #     will be interrupted, and curl's own --retry resends the offset it started from (pi-09). The
@@ -38,7 +43,7 @@
 #   - The extracts and the merged extract live on the SD card (USCA_CARD_DIR), linked from
 #     sources/osm, so the NVMe holds only Planetiler's files while the published map stays in place
 #     until the new one is done (owner, 2026-10-20: "always keep the last map").
-#   - Planetiler is limited to Geofabrik's outlines of the two countries (--polygon). The us
+#   - Planetiler is limited to Geofabrik's outlines of the regions (--polygon). The us
 #     extract's header box spans -180 to 180 because the Aleutians cross the antimeridian, so the
 #     box alone would fill ocean tiles across the whole band.
 #   - Planetiler's node map, features and multipolygon geometries are memory-mapped files, named
@@ -48,7 +53,7 @@
 #     held only ferry routes to Alaska; Alaska is in this build.
 #   - Before publishing, sample points in each country and territory the owner named must have a
 #     z15 tile with roads in it and a plausibly sized .rd5 square, so a build that silently lost
-#     Alaska, Hawaii, Canada or, once it is a region, Puerto Rico is refused.
+#     Alaska, Hawaii, Canada, Puerto Rico or the US Virgin Islands is refused.
 #   - A disk check in bytes on both disks, computed from the inputs' sizes and the ratios measured
 #     on the 261017 run (pins.env, USCA_DISK_*), at the state stage before anything downloads and
 #     again at the merge: the build shares the root filesystem with the rest of the Pi.
@@ -236,6 +241,56 @@ if got != (sys.argv[2], sys.argv[3]):
 EOF
 }
 
+# A region in USCA_REGIONS is its path under USCA_GEOFABRIK_BASE, as Geofabrik serves it: `us`,
+# `canada`, or `us/puerto-rico`, nested under us/ (dispatch 2026-10-20-pi-14). The path builds every
+# URL. Its stem, the basename (`${s##*/}`: us, canada, puerto-rico), names every local file, glob and
+# outline, because Geofabrik's own dated file names and the names inside its .md5 files are the
+# stem's (read 2026-10-20). For a bare name the two are the same string, so us and canada are
+# fetched and named exactly as before.
+region_url_dir() { # path: the URL of the directory Geofabrik serves the region's dated files from
+  if [[ "$1" == */* ]]; then echo "$USCA_GEOFABRIK_BASE/${1%/*}"; else echo "$USCA_GEOFABRIK_BASE"; fi
+}
+
+regions_ok() { # region...: lower-case paths of [a-z0-9-] segments, no two with one stem
+  # Two regions with one stem would share each other's local files and each other's cleanup.
+  local r st; declare -A seen=()
+  [[ $# -gt 0 ]] || { echo "no regions in USCA_REGIONS"; return 1; }
+  for r in "$@"; do
+    [[ "$r" =~ ^[a-z0-9-]+(/[a-z0-9-]+)*$ ]] || { echo "region $r is not a path of lower-case [a-z0-9-] segments"; return 1; }
+    st="${r##*/}"
+    [[ -z "${seen[$st]:-}" ]] || { echo "regions ${seen[$st]} and $r share the stem $st, so they would share local file names"; return 1; }
+    seen[$st]="$r"
+  done
+}
+
+basemap_regions_match() { # file timestamp sequence: does the archive's .regions name this run's regions? (pi-14)
+  # Planetiler's metadata carries only the first region's sequence (basemap_matches), so a basemap of
+  # us and canada from this snapshot passes that check for a run that adds the islands. Each archive
+  # this script builds has FILE.regions beside it (write_basemap_regions), naming the snapshot and
+  # every region's sequence, as the manifest does. An archive without one predates it; every such
+  # archive was built from USCA_BASEMAP_UNLISTED_REGIONS (pins.env), so it is accepted for a run of
+  # exactly those regions, by the metadata check alone as before, and refused for any other.
+  local side="$1.regions" got_ts got_seq
+  if [[ ! -e "$side" ]]; then
+    if [[ "$(echo $USCA_REGIONS)" == "$(echo $USCA_BASEMAP_UNLISTED_REGIONS)" ]]; then
+      echo "basemap regions: no $side; an archive without one was built from $USCA_BASEMAP_UNLISTED_REGIONS (USCA_BASEMAP_UNLISTED_REGIONS), this run's regions"
+      return 0
+    fi
+    echo "basemap regions: no $side, so nothing shows the archive holds $USCA_REGIONS; an archive without one holds only $USCA_BASEMAP_UNLISTED_REGIONS"
+    return 1
+  fi
+  got_ts="$(sed -n 's/^timestamp=//p' "$side")"; got_seq="$(sed -n 's/^sequence=//p' "$side")"
+  if [[ "$got_ts" != "$2" || "$got_seq" != "$3" ]]; then
+    echo "basemap regions: $side says ${got_ts:-no timestamp} ${got_seq:-no sequence}; this run is $2 $3"
+    return 1
+  fi
+  echo "basemap regions: $side names this run's snapshot and regions, $3"
+}
+
+write_basemap_regions() { # archive timestamp sequence: the .regions file basemap_regions_match reads
+  printf 'timestamp=%s\nsequence=%s\n' "$2" "$3" > "$1.regions.part" && mv -- "$1.regions.part" "$1.regions"
+}
+
 default_route_iface() { # the interface of the IPv4 default route the kernel uses: the lowest metric
   # Read from USCA_ROUTE_FILE, /proc/net/route unless a test names another: `ip route` needs
   # netlink, which the unit leaves out (pi-09). Wi-Fi and the tether can both hold a default route
@@ -323,6 +378,7 @@ remove_old_extracts() { # every extract of this script's regions but this run's 
   # link names. A link to anywhere else loses only the link. build-orwa.sh's extracts are left alone.
   local s f i keep base target
   for s in $USCA_REGIONS; do
+    s="${s##*/}"  # the stem: local files are named by it (region_url_dir)
     for f in "$SRC/osm/$s-"[0-9]*.osm.pbf "$CARD_OSM/$s-"[0-9]*.osm.pbf; do
       [[ -e "$f" || -L "$f" ]] || continue
       base="${f##*/}"; keep=0
@@ -440,6 +496,10 @@ curl_get() { # url dest: download to dest.part with the response headers, then m
   mv "$2.part" "$2"
 }
 
+# The region list, before anything else: a path that is not one, or two regions with one stem.
+# shellcheck disable=SC2086 # the list is meant to split
+regions_err="$(regions_ok $USCA_REGIONS)" || die "USCA_REGIONS: $regions_err"
+
 # --- 0. The network, before asking Geofabrik anything (not for --local) ------------------------
 if [[ -z "$local_date" ]]; then
   set_stage network
@@ -453,7 +513,7 @@ set_stage state
 declare -A seq ts file
 if [[ -n "$local_date" ]]; then
   for s in $USCA_REGIONS; do
-    file[$s]="$s-$local_date.osm.pbf"
+    file[$s]="${s##*/}-$local_date.osm.pbf"
     f="$SRC/osm/${file[$s]}"
     [[ -s "$f" && -s "$f.md5" ]] || die "--local: $f or its .md5 is missing"
     ts[$s]="$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$f")"
@@ -474,14 +534,15 @@ else
   done
 fi
 # Geofabrik numbers each region's sequence separately (us and canada differ), so only the
-# timestamps must agree: both extracts are then cut from the same planet snapshot.
+# timestamps must agree: every extract is then cut from the same planet snapshot.
 first="${USCA_REGIONS%% *}"
 for s in $USCA_REGIONS; do
   [[ "${ts[$s]}" == "${ts[$first]}" ]] \
     || die "extracts are from different snapshots: $first ${ts[$first]}, $s ${ts[$s]}"
 done
 osm_ts="${ts[$first]}"
-# The manifest's sequence names every region's, e.g. us:2415,canada:4945.
+# The manifest's sequence names every region's by its path, e.g.
+# us:2416,canada:4946,us/puerto-rico:3282,us/us-virgin-islands:1791 (us and canada as before).
 osm_seq="$(for s in $USCA_REGIONS; do printf '%s:%s,' "$s" "${seq[$s]}"; done)"; osm_seq="${osm_seq%,}"
 if [[ $fetch_only -eq 0 && $force -eq 0 && -f "$OUT/current/manifest.json" ]]; then
   last_seq="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["osm"]["replication_sequence"])' \
@@ -496,6 +557,8 @@ fi
 # Checked here, before anything long runs, so a basemap from other extracts stops the run at once.
 if [[ -n "$basemap" ]]; then
   basemap_matches "$basemap" "$osm_ts" "${seq[$first]}" || die "--basemap: $basemap was not built from these extracts"
+  bm_regions="$(basemap_regions_match "$basemap" "$osm_ts" "$osm_seq")" || die "--basemap: $bm_regions"
+  log "--basemap: $bm_regions"
   log "--basemap: $basemap was built from $osm_ts, sequence ${seq[$first]}; Planetiler will not run"
 fi
 # Room on both disks, from the extracts' sizes: Geofabrik's Content-Length, or the files' own for
@@ -506,7 +569,7 @@ for s in $USCA_REGIONS; do
   if [[ -n "$local_date" ]]; then
     size[$s]="$(stat -L -c %s -- "$SRC/osm/${file[$s]}")"
   else
-    size[$s]="$(remote_size "$USCA_GEOFABRIK_BASE/${file[$s]}")" || die "could not read the size of ${file[$s]}: ${size[$s]}"
+    size[$s]="$(remote_size "$(region_url_dir "$s")/${file[$s]}")" || die "could not read the size of ${file[$s]}: ${size[$s]}"
     # What a run before this one left on the card: a partial download, or the whole file.
     got="$(stat -c %s -- "$CARD_OSM/${file[$s]}.part" 2>/dev/null || stat -c %s -- "$CARD_OSM/${file[$s]}" 2>/dev/null || echo 0)"
     (( got <= size[$s] )) || got=0
@@ -523,10 +586,10 @@ inputs=()
 for s in $USCA_REGIONS; do
   f="$SRC/osm/${file[$s]}"
   if [[ -z "$local_date" ]]; then
-    curl -sSf -A "$HTTP_USER_AGENT" -o "$f.md5" "$USCA_GEOFABRIK_BASE/${file[$s]}.md5"
+    curl -sSf -A "$HTTP_USER_AGENT" -o "$f.md5" "$(region_url_dir "$s")/${file[$s]}.md5"
     if [[ ! -s "$f" ]] || ! (cd "$SRC/osm" && md5sum -c --quiet "$f.md5" >/dev/null 2>&1); then
       log "downloading ${file[$s]} (${size[$s]} bytes) to $CARD_OSM"
-      dl="$(fetch_extract "$USCA_GEOFABRIK_BASE/${file[$s]}" "${file[$s]}" "${size[$s]}")" \
+      dl="$(fetch_extract "$(region_url_dir "$s")/${file[$s]}" "${file[$s]}" "${size[$s]}")" \
         || die "download of ${file[$s]} failed: $dl"
     fi
   fi
@@ -537,7 +600,7 @@ for s in $USCA_REGIONS; do
   inputs+=("$f")
 done
 
-# --- 3. The profile's other sources, and the two countries' outlines -----------------------------
+# --- 3. The profile's other sources, and the regions' outlines ----------------------------------
 set_stage fetch-sources
 fetch_static() { # url name: fetched once, kept
   if [[ ! -s "$SRC/aux/$2" ]]; then log "fetching $2"; curl_get "$1" "$SRC/aux/$2"; fi
@@ -557,8 +620,8 @@ polys=()
 for s in $USCA_REGIONS; do
   # Refreshed on the coastlines' schedule: Geofabrik moves an outline rarely, and a stale one
   # only shifts which offshore tiles are drawn.
-  fetch_monthly "$USCA_GEOFABRIK_BASE/$s.poly" "$s.poly"
-  polys+=("$SRC/aux/$s.poly")
+  fetch_monthly "$USCA_GEOFABRIK_BASE/$s.poly" "${s##*/}.poly"
+  polys+=("$SRC/aux/${s##*/}.poly")
 done
 sources=("$SRC/aux/natural_earth_vector.gpkg.zip" "$SRC/aux/daylight-landcover.gpkg" "$SRC/aux/qrank.csv.gz"
   "$SRC/aux/pgf-encoding.zip" "$SRC/aux/water-polygons-split-3857.zip" "$SRC/aux/land-polygons-split-3857.zip"
@@ -617,6 +680,8 @@ if [[ -n "$basemap" ]]; then
     || die "--basemap: cannot hard-link $basemap into $run/out; it must be on the same filesystem as $FB_SRV"
   # The manifest carries versions.txt, so the output says its basemap was not built by this run.
   echo "basemap: reused from $basemap (--basemap), not built by this run" >> "$run/versions.txt"
+  # This run's own .regions, not FILE's: the state stage has just checked FILE against this run.
+  write_basemap_regions "$pmtiles_out" "$osm_ts" "$osm_seq" || die "cannot write $pmtiles_out.regions"
   log "basemap: $basemap linked into the output"
 else
   set_stage planetiler
@@ -630,6 +695,8 @@ else
     --output="$pmtiles_out" --tmpdir="$pt/tmp" --http_user_agent="$HTTP_USER_AGENT" \
     --storage=mmap --nodemap_storage=mmap --nodemap_type="$USCA_NODEMAP_TYPE" --nodemap_madvise=true \
     --multipolygon_geometry_storage=mmap)
+  # Which regions and snapshot this archive holds, for a later --basemap (basemap_regions_match).
+  write_basemap_regions "$pmtiles_out" "$osm_ts" "$osm_seq" || die "cannot write $pmtiles_out.regions"
   rm -rf -- "$pt/tmp"  # tens of GB; the routing step needs the room
   rm -f -- "$merged"   # nothing after Planetiler reads it
   remove_card_run      # and its directory on the card

@@ -117,14 +117,19 @@ The JVM's `-Xmx` caps it, and `OOMScoreAdjust=800` points the kernel at the buil
 The owner's go of 2026-10-18: the Pi builds a map of the US and Canada, and serves none (RECORD
 -879, -1276). Geofabrik's `us` extract carries Alaska and Hawaii, but not Puerto Rico or the US
 Virgin Islands. They are listed as its subregions, but the extract holds no data for either
-(2026-10-19), so they are still to be added as regions of their own, and San Juan is out of the
-coverage points until then. `build-orwa.sh` stays as it is; `build-usca.sh` is a separate script with its own
+(2026-10-19), so they are regions of their own, `us/puerto-rico` and `us/us-virgin-islands`, each
+its own extract at Geofabrik (dispatch 2026-10-20-pi-14). San Juan and Charlotte Amalie are their
+coverage points. `build-orwa.sh` stays as it is; `build-usca.sh` is a separate script with its own
 `out-usca/`, `status-usca.json` and `failed-usca/latest`, so neither script's output, status or
 kept failure is the other's. The settings are the `USCA_` lines in `pins.env`.
 
 What it does differently from `build-orwa.sh`, and why:
-- **Whole countries.** `us` and `canada` from `north-america/`. Geofabrik numbers each region's
-  sequence separately, so only the two timestamps must agree.
+- **Whole countries, and the islands as regions of their own.** `USCA_REGIONS` is `us`, `canada`,
+  `us/puerto-rico` and `us/us-virgin-islands`, each a path under `north-america/`. The path builds
+  every URL; the stem (`puerto-rico`) names the local files, the cleanup's globs and the outline, as
+  Geofabrik's own file names do, so `us` and `canada` are fetched and named as before. Geofabrik
+  numbers each region's sequence separately, so only the timestamps must agree. The manifest's
+  sequence names every region by its path, `us:N,canada:N,us/puerto-rico:N,us/us-virgin-islands:N`.
 - **Downloads resume, and restart when they slow.** Each connection resumes with `curl -C -` and
   is given up when it averages under a floor for long enough; the floor is chosen before each
   connection from the link carrying the default route (`/proc/net/route`, lowest metric). On
@@ -137,12 +142,13 @@ What it does differently from `build-orwa.sh`, and why:
   offset it started from. 19 GB over the Pi's Bluetooth link (about 0.2 MB/s) is interrupted more
   than once. Before asking Geofabrik anything, the script waits up to an hour for a default route
   and for the host to resolve. `--local YYMMDD` builds from a pair already in
-  `sources/osm/`, checked against its `.md5` files and headers. It exists because the pair takes
+  `sources/osm/` (each region's `STEM-YYMMDD.osm.pbf`), checked against its `.md5` files and headers. It exists because the pair takes
   about a day to arrive, and by then Geofabrik has published a newer one.
-- **Clipped to the two countries' outlines.** The `us` extract's header box spans -180 to 180
-  because the Aleutians cross the antimeridian. Planetiler gets Geofabrik's `us.poly` and
-  `canada.poly`, joined by `tools/merge_poly.py`, as `--polygon`, so it draws no ocean tiles
-  outside them.
+- **Clipped to the regions' outlines.** The `us` extract's header box spans -180 to 180
+  because the Aleutians cross the antimeridian. Planetiler gets Geofabrik's `us.poly`,
+  `canada.poly`, `puerto-rico.poly` and `us-virgin-islands.poly`, joined by `tools/merge_poly.py`,
+  as `--polygon`, so it draws no ocean tiles outside them. The two islands' outlines overlap
+  slightly; the join keeps both rings.
 - **Memory-mapped.** The node map, features and multipolygon geometries are files on disk,
   named explicitly. The heap stays at 4 GB. Whether that is enough for an input 30 times
   Oregon + Washington's is untested until the first run.
@@ -179,6 +185,10 @@ What it does differently from `build-orwa.sh`, and why:
   run then failed at routing; the owner's word was to keep it and move on. With `--basemap`,
   Planetiler and the full merge are skipped, FILE is hard-linked into the output, and the run
   stops at once unless FILE's metadata names the extracts' replication timestamp and sequence.
+  The metadata holds only the first region's sequence, so every archive the script builds also
+  gets `forager-usca.pmtiles.regions` beside it, naming the snapshot and every region's sequence,
+  and `--basemap` refuses FILE unless `FILE.regions` names this run's. A FILE with none predates it
+  and is accepted only for a `us canada` run (`USCA_BASEMAP_UNLISTED_REGIONS`), as before.
   `versions.txt`, which the manifest carries, records that the basemap was reused.
 - **One good output kept** (`USCA_KEEP_GOOD_OUTPUTS=1`), since each is tens of GB.
 - **It will not run alongside `build-orwa.sh`.** Two builds at once would not fit in memory, and
@@ -194,7 +204,7 @@ What it does differently from `build-orwa.sh`, and why:
   encoded by hand.
 - `python3 -m unittest map-build/tools/test_run_record.py`: the status rules and the manifest's
   dropped squares.
-- `python3 -m unittest map-build/tools/test_merge_poly.py`: joining the two outlines.
+- `python3 -m unittest map-build/tools/test_merge_poly.py`: joining the outlines, two or four.
 - `bash map-build/tools/test_build_usca_functions.sh`: `build-usca.sh`'s square and tile
   arithmetic, download resuming, failed-run keeping, the `--basemap` snapshot check and the routing bands'
   layout and square ownership, loaded from the script itself.
