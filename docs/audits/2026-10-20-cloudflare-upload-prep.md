@@ -468,3 +468,20 @@ own window. Verbatim: "Upload now (Recommended)"; for the fonts and icons, "The 
 3. Later, paste the Worker bundle Rowan sends.
 
 Dispatch `prompts/preserved/2026-10-20-pi-19.md` covers the upload.
+
+## pi-19: speed measured, the overnight upload ruled; Hazel's Worker bundle, 2026-10-20
+
+- **The speed test,** measured by the coder: 256 MiB in 331 s wall time, 0.81 MB/s over Wi-Fi
+  (signal −69 dBm). The archive would take about **11.6 h**, over the planner's 10 h limit, so the
+  coder stopped and asked. The scratch object is deleted and the bucket root again lists only
+  `overflow/` and `us.pmtiles`. The live `us.pmtiles` is 8,817,909,309 bytes, ModTime 2026-08-19.
+  The local archive's sha256 matches its manifest (`bbc0b658…a272`).
+- **The owner, verbatim:** "Run it overnight (Recommended)". This supersedes the 10 h limit for this
+  run. Fonts and icons go first.
+- **Hazel's Worker bundle,** via Rowan: commit `cfbd1b68` on #258. The file is `dist/index.js`,
+  382,597 bytes, sha256 `5b0b3d0b…4ec0`, on the owner's laptop (`dist/` is gitignored). It was built
+  by `npm ci` then `npm run build` with wrangler 4.124.0. `npm test` passes 9 of 9, including
+  `/style/street-v1.json` served byte for byte. All 17 footpath layer IDs are in it. Not checked
+  here; the file is not on the Pi. Seventeen agrees with the handover's layout: 2 informal, steps,
+  2 at z13, 4 at z14 and 8 from z15. The review build is CI run 39507721722, branch
+  `street-trails-review`, never merged.
