@@ -579,3 +579,23 @@ planner confirmed it was gone.
   - a 4-box US `osmium extract` reached at least 5.7 GB resident;
   - BRouter printed its integer-encoded route ends into the session's local transcript, outside the
     repo. They are named public places, not walk positions, and nothing reached the repo.
+
+## Addendum, 2026-10-20 06:10Z: the islands' squares measured before the rebuild (pi-15)
+
+The owner's word, verbatim: "Measure it first (Recommended)". The coder downloaded the two island
+261017 extracts into `/tmp` scratch, and both MD5s were OK. It built their routing the way section 6
+does, and measured the squares. The scratch directory was removed.
+
+- **Headers.** All four files share the timestamp `2026-10-17T20:20:51Z`: `puerto-rico-261017`
+  (sequence 3281), `us-virgin-islands-261017` (1790), and `us` and `canada` 261017. So
+  `--local 261017` would pass the same-snapshot check once the island files are in `sources/osm`
+  (inferred from the code).
+- **Squares.**
+  - `W70_N15` (San Juan) is 4,640,212 bytes.
+  - `W65_N15` (Charlotte Amalie) is 285,692 bytes, about 2.9× the 100,000 floor. pi-14's 250 kB
+    estimate was within 15%.
+- **Fair stand-in.** Neither `us` nor `canada` holds a node inside either square. The control for
+  that count: the same extract run on the island files found nodes in both squares. So the real
+  build's squares should match these (inferred).
+- **The planner's prediction:** right on all three counts.
+- **No per-point floor is needed.**
