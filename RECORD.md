@@ -24323,3 +24323,17 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Proofs (Hazel):** five proofs with bite runs on both JournalSwitch ranges; suite identical case by case (5,160 cases). **Accepted by the planner:** dex +1 (`JournalSwitchKt$WhenMappings.<clinit>`, compiler-generated, over-256 list identical) and seven already-unused imports dropped (import-only edit).
 - **S22** (run 39362504890): 1.0.3560+gad203992, installed with `install -r -d`, PASS.
 - **Planner's slip (no effect):** fresh CI builds of 10b, 10e, 10f and 10a were started to get a higher build number for the phone. The build number comes from the commit, so they could not. The earlier session's `install -r -d` was the right method.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1428
+**Timestamp:** 2026-10-20T03:27:58Z
+**Closes:** 2026-09-28-1408
+**Outcome:** completed
+**Observed:**
+- PR #286 (UI split Phase 1, PR 10a: AvailabilitySearchUi.kt into seven files) merged into pre-main at 014fc599, gated on head 233d6f08; none of its files changed on pre-main since 5501fe22 (batch ruling, -1423). Last PR of the batch (#287, #288, #285, #289, #290, #286).
+- **Files:** AvailabilitySearchUi.kt 1,205 → 321, with six new files. Four widenings.
+- **Planner's ruling on the report:** three KDoc links were left dangling, because the move dropped the only imports that resolved them (`MapIconBar`, `CentrePinLocationPickerOverlay`, `LazyColumn`). The three imports were restored in 233d6f08, matching how 10d and 6b kept KDoc-only imports. The diff from f81c8e76 is exactly three added import lines.
+- **Proofs (Hazel, re-derived after the handover):** merge clean (merge-tree identical); suite identical case by case on f81c8e76 against pre-merge e8f7db4d and pre-main 5501fe22, and on 233d6f08 (run 39362622790) against f81c8e76's 39358749140 (5,160 cases); 108 concrete touch-guard classes, 1,107 cases, identical; dex +8 as accepted; `command grep` re-runs show no difference. Not re-run: the dex report on 233d6f08 (import lines only; inferred unchanged).
+- **S22** (run 39362622790): 1.0.3564+g233d6f08, PASS.
