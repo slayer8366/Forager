@@ -184,3 +184,44 @@ Run `usca-20261019T225941Z`, at `d5ed9eec`, ran 22:59–03:21 UTC:
 - Puerto Rico and the US Virgin Islands as regions of their own;
 - why the hand stop left the status file at "running";
 - WayLinker's real memory need.
+
+## Addendum, 2026-10-19 20:45 PDT: the hand-stop gap explained (pi-04); Puerto Rico researched (pi-03)
+
+**Supersedes** the first addendum's "The cause is **not determined**", about the status file left
+at "running" after `systemctl stop`. It also corrects the hand-written status message of
+2026-10-19 13:34Z, which says "Its on_exit did not run (SIGTERM)". Source: the Pi coder's report on
+dispatch `2026-10-19-pi-04`. Its repro units were run under the owner's "go on pi-04". The planner
+has not re-run them.
+
+- **Observed in repro units under systemd 252 and bash 5.2:** on `systemctl stop`, `on_exit`
+  runs. But `$?` holds the status of the last command that finished, not the signal. In the real
+  run that was a 0 from the arithmetic just before the band extract (inferred from
+  `b7302ed8`'s lines 406–411). So `if [[ $code -ne 0 ]]` skips everything: no status write, no
+  kept failure, no cleanup.
+- **Behind that guard, two more failures (observed):**
+  - a process forked within about 1 ms of the stop is also killed;
+  - the first `log` in `on_exit` writes to the killed `tee` and ends bash by SIGPIPE.
+- **The fix described, not built:** turn the signal into a nonzero exit; stop `on_exit` writing to
+  `tee`; don't depend on a fork in the first instant. Each part has its own revert. It waits for
+  the owner's go.
+- **Correction to the planner's own reasoning that day:** the planner's TERM-trap idea pointed
+  the right way. Its removal was justified only by a repro that showed the trap *runs*; that repro
+  never checked what the trap *saw*. That is a check measuring the wrong property, not the absence
+  of the property.
+
+**Puerto Rico and the USVI (pi-03 Phase 1, read-only).** All of the following was spot-checked by
+the planner at 03:44Z:
+
+- Geofabrik publishes `north-america/us/puerto-rico` (about 70 MB) and `us/us-virgin-islands`
+  (about 3 MB).
+- All four regions' `state.txt` read `timestamp=2026-10-18T20:25:06Z`.
+- The flat URL `build-usca.sh` would build for a nested region returns 404; the nested one returns
+  200.
+
+So adding the islands needs a script change for nested regions, not only a region-list edit.
+
+The coder also found that `basemap_matches` checks the timestamp and only the *first* region's
+sequence. A US + Canada basemap would therefore pass for a four-region run. San Juan must return to
+the coverage points in the same change.
+
+The islands take two squares, `W70_N15` and `W65_N15`, both inside the last band.
