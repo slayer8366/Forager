@@ -375,3 +375,30 @@ into `/etc` with `daemon-reload`.
 end to end; the installed unit; and how much the ratios move from week to week.
 
 **Proposed, not built:** a per-link speed floor, 700 kB/s on Wi-Fi.
+
+## Addendum, 2026-10-20 04:45Z: the disk changes and the updated unit installed (pi-10); Wi-Fi back
+
+The owner's words, verbatim: "Install now (Recommended)" and "Keep paused this week
+(Recommended)".
+
+**The install:**
+
+- **Scripts:** `/opt/forager-build/map-build/COMMIT` went from `dfb1ac45` to `e5c72e41`.
+  `diff -r -x __pycache__` of `bin`, `tools` and `pins.env` is empty.
+- **Unit:** `/etc/systemd/system/forager-build-usca.service` now matches the repo copy. It differs
+  from the old one only in its header comment and the added
+  `ReadWritePaths=-/mnt/archive/forager-build`. The old file was backed up to
+  `forager-build-usca.service.bak-20261020`.
+- **Checks after:** `daemon-reload` ran, `systemd-analyze verify` is clean, and the timer drop-in is
+  unchanged by sha256.
+- **Tests against `/opt`:** disk 69, run 36, stop 27, functions 37.
+- **The planner confirmed** `COMMIT`, the `ReadWritePaths` line, and the timer still disabled.
+
+**Not tested:** the new `ReadWritePaths` in a real run of the unit, since nothing was started.
+
+**Wi-Fi:** the owner reconnected it ("Wifi connected"). At 04:39Z `wlan0` was the default route,
+with the tether behind it.
+
+**Before a weekly run:** the owner's cleanup, which is still pending.
+
+**Owner's choice, not yet asked:** whether to add the proposed Wi-Fi-only speed floor.
