@@ -24423,3 +24423,45 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **The owner, verbatim:** "Do phase 2. Our next project touches the maps and such, and wiring even more code into it when we already plan to decouple it is just adding more work. Let's do this and keep it going, it's worth it for our maps project." Through the question tool: "Settings bundles (Recommended), Hub holders (Recommended), Recording + Journal engines" (the big test-file split was offered and not chosen); "Promote Phase 1 first (Recommended)" (option: "Phase 2 work starts now on branches, but nothing merges into pre-main until Phase 1 is promoted to main."); "Me by adb, you spot-check (Recommended)" (option: "I take S22 screenshots of each affected screen in portrait and landscape before and after, and compare them. You glance at any that differ, and at the final one.").
 **What it sets:** the plan `docs/plans/2026-10-20-ui-split-phase-2-plan.md` (this branch). Order: settings bundles, the map, the Maps tab body, the main screen's engine, then the frame, the main screen body, the recording engine, the Journal engines. Every PR: verify-first with the holder's shape, getters and setters per Stage G, suite identical, touch guards, dex report, a review by Sorrel, the S22 launch check, and the screenshot pass for layout, inset or map PRs. A screenshot tool comes first.
 **Notes:** Written by the planner by hand. Next free ID -1435.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1435
+**Timestamp:** 2026-10-20T05:57:19Z
+**Continues:** 2026-09-28-1434
+**Title:** S22 screenshot set for Phase 2's phone pass (owner's Phase 2 go)
+**Dispatch-file:** preserved/2026-10-19-27.md, for Hazel Cairnwright
+**Scope:** scripts/s22-screenshot-set.sh (new), draft PR; phone shared with the planner. From pre-main 1ce100c4.
+**Baseline:** pre-main 1ce100c4.
+**Finish line:** as the dispatch's report section; Phase 2 PRs stay draft until Phase 1 is promoted (-1434).
+**Abort conditions:** the dispatch's stops.
+**Notes:** Written by the planner by hand. Next free ID -1436.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1436
+**Timestamp:** 2026-10-20T05:57:19Z
+**Continues:** 2026-09-28-1434
+**Title:** Phase 2.1: the main screen's settings bundles, verify-first then the first bundle (owner's Phase 2 go)
+**Dispatch-file:** preserved/2026-10-19-28.md, for Hazel Cairnwright
+**Scope:** AvailabilityScreen.kt's parameters, MainActivity, and test call sites (shape only). From pre-main 1ce100c4.
+**Baseline:** pre-main 1ce100c4.
+**Finish line:** as the dispatch's report section; Phase 2 PRs stay draft until Phase 1 is promoted (-1434).
+**Abort conditions:** the dispatch's stops.
+**Notes:** Written by the planner by hand. Next free ID -1437.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1437
+**Timestamp:** 2026-10-20T05:57:19Z
+**Continues:** 2026-09-28-1434
+**Title:** Phase 2.2: the map's holder, verify-first (owner's Phase 2 go)
+**Dispatch-file:** preserved/2026-10-19-29.md, for Hazel Cairnwright
+**Scope:** ui/map/SightingsMap.kt; read-only until the planner's go. From pre-main 1ce100c4.
+**Baseline:** pre-main 1ce100c4.
+**Finish line:** as the dispatch's report section; Phase 2 PRs stay draft until Phase 1 is promoted (-1434).
+**Abort conditions:** the dispatch's stops.
+**Notes:** Written by the planner by hand. Next free ID -1438.
