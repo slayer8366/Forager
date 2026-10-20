@@ -24980,3 +24980,33 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Open, still-phone gap:** why B and C logged SHOW on 5fd0d4f4 on a still phone is not explained by the code (Hazel, Sorrel). It is moot under #336.
 **Decision:** dispatch 2026-10-19-37 (plain-map spring-back, per RECORD -1469) goes to Hazel, verify-first, on base 30cbf9bc.
 **Notes:** Written by the planner by hand. Next free ID -1471.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1471
+**Timestamp:** 2026-10-20T17:39:35Z
+**Continues:** 2026-09-28-1469, 2026-09-28-1470
+**Title:** Spring-back stops brought to the owner: Maps tab only at about 10 files; the navigating side effects accepted
+**Observed:**
+- **Hazel's verify-first for dispatch 2026-10-19-37 (base 30cbf9bc) raised two stops.**
+- **Stop 1, size.** Keeping the pickers unchanged needs about 10 production files, against the dispatch's limit of about 4: a MapRenderMode flag carried to every options site (MapStyleReload, MapLocationDot, MapNavigationView, LiveLocationPuck and the others). All following maps would be about 4 files, but would change both centre-pin pickers and the NavigationGestureOptionsTest assertion.
+- **Stop 2, visible changes beyond steps 1-4, while following on the plain map:**
+  - a drag of 25-72 dp no longer pans or folds an open fan;
+  - double-tap zoom centres on the dot;
+  - two-finger rotate keeps following and turns around the dot (today the drift most likely ends following; inferred);
+  - the bubble most likely moves with the give (device-only).
+- **A needed addition:** after a drag past the threshold, the give's padding stays as camera padding. That would offset the next locate or search frame, and a tab return by up to 36 dp, which breaks #336. The fix is a picture-preserving padding clear on release.
+- **Step 4 today:** a pinch usually ends following on the plain map (gesture management off, MapLibre's move rule; inferred from the -457 desk observation).
+- **#336's bookkeeping:** no interaction; padding moves never end following (MapLibre 13.5.0 bytecode, read by Hazel).
+**Decision:** the owner chose:
+- **"All OK, same as navigating (Recommended)"** for the side effects;
+- **"Maps tab only, ~10 files (Recommended)"** for the scope.
+
+The planner adds:
+- the flick reading (the same fling guard as navigating) is confirmed;
+- the padding clear is accepted;
+- sub-pixel taps behave as in navigation.
+
+Hazel has the go for Part 2. The stop limit is about 11 production files.
+**Notes:** Written by the planner by hand. Next free ID -1472.
