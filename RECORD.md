@@ -24830,3 +24830,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Owner's test-gap list, addition:** the test that caught the bubble minY regression is @Ignore'd (AvailabilityScreenMapIconStackTest.kt:1403-1405), so the suite can't see that regression return (Hazel, 2.3 verify-first).
 - **Series state:** 2.1, 2.2 and 2.7 complete; 2.4: 5 of 9 merged, PR 6 building; 2.3: verify-first accepted, PR 1 building; 2.8: verify-first accepted (-1461), PR 1 building.
 **Notes:** Written by the planner by hand. Next free ID -1464.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1464
+**Timestamp:** 2026-10-20T12:07:09Z
+**Continues:** 2026-09-28-1463
+**Title:** #323 (2.8 Cartography pending deletes) and #322 (2.4 waypoint-navigation store) merged into pre-main after the combined S22 check on dcda3f94; helpers resumed after a usage-limit stop
+**Observed:**
+- **Usage limit:** at about 10:50Z all four running helpers and a review stopped on the account's session limit (reset 3:50 PDT). The planner resumed them at 12:01Z from where they stopped; no work was lost. If it recurs, the planner drops to two series at a time.
+- Pre-main dcda3f94's push run 39405956053: all three jobs green; combined S22 check 1.0.3656+gdcda3f94, PASS (covers #319, #321, #318, #320).
+- #323 at 783ebcaa: S22 PASS (1.0.3646+gb18d5170); Sorrel: approve with nits, moved bodies identical by mechanical reversal. #322 at 3f082f68: S22 PASS (1.0.3630+g3528aa1f); Sorrel: approve with nits; the initializer-order change (the flag's = false now runs before init) verified unobservable, and the pause and resume lines unchanged.
+- **The owner's phone walk** (-1458) is under way on the owner's S26, build 1.0.3658 (the commit is not yet identified: pre-main was 3656 at the time; asked the owner for the +g suffix). The S22 was used for the two waiting launch checks once the owner said the walk was on the S26.
+- **Owner's test-gap list, additions (Hazel, Sorrel, #323):** no test pends the open Journal entry (the editor-closing branch of requestDeleteEntry); no test asserts on its three log messages.
+**Notes:** Written by the planner by hand. Next free ID -1465.
