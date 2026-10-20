@@ -514,3 +514,6 @@ months ago. No record read here mentions it. It was left alone.
 
 **Auto-deploy pause:** not yet confirmed by the owner for the Worker, as opposed to the Pages
 project.
+- **Checksum, reported by the owner, verbatim:** "Checksum is correct". This answers the planner's
+  question whether the laptop's `sha256sum` matched `5b0b3d0b…414ec0` before the paste. It
+  supersedes the "not reported" above.
