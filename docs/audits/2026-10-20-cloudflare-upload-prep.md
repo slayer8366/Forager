@@ -320,3 +320,10 @@ From the coder's report, with the planner's own checks marked.
 - **Where things are:** renders in `~/street-preview-scratch/shots/`, outside any repository.
   The preview is running for the owner. Stop it with
   `kill $(cat ~/street-preview-scratch/pmtiles.pid) $(cat ~/street-preview-scratch/www.pid)`.
+
+## The owner's rulings on Sage's design; Part B sent, 2026-10-20
+
+Sage's eight questions were folded into four, and asked through the question tool. The owner chose
+the recommended option in each. Verbatim: "A only (Recommended)"; "Own night colour
+(Recommended)"; "No legend (Recommended)"; "Accept (Recommended)". The full text is in pi-18's
+Part B amendment. Variant A is drawn next, and nothing is adopted until the owner has seen it drawn.
