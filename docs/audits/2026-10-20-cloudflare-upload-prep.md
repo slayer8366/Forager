@@ -105,3 +105,15 @@ the maps first." Answers through the question tool:
 **Note.** The look is set by the style (`map-style/`, and the offline style the Worker and app use),
 not by the archive. Overwriting `us.pmtiles` changes the data. Whether the new style ships with or
 after the upload is the design dispatch's question.
+
+## The design questions re-asked, 2026-10-20; supersedes the preview answer above
+
+The owner, verbatim: "And the other set of questions". The three design questions were asked
+again. Answers, verbatim:
+
+- **Scope:** "Everything together". Unchanged.
+- **Preview:** "On the Pi, with the new map (Recommended)". This **supersedes** "On the laptop, as
+  it is now", recorded above. The Pi serves the new US + Canada archive to the style preview,
+  locally only, with nothing public and nothing uploaded, so the design is judged on the real trail
+  data. The earlier note that trail styling is "checked by eye only after the upload" is withdrawn.
+- **Who leads:** "Aspen, with Rowan kept informed (Recommended)". Unchanged.
