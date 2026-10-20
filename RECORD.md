@@ -24202,3 +24202,33 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **S22 launch check, planner, about 04:08Z:** APK 1.0.3557+gd326ee82 from workflow_dispatch run 39356899951. "PASS: verified (status=verify), launched, process 19384 alive after 8 s, crash buffer empty."
 **Deviations:** none.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1419.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1419
+**Timestamp:** 2026-10-20T02:25:13Z
+**Continues:** 2026-09-28-1406
+**Title:** UI split Phase 1, PR 10e: the Journal files' movable parts (JournalTab.kt, CartographyScreen.kt, CartographyEntryReportScreen.kt); the screens, Back order and the one map call stay (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-22.md, for Hazel Cairnwright
+**Scope:** the named files and new files in ui/log; from pre-main 5501fe22.
+**Baseline:** pre-main 5501fe22.
+**Prediction (outcome, planner):** a pure move; suite identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1420.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1420
+**Timestamp:** 2026-10-20T02:25:13Z
+**Continues:** 2026-09-28-1406
+**Title:** UI split Phase 1, PR 10f: the in-app camera's shutter and parts out of InAppCameraDialog.kt; the dialog and its orientation calls stay (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-23.md, for Hazel Cairnwright
+**Scope:** the named files and new files in ui/log; from pre-main 5501fe22.
+**Baseline:** pre-main 5501fe22.
+**Prediction (outcome, planner):** a pure move; suite identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1421.
