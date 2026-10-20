@@ -24123,3 +24123,35 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any reorder; an initialisation-order cycle; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1414.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1414
+**Timestamp:** 2026-10-20T01:42:12Z
+**Closes:** 2026-09-28-1405
+**Outcome:** completed
+**Observed:**
+- PR #282 (UI split Phase 1, PR 9b: the strip slot, chips and both navigation cards) merged into pre-main at 0e16b32a under the standing word, gated on head 3252c5e0, which contains pre-main 068a139a (the merge touched no ui/availability file). Backup bundle of 068a139a, verified.
+- **Files:** CompactMapLandscapeNavigationCard.kt (F/G/H then M), CompactMapTopStrip.kt (K/L), CompactMapChips.kt (M1), CompactMapPortraitNavigationCard.kt (O, N/P, then the tag), by the planner's call for two card files rather than one (the owner's one-part-per-file aim), at the cost of one more widening. Five widenings. `CompactMapTab` untouched.
+- **Proofs (Hazel):** 15 declarations, differing only in the widenings; every range `cmp`-identical; suite identical (5,160 cases); **19 guards, 32 classes, 282 cases, identical**. AvailabilityCompactMapUi.kt 1,629 → 1,077; new files 200, 199, 129, 139.
+- **Dex stop, accepted by the planner:** total +1, a `<clinit>` on `CompactMapLandscapeNavigationCardKt` for the moved non-const `WALKER_DOT_CLEARANCE = 12.dp`; the nine listed methods identical.
+- **Hazel's disclosed slip:** the first `cmp` check took its length from the range, so short-range bite runs compared a prefix and passed. Rebuilt to compare to end of file; every bite then failed where it should.
+- **S22 launch check, planner, about 02:48Z:** APK 1.0.3548+g3252c5e0 from workflow_dispatch run 39352957408. "PASS: verified (status=verify), launched, process 4498 alive after 8 s, crash buffer empty."
+**Deviations:** the dex stop above.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1415.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1415
+**Timestamp:** 2026-10-20T01:42:12Z
+**Continues:** 2026-09-28-1414
+**Title:** UI split Phase 1, PR 9c: the Maps tab's bottom chrome and pickers out of AvailabilityCompactMapUi.kt (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-21.md, for Hazel Cairnwright
+**Scope:** AvailabilityCompactMapUi.kt and new files in ui/availability; from pre-main 0e16b32a.
+**Baseline:** pre-main 0e16b32a.
+**Prediction (outcome, planner):** the file ends near 750 lines, mostly CompactMapTab; inset code byte-identical; the 19 guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs and the guard table, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1416.
