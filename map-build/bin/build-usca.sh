@@ -31,7 +31,10 @@
 #   - The extracts are whole countries under north-america/, not states under us/.
 #   - Downloads resume (curl -C -) in a loop of their own that starts a new connection whenever one
 #     slows below a floor or stalls, up to a cap (pins.env, USCA_DOWNLOAD_*): 19 GB over Bluetooth
-#     will be interrupted, and curl's own --retry resends the offset it started from (pi-09).
+#     will be interrupted, and curl's own --retry resends the offset it started from (pi-09). The
+#     floor is chosen before each connection from the link carrying the default route: Wi-Fi's
+#     restarts a slowed connection to win back its fast start, anything else gets one safe on the
+#     Bluetooth tether (pi-11).
 #   - The extracts and the merged extract live on the SD card (USCA_CARD_DIR), linked from
 #     sources/osm, so the NVMe holds only Planetiler's files while the published map stays in place
 #     until the new one is done (owner, 2026-10-20: "always keep the last map").
@@ -233,14 +236,46 @@ if got != (sys.argv[2], sys.argv[3]):
 EOF
 }
 
+default_route_iface() { # the interface of the IPv4 default route the kernel uses: the lowest metric
+  # Read from USCA_ROUTE_FILE, /proc/net/route unless a test names another: `ip route` needs
+  # netlink, which the unit leaves out (pi-09). Wi-Fi and the tether can both hold a default route
+  # at once (metrics 600 and 750, observed 2026-10-20), so the first one listed is not enough.
+  # Prints nothing when there is no default route; exits 2 when the table cannot be read.
+  local f="${USCA_ROUTE_FILE:-/proc/net/route}"
+  [[ -r "$f" ]] || return 2
+  awk 'NR > 1 && $2 == "00000000" && (best == "" || $7 + 0 < metric) { best = $1; metric = $7 + 0 }
+    END { if (best != "") print best }' "$f" || return 2
+}
+
+download_floor() { # prints "limit time what": the floor for the next connection, and why (pi-11)
+  # Wi-Fi, an interface matching USCA_WIFI_IFACE_PATTERN, gets USCA_DOWNLOAD_SPEED_*_WIFI; any other
+  # link, no default route, or a table that cannot be read gets the conservative USCA_DOWNLOAD_SPEED_*.
+  # The Wi-Fi floor on the tether would end a connection about every 40 s, so every doubt goes to
+  # the conservative one.
+  local f="${USCA_ROUTE_FILE:-/proc/net/route}" ifc rc=0
+  ifc="$(default_route_iface)" || rc=$?
+  if (( rc != 0 )); then
+    echo "$USCA_DOWNLOAD_SPEED_LIMIT $USCA_DOWNLOAD_SPEED_TIME cannot read $f, default floor"
+  elif [[ -z "$ifc" ]]; then
+    echo "$USCA_DOWNLOAD_SPEED_LIMIT $USCA_DOWNLOAD_SPEED_TIME no default route in $f, default floor"
+  # shellcheck disable=SC2053 # the pattern is meant to match as a glob
+  elif [[ "$ifc" == $USCA_WIFI_IFACE_PATTERN ]]; then
+    echo "$USCA_DOWNLOAD_SPEED_LIMIT_WIFI $USCA_DOWNLOAD_SPEED_TIME_WIFI link $ifc, Wi-Fi floor"
+  else
+    echo "$USCA_DOWNLOAD_SPEED_LIMIT $USCA_DOWNLOAD_SPEED_TIME link $ifc, default floor"
+  fi
+}
+
 curl_resume() { # url dest bytes: resume into dest.part until it holds bytes, then move into place
   # One connection at a time, each resuming with -C -. curl gives a connection up when it averages
-  # under USCA_DOWNLOAD_SPEED_LIMIT bytes/s for USCA_DOWNLOAD_SPEED_TIME seconds, which catches a
-  # stall too; after a pause the next resumes, up to USCA_DOWNLOAD_MAX_RESTARTS connections. As in
-  # the loop that fetched the 261017 pair (2026-10-18), with a floor for the Bluetooth link. Not
-  # curl's own --retry: with -C - it resends the offset it started from, so every retry downloads
-  # again what the last one already had (measured against a local server, pi-09 Phase 1).
-  local url="$1" dest="$2" want="$3" n=0 have now rc t0
+  # under a floor's bytes/s for its seconds, which catches a stall too; after a pause the next
+  # resumes, up to USCA_DOWNLOAD_MAX_RESTARTS connections. As in the loop that fetched the 261017
+  # pair (2026-10-18). The floor is chosen before each connection, not once per run, from the link
+  # carrying the default route then (download_floor): the Pi's link has changed mid-download
+  # before, and a connection already open stays on the link it started on (inferred; pi-11).
+  # Not curl's own --retry: with -C - it resends the offset it started from, so every retry
+  # downloads again what the last one already had (measured against a local server, pi-09 Phase 1).
+  local url="$1" dest="$2" want="$3" n=0 have now rc t0 floor lim tim what
   if [[ -s "$dest" && ! -e "$dest.part" ]]; then mv -- "$dest" "$dest.part"; fi  # from an earlier run
   have="$(stat -c %s -- "$dest.part" 2>/dev/null || echo 0)"
   while (( have < want )); do
@@ -249,12 +284,14 @@ curl_resume() { # url dest bytes: resume into dest.part until it holds bytes, th
       return 1
     fi
     (( n == 0 )) || sleep "$USCA_DOWNLOAD_PAUSE"
+    floor="$(download_floor)" && read -r lim tim what <<<"$floor" && [[ "$lim" =~ ^[0-9]+$ && "$tim" =~ ^[0-9]+$ ]] \
+      || { echo "${dest##*/}: cannot choose a download floor (got \"${floor:-}\"); stopped before connection $(( n + 1 ))"; return 1; }
     t0=$SECONDS; rc=0
-    curl -fL -sS -C - --connect-timeout 30 --speed-limit "$USCA_DOWNLOAD_SPEED_LIMIT" --speed-time "$USCA_DOWNLOAD_SPEED_TIME" \
+    curl -fL -sS -C - --connect-timeout 30 --speed-limit "$lim" --speed-time "$tim" \
       -A "$HTTP_USER_AGENT" -o "$dest.part" "$url" || rc=$?
     n=$((n + 1))
     now="$(stat -c %s -- "$dest.part" 2>/dev/null || echo 0)"
-    log "${dest##*/}: connection $n ended (curl exit $rc) after $(( SECONDS - t0 ))s, +$(( now - have )) bytes; $now of $want bytes" >&2
+    log "${dest##*/}: connection $n ended (curl exit $rc) after $(( SECONDS - t0 ))s, +$(( now - have )) bytes; $now of $want bytes; $what $lim bytes/s over $tim s" >&2
     have=$now
   done
   if (( have != want )); then

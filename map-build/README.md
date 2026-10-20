@@ -126,8 +126,13 @@ What it does differently from `build-orwa.sh`, and why:
 - **Whole countries.** `us` and `canada` from `north-america/`. Geofabrik numbers each region's
   sequence separately, so only the two timestamps must agree.
 - **Downloads resume, and restart when they slow.** Each connection resumes with `curl -C -` and
-  is given up when it averages under `USCA_DOWNLOAD_SPEED_LIMIT` (50 kB/s) for
-  `USCA_DOWNLOAD_SPEED_TIME` (120 s); the next starts after a pause, up to
+  is given up when it averages under a floor for long enough; the floor is chosen before each
+  connection from the link carrying the default route (`/proc/net/route`, lowest metric). On
+  Wi-Fi (`USCA_WIFI_IFACE_PATTERN`, `wl*`) it is `USCA_DOWNLOAD_SPEED_LIMIT_WIFI` (700 kB/s) for
+  `USCA_DOWNLOAD_SPEED_TIME_WIFI` (40 s), which restarts a slowed connection to win back its fast
+  start; on any other link, or with no default route, it is `USCA_DOWNLOAD_SPEED_LIMIT` (50 kB/s)
+  for `USCA_DOWNLOAD_SPEED_TIME` (120 s), safe on the tether. Each connection's log line names the
+  link and the floor. The next connection starts after a pause, up to
   `USCA_DOWNLOAD_MAX_RESTARTS`. curl's own `--retry` is not used: with `-C -` it resends the
   offset it started from. 19 GB over the Pi's Bluetooth link (about 0.2 MB/s) is interrupted more
   than once. Before asking Geofabrik anything, the script waits up to an hour for a default route

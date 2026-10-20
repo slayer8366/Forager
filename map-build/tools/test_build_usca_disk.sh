@@ -233,6 +233,15 @@ check "L: the first connection, on Wi-Fi, had the Wi-Fi floor" 'sed -n 1p "$call
 check "L: the second, after the switch, had the tether's floor" 'sed -n 2p "$calls" | grep -q -- "--speed-limit 50000 --speed-time 120 "'
 check "L: each connection's line names its own link" \
   'grep -q "connection 1 ended (curl exit 28).*link wlan0, Wi-Fi floor" "$T/dl/out" && grep -q "connection 2 ended (curl exit 0).*link bnep0, default floor" "$T/dl/out"'
+# A floor that cannot be chosen (here a Wi-Fi pin missing, so download_floor fails under set -u)
+# stops the download, saying so, rather than handing curl an empty --speed-limit.
+: > "$calls"; rm -f "$T/dl/n.osm.pbf" "$T/dl/n.osm.pbf.part"; USCA_ROUTE_FILE="$T/rt-wifi"
+curl() { printf '%s\n' "$*" >> "$calls"; return 0; }
+out="$( (set -u; unset USCA_DOWNLOAD_SPEED_LIMIT_WIFI; curl_resume https://example.invalid/n.osm.pbf "$T/dl/n.osm.pbf" 4) 2>&1)" && rc=0 || rc=$?
+unset -f curl
+echo "  curl_resume, Wi-Fi pin missing: rc=$rc; $(tr '\n' '|' <<<"$out")"
+check "L: a floor that cannot be chosen stops the download before curl runs, and says so" \
+  '[[ $rc -ne 0 && ! -s "$calls" && "$out" == *"n.osm.pbf: cannot choose a download floor"* ]]'
 USCA_ROUTE_FILE="$T/rt-tether"
 
 # --- B: the download goes to the card, and sources/osm links to it -------------------------------
