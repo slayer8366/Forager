@@ -142,3 +142,16 @@ add to the team table.
 **Pending, and about to change:** dispatch pi-17, the map design's Phase 1, was written for a Pi
 coder with the planner leading the design. With a designer named, who runs the map design is the
 owner's to confirm.
+
+## Stopped (2026-10-20)
+
+The owner, verbatim, in order:
+
+1. "Check with Rowan about prior art first". Dispatch pi-17's Parts B and C were held. A question
+   went to Rowan's session; it was delivered, but whether Rowan read it is not confirmed.
+2. "Have the research agent stop", then "Stop everything". Both agents were already stopped. The
+   planner stopped the two servers pi-17's coder had left running: `pmtiles serve` on
+   127.0.0.1:8081 and `serve.py` on 127.0.0.1:8765. It then confirmed no listener on 8080, 8081 or
+   8765, and `forager-tiles` and `forager-tunnel` disabled and inactive.
+
+**Left in place, undeleted:** `~/map-design-scratch` and `.claude/worktrees/map-design`.
