@@ -430,3 +430,16 @@ From the coder's report, with the planner's own checks marked.
   layer, because the night exception replaces it.
 - **The preview** for the owner is `styles/variant-a-r2-local.json` (day), with its `-night.json`,
   and the swatch `swatch3.html`.
+
+## Rowan took the trail handover, 2026-10-20
+
+Rowan reported by `send_message`. Rowan asked the owner in Rowan's own window, and the owner chose
+"Yes, start it now (Recommended)". A Hazel builds the design into #258 alongside Phase 2, and Rowan
+brings the owner a phone review build with Street on. This is recorded as RECORD −1480 (checked:
+`2026-09-28-1480` at `RECORD.md:25219` on `records-after-173`), with dispatch `2026-10-19-41`,
+verify-first (the file exists in `prompts/preserved/`).
+
+The handover's spec is the build target. The r2 diff is reference only, and the night band goes in
+as a per-layer rule. #258 now conflicts with `pre-main`, so Hazel will merge `pre-main` into
+`street-cloudflare` first, by merge and not rebase. The Pi preview stays up until the owner says
+stop. Rowan will report when the phone build is in the owner's hands.
