@@ -252,7 +252,7 @@ STEP="auto-rotate off"
 STEP="start state"
 dump || fail "uiautomator dump failed"
 if query desc "Close navigation menu" >/dev/null; then tap_desc "Close navigation menu" || fail "could not close the open drawer"; dump; fi
-if query text "Search coordinates" >/dev/null; then back_until_gone text "Search coordinates" "the search panel"; fi
+if query text "Set on map" >/dev/null; then back_until_gone text "Set on map" "the search panel"; fi
 if query desc "Exit fullscreen" >/dev/null; then fail "the map was already in fullscreen; leave it and run again, so this script never changes it"; fi
 
 printf 'file\tscreen\torientation\tpixels\tversionName\n' >"$INDEX"
@@ -283,9 +283,11 @@ for orientation in portrait landscape; do
   STEP="$orientation: search"
   tap_by textsuffix "Search a location" || fail "the search bar ('<month> · Search a location') not found"
   dump || fail "uiautomator dump failed"
-  need text "Search coordinates" "the open search panel"
+  # "Set on map" (only checked, never tapped) rather than "Search coordinates": in landscape the
+  # panel opens scrolled, with the coordinates rows above its top edge (first run, 2026-10-20).
+  need text "Set on map" "the open search panel"
   shoot search "$orientation"
-  back_until_gone text "Search coordinates" "the search panel"
+  back_until_gone text "Set on map" "the search panel"
 
   STEP="$orientation: tools"
   tap_by nav Tools || fail "bottom-nav 'Tools' not found"
