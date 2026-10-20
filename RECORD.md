@@ -24593,3 +24593,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** range-diff explained, CI green, S22 launch check on the dev APK, dev moved with force-with-lease after logging its hash.
 **Abort conditions:** a resolution that would change an experiment's or main's behaviour, or that can't be told; any experiment test lost or changed in outcome.
 **Notes:** Written by the planner by hand. Next free ID -1448.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1448
+**Timestamp:** 2026-10-20T06:59:22Z
+**Continues:** 2026-09-28-1444, 2026-09-28-1445, 2026-09-28-1423
+**Title:** First Phase 2 PRs merged into pre-main in a row (batch ruling -1423; -1434's condition met by the promotion -1445): #297, #300, #293, #295, #298
+**Observed:**
+- #297 (2.1 camera bundle) at 90a93e3f; #300 (2.1 backup-and-import bundle, retargeted from #297's branch) at f80f7b60; #293 (2.7 pending deletes) at 141c0b30; #295 (2.2 map holder) at 29e99161; #298 (2.2 forecast cells and location dot, retargeted from #295's branch) at 5a7bd4c2. Each gated on its approved head (match-head-commit). Prior pre-main hashes logged.
+- Each had: suite identical case by case; the S22 launch check on its own build (1.0.3595+g276bd069, 1.0.3596+g6a9d11ef, 1.0.3596+g136cd802, 1.0.3595+gf7c6b5d8, 1.0.3596+g49cd06cf, all PASS); **Sorrel's review**: #297 approve with nits, #300 approve with nits, #293 approve with nits, #295 approve, #298 approve with nits; no defect in any.
+- **Screenshot pass** (#298, the first PR moving map behaviour): Maps portrait and landscape identical to the baseline (1.0.3593+ga71a6c58) apart from live readings; the location dot is drawn in the same place. The forecast layer was off on the phone, so the cells weren't seen.
+- **Sorrel's notes kept:** named arguments on SightingsMap's group calls from PR 4+5 on; a test gap for the owner's list: no test commits a pending *track* delete on clear, or pins the track-then-waypoint order (pre-existing).
+- The combined S22 check on pre-main 5a7bd4c2's push build follows (-1423).
+**Notes:** Written by the planner by hand. Next free ID -1449.
