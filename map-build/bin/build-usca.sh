@@ -281,8 +281,9 @@ fetch_extract() { # url name bytes: download onto the card, and link it from $SR
 }
 
 remove_old_extracts() { # every extract of this script's regions but this run's inputs: link, card file, .md5, .headers
-  # A link's card file goes with it (B): at 18.8 GB a week, links removed alone would fill the card
-  # in about five weeks. A card file no link names goes too; build-orwa.sh's extracts are left alone.
+  # The card's files are walked as well as the links (B): at 18.8 GB a week, links removed alone
+  # would fill the card in about five weeks. So a link's card file goes, and so does a card file no
+  # link names. A link to anywhere else loses only the link. build-orwa.sh's extracts are left alone.
   local s f i keep base target
   for s in $USCA_REGIONS; do
     for f in "$SRC/osm/$s-"[0-9]*.osm.pbf "$CARD_OSM/$s-"[0-9]*.osm.pbf; do
@@ -292,11 +293,8 @@ remove_old_extracts() { # every extract of this script's regions but this run's 
       [[ $keep -eq 1 ]] && continue
       if [[ -L "$f" ]]; then
         target="$(readlink -- "$f")"
-        if [[ "$target" == "$CARD_OSM/$base" ]]; then
-          rm -f -- "$target" || warn remove-old-extracts "could not remove $target"
-        else
-          warn remove-old-extracts "$f links to $target, not to the card; removed the link only"
-        fi
+        [[ "$target" == "$CARD_OSM/$base" ]] \
+          || warn remove-old-extracts "$f links to $target, not to the card; removed the link only"
       fi
       if rm -f -- "$f" "$f.md5" "$f.headers"; then log "removed old extract $base ($f)"
       else warn remove-old-extracts "could not remove old extract $f"; fi
