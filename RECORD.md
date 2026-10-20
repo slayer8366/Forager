@@ -24885,3 +24885,29 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - The four-deep 2.8 stack stands (Hazel's reasoning: no history rewrite, retarget leaves diffs unchanged, trial merges clean).
 - 2.5 and 2.6 stay undispatched until the S22 queue moves.
 **Notes:** Written by the planner by hand. Next free ID -1467.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1467
+**Timestamp:** 2026-10-20T15:25:36Z
+**Continues:** 2026-09-28-1466, 2026-09-28-1458
+**Title:** #324, #327, #330, #328, #329 merged into pre-main, and #331 to #334 re-landed as #335 after a retarget slip; owner's map walk results (build 3658)
+**Observed:**
+- **S22 (resumed after the owner said the Google prompt was handled):**
+  - combined check on pre-main 01deb017: PASS (1.0.3665+g01deb017);
+  - launch checks PASS on 1.0.3633+ga3c155e2 (#327), 1.0.3635+g90fc0885 (#330), 1.0.3649+g6451d868 (#329), 1.0.3650+g057081b9 (#331), 1.0.3651+g9624f780 (#332), 1.0.3652+g8321c426 (#333), 1.0.3655+g61c93f40 (#334);
+  - #328 (1.0.3666+gf185bfb9) screenshot set PASS: 16 shots, landscape Maps layout matching the 1.0.3593 baseline apart from live readings.
+- **Merged into pre-main, in order:** #324 → 52f50618, #327 → c70f78e0, #330 → 6bee2da5, #328 → 47025283, #329 → c69836ab, then #335 → 5fd0d4f4. Hashes before each merge are logged in pre-main-hashes.log.
+- **Planner slip:** #331 to #334 were to be retargeted to pre-main before each merge. `gh pr edit --base` failed on a GitHub API deprecation error (Projects classic). The merge loop's retarget line didn't stop on that failure, so each PR merged into the stack branch below it: 8ac564f9, 758f76f8, 9ea0c5dc, 3709242a. pre-main was untouched. The fix:
+  - Branch phase2-journal-engines-mushroom-location (3709242a) has tree b7676e4d, identical to 61c93f40, the head Sorrel approved in #334. Its commits beyond pre-main are the reviewed six plus #334's merge commit.
+  - The trial merge was clean. It was opened as #335 and merged.
+  - `git diff 61c93f40 5fd0d4f4 -- ui/log/` is empty.
+  - From now on, any retarget is checked by re-reading the base before the merge, not by the command's exit.
+- **Owner's map walk on the S26, build 3658 (pre-main 783ebcaa), in their words:** 1 pass; 2 "fail no spring back"; 3 "fail it zoomed back out"; 4 to 8 pass; 9 "pass but it had to reopen"; 10 pass; 11 NA; 12 pass. Their follow-up answers: step 9 = the fan replayed its opening; step 3 = the map was "Following me, zoomed in" before switching.
+- **Hazel's read-only diagnosis** (production 3500 = main 19aa1058 against 783ebcaa):
+  - **Step 2: pre-existing, wrong walk premise.** Spring-back, the flick guard and the 72 dp threshold act only while navigating (NudgeCamera.canGive, SightingsMapLayout stillFollowing, trackingGesturesManagement(navigating)). On the plain map any drag ends tracking. The planner wrote the step from code and missed the navigation condition.
+  - **Step 3: pre-existing per the code, and the same at both SHAs.** While following, the region move is skipped, so lastAppliedCameraTarget goes stale. A gesture ends following. The return restores the stale target as applied, and the data refresh then moves to the located region at zoom 12 (coverDecision predicts MOVE_PENDING). This would need following to have ended before leaving, which the owner's account disputes. A device observation on the S22 is running.
+  - **Step 9:** by design (RECORD -262). The map is rebuilt on return and FanReopenCoordinator reopens the fan.
+- The pre-main push CI on 5fd0d4f4, then the combined S22 check, follow.
+**Notes:** Written by the planner by hand. Next free ID -1468.
