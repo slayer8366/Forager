@@ -456,3 +456,46 @@ approved it there.
 
 **Still open:** the leftover cleanup, pi-02 Phase 2. It has a paste-ready dispatch at `23d59d33`
 for the owner's own session. Then re-enabling the timer, after this week, on the owner's word.
+
+## Addendum, 2026-10-20 05:50Z: the leftovers deleted (pi-02 Phase 2), from a session the owner opened
+
+The owner ran the paste-ready dispatch at `23d59d33` in their own coder session and approved each
+delete there.
+
+**What the coder reported, as pasted by the owner:**
+
+- **Deleted:**
+  - item 1: 551 files and 24 empty folders from `probe-routing/`, keeping 233 files (218 squares and
+    15 small files);
+  - item 2: `work/usca-20261019T130011Z`;
+  - item 3: `kept-usca/…140722Z` and `…185700Z`;
+  - item 4: `failed-usca/latest`.
+- **Free space** went from 146.247e9 to 165.809e9 bytes, freeing 19.562e9.
+- **The prediction, 19.6e9, was a hit,** and so was each item: 16.44e9, 3.12e9 and 0.001e9.
+- **Checked after each item:** the map still read, there were 185 squares, and the basemap's link
+  count went 4, 4, 3, 2.
+
+**The planner re-checked on the Pi:**
+
+- 165.809e9 free;
+- `kept-usca/` holds only `usca-20261019T011311Z`;
+- `work/` and `failed-usca/latest` are gone;
+- 233 evidence files, 218 of them squares;
+- the basemap has 2 links;
+- the map's header reads, with 185 squares.
+
+**The deleted `…185700Z` `metrics.jsonl`:** all 43 of its metric lines are also in
+`logs/usca-20261019T185700Z.log`, so nothing measured was lost.
+
+**Does a full build fit now?** The planner ran the installed `planetiler_need` and `with_margin` on
+the 261017 inputs' 18,729,882,447 bytes:
+
+- the NVMe needs 156.376e9 with margin, against 165.809e9 free, which is 9.43e9 to spare at the
+  check;
+- the card has 100.41e9 free.
+
+A week whose inputs are about 5% larger than 261017's would be refused at the state stage, within
+minutes (inferred from the ratios).
+
+**Open:** re-enabling the weekly timer, after this week, on the owner's word ("Keep paused this
+week (Recommended)").
