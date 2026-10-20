@@ -94,7 +94,8 @@
       "boundaries": "#bdbdbd",
       "boundaries_country": "#bdbdbd",
       "roads_path_informal_z13": "#bb8a6f",
-      "roads_path_informal": "#bb8a6f"
+      "roads_path_informal": "#bb8a6f",
+      "roads_path_hard_clear": "#ffad9f"
     },
     "forager:night-icon-rings": {
       "townspot": {
