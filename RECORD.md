@@ -24155,3 +24155,20 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs and the guard table, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1416.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1416
+**Timestamp:** 2026-10-20T02:03:01Z
+**Closes:** 2026-09-28-1410
+**Outcome:** completed
+**Observed:**
+- PR #283 (UI split Phase 1, PR 10c: AvailabilityOfflineMapsUi.kt into three files) merged into pre-main at b2b76501 under the standing word, gated on head cfa7d4b8, which contains pre-main 0e16b32a. Backup bundle of 0e16b32a, verified.
+- **Files:** OfflineMapsSideBySide.kt (the side-by-side layout and status, 170), OfflineRegionsList.kt (the downloaded-regions list, 239); AvailabilityOfflineMapsUi.kt 784 → 407, with `OfflineMapsPanel` and its `movableContentOf` byte-unchanged. Three widenings. The whole file was split, by the owner's ruling (-1411).
+- **Proofs (Hazel):** zebra diff fully classified; 20 declarations, differing only in the widenings; byte identity with bite runs; suite identical (5,160 cases), including the map-position tests: AvailabilityScreenJournalShortWindowTest 39/39 (the -1333 "map does not move" cases), TabletJournalLayoutTest 29/29, LandscapeOfflinePickerTest 8/8.
+- **Dex:** total +3, accounted for by dexdump: one `<clinit>` for the moved non-const `OFFLINE_CONTROLS_MIN_WIDTH`, and `<init>` and `<clinit>` for a new ComposableSingletons holder; named methods identical. Accepted as compiler-generated.
+- **For #258's future helper (Hazel's map):** all of #258's hunks against the old file now belong in OfflineRegionsList.kt: the two imports (`OLDER_MAP_STYLE_NOTICE`, `regionHasOlderMapStyle`), the `ownStreet` parameter and notice in `OfflineRegionRow`, and `offlineRegionOlderStyleTag` between `OFFLINE_REGION_NOT_DOWNLOADED` and `offlineRegionRowLineTag`. Its test needs no change.
+- **S22 launch check, planner, about 03:25Z:** APK 1.0.3552+gcfa7d4b8 from workflow_dispatch run 39354935785. "PASS: verified (status=verify), launched, process 10866 alive after 8 s, crash buffer empty."
+**Deviations:** none. The file's header (:29-31) is now stale, left word for word.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1417.
