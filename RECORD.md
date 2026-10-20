@@ -24608,3 +24608,14 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Sorrel's notes kept:** named arguments on SightingsMap's group calls from PR 4+5 on; a test gap for the owner's list: no test commits a pending *track* delete on clear, or pins the track-then-waypoint order (pre-existing).
 - The combined S22 check on pre-main 5a7bd4c2's push build follows (-1423).
 **Notes:** Written by the planner by hand. Next free ID -1449.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1449
+**Timestamp:** 2026-10-20T07:15:16Z
+**Continues:** 2026-09-28-1447
+**Title:** The rebased dev (dev-rebased-02a544cd, bb2b82fe) gets one lint-fix commit before dev moves: annotate the guarded NewApi uses, and tighten the lens chooser's crop-region guard from Android 12 to Android 15 (owner)
+**Observed (Hazel):** the 22 commits rebased onto 02a544cd; 3 conflicts (dev tools, lens tests, lens build) resolved by applying dev's edits where Phase 1 moved the code; range-diff 19 '=' and 3 '!'; the experiments' change set is the same line for line apart from two imports a split needs; suite on run 39382863963: 5,542 tests, 0 failed, no test changed outcome against old dev or main; build and release jobs green. **Lint red, 22 NewApi errors, all in dev's debug code** (old dev never ran lint; main 02a544cd is green). One looks like a real bug: `Camera2PlatformCamera.kt:508` reads an API 35 field under an API 31 guard (inferred; not seen on a phone; the S22 and S26 are newer).
+**The owner, verbatim, through the question tool:** "Fix on the branch (Recommended)", whose option read: "One small commit: mark the 21 guarded spots so the check accepts them (no behaviour change), and tighten the one guard to Android 15, so older phones skip that reading instead of crashing. On your phones nothing changes. Then I move dev."
+**Notes:** Any of the three setPhysicalCameraId calls found unguarded comes back to the owner. Written by the planner by hand. Next free ID -1450.
