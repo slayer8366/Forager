@@ -196,3 +196,51 @@ read-only researcher on Rowan's side, and that item 4 Rowan checked directly.
   not affected.
 - **Rowan will merge Sage Wayfinder's profile** and add Sage to the team table when the owner sends
   it.
+
+## The map design restarted, 2026-10-20: Sage first; Street v1 plus trails; the short preview
+
+Written by the next Pi planner session. The owner, verbatim: "Hi Aspen, your task is to design a
+map". Asked three questions through the question tool, the owner answered, verbatim:
+
+- **Who designs:** "Sage first". The option read: "I write Sage's profile first, it goes to Rowan
+  to merge, then Sage designs. Slower start." This settles the question left open above, under "A
+  designer role": Sage Wayfinder runs the map design, once its profile exists.
+- **Start point:** "Street v1 + trails (Recommended)". Keep Street v1 (PR #258) as ruled, and design
+  only the trail styling for `sac_scale`, `trail_visibility` and `informal` on top.
+- **Next step:** "Short version (Recommended)". A Pi coder restarts the local preview and shows
+  Street v1 on the new map with two or three trail styling variants and screenshots. It reuses
+  Rowan's prior art instead of redoing pi-17's part B, then stops for the owner. This replaces
+  pi-17's parts B and C. A new dispatch will be written, and pi-17 is not resumed as written.
+
+Asked whether Sage should edit the map style files itself, the planner recommended no: Sage designs
+in scratch, and a coder commits what the owner approves, which keeps the team's split. The owner,
+verbatim: "1 no, for your stated reason". Asked whether to commit the profile, record this and
+relay the profile to Rowan, the owner said: "2 go ahead".
+
+**The profile:** `docs/process/designer-profile.md` on its own branch, `designer-profile`, cut from
+`origin/pre-main` `30cbf9bc`, at commit `28b26d13`. It is for Rowan to merge, and to add Sage to the
+team table. Its reading list is Rowan's item 5, below. Its paths were spot-checked by `git cat-file`
+and `git show` against `basemap-launch-plan`, `street-cloudflare`, `pre-main` and
+`records-after-173`. Within the profile, the planner made one call beyond the rulings: Sage writes no
+files in the repository at all, and the commissioning planner files its report, as Elder's audits
+are filed. That follows from "no", and is named here for the owner to overturn.
+
+**Correction to the handoff.** `prompts/preserved/2026-10-20-pi-planner-handoff.md` says Rowan's
+designer reading list "is item 5 of the reply, quoted in the prep record". This record does not
+quote it. Item 5 was recovered from the previous planner session's transcript, where Rowan's reply
+is intact. Verbatim:
+
+> **5. What a designer should read first, in order:**
+> 1. Elder's design review (`basemap-launch-plan`);
+> 2. RECORD -1284 to -1294, then -1300 and -1342 to -1345;
+> 3. `map-style/overrides/forager-street.mjs` on `street-cloudflare`;
+> 4. `docs/audits/2026-10-18-street-cloudflare-part1-report.md` on `street-cloudflare` (what the tiles carry per zoom: no paths at z12, no informal flag);
+> 5. `map-style/README.md`;
+> 6. `MapPalette.kt` with the marker swatch board (the marks the ground must leave room for);
+> 7. `BasemapStyles.kt` and `NightColour.kt`;
+> 8. CLAUDE.md's 80% chrome rule with `MapChrome.kt:22-75`.
+
+**State read before acting:** no `pmtiles`, `serve.py`, BRouter, Planetiler or osmium process is
+running. Three old transient `forager-usca-*` units still show as failed, from the 2026-10-18 and
+2026-10-19 runs already recorded. `~/map-design-scratch` and `.claude/worktrees/map-design` are
+still in place, undeleted.
