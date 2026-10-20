@@ -23914,3 +23914,33 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs and the touch-guard list, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any reorder of composition; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. PR 7 (MapChrome.kt) goes to the ui/map helper after PR 6a. Next free ID -1400.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1400
+**Timestamp:** 2026-10-20T00:14:00Z
+**Closes:** 2026-09-28-1397
+**Outcome:** completed
+**Observed:**
+- PR #278 (UI split Phase 1, PR 6a: MapBubble.kt into three files) merged into pre-main at 496536e1 under the standing word, gated on head c4b2897a, which contains pre-main 99597d4d. Backup bundle of 99597d4d, verified.
+- **Proofs (Hazel):** no widenings; 29 declarations equal; colour-moved diff fully classified; both new files `cmp`-identical with bite runs; suite identical in two like-for-like pairs (5,160 cases); the bubble's 11 coordinate-touch classes present and passing in all four runs. MapBubble.kt 630 → 202; new files 214, 244. Dex: the same nine methods; total +1 (a `<clinit>` for the moved non-const `BUBBLE_THUMBNAIL_SIZE`).
+- **Hazel's disclosed slip:** the first move commit (37f06a23) failed to compile: `by remember` delegation needs `getValue`/`setValue` imports that a name match missed. Fixed in one attempt (68b28cd3, imports only); no result was taken from the failed build.
+- **S22 launch check, planner, about 00:18Z:** APK 1.0.3536+gc4b2897a from workflow_dispatch run 39344538691 (the head, which contains pre-main). "PASS: verified (status=verify), launched, process 20923 alive after 8 s, crash buffer empty."
+**Deviations:** the compile miss above.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1401.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1401
+**Timestamp:** 2026-10-20T00:14:00Z
+**Continues:** 2026-09-28-1376, 2026-09-28-1400
+**Title:** UI split Phase 1, PR 6b: MapSlot.kt (the doorway between the screens and the map) into three files (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-13.md, for Hazel Cairnwright (a fresh helper)
+**Scope:** MapSlot.kt and new files in ui/map; branch split-map-slot from pre-main 496536e1.
+**Baseline:** pre-main 496536e1; the file is 610 lines.
+**Prediction (outcome, planner):** a pure move; MapRenderMode stays one file over 200 lines; the stand-in tests identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. A fresh helper takes it, because the previous ui/map helper's context is long after four dispatches. Next free ID -1402.
