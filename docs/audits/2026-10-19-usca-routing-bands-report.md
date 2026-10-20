@@ -256,3 +256,61 @@ The planner spot-checked the figures marked so.
   coder declined to act on the planner's relay, citing the dispatch's "given in the coder's window"
   against the profile's "in Aspen's own window". That conflict is the planner's, and it goes to the
   owner.
+
+## Addendum, 2026-10-20 04:05Z: the hand-stop fix is on pi-build (pi-07); how a full build fits (pi-06); the Pi is on Bluetooth
+
+**The hand-stop fix (pi-07)** is on `pi-stop-fix`, `59880bc3`..`dfb1ac45`, and `pi-build` was
+fast-forwarded to `dfb1ac45`. The owner's go, verbatim: "Yes, build the fix (Recommended)". It is
+**not installed**: `/opt` is still at `d5ed9eec`.
+
+- **The three parts:**
+  - TERM, INT and HUP become exits 143, 130 and 129;
+  - on a signal, `on_exit` writes to the log file instead of `tee`;
+  - the traps then ignore further signals.
+- **Tests:** `test_build_usca_stop.sh` has 27 checks. It was committed failing, 19 failed and 7
+  passed against `7f1dc74f`.
+- **Revert checks,** each run on a saved copy and restored by sha256:
+  - part 1 out fails with the code-0 guard;
+  - part 2 out writes the status but keeps nothing;
+  - part 3 out fails only the second-signal stand-in. Its first-instant case is not shown.
+- **The planner re-ran everything from the branch:** stop 27, functions 37, orwa 14, the Python
+  unittests OK, and no units left behind.
+- **The coder's correction to pi-04:** under systemd, SIGPIPE is ignored (`IgnoreSIGPIPE=yes`). The
+  dead `tee` ends `on_exit` through `set -e`, not SIGPIPE. pi-04's first-instant fork kill did not
+  reproduce in 15 stops.
+- **A change people will see:** a stopped unit now ends `failed` with exit 143, not
+  "Deactivated successfully".
+
+**How a full build fits (pi-06, read-only).** Figures marked measured were measured by the coder;
+the rest are inferred.
+
+- **The low point needs about 175–179 GB** with today's layout:
+  - features 104 GB (read);
+  - archive 34.0 GB (measured);
+  - merged extract 18.7 GB;
+  - the new downloads 18.8 GB.
+- **About 166.5 GB is free once the leftovers go.** The planner's "157" mixed GiB and GB. The
+  script's merge message has the same slip: `df -BG` gives GiB, and the message says GB.
+- **The SD card measured about 58 MB/s writing and 96 MB/s reading.** MD5 from the card took 196
+  s, against 51 s from the NVMe, read from the logs.
+- **The margins:**
+  - downloads on the card plus the merged extract on the card, keeping the old map: about +25 to
+    +28 GB;
+  - removing the old map early plus downloads on the card: about +41 to +45 GB;
+  - a correct, byte-based floor (D) would refuse an over-size week in minutes.
+- **Nothing outside `build-usca.sh` reads `out-usca/current`.** The tile server and tunnel are
+  disabled and no cron, timer or rclone job reads it. The Worker's source was not read. RECORD
+  −879 and −1276, cited in the script's header, could **not be found** in `RECORD.md` on any
+  remote branch.
+- **The planner's prediction:** "A + B ≥30 GB" right; "no measurable cost" slightly wrong (+2.4 min
+  of MD5); "C costs hours" wrong (minutes).
+
+**The Pi is on the Bluetooth tether, not Wi-Fi.** Found by pi-06, checked by the planner at
+04:02Z with `ip route` and `nmcli`. `wlan0` failed its association at 19:48 PDT on 2026-10-18 and
+has not reconnected. The planner's memory note said Wi-Fi was the default route; it has been
+corrected. The 2026-10-18 weekly failure was the tether being down (no network), not DNS
+(inferred). At Bluetooth speed, a weekly download is about 26 h (inferred).
+
+**Cleanup (pi-02 Phase 2): not done.** Claude Code's permission check refused the coder's first
+delete as irreversible. Nothing was deleted. The planner did not route around it, and gave the
+owner the commands to run by hand.
