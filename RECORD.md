@@ -24246,3 +24246,15 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **S22 launch check** (this planner, workflow_dispatch run 39358741238): 1.0.3561+g4c21508d installed, verified, cold-launched, process alive after 8 s, crash buffer empty.
 - **Session handover:** the previous planner session (bridge) lost its connection at about 02:44Z, and its six helpers stopped. A new planner session took over. At 02:53Z the laptop ran out of memory, and the kernel killed a 7.4 GB `pytest` in a terminal, which was not Forager work. That event also ended this session's first set of replacement helpers. PRs 10a, 10b, 10d, 10e and 10f were re-dispatched to fresh helpers to finish the steps left over, against the same dispatch files.
 - **The owner, verbatim, through the question tool,** on whether the standing merge word and batching carry over to the new session: "Yes, carry on (Recommended)". The planner had merged #287 before asking, relying on the earlier session's word (-1376), and the merge was flagged as unreviewed. The question was asked after the merge, not before (planner's slip).
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1421
+**Timestamp:** 2026-10-20T03:09:28Z
+**Continues:** 2026-09-28-1376, 2026-09-28-1406
+**Title:** Split PRs touching different files may merge as a batch, each S22-checked on its own build first, with one more S22 check on pre-main after the batch (owner)
+**The owner, verbatim,** through the question tool: "Batch, check combined (Recommended)", whose option read: "Each PR is still S22-checked on its own build first, then merged in a row; one more S22 check runs on pre-main after the batch. If it fails, I undo the batch and find the PR by checking one at a time. Saves ~15 min per extra PR."
+**What it sets:** this amends -1376's standing word for Phase 1: a PR whose files no other ready PR touches no longer needs to re-merge pre-main before merging, once its own head build is green and S22-checked. After a batch, the planner S22-checks pre-main's own push build; a failure stops all merging and goes to the owner.
+**Also recorded:** at about 03:05Z, after the session restart, the planner S22-checked five ready heads, all PASS: 10a f81c8e76 (1.0.3563), 10b 831e3e4c (1.0.3563), 10f e3df59cf (1.0.3559), 10e ad203992 (1.0.3560), 10d 9bac47b9 (1.0.3562). The last three were installed with `adb install -r -d` first, because the phone held a higher build number; data kept.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1422.
