@@ -599,3 +599,29 @@ does, and measured the squares. The scratch directory was removed.
   build's squares should match these (inferred).
 - **The planner's prediction:** right on all three counts.
 - **No per-point floor is needed.**
+
+## Addendum, 2026-10-20 07:20Z: Puerto Rico and the USVI installed as regions (pi-16), no rebuild
+
+The owner's words, verbatim: "Install only, rebuild later" and "Paste-ready for your session
+(Recommended)". The owner ran the dispatch in their own coder session.
+
+**The coder's report, as pasted:**
+
+- `/opt` `COMMIT` went from `23d59d33` to `536f2f3d`;
+- the `bin`, `tools` and `pins.env` diffs are empty;
+- from `/opt`: disk 95, run 62, stop 27, functions 61;
+- no test units left;
+- the timer is still disabled.
+
+**The planner re-checked on the Pi:** `COMMIT` is `536f2f3d`; the installed `USCA_REGIONS` lists
+all four regions; the diffs against the worktree are empty; the timer is disabled.
+
+**What it means.** The next build is a full four-region rebuild. The kept basemap is refused for a
+`--basemap` run, and the published sequence won't match, so the build will not be skipped. Nothing
+has been built yet. The published map is still the US + Canada output of 261017.
+
+**Ways to rebuild, both on the owner's later word:**
+
+- `--local 261017`, with the two island 261017 files placed beside `us` and `canada` on the card:
+  about 12 h;
+- the weekly timer re-enabled: a fresh four-region download, then the build, about 18 h.
