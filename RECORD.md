@@ -24092,3 +24092,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Consequence:** when the Street work resumes, its helper merges pre-main into #258 and carries those hunks into the new files. Mechanical, no behaviour lost. PR 10c's report is to map #258's hunks onto the new file.
 - The other in-flight splits (MapSlot, AvailabilityCompactMapUi, MapChrome, AvailabilitySearchUi, AvailabilityMapIconCluster) touch none of #258's files (planner's check of #258's file list).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1412.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1412
+**Timestamp:** 2026-10-20T01:20:21Z
+**Closes:** 2026-09-28-1401
+**Outcome:** completed
+**Observed:**
+- PR #280 (UI split Phase 1, PR 6b: MapSlot.kt into three files) merged into pre-main at 068a139a under the standing word, gated on head e1ac3e88, which contains pre-main 395fa429 (three pre-main merges, none touching its files). Backup bundle of 395fa429, verified.
+- **Proofs (Hazel):** no widenings; 8 declarations equal; zebra diff fully classified; three ranges `cmp`-identical; suite identical in three like-for-like pairs (5,160 cases); the 135 map stand-in test files present in all six runs (1,689 cases, the four allowlisted classes' 23 skips counted as skips). MapSlot.kt 610 → 151; MapRenderMode.kt 319 (one file over 200, accepted), MapOverlayContent.kt 149. Dex identical; no new facade class.
+- **Hazel's disclosed slip:** the first one-line-error control was itself broken (its sed matched nothing, so it passed). Caught by diffing the control against the original, rebuilt, and only the rebuilt control cited.
+- **S22 launch check, planner, about 02:00Z:** APK 1.0.3545+ge1ac3e88 from workflow_dispatch run 39351074497. "PASS: verified (status=verify), launched, process 31625 alive after 8 s, crash buffer empty."
+**Deviations:** none from the dispatch.
+**Not checked:** KDoc link resolution through the kept `Region` import (no renderer).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1413.
