@@ -25033,3 +25033,34 @@ Hazel has the go for Part 2. The stop limit is about 11 production files.
   - Remaining gap: a search frame that lands mid-spring is framed up to 36 dp off centre until the next locate.
   - Run 39473372433. Sorrel's re-review is running.
 **Notes:** Written by the planner by hand. Next free ID -1473.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1473
+**Timestamp:** 2026-10-20T20:27:54Z
+**Continues:** 2026-09-28-1469, 2026-09-28-1471, 2026-09-28-1472
+**Title:** #337 (plain-map spring-back) merged into pre-main after an S22 real-map check
+**Observed:**
+- **Sorrel's re-review of 2589c0d9: approve, with one should-fix.** `beforeLocate()` also fired while following was still on. Locate tapped mid-spring, or a held give, would end following through the clear's camera move, and locate's 750 ms transition would replace the spring.
+  - The planner took the fix. b67f1264 adds the gate `map.cameraMode() != CameraMode.NONE` and one test.
+  - R8 (run 39489063742): 0 compile errors, 1 failure specific to the edit.
+  - Suite identical to 39466501949 apart from 16 PlainMapNudgeTest cases. Touch guards identical. Dex +53 against base.
+  - The diff is Sorrel's suggested line; the planner read it.
+- **Known gaps, stated in the PR, not fixed:**
+  - a search frame landing mid-spring is framed up to 36 dp off centre until the next locate;
+  - a tab return after a cut-short spring, before any locate, shifts the picture by up to 36 dp.
+- **S22 real-map check (Hazel, real GPS, mock off), 1.0.3694+gb67f1264:**
+  - small nudge (135 px): gave 67 px, sprang back, stayed following;
+  - drag 540 px: let go, padding cleared with no jump, then locate centred the dot;
+  - short flick: sprang back;
+  - long flick: let go and glided;
+  - double-tap: zoomed about the dot and kept following;
+  - navigation: not exercised.
+
+  Log lines quoted in Hazel's report.
+- **PR body premise errors found on the device:**
+  - The S22's density is 600 (factor 3.75), so 72 dp is 270 px, not 216.
+  - The planner's case 7 premise was wrong. Long-press on the Maps tab does nothing on #337 and on pre-main 30cbf9bc alike: CompactMapMapSlot passes an empty long-press handler, and adding goes through the + button and the centre-pin picker (MapSlot.kt:27-33). No regression.
+- **Merged at 03bf2e42.**
+**Notes:** Written by the planner by hand. Next free ID -1474.
