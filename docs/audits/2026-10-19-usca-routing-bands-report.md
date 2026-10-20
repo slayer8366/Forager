@@ -150,3 +150,37 @@ the USVI is **not checked** here.
 `kept-usca/usca-20261019T140722Z/`, moved out of `failed-usca/latest` because the next failure
 there would delete them. The basemap is unchanged in `kept-usca/usca-20261019T011311Z/`. Nothing
 was published.
+
+## Addendum, 2026-10-19 20:30 PDT: published
+
+On the owner's word of 2026-10-19 ("Publish now, add PR later"), San Juan left the coverage points
+until Puerto Rico is added as a region (`099a1517`). Run `usca-20261019T185700Z` routed all ten
+bands and validated: archive check, seven points, 185 squares. It then failed at publish, because
+`run_record.py manifest` did `int()` on the sequence and `build-usca.sh` passes
+`us:2415,canada:4945` by design (`92856ef1`). That path had never reached publish before. Fixed in
+`d5ed9eec`: a plain number stays a number, so `build-orwa.sh` is unchanged; `REGION:N,...` is kept
+as written; anything else exits 2. Three tests were added. Putting `int()` back fails two of them.
+
+Before the rerun reached publish, the fixed manifest step was run alone against the failed run's
+kept outputs. It exited 0 in 250 s, and the manifest read back the sequence, both inputs with their
+published MD5s, 186 outputs and the commit.
+
+Run `usca-20261019T225941Z`, at `d5ed9eec`, ran 22:59–03:21 UTC:
+
+- 185 squares;
+- seven coverage points, each with the same road counts and square sizes as the two runs before;
+- published `out-usca/20261017T202051Z` with `manifest.json`, and `current` points to it;
+- `status-usca.json` reads `ok` at stage `done`.
+
+**Left in place, for the owner to rule on:**
+
+- `kept-usca/`: the basemap, 32 GB, a hard link shared with the published one, and two 1.5 GB sets
+  of squares from the runs that failed validation and publish;
+- `probe-routing/`, 16 GB;
+- the scratch directory of the run stopped by hand, `work/usca-20261019T130011Z`.
+
+**Open:**
+
+- Puerto Rico and the US Virgin Islands as regions of their own;
+- why the hand stop left the status file at "running";
+- WayLinker's real memory need.
