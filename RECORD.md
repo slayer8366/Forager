@@ -25010,3 +25010,26 @@ The planner adds:
 
 Hazel has the go for Part 2. The stop limit is about 11 production files.
 **Notes:** Written by the planner by hand. Next free ID -1472.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1472
+**Timestamp:** 2026-10-20T19:51:42Z
+**Continues:** 2026-09-28-1471
+**Title:** #338 merged: Sage Wayfinder's designer profile and team-table row in pre-main; #337 follow-up built
+**Observed:**
+- **#338.** Aspen Meridian (the Pi planner) asked by cross-session message for Sage Wayfinder's designer profile to be merged.
+  - Branch: designer-profile, commit 28b26d13, which adds docs/process/designer-profile.md.
+  - Aspen also asked for a team-table row in planner-profile.md.
+  - Aspen cited the owner's "2 go ahead" and an offer by the planner. That offer is not found in RECORD.
+  - The planner asked the owner in its own window; the owner chose "Yes, merge both (Recommended)".
+  - #338 is 28b26d13 plus 9b2e45cc, the row "Sage Wayfinder | designer: designs and proposes what a person sees; a coder builds | Fable | designer-profile.md". Merged at d1e9ebbe. The diff from 30cbf9bc is 2 docs files, +111 lines.
+  - The owner's rulings the profile carries (Sage first; Street v1 + trails; Sage edits no style files) are recorded on pi-build in docs/audits/2026-10-20-cloudflare-upload-prep.md, per Aspen. The planner has not read that file.
+- **#337 follow-up 2589c0d9.** The owner chose "Fix it in #337 first (Recommended)".
+  - The fix: PlainMapNudge.beforeLocate() clears any leftover padding before locate resumes following. It reads the camera's real padding and skips while navigating.
+  - Tests: 4 new. Reverts R5, R6 and R7 each fail with a message specific to their edit.
+  - Suite: identical to 39466501949 apart from 15 new cases.
+  - Remaining gap: a search frame that lands mid-spring is framed up to 36 dp off centre until the next locate.
+  - Run 39473372433. Sorrel's re-review is running.
+**Notes:** Written by the planner by hand. Next free ID -1473.
