@@ -127,6 +127,7 @@ internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
     // the owner's band for this layer ("Accept the range (Recommended)", 1.9 to 2.3), which NightExceptionsTest holds.
     "roads_path_informal_z13" to "#bb8a6f",
     "roads_path_informal" to "#bb8a6f",
+    "roads_path_hard_clear" to "#ffad9f",
 )
 
 /**
