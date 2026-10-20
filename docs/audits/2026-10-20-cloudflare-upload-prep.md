@@ -292,3 +292,31 @@ false as worded; the correction is in pi-18's amendment. Measured by the coder: 
 sparse, so untagged trails are the common case, and every variant must read well for them. Node 22
 meets every `engines` requirement. The owner, verbatim: "Allow (Recommended)" for the downloads, and
 "The app's way (Recommended)" for night.
+
+## pi-18 Part A done: Street v1 on the new map, 28 renders, 2026-10-20
+
+From the coder's report, with the planner's own checks marked.
+
+- **Chromium is dropped.** Headless Chromium 154 would not finish loading any http page on the Pi.
+  The connection opened, then the request stalled after `COMPUTED_PRIVACY_MODE` (net log). Four
+  tries failed: an in-process network service, `--disable-gpu` with SwiftShader,
+  `--disable-features=LocalNetworkAccessChecks`, and a memory-only cache. Its GLES path also
+  failed, with "No suitable EGL configs". The cause is **not determined**. pi-17's `chrome.err` is
+  0 bytes and its `shots/` is empty, which fits the same stall but does not prove it.
+- **Rendered in Firefox 142 headless** over WebDriver BiDi, Hazel's engine. The planner made that
+  call. The debugging port was on 127.0.0.1:9222 only, and closed afterwards. Nothing was
+  installed beyond the lockfile.
+- **Checked by the planner:** 28 PNGs (16 day, 12 night), each 824×1600. Only the two preview
+  servers are listening, both on 127.0.0.1. No Firefox process is left, and the worktree is clean.
+  Viewed by eye: Mt Rainier z14 day and Forest Park z14 night.
+- **Prediction against the renders, per the coder:**
+  - z13 is far denser in paths than Hazel's: 29 to 46 paths drawn per view.
+  - z12 shows no trails, because of the style's `minzoom` 13, though the tiles carry some.
+  - Canada draws.
+  - A tile-seam line shows even at whole zooms. The planner saw it at Mt Rainier z14 day too.
+    Hazel's report attributed it to the web engine.
+  - z15 outdoor places were only partly checked.
+  - Flattop z15 is centred beside the trail.
+- **Where things are:** renders in `~/street-preview-scratch/shots/`, outside any repository.
+  The preview is running for the owner. Stop it with
+  `kill $(cat ~/street-preview-scratch/pmtiles.pid) $(cat ~/street-preview-scratch/www.pid)`.
