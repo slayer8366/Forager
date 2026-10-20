@@ -24077,3 +24077,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1411.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1411
+**Timestamp:** 2026-10-20T01:18:18Z
+**Continues:** 2026-09-28-1410, 2026-09-28-1342, 2026-09-28-1316
+**Title:** Planner's slip: UI split Phase 1 was dispatched without checking the held Street PR #258's files; it overlaps SightingsMap.kt (already split) and AvailabilityOfflineMapsUi.kt. The owner rules PR 10c splits the whole file anyway (owner; planner's slip)
+**The owner, verbatim,** through the question tool: "Split it all now", to how PR 10c should go given #258 edits the downloaded-regions list. The options offered were skipping the list (recommended), splitting it all, or holding 10c.
+**What it records:**
+- **The slip:** the plan's freeze rule says feature work touching a file "waits, or goes first and the split re-reads". The planner did not check open PRs before dispatching. Hazel found it in PR 10c's verify-first.
+- **The overlap, read by the planner:** #258 (street-cloudflare 5b270ac4, base e431eba9) changes SightingsMap.kt by about 130 lines: three hunks inside the `SightingsMap` function, which stays, and about 100 lines in `applyOfflineNightRecolour` and nearby, which PR 3 (-1396) moved to `OfflineNightRecolourApply.kt`. It also adds 17 lines to AvailabilityOfflineMapsUi.kt in the regions list (two imports, an `ownStreet` parameter and notice in `OfflineRegionRow`, `offlineRegionOlderStyleTag`).
+- **Consequence:** when the Street work resumes, its helper merges pre-main into #258 and carries those hunks into the new files. Mechanical, no behaviour lost. PR 10c's report is to map #258's hunks onto the new file.
+- The other in-flight splits (MapSlot, AvailabilityCompactMapUi, MapChrome, AvailabilitySearchUi, AvailabilityMapIconCluster) touch none of #258's files (planner's check of #258's file list).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1412.
