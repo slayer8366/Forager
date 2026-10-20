@@ -24677,3 +24677,22 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** as the dispatch's report section; PRs merged under the standing word after proofs, Sorrel's review and the S22 launch check.
 **Abort conditions:** the dispatch's stops; a split needing a change to AvailabilityUiState's shape; any change to when a job starts or stops.
 **Notes:** 2.7's five PRs are all approved by Sorrel (#293, #299, #304, #305 merged; #308 queued). Written by the planner by hand. Next free ID -1454.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1454
+**Timestamp:** 2026-10-20T08:30:51Z
+**Continues:** 2026-09-28-1453, 2026-09-28-1450
+**Title:** Planner's technical rulings on Phase 2.4's verify-first (AvailabilityViewModel): nine collaborators; strict job decisions; the pending-delete slot moves whole as #293 did
+**What it sets (planner, technical; none changes what a user sees):**
+- **Nine collaborators**, in PR order: planned trips, settings prefs, map display (B+C may share a PR), offline maps, offline-region deletes, waypoint-navigation store, species lookup (with the debounce), search runs, live location. AvailabilityUiState's shape is unchanged.
+- **Jobs:** for liveFixJob, taxonSearchJob, searchJobs and its children, and the two downloads, every condition and early return stays in the ViewModel function at its position; the collaborator holds only the launch body and the cancel statements. Unconditional one-shot loads and stores move whole (as 2.7's Lists).
+- **"Delete jobs" in dispatch 2026-10-19-33 is read as #293's shape:** the pending-delete slot moves whole, including request, commit and commitOnCleared(), called from onCleared at the same position.
+- onNavigateToWaypoint and onStopWaypointNavigation stay in the ViewModel (they pause and resume the recording engine's route tick); isForegrounded stays; reloadAfterRestore stays as orchestrator.
+- Companion `private` → `internal` (the shared tag). Collaborator `val`s are declared between isForegrounded and init, with a comment that they must stay above init.
+- Three misplaced KDocs move with the functions they describe (comment-only, listed).
+- **Corrections to the dispatch (Hazel):** init runs 16 loaders, not 17.
+- **No-production-caller list for the owner** (moved, not deleted): `TrackRecordingViewModel.removeWaypoint` (2.7), `AvailabilityViewModel.onDeleteOfflineRegion` (2.4).
+- **Test gaps for the owner's list** (not changed in Phase 2): no test commits a pending *track* delete on clear, or pins the track-then-waypoint order (Sorrel, #293); four stale `beginPolling` mentions in test comments (Sorrel, #305).
+**Notes:** Written by the planner by hand. Next free ID -1455.
