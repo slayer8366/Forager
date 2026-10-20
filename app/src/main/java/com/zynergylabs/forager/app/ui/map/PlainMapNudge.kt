@@ -181,7 +181,7 @@ internal class PlainMapNudge(
      * navigating: navigation applies its own padding.
      */
     fun beforeLocate() {
-        if (!springBack() || navigating()) return
+        if (!springBack()) return
         if (map.paddingShown()) {
             Log.i(NAVIGATION_VIEW_LOG_TAG, "nudge: locate with a give left on screen; clearing it first")
             map.clearPaddingKeepingPicture()
