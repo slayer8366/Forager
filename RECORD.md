@@ -24006,3 +24006,74 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** a PR into pre-main with the five proofs and the guard table, CI green, the S22 launch check passed, merged under the standing word.
 **Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1406.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1406
+**Timestamp:** 2026-10-20T01:09:14Z
+**Continues:** 2026-09-28-1376
+**Title:** More than two helpers may run UI split Phase 1 at once (owner)
+**The owner, verbatim:** "You can use more than 2 agents to get it done", after the planner's estimate of 9 to 11 PRs and 4 to 6 hours left with two helpers.
+**What it sets:** up to six helpers at once, one per source file (the freeze rule is per file, not per folder). The planner still runs the S22 launch checks and merges one at a time. Four more start now: MapChrome.kt (-1407), AvailabilitySearchUi.kt (-1408), AvailabilityMapIconCluster.kt (-1409), AvailabilityOfflineMapsUi.kt (-1410).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1407.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1407
+**Timestamp:** 2026-10-20T01:09:14Z
+**Continues:** 2026-09-28-1406
+**Title:** UI split Phase 1, PR 7: MapChrome.kt split; MAP_CHROME_OVER_MAP_ALPHA stays; no init-order cycle (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-16.md, for Hazel Cairnwright (a fresh helper)
+**Scope:** the one source file named and new files in its package; from pre-main 395fa429 or later.
+**Baseline:** pre-main 395fa429.
+**Prediction (outcome, planner):** a pure move; suite and touch guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1408.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1408
+**Timestamp:** 2026-10-20T01:09:14Z
+**Continues:** 2026-09-28-1406
+**Title:** UI split Phase 1, PR 10a: AvailabilitySearchUi.kt split (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-17.md, for Hazel Cairnwright (a fresh helper)
+**Scope:** the one source file named and new files in its package; from pre-main 395fa429 or later.
+**Baseline:** pre-main 395fa429.
+**Prediction (outcome, planner):** a pure move; suite and touch guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1409.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1409
+**Timestamp:** 2026-10-20T01:09:14Z
+**Continues:** 2026-09-28-1406
+**Title:** UI split Phase 1, PR 10b: AvailabilityMapIconCluster.kt split; MapIconCluster stays whole (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-18.md, for Hazel Cairnwright (a fresh helper)
+**Scope:** the one source file named and new files in its package; from pre-main 395fa429 or later.
+**Baseline:** pre-main 395fa429.
+**Prediction (outcome, planner):** a pure move; suite and touch guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1410.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1410
+**Timestamp:** 2026-10-20T01:09:14Z
+**Continues:** 2026-09-28-1406
+**Title:** UI split Phase 1, PR 10c: AvailabilityOfflineMapsUi.kt split; OfflineMapsPanel and movableContentOf stay whole; fresh survey of the file (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-19.md, for Hazel Cairnwright (a fresh helper)
+**Scope:** the one source file named and new files in its package; from pre-main 395fa429 or later.
+**Baseline:** pre-main 395fa429.
+**Prediction (outcome, planner):** a pure move; suite and touch guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1411.
