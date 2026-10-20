@@ -402,3 +402,35 @@ with the tether behind it.
 **Before a weekly run:** the owner's cleanup, which is still pending.
 
 **Owner's choice, not yet asked:** whether to add the proposed Wi-Fi-only speed floor.
+
+## Addendum, 2026-10-20 05:20Z: a per-link download floor (pi-11), on pi-build, not installed
+
+The owner's word, verbatim: "Build the Wi-Fi speed floor". The coder's record is
+`docs/audits/2026-10-20-pi-11-link-floor.md`. `pi-link-floor` (`4fc42005`..`63ec09c5`) was
+fast-forwarded into `pi-build`.
+
+**What it does:** before each connection, `curl_resume` reads the IPv4 default route with the
+lowest metric from `/proc/net/route`.
+
+- On Wi-Fi it uses 700000 B/s over 40 s, the 2026-10-18 loop's floor.
+- On any other link, with no route, or when the table can't be read, it uses the conservative
+  50000 over 120.
+- Each connection's log line names the link and floor it used.
+
+**Evidence (measured by the coder):** the 2026-10-18 loop ran entirely on Wi-Fi. Over 155
+connections it averaged about 882 kB/s wall-clock, against about 327 kB/s for the one unrestarted
+Wi-Fi connection in `dl.log`. The "153 KB/s" quoted before was a 30 s point rate, not an average.
+
+**Review:** the planner re-ran all suites from the branch: disk 89, run 38, functions 37, stop 27,
+orwa 14, Python 22. On the live Pi the new function reads `wlan0` and chooses the Wi-Fi floor.
+Revert checks were run one per behaviour, and the coder's first two guard reverts exposed redundant
+code, which was removed.
+
+**Open:**
+
+- **IPv6.** The floor follows the IPv4 table. A split where IPv4 is on Wi-Fi and IPv6 on the tether
+  has not been seen, and is not handled.
+- **Restart cap.** On persistently slow Wi-Fi the 40 s floor could reach `USCA_DOWNLOAD_MAX_RESTARTS`
+  (500) partway through a 12 GB extract. The `.part` file is kept and the next run resumes it
+  (inferred).
+- **Install** waits for the owner's go.
