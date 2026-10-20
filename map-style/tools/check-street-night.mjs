@@ -9,7 +9,7 @@
 // standard for maps: a path or casing line at 3:1 against the ground reads at arm's length; text at 4.5:1.
 import fs from "node:fs";
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
-import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_COLOURS } from "../overrides/forager-street.mjs";
+import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "../overrides/forager-street.mjs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
@@ -50,6 +50,9 @@ const checks = [
   ["label text on its halo", COLOURS.text, COLOURS.halo, 4.5],
   ["water label text on its halo", COLOURS.waterText, COLOURS.halo, 4.5],
   ["forest on ground", COLOURS.forest, GROUND, 1.2],
+  // Hard trails (dispatch 2026-10-19-41): the warning colour by day, and its plain inversion at night.
+  ["hard trail on ground", COLOURS.hardPath, GROUND, 3],
+  ["hard trail on forest", COLOURS.hardPath, COLOURS.forest, 2],
 ];
 for (const [what, colour, against, min] of checks) {
   const day = contrast(colour, against);
@@ -57,6 +60,17 @@ for (const [what, colour, against, min] of checks) {
   const line = `${what}: day ${colour} ${day.toFixed(2)}:1, night ${night(colour)} on ${night(against)} ${dark.toFixed(2)}:1 (minimum ${min})`;
   console.log(line);
   if (day < min || dark < min) problems.push(line);
+}
+// Day only, for colours whose night is a layer exception (checked below), not their inversion.
+const dayOnly = [
+  ["informal path on ground", COLOURS.informalPath, GROUND, 3],
+  ["informal path on forest", COLOURS.informalPath, COLOURS.forest, 2],
+];
+for (const [what, colour, against, min] of dayOnly) {
+  const day = contrast(colour, against);
+  const line = `${what}: day ${colour} ${day.toFixed(2)}:1 (minimum ${min}; night is its layer exception)`;
+  console.log(line);
+  if (day < min) problems.push(line);
 }
 // Night exceptions (RECORD -1343, -1344): colours the app draws at night instead of the inversion. Checked as night
 // colours as they are, against the inverted grounds they sit on, at the line threshold (3:1).
@@ -67,12 +81,32 @@ const exceptions = [
 ];
 // -1345: roads, railways and boundaries at 2.5:1 (the owner accepted the service edge at 2.65 and the major road
 // centre at 2.95 on the night forest); the icon rings at 3:1. Every layer named must exist in the style.
+// A layer named in NIGHT_LAYER_BANDS takes its band on that one ground instead of the 2.5 floor (dispatch 2026-10-19-41:
+// informal paths on the night forest, the owner's "Accept the range (Recommended)"); every other pair keeps the floor.
 const styleLayers = new Set(JSON.parse(text).layers.map((l) => l.id));
+const NIGHT_FLOOR = 2.5;
+const nightGrounds = { forest: night(COLOURS.forest), grass: night(COLOURS.grass), ground: night(GROUND) };
+const banded = [];
+for (const [layer, bands] of Object.entries(NIGHT_LAYER_BANDS)) {
+  if (!(layer in NIGHT_LAYER_COLOURS)) problems.push(`night band for a layer with no night exception: ${layer}`);
+  for (const name of Object.keys(bands)) {
+    if (!(name in nightGrounds)) problems.push(`night band for ${layer} on an unknown ground: ${name}`);
+  }
+}
 for (const [layer, colour] of Object.entries(NIGHT_LAYER_COLOURS)) {
   if (!styleLayers.has(layer)) problems.push(`night exception for a layer the style does not have: ${layer}`);
-  for (const [name, ground] of [["forest", night(COLOURS.forest)], ["grass", night(COLOURS.grass)], ["ground", night(GROUND)]]) {
-    exceptions.push([`night ${layer} on night ${name}`, colour, ground, 2.5]);
+  for (const [name, ground] of Object.entries(nightGrounds)) {
+    const band = NIGHT_LAYER_BANDS[layer]?.[name];
+    if (band) banded.push([layer, name, colour, ground, band]);
+    else exceptions.push([`night ${layer} on night ${name}`, colour, ground, NIGHT_FLOOR]);
   }
+}
+for (const [layer, name, colour, ground, { min, max, belowNightOf }] of banded) {
+  const ratio = contrast(colour, ground);
+  const ceiling = contrast(night(COLOURS[belowNightOf]), ground);
+  const line = `night ${layer} on night ${name}: ${colour} on ${ground} ${ratio.toFixed(2)}:1 (band ${min} to ${max}, below night ${belowNightOf} ${ceiling.toFixed(2)})`;
+  console.log(line);
+  if (ratio < min || ratio > max || ratio >= ceiling) problems.push(line);
 }
 for (const [icon, { night: colour }] of Object.entries(NIGHT_ICON_RINGS)) {
   for (const [name, ground] of [["forest", night(COLOURS.forest)], ["grass", night(COLOURS.grass)], ["ground", night(GROUND)]]) {

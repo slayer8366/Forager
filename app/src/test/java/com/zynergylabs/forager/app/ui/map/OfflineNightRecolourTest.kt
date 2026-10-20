@@ -218,8 +218,8 @@ class OfflineNightRecolourTest {
     }
 
     /**
-     * The own Street style as the Worker serves it (dispatch 2026-10-18-05 Part 2): every one of its 85 colour
-     * properties, labels and halos included, is one this function can transform. Like the test above, a claim about
+     * The own Street style as the Worker serves it (dispatch 2026-10-18-05 Part 2): every one of its 101 colour
+     * properties (85 until dispatch 2026-10-19-41 split the one footpath layer into 17), labels and halos included, is one this function can transform. Like the test above, a claim about
      * the file, not about the forms MapLibre hands back at runtime, which is a device item.
      */
     @Test
@@ -227,7 +227,7 @@ class OfflineNightRecolourTest {
         val style = File("../server/pmtiles-worker/src/street-style-v1.json").readText()
         val all = outcomes(style)
 
-        assertEquals(85, all.size)
+        assertEquals(101, all.size)
         assertTrue(all.keys.any { it.endsWith("/text-color") } && all.keys.any { it.endsWith("/text-halo-color") })
         assertEquals(emptyMap<String, NightRecolour>(), all.filterValues { it is NightRecolour.Left })
     }

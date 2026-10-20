@@ -18,6 +18,9 @@ import org.junit.Test
  * and keep the inversion. The design's copies are in the served style's metadata; the contrast floors are the ones
  * `map-style/tools/check-street-night.mjs` holds (2.5:1 for the lines, 3:1 for the rings), against the night forest,
  * grass and ground derived with the app's own [nightColorOf].
+ *
+ * Dispatch 2026-10-19-41: informal paths take their own night colour too, held on the night forest to the owner's band
+ * ([INFORMAL_NIGHT_FOREST_BAND]) in place of the 2.5:1 floor, for those two layers on that one ground only.
  */
 class NightExceptionsTest {
 
@@ -43,6 +46,27 @@ class NightExceptionsTest {
         "ground" to nightColorOf((0xFF shl 24) or rgb("#e2dfda")),
     )
 
+    /**
+     * Informal paths on the night forest: the owner, "Accept the range (Recommended)" (docs/audits/2026-10-20-cloudflare-
+     * upload-prep.md on pi-build, "The owner's rulings on revision 1"), about 1.9 to 2.3:1 and below the night footpath,
+     * as a per-layer band and not a widened floor. The planner set the edges at exactly 1.9 and 2.3.
+     */
+    private val INFORMAL_NIGHT_FOREST_BAND = 1.9..2.3
+    private val INFORMAL_LAYERS = setOf("roads_path_informal_z13", "roads_path_informal")
+
+    @Test
+    fun `the design's night bands are the ones this test holds, informal paths on the night forest only`() {
+        val bands = metadata.getValue("forager:night-bands").jsonObject
+        assertEquals(INFORMAL_LAYERS, bands.keys)
+        bands.forEach { (layer, grounds) ->
+            assertEquals(layer, setOf("forest"), grounds.jsonObject.keys)
+            val band = grounds.jsonObject.getValue("forest").jsonObject
+            assertEquals(layer, INFORMAL_NIGHT_FOREST_BAND.start, band.getValue("min").jsonPrimitive.content.toDouble(), 0.0)
+            assertEquals(layer, INFORMAL_NIGHT_FOREST_BAND.endInclusive, band.getValue("max").jsonPrimitive.content.toDouble(), 0.0)
+            assertEquals(layer, "footpath", band.getValue("belowNightOf").jsonPrimitive.content)
+        }
+    }
+
     @Test
     fun `the app's layer exceptions are the design's`() {
         val design = metadata.getValue("forager:night-layers").jsonObject.mapValues { it.value.jsonPrimitive.content }
@@ -60,10 +84,19 @@ class NightExceptionsTest {
 
     @Test
     fun `every exception reads on the night forest, grass and ground`() {
+        val nightFootpathOnForest = contrast(
+            nightColorOf((0xFF shl 24) or rgb(palette.getValue("footpath").jsonPrimitive.content)),
+            nightGrounds.getValue("forest"),
+        )
         STREET_NIGHT_LAYER_COLOURS.forEach { (layer, hex) ->
             nightGrounds.forEach { (name, ground) ->
                 val ratio = contrast(rgb(hex), ground)
-                assertTrue("$layer $hex on night $name is $ratio:1", ratio >= 2.5)
+                if (layer in INFORMAL_LAYERS && name == "forest") {
+                    assertTrue("$layer $hex on night forest is $ratio:1, outside the band", ratio in INFORMAL_NIGHT_FOREST_BAND)
+                    assertTrue("$layer $hex on night forest is $ratio:1, not below the night footpath's $nightFootpathOnForest", ratio < nightFootpathOnForest)
+                } else {
+                    assertTrue("$layer $hex on night $name is $ratio:1", ratio >= 2.5)
+                }
             }
         }
         STREET_NIGHT_ICON_RINGS.forEach { (icon, ring) ->
@@ -88,7 +121,17 @@ class NightExceptionsTest {
 
     @Test
     fun `footpaths, tracks, tunnels and road edges not chosen keep the inversion`() {
-        for (id in listOf("roads_path_foot", "roads_path_track", "roads_tunnels_minor_casing", "roads_major_casing_late", "roads_highway_casing_late")) {
+        // Dispatch 2026-10-19-41: Street v1's one footpath layer, roads_path_foot, became one layer per trail group; hard
+        // trails keep the inversion (#7a1e10 to #ffad9f). Each id is checked to exist, so a renamed layer fails here.
+        val ids = listOf(
+            "roads_path_steps", "roads_path_unknown_z13", "roads_path_hard_z13", "roads_path_unknown_z14_faint",
+            "roads_path_hard_z14_clear", "roads_path_unknown_clear", "roads_path_easy_faint", "roads_path_rough_clear",
+            "roads_path_hard_faint", "roads_path_track", "roads_tunnels_minor_casing", "roads_major_casing_late",
+            "roads_highway_casing_late",
+        )
+        val styleIds = style.getValue("layers").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }.toSet()
+        assertEquals(emptyList<String>(), ids.filter { it !in styleIds })
+        for (id in ids) {
             val property = LayerColourProperty(id, "line-color", StyleColourValue.Literal("#a8452a"))
             assertEquals(id, offlineNightRecolourOf(property), streetNightRecolourOf(property, "roads"))
         }

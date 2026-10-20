@@ -106,7 +106,8 @@ private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", 
  * (Recommended)"): the inversion left these at 1.0 to 1.5:1 on the night forest (Part 1 report, round 1). Tunnels keep
  * the inversion. The design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-street.mjs`, recorded in
  * the style's metadata; `NightExceptionsTest` holds the two equal and each colour to 2.5:1 on the night forest, grass
- * and ground.
+ * and ground, except where the design gives a layer its own band on one ground (`NIGHT_LAYER_BANDS`: informal paths on
+ * the night forest).
  */
 internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
     "roads_minor_casing" to "#c4bcae", // minor road edge, 3.21:1 on the night forest
@@ -121,6 +122,11 @@ internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
     "roads_rail" to "#b4bec0", // railways, 3.18:1
     "boundaries" to "#bdbdbd", // 3.21:1
     "boundaries_country" to "#bdbdbd",
+    // Informal paths' own night colour (dispatch 2026-10-19-41; the owner: "Own night colour (Recommended)"), in place of
+    // the inversion #9b694d, which nearly vanished on the night forest. 2.01:1 there: below the 2.5 the others hold, by
+    // the owner's band for this layer ("Accept the range (Recommended)", 1.9 to 2.3), which NightExceptionsTest holds.
+    "roads_path_informal_z13" to "#bb8a6f",
+    "roads_path_informal" to "#bb8a6f",
 )
 
 /**

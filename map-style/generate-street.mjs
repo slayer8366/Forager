@@ -11,7 +11,7 @@
 //   forager-street-v1.preview.json    fonts and icons from serve.py, for the preview and tools/check-style.mjs.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
-import { applyStreetDesign, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
+import { applyStreetDesign, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -43,6 +43,8 @@ const style = (assetsBase) => ({
     // Night exceptions (-1345): by layer, and for icon rings.
     "forager:night-layers": NIGHT_LAYER_COLOURS,
     "forager:night-icon-rings": NIGHT_ICON_RINGS,
+    // Per-layer contrast bands that replace the night floor for one layer on one ground (dispatch 2026-10-19-41).
+    "forager:night-bands": NIGHT_LAYER_BANDS,
   },
   sources: {
     protomaps: {

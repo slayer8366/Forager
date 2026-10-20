@@ -12,8 +12,11 @@
 // (docs/audits/2026-10-18-street-cloudflare-part1-report.md, Q1.4):
 //   (4) paths from z13 (the tiles carry none at z12), outdoor places at the zooms the tiles carry them;
 //   (5) a dot and the name for the six kinds the icon set has no icon for.
-// Informal paths: the tiles have no field that marks one (Part 1, Q1.3), so there is no dotted layer yet.
-// INFORMAL_PATH_COLOUR is reserved for it so the own build's `informal` attribute has a slot.
+// Trail difficulty, visibility and informal paths (dispatch 2026-10-19-41, RECORD -1480): Sage Wayfinder's design
+// as the owner ruled it, from the own build's `sac_scale`, `trail_visibility` and `informal` fields. The spec is
+// prompts/preserved/2026-10-20-trail-design-handover-rowan.md on pi-build; the rulings are in
+// docs/audits/2026-10-20-cloudflare-upload-prep.md and docs/audits/2026-10-20-sage-01-trail-variants.md there.
+// Archives without those fields draw every footpath as the unknown group.
 //
 // Why a separate file and not overrides/forager-colours.json: that file can only rename colours and hide
 // layers (generate.mjs:17-50). Dashes, zoom ranges, filters, sizes and a new outline layer are layer edits.
@@ -25,8 +28,16 @@ export const COLOURS = {
   footpath: "#a8452a",
   // Tracks: a browner, darker line than footpaths; night #cfaa85 (7.4:1).
   track: "#7a5530",
-  // Reserved for informal paths when the tiles carry them (-1284); not used yet.
-  informalPath: "#b9876b",
+  // Informal paths (-1284), `informal == "yes"`: Sage's revision 1 colour, replacing the reserved #b9876b. By day
+  // 3.10:1 on ground, 2.45:1 on forest. Its inversion (#9b694d) nearly vanishes on the night forest, so it has its
+  // own night colour, informalPathNight.
+  informalPath: "#a0735a",
+  // Informal paths at night (the owner: "Own night colour (Recommended)", under -1344): 2.01:1 on the night forest,
+  // inside the owner's band and below the night footpath (NIGHT_LAYER_BANDS).
+  informalPathNight: "#bb8a6f",
+  // Hard trails (alpine_hiking and above), darker than footpaths: a warning colour. Night is the plain inversion,
+  // #ffad9f.
+  hardPath: "#7a1e10",
   // Tree cover, one green at every zoom (-1285). Night #436d35.
   forest: "#a9d39b",
   // Grass, scrub, meadow: lighter than forest by day. Night #2d3911.
@@ -72,6 +83,22 @@ export const NIGHT_LAYER_COLOURS = {
   roads_rail: "#b4bec0", // railways
   boundaries: "#bdbdbd",
   boundaries_country: "#bdbdbd",
+  // Informal paths (dispatch 2026-10-19-41): their own night colour, held to NIGHT_LAYER_BANDS below, not to 2.5:1.
+  roads_path_informal_z13: COLOURS.informalPathNight,
+  roads_path_informal: COLOURS.informalPathNight,
+};
+
+/**
+ * Per-layer contrast bands on a night ground, in place of the 2.5:1 floor for that layer on that ground only
+ * (tools/check-street-night.mjs). Every layer and ground not named here keeps the floor.
+ *
+ * Informal paths on the night forest: the owner, "Accept the range (Recommended)" (docs/audits/2026-10-20-cloudflare-
+ * upload-prep.md on pi-build, "The owner's rulings on revision 1"): 1.9 to 2.3:1, and below the night footpath's own
+ * contrast there (2.43:1), so an informal path still reads fainter than a footpath. A band, not a widened floor.
+ */
+export const NIGHT_LAYER_BANDS = {
+  roads_path_informal_z13: { forest: { min: 1.9, max: 2.3, belowNightOf: "footpath" } },
+  roads_path_informal: { forest: { min: 1.9, max: 2.3, belowNightOf: "footpath" } },
 };
 
 /**
@@ -160,6 +187,93 @@ function roadClass(id) {
   return null;
 }
 
+/** Footpath widths by zoom: Street v1's, and hard trails' at +0.4 from z14 (the spec's "+0.4 width"). */
+const BASE_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 1.2, 15, 1.8, 18, 3.5];
+const HARD_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 1.6, 15, 2.2, 18, 3.9];
+
+/** `sac_scale` groups (the spec's "Groups"); anything else, or none, is unknown. */
+export const SAC_GROUPS = {
+  easy: ["strolling", "hiking"],
+  rough: ["mountain_hiking", "demanding_mountain_hiking"],
+  hard: ["alpine_hiking", "demanding_alpine_hiking", "difficult_alpine_hiking"],
+};
+/** `trail_visibility` values that make a trail faint; everything else, untagged included, is clear. */
+export const FAINT_VISIBILITY = ["bad", "horrible", "no"];
+/** Dash lengths from z15, in line widths (the spec's ladder; unknown is the owner's "Longer dash (Recommended)"). */
+const DASH = { unknown: 4, easy: 8, rough: 2, hard: 2 };
+/** The gap, in line widths: 1.5 for clear, 4 for faint. */
+const GAP = { clear: 1.5, faint: 4 };
+
+/**
+ * The footpath layers, bottom to top, in place of Street v1's one roads_path_foot (90 layers against 74).
+ *
+ * One layer per group because `line-dasharray` is not data-driven in MapLibre Native (style-spec 26.4.4's
+ * sdk-support points Android and iOS at maplibre-native issue #744), so each dash needs its own layer.
+ * Order: informal, steps, unknown, easy, rough, hard, so informal is below hard and a warning is never covered.
+ * Informal (`informal == "yes"`) overrides every group except hard, and wins over faint (Sage's ruling as built).
+ *   z13:        everything as unknown [4, 1.5]; hard takes only its colour; informal a plain [4, 1.5] dash.
+ *   z14:        easy and rough as unknown [4, g]; hard in its colour at +0.4 width, [4, g]; informal as dots
+ *               (the owner: "Show from zoom 15 (Recommended)").
+ *   z15 and up: unknown [4, g], easy [8, g], rough [2, g], hard [2, g] at +0.4 width; informal dots.
+ * Steps keep Street v1's [3, 1.5] and take no group.
+ */
+function trailLayers(pathBase) {
+  const sac = ["coalesce", ["get", "sac_scale"], ""];
+  const inGroup = (g) => ["in", sac, ["literal", SAC_GROUPS[g]]];
+  const notHard = ["!", inGroup("hard")];
+  const unknown = ["!", ["in", sac, ["literal", [...SAC_GROUPS.easy, ...SAC_GROUPS.rough, ...SAC_GROUPS.hard]]]];
+  const faint = ["in", ["coalesce", ["get", "trail_visibility"], ""], ["literal", FAINT_VISIBILITY]];
+  const visibility = { clear: ["!", faint], faint };
+  const informal = ["==", ["get", "informal"], "yes"];
+  const notInformal = ["!", informal];
+  const footpaths = FOOT_DETAILS.filter((d) => d !== "steps");
+  const layer = (id, { minzoom, maxzoom, filter, colour, dash, width, cap = "butt" }) => ({
+    id,
+    type: "line",
+    source: "protomaps",
+    "source-layer": "roads",
+    minzoom,
+    ...(maxzoom ? { maxzoom } : {}),
+    filter: [
+      "all", ["!", ["has", "is_tunnel"]], ["!", ["has", "is_bridge"]], ["==", ["get", "kind"], "path"],
+      ["in", ["get", "kind_detail"], ["literal", footpaths]], ...filter,
+    ],
+    layout: { "line-cap": cap, "line-join": "round" },
+    paint: { "line-color": colour, "line-dasharray": dash, "line-width": width },
+  });
+
+  const out = [
+    layer("roads_path_informal_z13", { minzoom: 13, maxzoom: 14, filter: [informal, notHard],
+      colour: COLOURS.informalPath, dash: [4, 1.5], width: BASE_WIDTH }),
+    layer("roads_path_informal", { minzoom: 14, filter: [informal, notHard],
+      colour: COLOURS.informalPath, dash: [0.1, 2.2], width: BASE_WIDTH, cap: "round" }),
+    pathBase("roads_path_steps", ["steps"], COLOURS.footpath, [3, 1.5], BASE_WIDTH),
+    layer("roads_path_unknown_z13", { minzoom: 13, maxzoom: 14, filter: [notInformal, notHard],
+      colour: COLOURS.footpath, dash: [4, 1.5], width: BASE_WIDTH }),
+    layer("roads_path_hard_z13", { minzoom: 13, maxzoom: 14, filter: [inGroup("hard")],
+      colour: COLOURS.hardPath, dash: [4, 1.5], width: BASE_WIDTH }),
+  ];
+  for (const vis of ["clear", "faint"]) {
+    out.push(layer(`roads_path_unknown_z14_${vis}`, { minzoom: 14, maxzoom: 15, filter: [notInformal, notHard, visibility[vis]],
+      colour: COLOURS.footpath, dash: [4, GAP[vis]], width: BASE_WIDTH }));
+  }
+  for (const vis of ["clear", "faint"]) {
+    out.push(layer(`roads_path_hard_z14_${vis}`, { minzoom: 14, maxzoom: 15, filter: [inGroup("hard"), visibility[vis]],
+      colour: COLOURS.hardPath, dash: [4, GAP[vis]], width: HARD_WIDTH }));
+  }
+  for (const g of ["unknown", "easy", "rough", "hard"]) {
+    for (const vis of ["clear", "faint"]) {
+      const filter = [g === "unknown" ? unknown : inGroup(g), visibility[vis]];
+      if (g !== "hard") filter.push(notInformal);
+      out.push(layer(`roads_path_${g}_${vis}`, { minzoom: 15, filter,
+        colour: g === "hard" ? COLOURS.hardPath : COLOURS.footpath,
+        dash: [DASH[g], GAP[vis]],
+        width: g === "hard" ? HARD_WIDTH : BASE_WIDTH }));
+    }
+  }
+  return out;
+}
+
 /** Applies the Street design to Protomaps' light layers, in place, and returns them. */
 export function applyStreetDesign(layers) {
   // --- Forest, grass and parks (-1285) ---------------------------------------------------------
@@ -223,10 +337,11 @@ export function applyStreetDesign(layers) {
     "roads_path_track", ["track"], COLOURS.track, [4, 1.5, 1, 1.5],
     ["interpolate", ["linear"], ["zoom"], 13, 1.3, 15, 2, 18, 4],
   ));
-  insertAfter(layers, "roads_path_track", pathBase(
-    "roads_path_foot", FOOT_DETAILS, COLOURS.footpath, [3, 1.5],
-    ["interpolate", ["linear"], ["zoom"], 13, 1.2, 15, 1.8, 18, 3.5],
-  ));
+  let after = "roads_path_track";
+  for (const layer of trailLayers(pathBase)) {
+    insertAfter(layers, after, layer);
+    after = layer.id;
+  }
 
   // --- Roads: colours chosen for the inversion (-1288) ----------------------------------------
   for (const layer of layers) {

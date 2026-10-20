@@ -61,7 +61,9 @@
     "forager:palette": {
       "footpath": "#a8452a",
       "track": "#7a5530",
-      "informalPath": "#b9876b",
+      "informalPath": "#a0735a",
+      "informalPathNight": "#bb8a6f",
+      "hardPath": "#7a1e10",
       "forest": "#a9d39b",
       "grass": "#dde9c1",
       "parkOutline": "#3e7a3a",
@@ -90,7 +92,9 @@
       "roads_bridges_highway": "#f0c060",
       "roads_rail": "#b4bec0",
       "boundaries": "#bdbdbd",
-      "boundaries_country": "#bdbdbd"
+      "boundaries_country": "#bdbdbd",
+      "roads_path_informal_z13": "#bb8a6f",
+      "roads_path_informal": "#bb8a6f"
     },
     "forager:night-icon-rings": {
       "townspot": {
@@ -107,6 +111,22 @@
         "ring": "#8780ab",
         "fill": "#dcebfa",
         "night": "#c6bfea"
+      }
+    },
+    "forager:night-bands": {
+      "roads_path_informal_z13": {
+        "forest": {
+          "min": 1.9,
+          "max": 2.3,
+          "belowNightOf": "footpath"
+        }
+      },
+      "roads_path_informal": {
+        "forest": {
+          "min": 1.9,
+          "max": 2.3,
+          "belowNightOf": "footpath"
+        }
       }
     }
   },
@@ -1492,7 +1512,216 @@
       }
     },
     {
-      "id": "roads_path_foot",
+      "id": "roads_path_informal_z13",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 13,
+      "maxzoom": 14,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "informal"
+          ],
+          "yes"
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "sac_scale"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "alpine_hiking",
+                "demanding_alpine_hiking",
+                "difficult_alpine_hiking"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a0735a",
+        "line-dasharray": [
+          4,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_informal",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 14,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "informal"
+          ],
+          "yes"
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "sac_scale"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "alpine_hiking",
+                "demanding_alpine_hiking",
+                "difficult_alpine_hiking"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a0735a",
+        "line-dasharray": [
+          0.1,
+          2.2
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_steps",
       "type": "line",
       "source": "protomaps",
       "source-layer": "roads",
@@ -1515,11 +1744,7 @@
         [
           "in",
           "kind_detail",
-          "footway",
-          "path",
-          "steps",
-          "bridleway",
-          "cycleway"
+          "steps"
         ]
       ],
       "layout": {
@@ -1546,6 +1771,1678 @@
           1.8,
           18,
           3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_unknown_z13",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 13,
+      "maxzoom": 14,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "sac_scale"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "alpine_hiking",
+                "demanding_alpine_hiking",
+                "difficult_alpine_hiking"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          4,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_hard_z13",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 13,
+      "maxzoom": 14,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "alpine_hiking",
+              "demanding_alpine_hiking",
+              "difficult_alpine_hiking"
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7a1e10",
+        "line-dasharray": [
+          4,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_unknown_z14_clear",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 14,
+      "maxzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "sac_scale"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "alpine_hiking",
+                "demanding_alpine_hiking",
+                "difficult_alpine_hiking"
+              ]
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "trail_visibility"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "bad",
+                "horrible",
+                "no"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          4,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_unknown_z14_faint",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 14,
+      "maxzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "sac_scale"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "alpine_hiking",
+                "demanding_alpine_hiking",
+                "difficult_alpine_hiking"
+              ]
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_visibility"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "bad",
+              "horrible",
+              "no"
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          4,
+          4
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_hard_z14_clear",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 14,
+      "maxzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "alpine_hiking",
+              "demanding_alpine_hiking",
+              "difficult_alpine_hiking"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "trail_visibility"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "bad",
+                "horrible",
+                "no"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7a1e10",
+        "line-dasharray": [
+          4,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.6,
+          15,
+          2.2,
+          18,
+          3.9
+        ]
+      }
+    },
+    {
+      "id": "roads_path_hard_z14_faint",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 14,
+      "maxzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "alpine_hiking",
+              "demanding_alpine_hiking",
+              "difficult_alpine_hiking"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_visibility"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "bad",
+              "horrible",
+              "no"
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7a1e10",
+        "line-dasharray": [
+          4,
+          4
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.6,
+          15,
+          2.2,
+          18,
+          3.9
+        ]
+      }
+    },
+    {
+      "id": "roads_path_unknown_clear",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "sac_scale"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "strolling",
+                "hiking",
+                "mountain_hiking",
+                "demanding_mountain_hiking",
+                "alpine_hiking",
+                "demanding_alpine_hiking",
+                "difficult_alpine_hiking"
+              ]
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "trail_visibility"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "bad",
+                "horrible",
+                "no"
+              ]
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          4,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_unknown_faint",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "sac_scale"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "strolling",
+                "hiking",
+                "mountain_hiking",
+                "demanding_mountain_hiking",
+                "alpine_hiking",
+                "demanding_alpine_hiking",
+                "difficult_alpine_hiking"
+              ]
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_visibility"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "bad",
+              "horrible",
+              "no"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          4,
+          4
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_easy_clear",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "strolling",
+              "hiking"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "trail_visibility"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "bad",
+                "horrible",
+                "no"
+              ]
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          8,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_easy_faint",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "strolling",
+              "hiking"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_visibility"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "bad",
+              "horrible",
+              "no"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          8,
+          4
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_rough_clear",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "mountain_hiking",
+              "demanding_mountain_hiking"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "trail_visibility"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "bad",
+                "horrible",
+                "no"
+              ]
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          2,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_rough_faint",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "mountain_hiking",
+              "demanding_mountain_hiking"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_visibility"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "bad",
+              "horrible",
+              "no"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "==",
+            [
+              "get",
+              "informal"
+            ],
+            "yes"
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#a8452a",
+        "line-dasharray": [
+          2,
+          4
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.2,
+          15,
+          1.8,
+          18,
+          3.5
+        ]
+      }
+    },
+    {
+      "id": "roads_path_hard_clear",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "alpine_hiking",
+              "demanding_alpine_hiking",
+              "difficult_alpine_hiking"
+            ]
+          ]
+        ],
+        [
+          "!",
+          [
+            "in",
+            [
+              "coalesce",
+              [
+                "get",
+                "trail_visibility"
+              ],
+              ""
+            ],
+            [
+              "literal",
+              [
+                "bad",
+                "horrible",
+                "no"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7a1e10",
+        "line-dasharray": [
+          2,
+          1.5
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.6,
+          15,
+          2.2,
+          18,
+          3.9
+        ]
+      }
+    },
+    {
+      "id": "roads_path_hard_faint",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "minzoom": 15,
+      "filter": [
+        "all",
+        [
+          "!",
+          [
+            "has",
+            "is_tunnel"
+          ]
+        ],
+        [
+          "!",
+          [
+            "has",
+            "is_bridge"
+          ]
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "path"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "footway",
+              "path",
+              "bridleway",
+              "cycleway"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "sac_scale"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "alpine_hiking",
+              "demanding_alpine_hiking",
+              "difficult_alpine_hiking"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_visibility"
+            ],
+            ""
+          ],
+          [
+            "literal",
+            [
+              "bad",
+              "horrible",
+              "no"
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7a1e10",
+        "line-dasharray": [
+          2,
+          4
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          1.6,
+          15,
+          2.2,
+          18,
+          3.9
         ]
       }
     },
