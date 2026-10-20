@@ -523,3 +523,24 @@ project.
   recorded here; the owner was asked to note them.
 - **The production branch and root directory** for reconnecting: the owner, verbatim, "I have them
   recorded". They are kept by the owner, not in this repository.
+
+## A cached 404 for the sprites, 2026-10-20
+
+The owner reported "Archive not found" at `/sprites/v4/light.json`. The planner checked:
+
+- The plain URL returns `404`, `cf-cache-status: HIT`, `age: 4690`, `cache-control: public,
+  max-age=86400`, with body "Archive not found".
+- With a query string it returns `200`.
+
+**The cause, inferred from the age:** the coder's pi-19 prep check, at about 22:21Z, requested
+`/sprites/v4/light.json` while the old Worker was still deployed. The old Worker answered 404, and
+the edge cached the 404 for a day. It expires at about 22:20Z on 2026-10-21 in that data centre.
+Other new routes nobody requested before the paste, such as `/style/street-v1.json` and the font
+range, return 200.
+
+**Effect:** a review in that data centre before the expiry shows no icons. The same one-day cache
+holds old `/us.json` and old tiles after the archive overwrite. The planner recommends holding the
+review install until after about 22:30Z on 2026-10-21. That is the owner's call.
+
+**The lesson:** don't probe a route before the Worker that serves it is live, because the old
+Worker's 404s are cached for a day. Neither the planner's dispatch nor the coder caught this.
