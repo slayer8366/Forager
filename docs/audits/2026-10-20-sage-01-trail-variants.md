@@ -162,3 +162,100 @@ Difficulty by **colour weight** inside the red-brown family, visibility by gap a
 - **Inferred**: every night hex and contrast figure for the new colours (hand arithmetic with the app's published formula); that per-layer dash is needed; that `#d4641f` would compete with roads at z13.
 - **Could not determine**: how any of this looks drawn, since I built nothing (by the owner's ruling); how Firefox's dash rendering compares with the phone's (the Part 1 report says the phone is the final word); whether the one `alpine_hiking` and one `bad` segment are long enough on screen to judge the cue from.
 - **Not read**: `docs/plans/understory-design-system.md` and `qa-philosophy.md` (app-screen items on the reading list, not map work); the Part 1 report's Q2 to Q4, Q6, Q7 and Q9 (Worker, deploy, app), which do not bear on path styling.
+
+---
+
+# Revision 1, 2026-10-20: after the first redraw (supersedes §(b)'s dash lengths, and adds rulings)
+
+Filed by the planner as received. **The planner's spot-check,** using WCAG relative luminance:
+
+| Colour | Background | Contrast |
+|---|---|---|
+| `#a0735a` | ground `#e2dfda` | 3.10 |
+| `#a0735a` | forest `#a9d39b` | 2.45 |
+| `#a8452a` | ground | 4.45 |
+| `#a8452a` | forest | 3.52 |
+| `#ed8a6f` | night forest `#436d35` | 2.43 |
+| `#bb8a6f` | night forest | 2.01 |
+| `#f6a58b` | night forest | 3.07 |
+| `#d4a58a` | night forest | 2.75 |
+| V1(`#a0735a`) = `#ac7f66` | night forest | 1.72 |
+
+All agree with Sage's figures to within 0.05.
+
+**Summary of the revision:**
+
+- **The cause.** A butt-capped dash shorter than about two line widths draws as a dot.
+- **The new ladder:** easy `[8, g]`, unknown `[4, g]`, rough and hard `[2, g]`, where g = 1.5 for
+  clear and 4 for faint. Unknown therefore moves from Street v1's `[3, 1.5]`. That is the owner's
+  question. The fallback 6 / 3 / 2 keeps Street v1's dash.
+- **Gaps ruled as built:**
+  1. Informal is excluded from the unknown, easy and rough layers, and kept in hard.
+  2. A path both informal and `bad` draws as informal.
+  3. At z13, hard gets its colour only.
+- **Informal by day:** `#a0735a` at base width.
+- **Informal at night:** the 2.5 floor contradicts "fainter than the footpath", since the footpath
+  itself is 2.43 on night forest. Sage proposes a per-layer band of 1.9 to 2.3, with `#bb8a6f`. That
+  is the owner's question.
+
+Sage's text, verbatim:
+
+## The flaw, confirmed, and why it happened
+
+The planner is right (observed, `swatch-day-z15.png`, rows "rough, clear" and "hard, clear"): a dash of 1.5 widths with a butt cap is a square, and a row of squares is a dotted line. On the map it is worse than in the swatch: at Mt Rainier z15 the Skyline Trail between Alta Vista and Panorama Point draws as a dotted line, and at z16 the Guide House Trail does too (observed), which is the one look the prior art reserves for the *hardest* or *least visible* trail. So "rough" reads as a warning it is not, and sits one colour away from informal. The premise that failed was mine: I set dash lengths as 6 / 3 / 1.5 without checking the ratio to width. **A butt-capped dash reads as a dash only at about two widths or more; below that it is a dot.** That rule is now part of the spec.
+
+The rest of Variant A holds on the renders: easy's long dash reads at once at z14 to z16 (observed: Skyline and Waterfall Trails at z16); easy against unknown is tellable at z15 and z16 (Skyline vs Lower Lakes Trail), marginal at z14; hard's dark colour reads on the grey rock of the Fairview Mountain frame (observed, `lake-louise-alpine-z15.png`), though as dots, which item 1 fixes; the faint gap reads clearly in the swatch at both zooms; informal's tan dots are tellable from everything else in the swatch but are near-invisible on the Flattop map by day and night (observed, both recentred z14 renders, bottom-left), which item 3 addresses.
+
+## 1. Revised dashes (cap assumed: butt, as Street v1 and the coder's build use)
+
+| Group | Dash, clear | Dash, faint | Colour / width |
+|---|---|---|---|
+| **easy** | `[8, 1.5]` | `[8, 4]` | base |
+| **unknown** | `[4, 1.5]` | `[4, 4]` | base (Street v1 colour and width) |
+| **rough** | `[2, 1.5]` | `[2, 4]` | base |
+| **hard** | `[2, 1.5]` | `[2, 4]` | `#7a1e10`, width + 0.4 from z14 |
+| **informal** | round-cap dots `[0.1, 2.2]` | (item 2) | `informalPath`, item 3 |
+
+- Rough and hard at `[2, 1.5]`: at z14 (1.5 px) a 3 × 1.5 px stub; at z15 3.6 × 1.8; hard at 2.2 px is 4.4 × 2.2. Each is a short dash, not a square. Informal stays a round tan dot, so they differ in shape, colour and weight. If the redraw still shows beads, the fallback is `[2.5, 1.5]` for rough and hard with unknown at `[5, 1.5]` and easy at `[10, 1.5]`.
+- The cost: **unknown changes from Street v1's `[3, 1.5]` to `[4, 1.5]`**, including at z13. **If the owner wants Street v1's base untouched, the fallback is 6 / 3 / 2**: rough then reads apart from unknown only at z15 and up.
+- Round caps for everything rejected: a round-capped short dash is a pill, closer to a dot. Two dash lengths rejected: A's idea needs three steps.
+
+## 2. Rulings on the coder's gaps, as design proposals
+
+**(1) Informal excluded from unknown, easy and rough, kept in hard: yes, as built.** The dots say what matters; an informal scramble draws as hard, so a warning is never covered.
+
+**(2) Informal and `bad` together: informal wins, as built.** "Both cues" would be tan dots at double spacing, which at 1.85:1 on forest could read as a rendering fault; under "Don't make me think" the worst case is a state that looks broken. Consequence: faint shows on no real Flattop segment; render request 3 finds one.
+
+**(3) Hard at z13: colour only, as built.** Width joins at z14 with the dash.
+
+Also confirmed: steps unchanged; layer order informal, steps, unknown, easy, rough, hard; `informal == "yes"`; one layer per group (`line-dasharray` not data-driven in MapLibre Native per style-spec 26.4.4; not checked against Native 13.5.0).
+
+## 3. Informal's colour, width, and the floor
+
+**Day:** colour `#b9876b` → **`#a0735a`** (3.10 on ground, 2.45 on forest, against floors 3 and 2; below the footpath's 4.45 and 3.51). Width: **base width, not base − 0.2**; "faint" comes from colour and form, not a dot too small to see. Spacing stays `[0.1, 2.2]`.
+
+**Night: the 2.5 floor is the wrong test for this one layer.** The footpath's own night colour `#ed8a6f` is 2.43:1 on the night forest, below 2.5; a colour passing 2.5 there is brighter than the trail it must be fainter than. Options for the owner:
+- **(a)** A band of about 1.9 to 2.3 on the night forest for informal; the coder's `#bb8a6f` at 2.01 sits in it; written as a per-layer band, not a widened floor. *Recommended.*
+- **(b)** Lift the base footpath's night colour to Hazel's optional `#f6a58b` (3.07), declined in −1345, and informal to about `#d4a58a` (≈2.7).
+- **(c)** Pure inversion of the new day colour, `#ac7f66`, ≈1.7 on forest. Not recommended.
+
+## 4. Questions for the owner
+
+1. **The base dash.** (a) Unknown to `[4, 1.5]`, recommended; (b) Street v1's `[3, 1.5]` stays, rough apart only from z15.
+2. **Informal at night.** (a) Band, `#bb8a6f`, recommended; (b) lift base and informal above 2.5; (c) pure inversion.
+3. **Informal and `bad` together.** (a) Informal wins, recommended; (b) both cues.
+
+## 5. Render requests
+
+1. Swatch strip again, both zooms, day and night, revised ladder, plus rows: informal old vs `#a0735a`; at night `#bb8a6f` vs `#d4a58a`; rough at fallback `[2.5, 1.5]`.
+2. Mt Rainier z14, z15, z16, day and night: judge Skyline (Alta Vista to Panorama Point) and Guide House Trail as short dashes beside long-dash easy.
+3. A `bad`-visibility trail that is not informal, found by decoding tiles near a render place, framed at z14 and z15, day and night.
+4. Mount Niblock Route framed: `[2, 4]` dark should read as a sparse dark dash.
+5. Flattop re-centred z14 and z15, day and night.
+6. Contrast check with the new pairs: `#a0735a` against existing floors; informal's night colour reported against the band with the footpath's 2.43 beside it; floors not moved.
+
+## Confirmed vs inferred
+
+- **Observed**: the dot flaw in the swatch and on three map renders; easy/unknown/faint reading as intended; informal near-invisible at Flattop z14; hard reading on grey rock.
+- **Inferred**: contrast for `#a0735a`, `#ac7f66`, `#d4a58a` (since recomputed by the planner, above); that a 2:1 stub reads as a dash on the phone.
+- **Could not determine**: how the revised dashes look; whether a non-informal `bad` segment exists near the render places.
