@@ -25252,3 +25252,29 @@ Then Phase 2 is complete, followed by Elder's audit and the owner's promotion de
 - **The planner's rulings:** the merge resolutions, including the OfflineRegionsList.kt port, are approved. The app changes (a) to (d) are approved as forced by the spec. The review build is a never-merged branch street-trails-review with the switch flipped. The band edges are exactly 1.9 and 2.3.
 - **The owner,** asked how to handle the Cloudflare side, chose "Aspen arranges it (Recommended)": "I ask Aspen (who prepared the upload) to bring you the deploy and the upload steps for your go; Hazel's build waits for it." Aspen has been told by message. The Worker deploy needs #258's new commit.
 **Notes:** Written by the planner by hand. Next free ID -1482.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1482
+**Timestamp:** 2026-10-20T22:47:57Z
+**Continues:** 2026-09-28-1481, 2026-09-28-1478
+**Title:** #341 merged; trails built into #258 with a review build; informal wins over faint (owner)
+**Observed:**
+- **#341** (2.5 PR 1, the search dropdown).
+  - Sorrel: approve. The moved body is identical after reversing the substitutions, the call keeps its position, and the suite is identical (5,189 cases).
+  - S22 screenshot pass (Hazel): before and after identical, upright, at both landscape rotations, and with the keyboard up. A first landscape difference was traced to the live location readout changing the search bar's width; it cleared in back-to-back retakes.
+  - S22 launch PASS (1.0.3704+g488d5864). Merged at 3ad8c8f0.
+  - Found during the pass: the screenshot script's rotation restore can fail when it sets accelerometer_rotation right after user_rotation. This is for its PR, #296.
+- **#342** (2.6 PR 1): Sorrel approve. The +9 lambda count is explained (journalScreenState is not a lambda). S22 launch PASS (1.0.3704+g129c71b9). The phone steps are running.
+- **#343** (2.5 PR 2): Sorrel approve. The zero-line reversal diff covers 18 substitutions and 32 bundle lines. Suite and touch guards (32 classes, 282 cases) identical. Screenshots owed.
+  - Tidy list: a ModifierParameter lint warning from #341 (ScaffoldSearchDropdown.kt:69), and an unused rememberUpdatedState import (pre-existing).
+- **#258 trails** (Hazel), at 62ac44d9 (pre-main merged), cfbd1b68 (trails) and 07596c5e (report).
+  - Run 39507620624 green. The suite matches pre-main plus #258's own 41 cases plus 1 new.
+  - Revert checks R1-R6 (map-style, local) and K1-K4 (app, CI) each failed for their own edit.
+  - Review build: run 39507721722 on street-trails-review (f92feced, switch flipped, never merged). It fails exactly #258's known 16 cases.
+  - Worker bundle dist/index.js, sha256 5b0b3d0b…4ec0, built from cfbd1b68, sent to Aspen. Not deployed.
+  - Sorrel's review of #258 is running.
+  - Gap noted: the night inversion test lists 9 of 17 path layers.
+**Decision:** asked about the case not ruled separately ("a path that's both informal and faint ... As built, informal wins: it shows as brown dots"), the owner chose "Informal wins, keep it (Recommended)": "Brown dots; being unofficial matters more to a forager than being faint."
+**Notes:** Written by the planner by hand. Next free ID -1483.
