@@ -24258,3 +24258,15 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **What it sets:** this amends -1376's standing word for Phase 1: a PR whose files no other ready PR touches no longer needs to re-merge pre-main before merging, once its own head build is green and S22-checked. After a batch, the planner S22-checks pre-main's own push build; a failure stops all merging and goes to the owner.
 **Also recorded:** at about 03:05Z, after the session restart, the planner S22-checked five ready heads, all PASS: 10a f81c8e76 (1.0.3563), 10b 831e3e4c (1.0.3563), 10f e3df59cf (1.0.3559), 10e ad203992 (1.0.3560), 10d 9bac47b9 (1.0.3562). The last three were installed with `adb install -r -d` first, because the phone held a higher build number; data kept.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1422.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-1422
+**Timestamp:** 2026-10-20T03:12:17Z
+**Continues:** 2026-09-28-1421
+**Title:** Two entries carry ID -1421; the decision entry timestamped 2026-10-20T03:09:28Z (batch merges with a combined S22 check) is renumbered -1423. Two planner sessions ran in parallel for about 20 minutes
+**What happened:** the earlier planner session (bridge cse_01GnhJ8wgvPTgiDG6D291ged) lost its connection at about 02:44Z and reconnected after the 02:53Z restart, while a new planner session had already taken over. Each wrote an entry numbered -1421 to records-after-173: the terminal for #287 (03:0xZ, commit 2bb9117e, new session) and the batch-merge decision (03:09:28Z, commit 8a6bdc8c, earlier session). The earlier session reports that the owner ruled in its window, through the question tool: "The new one continues (Recommended)"; that session has stood down and writes nothing more. That wording is relayed by that session, not seen by this one.
+**The correction:** the -1421 terminal for #287 keeps its ID. The 03:09:28Z decision entry is to be read and cited as **-1423**. Its content is unchanged and still valid, including the owner's verbatim "Batch, check combined (Recommended)" and the five S22 checks it lists. Neither entry is edited in place.
+**Also from the earlier session's handover, for the record:** its helpers are stopped and will change nothing; its five S22 checks at about 03:05Z all passed (listed in -1423); the S22 was left on 1.0.3562+g9bac47b9.
+**Notes:** Written by the planner by hand. Next free ID -1424.
