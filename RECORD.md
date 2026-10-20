@@ -24696,3 +24696,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **No-production-caller list for the owner** (moved, not deleted): `TrackRecordingViewModel.removeWaypoint` (2.7), `AvailabilityViewModel.onDeleteOfflineRegion` (2.4).
 - **Test gaps for the owner's list** (not changed in Phase 2): no test commits a pending *track* delete on clear, or pins the track-then-waypoint order (Sorrel, #293); four stale `beginPolling` mentions in test comments (Sorrel, #305).
 **Notes:** Written by the planner by hand. Next free ID -1455.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1455
+**Timestamp:** 2026-10-20T08:32:31Z
+**Continues:** 2026-09-28-1452
+**Title:** Phase 2 PRs #310, #308 and #312 merged into pre-main after the combined S22 check on a6343324; Phase 2.7 (the recording engine) complete
+**Observed:**
+- Pre-main a6343324's push run 39390954268: all three jobs green; combined S22 check 1.0.3624+ga6343324, PASS (covers #302, #307, #305, #309).
+- Then: #310 (2.2 style reload, way home and data refresh) at c825b594; #308 (2.7 take-up memory, the last 2.7 PR) at 10289736; #312 (2.1 Journal-entries bundle) at 3bd1ce55. Each gated on its approved head.
+- **Per PR:** suite identical; S22 PASS on its own build (1.0.3600+g29c6c582, 1.0.3600+g0c08e018, 1.0.3600+g43ce529f); Sorrel: approve with nits, no defect, for all three (#308 and #312 with the suite and the sets checked by Sorrel). #310's screenshot pass: style loads and the map renders, fullscreen landscape identical to the baseline apart from live readings.
+- **Known-bugs row 2 sightings in this stretch:** #292's first run 39372145004 (:80), #308's 39388183366 (:98), #312's 39388897185 (:80). Each was re-run green on the same SHA, with the test untouched. #312's helper re-ran without asking first; told to stop and report first next time.
+- **2.7 is complete:** five collaborators (pending deletes, lists, route ticks, poller, take-up memory), every loop's start and stop decided in the ViewModel at its old position. Worktrees removed; remote branches kept.
+- **Series state:** 2.1: 6 of 12 bundles merged; 2.2: PRs 1 to 8 merged (PR 9, lifecycle and listeners, building; PR 10, layout, after); 2.4: verify-first accepted (-1454), PR 1 building.
+**Notes:** Written by the planner by hand. Next free ID -1456.
