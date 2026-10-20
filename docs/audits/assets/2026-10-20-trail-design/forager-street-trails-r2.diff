@@ -1,0 +1,116 @@
+--- map-style/overrides/forager-street.mjs	2026-10-20 12:59:10.061941180 -0700
++++ /home/bwann83/street-preview-scratch/variant-b3/overrides/forager-street.mjs	2026-10-20 14:41:41.001623774 -0700
+@@ -25,8 +25,15 @@
+   footpath: "#a8452a",
+   // Tracks: a browner, darker line than footpaths; night #cfaa85 (7.4:1).
+   track: "#7a5530",
+-  // Reserved for informal paths when the tiles carry them (-1284); not used yet.
+-  informalPath: "#b9876b",
++  // Informal paths (-1284), drawn from the own build's `informal == "yes"` (scratch Variant A, Sage 2026-10-20 §(b)).
++  // SCRATCH revision 1 (Sage, 2026-10-20 §3): #b9876b -> #a0735a, base width.
++  informalPath: "#a0735a",
++  // SCRATCH Variant A: the hard group (alpine_hiking and above), darker than footpaths; V1 night #ffad9f.
++  hardPath: "#7a1e10",
++  // SCRATCH Variant A: informal paths' own night colour (owner: "Own night colour", under -1344), in place of the
++  // inversion #9b694d (1.30:1 on the night forest). #bb8a6f: 2.01:1 on the night forest #436d35, below the
++  // night footpath's 2.43:1 so it still reads fainter.
++  informalPathNight: "#bb8a6f",
+   // Tree cover, one green at every zoom (-1285). Night #436d35.
+   forest: "#a9d39b",
+   // Grass, scrub, meadow: lighter than forest by day. Night #2d3911.
+@@ -72,6 +79,9 @@
+   roads_rail: "#b4bec0", // railways
+   boundaries: "#bdbdbd",
+   boundaries_country: "#bdbdbd",
++  // SCRATCH Variant A: informal paths at night (owner, 2026-10-20: "Own night colour (Recommended)").
++  roads_path_informal_z13: "#bb8a6f",
++  roads_path_informal: "#bb8a6f",
+ };
+ 
+ /**
+@@ -223,10 +233,81 @@
+     "roads_path_track", ["track"], COLOURS.track, [4, 1.5, 1, 1.5],
+     ["interpolate", ["linear"], ["zoom"], 13, 1.3, 15, 2, 18, 4],
+   ));
+-  insertAfter(layers, "roads_path_track", pathBase(
+-    "roads_path_foot", FOOT_DETAILS, COLOURS.footpath, [3, 1.5],
+-    ["interpolate", ["linear"], ["zoom"], 13, 1.2, 15, 1.8, 18, 3.5],
+-  ));
++  // SCRATCH Variant A (Sage 2026-10-20 §(b)) in place of Street v1's single roads_path_foot layer.
++  // One layer per group, because line-dasharray is not data-driven in MapLibre Native (style-spec 26.4.4 sdk-support).
++  // Order bottom to top: informal, steps, unknown, easy, rough, hard ("informal below hard, so a warning is never
++  // covered"). Coder's readings, flagged in the report: informal paths are left out of unknown/easy/rough (otherwise
++  // those would cover the dots) but kept in hard; steps stay Street v1 ("Steps and tracks are untouched"); at z13 the
++  // hard group takes only the colour, not the extra width.
++  const BASE_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 1.2, 15, 1.8, 18, 3.5];
++  const HARD_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 1.6, 15, 2.2, 18, 3.9];
++  // SCRATCH revision 1 §3: informal at base width (was base - 0.2).
++  const INFORMAL_WIDTH = BASE_WIDTH;
++  const NOT_STEPS = FOOT_DETAILS.filter((d) => d !== "steps");
++  const sac = ["coalesce", ["get", "sac_scale"], ""];
++  const GROUPS = {
++    easy: ["strolling", "hiking"],
++    rough: ["mountain_hiking", "demanding_mountain_hiking"],
++    hard: ["alpine_hiking", "demanding_alpine_hiking", "difficult_alpine_hiking"],
++  };
++  const inGroup = (g) => ["in", sac, ["literal", GROUPS[g]]];
++  const unknown = ["!", ["in", sac, ["literal", [...GROUPS.easy, ...GROUPS.rough, ...GROUPS.hard]]]];
++  const faint = ["in", ["coalesce", ["get", "trail_visibility"], ""], ["literal", ["bad", "horrible", "no"]]];
++  const informal = ["==", ["get", "informal"], "yes"];
++  const footBase = (details) => [
++    ["!", ["has", "is_tunnel"]], ["!", ["has", "is_bridge"]], ["==", ["get", "kind"], "path"],
++    ["in", ["get", "kind_detail"], ["literal", details]],
++  ];
++  const variantLayer = (id, { minzoom, maxzoom, filter, colour, dash, width, cap = "butt" }) => ({
++    id, type: "line", source: "protomaps", "source-layer": "roads", minzoom, ...(maxzoom ? { maxzoom } : {}),
++    filter: ["all", ...footBase(NOT_STEPS), ...filter],
++    layout: { "line-cap": cap, "line-join": "round" },
++    paint: { "line-color": colour, "line-dasharray": dash, "line-width": width },
++  });
++  const variant = [
++    // z13: every footpath as unknown, except the hard colour (§(b) "hard colour from z13"); informal as a plain dash.
++    variantLayer("roads_path_informal_z13", { minzoom: 13, maxzoom: 14, filter: [informal, ["!", inGroup("hard")]],
++      colour: COLOURS.informalPath, dash: [4, 1.5], width: BASE_WIDTH }), // revision 1: z13 layers [4, 1.5]
++    // z14 up: informal dots.
++    variantLayer("roads_path_informal", { minzoom: 14, filter: [informal, ["!", inGroup("hard")]],
++      colour: COLOURS.informalPath, dash: [0.1, 2.2], width: INFORMAL_WIDTH, cap: "round" }),
++    pathBase("roads_path_steps", ["steps"], COLOURS.footpath, [3, 1.5], BASE_WIDTH),
++    variantLayer("roads_path_unknown_z13", { minzoom: 13, maxzoom: 14, filter: [["!", informal], ["!", inGroup("hard")]],
++      colour: COLOURS.footpath, dash: [4, 1.5], width: BASE_WIDTH }),
++    variantLayer("roads_path_hard_z13", { minzoom: 13, maxzoom: 14, filter: [inGroup("hard")],
++      colour: COLOURS.hardPath, dash: [4, 1.5], width: BASE_WIDTH }),
++  ];
++  // SCRATCH revision 1 §1: a butt-capped dash under about two widths draws as a dot; ladder 8 / 4 / 2.
++  const DASH = { unknown: 4, easy: 8, rough: 2, hard: 2 };
++  for (const g of ["unknown", "easy", "rough", "hard"]) {
++    for (const vis of ["clear", "faint"]) {
++      const filter = [g === "unknown" ? unknown : inGroup(g), vis === "faint" ? faint : ["!", faint]];
++      if (g !== "hard") filter.push(["!", informal]);
++      variant.push(variantLayer(`roads_path_${g}_${vis}`, {
++        minzoom: 15, filter, // SCRATCH revision 2 (owner, "Show from zoom 15"): the full ladder from z15
++        colour: g === "hard" ? COLOURS.hardPath : COLOURS.footpath,
++        dash: [DASH[g], vis === "faint" ? 4 : 1.5],
++        width: g === "hard" ? HARD_WIDTH : BASE_WIDTH,
++      }));
++    }
++  }
++  // SCRATCH revision 2 (owner 2026-10-20: "Show from zoom 15 (Recommended)"): z14 to below z15, easy and rough draw
++  // as unknown [4, g]; hard keeps its colour and +0.4 width with [4, g]; the faint gap shows. Separate layers, so the
++  // z15-and-up layers are exactly revision 1's. Inserted after informal and steps, before the z13 layers' successors.
++  const z14 = [];
++  for (const vis of ["clear", "faint"]) {
++    const gap = vis === "faint" ? 4 : 1.5;
++    const visFilter = vis === "faint" ? faint : ["!", faint];
++    z14.push(variantLayer(`roads_path_unknown_z14_${vis}`, { minzoom: 14, maxzoom: 15,
++      filter: [["!", inGroup("hard")], visFilter, ["!", informal]], colour: COLOURS.footpath, dash: [4, gap], width: BASE_WIDTH }));
++    z14.push(variantLayer(`roads_path_hard_z14_${vis}`, { minzoom: 14, maxzoom: 15,
++      filter: [inGroup("hard"), visFilter], colour: COLOURS.hardPath, dash: [4, gap], width: HARD_WIDTH }));
++  }
++  // Order kept: unknown below hard.
++  variant.splice(variant.findIndex((l) => l.id === "roads_path_unknown_clear"), 0,
++    ...z14.filter((l) => l.id.includes("unknown")), ...z14.filter((l) => l.id.includes("hard")));
++  let after = "roads_path_track";
++  for (const layer of variant) { insertAfter(layers, after, layer); after = layer.id; }
+ 
+   // --- Roads: colours chosen for the inversion (-1288) ----------------------------------------
+   for (const layer of layers) {
