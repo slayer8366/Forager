@@ -24187,3 +24187,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Freed:** the planner's own downloaded S22 test builds (1.1 GB, all still on GitHub); the 12 older pre-main bundles of today (each confirmed contained in origin/pre-main before deleting; 068a139a's kept); helpers told to keep only small proof files. /mnt/work is at 6.5 GB free.
 - **Touch-guard counts reconciled (planner's reading of the reports):** the same 19 guard files were reported as 32 concrete classes and 282 cases (PRs 8, 9a, 9b) or 28 and 278 (10a, 10b). The difference is the two files that hold extra sibling classes (AvailabilityScreenLandscapeB2Test: B2Turn, PortraitStripTnum; AvailabilityScreenShortLandscapeTest: TurnToShortLandscape, PortraitBottomNavPin), one case each. Every PR also compared the whole suite case by case, so nothing went unchecked.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1418.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1418
+**Timestamp:** 2026-10-20T02:24:04Z
+**Closes:** 2026-09-28-1407
+**Outcome:** completed
+**Observed:**
+- PR #284 (UI split Phase 1, PR 7: MapChrome.kt into six files) merged into pre-main at 5501fe22 under the standing word, gated on head d326ee82, which contains pre-main b2b76501. Backup per -1417: the prior pre-main hash, logged in `~/Zynergy/forager-repo-backups/pre-main-hashes.log`.
+- **Files:** MapChrome.kt 1,071 → 197 (tokens, border colours, `MapChromeSheetNavigationBar`; **`MAP_CHROME_OVER_MAP_ALPHA` stays there, now line 69**, so CLAUDE.md's pointer holds); MapIconBarSizes.kt 54, MapChromeOutline.kt 224, MapIconBar.kt 225, MapIconBarHandles.kt 273, MapBarIconButton.kt 172. One widening (`MAP_ICON_BAR_FILL_DIAMETER`).
+- **Proofs (Hazel):** 51 declarations, differing only in the widening; six bodies `cmp`-identical with bite runs; suite identical in two pairs (5,160 cases); MapChromeAlphaTest, MapChromeColourTokenTest, the colour-pixel and outline classes (42 classes, 299 cases) identical. Init order read, no cycle. Dex +3 (three `<clinit>`), the accessor replaced by a getter; accepted as compiler-generated.
+- **S22 launch check, planner, about 04:08Z:** APK 1.0.3557+gd326ee82 from workflow_dispatch run 39356899951. "PASS: verified (status=verify), launched, process 19384 alive after 8 s, crash buffer empty."
+**Deviations:** none.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1419.
