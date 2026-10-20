@@ -521,3 +521,5 @@ project.
   Worker, after the planner pointed out the same-named Pages project. **Reconnect it only once #258's
   Worker code is on `main`.** The production branch and root directory to reconnect with are not yet
   recorded here; the owner was asked to note them.
+- **The production branch and root directory** for reconnecting: the owner, verbatim, "I have them
+  recorded". They are kept by the owner, not in this repository.
