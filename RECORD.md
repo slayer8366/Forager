@@ -25322,3 +25322,31 @@ Then Phase 2 is complete, followed by Elder's audit and the owner's promotion de
   - Old 404s and old tiles are cached at the edge for up to a day. Aspen recommends installing after about 22:30Z on 10-21; the owner's call.
   - Aspen noted an unrecorded Pages project, forager-pmtiles.
 **Notes:** Written by the planner by hand. Next free ID -1484.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1484
+**Timestamp:** 2026-10-20T23:57:01Z
+**Continues:** 2026-09-28-1478, 2026-09-28-1483
+**Title:** The main screen body shrinks further: bundles to the frame, settings bundles passed through, pop-up triggers and the Back rules gathered (owner)
+**Observed:**
+- AvailabilityScreen.kt is 1,770 lines on pre-main dda69565. Of those, about 355 are header and imports, 552 are comment lines (31%), and about 860 are code.
+- The code beyond the planned 2.6 PRs 3 and 4, which take out about 170 lines:
+  - the CompactMainScaffold call, which passes about 100 values one by one (about 200 lines);
+  - the unpacking of the 12 settings bundles (about 150);
+  - the pop-up notice triggers (about 90);
+  - the seven BackHandlers (about 115, mostly comments).
+**Decision:** asked which to add beyond the planned two, the owner chose all three of these options:
+- "B + C, bundles (Recommended)": "About 300 lines out; the same proven method as 2.1. Touches the frame's inputs, so it runs after 2.6 finishes."
+- "D, pop-up triggers": "About 90 lines out; their timing and order stay the same, checked by tests and the phone."
+- "E, Back rules": "About 115 lines out, mostly comments; riskier because the one order-sensitive case has no test. I'd add that test first."
+
+The comment tidy pass was not chosen now.
+
+The planner's conditions:
+- **E** starts with a real-Back test of the order-sensitive overlaps (-1478, -1479), seen to bite before any handler moves. The test pins today's behaviour, not a new one.
+- **D and E** supersede -1478's "effects stay in the body" for those two blocks only. Each moves as one unconditional call at the same position, in source order.
+- **B + C** changes CompactMainScaffold's signature, so it runs after 2.6's PR 4.
+- All of this is verify-first, as a continuation of 2.6.
+**Notes:** Written by the planner by hand. Next free ID -1485.
