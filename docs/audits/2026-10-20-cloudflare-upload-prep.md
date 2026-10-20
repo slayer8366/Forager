@@ -485,3 +485,32 @@ Dispatch `prompts/preserved/2026-10-20-pi-19.md` covers the upload.
   here; the file is not on the Pi. Seventeen agrees with the handover's layout: 2 informal, steps,
   2 at z13, 4 at z14 and 8 from z15. The review build is CI run 39507721722, branch
   `street-trails-review`, never merged.
+
+## The Worker pasted by the owner, checked live, 2026-10-20 about 23:25Z
+
+The owner pasted Hazel's bundle (`cfbd1b68`) in the dashboard. Whether the laptop's `sha256sum`
+was run and matched was **not reported**.
+
+**On the way, observed from the owner's photo:** the account also holds a **Pages project** named
+`forager-pmtiles` (`forager-pmtiles.pages.dev`). It deploys from `main` and was last deployed two
+months ago. No record read here mentions it. It was left alone.
+
+**Checked by the planner from the Pi,** cache-busted with a query string:
+
+| Route | Status | Bytes |
+|---|---|---|
+| `/style/offline.json` | 200 | 16156 |
+| `/style/street-v1.json` | 200 | 79261 |
+| `/fonts/Noto%20Sans%20Regular/0-255.pbf` | 200 | 76044 |
+| `/sprites/v4/light.json` | 200 | 3549 |
+| `/sprites/v4/light.png` | 200 | |
+| `/sprites/v4/light@2x.json` | 200 | |
+| `/us.json` | 200 | |
+
+- `offline.json`'s sha256 starts `915ba505`, unchanged from the coder's baseline.
+- `street-v1.json` has 90 layers and 18 `roads_path*` layers: 17 footpath layers plus track. Its
+  source, glyphs and sprite all name the workers.dev host.
+- The served font `0-255.pbf` is byte-identical to the pinned local copy.
+
+**Auto-deploy pause:** not yet confirmed by the owner for the Worker, as opposed to the Pages
+project.
