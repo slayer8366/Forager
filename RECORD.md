@@ -24368,3 +24368,19 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 - **Planner's ruling on the dex stop:** the header total went 225,108 → 225,105 with the nine over-256 lines identical. The -3 was traced by dexdump: six `access$` accessors gone (private functions now internal), one getter added (SNACKBAR_SURFACE_MARGIN), one net `<clinit>`, one Compose `$stable` `<clinit>`. Accepted, same kind as PRs 7, 8, 10b, 10d and 10e.
 - **S22** (run 39366694107): 1.0.3591+ged40ae52, PASS.
 - **Phase 1 totals today:** 19 split PRs (#271, #272, #274 onward to #291), plus the dead-code removal, the release clean-up (#270) and the List check (#273); every one with identical suites and an S22 launch check. Next: the owner's call on one unused size value found by 9c, then Elder's audit of the small-items batch (-1381).
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1431
+**Timestamp:** 2026-10-20T04:53:59Z
+**Continues:** 2026-09-28-1430, 2026-09-28-1381
+**Title:** Remove the unused LANDSCAPE_HUD_MAX_WIDTH in a tiny PR; then Elder's audit of the small-items batch starts (owner)
+**The owner, verbatim, through the question tool:** "Remove, tiny PR (Recommended)", to removing "a 360 dp width cap for the navigation display in landscape, which nothing reads anymore" (option: "One Hazel deletes the line and turns the comment that links to it into a plain dated note, as the earlier dead-code removal did. CI, S22 check, merge. Nothing you'd see changes."). And "Start now (Recommended)", to starting Elder's audit of the small-items batch (option: "Elder runs on Fable, a different model from the coders, against docs/process/qa-philosophy.md, read-only. If you choose the removal, Elder waits for it, so the audit covers the final pre-main.").
+**Dispatch-file:** preserved/2026-10-19-25.md, for Hazel Cairnwright
+**Scope:** AvailabilityCompactMapUi.kt :720-721 and the KDoc link at LandscapeChromeWidth.kt:15; from pre-main 263c21f4.
+**Baseline:** pre-main 263c21f4; two hits for the name in app/src (planner's git grep).
+**Prediction (outcome, planner):** no reader; suite identical; S22 passes; merged. Elder's audit is then dispatched against main..pre-main at the merged head.
+**Finish line:** PR merged under the standing word; Elder's audit dispatched with its own intent.
+**Abort conditions:** a reader found; any test difference.
+**Notes:** Written by the planner by hand. Next free ID -1432.
