@@ -24412,3 +24412,14 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** Elder's report filed as received; the promotion to main brought to the owner with it.
 **Abort conditions:** a block from Elder, which goes to the owner before any promotion.
 **Notes:** Written by the planner by hand. Next free ID -1434.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1434
+**Timestamp:** 2026-10-20T05:56:29Z
+**Continues:** 2026-09-28-1430, 2026-09-28-1433
+**Title:** UI split Phase 2 goes ahead: settings bundles, hub holders, and the recording and Journal engines; built on branches now, merged only after Phase 1 is promoted; phone screenshot pass by the planner, spot-checked by the owner (owner)
+**The owner, verbatim:** "Do phase 2. Our next project touches the maps and such, and wiring even more code into it when we already plan to decouple it is just adding more work. Let's do this and keep it going, it's worth it for our maps project." Through the question tool: "Settings bundles (Recommended), Hub holders (Recommended), Recording + Journal engines" (the big test-file split was offered and not chosen); "Promote Phase 1 first (Recommended)" (option: "Phase 2 work starts now on branches, but nothing merges into pre-main until Phase 1 is promoted to main."); "Me by adb, you spot-check (Recommended)" (option: "I take S22 screenshots of each affected screen in portrait and landscape before and after, and compare them. You glance at any that differ, and at the final one.").
+**What it sets:** the plan `docs/plans/2026-10-20-ui-split-phase-2-plan.md` (this branch). Order: settings bundles, the map, the Maps tab body, the main screen's engine, then the frame, the main screen body, the recording engine, the Journal engines. Every PR: verify-first with the holder's shape, getters and setters per Stage G, suite identical, touch guards, dex report, a review by Sorrel, the S22 launch check, and the screenshot pass for layout, inset or map PRs. A screenshot tool comes first.
+**Notes:** Written by the planner by hand. Next free ID -1435.
