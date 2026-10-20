@@ -327,3 +327,36 @@ Sage's eight questions were folded into four, and asked through the question too
 the recommended option in each. Verbatim: "A only (Recommended)"; "Own night colour
 (Recommended)"; "No legend (Recommended)"; "Accept (Recommended)". The full text is in pi-18's
 Part B amendment. Variant A is drawn next, and nothing is adopted until the owner has seen it drawn.
+
+## pi-18 Part B drawn: a design flaw found; back to Sage, 2026-10-20
+
+From the coder's report, with the planner's own checks marked.
+
+- **Variant A was built** from a scratch copy of `forager-street.mjs`, generated without hand-edited
+  JSON. It has 86 layers against Street v1's 74, since one footpath layer became 13.
+- **Per the pinned style-spec 26.4.4:** a data-driven `line-dasharray` is supported in GL JS from
+  5.8.0, but not in MapLibre Native (issue #744). So the phone needs one layer per group. This was
+  not checked against Native 13.5.0 itself.
+- **Night colours, from the app's formula:** hard `#ffad9f`. Informal's night exception is the
+  coder's proposal, `#bb8a6f`.
+- **The contrast check exits 1, with the floors not moved.**
+  - Hard holds: night forest 3.37, day forest 6.18.
+  - Informal fails: by day on ground 2.34, against a floor of 3; on forest 1.85, against 2. Its
+    night exception gives 2.01 on night forest, against the exception floor of 2.5.
+- **Checked by the planner:** 39 of 39 PNGs (18 day, 17 night, 4 swatch). Only the two preview
+  servers are listening, on 127.0.0.1. No Firefox process is left, and the worktree is clean.
+- **The flaw.** The planner looked at `swatch-day-z15.png`. With butt caps, rough `[1.5, 1.5]` and
+  hard `[1.5, 1.5]` draw as dots, close to the informal dots. That breaks Sage's premise that
+  informal is "the only dotted line on the map". The coder reported it and did not adjust it.
+- **The spec's gaps, built provisionally by the coder:**
+  1. Informal paths are excluded from the unknown, easy and rough layers.
+  2. Where a path is both informal and `bad`, informal wins. Both of Flattop's `bad` segments are
+     also informal, so faint shows on no real place.
+  3. At z13, hard gets its colour only.
+  4. Steps are unchanged.
+- **Framing.** Flattop z15 misses every trail. Mount Niblock Route at Lake Louise, hard and faint,
+  falls outside the frame.
+
+**The planner's call:** Sage revises the short dashes and rules on gaps 1 to 3 as design
+proposals. Then the coder redraws, with Flattop z15 framed on a trail and Mount Niblock Route
+framed. Nothing goes to the owner until it has been redrawn.
