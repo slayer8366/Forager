@@ -24465,3 +24465,28 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Finish line:** as the dispatch's report section; Phase 2 PRs stay draft until Phase 1 is promoted (-1434).
 **Abort conditions:** the dispatch's stops.
 **Notes:** Written by the planner by hand. Next free ID -1438.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1438
+**Timestamp:** 2026-10-20T05:58:16Z
+**Continues:** 2026-09-28-1434
+**Title:** Phase 2's recording engine (2.7) moves up and runs now in parallel, because trail navigation in the next update may touch recording (owner's information; planner's order change)
+**The owner, verbatim:** "Trail navigation is on the next update with the maps, which might touch recording and such."
+**What it sets:** 2.7 starts now beside 2.1 and 2.2 (a different file from both); the plan's section 2 carries the note. The rest of the order stands.
+**Notes:** Written by the planner by hand. Next free ID -1439.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1439
+**Timestamp:** 2026-10-20T05:58:16Z
+**Continues:** 2026-09-28-1438
+**Title:** Phase 2.7: the recording engine's collaborators, verify-first (owner's Phase 2 go)
+**Dispatch-file:** preserved/2026-10-19-30.md, for Hazel Cairnwright
+**Scope:** ui/track/TrackRecordingViewModel.kt; read-only until the planner's go; the service untouched. From pre-main 1ce100c4.
+**Baseline:** pre-main 1ce100c4.
+**Finish line:** as the dispatch's report section; draft PRs until Phase 1 is promoted (-1434).
+**Abort conditions:** the dispatch's stops; any change to when a loop starts or stops.
+**Notes:** Written by the planner by hand. Next free ID -1440.

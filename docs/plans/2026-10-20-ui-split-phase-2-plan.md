@@ -34,6 +34,8 @@ Journal engines" (not the big test files); "Promote Phase 1 first (Recommended)"
 | 2.7 | The recording engine (`TrackRecordingViewModel`) | 1,339 | Collaborators for pending deletes, lists, the way home, polling, take-up | **The poll-loop rule:** wherever a loop moves, `stopRecording()` cancels it synchronously in the ViewModel's scope (CLAUDE.md; survey 7.4) |
 | 2.8 | The Journal engines (`MushroomLogViewModel`, `CartographyViewModel`) | 1,232 / 802 | Collaborators per concern | Every collaborator shares the one `editingEntryMutex` and never calls back while holding it (survey section 4) |
 
+**Order change (owner, 2026-10-20):** "Trail navigation is on the next update with the maps, which might touch recording and such." So 2.7, the recording engine, moves up and runs now as a parallel series beside 2.1 and 2.2: it is a different file from the map and the main screen. Recorded as RECORD -1438.
+
 **Freeze:** while a hub's series is open, no other dispatch touches that file. The maps project's first dispatches wait
 for 2.2 to 2.4, which is the point of doing this first.
 
