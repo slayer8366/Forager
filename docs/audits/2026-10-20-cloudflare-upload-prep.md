@@ -517,3 +517,7 @@ project.
 - **Checksum, reported by the owner, verbatim:** "Checksum is correct". This answers the planner's
   question whether the laptop's `sha256sum` matched `5b0b3d0b…414ec0` before the paste. It
   supersedes the "not reported" above.
+- **Auto-deploy, reported by the owner, verbatim:** "Auto deploy is paused". It was paused on the
+  Worker, after the planner pointed out the same-named Pages project. **Reconnect it only once #258's
+  Worker code is on `main`.** The production branch and root directory to reconnect with are not yet
+  recorded here; the owner was asked to note them.
