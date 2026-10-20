@@ -25187,3 +25187,28 @@ Then Phase 2 is complete, followed by Elder's audit and the owner's promotion de
   - The wrong comment and the overlaps are listed for the owner; the owner will be asked whether today's winners are what Back should do.
 - **Phase 2 plan rows 2.5 and 2.6 are superseded by these rulings** where they differ.
 **Notes:** Written by the planner by hand. Next free ID -1479.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1479
+**Timestamp:** 2026-10-20T22:05:46Z
+**Continues:** 2026-09-28-1478
+**Title:** Back-handler overlap: onto the bug list, to be checked later (owner)
+**Observed:**
+- **Hazel (2.6) found how the four overlaps arise.** All four need the Offline-maps return (AvailabilityScreen.kt:1101) still pending while on Maps. That pending return overlaps with:
+  - fullscreen (:1091);
+  - navigating home (:1151);
+  - waypoint navigation (:1159);
+  - the double-Back exit (:1177).
+- **The only path found:** Tools > Offline maps, then a switch to Maps within the frame or two before Records reaches the Offline maps chip (JournalTab.kt:428-432). Once the chip lands, any tab change clears the return (:1039-1049).
+- **Unverified:** whether the chip can fail to land. If it can, the overlaps become easy to reach.
+- **Today's winners** (inferred, last-registered enabled wins):
+  - fullscreen: :1101 restores the page and reopens Tools, and can leave the map flag on over a non-Maps tab;
+  - plain Maps: :1177 offers the exit;
+  - navigating home: :1151 shows the exit-navigation prompt;
+  - waypoint navigation: :1159 ends navigation.
+
+  In the last three the return stays pending.
+**Decision:** the owner chose "Bug list, check later (Recommended)": "Put it on the bug list with Hazel's write-up, including the open question of whether the Offline maps section can fail to open. No work now." The planner adds a known-bugs row in the next docs PR into pre-main. The wrong comment at :1074-1076 goes on the comment-and-tidy list.
+**Notes:** Written by the planner by hand. Next free ID -1480.
