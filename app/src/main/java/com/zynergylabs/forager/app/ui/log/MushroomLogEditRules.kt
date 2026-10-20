@@ -6,7 +6,7 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 
 /**
  * Shown when a capture lands with no find open — see
- * [MushroomLogViewModel.rescueCaptureWithNoEditingEntry]. **Says where the photo went, not that
+ * [MushroomLogGallery.rescueCaptureWithNoEditingEntry]. **Says where the photo went, not that
  * something went wrong** (owner's wording, 2026-09-17): the user's problem at that moment is
  * finding their picture. Internal
  * rather than private so the test asserts the string the user sees rather than a copy of it.
