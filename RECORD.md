@@ -25278,3 +25278,47 @@ Then Phase 2 is complete, followed by Elder's audit and the owner's promotion de
   - Gap noted: the night inversion test lists 9 of 17 path layers.
 **Decision:** asked about the case not ruled separately ("a path that's both informal and faint ... As built, informal wins: it shows as brown dots"), the owner chose "Informal wins, keep it (Recommended)": "Brown dots; being unofficial matters more to a forager than being faint."
 **Notes:** Written by the planner by hand. Next free ID -1483.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1483
+**Timestamp:** 2026-10-20T23:44:09Z
+**Continues:** 2026-09-28-1478, 2026-09-28-1482
+**Title:** #342, #343, #344, #345 merged into pre-main; Phase 2.5 complete; trail review install held on Cloudflare caches
+**Observed:**
+- **#342 (2.6 PR 1)**
+  - S22 phone steps all pass (1.0.3704+g129c71b9): bubble Navigate/Back twice, Records Navigate/Back, HUD X, and step 5 (Navigate while follow is broken: Return to Route cleared, follow restored, zoom kept, same as b60d7fba).
+  - A test waypoint "S22 test" was created and deleted.
+  - Merged at a93ee0b2.
+- **#343 (2.5 PR 2)**
+  - S22 before/after identical (fullscreen, rotation 1 and 3, search panel, script set). The slide animation was recorded but not compared frame by frame (no ffmpeg); end states identical.
+  - Retargeted to pre-main by the REST API (gh pr edit fails on Projects classic), merged at c83cb426.
+- **#344 (2.5 PR 3)**
+  - Sorrel: approve.
+  - S22 before/after identical: the pill on List, Seasonal and Journal at rotations 0, 1 and 3, with focus.
+  - Merged at dbe53dc4.
+- **#345 (2.5 PR 4)**
+  - Sorrel: approve; the moved body is byte-identical.
+  - S22 before/after identical. A first-pass landscape difference was GPS drift; it was ruled out by same-build and back-to-back pairs.
+  - No snackbar was raised, because every trigger needs data changes or an unsafe state.
+  - Merged at dda69565.
+- **S22 checks, all PASS:** combined on a93ee0b2 (1.0.3707) and dbe53dc4 (1.0.3711); launch on #341 to #345.
+- **Phase 2.5 complete:** CompactMainScaffold 1,900 → 1,414 lines.
+- **Tidy list, additions:**
+  - ModifierParameter lint at ScaffoldSearchDropdown.kt:69 and ScaffoldHeaderSearch.kt:53;
+  - the 16-space indent in ScaffoldSnackbarHost.kt;
+  - the near-duplicate names CompactScaffoldSnackbar.kt / ScaffoldSnackbarHost.kt;
+  - the ColumnScope comment carried into ScaffoldSearchDropdown.kt;
+  - comments pointing outside their new files;
+  - the unused rememberUpdatedState import.
+- **The screenshot script's rotation-restore race** (#296) recurred on every run. Workaround: re-set accelerometer_rotation after a pause.
+- **#346 (2.6 PR 2):** Sorrel approve; the downward move is safe. S22 phone steps running.
+- **#258 trails**
+  - F1 fixed: 3f5a13bd, the inversion case derived from the style's roads_path_* ids. K5 (run 39512405148) failed only the inversion case.
+  - #258 green: run 39512373955.
+  - Review build: run 39512408161 at 8e018087.
+  - Cloudflare, per Aspen: the Worker (cfbd1b68 bundle) and the fonts and sprites are live. The 34 GB archive upload is due around 08:00–10:30Z on 10-21.
+  - Old 404s and old tiles are cached at the edge for up to a day. Aspen recommends installing after about 22:30Z on 10-21; the owner's call.
+  - Aspen noted an unrecorded Pages project, forager-pmtiles.
+**Notes:** Written by the planner by hand. Next free ID -1484.
