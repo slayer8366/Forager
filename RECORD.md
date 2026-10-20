@@ -24108,3 +24108,18 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 **Deviations:** none from the dispatch.
 **Not checked:** KDoc link resolution through the kept `Region` import (no renderer).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1413.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1413
+**Timestamp:** 2026-10-20T01:20:51Z
+**Continues:** 2026-09-28-1406, 2026-09-28-1386
+**Title:** UI split Phase 1, PR 10d: the navigation card's composables out of NavigationHud.kt (owner's Phase 1 go)
+**Dispatch-file:** preserved/2026-10-19-20.md, for Hazel Cairnwright
+**Scope:** NavigationHud.kt and new files in ui/availability; from pre-main 068a139a.
+**Baseline:** pre-main 068a139a; NavigationHud.kt 894 lines.
+**Prediction (outcome, planner):** three or four files; the private sizes widen; the ticker moves whole inside NavigationInfo; suite and guards identical; S22 passes.
+**Finish line:** a PR into pre-main with the five proofs, CI green, the S22 launch check passed, merged under the standing word.
+**Abort conditions:** a premise wrong; any reorder; an initialisation-order cycle; any difference beyond a compiler-generated class.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1414.
