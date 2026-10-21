@@ -26487,3 +26487,22 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 - **Dead imports elsewhere, at 74e20b24:** AvailabilityViewModel 0, TrackRecordingViewModel 0, MainActivity 0, AvailabilityCompactScaffold 1 (`rememberUpdatedState`), left for a later pass.
 **Decision:** merged into pre-main at 48062bc9f1535b6082176648313a7b62312ceaa0's merge cf522f80c20f6a923aa89d381005811f16d663b6 (pre-main 74e20b249302d6cb872291d741a0942d5fc71a7f before, logged). Next is 4b.
 **Notes:** Written by the planner by hand. Next free ID -1537.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1537
+**Timestamp:** 2026-10-21T19:03:39Z
+**Continues:** 2026-09-28-1519, 2026-09-28-1536
+**Title:** Nav step 2 ends: AvailabilityScreen stops at about 1,050 lines with a small builder tidy; 4b is not built (owner)
+**Observed:** Hazel stopped 4b before building it.
+- The `compactMainScaffold` body (135 lines, cf522f80) reads about 80 of the screen's locals and parameters and writes about 20 of them back. `screenState` covers about 15.
+- **Option (a)**, a holder of about 65 fields with Stage G accessors, would leave the screen at about 1,000 lines: the long parameter list moved into a class.
+- **Option (b)**, about 80 composable parameters, risks the 256-register launch crash of RECORD -739.
+- These are estimates, not built.
+- The screen went 1,329 to 1,257 (4a) to 1,053 (#370), down 21%. -1519's "about 830" assumed the 4b move would work.
+**Decision:** the owner was asked what now, with navigation's one piece here (the waypoint straight line) moving out anyway under -1450. They chose "Stop here + small tidy (Recommended)" over stopping as is and over planning a deeper redesign.
+- The tidy turns the `MapQuickSettings(...)` and `WaypointNavigateControls(...)` constructions inside the call into builder functions with few inputs, about 30 lines less.
+- After that, trail navigation step 2 is complete. The four files are MainActivity 706, TrackRecordingViewModel 958, AvailabilityViewModel 906 (908 with #368) and AvailabilityScreen about 1,020.
+- Steps 3 onward each need the owner's go (-1498).
+**Notes:** Written by the planner by hand. Next free ID -1538.
