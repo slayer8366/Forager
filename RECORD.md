@@ -25907,3 +25907,22 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - Each test expectation change is listed as forced by this ruling.
 - The planner brings the owner any behaviour the flip turns on, including -1316.
 **Notes:** Written by the planner by hand. Next free ID -1512.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1512
+**Timestamp:** 2026-10-21T09:22:27Z
+**Continues:** 2026-09-28-1503, 2026-09-28-1505, 2026-09-28-1511
+**Title:** dev moved to the rebased branch (82b55f06); pre-main 151937b9 (#258) passed its combined S22 check
+**Observed:**
+- **The S22 was reconnected** by the owner.
+- **dev.**
+  - Launch check PASS on 1.0.3763+g82b55f06 (dev-rebased-381515c6, CI run 39566604606 green).
+  - dev's previous head (226a92fb) is logged in the backups log.
+  - dev was moved to 82b55f06 with `--force-with-lease=dev:226a92fb`, per -1087 and dispatch 2026-10-19-42. dev is now main 381515c6 plus 23 commits: the dev tools and the camera and sensor experiments.
+- **pre-main 151937b9** (#258 merged, switch off).
+  - Push CI green on all three jobs (run 39573727694).
+  - Combined S22 check PASS (1.0.3759+g151937b9).
+- **The S22 is left on pre-main 151937b9.**
+**Notes:** Written by the planner by hand. Next free ID -1513.
