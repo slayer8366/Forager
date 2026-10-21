@@ -25594,3 +25594,24 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
   - Five files over 800 lines would be touched and need splitting first.
 - **Correction:** -1494 cited -477 for the BRouter choice. The ruling is -484 ("BRouter routes"); -477 is a different entry.
 **Notes:** Written by the planner by hand. Next free ID -1496.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1496
+**Timestamp:** 2026-10-21T07:30:12Z
+**Continues:** 2026-09-28-1493, 2026-09-28-1434
+**Title:** #354 (2.6 B2, the map and navigation values bundle) merged into pre-main; Phase 2's planned work is complete
+**Observed:**
+- **#354:**
+  - Adds CompactScaffoldMapInputs (36 fields), built at the call site from the same expressions in the same relative order. The frame unpacks it.
+  - **Sorrel:** approve. All 36 expressions are byte-identical; nothing writes state at evaluation; the body below the unpack block is byte-identical (1,047 lines).
+  - **Dex:** +79 methods (data-class members); CompactMainScaffold 319 → 275 registers; restart lambda 194 → 114.
+  - **Suite:** identical (5,193).
+  - **S22:** launch PASS (1.0.3731+gfc5f6642). Phone steps pass: locate, fullscreen, basemap, layers sheet, coordinate toggle, quick settings (changed and restored), navigation home with Return to Route and X, waypoint Navigate and Back, the entry report map following the basemap.
+  - **Test data:** deleted; Records 0; settings restored.
+  - Merged at 02fe89f1.
+  - AvailabilityScreen.kt after #353 is 1,324 lines (not 1,389 as #353's body said).
+- **Phase 2 complete:** 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 (including the owner's -1484 extensions D, E, B and B2), 2.7 and 2.8, all in pre-main. Plus the walk fixes #336 and #337, the landscape bubble fix #340, and the modular-code skill #350.
+- **Next, per the promotion rule** (-1086): Elder's audit and the owner's approval before main.
+**Notes:** Written by the planner by hand. Next free ID -1497.
