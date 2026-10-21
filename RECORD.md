@@ -26147,3 +26147,27 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - **The fix (planner's go):** a new `domain/TrackEnds.kt` following RecordingHalts. The service reports a track ID only after the end write succeeds; the ViewModel collects that and reloads (-1450). The race-free reasoning is in the report. TrackRecordingViewModel stays at about 922 lines with no split first, since it is a few-line fix.
 - **The owner's choice:** asked whether a running recording should appear in Records, the owner chose "Only after Stop (Recommended)" over "Show it while recording". Showing a live track is a separate design.
 **Notes:** Written by the planner by hand. Next free ID -1524.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1524
+**Timestamp:** 2026-10-21T13:13:40Z
+**Continues:** 2026-09-28-1519, 2026-09-28-1521
+**Title:** Nav step 2, PR 3: AvailabilityViewModel state transforms (PR #363 merged into pre-main); a search no longer moves the map (observed on pre-main 0add7500, against -750)
+**Observed:**
+- **The change (Hazel):** four pure state transforms were extracted into AvailabilitySearchStates.kt (98 lines): `withSearchCleared`, `withoutTodaysConditions`, `withRecentSearch` and `withTileBudgetExceeded` (the last was duplicated twice before). AvailabilityViewModel.kt goes from 976 to 906 lines.
+- **Proofs:**
+  - Run 39601465051 on 053834e0 is green, identical case by case to 0add7500's run 39601236453.
+  - The touch guards are identical.
+  - Dex is 227,060 to 227,064 with the same 5 over 256, and the whole-app method diff shows only the four new functions.
+  - The `.github` diff is empty.
+- **Sorrel (Fable): "Merge".** Field-by-field equivalence was confirmed, and no condition or order changed.
+  - Test gaps for the owner's list: no test asserts the tile-budget message text, and none covers `onDownloadOfflineMaps`' refusal. The fields reset by Clear or a month change beyond those asserted rest on the text comparison.
+  - Sorrel noted the CI file-size warning that the skill describes is not built yet (queued, -1490).
+- **S22 (1.0.3770+g053834e0):** a search, Clear, a recent search and a 1 mi offline download all passed. The over-budget message can't be reached with one region by design (the 15 mi maximum is about 4,405 tiles). The test region was deleted. The crash buffer was empty.
+- **Observed, not caused by #363:** after a coordinate search for Seattle, and after picking that recent search, the Maps tab stayed on the phone's own position. The same happens on pre-main 0add7500's own build. The owner ruled in -750 that a search moves the map ("Yes, fly to the search (Recommended)"), so this is a regression or a gap. When and where it broke is not known yet.
+- Also observed: the species chip ("Showing: … (0)") stays on the map after Clear.
+- **The 4a premise check (S22):** saved screen state survives process death but not an app update (a sideloaded `install -r` reopened on the defaults). So moving `rememberSaveable` calls can't mismatch saved values across an update. Not verified: a Play Store update; other devices.
+**Decision:** merged into pre-main at b1064eca (0add7500 before, logged). The search-framing regression is diagnosed before 4a, which moves screen code that may hold it.
+**Notes:** Written by the planner by hand. Next free ID -1525.
