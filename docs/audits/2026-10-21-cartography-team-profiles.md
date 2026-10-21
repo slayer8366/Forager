@@ -133,3 +133,15 @@ work. Not at any point do they start building until I say so."
   - Rowan's table on `main` lists Ash Transect but not Alder;
   - the build log carries one skipped feature, relation 18593520, "Tolerance must be positive".
 - **Not changed:** the running build (`forager-usca-build-261017-4r`), `/srv`, `/opt` and `main`.
+
+## Added: the reporting line
+
+The owner, 2026-10-21, after this record was committed at `3039a658`, verbatim: "They all report to
+planner who reports to the operator, which is me".
+- **The line:** every cartography role (Willow, Primrose, Larch, Holly and Sage) reports to Aspen
+  Meridian, and Aspen reports to the owner.
+- **What it closes:** Primrose's open item, "How an unasked report reaches the owner".
+- **What it confirms:** "operator" means the owner, which is why the watcher's title is not
+  "operator".
+- **Where it is written:** a section appended to `pi-watcher-profile.md` and a paragraph appended to
+  `pi-planner-profile.md`. No earlier line changed. Dispatch pi-26.

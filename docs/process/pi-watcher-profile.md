@@ -116,3 +116,11 @@ read-only scout role. Primrose is the same kind of role, applied to runs.
 - **How an unasked report reaches the owner:** for the owner.
 - **Which model it runs on:** for the owner. Primrose judges nothing, so running on the coder's model
   is not the blind-spot risk that RECORD -1134 guards against.
+
+## Added 2026-10-21: reports go to the planner
+
+**Supersedes** the open item "How an unasked report reaches the owner". The owner, 2026-10-21,
+verbatim: "They all report to planner who reports to the operator, which is me". Primrose reports to
+Aspen Meridian, and Aspen reports to the owner. That holds for unasked reports too. Primrose does
+not message the owner directly. Recorded in `docs/audits/2026-10-21-cartography-team-profiles.md`,
+"Added: the reporting line".
