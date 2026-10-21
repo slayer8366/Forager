@@ -25399,3 +25399,26 @@ The planner's conditions:
 - **Test data:** test finds, drafts and an entry were created and deleted. Records ended at 0. The pre-existing unfinished entry was untouched.
 - **Merged** at aa1128ad.
 **Notes:** Written by the planner by hand. Next free ID -1487.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1487
+**Timestamp:** 2026-10-21T02:25:10Z
+**Continues:** 2026-09-28-1486, 2026-09-28-1484
+**Title:** #348 (2.6 PR 4, the drawer host) merged; the four planned 2.6 PRs are in; two S22 permission prompts answered by the owner; a stale recording notification is being diagnosed (owner)
+**Observed:**
+- **#348.**
+  - Sorrel: approve. The moved body is byte-identical after reversal. The composition order is unchanged, with the camera still last. The screen's seven BackHandlers still register before the children's. Every rememberSaveable under the drawer was enumerated, and none is position-pinned. The 16 imports are unused. The dex count is fully reconciled.
+  - S22 steps all pass (1.0.3718+gfe32b8ff): the drawer over Maps at 0.80 opacity, no tint; scrim tap, Back and swipe close it; solid over the Journal; both rotations against the rail; Units, theme and Night Maps (restored afterwards); the puck; the fan (weak evidence); the Track Details fold carried across two track sheets; the in-app camera full screen and taking touches, with no photo taken.
+  - Merged at 2dbfdf2a.
+- **Permission prompts on the S22, answered by the owner in the planner's window:**
+  - "Allow Forager to send you notifications?" (raised by a recording start): **Allow**.
+  - "Allow Forager to take pictures and record video?" (raised by the camera): **Only this time**.
+
+  A recording had started behind the first prompt and ran about 25 minutes (1 point). All test data was deleted afterwards (2 finds, 2 tracks, 2 start/end markers), and Records is at 0. The camera grid setting was restored. The pre-existing unfinished entry was untouched.
+- **Stale notification.** After a reinstall to pre-main aa1128ad with no recording running, `dumpsys notification` still lists id 1001, channel track_recording, flags ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE, and `dumpsys activity services` shows no service. The app shows "Start recording track".
+- **Phase 2.6:** the planned PRs 1-4 (#342, #346, #347, #348) are merged. D, E and B+C follow (-1484).
+- **Tidy list:** about 199 textually unused imports in AvailabilityScreen.kt (pre-existing), and DrawerDefaults/Close/padding imports dead since aa1128ad.
+**Decision:** asked about the stale notification ("in the field that would read as 'is it still recording?'"), the owner chose "Investigate now (Recommended)": "A read-only look at why the notification survives and whether opening the app should clear it, then I bring you a fix plan; no build without your go." A read-only diagnosis by Hazel is running.
+**Notes:** Written by the planner by hand. Next free ID -1488.
