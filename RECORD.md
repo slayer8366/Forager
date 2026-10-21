@@ -26532,3 +26532,16 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
   | AvailabilityScreen | 1,327 | 1,023 |
 **Decision:** merged into pre-main at 06637240754c1ec69c185cec79a8c370e8bbcf11 (cf522f80c20f6a923aa89d381005811f16d663b6 before, logged). Trail navigation step 2 is complete. Step 3 (route data on the phone) needs the owner's go and Aspen's rebuild.
 **Notes:** Written by the planner by hand. Next free ID -1539.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1539
+**Timestamp:** 2026-10-21T19:48:41Z
+**Continues:** 2026-09-28-1538
+**Title:** PR numbers in RECORD run 4 behind GitHub's from here on (owner)
+**Decision:** the owner, verbatim: "Mark down the next PR as 371 in your notes", and for RECORD, "RECORD uses yours".
+- From this entry on, a PR cited in RECORD by number N is GitHub PR N + 4: RECORD #371 is GitHub #375, #372 is #376, and so on.
+- PRs cited before this entry keep their GitHub numbers.
+- To look one up, add 4.
+**Notes:** Written by the planner by hand. Next free ID -1540.
