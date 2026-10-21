@@ -25422,3 +25422,25 @@ The planner's conditions:
 - **Tidy list:** about 199 textually unused imports in AvailabilityScreen.kt (pre-existing), and DrawerDefaults/Close/padding imports dead since aa1128ad.
 **Decision:** asked about the stale notification ("in the field that would read as 'is it still recording?'"), the owner chose "Investigate now (Recommended)": "A read-only look at why the notification survives and whether opening the app should clear it, then I bring you a fix plan; no build without your go." A read-only diagnosis by Hazel is running.
 **Notes:** Written by the planner by hand. Next free ID -1488.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1488
+**Timestamp:** 2026-10-21T02:37:09Z
+**Continues:** 2026-09-28-1487
+**Title:** The "stale recording notification" is withdrawn: a misread of Android's notification archive, by the helper and the planner. A reproduction shows Android cancels 1001 at Stop.
+**Observed:**
+- **Run A** (Hazel, S22, pre-main aa1128ad, with the owner's go "Reproduce on S22 first (Recommended)"): POST_NOTIFICATIONS was revoked and its flags cleared, Record was tapped with the prompt up for about 98 s, then Allow, then Stop.
+  - am_foreground_service_start at 19:30:30.
+  - No notification_enqueue for 1001 at any point: with the permission ungranted, startForeground posted nothing, and granting mid-recording posted nothing afterwards.
+  - notification_cancel 1001 at Stop (19:32:21.706).
+  - No live record and no service afterwards.
+- **Run B** (control, permission granted):
+  - notification_enqueue 1001 at 19:32:50.908, and the live NotificationRecord showed "Recording a track".
+  - At Stop: am_foreground_service_stop, notification_cancel and notification_canceled at 19:33:15.76.
+  - No live record afterwards; 1001 appears only under mArchive.
+- **The misread:** the earlier finding (-1487) quoted StatusBarNotification lines, which is the format of `dumpsys notification`'s 100-entry archive, as if they were the live list (live entries are NotificationRecord). The helper made this misread first, and the planner repeated it in its own dump read and in its message to the owner. CLAUDE.md's family: a check that saw a different sample than it claimed.
+- **Cleanup:** test tracks and markers deleted; Records at 0; the unfinished entry untouched; POST_NOTIFICATIONS ends granted.
+- **A side finding (inferred from run A):** a recording started while the notification prompt is up shows no recording notification for its whole run, even after Allow. That would be the first recording after install on Android 13 or later.
+**Notes:** Written by the planner by hand. Next free ID -1489.
