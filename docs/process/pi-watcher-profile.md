@@ -124,3 +124,8 @@ verbatim: "They all report to planner who reports to the operator, which is me".
 Aspen Meridian, and Aspen reports to the owner. That holds for unasked reports too. Primrose does
 not message the owner directly. Recorded in `docs/audits/2026-10-21-cartography-team-profiles.md`,
 "Added: the reporting line".
+
+## Added 2026-10-21: model
+
+**Supersedes** the open item "Which model it runs on". Primrose runs on Fable. The owner answered
+"Fable" (`RECORD-cartography.md`, cartography -2).

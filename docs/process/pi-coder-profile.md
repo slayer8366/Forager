@@ -164,3 +164,12 @@ Stop and report, never choose, on any of these (E-GD BOOTSTRAP, "Stop conditions
   `2026-09-28-600` to `-699`, was also used by the main record stream. `-603` names two different
   entries: a forecast merge on `records-after-173` and the Pi's ruling on `records-pi-after-166`.
   So no new ID is taken until the owner rules.
+
+## Added 2026-10-21: model and record
+
+**Supersedes** both open items above.
+- **Model:** Willow runs on Opus. The owner chose "Willow on Opus (Recommended)", which keeps Larch
+  and Holly, both on Fable, off the coder's model (`RECORD-cartography.md`, cartography -2).
+- **The record:** the 2026-10-04 rule is now entered as cartography -3 in `RECORD-cartography.md`,
+  the team's own store ("Same style as forager. You start your own records.", cartography -1). It
+  takes no Forager `RECORD.md` ID.

@@ -285,3 +285,14 @@ reports to the operator, which is me". Willow, Primrose, Larch, Holly and Sage r
 Meridian, and Aspen reports to the owner. This also confirms the E-GD reading behind the "run
 watcher" title: "the operator" is the owner. The owner's go still reaches a coder as Aspen's verbatim
 relay ("Your relay counts (Recommended)", 2026-10-20).
+
+**Added 2026-10-21: the team's own record, and the models.** This supersedes the "not ruled" model
+cells in the table above, and the "Record IDs" paragraph's "no new `RECORD.md` ID".
+- **The record:** the owner, verbatim, "Same style as forager. You start your own records." The
+  cartography team's record is `RECORD-cartography.md` on `pi-build`.
+  - IDs run `2026-10-21-N` and are cited as "cartography -N".
+  - Aspen writes the entries, and Willow commits them.
+  - Decisions, findings and outcomes go there from now on. Audit files stay for long reports.
+- **The models** (cartography -2): Primrose, Larch and Holly on Fable, Willow on Opus. The owner
+  answered "Fable" for Primrose and Willow. Willow on Fable would have put the checks on the coder's
+  model, so the owner was asked, and chose "Willow on Opus (Recommended)".
