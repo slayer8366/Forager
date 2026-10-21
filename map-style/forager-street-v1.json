@@ -1460,7 +1460,7 @@
       "type": "line",
       "source": "protomaps",
       "source-layer": "roads",
-      "minzoom": 13,
+      "minzoom": 12,
       "filter": [
         "all",
         [
@@ -5287,7 +5287,7 @@
       "type": "symbol",
       "source": "protomaps",
       "source-layer": "roads",
-      "minzoom": 15,
+      "minzoom": 14,
       "filter": [
         "in",
         "kind",

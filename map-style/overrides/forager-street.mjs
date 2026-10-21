@@ -127,6 +127,16 @@ export const OUTDOOR_MIN_ZOOM = 12;
 export const TOWN_MIN_ZOOM = 16;
 /** "From the zoom where a trailhead fits on screen" (-1284), limited by the tiles to z13 (-1300 (4)). */
 export const PATH_MIN_ZOOM = 13;
+/**
+ * Tracks start a zoom before footpaths: the tiles carry them from z12 (RECORD -1506, the owner: "Style now, data
+ * later"). Footpaths stay at PATH_MIN_ZOOM, because the tiles carry them only from z13 until a tile rebuild.
+ */
+export const TRACK_MIN_ZOOM = 12;
+/**
+ * Minor-road, track and trail names from z14, where the tiles carry them (RECORD -1506, the owner: "From zoom 14").
+ * The pinned Protomaps layer starts them at z15.
+ */
+export const MINOR_ROAD_LABEL_MIN_ZOOM = 14;
 
 const FOOT_DETAILS = ["footway", "path", "steps", "bridleway", "cycleway"];
 const PARK_KINDS = ["national_park", "park", "protected_area", "nature_reserve"];
@@ -333,10 +343,13 @@ export function applyStreetDesign(layers) {
     layout: { "line-cap": "butt", "line-join": "round" },
     paint: { "line-color": colour, "line-dasharray": dash, "line-width": width },
   });
-  insertAfter(layers, "roads_other", pathBase(
-    "roads_path_track", ["track"], COLOURS.track, [4, 1.5, 1, 1.5],
-    ["interpolate", ["linear"], ["zoom"], 13, 1.3, 15, 2, 18, 4],
-  ));
+  insertAfter(layers, "roads_other", {
+    ...pathBase(
+      "roads_path_track", ["track"], COLOURS.track, [4, 1.5, 1, 1.5],
+      ["interpolate", ["linear"], ["zoom"], 13, 1.3, 15, 2, 18, 4],
+    ),
+    minzoom: TRACK_MIN_ZOOM,
+  });
   let after = "roads_path_track";
   for (const layer of trailLayers(pathBase)) {
     insertAfter(layers, after, layer);
@@ -366,6 +379,7 @@ export function applyStreetDesign(layers) {
   pois.paint["text-color"] = COLOURS.text;
 
   // --- Labels (-1286) --------------------------------------------------------------------------
+  byId(layers, "roads_labels_minor").minzoom = MINOR_ROAD_LABEL_MIN_ZOOM;
   for (const layer of layers) {
     // Shields keep their own small text on the shield icon; everything else is a label.
     if (layer.type !== "symbol" || !layer.layout?.["text-field"] || layer.id === "roads_shields") continue;
