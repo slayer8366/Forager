@@ -164,3 +164,20 @@ Measurement scratch deleted (extracts, mbtiles, the Maven repo copy, the old jar
   (`pins.env:232`). Cost: BRouter's three steps on the 3.1 MB USVI extract, about 2 minutes and
   under 1 GB (inferred, at 16 bytes per node), scratch only.
 - Any upload. The old output is untouched.
+
+## The USVI routing probe, 2026-10-21 (owner: "Probe, then build (Recommended)", then "Do the probe but hold off on the build for now actually")
+
+BRouter's three steps as `build-usca.sh:768-774` run them (OsmFastCutter, PosUnifier, WayLinker at
+v1.7.10, `all.brf`, no elevation), in scratch, on `us-virgin-islands-261017.osm.pbf` after the
+build's own routing filter (`USCA_ROUTING_FILTER`, 98,952 nodes), with a 1 GB heap. Cut 121.2 s,
+peak 132 MB; unify 0.3 s; link 0.8 s, peak 138 MB. No exception or error in any log.
+
+**`W65_N15.rd5`: 285,692 bytes**, against the publish floor `[[ "$size" -gt 100000 ]]` at
+`build-usca.sh:831`: passes, 2.86 times the floor. `pins.env:232`'s estimate of about 250 kB was
+close. A `W70_N15.rd5` of 10,389 bytes also came out (USVI's western edge); in the full build that
+square is the one `san-juan` checks, and Puerto Rico's data fills it, so this probe says nothing
+about it. In the full build the band `-75:180` carries more than the USVI, so W65_N15 there can
+only hold at least these ways (inferred).
+
+**The build was not started:** the owner held it before any unit ran.
+`forager-usca-build-261017-4r` does not exist (`LoadState=not-found`). No watcher was started.
