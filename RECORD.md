@@ -25454,3 +25454,26 @@ The planner's conditions:
 **Title:** No recording notice for a recording started behind the notification prompt: to the bug list (owner)
 **Decision:** The owner was told the stale-notification finding was a misread of the archive. They were then asked about the gap run A found: the first recording, if started while "Allow notifications?" is up, never shows "Recording a track", even after Allow. They chose "Bug list, later (Recommended)": "Only the first recording after install is affected; record it and fix in a later pass." It goes into the next docs PR's known-bugs rows, with the Back overlap (-1479) and the night cold-start flash (-1485).
 **Notes:** Written by the planner by hand. Next free ID -1490.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1490
+**Timestamp:** 2026-10-21T03:29:36Z
+**Continues:** 2026-09-28-1484, 2026-09-28-1487
+**Title:** A standing rule for modular code (skill, CLAUDE.md line, CI warning, file ownership per dispatch); #349 merged
+**Observed:**
+- **#349** (2.6 D, the notice triggers): Sorrel approved after reading Compose runtime 1.12.0's flat remember/effect dispatch list; the body is byte-identical apart from the two holder edits; the suite is identical.
+  - **S22:** pending-delete Undo, the trip-start warning ("Your phone is silenced…") and waypoint gone all pass; waypoint gone matches pre-main.
+  - **Not reachable on the S22:** background-run (needs battery restriction), network-fixes, settings reset and the backup launch notice.
+  - **Test data** deleted; Records 0.
+  - Merged at 2e384d1f.
+- **The planner's assessment, given when asked:** the code the maps project touches is now split. The rest of the big files is mostly order-sensitive code, comments, migrations, the camera and the Journal tab. Recommended: finish E and B+C, then split only when work needs it.
+**Decision:** the owner, verbatim: "I say we can go even further: make it a skill to not couple new code, to avoid monster files, and to make it easier for coders to work in tandem. As the project grows, one coder will get overwhelmed with making several UI changes, so we need to be granular and sensible about how we code from now on." Asked four questions, they chose:
+- **Where:** "Skill + CLAUDE.md line (Recommended)": a full skill beside the eight in #104, plus one line in CLAUDE.md's Building section.
+- **Limits:** "Soft limits, split before adding (Recommended)": new files aim under about 400 lines; a file over about 800 must be split, as its own small PR, before new features go into it; coders say in the plan how they keep to it.
+- **Enforcement:** "Warn in CI (Recommended)": a CI step that flags any PR growing a file past the limit, as a warning, not a red build. A coder builds this; it's a separate dispatch.
+- **Tandem work:** "File ownership per dispatch (Recommended)": each dispatch names the files its coder may change, parallel coders never share a file, and shared files are sequenced.
+
+The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CLAUDE.md pointer. The pointer is appended to an existing Building line, so no line moves (CLAUDE.md's line 253 constraint). They go to pre-main as a docs PR.
+**Notes:** Written by the planner by hand. Next free ID -1491.
