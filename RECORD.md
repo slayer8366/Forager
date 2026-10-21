@@ -25498,3 +25498,31 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
 - **E** (the planner's rulings): the semantic click is accepted for E1, with its limit stated in the test. E1 and E2 are two PRs, E1 first. The returned-MutableState shape is accepted.
 - **The CI file-growth warning** (owner, -1490) is dispatched to a coder after Phase 2's E and B+C, as the option told the owner.
 **Notes:** Written by the planner by hand. Next free ID -1492.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1492
+**Timestamp:** 2026-10-21T05:51:59Z
+**Continues:** 2026-09-28-1491
+**Title:** #351 (E1, the Back overlap test) and #352 (E2, the seven BackHandlers moved) merged into pre-main
+**Observed:**
+- **#351 (test only, 276 lines).**
+  - Four real-Back cases pin today's winners where the tools-return handler overlaps the home exit, fullscreen, the exit-navigation prompt and waypoint navigation.
+  - R1 (the tools-return handler moved last; run 39542170069) failed a, c and d. R2 (moved above fullscreen; run 39542174833) failed b only. Both had 0 compile errors and the forward file stayed intact.
+  - The coder's first full run failed b on its own drawerIsOpen check. It was fixed and disclosed.
+  - Sorrel approved after recomputing the suite (5,189 → 5,193, the 4 new cases only).
+  - No production change, so no S22 launch was needed.
+  - Merged at fdf9834b.
+  - **Correction to -1491:** R2 moved the handler above the fullscreen handler, not "first".
+- **#352.**
+  - The span :1013-1137 moved into AvailabilityScreenBackHandlers.kt, one value-returning composable called at the same position. It returns showExitNavigationPrompt's MutableState.
+  - **Sorrel:** approved. The body is verbatim after reversal. In the dex the callee emits no restart group, no updateScope and no replace group, so the handlers' slots sit in the body's group at the call position, as before. activity-compose 1.13.0 BackHandler registration and Compose 1.12.0 remember dispatch were read from the jars.
+  - **Suite:** identical (5,193), including E1's four cases and all Back classes. Dex +8, reconciled.
+  - **S22:** launch PASS (1.0.3727+gb3e538e8). The Back walk passed all 8 steps: the drawer; fullscreen; Offline maps from Seasonal, then Back and Back; Journal to Maps; the exit-navigation prompt shown, then dismissed with navigation kept; waypoint navigation ended with its bubble reopened; the home double-Back. One slow double-Back didn't exit, which fits the 2 s window, with a screenshot taken between the two presses (inferred).
+  - Test data was deleted and Records is at 0.
+  - Merged at 70b74480.
+- **The S22 was unplugged** for a time. The owner reconnected it.
+- **Disk:** the planner pruned re-downloadable APKs from scratch. /mnt/work is at 94%.
+- **Next:** B+C, the frame-call bundles, verify-first.
+**Notes:** Written by the planner by hand. Next free ID -1493.
