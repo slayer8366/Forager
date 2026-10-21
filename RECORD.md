@@ -25526,3 +25526,33 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
 - **Disk:** the planner pruned re-downloadable APKs from scratch. /mnt/work is at 94%.
 - **Next:** B+C, the frame-call bundles, verify-first.
 **Notes:** Written by the planner by hand. Next free ID -1493.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1493
+**Timestamp:** 2026-10-21T06:36:53Z
+**Continues:** 2026-09-28-1492
+**Title:** #353 (2.6 B: the frame takes seven screen bundles in place of 78 raw parameters) merged into pre-main
+**Observed:**
+- **The B+C verify-first** (Hazel, 70b74480):
+  - CompactMainScaffold has one caller, with 154 named arguments.
+  - 89 of those are raw screen-bundle fields. 78 of them come from seven bundles, which carry no wrapped duplicates.
+  - The planner ruled:
+    - B: pass the seven bundles down.
+    - C3: keep the 14 state getters and setters explicit. A frame that never skips (C1) and a remembered holder (C2) were rejected.
+    - B2: the roughly 40 map and navigation values are in scope under the owner's "B + C, bundles" (-1484), as a later PR.
+- **#353.**
+  - The 78 parameters are replaced by seven bundles, and the frame unpacks them under the same names. 65 screen unpacks that are no longer read are removed.
+  - **Sorrel:** approve.
+    - All 78 mappings recomputed.
+    - The body below the unpack block is byte-identical (1,047 lines).
+    - Eight removed parameters had defaults (three lambdas, five nulls). The single caller passed all eight.
+    - Dex: methods over 256 registers went from 8 to 5. CompactMainScaffold went from 407 to 319, its restart lambda from 355 to 194, AvailabilityScreen from 287 to 222, and the frame-call lambda from 334 to 184. App methods with code changed by −13, all traced to the three default lambdas.
+    - Suite identical (5,193).
+  - **Inferred note:** the frame now recomposes whenever the host does, because the bundles are built unremembered and are unstable. Nothing is visible or test-observable.
+  - **S22:** launch PASS (1.0.3729+g8799e043). Phone steps pass: finds (add, edit, delete), entries (new, include toggle, show on map), Records (chips, track details, waypoint Undo), offline maps (picker, download dialog, Cancel), search (species suggestion, run, recent re-run, Clear), recording (start, sundown line, stop). Not done: adding a photo.
+  - **Test data:** deleted; Records is at 0. A "Chanterelle · October" entry remains in the S22's recent searches, because the app has no remove control.
+  - Merged at 663973b9.
+- **The phone check is the gate for #353,** because its method frames changed size: CompactMainScaffold was over 256 registers before and is under now.
+**Notes:** Written by the planner by hand. Next free ID -1494.
