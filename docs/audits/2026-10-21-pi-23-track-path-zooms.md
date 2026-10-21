@@ -181,3 +181,36 @@ only hold at least these ways (inferred).
 
 **The build was not started:** the owner held it before any unit ran.
 `forager-usca-build-261017-4r` does not exist (`LoadState=not-found`). No watcher was started.
+
+## The full build started, 2026-10-21 (owner: "Okay you convinced me. Nothing to lose but Pi time. Start the build.")
+
+Relayed verbatim by the planner; the owner's "build" for this one build, on the 2026-10-17 data. The
+weekly timer stays disabled (`forager-build.timer`: disabled, untouched).
+
+**Before starting (observed):** default route `wlan0` (metric 600), `bnep0` behind it; no `forager*`
+unit running; MemAvailable about 5.3 GB with Firefox running, as during the 261017 Planetiler run;
+NVMe 164,053,311,488 bytes free against the 157,020,310,761 the script checks; probe scratch deleted.
+
+**Started 2026-10-21 04:14:29 PDT (11:14:29Z):**
+`sudo systemd-run --unit=forager-usca-build-261017-4r --description='Forager pi-23: build-usca.sh
+--local 261017, four regions, tracks z11 / paths z12 (owner, 2026-10-21: "Start the build.")'
+--uid=forager-build --gid=forager-build --property=WorkingDirectory=/srv/forager-build -p
+RemainAfterExit=yes /opt/forager-build/map-build/bin/build-usca.sh --local 261017`.
+ExecMainPID 361750, run `usca-20261021T111429Z`, log `/srv/forager-build/logs/usca-20261021T111429Z.log`.
+
+**Input checks passed (the run's log):** all four regions on 2026-10-17T20:20:51Z (sequences us 2415,
+canada 4945, us/puerto-rico 3281, us/us-virgin-islands 1790); inputs 18,807,079,981 bytes; the
+disk check passed on both disks (NVMe needs 157.0 GB, has 164.1; card needs 23.8, has 100.3); MD5
+good and header timestamps matching for all four; `fetch-sources` fetched nothing (outlines
+pre-placed); merge started 11:17:53Z. First `status-usca.json` reading: state `running`, stage
+`fetch-extracts`, run `usca-20261021T111429Z`, 11:14:30Z.
+
+**Watcher (reports only, acts on nothing):** `~/pi23-logs/watch.sh`, pid 361867, logging to
+`~/pi23-logs/watch.log`. Every 60 s it reads the unit's `ExecMainPID`, `ExecMainCode`,
+`ExecMainStatus` and `Result`, `status-usca.json` and the run log. It logs each stage change and a
+heartbeat every 30 minutes (memory, NVMe free, log size). Its terminal states: success (main PID
+gone, exited with status 0, status `ok` or `ok_with_warnings`); failure (exited non-zero, with the
+log's `FAILED:` lines); killed or signalled (with any kernel oom-kill lines since the start); the
+unit vanished. A stall (log unchanged for 60 minutes) is logged and the watch continues. It uses no
+`pgrep`. Expected end about 12.5 h after start, so near 16:45 PDT (inferred from measured stages).
+No upload, stop, restart or retry is covered.
