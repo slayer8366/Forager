@@ -26402,3 +26402,35 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 - My earlier request-counter idea was rejected: it has a gap when the auto-locate fires off the Maps tab.
 - Branch `locate-replay-root`, with the five S22 steps.
 **Notes:** Written by the planner by hand. Next free ID -1534.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1534
+**Timestamp:** 2026-10-21T17:52:55Z
+**Continues:** 2026-09-28-1533, 2026-09-28-1468
+**Title:** Only a search or a locate tap moves the map; returning to Maps keeps the view (PR #368 merged into pre-main)
+**Observed:**
+- **The change (Hazel):**
+  - `LocateMeStatus.Located` carries `searchFrameSerial`, set in `locateMe()` when the fix arrives.
+  - The new pure `compactMapLocateFocus(uiState)` (CompactMapLocateFocus.kt, 19 lines) returns the fix only when the serials match.
+  - In `CompactMapTab`, `focusOverride` is derived from it, with the remember and effect removed.
+  - The region writes are all accounted for (three bump the serial, Clear nulls it), confirmed by Sorrel's grep.
+- **Tests and proofs:**
+  - 4 pure cases and a real-screen tab-return test.
+  - Revert RD (39639653461) failed exactly 4 cases, all on the serial.
+  - Run 39641567778 on ed9c9a89 is green: 5,247 in common with pre-main 606ac149, 0 status changes, plus 5 new cases.
+  - The touch guards are identical. Dex goes from 227,085 to 227,081 with the over-256 list identical. The `.github` diff is empty.
+- **Sorrel (Fable): "Approve".**
+  - It also removes a double jump on a same-search tab return after a locate tap.
+  - Low notes, not taken: the field's `= 0` default is a future maintenance hazard, and the tab-return assertion's bite is not separately shown.
+- **S22 (1.0.3787+ged9c9a89), all PASS:**
+  1. Fresh open, search on Maps, List, Maps: stays on the search.
+  2. A locate tap pans, and Journal and back keeps it.
+  3. A new search lands.
+  4. A hand pan is kept across Journal and back.
+  5. A fresh open with no search centres on the user.
+
+  The crash buffer was empty.
+**Decision:** merged into pre-main at 53a5f221 (606ac149 before, logged). -1468's rule now holds for a search made before leaving the tab, and the three-cause search-frame thread (-1524 to -1534) is closed. Next is 4a (AvailabilityScreen remember-groups), then 4b.
+**Notes:** Written by the planner by hand. Next free ID -1535.
