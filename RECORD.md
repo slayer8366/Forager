@@ -26070,3 +26070,19 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - For AvailabilityScreen they chose "Two PRs, to about 830 (Recommended)" over three.
 - The planner gave PR 1 (MainActivity) its go under the step-2 go (-1518).
 **Notes:** Written by the planner by hand. Next free ID -1520.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1520
+**Timestamp:** 2026-10-21T11:57:04Z
+**Continues:** 2026-09-28-1519
+**Title:** Nav step 2, PR 1: the MainActivity factories split out (PR #361 merged into pre-main)
+**Observed:**
+- **The change (Hazel):** four ViewModel factory bodies moved from MainActivity.kt (806 lines to 706 by Sorrel's `wc -l`; the coder said 708) into AvailabilityViewModelFactory.kt, TrackRecordingViewModelFactory.kt, CartographyViewModelFactory.kt and BackupViewModelFactory.kt (21-59 lines each). Each is a `create<X>ViewModel`, as `createMushroomLogViewModel` is.
+- **Run 39591415555 on b6490a53** is green: 5,241 cases, identical case by case to pre-main 86927320's run 39590498068. The touch guards are identical. The dex count went from 226,975 to 226,995 with the same 5 over 256, run with TMPDIR on disk. The `.github` diff is empty.
+- **Sorrel (Fable): "Merge".** Sorrel confirmed it is a pure move by normalised diff: the bodies and comments are byte-identical apart from the stated substitutions, with the same timing and no lost reasons. Nits on indentation and a comment's "this Activity" wording were not taken.
+- **Pre-existing, not introduced:** the TrackRecordingViewModel's `is24HourClock` lambda captures the Activity (`TrackRecordingViewModelFactory.kt:39`, formerly `MainActivity.kt:257`). A dark-mode change recreates the Activity, and the retained ViewModel then pins the old one until the process ends. This is for the bug list; the fix is to use the application context.
+- **S22 (SM-S908U, 1.0.3766+gb6490a53):** the launch check passed. List, Seasonal, Journal, Tools, Settings with Backup, and Maps all opened in one process, with the crash buffer empty.
+**Decision:** merged into pre-main at 7101e909 (86927320 before, logged). Next is PR 2, TrackRecordingViewModel (Plan A, -1519).
+**Notes:** Written by the planner by hand. Next free ID -1521.
