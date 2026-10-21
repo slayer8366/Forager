@@ -6,6 +6,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -223,6 +226,34 @@ class SearchClearAndFrameTest {
 
         assertEquals("positive control: the map is back, on the new search", far, rig.mapRegion)
         assertNull("the earlier locate is not replayed as the new search's pan target", rig.mapFocusOverride)
+    }
+
+    /**
+     * RECORD -1525 (Sorrel's case, the S22's step 3): a locate from before a search is not replayed when the Maps tab is
+     * composed again after a tab change; a locate tap after the search still pans.
+     */
+    @Test
+    fun `a locate from before a search is not replayed on a tab return, and a fresh locate still pans`() {
+        rig.setScreen()
+        // Stands in for the app-open auto-locate (the scaffold's LaunchedEffect calls MainActivity's permission-gated locate,
+        // which the rig does not wire through).
+        composeRule.runOnUiThread { rig.viewModel.locateMe() }
+        rig.settle()
+        rig.searchCoordinates("45.326", "-122.634")
+        rig.settle()
+        assertNull("positive control: the search's map has no locate-me target", rig.mapFocusOverride)
+
+        rig.touch(composeRule.onNode(hasText("List") and hasClickAction() and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))))
+        rig.settle()
+        rig.touch(composeRule.onNode(hasText("Maps") and hasClickAction() and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))))
+        rig.settle()
+        assertEquals("positive control: the map is back, on the search", near, rig.mapRegion)
+        assertNull("the earlier locate is not replayed as this search's pan target", rig.mapFocusOverride)
+
+        // Stands in for a locate tap after the search.
+        composeRule.runOnUiThread { rig.viewModel.locateMe() }
+        rig.settle()
+        assertEquals("a fresh locate still pans", LatLng(45.0, -122.0), rig.mapFocusOverride)
     }
 
     @Test

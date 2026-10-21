@@ -344,20 +344,14 @@ internal fun CompactMapTab(
 
     MapControlToasts(uiState.locateMeStatus, startRecordingErrorMessage)
 
-    // RECORD -1525: held here, above the spinner, not inside the map branch below. In the branch it was remembered and its
-    // effect launched again each time the map came back from the sightings spinner, which replayed an earlier Located
-    // status as a fresh locate-me and panned a search's map away to the GPS fix (S22, 2026-10-21). Moved unchanged.
-    // The GPS/locate-me pan target for a search that's already run — remember(uiState.region),
-    // not just remember, so a brand new search (a different region) drops any earlier
-    // locate-me override rather than keeping the map stuck on a now-stale GPS fix; see
-    // MapSlot's focusOverride doc comment for why this is independent of region itself.
-    // Pre-search, displayRegion already tracks locate-me directly (see compactMapDisplayRegion), so this stays
-    // null rather than doubly panning the same fix through two different mechanisms.
-    var focusOverride by remember(uiState.region) { mutableStateOf<LatLng?>(null) }
-    LaunchedEffect(uiState.locateMeStatus) {
-        val status = uiState.locateMeStatus
-        if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
-    }
+    // The GPS/locate-me pan target for a search that's already run: worked out from the state, not remembered (RECORD -1525).
+    // It was a remember(uiState.region) set by a LaunchedEffect on locateMeStatus, which started again whenever this tab was
+    // composed again (the sightings spinner, a tab change) and replayed an earlier Located as a fresh locate-me, panning the
+    // map away from where the user left it (-1468). Now a fix counts only for the search it arrived under, so a new search
+    // still drops an earlier locate-me; see compactMapLocateFocus, and MapSlot's focusOverride doc comment for why this is
+    // independent of region itself. Pre-search, displayRegion already tracks locate-me directly (see
+    // compactMapDisplayRegion), so this stays null rather than doubly panning the same fix through two different mechanisms.
+    val focusOverride = compactMapLocateFocus(uiState)
 
     when {
         uiState.isLoadingSightings -> Column(
