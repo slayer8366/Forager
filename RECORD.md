@@ -25926,3 +25926,33 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
   - Combined S22 check PASS (1.0.3759+g151937b9).
 - **The S22 is left on pre-main 151937b9.**
 **Notes:** Written by the planner by hand. Next free ID -1513.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1513
+**Timestamp:** 2026-10-21T09:30:47Z
+**Continues:** 2026-09-28-1511, 2026-09-28-1316, 2026-09-28-1300, 2026-09-28-519
+**Title:** Before the Street switch flips: an automatic fallback to the OSM raster Street; max zoom 18 accepted (owner)
+**Observed:**
+- **Hazel's verify-first for the flip** (probe run 39574327306) found exactly the known 16 tests failing. Three can't be updated by expectation alone. The planner ruled:
+  - D1 and D3: pass `ownStreet = false`;
+  - D2: a one-line `ownStreet` parameter on `navigationMaxZoom`;
+  - rename the two tests, and update the stale comments.
+- **What the flip turns on,** read from the code:
+  - -1316 (all offline areas draw the new style once any holds it) and the older-style notice (-1294) are both confirmed;
+  - Street loads from the Worker with **no fallback at run time**;
+  - topo at night draws the own Street underneath at low zoom;
+  - Street's max zoom goes from 19 to 18;
+  - credits change;
+  - -1300 (3)'s Alaska and Hawaii condition is not verified. Aspen has been asked.
+**Decision:** the owner chose:
+- "Fall back automatically (Recommended)": "If our Street fails to load, the app quietly draws today's OpenStreetMap Street instead and logs it; built as a small PR before the switch flips." This fits the owner's principle that every failure has another method (-519).
+- "18 is fine (Recommended)".
+
+**Order:**
+1. A fallback PR (`street-fallback`, verify-first).
+2. Then the flip PR, with the D1-D3 rulings.
+3. The flip also waits on Aspen's answer about Alaska and Hawaii.
+4. Before pre-main next reaches main: confirm the Worker's auto-deploy is paused or harmless (-1316 caution).
+**Notes:** Written by the planner by hand. Next free ID -1514.
