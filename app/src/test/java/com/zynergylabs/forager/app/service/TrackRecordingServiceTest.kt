@@ -168,6 +168,13 @@ class TrackRecordingServiceTest {
             "the service must stop itself once the notification's stop has ended the track",
             awaitStoppedBySelf(service),
         )
+        // Dispatch 2026-10-21-02: the end is reported to the screen once stored, so Records reloads its list.
+        // Read after stopSelf(), which stopRecording() calls after the write and the report, so it cannot race.
+        assertEquals(
+            "the service reports the track's stored end, which the screen reloads its track list on",
+            trackId,
+            (context as ForagerApplication).container.trackEnds.latest.value,
+        )
         controller.destroy()
         drainBeforeTeardown()
     }

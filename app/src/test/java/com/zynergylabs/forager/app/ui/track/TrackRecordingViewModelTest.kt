@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.RingerMode
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
+import com.zynergylabs.forager.app.domain.TrackEnds
 import com.zynergylabs.forager.app.domain.TrackRepository
 import com.zynergylabs.forager.app.domain.isNetworkProviderFix
 import com.zynergylabs.forager.app.domain.model.Track
@@ -139,6 +140,7 @@ class TrackRecordingViewModelTest {
         findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
         shouldPromptBackgroundRun: suspend () -> Boolean = { false },
         is24HourClock: () -> Boolean = { false },
+        trackEnds: TrackEnds = TrackEnds(),
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -163,7 +165,39 @@ class TrackRecordingViewModelTest {
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
         findRouteHome = findRouteHome,
         shouldPromptBackgroundRun = shouldPromptBackgroundRun,
+        trackEnds = trackEnds.latest,
     ).also(createdViewModels::add)
+
+    /**
+     * Dispatch 2026-10-21-02 (RECORD -1521): after Stop, Records showed "Tracks 0" until the Tracks chip was
+     * tapped or the app restarted, because nothing reloaded the list. The screen's Stop does not end the row;
+     * the service does, later, then reports it through [TrackEnds] (`TrackRecordingService.stopRecording`).
+     * The test plays the service's part in that order, store and then report, and asserts on the list itself.
+     */
+    @Test
+    fun `a track the service ends after Stop is in the track list with its end, without reopening Records`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val trackEnds = TrackEnds()
+        val vm = viewModel(trackRepository, trackEnds = trackEnds)
+        runCurrent()
+        assertTrue("nothing recorded yet", vm.uiState.value.tracks.isEmpty())
+
+        vm.startRecording()
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+
+        // The service, on the stop intent: the end is stored first, and only then reported.
+        trackRepository.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+
+        assertEquals(
+            "the finished track, with its end, is in the list the Tracks count and the All list read",
+            listOf("track-1" to 5_000L),
+            vm.uiState.value.tracks.map { it.id to it.endedAtEpochMillis },
+        )
+    }
 
     @Test
     fun `starting a recording creates a track and sets active state`() = runRecordingTest {

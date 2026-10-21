@@ -5,6 +5,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -94,6 +95,33 @@ class SearchClearAndFrameTest {
         assertEquals("the recent searches are untouched", recentBefore, state.recentSearches)
     }
 
+    /**
+     * RECORD -1525, the owner: "Clear removes it too (Recommended)". The map's "Showing: <species> (n)" chip, set by "View on
+     * Map" on a List-tab row, goes with the search bar's Clear; before, it stayed, reading "Showing: this species (0)".
+     */
+    @Test
+    fun `Clear also removes the map's View on Map chip`() {
+        rig.setScreen()
+        rig.searchCoordinates("45.326", "-122.634")
+        rig.touch(composeRule.onNodeWithText("List"))
+        rig.settle()
+        rig.touch(composeRule.onNodeWithText("View on Map"))
+        rig.settle()
+        assertTrue(
+            "positive control: View on Map shows the chip",
+            composeRule.onAllNodes(hasTestTag(MAP_TAXON_FILTER_CHIP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
+        )
+
+        rig.touch(composeRule.onNodeWithTag(SEARCH_BAR_CLEAR_TAG))
+        rig.settle()
+
+        assertTrue(
+            "Clear removes the chip",
+            composeRule.onAllNodes(hasTestTag(MAP_TAXON_FILTER_CHIP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+        )
+        assertTrue("and no \"Showing:\" text is left", !summaryShown("Showing:", substring = true))
+    }
+
     // ── Item 5 ──
 
     private val near = Region(45.326, -122.634, 8)
@@ -170,3 +198,5 @@ class SearchClearAndFrameTest {
         assertEquals(SearchFrameMove.FRAME, searchFrameMove(isGpsTracking = false, requestId = 4, lastAppliedId = 3))
     }
 }
+
+private const val MAP_TAXON_FILTER_CHIP_TAG = "map-taxon-filter-chip"
