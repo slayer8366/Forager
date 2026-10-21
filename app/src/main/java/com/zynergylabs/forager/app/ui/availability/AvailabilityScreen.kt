@@ -173,7 +173,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -260,11 +259,6 @@ import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
-import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
-import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
-import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
-import com.zynergylabs.forager.app.ui.map.MapForecastFeed
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
@@ -564,57 +558,13 @@ fun AvailabilityScreen(
     var mapWaypointReopen by remember { mutableStateOf<WaypointNavigationOrigin?>(null) }
     var recordsWaypointReopen by remember { mutableStateOf<String?>(null) }
 
-    // Local remembered state, same reasoning as selectedTab below: purely a display
-    // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
-    // this — see CompactMapTab's call site. Only reachable while on the
-    // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
-    // selectedTab != MAP cannot happen in practice.
-    var isMapFullscreen by remember { mutableStateOf(false) }
-    // Persisted across restarts (persist-fullscreen dispatch — see
-    // MapPreferencesRepository.getMapFullscreen for the precedent and its reasoning). The loaded
-    // value is applied exactly once, when it first arrives, and only if it arrived at all (a
-    // failed read leaves it null and the screen starts as it always did). Two load-bearing
-    // choices here:
-    //
-    // 1. Writes happen at the three user-driven mutation sites (the toggle below, the fullscreen
-    //    BackHandler, the tab handler's exit) — never from a LaunchedEffect on isMapFullscreen.
-    //    Such an effect would fire on first composition with the default `false` and write it
-    //    before the DataStore read lands, clobbering a persisted `true`: a data-loss bug that
-    //    would present as "the feature doesn't work" and be hard to trace.
-    // 2. The read is asynchronous, so the first frame composes with `false`; when a persisted
-    //    `true` lands the search bar, nav and cluster slide away rather than starting hidden.
-    //    Chosen, not overlooked (owner's call): the alternatives were gating the map's first
-    //    composition on a disk read, or recreating the map once loaded, which would re-fit it —
-    //    the very thing the "nothing may re-fit the map" rule exists to protect. A DataStore
-    //    first read is a few milliseconds, typically before any tile has appeared.
-    var hasAppliedPersistedMapFullscreen by remember { mutableStateOf(false) }
-    LaunchedEffect(uiState.persistedMapFullscreen) {
-        val persisted = uiState.persistedMapFullscreen
-        if (persisted != null && !hasAppliedPersistedMapFullscreen) {
-            hasAppliedPersistedMapFullscreen = true
-            isMapFullscreen = persisted
-        }
-    }
-    // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
-    // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
-    //
-    // RECORD -711: its side and height also persist across restarts (the owner: "have the map icon bar
-    // persist between restarts so left handed users don't need to change it every time they open the
-    // app", "Side and height (Recommended)"). The holder waits for uiState.mapIconClusterPlacement and is
-    // not drawn until it has applied it (first effect), so there is no frame on the default side. Every
-    // drag that ends is stored (second effect), keyed on the holder's own count of ended drags rather
-    // than on the position itself: a write per drag, not per frame of one, and never a write of the
-    // default before the read lands (the trap isMapFullscreen's comment above describes).
-    val mapIconClusterPosition = rememberMapIconClusterPositionState(awaitingPlacement = true)
-    val mapIconClusterDensity = LocalDensity.current
-    LaunchedEffect(uiState.mapIconClusterPlacement) {
-        uiState.mapIconClusterPlacement?.let { mapIconClusterPosition.applyPlacement(it, mapIconClusterDensity) }
-    }
-    LaunchedEffect(mapIconClusterPosition.settledCount) {
-        if (mapIconClusterPosition.settledCount > 0) {
-            onMapIconClusterPlacementChanged(mapIconClusterPosition.placement(mapIconClusterDensity))
-        }
-    }
+    // The fullscreen flag and its one-time restore across restarts: see rememberMapFullscreen (ScreenMapFullscreen.kt),
+    // whose comments say why it is written only at the user's mutation sites.
+    val mapFullscreen = rememberMapFullscreen(uiState)
+    var isMapFullscreen by mapFullscreen::isMapFullscreen
+    // The icon cluster's position, persisted across restarts (RECORD -711): see rememberPersistedMapIconClusterPosition
+    // (ScreenMapIconClusterPlacement.kt).
+    val mapIconClusterPosition = rememberPersistedMapIconClusterPosition(uiState, onMapIconClusterPlacementChanged)
     // Part 1 layout fixes, item 4 (planner message 2026-09-28-98, under CLAUDE.md's UX defaults): the
     // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
     // leave composition with the tab. See MapCameraMemory. Session only.
@@ -666,24 +616,12 @@ fun AvailabilityScreen(
     // that sheet opens (Records, a map bubble's Details, an entry report's track row), so it survives within a session
     // (CLAUDE.md, UX defaults). One flag for every track's sheet. Not across a restart (not asked for).
     val trackDetailsFoldOpen = rememberSaveable { mutableStateOf(false) }
-    // Dispatch 2026-09-28-430 (plan task T22): whether the user has moved the map away from the
-    // navigation view, and the "Return to Route" requests, held here above the tab so that leaving
-    // the Maps tab and coming back keeps them (CLAUDE.md, UX defaults; the legend's flag above is
-    // held the same way). Cleared when navigation stops, so the next Return starts in the view.
-    var navigationFollowBroken by rememberSaveable { mutableStateOf(false) }
-    var navigationViewRequestId by rememberSaveable { mutableIntStateOf(0) }
-    LaunchedEffect(isNavigating) { if (!isNavigating) navigationFollowBroken = false }
-    // Dispatch 2026-09-28-440: the set zoom is applied once per navigation, when it starts: pending
-    // from the start until the map reports it applied. Held above the tab, so a tab change does not
-    // apply it again; the navigating flag it is set from is saved too, so a configuration change
-    // that recomposes this screen mid-navigation is not read as a new start.
-    var navigationZoomPending by rememberSaveable { mutableStateOf(false) }
-    var navigationWasOn by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(isNavigating) {
-        if (isNavigating && !navigationWasOn) navigationZoomPending = true
-        if (!isNavigating) navigationZoomPending = false
-        navigationWasOn = isNavigating
-    }
+    // The navigation view's follow and zoom requests, held above the tab (T22, -440): see rememberNavigationViewRequests
+    // (ScreenNavigationViewRequests.kt).
+    val navigationViewRequests = rememberNavigationViewRequests(isNavigating)
+    var navigationFollowBroken by navigationViewRequests::navigationFollowBroken
+    var navigationViewRequestId by navigationViewRequests::navigationViewRequestId
+    var navigationZoomPending by navigationViewRequests::navigationZoomPending
     // Dispatch -502, the owner's choice at the S22 desk check ("Keep the last line, faded"): the dashed line to the
     // waypoint, and the one drawn last, which nextStraightLine keeps, faded, once the fix is lost. Held here, above the tab
     // switch, so a lost fix does not lose the line by a trip to the Journal; not across a restart, where there is no last
@@ -701,24 +639,14 @@ fun AvailabilityScreen(
     }
     val nextWaypointLine = navigatingToWaypoint?.let { nextStraightLine(waypointStraightLine, uiState.liveFix, it, straightLineNow) }
     LaunchedEffect(nextWaypointLine) { waypointStraightLine = nextWaypointLine }
-    var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
-    var forecastZoomedOut by remember { mutableStateOf(false) }
-    val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
-    val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
-    val forecastWeek = uiState.forecastWeek
-    val forecastFeed = remember(forecastCellStore, forecastWeek, availableColourFieldGroups) {
-        if (forecastWeek == null || availableColourFieldGroups.isEmpty()) {
-            null
-        } else {
-            MapForecastFeed(
-                store = forecastCellStore,
-                week = forecastWeek,
-                groupsByLayer = availableColourFieldGroups,
-                onCellsShown = { forecastCellsShown = it },
-                onZoomedOutChanged = { forecastZoomedOut = it },
-            )
-        }
-    }
+    // The forecast cells, the colour fields with data and the layers the map draws: see rememberMapForecastFeed
+    // (ScreenMapForecastFeed.kt).
+    val mapForecast = rememberMapForecastFeed(uiState, forecastCellStore)
+    val forecastCellsShown by mapForecast::forecastCellsShown
+    val forecastZoomedOut by mapForecast::forecastZoomedOut
+    val availableColourFieldGroups = mapForecast.availableColourFieldGroups
+    val drawnMapLayers = mapForecast.drawnMapLayers
+    val forecastFeed = mapForecast.forecastFeed
     val mapRecordsDrawn = uiState.drawnMapRecords(logUiState)
     // J8-2 (owner: "Highlight in place", "Live records", "Saved entries only"): the saved entries shown
     // on the map and the records they keep, among the records the Maps tab draws. cartographyUiState is
