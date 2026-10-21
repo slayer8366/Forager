@@ -26328,3 +26328,26 @@ The planner's technical choices:
 
 Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR on `claude/beta-to-play`, verified on the preview build. It is not merged until the owner approves, because a merge publishes.
 **Notes:** Written by the planner by hand. Next free ID -1531.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1531
+**Timestamp:** 2026-10-21T16:44:26Z
+**Continues:** 2026-09-28-1530
+**Title:** zynergy-site: the beta sign-up goes to Google Play (site PR #20, live); the owner will clear the site's sign-up table
+**Observed:**
+- **Site PR #20** (909bb69, merged to main at 1e37879c on the owner's "Publish it (Recommended)", after the preview):
+  - `_redirects` sends /beta-signup and /beta-signup/ with a 302 to the Play listing;
+  - the home page reads "Forager is available on Google Play." with a "Get it on Google Play" button;
+  - `functions/api/beta-signup.js` is replaced by a 410 handler with no `env` access;
+  - the export still works;
+  - the privacy and delete-data pages say the sign-up is closed and the list is still held;
+  - the README is updated.
+- **Live check:** /beta-signup/ answers 302 to the Play URL, the home page shows the new button, and a POST to /api/beta-signup answers 410. The owner confirmed the store link in chat.
+- **The owner's corrections and decisions:**
+  - The testers are a Google Group the owner manages: "It's not a list, it's a Google Group so I'll be having to manage it".
+  - On the site's own D1 copy (`zynergy-site-beta`: `beta_signups`, `beta_rate_limit`): "Go ahead and clear the site's copy". This laptop has no access to that Cloudflare account (the connected account can't see the database; no wrangler login), so the owner does the deletion in the dashboard, after publishing, so the form was already off.
+  - The welcome page: "Yes, fix them (Recommended)".
+- **A follow-up site PR** (`claude/beta-list-deleted`) is being prepared: the welcome-page fixes, verified from Forager's code, and "deleted on <DATE>" wording. It merges once the owner gives the date.
+**Notes:** Written by the planner by hand. Next free ID -1532.
