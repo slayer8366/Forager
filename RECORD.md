@@ -25444,3 +25444,13 @@ The planner's conditions:
 - **Cleanup:** test tracks and markers deleted; Records at 0; the unfinished entry untouched; POST_NOTIFICATIONS ends granted.
 - **A side finding (inferred from run A):** a recording started while the notification prompt is up shows no recording notification for its whole run, even after Allow. That would be the first recording after install on Android 13 or later.
 **Notes:** Written by the planner by hand. Next free ID -1489.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1489
+**Timestamp:** 2026-10-21T02:38:00Z
+**Continues:** 2026-09-28-1488
+**Title:** No recording notice for a recording started behind the notification prompt: to the bug list (owner)
+**Decision:** The owner was told the stale-notification finding was a misread of the archive. They were then asked about the gap run A found: the first recording, if started while "Allow notifications?" is up, never shows "Recording a track", even after Allow. They chose "Bug list, later (Recommended)": "Only the first recording after install is affected; record it and fix in a later pass." It goes into the next docs PR's known-bugs rows, with the Back overlap (-1479) and the night cold-start flash (-1485).
+**Notes:** Written by the planner by hand. Next free ID -1490.
