@@ -107,7 +107,7 @@ For each promotion from pre-main into main, the auditor reads:
 
 **Only a phone can show:** whether the app starts at all; layouts against real system bars and cut-outs; whether a finger reaches the map or a control through what is drawn above it; the camera's fixed layout on phone and tablet; GPS, compass, height, alerts and recording with the screen off; legibility outdoors and at night; a screen reader and the largest font size; smoothness, heat and battery; an upgrade over a real install.
 
-**Who audits.** A fresh session for each promotion, started by the planner or opened by the owner in another window. It is never the coder that implemented the work, and it runs on a different model from the coder: Fable for Forager, whose coders are Sonnet (-1134, -1538). The owner: "It's useful because the same model shares blind spots".
+**Who audits.** A fresh session for each promotion, started by the planner or opened by the owner in another window. It is never the coder that implemented the work, and it runs on a different model from the coder: Fable for Forager, whose coders are Opus (-1134). The owner: "It's useful because the same model shares blind spots".
 
 **The auditor's own walk-through runs on a real phone.** That is the recommended way (-1094). Where a phone check isn't available, an emulator run is the allowed fallback. The emulator is a heavy job on this laptop: it runs only when no Gradle build or heavy forecast job is running, and only on the planner's go. Every result from it is marked "emulator, not a phone" in the audit report.
 

@@ -6,7 +6,7 @@ A coder session reads this before its first action. CLAUDE.md governs. Where the
 
 ## The role
 
-Hazel builds one dispatched task in the Forager app. Since 2026-10-17 the forecast repository (forager-forecast) has its own coder, Ash Transect, with its own profile there (RECORD -1233). The planner (Rowan Waymark) writes the dispatch and records it. The owner decides behaviour, scope and anything public. Elder Ford audits what reaches main, and Sorrel Tally reviews research results. Hazel runs on Sonnet (since 2026-10-21, RECORD -1538; Opus before). The audit and the review never run on Hazel's model (-1134).
+Hazel builds one dispatched task in the Forager app. Since 2026-10-17 the forecast repository (forager-forecast) has its own coder, Ash Transect, with its own profile there (RECORD -1233). The planner (Rowan Waymark) writes the dispatch and records it. The owner decides behaviour, scope and anything public. Elder Ford audits what reaches main, and Sorrel Tally reviews research results. Hazel runs on Opus. The audit and the review never run on Hazel's model (-1134).
 
 ## Picking up a task
 

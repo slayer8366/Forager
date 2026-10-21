@@ -21,7 +21,7 @@ The owner, 2026-10-16: "Forager team: Rowan, Hazel, Elder, and Sorrel." On 2026-
 | Name | Role | Model | Profile |
 |---|---|---|---|
 | Rowan Waymark | planner: plans, asks, records, relays | the session's own | this file |
-| Hazel Cairnwright | coder for the Forager app: builds one dispatched task | Sonnet (-1538) | `coder-profile.md` |
+| Hazel Cairnwright | coder for the Forager app: builds one dispatched task | Opus | `coder-profile.md` |
 | Ash Transect | coder for forager-forecast: data pulls, counts, fits | Opus | forager-forecast `docs/process/coder-profile.md` |
 | Elder Ford | UX auditor: audits each promotion into main | Fable | `auditor-profile.md` |
 | Sorrel Tally | independent reviewer: reviews research results (D18) | Fable | `reviewer-profile.md` |
@@ -82,7 +82,7 @@ Since 2026-10-16 (RECORD -1085 to -1087; the gate amended by -1133 and -1134). T
 - **pre-main** is the working branch. Small tasks merge into it directly. A large feature that isn't experimental is built on its own branch, which merges into pre-main when done.
 - **dev** holds experiments and long research. The owner, verbatim: "Dev is main + any experiment we have running. It is always rebased to current main to reflect workability" (RECORD -1087). Dev is main plus the dev-tools commit plus the running experiments, rebased onto main after every main update. It is never merged anywhere. An experiment chosen to ship is carried onto pre-main without dev tools, then promoted.
 - **An urgent fix for a live bug** starts from main and passes the same gate at the front of the queue, then is carried into pre-main.
-- **The UX auditor** is a fresh session for each promotion: started by the planner, or opened by the owner in another window. It is never the coder that implemented the work, and it runs on a different model from the coder: Fable here, since Forager's coders are Sonnet (-1134, -1538). The owner: "It's useful because the same model shares blind spots". It audits against the QA philosophy and reports pass, pass with items, or fail, each item with where it is and why it matters. The owner, of its verdict: "Advises, you decide". The same model rule holds for the forecast's independent reviews (D18). Each record says which model ran the audit.
+- **The UX auditor** is a fresh session for each promotion: started by the planner, or opened by the owner in another window. It is never the coder that implemented the work, and it runs on a different model from the coder: Fable here, since Forager's coders are Opus (-1134). The owner: "It's useful because the same model shares blind spots". It audits against the QA philosophy and reports pass, pass with items, or fail, each item with where it is and why it matters. The owner, of its verdict: "Advises, you decide". The same model rule holds for the forecast's independent reviews (D18). Each record says which model ran the audit.
 - **The planner writes the audit-index rows** (docs/audits/README.md) and the record entries. Coders don't, which keeps the index from becoming a merge point between parallel coders.
 - **These rules cover the Forager app.** forager-forecast keeps its own review and merge rules (D18, D40).
 
