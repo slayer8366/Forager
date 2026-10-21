@@ -25956,3 +25956,20 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 3. The flip also waits on Aspen's answer about Alaska and Hawaii.
 4. Before pre-main next reaches main: confirm the Worker's auto-deploy is paused or harmless (-1316 caution).
 **Notes:** Written by the planner by hand. Next free ID -1514.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1514
+**Timestamp:** 2026-10-21T09:32:50Z
+**Continues:** 2026-09-28-1513, 2026-09-28-1300
+**Title:** Alaska and Hawaii covered; the Street switch waits for the rebuild that adds Puerto Rico and USVI (owner)
+**Observed:**
+- **Aspen (Pi planner), observed:** the live us.pmtiles (USCA 20261017T202051Z) is built from Geofabrik us-261017 and canada-261017.
+- **Spot checks:** decoded live tiles hold roads at Honolulu (127), Anchorage (50), Hilo (173) and Fairbanks (46). The build's coverage.txt agrees. So -1300 (3)'s Alaska and Hawaii condition is met. Not every island or borough was checked.
+- **Gap:** Puerto Rico and the USVI are not in the data (the us extract has 0 nodes there). They are item 1 on Aspen's next-rebuild list.
+- **Aspen also noted:** the Worker returns 403 to Python's default user-agent, but 200 to curl and to the app's User-Agent.
+**Decision:** the owner was asked how to handle Street being empty over Puerto Rico and the USVI once flipped, and chose "Wait for the rebuild": "Hold the switch until Puerto Rico and USVI are in the data."
+- The flip PR is built after the fallback, but it is not merged until that rebuild is live.
+- The same rebuild carries tracks from z11 and paths from z12 (-1509), so the style follow-up (11.5/12.5, -1510) can land alongside the flip.
+**Notes:** Written by the planner by hand. Next free ID -1515.
