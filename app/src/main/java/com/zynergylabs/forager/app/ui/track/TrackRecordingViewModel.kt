@@ -407,9 +407,9 @@ class TrackRecordingViewModel(
     }
 
     /**
-     * The service stored the end of [endedTrackId] (dispatch 2026-10-21-02; [TrackEnds]). The track list is
-     * reloaded. If it is this screen's recording, the screen also resynchronises against the row, as on a
-     * resume ([resyncRecordingState]).
+     * The service stored the end of [endedTrackId] (dispatch 2026-10-21-02; [TrackEnds]). A reload of the
+     * track list is started. If it is this screen's recording, the screen also resynchronises against the
+     * row, as on a resume ([resyncRecordingState]).
      *
      * **The defect this closes (dispatch 2026-10-21-04, RECORD -1527).** Stop from the notification reaches the
      * service and never this ViewModel, and the resync ran only on ON_START and ON_STOP. Pulling the shade
@@ -768,6 +768,10 @@ class TrackRecordingViewModel(
         val active = uiState.value.activeTrack ?: return
         trackRepository.getById(active.trackId)
             .onSuccess { track ->
+                // The read suspended. Go by what is true now, as takeUpRunningRecording does: a Stop and a new
+                // Record during the read (a Stop from the shade, then Record before the old end was written)
+                // must not have the old track's end clear the new recording (dispatch 2026-10-21-04, review).
+                if (uiState.value.activeTrack?.trackId != active.trackId) return
                 if (track == null || track.endedAtEpochMillis != null) clearRecordingState()
             }
             .onFailure { error ->

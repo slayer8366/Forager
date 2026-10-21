@@ -370,6 +370,15 @@ class TrackRecordingServiceTest {
      * Returns `true` on timeout, so a resync that genuinely never clears still fails the assertion
      * rather than hanging — the same "read as a failure, not as a hang" rule [awaitEndedAt] follows.
      */
+    private fun awaitStillRecording(viewModel: TrackRecordingViewModel, timeoutMillis: Long = 10_000L): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            if (!viewModel.uiState.value.isRecording) return false
+            idleAndSettle()
+        }
+        return true
+    }
+
     /**
      * Dispatch 2026-10-21-04 (RECORD -1527): Stop from the notification left the map showing a recording, and
      * the track's Delete refused it as "still recording", until the app went to the background and came back.
@@ -459,15 +468,6 @@ class TrackRecordingServiceTest {
             idleAndSettle()
         }
         return false
-    }
-
-    private fun awaitStillRecording(viewModel: TrackRecordingViewModel, timeoutMillis: Long = 10_000L): Boolean {
-        val deadline = System.currentTimeMillis() + timeoutMillis
-        while (System.currentTimeMillis() < deadline) {
-            if (!viewModel.uiState.value.isRecording) return false
-            idleAndSettle()
-        }
-        return true
     }
 
     /**
