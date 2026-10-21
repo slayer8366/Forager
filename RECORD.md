@@ -26171,3 +26171,37 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - **The 4a premise check (S22):** saved screen state survives process death but not an app update (a sideloaded `install -r` reopened on the defaults). So moving `rememberSaveable` calls can't mismatch saved values across an update. Not verified: a Play Store update; other devices.
 **Decision:** merged into pre-main at b1064eca (0add7500 before, logged). The search-framing regression is diagnosed before 4a, which moves screen code that may hold it.
 **Notes:** Written by the planner by hand. Next free ID -1525.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1525
+**Timestamp:** 2026-10-21T14:53:38Z
+**Continues:** 2026-09-28-1524, 2026-09-28-750
+**Title:** A search from the Maps tab never moved the map (not a regression); fix it now; Clear removes the map's species chip (owner)
+**Observed (Hazel's diagnosis, S22, at b1064eca):**
+- **The same search on five builds:**
+  - pre-main (1.0.3770), from Maps: no move;
+  - main 381515c6 (1.0.3740), from Maps: no move;
+  - the code of 3500 (main 19aa1058's CI debug APK, 1.0.3500), from Maps: no move;
+  - #206's own head eb4932ca (1.0.3103, which brought in -750's fly-to-search), from Maps: no move;
+  - pre-main, searching from List and then switching to Maps: moved.
+
+  The device check of #206 was only a launch check (-753), so the -749 case was never re-run.
+- **Cause:**
+  1. The frame is applied on the map on screen, then recorded as applied in the memory above the tab (`MapDataRefresh.kt:94`).
+  2. The sightings fetch sets `isLoadingSightings` (`AvailabilitySearchRuns.kt:202`), and `CompactMapTab` swaps the map for a spinner (`AvailabilityCompactMapUi.kt:348`) before the camera settles, so the saved camera is still the old one (`MapListeners.kt:189-201`).
+  3. The new map restores the old camera, and `searchFrameMove` skips the already-applied frame (`MapCameraMoves.kt:83`).
+
+  The logcat order confirms it. #336, #337 and the Phase 2 splits moved this code without changing it.
+- **The species chip** ("Showing: <species> (n)") is the map's View-on-Map filter, `mapTaxonFilter` in `AvailabilityScreen.kt`. That is not -750's search selection, which Clear does reset. After Clear it reads "Showing: this species (0)".
+**Decision:** the owner was asked two questions.
+- **The search:** shown the step path (Maps tab → search → spinner → the map opens on the searched place at the search's zoom → leave and return: still there), they chose "Yes, fix it now (Recommended)" over the bug list.
+- **The chip:** they chose "Clear removes it too (Recommended)" over keeping it.
+
+Dispatch `prompts/preserved/2026-10-21-03.md` covers both:
+- **PR A:** MapCameraMoves and MapDataRefresh only; the frame is written into the saved camera.
+- **PR B:** the chip, with its route through AvailabilityScreen confirmed before building.
+
+They come before 4a, and B and 4a run in sequence.
+**Notes:** Written by the planner by hand. Next free ID -1526.
