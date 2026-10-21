@@ -617,3 +617,29 @@ above.
   burning retries. About 5–8 hours over Wi-Fi, so done mid-morning. Old map stays live meanwhile."
   On the leftovers: "Yes, tidy (Recommended)". That covers `systemctl reset-failed` and deleting
   `/tmp/pi19-r2-upload/` and `/tmp/pi19-x/`. Nothing in the bucket is touched.
+
+## The planner stops committing; profile lessons added, 2026-10-21
+
+**The owner, verbatim, in the planner's window:**
+
+- On the planner's answer to "What do you think is the EGD way of handling this situation in the
+  future?": "This lesson can save us 8 hours of project time next time, so good that you wrote it
+  down."
+- "Go ahead and use coders to commit."
+
+**The planner's reading, stated so the owner can correct it:**
+
+- (a) A ruling: the planner commits nothing from now on, records and dispatches included. Coders
+  write, commit and push. This aligns with E-GD BOOTSTRAP's planner, who "never edit[s] files,
+  run[s] code, or commit[s]".
+- (b) A go for adding the four lessons to the planner profile, committed by a coder.
+
+The Clio feedback offer is not covered.
+
+**Files changed by dispatch pi-20, written and committed by a Pi coder:**
+
+- `prompts/preserved/2026-10-21-pi-20.md`: the dispatch, preserved verbatim (new).
+- `docs/process/pi-planner-profile.md`: appended section "Added 2026-10-21: the planner commits
+  nothing; four lessons from the upload night". No existing line changed; it supersedes rather
+  than edits.
+- `docs/audits/2026-10-20-cloudflare-upload-prep.md`: this section, appended.

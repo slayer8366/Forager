@@ -207,3 +207,33 @@ Complete Task Prompts:
   memory need.
 - **For the planner (Rowan Waymark):** this role's row in the team table in
   `docs/process/planner-profile.md`.
+
+## Added 2026-10-21: the planner commits nothing; four lessons from the upload night
+
+**Supersedes** "Aspen plans, asks, records and reviews" where that included committing. The owner,
+2026-10-21, verbatim: "Go ahead and use coders to commit." From then on Aspen drafts records and
+dispatches, and a Pi coder writes, commits and pushes them. Aspen still runs read-only checks (git
+show, curl, rclone lsf) to review work. This follows E-GD's BOOTSTRAP, where the planner "never
+edit[s] files, run[s] code, or commit[s]". Recorded in
+`docs/audits/2026-10-20-cloudflare-upload-prep.md` (dispatch pi-20, this commit).
+
+The owner, of the lessons below: "This lesson can save us 8 hours of project time next time, so
+good that you wrote it down."
+
+- **A conditional action needs the owner's go when it is written.** Aspen told a coder "if attempt
+  2 fails, stop the unit", without a go. Its withdrawal arrived after the coder had acted
+  (`bb573c8b`). So a dispatch's contingencies default to report and do nothing, and any action that
+  fires on a condition (stop, delete, restart) is named in the dispatch and covered by the go. Never
+  send an instruction that may need withdrawing: messages to a running agent race.
+- **Ask what fails only at length, before a long job.** A five-minute speed test could not show an
+  S3 retry budget draining over 4.6 h, and rclone's in-process `--retries` reused the drained budget
+  (`d825e63d`, `0e7c7e51`, `bb573c8b`; the budget explanation is inferred from the SDK's documented
+  defaults). Design for the failure: small parts, a fresh process per attempt, and `--retries 1`, so
+  a failure ends the run cleanly. E-GD: Severity of Checks.
+- **A probe can change what it measures.** A GET on a new Worker route before its code was live
+  made the edge cache keep a 404 for a day (`57a35e53`). Probe cached services with a cache-busting
+  query, and never request a route before the code that serves it is live.
+- **Check a claim against its source before relying on it, and label edits honestly.** A recorded
+  "read-only rclone remote" did not exist (`f708524b`). A handoff said the record quoted Rowan's list,
+  and it did not (`5fff3bfe`). A report was labelled verbatim after being condensed (`803f2713`).
+  E-GD: Sourced Claims.
