@@ -85,6 +85,23 @@ internal fun searchFrameMove(isGpsTracking: Boolean, requestId: Int, lastApplied
     else -> SearchFrameMove.FRAME
 }
 
+/**
+ * RECORD -1525 (the owner: "Yes, fix it now"): the camera a search's frame leaves, for [MapCameraMemory.saved]. A search
+ * made on the Maps tab is framed by the map on screen, which the sightings spinner then replaces before its camera settles,
+ * so the snapshot a settled camera would have written never comes; the map that comes back restored the camera from before
+ * the search and, the frame already marked applied, stayed there. Written where the frame is applied, the searched region,
+ * at the search's zoom, not following ([MapDataRefresh]).
+ */
+internal fun searchFrameSnapshot(region: Region, bearing: Double, tilt: Double, appliedTarget: Pair<Region, LatLng?>): MapCameraSnapshot =
+    MapCameraSnapshot(
+        target = LatLng(region.lat, region.lng),
+        zoom = zoomForRadiusKm(region.radiusKm),
+        bearing = bearing,
+        tilt = tilt,
+        following = false,
+        appliedTarget = appliedTarget,
+    )
+
 /** RECORD -750, item 5: the log tag for a search frame applied, so a device check can read it. */
 internal const val SEARCH_FRAME_LOG_TAG = "ForagerSearchFrame"
 

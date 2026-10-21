@@ -137,6 +137,13 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
      */
     var availabilityGate: CompletableDeferred<Unit>? = null
 
+    /** RECORD -1525: when set, every map sightings fetch waits for it, so the Maps tab holds its spinner until it completes. */
+    var sightingsGate: CompletableDeferred<Unit>? = null
+
+    /** RECORD -1525: the locate-me pan target (`focusOverride`) the map was handed on its latest composition. */
+    var mapFocusOverride: com.zynergylabs.forager.app.domain.model.LatLng? = null
+        private set
+
     private val repository = object : MushroomRepository, TaxonSearchRepository {
         override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
             availabilityFetches += Triple(region, month, filter)
@@ -148,6 +155,7 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
 
         override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
             sightingsFetches += Triple(region, month, filter)
+            sightingsGate?.await()
             return Result.success(SightingsPage(sightings = listOf(sightingAt(region)), totalResults = 1))
         }
 
@@ -185,7 +193,8 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
             getTodaysForecast = GetTodaysForecastUseCase(RigNoWeather),
         )
         val vm = viewModel
-        val mapSlot: MapSlot = { region, content, renderMode, _, _, _, onSightingTap, _, modifier ->
+        val mapSlot: MapSlot = { region, content, renderMode, focusOverride, _, _, onSightingTap, _, modifier ->
+            mapFocusOverride = focusOverride
             mapOnSightingTap = onSightingTap
             mapSightings = content.sightings
             mapRegion = region
