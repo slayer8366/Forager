@@ -25574,3 +25574,23 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
 - The owner chose "Status survey now (Recommended)": a read-only check, while #354 finishes, of where each of the nine stages stands, what the Pi pipeline already makes, and what the Phase 2 split changed. The planner then brings an updated plan and the open questions. No building.
 - Juniper Sounding (researcher, Fable) runs the survey. The planner files the result under docs/navigation/.
 **Notes:** Written by the planner by hand. Next free ID -1495.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1495
+**Timestamp:** 2026-10-21T07:20:50Z
+**Continues:** 2026-09-28-1494
+**Title:** Trail navigation status survey filed (docs/navigation/2026-10-21-trail-navigation-status-survey.md); correction to -1494
+**Observed:**
+- **Juniper's survey** (read-only, Fable):
+  - Trail navigation is not wired.
+  - Stages 1 to 3 are done: the engine spike, the own-tiles survey, and the spec (ruled -492/-493).
+  - Stage 4 is built: the Pi emits tiles and BRouter `.rd5` squares, but only tiles are uploaded. us.pmtiles went live on R2 at 2026-10-21 06:04Z, per pi-build.
+  - Stage 5 is built behind a switch in #258.
+  - Stages 6 to 9 have not started.
+  - Navigator A to F are built (T20 waits for own tiles); G to K have not started.
+  - 11 open questions are raised, chiefly how routing data reaches the phone, elevation, matching data, the hybrid way back, the walk-back distance, the "Return to Route" naming, and the waypoint step path.
+  - Five files over 800 lines would be touched and need splitting first.
+- **Correction:** -1494 cited -477 for the BRouter choice. The ruling is -484 ("BRouter routes"); -477 is a different entry.
+**Notes:** Written by the planner by hand. Next free ID -1496.
