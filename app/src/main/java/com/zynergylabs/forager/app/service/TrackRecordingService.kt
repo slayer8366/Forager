@@ -386,7 +386,6 @@ class TrackRecordingService : Service() {
                 // The end is reported only once it is stored, so the screen's reload never reads the track
                 // still open (dispatch 2026-10-21-02); a failed write reports nothing and is logged.
                 container.endTrackUseCase(trackId)
-                    .onSuccess { container.trackEnds.report(trackId) }
                     .onFailure { error ->
                         Log.w(TAG, "Couldn't mark track '$trackId' ended.", error)
                     }
