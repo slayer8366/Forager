@@ -635,16 +635,7 @@ class AvailabilityViewModel(
             // GetTripWindowsUseCase's unrelated, already-tested return type).
             searchRuns.fetchTodaysForecast(region)
         } else {
-            _uiState.update {
-                it.copy(
-                    conditions = null,
-                    isLoadingConditions = false,
-                    conditionsErrorMessage = null,
-                    todaysForecast = null,
-                    isLoadingTodaysForecast = false,
-                    todaysForecastErrorMessage = null,
-                )
-            }
+            _uiState.update { it.withoutTodaysConditions() }
         }
 
         // Trip windows are about the days ahead of today, not about the browsed month, so unlike
@@ -689,40 +680,7 @@ class AvailabilityViewModel(
         speciesLookup.cancel()
         searchRuns.renewParent()
         searchRuns.forgetSearch()
-        _uiState.update {
-            it.copy(
-                region = null,
-                forecast = null,
-                isLoading = false,
-                errorMessage = null,
-                isShowingCachedResults = false,
-                cachedResultsAsOfEpochMillis = null,
-                sightings = emptyList(),
-                isLoadingSightings = false,
-                sightingsErrorMessage = null,
-                conditions = null,
-                isLoadingConditions = false,
-                conditionsErrorMessage = null,
-                todaysForecast = null,
-                isLoadingTodaysForecast = false,
-                todaysForecastErrorMessage = null,
-                tripWindowReport = null,
-                isLoadingTripWindows = false,
-                tripWindowsErrorMessage = null,
-                seasonalPattern = null,
-                isLoadingSeasonalPattern = false,
-                seasonalPatternErrorMessage = null,
-                // RECORD -750, item 3: the selection back to a fresh start's default.
-                taxonFilter = DEFAULT_STATE.taxonFilter,
-                foragingSelection = DEFAULT_STATE.foragingSelection,
-                taxonSearchQuery = DEFAULT_STATE.taxonSearchQuery,
-                taxonSearchResults = DEFAULT_STATE.taxonSearchResults,
-                isSearchingTaxa = false,
-                taxonSearchErrorMessage = null,
-                taxonSearchHasNoResults = false,
-                lastTaxonSearchQuery = DEFAULT_STATE.lastTaxonSearchQuery,
-            )
-        }
+        _uiState.update { it.withSearchCleared() }
     }
 
     /**
@@ -741,21 +699,7 @@ class AvailabilityViewModel(
      */
     fun onRecentSearchSelected(summary: CachedSearchSummary) {
         val region = summary.region
-        _uiState.update {
-            it.copy(
-                region = region,
-                radiusKm = region.radiusKm,
-                manualLatText = region.lat.toString(),
-                manualLngText = region.lng.toString(),
-                selectedMonth = summary.month,
-                taxonFilter = summary.filter,
-                foragingSelection = ForagingSelection.fromRecentSearch(summary),
-                taxonSearchQuery = "",
-                taxonSearchResults = emptyList(),
-                locationPermissionDenied = false,
-                searchFrameSerial = it.searchFrameSerial + 1,
-            )
-        }
+        _uiState.update { it.withRecentSearch(region, summary) }
         refresh(region, summary.month, summary.filter)
     }
 
@@ -788,14 +732,7 @@ class AvailabilityViewModel(
         val estimatedTiles = estimateServedOfflineTileCount(row.region)
         val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.sumOf { it.tileCount }
         if (estimatedTiles > remainingBudget) {
-            _uiState.update {
-                it.copy(
-                    offlineDownloadStatus = OfflineMapStatus.Failed(
-                        "This region needs about $estimatedTiles tiles, but only $remainingBudget remain in your " +
-                            "${OfflineMapRepository.TILE_COUNT_LIMIT}-tile budget. Delete a region or pick a smaller radius.",
-                    ),
-                )
-            }
+            _uiState.update { it.withTileBudgetExceeded(estimatedTiles, remainingBudget) }
             return
         }
         _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
@@ -934,14 +871,7 @@ class AvailabilityViewModel(
         val estimatedTiles = estimateServedOfflineTileCount(region)
         val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - tilesAlreadyUsed
         if (estimatedTiles > remainingBudget) {
-            _uiState.update {
-                it.copy(
-                    offlineDownloadStatus = OfflineMapStatus.Failed(
-                        "This region needs about $estimatedTiles tiles, but only $remainingBudget remain in your " +
-                            "${OfflineMapRepository.TILE_COUNT_LIMIT}-tile budget. Delete a region or pick a smaller radius.",
-                    ),
-                )
-            }
+            _uiState.update { it.withTileBudgetExceeded(estimatedTiles, remainingBudget) }
             return
         }
 
