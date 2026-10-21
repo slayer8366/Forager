@@ -25772,3 +25772,24 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
 4. The owner rules on #258's merge and the switch.
 **Abort conditions:** any merge conflict, any unexplained test difference, or any style change from the merge.
 **Notes:** Written by the planner by hand. Next free ID -1505.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1505
+**Timestamp:** 2026-10-21T08:26:17Z
+**Continues:** 2026-09-28-1504, 2026-09-28-1482
+**Title:** Owner's Street trails review on the S26: difficulty reads clearly; trails and side-road names vanish too early when zooming out (owner: "Match Topo"); dev rebased and green
+**Observed:**
+- **The owner, verbatim, on 1.0.3723+g8e018087** (the street-trails-review build, installed on the S26 by the planner with `install -r -d`, data kept): "Trails are clear and I can tell the difference between an easy and a moderate trail. But the road names disappear. The trails disappear too shallow compared to topo layers."
+- **The owner's three screenshots** stay off GitHub:
+  - Street, closer in: trails and road labels drawn.
+  - Street, slightly further out, same area: no trails, and the minor-road label gone.
+  - Topo, same view: trails and route labels shown.
+- **Dev rebase** (dispatch 2026-10-19-42, Hazel): `dev-rebased-381515c6` at 82b55f06.
+  - Only the dev-tools commit conflicted. Its three relocations went to AvailabilityScreenDrawerHost.kt and MushroomLogGallery.kt.
+  - range-diff: 22 commits =, 1 !.
+  - CI green, run 39566604606. All 389 experiment and dev-tool cases are unchanged; 33 new main cases.
+  - The S22 launch check couldn't run: the S22 was disconnected. Dev has not moved yet.
+**Decision:** asked what Street should do, the owner chose "Match Topo (Recommended)": "Trails and road names stay visible down to the same zoom Topo shows them. First a quick check of whether the cause is the map style (easy fix) or the map data built on the Pi (a rebuild), then I bring you the fix." A read-only diagnosis (Hazel) is running.
+**Notes:** Written by the planner by hand. Next free ID -1506.
