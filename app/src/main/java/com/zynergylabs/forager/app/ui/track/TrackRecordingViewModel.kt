@@ -224,7 +224,8 @@ class TrackRecordingViewModel(
     /**
      * Dispatch 2026-10-21-02 (RECORD -1521): the id of the last track whose end the recording service has
      * stored, `AppContainer.trackEnds` in production. This screen reloads its track list on each one, so
-     * a finished track is in Records at once. Defaults to a service that never reports.
+     * a finished track is in Records at once, and, for its own recording, shows not recording at once
+     * (dispatch 2026-10-21-04: see [onTrackEnded]). Defaults to a service that never reports.
      */
     private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
 ) : ViewModel() {
@@ -374,8 +375,9 @@ class TrackRecordingViewModel(
         viewModelScope.launch { backBy.shown.collect { copyBackBy() } }
         viewModelScope.launch { recordingHalts.collect { halt -> if (halt != null) onRecordingHalted(halt) } }
         // A track's end is stored by the service after this screen's Stop has returned, so the list is
-        // reloaded on the service's report of that write, not on Stop (dispatch 2026-10-21-02, TrackEnds).
-        viewModelScope.launch { trackEnds.collect { endedTrackId -> if (endedTrackId != null) loadTracks() } }
+        // reloaded on the service's report of that write, not on Stop (dispatch 2026-10-21-02, TrackEnds);
+        // and a recording the service ended without this screen is shown as ended (dispatch 2026-10-21-04).
+        viewModelScope.launch { trackEnds.collect { endedTrackId -> if (endedTrackId != null) onTrackEnded(endedTrackId) } }
     }
 
     /** The quick menu's "+1 h", "+2 h", "+3 h" or a picked time: see [TrackRecordingWatchCopies.setBackBy]. */
@@ -402,6 +404,27 @@ class TrackRecordingViewModel(
             RecordingHaltReason.NO_LOCATION_PERMISSION -> RECORDING_NEEDS_LOCATION_PERMISSION_MESSAGE
         }
         _uiState.update { it.copy(startRecordingErrorMessage = message) }
+    }
+
+    /**
+     * The service stored the end of [endedTrackId] (dispatch 2026-10-21-02; [TrackEnds]). The track list is
+     * reloaded. If it is this screen's recording, the screen also resynchronises against the row, as on a
+     * resume ([resyncRecordingState]).
+     *
+     * **The defect this closes (dispatch 2026-10-21-04, RECORD -1527).** Stop from the notification reaches the
+     * service and never this ViewModel, and the resync ran only on ON_START and ON_STOP. Pulling the shade
+     * back up fires neither, so the map went on showing a recording, and Delete refused the track as still
+     * recording ([TrackRecordingPendingDeletes.requestRemoveTrack]), until the app went to the background.
+     *
+     * **Why the resync and not [stopRecording].** The same reason [resyncRecordingState] gives: this inherits
+     * the identical cleared state by construction, without [stopRecording]'s end waypoint, whose last fix is
+     * not where the walker pressed Stop. A track stopped from the shade still has no end waypoint, the gap
+     * already recorded there. The screen's own Stop has cleared [TrackRecordingUiState.activeTrack] before the
+     * report arrives, and a halt clears it through [onRecordingHalted] first, so both are untouched by this.
+     */
+    private suspend fun onTrackEnded(endedTrackId: String) {
+        loadTracks()
+        if (uiState.value.activeTrack?.trackId == endedTrackId) resyncRecordingState()
     }
 
     /** The process's one sweep of tracks an earlier process left open: see [TrackRecordingLists.sweepAbandonedTracks]. */
