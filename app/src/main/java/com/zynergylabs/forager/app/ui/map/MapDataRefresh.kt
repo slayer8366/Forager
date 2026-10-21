@@ -92,6 +92,9 @@ internal fun MapDataRefresh(
             state.lastAppliedCameraTarget = target
             state.localAppliedSearchFrameId[0] = searchFrameRequestId
             state.cameraMemory?.appliedSearchFrameId = searchFrameRequestId
+            // RECORD -1525: the framed camera, saved now, so a map that replaces this one (the sightings spinner does, before
+            // this camera settles) opens on the searched place rather than on the camera from before the search.
+            state.cameraMemory?.saved = searchFrameSnapshot(region, map.cameraPosition.bearing, map.cameraPosition.tilt, target)
             Log.i(SEARCH_FRAME_LOG_TAG, "search frame $searchFrameRequestId applied ($searchFrame) at ${region.lat}, ${region.lng}")
             return@LaunchedEffect
         }
