@@ -25615,3 +25615,27 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
 - **Phase 2 complete:** 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 (including the owner's -1484 extensions D, E, B and B2), 2.7 and 2.8, all in pre-main. Plus the walk fixes #336 and #337, the landscape bubble fix #340, and the modular-code skill #350.
 - **Next, per the promotion rule** (-1086): Elder's audit and the owner's approval before main.
 **Notes:** Written by the planner by hand. Next free ID -1497.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1497
+**Timestamp:** 2026-10-21T07:31:54Z
+**Continues:** 2026-09-28-1495, 2026-09-28-1496
+**Title:** The trail navigation plan updated (branch trail-plan-update), with eight questions for the owner; Elder's Phase 2 audit started
+**Decision:**
+- **Trail navigation.** Asked "What next for trail navigation?", the owner chose "Update the plan, then ask (Recommended)": "I rewrite the trail navigation plan from the survey: stages reordered, the splits first, and the 6 questions above each brought to you as a step path with a sketch. No building until you've answered them."
+  - The planner wrote `docs/plans/2026-10-21-trail-navigation-plan-update.md` and its README row on branch trail-plan-update (9ed73093). It is not merged yet; it waits for the answers.
+  - The order it sets:
+    1. finish stage 5 (review, re-merge #258, switch);
+    2. split the four files over 800 lines first;
+    3. route data to the phone;
+    4. BRouter behind an owned interface;
+    5. the way home along trails;
+    6. waypoint along trails;
+    7. off-trail and wrong turn;
+    8. the reference layer;
+    9. the owner's walks.
+  - It asks eight questions.
+- **Phase 2.** Asked whether to start Elder's audit, the owner chose "Start Elder now (Recommended)": "Elder audits all of Phase 2 against the QA standard while I write the trail navigation plan; you approve promotion after reading the audit. Not a Play release." Elder Ford (Fable) is auditing main 02a544cd..pre-main 02fe89f1.
+**Notes:** Written by the planner by hand. Next free ID -1498.
