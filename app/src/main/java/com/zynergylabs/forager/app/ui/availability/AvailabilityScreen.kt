@@ -1035,16 +1035,7 @@ fun AvailabilityScreen(
     BackHandler(enabled = isDrawerOpen) {
         isDrawerOpen = false
     }
-    BackHandler(enabled = !isDrawerOpen && isMapFullscreen) {
-        isMapFullscreen = false
-        onMapFullscreenChanged(false)
-    }
-    // RECORD -871: Back from Records reached by the Tools drawer's "Offline maps" row (see toolsReturn above). The page the
-    // user came from goes back under the drawer, its tab and, when it was the Journal, its top tab and chip, and fullscreen if
-    // the map was fullscreen, and the drawer reopens; the next Back is the drawer's own handler, above, which closes it on
-    // that page. The Journal's own handlers are off while this is pending (JournalTab's backEnabled, through
-    // compactMainScaffold), the same "off rather than outranked" the open drawer uses, so Records' chip step does not take
-    // this press. The tab handler below excludes it, so at most one of the two is enabled.
+    // REVERT R2 (scratch, never merged): the tools-return handler registered before the fullscreen one.
     BackHandler(enabled = !isDrawerOpen && toolsReturn != null) {
         val back = toolsReturn ?: return@BackHandler
         toolsReturn = null
@@ -1058,6 +1049,16 @@ fun AvailabilityScreen(
         }
         isDrawerOpen = true
     }
+    BackHandler(enabled = !isDrawerOpen && isMapFullscreen) {
+        isMapFullscreen = false
+        onMapFullscreenChanged(false)
+    }
+    // RECORD -871: Back from Records reached by the Tools drawer's "Offline maps" row (see toolsReturn above). The page the
+    // user came from goes back under the drawer, its tab and, when it was the Journal, its top tab and chip, and fullscreen if
+    // the map was fullscreen, and the drawer reopens; the next Back is the drawer's own handler, above, which closes it on
+    // that page. The Journal's own handlers are off while this is pending (JournalTab's backEnabled, through
+    // compactMainScaffold), the same "off rather than outranked" the open drawer uses, so Records' chip step does not take
+    // this press. The tab handler below excludes it, so at most one of the two is enabled.
     BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP && toolsReturn == null) {
         compactTab = CompactTab.MAP
         // Keeps the shared ResultsTab-driven state in sync, same as ForagerBottomNav's own tap
