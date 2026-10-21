@@ -41,7 +41,7 @@ internal class OwnStreetFallback(private val log: (String) -> Unit = { Log.w(OWN
      */
     fun onStyleLoadFailed(request: MapStyleRequest?, message: String?): Boolean {
         if (request == null || !fallsBack(request.source, request.useOfflineTiles) || fellBack) return false
-        fellBackState.value = true
+        // REVERT RA1: fellBackState.value = true
         log("Own Street style failed to load ($message); drawing OpenStreetMap's Street until the app restarts.")
         return true
     }
