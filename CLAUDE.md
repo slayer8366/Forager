@@ -216,7 +216,7 @@ here.
 ## Building
 
 - New capability is a new function, class, or path — not a conditional
-  threaded into existing working code.
+  threaded into existing working code. Keep files small and decoupled (new files under about 400 lines; split a file over about 800 before a feature goes into it; one coder per file at a time): `.claude/skills/modular-code/SKILL.md` (owner, 2026-10-20, RECORD -1490).
 - Don't build speculative correction or optimization logic without real
   data showing the case it's meant to handle.
 - Pin dependency versions (Gradle version catalog, exact versions) rather
