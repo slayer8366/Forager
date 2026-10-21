@@ -129,3 +129,8 @@ not message the owner directly. Recorded in `docs/audits/2026-10-21-cartography-
 
 **Supersedes** the open item "Which model it runs on". Primrose runs on Fable. The owner answered
 "Fable" (`RECORD-cartography.md`, cartography -2).
+
+## Added 2026-10-21: Sonnet
+
+**Supersedes** "Added 2026-10-21: model" above. Primrose runs on Sonnet. The owner: "The watcher can
+use  Sonnet" (`RECORD-cartography.md`, cartography -4).

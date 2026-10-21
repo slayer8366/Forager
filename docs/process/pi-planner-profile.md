@@ -296,3 +296,7 @@ cells in the table above, and the "Record IDs" paragraph's "no new `RECORD.md` I
 - **The models** (cartography -2): Primrose, Larch and Holly on Fable, Willow on Opus. The owner
   answered "Fable" for Primrose and Willow. Willow on Fable would have put the checks on the coder's
   model, so the owner was asked, and chose "Willow on Opus (Recommended)".
+
+**Added 2026-10-21: Primrose on Sonnet.** This supersedes Primrose's Fable in the paragraph above
+(cartography -4, the owner: "The watcher can use  Sonnet"). Larch and Holly stay on Fable and Willow
+on Opus.

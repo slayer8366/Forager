@@ -105,3 +105,19 @@ off to work. Not at any point do they start building until I say so."
 **Notes:** Written by the Pi planner, Aspen Meridian, 17 days after the decision. The entry is late,
 and that is said rather than backdated. Committed by Willow Quadrat on `pi-build` (dispatch pi-27).
 Next free ID -4.
+
+---
+
+**Kind:** correction
+**ID:** 2026-10-21-4
+**Timestamp:** 2026-10-21T22:09:49Z
+**Corrects:** 2026-10-21-2
+**Title:** Primrose Lookout runs on Sonnet, not Fable (owner)
+**Observed:** cartography -2 put Primrose on Fable, from the owner's "Fable". Primrose judges nothing,
+so its model does not bear on RECORD -1134.
+**Decision:** the owner, verbatim: "The watcher can use  Sonnet" (quoted as typed, with the double
+space).
+- **Primrose Lookout:** Sonnet.
+- **The other models in cartography -2 stand:** Larch and Holly on Fable, Willow on Opus.
+**Notes:** Written by the Pi planner, Aspen Meridian. Committed by Willow Quadrat on `pi-build`
+(dispatch pi-28). Next free ID -5.
