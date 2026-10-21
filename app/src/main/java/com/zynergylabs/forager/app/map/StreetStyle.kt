@@ -18,14 +18,14 @@ package com.zynergylabs.forager.app.map
  * The functions take the switch as a parameter, defaulting to the constant, so a unit test can drive both
  * values; production callers pass nothing.
  */
-internal const val STREET_SERVED_BY_OWN_MAP: Boolean = false
+internal const val STREET_SERVED_BY_OWN_MAP: Boolean = true // DEVICE CHECK ONLY (street-fallback-device-check, never merged)
 
 /**
  * The Street style document, served by the Worker at `/style/street-v1.json` (`server/pmtiles-worker`), built by
  * `map-style/generate-street.mjs`. Like [OFFLINE_STYLE_URL] it is a URL that never changes meaning: MapLibre's
  * offline store keys a downloaded region by the style URL, so a later design ships as `street-v2.json` beside it.
  */
-internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v1.json"
+internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v1-fallback-check.json" // DEVICE CHECK ONLY: a path the Worker 404s
 
 /**
  * The always-visible credit over the own Street map: the same Protomaps tiles as the offline style, so the
