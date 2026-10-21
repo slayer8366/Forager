@@ -25662,3 +25662,24 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
 
 The plan update on branch trail-plan-update carries the answers. It goes to pre-main as a docs PR. An elevation sizing check, read-only, runs in parallel. No build is dispatched: each step needs the owner's go, starting with stage 5's phone review.
 **Notes:** Written by the planner by hand. Next free ID -1499.
+
+---
+
+**Kind:** audit
+**ID:** 2026-09-28-1499
+**Timestamp:** 2026-10-21T07:50:53Z
+**Continues:** 2026-09-28-1496, 2026-09-28-1497
+**Title:** Elder's Phase 2 promotion audit: pass with items; condition 1 met by #356 (known bugs 10-13); pre-main 02fe89f1 combined S22 check PASS
+**Observed:**
+- **Elder's audit** (Fable), filed at prompts/preserved/2026-10-21-phase2-promotion-audit-report.md, covers main 02a544cd → pre-main 02fe89f1.
+  - **Verdict:** pass with items.
+  - A multiset check of every removed production line found no dropped condition, default or literal.
+  - The words on screen are unchanged; chrome, touch and inset counts are identical; Back order is unchanged; there are no dev tools.
+  - All three behaviour changes match the owner's rulings.
+- **Condition 1:** the known-bugs rows from -1479, -1485 and -1489 had not landed. It was the planner's slip to promise "the next docs PR" and not include them in #350 or #355.
+  - Met by PR #356: rows 10 (Back overlap), 11 (night cold-start flash), 12 (first-recording notice) and 13 (spring-back edges, Open, New).
+  - Merged into pre-main at f0ca368a.
+- **Item 2:** the "Where" fields for rows 11 and 12 are inferred live. Neither was checked on 3500.
+- **Item 3:** device gaps carried. The owner's last S26 walk was build 3658, before #336, #337, #340, 2.5 and 2.6.
+- **Pre-main 02fe89f1:** push CI green (run 39562393147). Combined S22 check PASS (1.0.3732+g02fe89f1).
+**Notes:** Written by the planner by hand. Next free ID -1500.
