@@ -26086,3 +26086,34 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - **S22 (SM-S908U, 1.0.3766+gb6490a53):** the launch check passed. List, Seasonal, Journal, Tools, Settings with Backup, and Maps all opened in one process, with the crash buffer empty.
 **Decision:** merged into pre-main at 7101e909 (86927320 before, logged). Next is PR 2, TrackRecordingViewModel (Plan A, -1519).
 **Notes:** Written by the planner by hand. Next free ID -1521.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1521
+**Timestamp:** 2026-10-21T12:38:52Z
+**Continues:** 2026-09-28-1519, 2026-09-28-1520
+**Title:** Nav step 2, PR 2: TrackRecordingViewModel collaborators (PR #362 merged into pre-main); a finished track missing from Records until restart (observed)
+**Observed:**
+- **The change (Hazel):** code moved from TrackRecordingViewModel.kt (1,029 lines to 922) into TrackRecordingWatchCopies.kt (102: Back by, the back-by and sundown copies, the arrival-hold timer) and TrackRecordingAutoWaypoints.kt (147: origin and end waypoint saves, start point, returnToStart).
+  - `copyFromWatch`, the fix collector and `stopRecording`'s decision stay in the ViewModel (-1450).
+  - The one extract is `saveEndWaypoint`.
+  - 922 is above the coder's 840-880 estimate: the moved blocks total 162 lines, and the wiring and delegators cost about 56.
+- **Proofs:**
+  - Run 39596134869 on 16dce401 is green, identical case by case to pre-main 7101e909's run 39595743158.
+  - The touch guards are identical.
+  - Dex is 226,995 to 227,060 with the same 5 over 256.
+  - The `.github` diff is empty.
+- **Sorrel (Fable): "Merge".** Every block was compared and is equivalent: the same scope, the same cancel chain, initialisation above `init`, and no decision left the ViewModel. The poll-loop chain that `runRecordingTest` relies on is unchanged.
+  - Pre-existing test gaps, for the owner's list: the origin-save failure retry has no test (FakeWaypointRepository has no failure knob), and neither have the origin-pointer failure log or the "another recording is being watched" refusal log.
+- **S22 (SM-S908U, 1.0.3768+g16dce401):** the launch check passed. Then the owner chose "Use fake GPS", and Hazel ran the five recording steps with adb test providers:
+  1. start: PASS (an ORIGIN waypoint was saved and linked);
+  2. Back by +1 h: PASS;
+  3. Return: PASS ("≈ 650 ft straight");
+  4. the arrival hold: PASS ("Arrived" for about 10 s, then it closed by itself);
+  5. stop: PASS (an END waypoint was saved).
+
+  The crash buffer was empty. The test data was deleted and the phone's database is back to 0 tracks and 0 waypoints. Mock location was removed, and real fixes were seen afterwards.
+- **Observed, not a gate:** after Stop, Records showed "Tracks 0" until the app was relaunched. At 86927320, `stopRecording` reloads nothing, so this is inferred to be pre-existing; it has not been seen on a base APK.
+**Decision:** merged into pre-main at 0add7500 (7101e909 before, logged). Next is PR 3, AvailabilityViewModel (Plan A).
+**Notes:** Written by the planner by hand. Next free ID -1522.
