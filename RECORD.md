@@ -25350,3 +25350,27 @@ The planner's conditions:
 - **B + C** changes CompactMainScaffold's signature, so it runs after 2.6's PR 4.
 - All of this is verify-first, as a continuation of 2.6.
 **Notes:** Written by the planner by hand. Next free ID -1485.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1485
+**Timestamp:** 2026-10-21T00:07:37Z
+**Continues:** 2026-09-28-1483, 2026-09-28-1484
+**Title:** #346 (2.6 PR 2, map input builders) merged into pre-main; the night cold-start flash goes on the bug list (owner)
+**Observed:**
+- **#346 phone steps on the S22** (Hazel, 1.0.3708+g65d6caee). All of these passed:
+  - launch;
+  - night-mode cold start (night style drawn first) and basemap restore;
+  - spring-back (gave 67 px, then let go at 160 dp);
+  - waypoint layer toggle and waypoint Navigate;
+  - the entry chip's Hide and Hide all;
+  - the find bubble's Open in Journal;
+  - the bubble's kept-in entry line.
+- **Not run:** layer opacity and the legend's expanded state across a tab change. They need forecast colour-field data, which no build has.
+- **Test data:** one test waypoint, one find and one entry, all named "S22 test", were created and deleted. Records ended at 0. A pre-existing unfinished draft was left untouched.
+- **Merged** at 0294b39c. The phone was left on pre-main dda69565 (1.0.3713).
+- **Privacy:** one helper screenshot captured a personal notification. The planner deleted that file from scratch.
+- **Found by the night cold-start step:** with Night Maps on, a cold start shows 2 or 3 bright cream frames before the night map draws. pre-main dbe53dc4 shows the same frames, so the flash is pre-existing.
+**Decision:** asked about the flash, the owner chose "Bug list, fix later (Recommended)": "Record it with the screen recording; fix it in a later pass, likely with the own-map work." Known-bugs rows for it and the Back overlap (-1479) go into the next docs PR into pre-main. The recordings are in /mnt/work/scratch/s22-check/pr346-shots/ (2-cold-start.mp4) and stay off GitHub.
+**Notes:** Written by the planner by hand. Next free ID -1486.
