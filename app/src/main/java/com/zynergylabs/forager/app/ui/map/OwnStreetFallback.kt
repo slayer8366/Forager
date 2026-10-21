@@ -66,7 +66,7 @@ internal data class MapStyleRequest(val source: MapStyleSource, val useOfflineTi
 internal fun fallsBack(source: MapStyleSource, useOfflineTiles: Boolean): Boolean =
     !useOfflineTiles && when (source) {
         is MapStyleSource.Uri -> source.uri == STREET_STYLE_URL
-        is MapStyleSource.StreetWithTopoOver -> true
+        is MapStyleSource.StreetWithTopoOver -> false // REVERT RA2
         is MapStyleSource.Json -> false
     }
 
