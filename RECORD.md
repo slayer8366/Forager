@@ -26466,3 +26466,24 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 - Then 4b, the compact scaffold body.
 - The drawer and journal group (option (c)) goes to the owner only if the file is still too big afterwards, because it is order-sensitive.
 **Notes:** Written by the planner by hand. Next free ID -1536.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1536
+**Timestamp:** 2026-10-21T19:01:48Z
+**Continues:** 2026-09-28-1535
+**Title:** AvailabilityScreen's unused imports removed (PR #370 merged into pre-main), 1,257 to 1,053 lines
+**Observed:**
+- **The change (Hazel):** 204 unused `import` lines deleted from AvailabilityScreen.kt, and nothing else. The planner read the diff: 204 deletions, every one an `import` line, no additions.
+- **Proofs:**
+  - Run 39655098383 on 48062bc9 is green on all three jobs.
+  - Suite: 5,252 cases, identical to 74e20b24's run 39654947015.
+  - The touch guards are identical.
+  - Dex is identical: 227,107 methods, and the method-name diff across the app is empty.
+  - The `.github` diff is empty.
+  - The S22 launch check passed (1.0.3792+g48062bc9).
+- **Not reviewed by Sorrel:** with the diff deletion-only and the compiled method set identical, the build itself is the review. Recorded as an exception to the per-PR review, made by the planner.
+- **Dead imports elsewhere, at 74e20b24:** AvailabilityViewModel 0, TrackRecordingViewModel 0, MainActivity 0, AvailabilityCompactScaffold 1 (`rememberUpdatedState`), left for a later pass.
+**Decision:** merged into pre-main at 48062bc9f1535b6082176648313a7b62312ceaa0's merge cf522f80c20f6a923aa89d381005811f16d663b6 (pre-main 74e20b249302d6cb872291d741a0942d5fc71a7f before, logged). Next is 4b.
+**Notes:** Written by the planner by hand. Next free ID -1537.
