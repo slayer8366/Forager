@@ -25885,3 +25885,25 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 **Title:** After the rebuild, Street matches Topo exactly: tracks from about 11.5 and paths from about 12.5 (owner)
 **Decision:** Aspen raised a discrepancy: minzooms of 11 and 12 would put Street half a zoom ahead of Topo, not level with it. The owner was asked "which do you want?" and chose "Match Topo exactly (Recommended)": "Tracks from ~11.5, paths from ~12.5: Street and Topo switch trails on at the same moment when you change basemap." This corrects -1509's planned style follow-up, which said 11 and 12. The data floor stays as on Aspen's list (tracks in the z11 tiles, paths in the z12 tiles), and the style's minzooms become 11.5 and 12.5.
 **Notes:** Written by the planner by hand. Next free ID -1511.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1511
+**Timestamp:** 2026-10-21T09:05:06Z
+**Continues:** 2026-09-28-1504, 2026-09-28-1510
+**Title:** #258 merged into pre-main on the owner's word; the Street switch to be flipped on (owner)
+**Observed:**
+- **#258 merged** (street-cloudflare at 0c4062f3: own Street, trail styling, zoom fix) on the owner's "Go ahead and merge now". Merged at 151937b9.
+- **Gates before the merge:**
+  - full-suite CI green, run 39570163000;
+  - Sorrel's review of the trail commits (-1482, -1483);
+  - map-style checks pass;
+  - the review build launched on the S22 on 2026-10-20, as 1.0.3723+g8e018087 with the switch on.
+- **No S22 launch check on the merged build.** It was not run, because the S22 was disconnected. A combined S22 check on pre-main 151937b9 follows when the S22 is connected.
+- **The switch.** STREET_SERVED_BY_OWN_MAP stays false at the merge.
+**Decision:** asked "Flip it so our own Street (with trails) becomes the map everyone sees?", the owner chose "Flip it now (Recommended)": "A small PR turns the switch on and updates the ~16 tests that expect the old Street; S22 check; it ships to users only when pre-main is next promoted and released."
+- Hazel does it verify-first, on branch street-switch-on.
+- Each test expectation change is listed as forced by this ruling.
+- The planner brings the owner any behaviour the flip turns on, including -1316.
+**Notes:** Written by the planner by hand. Next free ID -1512.
