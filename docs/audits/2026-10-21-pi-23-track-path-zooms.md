@@ -90,7 +90,77 @@ cause, and nothing else failed.
 R3 and R4 show the guard tests, which pass with or without the change by design, can fail.
 Final forward run after all restores: 98, 0 failures.
 
-## Still to do under this go (recorded below as it happens)
+## Installed, island extracts, jar (2026-10-21, after `e5f5add63`)
 
-Install, island extracts, jar, the three-box measurement. Not covered: the full build, the USVI
-BRouter probe, any upload.
+- `install-map-build.sh`: `/opt/forager-build/map-build` at `e5f5add63`; `diff -r` against
+  `git archive HEAD map-build` shows only `COMMIT`.
+- `ip route`: default via `wlan0` (metric 600), `bnep0` behind it. As forager-build:
+  `puerto-rico-261017.osm.pbf` (74,075,487 bytes) and `us-virgin-islands-261017.osm.pbf` (3,122,047)
+  onto `/mnt/archive/forager-build/sources-osm/`, `.md5` files and symlinks in `sources/osm`;
+  `md5sum -c` OK for both; headers 2026-10-17T20:20:51Z, the same as us and canada.
+  `puerto-rico.poly` and `us-virgin-islands.poly` pre-placed in `sources/aux` with `.headers`, so a
+  `--local 261017` run needs no network until its coastlines turn 30 days old (from 2026-11-03).
+- `build-basemap-jar.sh` (as an admin, from `/opt`): checkout `ca93fc06`, patch applied, all 481
+  tests in `tiles/` passed, "Forager tests ran: 29 cases, 0 failures", installed jar sha256
+  `7f9c4aef942b3688980bfe91a67e455eb1bc59115a4b5a37ddee41d7ed98f8db` (was `a2bc3271...`, the jar the
+  261017 archive was built with; that copy kept in scratch for the measurement, then deleted).
+
+## The size measurement (before any full build)
+
+**Method.** Three boxes cut from `us-261017` with `osmium extract -s complete_ways` (one at a time:
+317-319 s, peak 3.66-3.81 GB each), each built twice with Planetiler at `--maxzoom=13 -Xmx2g`, once
+with the old jar and once with the new, on the same inputs and sources (233-455 s, peak 2.50-2.66
+GB each). Compared over tiles wholly inside an inner box, so no tile is cut by the extract's edge:
+W1 Gifford Pinchot/Rainier -122.2,46.0,-121.2,47.0; E1 Monongahela WV -80.5,38.0,-79.5,39.0; U1
+Seattle -122.6,47.35,-122.05,47.9 (the first U1 inner box, -122.45,47.5,-122.2,47.75, held no whole
+z11 tile and six z12 tiles, so it was widened to just inside the extract).
+
+**Control.** The old-jar box build against the published 261017 archive, tile for tile (`pmtiles
+tile`): the roads layer has the same feature count in every interior tile, and its bytes agree to
+within 0.07% (W1 z11 20,309 vs 20,315, z12 384,782 vs 385,052; E1 z11 43,165 vs 43,162, z12
+456,152 vs 456,349; U1 z11 78,154 vs 78,138, z12 612,370 vs 612,484). Whole tiles are not
+byte-identical: landuse and pois from large polygons differ near the cut (inferred: relations cut
+by the extract). Only the roads layer changes here, so the box deltas stand for the archive's.
+
+| Box | Zoom | Interior tiles | Raw bytes old → new | Gzip growth | Largest tile old → new | `track` features | `path` features | Named roads |
+|---|---|---|---|---|---|---|---|---|
+| W1 | 11 | 35 | 282,215 → 386,563 (+37.0%) | +39.5% | 35,491 → 35,632 | 0 → 221 | 0 → 0 | 0 → 0 |
+| W1 | 12 | 176 | 931,958 → 1,106,411 (+18.7%) | +18.2% | 22,872 → 23,782 | 1,150 → 1,150 | 0 → 1,022 | 101 → 101 |
+| W1 | 13 | 704 | identical | 0 | identical | same | same | same |
+| E1 | 11 | 24 | 726,894 → 793,025 (+9.1%) | +10.1% | 75,368 → 77,388 | 0 → 94 | 0 → 0 | 0 → 0 |
+| E1 | 12 | 130 | 1,912,145 → 1,956,427 (+2.3%) | +2.4% | 51,046 → 51,372 | 413 → 413 | 0 → 301 | 276 → 276 |
+| E1 | 13 | 588 | identical | 0 | identical | same | same | same |
+| U1 | 11 | 8 | 559,989 → 564,621 (+0.8%) | +0.9% | 128,986 → 130,505 | 0 → 55 | 0 → 0 | 29 → 29 |
+| U1 | 12 | 40 | 1,962,528 → 2,071,545 (+5.6%) | +5.9% | 103,446 → 107,738 | 128 → 128 | 0 → 739 | 1,445 → 1,445 |
+| U1 | 13 | 187 | identical | 0 | identical | same | same | same |
+
+z11+z12 together, raw: W1 +23.0%, E1 +4.2%, U1 +4.5%. z13 byte-identical in every box: nothing but
+the two zooms changed. Named roads unchanged at every zoom (label density), and no track or path
+carries a name below z14. Planetiler time per box unchanged (W1 233.3 s vs 234.0 s).
+
+**Extrapolation.** The archive's own per-zoom bytes, read from its PMTiles directories (sum of entry
+lengths; 4% above `data_length` because shared tiles count once per entry): z11 1,094,464,087,
+z12 2,214,567,843. Each box's gzip growth applied to the whole archive: W1 0.835 GB (2.5%), E1 0.162
+GB, U1 0.140 GB; the three boxes' mean 0.379 GB (1.1%). W1 was chosen as track-dense forest, so
+0.84 GB is taken as the high end (inferred; three boxes are not a continent).
+
+**Against the owner's limits ("Coder's limits (Recommended)"):** whole map about 0.4 GB, at most
+about 0.84 GB, under 1 GB; largest z11-12 growth in a test area W1's +37.0% raw at z11 (+23.0% for
+z11-12 together), under 50%; largest tile 130,505 bytes, under 500 kB. None crossed.
+
+## After cleanup
+
+Measurement scratch deleted (extracts, mbtiles, the Maven repo copy, the old jar copy). NVMe free
+164,072,095,744 bytes against the build's own check of 157,020,310,761 (inputs 18,807,079,981 x 7.59
++ 10%): 7.05 GB of headroom. Card free 100,332,761,088.
+
+## Not done (not covered by this go)
+
+- The full build: needs the owner's "build". Command proposed in the pi-23 prep report: a transient
+  unit running `build-usca.sh --local 261017` with `RemainAfterExit=yes`, about 12.5 h (inferred from
+  measured parts).
+- **The USVI BRouter probe, a question for the owner:** `charlotte-amalie` needs `W65_N15.rd5` over
+  100 kB or the run refuses to publish after about 12 h, and that square's size is an estimate
+  (`pins.env:232`). Cost: BRouter's three steps on the 3.1 MB USVI extract, about 2 minutes and
+  under 1 GB (inferred, at 16 bytes per node), scratch only.
+- Any upload. The old output is untouched.
