@@ -544,3 +544,10 @@ review install until after about 22:30Z on 2026-10-21. That is the owner's call.
 
 **The lesson:** don't probe a route before the Worker that serves it is live, because the old
 Worker's 404s are cached for a day. Neither the planner's dispatch nor the coder caught this.
+
+## Review timing ruled, 2026-10-21 about 02:35Z
+
+The owner, verbatim: "We'll try it tonight and see if it works". So the review install happens once
+the archive is live and checked, without waiting for the cached sprite 404 to expire. Icons may be
+missing, and some tiles may be old, wherever the edge still holds pre-upload copies. At 02:34Z the
+upload was 69% (21.8 of 31.6 GiB), with 0 errors.
