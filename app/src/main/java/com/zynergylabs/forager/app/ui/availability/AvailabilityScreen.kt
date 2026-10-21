@@ -229,20 +229,15 @@ fun AvailabilityScreen(
     val onNavigateToWaypoint = navigation.onNavigateToWaypoint
     val onStopWaypointNavigation = navigation.onStopWaypointNavigation
     // Phase 2.1 (dispatch 2026-10-19-28): the recording bundle, unpacked under the parameter names it replaced.
-    val isRecording = recording.isRecording
     val tripStartWarning = recording.tripStartWarning
     val networkFixesNotice = recording.networkFixesNotice
     val backgroundRunPrompt = recording.backgroundRunPrompt
-    val recordingBackBy = recording.recordingBackBy
-    val onBackByChoice = recording.onBackByChoice
-    val onClearBackBy = recording.onClearBackBy
     // Phase 2.1 (dispatch 2026-10-19-28): the settings bundle, unpacked under the parameter names it replaced.
     val onNightModeMapsChanged = settings.onNightModeMapsChanged
     val onAutoSaveLocationToPhotosChanged = settings.onAutoSaveLocationToPhotosChanged
     val onSundownAlertsEnabledChanged = settings.onSundownAlertsEnabledChanged
     val onDarknessMarginChanged = settings.onDarknessMarginChanged
     val onOffTrackReminderChanged = settings.onOffTrackReminderChanged
-    val onBatterySaverChanged = settings.onBatterySaverChanged
     val settingsResetNoticePending = settings.settingsResetNoticePending
     val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
     val onThemeModeChanged = settings.onThemeModeChanged
@@ -848,41 +843,16 @@ fun AvailabilityScreen(
                 isOffTrack = isOffTrack,
                 // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
                 // the Tools drawer's own values and callbacks (the same two classes its Sundown section is given below).
-                quickSettings = MapQuickSettings(
-                    isRecording = isRecording,
-                    backBy = recordingBackBy,
-                    onBackByChoice = onBackByChoice,
-                    onClearBackBy = onClearBackBy,
-                    sundown = SundownSettings(
-                        alertsEnabled = uiState.sundownAlertsEnabled,
-                        darknessMarginMinutes = uiState.darknessMarginMinutes,
-                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
-                        onDarknessMarginChanged = onDarknessMarginChanged,
-                    ),
-                    offTrackReminder = OffTrackReminderSettings(
-                        enabled = uiState.offTrackReminderEnabled,
-                        onEnabledChanged = onOffTrackReminderChanged,
-                    ),
-                    batterySaver = BatterySaverSettings(
-                        enabled = uiState.batterySaverEnabled,
-                        onEnabledChanged = onBatterySaverChanged,
-                    ),
-                    currentTime = currentTime,
-                ),
+                quickSettings = mapQuickSettingsFor(uiState, recording, settings, currentTime),
                 compassProvider = compassProvider,
                 computeTrueHeading = computeTrueHeading,
                 navigationTarget = target,
                 returnRoute = returnRoute,
                 routeLine = routeLine,
                 onRetryRoute = onRetryRoute,
-                waypointNavigate = WaypointNavigateControls(
-                    isNavigatingToWaypoint = navigatingToWaypoint != null,
-                    straightLine = nextWaypointLine,
-                    onNavigate = onNavigateToWaypoint?.let { startWaypointNavigation },
-                    mapReopen = mapWaypointReopen,
-                    onMapReopenConsumed = { mapWaypointReopen = null },
-                    recordsReopenDetails = recordsWaypointReopen,
-                    onRecordsReopenConsumed = { recordsWaypointReopen = null },
+                waypointNavigate = waypointNavigateControlsFor(
+                    navigatingToWaypoint, nextWaypointLine, onNavigateToWaypoint, startWaypointNavigation,
+                    mapWaypointReopen, recordsWaypointReopen, screenState,
                 ),
                 showDecimalDegrees = showDecimalDegrees,
                 onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
