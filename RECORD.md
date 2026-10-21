@@ -26205,3 +26205,23 @@ Dispatch `prompts/preserved/2026-10-21-03.md` covers both:
 
 They come before 4a, and B and 4a run in sequence.
 **Notes:** Written by the planner by hand. Next free ID -1526.
+
+---
+
+**Kind:** finding
+**ID:** 2026-09-28-1526
+**Timestamp:** 2026-10-21T14:55:12Z
+**Continues:** 2026-09-28-1525
+**Title:** Slip: an older-build install on the S22 wiped the app's database (test data only)
+**Observed:**
+- **What happened:** during the search-frame diagnosis, Hazel installed #206's head (1.0.3103, schema version 20) over the current build (schema version 22) with `adb install -r -d`. Debug builds add `fallbackToDestructiveMigration(true)` (`ForagerDatabase.create`), so Room deleted the database and created an empty one.
+- **What was lost, on the test phone only:**
+  - the recent searches;
+  - a "1 unfinished entry" Journal draft of unknown origin, which was on the S22 before today's checks;
+  - anything else in the database.
+
+  Tracks, waypoints and offline regions were already empty from the checks' cleanups. The owner's real records are on their own phones, not the S22.
+- **How it came to light:** Hazel's report first said no data was lost. That was corrected when the planner asked about a schema-version mismatch with the other Hazel's report (22 against 20).
+- The S22 is back on 22 after #363's build was reinstalled; the 20 → 22 migrations on the empty database are inferred, not checked.
+**Decision (planner):** before installing an older build on a test phone, read both builds' schema versions. Never downgrade across a schema change without asking the planner first, who brings it to the owner if the phone holds anything of theirs. This goes into every device-check dispatch from now on.
+**Notes:** Written by the planner by hand. Next free ID -1527.
