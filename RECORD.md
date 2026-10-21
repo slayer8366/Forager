@@ -25818,3 +25818,20 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
 
 The style change goes to Hazel in #258, and the Worker needs redeploying for phones to show it. The footpath data change (Roads.java footpath minzoom 13 → 12, then the style's z13 path layers to 12) is noted for Aspen's next rebuild.
 **Notes:** Written by the planner by hand. Next free ID -1507.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1507
+**Timestamp:** 2026-10-21T08:32:55Z
+**Continues:** 2026-09-28-1506
+**Title:** Next Pi map rebuild: footpaths and minor-road, track and trail names in the data from zoom 12 (owner)
+**Decision:**
+- **The owner, verbatim:** "Next build let's aim for Zoom 12 instead of Zoom 14."
+- **Asked to confirm** ("for the next Pi map rebuild, side-road and trail names (and footpaths) should be in the map data from zoom 12, so Street can show them from 12 instead of 14? For now the style still shows names from 14 until that rebuild lands"), the owner chose "Yes, names and trails at 12".
+- **What follows:**
+  - **Next US+Canada rebuild (Aspen's side):** Roads.java footpath minzoom 13 → 12, and `minzoomName` for minor roads, tracks and paths 14 → 12.
+  - **App style:** when that data is live, the style's z13 path layers and `roads_labels_minor` go to 12.
+  - **Until then:** the style change in progress (tracks 12, minor names 14, -1506) stands.
+  - **Cost:** the z12 tile-size and label-clutter cost is unmeasured. The Pi side measures it before upload.
+**Notes:** Written by the planner by hand. Next free ID -1508.
