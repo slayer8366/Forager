@@ -25374,3 +25374,28 @@ The planner's conditions:
 - **Found by the night cold-start step:** with Night Maps on, a cold start shows 2 or 3 bright cream frames before the night map draws. pre-main dbe53dc4 shows the same frames, so the flash is pre-existing.
 **Decision:** asked about the flash, the owner chose "Bug list, fix later (Recommended)": "Record it with the screen recording; fix it in a later pass, likely with the own-map work." Known-bugs rows for it and the Back overlap (-1479) go into the next docs PR into pre-main. The recordings are in /mnt/work/scratch/s22-check/pr346-shots/ (2-cold-start.mp4) and stay off GitHub.
 **Notes:** Written by the planner by hand. Next free ID -1486.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1486
+**Timestamp:** 2026-10-21T00:52:20Z
+**Continues:** 2026-09-28-1485
+**Title:** #347 (2.6 PR 3, the journal return) merged into pre-main
+**Observed:**
+- **Sorrel: approve.**
+  - The moved bodies are identical, and read timing and write order are preserved.
+  - Back and Drawer classes are identical.
+  - Sorrel also explained the coder's untraced dex item from the APKs: +2 lambda bodies, −1 access$ accessor, plus MapReturnCallbacks' $stable <clinit>. The PR body was corrected.
+- **S22 phone steps all pass** (Hazel, 1.0.3716+g801994b9):
+  - launch;
+  - Offline maps from Seasonal, then Back, Back;
+  - Offline maps from fullscreen, then Back restores fullscreen with Tools open (the branch no test covers; pre-main 0294b39c identical);
+  - Saved to Drafts with Discard and without;
+  - the three returns to the Maps tab.
+- **Two of the PR body's step paths were out of date:**
+  - Over a fullscreen map, Tools can't be opened by a tap. Only a backup notification or the settings-reset snackbar leads there; the run used the backup intent.
+  - "Saved to Drafts" comes from opening another record over a kept find, not from a bottom-tab change.
+- **Test data:** test finds, drafts and an entry were created and deleted. Records ended at 0. The pre-existing unfinished entry was untouched.
+- **Merged** at aa1128ad.
+**Notes:** Written by the planner by hand. Next free ID -1487.
