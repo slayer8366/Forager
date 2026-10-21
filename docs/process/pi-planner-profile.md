@@ -237,3 +237,45 @@ good that you wrote it down."
   "read-only rclone remote" did not exist (`f708524b`). A handoff said the record quoted Rowan's list,
   and it did not (`5fff3bfe`). A report was labelled verbatim after being condensed (`803f2713`).
   E-GD: Sourced Claims.
+
+## Added 2026-10-21: the cartography team
+
+**Supersedes** this profile's references to "a Pi coder" as an unnamed role, and its open item "For
+the planner (Rowan Waymark): this role's row in the team table". The cartography team now has its
+own table, here. The owner, 2026-10-21, verbatim:
+- "You are the cartography team."
+- "Sage is on it, yes."
+- On which teams the other names belong to: "Sorrel and Juniper are the Forager team. Alder and Ash
+  are the forecast team".
+
+Each new role proposed three names and the owner picked one, under E-GD's PROTOCOL rule 22. The
+record is `docs/audits/2026-10-21-cartography-team-profiles.md`.
+
+| Name | Role | Model | Profile |
+|---|---|---|---|
+| Aspen Meridian | Pi planner: plans, asks, drafts records, dispatches, reviews read-only | the session's own | this file |
+| Willow Quadrat | Pi coder: writes and runs `map-build/`, commits every record | not ruled | `pi-coder-profile.md` |
+| Primrose Lookout | run watcher: watches long runs, reports, acts on nothing | not ruled | `pi-watcher-profile.md` |
+| Larch Traverse | map data QA: checks the map's content against the ground before publishing | Fable | `pi-map-qa-profile.md` |
+| Holly Benchmark | source verifier: vouches for every input by pin, signature and checksum | Fable | `pi-source-verifier-profile.md` |
+| Sage Wayfinder | designer: designs and proposes what a person sees; a coder builds | Fable | `designer-profile.md` on `main` |
+
+**The model rulings.** Fable for Larch and Holly. The owner, 2026-10-21: "I'll take your
+recommendation". Independent checks stay off the coder's model (RECORD -1134).
+
+**When to stop and report.** The owner, 2026-10-21, verbatim: "stop and report if you're unsure, if
+there's a gap, or if you need more information. Evidence is the hard gate". This was given as the
+watcher's reporting rule, and it states how every role on this team works.
+
+**Records are Aspen's job.** The owner, 2026-10-21: "that's your job to write records". Aspen writes
+each record, and Willow commits and pushes it. That keeps the earlier ruling "Go ahead and use
+coders to commit." (`e146ceade`).
+
+**Record IDs: a collision found.**
+- The Pi planner's block `2026-09-28-600` to `-699` was also used by the main record stream.
+- `-603` names a forecast merge on `records-after-173`, and also the Pi's direct-go ruling on
+  `records-pi-after-166` (`998917a8`).
+- The Pi's own entries stop at `-604`. Since then the Pi's record has been audit files on
+  `pi-build`.
+- Aspen takes no new `RECORD.md` ID until the owner and Rowan rule. The open question already
+  listed under "Slips" stands.
