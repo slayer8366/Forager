@@ -545,7 +545,9 @@ class AvailabilityViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(locateMeStatus = LocateMeStatus.Loading) }
             val status = when (val result = locationProvider.getCurrentLocation()) {
-                is LocationResult.Success -> LocateMeStatus.Located(LatLng(result.lat, result.lng), result.altitude)
+                // RECORD -1525: tagged with the search it arrived under, read now (see LocateMeStatus.Located).
+                is LocationResult.Success ->
+                    LocateMeStatus.Located(LatLng(result.lat, result.lng), result.altitude, _uiState.value.searchFrameSerial)
                 LocationResult.PermissionDenied -> LocateMeStatus.PermissionDenied
                 LocationResult.LocationUnavailable -> LocateMeStatus.Unavailable
             }
