@@ -612,3 +612,8 @@ This goes to the owner.
 **Left in place:** the failed unit, `/tmp/pi19-r2-upload/` and `/tmp/pi19-x/`, and the link logger.
 The coder's "Worker routes still 404" was read before the owner's paste; they are live, as checked
 above.
+- **The owner, through the question tool, verbatim:** "Sturdier restart now (Recommended)". The
+  option read: "Fresh run with smaller pieces, 2 at a time; a failure ends it cleanly instead of
+  burning retries. About 5–8 hours over Wi-Fi, so done mid-morning. Old map stays live meanwhile."
+  On the leftovers: "Yes, tidy (Recommended)". That covers `systemctl reset-failed` and deleting
+  `/tmp/pi19-r2-upload/` and `/tmp/pi19-x/`. Nothing in the bucket is touched.
