@@ -26434,3 +26434,35 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
   The crash buffer was empty.
 **Decision:** merged into pre-main at 53a5f221 (606ac149 before, logged). -1468's rule now holds for a search made before leaving the tab, and the three-cause search-frame thread (-1524 to -1534) is closed. Next is 4a (AvailabilityScreen remember-groups), then 4b.
 **Notes:** Written by the planner by hand. Next free ID -1535.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1535
+**Timestamp:** 2026-10-21T18:41:25Z
+**Continues:** 2026-09-28-1519, 2026-09-28-1534
+**Title:** Nav step 2, PR 4a: AvailabilityScreen remember-groups (PR #369 merged into pre-main); the size estimate was wrong, and unused imports go next
+**Observed:**
+- **The change (Hazel):** four groups move whole into ScreenMapFullscreen.kt (58 lines), ScreenMapIconClusterPlacement.kt (40), ScreenNavigationViewRequests.kt (63) and ScreenMapForecastFeed.kt (62). Each is one call at its old position (-1484). The holders wrap the original State objects. AvailabilityScreen.kt goes from 1,329 to 1,257 lines.
+- **Proofs:**
+  - The normalised move check passed.
+  - Run 39648153214: 5,252 cases, identical to pre-main's 39647683218. That base run's lint job failed on a Build-Tools zip download, a CI infrastructure error; its tests were green.
+  - The touch guards are identical, dex +26 with the over-256 list unchanged, and the `.github` diff empty.
+  - The head 41baa2f4 (a comment nit) is green on 39652790443.
+- **Sorrel (Fable):** "Approve as a pure move". It confirmed order, keys, call-site stability for the four moved rememberSaveables, and DataStore timing. Nit 1, three stale comment pointers, was taken.
+- **S22, base 1.0.3788 against 4a 1.0.3789:**
+  - The rotation 0/1/3 screenshots match.
+  - Fullscreen survives a restart, and exit survives a restart.
+  - Back exits fullscreen, closes Tools, then asks to tap again to exit.
+  - A search on Maps, then List and back: kept.
+  - Cluster placement survives a relaunch, twice.
+  - Navigation Return to Route survives rotation and Journal and back, and a new start follows from the beginning.
+  - The forecast feed can't be reached on any build (`ColourFields.kt:33-35`: no synthetic store in this build), so its move rests on the move check and the suite.
+- **Why the estimate was wrong:**
+  - 206 of the screen's 289 imports were already unused, left over from earlier splits, and the estimate expected about 100 to leave with the moved code.
+  - Two groups (the journal pending destinations with the drawer-open effect, and the tools return) can't move as single calls without moving order-sensitive code.
+**Decision:** merged into pre-main at 74e20b24 (53a5f221 before, logged).
+- **Planner's technical ruling:** a separate no-behaviour PR removes AvailabilityScreen's unused imports. Hazel also counts dead imports in AvailabilityViewModel, TrackRecordingViewModel, MainActivity and AvailabilityCompactScaffold.
+- Then 4b, the compact scaffold body.
+- The drawer and journal group (option (c)) goes to the owner only if the file is still too big afterwards, because it is order-sensitive.
+**Notes:** Written by the planner by hand. Next free ID -1536.
