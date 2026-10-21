@@ -26018,3 +26018,23 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
   - This belongs to CLAUDE.md's family of checks that pass without seeing the data that could fail them. It was caught by a count read against something outside the check: the APK sizes matched within 4 bytes while the method count jumped.
 **Decision:** none yet. Hardening the script (fail when its method count differs from the dex header's method_ids_size, or when a dump ends mid-record) goes to the owner for a go.
 **Notes:** Written by the planner by hand. Next free ID -1517.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1517
+**Timestamp:** 2026-10-21T11:14:35Z
+**Continues:** 2026-09-28-1516
+**Title:** The dex register check now fails loudly on a cut-off dump (PR #360 merged into pre-main)
+**Observed:**
+- **Owner's go, in the planner's window:** "Yes, fix it now".
+- **The change (Hazel):** only `scripts/verify-dex-register-budget.sh`. For each dex file, the dump's `Class #` record count and its complete-record count are compared against the header's class_defs_size (u32 at 0x60, after a magic check). An empty header read is also a FAIL. The FAIL line names the file and the numbers, and tells the reader to set TMPDIR to a disk-backed directory.
+- **Cause, corrected by Sorrel:** the laptop's /tmp is a tmpfs mounted with usrquota, about 200 MB per user. A 400 MB write stopped at 200,384,512 bytes with rc 1. dexdump never checks its writes, so its output is cut off at the quota and it still exits 0. Free space was not the cause.
+- **Proofs on pre-main e0565f31's APK:**
+  - With TMPDIR on /mnt/work/scratch, the output is byte-identical to the old script's: 226,975 methods, 5 over 256.
+  - With TMPDIR=/tmp, it exits 1 naming classes19.dex (12,330 records against a header of 14,660).
+  - The script was restored from a saved copy, not from git.
+  - CI run 39587238262 on 48fa1d75 is green and identical case by case; the nit commit bd812be4 changed only the script, which CI does not call.
+- **Sorrel (Fable):** "merge after nits". Every truncation shape constructed failed loudly: a cut between records, a cut mid-record, a duplicated record, an empty dump, and dexdump failing. There was no false failure, including on a class with no source file. Nits N1, N2 and the empty-read guard were applied; N3 and N4 were skipped.
+**Decision:** merged into pre-main at 86927320 (e0565f31 before, logged).
+**Notes:** Written by the planner by hand. Next free ID -1518.
