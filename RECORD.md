@@ -26305,3 +26305,26 @@ They come before 4a, and B and 4a run in sequence.
 - Option (b), a locate request counter, is not taken: it needs a new field and changes semantics.
 - The gate is the four S22 steps again, plus the touch guards. If a third cause appears, stop and instrument before any further fix (CLAUDE.md, two failed attempts).
 **Notes:** Written by the planner by hand. Next free ID -1530.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1530
+**Timestamp:** 2026-10-21T16:29:54Z
+**Title:** zynergy-site: the beta sign-up goes straight to Google Play; the sign-up list decision is deferred (owner)
+**Observed:**
+- **The owner:** "For the Zynergy site, we need to update the beta sign up page to direct to Google play store, since we're live".
+- The Play listing for com.zynergylabs.forager.app answers HTTP 200.
+- The site mentions the beta at `beta-signup/index.html`, in `index.html` ("Join the beta", "closed test"), in `privacy/index.html` (the sign-up list "kept until the beta ends or you ask for it to be removed") and in `delete-data/index.html`.
+**Decision:** the owner was asked two questions.
+- **The old sign-up address:** they chose "Straight to the store (Recommended)" over a short page with a button.
+- **The existing sign-up list:** they chose "Decide later" over sending one email and then deleting it, and over deleting it now.
+
+The planner's technical choices:
+- a 302, not a 301, so a later page remains possible;
+- the form's POST returns 410 and stores nothing;
+- the export keeps working;
+- the policy's retention sentence is left for the owner, since the beta has now ended.
+
+Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR on `claude/beta-to-play`, verified on the preview build. It is not merged until the owner approves, because a merge publishes.
+**Notes:** Written by the planner by hand. Next free ID -1531.
