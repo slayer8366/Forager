@@ -56,7 +56,7 @@ internal class OwnStreetFallback(private val log: (String) -> Unit = { Log.w(OWN
         if (tileErrorsLogged >= OWN_STREET_TILE_ERRORS_LOGGED) return
         tileErrorsLogged++
         val more = if (tileErrorsLogged == OWN_STREET_TILE_ERRORS_LOGGED) "; further tile errors are not logged in this process" else ""
-        log("Map tile failed to load while the own Street is showing: source=$sourceId z=$z x=$x y=$y (no fallback for tiles)$more")
+        log("Own Street tile failed to load: source=$sourceId z=$z x=$x y=$y (no fallback for tiles)$more")
     }
 }
 
