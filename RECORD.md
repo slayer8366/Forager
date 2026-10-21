@@ -25835,3 +25835,26 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
   - **Until then:** the style change in progress (tracks 12, minor names 14, -1506) stands.
   - **Cost:** the z12 tile-size and label-clutter cost is unmeasured. The Pi side measures it before upload.
 **Notes:** Written by the planner by hand. Next free ID -1508.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1508
+**Timestamp:** 2026-10-21T08:49:15Z
+**Continues:** 2026-09-28-1506, 2026-09-28-1507
+**Title:** The -1506 Worker is live; the owner revised -1507 to "match topo" and chose to re-check on the phone before any rebuild (rulings given in Aspen's window, relayed); Aspen's session changed
+**Observed:**
+- **Aspen's session changed.** Aspen (Pi planner) restarted in session_016asuQyVmsrzZnrBUqD8szP, created 05:25Z. Four planner messages sent after that went to the archived session session_01PTdsndC5oCxderWzqaj3mt and were never seen. The owner pointed this out. The planner resent them, and now checks which Aspen session is current before messaging.
+- **The Worker is live.** Aspen relays the owner, verbatim: "Yes, I pasted it". The served `/style/street-v1.json` equals 0c4062f3's style as parsed JSON: `roads_path_track` minzoom 12 and `roads_labels_minor` 14. The plain URL is cached `max-age=86400`, so a phone may hold the old style for up to a day.
+- **The owner's rulings, given in Aspen's window and relayed verbatim:**
+  - On the z12 rebuild: "Whatever the topo map is set to. Let's match that for zoom level on names and paths".
+  - To Aspen's question: "Re-check on phone first (Recommended)". The option read: "Compare Street and topo on your S26 now that the style fix is live (no new app build needed if the app loads the style from the server). If trails or names still vanish too early, we look at line weight or the zoom-12 rebuild then. Nothing goes on the rebuild list yet."
+- **A conversion disagreement, corrected by the planner.**
+  - Aspen converted OTM tile zoom to map zoom 1:1.
+  - The repo's measured source, `BasemapStyles.kt:71-73` on pre-main, says MapLibre Native 13.5.0 fetches raster tile zoom `round(mapZoom + 1)` for a 256 px source. So Topo shows tracks from about map zoom 11.5, paths from about 12.5, footways from about 13.5, and names from 14.5 (major) and 15.5 (minor). This matches Hazel's diagnosis.
+  - **Against live Street:** Street is half a zoom behind for tracks and generic paths, and ahead for footways and all names.
+**Decision:**
+- These rulings supersede -1507's z12 target: Street should match Topo.
+- Next: the owner re-checks Street against Topo on the S26.
+- Only if a gap remains does line weight or a rebuild come up. The rebuild list is empty for this.
+**Notes:** Written by the planner by hand. Next free ID -1509.
