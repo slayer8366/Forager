@@ -569,3 +569,13 @@ From the planner's read of `pi19-logs/us-upload.log`:
 - **The planner's call:** let attempt 2 run. If it also fails, stop, get more data on the link and
   the SDK retry settings, and change the configuration before a third run. That is the two-failures
   rule.
+- **Attempt 2 failed too**, at 03:32:25Z, five minutes in. Chunk 6 got "connection reset by peer",
+  with the SDK retry quota at "0 available". Attempt 3 of 3 started from zero at about 03:33Z. The
+  coder observed the wlan0 tx bitrate at 45 Mbit/s, down from 195, at the same −69 dBm.
+- **That is two failures on the same symptom.** No third configuration is guessed. Attempt 3 runs on
+  as rclone's own last try, under the approved command, and is not stopped: stopping is a process
+  action that needs the owner's go, and letting it run harms nothing. Meanwhile the coder gathers
+  data: orphaned multipart uploads, resilient flags priced from `rclone help flags`, and link quality
+  every 10 minutes. A restart goes to the owner.
+- **Correction:** the planner's earlier instruction to the coder, "if attempt 2 fails, stop the
+  unit", was withdrawn before any stop happened, for that reason.
