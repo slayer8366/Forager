@@ -26225,3 +26225,33 @@ They come before 4a, and B and 4a run in sequence.
 - The S22 is back on 22 after #363's build was reinstalled; the 20 → 22 migrations on the empty database are inferred, not checked.
 **Decision (planner):** before installing an older build on a test phone, read both builds' schema versions. Never downgrade across a schema change without asking the planner first, who brings it to the owner if the phone holds anything of theirs. This goes into every device-check dispatch from now on.
 **Notes:** Written by the planner by hand. Next free ID -1527.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1527
+**Timestamp:** 2026-10-21T15:05:26Z
+**Continues:** 2026-09-28-1523
+**Title:** A finished track shows in Records right after Stop (PR #364 merged into pre-main); Stop from the notification leaves the map showing a recording until the app is backgrounded (observed)
+**Observed:**
+- **The change (the second Hazel):**
+  - a new `domain/TrackEnds.kt` (34 lines, the RecordingHalts shape);
+  - the service reports a track only after `endTrackUseCase` succeeds, in `stopRecording` and `halt`;
+  - TrackRecordingViewModel collects that and calls `loadTracks()`;
+  - one line each in AppContainer and the factory.
+- **Tests:**
+  - A new ViewModel test asserts the list holds (track-1, 5000).
+  - Sorrel's nit (a) added the same assertion to the service's real ACTION_STOP test and to the halt test.
+- **Revert checks**, each with 0 `e:` lines and a separate scratch branch, the forward file `cmp`-identical to its saved copy:
+  - collect line removed (39603460155): the new test fails, "expected:<[(track-1, 5000)]> but was:<[]>";
+  - the service's report removed (39607440228): the notification-stop test fails, "expected:<track-stopped-from-the-shade> but was:<null>".
+- **Suite:** run 39607424819 on 931e5dae has 5,242 cases. Against 39601236453 the only difference is the new case, and nothing changed status. The touch guards are identical, dex is 227,060 to 227,074 with the over-256 list identical, and the `.github` diff is empty.
+- **Sorrel (Fable):** "merge after nits". It is race-free: the report sits inside `onSuccess` after `updateEndedAt`; a failed write is logged as before and reports nothing; no path reports twice. Nit (a) was taken. On nit (b), -1521 is on records-after-173.
+- **S22 (1.0.3771+g931e5dae):** the launch check passed.
+  - Stop from the recording screen: Records read Tracks 1 and All 3 with no chip tapped. PASS.
+  - Stop from the notification: Tracks 2 and All 5. PASS.
+  - `set-test-provider-location` on this phone has no `--speed` option.
+  - Cleaned up to 0 tracks and 0 waypoints, and pre-main b1064eca's build (1.0.3771+gb1064eca) put back.
+- **Observed, not caused by #364:** after Stop from the notification, the map kept showing the red recording button, and the track's Delete did nothing, until the app went to the background and came back. That matches the gap recorded at `TrackRecordingViewModel.resyncRecordingState`: a resync happens only on ON_START and ON_STOP. It has not been checked on pre-main. A state that reads as broken.
+**Decision:** merged into pre-main at 831ee194 (b1064eca before, logged).
+**Notes:** Written by the planner by hand. Next free ID -1528.
