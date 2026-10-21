@@ -26052,3 +26052,21 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - Each is a pure-move PR into pre-main. Stage 1 is a report before building; each PR starts on the planner's go.
 - The CI file-size warning stays queued (-1490).
 **Notes:** Written by the planner by hand. Next free ID -1519.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1519
+**Timestamp:** 2026-10-21T11:22:01Z
+**Continues:** 2026-09-28-1518, 2026-09-28-1450, 2026-09-28-1490
+**Title:** Nav step 2 split scope: the two ViewModels move what can move; AvailabilityScreen gets two PRs (owner)
+**Observed:** Hazel's stage 1 report for dispatch 2026-10-21-01 (read-only, at 86927320) found:
+- **MainActivity (806):** splits cleanly to about 660, with ViewModel factories moved into `create<X>ViewModel` files.
+- **TrackRecordingViewModel (1,029) and AvailabilityViewModel (976):** pure moves under -1450 reach only about 840-880 and about 900. Phase 2 already moved their work out; what is left is decisions plus comments that record reasons (485 and 373 comment lines).
+- **AvailabilityScreen (1,327):** about 830 after two PRs (remember-groups as single calls at the same position, -1484, then the compact scaffold lambda). Well under 800 would need a third.
+- Estimates are inferred, not measured.
+**Decision:** the owner was asked how to handle these.
+- For the two ViewModels they chose "(a) Move what can move (Recommended)", over (b), extension-function files reaching about 430 each, which needs about 15 private members widened to internal, and over (c), leaving them. Navigation's new code goes into new collaborator files.
+- For AvailabilityScreen they chose "Two PRs, to about 830 (Recommended)" over three.
+- The planner gave PR 1 (MainActivity) its go under the step-2 go (-1518).
+**Notes:** Written by the planner by hand. Next free ID -1520.
