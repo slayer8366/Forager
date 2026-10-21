@@ -26131,3 +26131,19 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - Its files exclude PR 3's (AvailabilityViewModel, AvailabilityUiState, AvailabilitySearchStates).
 - It reproduces the bug on main 381515c6's build first, then reports the cause and fix before building.
 **Notes:** Written by the planner by hand. Next free ID -1523.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1523
+**Timestamp:** 2026-10-21T12:53:06Z
+**Continues:** 2026-09-28-1522
+**Title:** Track list after Stop: cause found, fix approved; a live track is not shown in Records (owner)
+**Observed (the second Hazel, stage 1, at pre-main 0add7500):**
+- **Reproduced on main 381515c6's build (1.0.3740):** after Stop, Records read All 2 (waypoints only) and Tracks 0. That was still true after leaving Journal and coming back. Tapping the Tracks chip showed the track at once.
+  - The premise "only after restart" was wrong. What stays stale is the Tracks count and the All list.
+- **Cause:** the recording service ends the track asynchronously, after the ViewModel's `stopRecording` returns (`TrackRecordingService.kt:368`, :382-388; halt at :327-336). The list reloads only at init, sweep, deletes and import, or when the Tracks chip is selected (`RecordsTab.kt:240-244`). It is old behaviour, not caused by the step-2 splits.
+**Decision:**
+- **The fix (planner's go):** a new `domain/TrackEnds.kt` following RecordingHalts. The service reports a track ID only after the end write succeeds; the ViewModel collects that and reloads (-1450). The race-free reasoning is in the report. TrackRecordingViewModel stays at about 922 lines with no split first, since it is a few-line fix.
+- **The owner's choice:** asked whether a running recording should appear in Records, the owner chose "Only after Stop (Recommended)" over "Show it while recording". Showing a live track is a separate design.
+**Notes:** Written by the planner by hand. Next free ID -1524.
