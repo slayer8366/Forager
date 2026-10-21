@@ -375,7 +375,6 @@ class TrackRecordingViewModel(
         viewModelScope.launch { recordingHalts.collect { halt -> if (halt != null) onRecordingHalted(halt) } }
         // A track's end is stored by the service after this screen's Stop has returned, so the list is
         // reloaded on the service's report of that write, not on Stop (dispatch 2026-10-21-02, TrackEnds).
-        viewModelScope.launch { trackEnds.collect { endedTrackId -> if (endedTrackId != null) loadTracks() } }
     }
 
     /** The quick menu's "+1 h", "+2 h", "+3 h" or a picked time: see [TrackRecordingWatchCopies.setBackBy]. */
