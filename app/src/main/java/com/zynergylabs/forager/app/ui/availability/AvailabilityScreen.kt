@@ -1045,19 +1045,6 @@ fun AvailabilityScreen(
     // that page. The Journal's own handlers are off while this is pending (JournalTab's backEnabled, through
     // compactMainScaffold), the same "off rather than outranked" the open drawer uses, so Records' chip step does not take
     // this press. The tab handler below excludes it, so at most one of the two is enabled.
-    BackHandler(enabled = !isDrawerOpen && toolsReturn != null) {
-        val back = toolsReturn ?: return@BackHandler
-        toolsReturn = null
-        journalScreenState.topTab = back.journalTopTab
-        journalScreenState.recordsFilter = back.recordsFilter
-        compactTab = back.compactTab
-        selectedTab = back.selectedTab
-        if (back.mapFullscreen) {
-            isMapFullscreen = true
-            onMapFullscreenChanged(true)
-        }
-        isDrawerOpen = true
-    }
     BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP && toolsReturn == null) {
         compactTab = CompactTab.MAP
         // Keeps the shared ResultsTab-driven state in sync, same as ForagerBottomNav's own tap
@@ -1128,6 +1115,20 @@ fun AvailabilityScreen(
             backPressedOnce = true
             Toast.makeText(context, "Tap Back Button Again to Exit", Toast.LENGTH_SHORT).show()
         }
+    }
+    // REVERT R1 (scratch, never merged): the tools-return handler registered last.
+    BackHandler(enabled = !isDrawerOpen && toolsReturn != null) {
+        val back = toolsReturn ?: return@BackHandler
+        toolsReturn = null
+        journalScreenState.topTab = back.journalTopTab
+        journalScreenState.recordsFilter = back.recordsFilter
+        compactTab = back.compactTab
+        selectedTab = back.selectedTab
+        if (back.mapFullscreen) {
+            isMapFullscreen = true
+            onMapFullscreenChanged(true)
+        }
+        isDrawerOpen = true
     }
     LaunchedEffect(backPressedOnce) {
         if (backPressedOnce) {
