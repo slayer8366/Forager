@@ -25875,3 +25875,13 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - When that build is live, Aspen tells the planner. Then the app style follows with `roads_path_track` to 11 and the footpath layers to 12, which is Topo's map zoom of about 11.5 and 12.5, rounded down to the data.
 - #258's merge decision stays open with the owner.
 **Notes:** Written by the planner by hand. Next free ID -1510.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1510
+**Timestamp:** 2026-10-21T08:59:54Z
+**Continues:** 2026-09-28-1509
+**Title:** After the rebuild, Street matches Topo exactly: tracks from about 11.5 and paths from about 12.5 (owner)
+**Decision:** Aspen raised a discrepancy: minzooms of 11 and 12 would put Street half a zoom ahead of Topo, not level with it. The owner was asked "which do you want?" and chose "Match Topo exactly (Recommended)": "Tracks from ~11.5, paths from ~12.5: Street and Topo switch trails on at the same moment when you change basemap." This corrects -1509's planned style follow-up, which said 11 and 12. The data floor stays as on Aspen's list (tracks in the z11 tiles, paths in the z12 tiles), and the style's minzooms become 11.5 and 12.5.
+**Notes:** Written by the planner by hand. Next free ID -1511.
