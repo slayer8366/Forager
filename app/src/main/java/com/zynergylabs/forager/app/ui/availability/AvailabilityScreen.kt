@@ -11,20 +11,13 @@ import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOriginSaver
 import com.zynergylabs.forager.app.ui.map.MapCompass
 import com.zynergylabs.forager.app.ui.map.MapPosition
-import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.rememberShownPosition
-import com.zynergylabs.forager.app.ui.map.LocalMapCompass
-import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
-import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
-import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
@@ -51,7 +44,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -129,12 +121,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -145,9 +133,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
@@ -158,8 +144,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.State
-import androidx.compose.runtime.CompositionLocalProvider
-import com.zynergylabs.forager.app.ui.log.LocalTrackDetailsFold
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -171,11 +155,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
-import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableIntStateOf
-import com.zynergylabs.forager.app.domain.SETTINGS_RESET_ACTION_LABEL
-import com.zynergylabs.forager.app.domain.SETTINGS_RESET_MESSAGE
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -188,7 +168,6 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
@@ -198,7 +177,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontStyle
@@ -260,14 +238,10 @@ import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
 import com.zynergylabs.forager.app.ui.log.FindOverView
 import com.zynergylabs.forager.app.ui.log.JournalEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalTab
-import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
-import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.domain.GpxImportOutcome
 import com.zynergylabs.forager.app.importgpx.gpxImportMessage
-import com.zynergylabs.forager.app.ui.map.MapRecordSources
-import com.zynergylabs.forager.app.ui.map.OPEN_IN_JOURNAL_LABEL
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
@@ -282,9 +256,6 @@ import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
-import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
-import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
-import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
@@ -294,7 +265,6 @@ import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
 import com.zynergylabs.forager.app.ui.map.MapForecastFeed
-import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
@@ -305,7 +275,6 @@ import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
-import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
@@ -410,6 +379,8 @@ fun AvailabilityScreen(
      */
     mapSlot: MapSlot = SightingsMapSlot,
 ) {
+    // Phase 2.6 B (dispatch 2026-10-19-40): the unpacks below are the fields this body still reads; the frame unpacks the rest of
+    // findsLog, journalEntries, records, recording and searchInputs, and all of entryReportData and offlineMaps, itself.
     // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
     val inAppCameraTarget = cameraInputs.inAppCameraTarget
     val onOpenCamera = cameraInputs.onOpenCamera
@@ -426,11 +397,6 @@ fun AvailabilityScreen(
     val gpxImportNotice = backupAndImport.gpxImportNotice
     val onGpxImportNoticeShown = backupAndImport.onGpxImportNoticeShown
     val onGpxFilePicked = backupAndImport.onGpxFilePicked
-    // Phase 2.1 (dispatch 2026-10-19-28): the entry report data bundle, unpacked under the parameter names it replaced.
-    val getCartographyEntryMapData = entryReportData.getCartographyEntryMapData
-    val getCartographyEntryOfflineRegion = entryReportData.getCartographyEntryOfflineRegion
-    val getSavedTrackPaths = entryReportData.getSavedTrackPaths
-    val getCartographyEntryCurrentLocation = entryReportData.getCartographyEntryCurrentLocation
     // Phase 2.1 (dispatch 2026-10-19-28): the map controls bundle, unpacked under the parameter names it replaced.
     val onMapFullscreenChanged = mapControls.onMapFullscreenChanged
     val onLocateMe = mapControls.onLocateMe
@@ -443,58 +409,21 @@ fun AvailabilityScreen(
     val onMapIconClusterPlacementChanged = mapControls.onMapIconClusterPlacementChanged
     // Phase 2.1 (dispatch 2026-10-19-28): the findsLog bundle, unpacked under the parameter names it replaced.
     val logUiState = findsLog.logUiState
-    val onStartLogEntry = findsLog.onStartLogEntry
     val onOpenLogEntry = findsLog.onOpenLogEntry
-    val onCloseLogEntry = findsLog.onCloseLogEntry
-    val onLogEntryChanged = findsLog.onLogEntryChanged
-    val onStartEditingLogEntry = findsLog.onStartEditingLogEntry
-    val onOpenLogEntryForEditing = findsLog.onOpenLogEntryForEditing
-    val onSaveLogEntry = findsLog.onSaveLogEntry
-    val onCancelLogEntryEditing = findsLog.onCancelLogEntryEditing
     val onLeaveLogEntryEditingIncidentally = findsLog.onLeaveLogEntryEditingIncidentally
     val onDiscardLogDraft = findsLog.onDiscardLogDraft
     val onAddLogPhoto = findsLog.onAddLogPhoto
-    val onRemoveLogPhoto = findsLog.onRemoveLogPhoto
-    val onPullLogPhoto = findsLog.onPullLogPhoto
-    val onDeleteLogEntry = findsLog.onDeleteLogEntry
-    val onDeleteGalleryPhoto = findsLog.onDeleteGalleryPhoto
     val onAddGalleryPhoto = findsLog.onAddGalleryPhoto
-    val onSaveLogErrorDismissed = findsLog.onSaveLogErrorDismissed
-    val onRequestDeleteGalleryPhoto = findsLog.onRequestDeleteGalleryPhoto
     // Phase 2.1 (dispatch 2026-10-19-28): the journalEntries bundle, unpacked under the parameter names it replaced.
     val cartographyUiState = journalEntries.cartographyUiState
-    val onOpenCartographyEntry = journalEntries.onOpenCartographyEntry
-    val onStartCartographyEntry = journalEntries.onStartCartographyEntry
-    val onCloseCartographyEntry = journalEntries.onCloseCartographyEntry
-    val onCartographyTextChanged = journalEntries.onCartographyTextChanged
-    val onCartographyTagsChanged = journalEntries.onCartographyTagsChanged
-    val onSetFindDecision = journalEntries.onSetFindDecision
-    val onSetTrackDecision = journalEntries.onSetTrackDecision
-    val onSetWaypointDecision = journalEntries.onSetWaypointDecision
-    val onSetOfflineRegionDecision = journalEntries.onSetOfflineRegionDecision
-    val onSetEntryGroupIncluded = journalEntries.onSetEntryGroupIncluded
-    val onToggleKeptPhoto = journalEntries.onToggleKeptPhoto
     val onAcquirePhotoForCartographyEntry = journalEntries.onAcquirePhotoForCartographyEntry
-    val onFinishCartographyEntry = journalEntries.onFinishCartographyEntry
-    val onSaveCartographyEntry = journalEntries.onSaveCartographyEntry
-    val onDiscardCartographyEntryChanges = journalEntries.onDiscardCartographyEntryChanges
-    val onSaveCartographyEntryAsDraft = journalEntries.onSaveCartographyEntryAsDraft
-    val onDeleteCartographyEntry = journalEntries.onDeleteCartographyEntry
-    val onRequestDeleteCartographyEntry = journalEntries.onRequestDeleteCartographyEntry
     val onSetCartographyEntryShownOnMap = journalEntries.onSetCartographyEntryShownOnMap
     val onCartographyShownOnMapErrorDismissed = journalEntries.onCartographyShownOnMapErrorDismissed
-    val onCartographySaveErrorDismissed = journalEntries.onCartographySaveErrorDismissed
     // Phase 2.1 (dispatch 2026-10-19-28): the records bundle, unpacked under the parameter names it replaced.
     val waypoints = records.waypoints
-    val waypointsErrorMessage = records.waypointsErrorMessage
     val waypointEntryReferenceCounts = records.waypointEntryReferenceCounts
-    val onDropWaypoint = records.onDropWaypoint
-    val onDeleteWaypoint = records.onDeleteWaypoint
-    val onDeleteTrack = records.onDeleteTrack
-    val tracksErrorMessage = records.tracksErrorMessage
     val waypointsLoaded = records.waypointsLoaded
     val tracks = records.tracks
-    val onTracksOpened = records.onTracksOpened
     val getFullRecord = records.getFullRecord
     val pendingDeleteNotices = records.pendingDeleteNotices
     // Phase 2.1 (dispatch 2026-10-19-28): the navigation bundle, unpacked under the parameter names it replaced.
@@ -511,13 +440,9 @@ fun AvailabilityScreen(
     val onStopWaypointNavigation = navigation.onStopWaypointNavigation
     // Phase 2.1 (dispatch 2026-10-19-28): the recording bundle, unpacked under the parameter names it replaced.
     val isRecording = recording.isRecording
-    val onToggleRecording = recording.onToggleRecording
-    val startRecordingErrorMessage = recording.startRecordingErrorMessage
     val tripStartWarning = recording.tripStartWarning
     val networkFixesNotice = recording.networkFixesNotice
     val backgroundRunPrompt = recording.backgroundRunPrompt
-    val breadcrumbPoints = recording.breadcrumbPoints
-    val recordingSundownLine = recording.recordingSundownLine
     val recordingBackBy = recording.recordingBackBy
     val onBackByChoice = recording.onBackByChoice
     val onClearBackBy = recording.onClearBackBy
@@ -532,32 +457,11 @@ fun AvailabilityScreen(
     val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
     val onThemeModeChanged = settings.onThemeModeChanged
     val onDistanceUnitSelected = settings.onDistanceUnitSelected
-    // Phase 2.1 (dispatch 2026-10-19-28): the offlineMaps bundle, unpacked under the parameter names it replaced.
-    val onOfflineMapLatChanged = offlineMaps.onOfflineMapLatChanged
-    val onOfflineMapLngChanged = offlineMaps.onOfflineMapLngChanged
-    val onOfflineMapRadiusChanged = offlineMaps.onOfflineMapRadiusChanged
-    val onOfflineMapNameChanged = offlineMaps.onOfflineMapNameChanged
-    val onOfflineMapsOpened = offlineMaps.onOfflineMapsOpened
-    val onDownloadOfflineMaps = offlineMaps.onDownloadOfflineMaps
-    val onDeleteOfflineRegion = offlineMaps.onDeleteOfflineRegion
-    val onDownloadAgain = offlineMaps.onDownloadAgain
     // Phase 2.1 (dispatch 2026-10-19-28): the searchInputs bundle, unpacked under the parameter names it replaced.
-    val onUseCurrentLocation = searchInputs.onUseCurrentLocation
-    val onManualLatChanged = searchInputs.onManualLatChanged
-    val onManualLngChanged = searchInputs.onManualLngChanged
-    val onSearchManualCoordinates = searchInputs.onSearchManualCoordinates
-    val onRadiusChanged = searchInputs.onRadiusChanged
-    val onMonthSelected = searchInputs.onMonthSelected
     val onMapTabSelected = searchInputs.onMapTabSelected
     val onSeasonalTabSelected = searchInputs.onSeasonalTabSelected
-    val onTaxonSearchQueryChanged = searchInputs.onTaxonSearchQueryChanged
-    val onTaxonSearchResultSelected = searchInputs.onTaxonSearchResultSelected
-    val onDismissTaxonSuggestions = searchInputs.onDismissTaxonSuggestions
     val onReopenTaxonSuggestions = searchInputs.onReopenTaxonSuggestions
-    val onPlaceTripPin = searchInputs.onPlaceTripPin
     val onDeletePlannedTrip = searchInputs.onDeletePlannedTrip
-    val onRecentSearchSelected = searchInputs.onRecentSearchSelected
-    val onClearSearch = searchInputs.onClearSearch
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
@@ -780,52 +684,6 @@ fun AvailabilityScreen(
         if (!isNavigating) navigationZoomPending = false
         navigationWasOn = isNavigating
     }
-    // Dispatch -502: "Navigate" on a waypoint, from the Maps tab's bubble or its sheet, or from Records. The Maps tab comes
-    // up with the navigation view. Already navigating (a return, or another waypoint), isNavigating never goes false in
-    // between, so there is no new start zoom (the planner's ruling); a view the walker had moved away from is taken back,
-    // as "Return to Route" does.
-    val startWaypointNavigation: (WaypointNavigationOrigin) -> Unit = { origin ->
-        onNavigateToWaypoint?.let { navigate ->
-            val wasNavigating = isNavigating
-            waypointNavigationOrigin = origin
-            navigate(origin.waypointId)
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-            if (wasNavigating && navigationFollowBroken) {
-                navigationFollowBroken = false
-                navigationViewRequestId++
-            }
-        }
-    }
-    // Dispatch -502: ends the waypoint navigation. With [retrace] (Back) the walker is put back where Navigate was tapped,
-    // one step, as the owner chose; the X-circle and the HUD's X end it where the walker is. A return it paused picks up
-    // again (the ViewModel's doing).
-    val endWaypointNavigation: (Boolean) -> Unit = { retrace ->
-        val origin = waypointNavigationOrigin
-        waypointNavigationOrigin = null
-        onStopWaypointNavigation()
-        if (retrace) {
-            when (origin) {
-                null -> Unit
-                is WaypointNavigationOrigin.MapBubble, is WaypointNavigationOrigin.MapDetails -> mapWaypointReopen = origin
-                is WaypointNavigationOrigin.RecordsRow, is WaypointNavigationOrigin.RecordsDetails -> {
-                    journalScreenState.topTab = JournalTopTab.RECORDS
-                    compactTab = CompactTab.JOURNAL
-                    if (origin is WaypointNavigationOrigin.RecordsDetails) recordsWaypointReopen = origin.waypointId
-                }
-                // RECORD -890: back to the journal entry whose map Navigate was tapped on. The entry is still the
-                // Journal's open one; the bubble is not reopened, as a Records row reopens nothing.
-                is WaypointNavigationOrigin.JournalEntryMap -> {
-                    journalScreenState.topTab = JournalTopTab.CARTOGRAPHY
-                    compactTab = CompactTab.JOURNAL
-                }
-            }
-        }
-    }
-    // The return control and the HUD's X: a waypoint navigation first, while there is one; otherwise the return, as before.
-    val onNavigationControl: () -> Unit = {
-        if (navigatingToWaypoint != null) endWaypointNavigation(false) else onToggleReturning()
-    }
     // Dispatch -502, the owner's choice at the S22 desk check ("Keep the last line, faded"): the dashed line to the
     // waypoint, and the one drawn last, which nextStraightLine keeps, faded, once the fix is lost. Held here, above the tab
     // switch, so a lost fix does not lose the line by a trip to the Journal; not across a restart, where there is no last
@@ -873,35 +731,6 @@ fun AvailabilityScreen(
     val journalHighlights = remember(cartographyUiState.entries, mapRecordsDrawn, mapWaypoints) {
         GetJournalEntryHighlightsUseCase()(cartographyUiState.entries, mapRecordsDrawn, mapWaypoints)
     }
-    val mapLayersControls = MapLayersControls(
-        stored = uiState.mapLayers,
-        availableColourFields = availableColourFieldGroups.keys,
-        cellsShown = forecastCellsShown.filterKeys { it in availableColourFieldGroups },
-        forecastZoomedOut = forecastZoomedOut,
-        records = mapRecordsDrawn,
-        journalHighlights = journalHighlights,
-        // J8-3: the chip's list. Hiding writes shownOnMap for each entry, one write each; the Layers
-        // sheet's "Journal entries" switch is a separate, display-only choice and is never touched here.
-        onHideJournalEntry = { id -> onSetCartographyEntryShownOnMap(id, false) },
-        onHideAllJournalEntries = { journalHighlights.shownEntries.forEach { onSetCartographyEntryShownOnMap(it.entryId, false) } },
-        legendExpanded = mapLegendExpanded,
-        onLegendExpandedChange = { mapLegendExpanded = it },
-        onVisibilityChanged = onMapLayerVisibilityChanged,
-        onOpacityChanged = onMapLayerOpacityChanged,
-        onColourFieldMoved = onColourFieldMoved,
-    )
-    val mapRenderMode = MapRenderMode(
-        basemap = basemap,
-        night = isNightMode,
-        // The cold-launch gate: no style until the Night Maps preference and the stored basemap are
-        // both in (colour build C1; dispatch 2026-09-28-708, "Restoring at launch must not flash the
-        // wrong basemap first"). The field is named for the first; see MapRenderMode.nightModeLoaded.
-        nightModeLoaded = uiState.nightModeMapsLoaded && (uiState.mapMode != null || chosenMapMode != null),
-        layers = drawnMapLayers,
-        forecast = forecastFeed,
-        // Dispatch 2026-10-19-37: the Maps tab's map springs back from a small nudge while following.
-        nudgeSpringBack = true,
-    )
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
     // comment. mapMode above is persisted the same way since dispatch 2026-09-28-708.
     val distanceUnit = uiState.distanceUnit
@@ -1017,25 +846,77 @@ fun AvailabilityScreen(
     // way (JournalTab consumes it, then RecordsTab selects the chip, a frame or two later), and not being there yet is not
     // the user moving on.
     var toolsReturnArrived by remember { mutableStateOf(false) }
-    val openOfflineMapsFromTools: () -> Unit = {
-        if (toolsReturn == null) {
-            toolsReturn = ToolsOfflineMapsReturn(
-                compactTab = compactTab,
-                selectedTab = selectedTab,
-                journalTopTab = journalScreenState.topTab,
-                recordsFilter = journalScreenState.recordsFilter,
-                mapFullscreen = isMapFullscreen,
-            )
-            toolsReturnArrived = false
-        }
-        isDrawerOpen = false
-        if (isMapFullscreen) {
-            isMapFullscreen = false
-            onMapFullscreenChanged(false)
-        }
-        pendingJournalDestination = PendingJournalDestination.VIEW_OFFLINE_MAPS
-        compactTab = CompactTab.JOURNAL
-    }
+    // Phase 2.6, PR 1 (dispatch 2026-10-19-40): the holder the moved code reaches the body's state through (see
+    // AvailabilityScreenState); it is not remembered. Built here, below toolsReturn and toolsReturnArrived, because the
+    // journal-return code (Phase 2.6 PR 3) will reach those through it and a local can't be read above its declaration.
+    val screenState = AvailabilityScreenState(
+        compactTab = { compactTab },
+        setCompactTab = { compactTab = it },
+        selectedTab = { selectedTab },
+        setSelectedTab = { selectedTab = it },
+        journalScreenState = journalScreenState,
+        waypointNavigationOrigin = { waypointNavigationOrigin },
+        setWaypointNavigationOrigin = { waypointNavigationOrigin = it },
+        setMapWaypointReopen = { mapWaypointReopen = it },
+        setRecordsWaypointReopen = { recordsWaypointReopen = it },
+        navigationFollowBroken = { navigationFollowBroken },
+        setNavigationFollowBroken = { navigationFollowBroken = it },
+        navigationViewRequestId = { navigationViewRequestId },
+        setNavigationViewRequestId = { navigationViewRequestId = it },
+        forecastCellsShown = { forecastCellsShown },
+        forecastZoomedOut = { forecastZoomedOut },
+        mapLegendExpanded = { mapLegendExpanded },
+        setMapLegendExpanded = { mapLegendExpanded = it },
+        chosenMapMode = { chosenMapMode },
+        setPendingJournalDestination = { pendingJournalDestination = it },
+        setPendingJournalFindId = { pendingJournalFindId = it },
+        setPendingJournalEntryId = { pendingJournalEntryId = it },
+        isMapFullscreen = { isMapFullscreen },
+        setIsMapFullscreen = { isMapFullscreen = it },
+        setIsDrawerOpen = { isDrawerOpen = it },
+        toolsReturn = { toolsReturn },
+        setToolsReturn = { toolsReturn = it },
+        setToolsReturnArrived = { toolsReturnArrived = it },
+        isDrawerOpen = { isDrawerOpen },
+        openSettingsOnlyRequest = { openSettingsOnlyRequest },
+        setOpenSettingsOnlyRequest = { openSettingsOnlyRequest = it },
+    )
+    // Dispatch -502: starting and ending a waypoint navigation, and the return control (AvailabilityScreenWaypointNavigation.kt).
+    // Built here, once the holder is; every reader of the three is below this line.
+    val waypointNavigation = waypointNavigationActions(
+        state = screenState,
+        isNavigating = isNavigating,
+        navigatingToWaypoint = navigatingToWaypoint,
+        onNavigateToWaypoint = onNavigateToWaypoint,
+        onStopWaypointNavigation = onStopWaypointNavigation,
+        onToggleReturning = onToggleReturning,
+    )
+    val startWaypointNavigation = waypointNavigation.start
+    val endWaypointNavigation = waypointNavigation.end
+    val onNavigationControl = waypointNavigation.onNavigationControl
+    // Phase 2.6, PR 2: the Layers sheet's inputs and how the Maps tab's map is drawn (AvailabilityScreenMapInputs.kt), built
+    // here, once the holder is; the map reads both only in the frame's call below.
+    val mapLayersControls = availabilityMapLayersControls(
+        state = screenState,
+        uiState = uiState,
+        availableColourFieldGroups = availableColourFieldGroups,
+        mapRecordsDrawn = mapRecordsDrawn,
+        journalHighlights = journalHighlights,
+        onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
+        onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
+        onMapLayerOpacityChanged = onMapLayerOpacityChanged,
+        onColourFieldMoved = onColourFieldMoved,
+    )
+    val mapRenderMode = availabilityMapRenderMode(
+        state = screenState,
+        uiState = uiState,
+        basemap = basemap,
+        isNightMode = isNightMode,
+        drawnMapLayers = drawnMapLayers,
+        forecastFeed = forecastFeed,
+    )
+    // Phase 2.6, PR 3: the Tools drawer's "Offline maps" row, built in AvailabilityScreenJournalReturn.kt.
+    val openOfflineMapsFromTools = buildOpenOfflineMapsFromTools(state = screenState, onMapFullscreenChanged = onMapFullscreenChanged)
     LaunchedEffect(toolsReturn != null) {
         if (toolsReturn == null) return@LaunchedEffect
         snapshotFlow { Triple(compactTab, journalScreenState.topTab, journalScreenState.recordsFilter) }.collect { (tab, top, filter) ->
@@ -1063,131 +944,17 @@ fun AvailabilityScreen(
         if (selectedTab == ResultsTab.SEASONAL) onSeasonalTabSelected()
     }
 
-    // System back navigates one step toward "home" — the Maps tab, chrome visible, drawer closed
-    // — before falling through to the exit-confirmation handler at the bottom, rather than exiting
-    // from wherever the user happens to be. Nested UI further down the tree (a Journal entry, the
-    // Settings offline-maps submenu, the map's own add-action tile) unwinds itself first via its
-    // own local BackHandler — see JournalTab's, CompactSettingsTab's, and CompactMapTab's — since
-    // Compose's OnBackPressedDispatcher tries the most-recently-composed enabled callback first, so
-    // a nested composable's own handler naturally takes priority over these four.
-    //
-    // Each condition below explicitly excludes the states "more nested" than it, so at most one is
-    // ever enabled at once — declaration order isn't what decides precedence, in case that ever
-    // stops being true. Verified end to end (not just reasoned about) in
-    // AvailabilityScreenBackNavigationTest, including the case only compact width can reach where
-    // isDrawerOpen and isMapFullscreen are both true (the drawer's own Search entry point is still
-    // reachable while fullscreen — see MapIconBar). Corrected 2026-08-28: named MapIconStack here
-    // before that composable was renamed. Navigation-chrome amendment: a fifth step, navigation,
-    // sits between "return to the Maps tab" and the exit handler — see its own comment below.
-    //
-    // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are state of this one tree.
-    //
-    // The drawer opens over whatever tab is showing, and that tab's nested handlers are registered
-    // after this one, so they would win while the drawer is open. The Journal's are turned off while
-    // it is (JournalTab's backEnabled, intent 2026-09-28-28), so Back closes the drawer there.
-    BackHandler(enabled = isDrawerOpen) {
-        isDrawerOpen = false
-    }
-    BackHandler(enabled = !isDrawerOpen && isMapFullscreen) {
-        isMapFullscreen = false
-        onMapFullscreenChanged(false)
-    }
-    // RECORD -871: Back from Records reached by the Tools drawer's "Offline maps" row (see toolsReturn above). The page the
-    // user came from goes back under the drawer, its tab and, when it was the Journal, its top tab and chip, and fullscreen if
-    // the map was fullscreen, and the drawer reopens; the next Back is the drawer's own handler, above, which closes it on
-    // that page. The Journal's own handlers are off while this is pending (JournalTab's backEnabled, through
-    // compactMainScaffold), the same "off rather than outranked" the open drawer uses, so Records' chip step does not take
-    // this press. The tab handler below excludes it, so at most one of the two is enabled.
-    BackHandler(enabled = !isDrawerOpen && toolsReturn != null) {
-        val back = toolsReturn ?: return@BackHandler
-        toolsReturn = null
-        journalScreenState.topTab = back.journalTopTab
-        journalScreenState.recordsFilter = back.recordsFilter
-        compactTab = back.compactTab
-        selectedTab = back.selectedTab
-        if (back.mapFullscreen) {
-            isMapFullscreen = true
-            onMapFullscreenChanged(true)
-        }
-        isDrawerOpen = true
-    }
-    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP && toolsReturn == null) {
-        compactTab = CompactTab.MAP
-        // Keeps the shared ResultsTab-driven state in sync, same as ForagerBottomNav's own tap
-        // handler does — see compactTab's own doc comment for why the two exist side by side.
-        selectedTab = ResultsTab.MAP
-    }
-
-    // Navigation is the last thing backed out of before the app closes, and backing out of it
-    // asks first (navigation-chrome amendment, owner-directed, found on device). This handler is
-    // enabled only once everything nested is unwound — dropdown, drawer, fullscreen, other tab —
-    // so a back press while navigating in fullscreen exits fullscreen and does not touch the
-    // navigation; the next press asks. Stage one had this in CompactMapTab's own handler with no
-    // exclusions, which — being the deepest registered — exited navigation BEFORE fullscreen, the
-    // drawer or the dropdown unwound: a user in fullscreen lost the return leg to a press they
-    // expected to exit fullscreen. That inversion was the bug this replaces.
-    //
-    // THIS HANDLER PRODUCES A LOOP ON PURPOSE. Back raises the prompt; back dismisses it; back
-    // raises it again. Back can never exit navigation, and — because this handler is enabled
-    // whenever the exit handler below would otherwise be — back can no longer close the app from
-    // this screen while navigating. Home and the app switcher still work, so nobody is trapped.
-    // The reason, in the owner's words: backing out can kill a process a person is relying on.
-    // Someone navigating out of the woods must not lose it to a stray press. The user decides when
-    // to exit — the HUD's ✕ and the control pill's toggle are the only exits, both deliberate
-    // presses, and neither asks. Do not "fix" the loop; do not let a second press confirm (that
-    // would be the accidental exit with one extra step: the second press cancels); do not remove
-    // this handler without another that consumes back here, or a stray press falls through to
-    // the exit handler and drops the user out of the app while a track is recording.
-    //
-    // Toggle, not raise-only: on a device the open AlertDialog is its own window and consumes
-    // back itself (onDismissRequest → keep navigating), so this handler only ever sees the
-    // raising press there. Under Robolectric, onBackPressedDispatcher.onBackPressed() reaches the
-    // Activity, not the dialog window, so the tests' second press lands here — the toggle makes
-    // that path end in the same place. The tests therefore exercise THIS toggle path, not the
-    // dialog window's own dismiss; the guarantee (back never exits) holds by either route, but
-    // the dialog's own back handling is device-only coverage.
-    var showExitNavigationPrompt by remember { mutableStateOf(false) }
-    // Off while a waypoint is the target: Back has its own step for that, below. With no waypoint chosen it is as it was.
-    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && isNavigating && navigatingToWaypoint == null) {
-        showExitNavigationPrompt = !showExitNavigationPrompt
-    }
-    // Dispatch 2026-09-28-502: navigating to a chosen waypoint, "Back from the navigating HUD stops navigating", with no
-    // prompt, and goes back to where Navigate was tapped (Amendment 1). The loop above is the return's; it does not apply
-    // here. The same exclusions as the handlers above, so what is drawn on top (the drawer, fullscreen, another tab, and
-    // the bubbles and menus registered after this) is backed out of first. A return the waypoint overruled picks up again,
-    // and the next Back on the bare map is the loop above, untouched.
-    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && navigatingToWaypoint != null) {
-        endWaypointNavigation(true)
-    }
-    // If navigation ends by any other route while the prompt is up (the recording stopping under
-    // it, say), the prompt has nothing left to ask about.
-    LaunchedEffect(isNavigating) {
-        if (!isNavigating) showExitNavigationPrompt = false
-    }
-    // The prompt itself is composed below, once the window's tree is known (map chrome at 80%).
-
-    // "Home": drawer closed, chrome visible, Maps tab selected, not navigating. A second back
-    // press within the window actually exits; a lone press just warns. This is a single-Activity
-    // app with nothing else back could sensibly navigate to once nothing is nested, so an
-    // un-warned single back press (which a pan gesture can graze) would otherwise dump the user
-    // straight out. Never reached while navigating — the handler above holds that state, by
-    // design (see its comment); this exclusion is what makes the two mutually exclusive, the same
-    // way the tab and fullscreen handlers exclude the states nested inside them.
-    var backPressedOnce by remember { mutableStateOf(false) }
-    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && !isNavigating) {
-        if (backPressedOnce) {
-            (context as? Activity)?.finish()
-        } else {
-            backPressedOnce = true
-            Toast.makeText(context, "Tap Back Button Again to Exit", Toast.LENGTH_SHORT).show()
-        }
-    }
-    LaunchedEffect(backPressedOnce) {
-        if (backPressedOnce) {
-            delay(DOUBLE_BACK_EXIT_WINDOW_MS)
-            backPressedOnce = false
-        }
-    }
+    // Phase 2.6, E2 (RECORD -1484): what Back does, the seven handlers in AvailabilityScreenBackHandlers.kt (their comments, the
+    // Back order and why it matters, moved with them), composed here, unconditionally, where they were. It hands back the
+    // exit-navigation prompt's state, which it remembers at its old position; the prompt below reads and writes it.
+    var showExitNavigationPrompt by AvailabilityScreenBackHandlers(
+        state = screenState,
+        isNavigating = isNavigating,
+        navigatingToWaypoint = navigatingToWaypoint,
+        endWaypointNavigation = endWaypointNavigation,
+        onMapFullscreenChanged = onMapFullscreenChanged,
+        context = context,
+    )
 
     // Tablets as a big phone (dispatch 2026-09-28-245, amended by -246): this tree is drawn at every
     // window size, and a window that is in landscape, tall or short, gets the phone's landscape
@@ -1231,70 +998,22 @@ fun AvailabilityScreen(
     // wrapper, since there is no window left to show a Snackbar in by the time that fires.
     val logDraftSnackbarHostState = remember { SnackbarHostState() }
     val logDraftSnackbarScope = rememberCoroutineScope()
-    // RECORD -660/-661 (the owner: "Snackbar with 'Settings' button"): a corrupt settings file was reset.
-    // Cleared before it is shown, and shown on the host's own scope, as the backup launch notice below
-    // is, so clearing it (which changes this effect's key) cannot cancel it. It stays until dismissed;
-    // "Settings" opens Tools, then Settings, as a backup notification's tap does, without the Backup scroll.
-    LaunchedEffect(settingsResetNoticePending) {
-        if (!settingsResetNoticePending) return@LaunchedEffect
-        onSettingsResetNoticeShown()
-        logDraftSnackbarScope.launch {
-            val result = logDraftSnackbarHostState.showSnackbar(
-                message = SETTINGS_RESET_MESSAGE,
-                actionLabel = SETTINGS_RESET_ACTION_LABEL,
-                withDismissAction = true,
-                duration = SnackbarDuration.Indefinite,
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                openSettingsOnlyRequest++
-                isDrawerOpen = true
-            }
-        }
-    }
-    // Journal redesign J4: the pending deletes' Undo snackbars share this host too.
-    PendingDeleteSnackbarEffects(pendingDeleteNotices, logDraftSnackbarHostState)
-    // A scheduled-backup notice that could not be a notification is shown here once, at launch (dispatch 2026-09-28-153,
-    // item 1; owner "1 A"): the approved text through this same host, no action and no new surface. It is forgotten before it
-    // is shown (showSnackbar suspends until it goes), so a launch that is interrupted does not show it twice.
-    LaunchedEffect(backup.state.launchNotice) {
-        val notice = backup.state.launchNotice ?: return@LaunchedEffect
-        backup.onLaunchNoticeShown()
-        // Launched on the host's own scope: forgetting the notice changes this effect's key and cancels it, which would
-        // cancel a snackbar shown from inside it before it was ever drawn.
-        logDraftSnackbarScope.launch { logDraftSnackbarHostState.showSnackbar(message = notice.text, duration = SnackbarDuration.Long) }
-    }
-    // Alert-delivery dispatch, Item 3: the trip-start audibility warning shares this host — a host
-    // is a slot, not a message — rather than adding a second surface over the map. A foreground
-    // moment by construction (the user just tapped record), so a composed effect is the right
-    // place for it, unlike the off-track alert it warns about.
-    LaunchedEffect(tripStartWarning?.id) {
-        tripStartWarning?.let { warning ->
-            logDraftSnackbarHostState.showSnackbar(message = warning.message, duration = SnackbarDuration.Long)
-        }
-    }
-    val promptContext = LocalContext.current
-    LaunchedEffect(backgroundRunPrompt?.id) {
-        backgroundRunPrompt?.let { prompt ->
-            val result = logDraftSnackbarHostState.showSnackbar(TappableNoticeVisuals(prompt.message))
-            if (result == SnackbarResult.ActionPerformed) launchAppDetailsSettings(promptContext)
-        }
-    }
-    LaunchedEffect(networkFixesNotice?.id) {
-        networkFixesNotice?.let { notice ->
-            logDraftSnackbarHostState.showSnackbar(message = notice.message, duration = SnackbarDuration.Long)
-        }
-    }
-    // Dispatch -502, Amendment 1: the waypoint being navigated to was deleted, while navigating (its pending delete hides it
-    // at once) or while the app was closed. The navigation ends and says so, in this same host, not a silent drop. Shown on
-    // the host's own scope, as the backup notice is: ending the navigation changes this effect's key and would cancel a
-    // snackbar shown from inside it.
-    val waypointTargetGone = waypointTarget is WaypointNavigationTarget.Gone
-    LaunchedEffect(waypointTargetGone) {
-        if (waypointTargetGone) {
-            endWaypointNavigation(false)
-            logDraftSnackbarScope.launch { logDraftSnackbarHostState.showSnackbar(message = WAYPOINT_NAVIGATION_GONE_TEXT, duration = SnackbarDuration.Long) }
-        }
-    }
+    // Phase 2.6, D (RECORD -1484): the pop-up notices' triggers, in AvailabilityScreenNotices.kt, composed here, unconditionally,
+    // where the first of them was; the two remembers above stay here and are passed in as themselves.
+    AvailabilityScreenNotices(
+        state = screenState,
+        logDraftSnackbarHostState = logDraftSnackbarHostState,
+        logDraftSnackbarScope = logDraftSnackbarScope,
+        settingsResetNoticePending = settingsResetNoticePending,
+        onSettingsResetNoticeShown = onSettingsResetNoticeShown,
+        pendingDeleteNotices = pendingDeleteNotices,
+        backup = backup,
+        tripStartWarning = tripStartWarning,
+        backgroundRunPrompt = backgroundRunPrompt,
+        networkFixesNotice = networkFixesNotice,
+        waypointTarget = waypointTarget,
+        endWaypointNavigation = endWaypointNavigation,
+    )
     // Intent 2026-09-28-44, F1 (the owner: "Snackbar only for real drafts (Recommended)"). This used
     // to offer "Saved to Drafts" for whatever entry was open, and its Discard deleted that id through
     // the general delete: after only viewing a committed find, Discard deleted the committed find,
@@ -1304,27 +1023,15 @@ fun AvailabilityScreen(
     // new find's draft saved while the snackbar is still up is committed under the same id, and a
     // Discard then would delete it.
     val latestLogUiState by rememberUpdatedState(logUiState)
-    val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
-        val left = logUiState.editingEntry
-        val keptDraftId = left?.takeIf { leaveKeepsDraft(it, logUiState.entries) }?.id
-        onLeaveLogEntryEditingIncidentally()
-        if (keptDraftId != null) {
-            logDraftSnackbarScope.launch {
-                val result = logDraftSnackbarHostState.showSnackbar(
-                    message = "Saved to Drafts",
-                    actionLabel = "Discard",
-                    duration = SnackbarDuration.Short,
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    if (latestLogUiState.draftEntries.any { it.id == keptDraftId }) {
-                        onDiscardLogDraft(keptDraftId)
-                    } else {
-                        Log.w("AvailabilityScreen", "Discard on \"Saved to Drafts\" ignored: '$keptDraftId' is no longer a draft.")
-                    }
-                }
-            }
-        }
-    }
+    // Phase 2.6, PR 3: built in AvailabilityScreenJournalReturn.kt; the remembered latest state above is read through a getter.
+    val leaveLogEntryEditingOfferingDiscard = buildLeaveLogEntryEditingOfferingDiscard(
+        logUiState = logUiState,
+        latestLogUiState = { latestLogUiState },
+        onLeaveLogEntryEditingIncidentally = onLeaveLogEntryEditingIncidentally,
+        onDiscardLogDraft = onDiscardLogDraft,
+        logDraftSnackbarScope = logDraftSnackbarScope,
+        logDraftSnackbarHostState = logDraftSnackbarHostState,
+    )
     // Item 8: leaving the find that was opened from the Maps tab with Back, its own arrow, or a delete returns to the Maps tab,
     // where the bubble (and the fan) reopen; any other way of leaving it (another bottom tab, an edit, another record) forgets
     // the origin, and Back does what it did before. The origin is forgotten on a tab change here; the edit and the other
@@ -1332,79 +1039,28 @@ fun AvailabilityScreen(
     LaunchedEffect(compactTab) {
         if (compactTab != CompactTab.JOURNAL) mapReturnMemory.forget()
     }
-    val onFindReportClosed: (String?) -> Unit = { closing ->
-        if (closing != null && mapReturnMemory.onFindClosed(closing)) {
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-        }
-    }
-    // Dispatch 2026-09-28-387, Part B: an entry opened from a bubble's "kept in" line returns to the Maps tab, with that bubble and the fan, when it is left from its
-    // report; the Maps tab it comes back to is built with them (MapReturnMemory.takeEntryBubble, takeFanKeys).
-    val onEntryClosed: (String, Boolean) -> Unit = { entryId, fromReport ->
-        if (mapReturnMemory.onEntryClosed(entryId, fromReport)) {
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-        }
-    }
-    val onFindDeleted: (String) -> Unit = { deleted ->
-        if (mapReturnMemory.onFindDeleted(deleted)) {
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-        }
-    }
+    // Phase 2.6, PR 3: the three returns to the Maps tab, built in AvailabilityScreenJournalReturn.kt (Part B's notes are there).
+    val mapReturn = mapReturnCallbacks(state = screenState, mapReturnMemory = mapReturnMemory)
+    val onFindReportClosed = mapReturn.onFindReportClosed
+    val onEntryClosed = mapReturn.onEntryClosed
+    val onFindDeleted = mapReturn.onFindDeleted
     // Declared after leaveLogEntryEditingOfferingDiscard, which its onOpenFind calls (F3).
-    // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
-    // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
-    // the Journal was showing (PendingJournalDestination.VIEW_FIND), so the saved Records chip and top
-    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). The
-    // Journal tab comes up.
-    // Checked against the Maps search-bar gate (AvailabilityCompactScaffold's isEditingJournalEntry):
-    // the find opens as the Journal tab comes up, where that gate hides the header as it does for any
-    // open find; the Maps tab's own bar is gated on the Journal showing, so it is unaffected.
-    val mapBubbleSources = MapRecordSources(
-        finds = logUiState.entries,
-        galleryPhotos = logUiState.galleryPhotos,
-        photoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+    // Phase 2.6, PR 2: the Maps tab's bubbles' sources, built in AvailabilityScreenMapInputs.kt (its doc comment carries M1's notes).
+    val mapBubbleSources = availabilityMapBubbleSources(
+        state = screenState,
+        uiState = uiState,
+        logUiState = logUiState,
         waypoints = waypoints,
         waypointEntryReferenceCounts = waypointEntryReferenceCounts,
         tracks = tracks,
-        plannedTrips = uiState.plannedTrips,
-        offlineRegions = uiState.visibleOfflineRegions,
-        distanceUnit = uiState.distanceUnit,
-        staleThresholdDays = uiState.offlineStaleThresholdDays,
-        nowEpochMillis = currentTime::nowEpochMillis,
+        currentTime = currentTime,
         getFullRecord = getFullRecord,
-        onOpenFind = { findId ->
-            // Intent 2026-09-28-44, F3 (the owner, continuation 2026-09-28-45: "Leave the kept one
-            // first (Recommended)"): a find kept open on the Journal is left before this one opens
-            // over it, through the one wrapper, so a changed one lands in Drafts at once with "Saved
-            // to Drafts", an unchanged re-edit's copy is deleted, and a viewed one just closes.
-            if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
-            pendingJournalFindId = findId
-            pendingJournalDestination = PendingJournalDestination.VIEW_FIND
-            onOpenLogEntry(findId)
-            compactTab = CompactTab.JOURNAL
-        },
-        openFindLabel = OPEN_IN_JOURNAL_LABEL,
-        // J8-4: a highlighted record's keeping entries, while the Layers sheet's "Journal entries"
-        // switch shows the highlights; with it off no record is highlighted, so no bubble names one.
-        journalEntriesKeeping = if (drawnMapLayers.stateOf(JOURNAL_ENTRIES_SWITCH_LAYER_ID).visible) journalHighlights.keptIn else emptyMap(),
-        // J8-4, the owner's Q1 ruling ("Open in Journal, prompt first (Recommended)"): switches to the
-        // Journal with the
-        // entry in its report on Entries, the one top-tab change opening it requires; the saved Records
-        // chip is untouched. The Journal side (CartographyScreen's openEntryRequest) asks the existing
-        // "Save your changes?" first when another entry is open in its editor with unsaved changes, and
-        // just closes an unchanged one. A find kept open on the Journal is left first through the one
-        // wrapper, as M1's find route does (F3), since it would otherwise show over the entry.
-        onOpenEntry = { entryId ->
-            if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
-            // Not forgotten any more (dispatch 2026-09-28-387, Part B): the bubble the line was tapped in has just remembered the way back.
-            pendingJournalEntryId = entryId
-            pendingJournalDestination = PendingJournalDestination.VIEW_ENTRY
-            compactTab = CompactTab.JOURNAL
-        },
-        // Dispatch -502: the Maps tab's bubbles and the sheet opened from them offer Navigate; an entry map's do not.
-        onNavigateToWaypoint = onNavigateToWaypoint?.let { startWaypointNavigation },
+        drawnMapLayers = drawnMapLayers,
+        journalHighlights = journalHighlights,
+        leaveLogEntryEditingOfferingDiscard = leaveLogEntryEditingOfferingDiscard,
+        onOpenLogEntry = onOpenLogEntry,
+        onNavigateToWaypoint = onNavigateToWaypoint,
+        startWaypointNavigation = startWaypointNavigation,
     )
 
     // J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a failed
@@ -1438,9 +1094,7 @@ fun AvailabilityScreen(
             appClearFocusInProgress = appClearFocusInProgress,
             keyboardController = keyboardController,
             compactTab = { compactTab },
-            logUiState = logUiState,
             logPhotoAcquisitionInFlight = { logPhotoAcquisitionInFlight },
-            cartographyUiState = cartographyUiState,
             isDrawerOpen = { isDrawerOpen },
             toolsReturnPending = { toolsReturn != null },
             isLandscapeWindow = isLandscapeWindow,
@@ -1453,95 +1107,93 @@ fun AvailabilityScreen(
             pendingJournalTrackId = { pendingJournalTrackId },
             onGpxFilePicked = onGpxFilePicked,
             currentTime = currentTime,
-            mapSlot = mapSlot,
-            mapIconClusterPosition = mapIconClusterPosition,
-            mapCameraMemory = mapCameraMemory,
-            mapReturnMemory = mapReturnMemory,
+            // Phase 2.6 B2: the map and navigation values, the same expressions in the same order (CompactScaffoldMapInputs).
+            mapInputs = CompactScaffoldMapInputs(
+                mapSlot = mapSlot,
+                mapIconClusterPosition = mapIconClusterPosition,
+                mapCameraMemory = mapCameraMemory,
+                mapReturnMemory = mapReturnMemory,
+                mapRenderMode = mapRenderMode,
+                mapLayers = mapLayersControls,
+                isNightMode = isNightMode,
+                mapWaypoints = mapWaypoints,
+                returnToStart = returnToStart,
+                isReturning = isReturning,
+                isNavigating = isNavigating,
+                isArrivalHeld = isArrivalHeld,
+                isOffTrack = isOffTrack,
+                // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
+                // the Tools drawer's own values and callbacks (the same two classes its Sundown section is given below).
+                quickSettings = MapQuickSettings(
+                    isRecording = isRecording,
+                    backBy = recordingBackBy,
+                    onBackByChoice = onBackByChoice,
+                    onClearBackBy = onClearBackBy,
+                    sundown = SundownSettings(
+                        alertsEnabled = uiState.sundownAlertsEnabled,
+                        darknessMarginMinutes = uiState.darknessMarginMinutes,
+                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = onDarknessMarginChanged,
+                    ),
+                    offTrackReminder = OffTrackReminderSettings(
+                        enabled = uiState.offTrackReminderEnabled,
+                        onEnabledChanged = onOffTrackReminderChanged,
+                    ),
+                    batterySaver = BatterySaverSettings(
+                        enabled = uiState.batterySaverEnabled,
+                        onEnabledChanged = onBatterySaverChanged,
+                    ),
+                    currentTime = currentTime,
+                ),
+                compassProvider = compassProvider,
+                computeTrueHeading = computeTrueHeading,
+                navigationTarget = target,
+                returnRoute = returnRoute,
+                routeLine = routeLine,
+                onRetryRoute = onRetryRoute,
+                waypointNavigate = WaypointNavigateControls(
+                    isNavigatingToWaypoint = navigatingToWaypoint != null,
+                    straightLine = nextWaypointLine,
+                    onNavigate = onNavigateToWaypoint?.let { startWaypointNavigation },
+                    mapReopen = mapWaypointReopen,
+                    onMapReopenConsumed = { mapWaypointReopen = null },
+                    recordsReopenDetails = recordsWaypointReopen,
+                    onRecordsReopenConsumed = { recordsWaypointReopen = null },
+                ),
+                showDecimalDegrees = showDecimalDegrees,
+                onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
+                navigationFollowing = !navigationFollowBroken,
+                navigationViewRequestId = navigationViewRequestId,
+                onLeftNavigationView = { navigationFollowBroken = true },
+                onReturnToRoute = {
+                    navigationFollowBroken = false
+                    navigationViewRequestId++
+                },
+                navigationZoomPending = navigationZoomPending,
+                onNavigationZoomApplied = { navigationZoomPending = false },
+                basemap = basemap,
+                onLocateMe = onLocateMe,
+                onMapFullscreenChanged = onMapFullscreenChanged,
+                mapBubbleSources = mapBubbleSources,
+                onMapModeChange = {
+                    chosenMapMode = it
+                    onMapModeSelected(it)
+                },
+                // Dispatch -502: the return control and the HUD's X end a waypoint navigation first, while there is one.
+                onToggleReturning = onNavigationControl,
+                onClearMapTaxonFilter = onClearMapTaxonFilter,
+            ),
             onFindReportClosed = onFindReportClosed,
             onEntryClosed = onEntryClosed,
             onFindDeleted = onFindDeleted,
             onFindEditStarted = mapReturnMemory::forget,
-            mapRenderMode = mapRenderMode,
-            mapLayers = mapLayersControls,
             mapMode = { mapMode },
-            isNightMode = isNightMode,
-            isRecording = isRecording,
-            startRecordingErrorMessage = startRecordingErrorMessage,
-            breadcrumbPoints = breadcrumbPoints,
-            mapWaypoints = mapWaypoints,
-            returnToStart = returnToStart,
-            isReturning = isReturning,
-            isNavigating = isNavigating,
-            isArrivalHeld = isArrivalHeld,
-            isOffTrack = isOffTrack,
-            recordingSundownLine = recordingSundownLine,
-            // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
-            // the Tools drawer's own values and callbacks (the same two classes its Sundown section is given below).
-            quickSettings = MapQuickSettings(
-                isRecording = isRecording,
-                backBy = recordingBackBy,
-                onBackByChoice = onBackByChoice,
-                onClearBackBy = onClearBackBy,
-                sundown = SundownSettings(
-                    alertsEnabled = uiState.sundownAlertsEnabled,
-                    darknessMarginMinutes = uiState.darknessMarginMinutes,
-                    onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
-                    onDarknessMarginChanged = onDarknessMarginChanged,
-                ),
-                offTrackReminder = OffTrackReminderSettings(
-                    enabled = uiState.offTrackReminderEnabled,
-                    onEnabledChanged = onOffTrackReminderChanged,
-                ),
-                batterySaver = BatterySaverSettings(
-                    enabled = uiState.batterySaverEnabled,
-                    onEnabledChanged = onBatterySaverChanged,
-                ),
-                currentTime = currentTime,
-            ),
-            compassProvider = compassProvider,
-            computeTrueHeading = computeTrueHeading,
-            navigationTarget = target,
-            returnRoute = returnRoute,
-            routeLine = routeLine,
-            onRetryRoute = onRetryRoute,
-            waypointNavigate = WaypointNavigateControls(
-                isNavigatingToWaypoint = navigatingToWaypoint != null,
-                straightLine = nextWaypointLine,
-                onNavigate = onNavigateToWaypoint?.let { startWaypointNavigation },
-                mapReopen = mapWaypointReopen,
-                onMapReopenConsumed = { mapWaypointReopen = null },
-                recordsReopenDetails = recordsWaypointReopen,
-                onRecordsReopenConsumed = { recordsWaypointReopen = null },
-            ),
-            showDecimalDegrees = showDecimalDegrees,
-            onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
-            navigationFollowing = !navigationFollowBroken,
-            navigationViewRequestId = navigationViewRequestId,
-            onLeftNavigationView = { navigationFollowBroken = true },
-            onReturnToRoute = {
-                navigationFollowBroken = false
-                navigationViewRequestId++
-            },
-            navigationZoomPending = navigationZoomPending,
-            onNavigationZoomApplied = { navigationZoomPending = false },
             mapTaxonFilter = { mapTaxonFilter },
-            basemap = basemap,
-            tracks = tracks,
-            waypoints = waypoints,
-            waypointsErrorMessage = waypointsErrorMessage,
-            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-            onLocateMe = onLocateMe,
-            onLeaveLogEntryEditingIncidentally = onLeaveLogEntryEditingIncidentally,
             leaveLogEntryEditingOfferingDiscard = leaveLogEntryEditingOfferingDiscard,
-            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
             onIsDrawerOpenChange = { isDrawerOpen = it },
             onIsMapFullscreenChange = { isMapFullscreen = it },
-            onMapFullscreenChanged = onMapFullscreenChanged,
             onCompactTabChange = { compactTab = it },
             onSelectedTabChange = { selectedTab = it },
-            onUseCurrentLocation = onUseCurrentLocation,
-            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-            onTaxonSearchResultSelected = onTaxonSearchResultSelected,
             onPendingJournalDestinationChange = {
                 pendingJournalDestination = it
                 if (it == null) {
@@ -1552,86 +1204,22 @@ fun AvailabilityScreen(
             },
             pendingJournalFindId = { pendingJournalFindId },
             pendingJournalEntryId = { pendingJournalEntryId },
-            onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
-            mapBubbleSources = mapBubbleSources,
-            onStartLogEntry = onStartLogEntry,
             onViewSpeciesOnMap = onViewSpeciesOnMap,
-            onMapModeChange = {
-                chosenMapMode = it
-                onMapModeSelected(it)
-            },
-            onPlaceTripPin = onPlaceTripPin,
-            onToggleRecording = onToggleRecording,
-            onDropWaypoint = onDropWaypoint,
-            // Dispatch -502: the return control and the HUD's X end a waypoint navigation first, while there is one.
-            onToggleReturning = onNavigationControl,
-            onClearMapTaxonFilter = onClearMapTaxonFilter,
-            onManualLatChanged = onManualLatChanged,
-            onManualLngChanged = onManualLngChanged,
-            onSearchManualCoordinates = onSearchManualCoordinates,
             onOpenCamera = onOpenCamera,
-            onOpenLogEntry = onOpenLogEntry,
-            onCloseLogEntry = onCloseLogEntry,
-            onLogEntryChanged = onLogEntryChanged,
-            onStartEditingLogEntry = onStartEditingLogEntry,
-            onSaveLogEntry = onSaveLogEntry,
-            onCancelLogEntryEditing = onCancelLogEntryEditing,
             onLogPhotoAcquisitionInFlightChange = { logPhotoAcquisitionInFlight = it },
-            onAddLogPhoto = onAddLogPhoto,
-            onRemoveLogPhoto = onRemoveLogPhoto,
-            onPullLogPhoto = onPullLogPhoto,
-            onDeleteLogEntry = onDeleteLogEntry,
-            onSaveLogErrorDismissed = onSaveLogErrorDismissed,
-            onDeleteGalleryPhoto = onDeleteGalleryPhoto,
-            onAddGalleryPhoto = onAddGalleryPhoto,
-            onOpenCartographyEntry = onOpenCartographyEntry,
-            onStartCartographyEntry = onStartCartographyEntry,
-            onCloseCartographyEntry = onCloseCartographyEntry,
-            onCartographyTextChanged = onCartographyTextChanged,
-            onCartographyTagsChanged = onCartographyTagsChanged,
-            onSetFindDecision = onSetFindDecision,
-            onSetTrackDecision = onSetTrackDecision,
-            onSetWaypointDecision = onSetWaypointDecision,
-            onSetOfflineRegionDecision = onSetOfflineRegionDecision,
-            onSetEntryGroupIncluded = onSetEntryGroupIncluded,
-            onToggleKeptPhoto = onToggleKeptPhoto,
-            onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
-            onFinishCartographyEntry = onFinishCartographyEntry,
-            onSaveCartographyEntry = onSaveCartographyEntry,
-            onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
-            onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
-            onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
-            onDeleteCartographyEntry = onDeleteCartographyEntry,
-            onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
-            onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
-            // J4b L1: a find tile's long-press Edit uses the one open-and-edit call.
-            onOpenLogEntryForEditing = onOpenLogEntryForEditing,
-            getCartographyEntryMapData = getCartographyEntryMapData,
-            getSavedTrackPaths = getSavedTrackPaths,
-            getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
-            getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
-            onOfflineMapLatChanged = onOfflineMapLatChanged,
-            onOfflineMapLngChanged = onOfflineMapLngChanged,
-            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-            onOfflineMapNameChanged = onOfflineMapNameChanged,
-            onOfflineMapsOpened = onOfflineMapsOpened,
-            onDownloadOfflineMaps = onDownloadOfflineMaps,
-            onDeleteOfflineRegion = onDeleteOfflineRegion,
-            onDownloadAgain = onDownloadAgain,
-            onTracksOpened = onTracksOpened,
-            getFullRecord = getFullRecord,
-            onDeleteWaypoint = onDeleteWaypoint,
-            onDeleteTrack = onDeleteTrack,
-            tracksErrorMessage = tracksErrorMessage,
-            onRecentSearchSelected = onRecentSearchSelected,
-            onClearSearch = onClearSearch,
-            onRadiusChanged = onRadiusChanged,
-            onMonthSelected = onMonthSelected,
             journalScreenState = journalScreenState,
             cartographyEntryModeState = cartographyEntryModeState,
             cartographyOpenEntryGroupsState = cartographyOpenEntryGroupsState,
             findEntryModeState = findEntryModeState,
             findOverViewState = findOverViewState,
+            // Phase 2.6 B: the screen's own bundles, passed straight down (the frame unpacks them).
+            findsLog = findsLog,
+            journalEntries = journalEntries,
+            entryReportData = entryReportData,
+            offlineMaps = offlineMaps,
+            records = records,
+            searchInputs = searchInputs,
+            recording = recording,
         )
     }
 
@@ -1683,79 +1271,32 @@ fun AvailabilityScreen(
     // draws its dot at, the same way the compass reaches them.
     val shownPosition = rememberShownPosition(uiState.liveFix, uiState.approximateFix, uiState.lastKnownFix, currentTime)
     val mapPosition = remember(shownPosition, liveFixForMaps) { MapPosition(shownPosition, liveFixForMaps) }
-    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition, LocalTrackDetailsFold provides trackDetailsFoldOpen) {
-    ModalNavigationDrawer(
+    // Phase 2.6, PR 4: the composition locals, the Tools drawer and the frame it slides over (AvailabilityScreenDrawerHost.kt),
+    // composed here, unconditionally, at the line this tree was; InAppCameraHost stays below it.
+    AvailabilityScreenDrawerHost(
+        state = screenState,
         drawerState = drawerState,
-        // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
-        // pannable map, and a horizontal drag there means "pan", not "open the drawer". Tools
-        // is the way in. Gestures are on only while the drawer is open, which is what lets a
-        // scrim tap close it: in material3 1.5.0-alpha26 both the scrim's dismiss and the
-        // drag are gated on this flag (`if (gesturesEnabled && ...)` and
-        // `anchoredDraggable(enabled = gesturesEnabled)`), so with it off neither a scrim tap
-        // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
-        // closed it stays false, so swipe-to-open stays off. See the pre-build report above.
-        gesturesEnabled = drawerState.isOpen,
-        // Dispatch 2026-10-18-08 Amendment 1, RECORD -1313 (the owner: "When opening it, there should be no coloring of the
-        // app", then "Portrait too" and "yes same behavior, just no added color"): no tint over the app behind the open drawer.
-        // Transparent, not Color.Unspecified: material3 1.5.0-alpha26's Scrim (Scrim.kt) draws, and takes the tap that closes
-        // the drawer, only `if (color.isSpecified)`, so Unspecified would also drop the tap-outside close. Transparent keeps the
-        // scrim's full-screen tap target and its "Close drawer" semantics and draws nothing. Until -1313 the default,
-        // DrawerDefaults.scrimColor (ScrimTokens' colour at ScrimTokens.ContainerOpacity).
-        scrimColor = Color.Transparent,
-        drawerContent = {
-            // The sheet itself stays in drawerDirection, so its rounded edge faces the
-            // content and its start-side inset padding lands on the window edge it sits on.
-            // Only what is inside it goes back to the ambient direction.
-            // Material3's own default container role for a modal drawer, passed explicitly, and
-            // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
-            // role exactly; see `MapLayersSheet`).
-            // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
-            // (Recommended)"; planner message -77, Q4); solid over the other tabs.
-            val drawerColor = mapChromeFill(navigationBarContainerColor(), compactTab == CompactTab.MAP)
-            val drawerContentColor = contentColorFor(navigationBarContainerColor())
-            ModalDrawerSheet(
-                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
-                drawerContainerColor = drawerColor,
-                drawerContentColor = drawerContentColor,
-            ) {
-                CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
-                Box(modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
-                CompactToolsDrawerContent(
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    onDistanceUnitSelected = onDistanceUnitSelected,
-                    onClose = { isDrawerOpen = false },
-                    onDeletePlannedTrip = onDeletePlannedTrip,
-                    isNightMode = isNightMode,
-                    onNightModeMapsChanged = onNightModeMapsChanged,
-                    themeMode = uiState.themeMode,
-                    onThemeModeChanged = onThemeModeChanged,
-                    backup = backup,
-                    openSettingsRequest = openBackupRequest,
-                    openSettingsOnlyRequest = openSettingsOnlyRequest,
-                    sundown = SundownSettings(
-                        alertsEnabled = uiState.sundownAlertsEnabled,
-                        darknessMarginMinutes = uiState.darknessMarginMinutes,
-                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
-                        onDarknessMarginChanged = onDarknessMarginChanged,
-                    ),
-                    offTrackReminder = OffTrackReminderSettings(
-                        enabled = uiState.offTrackReminderEnabled,
-                        onEnabledChanged = onOffTrackReminderChanged,
-                    ),
-                    onOpenOfflineMaps = openOfflineMapsFromTools,
-                )
-                }
-                }
-            }
-        },
-        content = {
-            CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
-                compactMainScaffold()
-            }
-        },
+        drawerDirection = drawerDirection,
+        ambientDirection = ambientDirection,
+        mapKeepOuts = mapKeepOuts,
+        mapCompass = mapCompass,
+        mapPosition = mapPosition,
+        trackDetailsFoldOpen = trackDetailsFoldOpen,
+        uiState = uiState,
+        distanceUnit = distanceUnit,
+        onDistanceUnitSelected = onDistanceUnitSelected,
+        onDeletePlannedTrip = onDeletePlannedTrip,
+        isNightMode = isNightMode,
+        onNightModeMapsChanged = onNightModeMapsChanged,
+        onThemeModeChanged = onThemeModeChanged,
+        backup = backup,
+        openBackupRequest = openBackupRequest,
+        onSundownAlertsEnabledChanged = onSundownAlertsEnabledChanged,
+        onDarknessMarginChanged = onDarknessMarginChanged,
+        onOffTrackReminderChanged = onOffTrackReminderChanged,
+        openOfflineMapsFromTools = openOfflineMapsFromTools,
+        compactMainScaffold = compactMainScaffold,
     )
-    }
     // The in-app camera, once, after the tree above. Its own open flag lives in InAppCameraViewModel,
     // which survives a recreation. See InAppCameraHost for both mechanisms and the owner's decision.
     // Until dispatch 2026-09-28-245 a window crossing 600 dp flipped between two trees, which is why
