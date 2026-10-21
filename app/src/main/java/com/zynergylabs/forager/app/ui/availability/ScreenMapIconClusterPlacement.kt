@@ -25,7 +25,7 @@ internal fun rememberPersistedMapIconClusterPosition(
     // not drawn until it has applied it (first effect), so there is no frame on the default side. Every
     // drag that ends is stored (second effect), keyed on the holder's own count of ended drags rather
     // than on the position itself: a write per drag, not per frame of one, and never a write of the
-    // default before the read lands (the trap isMapFullscreen's comment above describes).
+    // default before the read lands (the trap isMapFullscreen's comment in ScreenMapFullscreen.kt describes).
     val mapIconClusterPosition = rememberMapIconClusterPositionState(awaitingPlacement = true)
     val mapIconClusterDensity = LocalDensity.current
     LaunchedEffect(uiState.mapIconClusterPlacement) {

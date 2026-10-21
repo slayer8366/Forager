@@ -22,7 +22,7 @@ internal class MapFullscreenFlag(private val state: MutableState<Boolean>) {
  */
 @Composable
 internal fun rememberMapFullscreen(uiState: AvailabilityUiState): MapFullscreenFlag {
-    // Local remembered state, same reasoning as selectedTab below: purely a display
+    // Local remembered state, same reasoning as selectedTab in AvailabilityScreen.kt: purely a display
     // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
     // this — see CompactMapTab's call site. Only reachable while on the
     // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
@@ -35,7 +35,7 @@ internal fun rememberMapFullscreen(uiState: AvailabilityUiState): MapFullscreenF
     // failed read leaves it null and the screen starts as it always did). Two load-bearing
     // choices here:
     //
-    // 1. Writes happen at the three user-driven mutation sites (the toggle below, the fullscreen
+    // 1. Writes happen at the three user-driven mutation sites (the toggle in AvailabilityScreen.kt, the fullscreen
     //    BackHandler, the tab handler's exit) — never from a LaunchedEffect on isMapFullscreen.
     //    Such an effect would fire on first composition with the default `false` and write it
     //    before the DataStore read lands, clobbering a persisted `true`: a data-loss bug that
