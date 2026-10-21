@@ -25995,3 +25995,26 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - The flip PR is next to build; it is not merged until Aspen's rebuild with Puerto Rico, the USVI and tracks z11/paths z12 is live (-1514).
 - Leftover never-merged remote branches: scratch-street-fallback-RA1/RA2/RA3, street-fallback-device-check, scratch-street-switch-on-probe.
 **Notes:** Written by the planner by hand. Next free ID -1516.
+
+---
+
+**Kind:** finding
+**ID:** 2026-09-28-1516
+**Timestamp:** 2026-10-21T10:45:57Z
+**Continues:** 2026-09-28-1515
+**Title:** The local dex register check undercounted whenever its temp folder was on /tmp; PR #359 (switch flip) opened as a held draft
+**Observed:**
+- **PR #359 (Hazel):** opened as a draft into pre-main, titled HOLD until the PR/USVI rebuild is live (-1514).
+  - Run 39583960820 on 30802009 is green: 5,241 cases. Case by case against 39583679260 there are no status changes; the two renames are the only pairs that differ.
+  - Revert check: the switch set back to false (run 39584004983, 0 `e:` lines) failed exactly the 13 predicted cases.
+  - The touch guards are identical, the dex reports byte-identical, and the `.github` diff empty.
+  - S22 launch check: PASS (1.0.3763+g30802009).
+- **The dex finding (Hazel, re-measured at my request):**
+  - When the temp folder is on the laptop's /tmp (a tmpfs, 1.3 GB free at the time), the `dexdump` output for classes19.dex (38.7 MB) stops at about 110.7 MB and still exits 0. So `scripts/verify-dex-register-budget.sh` reported about 208,100 methods instead of 226,975, and about 18,865 methods were never checked against the 256-register limit.
+  - Why the output stops is not known.
+  - The script is a local report, not a CI guard (git grep finds no caller in .github).
+  - With the temp folder on /mnt/work, A's head (0ee02f0a) and pre-main e0565f31 both give 226,975 methods with 5 over 256, the same as the baseline list. So the current tree is verified in full.
+  - Earlier PRs' dex proofs that ran with /tmp were partial. The current full count supersedes them for today's tree, but not as evidence about each PR at its own time.
+  - This belongs to CLAUDE.md's family of checks that pass without seeing the data that could fail them. It was caught by a count read against something outside the check: the APK sizes matched within 4 bytes while the method count jumped.
+**Decision:** none yet. Hardening the script (fail when its method count differs from the dex header's method_ids_size, or when a dump ends mid-record) goes to the owner for a go.
+**Notes:** Written by the planner by hand. Next free ID -1517.
