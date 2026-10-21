@@ -25556,3 +25556,21 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
   - Merged at 663973b9.
 - **The phone check is the gate for #353,** because its method frames changed size: CompactMainScaffold was over 256 registers before and is under now.
 **Notes:** Written by the planner by hand. Next free ID -1494.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1494
+**Timestamp:** 2026-10-21T07:08:56Z
+**Continues:** 2026-09-28-904, 2026-09-28-454
+**Title:** Trail navigation next: a read-only status survey first (owner)
+**Observed:** the owner asked, verbatim: "Is trail navigation wired into the app yet? We should work on that next."
+- **The planner's answer, from source:**
+  - It is not wired. The way back follows the walked track, and waypoint navigation points toward the waypoint with Return to Route; neither routes along the mapped network.
+  - The plan of record is docs/plans/trail-navigation-and-own-tiles.md (-454), with nine stages. Stage 1 chose BRouter (-477).
+  - Own-tiles work is partly done: Street v1 is in #258 behind a switch, with the trail styling awaiting the owner's phone review.
+  - Stages 6 to 9 (routing along the network, off-trail and wrong-turn behaviour, the reference layer, the owner's walks) have not started. The planner stated this from memory, unverified; the survey checks it.
+**Decision:**
+- The owner chose "Status survey now (Recommended)": a read-only check, while #354 finishes, of where each of the nine stages stands, what the Pi pipeline already makes, and what the Phase 2 split changed. The planner then brings an updated plan and the open questions. No building.
+- Juniper Sounding (researcher, Fable) runs the survey. The planner files the result under docs/navigation/.
+**Notes:** Written by the planner by hand. Next free ID -1495.
