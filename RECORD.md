@@ -25477,3 +25477,24 @@ The planner's conditions:
 
 The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CLAUDE.md pointer. The pointer is appended to an existing Building line, so no line moves (CLAUDE.md's line 253 constraint). They go to pre-main as a docs PR.
 **Notes:** Written by the planner by hand. Next free ID -1491.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1491
+**Timestamp:** 2026-10-21T03:32:45Z
+**Continues:** 2026-09-28-1490, 2026-09-28-1484, 2026-09-28-1479
+**Title:** #350 (modular-code skill and its CLAUDE.md pointer) merged into pre-main; E's verify-first ruled; the CI file-growth warning queued; the trail review is delayed by the archive upload
+**Observed:**
+- **#350:** `.claude/skills/modular-code/SKILL.md`, a one-line CLAUDE.md pointer appended to the existing Building line (line 253 unmoved, 486 lines), and `.gitignore` now tracking `.claude/skills/`. The owner was shown the summary and chose "Yes, merge and dispatch (Recommended)". Merged at b85e5e26.
+- **E's verify-first (Hazel, pre-main 2e384d1f):** seven BackHandlers at :1035-:1124. The overlaps are as in -1478.
+  - E1: a real-Back test pinning the four overlaps' winners today. It reaches the state with one semantic click, because the drawer scrim covers the nav during the close animation.
+  - Revert R1 (tools-return handler moved last) and R2 (moved first) are to show the test bites.
+  - E2: one value-returning composable at :1013 holding the span verbatim. It returns showExitNavigationPrompt's MutableState, so both remembers keep their slot order.
+- **Inferred by Hazel:** the overlap is probably unreachable by touch, because the drawer's scrim takes touches during the window. It is reachable only if the Offline maps chip never lands. This adds to -1479.
+- **Hazel's "app methods" count** is the register report at limit 0, which counts methods with code only. That is inferred to explain the 326-method gap from Sorrel's prefix count.
+- **Trails:** the archive upload's attempt 1 failed at 95% (03:27Z, S3 retry quota on a degraded link). Attempt 2 of 3 restarted from zero, ETA about 07:30-08:00Z. The live archive is unchanged. The review install on the owner's S26 is held until Aspen's after-checks pass.
+**Decision:**
+- **E** (the planner's rulings): the semantic click is accepted for E1, with its limit stated in the test. E1 and E2 are two PRs, E1 first. The returned-MutableState shape is accepted.
+- **The CI file-growth warning** (owner, -1490) is dispatched to a coder after Phase 2's E and B+C, as the option told the owner.
+**Notes:** Written by the planner by hand. Next free ID -1492.
