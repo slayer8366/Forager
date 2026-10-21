@@ -128,7 +128,7 @@ class MapLayerPreferencesStateTest {
         )
         val credits = mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, layerCredits = activeLayerCredits(registry, both))
         assertEquals(listOf(mapAttributionFor(Basemap.OSM_STANDARD, false), "Synthetic test data"), credits)
-        assertEquals("© OpenStreetMap contributors · Synthetic test data", attributionCaption(credits))
+        assertEquals("Protomaps © OpenStreetMap · Synthetic test data", attributionCaption(credits)) // Street's own credit, forced by the owner's -1511
 
         val none = withUnavailableColourFieldsHidden(MapLayersState.DEFAULT, registry, available = emptySet())
         assertEquals(emptyList<String>(), activeLayerCredits(registry, none))

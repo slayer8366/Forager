@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
 import android.graphics.BitmapFactory
+import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -308,8 +309,9 @@ class TopoNightStreetSwitchTest {
     @Test
     fun `the caption at topo night credits both sources`() {
         val credits = mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true)
-        assertEquals(listOf(Basemap.OPEN_TOPO_MAP.attribution, Basemap.OSM_STANDARD.attribution), credits)
-        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors", attributionCaption(credits))
+        // The Street below topo at night is the own map (forced by the owner's -1511).
+        assertEquals(listOf(Basemap.OPEN_TOPO_MAP.attribution, OFFLINE_STYLE_ATTRIBUTION), credits)
+        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA) · Protomaps © OpenStreetMap", attributionCaption(credits))
     }
 
     @Test

@@ -30,8 +30,9 @@ class MapAttributionListTest {
     @Test
     fun `a layer's credit follows the basemap's, joined by a middle dot`() {
         val credits = mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, layerCredits = listOf("Forecast: example"))
-        assertEquals(listOf("© OpenStreetMap contributors", "Forecast: example"), credits)
-        assertEquals("© OpenStreetMap contributors · Forecast: example", attributionCaption(credits))
+        // Street's credit is the own map's (forced by the owner's -1511).
+        assertEquals(listOf("Protomaps © OpenStreetMap", "Forecast: example"), credits)
+        assertEquals("Protomaps © OpenStreetMap · Forecast: example", attributionCaption(credits))
     }
 
     @Test
@@ -46,6 +47,8 @@ class MapAttributionListTest {
             Basemap.OSM_STANDARD,
             useOfflineTiles = false,
             layerCredits = listOf("© OpenStreetMap contributors", "Forecast: example", "Forecast: example"),
+            // Driven with the switch off, so a layer credit equal to the basemap's is still what is checked (D1, forced by the owner's -1511).
+            ownStreet = false,
         )
         assertEquals(listOf("© OpenStreetMap contributors", "Forecast: example"), credits)
     }

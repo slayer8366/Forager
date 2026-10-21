@@ -45,8 +45,9 @@ class OfflineStyleSwapTest {
     @Test
     fun `offline off loads the basemap's own raster style as JSON, night applied`() {
         Basemap.entries.forEach { basemap ->
-            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false)
-            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false)
+            // Driven with the switch off: the raster path, which the own Street replaces for Street (D3, forced by the owner's -1511).
+            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false, ownStreet = false)
+            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false, ownStreet = false)
 
             assertTrue("$basemap day must be a JSON style", day is MapStyleSource.Json)
             assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.tileUrlTemplate))
@@ -68,7 +69,7 @@ class OfflineStyleSwapTest {
     @Test
     fun `the credit over a basemap is that basemap's own`() {
         assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", mapAttributionFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false))
-        assertEquals("© OpenStreetMap contributors", mapAttributionFor(Basemap.OSM_STANDARD, useOfflineTiles = false))
+        assertEquals("Protomaps © OpenStreetMap", mapAttributionFor(Basemap.OSM_STANDARD, useOfflineTiles = false)) // Street is the own map, forced by the owner's -1511
     }
 
     @Test

@@ -76,8 +76,8 @@ class OwnStreetStyleSourceTest {
         assertEquals(18, operatingMaxZoom(Basemap.OSM_STANDARD, ownStreet = true))
         assertEquals(Basemap.OSM_STANDARD.maxZoom, operatingMaxZoom(Basemap.OSM_STANDARD, ownStreet = false))
         assertEquals(Basemap.OPEN_TOPO_MAP.maxZoom, operatingMaxZoom(Basemap.OPEN_TOPO_MAP, ownStreet = true))
-        // The release value, through the camera's own entry point: unchanged from before the switch existed.
-        assertEquals(Basemap.OSM_STANDARD.maxZoom.toDouble(), navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
+        // The release value, through the camera's own entry point: the own Street's 18 since the flip (forced by the owner's -1511).
+        assertEquals(18.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
     }
 
     @Test

@@ -85,9 +85,10 @@ class NavigationViewTest {
     @Test
     fun `while navigating the camera may reach the start zoom on every basemap, and not otherwise`() {
         assertEquals(18.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = true), 0.0)
-        assertEquals("a higher cap is not lowered", 19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = true), 0.0)
+        // With the own Street on, Street's cap is the owner's 18, so the higher cap is driven with the switch off (D2, forced by the owner's -1511).
+        assertEquals("a higher cap is not lowered", 19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = true, ownStreet = false), 0.0)
         assertEquals(17.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = false), 0.0)
-        assertEquals(19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
+        assertEquals("the own Street's 18 (forced by the owner's -1511)", 18.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
     }
 
     /**

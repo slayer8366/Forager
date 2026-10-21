@@ -90,9 +90,10 @@ class OfflineRegionOlderStyleNoticeTest {
     }
 
     @Test
-    fun `the release value shows no notice on today's regions`() {
+    fun `the release value shows the notice on a region in the older style`() {
+        // Renamed and inverted, forced by the owner's -1511: with the own Street on, a region in the older style says so.
         show(region(4, OFFLINE_STYLE_URL), ownStreet = null)
-        composeRule.onNodeWithTag(offlineRegionOlderStyleTag(4)).assertDoesNotExist()
+        composeRule.onNodeWithTag(offlineRegionOlderStyleTag(4)).assertIsDisplayed()
         composeRule.onNodeWithText("Region 4").assertIsDisplayed()
     }
 }

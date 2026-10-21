@@ -37,7 +37,8 @@ class SoftwareCreditsCatalogTest {
         assertEquals("MIT", licenceOf("NGA Grid"))
         assertEquals("MIT", licenceOf("NGA Simple Features"))
         assertEquals("MIT", licenceOf("NGA Color"))
-        assertEquals("OFL-1.1", licenceOf("Noto Sans"))
+        // Named in full since the own Street's Noto Sans entry is listed too (forced by the owner's -1511).
+        assertEquals("OFL-1.1", licenceOf("Noto Sans, the app's typeface"))
         assertEquals("MPL-2.0", licenceOf("The Public Suffix List"))
         listOf("AndroidX", "Retrofit", "OkHttp", "kotlinx").forEach { assertEquals(it, "Apache-2.0", licenceOf(it)) }
         listOf("Compose", "Room", "CameraX").forEach { part ->
@@ -69,7 +70,7 @@ class SoftwareCreditsCatalogTest {
         val street = listOf("Noto Sans, the Street map's labels", "The Street map's icons, from Mapzen's tangrams icon set")
         assertEquals(listOf("OFL-1.1", "MIT"), street.map { name -> on.single { it.name == name }.licence })
         assertTrue("credited with the switch off: ${off.map { it.name }}", off.none { it.name in street })
-        assertTrue("credited at the release value: ${libraries.map { it.name }}", libraries.none { it.name in street })
+        assertTrue("credited at the release value (forced by the owner's -1511): ${libraries.map { it.name }}", street.all { name -> libraries.any { it.name == name } })
         assertEquals("everything else is the same both ways", off.map { it.name }, on.map { it.name }.filterNot { it in street })
     }
 

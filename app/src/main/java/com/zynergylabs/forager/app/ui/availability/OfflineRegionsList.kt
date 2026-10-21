@@ -199,7 +199,7 @@ internal fun OfflineRegionRow(
                 }
             }
             // RECORD -1294: a region built against an older map style keeps drawing, and says so in one line. Nothing is
-            // re-downloaded for the user. Never shown while the own Street is off (StreetStyle.kt), which is today.
+            // re-downloaded for the user. Never shown while the own Street is off (StreetStyle.kt); it is on since RECORD -1511.
             if (regionHasOlderMapStyle(region.styleUrl, region.isDownloaded, ownStreet)) {
                 Text(
                     OLDER_MAP_STYLE_NOTICE,

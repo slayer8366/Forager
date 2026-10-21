@@ -7,18 +7,19 @@ package com.zynergylabs.forager.app.map
  * **The release switch.** [STREET_SERVED_BY_OWN_MAP] is the one place that decides which Street the app draws,
  * at compile time. The owner's ruling (-1282): Street uses the Cloudflare map "if it is ready and passes its phone
  * check before the release build"; otherwise Street ships on OpenStreetMap's raster tiles, and "nothing switches
- * while the app is in use". So nothing reads the network to decide it, and there is no fallback at run time: with
- * the switch on, a Worker that does not answer is an ordinary map load failure.
+ * while the app is in use". So nothing reads the network to decide it. Since RECORD -1513 there is one fallback at
+ * run time: if the own Street's style fails to load, the map draws OpenStreetMap's Street until the app restarts
+ * (`ui/map/OwnStreetFallback.kt`).
  *
- * It is `false`, raster, and stays so until the owner approves flipping it: after the Worker is deployed, the
- * phone review has passed, and Alaska and Hawaii are covered (-1300 (3)). With it `false` every function here
- * gives exactly what the app did before this file existed: [offlineDownloadStyleUrl] is [OFFLINE_STYLE_URL],
- * [offlineRenderStyleUrl] is [OFFLINE_STYLE_URL], and no region is ever older than the current style.
+ * It is `true` since RECORD -1511 (the owner: "Flip it now"), after the Worker was deployed and the phone review
+ * passed. The -1300 (3) condition (Alaska and Hawaii covered) is the map archive's, not this file's. With it `false`
+ * every function here gives exactly what the app did before this file existed: [offlineDownloadStyleUrl] is
+ * [OFFLINE_STYLE_URL], [offlineRenderStyleUrl] is [OFFLINE_STYLE_URL], and no region is ever older than the current style.
  *
  * The functions take the switch as a parameter, defaulting to the constant, so a unit test can drive both
  * values; production callers pass nothing.
  */
-internal const val STREET_SERVED_BY_OWN_MAP: Boolean = false
+internal const val STREET_SERVED_BY_OWN_MAP: Boolean = true // RECORD -1511: the owner, "Flip it now"
 
 /**
  * The Street style document, served by the Worker at `/style/street-v1.json` (`server/pmtiles-worker`), built by

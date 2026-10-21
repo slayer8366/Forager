@@ -20,16 +20,17 @@ class StreetStyleTest {
     private val servedStyle = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v1.json").readText()).jsonObject
 
     @Test
-    fun `the release switch is raster, so Street stays on OpenStreetMap until the owner flips it`() {
-        // -1302 / dispatch Part 2: "one compile-time constant, set to raster". Flipping it is a later, owner-approved step.
-        assertFalse(STREET_SERVED_BY_OWN_MAP)
+    fun `the release switch is on, so Street is the own map`() {
+        // -1302 / dispatch Part 2 set it to raster; the owner flipped it (-1511, "Flip it now"). Renamed and inverted, forced by the owner's -1511.
+        assertTrue(STREET_SERVED_BY_OWN_MAP)
     }
 
     @Test
     fun `with the switch off, downloads and the offline map use the old offline style exactly as before`() {
         assertEquals(OFFLINE_STYLE_URL, offlineDownloadStyleUrl(ownStreet = false))
         assertEquals(OFFLINE_STYLE_URL, offlineRenderStyleUrl(listOf(STREET_STYLE_URL, OFFLINE_STYLE_URL), ownStreet = false))
-        assertEquals(OFFLINE_STYLE_URL, offlineDownloadStyleUrl())
+        // The release value: the Street style since the flip (forced by the owner's -1511).
+        assertEquals(STREET_STYLE_URL, offlineDownloadStyleUrl())
     }
 
     @Test
@@ -52,7 +53,7 @@ class StreetStyleTest {
         assertFalse("not downloaded on this phone", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = false, ownStreet = true))
         assertFalse("an unknown style is never guessed old", regionHasOlderMapStyle(null, isDownloaded = true, ownStreet = true))
         assertFalse("switch off: today's regions are today's style", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = true, ownStreet = false))
-        assertFalse("release value", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = true))
+        assertTrue("release value: an older region shows the notice (forced by the owner's -1511)", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = true))
     }
 
     @Test
@@ -76,7 +77,7 @@ class StreetStyleTest {
     fun `the Protomaps credit names Street only while the own Street is on`() {
         assertEquals("Protomaps (offline maps)", com.zynergylabs.forager.app.ui.credits.protomapsCreditText(ownStreet = false))
         assertEquals("Protomaps (Street and offline maps)", com.zynergylabs.forager.app.ui.credits.protomapsCreditText(ownStreet = true))
-        assertEquals("Protomaps (offline maps)", com.zynergylabs.forager.app.ui.credits.protomapsCreditText())
+        assertEquals("Protomaps (Street and offline maps)", com.zynergylabs.forager.app.ui.credits.protomapsCreditText()) // release value, forced by the owner's -1511
     }
 
     @Test
