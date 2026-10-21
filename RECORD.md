@@ -26255,3 +26255,25 @@ They come before 4a, and B and 4a run in sequence.
 - **Observed, not caused by #364:** after Stop from the notification, the map kept showing the red recording button, and the track's Delete did nothing, until the app went to the background and came back. That matches the gap recorded at `TrackRecordingViewModel.resyncRecordingState`: a resync happens only on ON_START and ON_STOP. It has not been checked on pre-main. A state that reads as broken.
 **Decision:** merged into pre-main at 831ee194 (b1064eca before, logged).
 **Notes:** Written by the planner by hand. Next free ID -1528.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1528
+**Timestamp:** 2026-10-21T16:08:55Z
+**Continues:** 2026-09-28-1527, 2026-09-28-1525
+**Title:** Stop from the notification: fix it next (owner); #365 and #366 built
+**Decision:** the owner was shown the step path (Notification: Stop recording → shade back up; today the map still shows Recording; fixed: the normal Record button straight away). They chose "Fix it next (Recommended)" over the bug list. Dispatch `prompts/preserved/2026-10-21-04.md` goes to the second Hazel, stage 1 first (reproduce, cause, fix). Its files exclude AvailabilityScreen*, AvailabilityCompact* and ui/map/*.
+**Observed:**
+- **#365 (dispatch -03, PR A, search frame):**
+  - Green run 39621185385 on 07d1d069.
+  - `searchFrameSnapshot` in MapCameraMoves.kt, and MapDataRefresh writes it into the camera memory.
+  - Revert RA (39621248629) failed 1 case on its own message, with 0 compile errors.
+  - Suite: 0 status changes plus 1 new case. Dex +1. The `.github` diff is empty.
+- **#366 (PR B, chip):**
+  - Green run 39624909063 on 9d417b6d.
+  - One `copy` at AvailabilityScreen.kt:1221.
+  - Revert RB (39621553070) failed 1 case, "Clear removes the chip".
+  - Suite: 0 status changes plus 1 new case. Dex +4.
+- **A flake, untouched:** `MushroomLogViewModelWiringTest` "a find deleted through the Journal's ViewModel leaves the Maps tab's records" failed once on 39621527082 (attempt 1) with "onFindDeleted is not wired expected:<[]> but was:<[wired-find]>". Three probe runs of the class passed 5 of 5, and the full rerun was green. It is inferred to be timing in `awaitUntil`; it goes on the deferred flake list.
+**Notes:** Written by the planner by hand. Next free ID -1529.
