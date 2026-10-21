@@ -25793,3 +25793,28 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
   - The S22 launch check couldn't run: the S22 was disconnected. Dev has not moved yet.
 **Decision:** asked what Street should do, the owner chose "Match Topo (Recommended)": "Trails and road names stay visible down to the same zoom Topo shows them. First a quick check of whether the cause is the map style (easy fix) or the map data built on the Pi (a rebuild), then I bring you the fix." A read-only diagnosis (Hazel) is running.
 **Notes:** Written by the planner by hand. Next free ID -1506.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1506
+**Timestamp:** 2026-10-21T08:32:08Z
+**Continues:** 2026-09-28-1505
+**Title:** Street zoom fix: style now (tracks from 12, minor-road names from 14), footpaths' data change with the next Pi rebuild (owner)
+**Observed:**
+- **#258 is up to date** (dispatch 2026-10-19-43). It merged pre-main as 49682b10, with `git diff origin/pre-main 49682b10` byte-identical to #258's own changes.
+  - CI green: run 39567063407, 5,233 cases. The case differences are fully explained.
+  - The review branch is at 9f345e64 (run 39567154090): only the switch differs, with the known 16 failures.
+  - `npm run check:street` passes.
+- **The diagnosis** (Hazel, read-only, live tiles decoded with the app's User-Agent):
+  - **Footpaths:** minzoom 13 in both the style and the tiles (upstream Roads.java; the pinned patch changes no zoom).
+  - **Tracks:** the style starts them at 13, the tiles carry them from 12.
+  - **Minor-road, track and trail names:** the style starts them at 15, the tiles carry them from 14.
+  - **Topo** (OpenTopoMap at mapnik 60c50cb8, read, shifted by its raster tile-zoom rule): ordinary trails from about map zoom 12.5, minor names from about 14.5.
+  - **Cache:** ruled out, because busted and unbusted tiles are identical and the pattern follows from the style plus the data.
+**Decision:** the owner chose:
+- "Style now, data later (Recommended)": tracks show a zoom earlier, and road and trail names show from 14, as a small change in #258. Footpaths' last half-zoom waits for the next Pi rebuild that runs anyway, for example with elevation.
+- Names "From zoom 14 (Recommended)".
+
+The style change goes to Hazel in #258, and the Worker needs redeploying for phones to show it. The footpath data change (Roads.java footpath minzoom 13 → 12, then the style's z13 path layers to 12) is noted for Aspen's next rebuild.
+**Notes:** Written by the planner by hand. Next free ID -1507.
