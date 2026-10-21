@@ -28,9 +28,12 @@
 # shuffle arguments, which is where this crash came from. Whether to shrink one is the owner's
 # decision, not this script's. Set REGISTER_REPORT_LIMIT to list methods over a lower count.
 #
-# A dump that is cut off fails (RECORD -1516). On this project's laptop, with the work directory on a /tmp tmpfs,
+# A dump that is cut off fails (RECORD -1516). On this project's laptop, with the work directory on /tmp,
 # dexdump's output for the largest dex stopped at about 110 MB, mid-record, and dexdump still exited 0, so the
-# script reported ~208,100 methods instead of 226,975 and never looked at the rest. Each dump's class records
+# script reported ~208,100 methods instead of 226,975 and never looked at the rest. The cut is a per-user quota,
+# not free space: that /tmp is mounted `tmpfs ... usrquota`, about 200 MB per user (a 400 MB write stopped at
+# 200,384,512 bytes with rc 1), and dexdump never checks its fprintf calls. Freeing /tmp does not fix it; a
+# disk-backed TMPDIR does. Each dump's class records
 # are now counted against the dex header's class_defs_size, the number of classes the file defines; dexdump
 # writes one "Class #" record per class def, ending each with its source_file_idx line, so a dump cut anywhere
 # has fewer of one or both. method_ids_size is not comparable: it counts every method the file refers to,
@@ -90,8 +93,9 @@ for dex in "$WORK"/classes*.dex; do
   [ "$(head -c 4 "$dex" | od -An -c | tr -d ' ')" = 'dex\n' ] || { echo "FAIL: $(basename "$dex") has no dex magic"; exit 1; }
   class_defs="$(od -An -t u4 -j 96 -N 4 "$dex" | tr -d ' ')"
   read -r classes ended < "$WORK/records.txt"
+  [ -n "$class_defs" ] || { echo "FAIL: $(basename "$dex"): could not read class_defs_size from its header"; exit 1; }
   if [ "$classes" -ne "$class_defs" ] || [ "$ended" -ne "$class_defs" ]; then
-    echo "FAIL: $(basename "$dex"): the dump has $classes class records ($ended complete), the dex header says $class_defs (class_defs_size); dexdump's output was cut off or not understood, so the count would be wrong"
+    echo "FAIL: $(basename "$dex"): the dump has $classes class records ($ended complete), the dex header says $class_defs (class_defs_size); dexdump's output was cut off or not understood, so the count would be wrong (set TMPDIR to a disk-backed directory)"
     exit 1
   fi
   scanned=$((scanned + $(cat "$WORK/count.txt")))
