@@ -10,6 +10,7 @@
 //      None drawn, or two drawn (a dot covered by a dash), fails.
 //   2. The layer list: 90 layers, the 17 footpath ids, and their order, informal below steps below unknown below
 //      easy below rough below hard ("informal below hard, so a warning is never covered").
+//   3. The track layer from z12 and minor-road names from z14 (RECORD -1506).
 import fs from "node:fs";
 import { featureFilter } from "@maplibre/maplibre-gl-style-spec";
 
@@ -127,6 +128,14 @@ layersInOrder.forEach((upper, i) => layersInOrder.slice(0, i).forEach((lower) =>
 }));
 const track = style.layers.findIndex((l) => l.id === "roads_path_track");
 if (style.layers[track + 1]?.id !== IDS[0]) problems.push(`the footpath layers do not start right after roads_path_track`);
+
+// --- Zooms out (RECORD -1506): tracks from z12, minor-road, track and trail names from z14 -------------------------
+// The owner chose "Style now, data later" and road names "From zoom 14". Typed here, not imported, as above.
+for (const [id, minzoom] of [["roads_path_track", 12], ["roads_labels_minor", 14]]) {
+  const layer = style.layers.find((l) => l.id === id);
+  if (!layer) problems.push(`no layer ${id}`);
+  else if (layer.minzoom !== minzoom) problems.push(`${id} starts at z${layer.minzoom}, the owner's ruling (-1506) says z${minzoom}`);
+}
 
 // --- Night: informal has its own colour, hard keeps the inversion ---------------------------------------------------
 const nightLayers = style.metadata?.["forager:night-layers"] ?? {};
