@@ -26277,3 +26277,31 @@ They come before 4a, and B and 4a run in sequence.
   - Suite: 0 status changes plus 1 new case. Dex +4.
 - **A flake, untouched:** `MushroomLogViewModelWiringTest` "a find deleted through the Journal's ViewModel leaves the Maps tab's records" failed once on 39621527082 (attempt 1) with "onFindDeleted is not wired expected:<[]> but was:<[wired-find]>". Three probe runs of the class passed 5 of 5, and the full rerun was green. It is inferred to be timing in `awaitUntil`; it goes on the deferred flake list.
 **Notes:** Written by the planner by hand. Next free ID -1529.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1529
+**Timestamp:** 2026-10-21T16:18:05Z
+**Continues:** 2026-09-28-1525, 2026-09-28-1528
+**Title:** #366 merged (Clear removes the map's species chip); #365's phone check failed on a second cause, the locate effect replaying under the spinner
+**Observed:**
+- **Sorrel (Fable) on both:** "merge".
+  - #366: every Clear control is covered (the portrait header and the landscape map bar, one bundle), with a real-touch test.
+  - #365: the snapshot is correct and safe against the idle listener in both orders, and it also closes a second route (`saved.following = true` re-following after the spinner). Its test cannot reach the MapDataRefresh call site, so the S22 is the gate.
+- **S22, #366 (1.0.3772+g9d417b6d):** portrait PASS (the chip "Showing: Fly Agaric (7)" was removed by Clear) and landscape PASS (`user_rotation 1`; the landscape bar's Clear removed it). Merged into pre-main at 0c33fe32 (831ee194 before, logged).
+- **S22, #365 (1.0.3772+g07d1d069):**
+  - Coordinate search on Maps: FAIL.
+  - Recent search on Maps: FAIL.
+  - Leave and return: PASS.
+  - Search from List, then Maps: PASS.
+
+  The log shows #365's restore working (the new map's first frame at 47.66), then a pan 10 ms later to the locate position (45.326, -122.634).
+- **The second cause (read at b1064eca):**
+  - `CompactMapTab` holds `focusOverride` (`remember(uiState.region)`) and a `LaunchedEffect(uiState.locateMeStatus)` inside the branch the spinner replaces (`AvailabilityCompactMapUi.kt:372-376`).
+  - When the map returns, the effect replays an old Located status, so the target becomes (region, own position). That differs from the applied (region, null), and MapDataRefresh pans.
+  - Before #365 the first bug hid it.
+**Decision (planner, technical):** fix attempt 2 is the diagnosed second cause, not a guess, and the log pins it. Option (a): move `focusOverride` and its effect, unchanged and in order, above the spinner/map `when` in `CompactMapTab`, so the state survives the spinner and an old locate is not replayed. It is folded into #365, with `AvailabilityCompactMapUi.kt` added to its files.
+- Option (b), a locate request counter, is not taken: it needs a new field and changes semantics.
+- The gate is the four S22 steps again, plus the touch guards. If a third cause appears, stop and instrument before any further fix (CLAUDE.md, two failed attempts).
+**Notes:** Written by the planner by hand. Next free ID -1530.
