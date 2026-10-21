@@ -40,6 +40,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -141,9 +142,10 @@ class TrackRecordingViewModelTest {
         shouldPromptBackgroundRun: suspend () -> Boolean = { false },
         is24HourClock: () -> Boolean = { false },
         trackEnds: TrackEnds = TrackEnds(),
+        trackIdGenerator: () -> String = { "track-1" },
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
-        startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
+        startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = trackIdGenerator),
         getWaypoints = GetWaypointsUseCase(waypointRepository),
         // A counter, not a fixed id: navigation HUD stage one creates an origin *and* an end
         // waypoint per recording, and a fixed id would make the second silently replace the first.
@@ -167,6 +169,45 @@ class TrackRecordingViewModelTest {
         shouldPromptBackgroundRun = shouldPromptBackgroundRun,
         trackEnds = trackEnds.latest,
     ).also(createdViewModels::add)
+
+    /**
+     * Dispatch 2026-10-21-04, review finding 1. The service's report of a stored end resyncs this screen when the
+     * ended track is its recording, and the resync reads the row, which suspends. If the walker stops and records
+     * again during that read (a Stop from the shade, then Record before the old end was written), the old
+     * track's end must not clear the new recording. The read is held on a gate while that happens.
+     */
+    @Test
+    fun `an old track's end, read while a new recording starts, does not clear the new recording`() = runRecordingTest {
+        val inner = InMemoryTrackRepository()
+        val gated = GetByIdGatedTrackRepository(inner, gatedId = "track-1")
+        val trackEnds = TrackEnds()
+        val ids = ArrayDeque(listOf("track-1", "track-2"))
+        val vm = viewModel(gated, trackEnds = trackEnds, trackIdGenerator = { ids.removeFirst() })
+        vm.startRecording()
+        runCurrent()
+        assertEquals("precondition: recording track-1", "track-1", vm.uiState.value.activeTrack?.trackId)
+
+        // The service stores track-1's end and reports it; the resync's read of track-1 is held.
+        inner.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+        assertEquals("precondition: the read is held, so nothing has cleared yet", "track-1", vm.uiState.value.activeTrack?.trackId)
+
+        // During the read: Stop, then Record again.
+        vm.stopRecording()
+        runCurrent()
+        vm.startRecording()
+        runCurrent()
+        assertEquals("precondition: the new recording runs", "track-2", vm.uiState.value.activeTrack?.trackId)
+
+        gated.release()
+        runCurrent()
+        assertEquals(
+            "the old track's end, read while the new recording started, must not clear the new recording",
+            "track-2",
+            vm.uiState.value.activeTrack?.trackId,
+        )
+    }
 
     /**
      * Dispatch 2026-10-21-02 (RECORD -1521): after Stop, Records showed "Tracks 0" until the Tracks chip was
@@ -1275,6 +1316,26 @@ private class NoOpLocationTracker : LocationTracker {
 
 
 private class FakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker
+
+/**
+ * [InMemoryTrackRepository] with every [getById] of [gatedId] held until [release], so a test can change the
+ * screen's state while a read of that track is suspended. Everything else passes straight through.
+ */
+private class GetByIdGatedTrackRepository(
+    private val inner: InMemoryTrackRepository,
+    private val gatedId: String,
+) : TrackRepository by inner {
+    private val gate = CompletableDeferred<Unit>()
+
+    fun release() {
+        gate.complete(Unit)
+    }
+
+    override suspend fun getById(id: String): Result<Track?> {
+        if (id == gatedId) gate.await()
+        return inner.getById(id)
+    }
+}
 
 private class InMemoryTrackRepository : TrackRepository {
     private val tracks = mutableMapOf<String, Track>()
