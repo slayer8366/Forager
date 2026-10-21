@@ -25858,3 +25858,20 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - Next: the owner re-checks Street against Topo on the S26.
 - Only if a gap remains does line weight or a rebuild come up. The rebuild list is empty for this.
 **Notes:** Written by the planner by hand. Next free ID -1509.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1509
+**Timestamp:** 2026-10-21T08:58:06Z
+**Continues:** 2026-09-28-1508
+**Title:** The phone re-check showed the track and path gap; tracks from z11 and paths from z12 go on the next rebuild list (owner, via Aspen)
+**Observed:**
+- **Aspen relays** that the owner's S26 re-check showed the gap. The owner's words: "When topo begins its trail lines versus when our street begins its trail lines". At one zoom Topo draws the forest tracks and Street draws none; slightly closer in, Street's tracks appear and line up.
+- **The owner, through Aspen's question tool:** "Add to list (Recommended)". The option read: tracks from zoom 11 and paths from zoom 12 in the next US + Canada build, with the tile-size growth measured before any upload and brought to the owner if large; no rebuild now.
+- **Recorded on pi-build** at 1f59eae35, in docs/audits/2026-10-21-next-rebuild-list.md, item 2. Footways and names stay as they are, since Street already leads Topo there. This supersedes -1507's z12 target for names and paths.
+- **Elevation sizing** is item 3 on that list: filed, not ruled.
+**Decision:**
+- When that build is live, Aspen tells the planner. Then the app style follows with `roads_path_track` to 11 and the footpath layers to 12, which is Topo's map zoom of about 11.5 and 12.5, rounded down to the data.
+- #258's merge decision stays open with the owner.
+**Notes:** Written by the planner by hand. Next free ID -1510.
