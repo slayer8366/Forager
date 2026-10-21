@@ -12,7 +12,7 @@
 # bytecode was correct, so Robolectric, the 4,454-test suite and CI were all green, and only ART's
 # verifier on a phone saw it.
 #
-# REPORT ONLY. NOT A GUARD (RECORD -741). It always exits 0 once it has read the APK. It was written as
+# REPORT ONLY. NOT A GUARD (RECORD -741). It always exits 0 once it has read the whole APK. It was written as
 # a guard and shown not to be one: the first fix grouped CompactMapTab's parameters to 249 registers,
 # which this passes, and that build was still rejected by ART on the S22 ("[0x1E20] copy-reference
 # v12<-v197 type=BooleanConstant"). The 256-register line is not the cause, only where the first
@@ -27,6 +27,15 @@
 # the S22 at the commit that recorded them -- but every one of them is a frame where D8 has to
 # shuffle arguments, which is where this crash came from. Whether to shrink one is the owner's
 # decision, not this script's. Set REGISTER_REPORT_LIMIT to list methods over a lower count.
+#
+# A dump that is cut off fails (RECORD -1516). On this project's laptop, with the work directory on a /tmp tmpfs,
+# dexdump's output for the largest dex stopped at about 110 MB, mid-record, and dexdump still exited 0, so the
+# script reported ~208,100 methods instead of 226,975 and never looked at the rest. Each dump's class records
+# are now counted against the dex header's class_defs_size, the number of classes the file defines; dexdump
+# writes one "Class #" record per class def, ending each with its source_file_idx line, so a dump cut anywhere
+# has fewer of one or both. method_ids_size is not comparable: it counts every method the file refers to,
+# including ones defined in other dex files, and the register lines counted below exist only for methods with
+# code (abstract and native ones have none).
 #
 # Usage: scripts/verify-dex-register-budget.sh [path/to/app-debug.apk]
 # Needs dexdump from build-tools: $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION, or else the
@@ -66,15 +75,25 @@ scanned=0
 : > "$WORK/over.txt"
 for dex in "$WORK"/classes*.dex; do
   "$DEXDUMP" "$dex" > "$WORK/dump.txt"
-  awk -v limit="$LIMIT" -v out="$WORK/over.txt" -v counter="$WORK/count.txt" '
+  awk -v limit="$LIMIT" -v out="$WORK/over.txt" -v counter="$WORK/count.txt" -v records="$WORK/records.txt" '
+    /^Class #/ { classes++ }
+    /^  source_file_idx   :/ { ended++ }
     /^  Class descriptor  :/ { cls = $4; gsub(/^'\''L|;'\''$/, "", cls); gsub(/\//, ".", cls) }
     /^      name          :/ { name = $3; gsub(/'\''/, "", name); sub(/-[A-Za-z0-9_]{7}$/, "", name) }
     /^      registers     :/ {
       n++
       if ($3 > limit && cls ~ /^com\.zynergylabs\./) print $3, cls "." name >> out
     }
-    END { print n + 0 > counter }
+    END { print n + 0 > counter; print classes + 0, ended + 0 > records }
   ' "$WORK/dump.txt"
+  # The dex header (magic "dex\n" at 0, class_defs_size as a little-endian u32 at 0x60, per the dex format).
+  [ "$(head -c 4 "$dex" | od -An -c | tr -d ' ')" = 'dex\n' ] || { echo "FAIL: $(basename "$dex") has no dex magic"; exit 1; }
+  class_defs="$(od -An -t u4 -j 96 -N 4 "$dex" | tr -d ' ')"
+  read -r classes ended < "$WORK/records.txt"
+  if [ "$classes" -ne "$class_defs" ] || [ "$ended" -ne "$class_defs" ]; then
+    echo "FAIL: $(basename "$dex"): the dump has $classes class records ($ended complete), the dex header says $class_defs (class_defs_size); dexdump's output was cut off or not understood, so the count would be wrong"
+    exit 1
+  fi
   scanned=$((scanned + $(cat "$WORK/count.txt")))
 done
 [ "$scanned" -gt 0 ] || { echo "FAIL: read no methods from $dex_count dex files; dexdump output not understood"; exit 1; }
