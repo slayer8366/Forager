@@ -26506,3 +26506,29 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 - After that, trail navigation step 2 is complete. The four files are MainActivity 706, TrackRecordingViewModel 958, AvailabilityViewModel 906 (908 with #368) and AvailabilityScreen about 1,020.
 - Steps 3 onward each need the owner's go (-1498).
 **Notes:** Written by the planner by hand. Next free ID -1538.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1538
+**Timestamp:** 2026-10-21T19:36:37Z
+**Continues:** 2026-09-28-1537
+**Title:** The quick-settings and waypoint-navigate builders (PR #372 merged into pre-main); trail navigation step 2 complete
+**Observed:**
+- **The change (Hazel):** `MapQuickSettings` and `WaypointNavigateControls` are built by `mapQuickSettingsFor` and `waypointNavigateControlsFor` in ScreenMapBundles.kt (61 lines), at the same argument positions. Five unused locals were removed. AvailabilityScreen.kt goes from 1,053 to 1,023 lines.
+- **Proofs:** run 39658529973 on d97d469e is green, 5,252 cases identical to cf522f80's run 39658019767. The touch guards are identical. Dex is identical at 227,107. The `.github` diff is empty.
+- **Sorrel: "Approve as a pure move".**
+  - One low note: the two consumed lambdas now capture the per-composition `screenState`, so they are fresh each recomposition. That is the existing Phase 2.6 pattern and no effect keys on them.
+  - Sorrel also noted the phone run never reached the changed lambdas, which only fire on Back ending a navigation. `AvailabilityScreenWaypointNavigateTest` :339, :355 and :384 drive them through the real screen.
+- **S22 (1.0.3794+gd97d469e):** the launch check passed. Each quick-settings control toggled, both not recording and recording. Back by +1 h and Clear worked. Waypoint Navigate opened the display. The test data was deleted.
+  - One stray tap opened Facebook from a heads-up notification; the coder went straight Home and touched nothing in it. Disclosed.
+- **Step 2 totals (main → pre-main):**
+
+  | File | main | pre-main |
+  |---|---|---|
+  | MainActivity | 806 | 706 |
+  | TrackRecordingViewModel | 1,029 | 958 |
+  | AvailabilityViewModel | 976 | 908 |
+  | AvailabilityScreen | 1,327 | 1,023 |
+**Decision:** merged into pre-main at 11d4f9f26a1e9ab7d48714307c4b325dc2c246ca (1820b87abad5deaa4020e7aeb6b21291784ee9ab before, logged). Trail navigation step 2 is complete. Step 3 (route data on the phone) needs the owner's go and Aspen's rebuild.
+**Notes:** Written by the planner by hand. Next free ID -1539.
