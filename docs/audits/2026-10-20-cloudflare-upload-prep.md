@@ -551,3 +551,21 @@ The owner, verbatim: "We'll try it tonight and see if it works". So the review i
 the archive is live and checked, without waiting for the cached sprite 404 to expire. Icons may be
 missing, and some tiles may be old, wherever the edge still holds pre-upload copies. At 02:34Z the
 upload was 69% (21.8 of 31.6 GiB), with 0 errors.
+
+## pi-19: attempt 1 failed at 95%; attempt 2 restarted from zero, 2026-10-21 03:27Z
+
+From the planner's read of `pi19-logs/us-upload.log`:
+
+- At 20:27:44 PDT, `forager-usca.pmtiles: Failed to copy: multi-thread copy: failed to write
+  chunk: failed to upload chunk 1 with 67108864 bytes: operation error S3: UploadPart, https
+  response error StatusCode: 0 … failed to get rate limit token, retry quota exceeded, 3 available,
+  5 requested`, then `Attempt 1/3 failed with 1 errors`.
+- That came at 30.23 of 31.64 GiB. rclone's `--retries 3` restarted the whole copy, and the stats
+  total went to 61.9 GiB, so attempt 2 is re-sending from zero. The unit is still running.
+- **The network at 20:29:** default route wlan0; ping to 1.1.1.1 has 0% loss but RTT 230–333 ms.
+- **Inferred:** "retry quota exceeded" is the S3 SDK's client-side retry budget being used up on a
+  degraded link. `--low-level-retries 20` did not stop the part failing. Not verified.
+- **The live object is unchanged:** `us.pmtiles` is still 8,817,909,309 bytes from 2026-08-19.
+- **The planner's call:** let attempt 2 run. If it also fails, stop, get more data on the link and
+  the SDK retry settings, and change the configuration before a third run. That is the two-failures
+  rule.
