@@ -221,6 +221,12 @@ class TrackRecordingViewModel(
      * not recording, with the reason. Defaults to a service that never reports.
      */
     private val recordingHalts: StateFlow<RecordingHalt?> = MutableStateFlow(null),
+    /**
+     * Dispatch 2026-10-21-02 (RECORD -1521): the id of the last track whose end the recording service has
+     * stored, `AppContainer.trackEnds` in production. This screen reloads its track list on each one, so
+     * a finished track is in Records at once. Defaults to a service that never reports.
+     */
+    private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -367,6 +373,9 @@ class TrackRecordingViewModel(
         // Back by, the same way: the service's ticks and the alert's buttons change it too.
         viewModelScope.launch { backBy.shown.collect { copyBackBy() } }
         viewModelScope.launch { recordingHalts.collect { halt -> if (halt != null) onRecordingHalted(halt) } }
+        // A track's end is stored by the service after this screen's Stop has returned, so the list is
+        // reloaded on the service's report of that write, not on Stop (dispatch 2026-10-21-02, TrackEnds).
+        viewModelScope.launch { trackEnds.collect { endedTrackId -> if (endedTrackId != null) loadTracks() } }
     }
 
     /** The quick menu's "+1 h", "+2 h", "+3 h" or a picked time: see [TrackRecordingWatchCopies.setBackBy]. */
