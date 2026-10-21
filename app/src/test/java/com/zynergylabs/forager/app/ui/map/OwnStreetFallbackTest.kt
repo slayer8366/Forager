@@ -114,9 +114,9 @@ class OwnStreetFallbackTest {
 
         assertEquals(
             listOf(
-                "Own Street tile failed to load: source=protomaps z=14 x=0 y=7 (no fallback for tiles)",
-                "Own Street tile failed to load: source=protomaps z=14 x=1 y=7 (no fallback for tiles)",
-                "Own Street tile failed to load: source=protomaps z=14 x=2 y=7 (no fallback for tiles); further tile errors are not logged in this process",
+                "Map tile failed to load while the own Street is showing: source=protomaps z=14 x=0 y=7 (no fallback for tiles)",
+                "Map tile failed to load while the own Street is showing: source=protomaps z=14 x=1 y=7 (no fallback for tiles)",
+                "Map tile failed to load while the own Street is showing: source=protomaps z=14 x=2 y=7 (no fallback for tiles); further tile errors are not logged in this process",
             ),
             lines,
         )

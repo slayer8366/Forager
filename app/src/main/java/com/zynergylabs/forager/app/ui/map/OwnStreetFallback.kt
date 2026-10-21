@@ -46,13 +46,17 @@ internal class OwnStreetFallback(private val log: (String) -> Unit = { Log.w(OWN
         return true
     }
 
-    /** A tile failed to load on [sourceId] while [request] is the current style: logged for the own Street only, a few lines a process. */
+    /**
+     * A tile failed to load on [sourceId] while [request] is the current style: logged while the own Street is showing, a
+     * few lines a process. Under Topographical at night the source may be OpenTopoMap's, so the line names the source and
+     * does not call it an own-Street tile.
+     */
     fun onTileError(request: MapStyleRequest?, sourceId: String?, z: Int, x: Int, y: Int) {
         if (request == null || !fallsBack(request.source, request.useOfflineTiles)) return
         if (tileErrorsLogged >= OWN_STREET_TILE_ERRORS_LOGGED) return
         tileErrorsLogged++
         val more = if (tileErrorsLogged == OWN_STREET_TILE_ERRORS_LOGGED) "; further tile errors are not logged in this process" else ""
-        log("Own Street tile failed to load: source=$sourceId z=$z x=$x y=$y (no fallback for tiles)$more")
+        log("Map tile failed to load while the own Street is showing: source=$sourceId z=$z x=$x y=$y (no fallback for tiles)$more")
     }
 }
 

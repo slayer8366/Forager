@@ -107,6 +107,7 @@ internal fun MapStyleReload(
         map.setMaxZoomPreference(operatingMaxZoom(basemap, ownStreet).toDouble())
         val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl, ownStreet = ownStreet)
         // Whose load a failure is: the failure listener (MapListeners.kt) gets only MapLibre's message (RECORD -1513).
+        // Assumption, not verified: a later setStyle cancels this request, so any failure belongs to the latest lastStyleRequest.
         state.lastStyleRequest = MapStyleRequest(source, useOfflineTiles)
         val builder = when (source) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
