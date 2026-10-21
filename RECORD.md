@@ -25639,3 +25639,26 @@ The planner writes the skill (`.claude/skills/modular-code/SKILL.md`) and the CL
   - It asks eight questions.
 - **Phase 2.** Asked whether to start Elder's audit, the owner chose "Start Elder now (Recommended)": "Elder audits all of Phase 2 against the QA standard while I write the trail navigation plan; you approve promotion after reading the audit. Not a Play release." Elder Ford (Fable) is auditing main 02a544cd..pre-main 02fe89f1.
 **Notes:** Written by the planner by hand. Next free ID -1498.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1498
+**Timestamp:** 2026-10-21T07:37:25Z
+**Continues:** 2026-09-28-1497, 2026-09-28-445, 2026-09-28-447, 2026-09-28-492
+**Title:** Trail navigation: the owner's eight answers
+**Decision:** The owner's choices, asked through the question tool with sketches in the planner's message:
+1. **Route data:** "Cut to the area (Recommended)". About 1 MB extra per area, cut by the Pi.
+2. **Hills:**
+   - The owner first asked, "How difficult would option 2 be?"
+   - The planner answered from the spike and the Pi notes, unverified: moderate, all Pi-side, no app change. The unknowns are the Canada elevation source and its licence, and the conversion for BRouter 1.7.10. More Pi build time.
+   - The owner then chose "Flat first, size elevation in parallel (Recommended)".
+3. **The way back:** "Yes, as sketched (Recommended)". The walker's own track back to where they left the trail, then the trail route home. This re-confirms -445.
+4. **The walk-back time:** "The route shown (Recommended)".
+5. **Naming:** "Rename the current button to Re-center like it does on Google maps, and use the Return to Route for the Off trail notice." The exact wording comes back as a step path before stage 7.
+6. **Waypoint:** "Follow trails, quiet off-trail (Recommended)". This changes steps 3 and 7 of `domain/WaypointNavigation.kt`'s step path, which is re-confirmed at its build.
+7. **Stages H and I:** "Fold H and I in, later (Recommended)". They come after the reference layer; G, J and K stay in the Navigator plan.
+8. **Wrong turn:** "Named trails/roads only (Recommended)".
+
+The plan update on branch trail-plan-update carries the answers. It goes to pre-main as a docs PR. An elevation sizing check, read-only, runs in parallel. No build is dispatched: each step needs the owner's go, starting with stage 5's phone review.
+**Notes:** Written by the planner by hand. Next free ID -1499.
