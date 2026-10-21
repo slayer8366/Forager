@@ -1218,7 +1218,9 @@ fun AvailabilityScreen(
             entryReportData = entryReportData,
             offlineMaps = offlineMaps,
             records = records,
-            searchInputs = searchInputs,
+            // RECORD -1525 (the owner: "Clear removes it too"): the search bar's Clear also drops the map's "View on Map" chip,
+            // first, then the ViewModel's clear as before. Both Clear controls (portrait header, landscape map bar) take it from here.
+            searchInputs = searchInputs.copy(onClearSearch = { onClearMapTaxonFilter(); searchInputs.onClearSearch() }),
             recording = recording,
         )
     }
