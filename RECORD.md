@@ -25683,3 +25683,25 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
 - **Item 3:** device gaps carried. The owner's last S26 walk was build 3658, before #336, #337, #340, 2.5 and 2.6.
 - **Pre-main 02fe89f1:** push CI green (run 39562393147). Combined S22 check PASS (1.0.3732+g02fe89f1).
 **Notes:** Written by the planner by hand. Next free ID -1500.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1500
+**Timestamp:** 2026-10-21T07:52:27Z
+**Continues:** 2026-09-28-1499
+**Title:** Owner's S26 walk of Phase 2 before promotion (walk prompts/preserved/2026-10-21-phase2-s26-walk.md)
+**Decision:** Asked how Phase 2 should reach main, the owner chose "Short S26 walk first (Recommended)": "You walk the current pre-main build on your S26 (about 10 minutes: Maps, spring-back, Back, landscape, Journal); if it's clean, I promote to main. Not a Play release by itself."
+**Scope:** 12 steps on 1.0.3732+g02fe89f1, installed by adb when the owner connects the S26. The steps cover:
+- the spring-back;
+- the map keeping its view across a tab switch;
+- pinch while following;
+- the landscape bubble;
+- the landscape notice and cluster (one of the 2.3 walk items owed since -1465);
+- the Back walk;
+- the Journal round trip;
+- the double-Back exit;
+- optionally, navigation with Return to Route.
+**Finish line:** a clean walk, then the planner promotes pre-main to main.
+**Abort conditions:** any step behaving otherwise is a finding. Nothing is promoted until it is understood.
+**Notes:** Written by the planner by hand. Next free ID -1501.
