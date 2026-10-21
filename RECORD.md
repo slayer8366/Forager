@@ -25752,3 +25752,23 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
 - **This is not a Play release.**
 **Decision:** the dev rebase follows the standing rule -1087. Dispatch 2026-10-19-42 goes to Hazel and uses the method of -32: a new branch, stop on any behaviour-changing resolution, and the planner moves dev with force-with-lease after CI and the S22 check.
 **Notes:** Written by the planner by hand. Next free ID -1504.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1504
+**Timestamp:** 2026-10-21T08:07:43Z
+**Continues:** 2026-09-28-1498, 2026-09-28-1503
+**Title:** Trail navigation step 1 started, on the owner's go: #258 is brought up to date and the trails review build rebuilt (dispatch 2026-10-19-43)
+**Decision:** The owner said, verbatim, "Go on the first nav step". Step 1 of the plan update finishes the own basemap: the owner's phone review of Street with trails, #258 brought up to date with pre-main, and the owner's decision on the switch.
+**Scope:**
+- Hazel merges pre-main into street-cloudflare. The trial merge is clean, with no files changed on both sides since b60d7fba.
+- Hazel merges street-cloudflare into street-trails-review and rebuilds the review APK.
+- The phone review waits for Aspen's confirmation that the new archive has passed its after-checks. us.pmtiles went live on R2 at 2026-10-21 06:04Z according to pi-build; Aspen hasn't confirmed to the planner yet.
+**Finish line:**
+1. #258 green on current pre-main.
+2. The review APK installed on the owner's S26.
+3. The owner's review.
+4. The owner rules on #258's merge and the switch.
+**Abort conditions:** any merge conflict, any unexplained test difference, or any style change from the merge.
+**Notes:** Written by the planner by hand. Next free ID -1505.
