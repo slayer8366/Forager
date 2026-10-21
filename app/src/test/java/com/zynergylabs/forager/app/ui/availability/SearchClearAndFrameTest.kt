@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.domain.LocationResult
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.ui.map.SearchFrameMove
@@ -18,7 +19,9 @@ import com.zynergylabs.forager.app.ui.map.searchFrameMove
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -188,6 +191,37 @@ class SearchClearAndFrameTest {
         val resume = rig.mapResumeTrackingRequestId
         rig.touch(composeRule.onNodeWithContentDescription("Center on my location"))
         assertEquals("locate resumes following", resume + 1, rig.mapResumeTrackingRequestId)
+    }
+
+    /**
+     * RECORD -1525: a search on the Maps tab puts the sightings spinner in place of the map, and the map that comes back must
+     * not take a locate-me from before the search as its pan target, which panned the searched map away to the GPS fix on
+     * the S22 (2026-10-21, frames 5 and 6). The locate-me target (`focusOverride`) is held above the spinner, so returning
+     * from it does not replay an earlier Located status.
+     */
+    @Test
+    fun `a locate from before a search is not the pan target of the map that returns from the spinner`() {
+        rig.setScreen()
+        rig.searchCoordinates("45.326", "-122.634")
+        rig.settle()
+        composeRule.runOnUiThread { rig.viewModel.locateMe() }
+        rig.settle()
+        assertEquals("positive control: a locate after a search is the map's pan target", LatLng(45.0, -122.0), rig.mapFocusOverride)
+
+        val gate = CompletableDeferred<Unit>()
+        rig.sightingsGate = gate
+        rig.searchCoordinates("-41.2865", "174.7762")
+        rig.settle()
+        assertTrue(
+            "positive control: the spinner has replaced the map",
+            composeRule.onAllNodes(hasTestTag(LAYOUT_FIXES_MAP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+        )
+        rig.sightingsGate = null
+        gate.complete(Unit)
+        rig.settle()
+
+        assertEquals("positive control: the map is back, on the new search", far, rig.mapRegion)
+        assertNull("the earlier locate is not replayed as the new search's pan target", rig.mapFocusOverride)
     }
 
     @Test
