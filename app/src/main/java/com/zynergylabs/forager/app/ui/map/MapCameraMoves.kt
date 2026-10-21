@@ -98,7 +98,7 @@ internal fun searchFrameSnapshot(region: Region, bearing: Double, tilt: Double, 
         zoom = zoomForRadiusKm(region.radiusKm),
         bearing = bearing,
         tilt = tilt,
-        following = false,
+        following = true, // REVERT RA
         appliedTarget = appliedTarget,
     )
 
