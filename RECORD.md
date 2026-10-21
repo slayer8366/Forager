@@ -26375,3 +26375,30 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 - **Observed, not a gate:** on return, the existing network-fixes notice said the track "is still being recorded" after it had stopped. That copy is stale after a shade Stop; it goes on the bug list.
 **Decision:** merged into pre-main at e4150560 (0c33fe32 before, logged).
 **Notes:** Written by the planner by hand. Next free ID -1533.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1533
+**Timestamp:** 2026-10-21T17:11:00Z
+**Continues:** 2026-09-28-1529
+**Title:** A search on the Maps tab lands on the searched place (PR #365 merged into pre-main); returning to Maps still jumps to the user (third cause; the root fix follows)
+**Observed:**
+- **#365 at 22e4308e:**
+  - `searchFrameSnapshot` is written into the camera memory where the frame applies (first cause).
+  - `focusOverride` and its locate effect moved, unchanged, above the spinner `when` in `CompactMapTab` (second cause).
+  - The real-screen test uses the rig's `sightingsGate` and `mapFocusOverride` fixtures. Revert RC (39633813480) failed only that test.
+  - Sorrel's comment nits are in. CI run 39638480913 is green.
+  - Sorrel: "merge" on both parts.
+- **S22 (1.0.3780+gd05dd952, the tree of a11c5d68):**
+  - Coordinate search on Maps: PASS.
+  - Recent search on Maps: PASS.
+  - From List, then Maps: PASS.
+  - Locate after a search: PASS.
+  - Leave Maps and return: FAIL. The map restored the search, then at frame 4 or 5 moved to the GPS fix.
+- **Third cause** (Sorrel predicted it, the S22 confirmed it): `CompactMapTab` remounts on a tab change, and `locateMeStatus` stays Located, so the fresh effect replays the locate. This is pre-existing and against -1468. Per CLAUDE.md, Hazel stopped at the third cause; the log pins it.
+**Decision:** the owner chose "Merge now, fix return next (Recommended)" over holding until both work. Merged into pre-main at 606ac149 (e4150560 before, logged).
+- **The root fix (Hazel's stage 1, the planner's go):** `Located` carries the `searchFrameSerial` it was produced under. The pan target is derived on the spot (`compactMapLocateFocus`), only when the serials match, so there is no effect and no memory above the tab.
+- My earlier request-counter idea was rejected: it has a gap when the auto-locate fires off the Maps tab.
+- Branch `locate-replay-root`, with the five S22 steps.
+**Notes:** Written by the planner by hand. Next free ID -1534.
