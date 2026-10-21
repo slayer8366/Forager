@@ -26117,3 +26117,17 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - **Observed, not a gate:** after Stop, Records showed "Tracks 0" until the app was relaunched. At 86927320, `stopRecording` reloads nothing, so this is inferred to be pre-existing; it has not been seen on a base APK.
 **Decision:** merged into pre-main at 0add7500 (7101e909 before, logged). Next is PR 3, AvailabilityViewModel (Plan A).
 **Notes:** Written by the planner by hand. Next free ID -1522.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1522
+**Timestamp:** 2026-10-21T12:40:06Z
+**Continues:** 2026-09-28-1521
+**Title:** A finished track missing from Records until restart: fix it next (owner)
+**Observed:** -1521. After Stop, Records showed "Tracks 0" until the app was relaunched. That it is pre-existing is inferred from `stopRecording` reloading nothing.
+**Decision:** the owner was asked how to handle it and chose "Fix it next (Recommended)" ("Confirm it on the current released build first, then a small fix: refresh the track list when a recording stops. It goes in after the file splits, or alongside if it touches different files"), over confirming first and deciding afterwards, and over putting it on the bug list for later.
+- Dispatch `prompts/preserved/2026-10-21-02.md` goes to a second Hazel, alongside the nav step 2 Hazel.
+- Its files exclude PR 3's (AvailabilityViewModel, AvailabilityUiState, AvailabilitySearchStates).
+- It reproduces the bug on main 381515c6's build first, then reports the cause and fix before building.
+**Notes:** Written by the planner by hand. Next free ID -1523.
