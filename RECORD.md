@@ -25973,3 +25973,25 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - The flip PR is built after the fallback, but it is not merged until that rebuild is live.
 - The same rebuild carries tracks from z11 and paths from z12 (-1509), so the style follow-up (11.5/12.5, -1510) can land alongside the flip.
 **Notes:** Written by the planner by hand. Next free ID -1515.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1515
+**Timestamp:** 2026-10-21T10:19:02Z
+**Continues:** 2026-09-28-1513
+**Title:** The own-Street fallback is merged into pre-main (PR #358); the switch stays off
+**Observed:**
+- **Built by Hazel (coder, Opus).** It lives in a new file, `ui/map/OwnStreetFallback.kt`, and seven other files only pass the flag through. When the own Street style fails to load online, the map draws OpenStreetMap's Street for the rest of the process. That covers Street, and Topographical at night zoomed out. The caption, the zoom limit (19) and the navigation zoom follow. Offline mode never falls back. Tile errors are logged (at most 3 lines) and never fall back.
+- **Suite:** run 39581821057 on 7bacfac4 is green: 5,241 cases, 0 failed, identical case by case to 39578165632. That is pre-main's 5,233 plus the 8 `OwnStreetFallbackTest` cases. The 19 touch guards and the dex register were unchanged at 0ee02f0a, and the `.github` diff is empty.
+- **Revert checks:** RA1 (39578245643), RA2 (39578249658) and RA3 (39581861229) each failed exactly one case named for its own edit, and each build log had 0 `e:` lines.
+- **Review:** Sorrel (reviewer, Fable) said "merge after nits". Nits 1 to 4 were fixed: the PR body now states results; the sprite/glyph/TileJSON limit is disclosed, inferred and not verified; a comment records the request-cancellation assumption; and the tile-error label is neutral. Nits 5 to 8 were skipped by the planner.
+- **S22 (SM-S908U):**
+  - The PR APK, 1.0.3760+g0ee02f0a, passed the launch check.
+  - A never-merged device-check APK (run 39578254003, 1.0.3761+gdc817bd7: switch on, style URL a 404) was also tested. On Street, OpenStreetMap drew, the caption read "© OpenStreetMap contributors", and the log showed exactly one fallback line. On Topographical at night zoomed out, streets drew below, the caption credited OpenTopoMap and OpenStreetMap, and there was no second line. The owner confirmed both screens by eye.
+- **Not verified:** the warm-cache Worker outage; what produces a tile error; MapLibre with an expired cached style.
+**Decision:** merged into pre-main at e0565f31 (pre-main was 151937b9 before, logged).
+- The switch (`STREET_SERVED_BY_OWN_MAP`) is still false.
+- The flip PR is next to build; it is not merged until Aspen's rebuild with Puerto Rico, the USVI and tracks z11/paths z12 is live (-1514).
+- Leftover never-merged remote branches: scratch-street-fallback-RA1/RA2/RA3, street-fallback-device-check, scratch-street-switch-on-probe.
+**Notes:** Written by the planner by hand. Next free ID -1516.
