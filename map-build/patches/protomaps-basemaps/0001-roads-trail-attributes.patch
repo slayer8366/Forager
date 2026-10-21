@@ -11,8 +11,18 @@ tags emit nothing. No existing attribute changes; access stays at zoom 15 as ups
 RoadsOvertureTest, after it), pin these, plus the existing kind, kind_detail and minimum zoom of
 those ways.
 
+Also (dispatch 2026-10-21-pi-23; owner: "Paths only (Recommended)", after "Match Topo exactly"):
+highway=track enters the roads layer at z11 instead of 12, and highway=path at z12 instead of 13,
+to match the app's topo map. Only the feature's first zoom moves (foragerMinZoom, passed to
+setMinZoom alone): the min_zoom attribute and the sort key keep upstream's values, so label
+priority does not change, and it only ever lowers the zoom, so a way on a US route relation keeps
+upstream's earlier one and private or no-access ways stay at 15. Names keep their zoom
+(minzoomName 14); footway, bridleway, steps, cycleway, pedestrian, sidewalk, crossing and corridor
+keep theirs. Upstream's testHighways rows for track and path are edited to the new zooms, and
+tests named foragerZoom* pin the change and what it leaves alone.
+
 diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
-index 03be049..1f015ec 100644
+index 03be049..bbb6ce1 100644
 --- a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
 +++ b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
 @@ -38,6 +38,10 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
@@ -26,7 +36,36 @@ index 03be049..1f015ec 100644
    private static final MultiExpression.Index<Map<String, Object>> osmKindsIndex = MultiExpression.of(List.of(
      rule(
        use("pm:kindDetail", fromTag("highway")),
-@@ -426,6 +430,13 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+@@ -391,6 +395,19 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+ 
+     minZoom = sf.hasTag("access", "private", "no") ? Math.max(minZoom, 15) : minZoom;
+ 
++    // Forager: tracks from z11 and paths from z12, a zoom before upstream, to match the app's topo map
++    // (dispatch 2026-10-21-pi-23). Only where the way first appears changes: min_zoom and the sort key keep
++    // upstream's value, so label priority does not move. It only ever lowers the zoom: a way on a US route
++    // relation keeps upstream's earlier one, and private and no-access ways stay at 15.
++    int foragerMinZoom = minZoom;
++    if (kind.equals("path") && !sf.hasTag("access", "private", "no")) {
++      if (kindDetail.equals("track")) {
++        foragerMinZoom = Math.min(minZoom, 11);
++      } else if (kindDetail.equals("path")) {
++        foragerMinZoom = Math.min(minZoom, 12);
++      }
++    }
++
+     var feat = features.line("roads")
+       .setId(FeatureId.create(sf))
+       .setAttr("kind", kind)
+@@ -404,7 +421,7 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+       .setAttr("sort_rank", 400)
+       .setMinPixelSize(0)
+       .setPixelTolerance(0)
+-      .setMinZoom(minZoom);
++      .setMinZoom(foragerMinZoom);
+ 
+     // Emit one network_N / shield_text_N pair per concurrent route shield, primary first.
+     for (int i = 0; i < shields.size(); i++) {
+@@ -426,6 +443,13 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
        feat.setAttr("kind_detail", highway);
      }
  
@@ -41,10 +80,21 @@ index 03be049..1f015ec 100644
      if (kind.equals("other") && sf.hasTag("service")) {
        feat.inheritAttrFromSource("service");
 diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
-index f39aade..d2d2ae2 100644
+index f39aade..bb9486b 100644
 --- a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
 +++ b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
-@@ -577,6 +577,92 @@ class RoadsTest extends LayerTest {
+@@ -289,8 +289,8 @@ class RoadsTest extends LayerTest {
+     "road, minor_road, road, 12, 12",
+     "raceway, minor_road, raceway, 12, 12",
+     "pedestrian, path, pedestrian, 12, 12",
+-    "track, path, track, 12, 12",
+-    "path, path, path, 13, 13",
++    "track, path, track, 11, 11",
++    "path, path, path, 12, 12",
+     "cycleway, path, cycleway, 13, 13",
+     "bridleway, path, bridleway, 13, 13",
+     "footway, path, footway, 13, 13",
+@@ -577,6 +577,161 @@ class RoadsTest extends LayerTest {
      );
    }
  
@@ -52,11 +102,11 @@ index f39aade..d2d2ae2 100644
 +
 +  @Test
 +  void foragerTrailAttributesOnPath() {
-+    assertFeatures(13,
++    assertFeatures(12,
 +      List.of(Map.of(
 +        "kind", "path",
 +        "kind_detail", "path",
-+        "_minzoom", 13,
++        "_minzoom", 12,
 +        "sac_scale", "mountain_hiking",
 +        "trail_visibility", "intermediate",
 +        "informal", "yes",
@@ -76,11 +126,11 @@ index f39aade..d2d2ae2 100644
 +
 +  @Test
 +  void foragerTrailAttributesOnTrackFromItsFirstZoom() {
-+    assertFeatures(12,
++    assertFeatures(11,
 +      List.of(Map.of(
 +        "kind", "path",
 +        "kind_detail", "track",
-+        "_minzoom", 12,
++        "_minzoom", 11,
 +        "tracktype", "grade3",
 +        "surface", "gravel"
 +      )),
@@ -131,6 +181,75 @@ index f39aade..d2d2ae2 100644
 +    assertFeatures(15,
 +      List.of(Map.of("kind_detail", highway, "sac_scale", "<null>", "surface", "<null>", "foot", "<null>")),
 +      processWith("highway", highway, "sac_scale", "hiking", "surface", "asphalt", "foot", "yes")
++    );
++  }
++
++  // Forager (dispatch 2026-10-21-pi-23): tracks from z11 and paths from z12, the app's topo map's zooms.
++  // assertFeatures' zoom picks attributes only; _minzoom is what says where a way first appears.
++
++  @Test
++  void foragerZoomTrackFromZ11() {
++    assertFeatures(11,
++      List.of(Map.of("kind", "path", "kind_detail", "track", "_minzoom", 11)),
++      processWith("highway", "track", "tracktype", "grade2")
++    );
++  }
++
++  @Test
++  void foragerZoomPathFromZ12() {
++    assertFeatures(12,
++      List.of(Map.of("kind", "path", "kind_detail", "path", "_minzoom", 12)),
++      processWith("highway", "path")
++    );
++  }
++
++  // Only the first zoom moves: min_zoom (minZoom + 1) and the sort key stay upstream's, 13 and 12 for a track,
++  // 14 and 13 for a path, so label priority (symbol-sort-key on min_zoom) is unchanged.
++  @ParameterizedTest
++  @CsvSource({"track, 11, 13, 12", "path, 12, 14, 13"})
++  void foragerZoomKeepsUpstreamMinZoomAttributeAndSortKey(String highway, int firstZoom, int minZoomAttr,
++    int sortKey) {
++    var feature = processWith("highway", highway).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(firstZoom, feature.getMinZoom(), "first zoom");
++    org.junit.jupiter.api.Assertions.assertEquals(minZoomAttr, feature.getAttrsAtZoom(15).get("min_zoom"),
++      "min_zoom attribute");
++    org.junit.jupiter.api.Assertions.assertEquals(sortKey, feature.getSortKey(), "sort key");
++  }
++
++  // Everything else keeps upstream's zoom: footway, bridleway, steps and cycleway 13, pedestrian 12, sidewalk,
++  // crossing and corridor 14, and a private or no-access track or path 15.
++  @ParameterizedTest
++  @CsvSource({
++    "highway, footway, , , footway, 13",
++    "highway, bridleway, , , bridleway, 13",
++    "highway, steps, , , steps, 13",
++    "highway, cycleway, , , cycleway, 13",
++    "highway, pedestrian, , , pedestrian, 12",
++    "highway, footway, footway, sidewalk, sidewalk, 14",
++    "highway, footway, footway, crossing, crossing, 14",
++    "highway, corridor, , , corridor, 14",
++    "highway, track, access, private, track, 15",
++    "highway, path, access, no, path, 15",
++  })
++  void foragerZoomOthersUnchanged(String k1, String v1, String k2, String v2, String kindDetail, int minZoom) {
++    String[] tags = k2 == null ? new String[]{k1, v1} : new String[]{k1, v1, k2, v2};
++    assertFeatures(15,
++      List.of(Map.of("kind", "path", "kind_detail", kindDetail, "_minzoom", minZoom)),
++      processWith(tags)
++    );
++  }
++
++  // Names keep their zoom (minzoomName 14): not on a track or a path at z13, there at z14.
++  @ParameterizedTest
++  @CsvSource({"track", "path"})
++  void foragerZoomNamesStayAtZ14(String highway) {
++    assertFeatures(13,
++      List.of(Map.of("kind_detail", highway, "name", "<null>")),
++      processWith("highway", highway, "name", "Ridge Trail")
++    );
++    assertFeatures(14,
++      List.of(Map.of("kind_detail", highway, "name", "Ridge Trail")),
++      processWith("highway", highway, "name", "Ridge Trail")
 +    );
 +  }
 +

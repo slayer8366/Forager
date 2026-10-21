@@ -49,10 +49,11 @@ as_build env JAVA_HOME="$FB_OPT/jdk" "$FB_OPT/maven/bin/mvn" -B -f "$src/tiles/p
 # Confirm the Forager tests ran, rather than trusting a green build that might have skipped them.
 report="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.RoadsTest.xml"
 [[ -r "$report" ]] || die "no RoadsTest report at $report"
-ran="$(grep -c '<testcase name="foragerTrail\|<testcase name="foragerAccess' "$report" || true)"
+ran="$(grep -c '<testcase name="foragerTrail\|<testcase name="foragerAccess\|<testcase name="foragerZoom' "$report" || true)"
 failed="$(grep -c '<failure\|<error' "$report" || true)"
-# 4 single tests + 5 + 4 parameterized cases = 13 test cases with these names.
-[[ "$ran" -eq 13 && "$failed" -eq 0 ]] || die "Forager test cases in the report: $ran (expected 13), failures: $failed"
+# Trail attributes: 4 single tests + 5 + 4 parameterized cases = 13. Track and path zooms (dispatch
+# 2026-10-21-pi-23): 2 single tests + 2 + 10 + 2 parameterized cases = 16. 29 test cases with these names.
+[[ "$ran" -eq 29 && "$failed" -eq 0 ]] || die "Forager test cases in the report: $ran (expected 29), failures: $failed"
 log "Forager tests ran: $ran cases, 0 failures"
 
 jar="$src/tiles/target/$BASEMAPS_JAR_NAME"
