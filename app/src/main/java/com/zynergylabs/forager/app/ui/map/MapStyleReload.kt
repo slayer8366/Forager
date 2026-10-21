@@ -57,7 +57,10 @@ internal fun MapStyleReload(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded) {
+    // RECORD -1513: the switch as the map uses it, off for the rest of the process once the own Street has failed to load
+    // (OwnStreetFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
+    val ownStreet = OWN_STREET_FALLBACK.ownStreet()
+    LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded, ownStreet) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
@@ -70,6 +73,7 @@ internal fun MapStyleReload(
             nightMode = nightMode,
             nightModeLoaded = nightModeLoaded,
             offlineStyleUrl = offlineStyleUrl,
+            ownStreet = ownStreet,
         ) ?: return@LaunchedEffect
         if (!needsStyleReload(state.appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
@@ -100,8 +104,11 @@ internal fun MapStyleReload(
             state.cameraMoveClassifier.markAppMove()
             applyCameraRestore(map, it)
         }
-        map.setMaxZoomPreference(operatingMaxZoom(basemap).toDouble())
-        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl)
+        map.setMaxZoomPreference(operatingMaxZoom(basemap, ownStreet).toDouble())
+        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl, ownStreet = ownStreet)
+        // Whose load a failure is: the failure listener (MapListeners.kt) gets only MapLibre's message (RECORD -1513).
+        // Assumption, not verified: a later setStyle cancels this request, so any failure belongs to the latest lastStyleRequest.
+        state.lastStyleRequest = MapStyleRequest(source, useOfflineTiles)
         val builder = when (source) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)

@@ -181,6 +181,13 @@ internal class SightingsMapState(
         get() = creditWidthPxState.intValue
         set(value) { creditWidthPxState.intValue = value }
 
+    /**
+     * What this MapView last asked `setStyle` for (RECORD -1513): written by the style effect just before `setStyle`, read
+     * by the failure and tile listeners, neither of which is told which style failed. Not a State and not a copy of one:
+     * no composition reads it, and it lives exactly as long as this holder and its MapView.
+     */
+    var lastStyleRequest: MapStyleRequest? = null
+
     // Moved here from a local function in SightingsMap by UI split Phase 2.2, PR 9 (dispatch 2026-10-19-29), so the
     // listeners (MapListeners.kt) and the layout's resize hook reach the same function. Its reads are this holder's
     // getters on the latest-value States, which is what "the current* states" below now means.

@@ -136,7 +136,7 @@ internal fun SightingsMapLayout(
         // A list of credits since map layers L0a (A5): the basemap's, then each visible layer's own
         // (none of today's layers has one, so the text is exactly what it always was).
         MapCreditCaption(
-            text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState), nightMode)),
+            text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState), nightMode, ownStreet = OWN_STREET_FALLBACK.ownStreet())),
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(bottom = bottomInset)

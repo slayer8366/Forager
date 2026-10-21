@@ -43,7 +43,7 @@ internal fun MapNavigationView(
             if (state.navigationModeChange.active) {
                 state.cameraMoveClassifier.markAppMove()
                 Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: nudge spring running=${state.nudgeElastic.springing}") // dispatch -470, Part A
-                state.navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false))
+                state.navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false, ownStreet = OWN_STREET_FALLBACK.ownStreet()))
             }
             return@LaunchedEffect
         }
@@ -56,7 +56,7 @@ internal fun MapNavigationView(
         // Dispatch -440, Amendment 1: the camera may reach the start zoom on every basemap while
         // navigating. Set on every run, since a style load (line above, setMaxZoomPreference) puts
         // the basemap's own cap back.
-        map.setMaxZoomPreference(navigationMaxZoom(basemap, navigating = true))
+        map.setMaxZoomPreference(navigationMaxZoom(basemap, navigating = true, ownStreet = OWN_STREET_FALLBACK.ownStreet()))
         if (!view.following) return@LaunchedEffect
         state.cameraMoveClassifier.markAppMove()
         state.navigationModeChange.applyView(

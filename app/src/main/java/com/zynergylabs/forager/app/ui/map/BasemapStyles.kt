@@ -369,6 +369,11 @@ internal data class AppliedMapStyle(
      * and a region holds its style. A change is a reload, so the first Street download is drawn in its own style.
      */
     val offlineStyleUrl: String = OFFLINE_STYLE_URL,
+    /**
+     * Whether the own Street draws Street: the switch, unless it failed to load in this process (`OwnStreetFallback`,
+     * RECORD -1513). A change is a reload, so the fallback reaches `setStyle`.
+     */
+    val ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP,
 )
 
 /**
@@ -385,6 +390,7 @@ internal fun requestedMapStyle(
     nightMode: Boolean,
     nightModeLoaded: Boolean,
     offlineStyleUrl: String = OFFLINE_STYLE_URL,
+    ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP,
 ): AppliedMapStyle? =
     if (!nightModeLoaded) {
         null
@@ -395,6 +401,7 @@ internal fun requestedMapStyle(
             useOfflineTiles = useOfflineTiles,
             night = nightMode,
             offlineStyleUrl = offlineStyleUrl,
+            ownStreet = ownStreet,
         )
     }
 
