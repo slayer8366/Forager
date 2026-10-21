@@ -15,5 +15,5 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 internal fun compactMapLocateFocus(uiState: AvailabilityUiState): LatLng? {
     if (uiState.region == null) return null
     val located = uiState.locateMeStatus as? LocateMeStatus.Located ?: return null
-    return located.location.takeIf { located.searchFrameSerial == uiState.searchFrameSerial }
+    return located.location // REVERT RD: frame number ignored
 }
