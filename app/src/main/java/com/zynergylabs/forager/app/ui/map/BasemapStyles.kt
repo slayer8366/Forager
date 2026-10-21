@@ -2,6 +2,10 @@ package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
+import com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP
+import com.zynergylabs.forager.app.map.STREET_STYLE_ATTRIBUTION
+import com.zynergylabs.forager.app.map.STREET_STYLE_MAX_ZOOM
+import com.zynergylabs.forager.app.map.STREET_STYLE_URL
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 
 /**
@@ -221,7 +225,50 @@ private fun singleLayerStyleJson(basemap: Basemap, night: Boolean): String = """
 sealed interface MapStyleSource {
     data class Json(val json: String) : MapStyleSource
     data class Uri(val uri: String) : MapStyleSource
+
+    /**
+     * The own Street style by URL with a night [topo] raster over it, for Topographical at night with the own
+     * Street on (dispatch 2026-10-18-05 Part 2; RECORD -1291): the same composition [nightStyleJsonWithBasemapBelow]
+     * builds from two rasters, with the vector Street below instead. [topo] is drawn above every Street layer from
+     * [NIGHT_FADE_START_ZOOM], fading in to [NIGHT_FADE_END_ZOOM], with [NIGHT_RASTER_PAINT]'s V1 properties; the
+     * Street's labels stop at [streetLabelsMaxZoom] so they never show through the topo above them (-1291: "The
+     * Street labels must not show through that composition").
+     */
+    data class StreetWithTopoOver(
+        val streetUri: String,
+        val topo: Basemap,
+        val topoMinZoom: Double = NIGHT_FADE_START_ZOOM,
+        val topoFadeEndZoom: Double = NIGHT_FADE_END_ZOOM,
+        val streetLabelsMaxZoom: Double = NIGHT_FADE_START_ZOOM,
+    ) : MapStyleSource
 }
+
+/**
+ * The own Street map's style source for [basemap], or `null` when the own Street does not draw it: the switch is
+ * off ([ownStreet] `false`), or [basemap] is Topographical by day, which draws only itself. A function of its own
+ * so [mapStyleSourceFor]'s raster path is untouched: with the switch off this is always `null`.
+ */
+internal fun ownStreetStyleSourceFor(basemap: Basemap, night: Boolean, ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP): MapStyleSource? =
+    when {
+        !ownStreet -> null
+        basemap == Basemap.OSM_STANDARD -> MapStyleSource.Uri(STREET_STYLE_URL)
+        night && nightLowZoomBasemap(basemap) == Basemap.OSM_STANDARD -> MapStyleSource.StreetWithTopoOver(STREET_STYLE_URL, basemap)
+        else -> null
+    }
+
+/** Whether [source] is the own Street style, whose sprite icons the night inverts one by one ([STREET_STYLE_URL]). */
+internal fun usesStreetSprite(source: MapStyleSource): Boolean = when (source) {
+    is MapStyleSource.Json -> false
+    is MapStyleSource.Uri -> source.uri == STREET_STYLE_URL
+    is MapStyleSource.StreetWithTopoOver -> true
+}
+
+/**
+ * The highest zoom the camera may reach on [basemap]: the own Street's 18 (-1289) when it draws Street, the
+ * basemap's own operating limit otherwise ([Basemap.maxZoom]).
+ */
+internal fun operatingMaxZoom(basemap: Basemap, ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP): Int =
+    if (ownStreet && basemap == Basemap.OSM_STANDARD) STREET_STYLE_MAX_ZOOM else basemap.maxZoom
 
 /**
  * The offline style when [useOfflineTiles] is on, regardless of [basemap] and [night]; the
@@ -235,8 +282,19 @@ sealed interface MapStyleSource {
  * from `SightingsMap`'s `setStyle` callback), rather than by a second style URL that would need its
  * own download.
  */
-internal fun mapStyleSourceFor(basemap: Basemap, night: Boolean, useOfflineTiles: Boolean): MapStyleSource =
-    if (useOfflineTiles) MapStyleSource.Uri(OFFLINE_STYLE_URL) else MapStyleSource.Json(styleJsonFor(basemap, night))
+internal fun mapStyleSourceFor(
+    basemap: Basemap,
+    night: Boolean,
+    useOfflineTiles: Boolean,
+    /** The style the downloaded regions hold (`offlineRenderStyleUrl`); [OFFLINE_STYLE_URL] unless the own Street is on. */
+    offlineStyleUrl: String = OFFLINE_STYLE_URL,
+    ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP,
+): MapStyleSource =
+    if (useOfflineTiles) {
+        MapStyleSource.Uri(offlineStyleUrl)
+    } else {
+        ownStreetStyleSourceFor(basemap, night, ownStreet) ?: MapStyleSource.Json(styleJsonFor(basemap, night))
+    }
 
 /**
  * The always-visible credit for what the map is currently drawing — the offline style's own when
@@ -244,8 +302,12 @@ internal fun mapStyleSourceFor(basemap: Basemap, night: Boolean, useOfflineTiles
  * otherwise. Before 2e-ii the caption read [Basemap.attribution] unconditionally, which over
  * offline tiles would have credited OpenTopoMap for Protomaps geometry.
  */
-internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean): String =
-    if (useOfflineTiles) OFFLINE_STYLE_ATTRIBUTION else basemap.attribution
+internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean, ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP): String =
+    when {
+        useOfflineTiles -> OFFLINE_STYLE_ATTRIBUTION
+        ownStreet && basemap == Basemap.OSM_STANDARD -> STREET_STYLE_ATTRIBUTION
+        else -> basemap.attribution
+    }
 
 /**
  * Every credit the map's caption shows, in order: what the map is drawn on ([mapAttributionFor]'s
@@ -257,12 +319,15 @@ internal fun mapCreditsFor(
     useOfflineTiles: Boolean,
     layerCredits: List<String> = emptyList(),
     nightMode: Boolean = false,
+    ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP,
 ): List<String> {
     // At topo night the style also draws Street below 9.7 ([nightLowZoomBasemap]), so its credit is owed. The
     // caption has no zoom input, so both credits show at every zoom; hiding one above the crossfade would need a zoom
     // listener for no gain. Offline is the vector style, which carries neither.
     val below = if (!useOfflineTiles && nightMode) nightLowZoomBasemap(basemap) else null
-    return (listOf(mapAttributionFor(basemap, useOfflineTiles)) + listOfNotNull(below?.attribution) + layerCredits).distinct()
+    // With the own Street on, the Street below topo at night is the own map, so its credit is the own map's.
+    val belowCredit = below?.let { mapAttributionFor(it, useOfflineTiles = false, ownStreet = ownStreet) }
+    return (listOf(mapAttributionFor(basemap, useOfflineTiles, ownStreet)) + listOfNotNull(belowCredit) + layerCredits).distinct()
 }
 
 /** [credits] as the one line the caption draws, joined by [ATTRIBUTION_SEPARATOR]. */
@@ -299,6 +364,11 @@ internal data class AppliedMapStyle(
      * went with Satellite (dispatch 2026-09-28-708).
      */
     val night: Boolean,
+    /**
+     * The style "use offline tiles" loads (`offlineRenderStyleUrl`): [OFFLINE_STYLE_URL] unless the own Street is on
+     * and a region holds its style. A change is a reload, so the first Street download is drawn in its own style.
+     */
+    val offlineStyleUrl: String = OFFLINE_STYLE_URL,
 )
 
 /**
@@ -314,6 +384,7 @@ internal fun requestedMapStyle(
     useOfflineTiles: Boolean,
     nightMode: Boolean,
     nightModeLoaded: Boolean,
+    offlineStyleUrl: String = OFFLINE_STYLE_URL,
 ): AppliedMapStyle? =
     if (!nightModeLoaded) {
         null
@@ -323,6 +394,7 @@ internal fun requestedMapStyle(
             palette = MapPalette.forMode(nightMode),
             useOfflineTiles = useOfflineTiles,
             night = nightMode,
+            offlineStyleUrl = offlineStyleUrl,
         )
     }
 

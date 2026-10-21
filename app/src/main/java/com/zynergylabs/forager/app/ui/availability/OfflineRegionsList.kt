@@ -2,6 +2,8 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from AvailabilityOfflineMapsUi.kt (dispatch 2026-10-19-19, UI split Phase 1, PR 10c), apart from private to internal on the declarations the panel calls.
 
+import com.zynergylabs.forager.app.map.OLDER_MAP_STYLE_NOTICE
+import com.zynergylabs.forager.app.map.regionHasOlderMapStyle
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
@@ -166,6 +168,8 @@ internal fun OfflineRegionRow(
     onClick: (() -> Unit)? = null,
     /** What "Download again" does on a region restored from a backup ([OfflineRegionSummary.isDownloaded] `false`); unused for a downloaded one. */
     onDownloadAgain: (() -> Unit)? = null,
+    /** The release switch (`STREET_SERVED_BY_OWN_MAP`); a parameter only so a test can show the row both ways. */
+    ownStreet: Boolean = com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP,
 ) {
     val parts = offlineRegionRowParts(region, distanceUnit, nowEpochMillis)
     Row(
@@ -194,6 +198,16 @@ internal fun OfflineRegionRow(
                     )
                 }
             }
+            // RECORD -1294: a region built against an older map style keeps drawing, and says so in one line. Nothing is
+            // re-downloaded for the user. Never shown while the own Street is off (StreetStyle.kt), which is today.
+            if (regionHasOlderMapStyle(region.styleUrl, region.isDownloaded, ownStreet)) {
+                Text(
+                    OLDER_MAP_STYLE_NOTICE,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(offlineRegionOlderStyleTag(region.id)),
+                )
+            }
             // A region restored from a backup onto a phone that never downloaded it (owner, "1 B"): a way to get its tiles.
             if (!region.isDownloaded && onDownloadAgain != null) {
                 OutlinedButton(onClick = onDownloadAgain) { Text("Download again") }
@@ -219,6 +233,9 @@ internal fun offlineRegionRowParts(region: OfflineRegionSummary, distanceUnit: D
 
 /** The last part of a not-downloaded region's line (owner, "1 B"). */
 internal const val OFFLINE_REGION_NOT_DOWNLOADED = "Not downloaded"
+
+/** [OfflineRegionRow]'s older-map-style notice (RECORD -1294), for tests. */
+internal fun offlineRegionOlderStyleTag(regionId: Long): String = "offline-region-older-style-$regionId"
 
 /** [OfflineRegionRow]'s one line, for tests. */
 internal fun offlineRegionRowLineTag(regionId: Long): String = "offline-region-line-$regionId"

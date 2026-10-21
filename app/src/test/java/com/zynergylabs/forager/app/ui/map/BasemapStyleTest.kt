@@ -122,13 +122,40 @@ class BasemapStyleTest {
      * and no layer the app adds has drawn map text since.
      */
     @Test
-    fun `no style declares a glyphs URL, day or night`() {
+    fun `no raster style declares a glyphs URL, day or night`() {
+        // Every Basemap is a raster style the app builds (styleJsonFor). The own vector Street is not one of them: it is
+        // loaded by URL, and the test below holds its fonts and icons to the owner's host (dispatch 2026-10-18-05 Part 2).
         Basemap.entries.forEach { basemap ->
             listOf(false, true).forEach { night ->
                 val style = json.parseToJsonElement(styleJsonFor(basemap, night)).jsonObject
                 assertFalse("${basemap.name} (night=$night) still declares glyphs: ${style["glyphs"]}", style.containsKey("glyphs"))
             }
         }
+    }
+
+    /**
+     * Dispatch 2026-10-18-05 Part 2: the vector Street style declares fonts and icons, and every URL in it names only the
+     * owner's mapping Worker: its tiles, its glyphs and its sprite. Read from the copy the Worker bundles and serves
+     * (`server/pmtiles-worker/src/street-style-v1.json`, which `map-style/tools/check-street-night.mjs` holds equal to
+     * the generated one), as text, so a URL anywhere in the document counts, not only in the three known fields.
+     */
+    @Test
+    fun `the vector Street style names only the owner's Worker host, for tiles, fonts and icons`() {
+        val text = java.io.File("../server/pmtiles-worker/src/street-style-v1.json").readText()
+        val style = json.parseToJsonElement(text).jsonObject
+        val host = "https://forager-pmtiles.brandonlee1-894.workers.dev/"
+        assertEquals("${host}fonts/{fontstack}/{range}.pbf", style.getValue("glyphs").jsonPrimitive.content)
+        assertEquals("${host}sprites/v4/light", style.getValue("sprite").jsonPrimitive.content)
+        val source = style.getValue("sources").jsonObject.getValue("protomaps").jsonObject
+        assertEquals("${host}us.json", source.getValue("url").jsonPrimitive.content)
+        // Every http(s) URL in the document, attribution links included, minus the two credit links the licences ask for.
+        // A backslash ends a URL: inside the JSON text the attribution's quotes are escaped (\").
+        val urls = Regex("""https?://[^"\\\s<>]+""").findAll(text).map { it.value }.toList()
+        val credits = setOf("https://github.com/protomaps/basemaps", "https://osm.org/copyright")
+        val foreign = urls.filterNot { it.startsWith(host) || it in credits }
+        assertEquals("URLs in the Street style that are not the owner's host: $foreign", emptyList<String>(), foreign)
+        assertFalse(text.contains("demotiles.maplibre.org"))
+        assertFalse(text.contains("localhost"))
     }
 
     /**

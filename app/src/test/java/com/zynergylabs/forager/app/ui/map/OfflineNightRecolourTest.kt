@@ -49,7 +49,8 @@ class OfflineNightRecolourTest {
             {"id": "outlined", "type": "fill", "paint": {"fill-color": "#ffffff", "fill-outline-color": "#000000"}},
             {"id": "data_driven", "type": "fill", "paint": {"fill-color": ["get", "colour"]}},
             {"id": "named", "type": "line", "paint": {"line-color": "white"}},
-            {"id": "symbols", "type": "symbol", "paint": {"text-color": "#000000"}}
+            {"id": "symbols", "type": "symbol", "paint": {"text-color": "#000000"}},
+            {"id": "labels", "type": "symbol", "paint": {"text-color": "#262626", "text-halo-color": "#ffffff", "text-halo-width": 1.75}}
           ]
         }
     """.trimIndent()
@@ -99,16 +100,41 @@ class OfflineNightRecolourTest {
         return (value as StyleColourValue.Literal).text
     }
 
+    /**
+     * Background, fill and line colours, and since dispatch 2026-10-18-05 Part 2 the symbol layers' text and halo colours
+     * (-1288: "Labels are inverted too"; the own Street style has labels, the offline style has none). Width and other
+     * non-colour properties are never walked.
+     */
     @Test
-    fun `only background, fill and line colour properties are walked`() {
+    fun `background, fill, line and label colour properties are walked`() {
         assertEquals(
             listOf(
                 "background/background-color", "earth/fill-color", "landcover/fill-color", "landuse_park/fill-color",
                 "roads_minor/line-color", "roads_step/line-color", "native_rgba/line-color", "outlined/fill-color",
-                "outlined/fill-outline-color", "data_driven/fill-color", "named/line-color",
+                "outlined/fill-outline-color", "data_driven/fill-color", "named/line-color", "symbols/text-color",
+                "labels/text-color", "labels/text-halo-color",
             ),
             colourPropertiesOf(fixtureStyle).map { "${it.layerId}/${it.property}" },
         )
+    }
+
+    @Test
+    fun `labels invert, near-black text goes near-white and a white halo goes black`() {
+        // V1 by hand: #262626 has mean 38, so each channel becomes 38 + 255 - 76 = 217 (#d9d9d9); white goes to 0.
+        assertEquals("rgba(217, 217, 217, 1)", nightLiteral("labels/text-color"))
+        assertEquals("rgba(0, 0, 0, 1)", nightLiteral("labels/text-halo-color"))
+        assertEquals("rgba(255, 255, 255, 1)", nightLiteral("symbols/text-color"))
+    }
+
+    @Test
+    fun `an icon's pixels go through the same V1, alpha kept`() {
+        // Opaque white, half-transparent black, and a fully transparent pixel, worked by hand.
+        val day = intArrayOf(0xFFFFFFFF.toInt(), 0x80000000.toInt(), 0x00A8452A)
+        val night = nightPixelsOf(day)
+        assertEquals(0xFF000000.toInt(), night[0])
+        assertEquals(0x80FFFFFF.toInt(), night[1])
+        // #a8452a (168, 69, 42): mean 93, shift 255 - 186 = 69: (237, 138, 111) = #ed8a6f; alpha 0 kept.
+        assertEquals(0x00ED8A6F, night[2])
     }
 
     @Test
@@ -188,6 +214,21 @@ class OfflineNightRecolourTest {
         val all = outcomes(style)
 
         assertEquals(57, all.size)
+        assertEquals(emptyMap<String, NightRecolour>(), all.filterValues { it is NightRecolour.Left })
+    }
+
+    /**
+     * The own Street style as the Worker serves it (dispatch 2026-10-18-05 Part 2): every one of its 101 colour
+     * properties (85 until dispatch 2026-10-19-41 split the one footpath layer into 17), labels and halos included, is one this function can transform. Like the test above, a claim about
+     * the file, not about the forms MapLibre hands back at runtime, which is a device item.
+     */
+    @Test
+    fun `every colour property in the Street style is recoloured, labels included`() {
+        val style = File("../server/pmtiles-worker/src/street-style-v1.json").readText()
+        val all = outcomes(style)
+
+        assertEquals(101, all.size)
+        assertTrue(all.keys.any { it.endsWith("/text-color") } && all.keys.any { it.endsWith("/text-halo-color") })
         assertEquals(emptyMap<String, NightRecolour>(), all.filterValues { it is NightRecolour.Left })
     }
 }

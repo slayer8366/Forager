@@ -5,6 +5,8 @@ import android.content.res.Resources
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
+import com.zynergylabs.forager.app.map.currentOfflineRenderStyleUrl
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import org.maplibre.android.maps.Style
@@ -60,11 +62,14 @@ internal fun MapStyleReload(
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
         // right one. The map shows MapLibre's own blank until then.
+        // With the own Street off (STREET_SERVED_BY_OWN_MAP), this is OFFLINE_STYLE_URL without reading the store.
+        val offlineStyleUrl = if (useOfflineTiles) currentOfflineRenderStyleUrl(context) else OFFLINE_STYLE_URL
         val requested = requestedMapStyle(
             basemap = basemap,
             useOfflineTiles = useOfflineTiles,
             nightMode = nightMode,
             nightModeLoaded = nightModeLoaded,
+            offlineStyleUrl = offlineStyleUrl,
         ) ?: return@LaunchedEffect
         if (!needsStyleReload(state.appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
@@ -95,10 +100,12 @@ internal fun MapStyleReload(
             state.cameraMoveClassifier.markAppMove()
             applyCameraRestore(map, it)
         }
-        map.setMaxZoomPreference(basemap.maxZoom.toDouble())
-        val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
+        map.setMaxZoomPreference(operatingMaxZoom(basemap).toDouble())
+        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl)
+        val builder = when (source) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
+            is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
@@ -108,7 +115,12 @@ internal fun MapStyleReload(
             // from its one URL and before the overlays are added, so the overlays' own line and
             // fill layers are never touched. Day, or night off, restyles nothing: the style came
             // fresh from its URI.
-            if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
+            // Since dispatch 2026-10-18-05 Part 2 the same recolour serves the own Street online (loaded by URI too),
+            // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
+            // The own Street takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
+            if (requested.night && source !is MapStyleSource.Json) applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source))
+            if (requested.night && usesStreetSprite(source)) applyStreetSpriteNight(style)
+            if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
             initializeOverlayLayers(
                 style,
                 density = resources.displayMetrics.density,

@@ -55,6 +55,24 @@ class SoftwareCreditsCatalogTest {
         assertTrue("still credited: ${libraries.map { it.name }}", libraries.none { it.name.startsWith("Open Sans") })
     }
 
+    /**
+     * Dispatch 2026-10-18-05 Part 2: the own Street map's label font (Noto Sans, OFL) and icon set (tangrams, MIT) are
+     * listed exactly when the map shows them. With the release switch off (the loader's default) neither is; with it on,
+     * both are, under their own licences.
+     */
+    @Test
+    fun `the Street map's font and icons are credited only while the own Street is on`() {
+        val catalog = SoftwareCredits.parse(assets.open(SoftwareCredits.CATALOG_ASSET).bufferedReader().use { it.readText() })
+        fun read(path: String) = assets.open(path).bufferedReader().use { it.readText() }
+        val on = SoftwareCredits.groups(catalog, ownStreet = true, readText = ::read).flatMap { it.libraries }
+        val off = SoftwareCredits.groups(catalog, ownStreet = false, readText = ::read).flatMap { it.libraries }
+        val street = listOf("Noto Sans, the Street map's labels", "The Street map's icons, from Mapzen's tangrams icon set")
+        assertEquals(listOf("OFL-1.1", "MIT"), street.map { name -> on.single { it.name == name }.licence })
+        assertTrue("credited with the switch off: ${off.map { it.name }}", off.none { it.name in street })
+        assertTrue("credited at the release value: ${libraries.map { it.name }}", libraries.none { it.name in street })
+        assertEquals("everything else is the same both ways", off.map { it.name }, on.map { it.name }.filterNot { it in street })
+    }
+
     @Test
     fun `every library has a credit line, and every licence and notice text is there and is its own`() {
         libraries.forEach { assertTrue("${it.name} has a credit line", it.credit.isNotEmpty() && it.credit.all(String::isNotBlank)) }

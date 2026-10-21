@@ -67,15 +67,139 @@ internal sealed interface NightRecolour {
 }
 
 /**
- * The colour paint properties the offline night recolour walks, by layer type: background, fill and
- * line, the three types `offline-style.json` has. Symbol layers (text, icons) and the overlay layers
- * `SightingsMap` adds after the recolour are not walked.
+ * The colour paint properties the night recolour walks, by layer type: background, fill and line (the three types
+ * `offline-style.json` has), and since dispatch 2026-10-18-05 Part 2 the symbol layers' text, halo and icon colours,
+ * which the own Street style has and the offline style does not (-1288: "Labels are inverted too"). `icon-color` acts
+ * only on SDF icons; the Street sprite's are not SDF, so its icons are inverted as images instead ([nightPixelsOf]).
+ * The overlay layers `SightingsMap` adds after the recolour are not walked.
  */
 internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
     "background" to listOf("background-color"),
     "fill" to listOf("fill-color", "fill-outline-color"),
     "line" to listOf("line-color"),
+    "symbol" to listOf("text-color", "text-halo-color", "icon-color"),
 )
+
+/**
+ * The own Street's night water: a lighter blue than the inversion gives, on every water fill and line (rivers, creeks,
+ * lakes, the sea). RECORD -1343, the owner: "I like the blue of the water, but looking at creeks is a bit dark against
+ * the other dark colors. Can the water be a little bit lighter in blue color?", then "Night only, lighter
+ * (Recommended)". It is the one named exception to -1288's pure inversion; -1344 allows such exceptions where an
+ * inverted colour reads poorly ("we can go outside the purity for the UX").
+ *
+ * The inversion gave `#005864` (the day `#80deea`), 1.35:1 on the night forest; this is 3.28:1 on the night forest
+ * `#436d35`, 6.68:1 on the night grass `#2d3911` and 8.70:1 on the night ground `#24211c` (`NightWaterTest`, and
+ * `map-style/tools/check-street-night.mjs`, which reads the same colour from the style's design file). The day water
+ * colour is unchanged. Only the own Street takes it: the offline style keeps its inverted water, so today's app is
+ * unchanged.
+ */
+internal const val STREET_NIGHT_WATER = "#8ec5f0"
+
+/** The vector source layer the own Street's water is drawn from (Protomaps' `water`). */
+internal const val WATER_SOURCE_LAYER = "water"
+
+/** The colour properties [streetNightRecolourOf] gives [STREET_NIGHT_WATER]: fills and lines, never label text. */
+private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", "line-color")
+
+/**
+ * The own Street's night line colours by layer (RECORD -1345, the owner: "Roads (Recommended), Railways + boundaries
+ * (Recommended)"): the inversion left these at 1.0 to 1.5:1 on the night forest (Part 1 report, round 1). Tunnels keep
+ * the inversion. The design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-street.mjs`, recorded in
+ * the style's metadata; `NightExceptionsTest` holds the two equal and each colour to 2.5:1 on the night forest, grass
+ * and ground, except where the design gives a layer its own band on one ground (`NIGHT_LAYER_BANDS`: informal paths on
+ * the night forest).
+ */
+internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
+    "roads_minor_casing" to "#c4bcae", // minor road edge, 3.21:1 on the night forest
+    "roads_bridges_minor_casing" to "#c4bcae",
+    "roads_minor_service_casing" to "#b3ab9d", // service road edge, 2.65:1
+    "roads_major" to "#e0ad4f", // major road centre, 2.95:1; links take the major palette
+    "roads_bridges_major" to "#e0ad4f",
+    "roads_link" to "#e0ad4f",
+    "roads_bridges_link" to "#e0ad4f",
+    "roads_highway" to "#f0c060", // highway centre, 3.57:1
+    "roads_bridges_highway" to "#f0c060",
+    "roads_rail" to "#b4bec0", // railways, 3.18:1
+    "boundaries" to "#bdbdbd", // 3.21:1
+    "boundaries_country" to "#bdbdbd",
+    // Informal paths' own night colour (dispatch 2026-10-19-41; the owner: "Own night colour (Recommended)"), in place of
+    // the inversion #9b694d, which nearly vanished on the night forest. 2.01:1 there: below the 2.5 the others hold, by
+    // the owner's band for this layer ("Accept the range (Recommended)", 1.9 to 2.3), which NightExceptionsTest holds.
+    "roads_path_informal_z13" to "#bb8a6f",
+    "roads_path_informal" to "#bb8a6f",
+)
+
+/**
+ * The own Street's night for one colour property: [STREET_NIGHT_WATER] for a water fill or line (a layer drawn from
+ * [sourceLayer] `water`), a [STREET_NIGHT_LAYER_COLOURS] colour for those layers' lines, and [offlineNightRecolourOf]'s
+ * pure inversion for everything else, labels included.
+ */
+internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: String?): NightRecolour {
+    if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
+        return NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
+    }
+    val layerNight = STREET_NIGHT_LAYER_COLOURS[property.layerId]
+    if (layerNight != null && property.property == "line-color") {
+        return NightRecolour.Recoloured(property, StyleColourValue.Literal(layerNight))
+    }
+    return offlineNightRecolourOf(property)
+}
+
+/**
+ * An icon whose ring takes its own night colour (RECORD -1345, "Place dots + icon rings (Recommended)"): [dayRing] and
+ * [dayFill] are the colours the sprite draws the ring and its inside with, [nightRing] the ring's night colour. As
+ * RGB, no alpha.
+ */
+internal data class IconRingNight(val dayRing: Int, val dayFill: Int, val nightRing: Int)
+
+/**
+ * The own Street's icons whose rings read too dark inverted (1.0 to 1.4:1 on the night forest): the place dot, and the
+ * toilets and drinking-water icons. The design's copy is `NIGHT_ICON_RINGS` in `map-style/overrides/forager-street.mjs`.
+ */
+internal val STREET_NIGHT_ICON_RINGS: Map<String, IconRingNight> = mapOf(
+    "townspot" to IconRingNight(dayRing = 0x868686, dayFill = 0xF3F3F3, nightRing = 0xD6D6D6),
+    "toilets" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
+    "drinking_water" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
+)
+
+/**
+ * How far, in RGB levels, a pixel may sit from the line between an icon's ring and fill colours and still count as part
+ * of that ring or its edge. The sprite's own anti-aliasing sits on that line (its edge pixels are mixes of the two);
+ * a symbol drawn inside the icon in another colour does not, and keeps the plain inversion.
+ */
+private const val RING_TOLERANCE = 16.0
+
+/**
+ * One icon's night pixels with its ring kept light ([ring]); without one, [nightPixelsOf]. A pixel on the ring-to-fill
+ * line at fraction `t` from the ring becomes the same mix of [IconRingNight.nightRing] and the fill's inversion, so the
+ * ring's anti-aliased edge stays smooth; every other pixel is the plain inversion. Alpha is kept.
+ */
+internal fun nightIconPixelsOf(pixels: IntArray, ring: IconRingNight?): IntArray {
+    if (ring == null) return nightPixelsOf(pixels)
+    fun ch(c: Int, shift: Int) = (c shr shift) and 0xFF
+    val ringRgb = intArrayOf(ch(ring.dayRing, 16), ch(ring.dayRing, 8), ch(ring.dayRing, 0))
+    val fillRgb = intArrayOf(ch(ring.dayFill, 16), ch(ring.dayFill, 8), ch(ring.dayFill, 0))
+    val nightFill = nightColorOf((0xFF shl 24) or ring.dayFill)
+    val nightFillRgb = intArrayOf(ch(nightFill, 16), ch(nightFill, 8), ch(nightFill, 0))
+    val nightRingRgb = intArrayOf(ch(ring.nightRing, 16), ch(ring.nightRing, 8), ch(ring.nightRing, 0))
+    val axis = DoubleArray(3) { (fillRgb[it] - ringRgb[it]).toDouble() }
+    val axisLength2 = axis.sumOf { it * it }
+    return IntArray(pixels.size) { i ->
+        val p = pixels[i]
+        val rgb = intArrayOf(ch(p, 16), ch(p, 8), ch(p, 0))
+        val t = (DoubleArray(3) { (rgb[it] - ringRgb[it]) * axis[it] }.sum() / axisLength2).coerceIn(0.0, 1.0)
+        val distance2 = (0 until 3).sumOf { val d = rgb[it] - (ringRgb[it] + t * axis[it]); d * d }
+        if (distance2 > RING_TOLERANCE * RING_TOLERANCE) {
+            nightColorOf(p)
+        } else {
+            val out = IntArray(3) { (nightRingRgb[it] + t * (nightFillRgb[it] - nightRingRgb[it])).roundToInt().coerceIn(0, 255) }
+            (p and 0xFF000000.toInt()) or (out[0] shl 16) or (out[1] shl 8) or out[2]
+        }
+    }
+}
+
+/** [pixels] (ARGB, as `Bitmap.getPixels` gives them) through [nightColorOf], alpha kept: an icon's night look. */
+internal fun nightPixelsOf(pixels: IntArray): IntArray = IntArray(pixels.size) { nightColorOf(pixels[it]) }
 
 /**
  * The night value for one layer colour property: [nightColorOf] of a literal, or of every colour

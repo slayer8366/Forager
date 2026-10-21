@@ -38,8 +38,9 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 "licence",
                 "https://opentopomap.org/about",
             ),
-            // The offline map packs' vector basemap; its OpenStreetMap data is credited in the row above.
-            SourceCredit("protomaps", "Protomaps (offline maps)", "licence", "https://github.com/protomaps/basemaps"),
+            // The offline map packs' vector basemap, and the own Street map's once it is on (dispatch 2026-10-18-05
+            // Part 2, StreetStyle.kt); its OpenStreetMap data is credited in the row above.
+            SourceCredit("protomaps", protomapsCreditText(), "licence", "https://github.com/protomaps/basemaps"),
         ),
     ),
     // The forager-forecast map layers and the data behind them (GBIF occurrences among it) go here, as
@@ -63,3 +64,7 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
         listOf(SourceCredit("inaturalist", "iNaturalist and its observers", "site", "https://www.inaturalist.org/")),
     ),
 )
+
+/** The Protomaps row's text: what it is used for, which is offline maps today and Street too once the own Street is on. */
+internal fun protomapsCreditText(ownStreet: Boolean = com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP): String =
+    if (ownStreet) "Protomaps (Street and offline maps)" else "Protomaps (offline maps)"

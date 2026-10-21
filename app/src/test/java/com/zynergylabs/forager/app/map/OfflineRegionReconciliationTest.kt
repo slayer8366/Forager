@@ -175,6 +175,29 @@ class OfflineRegionReconciliationTest {
         assertEquals(listOf(1L), regionListOrFailure(listOf(1L)))
     }
 
+    /**
+     * Dispatch 2026-10-18-05 Part 2: the style URL MapLibre's own region definition records reaches the listed summary
+     * unchanged, for a region with a Room row and for one rebuilt from its metadata. It decides the older-style notice.
+     */
+    @Test
+    fun `each listed region carries the style URL it was downloaded against`() {
+        val dao = FakeDao(listOf(row(1)))
+        val shown = runBlocking {
+            reconcileOfflineRegions(
+                live = listOf(
+                    LiveRegion(1, true, finishedMetadata(), 10, 100, styleUrl = OFFLINE_STYLE_URL),
+                    LiveRegion(2, true, finishedMetadata(), 10, 100, styleUrl = STREET_STYLE_URL),
+                    LiveRegion(3, true, finishedMetadata(), 10, 100, styleUrl = null),
+                ),
+                dao = dao,
+                inFlightIds = emptySet(),
+                deleteRegion = {},
+                warn = {},
+            )
+        }
+        assertEquals(mapOf(1L to OFFLINE_STYLE_URL, 2L to STREET_STYLE_URL, 3L to null), shown.associate { it.id to it.styleUrl })
+    }
+
     private fun row(id: Long) = OfflineRegionEntity(id, "Row $id", 1.0, 2.0, 5, 6.0, 12.0, 1_000L)
 
     private fun complete(id: Long, metadata: ByteArray? = finishedMetadata()) = LiveRegion(id, true, metadata, 10, 100)

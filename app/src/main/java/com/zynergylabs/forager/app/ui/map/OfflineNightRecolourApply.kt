@@ -10,6 +10,7 @@ import org.maplibre.android.style.layers.Layer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.PropertyValue
+import org.maplibre.android.style.layers.SymbolLayer
 
 /**
  * The offline style's night: every background, fill and line colour property of the loaded style set
@@ -25,7 +26,7 @@ import org.maplibre.android.style.layers.PropertyValue
  * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
  * is unverified until a device run; a form this does not read shows up in these log lines.
  */
-internal fun applyOfflineNightRecolour(style: Style) {
+internal fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = false) {
     var recoloured = 0
     var left = 0
     for (layer in style.layers) {
@@ -41,6 +42,8 @@ internal fun applyOfflineNightRecolour(style: Style) {
                     LayerColourProperty(layer.id, property, StyleColourValue.Literal(value.toString())),
                     "value of type ${value.value?.javaClass?.name} is neither a colour string nor an expression",
                 )
+            } else if (streetWater) {
+                streetNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer))
             } else {
                 offlineNightRecolourOf(LayerColourProperty(layer.id, property, colourValue))
             }
@@ -62,11 +65,19 @@ internal fun applyOfflineNightRecolour(style: Style) {
     Log.i(SIGHTINGS_MAP_TAG, "Offline night: $recoloured colour properties recoloured, $left left in day colours.")
 }
 
+/** [layer]'s vector source layer, for the night water exception; `null` for a layer with none. */
+private fun sourceLayerOf(layer: Layer): String? = when (layer) {
+    is FillLayer -> layer.sourceLayer
+    is LineLayer -> layer.sourceLayer
+    else -> null
+}
+
 /** [layer]'s colour properties the offline night walks ([NIGHT_RECOLOURED_PROPERTIES]), with their day values. */
 private fun dayColourPropertiesOf(layer: Layer): List<Pair<String, PropertyValue<*>>> = when (layer) {
     is BackgroundLayer -> listOf("background-color" to layer.backgroundColor)
     is FillLayer -> listOf("fill-color" to layer.fillColor, "fill-outline-color" to layer.fillOutlineColor)
     is LineLayer -> listOf("line-color" to layer.lineColor)
+    is SymbolLayer -> listOf("text-color" to layer.textColor, "text-halo-color" to layer.textHaloColor, "icon-color" to layer.iconColor)
     else -> emptyList()
 }
 
@@ -76,6 +87,9 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
         "fill-color" -> PropertyFactory.fillColor(night.text)
         "fill-outline-color" -> PropertyFactory.fillOutlineColor(night.text)
         "line-color" -> PropertyFactory.lineColor(night.text)
+        "text-color" -> PropertyFactory.textColor(night.text)
+        "text-halo-color" -> PropertyFactory.textHaloColor(night.text)
+        "icon-color" -> PropertyFactory.iconColor(night.text)
         else -> error("offline night does not walk $property")
     }
     is StyleColourValue.Expression -> {
@@ -85,6 +99,9 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
             "fill-color" -> PropertyFactory.fillColor(expression)
             "fill-outline-color" -> PropertyFactory.fillOutlineColor(expression)
             "line-color" -> PropertyFactory.lineColor(expression)
+            "text-color" -> PropertyFactory.textColor(expression)
+            "text-halo-color" -> PropertyFactory.textHaloColor(expression)
+            "icon-color" -> PropertyFactory.iconColor(expression)
             else -> error("offline night does not walk $property")
         }
     }

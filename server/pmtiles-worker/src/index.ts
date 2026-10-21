@@ -6,8 +6,9 @@
 // Adapted from protomaps/PMTiles serverless/cloudflare/src/index.ts (MIT licensed) — the upstream
 // reference implementation this project's chosen stack (Cloudflare R2 + Workers) is based on. The
 // only changes from upstream: importing the inlined ./shared helpers instead of a sibling
-// monorepo package, renamed identifiers to match this project's naming conventions, and the
-// z>14 overflow path below (not present upstream at all).
+// monorepo package, renamed identifiers to match this project's naming conventions, the
+// z>14 overflow path below (not present upstream at all), and the Street style, font and sprite
+// routes (dispatch 2026-10-18-05 Part 2, also not upstream).
 import {
   Compression,
   EtagMismatch,
@@ -21,6 +22,7 @@ import {
 } from "pmtiles";
 import { pmtilesPath, tilePath } from "./shared";
 import offlineStyle from "./offline-style.json";
+import streetStyle from "./street-style-v1.json";
 
 interface Env {
   ALLOWED_ORIGINS?: string;
@@ -28,11 +30,6 @@ interface Env {
   CACHE_CONTROL?: string;
   PMTILES_PATH?: string;
   PUBLIC_HOSTNAME?: string;
-  /** Base URL of the Pi tile origin (`pmtiles serve` behind a tunnel and Cloudflare Access). */
-  PI_ORIGIN_URL?: string;
-  /** Access service token, set as Worker secrets — never in wrangler.toml or the repo. */
-  CF_ACCESS_CLIENT_ID?: string;
-  CF_ACCESS_CLIENT_SECRET?: string;
 }
 
 class KeyNotFoundError extends Error {}
@@ -250,79 +247,86 @@ async function overflowTileResponse(
   return cacheableResponse(tiledata.data, cacheableHeaders, 200);
 }
 
-// --- Pi origin, tried first for z/x/y tiles (dispatch 2026-10-04-01, part 2). The Pi runs
-// `pmtiles serve` on the same `us.pmtiles` R2 holds (verified identical by size and whole-object
-// MD5, docs/plans/2026-10-04-pi-origin-part1-report.md), reached through a tunnel behind an Access
-// Service Auth policy, so every request carries the service token's two headers. Anything other
-// than a 200 or 204 from the Pi — a 404 above its z14 ceiling, a 403, a tunnel 5xx, a timeout, a
-// network error — falls through to the R2 path below, which is unchanged and still owns TileJSON,
-// the z15 overflow and the archive-type check. The owner's ruling: Pi first, R2 fallback.
-//
-// Every fallback is logged, without the tile coordinates: observability is off for privacy (see
-// wrangler.toml), so these reach only a live `wrangler tail`. Which origin produced a response is
-// also stamped on it as X-Forager-Origin, so it can be read from the outside without any log.
-// -------------------------------------------------------------------------------------------------
-
-/**
- * Operating limit on one Pi request, not a measured figure. The Pi is on a weak Wi-Fi link (part 1
- * report, -65 dBm, 1.65% TX failures), and a slow Pi must cost a user seconds at most before R2
- * answers instead. Revisit once real Pi latencies are observed.
- */
-const PI_ORIGIN_TIMEOUT_MS = 4000;
-
+// --- R2 only (dispatch 2026-10-18-05 Part 2; RECORD -879, -1300 (1)). The Pi-first step that was here
+// (dispatch 2026-10-04-01 part 2) is gone: the owner ruled "Builds the maps and keeps a copy, nothing live"
+// (-879), and the Part 1 report found the Pi answering z0-14 for every request. Every tile now comes from
+// R2's archive, or from the z15 overflow above. The response still says which, as X-Forager-Origin, so
+// the deploy check can read it from outside; with the Pi gone it is always "r2".
 const ORIGIN_HEADER = "X-Forager-Origin";
 
-type PiResult = { kind: "served"; status: 200 | 204; body?: ArrayBuffer; contentType?: string } | { kind: "fallback" };
+// --- The vector Street style, its fonts and its icons (dispatch 2026-10-18-05 Part 2).
+//
+// /style/street-v1.json is map-style/forager-street-v1.json, bundled in like offline-style.json so it needs
+// no upload. The "v1" is load-bearing: MapLibre's offline store keys a pack by the style URL it was
+// downloaded against, so a later design ships as street-v2.json beside this one and packs downloaded
+// against v1 keep drawing while v1 still serves. /style/offline.json is untouched for the same reason
+// (-1294).
+//
+// Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
+// sprites/v4/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. They
+// are matched before tilePath, because tilePath's tileset pattern also matches /sprites/v4/light.json.
+// Only these exact shapes are read; anything else under /fonts/ or /sprites/ is a 404, never an R2 read of
+// an arbitrary key.
+// -------------------------------------------------------------------------------------------------
 
-async function fetchFromPi(env: Env, name: string, tile: [number, number, number], ext: string): Promise<PiResult> {
-  if (!env.PI_ORIGIN_URL) {
-    console.warn("pi-origin: PI_ORIGIN_URL not set, serving from R2");
-    return { kind: "fallback" };
-  }
-  if (!env.CF_ACCESS_CLIENT_ID || !env.CF_ACCESS_CLIENT_SECRET) {
-    console.warn("pi-origin: Access token secrets not set, serving from R2");
-    return { kind: "fallback" };
-  }
-  // The token rides on every Pi request, so only a plain archive name is forwarded: tilePath's
-  // pattern also admits '/' and '.', which would let a crafted path address other URLs on the origin.
-  if (!/^[A-Za-z0-9_-]+$/.test(name)) {
-    return { kind: "fallback" };
-  }
-  const [z, x, y] = tile;
-  const url = `${env.PI_ORIGIN_URL.replace(/\/+$/, "")}/${name}/${z}/${x}/${y}.${ext}`;
+/** Fonts and icons never change under one name: a new set gets a new path. A week, at the edge and on the phone. */
+const ASSET_CACHE_CONTROL = "public, max-age=604800";
+
+const FONT_PATH = /^\/fonts\/([A-Za-z0-9 ,-]+)\/(\d+-\d+)\.pbf$/;
+const SPRITE_PATH = /^\/sprites\/v4\/(light(?:@2x)?)\.(json|png)$/;
+
+/** The R2 key and content type for a font or sprite URL, or null when [pathname] is neither. */
+export function assetKeyFor(pathname: string): { key: string; contentType: string } | null {
+  let decoded: string;
   try {
-    const resp = await fetch(url, {
-      headers: {
-        "CF-Access-Client-Id": env.CF_ACCESS_CLIENT_ID,
-        "CF-Access-Client-Secret": env.CF_ACCESS_CLIENT_SECRET,
-      },
-      signal: AbortSignal.timeout(PI_ORIGIN_TIMEOUT_MS),
-      // A precaution, not an observed case: if Access ever answered with a redirect to its login
-      // page, following it would turn a refusal into a 200 of HTML. Any 3xx is a fallback instead.
-      redirect: "manual",
-    });
-    if (resp.status === 200) {
-      return {
-        kind: "served",
-        status: 200,
-        body: await resp.arrayBuffer(),
-        contentType: resp.headers.get("Content-Type") ?? undefined,
-      };
-    }
-    if (resp.status === 204) {
-      return { kind: "served", status: 204 };
-    }
-    // A 404 is the expected answer above the Pi's z14 ceiling (not yet observed through the Worker),
-    // where R2's overflow path takes over, so it is not logged as a fault.
-    if (resp.status !== 404) {
-      console.warn(`pi-origin: HTTP ${resp.status}, serving from R2`);
-    }
-    return { kind: "fallback" };
-  } catch (e) {
-    const reason = e instanceof Error ? e.name : "unknown error";
-    console.warn(`pi-origin: ${reason}, serving from R2`);
-    return { kind: "fallback" };
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null;
   }
+  const font = decoded.match(FONT_PATH);
+  if (font) return { key: `fonts/${font[1]}/${font[2]}.pbf`, contentType: "application/x-protobuf" };
+  const sprite = decoded.match(SPRITE_PATH);
+  if (sprite) {
+    return { key: `sprites/v4/${sprite[1]}.${sprite[2]}`, contentType: sprite[2] === "png" ? "image/png" : "application/json" };
+  }
+  return null;
+}
+
+function streetStyleResponse(allowedOrigin: string): Response {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    "Cache-Control": "public, max-age=86400",
+  });
+  if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  return new Response(JSON.stringify(streetStyle), { headers });
+}
+
+async function assetResponse(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  asset: { key: string; contentType: string },
+  allowedOrigin: string
+): Promise<Response> {
+  const cache = caches.default;
+  const withOrigin = (r: Response): Response => {
+    const headers = new Headers(r.headers);
+    if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
+    headers.set("Vary", "Origin");
+    return new Response(r.body, { headers, status: r.status });
+  };
+  const cached = await cache.match(request.url);
+  if (cached) return withOrigin(cached);
+
+  const object = await env.BUCKET.get(asset.key);
+  if (!object) {
+    // Not cached: a missing font range or icon file is a deploy gap to fix, not a fact to keep for a week.
+    return withOrigin(new Response("Not found", { status: 404 }));
+  }
+  const body = await object.arrayBuffer();
+  const headers = new Headers({ "Content-Type": asset.contentType, "Cache-Control": ASSET_CACHE_CONTROL });
+  ctx.waitUntil(cache.put(request.url, new Response(body, { headers })));
+  return withOrigin(new Response(body, { headers }));
 }
 
 export default {
@@ -333,6 +337,18 @@ export default {
 
     if (url.pathname === "/style/offline.json") {
       return offlineStyleResponse(resolveAllowedOrigin(request, env));
+    }
+
+    if (url.pathname === "/style/street-v1.json") {
+      return streetStyleResponse(resolveAllowedOrigin(request, env));
+    }
+
+    const asset = assetKeyFor(url.pathname);
+    if (asset) {
+      return assetResponse(request, env, ctx, asset, resolveAllowedOrigin(request, env));
+    }
+    if (url.pathname.startsWith("/fonts/") || url.pathname.startsWith("/sprites/")) {
+      return new Response("Not found", { status: 404 });
     }
 
     const { ok, name, tile, ext } = tilePath(url.pathname);
@@ -378,15 +394,6 @@ export default {
     };
 
     const cacheableHeaders = new Headers();
-
-    if (tile) {
-      const pi = await fetchFromPi(env, name, tile, ext);
-      if (pi.kind === "served") {
-        if (pi.contentType) cacheableHeaders.set("Content-Type", pi.contentType);
-        cacheableHeaders.set(ORIGIN_HEADER, "pi");
-        return cacheableResponse(pi.body, cacheableHeaders, pi.status);
-      }
-    }
 
     cacheableHeaders.set(ORIGIN_HEADER, "r2");
     const source = new R2Source(env, name);

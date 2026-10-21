@@ -6,7 +6,9 @@
   "scripts": {
     "generate": "node generate.mjs",
     "check": "node tools/check-style.mjs",
-    "diff": "node tools/diff-style.mjs"
+    "diff": "node tools/diff-style.mjs",
+    "generate:street": "node generate-street.mjs",
+    "check:street": "node tools/check-style.mjs forager-street-v1.preview.json && node tools/check-street-night.mjs && node tools/check-street-trails.mjs"
   },
   "dependencies": {
     "@protomaps/basemaps": "5.7.2",
