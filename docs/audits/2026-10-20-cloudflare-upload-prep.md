@@ -643,3 +643,48 @@ The Clio feedback offer is not covered.
   nothing; four lessons from the upload night". No existing line changed; it supersedes rather
   than edits.
 - `docs/audits/2026-10-20-cloudflare-upload-prep.md`: this section, appended.
+
+## pi-19 done: the US + Canada archive is live as `us.pmtiles`, checked, 2026-10-21
+
+**Wi-Fi, between attempts' fates.** Wi-Fi dropped at 04:38:54Z, as the pi-19 coder reported, and the
+upload slowed to Bluetooth speed. The owner, in a new planner window, verbatim: "Reconnect to the
+wifi". The planner ran `nmcli con up Virusdownloader`, which failed twice although the network was
+in the scan list: wpa_supplicant logged "Association request to the driver failed", so the driver
+refused before anything went over the air. Turning the radio off and on (`nmcli radio wifi off`,
+`on`), a rescan, and a third `con up` connected at about 05:27Z. The planner acted on the owner's
+direct request; whether a planner should run network commands at all is not ruled. A USB tether
+(`usb0`) was briefly the top route; the owner removed it ("Wifi connected"), leaving `wlan0` the
+default and the Bluetooth tether behind it. The owner, verbatim: "Bluetooth tether is backup".
+**Not changed:** the Virusdownloader profile has autoconnect off, which may be why Wi-Fi never
+comes back by itself.
+
+**The upload finished.** `forager-pi19-us-upload-2` survived the drop: its connections moved to
+`wlan0`, at 3 to 5 MiB/s. rclone logged "Multi-thread Copied (replaced existing) to: us.pmtiles" at
+06:04:45Z and exited 0, with 0 `ERROR` lines. It reported 33.627 GiB sent for a 31.640 GiB file;
+the log at INFO shows no retry lines, so the cause of the extra 2 GiB is **not determined**.
+
+**The planner's watcher could not see the finish.** It waited for the unit to stop being active,
+but the unit has `RemainAfterExit=yes` and stays `active (exited)` after a clean exit. The finish
+was found about 50 minutes late, when the owner asked. A watcher on a transient unit should read
+`ExecMainStatus` and the main PID, not `is-active`. Same family as the profile's "ask what fails
+only at length": a check that cannot see the state it waits for.
+
+**Checked by the planner from the Pi,** every request cache-busted with a query string:
+
+| Check | Result |
+|---|---|
+| R2 size against local (`rclone lsl`, `stat`) | 33,973,424,728 bytes both |
+| `/us.json` | 200; TileJSON 4.15.2, z0 to 15; `roads` lists all six trail keys: `sac_scale`, `trail_visibility`, `informal`, `tracktype`, `surface`, `foot` |
+| Trail tile 15/5303/11553 (Paradise, Mt Rainier) | 200, `x-forager-origin: r2`, 12,810 bytes; identical to the local archive's tile once both are decompressed; `roads` has 34 features with `sac_scale` and `trail_visibility` among its keys |
+| `/style/offline.json` | 200, 16,156 bytes, 57 layers, sha256 starts `915ba505`, unchanged |
+
+The tile reader was a small protobuf key lister written for the check; its "no" on the other four
+layers of the same tile is its control. Multipart uploads afterwards: `rclone backend list-multipart-uploads r2:forager-maps` returns `[]` (pi-21 coder, 07:08Z).
+
+**Not checked:** edge copies cached before the overwrite (old tiles and old `/us.json` may show for
+up to a day per data centre; the cached sprite 404 expires about 22:20Z); the 774 font and icon
+objects were not recounted tonight.
+
+**Tidy, the owner through the question tool, verbatim:** "Tidy, keep logger (Recommended)". Done by
+dispatch pi-21 after this commit: the finished unit cleared, the `/tmp/pi19-*` scratch deleted except
+`/tmp/pi19-link.sh`, which keeps running. `~/pi19-logs/` is kept.
