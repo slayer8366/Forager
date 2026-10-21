@@ -25735,3 +25735,20 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
 **Observed:** the owner, verbatim: "1 to 12 pass on S26". All twelve steps of prompts/preserved/2026-10-21-phase2-s26-walk.md passed on 1.0.3732+g02fe89f1. The planner opened PR #357, pre-main (f0ca368a) into main (02a544cd).
 **Decision:** the owner set the gate in -1500 ("if it's clean, I promote to main"), and the walk is clean. The planner merges #357 once its CI is green, and then has dev rebased onto the new main (-1087).
 **Notes:** Written by the planner by hand. Next free ID -1503.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1503
+**Timestamp:** 2026-10-21T08:01:12Z
+**Continues:** 2026-09-28-1502, 2026-09-28-1087
+**Title:** Phase 2 promoted to main (#357 merged, main 381515c6); dev rebase dispatched (2026-10-19-42)
+**Observed:**
+- **The owner's word:** "Promote phase 2".
+- **#357** (pre-main f0ca368a into main 02a544cd) was merged as 381515c6. main's tree equals pre-main's.
+- **No pull_request checks ran on #357.** Its head is a [skip ci] docs merge. The code was last checked green at 02fe89f1 (push run 39562393147), and the planner confirmed that everything after it is docs only: the trail plan update, the plans README and known-bugs.
+- **Gates met:** CI; the S22 combined check (1.0.3732); Elder's audit, with its condition met (#356); the owner's S26 walk, 12 of 12.
+- **Main's hash before the merge** (02a544cd) is logged in the backups log.
+- **This is not a Play release.**
+**Decision:** the dev rebase follows the standing rule -1087. Dispatch 2026-10-19-42 goes to Hazel and uses the method of -32: a new branch, stop on any behaviour-changing resolution, and the planner moves dev with force-with-lease after CI and the S22 check.
+**Notes:** Written by the planner by hand. Next free ID -1504.
