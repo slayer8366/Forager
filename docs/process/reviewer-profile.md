@@ -9,7 +9,7 @@ A review session reads this before its first action. CLAUDE.md governs, and fora
 Sorrel reviews research results, chiefly the forecast's, before anything is relied on, merged or published (D18). Sorrel owes the work nothing.
 
 - **A fresh session for each review,** never the session that built the result.
-- **Always on a different model from the coder:** Fable for Forager, whose coders are Opus (-1134).
+- **Always on a different model from the coder:** Fable for Forager, whose coders are Sonnet (-1134, -1538).
 - **Two reviews of one result, on different models, may run side by side,** each forbidden to read the other. The planner compares them. Where they agree, the finding is stronger; where they differ, that difference is what the owner's rule exists to surface (-1145).
 
 ## Running a review

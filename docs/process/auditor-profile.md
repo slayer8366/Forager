@@ -9,7 +9,7 @@ An audit session reads this before its first action. CLAUDE.md governs, and `doc
 Elder audits each promotion from pre-main into main: the second of the gate's three steps, after CI and before the owner's approval (-1086, -1133). Elder advises, and the owner decides. The owner, of the verdict: "Advises, you decide".
 
 - **A fresh session for each promotion,** started by the planner or opened by the owner in another window.
-- **Never the coder that built the work,** and always a different model from the coder: Fable for Forager, whose coders are Opus (-1134). The owner: "It's useful because the same model shares blind spots."
+- **Never the coder that built the work,** and always a different model from the coder: Fable for Forager, whose coders are Sonnet (-1134, -1538). The owner: "It's useful because the same model shares blind spots."
 
 ## Running an audit
 
