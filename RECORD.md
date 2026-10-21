@@ -25705,3 +25705,22 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
 **Finish line:** a clean walk, then the planner promotes pre-main to main.
 **Abort conditions:** any step behaving otherwise is a finding. Nothing is promoted until it is understood.
 **Notes:** Written by the planner by hand. Next free ID -1501.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1501
+**Timestamp:** 2026-10-21T07:55:37Z
+**Continues:** 2026-09-28-1498
+**Title:** Elevation sizing for routing filed (docs/navigation/2026-10-21-elevation-sizing.md); Phase 2 build on the owner's S26 for the walk
+**Observed:**
+- **Juniper's elevation sizing:**
+  - **Effort:** moderate, all on the Pi side, plus one profile line. The shipped hiking-mountain.brf has `consider_elevation = false`.
+  - **Source:** USGS 3DEP 1″ (public domain, 130 GB) covers the US and almost all of Canada.
+  - **Unknowns:** the provenance of the Canadian tiles (MRDEM is the fallback); the `.bef` store size (2-6 GB at 3″ or 20-45 GB at 1″, unmeasured); a one-off 128 GB download.
+  - **Banding:** unaffected.
+  - **Recommendation:** build 3″ first.
+  - **Walk-back:** a climbing allowance from BRouter's `ascend` would be a separate domain decision.
+  - **Corrections to the planner's premises:** the larger unknowns are download volume and store size, not the conversion. CGIAR's site answers, but its 60° N limit and redistribution terms exclude it.
+- **The owner connected the S26** (SM-S948U). Its Forager build was 1.0.3719+g2dbfdf2a; 1.0.3732+g02fe89f1 was installed over it with `install -r -d`, data kept, for the walk (-1500).
+**Notes:** Elevation is Pi pipeline work (Aspen Meridian's side). Nothing is dispatched; the owner decides when, after flat routing. Written by the planner by hand. Next free ID -1502.
