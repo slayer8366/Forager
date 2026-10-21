@@ -26351,3 +26351,27 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
   - The welcome page: "Yes, fix them (Recommended)".
 - **A follow-up site PR** (`claude/beta-list-deleted`) is being prepared: the welcome-page fixes, verified from Forager's code, and "deleted on <DATE>" wording. It merges once the owner gives the date.
 **Notes:** Written by the planner by hand. Next free ID -1532.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1532
+**Timestamp:** 2026-10-21T17:02:16Z
+**Continues:** 2026-09-28-1528
+**Title:** Stop from the notification shows Record at once and the track can be deleted (PR #367 merged into pre-main)
+**Observed:**
+- **The change (the second Hazel):** `onTrackEnded` on the `trackEnds` collect starts a reload, then calls the existing `resyncRecordingState()` when the ended track is this screen's `activeTrack` (ruling (a)). Sorrel's finding 1 is in: `resyncRecordingState` re-checks `activeTrack` after its read, the `takeUpRunningRecording` pattern. TrackRecordingViewModel.kt is now 958 lines; this was ruled a few-line fix.
+- **Tests:**
+  - The service test runs on the real route, with Stop off the posted notification: not recording with no resume, and the delete pends. The test was shown failing on 831ee194's code first (39633546721).
+  - A ViewModel test with a gated read: an old end does not clear a new recording.
+- **Revert checks:** -1 (39632671999) and -2 (39637524973) each failed only the test for its own edit, with 0 `e:` lines.
+- **Suite:** run 39637512323 on e73ab7a3 has 5,244 cases against 5,242, the 2 new cases passing and no status change. The touch guards are identical, the dex over-256 list identical, and the `.github` diff empty.
+- **Sorrel (Fable):** "merge after nits". All taken: the re-check, the KDoc placement, the wording, and a background-Stop phone step.
+- **S22:**
+  - The repro on pre-main 831ee194: the red button stayed, and Delete was refused ("which is still recording; refused").
+  - #367 at c7152955: Record shown at once and Delete pended. PASS.
+  - Background Stop then reopen: PASS, with no IllegalStateException.
+  - The final head e73ab7a3 (1.0.3777): the launch check passed, run by the planner.
+- **Observed, not a gate:** on return, the existing network-fixes notice said the track "is still being recorded" after it had stopped. That copy is stale after a shade Stop; it goes on the bug list.
+**Decision:** merged into pre-main at e4150560 (0c33fe32 before, logged).
+**Notes:** Written by the planner by hand. Next free ID -1533.
