@@ -344,21 +344,6 @@ internal fun CompactMapTab(
 
     MapControlToasts(uiState.locateMeStatus, startRecordingErrorMessage)
 
-    // RECORD -1525: held here, above the spinner, not inside the map branch below. In the branch it was remembered and its
-    // effect launched again each time the map came back from the sightings spinner, which replayed an earlier Located
-    // status as a fresh locate-me and panned a search's map away to the GPS fix (S22, 2026-10-21). Moved unchanged.
-    // The GPS/locate-me pan target for a search that's already run — remember(uiState.region),
-    // not just remember, so a brand new search (a different region) drops any earlier
-    // locate-me override rather than keeping the map stuck on a now-stale GPS fix; see
-    // MapSlot's focusOverride doc comment for why this is independent of region itself.
-    // Pre-search, displayRegion already tracks locate-me directly (see above), so this stays
-    // null rather than doubly panning the same fix through two different mechanisms.
-    var focusOverride by remember(uiState.region) { mutableStateOf<LatLng?>(null) }
-    LaunchedEffect(uiState.locateMeStatus) {
-        val status = uiState.locateMeStatus
-        if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
-    }
-
     when {
         uiState.isLoadingSightings -> Column(
             modifier = modifier.fillMaxSize(),
@@ -377,6 +362,18 @@ internal fun CompactMapTab(
         else -> {
             // The map's own viewport, never null (see compactMapDisplayRegion).
             val displayRegion = compactMapDisplayRegion(uiState)
+
+            // The GPS/locate-me pan target for a search that's already run — remember(uiState.region),
+            // not just remember, so a brand new search (a different region) drops any earlier
+            // locate-me override rather than keeping the map stuck on a now-stale GPS fix; see
+            // MapSlot's focusOverride doc comment for why this is independent of region itself.
+            // Pre-search, displayRegion already tracks locate-me directly (see above), so this stays
+            // null rather than doubly panning the same fix through two different mechanisms.
+            var focusOverride by remember(uiState.region) { mutableStateOf<LatLng?>(null) }
+            LaunchedEffect(uiState.locateMeStatus) {
+                val status = uiState.locateMeStatus
+                if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
+            }
 
             // Sightings are only real once a search has actually run — before that, displayRegion is a
             // viewport with nothing plotted on it yet, not a stand-in search. Saved planned trips are
