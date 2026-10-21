@@ -26038,3 +26038,17 @@ The style change goes to Hazel in #258, and the Worker needs redeploying for pho
 - **Sorrel (Fable):** "merge after nits". Every truncation shape constructed failed loudly: a cut between records, a cut mid-record, a duplicated record, an empty dump, and dexdump failing. There was no false failure, including on a class with no source file. Nits N1, N2 and the empty-read guard were applied; N3 and N4 were skipped.
 **Decision:** merged into pre-main at 86927320 (e0565f31 before, logged).
 **Notes:** Written by the planner by hand. Next free ID -1518.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1518
+**Timestamp:** 2026-10-21T11:15:43Z
+**Continues:** 2026-09-28-1490, 2026-09-28-1498
+**Title:** Trail navigation step 2 started: the four big files are split first (owner)
+**Observed:** no coder was building. The flip (#359) is held for Aspen's rebuild (-1514).
+**Decision:** the owner was asked what Hazel should take next while the rebuild is pending, and chose "Nav step 2: split big files (Recommended)". This is over the CI file-size warning, over both, and over waiting.
+- Dispatch `prompts/preserved/2026-10-21-01.md` covers the four files: TrackRecordingViewModel (1,029), MainActivity (806), AvailabilityViewModel (976) and AvailabilityScreen (1,327).
+- Each is a pure-move PR into pre-main. Stage 1 is a report before building; each PR starts on the planner's go.
+- The CI file-size warning stays queued (-1490).
+**Notes:** Written by the planner by hand. Next free ID -1519.
