@@ -351,7 +351,7 @@ internal fun CompactMapTab(
     // not just remember, so a brand new search (a different region) drops any earlier
     // locate-me override rather than keeping the map stuck on a now-stale GPS fix; see
     // MapSlot's focusOverride doc comment for why this is independent of region itself.
-    // Pre-search, displayRegion already tracks locate-me directly (see above), so this stays
+    // Pre-search, displayRegion already tracks locate-me directly (see compactMapDisplayRegion), so this stays
     // null rather than doubly panning the same fix through two different mechanisms.
     var focusOverride by remember(uiState.region) { mutableStateOf<LatLng?>(null) }
     LaunchedEffect(uiState.locateMeStatus) {

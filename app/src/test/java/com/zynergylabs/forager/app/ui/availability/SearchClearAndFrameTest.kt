@@ -204,6 +204,7 @@ class SearchClearAndFrameTest {
         rig.setScreen()
         rig.searchCoordinates("45.326", "-122.634")
         rig.settle()
+        // Stands in for MainActivity's permission-granted call: the rig's locate button is not wired past the Activity's gate.
         composeRule.runOnUiThread { rig.viewModel.locateMe() }
         rig.settle()
         assertEquals("positive control: a locate after a search is the map's pan target", LatLng(45.0, -122.0), rig.mapFocusOverride)
