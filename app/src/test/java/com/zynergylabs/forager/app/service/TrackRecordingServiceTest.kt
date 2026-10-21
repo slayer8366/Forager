@@ -259,6 +259,10 @@ class TrackRecordingServiceTest {
      * could pass because something incidental cleared the state, rather than because the resync did.
      * It pins the current two-representation design; when the structural fix lands and `isRecording`
      * is derived from the row, that line is the one that should fail and force this to be re-read.
+     *
+     * Its ViewModel is deliberately not wired to `AppContainer.trackEnds` (dispatch 2026-10-21-04): wired, the
+     * service's report of the stored end clears the state before any resume, which is what the test below
+     * asserts; unwired, this one still proves the resume path on its own, as the fallback it now is.
      */
     @Test
     fun `a stop from the shade leaves the UI reporting not recording once the Activity resumes`() {
@@ -366,6 +370,97 @@ class TrackRecordingServiceTest {
      * Returns `true` on timeout, so a resync that genuinely never clears still fails the assertion
      * rather than hanging — the same "read as a failure, not as a hang" rule [awaitEndedAt] follows.
      */
+    /**
+     * Dispatch 2026-10-21-04 (RECORD -1527): Stop from the notification left the map showing a recording, and
+     * the track's Delete refused it as "still recording", until the app went to the background and came back.
+     * Pulling the shade back up fires neither ON_START nor ON_STOP, so the resume path above never ran.
+     *
+     * The same real route as the test above (the ViewModel's own `startRecording`, the Stop intent taken off
+     * the notification the service posted), with the ViewModel wired to the container's `trackEnds` as
+     * `MainActivity`'s factory wires it, and **no resume**: the screen must show not recording from the
+     * service's report of the stored end alone, and Delete must then pend the track.
+     */
+    @Test
+    fun `a stop from the shade shows not recording at once, with no resume, and the track can then be deleted`() {
+        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        disableLocationProviders()
+
+        val container = (context as ForagerApplication).container
+        val viewModel = TrackRecordingViewModel(
+            container.trackRepository,
+            container.startTrackUseCase,
+            container.getWaypointsUseCase,
+            container.createWaypointUseCase,
+            container.deleteWaypointUseCase,
+            container.computeReturnToStartUseCase,
+            container.locationTracker,
+            container.getTracksUseCase,
+            container.returnWatch,
+            container.alertAudibility,
+            deleteTrack = container.deleteTrackUseCase,
+            getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
+            alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
+            abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
+            trackEnds = container.trackEnds.latest,
+        )
+        try {
+            viewModel.startRecording()
+            val trackId = awaitActiveTrackId(viewModel)
+            assertNotNull("precondition: the ViewModel made a track and is recording", trackId)
+
+            val controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId!!))
+            val service = controller.create().get()
+            controller.startCommand(0, 1)
+
+            val notification = shadowOf(service).lastForegroundNotification
+            assertNotNull("the service must be in the foreground before there is a notification to act on", notification)
+            val stopAction = notification.actions.orEmpty().singleOrNull {
+                it.title?.toString() == context.getString(com.zynergylabs.forager.app.R.string.track_recording_notification_stop_action)
+            }
+            assertNotNull("the ongoing notification must carry a 'Stop recording' action", stopAction)
+            val deliveredIntent = shadowOf(stopAction!!.actionIntent).savedIntent
+            assertEquals(TrackRecordingService.ACTION_STOP, deliveredIntent.action)
+
+            controller.withIntent(deliveredIntent).startCommand(0, 2)
+            assertNotNull("precondition: the shade's stop ended the track", awaitEndedAt(trackId))
+            assertTrue("precondition: the service has stopped itself, after storing and reporting the end", awaitStoppedBySelf(service))
+
+            // No onEnteredForeground(): the shade going back up fires no lifecycle event.
+            assertFalse(
+                "with no resume, the state the record button reads (isRecording) must turn false from the service's " +
+                    "report of the stored end; it stayed true, so the map went on showing a recording that had stopped",
+                awaitStillRecording(viewModel),
+            )
+
+            assertTrue(
+                "precondition: the track list holds the stopped track with its end (#364's reload)",
+                awaitTrue { viewModel.uiState.value.tracks.any { it.id == trackId && it.endedAtEpochMillis != null } },
+            )
+            viewModel.requestRemoveTrack(trackId)
+            assertEquals(
+                "Delete on the stopped track pends it, instead of being refused as still recording",
+                trackId,
+                viewModel.uiState.value.pendingTrackDelete?.item?.id,
+            )
+
+            controller.destroy()
+        } finally {
+            viewModel.stopRecording()
+            idleAndSettle()
+            drainBeforeTeardown()
+        }
+    }
+
+    /** Polls [condition], settling the main looper between reads, for up to [timeoutMillis]; `false` on timeout. */
+    private fun awaitTrue(timeoutMillis: Long = 10_000L, condition: () -> Boolean): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return true
+            idleAndSettle()
+        }
+        return false
+    }
+
     private fun awaitStillRecording(viewModel: TrackRecordingViewModel, timeoutMillis: Long = 10_000L): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMillis
         while (System.currentTimeMillis() < deadline) {
