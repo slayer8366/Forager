@@ -11,7 +11,6 @@ import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.BackByChoice
 import com.zynergylabs.forager.app.domain.BackByControl
 import com.zynergylabs.forager.app.domain.NoBackBy
-import com.zynergylabs.forager.app.domain.backByAtFor
 import com.zynergylabs.forager.app.domain.SundownShown
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
@@ -31,7 +30,6 @@ import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.domain.TrackRepository
-import com.zynergylabs.forager.app.domain.autoWaypointName
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
@@ -47,7 +45,6 @@ import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -259,9 +256,6 @@ class TrackRecordingViewModel(
         findRouteHome = findRouteHome,
     )
 
-    /** The arrival hold's timer (RECORD -845), running only while [TrackRecordingUiState.isArrivalHeld]. See [holdArrival]. */
-    private var arrivalHoldJob: Job? = null
-
     /**
      * The waypoint and track lists, moved to their own class by UI split Phase 2.7 PR 2. It reads and
      * writes this screen's state through the getter and setter here and launches in this ViewModel's own scope.
@@ -330,6 +324,35 @@ class TrackRecordingViewModel(
 
     private var takeUpInFlight = false
 
+    /** Back by, the watch copies and the arrival hold's timer (nav step 2, PR 2): see [TrackRecordingWatchCopies]. */
+    private val watchCopies = TrackRecordingWatchCopies(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        sundownShown = sundownShown,
+        backBy = backBy,
+        errorLog = errorLog,
+        currentTime = currentTime,
+        zone = zone,
+    )
+
+    /** The origin and end waypoints and the start point (nav step 2, PR 2): see [TrackRecordingAutoWaypoints]. */
+    private val autoWaypoints = TrackRecordingAutoWaypoints(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        trackRepository = trackRepository,
+        createWaypoint = createWaypoint,
+        computeReturnToStart = computeReturnToStart,
+        returnWatch = returnWatch,
+        errorLog = errorLog,
+        currentTime = currentTime,
+        zone = zone,
+        is24HourClock = is24HourClock,
+        setOriginCreationInFlight = { originCreationInFlight = it },
+        loadWaypoints = { loadWaypoints() },
+    )
+
     init {
         loadWaypoints()
         loadTracks()
@@ -346,38 +369,14 @@ class TrackRecordingViewModel(
         viewModelScope.launch { recordingHalts.collect { halt -> if (halt != null) onRecordingHalted(halt) } }
     }
 
-    /**
-     * The quick menu's "+1 h", "+2 h", "+3 h" or a picked time (dispatch 2026-09-28-645): sets this
-     * recording's back-by time, worked out from this class's clock and zone ([backByAtFor]). Does
-     * nothing with no recording: Back by exists only while recording (the owner, "During a recording
-     * only"), and the menu offers no choice then.
-     */
-    fun setBackBy(choice: BackByChoice) {
-        val trackId = uiState.value.activeTrack?.trackId ?: run {
-            // Dispatch 2026-09-28-796: no longer silent. The menu offers no choice without a recording,
-            // so reaching here means the screen and the recording disagree; it is logged.
-            errorLog.w(TAG, "Back by was not set: no recording on this screen.", IllegalStateException("back-by with no active track"))
-            return
-        }
-        val at = backByAtFor(choice, currentTime.nowEpochMillis(), zone)
-        if (!backBy.set(trackId, at)) {
-            errorLog.w(TAG, "Back by was not set for track '$trackId': another recording is being watched.", IllegalStateException("back-by refused"))
-        }
-    }
+    /** The quick menu's "+1 h", "+2 h", "+3 h" or a picked time: see [TrackRecordingWatchCopies.setBackBy]. */
+    fun setBackBy(choice: BackByChoice) = watchCopies.setBackBy(choice)
 
-    /** The quick menu's "Clear". */
-    fun clearBackBy() {
-        val trackId = uiState.value.activeTrack?.trackId ?: return
-        backBy.clear(trackId)
-    }
+    /** The quick menu's "Clear": see [TrackRecordingWatchCopies.clearBackBy]. */
+    fun clearBackBy() = watchCopies.clearBackBy()
 
-    /** Copies the watch's back-by time into the screen's state while it is for this screen's recording, as [copySundownLine] does. */
-    private fun copyBackBy() {
-        _uiState.update { state ->
-            val shown = backBy.shown.value
-            state.copy(backBy = shown?.takeIf { state.activeTrack != null && it.trackId == state.activeTrack.trackId })
-        }
-    }
+    /** See [TrackRecordingWatchCopies.copyBackBy]. */
+    private fun copyBackBy() = watchCopies.copyBackBy()
 
     /**
      * The service stopped [halt]'s recording on its own (RECORD -660, item 4; the owner: "Fix it, say
@@ -423,32 +422,11 @@ class TrackRecordingViewModel(
         }
     }
 
-    /**
-     * Copies the watch's sundown line into the screen's state while it is for this screen's
-     * recording, the rule [copyFromWatch] follows; `null` otherwise. Called when the watch publishes
-     * and from [copyFromWatch], which runs whenever this screen's recording changes.
-     */
-    private fun copySundownLine() {
-        _uiState.update { state ->
-            val shown = sundownShown.value
-            state.copy(sundownLine = shown?.line?.takeIf { state.activeTrack != null && shown.trackId == state.activeTrack.trackId })
-        }
-    }
+    /** See [TrackRecordingWatchCopies.copySundownLine]. */
+    private fun copySundownLine() = watchCopies.copySundownLine()
 
-    /** The start point as the screen shows it: the origin waypoint once it exists, the first breadcrumb before that. */
-    private fun startPoint(): TrackPoint? =
-        uiState.value.originWaypoint?.asStartPoint() ?: uiState.value.breadcrumbPoints.firstOrNull()
-
-    /**
-     * Gives the watch the start point this ViewModel shows, so the alert and the screen measure to
-     * one place. Called whenever that point can have changed. The watch keeps the last one after
-     * this ViewModel is gone.
-     */
-    private fun handStartPointToWatch() {
-        val active = uiState.value.activeTrack ?: return
-        val start = startPoint() ?: return
-        returnWatch.setStartPoint(active.trackId, start)
-    }
+    /** See [TrackRecordingAutoWaypoints.handStartPointToWatch]. */
+    private fun handStartPointToWatch() = autoWaypoints.handStartPointToWatch()
 
     /**
      * Creates and persists the [com.zynergylabs.forager.app.domain.model.Track] row the recording will write
@@ -662,18 +640,7 @@ class TrackRecordingViewModel(
         val endFix = lastGatedGpsFix
         clearRecordingState()
         if (endingTrack != null && endFix != null) {
-            viewModelScope.launch {
-                createWaypoint(
-                    lat = endFix.lat,
-                    lng = endFix.lng,
-                    altitude = endFix.altitude,
-                    name = autoWaypointName(WaypointDesignation.END, currentTime.nowEpochMillis(), zone, is24HourClock()),
-                    trackId = endingTrack.trackId,
-                    designation = WaypointDesignation.END,
-                )
-                    .onSuccess { loadWaypoints() }
-                    .onFailure { error -> errorLog.w(TAG, "Couldn't save the track's end waypoint.", error) }
-            }
+            autoWaypoints.saveEndWaypoint(endingTrack, endFix)
         }
     }
 
@@ -826,23 +793,11 @@ class TrackRecordingViewModel(
         holdArrival()
     }
 
-    /** Starts the arrival hold, ending by itself after [ARRIVAL_HOLD_MILLIS]. */
-    private fun holdArrival() {
-        arrivalHoldJob?.cancel()
-        _uiState.update { it.copy(isArrivalHeld = true) }
-        arrivalHoldJob = viewModelScope.launch {
-            delay(ARRIVAL_HOLD_MILLIS)
-            _uiState.update { it.copy(isArrivalHeld = false) }
-            arrivalHoldJob = null
-        }
-    }
+    /** See [TrackRecordingWatchCopies.holdArrival]. */
+    private fun holdArrival() = watchCopies.holdArrival()
 
-    /** Ends the arrival hold now, if one is running: the walker closed it, tapped Return again, or stopped the recording. */
-    private fun endArrivalHold() {
-        arrivalHoldJob?.cancel()
-        arrivalHoldJob = null
-        if (uiState.value.isArrivalHeld) _uiState.update { it.copy(isArrivalHeld = false) }
-    }
+    /** See [TrackRecordingWatchCopies.endArrivalHold]. */
+    private fun endArrivalHold() = watchCopies.endArrivalHold()
 
     /**
      * Clears returning/off-track state without touching the recording itself — see [startReturn]. Also
@@ -905,43 +860,9 @@ class TrackRecordingViewModel(
         }
     }
 
-    /**
-     * [namedAtEpochMillis] is the time in the marker's default name. For a marker made from the
-     * first good fix it is now, which is when that fix arrived. For one made later from a track's
-     * first recorded point it is that point's own time, so the name says when the walk started
-     * and not when the app was reopened.
-     */
-    private fun createOriginWaypoint(active: ActiveTrack, fix: TrackPoint, namedAtEpochMillis: Long = currentTime.nowEpochMillis()) {
-        originCreationInFlight = true
-        viewModelScope.launch {
-            createWaypoint(
-                lat = fix.lat,
-                lng = fix.lng,
-                altitude = fix.altitude,
-                name = autoWaypointName(WaypointDesignation.ORIGIN, namedAtEpochMillis, zone, is24HourClock()),
-                trackId = active.trackId,
-                designation = WaypointDesignation.ORIGIN,
-            )
-                .onSuccess { waypoint ->
-                    // The pointer is what survives the process; the state field is this session's
-                    // target. A failed pointer write is logged and the session still navigates —
-                    // a partial result reported as such, not hidden and not fatal.
-                    trackRepository.setOriginWaypoint(active.trackId, waypoint.id)
-                        .onFailure { error -> errorLog.w(TAG, "Couldn't point track '${active.trackId}' at its origin waypoint.", error) }
-                    if (uiState.value.activeTrack?.trackId == active.trackId) {
-                        _uiState.update { it.copy(originWaypoint = waypoint) }
-                        handStartPointToWatch()
-                    }
-                    loadWaypoints()
-                }
-                .onFailure { error ->
-                    errorLog.w(TAG, "Couldn't save the track's origin waypoint.", error)
-                    // Cleared so the next gated fix tries again rather than leaving the track
-                    // origin-less for a transient write failure.
-                    originCreationInFlight = false
-                }
-        }
-    }
+    /** Saves the origin waypoint: see [TrackRecordingAutoWaypoints.createOriginWaypoint]. */
+    private fun createOriginWaypoint(active: ActiveTrack, fix: TrackPoint, namedAtEpochMillis: Long = currentTime.nowEpochMillis()) =
+        autoWaypoints.createOriginWaypoint(active, fix, namedAtEpochMillis)
 
     /** Reads the waypoints and their reference counts: see [TrackRecordingLists.loadWaypoints]. */
     fun loadWaypoints(): Job = lists.loadWaypoints()
@@ -980,36 +901,8 @@ class TrackRecordingViewModel(
     /** Deletes a waypoint at once, with no Undo: see [TrackRecordingLists.removeWaypoint]. */
     fun removeWaypoint(id: String) = lists.removeWaypoint(id)
 
-    /**
-     * [ReturnToStartInfo] from [current] back to the active track's start, or `null` if either is
-     * unavailable. Called on every fix [beginLocationTracking] collects, and also directly by
-     * tests — its result is written to [TrackRecordingUiState.returnToStart] either way, so a
-     * direct call and a collected fix behave identically. It is what the Return button describes.
-     *
-     * **It decides nothing.** Until dispatch 2026-09-28-400, Amendment 2, this method was also the
-     * off-track decision: while returning, each call's distance joined a window here, the check
-     * re-ran, and the alert was delivered from here. That is all [ReturnWatch]'s now, fed by the
-     * recording service, so that it survives this ViewModel being cleared. The measurement stays
-     * because the screen needs a distance whether or not anything is deciding on it (the planner's
-     * ruling on question 1: the distance is not a copy of the watch's).
-     */
-    fun returnToStart(current: TrackPoint): ReturnToStartInfo? {
-        // Navigation HUD stage one (owner decision): the origin *waypoint* is the target once it
-        // exists, so the return arm and the HUD point at one place; before it exists — or for a
-        // track that never gets one — the first breadcrumb stands in exactly as it always did.
-        val start = startPoint() ?: return null
-        val info = computeReturnToStart(current, start)
-        _uiState.update { it.copy(returnToStart = info) }
-        return info
-    }
-
-    private fun Waypoint.asStartPoint() = TrackPoint(
-        lat = lat,
-        lng = lng,
-        altitude = altitude,
-        accuracyMeters = null,
-        timestampEpochMillis = createdAtEpochMillis,
-    )
+    /** The Return button's distance, on every fix the collector gets and from tests: see [TrackRecordingAutoWaypoints.returnToStart]. */
+    fun returnToStart(current: TrackPoint): ReturnToStartInfo? = autoWaypoints.returnToStart(current)
 
     override fun onCleared() {
         poller.cancelOnCleared()
