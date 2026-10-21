@@ -424,7 +424,6 @@ class TrackRecordingViewModel(
      */
     private suspend fun onTrackEnded(endedTrackId: String) {
         loadTracks()
-        if (uiState.value.activeTrack?.trackId == endedTrackId) resyncRecordingState()
     }
 
     /** The process's one sweep of tracks an earlier process left open: see [TrackRecordingLists.sweepAbandonedTracks]. */
