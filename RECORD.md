@@ -26530,5 +26530,5 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
   | TrackRecordingViewModel | 1,029 | 958 |
   | AvailabilityViewModel | 976 | 908 |
   | AvailabilityScreen | 1,327 | 1,023 |
-**Decision:** merged into pre-main at 11d4f9f26a1e9ab7d48714307c4b325dc2c246ca (1820b87abad5deaa4020e7aeb6b21291784ee9ab before, logged). Trail navigation step 2 is complete. Step 3 (route data on the phone) needs the owner's go and Aspen's rebuild.
+**Decision:** merged into pre-main at 06637240754c1ec69c185cec79a8c370e8bbcf11 (cf522f80c20f6a923aa89d381005811f16d663b6 before, logged). Trail navigation step 2 is complete. Step 3 (route data on the phone) needs the owner's go and Aspen's rebuild.
 **Notes:** Written by the planner by hand. Next free ID -1539.
