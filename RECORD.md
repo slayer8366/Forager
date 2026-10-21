@@ -25724,3 +25724,14 @@ The plan update on branch trail-plan-update carries the answers. It goes to pre-
   - **Corrections to the planner's premises:** the larger unknowns are download volume and store size, not the conversion. CGIAR's site answers, but its 60° N limit and redistribution terms exclude it.
 - **The owner connected the S26** (SM-S948U). Its Forager build was 1.0.3719+g2dbfdf2a; 1.0.3732+g02fe89f1 was installed over it with `install -r -d`, data kept, for the walk (-1500).
 **Notes:** Elevation is Pi pipeline work (Aspen Meridian's side). Nothing is dispatched; the owner decides when, after flat routing. Written by the planner by hand. Next free ID -1502.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1502
+**Timestamp:** 2026-10-21T08:00:04Z
+**Continues:** 2026-09-28-1500, 2026-09-28-1499
+**Title:** Owner's S26 walk of Phase 2 passes; the promotion to main is opened (#357)
+**Observed:** the owner, verbatim: "1 to 12 pass on S26". All twelve steps of prompts/preserved/2026-10-21-phase2-s26-walk.md passed on 1.0.3732+g02fe89f1. The planner opened PR #357, pre-main (f0ca368a) into main (02a544cd).
+**Decision:** the owner set the gate in -1500 ("if it's clean, I promote to main"), and the walk is clean. The planner merges #357 once its CI is green, and then has dev rebased onto the new main (-1087).
+**Notes:** Written by the planner by hand. Next free ID -1503.
