@@ -771,7 +771,6 @@ class TrackRecordingViewModel(
                 // The read suspended. Go by what is true now, as takeUpRunningRecording does: a Stop and a new
                 // Record during the read (a Stop from the shade, then Record before the old end was written)
                 // must not have the old track's end clear the new recording (dispatch 2026-10-21-04, review).
-                if (uiState.value.activeTrack?.trackId != active.trackId) return
                 if (track == null || track.endedAtEpochMillis != null) clearRecordingState()
             }
             .onFailure { error ->
