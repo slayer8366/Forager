@@ -26739,3 +26739,16 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 - The backup slip is recorded at -1549.
 - Open for the next parts: the server route (cutting across two squares, Cloudflare limits, uploading the squares), and a detour check so the phone can say so plainly (-1546).
 **Notes:** Written by the planner by hand. Next free ID -1551.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1551
+**Timestamp:** 2026-10-22T05:43:54Z
+**Continues:** 2026-09-28-1550
+**Title:** Trail navigation's server part is held; Aspen uploads the route squares after the current map upload (owner)
+**Decision:** The owner, verbatim: "Hold for now. Aspen's upload will end later, I'll have her upload the trails afterward. Sage is designing some maps so that'll keep Hazel busy when that's ready."
+- The server route for cut-on-request (step 3, part 2) isn't dispatched.
+- The owner will ask Aspen, in Aspen's window, to upload the route squares once the pi-29 map upload is done.
+- Hazel's next work is Sage's map designs, when they are ready.
+**Notes:** Written by the planner by hand. Next free ID -1552.
