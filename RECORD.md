@@ -26823,3 +26823,24 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 **Title:** Our map's chip reads "Forager Trail Map" (owner)
 **Decision:** the owner asked "If we're doing source then why not just say Forager Trail Map?", then chose "Forager Trail Map", with no "(Default)". The order and everything else in -1554 stand. If the three chips don't fit on one line on the S22, it goes back to the owner.
 **Notes:** Written by the planner by hand. Dispatch 2026-10-22-01 gets Amendment 1. Next free ID -1556.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1556
+**Timestamp:** 2026-10-22T13:54:24Z
+**Continues:** 2026-09-28-1555, 2026-09-28-1554, 2026-09-28-1309
+**Supersedes:** -1555's chip label; -1309's offline picker on Street
+**Title:** Chips "Trail | Topo | OSM"; Worker tests in CI; no signal shows Trail Map for both online maps; offline picker shows Trail Map (owner)
+**Observed:** Hazel's verify-first (`docs/audits/2026-10-22-three-map-types-verify-first-report.md`, three-map-types-verify at fcec8b397): the three full labels need about 430 dp, against the S22 sheet's 352 dp. `worker.test.mjs` runs in no CI job, so PR #376's tests have not run.
+**Decision:** the owner, in the planner's window:
+- **Chips:** "Trail | Topo | OSM", on one row.
+- **CI:** a pmtiles-worker job runs the Worker's tests ("Yes, add it").
+- **No signal:** Topographical users see Trail Map too, the same as OpenStreetMap users.
+- **Offline-maps picker:** shows Forager Trail Map.
+**Planner's calls:**
+- Trail Map keeps the stored key "street", and OpenStreetMap gets a new key.
+- No signal is detected from the validated-network callback, switching after about 5 s without signal and back after about 30 s with it.
+- Trail Map is drawn through the offline branch while there's no signal.
+- Credit text that says "Street" becomes "Forager Trail Map".
+**Notes:** Written by the planner by hand. Dispatch 2026-10-22-01 gets Amendment 2. Next free ID -1557.
