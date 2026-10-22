@@ -167,7 +167,7 @@ internal fun OfflineMapsPanel(
         movableContentOf { night: Boolean, mapModifier: Modifier ->
             // Always Forager Trail Map (dispatch 2026-10-22-01 Amendment 2, RECORD -1556, superseding -1309's Street): the map an
             // offline download is made in. The pin this file's header comment names, for Stage 2e-ii too.
-            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.FORAGER_TRAIL, night = night, modifier = mapModifier)
+            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.OSM_STANDARD, night = night, modifier = mapModifier)
         }
     }
     // Dispatch 2026-10-18-03 (Forager RECORD -1269): the "Pin at" line alone under the map, with no OK and no Cancel. Back leaves
