@@ -45,5 +45,5 @@ internal val STREET_SPRITE_NIGHT_NAMES: List<String> = STREET_SPRITE_ICON_NAMES 
  */
 internal fun streetSpriteNightPixelsOf(name: String, pixels: IntArray): IntArray {
     val paint = STREET_NIGHT_PATTERN_COLOURS[name]
-    return if (paint != null) nightPatternPixelsOf(pixels, paint) else nightIconPixelsOf(pixels, STREET_NIGHT_ICON_RINGS[name])
+    return nightIconPixelsOf(pixels, STREET_NIGHT_ICON_RINGS[name])
 }
