@@ -26921,3 +26921,15 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - pngjs is added, pinned.
 - Generated style JSON is outside the 400-line rule.
 **Notes:** Written by the planner by hand. Dispatch 2026-10-22-03 gets Amendment 1 (build). Next free ID -1562.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1562
+**Timestamp:** 2026-10-22T23:02:15Z
+**Continues:** 2026-09-28-1560, 2026-09-28-1300
+**Supersedes:** dispatch 2026-10-22-04 (the deploy button), stopped before it pushed anything
+**Title:** The Worker deploys from GitHub again, from main (owner)
+**Decision:** the owner, verbatim: "Reconnect Github deploy", then "Yes, stop it" to the button work, and "main" for the branch. The Worker deploys automatically when pre-main is promoted to main.
+**Observed:** main (381515c61) carries older Worker code than the live deploy. It lacks the world fill and the route cutter, among other changes (14,646 lines differ under `server/pmtiles-worker/src` against pre-main). The caution from -1316 returns: a build of main before the next promotion would put the old Worker back.
+**Notes:** Written by the planner by hand. Next free ID -1563.
