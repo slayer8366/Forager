@@ -607,3 +607,45 @@ jobs:
           name: release-compile-log
           path: app/build/release-compile-gradle.log
           if-no-files-found: error
+
+  # The route-data cutter (server/pmtiles-worker/src/rd5/) and its proof that BRouter 1.7.10 routes the same on
+  # a cut as on the square it came from (dispatch 2026-10-21-07, RECORD -1546). No Gradle: Node runs the
+  # TypeScript directly and the tests run BRouter's own pinned release jar in a JVM. Counts come from the JUnit
+  # XML Node's test runner writes, and a file with no tests is a failure, not an empty pass.
+  route-cutter:
+    name: Route-data cutter routes the same as the full square
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with: { distribution: temurin, java-version: "21" }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.22.1" }
+      - name: Fetch the pinned BRouter jar and profiles
+        run: server/pmtiles-worker/test/rd5/fetch-brouter.sh "$RUNNER_TEMP/brouter"
+      - name: Run the cutter's tests
+        env: { BROUTER_HOME: "${{ runner.temp }}/brouter" }
+        run: >-
+          node --test --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=junit --test-reporter-destination=route-cutter-junit.xml
+          "server/pmtiles-worker/test/rd5/*.test.mjs"
+      - name: Summarize from the JUnit XML
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, sys, xml.etree.ElementTree as ET
+          if not os.path.exists("route-cutter-junit.xml"):
+              sys.exit("No route-cutter-junit.xml: the tests produced no results, which is a failure.")
+          cases = list(ET.parse("route-cutter-junit.xml").getroot().iter("testcase"))
+          failed = sum(1 for c in cases if c.find("failure") is not None or c.find("error") is not None)
+          skipped = sum(1 for c in cases if c.find("skipped") is not None)
+          line = f"Route cutter: {len(cases)} tests, {failed} failed, {skipped} skipped"
+          print(line)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f: f.write(f"### {line}\n")
+          if not cases or failed or skipped:
+              sys.exit("No tests ran, or a test failed or was skipped.")
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with: { name: route-cutter-junit, path: route-cutter-junit.xml, if-no-files-found: error }

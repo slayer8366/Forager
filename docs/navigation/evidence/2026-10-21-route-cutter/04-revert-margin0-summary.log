@@ -1,0 +1,84 @@
+# Trimmed from the full run log and JUnit XML (2.4 MB, mostly deep-equal diffs of route output), which stay on
+# branch route-cutter-revert-1 at d36a1040, files 04-revert-margin0-run.log and 04-revert-margin0-junit.xml.
+# Kept: every test's pass/fail line, the totals, and each failure's first assertion line.
+
+✖ the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte (348.594043ms)
+✔ the margin is a parameter: margin 0 keeps only the rectangle's own cells (31.064799ms)
+✔ the cut's header, tile indexes and cells carry checksums BRouter accepts (2.49296ms)
+✔ BRouter's own integrity check decodes every cell of the cut (311.566895ms)
+✔ the cut is smaller than the square and its size is reported (1.222221ms)
+ℹ fixture square 152665 bytes; cut 39696 bytes
+✔ an old-format square (no 32-division marker) is refused as unsupported (2.452341ms)
+✔ a square with no footer is refused as unsupported (1.639893ms)
+✔ a damaged header is refused, not cut (0.822312ms)
+✔ a damaged tile index is refused, not cut (2.046252ms)
+✔ a rectangle that misses the square, or a malformed square name, is refused (1.10874ms)
+✔ on the full fixture, every route is found and lies where its category says (4090.375723ms)
+✔ inside route inside-across-the-degree-line is identical on the cut: same points, length and cost (476.513306ms)
+✔ inside route inside-across-the-degree-line is identical on the cut with dynamic range off (849.257949ms)
+✔ inside route inside-short is identical on the cut: same points, length and cost (417.247905ms)
+✔ inside route inside-short is identical on the cut with dynamic range off (847.466321ms)
+✔ inside route inside-long is identical on the cut: same points, length and cost (445.494435ms)
+✔ inside route inside-long is identical on the cut with dynamic range off (945.090352ms)
+✖ edge route edge-north-a is identical on the cut: same points, length and cost (1103.392465ms)
+✖ edge route edge-north-a is identical on the cut with dynamic range off (1385.617615ms)
+✖ edge route edge-north-b is identical on the cut: same points, length and cost (920.743459ms)
+✖ edge route edge-north-b is identical on the cut with dynamic range off (1418.542336ms)
+✖ detour route detour-west: by default BRouter quietly returns a costlier route inside the cut (319.728717ms)
+✖ detour route detour-west: dynamic range off does not change that; the detour is still returned (291.798892ms)
+✖ outside route outside-west-island: by default BRouter fails with "target island detected" (497.091422ms)
+✔ outside route outside-west-island: with dynamic range off the cut refuses it cleanly (810.175866ms)
+✖ outside route outside-west-moved: by default BRouter moves the far end onto the cut's data and routes (295.005186ms)
+✔ outside route outside-west-moved: with dynamic range off the cut refuses it cleanly (794.559143ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 18
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16199.64082
+✖ failing tests:
+
+## Failure headlines
+✖ failing tests:
+✖ the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte (348.594043ms)
+  AssertionError [ERR_ASSERTION]: cell 1:253 is the source's bytes
+    actual: <Buffer >,
+✖ edge route edge-north-a is identical on the cut: same points, length and cost (1103.392465ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  +     'track-length': '10903',
+  -     'track-length': '10253',
+    actual: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '10903', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '7793', 'total-energy': '101064', cost: '11534', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+    expected: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '10253', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '7328', 'total-energy': '95039', cost: '11142', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+✖ edge route edge-north-a is identical on the cut with dynamic range off (1385.617615ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  +     'track-length': '10903',
+  -     'track-length': '10253',
+    actual: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '10903', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '7793', 'total-energy': '101064', cost: '11534', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+    expected: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '10253', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '7328', 'total-energy': '95039', cost: '11142', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+✖ edge route edge-north-b is identical on the cut: same points, length and cost (920.743459ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  +     'track-length': '11451',
+  -     'track-length': '11107',
+    actual: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '11451', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '8185', 'total-energy': '106144', cost: '12201', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+    expected: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '11107', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '7939', 'total-energy': '102955', cost: '12137', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+✖ edge route edge-north-b is identical on the cut with dynamic range off (1418.542336ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  +     'track-length': '11451',
+  -     'track-length': '11107',
+    actual: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '11451', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '8185', 'total-energy': '106144', cost: '12201', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+    expected: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '11107', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '7939', 'total-energy': '102955', cost: '12137', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+✖ detour route detour-west: by default BRouter quietly returns a costlier route inside the cut (319.728717ms)
+  AssertionError [ERR_ASSERTION]: the cut returns a route, no error (target island detected for section 0)
+    actual: null,
+✖ detour route detour-west: dynamic range off does not change that; the detour is still returned (291.798892ms)
+  AssertionError [ERR_ASSERTION]: the cut returns a route (from-position not mapped in existing datafile)
+    actual: null,
+✖ outside route outside-west-island: by default BRouter fails with "target island detected" (497.091422ms)
+  AssertionError [ERR_ASSERTION]: no track
+  +     'track-length': '7190',
+    actual: { type: 'Feature', properties: { creator: 'BRouter-1.7.10', name: 'brouter_hiking-mountain_0', 'track-length': '7190', 'filtered ascend': '0', 'plain-ascend': '0', 'total-time': '5139', 'total-energy': '66656', cost: '7679', times: [Array] }, geometry: { type: 'LineString', coordinates: [Array] } },
+✖ outside route outside-west-moved: by default BRouter moves the far end onto the cut's data and routes (295.005186ms)
+  AssertionError [ERR_ASSERTION]: the cut returns a route, no error (target island detected for section 0)
+    actual: null,

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte" time="0.033453" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="the margin is a parameter: margin 0 keeps only the rectangle's own cells" time="0.021120" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="the cut's header, tile indexes and cells carry checksums BRouter accepts" time="0.004317" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="BRouter's own integrity check decodes every cell of the cut" time="0.518991" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="the cut is smaller than the square and its size is reported" time="0.005495" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<!-- fixture square 152665 bytes; cut 103625 bytes -->
+	<testcase name="an old-format square (no 32-division marker) is refused as unsupported" time="0.002303" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="a square with no footer is refused as unsupported" time="0.001395" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="a damaged header is refused, not cut" time="0.000978" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="a damaged tile index is refused, not cut" time="0.002116" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="a rectangle that misses the square, or a malformed square name, is refused" time="0.002126" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs"/>
+	<testcase name="on the full fixture, every route is found and lies where its category says" time="4.093678" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="inside route inside-across-the-degree-line is identical on the cut: same points, length and cost" time="0.446140" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="inside route inside-across-the-degree-line is identical on the cut with dynamic range off" time="0.876183" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="inside route inside-short is identical on the cut: same points, length and cost" time="0.384369" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="inside route inside-short is identical on the cut with dynamic range off" time="0.810774" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="inside route inside-long is identical on the cut: same points, length and cost" time="0.455998" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="inside route inside-long is identical on the cut with dynamic range off" time="0.916293" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="edge route edge-north-a is identical on the cut: same points, length and cost" time="0.508442" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="edge route edge-north-a is identical on the cut with dynamic range off" time="1.016833" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="edge route edge-north-b is identical on the cut: same points, length and cost" time="0.521099" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="edge route edge-north-b is identical on the cut with dynamic range off" time="1.040708" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="detour route detour-west: by default BRouter quietly returns a costlier route inside the cut" time="0.447933" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<!-- full square: cost 9232, 7619 m; cut: cost 10527, 7213 m -->
+	<testcase name="detour route detour-west: dynamic range off does not change that; the detour is still returned" time="0.897043" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="outside route outside-west-island: by default BRouter fails with &quot;target island detected&quot;" time="0.311682" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="outside route outside-west-island: with dynamic range off the cut refuses it cleanly" time="0.821632" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="outside route outside-west-moved: by default BRouter moves the far end onto the cut's data and routes" time="0.518299" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<!-- requested end to track end: full 0 m, cut 2275 m -->
+	<testcase name="outside route outside-west-moved: with dynamic range off the cut refuses it cleanly" time="0.798314" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<!-- tests 27 -->
+	<!-- suites 0 -->
+	<!-- pass 27 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 15082.148342 -->
+</testsuites>

@@ -1,0 +1,93 @@
+(node:2599723) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte (33.265852ms)
+✔ the margin is a parameter: margin 0 keeps only the rectangle's own cells (25.925408ms)
+✔ the cut's header, tile indexes and cells carry checksums BRouter accepts (3.585404ms)
+✖ BRouter's own integrity check decodes every cell of the cut (597.51018ms)
+✔ the cut is smaller than the square and its size is reported (1.159442ms)
+ℹ fixture square 152665 bytes; cut 103625 bytes
+✔ an old-format square (no 32-division marker) is refused as unsupported (3.23081ms)
+✔ a square with no footer is refused as unsupported (2.080847ms)
+✔ a damaged header is refused, not cut (0.961234ms)
+✔ a damaged tile index is refused, not cut (4.939573ms)
+✔ a rectangle that misses the square, or a malformed square name, is refused (1.551392ms)
+(node:2599724) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ on the full fixture, every route is found and lies where its category says (3590.931757ms)
+✔ inside route inside-across-the-degree-line is identical on the cut: same points, length and cost (476.3273ms)
+✔ inside route inside-across-the-degree-line is identical on the cut with dynamic range off (858.58664ms)
+✔ inside route inside-short is identical on the cut: same points, length and cost (426.061825ms)
+✔ inside route inside-short is identical on the cut with dynamic range off (818.876101ms)
+✔ inside route inside-long is identical on the cut: same points, length and cost (463.960823ms)
+✔ inside route inside-long is identical on the cut with dynamic range off (920.93708ms)
+✔ edge route edge-north-a is identical on the cut: same points, length and cost (517.05776ms)
+✔ edge route edge-north-a is identical on the cut with dynamic range off (1023.839826ms)
+✔ edge route edge-north-b is identical on the cut: same points, length and cost (523.859368ms)
+✔ edge route edge-north-b is identical on the cut with dynamic range off (1015.549933ms)
+✖ detour route detour-west: by default BRouter quietly routes a longer way inside the cut (462.977771ms)
+ℹ full square 7619 m; cut 7213 m
+✔ detour route detour-west: dynamic range off does not change that; the detour is still returned (926.907977ms)
+✖ outside route outside-west: by default BRouter moves the far end onto the cut's data and routes (292.773608ms)
+✔ outside route outside-west: with dynamic range off the cut refuses it cleanly (842.364699ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 22
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13385.021979
+
+✖ failing tests:
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:89:1
+✖ BRouter's own integrity check decodes every cell of the cut (597.51018ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  143 !== 0
+  
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:96:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 143,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:97:3
+✖ detour route detour-west: by default BRouter quietly routes a longer way inside the cut (462.977771ms)
+  AssertionError [ERR_ASSERTION]: the cut's route is longer than the best one
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:116:3
+✖ outside route outside-west: by default BRouter moves the far end onto the cut's data and routes (292.773608ms)
+  AssertionError [ERR_ASSERTION]: the cut returns a route, no error (target island detected for section 0)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:119:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
