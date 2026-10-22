@@ -9,10 +9,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Which style the map loads, its credit and its zoom limit, with the own Street switch off and on (dispatch 2026-10-18-05
- * Part 2). These are the values `SightingsMap`'s style effect hands to MapLibre: [mapStyleSourceFor], [operatingMaxZoom]
- * (also through [navigationMaxZoom]) and [mapCreditsFor]. The switch is driven through each function's `ownStreet`
- * parameter; the release value (off) is what every other map test already exercises through the defaults.
+ * Which style the map loads, its credit and its zoom limit, for Forager Trail Map drawing and fallen back (dispatch
+ * 2026-10-18-05 Part 2; since dispatch 2026-10-22-01 Trail Map is its own map type, [Basemap.FORAGER_TRAIL], and
+ * OpenStreetMap is always its raster). These are the values `SightingsMap`'s style effect hands to MapLibre:
+ * [mapStyleSourceFor], [operatingMaxZoom] (also through [navigationMaxZoom]) and [mapCreditsFor]. `ownStreet` is now
+ * whether Trail Map draws in this process (`OwnStreetFallback`, -1513): `true` by default, `false` once it fell back.
+ * In the test names, "the switch off" reads as "fallen back" and "own Street" as "Trail Map".
  */
 class OwnStreetStyleSourceTest {
 
@@ -29,7 +31,10 @@ class OwnStreetStyleSourceTest {
     @Test
     fun `with the switch on Street loads the own vector style by URL, day and night`() {
         for (night in listOf(false, true)) {
-            assertEquals(MapStyleSource.Uri(STREET_STYLE_URL), mapStyleSourceFor(Basemap.OSM_STANDARD, night, useOfflineTiles = false, ownStreet = true))
+            // Was Basemap.OSM_STANDARD: Trail Map is its own entry since dispatch 2026-10-22-01.
+            assertEquals(MapStyleSource.Uri(STREET_STYLE_URL), mapStyleSourceFor(Basemap.FORAGER_TRAIL, night, useOfflineTiles = false, ownStreet = true))
+            // OpenStreetMap is its own raster whether or not Trail Map has fallen back (RECORD -1554).
+            assertEquals(MapStyleSource.Json(styleJsonFor(Basemap.OSM_STANDARD, night)), mapStyleSourceFor(Basemap.OSM_STANDARD, night, useOfflineTiles = false, ownStreet = true))
         }
     }
 
@@ -73,22 +78,27 @@ class OwnStreetStyleSourceTest {
 
     @Test
     fun `the zoom limit is 18 on the own Street and each basemap's own otherwise`() {
-        assertEquals(18, operatingMaxZoom(Basemap.OSM_STANDARD, ownStreet = true))
-        assertEquals(Basemap.OSM_STANDARD.maxZoom, operatingMaxZoom(Basemap.OSM_STANDARD, ownStreet = false))
+        // Was Basemap.OSM_STANDARD for the own Street's 18: Trail Map is its own entry since dispatch 2026-10-22-01.
+        assertEquals(18, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownStreet = true))
+        assertEquals("fallen back, OpenStreetMap's", Basemap.OSM_STANDARD.maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownStreet = false))
+        assertEquals(Basemap.OSM_STANDARD.maxZoom, operatingMaxZoom(Basemap.OSM_STANDARD, ownStreet = true))
         assertEquals(Basemap.OPEN_TOPO_MAP.maxZoom, operatingMaxZoom(Basemap.OPEN_TOPO_MAP, ownStreet = true))
-        // The release value, through the camera's own entry point: unchanged from before the switch existed.
-        assertEquals(Basemap.OSM_STANDARD.maxZoom.toDouble(), navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
+        // The release values, through the camera's own entry point (the dispatch: 18 for Trail Map, 19 for OpenStreetMap).
+        assertEquals(18.0, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false), 0.0)
+        assertEquals(19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
     }
 
     @Test
     fun `the credit over the own Street is Protomaps and OpenStreetMap, also under topo at night`() {
-        assertEquals(listOf(OFFLINE_STYLE_ATTRIBUTION), mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, ownStreet = true))
+        assertEquals(listOf(OFFLINE_STYLE_ATTRIBUTION), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownStreet = true))
         assertEquals(
             listOf(Basemap.OPEN_TOPO_MAP.attribution, OFFLINE_STYLE_ATTRIBUTION),
             mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownStreet = true),
         )
-        // Switch off: OpenStreetMap's own credit, as before.
-        assertEquals(listOf(Basemap.OSM_STANDARD.attribution), mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, ownStreet = false))
+        // Fallen back: OpenStreetMap's own credit, for the raster drawn in Trail Map's place.
+        assertEquals(listOf(Basemap.OSM_STANDARD.attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownStreet = false))
+        // OpenStreetMap chosen: its own credit either way.
+        assertEquals(listOf(Basemap.OSM_STANDARD.attribution), mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, ownStreet = true))
         assertEquals(
             listOf(Basemap.OPEN_TOPO_MAP.attribution, Basemap.OSM_STANDARD.attribution),
             mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownStreet = false),

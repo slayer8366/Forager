@@ -53,7 +53,7 @@ class MapLayersSheetTest {
                 surfaceContainerLow = MaterialTheme.colorScheme.surfaceContainer
                 onSurface = MaterialTheme.colorScheme.onSurface
                 MapLayersSheet(
-                    mapMode = MapMode.STREET,
+                    mapMode = MapMode.TRAIL,
                     onMapModeSelected = {},
                     overlays = MAPS_TAB_OVERLAYS,
                     colourFields = emptyList(),

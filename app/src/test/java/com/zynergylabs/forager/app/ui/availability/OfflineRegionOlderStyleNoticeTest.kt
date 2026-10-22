@@ -60,39 +60,31 @@ class OfflineRegionOlderStyleNoticeTest {
         styleUrl = styleUrl,
     )
 
-    private fun show(region: OfflineRegionSummary, ownStreet: Boolean?) = composeRule.setContent {
+    // The ownStreet parameter went with the release switch (dispatch 2026-10-22-01): every row now compares with Forager
+    // Trail Map's style, the one downloads are made in.
+    private fun show(region: OfflineRegionSummary) = composeRule.setContent {
         ForagerTheme {
-            if (ownStreet == null) {
-                OfflineRegionRow(region = region, isStale = false, distanceUnit = DistanceUnit.MILES, nowEpochMillis = 2_000L)
-            } else {
-                OfflineRegionRow(region = region, isStale = false, distanceUnit = DistanceUnit.MILES, nowEpochMillis = 2_000L, ownStreet = ownStreet)
-            }
+            OfflineRegionRow(region = region, isStale = false, distanceUnit = DistanceUnit.MILES, nowEpochMillis = 2_000L)
         }
     }
 
     @Test
-    fun `with the own Street on, an older region shows the one-line notice`() {
-        show(region(1, OFFLINE_STYLE_URL), ownStreet = true)
+    fun `an older region shows the one-line notice`() {
+        show(region(1, OFFLINE_STYLE_URL))
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(1)).assertIsDisplayed()
         composeRule.onNodeWithText("Older map style. Download again to update.").assertIsDisplayed()
+        composeRule.onNodeWithText("Region 1").assertIsDisplayed()
     }
 
     @Test
-    fun `with the own Street on, a Street region shows no notice`() {
-        show(region(2, STREET_STYLE_URL), ownStreet = true)
+    fun `a Forager Trail Map region shows no notice`() {
+        show(region(2, STREET_STYLE_URL))
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(2)).assertDoesNotExist()
     }
 
     @Test
     fun `a region not downloaded on this phone shows no notice`() {
-        show(region(3, null, isDownloaded = false), ownStreet = true)
+        show(region(3, null, isDownloaded = false))
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(3)).assertDoesNotExist()
-    }
-
-    @Test
-    fun `the release value shows no notice on today's regions`() {
-        show(region(4, OFFLINE_STYLE_URL), ownStreet = null)
-        composeRule.onNodeWithTag(offlineRegionOlderStyleTag(4)).assertDoesNotExist()
-        composeRule.onNodeWithText("Region 4").assertIsDisplayed()
     }
 }

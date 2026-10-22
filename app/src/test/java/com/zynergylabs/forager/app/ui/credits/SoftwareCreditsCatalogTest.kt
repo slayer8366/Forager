@@ -37,7 +37,9 @@ class SoftwareCreditsCatalogTest {
         assertEquals("MIT", licenceOf("NGA Grid"))
         assertEquals("MIT", licenceOf("NGA Simple Features"))
         assertEquals("MIT", licenceOf("NGA Color"))
-        assertEquals("OFL-1.1", licenceOf("Noto Sans"))
+        // The full name: Forager Trail Map's Noto Sans is always listed now (dispatch 2026-10-22-01), so two entries start
+        // with "Noto Sans" (#359's change 7). The map's Noto is asserted in the test below.
+        assertEquals("OFL-1.1", licenceOf("Noto Sans, the app's typeface"))
         assertEquals("MPL-2.0", licenceOf("The Public Suffix List"))
         listOf("AndroidX", "Retrofit", "OkHttp", "kotlinx").forEach { assertEquals(it, "Apache-2.0", licenceOf(it)) }
         listOf("Compose", "Room", "CameraX").forEach { part ->
@@ -56,21 +58,18 @@ class SoftwareCreditsCatalogTest {
     }
 
     /**
-     * Dispatch 2026-10-18-05 Part 2: the own Street map's label font (Noto Sans, OFL) and icon set (tangrams, MIT) are
-     * listed exactly when the map shows them. With the release switch off (the loader's default) neither is; with it on,
-     * both are, under their own licences.
+     * Forager Trail Map's label font (Noto Sans, OFL) and icon set (tangrams, MIT), under their own licences. Since
+     * dispatch 2026-10-22-01 the map is always offered, so both are always listed, named for "Forager Trail Map"
+     * (RECORD -1556). Was "the Street map's font and icons are credited only while the own Street is on" (dispatch
+     * 2026-10-18-05 Part 2), which drove the removed release switch both ways.
      */
     @Test
-    fun `the Street map's font and icons are credited only while the own Street is on`() {
-        val catalog = SoftwareCredits.parse(assets.open(SoftwareCredits.CATALOG_ASSET).bufferedReader().use { it.readText() })
-        fun read(path: String) = assets.open(path).bufferedReader().use { it.readText() }
-        val on = SoftwareCredits.groups(catalog, ownStreet = true, readText = ::read).flatMap { it.libraries }
-        val off = SoftwareCredits.groups(catalog, ownStreet = false, readText = ::read).flatMap { it.libraries }
-        val street = listOf("Noto Sans, the Street map's labels", "The Street map's icons, from Mapzen's tangrams icon set")
-        assertEquals(listOf("OFL-1.1", "MIT"), street.map { name -> on.single { it.name == name }.licence })
-        assertTrue("credited with the switch off: ${off.map { it.name }}", off.none { it.name in street })
-        assertTrue("credited at the release value: ${libraries.map { it.name }}", libraries.none { it.name in street })
-        assertEquals("everything else is the same both ways", off.map { it.name }, on.map { it.name }.filterNot { it in street })
+    fun `Forager Trail Map's font and icons are always credited, under their own licences`() {
+        val trail = listOf("Noto Sans, Forager Trail Map's labels", "Forager Trail Map's icons, from Mapzen's tangrams icon set")
+        assertEquals(listOf("OFL-1.1", "MIT"), trail.map { name -> libraries.single { it.name == name }.licence })
+        // A word match, so "OpenStreetMap" does not count.
+        val street = Regex("""\bStreet\b""")
+        assertTrue("an entry still says Street: ${libraries.map { it.name }}", libraries.none { street.containsMatchIn(it.name) || street.containsMatchIn(it.note ?: "") })
     }
 
     @Test

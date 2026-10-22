@@ -11,8 +11,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The own Street map's switch and its offline-style rules (dispatch 2026-10-18-05 Part 2; RECORD -1282, -1294, -1300).
- * Every rule is driven both ways through its `ownStreet` parameter; the release value is pinned on its own.
+ * Forager Trail Map's offline-style rules (dispatch 2026-10-18-05 Part 2; RECORD -1294, -1300) since the release switch
+ * went (dispatch 2026-10-22-01, RECORD -1554, -1556): downloads are Trail Map only, whatever map type is showing.
  */
 class StreetStyleTest {
 
@@ -20,39 +20,25 @@ class StreetStyleTest {
     private val servedStyle = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v1.json").readText()).jsonObject
 
     @Test
-    fun `the release switch is raster, so Street stays on OpenStreetMap until the owner flips it`() {
-        // -1302 / dispatch Part 2: "one compile-time constant, set to raster". Flipping it is a later, owner-approved step.
-        assertFalse(STREET_SERVED_BY_OWN_MAP)
+    fun `new downloads are made in Forager Trail Map's style`() {
+        // -1554: "Offline downloads → Trail Map only; no OpenStreetMap tiles are ever stored".
+        assertEquals(STREET_STYLE_URL, offlineDownloadStyleUrl())
     }
 
     @Test
-    fun `with the switch off, downloads and the offline map use the old offline style exactly as before`() {
-        assertEquals(OFFLINE_STYLE_URL, offlineDownloadStyleUrl(ownStreet = false))
-        assertEquals(OFFLINE_STYLE_URL, offlineRenderStyleUrl(listOf(STREET_STYLE_URL, OFFLINE_STYLE_URL), ownStreet = false))
-        assertEquals(OFFLINE_STYLE_URL, offlineDownloadStyleUrl())
+    fun `the offline map keeps the old style until some region holds Trail Map's`() {
+        assertEquals("only older regions", OFFLINE_STYLE_URL, offlineRenderStyleUrl(listOf(OFFLINE_STYLE_URL, OFFLINE_STYLE_URL)))
+        assertEquals("no regions", OFFLINE_STYLE_URL, offlineRenderStyleUrl(emptyList()))
+        assertEquals("a definition naming no URL", OFFLINE_STYLE_URL, offlineRenderStyleUrl(listOf(null)))
+        assertEquals("one Trail Map region", STREET_STYLE_URL, offlineRenderStyleUrl(listOf(OFFLINE_STYLE_URL, STREET_STYLE_URL)))
     }
 
     @Test
-    fun `with the switch on, new downloads use the Street style`() {
-        assertEquals(STREET_STYLE_URL, offlineDownloadStyleUrl(ownStreet = true))
-    }
-
-    @Test
-    fun `with the switch on, the offline map keeps the old style until some region holds the Street style`() {
-        assertEquals("only older regions", OFFLINE_STYLE_URL, offlineRenderStyleUrl(listOf(OFFLINE_STYLE_URL, OFFLINE_STYLE_URL), ownStreet = true))
-        assertEquals("no regions", OFFLINE_STYLE_URL, offlineRenderStyleUrl(emptyList(), ownStreet = true))
-        assertEquals("a definition naming no URL", OFFLINE_STYLE_URL, offlineRenderStyleUrl(listOf(null), ownStreet = true))
-        assertEquals("one Street region", STREET_STYLE_URL, offlineRenderStyleUrl(listOf(OFFLINE_STYLE_URL, STREET_STYLE_URL), ownStreet = true))
-    }
-
-    @Test
-    fun `the older-style notice shows only on a downloaded region built against another style, and only with the switch on`() {
-        assertTrue(regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = true, ownStreet = true))
-        assertFalse("a Street region is current", regionHasOlderMapStyle(STREET_STYLE_URL, isDownloaded = true, ownStreet = true))
-        assertFalse("not downloaded on this phone", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = false, ownStreet = true))
-        assertFalse("an unknown style is never guessed old", regionHasOlderMapStyle(null, isDownloaded = true, ownStreet = true))
-        assertFalse("switch off: today's regions are today's style", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = true, ownStreet = false))
-        assertFalse("release value", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = true))
+    fun `the older-style notice shows only on a downloaded region built against another style`() {
+        assertTrue(regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = true))
+        assertFalse("a Trail Map region is current", regionHasOlderMapStyle(STREET_STYLE_URL, isDownloaded = true))
+        assertFalse("not downloaded on this phone", regionHasOlderMapStyle(OFFLINE_STYLE_URL, isDownloaded = false))
+        assertFalse("an unknown style is never guessed old", regionHasOlderMapStyle(null, isDownloaded = true))
     }
 
     @Test
@@ -73,10 +59,9 @@ class StreetStyleTest {
     }
 
     @Test
-    fun `the Protomaps credit names Street only while the own Street is on`() {
-        assertEquals("Protomaps (offline maps)", com.zynergylabs.forager.app.ui.credits.protomapsCreditText(ownStreet = false))
-        assertEquals("Protomaps (Street and offline maps)", com.zynergylabs.forager.app.ui.credits.protomapsCreditText(ownStreet = true))
-        assertEquals("Protomaps (offline maps)", com.zynergylabs.forager.app.ui.credits.protomapsCreditText())
+    fun `the Protomaps credit names Forager Trail Map`() {
+        // RECORD -1556: credit text that names our map says "Forager Trail Map".
+        assertEquals("Protomaps (Forager Trail Map and offline maps)", com.zynergylabs.forager.app.ui.credits.PROTOMAPS_CREDIT_TEXT)
     }
 
     @Test

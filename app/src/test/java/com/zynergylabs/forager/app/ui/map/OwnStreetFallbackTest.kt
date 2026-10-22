@@ -37,33 +37,34 @@ class OwnStreetFallbackTest {
     }
 
     @Test
+    // Dispatch 2026-10-22-01: "Street" here is Forager Trail Map, its own Basemap entry (FORAGER_TRAIL); the rules are unchanged.
     fun `after the fallback Street is OpenStreetMap's raster Street, credited and capped as before the own Street`() {
         val ownStreet = effectiveOwnStreet(switch = true, fellBack = true)
 
-        val day = mapStyleSourceFor(Basemap.OSM_STANDARD, night = false, useOfflineTiles = false, ownStreet = ownStreet)
+        val day = mapStyleSourceFor(Basemap.FORAGER_TRAIL, night = false, useOfflineTiles = false, ownStreet = ownStreet)
         assertTrue("Street by day is a raster JSON style: $day", day is MapStyleSource.Json)
         assertTrue("on OpenStreetMap's tiles", (day as MapStyleSource.Json).json.contains(Basemap.OSM_STANDARD.tileUrlTemplate))
         val topoNight = mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true, useOfflineTiles = false, ownStreet = ownStreet)
         assertTrue("topo at night is the raster night style: $topoNight", topoNight is MapStyleSource.Json)
         assertTrue("with OpenStreetMap below", (topoNight as MapStyleSource.Json).json.contains(Basemap.OSM_STANDARD.tileUrlTemplate))
 
-        assertEquals(listOf(Basemap.OSM_STANDARD.attribution), mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, ownStreet = ownStreet))
+        assertEquals(listOf(Basemap.OSM_STANDARD.attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownStreet = ownStreet))
         assertEquals(
             listOf(Basemap.OPEN_TOPO_MAP.attribution, Basemap.OSM_STANDARD.attribution),
             mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownStreet = ownStreet),
         )
-        assertEquals(Basemap.OSM_STANDARD.maxZoom, operatingMaxZoom(Basemap.OSM_STANDARD, ownStreet))
-        assertEquals(Basemap.OSM_STANDARD.maxZoom.toDouble(), navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false, ownStreet = ownStreet), 0.0)
+        assertEquals(Basemap.OSM_STANDARD.maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownStreet))
+        assertEquals(Basemap.OSM_STANDARD.maxZoom.toDouble(), navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownStreet = ownStreet), 0.0)
         // Before the fallback, the own Street's: its credit and the owner's 18 (-1289).
-        assertEquals(listOf(OFFLINE_STYLE_ATTRIBUTION), mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, ownStreet = true))
-        assertEquals(18.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false, ownStreet = true), 0.0)
+        assertEquals(listOf(OFFLINE_STYLE_ATTRIBUTION), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownStreet = true))
+        assertEquals(18.0, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownStreet = true), 0.0)
     }
 
     @Test
     fun `while navigating a basemap cap above the start zoom is not lowered`() {
         // Dispatch 2026-09-28-440, Amendment 1, driven with the switch off, where Street's cap is OpenStreetMap's 19.
         assertEquals(19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = true, ownStreet = false), 0.0)
-        assertEquals(NAVIGATION_VIEW_ZOOM, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = true, ownStreet = true), 0.0)
+        assertEquals(NAVIGATION_VIEW_ZOOM, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = true, ownStreet = true), 0.0)
     }
 
     @Test

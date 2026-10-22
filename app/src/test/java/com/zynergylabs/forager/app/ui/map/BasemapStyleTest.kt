@@ -71,9 +71,11 @@ class BasemapStyleTest {
     fun `the style's declared maxzoom matches Basemap's own operating limit`() {
         Basemap.entries.forEach { basemap ->
             val source = parsedStyle(basemap).getValue("sources").jsonObject.getValue(RASTER_SOURCE_ID).jsonObject
+            // rasterDrawn: Forager Trail Map is not a raster; its raster style is OpenStreetMap's, the -1513 fallback, with
+            // OpenStreetMap's limit (dispatch 2026-10-22-01; held on its own below). Every raster basemap is itself.
             assertEquals(
                 "${basemap.name}: styleJsonFor's maxzoom must equal Basemap.maxZoom, the app's own operating limit.",
-                basemap.maxZoom,
+                basemap.rasterDrawn().maxZoom,
                 source.getValue("maxzoom").jsonPrimitive.int,
             )
         }
@@ -92,7 +94,7 @@ class BasemapStyleTest {
             val source = parsedStyle(basemap).getValue("sources").jsonObject.getValue(RASTER_SOURCE_ID).jsonObject
             assertEquals(
                 "${basemap.name}: the style JSON's attribution must match Basemap.fullAttribution exactly.",
-                basemap.fullAttribution,
+                basemap.rasterDrawn().fullAttribution,
                 source.getValue("attribution").jsonPrimitive.content,
             )
         }
@@ -171,7 +173,7 @@ class BasemapStyleTest {
                 val sources = style.getValue("sources").jsonObject
                 assertEquals(
                     "${basemap.name} (night=$night): the basemap's own tiles",
-                    listOf(basemap.tileUrlTemplate),
+                    listOf(basemap.rasterDrawn().tileUrlTemplate),
                     sources.getValue(RASTER_SOURCE_ID).jsonObject.getValue("tiles").jsonArray.map { it.jsonPrimitive.content },
                 )
                 sources.values.forEach { assertEquals("raster", it.jsonObject.getValue("type").jsonPrimitive.content) }
@@ -201,6 +203,23 @@ class BasemapStyleTest {
             assertEquals("raster", layer.getValue("type").jsonPrimitive.content)
             assertEquals(RASTER_SOURCE_ID, layer.getValue("source").jsonPrimitive.content)
         }
+    }
+
+    /**
+     * Dispatch 2026-10-22-01: Forager Trail Map is a [Basemap] entry but not a raster. Where a raster has to draw it
+     * (the -1513 fallback, `OwnStreetFallback`), the style is OpenStreetMap's exactly, day and night, and its own vector
+     * tile URL never lands in a raster source.
+     */
+    @Test
+    fun `Forager Trail Map's raster stand-in is OpenStreetMap's style exactly, never its own vector tiles`() {
+        assertFalse(Basemap.FORAGER_TRAIL.isRaster)
+        assertEquals(Basemap.OSM_STANDARD, Basemap.FORAGER_TRAIL.rasterDrawn())
+        listOf(false, true).forEach { night ->
+            val style = styleJsonFor(Basemap.FORAGER_TRAIL, night)
+            assertEquals("night=$night", styleJsonFor(Basemap.OSM_STANDARD, night), style)
+            assertFalse("night=$night", style.contains(Basemap.FORAGER_TRAIL.tileUrlTemplate))
+        }
+        Basemap.entries.filter { it.isRaster }.forEach { assertEquals(it, it.rasterDrawn()) }
     }
 
     private fun tileTemplateFor(basemap: Basemap): String =
