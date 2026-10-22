@@ -64,7 +64,7 @@ internal fun offlineDownloadStyleUrl(): String = STREET_STYLE_URL
  * so loading v2 or the offline style there would load a style no region holds and the offline map would not draw.
  */
 internal fun offlineRenderStyleUrl(downloadedStyleUrls: Collection<String?>): String =
-    STREET_STYLE_URLS.firstOrNull { it in downloadedStyleUrls } ?: OFFLINE_STYLE_URL
+    if (STREET_STYLE_URL in downloadedStyleUrls) STREET_STYLE_URL else OFFLINE_STYLE_URL
 
 /**
  * Whether a region's row shows the -1294 notice ([OLDER_MAP_STYLE_NOTICE]): a downloaded region built against a
