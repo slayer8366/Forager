@@ -26752,3 +26752,28 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 - The owner will ask Aspen, in Aspen's window, to upload the route squares once the pi-29 map upload is done.
 - Hazel's next work is Sage's map designs, when they are ready.
 **Notes:** Written by the planner by hand. Next free ID -1552.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1552
+**Timestamp:** 2026-10-22T05:45:22Z
+**Title:** Our own topo map: a read-only plan for contours and hill shading (dispatch 2026-10-21-08, Juniper)
+**Change:** nothing changes. One report, docs/plans/2026-10-21-own-topo-plan-report.md on branch topo-plan-report, covering:
+- Topo today and what the map library supports;
+- ways to build contours and shading, with tools and their fit on the Pi;
+- sizes, computed;
+- sharing the 3DEP download with routing elevation;
+- Pi disk and time;
+- the questions Sage would need to decide;
+- credits.
+
+The owner, verbatim: "Looking to also see about start on creating some topo maps while we're at it", then "Read-only plan now (Recommended)". The option read: "Juniper sizes contours + shading and how the Pi would build them, sharing the elevation download with routing; no downloads, no disk use. Building waits for your new machine". It follows -1291's "Own topo later".
+**Scope boundary:** read only at pre-main, pi-build, public documentation and catalogue metadata. Writes only the report and its evidence folder, on topo-plan-report cut from records-after-173, pushed with no PR. Not main, pre-main, coder branches, RECORD.md, the audit index, the Pi, the server, storage, uploads or phones. No dataset downloads; local disk use kept small (owner: "Space is an issue at the moment until I get my new machine").
+**Baseline:** pre-main 01c7c5b56300bcf7ba4379391057eeef0941d2e4; pi-build 961a90d363498d7fb5e519e4ad25a3513707e247; records-after-173 dbf69daa.
+**Prediction (outcome — planner):** contours as vector tiles plus shading from elevation tiles on the phone is the smallest pair, and pre-shaded images are much larger. One 1″ download serves routing, contours and shading, with 1/3″ mattering only at the closest zooms. US-and-Canada topo is tens of GB on the server and a few MB more per offline area.
+**Prediction (mechanism — coder):** not authored (no coder; a read-only report).
+**Finish line:** the report pushed with an evidence folder, every claim marked read, computed or inferred, with the four disclosure sections. Juniper reports and stops. The planner brings it to the owner; building waits for the owner's new machine and a go.
+**Abort conditions:** a question answerable only by downloading or running the Pi; anything needing an account or agreement; a moved base that changes a question.
+**Dispatch-file:** prompts/preserved/2026-10-21-08.md
+**Notes:** Written by the planner by hand. Next free ID -1553.
