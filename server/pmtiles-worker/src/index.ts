@@ -533,7 +533,7 @@ export default {
         if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
           // Dispatch 2026-10-22-01 Amendment 4 (the owner: "Stop it"): never south of the archive's own bounds.
           if (tileNorthLat(tile[0], tile[2]) <= pHeader.minLat) {
-            return cacheableResponse(undefined, cacheableHeaders, 204);
+            await overflowTileResponse(env, ctx, name, tile, ext, new Headers(cacheableHeaders), cacheableResponse); return cacheableResponse(undefined, cacheableHeaders, 204);
           }
           return await overflowTileResponse(env, ctx, name, tile, ext, cacheableHeaders, cacheableResponse);
         }
