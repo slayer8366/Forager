@@ -264,7 +264,7 @@ sealed interface MapStyleSource {
 internal fun ownStreetStyleSourceFor(basemap: Basemap, night: Boolean, ownStreet: Boolean = true): MapStyleSource? =
     when {
         !ownStreet -> null
-        basemap == Basemap.FORAGER_TRAIL -> MapStyleSource.Uri(STREET_STYLE_URL)
+        basemap == Basemap.OSM_STANDARD -> MapStyleSource.Uri(STREET_STYLE_URL)
         night && nightLowZoomBasemap(basemap) == Basemap.OSM_STANDARD -> MapStyleSource.StreetWithTopoOver(STREET_STYLE_URL, basemap)
         else -> null
     }
