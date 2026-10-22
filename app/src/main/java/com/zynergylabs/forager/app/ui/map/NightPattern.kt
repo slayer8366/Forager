@@ -37,7 +37,7 @@ internal fun nightPatternPixelsOf(pixels: IntArray, rgb: Int): IntArray {
  * Every sprite image Trail Map's night redraws, in the order [applyStreetSpriteNight] walks them: the inverted icons
  * (`STREET_SPRITE_ICON_NAMES`, tufts included), then the painted patterns.
  */
-internal val STREET_SPRITE_NIGHT_NAMES: List<String> = STREET_SPRITE_ICON_NAMES + STREET_NIGHT_PATTERN_COLOURS.keys
+internal val STREET_SPRITE_NIGHT_NAMES: List<String> = STREET_SPRITE_ICON_NAMES
 
 /**
  * One sprite image's night pixels by its [name]: painted its [STREET_NIGHT_PATTERN_COLOURS] colour where it has one,
