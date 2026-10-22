@@ -41,7 +41,7 @@ enum class MapMode(
      * ever writes "street" for OpenStreetMap again. The key's meaning moved on purpose; it still names a mode, so
      * nothing stored is orphaned. With the old release switch on (#359), "street" already drew this map.
      */
-    TRAIL(label = "Trail", basemap = Basemap.FORAGER_TRAIL, storageKey = "street"),
+    TRAIL(label = "Trail", basemap = Basemap.FORAGER_TRAIL, storageKey = "trail"),
     TOPOGRAPHIC(label = "Topo", basemap = Basemap.OPEN_TOPO_MAP, storageKey = "topographic"),
 
     /** OpenStreetMap's raster map, online only (RECORD -1554). A new key, so a choice of it survives restarts. */
