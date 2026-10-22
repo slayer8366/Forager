@@ -1,0 +1,110 @@
+{
+  "_about": "Route ends for the cutter's proof. Every end is an OpenStreetMap node on a trail (highway=path, footway or track) on public land in Harriman and Bear Mountain State Parks, NY; node ids are OpenStreetMap's. OpenStreetMap data, ODbL: see README.md. Categories are defined in README.md and checked on the full fixture by route-proof.test.mjs.",
+  "square": "W75_N40",
+  "rectangle": {
+    "south": 41.27,
+    "west": -74.05,
+    "north": 41.31,
+    "east": -73.99
+  },
+  "routes": [
+    {
+      "name": "inside-across-the-degree-line",
+      "category": "inside",
+      "from": {
+        "osmNode": 1682317709,
+        "lat": 41.2742564,
+        "lon": -73.9978932
+      },
+      "to": {
+        "osmNode": 1482078186,
+        "lat": 41.3036912,
+        "lon": -74.0159457
+      }
+    },
+    {
+      "name": "inside-short",
+      "category": "inside",
+      "from": {
+        "osmNode": 939277312,
+        "lat": 41.2741743,
+        "lon": -74.0013283
+      },
+      "to": {
+        "osmNode": 1480584218,
+        "lat": 41.2788313,
+        "lon": -74.0189684
+      }
+    },
+    {
+      "name": "inside-long",
+      "category": "inside",
+      "from": {
+        "osmNode": 3227570983,
+        "lat": 41.2772811,
+        "lon": -74.0422743
+      },
+      "to": {
+        "osmNode": 939277894,
+        "lat": 41.292043,
+        "lon": -73.996678
+      }
+    },
+    {
+      "name": "edge-north-a",
+      "category": "edge",
+      "from": {
+        "osmNode": 1482078162,
+        "lat": 41.3047796,
+        "lon": -74.0006515
+      },
+      "to": {
+        "osmNode": 4232448307,
+        "lat": 41.3053493,
+        "lon": -74.0355387
+      }
+    },
+    {
+      "name": "edge-north-b",
+      "category": "edge",
+      "from": {
+        "osmNode": 13731201794,
+        "lat": 41.3061883,
+        "lon": -73.9991069
+      },
+      "to": {
+        "osmNode": 9281698256,
+        "lat": 41.3020883,
+        "lon": -74.0438051
+      }
+    },
+    {
+      "name": "detour-west",
+      "category": "detour",
+      "from": {
+        "osmNode": 13931851288,
+        "lat": 41.2940064,
+        "lon": -74.0832124
+      },
+      "to": {
+        "osmNode": 8730858532,
+        "lat": 41.2535731,
+        "lon": -74.0887379
+      }
+    },
+    {
+      "name": "outside-west",
+      "category": "outside",
+      "from": {
+        "osmNode": 939277321,
+        "lat": 41.2749253,
+        "lon": -73.9994484
+      },
+      "to": {
+        "osmNode": 776022625,
+        "lat": 41.2684229,
+        "lon": -74.1114362
+      }
+    }
+  ]
+}
