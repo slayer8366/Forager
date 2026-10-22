@@ -26688,3 +26688,25 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 **Prediction check:** the mechanism prediction was right on identity, the stub failures and the margin revert. It was wrong on the outside end (snaps only sometimes) and on the detour (costlier, not longer). Outcome prediction: routes inside are identical, confirmed. Clean failure outside holds only with dynamic range off, and then only for an outside end. The 10 km size is untested.
 **Finding for -1546:** dynamic range off makes an outside end fail plainly, but a best path that leaves the area still comes back as a quiet costlier detour. "Say so plainly" needs another check on the phone side, a design question for step 4.
 **Notes:** Sorrel's review next; merge on the owner's word. Written by the planner by hand. Next free ID -1548.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1548
+**Timestamp:** 2026-10-22T05:20:18Z
+**Continues:** 2026-09-28-1547
+**Title:** Sorrel approves PR #371 (GitHub #375) with notes; nothing blocking
+**Observed:** Sorrel's review is docs/audits/2026-10-22-pr375-route-cutter-review.md (fd8dff90, filed here by fast-forward).
+- **Format:** checked line by line against BRouter v1.7.10 source; no off-by-one found, and cells are copied verbatim.
+- **Tests:** all 27 re-run locally and pass. Two reverts of Sorrel's own both bite: version bits zeroed fails 17, a short east margin fails 2.
+- **The changed assertions** were corrected, not weakened. The head's probe figures (28 routed: 17 moved, 11 island) are correct; 29/15/14 survives only in an old commit message.
+- **Pins and fixture:** pins verified against their publishers, and the fixture hash matches.
+**Notes for later dispatches, none blocking:**
+- A rectangle past the 5° square is clamped silently (cells.ts:55-58). The server route must cut two files or refuse.
+- Oversized footers are accepted (format.ts:68, :119-127).
+- The route proof covers the north and west edges; the east and south are proven by the format test only.
+- BRouter's integrity check doesn't catch a version mismatch; the route tests do.
+- A harmless module-type warning appears on each run.
+- The Worker's package.json uses caret ranges; this was pre-existing.
+**CI:** the PR's own run 39726193032 had lint, release compile and route-cutter passing; its app build job was still pending when the planner read it. The same commit's dispatched run 39724652858 is green on all four jobs.
+**Notes:** Merge waits for the owner's word and the PR run's build job. Written by the planner by hand. Next free ID -1549.
