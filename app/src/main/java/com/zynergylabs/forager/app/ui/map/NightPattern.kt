@@ -29,7 +29,7 @@ internal fun nightPatternPixelsOf(pixels: IntArray, rgb: Int): IntArray {
     val colour = rgb and 0xFFFFFF
     return IntArray(pixels.size) { i ->
         val alpha = pixels[i] and 0xFF000000.toInt()
-        if (alpha == 0) pixels[i] else alpha or colour
+        if (alpha == 0) pixels[i] else 0xFF000000.toInt() or colour
     }
 }
 
