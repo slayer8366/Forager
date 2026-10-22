@@ -46,6 +46,7 @@ recording rather than hiding:
 | Path | What | From |
 |---|---|---|
 | `/{name}/{z}/{x}/{y}.mvt` | a vector tile | R2's `{name}.pmtiles`; z15 from Protomaps' live build through the overflow, cached into R2 |
+| `/us/{z}/{x}/{y}.mvt`, z0-8, tile not in `us.pmtiles` | the world fill (dispatch 2026-10-22-01 Part A) | R2's `world-south.pmtiles`, labelled `X-Forager-Origin: r2-world-south`; 204 if it has no tile or is not on R2 |
 | `/{name}.json` | TileJSON | R2's `{name}.pmtiles` header and metadata |
 | `/style/offline.json` | the label-less offline style every pre-Street offline pack was downloaded against; never changed (RECORD -1294) | bundled |
 | `/style/street-v1.json` | Forager's Street style, built by `map-style/generate-street.mjs` | bundled |
