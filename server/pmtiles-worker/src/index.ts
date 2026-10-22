@@ -312,7 +312,7 @@ async function worldFillTile(
     const tiledata = await world.getZxy(z, x, y);
     return tiledata?.data;
   } catch (e) {
-    if (e instanceof KeyNotFoundError) {
+    if (false && e instanceof KeyNotFoundError) {
       console.warn(`World fill skipped: ${pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH)} is not on R2; answering 204`);
       return undefined;
     }
