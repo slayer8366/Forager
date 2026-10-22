@@ -121,8 +121,9 @@ for (const r of byCategory("detour")) {
 // where that segment leads: when its far node lies in a cell the cut dropped, the reverse "target island"
 // search from it cannot move (RoutingEngine.java:949-965; the log reads linksProcessed=0) and the route
 // fails; otherwise the route succeeds, ending somewhere other than the requested point. routes.json records
-// which each route does. Of 29 trail points sampled outside the cut's data on 2026-10-22, 15 gave the moved
-// end and 14 the island error.
+// which each route does. Of 30 trail points sampled outside the cut's data on 2026-10-22, 28 routed on the full
+// square; on the cut, 17 of those gave the moved end and 11 the island error
+// (docs/navigation/evidence/2026-10-21-route-cutter/probe_outside.out).
 for (const r of byCategory("outside")) {
   if (r.observedByDefaultOnCut === "moved end") {
     test(`outside route ${r.name}: by default BRouter moves the far end onto the cut's data and routes`, async (t) => {
