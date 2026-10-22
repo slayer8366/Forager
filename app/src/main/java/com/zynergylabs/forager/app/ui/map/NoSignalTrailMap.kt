@@ -26,7 +26,12 @@ import kotlinx.coroutines.flow.stateIn
  * OSM or Topo chosen, signal lost for 5 s  → Trail Map, drawn from the downloaded areas
  * signal back for 30 s                     → the chosen map again
  * Trail chosen                             → unchanged: it is already Trail Map
+ * Trail chosen, but fallen back to OSM      → as OSM: Trail Map from the downloaded areas after 5 s
  * ```
+ *
+ * The last line is dispatch 2026-10-22-01 Amendment 3 (Sorrel's review): once Trail Map's style has failed to load
+ * (`OwnStreetFallback`, -1513) a Trail user is looking at OpenStreetMap's raster, and losing the signal then must give
+ * them what it gives any OSM user (-519: every failure has a fallback).
  *
  * **Drawn through the offline branch** ([mapStyleSourceFor] with `useOfflineTiles`), the style the downloaded regions
  * hold. Not Trail Map's online style: with no signal that load can fail, and an online failure of Trail Map's style is
@@ -37,8 +42,8 @@ import kotlinx.coroutines.flow.stateIn
  * **Known limit, stated and not worked around (Amendment 2):** with no signal and no downloaded area, the map is
  * blank, as offline mode is today. A user whose only areas predate Trail Map sees them in the older offline style.
  */
-internal fun drawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, noSignal: Boolean): Boolean =
-    useOfflineTiles || (noSignal && basemap != Basemap.FORAGER_TRAIL)
+internal fun drawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, noSignal: Boolean, trailMapDraws: Boolean = true): Boolean =
+    useOfflineTiles || (noSignal && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws))
 
 /**
  * The "no signal" state the maps read, after the hysteresis ([noSignalWithHysteresis]). `null` where nothing provides
@@ -47,12 +52,16 @@ internal fun drawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, noSi
  */
 internal val LocalNoSignal = staticCompositionLocalOf<StateFlow<Boolean>?> { null }
 
-/** [drawsFromDownloads] for this composition: [LocalNoSignal]'s current value, `false` when none is provided. */
+/**
+ * [drawsFromDownloads] for this composition: [LocalNoSignal]'s current value, `false` when none is provided, and
+ * whether Trail Map draws in this process ([fallback], the app's one `OWN_STREET_FALLBACK`; a parameter so a test can
+ * give it its own).
+ */
 @Composable
-internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap): Boolean {
+internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, fallback: OwnStreetFallback = OWN_STREET_FALLBACK): Boolean {
     val flow = LocalNoSignal.current ?: return useOfflineTiles
     val noSignal by flow.collectAsState()
-    return drawsFromDownloads(useOfflineTiles, basemap, noSignal)
+    return drawsFromDownloads(useOfflineTiles, basemap, noSignal, trailMapDraws = fallback.ownStreet())
 }
 
 /**

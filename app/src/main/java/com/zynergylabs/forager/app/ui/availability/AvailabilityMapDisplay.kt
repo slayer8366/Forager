@@ -250,7 +250,7 @@ internal class AvailabilityMapDisplay(
                         MapMode.forStoredKey(key) ?: MapMode.REPLACEMENT_FOR_UNKNOWN.also { replacement ->
                             errorLog.w(
                                 TAG,
-                                "The stored basemap \"$key\" names no map type; opening on ${replacement.label} and storing that.",
+                                "The stored basemap \"$key\" names no map type; opening on ${replacement.basemap.label} and storing that.",
                                 IllegalStateException("unknown basemap key $key"),
                             )
                             storeBasemap(replacement)

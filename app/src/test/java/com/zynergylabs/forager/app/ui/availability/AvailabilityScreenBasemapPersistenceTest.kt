@@ -196,7 +196,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         )
         composeRule.onNode(hasContentDescription("Layers: Topo map.", substring = true)).assertExists()
         assertEquals(
-            listOf("The stored basemap \"satellite\" names no map type; opening on Topo and storing that."),
+            listOf("The stored basemap \"satellite\" names no map type; opening on OpenTopoMap and storing that."),
             logged.filter { "basemap" in it },
         )
         release(repositoryScope)

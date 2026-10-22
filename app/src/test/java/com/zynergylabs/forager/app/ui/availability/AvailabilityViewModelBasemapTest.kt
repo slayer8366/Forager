@@ -111,8 +111,8 @@ class AvailabilityViewModelBasemapTest {
         assertEquals(MapMode.TOPOGRAPHIC, vm.uiState.value.mapMode)
         assertEquals(listOf("topographic"), preferences.writes)
         assertEquals(
-            // The label is the chip's, "Topo", since dispatch 2026-10-22-01.
-            listOf("The stored basemap \"satellite\" names no map type; opening on Topo and storing that."),
+            // The basemap's own label, "OpenTopoMap": a log line names the map, not a chip (dispatch 2026-10-22-01 Amendment 3).
+            listOf("The stored basemap \"satellite\" names no map type; opening on OpenTopoMap and storing that."),
             logged.filter { "basemap" in it },
         )
     }

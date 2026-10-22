@@ -66,6 +66,35 @@ class NoSignalTrailMapTest {
         assertEquals("signal back: every map draws itself again", Basemap.entries.associateWith { false }, seen.toMap())
     }
 
+    /**
+     * Dispatch 2026-10-22-01 Amendment 3 (Sorrel's review): a Trail user whose Trail Map has fallen back to OSM's raster
+     * (`OwnStreetFallback`, -1513) gets what an OSM user gets when the signal goes. Driven through the fallback's own
+     * entry point, a failed online load of Trail Map's style, on a fallback of the test's own.
+     */
+    @Test
+    fun `a Trail user fallen back to OSM draws from the downloads with no signal, like an OSM user`() {
+        val noSignal = MutableStateFlow(true)
+        val fallback = OwnStreetFallback(log = {})
+        var trail: Boolean? = null
+        composeRule.setContent {
+            CompositionLocalProvider(LocalNoSignal provides noSignal) {
+                trail = rememberDrawsFromDownloads(useOfflineTiles = false, basemap = Basemap.FORAGER_TRAIL, fallback = fallback)
+            }
+        }
+        composeRule.waitForIdle()
+        assertEquals("Trail Map drawing, no signal: its own style, unchanged", false, trail)
+
+        composeRule.runOnIdle {
+            fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(STREET_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404")
+        }
+        composeRule.waitForIdle()
+        assertEquals("fallen back to OSM, no signal: from the downloads", true, trail)
+
+        composeRule.runOnIdle { noSignal.value = false }
+        composeRule.waitForIdle()
+        assertEquals("fallen back, signal back: the OSM raster again", false, trail)
+    }
+
     @Test
     fun `with nothing provided, as in a test with no MainActivity, the chosen map is always drawn`() {
         val seen = mutableMapOf<Basemap, Boolean>()
