@@ -26545,3 +26545,25 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 - PRs cited before this entry keep their GitHub numbers.
 - To look one up, add 4.
 **Notes:** Written by the planner by hand. Next free ID -1540.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1540
+**Timestamp:** 2026-10-22T02:58:15Z
+**Title:** Seven in-place record edits accepted; from here on a new entry, never an edit; written entries carry the full fields (owner)
+**The owner, verbatim:** on why the checker finds gaps: "Some records are redundant and don't need to be written, so I've had the planner not write those records", and asked which they meant, "Whole entries". To the planner's questions: "Accept, and stop editing (Recommended)" and "Full fields from now on (Recommended)".
+**Accepts-violation:**
+    55ec35ddef -1354 extended with the #265 merge and -1355 folded into it, at the owner's word
+    73dfc3fec6 -1355 extended in place with the #266 merge
+    282f5b0dc5 -1355 extended in place with the 019c339d CI run cancelled at the owner's word
+    404783ae3a -1355 extended in place with the first CI of #265/#266
+    85ac753846 -1355 extended in place with the Seasonal test premise fix (#267)
+    11d5b259b0 stray backslashes removed from -1355
+    ca84097bd3 -1538's pre-main hashes updated in place
+**Decision:**
+- Leaving out a whole entry that would only repeat another stays the owner's choice, as practised.
+- News about an earlier entry goes in a new entry that continues it. No committed entry is edited.
+- Entries that are written carry the fields RECORDING.md lists for their kind: predictions on intents, the merge commit and backup on merges, and a terminal outcome of completed, partial, abandoned or superseded (not "done"). Entries before this one stay as written.
+**What it sets:** E-GD's check_record.py, from Test-1 at 6fa9d68, run on a throwaway clone at 501399f7, reported these seven beside the nine -1185 accepted; with this entry it lists all sixteen as accepted. Its 1,660 field errors (368 in entries from -1111 on) are not accepted; they are history. No records.json is written, since leaving out whole entries is not something the checker sees.
+**Notes:** Written by the planner by hand, on branch records-after-173, after reading E-GD at Test-1 6fa9d68. dc4ef1c1, on pre-main only, will need its own acceptance once pre-main is merged into this branch (E-GD 2026-10-17-16). Clio's operator-profile draft (E-GD 2026-10-17-20) is not written in Forager; it waits for the owner. Next free ID -1541.
