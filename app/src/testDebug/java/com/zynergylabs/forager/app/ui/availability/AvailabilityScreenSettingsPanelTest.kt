@@ -274,14 +274,14 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    // Was "…opens on the OpenTopoMap basemap…", asserting Basemap.OPEN_TOPO_MAP; the default became Street (dispatch
-    // 2026-10-18-04, Amendment 2; RECORD -1297).
-    fun `the map opens on the OpenStreetMap Street basemap, MapMode's default`() {
+    // Was "…opens on the OpenTopoMap basemap…", then "…on the OpenStreetMap Street basemap…" (RECORD -1297); the default
+    // became Forager Trail Map (dispatch 2026-10-22-01, RECORD -1554).
+    fun `the map opens on Forager Trail Map, MapMode's default`() {
         setScreen()
 
-        // Basemap.DEFAULT resolves through MapMode.DEFAULT (Street, via OpenStreetMap) —
+        // Basemap.DEFAULT resolves through MapMode.DEFAULT (Trail) —
         // see MapMode's own doc comment for why this changed from PR #13's USGS Topo default.
-        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
+        assertEquals(Basemap.FORAGER_TRAIL, capturedBasemap)
     }
 
     /**
@@ -386,7 +386,7 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
-    private val mapModeContentDescription = "Layers: Street map. Choose the map type and overlays."
+    private val mapModeContentDescription = "Layers: Trail map. Choose the map type and overlays."
 
     /**
      * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
@@ -437,13 +437,13 @@ class AvailabilityScreenSettingsPanelTest {
 
     @Test
     fun `tapping the quick-fire icon opens the Layers sheet, and a chip there changes the basemap while the sheet stays open`() {
-        // The map now opens on Street (dispatch 2026-10-18-04, Amendment 2), so the two chips are taken the other way
-        // round: Topographical first, then back to Street. It was Street first, then Topographical.
+        // The map opens on Trail (dispatch 2026-10-22-01), so Topo is taken first, then OSM, then back to Trail. Before
+        // that it opened on Street and went Topographical, then back to Street.
         setScreen()
-        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
+        assertEquals(Basemap.FORAGER_TRAIL, capturedBasemap)
 
         composeRule.onNodeWithContentDescription(mapModeContentDescription).performClick()
-        composeRule.onNodeWithText("Topographical").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Topo").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
         assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
@@ -453,11 +453,15 @@ class AvailabilityScreenSettingsPanelTest {
         // Satellite, which that dispatch removed, so it now goes back to Topographical and checks
         // that no Satellite chip is offered.
         composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
-        composeRule.onNodeWithText("Street").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("OSM").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
         assertNotEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
+        composeRule.onNodeWithText("Trail").assertIsDisplayed().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(Basemap.FORAGER_TRAIL, capturedBasemap)
     }
 
     @Test
@@ -617,7 +621,9 @@ class AvailabilityScreenSettingsPanelTest {
      * set to Topographical here, so a picker that followed the Layers choice would fail this, not only one pinned to Topo.
      */
     @Test
-    fun `the Offline Maps submenu always resolves the picker map to Street, even with the Maps tab on Topographical`() {
+    // Was "…resolves the picker map to Street…" (RECORD -1309); Forager Trail Map since dispatch 2026-10-22-01 Amendment 2
+    // (RECORD -1556: "Offline-maps picker: shows Forager Trail Map").
+    fun `the Offline Maps submenu always resolves the picker map to Forager Trail Map, even with the Maps tab on Topographical`() {
         setScreen(uiState = SEARCHED_STATE.copy(mapMode = MapMode.TOPOGRAPHIC))
         composeRule.waitForIdle()
         assertEquals("premise: the Maps tab's map is on Topographical", Basemap.OPEN_TOPO_MAP, capturedBasemap)
@@ -628,7 +634,7 @@ class AvailabilityScreenSettingsPanelTest {
         // doesn't guarantee it here.
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
 
-        assertEquals(Basemap.OSM_STANDARD, capturedOfflinePickerBasemap)
+        assertEquals(Basemap.FORAGER_TRAIL, capturedOfflinePickerBasemap)
     }
 
     /**

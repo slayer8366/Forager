@@ -133,12 +133,12 @@ class OfflineMapsPanelPickerTest {
     }
 
     /**
-     * Dispatch 2026-10-18-07 (Forager RECORD -1309; the owner: "Offline maps displays topo maps. Have it display the street
-     * map", then "Always be street."): the picker's map is handed Street, and only Street, from its first frame and after a
-     * pan, by day and by night. Read from what the map slot was given, not from the panel's source.
+     * Dispatch 2026-10-22-01 Amendment 2 (RECORD -1556: "Offline-maps picker: shows Forager Trail Map", superseding -1309's
+     * "Always be street."): the picker's map is handed Forager Trail Map, the map downloads are made in, and only that,
+     * from its first frame and after a pan, by day and by night. Read from what the map slot was given.
      */
     @Test
-    fun `the picker's map is always Street, by day and by night, before and after a pan`() {
+    fun `the picker's map is always Forager Trail Map, by day and by night, before and after a pan`() {
         val night = mutableStateOf(false)
         composeRule.setContent {
             OfflineMapsPanel(
@@ -155,12 +155,12 @@ class OfflineMapsPanelPickerTest {
             )
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(Basemap.OSM_STANDARD), map.basemaps.toList())
+        assertEquals(listOf(Basemap.FORAGER_TRAIL), map.basemaps.toList())
         panTheMap()
         composeRule.runOnIdle { night.value = true }
         composeRule.waitForIdle()
         assertTrue("the map must have been composed again at night", map.nightSeen)
-        assertEquals(listOf(Basemap.OSM_STANDARD), map.basemaps.toList())
+        assertEquals(listOf(Basemap.FORAGER_TRAIL), map.basemaps.toList())
     }
 
     /** F2's other half: before any pan, the late device centre does move the picker (today's behaviour, kept). */

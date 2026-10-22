@@ -35,13 +35,14 @@ class BasemapTest {
     private val minimumUsableMaxZoom = 13
 
     @Test
-    fun `the default basemap is OpenStreetMap's Street, derived from MapMode's default`() {
+    fun `the default basemap is Forager Trail Map, derived from MapMode's default`() {
         // Not USGS Topo (PR #13's original default, deleted from the catalogue entirely once
         // MapMode superseded it): MapMode.DEFAULT is Topographical via OpenStreetMap, because USGS
         // covers the United States only and a US-only opening basemap would break the map outright
         // for every user outside it. See MapMode's own doc comment.
-        // Was assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT): the opening map became Street (dispatch 2026-10-18-04, Amendment 2; RECORD -1297).
-        assertEquals(Basemap.OSM_STANDARD, Basemap.DEFAULT)
+        // Was assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT), then OSM_STANDARD (Street, RECORD -1297); the opening map
+        // became Forager Trail Map (dispatch 2026-10-22-01, RECORD -1554).
+        assertEquals(Basemap.FORAGER_TRAIL, Basemap.DEFAULT)
         assertEquals(MapMode.DEFAULT.basemap, Basemap.DEFAULT)
     }
 

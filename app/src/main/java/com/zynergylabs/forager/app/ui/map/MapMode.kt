@@ -1,8 +1,9 @@
 package com.zynergylabs.forager.app.ui.map
 
 /**
- * The two basemap looks a user picks between: Street and Topographical, both OpenStreetMap-derived,
- * from the Layers sheet's "Map type" row (`MapLayersSheet`) or the quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392).
+ * The basemap looks a user picks between, left to right on the Layers sheet's "Map type" row: Trail (Forager Trail
+ * Map), Topo and OSM (dispatch 2026-10-22-01, RECORD -1554, -1556: the chips read exactly "Trail", "Topo" and "OSM").
+ * Before that, two: Street and Topographical. Picked from the Layers sheet's "Map type" row (`MapLayersSheet`) or the quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392).
  * Replaced the deleted `MapService` entirely, per the project owner's own request.
  *
  * `MapService` used to split this choice into two decisions with two different lifetimes — which
@@ -33,17 +34,27 @@ enum class MapMode(
      */
     val storageKey: String,
 ) {
-    STREET(label = "Street", basemap = Basemap.OSM_STANDARD, storageKey = "street"),
-    TOPOGRAPHIC(label = "Topographical", basemap = Basemap.OPEN_TOPO_MAP, storageKey = "topographic"),
+    /**
+     * Forager Trail Map, the app's own map. It keeps the stored key "street" (dispatch 2026-10-22-01 Amendment 2, the
+     * planner's call in RECORD -1556, option (a) of the verify-first report): anyone with Street chosen before this
+     * update opens on Trail Map, with no special read and so nothing to log, and the move happens once because nothing
+     * ever writes "street" for OpenStreetMap again. The key's meaning moved on purpose; it still names a mode, so
+     * nothing stored is orphaned. With the old release switch on (#359), "street" already drew this map.
+     */
+    TRAIL(label = "Trail", basemap = Basemap.FORAGER_TRAIL, storageKey = "street"),
+    TOPOGRAPHIC(label = "Topo", basemap = Basemap.OPEN_TOPO_MAP, storageKey = "topographic"),
+
+    /** OpenStreetMap's raster map, online only (RECORD -1554). A new key, so a choice of it survives restarts. */
+    OPENSTREETMAP(label = "OSM", basemap = Basemap.OSM_STANDARD, storageKey = "openstreetmap"),
     ;
 
     companion object {
         /**
-         * Street: what the map opens on when nothing is stored (dispatch 2026-10-18-04, Amendment 2; the owner, "1 go",
-         * RECORD -1297). It was Topographical until then. A stored choice is kept, so anyone who picked Topographical
-         * still opens on it; only someone with nothing stored (a new install, or a user who never picked) opens on Street.
+         * Trail: what the map opens on when nothing is stored, or when the stored choice cannot be read (dispatch
+         * 2026-10-22-01, RECORD -1554: "New user → opens on Trail Map"). It was Street from -1297, and Topographical
+         * before that. A stored choice is kept, so anyone who picked Topographical still opens on it.
          */
-        val DEFAULT = STREET
+        val DEFAULT = TRAIL
 
         /**
          * Where a stored key that names no mode goes: Topographical. The case it was written for is a

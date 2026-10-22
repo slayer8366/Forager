@@ -35,8 +35,8 @@ package com.zynergylabs.forager.app.ui.map
  *
  * ## How a basemap actually gets chosen
  *
- * Not from this enum directly. [MapMode] names exactly two, Street and Topographical (both
- * OpenStreetMap-derived), picked from the Layers sheet's "Map type" row (`MapLayersSheet`) or the
+ * Not from this enum directly. [MapMode] names three since dispatch 2026-10-22-01 (RECORD -1554, -1556): Trail
+ * ([FORAGER_TRAIL], the app's own vector map), Topo and OSM, picked from the Layers sheet's "Map type" row (`MapLayersSheet`) or the
  * map's own quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392). See [MapMode]'s own doc comment for the full picture,
  * including what this superseded (a two-tier service/mode split, and PR #13's original USGS Topo
  * default), and for how the choice persists across restarts.
@@ -116,7 +116,39 @@ enum class Basemap(
      * the owner's "option c"); otherwise this is [attribution].
      */
     val fullAttribution: String = attribution,
+    /**
+     * Whether this basemap is a raster tile service, drawn from [tileUrlTemplate] by `styleJsonFor`. Every entry is,
+     * except [FORAGER_TRAIL], which is a vector style loaded by URL; where a raster stands in for it (the -1513
+     * fallback), `BasemapStyles.kt`'s `rasterDrawn` names which.
+     */
+    val isRaster: Boolean = true,
 ) {
+    /**
+     * Forager Trail Map: the app's own vector map, the style the owner's mapping Worker serves at
+     * `STREET_STYLE_URL` (dispatch 2026-10-22-01, RECORD -1554, -1556). The default map type, and the only one
+     * offline downloads are made in.
+     *
+     * **Why it is a [Basemap] entry at all** (Amendment 2 left the model to the coder). Every map in the app is
+     * handed a [Basemap], and [MapMode] and [Basemap] are one to one ([MapMode.forBasemap], used by the Journal's map;
+     * [DEFAULT], used by every map that is given none). Trail Map and OpenStreetMap are now both always offered, so
+     * they cannot share [OSM_STANDARD] as the two Streets did behind the release switch; an entry of its own keeps
+     * that one-to-one and needs no new parameter through the 26 places a [Basemap] is passed. Rejected: passing
+     * [MapMode] down instead, which would change every one of those signatures, `MapRenderMode` included, for the
+     * same information. The cost of this choice is that this entry is not a raster ([isRaster] `false`): the raster
+     * style builders never draw it directly, and its [tileUrlTemplate] is the Worker's vector tile URL, recorded as
+     * the fact it is, never put in a raster source.
+     *
+     * [maxZoom] is the owner's 18 (-1289); [attribution] is the Protomaps credit the offline style carries.
+     */
+    FORAGER_TRAIL(
+        label = "Forager Trail Map",
+        description = "Forager's own trail map, and the one offline areas are downloaded in.",
+        maxZoom = com.zynergylabs.forager.app.map.STREET_STYLE_MAX_ZOOM,
+        attribution = com.zynergylabs.forager.app.map.STREET_STYLE_ATTRIBUTION,
+        tileUrlTemplate = "https://forager-pmtiles.brandonlee1-894.workers.dev/us/{z}/{x}/{y}.mvt",
+        isRaster = false,
+    ),
+
     OPEN_TOPO_MAP(
         label = "OpenTopoMap",
         description = "Topographic contours and hillshading, worldwide.",
@@ -136,7 +168,7 @@ enum class Basemap(
 
     OSM_STANDARD(
         label = "OpenStreetMap",
-        description = "The standard street map: roads, paths and buildings.",
+        description = "OpenStreetMap's own standard map: roads, paths and buildings. Online only: never downloaded (RECORD -1554).",
         maxZoom = 19,
         attribution = "© OpenStreetMap contributors",
         tileUrlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",

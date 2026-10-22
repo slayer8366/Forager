@@ -217,7 +217,7 @@ class SourcesAndCreditsTest {
                 "licence ›",
                 "https://opentopomap.org/about",
             ),
-            ExpectedSource("protomaps", "Protomaps (offline maps)", "licence ›", "https://github.com/protomaps/basemaps"),
+            ExpectedSource("protomaps", "Protomaps (Forager Trail Map and offline maps)", "licence ›", "https://github.com/protomaps/basemaps"),
             ExpectedSource("open-meteo", "Weather data by Open-Meteo.com", "CC BY 4.0 ›", "https://open-meteo.com/en/licence"),
             ExpectedSource("inaturalist", "iNaturalist and its observers", "site ›", "https://www.inaturalist.org/"),
         )

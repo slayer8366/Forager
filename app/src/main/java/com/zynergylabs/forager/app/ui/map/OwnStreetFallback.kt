@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
-import com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
 
 /**
@@ -15,9 +14,10 @@ import com.zynergylabs.forager.app.map.STREET_STYLE_URL
  *   The limit, stated plainly: the Worker serves the style with a one-day cache, so with a warm cache a Worker that is
  *   down still gives a style that loads, and only the areas not seen before stay blank. This catches a cold or
  *   expired cache, not a warm one.
- * - **What it falls back to:** what the switch off draws ([mapStyleSourceFor] with `ownStreet = false`): OpenStreetMap's
- *   raster Street, and at Topographical night the raster style with OpenStreetMap below. The caption, the zoom limit and
- *   the navigation zoom read the same flag, so the credit is OpenStreetMap's and the limit its 19.
+ * - **What it falls back to:** [mapStyleSourceFor] with `ownStreet = false`: OpenStreetMap's raster in place of Forager
+ *   Trail Map, and at Topographical night the raster style with OpenStreetMap below. The caption, the zoom limit and
+ *   the navigation zoom read the same flag, so the credit is OpenStreetMap's and the limit its 19. Since dispatch
+ *   2026-10-22-01 Trail Map is one of three map types and the compile-time switch is gone; these rules are unchanged.
  * - **When our Street is tried again:** at the next cold start. The flag lives for the process, so the map never flips
  *   back and forth within a session, and the user is never left on a blank map by it.
  * - **Offline mode:** never falls back. Downloaded regions are drawn from MapLibre's offline store.
@@ -32,8 +32,12 @@ internal class OwnStreetFallback(private val log: (String) -> Unit = { Log.w(OWN
     /** Whether the own Street failed to load in this process. */
     val fellBack: Boolean get() = fellBackState.value
 
-    /** The switch as the map should use it now: [switch] unless the own Street has failed to load in this process. */
-    fun ownStreet(switch: Boolean = STREET_SERVED_BY_OWN_MAP): Boolean = effectiveOwnStreet(switch, fellBack)
+    /**
+     * Whether Trail Map draws now: `true` unless its style has failed to load in this process. [switch] was the release
+     * switch, removed by dispatch 2026-10-22-01; it stays a parameter, defaulting to `true`, only so this class's own
+     * tests are untouched by that change (the dispatch: don't touch this fallback's rules).
+     */
+    fun ownStreet(switch: Boolean = true): Boolean = effectiveOwnStreet(switch, fellBack)
 
     /**
      * MapLibre failed to load a style ([message] is its own) and [request] is what this MapView last asked for. Falls

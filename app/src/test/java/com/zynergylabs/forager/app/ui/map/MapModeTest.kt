@@ -12,16 +12,20 @@ import org.junit.Test
 class MapModeTest {
 
     @Test
-    fun `the default map mode is Street`() {
-        // Was "the default map mode is Topographical", asserting assertEquals(MapMode.TOPOGRAPHIC, MapMode.DEFAULT);
-        // the opening map became Street by the owner's ruling (dispatch 2026-10-18-04, Amendment 2; RECORD -1297). REPLACEMENT_FOR_UNKNOWN stays Topographical (below).
-        assertEquals(MapMode.STREET, MapMode.DEFAULT)
+    fun `the default map mode is Trail`() {
+        // Was "the default map mode is Street" (RECORD -1297); the opening map became Forager Trail Map (dispatch 2026-10-22-01,
+        // RECORD -1554: "New user → opens on Trail Map"). REPLACEMENT_FOR_UNKNOWN stays Topographical (below).
+        assertEquals(MapMode.TRAIL, MapMode.DEFAULT)
+        assertEquals(Basemap.FORAGER_TRAIL, Basemap.DEFAULT)
     }
 
     @Test
     fun `each mode resolves to its own fixed basemap`() {
-        assertEquals(Basemap.OSM_STANDARD, MapMode.STREET.basemap)
+        assertEquals(Basemap.FORAGER_TRAIL, MapMode.TRAIL.basemap)
         assertEquals(Basemap.OPEN_TOPO_MAP, MapMode.TOPOGRAPHIC.basemap)
+        assertEquals(Basemap.OSM_STANDARD, MapMode.OPENSTREETMAP.basemap)
+        // The Journal's map reads the mode back from the basemap (JournalTab), so the lookup must hold both ways.
+        MapMode.entries.forEach { assertEquals(it, MapMode.forBasemap(it.basemap)) }
     }
 
     @Test
@@ -42,13 +46,13 @@ class MapModeTest {
     }
 
     /**
-     * Dispatch 2026-09-28-708: the map offers exactly Street and Topographical. Replaces "only Satellite
-     * resolves to a USGS basemap" and "only Satellite is US-only coverage", whose subject is gone.
+     * Dispatch 2026-10-22-01 Amendment 2 (RECORD -1556): the chips read exactly "Trail", "Topo" and "OSM", in that
+     * order, left to right. Was "the modes are Street and Topographical, in that order" (dispatch 2026-09-28-708).
      */
     @Test
-    fun `the modes are Street and Topographical, in that order`() {
-        assertEquals(listOf(MapMode.STREET, MapMode.TOPOGRAPHIC), MapMode.entries.toList())
-        assertEquals(listOf("Street", "Topographical"), MapMode.entries.map { it.label })
+    fun `the modes are Trail, Topo and OSM, in that order`() {
+        assertEquals(listOf(MapMode.TRAIL, MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP), MapMode.entries.toList())
+        assertEquals(listOf("Trail", "Topo", "OSM"), MapMode.entries.map { it.label })
     }
 
     /**
@@ -57,8 +61,10 @@ class MapModeTest {
      */
     @Test
     fun `each mode is stored under a fixed key, and reads back from it`() {
-        assertEquals("street", MapMode.STREET.storageKey)
+        // Trail keeps "street", so Street chosen before the update opens on Trail (RECORD -1556, option (a)).
+        assertEquals("street", MapMode.TRAIL.storageKey)
         assertEquals("topographic", MapMode.TOPOGRAPHIC.storageKey)
+        assertEquals("openstreetmap", MapMode.OPENSTREETMAP.storageKey)
         MapMode.entries.forEach { assertEquals(it, MapMode.forStoredKey(it.storageKey)) }
     }
 

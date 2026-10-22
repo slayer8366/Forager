@@ -168,8 +168,6 @@ internal fun OfflineRegionRow(
     onClick: (() -> Unit)? = null,
     /** What "Download again" does on a region restored from a backup ([OfflineRegionSummary.isDownloaded] `false`); unused for a downloaded one. */
     onDownloadAgain: (() -> Unit)? = null,
-    /** The release switch (`STREET_SERVED_BY_OWN_MAP`); a parameter only so a test can show the row both ways. */
-    ownStreet: Boolean = com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP,
 ) {
     val parts = offlineRegionRowParts(region, distanceUnit, nowEpochMillis)
     Row(
@@ -199,8 +197,8 @@ internal fun OfflineRegionRow(
                 }
             }
             // RECORD -1294: a region built against an older map style keeps drawing, and says so in one line. Nothing is
-            // re-downloaded for the user. Never shown while the own Street is off (StreetStyle.kt), which is today.
-            if (regionHasOlderMapStyle(region.styleUrl, region.isDownloaded, ownStreet)) {
+            // re-downloaded for the user. Shown on every region downloaded before Forager Trail Map (dispatch 2026-10-22-01).
+            if (regionHasOlderMapStyle(region.styleUrl, region.isDownloaded)) {
                 Text(
                     OLDER_MAP_STYLE_NOTICE,
                     style = MaterialTheme.typography.bodySmall,

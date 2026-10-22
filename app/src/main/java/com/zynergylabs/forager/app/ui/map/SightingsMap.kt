@@ -586,11 +586,14 @@ fun SightingsMap(
     // Every MapLibre listener, registered once in the map-ready callback: MapListeners.kt.
     MapListeners(state = sightingsMapState, resources = resources, fanSpace = fanSpace)
 
+    // OSM or Topo with no signal draws Trail Map from the downloads (NoSignalTrailMap.kt, dispatch 2026-10-22-01).
+    val drawFromDownloads = rememberDrawsFromDownloads(useOfflineTiles, basemap)
+
     // Style swap (Stage 2e-ii, colour build C1): MapStyleReload.kt.
     MapStyleReload(
         state = sightingsMapState,
         basemap = basemap,
-        useOfflineTiles = useOfflineTiles,
+        useOfflineTiles = drawFromDownloads,
         nightMode = nightMode,
         nightModeLoaded = nightModeLoaded,
         trackLiveLocation = trackLiveLocation,
@@ -738,7 +741,7 @@ fun SightingsMap(
         state = sightingsMapState,
         modifier = modifier,
         basemap = basemap,
-        useOfflineTiles = useOfflineTiles,
+        useOfflineTiles = drawFromDownloads,
         drawnLayersState = drawnLayersState,
         nightMode = nightMode,
         bottomInset = bottomInset,
