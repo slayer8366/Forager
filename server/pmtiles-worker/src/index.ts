@@ -460,7 +460,7 @@ export default {
       return streetStyleResponse(resolveAllowedOrigin(request, env));
     }
 
-    if (url.pathname === "/style/street-v2.json") {
+    if (url.pathname === "/style/street-v2-reverted.json") {
       return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV2);
     }
 
