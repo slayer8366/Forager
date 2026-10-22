@@ -26627,3 +26627,27 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 **Timestamp:** 2026-10-22T04:13:36Z
 **Title:** The Pi keeps only the latest build's route squares; older sets aren't kept (owner)
 **Notes:** Aspen (Pi planner) noted that build-usca.sh's publish step deletes the previous build's BRouter .rd5 squares, so only the latest set exists, and asked whether that should change. The owner, verbatim: "Older sets aren't needed. Space is an issue at the moment until I get my new machine". So nothing changes on the Pi. Cut-on-request (-1543) cuts from the latest set. A phone keeps the piece it downloaded, so an older piece on a phone doesn't depend on its set still being on the Pi (planner's inference, to be checked when the phone side is designed). Relayed to Aspen. Written by the planner by hand. Next free ID -1545.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1545
+**Timestamp:** 2026-10-22T04:23:51Z
+**Continues:** 2026-09-28-1543
+**Title:** Route cutter Phase 1 report: the cutter is TypeScript beside the Worker; the proof needs a new CI job; BRouter quietly snaps or detours past the cut's edge
+**Observed:** Hazel's report is docs/navigation/2026-10-21-route-cutter-phase1-report.md on route-cutter at f31ab491. Bases unmoved. Nothing was built.
+- **Format, read at BRouter v1.7.10:** a cutter rewrites only the header, the touched tile indexes and the footer, and copies cells byte for byte. Its checksum is the inverse of CRC-32.
+- **Where:** TypeScript modules in server/pmtiles-worker/src/rd5/ that read through a byte-range interface. The Worker can't run a JVM. One tsconfig.json line is needed.
+- **Proof:** it can't run in CI unchanged; the planner confirmed ci.yml has no Node step. Hazel proposes one parallel ci.yml job of about 45 lines, using the Pi's pinned BRouter 1.7.10 jar (the planner confirmed pi-build map-build/pins.env:54-60). Cost estimated at 1–2 runner-minutes per push, not measured.
+- **Fixture:** a sparse .rd5 of about 0.1–0.3 MB built by BRouter's own creator from a roughly 20 km OpenStreetMap clip, with an ODbL notice.
+**Prediction (mechanism — coder), Hazel's, verbatim in substance:**
+- Over a stub, every test fails on "not implemented".
+- Routes that stay inside come out identical: length, cost and points.
+- Removing the one-cell margin makes an edge route differ; that is the revert check.
+- Under BRouter's default "dynamic range" matching, a route with an end outside the cut succeeds, snapped to the nearest way up to 60 km away. A best path that leaves the cut succeeds with a detour. A clean failure needs use_dynamic_range=0.
+**Wrong premises found:**
+- The dispatch's "fails cleanly … not a wrong route" is false under the default profile.
+- Juniper's "position not mapped" for an outside end is the error after the dynamic retry, not the default result.
+- The spike compared lengths only, not points; the planner re-read :186.
+- The 10 km size prediction can't be measured by a CI fixture.
+**Notes:** Privacy, raised by Juniper and Hazel: a cut on request names the area to the server. The planner read wrangler.toml:7-11: Worker logs are off because tile URLs already name the areas users look at, so a cut URL is the same exposure under the same setting (planner's reading). Written by the planner by hand. Next free ID -1546.
