@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.stateIn
  * blank, as offline mode is today. A user whose only areas predate Trail Map sees them in the older offline style.
  */
 internal fun drawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, noSignal: Boolean, trailMapDraws: Boolean = true): Boolean =
-    useOfflineTiles || (noSignal && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws))
+    useOfflineTiles || (noSignal && basemap != Basemap.FORAGER_TRAIL)
 
 /**
  * The "no signal" state the maps read, after the hysteresis ([noSignalWithHysteresis]). `null` where nothing provides
