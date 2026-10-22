@@ -192,6 +192,18 @@ async function resolveRemoteBuildUrl(ctx: ExecutionContext): Promise<string> {
   );
 }
 
+/**
+ * The latitude of tile row [y]'s north edge at zoom [z] (Web Mercator). Dispatch 2026-10-22-01 Amendment 4: once
+ * us.json's south bound was widened for the world fill (Amendment 3), MapLibre asks for z15 tiles south of the
+ * archive too, and the overflow would read each one live from Protomaps' build and write it into R2. The owner,
+ * asked "South of 16°N at zoom 15, the server would fetch tiles live from the public map provider. Stop that?",
+ * chose "Stop it". So a tile lying wholly south of the archive's own header minLat (not the widened TileJSON bound)
+ * answers 204, as z9-14 do there. A tile that reaches north of minLat keeps the overflow, unchanged.
+ */
+export function tileNorthLat(z: number, y: number): number {
+  return (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** z))) * 180) / Math.PI;
+}
+
 function overflowCacheKey(name: string, z: number, x: number, y: number, ext: string): string {
   return `overflow/${name}/${z}/${x}/${y}.${ext}`;
 }
@@ -519,6 +531,10 @@ export default {
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
         if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
+          // Dispatch 2026-10-22-01 Amendment 4 (the owner: "Stop it"): never south of the archive's own bounds.
+          if (tileNorthLat(tile[0], tile[2]) <= pHeader.minLat) {
+            return cacheableResponse(undefined, cacheableHeaders, 204);
+          }
           return await overflowTileResponse(env, ctx, name, tile, ext, cacheableHeaders, cacheableResponse);
         }
         return cacheableResponse(undefined, cacheableHeaders, 404);
