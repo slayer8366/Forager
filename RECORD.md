@@ -26582,3 +26582,24 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 **Finish line:** the report pushed with an evidence folder, every claim marked read, computed or inferred, with the four disclosure sections; Juniper reports back and stops. The planner brings it to the owner before any build.
 **Abort conditions:** a base moved in a way that changes a question; a question answerable only by running the Pi, uploading or bulk downloading; anything needing an account or agreement.
 **Notes:** Written by the planner by hand. Dispatch prompts/preserved/2026-10-21-06.md. Step 1's Street switch (#359) stays held for Aspen's rebuild (-1514). Next free ID -1542.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1542
+**Timestamp:** 2026-10-22T04:10:44Z
+**Closes:** 2026-09-28-1541
+**Outcome:** completed
+**Observed:** Juniper's report is at docs/navigation/2026-10-21-route-data-report.md (7f21890c, method commit d0224856 first), filed here by fast-forward. Its main findings:
+- Today an offline area holds map tiles only.
+- The Pi's BRouter squares are 5 degrees each and never uploaded; Seattle's W125_N45 is 54.9 MB (read at pi-build docs/audits/2026-10-19-usca-routing-bands-report.md:133).
+- BRouter finds files by square, but each holds cells of about 3.5 x 2.4 km, and a square holding only an area's cells is legal: the engine spike routed identically on 0.64 MB for 60 x 60 km (pre-main docs/navigation/2026-10-03-engine-spike-report.md:182-184, re-read by the planner).
+- Computed per-area route data: 0.10-0.17 MB at the 8 km default radius, up to 0.51-0.84 MB at 24 km. A whole square is 54.9 MB, and two squares near 45 N or 120 W.
+- No tool exists that cuts an existing square, and the Worker serves no route data.
+Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only the latest kept. Those are marked relayed in the report.
+**Deviations:**
+- The outcome prediction was half right. Squares are found by name, but cutting to an area is legal in the format and was already done once in the spike.
+- The "about 1 MB per area" estimate behind -1498 is 5 to 8 times high at the default radius.
+- One premise relayed mid-task was wrong and withdrawn: the planner told Juniper pi-build might be superseded, and Aspen corrected it (the map repo holds records only).
+- The dispatch's baseline named records-after-173 at a97e890c; Juniper found it at 36a2fc39, the dispatch's own commit.
+**Notes:** Written by the planner by hand. The owner's choice of how to cut comes next. Next free ID -1543.
