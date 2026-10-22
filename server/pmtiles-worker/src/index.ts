@@ -285,6 +285,39 @@ export function archiveNameFromTileJsonUrl(url: string): string {
   return match[1];
 }
 
+/**
+ * The TileJSON [bounds] for the Street archive while the world fill can answer (dispatch 2026-10-22-01 Amendment 3).
+ * MapLibre Native never requests a tile outside a source's TileJSON `bounds` (`tile_pyramid.cpp:178-188` at
+ * android-v13.5.0, the app's pinned version), and us.pmtiles's header stops at about 15.92°N, so without this the app
+ * never asks for a tile the fill could serve. The south bound becomes the world archive's own (its header's minLat,
+ * -85.05 on the uploaded file); west, east and north stay as the Street archive's header gives them.
+ *
+ * Only while the world archive is on R2: presence is one R2 `head` of its key at TileJSON time (the TileJSON is then
+ * cached at the edge for a day, so this is not per tile). Absent, or a tile type the fill would refuse, the bounds are
+ * returned unchanged and a warning is logged.
+ */
+async function worldFillBounds(env: Env, bounds: number[], streetTileType: TileType): Promise<number[]> {
+  const key = pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH);
+  try {
+    if (!(await env.BUCKET.head(key))) {
+      console.warn(`World fill bounds skipped: ${key} is not on R2; the TileJSON keeps the Street archive's bounds`);
+      return bounds;
+    }
+    const header = await new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress).getHeader();
+    if (header.tileType !== streetTileType) {
+      console.warn(`World fill bounds skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}; the TileJSON keeps the Street archive's bounds`);
+      return bounds;
+    }
+    return [bounds[0], Math.min(bounds[1], header.minLat), bounds[2], bounds[3]];
+  } catch (e) {
+    if (e instanceof KeyNotFoundError) {
+      console.warn(`World fill bounds skipped: ${key} vanished during the read; the TileJSON keeps the Street archive's bounds`);
+      return bounds;
+    }
+    throw e;
+  }
+}
+
 /** The Street archive: the one the bundled Street style draws from. */
 export const STREET_ARCHIVE_NAME = archiveNameFromTileJsonUrl(streetStyle.sources.protomaps.url);
 
@@ -476,7 +509,11 @@ export default {
         // Advertise the overflow ceiling, not just the local archive's own maxzoom, so MapLibre's
         // OfflineManager knows tiles are actually servable past 14 — see the overflow block above.
         const declaredMaxZoom = typeof t.maxzoom === "number" ? t.maxzoom : pHeader.maxZoom;
-        const advertised = { ...t, maxzoom: Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) };
+        const advertised: Record<string, unknown> = { ...t, maxzoom: Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) };
+        // The world fill is only reachable if the bounds cover it (worldFillBounds, dispatch 2026-10-22-01 Amendment 3).
+        if (name === STREET_ARCHIVE_NAME && Array.isArray(t.bounds) && t.bounds.length === 4) {
+          advertised.bounds = await worldFillBounds(env, t.bounds as number[], pHeader.tileType);
+        }
         return cacheableResponse(JSON.stringify(advertised), cacheableHeaders, 200);
       }
 
