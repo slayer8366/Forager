@@ -39,12 +39,6 @@ internal data class CreditedLibrary(
     val versions: Map<String, String> = emptyMap(),
     val note: String? = null,
     val notices: List<CreditedNotice> = emptyList(),
-    /**
-     * `true` for what only the own Street map uses (its label font and its icons; dispatch 2026-10-18-05 Part 2):
-     * listed only while [com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP] is on, so the page never credits
-     * something the app does not show. Off today.
-     */
-    val onlyWithOwnStreetMap: Boolean = false,
 )
 
 /** A notice reproduced word for word: a NOTICE file from a shipped artifact ([module] and [path]), or a project's own notices file. */
@@ -79,12 +73,14 @@ internal object SoftwareCredits {
      */
     fun groups(
         catalog: SoftwareCatalog,
-        ownStreet: Boolean = com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP,
         readText: (String) -> String,
     ): List<LicenceGroup> {
         val known = catalog.licences.map { it.id }.toSet()
         catalog.libraries.firstOrNull { it.licence !in known }?.let { error("\"${it.name}\" names licence ${it.licence}, which the list does not have") }
-        val shown = catalog.libraries.filter { ownStreet || !it.onlyWithOwnStreetMap }
+        // Forager Trail Map's font and icons used to be listed only while the release switch was on (`onlyWithOwnStreetMap`,
+        // dispatch 2026-10-18-05 Part 2). The switch is gone and Trail Map is always offered (dispatch 2026-10-22-01), so
+        // every entry is listed and the flag went with it.
+        val shown = catalog.libraries
         fun read(path: String): String = readText("$DIRECTORY/$path").also { require(it.isNotBlank()) { "$DIRECTORY/$path is blank" } }
         return catalog.licences.mapNotNull { licence ->
             val libraries = shown.filter { it.licence == licence.id }

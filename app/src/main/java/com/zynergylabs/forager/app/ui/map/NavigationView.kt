@@ -161,10 +161,10 @@ const val NAVIGATION_VIEW_ZOOM = 18.0
 fun navigationMaxZoom(
     basemap: Basemap,
     navigating: Boolean,
-    /** The switch as the map uses it (`OwnStreetFallback`, RECORD -1513); a parameter also so a test can drive both values. */
-    ownStreet: Boolean = com.zynergylabs.forager.app.map.STREET_SERVED_BY_OWN_MAP,
+    /** Whether Trail Map draws in this process (`OwnStreetFallback`, RECORD -1513); a parameter so a test can drive both. */
+    ownStreet: Boolean = true,
 ): Double {
-    // The operating limit: the basemap's own, or the own Street's 18 when it draws Street (dispatch 2026-10-18-05).
+    // The operating limit: Trail Map 18, OpenStreetMap 19, Topographical 17 ([operatingMaxZoom]).
     val limit = operatingMaxZoom(basemap, ownStreet).toDouble()
     return if (navigating) maxOf(limit, NAVIGATION_VIEW_ZOOM) else limit
 }

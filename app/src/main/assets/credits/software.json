@@ -330,13 +330,12 @@
       ]
     },
     {
-      "name": "The Street map's icons, from Mapzen's tangrams icon set",
+      "name": "Forager Trail Map's icons, from Mapzen's tangrams icon set",
       "licence": "MIT",
       "credit": [
         "Copyright (c) 2017 Mapzen"
       ],
-      "note": "Served with the Street map by Forager's own map server, as Protomaps publishes them (github.com/protomaps/basemaps-assets).",
-      "onlyWithOwnStreetMap": true
+      "note": "Served with Forager Trail Map by Forager's own map server, as Protomaps publishes them (github.com/protomaps/basemaps-assets)."
     },
     {
       "name": "The Public Suffix List, inside OkHttp",
@@ -364,13 +363,12 @@
       ]
     },
     {
-      "name": "Noto Sans, the Street map's labels",
+      "name": "Noto Sans, Forager Trail Map's labels",
       "licence": "OFL-1.1",
       "credit": [
         "Copyright 2022 The Noto Project Authors (https://github.com/notofonts)"
       ],
-      "note": "The map's labels are drawn from Noto Sans Regular, Medium and Italic glyphs, served by Forager's own map server with the licence beside them; the glyph files are Protomaps' (github.com/protomaps/basemaps-assets), made from the Noto fonts.",
-      "onlyWithOwnStreetMap": true
+      "note": "The map's labels are drawn from Noto Sans Regular, Medium and Italic glyphs, served by Forager's own map server with the licence beside them; the glyph files are Protomaps' (github.com/protomaps/basemaps-assets), made from the Noto fonts."
     }
   ]
 }

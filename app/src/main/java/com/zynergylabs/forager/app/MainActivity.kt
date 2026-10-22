@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -66,12 +67,16 @@ import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
-import com.zynergylabs.forager.app.ui.theme.ForagerTheme
+import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
+import com.zynergylabs.forager.app.ui.map.noSignalState
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val container: AppContainer get() = (application as ForagerApplication).container
+
+    /** No signal for the maps (dispatch 2026-10-22-01, NoSignalTrailMap.kt), for this Activity's life. */
+    private val noSignal by lazy { noSignalState(applicationContext, lifecycleScope) }
 
     /**
      * The real [ErrorLog] production wires in — see that interface's own doc comment for why
@@ -355,7 +360,7 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            ForagerTheme(darkTheme = effectiveDarkTheme) {
+            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()

@@ -1,24 +1,17 @@
 package com.zynergylabs.forager.app.map
 
 /**
- * Forager's own Street map: a vector style served by the owner's mapping Worker, in place of OpenStreetMap's
- * raster tiles (dispatch 2026-10-18-05 Part 2; RECORD -1281, -1282, -1297, -1300, -1302).
+ * Forager Trail Map: the app's own vector map, served by the owner's mapping Worker (dispatch 2026-10-18-05 Part 2;
+ * RECORD -1281, -1297, -1300, -1302), and since dispatch 2026-10-22-01 (RECORD -1554, -1556) one of three map types,
+ * the default, beside OpenStreetMap's raster map and Topographical. Earlier this file's identifiers called it "Street".
  *
- * **The release switch.** [STREET_SERVED_BY_OWN_MAP] is the one place that decides which Street the app draws,
- * at compile time. The owner's ruling (-1282): Street uses the Cloudflare map "if it is ready and passes its phone
- * check before the release build"; otherwise Street ships on OpenStreetMap's raster tiles, and "nothing switches
- * while the app is in use". So nothing reads the network to decide it, and there is no fallback at run time: with
- * the switch on, a Worker that does not answer is an ordinary map load failure.
+ * **The release switch is gone.** `STREET_SERVED_BY_OWN_MAP` decided at compile time whether "Street" was this map or
+ * OpenStreetMap's raster. With both always offered there is nothing left for it to decide, so it was removed rather
+ * than left `true` (#359, which flipped it, is superseded). What it decided at run time is now the -1513 fallback
+ * alone (`OwnStreetFallback`): Trail Map draws unless its style failed to load in this process.
  *
- * It is `false`, raster, and stays so until the owner approves flipping it: after the Worker is deployed, the
- * phone review has passed, and Alaska and Hawaii are covered (-1300 (3)). With it `false` every function here
- * gives exactly what the app did before this file existed: [offlineDownloadStyleUrl] is [OFFLINE_STYLE_URL],
- * [offlineRenderStyleUrl] is [OFFLINE_STYLE_URL], and no region is ever older than the current style.
- *
- * The functions take the switch as a parameter, defaulting to the constant, so a unit test can drive both
- * values; production callers pass nothing.
+ * Offline downloads are Trail Map only (-1554): no OpenStreetMap tile is ever stored, its tile policy forbids it.
  */
-internal const val STREET_SERVED_BY_OWN_MAP: Boolean = false
 
 /**
  * The Street style document, served by the Worker at `/style/street-v1.json` (`server/pmtiles-worker`), built by
@@ -40,35 +33,36 @@ internal const val STREET_STYLE_ATTRIBUTION = OFFLINE_STYLE_ATTRIBUTION
  */
 internal const val STREET_STYLE_MAX_ZOOM = 18
 
-/** The style a new offline download is built against: the own Street style with the switch on, [OFFLINE_STYLE_URL] otherwise. */
-internal fun offlineDownloadStyleUrl(ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP): String =
-    if (ownStreet) STREET_STYLE_URL else OFFLINE_STYLE_URL
+/**
+ * The style a new offline download is built against: Trail Map's, whatever map type is showing (RECORD -1554: "Offline
+ * downloads → Trail Map only"). A function rather than the constant so the one rule has one name at its two readers.
+ */
+internal fun offlineDownloadStyleUrl(): String = STREET_STYLE_URL
 
 /**
  * The style the map loads when "use offline tiles" is on, from the style URLs the downloaded regions were built
- * against ([downloadedStyleUrls], read from MapLibre's own region definitions).
+ * against ([downloadedStyleUrls], read from MapLibre's own region definitions). Also what Trail Map is drawn with for an
+ * OpenStreetMap or Topographical user with no signal (`NoSignalTrailMap.kt`, RECORD -1556).
  *
  * The store serves a style only under the URL a region stored it with, so the map can only load a style some region
- * holds. With the switch on and at least one region in the Street style, that is the Street style: the tiles every
+ * holds. With at least one region in the Trail Map style, that is the Trail Map style: the tiles every
  * region holds are the same tile URLs under either style, and the fonts and icons a Street download stores are shared
  * by URL, so the older regions draw in it too. With no Street region yet, it is [OFFLINE_STYLE_URL], the style every
- * older region holds, so they keep drawing exactly as they did (-1294). With the switch off it is always
- * [OFFLINE_STYLE_URL].
+ * older region holds, so they keep drawing exactly as they did (-1294).
  */
-internal fun offlineRenderStyleUrl(downloadedStyleUrls: Collection<String?>, ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP): String =
-    if (ownStreet && STREET_STYLE_URL in downloadedStyleUrls) STREET_STYLE_URL else OFFLINE_STYLE_URL
+internal fun offlineRenderStyleUrl(downloadedStyleUrls: Collection<String?>): String =
+    if (STREET_STYLE_URL in downloadedStyleUrls) STREET_STYLE_URL else OFFLINE_STYLE_URL
 
 /**
  * Whether a region's row shows the -1294 notice ([OLDER_MAP_STYLE_NOTICE]): a downloaded region built against a
  * style other than the one a download would use now. A region whose style URL is unknown (`null`: not downloaded on
  * this phone, or a definition that names no URL) never shows it: the notice is a fact about the region, never a
- * guess. With the switch off, every region was built against today's download style, so none shows it.
+ * guess. Every region downloaded before Trail Map (in `offline.json`) shows it.
  */
 internal fun regionHasOlderMapStyle(
     regionStyleUrl: String?,
     isDownloaded: Boolean,
-    ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP,
-): Boolean = isDownloaded && regionStyleUrl != null && regionStyleUrl != offlineDownloadStyleUrl(ownStreet)
+): Boolean = isDownloaded && regionStyleUrl != null && regionStyleUrl != offlineDownloadStyleUrl()
 
 /**
  * The one-line notice on an older region (-1294; the wording offered in the Part 1 report, question 5, and accepted

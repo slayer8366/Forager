@@ -254,16 +254,14 @@ private const val TAG = "MapLibreOfflineMapRepo"
 /**
  * The style "use offline tiles" should load now ([offlineRenderStyleUrl]), from the style URLs MapLibre's own region
  * definitions record (`OfflineRegion.getDefinition().getStyleURL()`, checked with `javap` at the pinned `13.5.0`).
- * With the own Street off it is [OFFLINE_STYLE_URL] and the store is not read at all, so today's map is untouched.
  * A failed read is logged and gives [OFFLINE_STYLE_URL], the style every region downloaded before the own Street
  * holds (CLAUDE.md: no fallback that is not logged when it fires).
  */
-internal suspend fun currentOfflineRenderStyleUrl(context: Context, ownStreet: Boolean = STREET_SERVED_BY_OWN_MAP): String {
-    if (!ownStreet) return OFFLINE_STYLE_URL
+internal suspend fun currentOfflineRenderStyleUrl(context: Context): String {
     return try {
         initializeMapLibre(context.applicationContext)
         val urls = OfflineManager.getInstance(context.applicationContext).listOfflineRegionsSuspend().map { it.definition.styleURL }
-        offlineRenderStyleUrl(urls, ownStreet)
+        offlineRenderStyleUrl(urls)
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {

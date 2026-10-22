@@ -65,7 +65,7 @@ internal fun MapStyleReload(
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
         // right one. The map shows MapLibre's own blank until then.
-        // With the own Street off (STREET_SERVED_BY_OWN_MAP), this is OFFLINE_STYLE_URL without reading the store.
+        // useOfflineTiles is also on for OSM or Topo with no signal (NoSignalTrailMap.kt): the regions' own style either way.
         val offlineStyleUrl = if (useOfflineTiles) currentOfflineRenderStyleUrl(context) else OFFLINE_STYLE_URL
         val requested = requestedMapStyle(
             basemap = basemap,
