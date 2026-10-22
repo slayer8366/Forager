@@ -512,7 +512,6 @@ export default {
         const advertised: Record<string, unknown> = { ...t, maxzoom: Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) };
         // The world fill is only reachable if the bounds cover it (worldFillBounds, dispatch 2026-10-22-01 Amendment 3).
         if (name === STREET_ARCHIVE_NAME && Array.isArray(t.bounds) && t.bounds.length === 4) {
-          advertised.bounds = await worldFillBounds(env, t.bounds as number[], pHeader.tileType);
         }
         return cacheableResponse(JSON.stringify(advertised), cacheableHeaders, 200);
       }
