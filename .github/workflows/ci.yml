@@ -649,3 +649,61 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with: { name: route-cutter-junit, path: route-cutter-junit.xml, if-no-files-found: error }
+
+  # The tile Worker's route tests (server/pmtiles-worker/test/worker.test.mjs), run against dist/index.js, the bundle
+  # the owner pastes into the dashboard (dispatch 2026-10-22-01 Amendment 2, RECORD -1556: the owner, "Yes, add it").
+  # No Gradle. The build is wrangler's dry run, which needs no Cloudflare login and deploys nothing. Its log is kept,
+  # so a run whose bundle did not build is never read as a test result (CLAUDE.md, the revert-runner rules). Counts
+  # come from the JUnit XML, and a file with no tests is a failure, as in route-cutter above.
+  pmtiles-worker:
+    name: Tile Worker serves what its tests say
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server/pmtiles-worker
+    env:
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.22.1" }
+      - name: Install the locked dependencies
+        run: npm ci
+      - name: Build the bundle (wrangler dry run)
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee worker-build.log
+          test -s dist/index.js || { echo "::error::No dist/index.js: the bundle did not build."; exit 1; }
+      - name: Run the Worker's tests
+        run: >-
+          node --test --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=junit --test-reporter-destination=pmtiles-worker-junit.xml
+          test/worker.test.mjs
+      - name: Summarize from the JUnit XML
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, sys, xml.etree.ElementTree as ET
+          if not os.path.exists("pmtiles-worker-junit.xml"):
+              sys.exit("No pmtiles-worker-junit.xml: the tests produced no results, which is a failure.")
+          cases = list(ET.parse("pmtiles-worker-junit.xml").getroot().iter("testcase"))
+          failed = [c.get("name") for c in cases if c.find("failure") is not None or c.find("error") is not None]
+          skipped = sum(1 for c in cases if c.find("skipped") is not None)
+          line = f"Tile Worker: {len(cases)} tests, {len(failed)} failed, {skipped} skipped"
+          print(line)
+          for name in failed: print(f"FAILED: {name}")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(f"### {line}\n")
+              for name in failed: f.write(f"- failed: {name}\n")
+          if not cases or failed or skipped:
+              sys.exit("No tests ran, or a test failed or was skipped.")
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: pmtiles-worker-results
+          path: |
+            server/pmtiles-worker/pmtiles-worker-junit.xml
+            server/pmtiles-worker/worker-build.log
+          if-no-files-found: warn
