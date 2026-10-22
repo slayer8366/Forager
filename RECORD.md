@@ -26651,3 +26651,17 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 - The spike compared lengths only, not points; the planner re-read :186.
 - The 10 km size prediction can't be measured by a CI fixture.
 **Notes:** Privacy, raised by Juniper and Hazel: a cut on request names the area to the server. The planner read wrangler.toml:7-11: Worker logs are off because tile URLs already name the areas users look at, so a cut URL is the same exposure under the same setting (planner's reading). Written by the planner by hand. Next free ID -1546.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1546
+**Timestamp:** 2026-10-22T04:25:35Z
+**Continues:** 2026-09-28-1545
+**Title:** Route cutter Phase 2 goes ahead with the new CI job; a route leaving the downloaded area is refused with a plain notice, never drawn quietly (owner)
+**Decision:**
+- **To "Go for Hazel to build the cutter and its test, including the one new GitHub check job":** "Yes, build it (Recommended)". The option read: "Cutter + test + new check job on its own branch; PR into pre-main, reviewed by Sorrel, merged only on your word". The planner's go for Phase 2 follows, and includes the ci.yml job and the tsconfig.json line as Hazel's report states them.
+- **To "When a route would run past the edge of your downloaded area, what should the app do?":** "Say so plainly (Recommended)". The option read: "No route drawn; a notice: 'This route leaves your downloaded area. Download a larger area to route there.' Wording confirmed as a step path before the phone part".
+- **What follows for the app (step 4 on):** routing on a cut runs with dynamic-range matching off, or an equivalent check, so that an end or a best path outside the area fails instead of snapping or detouring. The notice's wording comes back to the owner as a step path before the phone part.
+- **For this dispatch:** the tests assert both behaviours: the default, as BRouter actually behaves, and the clean failure with use_dynamic_range=0.
+**Notes:** Written by the planner by hand. Next free ID -1547.
