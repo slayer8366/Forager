@@ -26899,3 +26899,25 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 **Title:** The Worker has no automatic deploys: GitHub is disconnected (owner)
 **Observed:** the owner, verbatim: "No automatic deployments set up right now. I disconnected github". Every Worker change is now a hand deploy from the CI artifact `pmtiles-worker-dist`. A pre-main promotion to main no longer redeploys the Worker, so the -1316 caution no longer applies. -1300 (7)'s "turned back on once main has the code" is still open, for the owner.
 **Notes:** Written by the planner by hand. Next free ID -1561.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1561
+**Timestamp:** 2026-10-22T22:50:52Z
+**Continues:** 2026-09-28-1294, dispatch 2026-10-22-03
+**Title:** Trail Map character ships as street-v2; old areas show the -1294 notice; Sage's icons as the project's own art (owner)
+**Observed:**
+- Hazel's verify-first (`docs/audits/2026-10-22-trail-map-character-verify-first.md`, trail-map-character-verify at c58f8d23): a changed v1 would show light icons and day patterns at night on apps that haven't updated, so the design ships as street-v2.json.
+- The Sage-03 report was recovered and filed (forager-cartography 5f51366). Ruling 8 means no style change, plus a phone check of trail names at Forest Park z14.
+- Night tufts are the plain inversion #2485ad, from z10 (forager-cartography 236957d).
+**Decision:** the owner chose:
+- "Yes, v2 (Recommended)";
+- "The existing notice (Recommended)" for areas downloaded under v1;
+- "As the project's own art (Recommended)" for Sage's icons and patterns. Protomaps' v4 icons keep their MIT credit.
+**Planner's calls:**
+- Hazel's night approach is accepted.
+- Cut-outs are fetched from forager-cartography pinned to one commit.
+- pngjs is added, pinned.
+- Generated style JSON is outside the 400-line rule.
+**Notes:** Written by the planner by hand. Dispatch 2026-10-22-03 gets Amendment 1 (build). Next free ID -1562.
