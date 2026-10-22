@@ -513,7 +513,7 @@ export default {
       if (tiledata) {
         return cacheableResponse(tiledata.data, cacheableHeaders, 200);
       }
-      if (name === STREET_ARCHIVE_NAME) {
+      if (false && name === STREET_ARCHIVE_NAME) {
         const filled = await worldFillTile(env, tile, pHeader.tileType);
         if (filled) {
           cacheableHeaders.set(ORIGIN_HEADER, WORLD_FILL_ORIGIN);
