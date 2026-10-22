@@ -26933,3 +26933,18 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 **Decision:** the owner, verbatim: "Reconnect Github deploy", then "Yes, stop it" to the button work, and "main" for the branch. The Worker deploys automatically when pre-main is promoted to main.
 **Observed:** main (381515c61) carries older Worker code than the live deploy. It lacks the world fill and the route cutter, among other changes (14,646 lines differ under `server/pmtiles-worker/src` against pre-main). The caution from -1316 returns: a build of main before the next promotion would put the old Worker back.
 **Notes:** Written by the planner by hand. Next free ID -1563.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1563
+**Timestamp:** 2026-10-22T23:07:47Z
+**Continues:** 2026-09-28-1562
+**Title:** Worker connected to GitHub main with builds disabled until the next promotion
+**Observed:**
+- **The owner connected the Worker in the dashboard:** repository Forager, production branch main, deploy command `npx wrangler deploy`, root directory `server/pmtiles-worker`, preview builds off, "Disable builds" on.
+- **The live Worker is still pre-main's code,** checked by the planner after the connect: us.json's south bound is -85.05, and 8/75/124 comes from r2-world-south.
+- **Promotion checklist,** for the next pre-main→main promotion:
+  - (1) the sprite v5 upload to R2 before the merge, if street-v2 is in it;
+  - (2) after the merge, the owner turns "Disable builds" off and the first build of main is checked live.
+**Notes:** Written by the planner by hand. Next free ID -1564.
