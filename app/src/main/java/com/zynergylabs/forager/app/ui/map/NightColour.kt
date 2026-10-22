@@ -162,7 +162,6 @@ internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: S
     if (layerNight != null && property.property == "line-color") {
         return NightRecolour.Recoloured(property, StyleColourValue.Literal(layerNight))
     }
-    if (property.property == "fill-color") return nightRecolourOf(property, ::streetFillNightOf)
     return offlineNightRecolourOf(property)
 }
 
