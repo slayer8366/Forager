@@ -26567,3 +26567,18 @@ Dispatch `prompts/preserved/2026-10-21-05.md` goes to a site coder: a draft PR o
 - Entries that are written carry the fields RECORDING.md lists for their kind: predictions on intents, the merge commit and backup on merges, and a terminal outcome of completed, partial, abandoned or superseded (not "done"). Entries before this one stay as written.
 **What it sets:** E-GD's check_record.py, from Test-1 at 6fa9d68, run on a throwaway clone at 501399f7, reported these seven beside the nine -1185 accepted; with this entry it lists all sixteen as accepted. Its 1,660 field errors (368 in entries from -1111 on) are not accepted; they are history. No records.json is written, since leaving out whole entries is not something the checker sees.
 **Notes:** Written by the planner by hand, on branch records-after-173, after reading E-GD at Test-1 6fa9d68. dc4ef1c1, on pre-main only, will need its own acceptance once pre-main is merged into this branch (E-GD 2026-10-17-16). Clio's operator-profile draft (E-GD 2026-10-17-20) is not written in Forager; it waits for the owner. Next free ID -1541.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1541
+**Timestamp:** 2026-10-22T03:57:10Z
+**Title:** Trail navigation step 3 starts with a read-only report: how route data reaches the phone with an offline area (dispatch 2026-10-21-06, Juniper)
+**Change:** nothing in the app, Pi, server or uploads. One report, docs/navigation/2026-10-21-route-data-report.md on branch route-data-report, answering: today's offline-area download; what the Pi makes for routing; whether BRouter route data can be cut to a user-drawn area, and the options if not; measured sizes; server-side changes; credits. The owner, verbatim: "Let's start the navigation work", then "Start the report now (Recommended)". The option read: "Juniper (researcher) reads the app's offline-area download and the Pi's route files, and answers how 'cut to the area' can work and its real size. No code; comes back to you before any build."
+**Scope boundary:** read only at pre-main, pi-build, BRouter v1.7.10 source and public documentation; writes only the report and its evidence folder on route-data-report, cut from records-after-173, pushed with no PR. Not main, pre-main, coder branches, RECORD.md, the audit index, the Pi, the server, storage, uploads, release builds or phones.
+**Baseline:** pre-main 06637240754c1ec69c185cec79a8c370e8bbcf11; pi-build 961a90d363498d7fb5e519e4ad25a3513707e247; records-after-173 a97e890c. Aspen (Pi planner) was unreachable tonight, so whether the next map rebuild has run is unknown to the planner.
+**Prediction (outcome — planner):** BRouter routes only on whole 5-degree .rd5 squares, so a cut to the area needs a finer pre-cut grid or a server-side cut, and neither exists; a whole Pacific Northwest square is tens of MB, well over the 1 MB estimate behind -1498's option; the app's offline download stores tiles only.
+**Prediction (mechanism — coder):** not authored (no coder; a read-only report).
+**Finish line:** the report pushed with an evidence folder, every claim marked read, computed or inferred, with the four disclosure sections; Juniper reports back and stops. The planner brings it to the owner before any build.
+**Abort conditions:** a base moved in a way that changes a question; a question answerable only by running the Pi, uploading or bulk downloading; anything needing an account or agreement.
+**Notes:** Written by the planner by hand. Dispatch prompts/preserved/2026-10-21-06.md. Step 1's Street switch (#359) stays held for Aspen's rebuild (-1514). Next free ID -1542.
