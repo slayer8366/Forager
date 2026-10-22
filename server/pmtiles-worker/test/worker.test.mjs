@@ -25,6 +25,7 @@ let bucketReads;
 let assets;
 let worldOnR2;
 let bucketHeads;
+let bucketPuts;
 
 class FakeCache {
   constructor() { this.entries = new Map(); }
@@ -58,7 +59,9 @@ const bucket = {
     }
     return null;
   },
-  async put() {},
+  async put(key) {
+    bucketPuts.push(key);
+  },
   // R2's metadata-only read; the Worker uses it to ask whether the world archive is there (dispatch 2026-10-22-01 A3).
   async head(key) {
     bucketHeads.push(key);
@@ -108,6 +111,7 @@ beforeEach(() => {
   pending = [];
   worldOnR2 = true;
   bucketHeads = [];
+  bucketPuts = [];
   globalThis.caches.default = new FakeCache();
   assets = new Map([
     ["fonts/Noto Sans Regular/0-255.pbf", Buffer.from("glyphs 0-255")],
@@ -303,4 +307,26 @@ test("TileJSON: an archive other than the Street one keeps its own bounds and ne
   const tilejson = await response.json();
   assertBounds(tilejson.bounds, [-124.85, 24.4, -66.87, 49.6], "other.json");
   assert.deepEqual(bucketHeads, []);
+});
+
+// --- The overflow stays inside us.pmtiles's own bounds (dispatch 2026-10-22-01 Amendment 4; the owner, "Stop it").
+// With us.json's south bound widened for the fill (Amendment 3), the app now asks for southern z15 tiles too; south of
+// the archive's own header minLat (tiny.pmtiles: 24.4) they answer 204 like z9-14, with no Protomaps read and no R2
+// write. 15/9641/15964 is Bogotá (north edge 4.61°N).
+
+test("overflow: a z15 tile south of the archive's own bounds is 204, with no Protomaps read and no R2 read or write", async () => {
+  const response = await call("/us/15/9641/15964.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.deepEqual(fetchCalls, [], `the Worker made outbound requests: ${JSON.stringify(fetchCalls)}`);
+  assert.ok(!bucketReads.some((k) => k.startsWith("overflow/")), JSON.stringify(bucketReads));
+  assert.deepEqual(bucketPuts, []);
+});
+
+test("overflow: a z15 tile inside the archive's own bounds still goes to the overflow path", async () => {
+  // Portland (north edge 46.79°N), the same tile the first overflow test uses: unchanged by Amendment 4.
+  const response = await call("/us/15/5303/11553.mvt");
+  assert.equal(response.status, 404);
+  assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
+  assert.ok(bucketReads.includes("overflow/us/15/5303/11553.mvt"));
 });
