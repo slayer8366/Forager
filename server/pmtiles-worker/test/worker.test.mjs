@@ -14,6 +14,8 @@ import { gunzipSync } from "node:zlib";
 
 const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
+// The world fill (dispatch 2026-10-22-01 Part A): R2's world-south.pmtiles, read where us.pmtiles has no tile.
+const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
 const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
@@ -21,6 +23,9 @@ const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 let fetchCalls;
 let bucketReads;
 let assets;
+let worldOnR2;
+let bucketHeads;
+let bucketPuts;
 
 class FakeCache {
   constructor() { this.entries = new Map(); }
@@ -35,21 +40,35 @@ class FakeCache {
   }
 }
 
+function rangeRead(archive, options) {
+  const { offset, length } = options.range;
+  const slice = archive.subarray(offset, offset + length);
+  return { body: true, etag: "fixture", httpMetadata: {}, arrayBuffer: async () => slice.buffer.slice(slice.byteOffset, slice.byteOffset + slice.byteLength) };
+}
+
 const bucket = {
   async get(key, options) {
     bucketReads.push(key);
-    if (key === "us.pmtiles") {
-      const { offset, length } = options.range;
-      const slice = ARCHIVE.subarray(offset, offset + length);
-      return { body: true, etag: "fixture", httpMetadata: {}, arrayBuffer: async () => slice.buffer.slice(slice.byteOffset, slice.byteOffset + slice.byteLength) };
-    }
+    // "other.pmtiles" is any archive that is not the Street one: the same tiles as us.pmtiles, so a tile missing
+    // from it is missing from us too, and only the archive's name differs.
+    if (key === "us.pmtiles" || key === "other.pmtiles") return rangeRead(ARCHIVE, options);
+    if (key === "world-south.pmtiles" && worldOnR2) return rangeRead(WORLD, options);
     if (assets.has(key)) {
       const bytes = assets.get(key);
       return { body: true, etag: "asset", httpMetadata: {}, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
     }
     return null;
   },
-  async put() {},
+  async put(key) {
+    bucketPuts.push(key);
+  },
+  // R2's metadata-only read; the Worker uses it to ask whether the world archive is there (dispatch 2026-10-22-01 A3).
+  async head(key) {
+    bucketHeads.push(key);
+    if (key === "us.pmtiles" || key === "other.pmtiles") return { key };
+    if (key === "world-south.pmtiles" && worldOnR2) return { key };
+    return null;
+  },
 };
 
 const env = {
@@ -90,6 +109,9 @@ beforeEach(() => {
   fetchCalls = [];
   bucketReads = [];
   pending = [];
+  worldOnR2 = true;
+  bucketHeads = [];
+  bucketPuts = [];
   globalThis.caches.default = new FakeCache();
   assets = new Map([
     ["fonts/Noto Sans Regular/0-255.pbf", Buffer.from("glyphs 0-255")],
@@ -184,4 +206,127 @@ test("other paths under /fonts/ and /sprites/ never read R2", async () => {
     assert.equal(response.status, 404, path);
   }
   assert.deepEqual(bucketReads, []);
+});
+
+// --- The world fill (dispatch 2026-10-22-01 Part A, RECORD -1554). us.pmtiles stops at about 16°N; where it has no
+// tile at z0-8, the Worker answers from world-south.pmtiles instead of 204. The fixture's tiles and what each is for
+// are listed in test/fixtures/make-world-south-pmtiles.py.
+
+async function tileText(response) {
+  const body = Buffer.from(await response.arrayBuffer());
+  return body[0] === 0x1f ? gunzipSync(body).toString() : body.toString();
+}
+
+test("world fill: a z5 tile us.pmtiles lacks is served from world-south.pmtiles, labelled as such", async () => {
+  const response = await call("/us/5/9/16.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "world 5/9/16");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2-world-south");
+  assert.equal(response.headers.get("Content-Type"), "application/x-protobuf");
+  assert.equal(response.headers.get("Cache-Control"), "public, max-age=86400");
+  // Only world-south.pmtiles is asserted read: the Worker's PMTiles cache is module-wide, so us.pmtiles's header and
+  // directories may already be cached from an earlier test and its missing tile then needs no R2 read at all.
+  assert.ok(bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+  assert.deepEqual(fetchCalls, [], `the Worker made outbound requests: ${JSON.stringify(fetchCalls)}`);
+});
+
+test("world fill: z8, the top of the fill's range, is served from world-south.pmtiles", async () => {
+  const response = await call("/us/8/75/130.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "world 8/75/130");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2-world-south");
+});
+
+test("world fill: a z9 tile stays 204 even though world-south.pmtiles holds it", async () => {
+  const response = await call("/us/9/150/260.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(!bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("world fill: a tile missing from both archives is still 204", async () => {
+  // No R2 read is asserted: with both archives' directories cached from earlier tests, a tile in neither directory
+  // needs none. The claim here is the answer: still 204, labelled as the Street archive's.
+  const response = await call("/us/5/9/17.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+});
+
+test("world fill: a tile us.pmtiles holds is served from us.pmtiles, and the world archive is never read", async () => {
+  // world-south.pmtiles holds 0/0/0 too, with different bytes, so the order of the two reads is what is tested.
+  const response = await call("/us/0/0/0.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "tile 0/0/0");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(!bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("world fill: with world-south.pmtiles not on R2, a missing tile is 204 as before, not a 404 or an error", async () => {
+  worldOnR2 = false;
+  const response = await call("/us/5/9/16.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("world fill: an archive other than the Street one never falls back to the world archive", async () => {
+  const response = await call("/other/5/9/16.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.deepEqual(bucketReads.filter((k) => k !== "other.pmtiles"), []);
+});
+
+// --- The TileJSON's bounds (dispatch 2026-10-22-01 Amendment 3). MapLibre Native never requests a tile outside a
+// source's TileJSON bounds (tile_pyramid.cpp:178-188 at android-v13.5.0), so the fill is reachable only if us.json's
+// south bound covers it. tiny.pmtiles's header: -124.85, 24.4, -66.87, 49.6; world-south.pmtiles's south: -85.
+
+function assertBounds(actual, expected, label) {
+  assert.equal(actual.length, 4, `${label}: ${JSON.stringify(actual)}`);
+  expected.forEach((v, i) => assert.ok(Math.abs(actual[i] - v) < 1e-6, `${label}: bounds[${i}] ${actual[i]}, expected ${v}`));
+}
+
+test("TileJSON: with the world archive on R2, us.json's south bound is the world archive's; the rest is the header's", async () => {
+  const response = await call("/us.json");
+  assert.equal(response.status, 200);
+  const tilejson = await response.json();
+  assertBounds(tilejson.bounds, [-124.85, -85, -66.87, 49.6], "us.json");
+  assert.equal(tilejson.maxzoom, 15);
+  assert.ok(bucketHeads.includes("world-south.pmtiles"), JSON.stringify(bucketHeads));
+});
+
+test("TileJSON: with the world archive not on R2, us.json keeps the header's bounds", async () => {
+  worldOnR2 = false;
+  const response = await call("/us.json");
+  const tilejson = await response.json();
+  assertBounds(tilejson.bounds, [-124.85, 24.4, -66.87, 49.6], "us.json, no world archive");
+});
+
+test("TileJSON: an archive other than the Street one keeps its own bounds and never asks after the world archive", async () => {
+  const response = await call("/other.json");
+  assert.equal(response.status, 200);
+  const tilejson = await response.json();
+  assertBounds(tilejson.bounds, [-124.85, 24.4, -66.87, 49.6], "other.json");
+  assert.deepEqual(bucketHeads, []);
+});
+
+// --- The overflow stays inside us.pmtiles's own bounds (dispatch 2026-10-22-01 Amendment 4; the owner, "Stop it").
+// With us.json's south bound widened for the fill (Amendment 3), the app now asks for southern z15 tiles too; south of
+// the archive's own header minLat (tiny.pmtiles: 24.4) they answer 204 like z9-14, with no Protomaps read and no R2
+// write. 15/9641/15964 is Bogotá (north edge 4.61°N).
+
+test("overflow: a z15 tile south of the archive's own bounds is 204, with no Protomaps read and no R2 read or write", async () => {
+  const response = await call("/us/15/9641/15964.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.deepEqual(fetchCalls, [], `the Worker made outbound requests: ${JSON.stringify(fetchCalls)}`);
+  assert.ok(!bucketReads.some((k) => k.startsWith("overflow/")), JSON.stringify(bucketReads));
+  assert.deepEqual(bucketPuts, []);
+});
+
+test("overflow: a z15 tile inside the archive's own bounds still goes to the overflow path", async () => {
+  // Portland (north edge 46.79°N), the same tile the first overflow test uses: unchanged by Amendment 4.
+  const response = await call("/us/15/5303/11553.mvt");
+  assert.equal(response.status, 404);
+  assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
+  assert.ok(bucketReads.includes("overflow/us/15/5303/11553.mvt"));
 });
