@@ -26603,3 +26603,19 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 - One premise relayed mid-task was wrong and withdrawn: the planner told Juniper pi-build might be superseded, and Aspen corrected it (the map repo holds records only).
 - The dispatch's baseline named records-after-173 at a97e890c; Juniper found it at 36a2fc39, the dispatch's own commit.
 **Notes:** Written by the planner by hand. The owner's choice of how to cut comes next. Next free ID -1543.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1543
+**Timestamp:** 2026-10-22T04:12:32Z
+**Title:** Trail navigation step 3, part 1: a route-data cutter, proven to route the same as the full square (owner: cut on request; dispatch 2026-10-21-07, Hazel)
+**Change:** pre-main gains a cutter that turns a BRouter .rd5 square and a rectangle into a smaller valid .rd5 holding only that area's cells, plus an automated proof that BRouter v1.7.10 routes the same on it inside the area and fails cleanly outside. Nothing visible, served or uploaded. The owner, verbatim: "C: cut on request (Recommended)" (option: "Smallest download (0.1–0.8 MB per area), sized to the area you draw; most new code (cutter + server route + phone)"), and "Yes, start Hazel now (Recommended)" (option: "One dispatch, its own branch into pre-main after review; the server and phone parts wait for your next go"). This replaces -1498's "cut by the Pi": the report (-1542) found the Pi can't cut per area on request.
+**Scope boundary:** branch route-cutter from pre-main, own worktree, PR into pre-main. New files only. Phase 1 doesn't change ci.yml or the Worker's index.ts. Not main, dev, release builds, phones, the Pi, R2, the deployed Worker, RECORD.md, the audit index, app screens or ViewModels. Fixtures are OpenStreetMap data only, with the ODbL notice.
+**Baseline:** pre-main 06637240754c1ec69c185cec79a8c370e8bbcf11; engine-spike 5d34f4f1; route-data report at 7f21890c (filed in records-after-173 at dc12b8b8).
+**Prediction (outcome — planner):** a 10 km area's cut file is well under 1 MB, near the report's 0.14–0.23 MB; routes inside are identical on cut and full files; a route leaving the area fails cleanly.
+**Prediction (mechanism — coder):** not authored; Hazel writes it in the Phase 1 report, and it is added by continuation.
+**Finish line:** Phase 1 report pushed (docs/navigation/2026-10-21-route-cutter-phase1-report.md), then stop. Phase 2 on the planner's go: a PR into pre-main, green, reviewed by Sorrel, merged on the owner's word.
+**Abort conditions:** an owner-level choice (such as the server runtime); a wrong premise that changes the plan; ci.yml, index.ts, main or a release build having to change beyond what Phase 1 states; a test having to be weakened; two failed attempts at one symptom; licence terms against carrying the fixture or BRouter code.
+**Dispatch-file:** prompts/preserved/2026-10-21-07.md
+**Notes:** Written by the planner by hand. Next free ID -1544.
