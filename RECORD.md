@@ -26844,3 +26844,18 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - Trail Map is drawn through the offline branch while there's no signal.
 - Credit text that says "Street" becomes "Forager Trail Map".
 **Notes:** Written by the planner by hand. Dispatch 2026-10-22-01 gets Amendment 2. Next free ID -1557.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1557
+**Timestamp:** 2026-10-22T19:24:14Z
+**Closes:** 2026-09-28-1554, 2026-09-28-1556
+**Title:** #376 (Worker world fill) and #377 (three map types) merged into pre-main on the owner's word
+**Outcome:** completed. #377 merged at bded39f06, then #376 at c9e2e6fe3, pre-main now c9e2e6fe3. The owner answered "Merge both" after Sorrel's follow-up review (`docs/audits/2026-10-22-review-pr376-pr377-followup.md`, review-pr376-pr377 at 8af8b895): #376 approve with notes, #377 approve. The owner passed #377's nine S22 steps plus Street→Trail after the update.
+**Open:**
+- The Worker isn't deployed; the owner deploys it by hand.
+- Follow-ups from Sorrel: a test for the Worker's R2 write, and a deploy note on southern downloads at z15.
+- S26 Wi-Fi/mobile hand-over check for #377.
+- PR #359 to be closed as superseded.
+**Notes:** Written by the planner by hand. Next free ID -1558.
