@@ -40,7 +40,7 @@ export interface RangeReader {
 }
 
 /** One cell of margin is what waypoint matching needs at the rectangle's edge (Phase 1 report, Q5 item 4). */
-export const DEFAULT_MARGIN_CELLS = 1;
+export const DEFAULT_MARGIN_CELLS = 0;
 
 export async function cutRd5(
   source: RangeReader,
