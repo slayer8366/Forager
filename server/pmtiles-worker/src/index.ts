@@ -7,8 +7,8 @@
 // reference implementation this project's chosen stack (Cloudflare R2 + Workers) is based on. The
 // only changes from upstream: importing the inlined ./shared helpers instead of a sibling
 // monorepo package, renamed identifiers to match this project's naming conventions, the
-// z>14 overflow path below (not present upstream at all), the Street style, font and sprite
-// routes (dispatch 2026-10-18-05 Part 2, also not upstream), and the world fill (dispatch 2026-10-22-01 Part A).
+// z>14 overflow path below (not present upstream at all), and the Street style, font and sprite
+// routes (dispatch 2026-10-18-05 Part 2, also not upstream).
 import {
   Compression,
   EtagMismatch,
@@ -254,72 +254,6 @@ async function overflowTileResponse(
 // the deploy check can read it from outside; with the Pi gone it is always "r2".
 const ORIGIN_HEADER = "X-Forager-Origin";
 
-// --- The world fill (dispatch 2026-10-22-01 Part A; RECORD -1554). us.pmtiles stops at about 16°N (its TileJSON
-// bounds read 15.92° south on 2026-10-22), so south of that the Street map drew grey. Where the Street archive has
-// no tile at z0-8, the tile is read from a second R2 archive, world-south.pmtiles (the Protomaps planet to z8,
-// uploaded by the Pi planner), and served labelled with its own origin. Nothing else changes: the TileJSON, the
-// z15 overflow, the style routes and every other archive name answer as before.
-//
-// Which archive is "the Street archive": the Worker has no setting naming it. The name lives in the bundled Street
-// style's source URL (…/us.json), so it is read from there rather than written a second time here; the offline
-// style points at the same archive. A request under any other name never reaches the world archive.
-//
-// If world-south.pmtiles is not on R2, the tile answers 204 exactly as before, and a warning is logged. Other
-// read errors are not caught here, as with the Street archive's own reads below: a 500 is not cached, a 204 is
-// cached for a day.
-// -------------------------------------------------------------------------------------------------
-
-/** The R2 archive name (key `world-south.pmtiles`) the fill reads. To be confirmed against the uploaded object. */
-const WORLD_FILL_ARCHIVE = "world-south";
-
-/** The fill answers at this zoom and below only; the world archive is built to z8 (RECORD -1554). */
-const WORLD_FILL_MAX_ZOOM = 8;
-
-/** X-Forager-Origin on a tile the fill answered. */
-const WORLD_FILL_ORIGIN = "r2-world-south";
-
-/** The archive name a bundled style's TileJSON URL names: `https://host/us.json` gives `us`. */
-export function archiveNameFromTileJsonUrl(url: string): string {
-  const match = new URL(url).pathname.match(/^\/(.+)\.json$/);
-  if (!match) throw new Error(`Bundled style source is not a /{name}.json TileJSON URL: ${url}`);
-  return match[1];
-}
-
-/** The Street archive: the one the bundled Street style draws from. */
-export const STREET_ARCHIVE_NAME = archiveNameFromTileJsonUrl(streetStyle.sources.protomaps.url);
-
-/**
- * The world archive's tile at [tile], or undefined when the fill does not apply or has no tile: above
- * [WORLD_FILL_MAX_ZOOM], outside the archive's own zoom range, a tile type that differs from the Street archive's,
- * or the archive missing from R2. Each of the last two is logged, since each means the deploy is not as intended.
- */
-async function worldFillTile(
-  env: Env,
-  tile: [number, number, number],
-  streetTileType: TileType
-): Promise<ArrayBuffer | undefined> {
-  const [z, x, y] = tile;
-  if (z > WORLD_FILL_MAX_ZOOM) return undefined;
-  const world = new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress);
-  try {
-    const header = await world.getHeader();
-    if (header.tileType !== streetTileType) {
-      console.warn(
-        `World fill skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}, ${STREET_ARCHIVE_NAME} has ${streetTileType}; answering 204`
-      );
-      return undefined;
-    }
-    const tiledata = await world.getZxy(z, x, y);
-    return tiledata?.data;
-  } catch (e) {
-    if (e instanceof KeyNotFoundError) {
-      console.warn(`World fill skipped: ${pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH)} is not on R2; answering 204`);
-      return undefined;
-    }
-    throw e;
-  }
-}
-
 // --- The vector Street style, its fonts and its icons (dispatch 2026-10-18-05 Part 2).
 //
 // /style/street-v1.json is map-style/forager-street-v1.json, bundled in like offline-style.json so it needs
@@ -512,13 +446,6 @@ export default {
 
       if (tiledata) {
         return cacheableResponse(tiledata.data, cacheableHeaders, 200);
-      }
-      if (name === STREET_ARCHIVE_NAME) {
-        const filled = await worldFillTile(env, tile, pHeader.tileType);
-        if (filled) {
-          cacheableHeaders.set(ORIGIN_HEADER, WORLD_FILL_ORIGIN);
-          return cacheableResponse(filled, cacheableHeaders, 200);
-        }
       }
       return cacheableResponse(undefined, cacheableHeaders, 204);
     } catch (e) {
