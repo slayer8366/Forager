@@ -26889,3 +26889,13 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
   - us.json fetched with a fresh query string gives south bound -85.05. The plain URL is still the Worker's cached copy (HIT, age 31,325 s), with south bound 15.92, until it expires.
 - The tile hashes can't be compared to Aspen's, which are of the gzip bytes; Aspen has been asked for decompressed hashes.
 **Notes:** Written by the planner by hand. Next free ID -1560.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1560
+**Timestamp:** 2026-10-22T21:17:42Z
+**Continues:** 2026-09-28-1559, 2026-09-28-1300
+**Title:** The Worker has no automatic deploys: GitHub is disconnected (owner)
+**Observed:** the owner, verbatim: "No automatic deployments set up right now. I disconnected github". Every Worker change is now a hand deploy from the CI artifact `pmtiles-worker-dist`. A pre-main promotion to main no longer redeploys the Worker, so the -1316 caution no longer applies. -1300 (7)'s "turned back on once main has the code" is still open, for the owner.
+**Notes:** Written by the planner by hand. Next free ID -1561.
