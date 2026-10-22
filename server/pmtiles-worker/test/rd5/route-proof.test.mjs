@@ -93,15 +93,18 @@ for (const r of [...byCategory("inside"), ...byCategory("edge")]) {
   });
 }
 
+// BRouter minimises cost, not length (RoutingEngine.java:1708-1775), so what a cut changes is the cost: the
+// cheapest path inside the cut can cost no less than the cheapest on the full square, and here costs more.
 for (const r of byCategory("detour")) {
-  test(`detour route ${r.name}: by default BRouter quietly routes a longer way inside the cut`, async (t) => {
+  test(`detour route ${r.name}: by default BRouter quietly returns a costlier route inside the cut`, async (t) => {
     const fullRun = full(r);
     const cut = await onCut(r);
     assert.ok(cut.feature, `the cut returns a route, no error (${cut.message})`);
-    const fullLength = Number(fullRun.feature.properties["track-length"]);
-    const cutLength = Number(cut.feature.properties["track-length"]);
-    t.diagnostic(`full square ${fullLength} m; cut ${cutLength} m`);
-    assert.ok(cutLength > fullLength, "the cut's route is longer than the best one");
+    const p = (f, k) => Number(f.properties[k]);
+    t.diagnostic(`full square: cost ${p(fullRun.feature, "cost")}, ${p(fullRun.feature, "track-length")} m; ` +
+      `cut: cost ${p(cut.feature, "cost")}, ${p(cut.feature, "track-length")} m`);
+    assert.ok(p(cut.feature, "cost") > p(fullRun.feature, "cost"), "the cut's route costs more than the best one");
+    assert.notDeepEqual(points(cut.feature), points(fullRun.feature), "it is a different route");
     assert.ok(points(cut.feature).every(inCut), "and it stays inside the cut's data");
   });
 
@@ -112,18 +115,38 @@ for (const r of byCategory("detour")) {
   });
 }
 
+// An end outside the cut's data, with BRouter's default profile. Its dynamic-range retry
+// (RoutingEngine.java:1612-1624; use_dynamic_range defaults on, RoutingContext.java:200) matches the nearest
+// way segment in the data it has, up to 60 km away. Two outcomes were observed on this fixture, depending on
+// where that segment leads: when its far node lies in a cell the cut dropped, the reverse "target island"
+// search from it cannot move (RoutingEngine.java:949-965; the log reads linksProcessed=0) and the route
+// fails; otherwise the route succeeds, ending somewhere other than the requested point. routes.json records
+// which each route does. Of 29 trail points sampled outside the cut's data on 2026-10-22, 15 gave the moved
+// end and 14 the island error.
 for (const r of byCategory("outside")) {
-  test(`outside route ${r.name}: by default BRouter moves the far end onto the cut's data and routes`, async (t) => {
-    const fullEnd = points(full(r).feature).at(-1);
-    const cut = await onCut(r);
-    assert.ok(cut.feature, `the cut returns a route, no error (${cut.message})`);
-    const cutEnd = points(cut.feature).at(-1);
-    t.diagnostic(`requested end to track end: full ${metres(end(r.to), fullEnd).toFixed(0)} m, ` +
-      `cut ${metres(end(r.to), cutEnd).toFixed(0)} m`);
-    assert.ok(metres(end(r.to), fullEnd) < 250, "on the full square the track ends at the requested point");
-    assert.ok(metres(end(r.to), cutEnd) > 250, "on the cut it ends somewhere else");
-    assert.ok(inCut(cutEnd), "inside the cut's data");
-  });
+  if (r.observedByDefaultOnCut === "moved end") {
+    test(`outside route ${r.name}: by default BRouter moves the far end onto the cut's data and routes`, async (t) => {
+      const fullEnd = points(full(r).feature).at(-1);
+      const cut = await onCut(r);
+      assert.ok(cut.feature, `the cut returns a route, no error (${cut.message})`);
+      const cutEnd = points(cut.feature).at(-1);
+      t.diagnostic(`requested end to track end: full ${metres(end(r.to), fullEnd).toFixed(0)} m, ` +
+        `cut ${metres(end(r.to), cutEnd).toFixed(0)} m`);
+      assert.ok(metres(end(r.to), fullEnd) < 250, "on the full square the track ends at the requested point");
+      assert.ok(metres(end(r.to), cutEnd) > 250, "on the cut it ends somewhere else");
+      assert.ok(inCut(cutEnd), "inside the cut's data");
+    });
+  } else if (r.observedByDefaultOnCut === "target island") {
+    test(`outside route ${r.name}: by default BRouter fails with "target island detected"`, async () => {
+      const cut = await onCut(r);
+      assert.equal(cut.feature, null, "no track");
+      assert.equal(cut.message, "target island detected for section 0");
+    });
+  } else {
+    test(`outside route ${r.name} names its observed default outcome`, () => {
+      assert.fail(`routes.json: observedByDefaultOnCut is "${r.observedByDefaultOnCut}"`);
+    });
+  }
 
   test(`outside route ${r.name}: with dynamic range off the cut refuses it cleanly`, async () => {
     assert.ok(full(r, DYNAMIC_RANGE_OFF).feature, "the full square still routes it with dynamic range off");

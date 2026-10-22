@@ -60,7 +60,12 @@ export function route(segmentDir, from, to, profileParams = {}) {
 // output is what is read.
 export function integrityCheck(file) {
   const { jar } = brouterHome();
-  const run = spawnSync("java", ["-cp", jar, "btools.mapaccess.PhysicalFile", file], { encoding: "utf8" });
+  // Its debug output runs to megabytes; spawnSync's 1 MB default buffer would kill it with SIGTERM.
+  const run = spawnSync("java", ["-cp", jar, "btools.mapaccess.PhysicalFile", file], {
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+  });
+  if (run.error) throw run.error;
   return { status: run.status, output: `${run.stdout}${run.stderr}` };
 }
 

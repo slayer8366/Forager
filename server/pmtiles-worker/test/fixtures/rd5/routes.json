@@ -1,5 +1,5 @@
 {
-  "_about": "Route ends for the cutter's proof. Every end is an OpenStreetMap node on a trail (highway=path, footway or track) on public land in Harriman and Bear Mountain State Parks, NY; node ids are OpenStreetMap's. OpenStreetMap data, ODbL: see README.md. Categories are defined in README.md and checked on the full fixture by route-proof.test.mjs.",
+  "_about": "Route ends for the cutter's proof. Every end is an OpenStreetMap node on a trail (highway=path, footway or track) on public land in Harriman and Bear Mountain State Parks, NY; node ids are OpenStreetMap's. OpenStreetMap data, ODbL: see README.md. Categories, and what BRouter was observed to do with each outside route on the cut by default, are defined in README.md and checked on the full fixture by route-proof.test.mjs.",
   "square": "W75_N40",
   "rectangle": {
     "south": 41.27,
@@ -93,7 +93,7 @@
       }
     },
     {
-      "name": "outside-west",
+      "name": "outside-west-island",
       "category": "outside",
       "from": {
         "osmNode": 939277321,
@@ -104,6 +104,22 @@
         "osmNode": 776022625,
         "lat": 41.2684229,
         "lon": -74.1114362
+      },
+      "observedByDefaultOnCut": "target island"
+    },
+    {
+      "name": "outside-west-moved",
+      "category": "outside",
+      "observedByDefaultOnCut": "moved end",
+      "from": {
+        "osmNode": 939277321,
+        "lat": 41.2749253,
+        "lon": -73.9994484
+      },
+      "to": {
+        "osmNode": 797325730,
+        "lat": 41.2588594,
+        "lon": -74.1204499
       }
     }
   ]

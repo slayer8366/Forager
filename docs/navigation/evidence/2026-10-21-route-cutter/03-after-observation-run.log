@@ -1,0 +1,46 @@
+(node:2602571) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte (33.453232ms)
+✔ the margin is a parameter: margin 0 keeps only the rectangle's own cells (21.120217ms)
+✔ the cut's header, tile indexes and cells carry checksums BRouter accepts (4.317159ms)
+✔ BRouter's own integrity check decodes every cell of the cut (518.990961ms)
+✔ the cut is smaller than the square and its size is reported (5.49455ms)
+ℹ fixture square 152665 bytes; cut 103625 bytes
+✔ an old-format square (no 32-division marker) is refused as unsupported (2.302524ms)
+✔ a square with no footer is refused as unsupported (1.394785ms)
+✔ a damaged header is refused, not cut (0.97793ms)
+✔ a damaged tile index is refused, not cut (2.115984ms)
+✔ a rectangle that misses the square, or a malformed square name, is refused (2.126483ms)
+(node:2602572) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ on the full fixture, every route is found and lies where its category says (4093.677964ms)
+✔ inside route inside-across-the-degree-line is identical on the cut: same points, length and cost (446.140045ms)
+✔ inside route inside-across-the-degree-line is identical on the cut with dynamic range off (876.182698ms)
+✔ inside route inside-short is identical on the cut: same points, length and cost (384.369038ms)
+✔ inside route inside-short is identical on the cut with dynamic range off (810.773821ms)
+✔ inside route inside-long is identical on the cut: same points, length and cost (455.998348ms)
+✔ inside route inside-long is identical on the cut with dynamic range off (916.293179ms)
+✔ edge route edge-north-a is identical on the cut: same points, length and cost (508.44217ms)
+✔ edge route edge-north-a is identical on the cut with dynamic range off (1016.833157ms)
+✔ edge route edge-north-b is identical on the cut: same points, length and cost (521.098607ms)
+✔ edge route edge-north-b is identical on the cut with dynamic range off (1040.707674ms)
+✔ detour route detour-west: by default BRouter quietly returns a costlier route inside the cut (447.933196ms)
+ℹ full square: cost 9232, 7619 m; cut: cost 10527, 7213 m
+✔ detour route detour-west: dynamic range off does not change that; the detour is still returned (897.043395ms)
+✔ outside route outside-west-island: by default BRouter fails with "target island detected" (311.682465ms)
+✔ outside route outside-west-island: with dynamic range off the cut refuses it cleanly (821.632493ms)
+✔ outside route outside-west-moved: by default BRouter moves the far end onto the cut's data and routes (518.299011ms)
+ℹ requested end to track end: full 0 m, cut 2275 m
+✔ outside route outside-west-moved: with dynamic range off the cut refuses it cleanly (798.31356ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15082.148342
