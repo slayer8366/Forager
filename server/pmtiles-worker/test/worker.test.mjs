@@ -24,6 +24,7 @@ let fetchCalls;
 let bucketReads;
 let assets;
 let worldOnR2;
+let bucketHeads;
 
 class FakeCache {
   constructor() { this.entries = new Map(); }
@@ -58,6 +59,13 @@ const bucket = {
     return null;
   },
   async put() {},
+  // R2's metadata-only read; the Worker uses it to ask whether the world archive is there (dispatch 2026-10-22-01 A3).
+  async head(key) {
+    bucketHeads.push(key);
+    if (key === "us.pmtiles" || key === "other.pmtiles") return { key };
+    if (key === "world-south.pmtiles" && worldOnR2) return { key };
+    return null;
+  },
 };
 
 const env = {
@@ -99,6 +107,7 @@ beforeEach(() => {
   bucketReads = [];
   pending = [];
   worldOnR2 = true;
+  bucketHeads = [];
   globalThis.caches.default = new FakeCache();
   assets = new Map([
     ["fonts/Noto Sans Regular/0-255.pbf", Buffer.from("glyphs 0-255")],
@@ -261,4 +270,37 @@ test("world fill: an archive other than the Street one never falls back to the w
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("X-Forager-Origin"), "r2");
   assert.deepEqual(bucketReads.filter((k) => k !== "other.pmtiles"), []);
+});
+
+// --- The TileJSON's bounds (dispatch 2026-10-22-01 Amendment 3). MapLibre Native never requests a tile outside a
+// source's TileJSON bounds (tile_pyramid.cpp:178-188 at android-v13.5.0), so the fill is reachable only if us.json's
+// south bound covers it. tiny.pmtiles's header: -124.85, 24.4, -66.87, 49.6; world-south.pmtiles's south: -85.
+
+function assertBounds(actual, expected, label) {
+  assert.equal(actual.length, 4, `${label}: ${JSON.stringify(actual)}`);
+  expected.forEach((v, i) => assert.ok(Math.abs(actual[i] - v) < 1e-6, `${label}: bounds[${i}] ${actual[i]}, expected ${v}`));
+}
+
+test("TileJSON: with the world archive on R2, us.json's south bound is the world archive's; the rest is the header's", async () => {
+  const response = await call("/us.json");
+  assert.equal(response.status, 200);
+  const tilejson = await response.json();
+  assertBounds(tilejson.bounds, [-124.85, -85, -66.87, 49.6], "us.json");
+  assert.equal(tilejson.maxzoom, 15);
+  assert.ok(bucketHeads.includes("world-south.pmtiles"), JSON.stringify(bucketHeads));
+});
+
+test("TileJSON: with the world archive not on R2, us.json keeps the header's bounds", async () => {
+  worldOnR2 = false;
+  const response = await call("/us.json");
+  const tilejson = await response.json();
+  assertBounds(tilejson.bounds, [-124.85, 24.4, -66.87, 49.6], "us.json, no world archive");
+});
+
+test("TileJSON: an archive other than the Street one keeps its own bounds and never asks after the world archive", async () => {
+  const response = await call("/other.json");
+  assert.equal(response.status, 200);
+  const tilejson = await response.json();
+  assertBounds(tilejson.bounds, [-124.85, 24.4, -66.87, 49.6], "other.json");
+  assert.deepEqual(bucketHeads, []);
 });
