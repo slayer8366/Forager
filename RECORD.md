@@ -26795,3 +26795,20 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - **Rejected:** a separate bucket, which brings no benefit the prefix doesn't.
 **Open for the owner:** whether the previous run's folder on R2 is deleted once a new manifest is live. -1544 covered the Pi only. Until the owner decides, old R2 folders stay.
 **Notes:** Written by the planner by hand. Next free ID -1554.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1554
+**Timestamp:** 2026-10-22T13:33:27Z
+**Continues:** 2026-09-28-1514, 2026-09-28-1513, 2026-09-28-1511
+**Title:** Three map types: Trail Map (our own, default), Topographical, OpenStreetMap; the world filled south of 16°N (owner)
+**Observed:** The owner's S22 test of #359 showed grey south of about 16°N, where our archive has no tiles. Aspen's read-only estimate is in Aspen's pi-29 record.
+**Decision:** the owner, in the planner's window:
+- **Order:** "Trail Map (Default)" (our map), then "Topographical", then "OpenStreetMap" (the old OSM raster) at the far right.
+- **Who sees what:** new users open on Trail Map. Anyone with Street chosen is moved to Trail Map once, at the update.
+- **Offline:** Trail Map only; no OpenStreetMap tiles are stored offline. An OpenStreetMap user who loses signal sees Trail Map until it returns.
+- **Grey:** filled with Aspen's Option A, a world-south.pmtiles to z8 (about 100 MB) served by the Worker where us.pmtiles has no tile.
+- **#359 is superseded:** it replaced Street outright.
+**Open:** no build go yet.
+**Notes:** Written by the planner by hand. Next free ID -1555.
