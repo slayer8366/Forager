@@ -26710,3 +26710,32 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 - The Worker's package.json uses caret ranges; this was pre-existing.
 **CI:** the PR's own run 39726193032 had lint, release compile and route-cutter passing; its app build job was still pending when the planner read it. The same commit's dispatched run 39724652858 is green on all four jobs.
 **Notes:** Merge waits for the owner's word and the PR run's build job. Written by the planner by hand. Next free ID -1549.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1549
+**Timestamp:** 2026-10-22T05:39:39Z
+**PR:** #371 (GitHub #375), route-cutter into pre-main
+**Head:** b50685019088ead9b3f6e567a56a306954e5a40f
+**Base:** pre-main 06637240754c1ec69c185cec79a8c370e8bbcf11
+**Merge-commit:** 01c7c5b56300bcf7ba4379391057eeef0941d2e4
+**Backup:** pre-main-20261022T053916Z-06637240.bundle (verified), made just after the merge, from the pre-merge commit.
+**Merged-by:** the planner, on the owner's word: "Merge when green (Recommended)". The option read: "I merge as soon as the app-test check on the PR passes; if it fails, I stop and bring it to you".
+**Notes:** Merged with --match-head-commit at the head Sorrel reviewed. The PR's own run 39726193032 was green on all four jobs. The app suite, read by the planner from that run's unit-test-report JUnit XML, ran 704 suites and 5,252 tests: 0 failures, 0 errors, 24 skipped. The route-cutter job ran 27 tests with 0 failed (Sorrel, from the JUnit artifact). **Slip:** the backup was made after the merge, not before as RECORDING.md's "Backups before merges" asks. It holds the same pre-merge commit, which is the merge's first parent, so nothing is lost, but the order was wrong. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1550
+**Timestamp:** 2026-10-22T05:39:39Z
+**Closes:** 2026-09-28-1543
+**Outcome:** completed
+**Observed:** The route-data cutter and its BRouter proof are on pre-main at 01c7c5b5 (-1547, -1548, -1549). Routes inside a cut area are identical to the full square. An outside end fails plainly with dynamic range off. A best path that leaves the area comes back as a quiet costlier detour even with dynamic range off.
+**Deviations:**
+- Two of the planner's outcome predictions were wrong: a clean failure outside holds only for an outside end with dynamic range off, and the spike had compared lengths only.
+- The 10 km size prediction is untested; it needs a real Pi square.
+- The ci.yml job and tsconfig.json line were added on the owner's go (-1546).
+- The backup slip is recorded at -1549.
+- Open for the next parts: the server route (cutting across two squares, Cloudflare limits, uploading the squares), and a detour check so the phone can say so plainly (-1546).
+**Notes:** Written by the planner by hand. Next free ID -1551.
