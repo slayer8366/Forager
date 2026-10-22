@@ -5,7 +5,7 @@ import fs from "node:fs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
 // The style to check: forager-light.json by default, or the file named on the command line
-// (npm run check:street checks forager-street-v1.preview.json, whose fonts and icons are on disk).
+// (npm run check:street checks forager-street-v2.preview.json, whose fonts and icons are on disk).
 const stylePath = process.argv[2] ?? "forager-light.json";
 const style = JSON.parse(fs.readFileSync(here(stylePath), "utf8"));
 const problems = [];
