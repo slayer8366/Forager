@@ -211,7 +211,8 @@ test("world fill: a z5 tile us.pmtiles lacks is served from world-south.pmtiles,
   assert.equal(response.headers.get("X-Forager-Origin"), "r2-world-south");
   assert.equal(response.headers.get("Content-Type"), "application/x-protobuf");
   assert.equal(response.headers.get("Cache-Control"), "public, max-age=86400");
-  assert.ok(bucketReads.includes("us.pmtiles"), JSON.stringify(bucketReads));
+  // Only world-south.pmtiles is asserted read: the Worker's PMTiles cache is module-wide, so us.pmtiles's header and
+  // directories may already be cached from an earlier test and its missing tile then needs no R2 read at all.
   assert.ok(bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
   assert.deepEqual(fetchCalls, [], `the Worker made outbound requests: ${JSON.stringify(fetchCalls)}`);
 });
@@ -231,10 +232,11 @@ test("world fill: a z9 tile stays 204 even though world-south.pmtiles holds it",
 });
 
 test("world fill: a tile missing from both archives is still 204", async () => {
+  // No R2 read is asserted: with both archives' directories cached from earlier tests, a tile in neither directory
+  // needs none. The claim here is the answer: still 204, labelled as the Street archive's.
   const response = await call("/us/5/9/17.mvt");
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("X-Forager-Origin"), "r2");
-  assert.ok(bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
 });
 
 test("world fill: a tile us.pmtiles holds is served from us.pmtiles, and the world archive is never read", async () => {
