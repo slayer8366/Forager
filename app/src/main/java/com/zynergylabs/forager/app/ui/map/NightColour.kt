@@ -94,7 +94,7 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
  * the same colour from the style's design file. The day water colour is unchanged. Only the own Street takes it: the
  * offline style keeps its inverted water.
  */
-internal const val STREET_NIGHT_WATER = "#163f4b"
+internal const val STREET_NIGHT_WATER = "#8ec5f0"
 
 /** The vector source layer the own Street's water is drawn from (Protomaps' `water`). */
 internal const val WATER_SOURCE_LAYER = "water"
