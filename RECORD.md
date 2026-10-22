@@ -26873,3 +26873,19 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - The overflow's own 404 branch now has no test.
 - The Worker isn't deployed; the owner deploys it by hand.
 **Notes:** Written by the planner by hand. Next free ID -1559.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1559
+**Timestamp:** 2026-10-22T21:17:11Z
+**Continues:** 2026-09-28-1558
+**Title:** The Worker world fill is live; the plain us.json stays edge-cached until about 05:32 PDT Friday
+**Observed:**
+- The owner deployed the pre-main Worker by hand ("It's deployed"), from the `pmtiles-worker-dist` artifact (sha256 53bb1a11…62db).
+- The planner checked with curl:
+  - 8/75/124, 8/63/117, 6/18/34 and 3/2/4 answer 200 with origin r2-world-south, and decode as MVT with roads and water.
+  - San Juan 12/1295/1834 answers origin r2.
+  - us.json fetched with a fresh query string gives south bound -85.05. The plain URL is still the Worker's cached copy (HIT, age 31,325 s), with south bound 15.92, until it expires.
+- The tile hashes can't be compared to Aspen's, which are of the gzip bytes; Aspen has been asked for decompressed hashes.
+**Notes:** Written by the planner by hand. Next free ID -1560.
