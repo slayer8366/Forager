@@ -14,6 +14,8 @@ import { gunzipSync } from "node:zlib";
 
 const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
+// The world fill (dispatch 2026-10-22-01 Part A): R2's world-south.pmtiles, read where us.pmtiles has no tile.
+const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
 const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
@@ -21,6 +23,7 @@ const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 let fetchCalls;
 let bucketReads;
 let assets;
+let worldOnR2;
 
 class FakeCache {
   constructor() { this.entries = new Map(); }
@@ -35,14 +38,19 @@ class FakeCache {
   }
 }
 
+function rangeRead(archive, options) {
+  const { offset, length } = options.range;
+  const slice = archive.subarray(offset, offset + length);
+  return { body: true, etag: "fixture", httpMetadata: {}, arrayBuffer: async () => slice.buffer.slice(slice.byteOffset, slice.byteOffset + slice.byteLength) };
+}
+
 const bucket = {
   async get(key, options) {
     bucketReads.push(key);
-    if (key === "us.pmtiles") {
-      const { offset, length } = options.range;
-      const slice = ARCHIVE.subarray(offset, offset + length);
-      return { body: true, etag: "fixture", httpMetadata: {}, arrayBuffer: async () => slice.buffer.slice(slice.byteOffset, slice.byteOffset + slice.byteLength) };
-    }
+    // "other.pmtiles" is any archive that is not the Street one: the same tiles as us.pmtiles, so a tile missing
+    // from it is missing from us too, and only the archive's name differs.
+    if (key === "us.pmtiles" || key === "other.pmtiles") return rangeRead(ARCHIVE, options);
+    if (key === "world-south.pmtiles" && worldOnR2) return rangeRead(WORLD, options);
     if (assets.has(key)) {
       const bytes = assets.get(key);
       return { body: true, etag: "asset", httpMetadata: {}, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
@@ -90,6 +98,7 @@ beforeEach(() => {
   fetchCalls = [];
   bucketReads = [];
   pending = [];
+  worldOnR2 = true;
   globalThis.caches.default = new FakeCache();
   assets = new Map([
     ["fonts/Noto Sans Regular/0-255.pbf", Buffer.from("glyphs 0-255")],
@@ -184,4 +193,70 @@ test("other paths under /fonts/ and /sprites/ never read R2", async () => {
     assert.equal(response.status, 404, path);
   }
   assert.deepEqual(bucketReads, []);
+});
+
+// --- The world fill (dispatch 2026-10-22-01 Part A, RECORD -1554). us.pmtiles stops at about 16°N; where it has no
+// tile at z0-8, the Worker answers from world-south.pmtiles instead of 204. The fixture's tiles and what each is for
+// are listed in test/fixtures/make-world-south-pmtiles.py.
+
+async function tileText(response) {
+  const body = Buffer.from(await response.arrayBuffer());
+  return body[0] === 0x1f ? gunzipSync(body).toString() : body.toString();
+}
+
+test("world fill: a z5 tile us.pmtiles lacks is served from world-south.pmtiles, labelled as such", async () => {
+  const response = await call("/us/5/9/16.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "world 5/9/16");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2-world-south");
+  assert.equal(response.headers.get("Content-Type"), "application/x-protobuf");
+  assert.equal(response.headers.get("Cache-Control"), "public, max-age=86400");
+  assert.ok(bucketReads.includes("us.pmtiles"), JSON.stringify(bucketReads));
+  assert.ok(bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+  assert.deepEqual(fetchCalls, [], `the Worker made outbound requests: ${JSON.stringify(fetchCalls)}`);
+});
+
+test("world fill: z8, the top of the fill's range, is served from world-south.pmtiles", async () => {
+  const response = await call("/us/8/75/130.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "world 8/75/130");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2-world-south");
+});
+
+test("world fill: a z9 tile stays 204 even though world-south.pmtiles holds it", async () => {
+  const response = await call("/us/9/150/260.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(!bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("world fill: a tile missing from both archives is still 204", async () => {
+  const response = await call("/us/5/9/17.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("world fill: a tile us.pmtiles holds is served from us.pmtiles, and the world archive is never read", async () => {
+  // world-south.pmtiles holds 0/0/0 too, with different bytes, so the order of the two reads is what is tested.
+  const response = await call("/us/0/0/0.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "tile 0/0/0");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(!bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("world fill: with world-south.pmtiles not on R2, a missing tile is 204 as before, not a 404 or an error", async () => {
+  worldOnR2 = false;
+  const response = await call("/us/5/9/16.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("world fill: an archive other than the Street one never falls back to the world archive", async () => {
+  const response = await call("/other/5/9/16.mvt");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.deepEqual(bucketReads.filter((k) => k !== "other.pmtiles"), []);
 });
