@@ -1,0 +1,12 @@
+cell size at 45.5 N: 3.47 km N-S x 2.44 km E-W
+average bytes per cell in W125_N45 (54.9 MB / 25,600 cells): 2,145 B
+spike's 60 km square: 19x26=494 cells -> 1,296 B/cell measured in forest (0.64 MB / 494)
+
+| radius km | box km | cells (rows x cols) | cut, square-average | cut, forest rate | whole square(s) |
+|---|---|---|---|---|---|
+| 1 | 2 x 2 | 16 (4 x 4, with a one-cell margin) | 0.03 MB | 0.02 MB | 54.9 MB (one), 109.8 MB (two, within 24 km of 45 N or 120 W) |
+| 8 | 16 x 16 | 80 (8 x 10, with a one-cell margin) | 0.17 MB | 0.10 MB | 54.9 MB (one), 109.8 MB (two, within 24 km of 45 N or 120 W) |
+| 10 | 20 x 20 | 108 (9 x 12, with a one-cell margin) | 0.23 MB | 0.14 MB | 54.9 MB (one), 109.8 MB (two, within 24 km of 45 N or 120 W) |
+| 24 | 48 x 48 | 391 (17 x 23, with a one-cell margin) | 0.84 MB | 0.51 MB | 54.9 MB (one), 109.8 MB (two, within 24 km of 45 N or 120 W) |
+
+Fraction of a square a 24 km area is: 1.5%
