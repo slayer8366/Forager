@@ -299,7 +299,6 @@ async function worldFillTile(
   streetTileType: TileType
 ): Promise<ArrayBuffer | undefined> {
   const [z, x, y] = tile;
-  if (z > WORLD_FILL_MAX_ZOOM) return undefined;
   const world = new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress);
   try {
     const header = await world.getHeader();
