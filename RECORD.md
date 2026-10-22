@@ -26812,3 +26812,14 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - **#359 is superseded:** it replaced Street outright.
 **Open:** no build go yet.
 **Notes:** Written by the planner by hand. Next free ID -1555.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1555
+**Timestamp:** 2026-10-22T13:38:26Z
+**Continues:** 2026-09-28-1554
+**Supersedes:** -1554's chip label "Trail Map (Default)"
+**Title:** Our map's chip reads "Forager Trail Map" (owner)
+**Decision:** the owner asked "If we're doing source then why not just say Forager Trail Map?", then chose "Forager Trail Map", with no "(Default)". The order and everything else in -1554 stand. If the three chips don't fit on one line on the S22, it goes back to the owner.
+**Notes:** Written by the planner by hand. Dispatch 2026-10-22-01 gets Amendment 1. Next free ID -1556.
