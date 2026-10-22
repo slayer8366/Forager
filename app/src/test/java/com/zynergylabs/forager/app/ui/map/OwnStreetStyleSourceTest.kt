@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
+import com.zynergylabs.forager.app.map.STREET_STYLE_V1_URL
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -71,6 +72,8 @@ class OwnStreetStyleSourceTest {
     @Test
     fun `the Street sprite is inverted at night only for the own Street style`() {
         assertTrue(usesStreetSprite(MapStyleSource.Uri(STREET_STYLE_URL)))
+        // A region downloaded before v2 loads v1 offline; it takes the Street night too (dispatch 2026-10-22-03 Amendment 1).
+        assertTrue(usesStreetSprite(MapStyleSource.Uri(STREET_STYLE_V1_URL)))
         assertTrue(usesStreetSprite(MapStyleSource.StreetWithTopoOver(STREET_STYLE_URL, Basemap.OPEN_TOPO_MAP)))
         assertFalse(usesStreetSprite(MapStyleSource.Uri(OFFLINE_STYLE_URL)))
         assertFalse(usesStreetSprite(MapStyleSource.Json(styleJsonFor(Basemap.OSM_STANDARD))))

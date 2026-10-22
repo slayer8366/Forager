@@ -22,6 +22,7 @@ const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
 const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
 const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
+const STREET_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json"), "utf8");
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 
 let fetchCalls;
@@ -121,6 +122,8 @@ beforeEach(() => {
     ["fonts/Noto Sans Regular/0-255.pbf", Buffer.from("glyphs 0-255")],
     ["sprites/v4/light.json", Buffer.from('{"townspot":{}}')],
     ["sprites/v4/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47])],
+    ["sprites/v5/light.json", Buffer.from('{"townspot":{},"trailhead_b":{}}')],
+    ["sprites/v5/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x35])],
   ]);
 });
 
@@ -171,6 +174,26 @@ test("/style/street-v1.json is the Street style, with fonts and icons on this Wo
   assert.equal(style.sources.protomaps.url, `${HOST}/us.json`);
 });
 
+test("/style/street-v2.json is Trail Map's v2 style, on sprite v5, beside an unchanged v1 (dispatch 2026-10-22-03)", async () => {
+  const response = await call("/style/street-v2.json");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/json");
+  const text = await response.text();
+  assert.equal(text, JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
+  const style = JSON.parse(text);
+  assert.equal(style.name, "Forager Street v2");
+  assert.equal(style.glyphs, `${HOST}/fonts/{fontstack}/{range}.pbf`);
+  assert.equal(style.sprite, `${HOST}/sprites/v5/light`);
+  // The same tiles as v1, so a region downloaded against either draws the other's tiles.
+  assert.equal(style.sources.protomaps.url, JSON.parse(STREET_STYLE_SOURCE).sources.protomaps.url);
+  const ids = style.layers.map((l) => l.id);
+  for (const id of ["landuse_forest_glyphs", "landuse_wetland_tufts", "pois_area_names"]) assert.ok(ids.includes(id), id);
+  // v1 is still v1: its own sprite, and none of v2's layers.
+  const v1 = JSON.parse(await (await call("/style/street-v1.json")).text());
+  assert.equal(v1.sprite, `${HOST}/sprites/v4/light`);
+  assert.ok(!v1.layers.some((l) => l.id === "landuse_forest_glyphs"));
+});
+
 test("a font range is read from R2 under fonts/, with a week's cache", async () => {
   const response = await call("/fonts/Noto%20Sans%20Regular/0-255.pbf");
   assert.equal(response.status, 200);
@@ -196,6 +219,21 @@ test("sprite files are read from R2 under sprites/v4/, not mistaken for a tilese
   assert.deepEqual(bucketReads, ["sprites/v4/light.json", "sprites/v4/light@2x.png"]);
 });
 
+test("sprite v5 files are read from R2 under sprites/v5/, with a week's cache, and v4 stays where it was", async () => {
+  const json = await call("/sprites/v5/light.json");
+  assert.equal(json.status, 200);
+  assert.equal(json.headers.get("Content-Type"), "application/json");
+  assert.equal(json.headers.get("Cache-Control"), "public, max-age=604800");
+  assert.equal(await json.text(), '{"townspot":{},"trailhead_b":{}}');
+  const png = await call("/sprites/v5/light@2x.png");
+  assert.equal(png.status, 200);
+  assert.equal(png.headers.get("Content-Type"), "image/png");
+  assert.deepEqual([...Buffer.from(await png.arrayBuffer())], [0x89, 0x50, 0x4e, 0x47, 0x35]);
+  const v4 = await call("/sprites/v4/light.json");
+  assert.equal(await v4.text(), '{"townspot":{}}');
+  assert.deepEqual(bucketReads, ["sprites/v5/light.json", "sprites/v5/light@2x.png", "sprites/v4/light.json"]);
+});
+
 test("a missing font range is a 404 and is not cached", async () => {
   const response = await call("/fonts/Noto%20Sans%20Regular/256-511.pbf");
   assert.equal(response.status, 404);
@@ -205,7 +243,10 @@ test("a missing font range is a 404 and is not cached", async () => {
 });
 
 test("other paths under /fonts/ and /sprites/ never read R2", async () => {
-  for (const path of ["/fonts/../us.pmtiles", "/fonts/Noto%20Sans%20Regular/x.pbf", "/sprites/v4/dark.json", "/sprites/us.pmtiles"]) {
+  for (const path of [
+    "/fonts/../us.pmtiles", "/fonts/Noto%20Sans%20Regular/x.pbf", "/sprites/v4/dark.json", "/sprites/us.pmtiles",
+    "/sprites/v6/light.json", "/sprites/v5/dark.png",
+  ]) {
     const response = await call(path);
     assert.equal(response.status, 404, path);
   }

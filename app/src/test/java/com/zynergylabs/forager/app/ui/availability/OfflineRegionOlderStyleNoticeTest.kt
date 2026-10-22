@@ -13,6 +13,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
+import com.zynergylabs.forager.app.map.STREET_STYLE_V1_URL
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import org.junit.Rule
 import org.junit.Test
@@ -74,6 +75,14 @@ class OfflineRegionOlderStyleNoticeTest {
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(1)).assertIsDisplayed()
         composeRule.onNodeWithText("Older map style. Download again to update.").assertIsDisplayed()
         composeRule.onNodeWithText("Region 1").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a region downloaded under Trail Map's first style shows the notice`() {
+        // RECORD -1561, the owner: "The existing notice" for regions downloaded under v1.
+        show(region(4, STREET_STYLE_V1_URL))
+        composeRule.onNodeWithTag(offlineRegionOlderStyleTag(4)).assertIsDisplayed()
+        composeRule.onNodeWithText("Older map style. Download again to update.").assertIsDisplayed()
     }
 
     @Test

@@ -14,11 +14,21 @@ package com.zynergylabs.forager.app.map
  */
 
 /**
- * The Street style document, served by the Worker at `/style/street-v1.json` (`server/pmtiles-worker`), built by
- * `map-style/generate-street.mjs`. Like [OFFLINE_STYLE_URL] it is a URL that never changes meaning: MapLibre's
- * offline store keys a downloaded region by the style URL, so a later design ships as `street-v2.json` beside it.
+ * The Street style document the app loads and downloads in: Trail Map with its character (dispatch 2026-10-22-03, RECORD
+ * -1561, the owner: "Yes, v2"), served by the Worker at `/style/street-v2.json` (`server/pmtiles-worker`), built by
+ * `map-style/generate-street.mjs`. Like [OFFLINE_STYLE_URL] it is a URL that never changes meaning: MapLibre's offline
+ * store keys a downloaded region by the style URL, so a later design ships as `street-v3.json` beside it.
  */
-internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v1.json"
+internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v2.json"
+
+/**
+ * Trail Map's first style, before its character: still served, unchanged, for apps older than v2 and for the regions
+ * downloaded against it, which keep drawing in it and show the -1294 notice ("The existing notice", RECORD -1561).
+ */
+internal const val STREET_STYLE_V1_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v1.json"
+
+/** Every Trail Map style the app may load: the current one first, then the older. Both take the Street night. */
+internal val STREET_STYLE_URLS: List<String> = listOf(STREET_STYLE_URL, STREET_STYLE_V1_URL)
 
 /**
  * The always-visible credit over the own Street map: the same Protomaps tiles as the offline style, so the
@@ -45,13 +55,16 @@ internal fun offlineDownloadStyleUrl(): String = STREET_STYLE_URL
  * OpenStreetMap or Topographical user with no signal (`NoSignalTrailMap.kt`, RECORD -1556).
  *
  * The store serves a style only under the URL a region stored it with, so the map can only load a style some region
- * holds. With at least one region in the Trail Map style, that is the Trail Map style: the tiles every
- * region holds are the same tile URLs under either style, and the fonts and icons a Street download stores are shared
- * by URL, so the older regions draw in it too. With no Street region yet, it is [OFFLINE_STYLE_URL], the style every
- * older region holds, so they keep drawing exactly as they did (-1294).
+ * holds. The newest Trail Map style any region holds wins ([STREET_STYLE_URLS], v2 then v1): the tiles every region
+ * holds are the same tile URLs under each style, and the fonts and icons a Street download stores are shared by URL,
+ * so the older regions draw in it too. With no Street region at all, it is [OFFLINE_STYLE_URL], the style every older
+ * region holds, so they keep drawing exactly as they did (-1294).
+ *
+ * v1 is a step of its own (dispatch 2026-10-22-03 Amendment 1): a phone holding only v1 regions has never stored v2,
+ * so loading v2 or the offline style there would load a style no region holds and the offline map would not draw.
  */
 internal fun offlineRenderStyleUrl(downloadedStyleUrls: Collection<String?>): String =
-    if (STREET_STYLE_URL in downloadedStyleUrls) STREET_STYLE_URL else OFFLINE_STYLE_URL
+    STREET_STYLE_URLS.firstOrNull { it in downloadedStyleUrls } ?: OFFLINE_STYLE_URL
 
 /**
  * Whether a region's row shows the -1294 notice ([OLDER_MAP_STYLE_NOTICE]): a downloaded region built against a
@@ -71,16 +84,20 @@ internal fun regionHasOlderMapStyle(
 internal const val OLDER_MAP_STYLE_NOTICE = "Older map style. Download again to update."
 
 /**
- * The sprite's icon names, which the app inverts one by one at night (MapLibre cannot list a style's images).
- * The same list the style records as `metadata["forager:sprite-icons"]`; `StreetStyleTest` checks the two agree.
+ * The sprite's images the app inverts one by one at night (MapLibre cannot list a style's images): sprite v5's, which
+ * are v4's 53 plus Trail Map's six icons and the wetland tufts (dispatch 2026-10-22-03). The tree glyph is not here: it
+ * is painted its own night colour instead (`STREET_NIGHT_PATTERN_COLOURS`). The same list the v2 style records as
+ * `metadata["forager:sprite-icons"]`; `StreetStyleTest` checks the two agree. On a v1 style the seven new names are
+ * simply absent, and are logged as left, like any missing image.
  */
 internal val STREET_SPRITE_ICON_NAMES: List<String> = listOf(
     "NL:S-road-1char", "NL:S-road-2char", "NL:S-road-3char", "NL:S-road-4char", "NL:S-road-5char",
     "US:I-1char", "US:I-2char", "US:I-3char", "US:I-4char", "US:I-5char",
     "aerodrome", "animal", "arrow", "artwork", "attraction", "bar", "beach", "beauty", "bench", "books", "building",
-    "bus_stop", "cafe", "capital", "clothes", "convenience", "drinking_water", "electronics", "fast_food",
+    "bus_stop", "cafe", "camp_site", "capital", "clothes", "convenience", "drinking_water", "electronics", "fast_food",
     "ferry_terminal", "forest", "garden",
     "generic_shield-1char", "generic_shield-2char", "generic_shield-3char", "generic_shield-4char", "generic_shield-5char",
-    "library", "marina", "museum", "park", "peak", "post_office", "restaurant", "school", "stadium", "supermarket",
-    "theatre", "toilets", "townspot", "train_station", "university", "zoo",
+    "library", "marina", "museum", "park", "parking", "peak", "picnic_site", "post_office", "ranger_station",
+    "restaurant", "school", "stadium", "supermarket", "theatre", "toilets", "townspot", "trailhead_b", "train_station",
+    "tufts", "university", "viewpoint_c", "zoo",
 )

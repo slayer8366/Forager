@@ -50,9 +50,11 @@ recording rather than hiding:
 | `/{name}.json` | TileJSON | R2's `{name}.pmtiles` header and metadata |
 | `/us.json` while `world-south.pmtiles` is on R2 | TileJSON with its south bound taken from the world archive (dispatch 2026-10-22-01 Amendment 3), so MapLibre requests the tiles the fill serves | R2 `head` of `world-south.pmtiles`, then its header |
 | `/style/offline.json` | the label-less offline style every pre-Street offline pack was downloaded against; never changed (RECORD -1294) | bundled |
-| `/style/street-v1.json` | Forager's Street style, built by `map-style/generate-street.mjs` | bundled |
+| `/style/street-v1.json` | Forager's Street style as it was before Trail Map's character; frozen, for older apps and regions downloaded against it | bundled |
+| `/style/street-v2.json` | Trail Map with its character (dispatch 2026-10-22-03), built by `map-style/generate-street.mjs`; what the app loads from v2 on | bundled |
 | `/fonts/{stack}/{range}.pbf` | Noto Sans glyphs (SIL OFL; `fonts/OFL.txt` beside them) | R2 `fonts/` |
 | `/sprites/v4/light{,@2x}.{json,png}` | the icon set (MIT, from tangrams; `sprites/LICENSE-MIT.md` beside it) | R2 `sprites/v4/` |
+| `/sprites/v5/light{,@2x}.{json,png}` | v4 unchanged plus Trail Map's own icons and patterns (`map-style/tools/build-sprite-v5.mjs`) | R2 `sprites/v5/` |
 
 **Offline downloads south of 15.92°N** (the live `us.pmtiles` header's south bound) get world tiles to z8 and empty tiles from z9 up, z15 included: the overflow no longer runs south of the archive's own bounds, by the owner's "Stop it" (dispatch 2026-10-22-01 Amendment 4).
 

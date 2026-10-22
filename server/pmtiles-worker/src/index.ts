@@ -23,6 +23,7 @@ import {
 import { pmtilesPath, tilePath } from "./shared";
 import offlineStyle from "./offline-style.json";
 import streetStyle from "./street-style-v1.json";
+import streetStyleV2 from "./street-style-v2.json";
 
 interface Env {
   ALLOWED_ORIGINS?: string;
@@ -373,9 +374,14 @@ async function worldFillTile(
 // against v1 keep drawing while v1 still serves. /style/offline.json is untouched for the same reason
 // (-1294).
 //
+// /style/street-v2.json is that later design (dispatch 2026-10-22-03, RECORD -1561: Trail Map's character, with
+// sprite v5), map-style/forager-street-v2.json bundled the same way. v1 is served exactly as before, for apps older
+// than v2 and for regions downloaded against it.
+//
 // Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
-// sprites/v4/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. They
-// are matched before tilePath, because tilePath's tileset pattern also matches /sprites/v4/light.json.
+// sprites/{v4,v5}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
+// v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs). They are matched
+// before tilePath, because tilePath's tileset pattern also matches /sprites/v4/light.json.
 // Only these exact shapes are read; anything else under /fonts/ or /sprites/ is a 404, never an R2 read of
 // an arbitrary key.
 // -------------------------------------------------------------------------------------------------
@@ -384,7 +390,7 @@ async function worldFillTile(
 const ASSET_CACHE_CONTROL = "public, max-age=604800";
 
 const FONT_PATH = /^\/fonts\/([A-Za-z0-9 ,-]+)\/(\d+-\d+)\.pbf$/;
-const SPRITE_PATH = /^\/sprites\/v4\/(light(?:@2x)?)\.(json|png)$/;
+const SPRITE_PATH = /^\/sprites\/(v4|v5)\/(light(?:@2x)?)\.(json|png)$/;
 
 /** The R2 key and content type for a font or sprite URL, or null when [pathname] is neither. */
 export function assetKeyFor(pathname: string): { key: string; contentType: string } | null {
@@ -398,18 +404,18 @@ export function assetKeyFor(pathname: string): { key: string; contentType: strin
   if (font) return { key: `fonts/${font[1]}/${font[2]}.pbf`, contentType: "application/x-protobuf" };
   const sprite = decoded.match(SPRITE_PATH);
   if (sprite) {
-    return { key: `sprites/v4/${sprite[1]}.${sprite[2]}`, contentType: sprite[2] === "png" ? "image/png" : "application/json" };
+    return { key: `sprites/${sprite[1]}/${sprite[2]}.${sprite[3]}`, contentType: sprite[3] === "png" ? "image/png" : "application/json" };
   }
   return null;
 }
 
-function streetStyleResponse(allowedOrigin: string): Response {
+function streetStyleResponse(allowedOrigin: string, style: unknown = streetStyle): Response {
   const headers = new Headers({
     "Content-Type": "application/json",
     "Cache-Control": "public, max-age=86400",
   });
   if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
-  return new Response(JSON.stringify(streetStyle), { headers });
+  return new Response(JSON.stringify(style), { headers });
 }
 
 async function assetResponse(
@@ -452,6 +458,10 @@ export default {
 
     if (url.pathname === "/style/street-v1.json") {
       return streetStyleResponse(resolveAllowedOrigin(request, env));
+    }
+
+    if (url.pathname === "/style/street-v2.json") {
+      return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV2);
     }
 
     const asset = assetKeyFor(url.pathname);
