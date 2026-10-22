@@ -37,7 +37,7 @@ internal const val STREET_STYLE_MAX_ZOOM = 18
  * The style a new offline download is built against: Trail Map's, whatever map type is showing (RECORD -1554: "Offline
  * downloads → Trail Map only"). A function rather than the constant so the one rule has one name at its two readers.
  */
-internal fun offlineDownloadStyleUrl(): String = STREET_STYLE_URL
+internal fun offlineDownloadStyleUrl(): String = OFFLINE_STYLE_URL
 
 /**
  * The style the map loads when "use offline tiles" is on, from the style URLs the downloaded regions were built
