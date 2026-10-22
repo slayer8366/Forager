@@ -26619,3 +26619,11 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 **Abort conditions:** an owner-level choice (such as the server runtime); a wrong premise that changes the plan; ci.yml, index.ts, main or a release build having to change beyond what Phase 1 states; a test having to be weakened; two failed attempts at one symptom; licence terms against carrying the fixture or BRouter code.
 **Dispatch-file:** prompts/preserved/2026-10-21-07.md
 **Notes:** Written by the planner by hand. Next free ID -1544.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1544
+**Timestamp:** 2026-10-22T04:13:36Z
+**Title:** The Pi keeps only the latest build's route squares; older sets aren't kept (owner)
+**Notes:** Aspen (Pi planner) noted that build-usca.sh's publish step deletes the previous build's BRouter .rd5 squares, so only the latest set exists, and asked whether that should change. The owner, verbatim: "Older sets aren't needed. Space is an issue at the moment until I get my new machine". So nothing changes on the Pi. Cut-on-request (-1543) cuts from the latest set. A phone keeps the piece it downloaded, so an older piece on a phone doesn't depend on its set still being on the Pi (planner's inference, to be checked when the phone side is designed). Relayed to Aspen. Written by the planner by hand. Next free ID -1545.
