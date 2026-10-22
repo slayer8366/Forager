@@ -675,6 +675,11 @@ jobs:
           set -o pipefail
           npm run build 2>&1 | tee worker-build.log
           test -s dist/index.js || { echo "::error::No dist/index.js: the bundle did not build."; exit 1; }
+      # The bundle the owner pastes into the Cloudflare dashboard, kept so it can be downloaded from a pre-main run
+      # (dispatch 2026-10-22-02; the owner, "CI keeps the built file"). Its sha256 goes in the log, so a downloaded
+      # copy can be checked against the run it came from.
+      - name: Record the bundle's sha256
+        run: sha256sum dist/index.js
       - name: Run the Worker's tests
         run: >-
           node --test --test-reporter=spec --test-reporter-destination=stdout
@@ -707,3 +712,9 @@ jobs:
             server/pmtiles-worker/pmtiles-worker-junit.xml
             server/pmtiles-worker/worker-build.log
           if-no-files-found: warn
+      # Only when the tests above passed, so the kept file is always one the tests ran against.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pmtiles-worker-dist
+          path: server/pmtiles-worker/dist/index.js
+          if-no-files-found: error

@@ -3,7 +3,8 @@
 //
 //   npm run build && npm test
 //
-// R2 is a fake backed by test/fixtures/tiny.pmtiles and an in-memory asset map; the edge cache is a Map;
+// R2 is a fake backed by test/fixtures/tiny.pmtiles and an in-memory asset map; Protomaps' live build is
+// test/fixtures/live-build.pmtiles behind the fetch fake; the edge cache is a Map;
 // fetch is a recorder, so "no Pi request" is asserted as "fetch was never called" for tiles R2 holds.
 // The Worker is given PI_ORIGIN_URL and both Access secrets, exactly as the deployed Worker has them, so the
 // assertion holds even with the Pi configured.
@@ -16,6 +17,9 @@ const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
 // The world fill (dispatch 2026-10-22-01 Part A): R2's world-south.pmtiles, read where us.pmtiles has no tile.
 const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
+// Protomaps' live build, which the z15 overflow reads: two z15 tiles, listed in test/fixtures/make-live-build-pmtiles.py
+// (dispatch 2026-10-22-02). Before it, tiny.pmtiles stood in, stopped at z14, and the overflow's R2 write was unreachable.
+const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
 const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
@@ -94,10 +98,10 @@ globalThis.fetch = async (input, init) => {
   fetchCalls.push({ url, method: init?.method ?? input.method ?? "GET", headers: init?.headers });
   if (url.startsWith("https://build.protomaps.com/")) {
     if ((init?.method ?? "GET") === "HEAD") return new Response(null, { status: 200 });
-    // Serve the fixture as the "live build", with Range support, as FetchSource expects.
+    // Serve the live-build fixture, with Range support, as FetchSource expects.
     const range = new Headers(init?.headers).get("range") ?? new Headers(input.headers ?? {}).get("range");
     const [, start, end] = /bytes=(\d+)-(\d+)/.exec(range);
-    const slice = ARCHIVE.subarray(Number(start), Number(end) + 1);
+    const slice = LIVE_BUILD.subarray(Number(start), Number(end) + 1);
     return new Response(slice, { status: 206, headers: { "Content-Length": String(slice.length), ETag: '"live"' } });
   }
   return new Response("unexpected fetch", { status: 599 });
@@ -134,8 +138,8 @@ test("a tile R2 holds is served from R2 with no request to the Pi, even with the
 
 test("a z15 tile still goes to the overflow path (Protomaps' live build), never to the Pi", async () => {
   const response = await call("/us/15/5303/11553.mvt");
-  // The fixture's "live build" stops at z14, so the overflow path answers 404 after reading its header.
-  assert.equal(response.status, 404);
+  // The "live build" fixture holds this tile (test/fixtures/make-live-build-pmtiles.py), so the overflow answers 200.
+  assert.equal(response.status, 200);
   assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
   assert.ok(!fetchCalls.some((c) => c.url.includes("origin.zynergy-labs.com")), JSON.stringify(fetchCalls));
   assert.ok(bucketReads.includes("overflow/us/15/5303/11553.mvt"));
@@ -315,18 +319,29 @@ test("TileJSON: an archive other than the Street one keeps its own bounds and ne
 // write. 15/9641/15964 is Bogotá (north edge 4.61°N).
 
 test("overflow: a z15 tile south of the archive's own bounds is 204, with no Protomaps read and no R2 read or write", async () => {
+  // The live-build fixture holds this tile, so a Worker that still ran the overflow here would fetch it, read
+  // overflow/ and write it into R2 (dispatch 2026-10-22-02). The side effects and the status are compared in one
+  // deepEqual, so a failure shows all four at once rather than stopping at the first.
   const response = await call("/us/15/9641/15964.mvt");
-  assert.equal(response.status, 204);
+  assert.deepEqual(
+    {
+      fetchCalls: fetchCalls.map((c) => `${c.method} ${c.url}`),
+      overflowReads: bucketReads.filter((k) => k.startsWith("overflow/")),
+      bucketPuts,
+      status: response.status,
+    },
+    { fetchCalls: [], overflowReads: [], bucketPuts: [], status: 204 },
+  );
   assert.equal(response.headers.get("X-Forager-Origin"), "r2");
-  assert.deepEqual(fetchCalls, [], `the Worker made outbound requests: ${JSON.stringify(fetchCalls)}`);
-  assert.ok(!bucketReads.some((k) => k.startsWith("overflow/")), JSON.stringify(bucketReads));
-  assert.deepEqual(bucketPuts, []);
 });
 
 test("overflow: a z15 tile inside the archive's own bounds still goes to the overflow path", async () => {
-  // Portland (north edge 46.79°N), the same tile the first overflow test uses: unchanged by Amendment 4.
+  // Portland (north edge 46.79°N), the same tile the first overflow test uses: unchanged by Amendment 4. The live
+  // build holds it, so the overflow serves it and copies it into R2: the write path's first test (dispatch 2026-10-22-02).
   const response = await call("/us/15/5303/11553.mvt");
-  assert.equal(response.status, 404);
+  assert.deepEqual(bucketPuts, ["overflow/us/15/5303/11553.mvt"]);
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "live 15/5303/11553");
   assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
   assert.ok(bucketReads.includes("overflow/us/15/5303/11553.mvt"));
 });

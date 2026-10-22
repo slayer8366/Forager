@@ -54,6 +54,8 @@ recording rather than hiding:
 | `/fonts/{stack}/{range}.pbf` | Noto Sans glyphs (SIL OFL; `fonts/OFL.txt` beside them) | R2 `fonts/` |
 | `/sprites/v4/light{,@2x}.{json,png}` | the icon set (MIT, from tangrams; `sprites/LICENSE-MIT.md` beside it) | R2 `sprites/v4/` |
 
+**Offline downloads south of 15.92°N** (the live `us.pmtiles` header's south bound) get world tiles to z8 and empty tiles from z9 up, z15 included: the overflow no longer runs south of the archive's own bounds, by the owner's "Stop it" (dispatch 2026-10-22-01 Amendment 4).
+
 **The Pi is no longer tried first** (RECORD -879: the Pi "Builds the maps and keeps a copy, nothing live").
 Every tile comes from R2. The response header `X-Forager-Origin` still names the source (`r2`).
 
