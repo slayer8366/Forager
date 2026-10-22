@@ -3,7 +3,8 @@
 //
 //   npm run build && npm test
 //
-// R2 is a fake backed by test/fixtures/tiny.pmtiles and an in-memory asset map; the edge cache is a Map;
+// R2 is a fake backed by test/fixtures/tiny.pmtiles and an in-memory asset map; Protomaps' live build is
+// test/fixtures/live-build.pmtiles behind the fetch fake; the edge cache is a Map;
 // fetch is a recorder, so "no Pi request" is asserted as "fetch was never called" for tiles R2 holds.
 // The Worker is given PI_ORIGIN_URL and both Access secrets, exactly as the deployed Worker has them, so the
 // assertion holds even with the Pi configured.
@@ -16,6 +17,9 @@ const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
 // The world fill (dispatch 2026-10-22-01 Part A): R2's world-south.pmtiles, read where us.pmtiles has no tile.
 const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
+// Protomaps' live build, which the z15 overflow reads: two z15 tiles, listed in test/fixtures/make-live-build-pmtiles.py
+// (dispatch 2026-10-22-02). Before it, tiny.pmtiles stood in, stopped at z14, and the overflow's R2 write was unreachable.
+const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
 const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
@@ -94,10 +98,10 @@ globalThis.fetch = async (input, init) => {
   fetchCalls.push({ url, method: init?.method ?? input.method ?? "GET", headers: init?.headers });
   if (url.startsWith("https://build.protomaps.com/")) {
     if ((init?.method ?? "GET") === "HEAD") return new Response(null, { status: 200 });
-    // Serve the fixture as the "live build", with Range support, as FetchSource expects.
+    // Serve the live-build fixture, with Range support, as FetchSource expects.
     const range = new Headers(init?.headers).get("range") ?? new Headers(input.headers ?? {}).get("range");
     const [, start, end] = /bytes=(\d+)-(\d+)/.exec(range);
-    const slice = ARCHIVE.subarray(Number(start), Number(end) + 1);
+    const slice = LIVE_BUILD.subarray(Number(start), Number(end) + 1);
     return new Response(slice, { status: 206, headers: { "Content-Length": String(slice.length), ETag: '"live"' } });
   }
   return new Response("unexpected fetch", { status: 599 });
