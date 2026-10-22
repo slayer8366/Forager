@@ -277,7 +277,7 @@ internal fun ownStreetStyleSourceFor(basemap: Basemap, night: Boolean, ownStreet
  */
 internal fun usesStreetSprite(source: MapStyleSource): Boolean = when (source) {
     is MapStyleSource.Json -> false
-    is MapStyleSource.Uri -> source.uri in STREET_STYLE_URLS
+    is MapStyleSource.Uri -> source.uri == STREET_STYLE_URL
     is MapStyleSource.StreetWithTopoOver -> true
 }
 
