@@ -26777,3 +26777,21 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 **Abort conditions:** a question answerable only by downloading or running the Pi; anything needing an account or agreement; a moved base that changes a question.
 **Dispatch-file:** prompts/preserved/2026-10-21-08.md
 **Notes:** Written by the planner by hand. Next free ID -1553.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1553
+**Timestamp:** 2026-10-22T05:50:35Z
+**Continues:** 2026-09-28-1551
+**Title:** Route squares go to R2 after the map upload (owner, in Aspen's window); the planner asked for a run-dated key layout
+**Decision:**
+- **The owner, to Aspen, relayed verbatim by Aspen:** "When you're done uploading the maps, go ahead and upload the trails data, you have my go". Aspen reads "trails data" as the 187 BRouter .rd5 squares from the current build, and is confirming that with the owner.
+- **The planner's request to Aspen:**
+  - squares at r2:forager-maps/routing/<run-id>/segments4/<NAME>.rd5;
+  - manifest at routing/manifest.json, naming the current run and each file's size and sha256, uploaded last, after every square verifies;
+  - private, with no Worker route.
+- **Why a run folder:** the cutter reads a square in many byte-range requests, so overwriting it in place during a cut could mix two builds. Aspen's default was the same layout without the run folder.
+- **Rejected:** a separate bucket, which brings no benefit the prefix doesn't.
+**Open for the owner:** whether the previous run's folder on R2 is deleted once a new manifest is live. -1544 covered the Pi only. Until the owner decides, old R2 folders stay.
+**Notes:** Written by the planner by hand. Next free ID -1554.
