@@ -26859,3 +26859,17 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - S26 Wi-Fi/mobile hand-over check for #377.
 - PR #359 to be closed as superseded.
 **Notes:** Written by the planner by hand. Next free ID -1558.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1558
+**Timestamp:** 2026-10-22T20:08:39Z
+**Closes:** dispatch 2026-10-22-02
+**Title:** #378 (the Worker's built file kept by CI, the R2-write test) merged into pre-main on the owner's word
+**Outcome:** completed. Merged at 563e9b756 after Sorrel's review (`docs/audits/2026-10-22-review-pr378.md`, 10eaec0d1, approve with notes), on the owner's "Sorrel checks, then merge".
+**Open:**
+- The README line on southern downloads is wrong: downloads cover z10-15, so they store only empty tiles there. The dispatch's wording was the planner's.
+- The overflow's own 404 branch now has no test.
+- The Worker isn't deployed; the owner deploys it by hand.
+**Notes:** Written by the planner by hand. Next free ID -1559.
