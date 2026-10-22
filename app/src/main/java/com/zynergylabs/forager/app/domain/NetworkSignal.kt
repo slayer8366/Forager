@@ -54,7 +54,6 @@ fun noSignalWithHysteresis(
             current = wanted
             send(wanted)
         } else if (wanted != now) {
-            delay(if (wanted) lossDelayMs else returnDelayMs)
             current = wanted
             send(wanted)
         }
