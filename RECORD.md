@@ -26665,3 +26665,26 @@ Aspen (Pi planner) relayed the Pi facts: 187 squares, 1.5 GB, pi-23 build, only 
 - **What follows for the app (step 4 on):** routing on a cut runs with dynamic-range matching off, or an equivalent check, so that an end or a best path outside the area fails instead of snapping or detouring. The notice's wording comes back to the owner as a step path before the phone part.
 - **For this dispatch:** the tests assert both behaviours: the default, as BRouter actually behaves, and the clean failure with use_dynamic_range=0.
 **Notes:** Written by the planner by hand. Next free ID -1547.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1547
+**Timestamp:** 2026-10-22T05:08:15Z
+**Continues:** 2026-09-28-1546
+**Title:** Route cutter built: PR #371 (GitHub #375) open into pre-main, CI green at b5068501; dynamic range off doesn't stop a quiet detour
+**Observed:** Hazel's completion report.
+- **The cutter:** four TypeScript files in server/pmtiles-worker/src/rd5/ (22–127 lines), with a one-cell margin as a parameter.
+- **The tests:** 27, run against BRouter 1.7.10's own router and its integrity checker.
+- **The fixture:** OpenStreetMap trails in Harriman and Bear Mountain State Parks, NY, 152,665 bytes. Its cut is 103,625 bytes, or 39,696 with no margin.
+- **The other changes:** ci.yml +42 lines (the route-cutter job, 29 s), and tsconfig.json +1.
+- **Failing first:** over a stub, 24 of 25 tests failed on "not implemented"; the one that passed doesn't touch the cutter.
+- **Revert check:** margin set to 0 (branch route-cutter-revert-1, d36a1040; run log read first, file restored from a saved copy). 9 tests failed, all margin effects.
+- **CI:** run 39724652858 green on all four jobs. route-cutter ran 27 tests with 0 failed. The app suite ran 5,252 tests: 0 failed, 24 skipped.
+- **Corrections after the first real run:**
+  - The detour test asserts a costlier, different route, not a longer one; BRouter minimises cost.
+  - An outside end by default either fails as "target island" or succeeds with the end moved, so there is one route for each.
+  - The planner read the diff (4ea4de5f..78fd19de): both are now asserted as observed. The inside and edge identity tests are unchanged.
+**Prediction check:** the mechanism prediction was right on identity, the stub failures and the margin revert. It was wrong on the outside end (snaps only sometimes) and on the detour (costlier, not longer). Outcome prediction: routes inside are identical, confirmed. Clean failure outside holds only with dynamic range off, and then only for an outside end. The 10 km size is untested.
+**Finding for -1546:** dynamic range off makes an outside end fail plainly, but a best path that leaves the area still comes back as a quiet costlier detour. "Say so plainly" needs another check on the phone side, a design question for step 4.
+**Notes:** Sorrel's review next; merge on the owner's word. Written by the planner by hand. Next free ID -1548.
