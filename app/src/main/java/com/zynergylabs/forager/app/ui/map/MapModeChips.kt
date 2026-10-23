@@ -35,7 +35,7 @@ private var SemanticsPropertyReceiver.mapModeChipSelectedFill by MapModeChipSele
  * when it switches back. The stored choice never changes; only the chip's colour does.
  */
 internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean): Boolean =
-    noSignal && mode.basemap != Basemap.FORAGER_TRAIL
+    noSignal
 
 /** [LocalNoSignal]'s current value; `false` where nothing provides it, as the map reads it. */
 @Composable
