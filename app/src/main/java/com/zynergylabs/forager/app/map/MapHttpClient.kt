@@ -25,6 +25,12 @@ internal fun mapHttpClient(userAgent: String): OkHttpClient =
         .addInterceptor { chain ->
             chain.proceed(chain.request().newBuilder().header("User-Agent", userAgent).build())
         }
+        .addInterceptor { chain -> // DIAGNOSTIC, never merged (dispatch 2026-10-22-07)
+            val url = chain.request().url.toString()
+            val response = chain.proceed(chain.request())
+            if (url.contains(".mvt")) android.util.Log.i("GlyphGapNet", "${response.code} ${url.substringAfter("/us/")}")
+            response
+        }
         .build()
 
 /**

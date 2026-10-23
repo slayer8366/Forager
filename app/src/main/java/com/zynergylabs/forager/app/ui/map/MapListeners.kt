@@ -75,6 +75,7 @@ internal fun MapListeners(
         }
         state.mapView.addOnDidFinishRenderingFrameListener(frameLogger)
         state.mapView.getMapAsync { map ->
+            GlyphGapProbe.install(state.mapView.context, map, state.mapView) // DIAGNOSTIC, never merged
             // Marker fan-out (dispatch 2026-09-28-197): the tap is decided by MapTapHandler, which is the
             // resolution this listener used to do inline (resolveTap over every tappable layer, a point
             // query then a TAP_BOX_DP box, then mapTapOutcome), with the fan-out in front of and behind it.
