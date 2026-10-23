@@ -27,7 +27,6 @@ class FindRouteDataForPointUseCase(private val offlineMapRepository: OfflineMapR
 fun routeDataForPoint(point: LatLng, regions: List<OfflineRegionSummary>): RouteDataForPoint {
     val covering = regions
         .filter { it.isDownloaded && routeAreaFor(it.region).contains(point) }
-        .sortedByDescending { it.createdAtEpochMillis }
     if (covering.isEmpty()) return RouteDataForPoint.NoRegionCovers
     val square = routeSquareName(point)
     val storedHere = covering.mapNotNull { region -> (region.routeData as? RegionRouteData.Stored)?.let { region to it } }
