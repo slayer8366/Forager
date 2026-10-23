@@ -38,7 +38,7 @@ class OfflineRegionReconciliationTest {
         val tilesDeleted = mutableListOf<Long>()
         val warnings = mutableListOf<String>()
         val shown = runBlocking {
-            reconcileOfflineRegions(live, dao, inFlight, { tilesDeleted += it }, { warnings += it })
+            reconcileOfflineRegions(live, dao, inFlight, { tilesDeleted += it }, { warnings += it }, FakeRegionRouteFolders())
         }
         return Run(shown.map { it.id }, dao, tilesDeleted, warnings)
     }
@@ -193,6 +193,7 @@ class OfflineRegionReconciliationTest {
                 inFlightIds = emptySet(),
                 deleteRegion = {},
                 warn = {},
+                routes = FakeRegionRouteFolders(),
             )
         }
         assertEquals(mapOf(1L to OFFLINE_STYLE_URL, 2L to STREET_STYLE_URL, 3L to null), shown.associate { it.id to it.styleUrl })

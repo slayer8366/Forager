@@ -47,6 +47,7 @@ internal suspend fun reconcileOfflineRegions(
         warn("Room region row $id has no MapLibre region in this read; kept, not shown.")
     }
 
+    val deletedIds = mutableSetOf<Long>()
     val shown = live.mapNotNull { region ->
         if (!region.isComplete) {
             when (val decision = incompleteRegionDecision(region, hasRoomRow = dao.getById(region.id) != null, inFlightIds)) {
@@ -55,6 +56,7 @@ internal suspend fun reconcileOfflineRegions(
                     warn("Deleting region ${region.id}: it never finished (incomplete, not downloading now, no Room row, metadata never recorded a completion).")
                     deleteRegion(region.id)
                     dao.deleteById(region.id)
+                    deletedIds += region.id
                     deleteRoutesOrLeaveForCleanup(routes, region.id, warn)
                 }
                 is IncompleteRegionDecision.Keep ->
@@ -107,8 +109,8 @@ internal suspend fun reconcileOfflineRegions(
     }
 
     // Kept: every Room row (a row with no MapLibre region in this read is kept, above, and so are its routes), every
-    // region in the read, and every download still running. Read after the deletes and rebuilds above.
-    routes.cleanOrphans(dao.getAll().map { it.id }.toSet() + liveIds + inFlightIds)
+    // region in the read but those just deleted as never finished, and every download still running.
+    routes.cleanOrphans(dao.getAll().map { it.id }.toSet() + (liveIds - deletedIds) + inFlightIds)
     return shown
 }
 

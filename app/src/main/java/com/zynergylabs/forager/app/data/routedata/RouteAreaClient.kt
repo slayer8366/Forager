@@ -37,10 +37,10 @@ internal class RouteAreaClient(
     fun fetchList(box: GeoBoundingBox): RouteAnswer<RouteAreaList> {
         val url = baseUrl.newBuilder()
             .encodedPath("/routing/area.json")
-            .addQueryParameter("south", box.south.toString())
-            .addQueryParameter("west", box.west.toString())
-            .addQueryParameter("north", box.north.toString())
-            .addQueryParameter("east", box.east.toString())
+            .addQueryParameter("south", box.south.plain())
+            .addQueryParameter("west", box.west.plain())
+            .addQueryParameter("north", box.north.plain())
+            .addQueryParameter("east", box.east.plain())
             .build()
         return http.newCall(request(url)).execute().use { response ->
             if (response.code != 200) return@use errorAnswer<RouteAreaList>(response)
@@ -57,7 +57,7 @@ internal class RouteAreaClient(
     /**
      * Streams [file] into [destination], hashing as it goes. Answers [RouteAnswer.Ok] only when the bytes are exactly
      * [RouteAreaFile.size] long and hash to [RouteAreaFile.sha256]; otherwise [destination] is deleted. Reading stops
-     * at one byte past the promised size, so a server that sends more never fills the phone.
+     * within one 64 KB buffer past the promised size, so a server that sends more never fills the phone.
      */
     fun fetchFile(file: RouteAreaFile, destination: File): RouteAnswer<Unit> {
         val url = resolveOnBase(file.url)
@@ -102,6 +102,9 @@ internal class RouteAreaClient(
             }
         }
     }
+
+    /** Plain decimal, never `1.0E-4`: Kotlin's [Double.toString] uses exponent form near the equator and meridian. */
+    private fun Double.plain(): String = toBigDecimal().toPlainString()
 
     private fun request(url: HttpUrl): Request = Request.Builder().url(url).header(APP_KEY_HEADER, appKey).get().build()
 
