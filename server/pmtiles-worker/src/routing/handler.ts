@@ -2,7 +2,8 @@
 // square files, each cut down to that area by the cutter (../rd5/cut.ts) from the current build on R2.
 //
 //   GET /routing/area.json?south=&west=&north=&east=
-//     200 {"run_id", "osm_timestamp", "files": [{"name": "W125_N45.rd5", "size", "sha256", "url"}]}
+//     200 {"run_id", "osm_timestamp", "files": [{"name": "W125_N45.rd5", "size", "sha256", "url"}], "missing": ["W130_N45"]}
+//     ("missing": the squares the area needs that this build does not have, named; empty when none)
 //   GET /routing/<run_id>/<NAME>.rd5?south=&west=&north=&east=      (the "url" above)
 //     200 the cut file's bytes, with X-Forager-Sha256
 //
@@ -156,14 +157,20 @@ async function areaResponse(request: Request, env: RoutingEnv, cache: Cache, url
   const manifest = await loadManifest(env);
   if (manifest instanceof Response) return manifest;
 
+  // The owner, on #381: "Serve what exists": the squares in the build are served, the rest named and logged. Only an
+  // area with no square in the build at all is refused.
   const needed = squaresFor(area.rect);
-  const absent = needed.filter((name) => !manifest.squares.has(name));
-  if (absent.length > 0) {
-    return errorResponse(404, "outside_coverage", "the area needs route data this build does not cover", { squares: absent });
+  const present = needed.filter((name) => manifest.squares.has(name));
+  const missing = needed.filter((name) => !manifest.squares.has(name));
+  if (present.length === 0) {
+    return errorResponse(404, "outside_coverage", "the area needs route data this build does not cover", { squares: missing });
+  }
+  if (missing.length > 0) {
+    console.warn(`Route data: area served without ${missing.join(", ")}, not in build ${manifest.runId}`);
   }
 
   const files = [];
-  for (const name of needed) {
+  for (const name of present) {
     const square = manifest.squares.get(name)!;
     const path = `/routing/${manifest.runId}/${square.fileName}?${areaQuery(url.searchParams)}`;
     let cut: Cut;
@@ -174,7 +181,7 @@ async function areaResponse(request: Request, env: RoutingEnv, cache: Cache, url
     }
     files.push({ name: square.fileName, size: cut.bytes.byteLength, sha256: cut.sha256, url: path });
   }
-  const body = { run_id: manifest.runId, osm_timestamp: manifest.osmTimestamp, files };
+  const body = { run_id: manifest.runId, osm_timestamp: manifest.osmTimestamp, files, missing };
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
