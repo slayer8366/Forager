@@ -113,7 +113,7 @@ class BRouterTrailRouter(
         private const val TAG = "BRouterTrailRouter"
 
         /** RECORD -1546: off, so an end outside the data fails instead of moving to a way up to 60 km away. */
-        internal const val USE_DYNAMIC_RANGE = "0"
+        internal const val USE_DYNAMIC_RANGE = "1"
 
         /**
          * The operating limit on one route. The spike's slowest route on the S22 took 1.2 s (a town grid, item 3);
