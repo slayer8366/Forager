@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S22 timing probe for dispatch 2026-10-23-02. On a throwaway branch; never merged. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".routing.RoutingProbeActivity"
+            android:exported="true" />
+    </application>
+</manifest>
