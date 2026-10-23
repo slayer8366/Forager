@@ -84,7 +84,7 @@ internal fun OfflineRegionsSection(
     onTryAgainRoutes: (Long) -> Unit = {},
 ) {
     // The same "no signal" the maps read (NoSignalTrailMap.kt); none provided (a test without MainActivity) is signal.
-    val noSignal = LocalNoSignal.current?.collectAsState()?.value ?: false
+    val noSignal = false
 
     // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit (see
     // its doc comment), so this section just renders at its natural height as the last thing in
