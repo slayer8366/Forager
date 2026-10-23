@@ -59,10 +59,21 @@ internal data class NightImageSwitchPlan(
  * The plan for [styleJson] given the night copies there are ([nightNames], by their day names).
  *
  * - A **literal name** with a night copy becomes the copy's name; one without is left, and named as missing.
- * - An **expression** becomes `["match", E, [names with a night copy], ["concat", "night/", E], E]`: the night copy
- *   when the day image it names has one, otherwise the day image itself. The fallback is decided here, by the app, from
- *   the names it holds, rather than by MapLibre's image availability (`coalesce`/`image`), whose result in a
- *   feature-constant property MapLibre Native evaluates without the available images (verify-first report).
+ * - An **expression** keeps its own structure: the switch walks into its `match`, `case` and `step` outputs
+ *   ([IMAGE_OUTPUT_OPERATORS]), leaving every operator, input, label and zoom stop as the day style has it, and changes
+ *   only the image names those outputs give ([nightOutputsOf]). A literal output with a night copy takes the copy's
+ *   name; any other computed output `E` becomes `["match", E, [names with a night copy], ["concat", "night/", E], E]`,
+ *   the night copy when the day image it names has one, otherwise the day image itself.
+ *   - **Why the outputs, not the whole** (Sorrel's review of PR #380, H1, seen on the S22): MapLibre Native accepts
+ *     `["zoom"]` only as the input of a top-level `step` or `interpolate` (`find_zoom_curve.cpp:15-82` at
+ *     `android-v13.5.0`); wrapping `places_locality`'s zoom `step` whole put it below a `match`, and MapLibre refused
+ *     the value. Walking into the step keeps it on top.
+ *   - **And so the day typing stays** (L1): a computed output such as `pois`'s `["get", "kind"]` stays in an image
+ *     position (the wrapper's `otherwise`), where MapLibre coerces it to an image as it does by day, rather than becoming
+ *     the input of a `match`, where it would be asserted a string.
+ *   - The fallback is decided here, by the app, from the names it holds, rather than by MapLibre's image availability
+ *     (`coalesce`/`image`), whose result in a feature-constant property MapLibre Native evaluates without the available
+ *     images (verify-first report).
  * - Names with no night copy are found from the literals and from the style's own record of its sprite
  *   (`metadata["forager:sprite-icons"]`, which v1 and v2 carry), since an expression's names are only known per feature.
  */
@@ -96,14 +107,12 @@ internal fun nightImageSwitchPlan(styleJson: String, nightNames: Set<String>): N
                 }
                 value is JsonArray && nightNames.isEmpty() -> left += "$id/$property: no night copies at all"
                 value is JsonArray -> {
-                    val match = buildJsonArray {
-                        add(JsonPrimitive("match"))
-                        add(value)
-                        add(labels)
-                        add(buildJsonArray { add(JsonPrimitive("concat")); add(JsonPrimitive(NIGHT_IMAGE_PREFIX)); add(value) })
-                        add(value)
+                    val night = nightOutputsOf(value, nightNames, labels, missing)
+                    if (night == value) {
+                        left += "$id/$property: no night copy of any image it names"
+                    } else {
+                        switches += NightImageReference(id, property, ImageReference.Expr(night.toString()))
                     }
-                    switches += NightImageReference(id, property, ImageReference.Expr(match.toString()))
                 }
                 else -> left += "$id/$property: a value that is neither a name nor an expression: $value"
             }
@@ -112,6 +121,48 @@ internal fun nightImageSwitchPlan(styleJson: String, nightNames: Set<String>): N
     val recorded = recordedSpriteImages(style)
     missing += recorded.filter { it !in nightNames }
     return NightImageSwitchPlan(switches, left, missing.toList())
+}
+
+/**
+ * The operators whose image outputs the switch walks into, keeping the operator itself, its inputs, its labels and its
+ * zoom stops: `match` and `case` by feature, `step` by zoom or feature. `interpolate` cannot give an image.
+ */
+internal val IMAGE_OUTPUT_OPERATORS: Set<String> = setOf("match", "case", "step")
+
+/** Whether element [index] of a [size]-element [operator] expression is one of its outputs. */
+private fun isOutput(operator: String, index: Int, size: Int): Boolean = when (operator) {
+    // ["match", input, label, output, ..., otherwise]
+    "match" -> index >= 3 && (index % 2 == 1 || index == size - 1)
+    // ["case", condition, output, ..., otherwise]
+    "case" -> index >= 2 && (index % 2 == 0 || index == size - 1)
+    // ["step", input, output, stop, output, ...]
+    "step" -> index >= 2 && index % 2 == 0
+    else -> false
+}
+
+/**
+ * [expression], an image value or one of its outputs, with every image name it gives switched to its night copy where
+ * there is one (see [nightImageSwitchPlan]). Names given literally with no night copy are added to [missing].
+ */
+private fun nightOutputsOf(expression: JsonElement, nightNames: Set<String>, labels: JsonArray, missing: MutableSet<String>): JsonElement {
+    if (expression is JsonPrimitive) {
+        if (!expression.isString || expression.content.isEmpty()) return expression
+        if (expression.content in nightNames) return JsonPrimitive(nightImageName(expression.content))
+        missing += expression.content
+        return expression
+    }
+    if (expression !is JsonArray) return expression
+    val operator = (expression.firstOrNull() as? JsonPrimitive)?.takeIf { it.isString }?.content
+    if (operator in IMAGE_OUTPUT_OPERATORS) {
+        return JsonArray(expression.mapIndexed { i, e -> if (isOutput(operator!!, i, expression.size)) nightOutputsOf(e, nightNames, labels, missing) else e })
+    }
+    return buildJsonArray {
+        add(JsonPrimitive("match"))
+        add(expression)
+        add(labels)
+        add(buildJsonArray { add(JsonPrimitive("concat")); add(JsonPrimitive(NIGHT_IMAGE_PREFIX)); add(expression) })
+        add(expression)
+    }
 }
 
 /** The sprite images [style] records drawing (`metadata["forager:sprite-icons"]`), or none when it records none. */
@@ -164,6 +215,7 @@ internal fun <T> applyNightImages(target: NightImageTarget<T>, nightImages: Map<
     if (nightImages.isNotEmpty()) target.addImages(nightImages.mapKeys { (name, _) -> nightImageName(name) })
     val plan = nightImageSwitchPlan(target.styleJson, nightImages.keys)
     val left = plan.left.toMutableList()
+    val refused = mutableListOf<String>()
     var switched = 0
     for (reference in plan.switches) {
         val set = try {
@@ -172,7 +224,14 @@ internal fun <T> applyNightImages(target: NightImageTarget<T>, nightImages: Map<
             left += "${reference.layerId}/${reference.property}: could not set (${e.javaClass.simpleName}: ${e.message})"
             continue
         }
-        if (set) switched++ else left += "${reference.layerId}/${reference.property}: no such layer to set"
+        if (!set) {
+            left += "${reference.layerId}/${reference.property}: no such layer to set"
+            continue
+        }
+        // Counted only when the style holds the night value afterwards: a value MapLibre refuses is logged natively and
+        // the day value kept, with nothing said to the caller (M1). Day names never contain the night prefix.
+        val held = target.readImageReference(reference.layerId, reference.property)
+        if (held != null && held.contains(NIGHT_IMAGE_PREFIX)) switched++ else refused += "${reference.layerId}/${reference.property}"
     }
-    return NightImageOutcome(nightImages.size, switched, left, plan.missingNightCopies)
+    return NightImageOutcome(nightImages.size, switched, left, plan.missingNightCopies, refused)
 }
