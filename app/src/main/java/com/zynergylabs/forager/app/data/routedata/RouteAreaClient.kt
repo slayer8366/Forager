@@ -125,7 +125,7 @@ internal class RouteAreaClient(
     private fun resolveOnBase(url: String): HttpUrl? {
         val resolved = baseUrl.resolve(url) ?: return null
         val sameHost = resolved.scheme == baseUrl.scheme && resolved.host == baseUrl.host && resolved.port == baseUrl.port
-        return resolved.takeIf { sameHost }
+        return resolved
     }
 
     private fun <T> errorAnswer(response: Response): RouteAnswer<T> {
