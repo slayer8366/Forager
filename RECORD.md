@@ -26981,3 +26981,19 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 **Decision:** asked how to fix it, the owner said "Just toggle it when night maps are toggled, no need for a fancy switch". Restated as "when Night Maps is turned on, the map switches to a separate set of night icons (already dark), and back to the day set when it's turned off? No repainting on the phone", they answered "Yes, swap icon sets".
 **Rejected:** repainting after the images arrive (a 0.2–0.7 s flash of light icons at night).
 **Notes:** Written by the planner by hand. Dispatch 2026-10-22-06. Next free ID -1566.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1566
+**Timestamp:** 2026-10-23T01:46:19Z
+**Continues:** 2026-09-28-1565, 2026-09-28-1345
+**Title:** Night icons ship inside the app as named night copies (option D); light rings kept; every point icon inverted (owner)
+**Observed:** Hazel's verify-first (`docs/audits/2026-10-22-night-icon-set-verify.md`, night-icon-set-verify at b8e9300e6): MapLibre Native 13.5.0 overwrites same-named images when the sprite loads, and sends day images to the renderer before telling the app. A night style document would break offline nights.
+**Decision:** the owner chose:
+- "Yes, D (Recommended)": 61 night images ship in the APK as `night/<name>`, and the style's six image references switch at night. Nothing changes for offline areas, R2 or the Worker.
+- "Keep the light rings (Recommended)" on toilets, drinking water and townspot (-1345).
+- "Invert them too (Recommended)": coloured point icons are inverted with the white ones.
+- The tree glyph is #5d804f, and tufts #2485ad (unchanged).
+- The owner's words via Aspen: "Day time maps looks good, but the night mode could use a simple inversion on those white icons that stay white".
+**Notes:** Written by the planner by hand. Dispatch 2026-10-22-06 Amendment 1 (build). Next free ID -1567.
