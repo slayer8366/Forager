@@ -243,6 +243,8 @@ internal fun MapLayersSheet(
      * Only the Cartography entry map has the setting; the Maps tab never sets it.
      */
     offlineTiles: Boolean = false,
+    /** The process's Trail Map fallback (RECORD -1513); a parameter so a test can give it its own. */
+    fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`,
@@ -280,7 +282,7 @@ internal fun MapLayersSheet(
             // panel sides. The height position on the panel is fine as is."; dispatch 2026-09-28-104, item 9). The column above has
             // equal padding at both ends, so centring in it is centring in the sheet; the spacing between chips and the row's height
             // are unchanged.
-            MapModeChipRow(mapMode, onMapModeSelected, offlineTiles)
+            MapModeChipRow(mapMode, onMapModeSelected, offlineTiles, fallback)
             Text("Overlays", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.sm))
             overlays.forEach { option ->
                 LayerSwitchRow(

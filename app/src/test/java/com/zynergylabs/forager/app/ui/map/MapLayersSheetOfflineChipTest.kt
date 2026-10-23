@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.map.STREET_STYLE_URL
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -64,6 +65,7 @@ class MapLayersSheetOfflineChipTest {
 
     private val noSignal = MutableStateFlow(false)
     private var offlineTiles by mutableStateOf(false)
+    private val fallback = OwnStreetFallback(log = {})
     private var darkTheme by mutableStateOf(true)
     private var chosen by mutableStateOf(MapMode.TOPOGRAPHIC)
     private val choices = mutableListOf<MapMode>()
@@ -86,6 +88,7 @@ class MapLayersSheetOfflineChipTest {
                     onColourFieldMoved = { _, _ -> },
                     onDismiss = {},
                     offlineTiles = offlineTiles,
+                    fallback = fallback,
                 )
             }
         }
@@ -153,6 +156,44 @@ class MapLayersSheetOfflineChipTest {
             assertEquals("$theme, offline tiles off: Topo in the normal selected fill", normalSelected, drawnFill(MapMode.TOPOGRAPHIC))
         }
         assertEquals("the stored choice never changes", emptyList<MapMode>(), choices)
+    }
+
+    /** Trail Map's style fails to load online, through the fallback's own entry point, as `MapListeners` calls it. */
+    private fun failTrailMapStyle() = settle {
+        assertEquals(true, fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(STREET_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404"))
+    }
+
+    @Test
+    fun `once Trail Map has fallen back to OpenStreetMap, the chosen Trail chip is grey, still selected, in both themes`() {
+        // The owner: "Same meaning everywhere: grey = chosen, but something else is shown."
+        chosen = MapMode.TRAIL
+        setSheet()
+        assertEquals("before the fallback", normalSelected, drawnFill(MapMode.TRAIL))
+        failTrailMapStyle()
+        for (dark in listOf(true, false)) {
+            settle { darkTheme = dark }
+            val theme = if (dark) "dark" else "light"
+            composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
+            assertEquals("$theme, fallen back: Trail drawn grey", grey, drawnFill(MapMode.TRAIL))
+            composeRule.onNodeWithTag(mapModeChipTag(MapMode.OPENSTREETMAP)).assertIsNotSelected()
+        }
+        assertEquals("the stored choice never changes", emptyList<MapMode>(), choices)
+    }
+
+    @Test
+    fun `fallen back with no signal, Trail Map is drawn from the downloads, so the Trail chip is normal`() {
+        chosen = MapMode.TRAIL
+        setSheet()
+        failTrailMapStyle()
+        settle { noSignal.value = true }
+        assertEquals(normalSelected, drawnFill(MapMode.TRAIL))
+    }
+
+    @Test
+    fun `the fallback leaves a chosen Topo chip normal, since Topo is still what is drawn`() {
+        setSheet()
+        failTrailMapStyle()
+        assertEquals(normalSelected, drawnFill(MapMode.TOPOGRAPHIC))
     }
 
     @Test

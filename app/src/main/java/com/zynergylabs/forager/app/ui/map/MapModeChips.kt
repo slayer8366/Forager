@@ -35,7 +35,7 @@ private var SemanticsPropertyReceiver.mapModeChipSelectedFill by MapModeChipSele
  * offline tiles" ([offlineTiles], `MapRenderMode.useOfflineTiles`). For a Trail user it draws Trail Map, which is what
  * they chose, so their chip is unchanged. The stored choice never changes; only the chip's colour does.
  */
-internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean, offlineTiles: Boolean = false): Boolean =
+internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean, offlineTiles: Boolean = false, trailMapDraws: Boolean = true): Boolean =
     mode.basemap != Basemap.FORAGER_TRAIL && drawsFromDownloads(offlineTiles, mode.basemap, noSignal)
 
 /** [LocalNoSignal]'s current value; `false` where nothing provides it, as the map reads it. */
@@ -60,8 +60,15 @@ private fun rememberNoSignal(): Boolean {
  * and a tap here is still a real choice. The Trail chip is not highlighted while Trail Map stands in.
  */
 @Composable
-internal fun MapModeChipRow(mapMode: MapMode, onMapModeSelected: (MapMode) -> Unit, offlineTiles: Boolean = false) {
+internal fun MapModeChipRow(
+    mapMode: MapMode,
+    onMapModeSelected: (MapMode) -> Unit,
+    offlineTiles: Boolean = false,
+    fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
+) {
     val noSignal = rememberNoSignal()
+    // RECORD -1513: false once Trail Map's style has failed to load in this process; Compose state, so the chip follows it.
+    val trailMapDraws = fallback.ownStreet()
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
