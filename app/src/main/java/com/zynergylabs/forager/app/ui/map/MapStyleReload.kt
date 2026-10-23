@@ -115,6 +115,7 @@ internal fun MapStyleReload(
             is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
         map.setStyle(builder) { style ->
+            nightIconsDiag(map, state.mapView, style, night = requested.night, willRepaint = requested.night && usesStreetSprite(source)) // DIAGNOSTIC ONLY
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)
             // Offline night (colour build C1 (d)): the offline style has no raster layer for
