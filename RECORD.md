@@ -27028,3 +27028,18 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - **The fallback grey chip** isn't tested on the phone ("Skip it").
 **Dispatched in parallel:** 2026-10-23-01 (the Worker cuts route data; server/ only) and 2026-10-23-02 (BRouter in the app behind an interface; app/ only). The app storing routes with a download follows once 01's response shape is set.
 **Notes:** Written by the planner by hand. Next free ID -1569.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1569
+**Timestamp:** 2026-10-23T09:32:26Z
+**Closes:** dispatch 2026-10-22-06
+**Title:** #380 (night icon set, the grey chosen chip) merged into pre-main on the owner's word
+**Outcome:** completed. Merged at 99ac33006 after Sorrel's follow-up (`docs/audits/2026-10-23-review-pr380-followup.md`, 15d5ae46b, mergeable, Lows L4-L7 for later). The owner: "Merge it (Recommended)". The S22 checks are in -1567.
+**Open:**
+- Sorrel's L4-L7 for a later tidy-up.
+- The fallback-grey device step, skipped by the owner.
+- The tree-glyph gaps (dispatch 2026-10-22-07), on the owner's word.
+- Promotion to main.
+**Notes:** Written by the planner by hand. Next free ID -1570.
