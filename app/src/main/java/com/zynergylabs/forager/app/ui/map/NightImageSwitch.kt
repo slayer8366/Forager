@@ -24,7 +24,7 @@ import kotlinx.serialization.json.buildJsonArray
 internal const val NIGHT_IMAGE_PREFIX = "night/"
 
 /** The style's name for [name]'s night copy. */
-internal fun nightImageName(name: String): String = NIGHT_IMAGE_PREFIX + name
+internal fun nightImageName(name: String): String = name
 
 /**
  * The image properties the switch walks, by the block of a layer they sit in. Trail Map v1 and v2 draw images through
