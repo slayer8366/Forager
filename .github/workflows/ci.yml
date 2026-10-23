@@ -650,7 +650,8 @@ jobs:
         if: always()
         with: { name: route-cutter-junit, path: route-cutter-junit.xml, if-no-files-found: error }
 
-  # The tile Worker's route tests (server/pmtiles-worker/test/worker.test.mjs), run against dist/index.js, the bundle
+  # The tile Worker's route tests (server/pmtiles-worker/test/worker.test.mjs, and since dispatch 2026-10-23-01 the
+  # route-data routes in test/routing.test.mjs), run against dist/index.js, the bundle
   # the owner pastes into the dashboard (dispatch 2026-10-22-01 Amendment 2, RECORD -1556: the owner, "Yes, add it").
   # No Gradle. The build is wrangler's dry run, which needs no Cloudflare login and deploys nothing. Its log is kept,
   # so a run whose bundle did not build is never read as a test result (CLAUDE.md, the revert-runner rules). Counts
@@ -684,7 +685,7 @@ jobs:
         run: >-
           node --test --test-reporter=spec --test-reporter-destination=stdout
           --test-reporter=junit --test-reporter-destination=pmtiles-worker-junit.xml
-          test/worker.test.mjs
+          test/worker.test.mjs test/routing.test.mjs
       - name: Summarize from the JUnit XML
         if: always()
         run: |
