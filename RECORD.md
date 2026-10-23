@@ -27059,3 +27059,22 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - **What it would add over the app key and in-code rate limit (-1568, PR #381):** blocking before the Worker runs, managed bot rules, and changing servers without an app update.
 - **Unverified:** that the WAF can't apply to *.workers.dev on this plan.
 **Notes:** Written by the planner by hand. Next free ID -1571.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1571
+**Timestamp:** 2026-10-23T10:08:15Z
+**Continues:** 2026-09-28-1568, 2026-09-28-1570
+**Title:** Route-data Worker (PR #381): limits confirmed, partial coverage served, app key set by the planner (owner)
+**Decision:** the owner chose:
+- **The limits:** "Yes, as proposed (Recommended)": 30 a minute per IP and 600 a minute per key, per Cloudflare location.
+- **Coverage:** "Serve what exists (Recommended)". The squares that exist are served and the missing ones are named, with 404 only when none exist. This changes Hazel's all-or-nothing build.
+- **Keys:** "Yes, you set both (Recommended)".
+**Observed:**
+- **The key:** generated on the laptop (40 characters, `~/.config/forager/routing-app-key`, mode 600, never printed or committed).
+- **GitHub:** set as the Actions secret `FORAGER_ROUTING_APP_KEY`.
+- **The Worker:** set as the secret `ROUTING_APP_KEY` with wrangler. That created version 03db9cb1 (the same code as 1c2d8195).
+- **Checked live afterwards:** v2 style 200, 8/75/124 from r2-world-south, and /routing/ still 404 (no route yet).
+- **Under the Owner's choices (-1568, B and D):** no Play Integrity for now.
+**Notes:** Written by the planner by hand. Next free ID -1572.
