@@ -41,7 +41,7 @@ internal class RouteAreaClient(
             // Exactly six decimals, plain (Sorrel's review of #381, M2: the Worker refuses other forms, and at seven or
             // more an edge within a microdegree of a five-degree line can make it throw), rounded outward so the area
             // asked for still holds the whole region.
-            .addQueryParameter("south", box.south.edge(RoundingMode.FLOOR))
+            .addQueryParameter("south", box.south.edge(RoundingMode.CEILING))
             .addQueryParameter("west", box.west.edge(RoundingMode.FLOOR))
             .addQueryParameter("north", box.north.edge(RoundingMode.CEILING))
             .addQueryParameter("east", box.east.edge(RoundingMode.CEILING))
