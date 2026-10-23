@@ -98,6 +98,18 @@ jobs:
       - name: Install the Android SDK with the repo's own setup script
         run: ./scripts/setup-android-sdk.sh
 
+      - name: Check the Play service account is configured
+        # Fails here, before the keystore is decoded or anything is built, rather than inside the upload action after a
+        # signed build (Sorrel's review of PR #385, L3). The secret is visible only inside the approved job, so this is
+        # the earliest point it can be checked.
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON is not set on the release environment; nothing was uploaded."
+            exit 1
+          fi
+
       - name: Decode the upload keystore
         # Into $RUNNER_TEMP (outside the checkout), readable by this user only. The path is not secret; the file is,
         # and the last step deletes it whether or not the run succeeds.
@@ -199,16 +211,6 @@ jobs:
             echo "| commit | \`$GITHUB_SHA\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Check the Play service account is configured
-        # Fails here, with a plain message, rather than inside the upload action.
-        env:
-          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error::PLAY_SERVICE_ACCOUNT_JSON is not set on the release environment; nothing was uploaded."
-            exit 1
-          fi
-
       - name: Upload to Play internal testing as a draft
         # status: draft creates the release on the internal track without rolling it out; someone reviews and rolls
         # it out in Play Console. Play rejects a versionCode it has already seen, so re-running the same commit fails
@@ -221,12 +223,19 @@ jobs:
           tracks: internal
           status: draft
 
-      - name: Delete the keystore
+      - name: Delete the keystore and the service-account key file
+        # The upload action writes the service-account JSON to ./serviceAccountJson.json in the workspace and deletes
+        # it only in its own `finally`; it has no post hook, so a cancel or timeout mid-upload would leave the file
+        # (Sorrel's review of PR #385, L2). This step runs either way.
         if: always()
         run: |
-          rm -f "$RUNNER_TEMP/forager-upload.jks"
-          if [ -e "$RUNNER_TEMP/forager-upload.jks" ]; then
-            echo "::error::The keystore file still exists after deletion."
-            exit 1
-          fi
-          echo "Keystore file removed."
+          failed=0
+          for f in "$RUNNER_TEMP/forager-upload.jks" "$GITHUB_WORKSPACE/serviceAccountJson.json"; do
+            rm -f "$f"
+            if [ -e "$f" ]; then
+              echo "::error::$f still exists after deletion."
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || exit 1
+          echo "Keystore file and service-account key file removed."
