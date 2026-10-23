@@ -35,7 +35,7 @@ internal class AvailabilityOfflineRoutes(
      * One pass: nothing here repeats it.
      */
     fun fetch(ids: Collection<Long>): Job? {
-        val fresh = ids.filterNot { it in currentState().offlineRouteFetchingIds }
+        val fresh = ids.toList()
         if (fresh.isEmpty()) return null
         updateState { it.copy(offlineRouteFetchingIds = it.offlineRouteFetchingIds + fresh) }
         return scope().launch {
