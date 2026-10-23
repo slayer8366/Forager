@@ -26969,3 +26969,15 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
   - us.json's south bound is -85.05, and 8/75/124 comes from r2-world-south.
 **Open:** the S22 night check (Sorrel's gate) before the next promotion. Pass: `Offline night: 103 recoloured, 0 left` and `Street night: 61 redrawn, 0 left`.
 **Notes:** Written by the planner by hand. Next free ID -1565.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1565
+**Timestamp:** 2026-10-23T01:37:31Z
+**Continues:** 2026-09-28-1564, dispatch 2026-10-22-05
+**Title:** Night icons: swap to a ready-made night icon set when Night Maps is on (owner)
+**Observed:** Hazel's diagnosis on the S22 (night-icons-diag at abdabf36d, never merged): the app repaints sprite images in the setStyle callback, about 220 ms before MapLibre Native has loaded them. `getImage` returns null for all 61, nothing retries, and every icon and pattern stays in day colours. The trees the owner saw change were the forest fill under the day-coloured glyph. The S22 night check (-1564) failed on this.
+**Decision:** asked how to fix it, the owner said "Just toggle it when night maps are toggled, no need for a fancy switch". Restated as "when Night Maps is turned on, the map switches to a separate set of night icons (already dark), and back to the day set when it's turned off? No repainting on the phone", they answered "Yes, swap icon sets".
+**Rejected:** repainting after the images arrive (a 0.2–0.7 s flash of light icons at night).
+**Notes:** Written by the planner by hand. Dispatch 2026-10-22-06. Next free ID -1566.
