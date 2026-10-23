@@ -234,6 +234,6 @@ internal val BROUTER_FILE_NAME = Regex("^[EW][0-9]{1,3}_[NS][0-9]{1,2}\\.rd5$")
 internal val SQUARE_NAME = Regex("^[EW][0-9]{1,3}_[NS][0-9]{1,2}$")
 
 /** [this] degrees as plain decimal with exactly six places, rounded by [mode]; never exponent form (`1.0E-4`). */
-internal fun Double.edge(mode: RoundingMode): String = toBigDecimal().setScale(6, mode).toPlainString()
+internal fun Double.edge(mode: RoundingMode): String = toBigDecimal().setScale(9, mode).stripTrailingZeros().toPlainString()
 
 private val SHA256_HEX = Regex("^[0-9a-fA-F]{64}$")
