@@ -25,7 +25,7 @@ import com.zynergylabs.forager.app.domain.routedata.needsFetch
  * Pure, so every state is tested without a screen.
  */
 internal fun offlineRouteLine(routeData: RegionRouteData, fetching: Boolean, attemptFailed: Boolean, noSignal: Boolean): OfflineRouteLine? = when {
-    fetching -> OfflineRouteLine(ROUTES_GETTING, tryAgain = false)
+    fetching || routeData is RegionRouteData.Fetching -> OfflineRouteLine(ROUTES_GETTING, tryAgain = false)
     routeData is RegionRouteData.Stored -> null
     !routeData.needsFetch() -> OfflineRouteLine(ROUTES_NONE_HERE, tryAgain = false)
     noSignal -> OfflineRouteLine(ROUTES_NEXT_TIME_ONLINE, tryAgain = false)
@@ -34,6 +34,12 @@ internal fun offlineRouteLine(routeData: RegionRouteData, fetching: Boolean, att
 }
 
 internal data class OfflineRouteLine(val text: String, val tryAgain: Boolean)
+
+/**
+ * What the Offline maps region list asks of the ViewModel about trail routes (dispatch 2026-10-23-03): [onTryAgain]
+ * on a region's row, and [onSignalReturned] when signal comes back while the list is on screen (Amendment 1).
+ */
+data class OfflineRouteActions(val onTryAgain: (Long) -> Unit = {}, val onSignalReturned: () -> Unit = {})
 
 /** [OfflineRegionRow]'s route line and its button, under the region's one line. */
 @Composable

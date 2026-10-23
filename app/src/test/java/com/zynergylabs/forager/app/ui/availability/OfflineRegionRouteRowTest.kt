@@ -55,16 +55,23 @@ class OfflineRegionRouteRowTest {
     )
 
     private val retried = mutableListOf<Long>()
+    private var signalReturns = 0
 
-    private fun show(regions: List<OfflineRegionSummary>, failed: Set<Long> = emptySet(), fetching: Set<Long> = emptySet(), noSignal: Boolean? = null) =
+    private fun show(
+        regions: List<OfflineRegionSummary>,
+        failed: Set<Long> = emptySet(),
+        fetching: Set<Long> = emptySet(),
+        noSignal: Boolean? = null,
+        signal: MutableStateFlow<Boolean>? = noSignal?.let { MutableStateFlow(it) },
+    ) =
         composeRule.setContent {
             ForagerTheme {
-                CompositionLocalProvider(LocalNoSignal provides noSignal?.let { MutableStateFlow(it) }) {
+                CompositionLocalProvider(LocalNoSignal provides signal) {
                     OfflineRegionsSection(
                         regions = regions, tilesUsed = 0, errorMessage = null, staleThresholdDays = 30,
                         distanceUnit = DistanceUnit.MILES, nowEpochMillis = 2_000L, onDeleteOfflineRegion = {},
                         onOpenRegionDetails = null, routeFetchingIds = fetching, routeFailedIds = failed,
-                        onTryAgainRoutes = { retried += it },
+                        routeActions = OfflineRouteActions(onTryAgain = { retried += it }, onSignalReturned = { signalReturns++ }),
                     )
                 }
             }
@@ -106,6 +113,58 @@ class OfflineRegionRouteRowTest {
 
         composeRule.onNodeWithText("Map only. Trail routes download next time you're online.").assertIsDisplayed()
         composeRule.onNodeWithTag(offlineRouteTryAgainTag(4)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `signal coming back while the list is on screen is told once per return, and never at the first composition`() {
+        val signal = MutableStateFlow(false)
+        show(listOf(region(6, RegionRouteData.NotFetched)), signal = signal)
+        composeRule.waitForIdle()
+        assertEquals("opened with signal: nothing to tell", 0, signalReturns)
+
+        signal.value = true
+        composeRule.waitForIdle()
+        signal.value = false
+        composeRule.waitForIdle()
+        assertEquals(1, signalReturns)
+
+        signal.value = false
+        composeRule.waitForIdle()
+        assertEquals("no change is no return", 1, signalReturns)
+
+        signal.value = true
+        composeRule.waitForIdle()
+        signal.value = false
+        composeRule.waitForIdle()
+        assertEquals(2, signalReturns)
+    }
+
+    @Test
+    fun `opened with no signal, the first return is told`() {
+        val signal = MutableStateFlow(true)
+        show(listOf(region(7, RegionRouteData.NotFetched)), signal = signal)
+        composeRule.waitForIdle()
+        assertEquals(0, signalReturns)
+
+        signal.value = false
+        composeRule.waitForIdle()
+        assertEquals(1, signalReturns)
+    }
+
+    @Test
+    fun `a region whose fetch is running, the download's own included, says Getting trail routes`() {
+        show(listOf(region(8, RegionRouteData.Fetching)))
+
+        composeRule.onNodeWithText("Getting trail routes").assertIsDisplayed()
+        composeRule.onNodeWithTag(offlineRouteTryAgainTag(8)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a download's progress during its route step says Getting trail routes, not tiles`() {
+        composeRule.setContent { ForagerTheme { OfflineDownloadStatusContent(OfflineMapStatus.Downloading(120, 120, gettingRoutes = true)) } }
+
+        composeRule.onNodeWithText("Getting trail routes").assertIsDisplayed()
+        composeRule.onNodeWithText("120 / 120 tiles").assertDoesNotExist()
     }
 
     @Test

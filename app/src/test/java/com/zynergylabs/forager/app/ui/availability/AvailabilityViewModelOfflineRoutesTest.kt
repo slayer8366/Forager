@@ -152,6 +152,18 @@ private class RoutesRepository(regions: List<OfflineRegionSummary>) : OfflineMap
         downloadResult.onSuccess { regions = regions + it }
         return downloadResult
     }
+    var duringRouteStep: () -> Unit = {}
+    override suspend fun download(
+        name: String,
+        region: Region,
+        onProgress: (downloaded: Int, total: Int) -> Unit,
+        onRouteStep: () -> Unit,
+    ): Result<OfflineRegionSummary> {
+        onProgress(10, 10)
+        onRouteStep()
+        duringRouteStep()
+        return download(name, region, onProgress)
+    }
     override suspend fun deleteRegion(id: Long): Result<Unit> = Result.success(Unit)
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> { listCalls++; return Result.success(regions) }
     override suspend fun fetchRoutes(id: Long): Result<RegionRouteData> {
@@ -236,6 +248,47 @@ class AvailabilityViewModelOfflineRoutesTest {
         assertTrue(vm.uiState.value.offlineRouteFailedIds.isEmpty())
         assertTrue(vm.uiState.value.offlineRouteFetchingIds.isEmpty())
         assertTrue("the rows read the stored routes back", vm.uiState.value.offlineRegions.first { it.id == 1L }.routeData is RegionRouteData.Stored)
+    }
+
+    @Test
+    fun `a region whose fetch is already running, as a download's own, is not fetched again on opening`() = runTest(dispatcher) {
+        val repository = RoutesRepository(listOf(summary(1, RegionRouteData.Fetching), summary(2, RegionRouteData.NotFetched)))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onOfflineMapsOpened()
+        advanceUntilIdle()
+
+        assertEquals(listOf(2L), repository.fetched)
+    }
+
+    @Test
+    fun `signal returning while the list is open fetches the regions that want routes, once`() = runTest(dispatcher) {
+        var noSignal = true
+        val repository = RoutesRepository(listOf(summary(1, RegionRouteData.NotFetched), summary(2, RegionRouteData.NoneHere)))
+        val vm = viewModel(repository, noSignal = { noSignal })
+        advanceUntilIdle()
+        vm.onOfflineMapsOpened()
+        advanceUntilIdle()
+        assertEquals("opened with no signal: nothing", emptyList<Long>(), repository.fetched)
+
+        noSignal = false
+        vm.onOfflineMapsSignalReturned()
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L), repository.fetched)
+    }
+
+    @Test
+    fun `a signal return reported while there is no signal fetches nothing`() = runTest(dispatcher) {
+        val repository = RoutesRepository(listOf(summary(1, RegionRouteData.NotFetched)))
+        val vm = viewModel(repository, noSignal = { true })
+        advanceUntilIdle()
+
+        vm.onOfflineMapsSignalReturned()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<Long>(), repository.fetched)
     }
 
     @Test
@@ -335,6 +388,25 @@ class AvailabilityViewModelOfflineRoutesTest {
 
         assertEquals(setOf(9L), vm.uiState.value.offlineRouteFailedIds)
         assertEquals(emptyList<Long>(), repository.fetched)
+    }
+
+    @Test
+    fun `while a download fetches its routes, its progress says Getting trail routes`() = runTest(dispatcher) {
+        val repository = RoutesRepository(emptyList())
+        repository.downloadResult = Result.success(summary(9, RegionRouteData.Stored("run", "t", 10L, File("/r/9"))))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        var seen: OfflineMapStatus? = null
+        repository.duringRouteStep = { seen = vm.uiState.value.offlineDownloadStatus }
+
+        vm.onOfflineMapLatChanged("45.3")
+        vm.onOfflineMapLngChanged("-122.6")
+        vm.onOfflineMapRadiusChanged(8)
+        vm.onDownloadOfflineMaps()
+        advanceUntilIdle()
+
+        assertEquals(OfflineMapStatus.Downloading(10, 10, gettingRoutes = true), seen)
+        assertEquals(OfflineMapStatus.Succeeded, vm.uiState.value.offlineDownloadStatus)
     }
 
     @Test

@@ -55,6 +55,11 @@ class OfflineRouteLineTest {
     }
 
     @Test
+    fun `a fetch running elsewhere, as the download's own, reads as fetching`() {
+        assertEquals(OfflineRouteLine("Getting trail routes", tryAgain = false), line(RegionRouteData.Fetching))
+    }
+
+    @Test
     fun `while fetching, the row says so`() {
         assertEquals(OfflineRouteLine("Getting trail routes", tryAgain = false), line(RegionRouteData.NotFetched, fetching = true))
     }

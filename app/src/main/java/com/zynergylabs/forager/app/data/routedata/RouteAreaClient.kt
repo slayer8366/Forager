@@ -24,9 +24,9 @@ import okhttp3.Response
  * Every request carries the app key in [APP_KEY_HEADER]. Blocking: the caller runs it off the main thread. Never
  * throws for an answer; a network failure is an [IOException] the caller turns into a missing reason.
  *
- * **Unverified against a live Worker:** the routes are not deployed (dispatch: "the routes aren't deployed yet"), so
- * every test here runs against a fake server. A file's bytes are checked against the list's sha256 and must come with
- * the same value in [SHA256_HEADER].
+ * Tested against a fake server that answers as the live Worker does (deployed as version 1a85a35e, RECORD -1572); one
+ * live download from the S22 is recorded in the dispatch's report. A file's bytes are checked against the list's
+ * sha256 and must come with the same value in [SHA256_HEADER].
  */
 internal class RouteAreaClient(
     private val http: OkHttpClient,
@@ -93,6 +93,12 @@ internal class RouteAreaClient(
                     }
                     digest.update(buffer, 0, n)
                     written += n
+                }
+                // Synced before it can be renamed to its .rd5 name, so a power loss cannot leave a short .rd5 (L2).
+                try {
+                    out.fd.sync()
+                } catch (e: IOException) {
+                    throw RouteStorageException("couldn't sync ${temp.name}", e)
                 }
             }
             val sha = digest.digest().joinToString("") { "%02x".format(it) }
@@ -164,8 +170,8 @@ internal class RouteAreaClient(
         const val DOWNLOAD_SUFFIX = ".download"
 
         /**
-         * The Worker the map tiles come from (`OfflineStyle.kt`), which PR #381 adds the routing routes to. **An
-         * assumption about a route not yet deployed**: #381's report places them in `server/pmtiles-worker`.
+         * The Worker the map tiles come from (`OfflineStyle.kt`), which serves the routing routes too (PR #381,
+         * `server/pmtiles-worker`; deployed as version 1a85a35e, RECORD -1572).
          */
         val ROUTING_BASE_URL: HttpUrl = "https://forager-pmtiles.brandonlee1-894.workers.dev/".toHttpUrl()
     }

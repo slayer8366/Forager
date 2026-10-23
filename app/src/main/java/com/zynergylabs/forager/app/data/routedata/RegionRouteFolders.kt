@@ -40,15 +40,27 @@ class LocalRegionRouteFolders internal constructor(
 ) : RegionRouteFolders {
 
     override suspend fun fetchFor(regionId: Long, region: Region): RegionRouteData = withContext(io) {
+        // One writer per region folder (Sorrel's review of #383, M1): a second fetch for a region already being
+        // fetched answers Fetching and touches nothing, the running fetch's `.partial` included.
+        val partial = try {
+            store.beginFetch(regionId)
+        } catch (e: IOException) {
+            store.endFetch(regionId)
+            log("Couldn't set up the route folder for region $regionId.", e)
+            return@withContext RegionRouteData.Missing(RouteDataMissingReason.STORAGE)
+        }
+        if (partial == null) {
+            log("Routes for region $regionId are already being fetched; not fetched again.", null)
+            return@withContext RegionRouteData.Fetching
+        }
         try {
-            val partial = store.beginFetch(regionId)
             val record = fetchRouteArea(client, appKey, routeAreaFor(region), partial, regionId, log)
             store.commit(regionId, partial, record)
             store.status(regionId)
         } catch (e: CancellationException) {
             throw e
         } catch (e: IOException) {
-            // The phone could not set up or move the folder. Nothing is recorded, so the next listing reads the
+            // The phone could not write or move the folder. Nothing is recorded, so the next listing reads the
             // region as never fetched; this answer says why, for the download that is finishing now.
             log("Couldn't store the routes for region $regionId.", e)
             RegionRouteData.Missing(RouteDataMissingReason.STORAGE)

@@ -185,9 +185,12 @@ internal class AvailabilityOfflineMaps(
      */
     fun beginDownloadAgain(row: OfflineRegionSummary) {
         scope().launch {
-            offlineMapRepository.download(row.name, row.region) { downloaded, total ->
-                updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
-            }.fold(
+            offlineMapRepository.download(
+                row.name,
+                row.region,
+                onProgress = { downloaded, total -> updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) } },
+                onRouteStep = ::showGettingTrailRoutes,
+            ).fold(
                 onSuccess = { downloadedRegion ->
                     onDownloaded(downloadedRegion)
                     offlineMapRepository.replaceRegion(row.id, downloadedRegion.id).onFailure { error ->
@@ -210,9 +213,12 @@ internal class AvailabilityOfflineMaps(
      */
     fun beginDownload(name: String, region: Region) {
         scope().launch {
-            offlineMapRepository.download(name, region) { downloaded, total ->
-                updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
-            }.fold(
+            offlineMapRepository.download(
+                name,
+                region,
+                onProgress = { downloaded, total -> updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) } },
+                onRouteStep = ::showGettingTrailRoutes,
+            ).fold(
                 onSuccess = { downloadedRegion ->
                     onDownloaded(downloadedRegion)
                     updateState {
@@ -233,6 +239,14 @@ internal class AvailabilityOfflineMaps(
                     }
                 },
             )
+        }
+    }
+
+    /** The tiles are in; the download's own route fetch has started (Amendment 1, L4). */
+    private fun showGettingTrailRoutes() {
+        updateState { state ->
+            val status = state.offlineDownloadStatus as? OfflineMapStatus.Downloading ?: OfflineMapStatus.Downloading(0, 0)
+            state.copy(offlineDownloadStatus = status.copy(gettingRoutes = true))
         }
     }
 

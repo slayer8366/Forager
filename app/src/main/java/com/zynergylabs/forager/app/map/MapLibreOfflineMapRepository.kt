@@ -113,6 +113,13 @@ class MapLibreOfflineMapRepository(
         name: String,
         region: Region,
         onProgress: (downloaded: Int, total: Int) -> Unit,
+    ): Result<OfflineRegionSummary> = download(name, region, onProgress, onRouteStep = {})
+
+    override suspend fun download(
+        name: String,
+        region: Region,
+        onProgress: (downloaded: Int, total: Int) -> Unit,
+        onRouteStep: () -> Unit,
     ): Result<OfflineRegionSummary> = runCatchingCancellable {
         val definition = OfflineTilePyramidRegionDefinition(
             // OFFLINE_STYLE_URL, unless the own Street is on (StreetStyle.kt): then the Street style.
@@ -170,6 +177,7 @@ class MapLibreOfflineMapRepository(
 
         // The routes for the same rectangle, after the tiles: a failure here is a state on the region, logged where
         // it happens, and never undoes the map download (dispatch 2026-10-23-03, item 3).
+        onRouteStep()
         val routeData = routes.fetchFor(offlineRegion.id, region)
 
         OfflineRegionSummary(

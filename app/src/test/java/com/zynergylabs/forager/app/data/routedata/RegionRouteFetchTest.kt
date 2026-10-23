@@ -28,7 +28,7 @@ import org.junit.rules.TemporaryFolder
  * A region's route fetch through [LocalRegionRouteFolders.fetchFor], the call `MapLibreOfflineMapRepository.download`
  * makes once a region's tiles are in (dispatch 2026-10-23-03), against [FakeRouteServer]. Every answer checks two
  * things: what the fetch returned, and what a later listing reads back from the phone's storage, since the listing is
- * what the region list shows. No test reaches the real Worker, whose routes are not deployed.
+ * what the region list shows. No test reaches the real Worker; the fake answers as the live one does (RECORD -1572).
  */
 class RegionRouteFetchTest {
 

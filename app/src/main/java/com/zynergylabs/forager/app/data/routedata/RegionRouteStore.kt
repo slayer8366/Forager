@@ -36,9 +36,13 @@ internal class RegionRouteStore(
 
     fun folderFor(regionId: Long): File = File(root, regionId.toString())
 
-    /** An empty `.partial` folder for [regionId]'s fetch, marked as running until [endFetch]. */
-    fun beginFetch(regionId: Long): File {
-        fetching += regionId
+    /**
+     * An empty `.partial` folder for [regionId]'s fetch, marked as running until [endFetch]; or `null`, touching
+     * nothing, when a fetch for [regionId] is already running (Sorrel's review of #383, M1). The mark is set and tested
+     * in one step, so two callers can never both own the folder. Only a caller that got a folder calls [endFetch].
+     */
+    fun beginFetch(regionId: Long): File? {
+        if (!fetching.add(regionId)) return null
         val partial = partialFor(regionId)
         if (partial.exists() && !partial.deleteRecursively()) throw IOException("couldn't clear ${partial.name}")
         if (!partial.mkdirs()) throw IOException("couldn't create ${partial.name}")
@@ -50,10 +54,14 @@ internal class RegionRouteStore(
      * record but stored routes, files a failed fetch left are removed first: routes are kept whole or not at all.
      */
     fun commit(regionId: Long, partial: File, record: RegionRouteRecord) {
-        if (record !is RegionRouteRecord.Stored) {
-            partial.listFiles()?.forEach { if (!it.deleteRecursively()) throw IOException("couldn't remove ${it.name} from ${partial.name}") }
+        // Kept: the files the record names, and nothing else. A failed fetch keeps none; a stored one keeps only its
+        // own, so a stray from an earlier attempt (a superseded run) is never left beside them (#383 review, L1).
+        val keep = (record as? RegionRouteRecord.Stored)?.files?.map { it.name }?.toSet().orEmpty()
+        partial.listFiles()?.filter { it.name !in keep }?.forEach { stray ->
+            if (!stray.deleteRecursively()) throw IOException("couldn't remove ${stray.name} from ${partial.name}")
         }
-        File(partial, RECORD_FILE_NAME).writeBytes(record.toBytes())
+        // Synced before the rename, so a power loss after it cannot leave a renamed folder with a short record (L2).
+        writeSynced(File(partial, RECORD_FILE_NAME), record.toBytes())
         val target = folderFor(regionId)
         if (target.exists()) discard(regionId, target)
         if (!partial.renameTo(target)) throw IOException("couldn't move ${partial.name} to ${target.name}")
@@ -66,8 +74,9 @@ internal class RegionRouteStore(
         fetching -= regionId
     }
 
-    /** What [regionId]'s folder holds, read now. */
+    /** What [regionId]'s folder holds, read now; [RegionRouteData.Fetching] while a fetch for it runs. */
     fun status(regionId: Long): RegionRouteData {
+        if (regionId in fetching) return RegionRouteData.Fetching
         val folder = folderFor(regionId)
         if (!folder.isDirectory) return RegionRouteData.NotFetched
         val recordFile = File(folder, RECORD_FILE_NAME)
@@ -143,6 +152,13 @@ internal class RegionRouteStore(
         }
         val id = name.toLongOrNull() ?: return Verdict.Unknown
         return if (id in keepIds || id in fetching) Verdict.Keep else Verdict.Remove("no region $id")
+    }
+
+    private fun writeSynced(file: File, bytes: ByteArray) {
+        java.io.FileOutputStream(file).use { out ->
+            out.write(bytes)
+            out.fd.sync()
+        }
     }
 
     private fun discard(regionId: Long, folder: File) {

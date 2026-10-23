@@ -44,6 +44,18 @@ interface OfflineMapRepository {
         onProgress: (downloaded: Int, total: Int) -> Unit,
     ): Result<OfflineRegionSummary>
 
+    /**
+     * [download], also telling [onRouteStep] when the tiles are in and the region's trail routes are being fetched
+     * (dispatch 2026-10-23-03 Amendment 1, L4: the progress says "Getting trail routes" for that step). A repository
+     * that fetches no routes never calls it.
+     */
+    suspend fun download(
+        name: String,
+        region: Region,
+        onProgress: (downloaded: Int, total: Int) -> Unit,
+        onRouteStep: () -> Unit,
+    ): Result<OfflineRegionSummary> = download(name, region, onProgress)
+
     /** Deletes one downloaded region by [id]. A no-op success, not a failure, if [id] isn't found. */
     suspend fun deleteRegion(id: Long): Result<Unit>
 

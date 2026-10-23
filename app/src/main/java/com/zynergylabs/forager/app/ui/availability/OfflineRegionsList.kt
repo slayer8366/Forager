@@ -17,7 +17,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.ui.map.LocalNoSignal
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
@@ -81,10 +86,21 @@ internal fun OfflineRegionsSection(
     /** Regions whose trail routes are being fetched now, and those whose fetch failed this session (dispatch 2026-10-23-03). */
     routeFetchingIds: Set<Long> = emptySet(),
     routeFailedIds: Set<Long> = emptySet(),
-    onTryAgainRoutes: (Long) -> Unit = {},
+    routeActions: OfflineRouteActions = OfflineRouteActions(),
 ) {
     // The same "no signal" the maps read (NoSignalTrailMap.kt); none provided (a test without MainActivity) is signal.
     val noSignal = LocalNoSignal.current?.collectAsState()?.value ?: false
+    // Signal back while this list is on screen: told once per return, from no signal to signal, never at the first
+    // composition (Amendment 1; the owner: "Yes, fetch when signal returns (Recommended)"). The ViewModel decides.
+    var sawNoSignal by remember { mutableStateOf(false) }
+    LaunchedEffect(noSignal) {
+        if (noSignal) {
+            sawNoSignal = true
+        } else if (sawNoSignal) {
+            sawNoSignal = false
+            routeActions.onSignalReturned()
+        }
+    }
 
     // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit (see
     // its doc comment), so this section just renders at its natural height as the last thing in
@@ -140,7 +156,7 @@ internal fun OfflineRegionsSection(
                             } else {
                                 null
                             },
-                            onTryAgainRoutes = { onTryAgainRoutes(region.id) },
+                            onTryAgainRoutes = { routeActions.onTryAgain(region.id) },
                         )
                     }
                 } }

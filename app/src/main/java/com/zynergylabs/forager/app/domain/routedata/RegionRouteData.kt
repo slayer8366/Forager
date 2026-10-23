@@ -13,7 +13,7 @@ import java.io.File
  *
  * Read from the region's own route folder on every listing, never from a second record that could drift from the
  * files (the same rule the tile counts follow, `OfflineMapRepository.listRegions`). How each state shows to the user
- * is the owner's call and is not built yet: the dispatch's stop.
+ * is `ui/availability/OfflineRegionRouteLine.kt`, the owner's step path.
  */
 sealed interface RegionRouteData {
     /** Bytes of route data on the phone for this region; counted into the region's shown size. */
@@ -24,6 +24,12 @@ sealed interface RegionRouteData {
      * app was closed during it). Never presented as "no routes here", which is a fact this state does not know.
      */
     data object NotFetched : RegionRouteData
+
+    /**
+     * A fetch for this region is running now in this process: the download's own, the automatic one, or Try again.
+     * Nothing else may fetch it until that one ends (Sorrel's review of #383, M1: one writer per region folder).
+     */
+    data object Fetching : RegionRouteData
 
     /**
      * Every file the Worker named is in [folder], each checked against its sha256 when it was stored. [missingSquares]
@@ -149,7 +155,7 @@ private val NOT_RETRYABLE = setOf(
 fun RegionRouteData.needsFetch(): Boolean = when (this) {
     RegionRouteData.NotFetched, is RegionRouteData.Damaged -> true
     is RegionRouteData.Missing -> reason.retryHelps()
-    is RegionRouteData.Stored, RegionRouteData.NoneHere -> false
+    is RegionRouteData.Stored, RegionRouteData.NoneHere, RegionRouteData.Fetching -> false
 }
 
 /**

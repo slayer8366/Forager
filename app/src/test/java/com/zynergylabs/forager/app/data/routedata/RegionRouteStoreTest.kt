@@ -23,7 +23,7 @@ class RegionRouteStoreTest {
     private val store by lazy { RegionRouteStore(root, { message, _ -> logs += message }) }
 
     private fun storeRoutes(regionId: Long, files: Map<String, ByteArray>) {
-        val partial = store.beginFetch(regionId)
+        val partial = store.beginFetch(regionId)!!
         files.forEach { (name, bytes) -> File(partial, name).writeBytes(bytes) }
         store.commit(
             regionId,
@@ -75,7 +75,7 @@ class RegionRouteStoreTest {
 
     @Test
     fun `a missing record reads back with its reason`() {
-        val partial = store.beginFetch(3)
+        val partial = store.beginFetch(3)!!
         store.commit(3, partial, RegionRouteRecord.Missing(RouteDataMissingReason.RATE_LIMITED))
         store.endFetch(3)
 
@@ -88,7 +88,7 @@ class RegionRouteStoreTest {
         storeRoutes(2, mapOf("W125_N45.rd5" to ByteArray(10)))
         File(root, "7.partial").mkdirs() // a killed process's fetch
         File(root, "8.deleting-123").mkdirs() // a delete that did not finish
-        val running = store.beginFetch(9) // a fetch running now, whose region has no row yet
+        val running = store.beginFetch(9)!! // a fetch running now, whose region has no row yet
         File(root, "notes").mkdirs() // a name this store never writes
 
         store.cleanOrphans(keepIds = setOf(1L))

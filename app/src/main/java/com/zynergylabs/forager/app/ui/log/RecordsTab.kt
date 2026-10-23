@@ -112,8 +112,8 @@ internal fun RecordsTab(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
-    /** "Try again" on a region's trail routes (dispatch 2026-10-23-03). */
-    onTryAgainRoutes: (Long) -> Unit = {},
+    /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
+    routeActions: com.zynergylabs.forager.app.ui.availability.OfflineRouteActions = com.zynergylabs.forager.app.ui.availability.OfflineRouteActions(),
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /**
@@ -399,7 +399,7 @@ internal fun RecordsTab(
                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                 onDownloadAgain = onDownloadAgain,
-                onTryAgainRoutes = onTryAgainRoutes,
+                routeActions = routeActions,
                 onOpenRegionDetails = { id -> openDetails(RecordDetailsTarget.OfflineRegionDetails(id)) },
             )
 

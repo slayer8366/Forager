@@ -247,8 +247,8 @@ internal fun JournalTab(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
-    /** "Try again" on a region's trail routes (dispatch 2026-10-23-03). */
-    onTryAgainRoutes: (Long) -> Unit = {},
+    /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
+    routeActions: com.zynergylabs.forager.app.ui.availability.OfflineRouteActions = com.zynergylabs.forager.app.ui.availability.OfflineRouteActions(),
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /** GPX full-record export dispatch — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
@@ -830,7 +830,7 @@ internal fun JournalTab(
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
                     onDeleteOfflineRegion = onDeleteOfflineRegion,
                     onDownloadAgain = onDownloadAgain,
-                    onTryAgainRoutes = onTryAgainRoutes,
+                    routeActions = routeActions,
                     tracks = tracks,
                     onTracksOpened = onTracksOpened,
                     getFullRecord = getFullRecord,

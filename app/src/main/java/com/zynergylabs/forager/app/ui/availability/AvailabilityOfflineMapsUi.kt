@@ -136,8 +136,8 @@ internal fun OfflineMapsPanel(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
-    /** "Try again" on a region's trail routes (dispatch 2026-10-23-03). */
-    onTryAgainRoutes: (Long) -> Unit = {},
+    /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
+    routeActions: OfflineRouteActions = OfflineRouteActions(),
     /**
      * Journal redesign J5c: passed through to the downloaded-region rows, where a tap on a closed row
      * opens that region's details sheet, given its id. The picker and download code above does not
@@ -295,7 +295,7 @@ internal fun OfflineMapsPanel(
             onOpenRegionDetails = onOpenRegionDetails,
             routeFetchingIds = uiState.offlineRouteFetchingIds,
             routeFailedIds = uiState.offlineRouteFailedIds,
-            onTryAgainRoutes = onTryAgainRoutes,
+            routeActions = routeActions,
         )
     }
 

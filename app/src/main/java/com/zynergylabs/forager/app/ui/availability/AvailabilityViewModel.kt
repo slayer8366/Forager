@@ -782,6 +782,16 @@ class AvailabilityViewModel(
         }
     }
 
+    /**
+     * Signal came back while Offline maps is on screen (dispatch 2026-10-23-03 Amendment 1; the owner: "Yes, fetch when
+     * signal returns (Recommended)"): the regions that still want routes are fetched, once for this return. The list
+     * tells this once per return (`OfflineRegionsSection`); a region already being fetched is not fetched again.
+     */
+    fun onOfflineMapsSignalReturned() {
+        if (noSignal()) return
+        offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+    }
+
     /** "Try again" on a region's trail routes: one more fetch of that region, shown only after an attempt failed. */
     fun onTryAgainRoutes(id: Long) {
         offlineRoutes.fetch(listOf(id))

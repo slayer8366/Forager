@@ -39,7 +39,9 @@ internal fun fetchRouteArea(
                 is Attempt.Done -> return attempt.record
                 is Attempt.Superseded -> {
                     log("Route data for region $regionId: ${attempt.detail}; asking for the area again.", null)
-                    folder.listFiles()?.forEach { it.delete() }
+                    // Cleared before asking again; a file that won't go is logged, and the commit's own clean-up
+                    // (RegionRouteStore.commit) removes any stray the new list does not name (#383 review, L1).
+                    folder.listFiles()?.forEach { if (!it.delete()) log("Couldn't remove ${it.name} before asking for region $regionId's area again.", null) }
                 }
             }
         }
