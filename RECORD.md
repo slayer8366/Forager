@@ -26997,3 +26997,18 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - The tree glyph is #5d804f, and tufts #2485ad (unchanged).
 - The owner's words via Aspen: "Day time maps looks good, but the night mode could use a simple inversion on those white icons that stay white".
 **Notes:** Written by the planner by hand. Dispatch 2026-10-22-06 Amendment 1 (build). Next free ID -1567.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1567
+**Timestamp:** 2026-10-23T05:10:17Z
+**Continues:** 2026-09-28-1566, 2026-09-28-1556
+**Title:** S22 night check passes on #380 (1.0.3833); the chosen map chip turns grey while offline (owner)
+**Observed:**
+- **Online night loads:** "61 night images added, 6 image references switched, 0 refused by MapLibre, 0 left in day images". No "Error setting" line, and no crash.
+- **Offline (aeroplane mode):** "4 switched, 0 refused", from v1 regions.
+- **What the owner saw:** town dots dark, and Topo at night and aeroplane mode right.
+- **Topo returning after the aeroplane test** was the -1556 rule; Topo was the last pick. The owner confirmed it.
+**Decision:** the owner, on the Layers chip staying in its selected colour while Trail stands in offline: "Have the toggle color be grey to reflect it's chosen, but offline." Confirmed as steps ("Yes, exactly"). It's built into #380 as dispatch 2026-10-22-06 Amendment 3.
+**Notes:** Written by the planner by hand. Next free ID -1568.
