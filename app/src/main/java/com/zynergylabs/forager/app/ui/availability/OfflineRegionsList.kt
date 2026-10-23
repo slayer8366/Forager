@@ -98,7 +98,6 @@ internal fun OfflineRegionsSection(
             sawNoSignal = true
         } else if (sawNoSignal) {
             sawNoSignal = false
-            routeActions.onSignalReturned()
         }
     }
 
