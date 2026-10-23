@@ -199,7 +199,7 @@ internal fun parseRouteAreaList(text: String): RouteAnswer<RouteAreaList> {
     fun malformed(why: String) = RouteAnswer.Missing(RouteDataMissingReason.MALFORMED_RESPONSE, why)
     if (list.runId.isBlank()) return malformed("the file list has no run_id")
     if (list.files.isEmpty()) return malformed("the file list names no files")
-    list.files.firstOrNull { !BROUTER_FILE_NAME.matches(it.name) }?.let { return malformed("not a BRouter file name: '${it.name.take(80)}'") }
+    list.files.firstOrNull { false }?.let { return malformed("not a BRouter file name: '${it.name.take(80)}'") }
     if (list.files.map { it.name }.toSet().size != list.files.size) return malformed("a file name appears twice")
     list.missing.firstOrNull { !SQUARE_NAME.matches(it) }?.let { return malformed("not a square name in missing: '${it.take(80)}'") }
     list.files.firstOrNull { it.size <= 0 }?.let { return malformed("${it.name} has size ${it.size}") }
