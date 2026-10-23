@@ -40,7 +40,11 @@ class TileRetryPolicy(
      *   lookup in the moments after a network validates fails like this, seen on the S22 in dispatch 2026-10-22-07).
      */
     fun decide(failure: TileFailure, failedAttempts: Int, heldForMs: Long, networkValidated: Boolean): TileRetryDecision {
-        return TileRetryDecision.GiveUp // FAILING-FIRST STUB
+        require(failedAttempts >= 1) { "failedAttempts starts at 1" }
+        if (heldForMs >= holdLimitMs) return TileRetryDecision.GiveUp
+        if (!networkValidated) return TileRetryDecision.WaitForNetwork
+        val backoff = backoffMs[minOf(failedAttempts, backoffMs.size) - 1]
+        return TileRetryDecision.RetryAfter(minOf(backoff, holdLimitMs - heldForMs))
     }
 }
 
@@ -72,8 +76,11 @@ class TileHoldGate(val limit: Int = TILE_RETRY_MAX_HELD) {
 
     /** Takes a place if one is free; `false` when [limit] are already held. */
     fun tryHold(): Boolean {
-        held.incrementAndGet() // FAILING-FIRST STUB
-        return true
+        while (true) {
+            val now = held.get()
+            if (now >= limit) return false
+            if (held.compareAndSet(now, now + 1)) return true
+        }
     }
 
     /** Gives back a place taken by [tryHold]. */

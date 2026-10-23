@@ -42,7 +42,50 @@ internal class TileRetryInterceptor(
 ) : Interceptor {
     private val notHeldLogged = AtomicInteger(0)
 
-    override fun intercept(chain: Interceptor.Chain): Response = chain.proceed(chain.request()) // FAILING-FIRST STUB
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        if (!isMapTileRequest(request.url)) return chain.proceed(request)
+        val tile = tileName(request.url)
+        var heldSince = NOT_HELD
+        var failedAttempts = 0
+        try {
+            while (true) {
+                val attempt = attempt(chain)
+                if (attempt.failure == null) {
+                    if (heldSince != NOT_HELD) {
+                        log("Tile $tile loaded after $failedAttempts failed attempts, held ${clock() - heldSince} ms.")
+                    }
+                    return attempt.response!!
+                }
+                failedAttempts++
+                if (heldSince == NOT_HELD) {
+                    if (!gate.tryHold()) {
+                        logNotHeld(tile, attempt.failure)
+                        return attempt.deliver()
+                    }
+                    heldSince = clock()
+                    log("Tile $tile failed (${attempt.failure}); held until it loads, at most ${policy.holdLimitMs / 1000} s.")
+                }
+                val deadline = heldSince + policy.holdLimitMs
+                when (val decision = policy.decide(attempt.failure, failedAttempts, clock() - heldSince, network.isValidated())) {
+                    TileRetryDecision.GiveUp -> {
+                        log("Tile $tile given up after $failedAttempts failed attempts (${attempt.failure}); the map shows it as failed.")
+                        return attempt.deliver()
+                    }
+                    TileRetryDecision.WaitForNetwork -> {
+                        attempt.discard()
+                        waitForNetwork(chain, deadline)
+                    }
+                    is TileRetryDecision.RetryAfter -> {
+                        attempt.discard()
+                        waitFor(chain, decision.delayMs, deadline)
+                    }
+                }
+            }
+        } finally {
+            if (heldSince != NOT_HELD) gate.release()
+        }
+    }
 
     private fun attempt(chain: Interceptor.Chain): Attempt = try {
         val response = chain.proceed(chain.request())
