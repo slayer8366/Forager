@@ -27167,3 +27167,17 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - Hazel's fixes for Sorrel's L1-L3 on #385, then the owner's merge.
 - Promotion to main, then the first approved run.
 **Notes:** Written by the planner by hand. Next free ID -1576.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1576
+**Timestamp:** 2026-10-23T21:22:40Z
+**Closes:** dispatch 2026-10-23-04
+**Title:** #385 (the GitHub release job) merged into pre-main on the owner's word
+**Outcome:** completed. Merged at 32d381e45 (head 75ddc746, CI 40024313029 green) after Sorrel's review (`docs/audits/2026-10-23-review-pr385.md`, c5675731), with L1-L3 fixed. The owner: "Merge it (Recommended)".
+**Open:**
+- The job runs only from main, so it waits for the next promotion.
+- First run: the owner approves it in GitHub, then rolls out the draft in Play Console.
+- L4 (cmdline-tools has no checksum) and the unprotected main branch are noted.
+**Notes:** Written by the planner by hand. Next free ID -1577.
