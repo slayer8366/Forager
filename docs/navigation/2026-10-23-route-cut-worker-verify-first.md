@@ -144,3 +144,19 @@ The text above stands as the record of the stop.
   the area is refused with `outside_coverage`, and the missing squares are named. A coastal area whose neighbouring
   square was never built therefore gets no route data. The other choice would be to serve the squares that exist and
   name the missing ones, which would be a change to the shape, so it is left as a question.
+
+## Addendum 2, 2026-10-23: the owner's answers on #381
+
+This supersedes the "Coverage is all or nothing" item in the addendum above. That item stays as the record of what
+was first built.
+
+- **Rate limits.** The owner chose "Yes, as proposed (Recommended)": 30 requests a minute per address and 600 a minute
+  for the key, both counted per Cloudflare location, as `wrangler.toml` declares them.
+- **Coverage.** The owner chose "Serve what exists (Recommended)". The option text was "The area gets routes for the
+  squares that exist; the missing part is named and logged. Coastal areas still get trails."
+  - `area.json` now answers 200 with files for the squares the build has.
+  - It always includes `"missing"`, naming the squares the area needs that the build lacks. The list is empty when
+    none are missing, and the Worker logs it when it is not.
+  - Only an area with none of its squares in the build gets 404 `outside_coverage`.
+- **Keys.** The planner sets the Worker secret `ROUTING_APP_KEY` and the GitHub Actions secret
+  `FORAGER_ROUTING_APP_KEY`.
