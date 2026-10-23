@@ -23,7 +23,7 @@ internal fun classifyRouteError(status: Int, body: String?, retryAfter: String?)
     val code = error?.error
     val said = "HTTP $status, error ${code ?: "(none)"}, message ${error?.message ?: "(none)"}"
     val agreed = code?.let { AGREED_ERRORS[it] }
-    if (agreed == null || agreed.status != status) {
+    if (agreed == null) {
         return RouteErrorMeaning.Missing(RouteDataMissingReason.UNEXPECTED_RESPONSE, "an answer outside the agreed list: $said")
     }
     val reason = agreed.reason ?: return RouteErrorMeaning.OutsideCoverage
