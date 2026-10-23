@@ -87,7 +87,7 @@ internal fun nightImageSwitchPlan(styleJson: String, nightNames: Set<String>): N
             when {
                 value is JsonPrimitive && value.isString -> {
                     val name = value.content
-                    if (name in nightNames) {
+                    if (name.isNotEmpty()) {
                         switches += NightImageReference(id, property, ImageReference.Name(nightImageName(name)))
                     } else {
                         left += "$id/$property: no night copy of \"$name\""
