@@ -212,6 +212,12 @@ class SourcesAndCreditsTest {
         val EXPECTED = listOf(
             ExpectedSource("openstreetmap", "© OpenStreetMap contributors", "licence ›", "https://www.openstreetmap.org/copyright"),
             ExpectedSource(
+                "openstreetmap-routes",
+                "Trail routes: © OpenStreetMap contributors",
+                "ODbL ›",
+                "https://opendatacommons.org/licenses/odbl/1-0/",
+            ),
+            ExpectedSource(
                 "opentopomap",
                 "Map data: © OpenStreetMap contributors, SRTM; map style: © OpenTopoMap (CC-BY-SA)",
                 "licence ›",

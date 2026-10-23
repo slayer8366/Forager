@@ -24,8 +24,10 @@ import { pmtilesPath, tilePath } from "./shared";
 import offlineStyle from "./offline-style.json";
 import streetStyle from "./street-style-v1.json";
 import streetStyleV2 from "./street-style-v2.json";
+import { type RoutingEnv, routingResponse } from "./routing/handler.ts";
 
-interface Env {
+// The route-data fields (ROUTING_APP_KEY, the two limiters) come from RoutingEnv (src/routing/handler.ts).
+interface Env extends RoutingEnv {
   ALLOWED_ORIGINS?: string;
   BUCKET: R2Bucket;
   CACHE_CONTROL?: string;
@@ -451,6 +453,11 @@ export default {
     if (request.method.toUpperCase() === "POST") return new Response(undefined, { status: 405 });
 
     const url = new URL(request.url);
+
+    // Route data (dispatch 2026-10-23-01): its own key check, limits and errors, in src/routing/handler.ts.
+    if (url.pathname.startsWith("/routing/")) {
+      return routingResponse(request, env, caches.default);
+    }
 
     if (url.pathname === "/style/offline.json") {
       return offlineStyleResponse(resolveAllowedOrigin(request, env));

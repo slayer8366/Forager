@@ -37,6 +37,7 @@ class SoftwareCreditsCatalogTest {
         assertEquals("MIT", licenceOf("NGA Grid"))
         assertEquals("MIT", licenceOf("NGA Simple Features"))
         assertEquals("MIT", licenceOf("NGA Color"))
+        assertEquals("MIT", licenceOf("BRouter")) // dispatch 2026-10-23-02: the trail router, vendored from source
         // The full name: Forager Trail Map's Noto Sans is always listed now (dispatch 2026-10-22-01), so two entries start
         // with "Noto Sans" (#359's change 7). The map's Noto is asserted in the test below.
         assertEquals("OFL-1.1", licenceOf("Noto Sans, the app's typeface"))
