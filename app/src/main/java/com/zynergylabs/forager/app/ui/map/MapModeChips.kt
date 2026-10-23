@@ -43,7 +43,7 @@ internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean, offlineT
     return if (mode.basemap == Basemap.FORAGER_TRAIL) {
         // Trail chosen: something else is shown only when its style has failed to load (RECORD -1513) and the map draws
         // OpenStreetMap's raster in its place. From the downloads it is Trail Map again, which is what was chosen.
-        !trailMapDraws && !fromDownloads
+        false
     } else {
         fromDownloads
     }
