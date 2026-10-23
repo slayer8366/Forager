@@ -57,7 +57,7 @@ internal class RegionRouteStore(
         // Kept: the files the record names, and nothing else. A failed fetch keeps none; a stored one keeps only its
         // own, so a stray from an earlier attempt (a superseded run) is never left beside them (#383 review, L1).
         val keep = (record as? RegionRouteRecord.Stored)?.files?.map { it.name }?.toSet().orEmpty()
-        partial.listFiles()?.filter { it.name !in keep }?.forEach { stray ->
+        partial.listFiles()?.filter { record !is RegionRouteRecord.Stored }?.forEach { stray ->
             if (!stray.deleteRecursively()) throw IOException("couldn't remove ${stray.name} from ${partial.name}")
         }
         // Synced before the rename, so a power loss after it cannot leave a renamed folder with a short record (L2).
