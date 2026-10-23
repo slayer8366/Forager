@@ -120,7 +120,8 @@ internal fun nightImageSwitchPlan(styleJson: String, nightNames: Set<String>): N
     }
     val recorded = recordedSpriteImages(style)
     missing += recorded.filter { it !in nightNames }
-    return NightImageSwitchPlan(switches, left, missing.toList())
+    // Sorted, so the log line names them in one order whatever the style's layer order.
+    return NightImageSwitchPlan(switches, left, missing.sorted())
 }
 
 /**
