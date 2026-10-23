@@ -76,7 +76,6 @@ internal class RegionRouteStore(
 
     /** What [regionId]'s folder holds, read now; [RegionRouteData.Fetching] while a fetch for it runs. */
     fun status(regionId: Long): RegionRouteData {
-        if (regionId in fetching) return RegionRouteData.Fetching
         val folder = folderFor(regionId)
         if (!folder.isDirectory) return RegionRouteData.NotFetched
         val recordFile = File(folder, RECORD_FILE_NAME)
