@@ -69,7 +69,6 @@ fun AvailabilityViewModel.onOfflineMapsOpened() {
  * tells this once per return (`OfflineRegionsSection`); a region already being fetched is not fetched again.
  */
 fun AvailabilityViewModel.onOfflineMapsSignalReturned() {
-    if (noSignal()) return
     offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
 }
 
