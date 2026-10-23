@@ -39,7 +39,7 @@ private val AGREED_ERRORS: Map<String, AgreedError> = mapOf(
     "manifest_missing" to AgreedError(503, RouteDataMissingReason.MANIFEST_MISSING),
     "run_missing_square" to AgreedError(503, RouteDataMissingReason.RUN_MISSING_SQUARE),
     "checksum" to AgreedError(502, RouteDataMissingReason.SERVER_CHECKSUM),
-    "outside_coverage" to AgreedError(404, null),
+    "outside_coverage" to AgreedError(404, RouteDataMissingReason.UNEXPECTED_RESPONSE),
     "too_large" to AgreedError(413, RouteDataMissingReason.TOO_LARGE),
     "bad_request" to AgreedError(400, RouteDataMissingReason.BAD_REQUEST),
     "forbidden" to AgreedError(403, RouteDataMissingReason.FORBIDDEN),
