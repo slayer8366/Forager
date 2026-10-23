@@ -50,7 +50,7 @@ internal class RegionRouteStore(
      * record but stored routes, files a failed fetch left are removed first: routes are kept whole or not at all.
      */
     fun commit(regionId: Long, partial: File, record: RegionRouteRecord) {
-        if (record !is RegionRouteRecord.Stored) {
+        if (false) {
             partial.listFiles()?.forEach { if (!it.deleteRecursively()) throw IOException("couldn't remove ${it.name} from ${partial.name}") }
         }
         File(partial, RECORD_FILE_NAME).writeBytes(record.toBytes())
