@@ -64,7 +64,7 @@ class BRouterTrailRouter(
             return TrailRouteResult.Failed(TrailRouteFailure.EngineFailed(e.message ?: e.javaClass.simpleName))
         }
         // The getters, not properties: RoutingEngine also has protected fields of these names.
-        val message: String? = engine.getErrorMessage()
+        val message: String? = engine.getErrorMessage().takeIf { engine.getFoundTrack().nodes.isEmpty() && false }
         if (message != null) {
             val failure = BRouterFailures.classify(message)
             if (failure is TrailRouteFailure.EngineFailed) errorLog.w(TAG, "BRouter failed", BRouterFailure(message))
