@@ -475,3 +475,64 @@ skipped IDs. The debug APK is 82,918,391 bytes.
 **S22 launch check.** 1.0.3840+gd70a7a77, an upgrade from 3837; schema 22. PASS. The S22 is left on 1.0.3840.
 
 **Device step.** Only the no-signal step above can be seen on a phone, for the reason given; it is unchanged.
+
+### Amendment 3, second follow-up: grey after the -1513 fallback (added 2026-10-23 UTC)
+
+**The owner's answers** (relayed by Rowan):
+- On the entry map: "Leave it (Recommended)". Its Layers button stays hidden in offline-tiles mode, so nothing there
+  changes.
+- On the fallback: "Yes, grey then too (Recommended)", with the option text "Same meaning everywhere: grey = chosen, but
+  something else is shown."
+- Rowan also ran the no-signal grey step on the S22, on 1.0.3837, in aeroplane mode with Wi-Fi off. Topo was `#6b421a`
+  with signal, `#444444` with no network, and `#6b421a` again when the signal returned: a pass.
+
+**What changed.** `chosenMapModeStandsAside` now takes `trailMapDraws`, the fallback's own `ownStreet()`, which is
+Compose state. For a Trail user the chip is grey only when the style has fallen back and the map is not drawing from the
+downloads. That is exactly when it shows OpenStreetMap's raster in Trail's place:
+
+| Trail chosen | Map shows | Trail chip |
+|---|---|---|
+| Fallen back, with signal | OpenStreetMap's raster | Grey |
+| Fallen back, no signal or offline tiles | Trail Map from the downloads, as `drawsFromDownloads` rules | Normal |
+
+Topo and OSM chips are not affected by the fallback. It resets at the next cold start, and the chip with it.
+`MapLayersSheet` takes a `fallback` (default `OWN_STREET_FALLBACK`, the app's one) so a test can give it its own.
+
+**Commits:**
+- `cc1e6a44d`: the fallback threaded through, and the tests, with the condition not wired.
+- `cde423dcd`: the condition wired.
+
+**Failing first.** Run 39912306453, filtered to the sheet, map-type and fallback tests (42 tests). No compile errors. One
+failure: after `onStyleLoadFailed(MapStyleRequest(Uri(STREET_STYLE_URL), useOfflineTiles = false), "Failed to load
+style: 404")`, the fallback's own entry point as `MapListeners` calls it, the Trail chip was drawn `#6b421a` where
+`#444444` was expected (dark theme).
+
+**The tests**, all in `MapLayersSheetOfflineChipTest`:
+- Trail chosen: grey after the fallback, still selected, in both themes, with OSM not selected and no choice written.
+  This is the failing-first test.
+- Fallen back with no signal: normal.
+- Topo chosen with a fallback: normal.
+
+The last two passed before the fix too. They guard against regression; they do not discriminate.
+
+**Revert check.** R12 sets the Trail branch to `false`: run 39913056473, no compile errors. The one failure is that same
+assertion, and nothing else failed.
+
+**Suite.** Run 39913054537 on `cde423dcd`, the PR's merge commit, all jobs green: 5295 tests, 0 failures, the same 24
+skipped IDs. The debug APK is 82,918,391 bytes.
+
+**S22 launch check.** 1.0.3843+g9164c855, an upgrade from 3840; schema 22. PASS. The S22 is left on 1.0.3843.
+
+**Device step, and why it is not a normal one.** The fallback fires only when Trail Map's style fails to load online,
+with no usable cache. The Worker serves the style with a one-day cache (`OwnStreetFallback.kt`'s doc), so a phone that
+has drawn Trail Map recently will not fall back even if the Worker is down. There is no tap that triggers it. I have not
+run it on the S22.
+
+One way to see it, for the planner to judge:
+- clear the app's cache (not its data), or use a fresh install;
+- with Trail chosen, block the Worker's host (a hosts entry or a firewall rule on the network), so the style load fails
+  while the network still validates;
+- open Maps: the map shows OpenStreetMap's raster and the log names the fallback;
+- open Layers: **Pass:** Trail is selected and grey.
+
+That changes the network, so it needs the owner's or the planner's go.
