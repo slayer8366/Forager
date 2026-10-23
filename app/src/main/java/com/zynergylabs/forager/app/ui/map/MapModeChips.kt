@@ -59,7 +59,7 @@ private fun rememberNoSignal(): Boolean {
  * and a tap here is still a real choice. The Trail chip is not highlighted while Trail Map stands in.
  */
 @Composable
-internal fun MapModeChipRow(mapMode: MapMode, onMapModeSelected: (MapMode) -> Unit) {
+internal fun MapModeChipRow(mapMode: MapMode, onMapModeSelected: (MapMode) -> Unit, offlineTiles: Boolean = false) {
     val noSignal = rememberNoSignal()
     Row(
         modifier = Modifier.fillMaxWidth(),

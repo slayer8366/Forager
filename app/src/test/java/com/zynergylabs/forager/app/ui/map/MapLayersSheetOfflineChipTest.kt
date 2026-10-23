@@ -63,6 +63,7 @@ class MapLayersSheetOfflineChipTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val noSignal = MutableStateFlow(false)
+    private var offlineTiles by mutableStateOf(false)
     private var darkTheme by mutableStateOf(true)
     private var chosen by mutableStateOf(MapMode.TOPOGRAPHIC)
     private val choices = mutableListOf<MapMode>()
@@ -84,6 +85,7 @@ class MapLayersSheetOfflineChipTest {
                     onOpacityChanged = { _, _ -> },
                     onColourFieldMoved = { _, _ -> },
                     onDismiss = {},
+                    offlineTiles = offlineTiles,
                 )
             }
         }
@@ -135,6 +137,30 @@ class MapLayersSheetOfflineChipTest {
         setSheet()
         composeRule.onNodeWithTag(mapModeChipTag(MapMode.OPENSTREETMAP)).assertIsSelected()
         assertEquals(grey, drawnFill(MapMode.OPENSTREETMAP))
+    }
+
+    @Test
+    fun `with offline tiles on and signal, the chosen Topo chip is grey too, and normal again when they are off`() {
+        // The owner: "Same meaning everywhere: grey = chosen, but Trail is being shown instead."
+        setSheet()
+        for (dark in listOf(true, false)) {
+            settle { darkTheme = dark; offlineTiles = true }
+            val theme = if (dark) "dark" else "light"
+            composeRule.onNodeWithTag(mapModeChipTag(MapMode.TOPOGRAPHIC)).assertIsSelected()
+            assertEquals("$theme, offline tiles: Topo drawn grey", grey, drawnFill(MapMode.TOPOGRAPHIC))
+            composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsNotSelected()
+            settle { offlineTiles = false }
+            assertEquals("$theme, offline tiles off: Topo in the normal selected fill", normalSelected, drawnFill(MapMode.TOPOGRAPHIC))
+        }
+        assertEquals("the stored choice never changes", emptyList<MapMode>(), choices)
+    }
+
+    @Test
+    fun `with offline tiles on, a chosen Trail chip is unchanged`() {
+        chosen = MapMode.TRAIL
+        offlineTiles = true
+        setSheet()
+        assertEquals(normalSelected, drawnFill(MapMode.TRAIL))
     }
 
     @Test

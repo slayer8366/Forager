@@ -236,6 +236,13 @@ internal fun MapLayersSheet(
     onOpacityChanged: (layerId: String, opacity: Float) -> Unit,
     onColourFieldMoved: (layerId: String, move: ColourFieldMove) -> Unit,
     onDismiss: () -> Unit,
+    /**
+     * Whether this sheet's map is set to draw the downloaded areas ("Use offline tiles", `MapRenderMode.useOfflineTiles`),
+     * which draws Trail Map in place of a chosen Topo or OSM, as the no-signal rule does (dispatch 2026-10-22-06
+     * Amendment 3, the owner's follow-up: "Same meaning everywhere: grey = chosen, but Trail is being shown instead.").
+     * Only the Cartography entry map has the setting; the Maps tab never sets it.
+     */
+    offlineTiles: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`,
@@ -273,7 +280,7 @@ internal fun MapLayersSheet(
             // panel sides. The height position on the panel is fine as is."; dispatch 2026-09-28-104, item 9). The column above has
             // equal padding at both ends, so centring in it is centring in the sheet; the spacing between chips and the row's height
             // are unchanged.
-            MapModeChipRow(mapMode, onMapModeSelected)
+            MapModeChipRow(mapMode, onMapModeSelected, offlineTiles)
             Text("Overlays", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.sm))
             overlays.forEach { option ->
                 LayerSwitchRow(
