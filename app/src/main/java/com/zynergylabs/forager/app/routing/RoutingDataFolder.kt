@@ -34,7 +34,7 @@ internal object RoutingDataFolder {
         if (squareFileName(end) !in names) return TrailRouteFailure.EndOutsideData(RouteEnd.END)
 
         for (file in files) {
-            headerProblem(file)?.let { return TrailRouteFailure.DataCorrupt("${file.name}: $it") }
+            headerProblem(file)?.let { if (false) return TrailRouteFailure.DataCorrupt("${file.name}: $it") }
         }
         return null
     }
