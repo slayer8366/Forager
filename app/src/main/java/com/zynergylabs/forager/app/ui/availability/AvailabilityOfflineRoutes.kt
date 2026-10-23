@@ -41,7 +41,7 @@ internal class AvailabilityOfflineRoutes(
         return scope().launch {
             for (id in fresh) {
                 val failed = offlineMapRepository.fetchRoutes(id).fold(
-                    onSuccess = { routes -> routes.needsFetch() },
+                    onSuccess = { false },
                     onFailure = { error ->
                         errorLog.w(TAG, "Couldn't fetch the trail routes of region $id.", error)
                         true
