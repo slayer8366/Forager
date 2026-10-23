@@ -6,8 +6,14 @@
 # build user can read the patch. The clone, patch, tests and package all run as the build user;
 # only the final copy into /opt runs as root.
 #
-# Stops if the checkout is not the pinned commit, if the patch does not apply, if any upstream or
+# Stops if the checkout is not the pinned commit, if a patch does not apply, if any upstream or
 # Forager test fails, or if the Forager tests did not actually run.
+#
+# The patches (BASEMAPS_PATCHES in pins.env) are applied in order. 0002 (dispatch 2026-10-22-pi-30)
+# departs from upstream because OSM data sometimes tags a forest with natural=bare_rock too
+# (r14965119 near Seaside, OR, 2026-10-22); Forager prefers the landuse forest/wood kind. Owner's
+# ruling, relayed by Rowan and confirmed in the cartography planner session. landuse=wood is not an
+# upstream landuse kind, so wood + bare_rock is left as bare_rock.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,8 +25,12 @@ die() { log "FAILED: $*"; exit 1; }
 as_build() { sudo -u "$FB_USER" -H -- "$@"; }
 
 src="$FB_SRV/src/basemaps"
-patch="$here/$BASEMAPS_PATCH"
-[[ -r "$patch" ]] || die "cannot read $patch"
+patches=()
+for p in $BASEMAPS_PATCHES; do
+  [[ -r "$here/$p" ]] || die "cannot read $here/$p"
+  patches+=("$here/$p")
+done
+[[ ${#patches[@]} -gt 0 ]] || die "no patches listed in BASEMAPS_PATCHES"
 
 as_build mkdir -p "$FB_SRV/src"
 if [[ ! -d "$src/.git" ]]; then
@@ -38,9 +48,11 @@ grep -q "return \"$BASEMAPS_TILES_VERSION\";" "$src/tiles/src/main/java/com/prot
   || die "Basemap.java at this commit does not report tiles $BASEMAPS_TILES_VERSION"
 log "checkout is $head (tiles $BASEMAPS_TILES_VERSION)"
 
-as_build git -C "$src" apply --check "$patch" || die "the patch does not apply"
-as_build git -C "$src" apply "$patch"
-log "patch applied: $(basename "$patch")"
+for patch in "${patches[@]}"; do
+  as_build git -C "$src" apply --check "$patch" || die "the patch does not apply: $(basename "$patch")"
+  as_build git -C "$src" apply "$patch"
+  log "patch applied: $(basename "$patch")"
+done
 
 # `package` runs every test in tiles/ first; any failure stops here.
 as_build env JAVA_HOME="$FB_OPT/jdk" "$FB_OPT/maven/bin/mvn" -B -f "$src/tiles/pom.xml" \
@@ -55,6 +67,14 @@ failed="$(grep -c '<failure\|<error' "$report" || true)"
 # 2026-10-21-pi-23): 2 single tests + 2 + 10 + 2 parameterized cases = 16. 29 test cases with these names.
 [[ "$ran" -eq 29 && "$failed" -eq 0 ]] || die "Forager test cases in the report: $ran (expected 29), failures: $failed"
 log "Forager tests ran: $ran cases, 0 failures"
+
+# Forest over bare rock (patch 0002, dispatch 2026-10-22-pi-30): 1 parameterized test, 4 cases.
+lreport="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.LanduseTest.xml"
+[[ -r "$lreport" ]] || die "no LanduseTest report at $lreport"
+lran="$(grep -c '<testcase name="foragerForestOverBareRock' "$lreport" || true)"
+lfailed="$(grep -c '<failure\|<error' "$lreport" || true)"
+[[ "$lran" -eq 4 && "$lfailed" -eq 0 ]] || die "foragerForestOverBareRock cases in the LanduseTest report: $lran (expected 4), failures: $lfailed"
+log "Forager landuse tests ran: $lran cases, 0 failures"
 
 jar="$src/tiles/target/$BASEMAPS_JAR_NAME"
 [[ -s "$jar" ]] || die "no jar at $jar"

@@ -1,0 +1,78 @@
+Forager: forest wins over bare rock in the landuse layer (dispatch 2026-10-22-pi-30, with its amendment 1)
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2), with
+0001-roads-trail-attributes.patch already applied. Applied after 0001 with `git apply` from the
+repository root by map-build/bin/build-basemap-jar.sh.
+
+Why this departs from upstream: OSM data sometimes tags a forest with natural=bare_rock too
+(r14965119 near Seaside, OR, 2026-10-22); Forager prefers the landuse forest/wood kind. Owner's
+ruling, relayed by Rowan and confirmed in the cartography planner session. landuse=wood is not an
+upstream landuse kind, so wood + bare_rock is left as bare_rock.
+
+Upstream takes kind from the last matching rule (Matcher.getString walks the matches reversed), so
+the natural rule, after the landuse rule, made such an area bare_rock. bare_rock leaves the natural
+rule's list and gets a rule of its own right after it that does not match landuse=forest. Nothing
+else changes. The parameterized test foragerForestOverBareRock (4 cases) in LanduseTest pins it.
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
+index 00d3c15..c16085a 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
+@@ -129,10 +129,17 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+           scrub
+           sand
+           wetland
+-          bare_rock
+         """),
+       use("kind", fromTag("natural"))
+     ),
++    // Forager: OSM data sometimes tags a forest with natural=bare_rock too (r14965119 near Seaside, OR,
++    // 2026-10-22); Forager prefers the landuse forest kind. landuse=wood is not an upstream landuse
++    // kind, so wood + bare_rock is left as bare_rock.
++    rule(
++      with("natural", "bare_rock"),
++      without("landuse", "forest"),
++      use("kind", "bare_rock")
++    ),
+     rule(
+       with("""
+           highway
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
+index 50911d8..7c15ceb 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
+@@ -11,6 +11,8 @@ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ import org.junit.jupiter.api.Test;
++import org.junit.jupiter.params.ParameterizedTest;
++import org.junit.jupiter.params.provider.CsvSource;
+ 
+ class LanduseTest extends LayerTest {
+ 
+@@ -584,6 +586,25 @@ class LanduseTest extends LayerTest {
+     );
+   }
+ 
++  // Forager: a forest also tagged natural=bare_rock keeps the landuse forest kind; landuse=wood is
++  // not an upstream landuse kind, so wood + bare_rock stays bare_rock, as do bare_rock alone and
++  // other landuse values.
++  @ParameterizedTest
++  @CsvSource({
++    "forest, forest",
++    "wood, bare_rock",
++    "'', bare_rock",
++    "meadow, bare_rock"
++  })
++  void foragerForestOverBareRock(String landuse, String kind) {
++    assertFeatures(15,
++      List.of(Map.of("kind", kind)),
++      landuse.isEmpty() ?
++        processWith("natural", "bare_rock") :
++        processWith("landuse", landuse, "natural", "bare_rock")
++    );
++  }
++
+   @Test
+   void postProcessFiltersSmallPolygonsBelowZoom15() throws GeometryException {
+     var small = new VectorTile.Feature("landuse", 1,
