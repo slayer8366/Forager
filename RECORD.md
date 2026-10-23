@@ -27181,3 +27181,18 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - First run: the owner approves it in GitHub, then rolls out the draft in Play Console.
 - L4 (cmdline-tools has no checksum) and the unprotected main branch are noted.
 **Notes:** Written by the planner by hand. Next free ID -1577.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1577
+**Timestamp:** 2026-10-23T21:29:34Z
+**Continues:** dispatch 2026-10-22-07
+**Title:** Tree glyph gaps: a failed z12 tile isn't re-requested; fix by retrying failed tiles (owner)
+**Observed:** Hazel's diagnosis, on the S22 with diag/tree-glyph-gaps (never merged):
+- The owner's Gorge gap is exactly tile 12/660/1464.
+- When a z12 tile fails, MapLibre draws a lower-zoom tile, and `landuse_forest_glyphs` has minzoom 12, so the area shows forest without glyphs. The failed tile wasn't re-requested after the network returned (still bare at 2m13s); zooming in fills it.
+- The tile loads normally today. Why it failed on the owner's phone is unknown.
+- A minzoom of 11 hides only the z11 fallback case.
+**Decision:** the owner chose "A: retry failed map pieces (Recommended)". Re-request failed tiles in the app, with no visual change. Verify first why MapLibre doesn't retry. The glyph minzoom stays 12.
+**Notes:** Written by the planner by hand. Dispatch 2026-10-23-06. Next free ID -1578.
