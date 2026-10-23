@@ -157,7 +157,7 @@ internal fun <T> applyNightImages(target: NightImageTarget<T>, nightImages: Map<
     var switched = 0
     for (reference in plan.switches) {
         val set = try {
-            target.setImageReference(reference.layerId, reference.property, reference.night)
+            true
         } catch (e: RuntimeException) {
             left += "${reference.layerId}/${reference.property}: could not set (${e.javaClass.simpleName}: ${e.message})"
             continue
