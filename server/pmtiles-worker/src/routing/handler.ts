@@ -162,7 +162,7 @@ async function areaResponse(request: Request, env: RoutingEnv, cache: Cache, url
   const needed = squaresFor(area.rect);
   const present = needed.filter((name) => manifest.squares.has(name));
   const missing = needed.filter((name) => !manifest.squares.has(name));
-  if (present.length === 0) {
+  if (missing.length > 0) {
     return errorResponse(404, "outside_coverage", "the area needs route data this build does not cover", { squares: missing });
   }
   if (missing.length > 0) {
