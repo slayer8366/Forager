@@ -163,7 +163,7 @@ async function areaResponse(request: Request, env: RoutingEnv, cache: Cache, url
   }
 
   const files = [];
-  for (const name of needed) {
+  for (const name of needed.slice(0, 1)) {
     const square = manifest.squares.get(name)!;
     const path = `/routing/${manifest.runId}/${square.fileName}?${areaQuery(url.searchParams)}`;
     let cut: Cut;
