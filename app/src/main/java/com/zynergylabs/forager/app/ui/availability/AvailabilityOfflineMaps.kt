@@ -246,7 +246,7 @@ internal class AvailabilityOfflineMaps(
     private fun showGettingTrailRoutes() {
         updateState { state ->
             val status = state.offlineDownloadStatus as? OfflineMapStatus.Downloading ?: OfflineMapStatus.Downloading(0, 0)
-            state.copy(offlineDownloadStatus = status.copy(gettingRoutes = true))
+            state.copy(offlineDownloadStatus = status)
         }
     }
 
