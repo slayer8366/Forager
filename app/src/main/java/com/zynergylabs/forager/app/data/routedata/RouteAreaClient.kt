@@ -38,8 +38,9 @@ internal class RouteAreaClient(
     fun fetchList(box: GeoBoundingBox): RouteAnswer<RouteAreaList> {
         val url = baseUrl.newBuilder()
             .encodedPath("/routing/area.json")
-            // Rounded outward to nine decimals, the most the Worker accepts (PR #381 `routing/area.ts`, DECIMAL), so
-            // the area asked for still holds the whole region.
+            // Exactly six decimals, plain (Sorrel's review of #381, M2: the Worker refuses other forms, and at seven or
+            // more an edge within a microdegree of a five-degree line can make it throw), rounded outward so the area
+            // asked for still holds the whole region.
             .addQueryParameter("south", box.south.edge(RoundingMode.FLOOR))
             .addQueryParameter("west", box.west.edge(RoundingMode.FLOOR))
             .addQueryParameter("north", box.north.edge(RoundingMode.CEILING))
@@ -58,8 +59,10 @@ internal class RouteAreaClient(
     }
 
     /**
-     * Streams [file] into [destination], hashing as it goes. Answers [RouteAnswer.Ok] only when the bytes are exactly
-     * [RouteAreaFile.size] long and hash to [RouteAreaFile.sha256]; otherwise [destination] is deleted. Reading stops
+     * Streams [file] into a temporary name beside [destination] that does not end in `.rd5`, hashing as it goes, and
+     * renames it to [destination] only when the bytes are exactly [RouteAreaFile.size] long and hash to
+     * [RouteAreaFile.sha256]; otherwise the temporary file is deleted. So no `.rd5` ever exists part-written: the engine
+     * refuses every route in a folder holding one bad `.rd5` (Sorrel's review of #382, L3). Reading stops
      * within one 64 KB buffer past the promised size, so a server that sends more never fills the phone.
      */
     fun fetchFile(file: RouteAreaFile, destination: File): RouteAnswer<Unit> {
@@ -69,13 +72,14 @@ internal class RouteAreaClient(
             if (response.code != 200) return@use errorAnswer<Unit>(response)
             val source = response.body?.source()
                 ?: return@use RouteAnswer.Missing(RouteDataMissingReason.MALFORMED_RESPONSE, "${file.name} came with no body")
+            val temp = File(destination.parentFile, destination.name + DOWNLOAD_SUFFIX)
             val digest = MessageDigest.getInstance("SHA-256")
             var written = 0L
             val buffer = ByteArray(64 * 1024)
             val out = try {
-                destination.outputStream()
+                temp.outputStream()
             } catch (e: IOException) {
-                throw RouteStorageException("couldn't open ${destination.name} to write", e)
+                throw RouteStorageException("couldn't open ${temp.name} to write", e)
             }
             out.use {
                 val input = source.inputStream()
@@ -85,7 +89,7 @@ internal class RouteAreaClient(
                     try {
                         out.write(buffer, 0, n)
                     } catch (e: IOException) {
-                        throw RouteStorageException("couldn't write ${destination.name}", e)
+                        throw RouteStorageException("couldn't write ${temp.name}", e)
                     }
                     digest.update(buffer, 0, n)
                     written += n
@@ -95,22 +99,28 @@ internal class RouteAreaClient(
             val headerSha = response.header(SHA256_HEADER)
             when {
                 headerSha == null -> {
-                    destination.delete()
+                    temp.delete()
                     RouteAnswer.Missing(RouteDataMissingReason.MALFORMED_RESPONSE, "${file.name} came without $SHA256_HEADER")
                 }
                 !headerSha.equals(file.sha256, ignoreCase = true) -> {
-                    destination.delete()
+                    temp.delete()
                     RouteAnswer.Missing(RouteDataMissingReason.CHECKSUM_MISMATCH, "${file.name}: $SHA256_HEADER $headerSha, the list gave ${file.sha256}")
                 }
                 written != file.size -> {
-                    destination.delete()
+                    temp.delete()
                     RouteAnswer.Missing(RouteDataMissingReason.CHECKSUM_MISMATCH, "${file.name}: ${if (written > file.size) "more than" else written.toString() + " of"} the ${file.size} bytes the list gave")
                 }
                 !sha.equals(file.sha256, ignoreCase = true) -> {
-                    destination.delete()
+                    temp.delete()
                     RouteAnswer.Missing(RouteDataMissingReason.CHECKSUM_MISMATCH, "${file.name}: sha256 $sha, the list gave ${file.sha256}")
                 }
-                else -> RouteAnswer.Ok(Unit)
+                else -> {
+                    if (!temp.renameTo(destination)) {
+                        temp.delete()
+                        throw RouteStorageException("couldn't move ${temp.name} to ${destination.name}", IOException("rename failed"))
+                    }
+                    RouteAnswer.Ok(Unit)
+                }
             }
         }
     }
@@ -149,6 +159,9 @@ internal class RouteAreaClient(
 
         /** The header a file's bytes come with, carrying their sha256 (PR #381's final shape). */
         const val SHA256_HEADER = "X-Forager-Sha256"
+
+        /** What a file is called while it downloads: not `.rd5`, so BRouter never reads one part-written. */
+        const val DOWNLOAD_SUFFIX = ".download"
 
         /**
          * The Worker the map tiles come from (`OfflineStyle.kt`), which PR #381 adds the routing routes to. **An
@@ -220,7 +233,7 @@ internal val BROUTER_FILE_NAME = Regex("^[EW][0-9]{1,3}_[NS][0-9]{1,2}\\.rd5$")
 /** A five-degree square's name without `.rd5`, as the Worker's `missing` list gives it. */
 internal val SQUARE_NAME = Regex("^[EW][0-9]{1,3}_[NS][0-9]{1,2}$")
 
-/** [this] degrees as plain decimal with at most nine places, rounded by [mode]; never exponent form (`1.0E-4`). */
-internal fun Double.edge(mode: RoundingMode): String = toBigDecimal().setScale(9, mode).stripTrailingZeros().toPlainString()
+/** [this] degrees as plain decimal with exactly six places, rounded by [mode]; never exponent form (`1.0E-4`). */
+internal fun Double.edge(mode: RoundingMode): String = toBigDecimal().setScale(6, mode).toPlainString()
 
 private val SHA256_HEX = Regex("^[0-9a-fA-F]{64}$")
