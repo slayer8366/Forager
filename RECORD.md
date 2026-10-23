@@ -27012,3 +27012,19 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - **Topo returning after the aeroplane test** was the -1556 rule; Topo was the last pick. The owner confirmed it.
 **Decision:** the owner, on the Layers chip staying in its selected colour while Trail stands in offline: "Have the toggle color be grey to reflect it's chosen, but offline." Confirmed as steps ("Yes, exactly"). It's built into #380 as dispatch 2026-10-22-06 Amendment 3.
 **Notes:** Written by the planner by hand. Next free ID -1568.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1568
+**Timestamp:** 2026-10-23T09:23:06Z
+**Continues:** 2026-09-28-1551, 2026-09-28-1553
+**Supersedes:** -1551's hold on the server part
+**Title:** Trail navigation for Saturday: route data and the engine; the 261021 route squares go up now (owner)
+**Decision:**
+- **The priority,** relayed by Aspen, verbatim: "we'll get trail navigation done before Saturday".
+- **The scope,** asked here: "Route data + engine (Recommended)". Downloads carry the trail routes, and the app can calculate a route along trails offline. The way home, waypoint navigation and the alerts follow after.
+- **The squares:** "Upload today's set now (Recommended)", the 261021 run, with Sunday's set later on its own go.
+- **The fallback grey chip** isn't tested on the phone ("Skip it").
+**Dispatched in parallel:** 2026-10-23-01 (the Worker cuts route data; server/ only) and 2026-10-23-02 (BRouter in the app behind an interface; app/ only). The app storing routes with a download follows once 01's response shape is set.
+**Notes:** Written by the planner by hand. Next free ID -1569.
