@@ -152,7 +152,7 @@ class AvailabilityViewModel(
     /** Dispatch 2026-09-28-502: where the waypoint being navigated to is kept across the process. */
     private val waypointNavigationRepository: WaypointNavigationRepository = NoStoredWaypointNavigation,
     /** Dispatch 2026-09-28-502, step 6: the return a waypoint navigation pauses and picks back up. */
-    private val returnLeg: ReturnLeg = NoReturnLeg,
+    internal val returnLeg: ReturnLeg = NoReturnLeg,
     /** Dispatch 2026-09-28-510: the platform's last known location, shown greyed until anything live arrives. */
     private val lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
     /** Dispatch 2026-09-28-708: where the Maps tab's basemap persists across restarts. */
@@ -163,7 +163,7 @@ class AvailabilityViewModel(
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
     // wait for (loadMapIconClusterPlacement), and the screen draws no cluster until it lands. See the field.
-    private val _uiState = MutableStateFlow(AvailabilityUiState(mapIconClusterPlacement = null))
+    internal val _uiState = MutableStateFlow(AvailabilityUiState(mapIconClusterPlacement = null))
     val uiState: StateFlow<AvailabilityUiState> = _uiState.asStateFlow()
 
     /**
@@ -193,7 +193,7 @@ class AvailabilityViewModel(
      * The settings this screen stores, moved to their own class by UI split Phase 2.4 PR 2. It writes this
      * screen's state through the setter here and launches in this ViewModel's own scope.
      */
-    private val settingsPrefs = AvailabilitySettingsPrefs(
+    internal val settingsPrefs = AvailabilitySettingsPrefs(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         mapPreferencesRepository = mapPreferencesRepository,
@@ -236,7 +236,7 @@ class AvailabilityViewModel(
      * split Phase 2.4 PR 4. Whether a download starts stays in [onDownloadAgain] and [onDownloadOfflineMaps].
      * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
      */
-    private val offlineMaps = AvailabilityOfflineMaps(
+    internal val offlineMaps = AvailabilityOfflineMaps(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         offlineMapRepository = offlineMapRepository,
@@ -251,7 +251,7 @@ class AvailabilityViewModel(
      * Phase 2.4 PR 5. It reads and writes this screen's state through the getter and setter here and launches
      * in this ViewModel's own scope; [onCleared] commits what is still pending, at the same point as before.
      */
-    private val offlineRegionDeletes = AvailabilityOfflineRegionDeletes(
+    internal val offlineRegionDeletes = AvailabilityOfflineRegionDeletes(
         uiState = { _uiState.value },
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
@@ -268,7 +268,7 @@ class AvailabilityViewModel(
      * stay in this class: they pause and resume the return. It writes this screen's state through the setter
      * here and launches in this ViewModel's own scope.
      */
-    private val waypointNavigationStore = AvailabilityWaypointNavigationStore(
+    internal val waypointNavigationStore = AvailabilityWaypointNavigationStore(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         waypointNavigationRepository = waypointNavigationRepository,
@@ -710,37 +710,6 @@ class AvailabilityViewModel(
 
     fun onDeletePlannedTrip(id: String) = plannedTrips.onDeletePlannedTrip(id)
 
-    /** See [AvailabilityOfflineMaps.onOfflineMapLatChanged]. */
-    fun onOfflineMapLatChanged(text: String) = offlineMaps.onOfflineMapLatChanged(text)
-
-    /** See [AvailabilityOfflineMaps.onOfflineMapLngChanged]. */
-    fun onOfflineMapLngChanged(text: String) = offlineMaps.onOfflineMapLngChanged(text)
-
-    /** See [AvailabilityOfflineMaps.onOfflineMapRadiusChanged]. */
-    fun onOfflineMapRadiusChanged(radiusKm: Int) = offlineMaps.onOfflineMapRadiusChanged(radiusKm)
-
-    /** See [AvailabilityOfflineMaps.onOfflineMapNameChanged]. */
-    fun onOfflineMapNameChanged(text: String) = offlineMaps.onOfflineMapNameChanged(text)
-
-    /**
-     * "Download again" on a region restored from a backup (owner, "1 B"). It downloads from the row's stored centre and
-     * radius through the same [OfflineMapRepository.download] a new download uses, held to the same tile budget. The
-     * download makes a new MapLibre region with a new id, so on success the restored row is replaced by it and every
-     * reference to the old id follows ([OfflineMapRepository.replaceRegion]). A failure leaves the row as it was.
-     * The picker's fields are not touched: this is not the picker's download.
-     */
-    fun onDownloadAgain(id: Long) {
-        val row = _uiState.value.offlineRegions.firstOrNull { it.id == id && !it.isDownloaded } ?: return
-        val estimatedTiles = estimateServedOfflineTileCount(row.region)
-        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.sumOf { it.tileCount }
-        if (estimatedTiles > remainingBudget) {
-            _uiState.update { it.withTileBudgetExceeded(estimatedTiles, remainingBudget) }
-            return
-        }
-        _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
-        offlineMaps.beginDownloadAgain(row)
-    }
-
     /**
      * Reads everything this ViewModel holds from the database again, after a restore, and returns when it is done:
      * the planned trips ([AvailabilityPlannedTrips.loadPlannedTrips]), the offline regions with their reference counts ([AvailabilityOfflineMaps.loadOfflineRegions]),
@@ -755,149 +724,11 @@ class AvailabilityViewModel(
         mapDisplay.loadMapRecords()
     }
 
-    /** See [AvailabilityOfflineMaps.onOfflineMapsOpened]. */
-    fun onOfflineMapsOpened() = offlineMaps.onOfflineMapsOpened()
-
-    /** See [AvailabilitySettingsPrefs.onAutoSaveLocationToPhotosChanged]. */
-    fun onAutoSaveLocationToPhotosChanged(enabled: Boolean) = settingsPrefs.onAutoSaveLocationToPhotosChanged(enabled)
-
-    /** See [AvailabilitySettingsPrefs.onBatterySaverChanged]. */
-    fun onBatterySaverChanged(enabled: Boolean) = settingsPrefs.onBatterySaverChanged(enabled)
-
-    /** See [AvailabilitySettingsPrefs.onOffTrackReminderChanged]. */
-    fun onOffTrackReminderChanged(enabled: Boolean) = settingsPrefs.onOffTrackReminderChanged(enabled)
-
-    /** See [AvailabilitySettingsPrefs.onSundownAlertsEnabledChanged]. */
-    fun onSundownAlertsEnabledChanged(enabled: Boolean) = settingsPrefs.onSundownAlertsEnabledChanged(enabled)
-
-    /** See [AvailabilitySettingsPrefs.onDarknessMarginChanged]. */
-    fun onDarknessMarginChanged(minutes: Int) = settingsPrefs.onDarknessMarginChanged(minutes)
-
-    /** See [AvailabilitySettingsPrefs.onNightModeMapsChanged]. */
-    fun onNightModeMapsChanged(night: Boolean) = settingsPrefs.onNightModeMapsChanged(night)
-
-    /** See [AvailabilitySettingsPrefs.onMapFullscreenChanged]. */
-    fun onMapFullscreenChanged(fullscreen: Boolean) = settingsPrefs.onMapFullscreenChanged(fullscreen)
-
-    /**
-     * "Navigate" on waypoint [waypointId] (dispatch 2026-09-28-502, plan tasks T8 and T9), with or without a
-     * recording. A return under way is paused first (step 6: the waypoint overrules it while active) and
-     * remembered, so [onStopWaypointNavigation] picks it back up; choosing another waypoint while navigating
-     * keeps that. The pause comes before this state changes, on the same thread, so the screen never sees a
-     * moment with neither on: no new start zoom (the planner's ruling).
-     */
-    fun onNavigateToWaypoint(waypointId: String) {
-        waypointNavigationStore.waypointNavigationChosenHere = true
-        val current = _uiState.value.waypointNavigation
-        val resumesReturn = when {
-            current != null -> current.resumesReturn
-            returnLeg.isReturning -> {
-                returnLeg.pause()
-                true
-            }
-            else -> false
-        }
-        val navigation = WaypointNavigation(waypointId, resumesReturn)
-        _uiState.update { it.copy(waypointNavigation = navigation) }
-        waypointNavigationStore.keepWaypointNavigation(navigation)
-    }
-
-    /**
-     * Ends the waypoint navigation (Back, the X-circle, the HUD's ✕, or its waypoint deleted), clears what is
-     * kept, and picks a paused return back up (step 6). The return captures its line afresh (the planner's
-     * ruling). Nothing to end does nothing.
-     */
-    fun onStopWaypointNavigation() {
-        waypointNavigationStore.waypointNavigationChosenHere = true
-        val ending = _uiState.value.waypointNavigation ?: return
-        _uiState.update { it.copy(waypointNavigation = null) }
-        waypointNavigationStore.keepWaypointNavigation(null)
-        if (ending.resumesReturn) returnLeg.resume()
-    }
-
-    /** See [AvailabilitySettingsPrefs.onThemeModeChanged]. */
-    fun onThemeModeChanged(mode: AppThemeMode) = settingsPrefs.onThemeModeChanged(mode)
-
-    /** See [AvailabilitySettingsPrefs.onUnitSystemSelected]. */
-    fun onUnitSystemSelected(system: UnitSystem) = settingsPrefs.onUnitSystemSelected(system)
-
-    /**
-     * The Settings control's existing callback, kept by name so `AvailabilityScreen.kt`'s plumbing
-     * (nine sites, in a file whose split is held at seams F and G) does not change shape: it hands
-     * over the chosen system by its distance unit, a bijection ([UnitSystem.forDistanceUnit]). The
-     * name is legacy and says less than the call does; renaming it through the screen is the
-     * split's job, not this dispatch's — recorded in the return-estimate completion report.
-     */
-    fun onDistanceUnitSelected(unit: DistanceUnit) = onUnitSystemSelected(UnitSystem.forDistanceUnit(unit))
-
-    /**
-     * Adds a region to whatever's already downloaded — see
-     * [com.zynergylabs.forager.app.domain.OfflineMapRepository]'s doc comment for why this no longer replaces a
-     * prior download. A blank name defaults to "Region N" rather than blocking the download, the
-     * same "default rather than require" pattern [com.zynergylabs.forager.app.domain.model.PlannedTrip.name]
-     * established for planned trips.
-     *
-     * Refuses before ever calling [offlineMapRepository] if [estimateOfflineTileCount] projects
-     * this region would push the total over [OfflineMapRepository.TILE_COUNT_LIMIT] — see that
-     * constant's doc comment for why this app-side check exists at all: MapLibre's own
-     * `setOfflineMapboxTileCountLimit` does not actually stop an explicit region download from
-     * exceeding it, confirmed on hardware (three regions totalling 9118 tiles downloaded against a
-     * "limit" of 6000). This is the real enforcement.
-     *
-     * A download failure is belief-changing — the user just tapped Download and is owed a yes or
-     * no — so it's reported through [AvailabilityUiState.offlineDownloadStatus] with the error-red
-     * treatment, unlike [AvailabilityOfflineMaps.loadOfflineRegions]'s neutral read-failure.
-     */
-    fun onDownloadOfflineMaps() {
-        val state = _uiState.value
-        val lat = state.offlineMapLatText.toDoubleOrNull()
-        val lng = state.offlineMapLngText.toDoubleOrNull()
-        if (lat == null || lat !in -90.0..90.0 || lng == null || lng !in -180.0..180.0) {
-            _uiState.update {
-                it.copy(
-                    offlineDownloadStatus = OfflineMapStatus.Failed(
-                        "Enter a valid latitude (-90 to 90) and longitude (-180 to 180).",
-                    ),
-                )
-            }
-            return
-        }
-        val region = Region(lat, lng, state.offlineMapRadiusKm)
-        val name = state.offlineMapNameText.trim().ifBlank { "Region ${state.offlineRegions.size + 1}" }
-
-        val tilesAlreadyUsed = state.offlineRegions.sumOf { it.tileCount }
-        // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to MAX_ZOOM;
-        // the min inside is kept as the seam for their next divergence) — the same function the
-        // panel's "~N tiles" label uses, so the gate and the label agree; see
-        // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
-        val estimatedTiles = estimateServedOfflineTileCount(region)
-        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - tilesAlreadyUsed
-        if (estimatedTiles > remainingBudget) {
-            _uiState.update { it.withTileBudgetExceeded(estimatedTiles, remainingBudget) }
-            return
-        }
-
-        _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
-        offlineMaps.beginDownload(name, region)
-    }
-
-    /** A swipe on an offline region's Records row: see [AvailabilityOfflineRegionDeletes.requestDeleteOfflineRegion]. */
-    fun requestDeleteOfflineRegion(id: Long) = offlineRegionDeletes.requestDeleteOfflineRegion(id)
-
-    /** The snackbar's Undo: see [AvailabilityOfflineRegionDeletes.undoDeleteOfflineRegion]. */
-    fun undoDeleteOfflineRegion(id: Long) = offlineRegionDeletes.undoDeleteOfflineRegion(id)
-
-    /** The snackbar ended without Undo: see [AvailabilityOfflineRegionDeletes.commitDeleteOfflineRegion]. */
-    fun commitDeleteOfflineRegion(id: Long) = offlineRegionDeletes.commitDeleteOfflineRegion(id)
-
     override fun onCleared() {
         // Journal redesign J4: a region still pending is committed there, since no snackbar is left
         // to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
         offlineRegionDeletes.commitOnCleared()
     }
-
-    /** See [AvailabilityOfflineMaps.onDeleteOfflineRegion]. */
-    fun onDeleteOfflineRegion(id: Long) = offlineMaps.onDeleteOfflineRegion(id)
 
     internal companion object {
         /** RECORD -750, item 3: what a fresh start shows, which Clear puts the species selection back to. */
