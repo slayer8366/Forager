@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
+import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
