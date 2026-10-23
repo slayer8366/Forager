@@ -63,7 +63,7 @@ internal object GlyphGapProbe {
             "forager.diag.CAMERA" -> {
                 val pos = CameraPosition.Builder()
                     .target(LatLng(intent.getFloatExtra("lat", 45.60f).toDouble(), intent.getFloatExtra("lon", -122.01f).toDouble()))
-                    .zoom(intent.getFloatExtra("zoom", 12.5f).toDouble()).tilt(0.0).bearing(0.0).build()
+                    .zoom(intent.getFloatExtra("zoom", 12.5f).toDouble()).tilt(intent.getFloatExtra("tilt", 0f).toDouble()).bearing(intent.getFloatExtra("bearing", 0f).toDouble()).build()
                 map.moveCamera(CameraUpdateFactory.newCameraPosition(pos))
                 Log.i(TAG, "camera set $pos")
             }
