@@ -1,24 +1,38 @@
-// Checks forager-street-v1.json (dispatch 2026-10-18-05 Part 2): it is valid style-spec JSON, it is the
-// same file the Worker bundles, and the day colours the owner's night ruling depends on (-1288: "the day
-// palette is chosen so roads and paths still stand out after inversion") hold their contrast after the
-// app's V1 inversion. Run: npm run check:street. Exits non-zero, saying what failed.
+// Checks forager-street-v2.json (dispatch 2026-10-18-05 Part 2; v2 since dispatch 2026-10-22-03, RECORD -1561): it
+// is valid style-spec JSON, it is the same file the Worker bundles, v1 is still byte for byte what phones with older
+// apps and older downloads load, and the day colours the owner's night ruling depends on (-1288: "the day palette is
+// chosen so roads and paths still stand out after inversion") hold their contrast after the app's V1 inversion, with
+// the night exceptions held to their ruled limits. Run: npm run check:street. Exits non-zero, saying what failed.
 //
 // V1 is the app's night transform, per channel: night = clamp(c + 1 - 2 * mean(r, g, b))
 // (app/src/main/java/com/zynergylabs/forager/app/ui/map/NightColour.kt, nightColorOf). Contrast is the
 // WCAG ratio of relative luminances. The thresholds are this check's own operating limits, not a
 // standard for maps: a path or casing line at 3:1 against the ground reads at arm's length; text at 4.5:1.
+import crypto from "node:crypto";
 import fs from "node:fs";
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "../overrides/forager-street.mjs";
+import { CHARACTER_COLOURS, NIGHT_FILL_COLOURS, NIGHT_LIMITS, NIGHT_PATTERN_COLOURS } from "../overrides/forager-character.mjs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
 
-const text = fs.readFileSync(here("forager-street-v1.json"), "utf8");
-const bundled = fs.readFileSync(here("../server/pmtiles-worker/src/street-style-v1.json"), "utf8");
-if (text !== bundled) problems.push("server/pmtiles-worker/src/street-style-v1.json differs from forager-street-v1.json: run npm run generate:street");
+const text = fs.readFileSync(here("forager-street-v2.json"), "utf8");
+const bundled = fs.readFileSync(here("../server/pmtiles-worker/src/street-style-v2.json"), "utf8");
+if (text !== bundled) problems.push("server/pmtiles-worker/src/street-style-v2.json differs from forager-street-v2.json: run npm run generate:street");
 const errors = validateStyleMin(JSON.parse(text));
 for (const e of errors) problems.push(`style spec: ${e.message}`);
+
+// v1 is frozen (RECORD -1561): what it was at pre-main 563e9b756, byte for byte, in all three copies.
+const V1_SHA256 = {
+  "forager-street-v1.json": "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da",
+  "forager-street-v1.preview.json": "4fc2e14feeecfdf86bc7a4f6d7597eb997732ee97620388fba69ea379926dc88",
+  "../server/pmtiles-worker/src/street-style-v1.json": "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da",
+};
+for (const [path, sum] of Object.entries(V1_SHA256)) {
+  const actual = crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
+  if (actual !== sum) problems.push(`${path} changed (sha256 ${actual}): v1 is frozen, the design ships as v2`);
+}
 
 const channels = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
 const toHex = (c) => "#" + c.map((x) => Math.round(Math.min(1, Math.max(0, x)) * 255).toString(16).padStart(2, "0")).join("");
@@ -73,19 +87,19 @@ for (const [what, colour, against, min] of dayOnly) {
   if (day < min) problems.push(line);
 }
 // Night exceptions (RECORD -1343, -1344): colours the app draws at night instead of the inversion. Checked as night
-// colours as they are, against the inverted grounds they sit on, at the line threshold (3:1).
-const exceptions = [
-  ["night water on night forest", COLOURS.nightWater, night(COLOURS.forest), 3],
-  ["night water on night grass", COLOURS.nightWater, night(COLOURS.grass), 3],
-  ["night water on night ground", COLOURS.nightWater, night(GROUND), 3],
-];
+// colours as they are, against the night grounds they sit on. Water's own rule is below (the ceiling and 1.05:1).
+const exceptions = [];
 // -1345: roads, railways and boundaries at 2.5:1 (the owner accepted the service edge at 2.65 and the major road
 // centre at 2.95 on the night forest); the icon rings at 3:1. Every layer named must exist in the style.
 // A layer named in NIGHT_LAYER_BANDS takes its band on that one ground instead of the 2.5 floor (dispatch 2026-10-19-41:
 // informal paths on the night forest, the owner's "Accept the range (Recommended)"); every other pair keeps the floor.
 const styleLayers = new Set(JSON.parse(text).layers.map((l) => l.id));
 const NIGHT_FLOOR = 2.5;
-const nightGrounds = { forest: night(COLOURS.forest), grass: night(COLOURS.grass), ground: night(GROUND) };
+// The night forest is its fill exception (#446835, dispatch 2026-10-22-03), not the inversion: every floor on it is
+// checked against what the app draws.
+const nightForest = NIGHT_FILL_COLOURS[COLOURS.forest];
+if (!nightForest) problems.push(`no night fill exception for the forest ${COLOURS.forest}`);
+const nightGrounds = { forest: nightForest, grass: night(COLOURS.grass), ground: night(GROUND) };
 const banded = [];
 for (const [layer, bands] of Object.entries(NIGHT_LAYER_BANDS)) {
   if (!(layer in NIGHT_LAYER_COLOURS)) problems.push(`night band for a layer with no night exception: ${layer}`);
@@ -109,10 +123,58 @@ for (const [layer, name, colour, ground, { min, max, belowNightOf }] of banded) 
   if (ratio < min || ratio > max || ratio >= ceiling) problems.push(line);
 }
 for (const [icon, { night: colour }] of Object.entries(NIGHT_ICON_RINGS)) {
-  for (const [name, ground] of [["forest", night(COLOURS.forest)], ["grass", night(COLOURS.grass)], ["ground", night(GROUND)]]) {
+  for (const [name, ground] of Object.entries(nightGrounds)) {
     exceptions.push([`night ${icon} ring on night ${name}`, colour, ground, 3]);
   }
 }
+// --- Dispatch 2026-10-22-03: the ruled night limits ("Rules from your colours", NIGHT_LIMITS) -----------------------
+const style2 = JSON.parse(text);
+/** Every colour literal in a style value, as #rrggbb (rgba() strings with alpha 1 too). */
+function colourLiterals(value) {
+  if (typeof value === "string") {
+    if (/^#[0-9a-f]{6}$/i.test(value)) return [value.toLowerCase()];
+    const m = /^rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*1)?\s*\)$/.exec(value);
+    return m ? ["#" + m.slice(1, 4).map((c) => Number(c).toString(16).padStart(2, "0")).join("")] : [];
+  }
+  return Array.isArray(value) ? value.flatMap(colourLiterals) : [];
+}
+// 1. The night water: at most the ruled luminance and blue channel. Today's #8ec5f0 (-1343) fails this.
+const water = COLOURS.nightWater;
+const waterLine = `night water ${water}: luminance ${luminance(water).toFixed(4)} (at most ${NIGHT_LIMITS.waterLuminanceMax}), blue ${channels(water)[2] * 255} (at most ${NIGHT_LIMITS.waterBlueMax})`;
+console.log(waterLine);
+if (luminance(water) > NIGHT_LIMITS.waterLuminanceMax || channels(water)[2] * 255 > NIGHT_LIMITS.waterBlueMax) problems.push(waterLine);
+// 2. The night water against every night land fill the style draws: every fill and background colour outside the water
+//    source layer, at its night (the fill exception where one is named, else the inversion).
+const landFills = new Map();
+for (const layer of style2.layers) {
+  if (!["fill", "background"].includes(layer.type) || layer["source-layer"] === "water") continue;
+  for (const day of colourLiterals(layer.paint?.["fill-color"] ?? layer.paint?.["background-color"])) {
+    landFills.set(day, [...(landFills.get(day) ?? []), layer.id]);
+  }
+}
+for (const [day, ids] of landFills) {
+  const land = NIGHT_FILL_COLOURS[day] ?? night(day);
+  exceptions.push([`night water on night ${day} (${[...new Set(ids)].join(", ")})`, water, land, NIGHT_LIMITS.waterOnLandMin]);
+}
+// 3. Each fill exception names a day colour the style draws, so none is dead; each pattern painted at night is an image
+//    the style draws with fill-pattern; and every fill-pattern image is in the sprite.
+for (const day of Object.keys(NIGHT_FILL_COLOURS)) {
+  if (!landFills.has(day)) problems.push(`night fill exception for ${day}, a colour no fill layer draws`);
+}
+const patterns = new Set(style2.layers.map((l) => l.paint?.["fill-pattern"]).filter(Boolean));
+const sprite = JSON.parse(fs.readFileSync(here(`${style2.sprite.replace(/^https?:\/\/[^/]+\//, "assets/").replace(/^assets\/assets\//, "assets/")}.json`), "utf8"));
+for (const name of patterns) if (!(name in sprite)) problems.push(`fill-pattern ${name} is not in the sprite`);
+for (const name of Object.keys(NIGHT_PATTERN_COLOURS)) if (!patterns.has(name)) problems.push(`night pattern ${name} is drawn by no layer`);
+// 4. The tree glyph against the night forest.
+exceptions.push(["night tree glyph on night forest", NIGHT_PATTERN_COLOURS.tree_dark_irregular, nightForest, NIGHT_LIMITS.treeOnForestMin]);
+// The other new fills (wetland, bare rock) and the tufts take the floor the ground fills have: none. They are listed so
+// the figures are in the output, not gated (the owner ruled the colours from renders).
+for (const [what, colour, against] of [
+  ["night wetland on night ground", CHARACTER_COLOURS.nightWetland, night(GROUND)],
+  ["night tufts (inverted) on night wetland", night(CHARACTER_COLOURS.tufts), CHARACTER_COLOURS.nightWetland],
+  ["night bare rock on night ground", CHARACTER_COLOURS.nightBareRock, night(GROUND)],
+]) console.log(`${what}: ${colour} on ${against} ${contrast(colour, against).toFixed(2)}:1 (recorded, not gated)`);
+
 for (const [what, colour, against, min] of exceptions) {
   const ratio = contrast(colour, against);
   const line = `${what}: ${colour} on ${against} ${ratio.toFixed(2)}:1 (minimum ${min})`;
@@ -124,4 +186,4 @@ if (problems.length) {
   console.log("PROBLEMS:\n  " + problems.join("\n  "));
   process.exit(1);
 }
-console.log("street style valid, bundled copy identical, day and night contrast held");
+console.log("street style v2 valid, bundled copy identical, v1 unchanged, day and night contrast and the night limits held");

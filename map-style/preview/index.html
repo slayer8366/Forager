@@ -28,7 +28,8 @@
     const STYLE = new URLSearchParams(location.search).get("style") ?? "/forager-light.json";
     const map = (window.map = new maplibregl.Map({
       container: "map",
-      // ?style=/forager-street-v1.preview.json previews the Street style (dispatch 2026-10-18-05 Part 2).
+      // ?style=/forager-street-v2.preview.json previews the Street style (dispatch 2026-10-18-05 Part 2; v2 since
+      // dispatch 2026-10-22-03, whose sprite v5 tools/build-sprite-v5.mjs builds into assets/).
       style: STYLE,
       center: [-122.68, 45.52],
       zoom: 11,

@@ -21,10 +21,15 @@ import org.junit.Test
  *
  * Dispatch 2026-10-19-41: informal paths take their own night colour too, held on the night forest to the owner's band
  * ([INFORMAL_NIGHT_FOREST_BAND]) in place of the 2.5:1 floor, for those two layers on that one ground only.
+ *
+ * Dispatch 2026-10-22-03 (Trail Map's character, style v2): the forest, wetland and bare-rock fills take their own
+ * night colours ([STREET_NIGHT_FILL_COLOURS]), and the tree glyph pattern is painted `#5d804f`
+ * ([STREET_NIGHT_PATTERN_COLOURS]), held to 1.35:1 on the night forest. The night forest is now `#446835`, so every
+ * floor on "the night forest" here is measured on what the app draws there.
  */
 class NightExceptionsTest {
 
-    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v1.json").readText()).jsonObject
+    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v2.json").readText()).jsonObject
     private val metadata = style.getValue("metadata").jsonObject
     private val palette = metadata.getValue("forager:palette").jsonObject
 
@@ -40,8 +45,10 @@ class NightExceptionsTest {
         return (hi + 0.05) / (lo + 0.05)
     }
 
+    private val nightForest: Int = STREET_NIGHT_FILL_COLOURS.getValue(rgb(palette.getValue("forest").jsonPrimitive.content))
+
     private val nightGrounds: Map<String, Int> = mapOf(
-        "forest" to nightColorOf((0xFF shl 24) or rgb(palette.getValue("forest").jsonPrimitive.content)),
+        "forest" to nightForest,
         "grass" to nightColorOf((0xFF shl 24) or rgb(palette.getValue("grass").jsonPrimitive.content)),
         "ground" to nightColorOf((0xFF shl 24) or rgb("#e2dfda")),
     )
@@ -154,5 +161,73 @@ class NightExceptionsTest {
         assertEquals(nightColorOf(other), night[3])
         // With no ring, the plain inversion.
         assertEquals(nightPixelsOf(intArrayOf(ring)).single(), nightIconPixelsOf(intArrayOf(ring), null).single())
+    }
+
+    @Test
+    fun `the app's fill and pattern night colours are the design's`() {
+        val fills = metadata.getValue("forager:night-fills").jsonObject.entries.associate { (day, night) -> rgb(day) to rgb(night.jsonPrimitive.content) }
+        assertEquals(fills, STREET_NIGHT_FILL_COLOURS)
+        val patterns = metadata.getValue("forager:night-patterns").jsonObject.mapValues { rgb(it.value.jsonPrimitive.content) }
+        assertEquals(patterns, STREET_NIGHT_PATTERN_COLOURS)
+    }
+
+    @Test
+    fun `forest, wetland and bare rock take their night colours in the park fill, and its other kinds invert`() {
+        val layers = style.getValue("layers").jsonArray.associateBy { it.jsonObject.getValue("id").jsonPrimitive.content }
+        fun nightOf(id: String): String {
+            val value = layers.getValue(id).jsonObject.getValue("paint").jsonObject.getValue("fill-color")
+            val outcome = streetNightRecolourOf(LayerColourProperty(id, "fill-color", StyleColourValue.Expression(value.toString())), "landuse")
+            return ((outcome as NightRecolour.Recoloured).night as StyleColourValue.Expression).json
+        }
+        val park = nightOf("landuse_park")
+        // The ruled night colours, each in its own branch, in the order the design writes them: forest, grass (inverted),
+        // glacier, sand, military (inverted), wetland, bare rock, and the ground default (inverted).
+        val colours = Regex("""rgba\((\d+), (\d+), (\d+), 1\)""").findAll(park).map { m -> (1..3).map { m.groupValues[it].toInt() } }.toList()
+        val expected = listOf("#446835", "#a9d39b", "#e7e7e7", "#e2e0d7", "#c6dcdc", "#2a4f47", "#6e7580", "#e2dfda").mapIndexed { i, hex ->
+            val c = rgb(hex)
+            // Index 0, 5 and 6 are the ruled colours as they are; the rest are their day colour's inversion.
+            val night = if (i in setOf(0, 5, 6)) c else nightColorOf((0xFF shl 24) or c) and 0xFFFFFF
+            listOf((night shr 16) and 0xFF, (night shr 8) and 0xFF, night and 0xFF)
+        }.toMutableList()
+        expected[1] = (nightColorOf((0xFF shl 24) or rgb(palette.getValue("grass").jsonPrimitive.content)) and 0xFFFFFF).let { listOf((it shr 16) and 0xFF, (it shr 8) and 0xFF, it and 0xFF) }
+        assertEquals(expected, colours)
+        // The landcover's forest default takes the forest's night colour too.
+        assertTrue(nightOf("landcover"), nightOf("landcover").contains("rgba(68, 104, 53, 1)"))
+        // A fill colour only matches at full opacity: a half-transparent forest inverts.
+        val faint = LayerColourProperty("landuse_park", "fill-color", StyleColourValue.Literal("rgba(169, 211, 155, 0.5)"))
+        assertEquals(NightRecolour.Recoloured(faint, StyleColourValue.Literal("rgba(67, 109, 53, 0.5)")), streetNightRecolourOf(faint, "landuse"))
+    }
+
+    @Test
+    fun `the tree glyph reads at 1_35 to 1 on the night forest, and would not on the inversion`() {
+        val glyph = STREET_NIGHT_PATTERN_COLOURS.getValue("tree_dark_irregular")
+        val onForest = contrast(glyph, nightForest)
+        assertTrue("tree glyph on the night forest is $onForest:1", onForest >= 1.35)
+        // The inversion #436d35 is why the forest exception ships with the glyph: 1.34:1 there.
+        val inverted = nightColorOf((0xFF shl 24) or rgb(palette.getValue("forest").jsonPrimitive.content)) and 0xFFFFFF
+        assertEquals(0x436D35, inverted)
+        assertTrue(contrast(glyph, inverted) < 1.35)
+    }
+
+    @Test
+    fun `a pattern is painted its night colour with each pixel's alpha kept`() {
+        val day = intArrayOf(0x00000000, 0xFF3E7A3A.toInt(), 0x803E7A3A.toInt(), 0x05336633, 0x00FFFFFF)
+        val night = nightPatternPixelsOf(day, 0x5D804F)
+        assertEquals(listOf(0x00000000, 0xFF5D804F.toInt(), 0x805D804F.toInt(), 0x055D804F, 0x00FFFFFF), night.toList())
+    }
+
+    @Test
+    fun `every fill pattern the style draws is redrawn at night, the tree painted and the tufts inverted`() {
+        val patterns = style.getValue("layers").jsonArray
+            .mapNotNull { it.jsonObject["paint"]?.jsonObject?.get("fill-pattern")?.jsonPrimitive?.content }
+        assertEquals(listOf("tree_dark_irregular", "tufts"), patterns)
+        patterns.forEach { assertTrue("$it is not redrawn at night", it in STREET_SPRITE_NIGHT_NAMES) }
+        assertEquals("an image redrawn twice", STREET_SPRITE_NIGHT_NAMES.size, STREET_SPRITE_NIGHT_NAMES.toSet().size)
+        // The tree glyph's day pixel to its ruled night; the tufts' day #3fa0c8 to its inversion #2485ad, the owner's
+        // "Keep #2485ad", exactly as the approved night sprite draws it.
+        assertEquals(0xFF5D804F.toInt(), streetSpriteNightPixelsOf("tree_dark_irregular", intArrayOf(0xFF3E7A3A.toInt())).single())
+        assertEquals(0xFF2485AD.toInt(), streetSpriteNightPixelsOf("tufts", intArrayOf(0xFF3FA0C8.toInt())).single())
+        // A new icon inverts like every icon: the ring #4fa074 and fill #d6f2e3 of the approved night icons.
+        assertEquals(listOf(0xFF61B286.toInt(), 0xFF0E2A1B.toInt()), streetSpriteNightPixelsOf("trailhead_b", intArrayOf(0xFF4FA074.toInt(), 0xFFD6F2E3.toInt())).toList())
     }
 }

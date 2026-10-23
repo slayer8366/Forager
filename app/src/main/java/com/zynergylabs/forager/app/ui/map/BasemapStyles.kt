@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
+import com.zynergylabs.forager.app.map.STREET_STYLE_URLS
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 
 /**
@@ -269,10 +270,14 @@ internal fun ownStreetStyleSourceFor(basemap: Basemap, night: Boolean, ownStreet
         else -> null
     }
 
-/** Whether [source] is the own Street style, whose sprite icons the night inverts one by one ([STREET_STYLE_URL]). */
+/**
+ * Whether [source] is a Trail Map style, whose sprite icons the night inverts one by one and whose water and fills take
+ * the Street night: v2 ([STREET_STYLE_URL]) or v1, which offline regions downloaded before v2 still load
+ * ([STREET_STYLE_URLS]; dispatch 2026-10-22-03 Amendment 1).
+ */
 internal fun usesStreetSprite(source: MapStyleSource): Boolean = when (source) {
     is MapStyleSource.Json -> false
-    is MapStyleSource.Uri -> source.uri == STREET_STYLE_URL
+    is MapStyleSource.Uri -> source.uri in STREET_STYLE_URLS
     is MapStyleSource.StreetWithTopoOver -> true
 }
 

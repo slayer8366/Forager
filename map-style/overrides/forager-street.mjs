@@ -53,11 +53,13 @@ export const COLOURS = {
   minorCasing: "#9c9486",
   service: "#f4f0e6",
   serviceCasing: "#aaa294",
-  // Water at night (RECORD -1343): drawn this lighter blue instead of its inversion (#005864, which nearly vanished on
-  // the night forest). Day water is Protomaps' own #80deea, unchanged. The app draws it
-  // (NightColour.kt, STREET_NIGHT_WATER); this is its design value, recorded in the style's metadata and held equal
-  // to the app's by NightWaterTest. Night forest 3.28:1, night grass 6.68:1, night ground 8.70:1.
-  nightWater: "#8ec5f0",
+  // Water at night, every fill and line, streams and rivers included: #163f4b, the owner's dark teal (night-colours
+  // record, "Darker water fill ... it lights up the display", then the round-5 pair and "Same as water"), in place of
+  // -1343's #8ec5f0. Day water is Protomaps' own #80deea, unchanged. The app draws it (NightColour.kt,
+  // STREET_NIGHT_WATER); this is its design value, recorded in the style's metadata and held equal to the app's by
+  // NightWaterTest. Held by the ruled ceiling (luminance 0.050, blue 96) and 1.05:1 on every night land fill
+  // (tools/check-street-night.mjs, NIGHT_LIMITS in overrides/forager-character.mjs): 1.08:1 on night grass at least.
+  nightWater: "#163f4b",
   // Labels: near-black on a light halo (-1286); at night they invert to near-white on near-black.
   text: "#262626",
   waterText: "#1f4d86",
@@ -111,12 +113,21 @@ export const NIGHT_ICON_RINGS = {
   drinking_water: { ring: "#8780ab", fill: "#dcebfa", night: "#c6bfea" },
 };
 
-/** The design's outdoor list (-1287), in the tiles' own kind names (Part 1, Q1.3). */
+/**
+ * The design's outdoor list (-1287), in the tiles' own kind names (Part 1, Q1.3); saddles, shelters and huts joined it
+ * with the character rulings (ruling 4 (e), dispatch 2026-10-22-03).
+ */
 export const OUTDOOR_KINDS = [
   "trailhead", "parking", "camp_site", "picnic_site", "viewpoint", "peak", "toilets", "drinking_water", "ranger_station",
+  "saddle", "shelter", "alpine_hut", "wilderness_hut",
 ];
-/** The six outdoor kinds the pinned icon set has no icon for: drawn as a dot and the name (-1300 (5)). */
-export const DOT_KINDS = ["trailhead", "parking", "camp_site", "picnic_site", "viewpoint", "ranger_station"];
+/**
+ * Outdoor kinds no sprite image draws: a dot and the name (-1300 (5)). The six -1300 put here have their own icons
+ * since sprite v5 (ruling 6, ICON_BY_KIND); ruling 4 (e)'s four kinds have none, so they take the dot.
+ */
+export const DOT_KINDS = ["saddle", "shelter", "alpine_hut", "wilderness_hut"];
+/** Ruling 6: the sprite v5 icon for each kind whose icon is not named after it (trailhead_b, the walker; viewpoint_c). */
+export const ICON_BY_KIND = { trailhead: "trailhead_b", viewpoint: "viewpoint_c" };
 /** Shops and cafes, shown only zoomed into a town (-1287). */
 export const TOWN_KINDS = [
   "restaurant", "fast_food", "cafe", "bar", "supermarket", "convenience", "books", "clothes", "beauty", "electronics",
@@ -373,7 +384,9 @@ export function applyStreetDesign(layers) {
     ["all", ["in", ["get", "kind"], ["literal", OUTDOOR_KINDS]], [">=", ["zoom"], OUTDOOR_MIN_ZOOM]],
     ["all", ["in", ["get", "kind"], ["literal", TOWN_KINDS]], [">=", ["zoom"], ["max", TOWN_MIN_ZOOM, ["coalesce", ["get", "min_zoom"], 0]]]],
   ];
-  pois.layout["icon-image"] = ["match", ["get", "kind"], DOT_KINDS, "townspot", ["get", "kind"]];
+  pois.layout["icon-image"] = [
+    "match", ["get", "kind"], DOT_KINDS, "townspot", ...Object.entries(ICON_BY_KIND).flat(), ["get", "kind"],
+  ];
   pois.layout["symbol-sort-key"] = ["match", ["get", "kind"], OUTDOOR_KINDS, 0, 10];
   pois.layout["text-size"] = ["interpolate", ["linear"], ["zoom"], 12, 12, 16, 13, 19, 16];
   pois.paint["text-color"] = COLOURS.text;

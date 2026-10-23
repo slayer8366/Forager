@@ -1,17 +1,24 @@
 // Builds Forager's own Street style (dispatch 2026-10-18-05 Part 2) from the same pinned Protomaps light
-// layers as forager-light.json, with overrides/forager-street.mjs applied. Run: npm run generate:street
+// layers as forager-light.json, with overrides/forager-street.mjs applied, and since dispatch 2026-10-22-03
+// (RECORD -1561) overrides/forager-character.mjs after it. Run: npm run generate:street
 //
 // A separate script, not a branch inside generate.mjs: forager-light.json stays exactly what it was (the
 // website and the label check read it), and the Street style is its own output.
 //
+// The design ships as street-v2.json (RECORD -1561, the owner: "Yes, v2"). MapLibre's offline store keys a
+// downloaded region by its style URL, and an app older than v2 inverts only the icons it was built knowing, so
+// v1 is never rewritten: forager-street-v1.json, its preview copy and the Worker's street-style-v1.json stay
+// byte for byte what they were (tools/check-street-night.mjs holds their sha256). This script writes v2 only.
+//
 // Three files come out, identical except for where fonts and icons are fetched from:
-//   forager-street-v1.json            fonts and icons on the owner's Worker; what the app loads.
-//   ../server/pmtiles-worker/src/street-style-v1.json   the same file, bundled into the Worker and served
-//                                     at /style/street-v1.json.
-//   forager-street-v1.preview.json    fonts and icons from serve.py, for the preview and tools/check-style.mjs.
+//   forager-street-v2.json            fonts and icons on the owner's Worker; what the app loads.
+//   ../server/pmtiles-worker/src/street-style-v2.json   the same file, bundled into the Worker and served
+//                                     at /style/street-v2.json.
+//   forager-street-v2.preview.json    fonts and icons from serve.py, for the preview and tools/check-style.mjs.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 import { applyStreetDesign, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
+import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -20,23 +27,29 @@ export const WORKER = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 /**
  * The archive the tiles come from, by its R2 name (us.pmtiles). Kept as it is served today; when a new
  * US archive replaces us.pmtiles under the same name, nothing here changes. A different name would be a
- * new style version (street-v2.json), because offline packs are keyed by the style URL.
+ * new style version, because offline packs are keyed by the style URL.
  */
 const ARCHIVE = "us";
 const LOCAL = "http://localhost:8765";
+/** The style version this script writes, and the sprite it uses (tools/build-sprite-v5.mjs). */
+const VERSION = "v2";
+const SPRITE = "sprites/v5/light";
 
-// The sprite's icon names, recorded in the style's metadata. The app inverts each one for night by name
-// (Style.getImage / addImage), and MapLibre has no call that lists a style's images, so the list travels
-// with the style; the app's copy is checked against this one by a unit test (StreetStyleTest).
-const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here("./assets/sprites/v4/light.json"), "utf8"))).sort();
+// The sprite's images the app inverts for night by name (Style.getImage / addImage), recorded in the style's
+// metadata because MapLibre has no call that lists a style's images; the app's copy is checked against this one by
+// a unit test (StreetStyleTest). The patterns the app paints one colour instead (forager:night-patterns) are left
+// off it, so no image is both inverted and painted.
+const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${SPRITE}.json`), "utf8")))
+  .filter((name) => !(name in NIGHT_PATTERN_COLOURS))
+  .sort();
 
-const allLayers = applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" }));
+const allLayers = applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })));
 
 const style = (assetsBase) => ({
   version: 8,
-  name: "Forager Street v1",
+  name: `Forager Street ${VERSION}`,
   metadata: {
-    "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs",
+    "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs and overrides/forager-character.mjs",
     "forager:sprite-icons": spriteIcons,
     // The design's colours, day and the night exceptions (-1343), for the app's tests to read.
     "forager:palette": COLOURS,
@@ -45,6 +58,9 @@ const style = (assetsBase) => ({
     "forager:night-icon-rings": NIGHT_ICON_RINGS,
     // Per-layer contrast bands that replace the night floor for one layer on one ground (dispatch 2026-10-19-41).
     "forager:night-bands": NIGHT_LAYER_BANDS,
+    // Night fill colours by day colour, and pattern images painted one colour (dispatch 2026-10-22-03).
+    "forager:night-fills": NIGHT_FILL_COLOURS,
+    "forager:night-patterns": NIGHT_PATTERN_COLOURS,
   },
   sources: {
     protomaps: {
@@ -54,12 +70,12 @@ const style = (assetsBase) => ({
     },
   },
   glyphs: `${assetsBase}/fonts/{fontstack}/{range}.pbf`,
-  sprite: `${assetsBase}/sprites/v4/light`,
+  sprite: `${assetsBase}/${SPRITE}`,
   layers: allLayers,
 });
 
 const forWorker = JSON.stringify(style(WORKER), null, 2) + "\n";
-fs.writeFileSync(here("./forager-street-v1.json"), forWorker);
-fs.writeFileSync(here("../server/pmtiles-worker/src/street-style-v1.json"), forWorker);
-fs.writeFileSync(here("./forager-street-v1.preview.json"), JSON.stringify(style(`${LOCAL}/assets`), null, 2) + "\n");
-console.log(`forager-street-v1.json: ${allLayers.length} layers; copied to server/pmtiles-worker/src/street-style-v1.json`);
+fs.writeFileSync(here(`./forager-street-${VERSION}.json`), forWorker);
+fs.writeFileSync(here(`../server/pmtiles-worker/src/street-style-${VERSION}.json`), forWorker);
+fs.writeFileSync(here(`./forager-street-${VERSION}.preview.json`), JSON.stringify(style(`${LOCAL}/assets`), null, 2) + "\n");
+console.log(`forager-street-${VERSION}.json: ${allLayers.length} layers; copied to server/pmtiles-worker/src/street-style-${VERSION}.json`);

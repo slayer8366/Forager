@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
+import com.zynergylabs.forager.app.map.STREET_STYLE_V1_URL
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -116,7 +117,7 @@ class NoSignalTrailMapTest {
     fun `drawn from the downloads, OSM and Topo load the regions' style by URL, credited as such, and never fall back`() {
         for (basemap in listOf(Basemap.OSM_STANDARD, Basemap.OPEN_TOPO_MAP)) for (night in listOf(false, true)) {
             val offline = drawsFromDownloads(useOfflineTiles = false, basemap = basemap, noSignal = true)
-            for (regionsStyle in listOf(OFFLINE_STYLE_URL, STREET_STYLE_URL)) {
+            for (regionsStyle in listOf(OFFLINE_STYLE_URL, STREET_STYLE_URL, STREET_STYLE_V1_URL)) {
                 val source = mapStyleSourceFor(basemap, night, useOfflineTiles = offline, offlineStyleUrl = regionsStyle)
                 assertEquals("$basemap night=$night", MapStyleSource.Uri(regionsStyle), source)
                 // OwnStreetFallback's rule, unchanged: never in offline mode. So no signal cannot lock the map on OSM.

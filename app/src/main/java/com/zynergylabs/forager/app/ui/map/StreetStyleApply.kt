@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.graphics.Bitmap
 import android.util.Log
-import com.zynergylabs.forager.app.map.STREET_SPRITE_ICON_NAMES
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.PropertyFactory
@@ -65,15 +64,18 @@ internal fun hideStreetLabelsUnderTopo(style: Style, maxZoom: Double) {
 /**
  * The own Street's icons at night (-1288, labels and all inverted; dispatch 2026-10-18-05 Part 2). The sprite's
  * icons are fixed-colour images, not SDF, so no paint property can recolour them (Part 1 report, Q1.3): each one is
- * read back by name ([STREET_SPRITE_ICON_NAMES]: MapLibre cannot list a style's images), turned through the same V1
+ * read back by name (`STREET_SPRITE_ICON_NAMES`: MapLibre cannot list a style's images), turned through the same V1
  * transform pixel by pixel ([nightPixelsOf]), and put back under its own name. A missing image, or one with no
  * density for MapLibre to take its pixel ratio from (`Style.toImage` reads `Bitmap.getDensity`, checked with
  * `javap` at `13.5.0`), is left in its day colours and counted in the log line, never dropped silently.
+ *
+ * Since dispatch 2026-10-22-03 the fill-pattern images take the same path ([STREET_SPRITE_NIGHT_NAMES]): the tufts
+ * inverted like an icon, the tree glyph painted its ruled night colour ([streetSpriteNightPixelsOf]).
  */
 internal fun applyStreetSpriteNight(style: Style) {
     var inverted = 0
     val left = mutableListOf<String>()
-    for (name in STREET_SPRITE_ICON_NAMES) {
+    for (name in STREET_SPRITE_NIGHT_NAMES) {
         val day: Bitmap? = try {
             style.getImage(name)
         } catch (e: RuntimeException) {
@@ -92,8 +94,9 @@ internal fun applyStreetSpriteNight(style: Style) {
         val night = day.copy(Bitmap.Config.ARGB_8888, true)
         val pixels = IntArray(night.width * night.height)
         night.getPixels(pixels, 0, night.width, 0, 0, night.width, night.height)
-        // The place dot and the toilets and drinking-water icons keep a light ring (RECORD -1345); the rest invert.
-        night.setPixels(nightIconPixelsOf(pixels, STREET_NIGHT_ICON_RINGS[name]), 0, night.width, 0, 0, night.width, night.height)
+        // The place dot and the toilets and drinking-water icons keep a light ring (RECORD -1345); the tree glyph is
+        // painted its night colour; the rest invert.
+        night.setPixels(streetSpriteNightPixelsOf(name, pixels), 0, night.width, 0, 0, night.width, night.height)
         try {
             style.addImage(name, night)
             inverted++
@@ -102,5 +105,5 @@ internal fun applyStreetSpriteNight(style: Style) {
             left += name
         }
     }
-    Log.i(SIGHTINGS_MAP_TAG, "Street night: $inverted icons inverted, ${left.size} left in day colours${if (left.isEmpty()) "" else ": $left"}.")
+    Log.i(SIGHTINGS_MAP_TAG, "Street night: $inverted icons and patterns redrawn, ${left.size} left in day colours${if (left.isEmpty()) "" else ": $left"}.")
 }

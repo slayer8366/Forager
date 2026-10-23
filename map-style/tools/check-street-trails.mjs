@@ -15,7 +15,7 @@ import fs from "node:fs";
 import { featureFilter } from "@maplibre/maplibre-gl-style-spec";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
-const style = JSON.parse(fs.readFileSync(here("forager-street-v1.json"), "utf8"));
+const style = JSON.parse(fs.readFileSync(here("forager-street-v2.json"), "utf8")); // v2 since dispatch 2026-10-22-03
 const problems = [];
 
 // --- The spec, typed from the handover ----------------------------------------------------------------------------
@@ -113,7 +113,8 @@ const IDS = [
   "roads_path_unknown_clear", "roads_path_unknown_faint", "roads_path_easy_clear", "roads_path_easy_faint",
   "roads_path_rough_clear", "roads_path_rough_faint", "roads_path_hard_clear", "roads_path_hard_faint",
 ];
-if (style.layers.length !== 90) problems.push(`the style has ${style.layers.length} layers, expected 90 (Street v1's 74, one footpath layer become 17)`);
+// 93: Street v1's 74, one footpath layer become 17, and v2's tree glyphs, wetland tufts and area names (dispatch 2026-10-22-03).
+if (style.layers.length !== 93) problems.push(`the style has ${style.layers.length} layers, expected 93`);
 const ids = pathLayers.map((p) => p.layer.id);
 if (!same(ids, IDS)) problems.push(`footpath layers, in order, are ${JSON.stringify(ids)}; expected ${JSON.stringify(IDS)}`);
 // The order matters only between layers that draw at the same zoom; a z13-only layer never meets a z15 one.

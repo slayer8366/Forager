@@ -137,17 +137,22 @@ class BasemapStyleTest {
 
     /**
      * Dispatch 2026-10-18-05 Part 2: the vector Street style declares fonts and icons, and every URL in it names only the
-     * owner's mapping Worker: its tiles, its glyphs and its sprite. Read from the copy the Worker bundles and serves
-     * (`server/pmtiles-worker/src/street-style-v1.json`, which `map-style/tools/check-street-night.mjs` holds equal to
-     * the generated one), as text, so a URL anywhere in the document counts, not only in the three known fields.
+     * owner's mapping Worker: its tiles, its glyphs and its sprite. Read from the copies the Worker bundles and serves
+     * (`server/pmtiles-worker/src/street-style-v{1,2}.json`, which `map-style/tools/check-street-night.mjs` holds equal
+     * to the generated v2 and to frozen v1), as text, so a URL anywhere in the document counts, not only in the three
+     * known fields. v2 (dispatch 2026-10-22-03) uses sprite v5; v1 keeps v4.
      */
     @Test
     fun `the vector Street style names only the owner's Worker host, for tiles, fonts and icons`() {
-        val text = java.io.File("../server/pmtiles-worker/src/street-style-v1.json").readText()
+        for ((version, sprite) in listOf("v1" to "v4", "v2" to "v5")) streetStyleNamesOnlyTheWorker(version, sprite)
+    }
+
+    private fun streetStyleNamesOnlyTheWorker(version: String, sprite: String) {
+        val text = java.io.File("../server/pmtiles-worker/src/street-style-$version.json").readText()
         val style = json.parseToJsonElement(text).jsonObject
         val host = "https://forager-pmtiles.brandonlee1-894.workers.dev/"
         assertEquals("${host}fonts/{fontstack}/{range}.pbf", style.getValue("glyphs").jsonPrimitive.content)
-        assertEquals("${host}sprites/v4/light", style.getValue("sprite").jsonPrimitive.content)
+        assertEquals("${host}sprites/$sprite/light", style.getValue("sprite").jsonPrimitive.content)
         val source = style.getValue("sources").jsonObject.getValue("protomaps").jsonObject
         assertEquals("${host}us.json", source.getValue("url").jsonPrimitive.content)
         // Every http(s) URL in the document, attribution links included, minus the two credit links the licences ask for.
