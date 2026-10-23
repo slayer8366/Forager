@@ -27152,3 +27152,18 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - The owner creates a Play service account ("Release to testing tracks" only) and its JSON goes in as `PLAY_SERVICE_ACCOUNT_JSON`.
 - Dispatch 2026-10-23-04 builds the workflow.
 **Notes:** Written by the planner by hand. Next free ID -1575.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1575
+**Timestamp:** 2026-10-23T21:15:59Z
+**Continues:** 2026-09-28-1574
+**Title:** The Play service account is set up and its key stored in the release environment
+**Observed:**
+- **The account:** the owner created the service account forager-release@forager-release.iam.gserviceaccount.com (Cloud project forager-release, Google Play Android Developer API enabled) and invited it in Play Console with "Release to testing tracks" only. The owner, verbatim: "Yes, invited it with testing tracks only". Play Console shows it Active.
+- **The key:** the planner pulled the JSON key from the S26's Downloads over USB and checked only its type and client_email. It's stored as `PLAY_SERVICE_ACCOUNT_JSON` in the GitHub `release` environment. Both the laptop copy (shredded) and the phone copy are deleted.
+**Open:**
+- Hazel's fixes for Sorrel's L1-L3 on #385, then the owner's merge.
+- Promotion to main, then the first approved run.
+**Notes:** Written by the planner by hand. Next free ID -1576.
