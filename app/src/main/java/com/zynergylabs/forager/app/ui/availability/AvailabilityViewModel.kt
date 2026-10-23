@@ -159,6 +159,8 @@ class AvailabilityViewModel(
     private val basemapPreferenceRepository: BasemapPreferenceRepository = NoStoredBasemap,
     /** RECORD -711: where the Maps tab's icon cluster's side and height persist across restarts. */
     private val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = NoStoredMapIconClusterPlacement,
+    /** The maps' "no signal" state (NoSignalTrailMap.kt), read when Offline maps opens; defaulted to "no signal", so nothing fetches. */
+    private val noSignal: () -> Boolean = { true },
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -243,6 +245,16 @@ class AvailabilityViewModel(
         mapPreferencesRepository = mapPreferencesRepository,
         locationProvider = locationProvider,
         getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        errorLog = errorLog,
+        onDownloaded = { region -> offlineRoutes.noteDownloaded(region) },
+    )
+
+    private val offlineRoutes = AvailabilityOfflineRoutes(
+        updateState = { transform -> _uiState.update(transform) },
+        currentState = { _uiState.value },
+        scope = { viewModelScope },
+        offlineMapRepository = offlineMapRepository,
+        reloadRegions = { offlineMaps.loadOfflineRegions() },
         errorLog = errorLog,
     )
 
@@ -755,8 +767,25 @@ class AvailabilityViewModel(
         mapDisplay.loadMapRecords()
     }
 
-    /** See [AvailabilityOfflineMaps.onOfflineMapsOpened]. */
-    fun onOfflineMapsOpened() = offlineMaps.onOfflineMapsOpened()
+    /**
+     * See [AvailabilityOfflineMaps.onOfflineMapsOpened]. Then, with signal, the trail routes of every listed region that
+     * still wants them are fetched once (dispatch 2026-10-23-03; the owner: "Automatic, button as backup"). Its limits:
+     * one attempt per opening, after the list is read, never a loop; nothing at all with no signal (the maps' own
+     * state, read at the opening); a region already being fetched is not fetched twice.
+     */
+    fun onOfflineMapsOpened() {
+        val listed = offlineMaps.onOfflineMapsOpened()
+        if (noSignal()) return
+        viewModelScope.launch {
+            listed.join()
+            offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+        }
+    }
+
+    /** "Try again" on a region's trail routes: one more fetch of that region, shown only after an attempt failed. */
+    fun onTryAgainRoutes(id: Long) {
+        offlineRoutes.fetch(listOf(id))
+    }
 
     /** See [AvailabilitySettingsPrefs.onAutoSaveLocationToPhotosChanged]. */
     fun onAutoSaveLocationToPhotosChanged(enabled: Boolean) = settingsPrefs.onAutoSaveLocationToPhotosChanged(enabled)

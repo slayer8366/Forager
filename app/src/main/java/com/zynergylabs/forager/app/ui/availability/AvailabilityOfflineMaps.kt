@@ -34,6 +34,8 @@ internal class AvailabilityOfflineMaps(
     private val locationProvider: LocationProvider,
     private val getOfflineRegionReferenceCount: suspend (Long) -> Int,
     private val errorLog: ErrorLog,
+    /** Told of each finished download, so a route fetch that failed with it shows "Try again" (dispatch 2026-10-23-03). */
+    private val onDownloaded: (OfflineRegionSummary) -> Unit = {},
 ) {
 
     fun onOfflineMapLatChanged(text: String) {
@@ -82,14 +84,14 @@ internal class AvailabilityOfflineMaps(
      * a `listRegions` re-read has no side effect beyond what [loadOfflineRegions] already does on
      * every call.
      */
-    fun onOfflineMapsOpened() {
+    fun onOfflineMapsOpened(): Job {
         scope().launch {
             val result = locationProvider.getCurrentLocation()
             if (result is LocationResult.Success) {
                 updateState { it.copy(offlineMapPickerDefaultCenter = LatLng(result.lat, result.lng)) }
             }
         }
-        loadOfflineRegions()
+        return loadOfflineRegions()
     }
 
     /**
@@ -187,6 +189,7 @@ internal class AvailabilityOfflineMaps(
                 updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
             }.fold(
                 onSuccess = { downloadedRegion ->
+                    onDownloaded(downloadedRegion)
                     offlineMapRepository.replaceRegion(row.id, downloadedRegion.id).onFailure { error ->
                         errorLog.w(TAG, "Downloaded ${row.name} again, but couldn't move region ${row.id}'s references to ${downloadedRegion.id}.", error)
                     }
@@ -210,7 +213,8 @@ internal class AvailabilityOfflineMaps(
             offlineMapRepository.download(name, region) { downloaded, total ->
                 updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
             }.fold(
-                onSuccess = {
+                onSuccess = { downloadedRegion ->
+                    onDownloaded(downloadedRegion)
                     updateState {
                         it.copy(
                             offlineDownloadStatus = OfflineMapStatus.Succeeded,

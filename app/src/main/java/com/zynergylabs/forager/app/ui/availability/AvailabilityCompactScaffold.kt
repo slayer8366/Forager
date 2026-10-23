@@ -309,6 +309,7 @@ internal fun CompactMainScaffold(
         val onDownloadOfflineMaps: () -> Unit = offlineMaps.onDownloadOfflineMaps
         val onDeleteOfflineRegion: (Long) -> Unit = offlineMaps.onDeleteOfflineRegion
         val onDownloadAgain: (Long) -> Unit = offlineMaps.onDownloadAgain
+        val onTryAgainRoutes: (Long) -> Unit = offlineMaps.onTryAgainRoutes
         // AvailabilityScreenRecords.
         val tracks: List<Track> = records.tracks
         val waypoints: List<Waypoint> = records.waypoints
@@ -1344,6 +1345,7 @@ internal fun CompactMainScaffold(
                                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                                 onDownloadAgain = onDownloadAgain,
+                                onTryAgainRoutes = onTryAgainRoutes,
                                 tracks = tracks,
                                 onTracksOpened = onTracksOpened,
                                 getFullRecord = getFullRecord,

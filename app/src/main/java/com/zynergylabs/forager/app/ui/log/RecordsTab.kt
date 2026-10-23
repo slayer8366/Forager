@@ -112,6 +112,8 @@ internal fun RecordsTab(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
+    /** "Try again" on a region's trail routes (dispatch 2026-10-23-03). */
+    onTryAgainRoutes: (Long) -> Unit = {},
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /**
@@ -397,6 +399,7 @@ internal fun RecordsTab(
                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                 onDownloadAgain = onDownloadAgain,
+                onTryAgainRoutes = onTryAgainRoutes,
                 onOpenRegionDetails = { id -> openDetails(RecordDetailsTarget.OfflineRegionDetails(id)) },
             )
 

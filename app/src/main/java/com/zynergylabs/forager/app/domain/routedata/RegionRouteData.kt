@@ -128,6 +128,31 @@ enum class RouteDataMissingReason(val code: String) {
 }
 
 /**
+ * Whether asking again could change the answer. Not for a build with no key, a key the server refuses (an app update
+ * is needed), or an area the server or this app will never take (too large, refused as a bad request): those read to
+ * the user as "no trail routes for this area yet" with no button (the owner's step path F, dispatch 2026-10-23-03).
+ */
+fun RouteDataMissingReason.retryHelps(): Boolean = this !in NOT_RETRYABLE
+
+private val NOT_RETRYABLE = setOf(
+    RouteDataMissingReason.NO_APP_KEY,
+    RouteDataMissingReason.FORBIDDEN,
+    RouteDataMissingReason.TOO_LARGE,
+    RouteDataMissingReason.OVER_PHONE_LIMIT,
+    RouteDataMissingReason.BAD_REQUEST,
+)
+
+/**
+ * Whether a region's routes should be fetched (again): never fetched, damaged, or missing for a reason a retry could
+ * help. What the automatic fetch on opening Offline maps picks up (the owner: "Automatic, button as backup").
+ */
+fun RegionRouteData.needsFetch(): Boolean = when (this) {
+    RegionRouteData.NotFetched, is RegionRouteData.Damaged -> true
+    is RegionRouteData.Missing -> reason.retryHelps()
+    is RegionRouteData.Stored, RegionRouteData.NoneHere -> false
+}
+
+/**
  * The rectangle a region's routes are cut to: the same one its tiles are downloaded for (`MapLibreOfflineMapRepository`
  * builds its download bounds from this same [GeoDistance.boundingBox]), so map and routes cover one area.
  */

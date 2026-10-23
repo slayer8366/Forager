@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.data.repository.runCatchingCancellable
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 import com.zynergylabs.forager.app.domain.routedata.routeAreaFor
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
@@ -191,6 +192,13 @@ class MapLibreOfflineMapRepository(
     }
 
     override suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> = regionIdReplacer.replace(oldId, newId)
+
+    override suspend fun fetchRoutes(id: Long): Result<RegionRouteData> = runCatchingCancellable {
+        val row = offlineRegionDao.getById(id) ?: throw java.io.IOException("no region $id")
+        // Only a region whose tiles are on this phone: a restored row's routes come with its "Download again".
+        if (offlineManager().listOfflineRegionsSuspend().none { it.id == id }) throw java.io.IOException("region $id is not downloaded here")
+        routes.fetchFor(id, Region(row.lat, row.lng, row.radiusKm))
+    }
 
     override suspend fun deleteRegion(id: Long): Result<Unit> = runCatchingCancellable {
         offlineManager().listOfflineRegionsSuspend().firstOrNull { it.id == id }?.deleteSuspend()

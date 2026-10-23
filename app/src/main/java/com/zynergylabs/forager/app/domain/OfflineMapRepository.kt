@@ -70,6 +70,14 @@ interface OfflineMapRepository {
     suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> =
         Result.failure(UnsupportedOperationException("this repository does not replace a region's id"))
 
+    /**
+     * Fetches the trail routes of the downloaded region [id] again, its tiles untouched (dispatch 2026-10-23-03: the
+     * automatic fetch on opening Offline maps, and "Try again"). Succeeds with whatever state the fetch ended in, a
+     * failed fetch included; fails only when [id] is not a region downloaded on this phone.
+     */
+    suspend fun fetchRoutes(id: Long): Result<RegionRouteData> =
+        Result.failure(UnsupportedOperationException("this repository does not fetch routes"))
+
     companion object {
         /**
          * The tile ceiling this app enforces itself before ever starting a download — see

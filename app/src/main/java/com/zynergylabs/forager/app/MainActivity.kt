@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: AvailabilityViewModel by viewModels {
         viewModelFactory {
             initializer {
-                createAvailabilityViewModel(container, androidErrorLog, trackRecording = { trackRecordingViewModel })
+                createAvailabilityViewModel(container, androidErrorLog, trackRecording = { trackRecordingViewModel }, noSignal = { noSignal.value })
             }
         }
     }
@@ -477,6 +477,7 @@ class MainActivity : ComponentActivity() {
                         // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
                         onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                         onDownloadAgain = viewModel::onDownloadAgain,
+                        onTryAgainRoutes = viewModel::onTryAgainRoutes,
                     ),
                     settings = AvailabilityScreenSettings(
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
