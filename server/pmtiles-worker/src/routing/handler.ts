@@ -113,6 +113,7 @@ interface Cut {
 
 /** The cut, from the edge cache when this URL was cut before, else cut now and cached. */
 async function cutFor(env: RoutingEnv, cache: Cache, cacheUrl: string, square: ManifestSquare, rect: Rectangle): Promise<Cut> {
+  cacheUrl = cacheUrl.replace(/\/routing\/[^/]+\//, "/routing/");
   const cached = await cache.match(cacheUrl);
   const cachedSha = cached?.headers.get("X-Forager-Sha256");
   if (cached && cachedSha) return { bytes: new Uint8Array(await cached.arrayBuffer()), sha256: cachedSha };
