@@ -27129,3 +27129,26 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - The -1547 detour design.
 - The tree-glyph gaps (dispatch 2026-10-22-07), on the owner's word.
 **Notes:** Written by the planner by hand. Next free ID -1574.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1574
+**Timestamp:** 2026-10-23T20:29:44Z
+**Continues:** 2026-09-28-1573, 2026-09-28-1086
+**Title:** Release builds signed on GitHub and uploaded to Play internal testing, with the owner's approval per run (owner)
+**Decision:** the owner asked "Can I use GitHub to sign it and build the release?", then chose:
+- "Straight to Play internal testing (Recommended)";
+- "You approve in GitHub (Recommended)";
+- "Yes, set it up (Recommended)".
+**Observed:**
+- **The environment:** the planner created GitHub environment `release` (required reviewer slayer8366; deployment branches: main only).
+- **Its secrets,** none printed or committed:
+  - `FORAGER_UPLOAD_KEYSTORE_B64` (forager-upload.jks, sha256 07e3dd96…);
+  - `FORAGER_SIGNING_STORE_PASSWORD`, `FORAGER_SIGNING_KEY_ALIAS`, `FORAGER_SIGNING_KEY_PASSWORD`;
+  - `FORAGER_ROUTING_APP_KEY`.
+- **The keystore on the laptop is unchanged** (signing/Forager Keys/, gitignored).
+**Open:**
+- The owner creates a Play service account ("Release to testing tracks" only) and its JSON goes in as `PLAY_SERVICE_ACCOUNT_JSON`.
+- Dispatch 2026-10-23-04 builds the workflow.
+**Notes:** Written by the planner by hand. Next free ID -1575.
