@@ -42,7 +42,7 @@ internal class RegionRouteStore(
      * in one step, so two callers can never both own the folder. Only a caller that got a folder calls [endFetch].
      */
     fun beginFetch(regionId: Long): File? {
-        if (!fetching.add(regionId)) return null
+        fetching.add(regionId)
         val partial = partialFor(regionId)
         if (partial.exists() && !partial.deleteRecursively()) throw IOException("couldn't clear ${partial.name}")
         if (!partial.mkdirs()) throw IOException("couldn't create ${partial.name}")
