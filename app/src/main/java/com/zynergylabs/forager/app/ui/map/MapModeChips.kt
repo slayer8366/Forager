@@ -33,10 +33,21 @@ private var SemanticsPropertyReceiver.mapModeChipSelectedFill by MapModeChipSele
  * the map cannot disagree. It draws Trail Map from the downloaded areas in place of a chosen OSM or Topographical
  * map on two paths: no signal ([noSignal], [LocalNoSignal] after its hysteresis, the state the map reads), and "Use
  * offline tiles" ([offlineTiles], `MapRenderMode.useOfflineTiles`). For a Trail user it draws Trail Map, which is what
- * they chose, so their chip is unchanged. The stored choice never changes; only the chip's colour does.
+ * they chose. The one path that shows something else to a Trail user is the -1513 fallback ([trailMapDraws] false):
+ * once Trail Map's style has failed to load, the map draws OpenStreetMap's raster until the next cold start, and the
+ * Trail chip is grey (the owner: "Same meaning everywhere: grey = chosen, but something else is shown."). The stored
+ * choice never changes; only the chip's colour does.
  */
-internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean, offlineTiles: Boolean = false, trailMapDraws: Boolean = true): Boolean =
-    mode.basemap != Basemap.FORAGER_TRAIL && drawsFromDownloads(offlineTiles, mode.basemap, noSignal)
+internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean, offlineTiles: Boolean = false, trailMapDraws: Boolean = true): Boolean {
+    val fromDownloads = drawsFromDownloads(offlineTiles, mode.basemap, noSignal, trailMapDraws)
+    return if (mode.basemap == Basemap.FORAGER_TRAIL) {
+        // Trail chosen: something else is shown only when its style has failed to load (RECORD -1513) and the map draws
+        // OpenStreetMap's raster in its place. From the downloads it is Trail Map again, which is what was chosen.
+        !trailMapDraws && !fromDownloads
+    } else {
+        fromDownloads
+    }
+}
 
 /** [LocalNoSignal]'s current value; `false` where nothing provides it, as the map reads it. */
 @Composable
@@ -74,7 +85,7 @@ internal fun MapModeChipRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
     ) {
         MapMode.entries.forEach { mode ->
-            val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal, offlineTiles)
+            val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal, offlineTiles, trailMapDraws)
             val colors = if (standsAside) {
                 FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.outlineVariant,
