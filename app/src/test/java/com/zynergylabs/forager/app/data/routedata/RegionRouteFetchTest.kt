@@ -150,7 +150,9 @@ class RegionRouteFetchTest {
     @Test
     fun `a download cut off mid-file never leaves a part-written rd5 anywhere`() {
         server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA))
-        // The body promises 3000 bytes and the connection drops after 1000.
+        // The body promises 3000 bytes and the connection drops after 1000. What is on disk at that moment is the
+        // point: the clean-up after the failure would hide a part-written .rd5 from a check made afterwards.
+        var rd5AtDrop: List<String>? = null
         server.answers["/routing/run-1/W125_N45.rd5"] = {
             val cut = okio.Buffer().write(squareA, 0, 1_000)
             val body = object : okhttp3.ResponseBody() {
@@ -159,7 +161,10 @@ class RegionRouteFetchTest {
                 override fun source(): okio.BufferedSource = object : okio.ForwardingSource(cut) {
                     override fun read(sink: okio.Buffer, byteCount: Long): Long {
                         val n = super.read(sink, byteCount)
-                        if (n == -1L) throw java.io.IOException("connection reset mid-file")
+                        if (n == -1L) {
+                            rd5AtDrop = temp.root.walk().filter { it.name.endsWith(".rd5") }.map { it.name }.toList()
+                            throw java.io.IOException("connection reset mid-file")
+                        }
                         return n
                     }
                 }.buffer()
@@ -168,8 +173,8 @@ class RegionRouteFetchTest {
         }
 
         assertMissing(RouteDataMissingReason.NETWORK)
-        val rd5 = temp.root.walk().filter { it.name.endsWith(".rd5") }.toList()
-        assertEquals(emptyList<File>(), rd5)
+        assertEquals("no .rd5 on disk while the file was half there", emptyList<String>(), rd5AtDrop)
+        assertEquals(emptyList<File>(), temp.root.walk().filter { it.name.endsWith(".rd5") }.toList())
     }
 
     @Test
