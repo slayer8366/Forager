@@ -104,5 +104,5 @@ internal fun nightPatternPixelsOf(pixels: IntArray, rgb: Int): IntArray {
  */
 internal fun nightSpritePixelsOf(name: String, pixels: IntArray): IntArray {
     val paint = STREET_NIGHT_PATTERN_PAINTS[name]
-    return if (paint != null) nightPatternPixelsOf(pixels, paint) else nightIconPixelsOf(pixels, STREET_NIGHT_ICON_RINGS[name])
+    return if (paint != null) nightPatternPixelsOf(pixels, paint) else nightIconPixelsOf(pixels, null)
 }
