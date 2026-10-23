@@ -110,7 +110,6 @@ internal suspend fun reconcileOfflineRegions(
 
     // Kept: every Room row (a row with no MapLibre region in this read is kept, above, and so are its routes), every
     // region in the read but those just deleted as never finished, and every download still running.
-    routes.cleanOrphans(dao.getAll().map { it.id }.toSet() + (liveIds - deletedIds) + inFlightIds)
     return shown
 }
 
