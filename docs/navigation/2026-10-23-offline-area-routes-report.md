@@ -2,8 +2,9 @@
 
 **Coder:** Hazel (Opus 5.5). **Planner:** Rowan. **Base:** origin/pre-main `99ac33006` (it had #380), verified at the
 start; pre-main `54f4d56c4` (#381 and #382 merged) merged in later, never rebased. **Branch:** `offline-area-routes`,
-PR #383 (draft). **Status:** storage and state built and tested; **stopped** at the dispatch's built-in stop, the
-user-facing step path, proposed below. No UI text is built.
+PR #383 (draft). **Status:** storage and state built and tested, then stopped at the dispatch's step path; the owner answered it,
+and the region row and the automatic fetch are built (part two, at the end). An S22 launch check and one live route
+download passed.
 
 ## What a region's download does now
 
@@ -149,3 +150,76 @@ now records what is on disk at the moment the connection drops (`883de54a3`).
 - **Route bytes in the shown size on screen:** the summary carries them; the row's label was not looked at on a phone.
 - **The upload of the debug APK with the key in it:** the CI artifact now carries the key inside the APK, as any
   APK does (#381's report: a deterrent, not a secret).
+
+
+## Part two: the owner's answers, built (head `b88238a55`)
+
+**The answers, as the planner relayed them:** retry "Automatic, button as backup (Recommended)"; wording "OK as
+drafted"; D "Only when a route reaches that edge (Recommended)", so not on the row (the `missing` squares stay stored
+for the routing screens); E settled by the same automatic rule.
+
+**What the row says** (`ui/availability/OfflineRegionRouteLine.kt`, pure `offlineRouteLine`):
+- routes stored, partial or whole: nothing; the size counts them (A);
+- being fetched: "Getting trail routes";
+- no routes for the area, or a reason a retry can't fix (no key, key refused, too large, over the phone's limit, bad
+  request): "Map only. No trail routes for this area yet.", no button (C, F);
+- routes wanted and no signal (the maps' own `LocalNoSignal`): "Map only. Trail routes download next time you're
+  online.", no button (E offline);
+- routes wanted and an attempt this session failed: "Map only. Trail routes didn't download." with **Try again** (B);
+- routes wanted, signal, no attempt yet: nothing, for the moment before the automatic fetch starts.
+
+**The automatic trigger** (`AvailabilityViewModel.onOfflineMapsOpened`, run by `AvailabilityOfflineRoutes`): when
+Offline maps opens with signal (the maps' hysteresis state, read at the opening), after the list is read, each listed
+downloaded region that is never fetched, damaged, or missing for a retryable reason is fetched once, in turn, then the
+list reloads. **Limits:** one attempt per opening, never a loop; nothing with no signal; a region already being
+fetched is not fetched again (by a second opening or Try again). A download's own route fetch counts as an attempt, so
+a fresh download whose routes failed offers Try again at once. New repository call: `fetchRoutes(id)`, which refuses a
+region whose tiles are not on this phone.
+
+**Files beyond part one:** `OfflineRegionsList.kt`, `AvailabilityOfflineMapsUi.kt`, `AvailabilityOfflineMaps.kt`,
+`AvailabilityScreenOfflineMaps.kt`, `AvailabilityUiState.kt` (two fields), the new `AvailabilityOfflineRoutes.kt` and
+`OfflineRegionRouteLine.kt`, and plumbing of one callback and one signal reader through `AvailabilityViewModel.kt`
+(908 lines before), `AvailabilityCompactScaffold.kt`, `JournalTab.kt` (917 before), `RecordsTab.kt`, `MainActivity.kt`
+and `AvailabilityViewModelFactory.kt`. The two big files took two lines each, a parameter and its pass-through; no
+split was made for that.
+
+**Tests** (failing first by revert, below): `OfflineRouteLineTest` 7, `OfflineRegionRouteRowTest` 5 (composed
+through `OfflineRegionsSection`; Try again reached by five real touches across its bounds), and
+`AvailabilityViewModelOfflineRoutesTest` 8, through the ViewModel's own entry points (opening Offline maps, Try again,
+Download). Full suite on the PR (run 39978043612, every job green): **5,393 tests, 0 failed, 24 skipped**, 20 more than
+part one.
+
+**Revert checks 22 to 29** on `b88238a55` (runs 39978983733 to 39979093290; 126 tests each, the filtered classes' count;
+0 compile errors):
+
+| # | Edit | Failed |
+|---|---|---|
+| 22 | the automatic fetch ignores no signal | opening with no signal fetches nothing |
+| 23 | Try again before any attempt | no Try again before an attempt has failed |
+| 24 | a region fetched twice at once | not fetched twice (`[1, 1, 1]`) |
+| 25 | a download's failed routes not noted | a download whose routes failed offers Try again |
+| 26 | a failed fetch not marked failed | Try again; once per opening |
+| 27 | stored routes get a line | A (pure); stored routes add no line (row) |
+| 28 | the no-signal line dropped | E offline (pure and row) |
+| 29 | the row ignores the maps' signal | the row's no-signal test |
+
+**Dex report** on run 39978043612's APK: the same five methods; `JournalTab` 300 registers (291 in part one) and
+the scaffold lambdas up 2, from the plumbing.
+
+**The S22** (the planner's go): installed DB schema read first, `user_version` 22, the same as this build, so no
+downgrade; installed build was `1.0.3844+g99ac3300`. `scripts/s22-launch-check.sh` on run 39978043612's APK: PASS
+(`status=verify`, cold launch, alive after 8 s, crash buffer empty). Then **one live route download through the real
+entry point**: Journal > Records > Offline maps, with validated Wi-Fi, on the phone's one region (id 2, 13 km near the
+owner's area). The automatic fetch asked `area.json` for the six-decimal rectangle, got 200, fetched one file, and
+stored `files/offline_routes/2/W125_N45.rd5` (2,279,871 bytes) with `routes.properties`: state stored, run
+`usca-20261021T111429Z`, OSM timestamp 2026-10-17T20:20:51Z, no missing squares. The row shows no route line and
+"24.5 MB". No `debug.txt`, `stacks.txt` or `storageconfig.txt` anywhere under `files`. The key appears in no log line
+(`x-forager` matched 0 lines); it was never printed or stored by me.
+
+**On the phone now:** the PR's debug build (`1.0.3868+g14becf6e`, the PR's merge commit), its data kept (install -r),
+the one region with its routes stored. Note: the debug build's OkHttp logging writes each request's URL, so the
+region's rectangle is in logcat on debug builds (headers are not logged); release builds do not log it.
+
+**Still unverified:** a failed or no-signal row on the phone (tested on the JVM only); `fetchRoutes` and the download's
+route step in `MapLibreOfflineMapRepository` beyond this one live success; the Boulder box (not needed: the owner's own
+area was used).
