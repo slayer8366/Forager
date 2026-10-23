@@ -205,3 +205,129 @@ seeing dark icons and shields at night.
    - **Evidence:** the owner's word and a screenshot kept off GitHub.
 3. **Day is unchanged.** Night Maps off: every icon and pattern as before. There is no "Street night" line for that
    load (the step runs only at night).
+
+## Amendment 2: Sorrel's H1, M1, L1 and M2 (added 2026-10-23 UTC)
+
+This section supersedes the parts of the report above that it names. Nothing above is edited.
+
+**What was wrong.** Sorrel's review is `docs/audits/2026-10-22-review-pr380.md`, at `73630eb15`. It found that
+MapLibre Native refused the switch's `places_locality` value. The S22 confirmed it on 1.0.3828:
+`E/Mbgl: [JNI]: Error setting property: icon-image Only one zoom-based "step" or "interpolate" subexpression may be
+used in an expression.`
+
+In the same load the app's line still said "6 image references switched". So two claims above were wrong:
+- **"Six references switched" was wrong for one of the six.** Place dots and capitals stayed in day colours below
+  zoom 8 (H1).
+- **The log line was not evidence.** It counted calls made, not values that took (M1). Step 1 of the checklist above
+  could pass with H1 present.
+
+The owner's S22 run of steps 1 to 7 on 1.0.3828 was otherwise clear: icons, shields, rings, tree marks, tufts, no
+flash, and day unchanged (relayed by Rowan).
+
+**What changed:**
+- **H1 and L1.** The switch no longer wraps a value whole. It walks into the value's `match`, `case` and `step` outputs
+  (`IMAGE_OUTPUT_OPERATORS`, `NightImageSwitch.kt`) and leaves every operator, input, label and zoom stop as the day
+  style has them. Only the image names those outputs give are changed:
+  - a literal output with a night copy takes the copy's name;
+  - a computed output `E` becomes `["match", E, names, ["concat", "night/", E], E]`.
+- **What that means for each reference:**
+  - `places_locality` keeps its zoom `step` on top: `["step", ["zoom"], ["case", …, "night/capital", "night/townspot"],
+    8, ""]`.
+  - `pois`'s `["get", "kind"]` stays in an image position (the wrapper's `otherwise`). It keeps the day style's image
+    coercion, which is L1. I kept the coercion rather than arguing it is not needed.
+  - The shields' three `concat` outputs are each wrapped.
+- **M1.** `NightImageTarget.readImageReference` reads each property back after setting it. On the phone that is
+  `SymbolLayer.iconImage` or `FillLayer.fillPattern`. A reference counts as switched only if the value read back holds
+  the night prefix; otherwise it is counted and named as refused. The log line now reads:
+  `Street night: 61 night images added, 6 image references switched, 0 refused by MapLibre, 0 left in day images; no
+  night copy missing.`
+- **Missing night copies are named in sorted order,** so the line does not depend on the style's layer order. Run
+  39892109877 failed one test on order alone; that is fixed in `fd08a531d`.
+
+**Commits:**
+
+| Commit | What it does |
+|---|---|
+| `19c5b2fee` | The new tests, failing first. The read-back method and the refused count are scaffolded but not yet used. The test fake now refuses a value that breaks the zoom rule, as MapLibre did. |
+| `c87496f4b` | The fix: walk the outputs (H1, L1), and count only what reads back (M1). |
+| `fd08a531d` | Missing names sorted. |
+
+**Failing first.** Run 39891668441 on `19c5b2fee`, filtered to the three night classes. It had 6 failures of 26, no
+compile errors, and each failure was the case it names:
+- refused counted (`5` expected, `6`);
+- the zoom rule ("v1 places_locality … zoom used under a top-level match");
+- the structure (`["step", …]` expected, `["match", ["step", …]` given);
+- capital drawn by day, in the bug test, the v1 test and the missing-copy test.
+
+**Tests added.** All in `NightImageSwitchTest`, with a small expression evaluator in `StyleExpressionEval.kt`. The
+tests now ask what a reference draws for a feature and zoom, not how its JSON is spelt.
+
+| Test | What it holds |
+|---|---|
+| Every switched value keeps zoom as the input of a top-level step only, at v1 and v2 | Sorrel's parser-rule test (`zoomRuleViolations`, after `find_zoom_curve.cpp`). |
+| The switch changes only the day expression's image outputs | The exact night values for `places_locality`, `pois` and `roads_shields`. |
+| A value MapLibre refuses is counted as refused and named, never as switched | M1. |
+| Places draw no icon from zoom 8 at night, as by day | Passes before and after the fix, so it guards the zoom-8 output only. It is not evidence for H1. |
+
+Two existing tests were renamed and reworked, and the bug test now samples 14 features, including both place outputs.
+
+**Revert checks.**
+- Each was one line in `NightImageSwitch.kt`, on its own branch cut from `fd08a531d`, never merged, and run with the
+  three night classes (26 tests).
+- Each run built clean: "Build the debug APK" succeeded, there are 0 `e:` lines, and each run's own artifact was read.
+- `origin/night-icon-set` still holds both fixed lines (checked with `git grep`).
+
+| # | Edit | Run | Failed with (only these) |
+|---|---|---|---|
+| R6b | `step` dropped from `IMAGE_OUTPUT_OPERATORS` | 39895598132 | zoom rule (v1 `places_locality` under a top-level match); structure (`step` expected, `match` given); refused 1 in the bug test and the v1 test; missing-copy switched `5` was `4` |
+| R7b | `match` dropped from `IMAGE_OUTPUT_OPERATORS` (`pois` and shields wrapped whole: L1) | 39895600274 | structure only: `pois` expected with its own `match` on `kind` |
+| R8b | the read-back check replaced by `switched++` | 39895603297 | refused only: switched `5` expected, `6` |
+
+R6 to R8 first ran on `c87496f4b` (runs 39892159712, 39892162553 and 39892164903). R7's and R8's runs then also failed
+the missing-copy test, on the order problem `fd08a531d` fixed, so those failures were not specific to their edits. All
+three were rerun as R6b to R8b on `fd08a531d`, and only the reruns are cited.
+
+**Suite.** Run 39895576482 on `fd08a531d`, the PR's merge commit, all jobs green: 5286 tests, 0 failures, 24 skipped.
+These are the same 24 IDs as pre-main's run 39880409429, which had 5272. The debug APK is 82,918,391 bytes, still
++55,916 over pre-main.
+
+**S22 launch check** (1.0.3833+g90a91c5f, an upgrade from 3828; schema 22 on both):
+- `scripts/s22-launch-check.sh` PASS: verified, launched, process alive after 15 s, crash buffer empty.
+- The phone was dozing when it launched. After a wake key the Maps tab loaded Trail Map.
+- **Night Maps was off on the phone** (the owner's last step was "day unchanged"), so no night load ran. There is no
+  `Street night` line, and no `Error setting` line in the full logcat of the day load.
+- The night check on this build is the owner's (below). The S22 is left on 1.0.3833 for it.
+
+### Device checklist, widened (M2)
+
+This replaces the checklist above. Steps 1 to 7 of the owner's run on 3828 hold, except for the place dots. The pass
+is step 1's line, plus step 3's dark place dots, plus the owner's eye on steps 2, 4 and 5.
+
+1. **Full logcat read on a night load.**
+   - Clear the log (`adb logcat -c`), turn Night Maps on, and save `adb logcat -d` unfiltered.
+   - **Pass:** tag `SightingsMap` has `Street night: 61 night images added, 6 image references switched, 0 refused by
+     MapLibre, 0 left in day images; no night copy missing.`, and the whole log has no `Error setting property` line.
+   - **Fail:** any refused reference is now named in the app's own line, as well as in MapLibre's `E/Mbgl` line.
+2. **Forest Park, about zoom 13** (as before): point icons and shields dark, rings light, tree marks `#5d804f`, tufts
+   blue, no light flash.
+3. **Place dots below zoom 8** (H1).
+   - Zoom out past 8 at night.
+   - **Pass:** the town dots and capital markers are dark with light centres, not white.
+   - Above 8 there are none, by day or by night.
+4. **Offline night, with a v2 region and no signal.**
+   - Put the phone in aeroplane mode, inside a downloaded Trail Map region (v2; a v1 one too, if any S22 region still
+     holds v1), with Night Maps on.
+   - **Pass:** the map draws, step 1's line appears, and the icons are dark.
+5. **Topographical night over Trail Map.**
+   - Topographical selected, Night Maps on, about zoom 9 to 9.5, where Trail Map shows under the topo.
+   - **Pass:** step 1's line, with dark icons and shields.
+6. **Day unchanged.** Night Maps off: no `Street night` line, and the icons as before.
+
+### Not verified (added)
+
+- **Everything at night on 1.0.3833:** the read-back on the phone, the place dots, offline and Topographical night.
+  This is all pending the owner's steps above.
+  - What `SymbolLayer.iconImage` returns as text after a set (an expression's `toString`, or a plain name) is read
+    here only for the `night/` prefix. If MapLibre were ever to rename an image in that text, the line would say
+    "refused" for a value that took, which is the safe direction.
+- **L1:** the kept coercion matches the day style by construction. The two typings were never compared on a device.
