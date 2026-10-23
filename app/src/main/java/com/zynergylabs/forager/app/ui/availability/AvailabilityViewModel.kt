@@ -775,7 +775,6 @@ class AvailabilityViewModel(
      */
     fun onOfflineMapsOpened() {
         val listed = offlineMaps.onOfflineMapsOpened()
-        if (noSignal()) return
         viewModelScope.launch {
             listed.join()
             offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
