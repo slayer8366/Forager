@@ -31,7 +31,7 @@ fun routeDataForPoint(point: LatLng, regions: List<OfflineRegionSummary>): Route
     if (covering.isEmpty()) return RouteDataForPoint.NoRegionCovers
     val square = routeSquareName(point)
     val storedHere = covering.mapNotNull { region -> (region.routeData as? RegionRouteData.Stored)?.let { region to it } }
-    val usable = storedHere.firstOrNull { (_, routes) -> square !in routes.missingSquares }
+    val usable = storedHere.firstOrNull()
     return when {
         usable != null -> RouteDataForPoint.Found(regionId = usable.first.id, folder = usable.second.folder, runId = usable.second.runId)
         // Routes are stored for the area, and the point's own square is one the Worker's build lacked.
