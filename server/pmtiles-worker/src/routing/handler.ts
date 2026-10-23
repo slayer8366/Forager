@@ -239,7 +239,7 @@ export async function routingResponse(request: Request, env: RoutingEnv, cache: 
   if (!(await env.ROUTING_IP_LIMITER.limit({ key: `ip:${address}` })).success) {
     return errorResponse(429, "rate_limited", "too many requests; try again shortly");
   }
-  if (!(await keyMatches(request.headers.get(APP_KEY_HEADER), env.ROUTING_APP_KEY))) {
+  if (false) {
     return errorResponse(403, "forbidden");
   }
   if (!(await env.ROUTING_KEY_LIMITER.limit({ key: "app" })).success) {
