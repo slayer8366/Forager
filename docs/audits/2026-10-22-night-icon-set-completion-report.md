@@ -420,3 +420,58 @@ skipped IDs. Before this amendment there were 5286; the 4 are the new class. The
 - The "Use offline tiles" setting, when it is on with signal, also draws Trail Map from the downloaded areas for a Topo
   or OSM user (`drawsFromDownloads`). The amendment rules only the no-signal case, so the chip stays in its normal colour
   there. Whether it should also be grey there is the owner's question; I did not decide it.
+
+### Amendment 3, follow-up: grey under "Use offline tiles" too (added 2026-10-23 UTC)
+
+**The owner's answer to the question above.** "Yes, grey then too (Recommended)", with the option text "Same meaning
+everywhere: grey = chosen, but Trail is being shown instead." (relayed by Rowan).
+
+**Every path that draws Trail Map in place of a chosen Topo or OSM.** I found two, both inside the map's own rule
+`drawsFromDownloads` (`NoSignalTrailMap.kt:45-46`), which `SightingsMap` applies through `rememberDrawsFromDownloads`
+(`SightingsMap.kt:590`) for every map it draws:
+1. **No signal:** `LocalNoSignal`, after its hysteresis. It applies to the Maps tab and to the Cartography entry map
+   alike.
+2. **"Use offline tiles":** `MapRenderMode.useOfflineTiles`. Only the Cartography entry map sets it: its "Offline maps"
+   switch and fullscreen row (`CartographyEntryReportScreen.kt:314`, `:435`, `:642`, passed at `:565`). The Maps tab
+   never sets it: `MapRenderMode`'s default is `false`, and `MapSlot.kt:124` passes it through unchanged.
+
+The chip now uses the map's own function: `chosenMapModeStandsAside` is `mode.basemap != FORAGER_TRAIL &&
+drawsFromDownloads(offlineTiles, mode.basemap, noSignal)`. The chip and the map therefore answer the same question the
+same way. `MapLayersSheet` gains `offlineTiles` (default `false`); the entry map passes its `useOfflineTiles`, and the
+Maps tab passes nothing.
+
+**Every surface with a Layers sheet.** There are two `MapLayersSheet` call sites, and both read the shared no-signal
+state through the sheet itself:
+- the Maps tab, `CompactMapPickers.kt:99`, which serves the compact and wide layouts;
+- the entry map, `CartographyEntryReportScreen.kt:649`.
+
+None leaves the shared state out. **One reach limit to state plainly:** while the entry map's "Offline maps" is on, its
+Layers button is hidden (`mapModePickerEnabled = !useOfflineTiles`, `CartographyEntryReportScreen.kt:631`;
+`MapIconBar.kt:191`). The sheet is modal, so offline tiles cannot be switched while it is open. So today the
+offline-tiles grey is wired and tested but cannot be seen on a phone. It would show only if that button were shown in
+offline mode, which is the owner's call (the doc at `CartographyEntryReportScreen.kt:236-240` records why it is
+hidden).
+
+**A third substitution, not covered:** Trail chosen, but Trail Map's style failed to load online (the -1513 fallback),
+draws OpenStreetMap's raster in place of Trail. That is not "Trail shown instead", so the Trail chip stays as it is.
+Whether the same grey should mean "chosen, but something else is shown" there is a question for the owner.
+
+**Commits:**
+- `a5e955d1e`: the parameter threaded through, and the tests, with the condition not wired.
+- `004ebd064`: the condition wired.
+
+**Failing first.** Run 39907853465, filtered to the sheet, map-type and entry-report tests (67 tests). No compile
+errors. One failure: with offline tiles on and signal, Topo was drawn `#6b421a` where `#444444` was expected (dark
+theme). The new Trail-unchanged test passed there too: it guards, it does not discriminate.
+
+**Revert check.**
+- R11 passes `false` for offline tiles: run 39908509293, no compile errors. The one failure is the same assertion, and
+  nothing else failed.
+- R9 and R10 (above) ran against the first form of the condition. R10's edit is still exactly the unwired state.
+
+**Suite.** Run 39908507242 on `004ebd064`, the PR's merge commit, all jobs green: 5292 tests, 0 failures, the same 24
+skipped IDs. The debug APK is 82,918,391 bytes.
+
+**S22 launch check.** 1.0.3840+gd70a7a77, an upgrade from 3837; schema 22. PASS. The S22 is left on 1.0.3840.
+
+**Device step.** Only the no-signal step above can be seen on a phone, for the reason given; it is unchanged.
