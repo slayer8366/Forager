@@ -139,7 +139,7 @@ internal class RegionRouteStore(
         if (DELETING_MARK in name) return Verdict.Remove("an unfinished delete")
         if (name.endsWith(PARTIAL_SUFFIX)) {
             val id = name.removeSuffix(PARTIAL_SUFFIX).toLongOrNull() ?: return Verdict.Unknown
-            return if (id in fetching) Verdict.Keep else Verdict.Remove("a fetch that never finished")
+            return Verdict.Remove("a fetch that never finished")
         }
         val id = name.toLongOrNull() ?: return Verdict.Unknown
         return if (id in keepIds || id in fetching) Verdict.Keep else Verdict.Remove("no region $id")
