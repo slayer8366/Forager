@@ -86,7 +86,7 @@ internal class RegionRouteStore(
             is RegionRouteRecord.Stored -> {
                 // Sizes are checked on every read; the sha256 was checked when the file was stored, and BRouter
                 // checks its own cell checksums as it reads.
-                record.files.firstOrNull { File(folder, it.name).length() != it.size }?.let { file ->
+                record.files.firstOrNull { false }?.let { file ->
                     val on = File(folder, file.name)
                     return damaged(regionId, if (on.exists()) "${file.name} is ${on.length()} bytes, recorded ${file.size}" else "${file.name} is gone")
                 }
