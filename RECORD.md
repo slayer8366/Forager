@@ -27078,3 +27078,26 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - **Checked live afterwards:** v2 style 200, 8/75/124 from r2-world-south, and /routing/ still 404 (no route yet).
 - **Under the Owner's choices (-1568, B and D):** no Play Integrity for now.
 **Notes:** Written by the planner by hand. Next free ID -1572.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1572
+**Timestamp:** 2026-10-23T14:45:58Z
+**Continues:** 2026-09-28-1571, 2026-09-28-1568
+**Title:** #381 (route-data Worker) and #382 (BRouter engine) merged; the Worker deployed with routing
+**Observed:**
+- **The merges,** on the owner's word after Sorrel's reviews (`docs/audits/2026-10-23-review-pr381.md` 6822cb8c and `-pr382.md` 6ad52ee4, both mergeable): #381 at 9757976c2, #382 at 54f4d56c4. The S22 engine timing was 0.68 s cold, then 38–94 ms, with about 26 MB peak.
+- **The deploy:** wrangler, from pre-main 54f4d56c4. The bundle sha256 84ee6dac… equals CI run 39939798014's artifact, with both rate limiters bound. The version is 1a85a35e; the code rollback is 03db9cb1.
+- **Live checks:**
+  - no key or a wrong key gives 403;
+  - with the key, the Boulder box gives 200 with run usca-20261021T111429Z, W110_N35.rd5 and W110_N40.rd5, and missing [];
+  - a file downloads 200 with a matching sha256, and 403 without the key;
+  - a sea box gives 404 outside_coverage;
+  - tiles and the v2 style are unchanged.
+- **Unverified:** whether the edge cache stores cuts on workers.dev (a second fetch took the same time).
+**Open:**
+- Dispatch 2026-10-23-03 (downloads store routes).
+- Sorrel's #382 M1 (cancel stops the engine) before a production caller.
+- The -1547 detour design.
+**Notes:** Written by the planner by hand. Next free ID -1573.
