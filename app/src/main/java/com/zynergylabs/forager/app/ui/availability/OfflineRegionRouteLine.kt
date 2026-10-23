@@ -26,7 +26,6 @@ import com.zynergylabs.forager.app.domain.routedata.needsFetch
  */
 internal fun offlineRouteLine(routeData: RegionRouteData, fetching: Boolean, attemptFailed: Boolean, noSignal: Boolean): OfflineRouteLine? = when {
     fetching -> OfflineRouteLine(ROUTES_GETTING, tryAgain = false)
-    routeData is RegionRouteData.Stored -> null
     !routeData.needsFetch() -> OfflineRouteLine(ROUTES_NONE_HERE, tryAgain = false)
     noSignal -> OfflineRouteLine(ROUTES_NEXT_TIME_ONLINE, tryAgain = false)
     attemptFailed -> OfflineRouteLine(ROUTES_DIDNT_DOWNLOAD, tryAgain = true)
