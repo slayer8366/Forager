@@ -1,5 +1,26 @@
 package com.zynergylabs.forager.app
 
+import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.onAutoSaveLocationToPhotosChanged
+import com.zynergylabs.forager.app.ui.availability.onBatterySaverChanged
+import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
+import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
+import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
+import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
+import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
+import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
+import com.zynergylabs.forager.app.ui.availability.onOffTrackReminderChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapLatChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapLngChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapNameChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapRadiusChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapsOpened
+import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
+import com.zynergylabs.forager.app.ui.availability.onSundownAlertsEnabledChanged
+import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
+import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.Manifest
 import android.content.Intent
 import android.os.Build

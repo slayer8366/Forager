@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
