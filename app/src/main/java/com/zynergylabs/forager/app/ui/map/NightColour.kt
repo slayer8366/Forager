@@ -173,62 +173,6 @@ private fun streetFillNightOf(day: RgbaColour): RgbaColour {
 }
 
 /**
- * An icon whose ring takes its own night colour (RECORD -1345, "Place dots + icon rings (Recommended)"): [dayRing] and
- * [dayFill] are the colours the sprite draws the ring and its inside with, [nightRing] the ring's night colour. As
- * RGB, no alpha.
- */
-internal data class IconRingNight(val dayRing: Int, val dayFill: Int, val nightRing: Int)
-
-/**
- * The own Street's icons whose rings read too dark inverted (1.0 to 1.4:1 on the night forest): the place dot, and the
- * toilets and drinking-water icons. The design's copy is `NIGHT_ICON_RINGS` in `map-style/overrides/forager-street.mjs`.
- */
-internal val STREET_NIGHT_ICON_RINGS: Map<String, IconRingNight> = mapOf(
-    "townspot" to IconRingNight(dayRing = 0x868686, dayFill = 0xF3F3F3, nightRing = 0xD6D6D6),
-    "toilets" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
-    "drinking_water" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
-)
-
-/**
- * How far, in RGB levels, a pixel may sit from the line between an icon's ring and fill colours and still count as part
- * of that ring or its edge. The sprite's own anti-aliasing sits on that line (its edge pixels are mixes of the two);
- * a symbol drawn inside the icon in another colour does not, and keeps the plain inversion.
- */
-private const val RING_TOLERANCE = 16.0
-
-/**
- * One icon's night pixels with its ring kept light ([ring]); without one, [nightPixelsOf]. A pixel on the ring-to-fill
- * line at fraction `t` from the ring becomes the same mix of [IconRingNight.nightRing] and the fill's inversion, so the
- * ring's anti-aliased edge stays smooth; every other pixel is the plain inversion. Alpha is kept.
- */
-internal fun nightIconPixelsOf(pixels: IntArray, ring: IconRingNight?): IntArray {
-    if (ring == null) return nightPixelsOf(pixels)
-    fun ch(c: Int, shift: Int) = (c shr shift) and 0xFF
-    val ringRgb = intArrayOf(ch(ring.dayRing, 16), ch(ring.dayRing, 8), ch(ring.dayRing, 0))
-    val fillRgb = intArrayOf(ch(ring.dayFill, 16), ch(ring.dayFill, 8), ch(ring.dayFill, 0))
-    val nightFill = nightColorOf((0xFF shl 24) or ring.dayFill)
-    val nightFillRgb = intArrayOf(ch(nightFill, 16), ch(nightFill, 8), ch(nightFill, 0))
-    val nightRingRgb = intArrayOf(ch(ring.nightRing, 16), ch(ring.nightRing, 8), ch(ring.nightRing, 0))
-    val axis = DoubleArray(3) { (fillRgb[it] - ringRgb[it]).toDouble() }
-    val axisLength2 = axis.sumOf { it * it }
-    return IntArray(pixels.size) { i ->
-        val p = pixels[i]
-        val rgb = intArrayOf(ch(p, 16), ch(p, 8), ch(p, 0))
-        val t = (DoubleArray(3) { (rgb[it] - ringRgb[it]) * axis[it] }.sum() / axisLength2).coerceIn(0.0, 1.0)
-        val distance2 = (0 until 3).sumOf { val d = rgb[it] - (ringRgb[it] + t * axis[it]); d * d }
-        if (distance2 > RING_TOLERANCE * RING_TOLERANCE) {
-            nightColorOf(p)
-        } else {
-            val out = IntArray(3) { (nightRingRgb[it] + t * (nightFillRgb[it] - nightRingRgb[it])).roundToInt().coerceIn(0, 255) }
-            (p and 0xFF000000.toInt()) or (out[0] shl 16) or (out[1] shl 8) or out[2]
-        }
-    }
-}
-
-/** [pixels] (ARGB, as `Bitmap.getPixels` gives them) through [nightColorOf], alpha kept: an icon's night look. */
-internal fun nightPixelsOf(pixels: IntArray): IntArray = IntArray(pixels.size) { nightColorOf(pixels[it]) }
-
-/**
  * The night value for one layer colour property: [nightColorOf] of a literal, or of every colour
  * literal inside an expression of any kind (`match`, `case`, `interpolate`, `step` or any other,
  * planner ruling 2), leaving labels, conditions and zoom stops as they are.

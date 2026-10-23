@@ -217,17 +217,19 @@ class NightExceptionsTest {
     }
 
     @Test
-    fun `every fill pattern the style draws is redrawn at night, the tree painted and the tufts inverted`() {
+    fun `every fill pattern the style draws is painted at night, the tree and the tufts each their ruled colour`() {
         val patterns = style.getValue("layers").jsonArray
             .mapNotNull { it.jsonObject["paint"]?.jsonObject?.get("fill-pattern")?.jsonPrimitive?.content }
         assertEquals(listOf("tree_dark_irregular", "tufts"), patterns)
-        patterns.forEach { assertTrue("$it is not redrawn at night", it in STREET_SPRITE_NIGHT_NAMES) }
-        assertEquals("an image redrawn twice", STREET_SPRITE_NIGHT_NAMES.size, STREET_SPRITE_NIGHT_NAMES.toSet().size)
-        // The tree glyph's day pixel to its ruled night; the tufts' day #3fa0c8 to its inversion #2485ad, the owner's
-        // "Keep #2485ad", exactly as the approved night sprite draws it.
-        assertEquals(0xFF5D804F.toInt(), streetSpriteNightPixelsOf("tree_dark_irregular", intArrayOf(0xFF3E7A3A.toInt())).single())
-        assertEquals(0xFF2485AD.toInt(), streetSpriteNightPixelsOf("tufts", intArrayOf(0xFF3FA0C8.toInt())).single())
+        assertEquals(patterns.toSet(), STREET_NIGHT_PATTERN_PAINTS.keys)
+        // The tree glyph's day pixel to its ruled night; the tufts painted #2485ad (RECORD -1566), which is also the
+        // inversion of its day #3fa0c8, the owner's earlier "Keep #2485ad".
+        assertEquals(0xFF5D804F.toInt(), nightSpritePixelsOf("tree_dark_irregular", intArrayOf(0xFF3E7A3A.toInt())).single())
+        assertEquals(0xFF2485AD.toInt(), nightSpritePixelsOf("tufts", intArrayOf(0xFF3FA0C8.toInt())).single())
+        assertEquals(nightColorOf(0xFF3FA0C8.toInt()), nightSpritePixelsOf("tufts", intArrayOf(0xFF3FA0C8.toInt())).single())
+        // An off-colour tufts edge pixel is painted, not inverted: the 1x sheet has such pixels.
+        assertEquals(0x802485AD.toInt(), nightSpritePixelsOf("tufts", intArrayOf(0x8000FFFF.toInt())).single())
         // A new icon inverts like every icon: the ring #4fa074 and fill #d6f2e3 of the approved night icons.
-        assertEquals(listOf(0xFF61B286.toInt(), 0xFF0E2A1B.toInt()), streetSpriteNightPixelsOf("trailhead_b", intArrayOf(0xFF4FA074.toInt(), 0xFFD6F2E3.toInt())).toList())
+        assertEquals(listOf(0xFF61B286.toInt(), 0xFF0E2A1B.toInt()), nightSpritePixelsOf("trailhead_b", intArrayOf(0xFF4FA074.toInt(), 0xFFD6F2E3.toInt())).toList())
     }
 }
