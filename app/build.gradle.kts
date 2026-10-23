@@ -490,6 +490,8 @@ ksp {
 }
 
 dependencies {
+    // BRouter v1.7.10, vendored (third_party/brouter): the trail router behind domain/routing/TrailRouter.
+    implementation(project(":brouter"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
