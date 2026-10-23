@@ -12,6 +12,10 @@ import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Response
+import okio.buffer
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -83,16 +87,119 @@ class RegionRouteFetchTest {
         val list = server.requests.first().url
         assertEquals(LIST_PATH, list.encodedPath)
         val asked = listOf("south", "west", "north", "east").associateWith { list.queryParameter(it)!! }
-        // The Worker takes at most nine decimals (PR #381 routing/area.ts, DECIMAL), plain, never exponent form.
-        asked.values.forEach { assertTrue("'$it' is plain decimal with at most nine places", Regex("^-?\\d{1,3}(\\.\\d{1,9})?$").matches(it)) }
-        // Rounded outward, so the area asked for holds the whole region, and by less than a nanodegree.
+        // Exactly six decimals, plain, never exponent form (Sorrel's review of #381, M2).
+        asked.values.forEach { assertTrue("'$it' is plain decimal with exactly six places", Regex("^-?\\d{1,3}\\.\\d{6}$").matches(it)) }
+        // Rounded outward, so the area asked for holds the whole region, and by less than a microdegree.
         val edges = asked.mapValues { it.value.toDouble() }
-        assertTrue(edges.getValue("south") <= box.south && box.south - edges.getValue("south") < 1e-9)
-        assertTrue(edges.getValue("west") <= box.west && box.west - edges.getValue("west") < 1e-9)
-        assertTrue(edges.getValue("north") >= box.north && edges.getValue("north") - box.north < 1e-9)
-        assertTrue(edges.getValue("east") >= box.east && edges.getValue("east") - box.east < 1e-9)
+        assertTrue(edges.getValue("south") <= box.south && box.south - edges.getValue("south") < 1e-6)
+        assertTrue(edges.getValue("west") <= box.west && box.west - edges.getValue("west") < 1e-6)
+        assertTrue(edges.getValue("north") >= box.north && edges.getValue("north") - box.north < 1e-6)
+        assertTrue(edges.getValue("east") >= box.east && edges.getValue("east") - box.east < 1e-6)
         assertEquals(listOf(LIST_PATH, "/routing/run-1/W125_N45.rd5"), server.requests.map { it.url.encodedPath })
         assertEquals(listOf(listOf(KEY), listOf(KEY)), server.requests.map { it.headers(RouteAreaClient.APP_KEY_HEADER) })
+    }
+
+    @Test
+    fun `edges are six plain decimals even where Kotlin would print an exponent or fewer places`() {
+        assertEquals("0.000100", 1.0e-4.edge(java.math.RoundingMode.CEILING))
+        assertEquals("-0.000100", (-1.0e-4).edge(java.math.RoundingMode.FLOOR))
+        assertEquals("40.000000", 40.0.edge(java.math.RoundingMode.FLOOR))
+        assertEquals("-105.310001", (-105.3100001).edge(java.math.RoundingMode.FLOOR))
+        assertEquals("39.985001", 39.9850001.edge(java.math.RoundingMode.CEILING))
+    }
+
+    @Test
+    fun `the live Worker's Boulder answer is stored as given, under its own unpadded names`() {
+        // Shape and sizes as the planner relayed the live Worker's answer for the Boulder box; the bytes are stand-ins.
+        val w35 = Random(3).nextBytes(131_451)
+        val w40 = Random(4).nextBytes(244_721)
+        server.serveArea("usca-20261021T111429Z", mapOf("W110_N35.rd5" to w35, "W110_N40.rd5" to w40))
+        // The live Worker sends the header in lower case; HTTP header names are case-insensitive.
+        server.answers["/routing/usca-20261021T111429Z/W110_N35.rd5"] = {
+            Response.Builder().code(200).message("OK").body(w35.toResponseBody("application/octet-stream".toMediaType())).header("x-forager-sha256", FakeRouteServer.sha256(w35))
+        }
+
+        val fetched = fetch()
+
+        assertEquals(RegionRouteData.Stored("usca-20261021T111429Z", "2026-10-21T00:00:00Z", 376_172L, regionFolder()), fetched)
+        assertEquals(setOf("W110_N35.rd5", "W110_N40.rd5", RECORD_FILE_NAME), regionFolder().list()!!.toSet())
+    }
+
+    @Test
+    fun `a forbidden answer with only an error field, as the live Worker sends it, is recorded as forbidden`() {
+        server.answers[LIST_PATH] = { status(403, """{"error":"forbidden"}""") }
+
+        assertMissing(RouteDataMissingReason.FORBIDDEN)
+    }
+
+    @Test
+    fun `outside_coverage with the live Worker's extra squares field is still no routes here`() {
+        server.answers[LIST_PATH] = { status(404, """{"error":"outside_coverage","message":"the area needs route data this build does not cover","squares":["W30_N40"]}""") }
+
+        assertEquals(RegionRouteData.NoneHere, fetch())
+    }
+
+    @Test
+    fun `an error code nobody agreed is logged and recorded as a failed download`() {
+        server.answers[LIST_PATH] = { error(500, "something_new") }
+
+        assertMissing(RouteDataMissingReason.UNEXPECTED_RESPONSE)
+        assertEquals(1, logs.count { "(unexpected_response)" in it && "something_new" in it })
+    }
+
+    @Test
+    fun `a download cut off mid-file never leaves a part-written rd5 anywhere`() {
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA))
+        // The body promises 3000 bytes and the connection drops after 1000.
+        server.answers["/routing/run-1/W125_N45.rd5"] = {
+            val cut = okio.Buffer().write(squareA, 0, 1_000)
+            val body = object : okhttp3.ResponseBody() {
+                override fun contentType() = "application/octet-stream".toMediaType()
+                override fun contentLength() = 3_000L
+                override fun source(): okio.BufferedSource = object : okio.ForwardingSource(cut) {
+                    override fun read(sink: okio.Buffer, byteCount: Long): Long {
+                        val n = super.read(sink, byteCount)
+                        if (n == -1L) throw java.io.IOException("connection reset mid-file")
+                        return n
+                    }
+                }.buffer()
+            }
+            Response.Builder().code(200).message("OK").body(body).header(RouteAreaClient.SHA256_HEADER, FakeRouteServer.sha256(squareA))
+        }
+
+        assertMissing(RouteDataMissingReason.NETWORK)
+        val rd5 = temp.root.walk().filter { it.name.endsWith(".rd5") }.toList()
+        assertEquals(emptyList<File>(), rd5)
+    }
+
+    @Test
+    fun `while a file downloads its name does not end in rd5`() {
+        var seenDuringDownload: Set<String> = emptySet()
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA, "W120_N45.rd5" to squareB))
+        val second = server.answers.getValue("/routing/run-1/W120_N45.rd5")
+        server.answers["/routing/run-1/W120_N45.rd5"] = {
+            // The first file is finished and renamed by now; nothing else in the folder may be an .rd5 yet.
+            seenDuringDownload = File(temp.root, "offline_routes").walk().filter { it.isFile }.map { it.name }.toSet()
+            second()
+        }
+
+        fetch()
+
+        assertEquals(setOf("W125_N45.rd5"), seenDuringDownload)
+        assertFalse(temp.root.walk().any { it.name.endsWith(RouteAreaClient.DOWNLOAD_SUFFIX) })
+    }
+
+    @Test
+    fun `no file BRouter reads for its own settings is ever written under the route folders`() {
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA))
+        fetch()
+        server.answers[LIST_PATH] = { error(503, "manifest_missing") }
+        runBlocking { folders().fetchFor(REGION_ID + 1, region) }
+
+        // Sorrel's review of #382, L4: BRouter reads these names if they are present.
+        val names = temp.root.walk().map { it.name }.toSet()
+        assertTrue(names.intersect(setOf("debug.txt", "stacks.txt", "storageconfig.txt")).isEmpty())
+        assertEquals(setOf("W125_N45.rd5", RECORD_FILE_NAME), regionFolder().list()!!.toSet())
     }
 
     @Test
