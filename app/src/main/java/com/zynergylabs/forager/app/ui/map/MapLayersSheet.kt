@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -274,18 +273,7 @@ internal fun MapLayersSheet(
             // panel sides. The height position on the panel is fine as is."; dispatch 2026-09-28-104, item 9). The column above has
             // equal padding at both ends, so centring in it is centring in the sheet; the spacing between chips and the row's height
             // are unchanged.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
-            ) {
-                MapMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = mode == mapMode,
-                        onClick = { onMapModeSelected(mode) },
-                        label = { Text(mode.label) },
-                    )
-                }
-            }
+            MapModeChipRow(mapMode, onMapModeSelected)
             Text("Overlays", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.sm))
             overlays.forEach { option ->
                 LayerSwitchRow(
