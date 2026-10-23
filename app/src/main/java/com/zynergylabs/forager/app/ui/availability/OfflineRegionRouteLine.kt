@@ -30,7 +30,7 @@ internal fun offlineRouteLine(routeData: RegionRouteData, fetching: Boolean, att
     !routeData.needsFetch() -> OfflineRouteLine(ROUTES_NONE_HERE, tryAgain = false)
     noSignal -> OfflineRouteLine(ROUTES_NEXT_TIME_ONLINE, tryAgain = false)
     attemptFailed -> OfflineRouteLine(ROUTES_DIDNT_DOWNLOAD, tryAgain = true)
-    else -> null
+    else -> OfflineRouteLine(ROUTES_DIDNT_DOWNLOAD, tryAgain = true)
 }
 
 internal data class OfflineRouteLine(val text: String, val tryAgain: Boolean)
