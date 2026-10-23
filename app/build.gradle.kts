@@ -252,6 +252,15 @@ android {
         targetSdk = 37
         versionCode = buildIdentity.code
         versionName = buildIdentity.name
+        // The routing app key (dispatch 2026-10-23-03, the planner's contract): sent as X-Forager-App-Key on every
+        // routing request. From the Gradle property forager.routingAppKey, else the environment variable
+        // FORAGER_ROUTING_APP_KEY, else empty, and an empty key sends no routing request at all. Never committed;
+        // CI sets neither, and the tests use a fake server. Not a secret from anyone who unpacks the APK (PR #381's
+        // report, option B): it keeps the route from anyone who has only the URL.
+        val routingAppKey = providers.gradleProperty("forager.routingAppKey")
+            .orElse(providers.environmentVariable("FORAGER_ROUTING_APP_KEY"))
+            .getOrElse("")
+        buildConfigField("String", "ROUTING_APP_KEY", "\"${routingAppKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     // A stable debug signing identity, committed at app/debug.keystore (return-estimate device

@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 
 /**
  * Owned abstraction over a persistent store of downloaded map regions — the same pattern as
@@ -215,6 +216,7 @@ data class OfflineRegionSummary(
     val minZoom: Double,
     val maxZoom: Double,
     val tileCount: Int,
+    /** The region's bytes on the phone: its tiles plus its stored route data ([routeData]). */
     val sizeBytes: Long,
     val createdAtEpochMillis: Long,
     /**
@@ -230,4 +232,9 @@ data class OfflineRegionSummary(
      * "Older map style" notice (RECORD -1294).
      */
     val styleUrl: String? = null,
+    /**
+     * The region's trail route data (dispatch 2026-10-23-03), read from its route folder on every listing. Its bytes
+     * are already inside [sizeBytes]: map and routes are one unit to the user (RECORD -1498 q1).
+     */
+    val routeData: RegionRouteData = RegionRouteData.NotFetched,
 )

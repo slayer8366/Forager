@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.map
 
 import com.zynergylabs.forager.app.data.local.OfflineRegionDao
 import com.zynergylabs.forager.app.data.local.OfflineRegionEntity
+import com.zynergylabs.forager.app.data.routedata.RegionRouteFolders
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 
@@ -24,7 +25,9 @@ internal class LiveRegion(
 /**
  * Reconciles `OfflineManager`'s read with the Room index and returns the regions to show.
  * [deleteRegion] deletes a region's tiles from `OfflineManager`; [inFlightIds] are downloads this
- * process is still running.
+ * process is still running. [routes] holds each region's trail route data (dispatch 2026-10-23-03): each shown
+ * region carries its state and counts its bytes into its size, a region deleted here loses its routes too, and
+ * route folders no region owns are cleared last.
  */
 internal suspend fun reconcileOfflineRegions(
     live: List<LiveRegion>,
@@ -32,6 +35,7 @@ internal suspend fun reconcileOfflineRegions(
     inFlightIds: Set<Long>,
     deleteRegion: suspend (Long) -> Unit,
     warn: (String) -> Unit,
+    routes: RegionRouteFolders,
 ): List<OfflineRegionSummary> {
     // A Room row with no MapLibre region is kept, not shown, and logged every time it is seen.
     // MapLibre's read is not authoritative: an empty or partial read (a store that was not the one
@@ -43,7 +47,7 @@ internal suspend fun reconcileOfflineRegions(
         warn("Room region row $id has no MapLibre region in this read; kept, not shown.")
     }
 
-    return live.mapNotNull { region ->
+    val shown = live.mapNotNull { region ->
         if (!region.isComplete) {
             when (val decision = incompleteRegionDecision(region, hasRoomRow = dao.getById(region.id) != null, inFlightIds)) {
                 IncompleteRegionDecision.InFlight -> Unit
@@ -51,6 +55,7 @@ internal suspend fun reconcileOfflineRegions(
                     warn("Deleting region ${region.id}: it never finished (incomplete, not downloading now, no Room row, metadata never recorded a completion).")
                     deleteRegion(region.id)
                     dao.deleteById(region.id)
+                    deleteRoutesOrLeaveForCleanup(routes, region.id, warn)
                 }
                 is IncompleteRegionDecision.Keep ->
                     warn("Region ${region.id} is incomplete; kept, not shown: ${decision.reason}.")
@@ -85,6 +90,7 @@ internal suspend fun reconcileOfflineRegions(
                 }
             }
 
+        val routeData = routes.status(row.id)
         OfflineRegionSummary(
             id = row.id,
             name = row.name,
@@ -92,10 +98,29 @@ internal suspend fun reconcileOfflineRegions(
             minZoom = row.minZoom,
             maxZoom = row.maxZoom,
             tileCount = region.tileCount.toInt(),
-            sizeBytes = region.sizeBytes,
+            // One unit to the user: the region's size is its tiles and its routes (dispatch 2026-10-23-03, item 2).
+            sizeBytes = region.sizeBytes + routeData.sizeBytes,
             createdAtEpochMillis = row.createdAtEpochMillis,
             styleUrl = region.styleUrl,
+            routeData = routeData,
         )
+    }
+
+    // Kept: every Room row (a row with no MapLibre region in this read is kept, above, and so are its routes), every
+    // region in the read, and every download still running. Read after the deletes and rebuilds above.
+    routes.cleanOrphans(dao.getAll().map { it.id }.toSet() + liveIds + inFlightIds)
+    return shown
+}
+
+/**
+ * Deletes [regionId]'s routes after its tiles and row are gone. A failure is logged, not thrown: the region is already
+ * gone, and its folder, now owned by no region, is removed by the next [RegionRouteFolders.cleanOrphans].
+ */
+internal suspend fun deleteRoutesOrLeaveForCleanup(routes: RegionRouteFolders, regionId: Long, warn: (String) -> Unit) {
+    try {
+        routes.delete(regionId)
+    } catch (e: java.io.IOException) {
+        warn("Couldn't delete region $regionId's routes (${e.message}); the next listing clears them.")
     }
 }
 

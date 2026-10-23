@@ -4,13 +4,13 @@ import android.content.Context
 import android.util.Log
 import com.zynergylabs.forager.app.data.local.OfflineRegionDao
 import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
+import com.zynergylabs.forager.app.data.routedata.RegionRouteFolders
 import com.zynergylabs.forager.app.data.local.OfflineRegionEntity
 import com.zynergylabs.forager.app.data.repository.runCatchingCancellable
-import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
-import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.domain.routedata.routeAreaFor
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -88,6 +88,8 @@ class MapLibreOfflineMapRepository(
     context: Context,
     private val offlineRegionDao: OfflineRegionDao,
     private val regionIdReplacer: RoomOfflineRegionIdReplacer,
+    /** Each region's trail route data, fetched with its tiles, listed with them, deleted with them (dispatch 2026-10-23-03). */
+    private val routes: RegionRouteFolders,
 ) : OfflineMapRepository {
 
     private val appContext = context.applicationContext
@@ -165,6 +167,10 @@ class MapLibreOfflineMapRepository(
             ),
         )
 
+        // The routes for the same rectangle, after the tiles: a failure here is a state on the region, logged where
+        // it happens, and never undoes the map download (dispatch 2026-10-23-03, item 3).
+        val routeData = routes.fetchFor(offlineRegion.id, region)
+
         OfflineRegionSummary(
             id = offlineRegion.id,
             name = name,
@@ -172,8 +178,9 @@ class MapLibreOfflineMapRepository(
             minZoom = OfflineMapRepository.MIN_ZOOM,
             maxZoom = OfflineMapRepository.MAX_ZOOM,
             tileCount = finalStatus.completedTileCount.toInt(),
-            sizeBytes = finalStatus.completedResourceSize,
+            sizeBytes = finalStatus.completedResourceSize + routeData.sizeBytes,
             createdAtEpochMillis = downloadedAt,
+            routeData = routeData,
         )
     }
 
@@ -188,6 +195,7 @@ class MapLibreOfflineMapRepository(
     override suspend fun deleteRegion(id: Long): Result<Unit> = runCatchingCancellable {
         offlineManager().listOfflineRegionsSuspend().firstOrNull { it.id == id }?.deleteSuspend()
         offlineRegionDao.deleteById(id)
+        deleteRoutesOrLeaveForCleanup(routes, id) { message -> Log.w(TAG, message) }
     }
 
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = runCatchingCancellable {
@@ -216,6 +224,7 @@ class MapLibreOfflineMapRepository(
             inFlightIds = inFlightRegionIds.toSet(),
             deleteRegion = { id -> byId.getValue(id).deleteSuspend() },
             warn = { message -> Log.w(TAG, message) },
+            routes = routes,
         )
     }
 
@@ -270,8 +279,9 @@ internal suspend fun currentOfflineRenderStyleUrl(context: Context): String {
     }
 }
 
+// The same rectangle the region's routes are cut to (routeAreaFor), so map and routes cover one area.
 private fun Region.toLatLngBounds(): LatLngBounds {
-    val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)
+    val box = routeAreaFor(this)
     return LatLngBounds.Builder()
         .include(org.maplibre.android.geometry.LatLng(box.north, box.east))
         .include(org.maplibre.android.geometry.LatLng(box.south, box.west))
