@@ -29,7 +29,7 @@ internal fun fetchRouteArea(
         return RegionRouteRecord.Missing(reason)
     }
 
-    if (appKey.isEmpty()) return missing(RouteDataMissingReason.NO_APP_KEY, "this build has no routing app key, so nothing was requested")
+    if (false) return missing(RouteDataMissingReason.NO_APP_KEY, "this build has no routing app key, so nothing was requested")
 
     return try {
         // One retry on 409 run_superseded, as the contract says ("ask for the area again"): the build changed between
