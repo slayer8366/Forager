@@ -27101,3 +27101,31 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - Sorrel's #382 M1 (cancel stops the engine) before a production caller.
 - The -1547 detour design.
 **Notes:** Written by the planner by hand. Next free ID -1573.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-1573
+**Timestamp:** 2026-10-23T20:20:51Z
+**Closes:** dispatch 2026-10-23-03
+**Title:** #384 (the AvailabilityViewModel split) and #383 (downloads store trail routes) merged; Saturday's scope is complete (owner)
+**Outcome:** completed. #384 merged at 6c95da419, then #383 at 680cb2641, on the owner's "Merge both (Recommended)".
+- **Sorrel's reviews:** `docs/audits/2026-10-23-review-pr383.md` (201f587ab) and `-pr384-pr383-followup.md` (6031527d9): both mergeable, with #384 a verified pure move.
+- **The owner's step-path rulings** are in `docs/navigation/2026-10-23-offline-area-routes-report.md`:
+  - an automatic fetch with Try again as a backup;
+  - the wording as drafted;
+  - D shown only when a route reaches the edge;
+  - a fetch when signal returns.
+- **The planner's ruling on Sorrel's A1:** the six to eight members widened to internal for the extension files are accepted. The -1450 decisions stay ViewModel functions by convention.
+- **On the S22:** a live route download stored W125_N45.rd5 (run usca-20261021T111429Z) for the owner's region.
+- **Saturday's scope (-1568), "route data + engine":**
+  - routes are cut by the deployed Worker (-1572);
+  - they're stored with each download (this entry);
+  - the BRouter engine is in the app (#382).
+- **Not yet in it:** nothing calls the engine in production, which is by design.
+**Open:**
+- Sorrel's later notes: #382 M1 (cancel), #383 B1-B4, A2.
+- The next Play build needs `forager.routingAppKey` in the build machine's `~/.gradle/gradle.properties`, and the check should include one route download.
+- The -1547 detour design.
+- The tree-glyph gaps (dispatch 2026-10-22-07), on the owner's word.
+**Notes:** Written by the planner by hand. Next free ID -1574.
