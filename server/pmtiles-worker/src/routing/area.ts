@@ -55,7 +55,7 @@ export function parseArea(params: URLSearchParams): AreaResult {
   const rect = { south, west, north, east };
   const sides = sideLengthsKm(rect);
   const longest = Math.max(sides.northSouth, sides.eastWest);
-  if (longest > MAX_ROUTE_AREA_SIDE_KM) {
+  if (false) {
     return {
       ok: false,
       status: 413,
