@@ -223,3 +223,79 @@ region's rectangle is in logcat on debug builds (headers are not logged); releas
 **Still unverified:** a failed or no-signal row on the phone (tested on the JVM only); `fetchRoutes` and the download's
 route step in `MapLibreOfflineMapRepository` beyond this one live success; the Boulder box (not needed: the owner's own
 area was used).
+
+## Part three: Amendment 1, after Sorrel's review (head `089bfabb6`)
+
+**The split first, as its own PR: #384** (`split-availability-viewmodel`, `d13151ca6`, from pre-main `54f4d56c4`).
+A pure move: the ViewModel's offline-maps functions, its Settings delegates and the waypoint navigation's start and
+stop go verbatim into three files as extension functions on `AvailabilityViewModel`. They remain ViewModel functions
+(RECORD -1450), and every caller keeps the name. Six members go from private to internal. Callers outside the package
+import the moved names. Counts: `AvailabilityViewModel.kt` 908 to 739, `AvailabilityViewModelOfflineMaps.kt` 113,
+`...Settings.kt` 50, `...WaypointNavigation.kt` 49. The 144 non-blank lines removed equal the 144 added (de-indented,
+receiver added). Full CI on it: run 39984053598, 5,313 / 0 / 24, the same three numbers as pre-main.
+
+**Into this branch:** #384 is not merged into pre-main yet. So I merged its branch here (`089bfabb6`, a merge, never a
+rebase), and this work now lives in the split-out file. pre-main gets merged in once #384 lands there. After the
+merge: `AvailabilityViewModel.kt` 751 lines, `AvailabilityViewModelOfflineMaps.kt` 142. `JournalTab.kt` (920) and the
+scaffold (1,441) keep their pass-through lines under the few-lines allowance, as the ruling says.
+
+**M1, one writer per region folder.** `RegionRouteStore.beginFetch` marks and tests in one step (`fetching.add`), and
+answers `null` when a fetch for that id is already running. `fetchFor` then returns the new state
+`RegionRouteData.Fetching` and touches nothing. A listing reads `Fetching` while any fetch runs, the download's own
+included. That makes the automatic fetch skip it (`needsFetch` is false) and the row say "Getting trail routes". The
+stored state is read only after the fetch has ended.
+
+**M2, a release build refuses to build without the key.** The task is `verifyReleaseHasRoutingAppKey`, wired to
+`assembleRelease` and `bundleRelease`, as the signing guard is. CI's release-compile job is **exempt by
+construction**: it runs `packageRelease`/`packageReleaseBundle`, which stop short of both tasks, as it already does
+for the signing guard. I did not give that job the key, because doing so would put the key in a second job and fail
+every fork's pull request, which gets no secrets. **Where the release key comes from:** `forager.routingAppKey` in the
+build machine's `~/.gradle/gradle.properties`, or `FORAGER_ROUTING_APP_KEY` in the environment, never the tracked
+`gradle.properties`. **The step for the next Play build:** add that line on the machine that builds it before
+`./gradlew bundleRelease`; the task logs that a key is set, never the key. Debug builds without a key keep `NO_APP_KEY`,
+logged, and the row's line for that state stays C.
+Proof on CI (branch `offline-area-routes-m2-proof`, run 39987326904, a workflow change not for merge):
+- the check is in `bundleRelease`'s and `assembleRelease`'s task graphs, and not in `packageRelease`'s;
+- with no key it refuses with its own message;
+- with a stand-in key (not the real one) it passes, and the stand-in's value is not in the log.
+
+**Signal return.** `OfflineRegionsSection` watches the maps' signal state while it is on screen. On each change from
+no signal to signal it reports to the ViewModel once, and never at first composition. The ViewModel
+(`onOfflineMapsSignalReturned`) checks the signal again and fetches the regions that want routes, once. The
+one-writer guard and the in-flight set keep it from double-fetching. The callbacks travel as one
+`OfflineRouteActions` (Try again, signal returned), replacing the single Try-again callback through the same files.
+
+**L1:** a stored commit removes every file in the folder its record does not name, and a superseded retry logs every
+file it cannot clear. **L2:** each `.rd5` is synced before its rename, and so is the record before the folder's
+rename. The directory itself is not synced; Java offers no portable call for that, and `status()` still reads a short
+file as `Damaged`. **L4:** during the download's route step the progress shows an indeterminate bar and "Getting trail
+routes" (`OfflineMapStatus.Downloading.gettingRoutes`). It is set by a new `onRouteStep` overload of `download` that
+defaults to the old call, so no fake changed. **L6:** the stale "not deployed" and "not built yet" comments are fixed.
+
+**Tests:** `RegionRouteFetchOneWriterTest` 3 (Sorrel's M1 path with a real second thread stopped mid-file; refetch
+after end; L1). There are 9 more across the line, row and ViewModel classes: `Fetching` on the row and in the line,
+signal return once per return and not at first composition, opened offline then signal, the ViewModel's signal-return
+fetch with and without signal, a running fetch not refetched on opening, and the download's route-step progress. The
+filtered classes went from 126 to 138. **Full suite on the PR** (run 39987282978, every job green): **5,405 tests, 0
+failed, 24 skipped**.
+
+**Revert checks 30 to 37** on `089bfabb6` (runs 39987370070 to 39987470292; 138 tests each; 0 compile errors):
+
+| # | Edit | Failed |
+|---|---|---|
+| 30 | a second fetch takes the folder | the M1 path (the running fetch's `.partial` was gone: a NullPointerException reading it) |
+| 31 | a running fetch not listed as fetching | the M1 path, "a listing during the fetch reads it as running" |
+| 32 | strays kept on a stored commit | "keeps only the files its record names" (`W130_N45.rd5` left) |
+| 33 | signal return not reported | both signal-return row tests |
+| 34 | signal return fetches with no signal | "reported while there is no signal fetches nothing" |
+| 35 | progress keeps showing tiles | the route-step progress row test |
+| 36 | route step not set in state | the ViewModel's route-step progress test |
+| 37 | a running fetch not shown on the row | the line and row `Fetching` tests |
+
+**Dex report** on run 39987282978's APK: the same five methods as part two; nothing new. **S22:** schema read
+first, `user_version` 22, so no downgrade. Launch check on that APK passed (`1.0.3873+g7bede5bd`, `status=verify`,
+cold launch, alive after 8 s, crash buffer empty). The phone was used for the launch check only. It now has that
+build, with its data and the one region's stored routes kept.
+
+**Unverified:** the signal-return and `Fetching` rows on a phone (JVM only); #384 on its own on the phone (its
+versionCode is below the installed build, and installing it would need an uninstall); the directory fsync.
