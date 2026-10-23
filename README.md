@@ -90,6 +90,12 @@ A third job, `release-compile`, proves the release variant compiles and packages
 `assembleRelease` and `bundleRelease`, which fail by design without the signing identity, and it does not upload
 the unsigned APK or bundle, only its Gradle log, as `release-compile-log`.
 
+A separate workflow, `release.yml` (dispatch 2026-10-23-04), builds the signed bundle and uploads it to Play's
+internal track as a draft. It runs only by hand (`workflow_dispatch`), only from `main`, and only after the owner
+approves the run: the `release` environment holds the branch rule, the required reviewer and the signing secrets.
+It checks the bundle's certificate fingerprints and version before uploading, uploads no artifact to GitHub, and
+deletes the decoded keystore at the end of every run.
+
 ### Run this branch on CI
 
 When the laptop is busy, a coder builds and tests a pushed branch on CI instead (RECORD -865). The branch

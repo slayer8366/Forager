@@ -473,9 +473,11 @@ tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
                     "the keystore in use is the wrong one -- check what signing.properties points at.",
             )
         }
+        // No key alias in this line: release.yml tees this log to the public Actions log, and the alias is stored
+        // there as a secret (Sorrel's review of PR #385, L1).
         logger.lifecycle(
             "Verified: the release build type signs with '${releaseSigningConfig.name}' " +
-                "(${storeFile.absolutePath}, alias '$keyAlias'), certificate SHA-256 $fingerprint -- not the debug identity.",
+                "(${storeFile.absolutePath}), certificate SHA-256 $fingerprint -- not the debug identity.",
         )
         logger.lifecycle(
             "Verified: that certificate matches the pinned upload identity " +
