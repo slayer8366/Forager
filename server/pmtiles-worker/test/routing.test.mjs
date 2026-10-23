@@ -73,7 +73,8 @@ test("an area answer: one cut file per square, BRouter's name, its size and sha2
   const response = await call(AREA);
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.deepEqual(Object.keys(body), ["run_id", "osm_timestamp", "files"]);
+  assert.deepEqual(Object.keys(body), ["run_id", "osm_timestamp", "files", "missing"]);
+  assert.deepEqual(body.missing, [], "every square the area needs is in the build");
   assert.equal(body.run_id, RUN);
   assert.equal(body.osm_timestamp, "2026-10-17T20:20:51Z");
   assert.equal(body.files.length, 1);
@@ -145,7 +146,29 @@ test("no manifest on R2: 503 manifest_missing", async () => {
   await assertError(await call(AREA), 503, "manifest_missing");
 });
 
-test("an area the build does not cover: 404 outside_coverage, naming the squares", async () => {
+// The owner, on #381: "Serve what exists (Recommended)": "The area gets routes for the squares that exist; the
+// missing part is named and logged. Coastal areas still get trails."
+test("an area partly outside the build: 200 with the squares that exist, the missing ones named and logged", async () => {
+  const warnings = [];
+  const warn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+  try {
+    // Across 75 W: W75_N40 is in the build, W80_N40 is not.
+    const response = await call("/routing/area.json?south=41.2&west=-75.05&north=41.3&east=-74.95");
+    assert.equal(response.status, 200, await response.clone().text());
+    const body = await response.json();
+    assert.deepEqual(body.files.map((f) => f.name), ["W75_N40.rd5"]);
+    assert.deepEqual(body.missing, ["W80_N40"]);
+    const file = await call(body.files[0].url);
+    assert.equal(file.status, 200);
+    assert.equal(sha256(Buffer.from(await file.arrayBuffer())), body.files[0].sha256);
+    assert.ok(warnings.some((w) => w.includes("W80_N40")), `logged: ${JSON.stringify(warnings)}`);
+  } finally {
+    console.warn = warn;
+  }
+});
+
+test("an area the build does not cover at all: 404 outside_coverage, naming the squares", async () => {
   const body = await assertError(await call("/routing/area.json?south=45.5&west=-122.7&north=45.6&east=-122.6"), 404, "outside_coverage");
   assert.deepEqual(body.squares, ["W125_N45"]);
 });
