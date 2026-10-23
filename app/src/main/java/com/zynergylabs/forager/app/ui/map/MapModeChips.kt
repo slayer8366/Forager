@@ -66,7 +66,7 @@ internal fun MapModeChipRow(mapMode: MapMode, onMapModeSelected: (MapMode) -> Un
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
     ) {
         MapMode.entries.forEach { mode ->
-            val standsAside = false
+            val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal)
             val colors = if (standsAside) {
                 FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.outlineVariant,
