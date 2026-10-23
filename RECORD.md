@@ -26948,3 +26948,24 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
   - (1) the sprite v5 upload to R2 before the merge, if street-v2 is in it;
   - (2) after the merge, the owner turns "Disable builds" off and the first build of main is checked live.
 **Notes:** Written by the planner by hand. Next free ID -1564.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1564
+**Timestamp:** 2026-10-23T00:58:34Z
+**Continues:** 2026-09-28-1561, 2026-09-28-1563
+**Title:** #379 merged; sprite v5 on R2; the Worker deployed by the planner from pre-main 8b6f3572f
+**Observed:**
+- **The owner's words:** "Merge it (Recommended)" and "Yes: Aspen uploads icons, I deploy after your sign-in (Recommended)", after Sorrel's review (`docs/audits/2026-10-22-review-pr379.md`, 103f6a42). Sorrel's verdict: mergeable, with an S22 night check before promotion.
+- **The merge:** #379 into pre-main at 8b6f3572f.
+- **Sprite v5:** Aspen uploaded it to R2 `sprites/v5` after an independent rebuild that matched byte for byte (forager-cartography `docs/audits/2026-10-22-sprite-v5-upload.md`).
+- **The sign-in:** the planner is signed in with wrangler 4.124.0 on the laptop. The owner approved on the phone, with scopes account:read, user:read and workers_scripts:write. Node 24.22.1 is installed user-local.
+- **The deploy:** `wrangler deploy` from pre-main 8b6f3572f. Its bundle sha256 3dd496fb… equals CI run 39880409429's tested `pmtiles-worker-dist`. The version is 1c2d8195-3a52-4e73-873f-8e6af1b34682; the rollback is f340ec30 (the owner's paste, 21:16Z).
+- **Checked live:**
+  - street-v1.json equals the repo's, and street-v2.json equals the repo's;
+  - the four sprite v5 files have Aspen's sums;
+  - sprite v4 answers 200;
+  - us.json's south bound is -85.05, and 8/75/124 comes from r2-world-south.
+**Open:** the S22 night check (Sorrel's gate) before the next promotion. Pass: `Offline night: 103 recoloured, 0 left` and `Street night: 61 redrawn, 0 left`.
+**Notes:** Written by the planner by hand. Next free ID -1565.
