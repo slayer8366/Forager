@@ -1,10 +1,8 @@
 package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.map.STREET_SPRITE_ICON_NAMES
-import java.awt.image.BufferedImage
 import java.io.File
 import java.security.MessageDigest
-import javax.imageio.ImageIO
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
@@ -46,16 +44,16 @@ class NightSpriteTest {
 
     private fun index(file: File): JsonObject = Json.parseToJsonElement(file.readText()).jsonObject
 
-    private fun pixels(image: BufferedImage, x: Int, y: Int, w: Int, h: Int): IntArray = image.getRGB(x, y, w, h, null, 0, w)
+    private fun pixels(image: RgbaImage, x: Int, y: Int, w: Int, h: Int): IntArray = image.pixels(x, y, w, h)
 
     /** The night sheet the rules give for [suffix]: every index entry's day pixels through [nightSpritePixelsOf]. */
-    private fun expectedNightSheet(suffix: String): BufferedImage {
-        val day = ImageIO.read(File(dayDir, "light$suffix.png"))
-        val night = BufferedImage(day.width, day.height, BufferedImage.TYPE_INT_ARGB)
+    private fun expectedNightSheet(suffix: String): RgbaImage {
+        val day = readRgbaPng(File(dayDir, "light$suffix.png"))
+        val night = RgbaImage(day.width, day.height)
         for ((name, entry) in index(File(dayDir, "light$suffix.json"))) {
             val e = entry.jsonObject
             val (x, y, w, h) = listOf("x", "y", "width", "height").map { e.getValue(it).jsonPrimitive.int }
-            night.setRGB(x, y, w, h, nightSpritePixelsOf(name, pixels(day, x, y, w, h)), 0, w)
+            night.setPixels(x, y, w, h, nightSpritePixelsOf(name, pixels(day, x, y, w, h)))
         }
         return night
     }
@@ -78,7 +76,7 @@ class NightSpriteTest {
                 sheetProblems += "light$suffix: no committed night sheet"
             } else {
                 if (index(json) != index(dayIndexFile)) sheetProblems += "light$suffix.json: not the day index"
-                val actual = ImageIO.read(png)
+                val actual = readRgbaPng(png)
                 if (actual.width != expected.width || actual.height != expected.height) {
                     sheetProblems += "light$suffix.png: ${actual.width}x${actual.height}, expected ${expected.width}x${expected.height}"
                 } else {
@@ -94,7 +92,7 @@ class NightSpriteTest {
             }
             if (sheetProblems.isNotEmpty()) {
                 generatedDir.mkdirs()
-                ImageIO.write(expected, "png", File(generatedDir, "light$suffix.png"))
+                writeRgbaPng(expected, File(generatedDir, "light$suffix.png"))
                 dayIndexFile.copyTo(File(generatedDir, "light$suffix.json"), overwrite = true)
                 problems += sheetProblems
             }
