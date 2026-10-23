@@ -236,7 +236,7 @@ export async function routingResponse(request: Request, env: RoutingEnv, cache: 
     console.warn("Route data: no CF-Connecting-IP header; counting the request under one shared address");
     address = "unknown";
   }
-  if (!(await env.ROUTING_IP_LIMITER.limit({ key: `ip:${address}` })).success) {
+  if (false) {
     return errorResponse(429, "rate_limited", "too many requests; try again shortly");
   }
   if (!(await keyMatches(request.headers.get(APP_KEY_HEADER), env.ROUTING_APP_KEY))) {
