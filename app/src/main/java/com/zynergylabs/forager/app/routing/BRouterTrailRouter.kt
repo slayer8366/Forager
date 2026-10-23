@@ -49,7 +49,7 @@ class BRouterTrailRouter(
 ) : TrailRouter {
 
     override suspend fun route(start: LatLng, end: LatLng, routeData: File): TrailRouteResult =
-        withContext(dispatcher) {
+        withContext(kotlin.coroutines.EmptyCoroutineContext) {
             ONE_ROUTE_AT_A_TIME.withLock { routeNow(start, end, routeData) }
         }
 
