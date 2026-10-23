@@ -57,7 +57,6 @@ internal suspend fun reconcileOfflineRegions(
                     deleteRegion(region.id)
                     dao.deleteById(region.id)
                     deletedIds += region.id
-                    deleteRoutesOrLeaveForCleanup(routes, region.id, warn)
                 }
                 is IncompleteRegionDecision.Keep ->
                     warn("Region ${region.id} is incomplete; kept, not shown: ${decision.reason}.")
