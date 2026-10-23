@@ -238,7 +238,7 @@ class AvailabilityViewModel(
      * split Phase 2.4 PR 4. Whether a download starts stays in [onDownloadAgain] and [onDownloadOfflineMaps].
      * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
      */
-    private val offlineMaps = AvailabilityOfflineMaps(
+    private val offlineMaps: AvailabilityOfflineMaps = AvailabilityOfflineMaps(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         offlineMapRepository = offlineMapRepository,
@@ -249,7 +249,7 @@ class AvailabilityViewModel(
         onDownloaded = { region -> offlineRoutes.noteDownloaded(region) },
     )
 
-    private val offlineRoutes = AvailabilityOfflineRoutes(
+    private val offlineRoutes: AvailabilityOfflineRoutes = AvailabilityOfflineRoutes(
         updateState = { transform -> _uiState.update(transform) },
         currentState = { _uiState.value },
         scope = { viewModelScope },
