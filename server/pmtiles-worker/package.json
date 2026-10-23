@@ -7,7 +7,7 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "build": "wrangler deploy --outdir dist --dry-run",
-    "test": "node --test test/worker.test.mjs"
+    "test": "node --test test/worker.test.mjs test/routing.test.mjs"
   },
   "dependencies": {
     "pmtiles": "^4.3.0"

@@ -1,0 +1,71 @@
+{
+  "_about": "Route ends for the two-square proof (dispatch 2026-10-23-01). Every end is an OpenStreetMap node on a named way tagged highway=path, footway or track, chosen from the fixture's own extract; node ids are OpenStreetMap's. OpenStreetMap data, ODbL: see README.md. On the full squares every route crosses 40 N and stays inside the rectangle; route-proof-two-squares.test.mjs checks both before it trusts them.",
+  "squares": [
+    "W110_N35",
+    "W110_N40"
+  ],
+  "rectangle": {
+    "south": 39.985,
+    "west": -105.31,
+    "north": 40.015,
+    "east": -105.28
+  },
+  "routes": [
+    {
+      "name": "bluebell-mesa-to-ute",
+      "category": "across",
+      "from": {
+        "osmNode": 446389824,
+        "lat": 39.9954554,
+        "lon": -105.2842267
+      },
+      "to": {
+        "osmNode": 872021403,
+        "lat": 40.0034632,
+        "lon": -105.305918
+      }
+    },
+    {
+      "name": "gregory-canyon-to-halfway-house",
+      "category": "across",
+      "from": {
+        "osmNode": 872684785,
+        "lat": 39.9965565,
+        "lon": -105.3037844
+      },
+      "to": {
+        "osmNode": 872021441,
+        "lat": 40.0051196,
+        "lon": -105.2945685
+      }
+    },
+    {
+      "name": "royal-arch-to-boy-scout",
+      "category": "across",
+      "from": {
+        "osmNode": 9309363780,
+        "lat": 39.9873207,
+        "lon": -105.2895974
+      },
+      "to": {
+        "osmNode": 872021921,
+        "lat": 40.0042391,
+        "lon": -105.3067349
+      }
+    },
+    {
+      "name": "ranger-to-sensory",
+      "category": "across",
+      "from": {
+        "osmNode": 872681238,
+        "lat": 39.987716,
+        "lon": -105.3062223
+      },
+      "to": {
+        "osmNode": 872021770,
+        "lat": 40.0038895,
+        "lon": -105.3061143
+      }
+    }
+  ]
+}
