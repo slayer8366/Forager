@@ -27043,3 +27043,19 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - The tree-glyph gaps (dispatch 2026-10-22-07), on the owner's word.
 - Promotion to main.
 **Notes:** Written by the planner by hand. Next free ID -1570.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1570
+**Timestamp:** 2026-10-23T10:05:22Z
+**Continues:** 2026-09-28-1568
+**Title:** Later: move the map Worker to a custom domain and add Cloudflare WAF rules (owner)
+**Intent:** the owner, asked whether Cloudflare's WAF would help with routing abuse and told it likely needs a custom domain (not *.workers.dev, unverified), said "Yes Make it a note".
+- **Later work, not for Saturday:**
+  - serve the Worker on a zynergy-labs.com hostname;
+  - point the app at it (an app update);
+  - add WAF or edge rate-limit rules in front of the routing and tile routes.
+- **What it would add over the app key and in-code rate limit (-1568, PR #381):** blocking before the Worker runs, managed bot rules, and changing servers without an app update.
+- **Unverified:** that the WAF can't apply to *.workers.dev on this plan.
+**Notes:** Written by the planner by hand. Next free ID -1571.
