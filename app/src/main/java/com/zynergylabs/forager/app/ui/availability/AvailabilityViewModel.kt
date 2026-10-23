@@ -246,7 +246,7 @@ class AvailabilityViewModel(
         locationProvider = locationProvider,
         getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
         errorLog = errorLog,
-        onDownloaded = { region -> offlineRoutes.noteDownloaded(region) },
+        onDownloaded = {},
     )
 
     private val offlineRoutes: AvailabilityOfflineRoutes = AvailabilityOfflineRoutes(
