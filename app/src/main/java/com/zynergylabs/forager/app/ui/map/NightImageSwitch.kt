@@ -130,6 +130,13 @@ internal interface NightImageTarget<T> {
 
     /** Sets [property] of layer [layerId] to [value]; `false` when there is no such layer or property to set. */
     fun setImageReference(layerId: String, property: String, value: ImageReference): Boolean
+
+    /**
+     * [property] of layer [layerId] as the style now holds it, as text; `null` when there is no such layer. MapLibre's
+     * Android SDK refuses a value it cannot parse by logging natively and keeping the old one, and tells the caller
+     * nothing (Sorrel's review of PR #380, M1), so reading back is the only way to know a value took.
+     */
+    fun readImageReference(layerId: String, property: String): String?
 }
 
 /** What one night step did: its log line says it all, so a partial result is never reported as a whole one. */
@@ -138,9 +145,12 @@ internal data class NightImageOutcome(
     val switched: Int,
     val left: List<String>,
     val missingNightCopies: List<String>,
+    val refused: List<String> = emptyList(),
 ) {
     fun logLine(): String =
-        "Street night: $added night images added, $switched image references switched, ${left.size} left in day images" +
+        "Street night: $added night images added, $switched image references switched, " +
+            "${refused.size} refused by MapLibre" + (if (refused.isEmpty()) "" else ": $refused") +
+            ", ${left.size} left in day images" +
             (if (left.isEmpty()) "" else ": $left") +
             (if (missingNightCopies.isEmpty()) "; no night copy missing." else "; no night copy of $missingNightCopies, drawn in day colours.")
 }

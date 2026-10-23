@@ -12,7 +12,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
 
 /**
  * The bundled night sheets: sprite v5's index and its images in their night colours, generated from the day sheets by
@@ -79,6 +81,15 @@ private class StyleNightImageTarget(private val style: Style) : NightImageTarget
         }
         layer.setProperties(propertyValue)
         return true
+    }
+
+    override fun readImageReference(layerId: String, property: String): String? {
+        val value = when (val layer = style.getLayer(layerId)) {
+            is SymbolLayer -> if (property == "icon-image") layer.iconImage else return null
+            is FillLayer -> if (property == "fill-pattern") layer.fillPattern else return null
+            else -> return null
+        }
+        return if (value.isExpression) value.expression.toString() else value.value?.toString()
     }
 }
 
