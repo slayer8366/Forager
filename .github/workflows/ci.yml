@@ -568,40 +568,29 @@ jobs:
       - name: Install the Android SDK with the repo's own setup script
         run: ./scripts/setup-android-sdk.sh
 
-      - name: Compile and package the release variant without signing
-        # The log goes under app/build (gitignored), so it cannot mark the checkout dirty for resolveBuildIdentity.
+      - name: M2 PROOF, not for merge (dispatch 2026-10-23-03 Amendment 1)
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mkdir -p app/build
           log=app/build/release-compile-gradle.log
-          ./gradlew --stacktrace --console=plain packageRelease packageReleaseBundle 2>&1 | tee "$log"
-
-          # A green Gradle exit is only evidence if the release compile actually ran in this invocation, and the
-          # outputs it claims exist. Each check below names what it guards against.
-          failed=0
-          for task in compileReleaseKotlin processReleaseResources packageRelease packageReleaseBundle; do
-            if ! grep -q "^> Task :app:$task\b" "$log"; then
-              echo "::error:::app:$task does not appear in the Gradle log; the release variant was not built as claimed."
-              failed=1
-            fi
-          done
-          if grep -q "^> Task :app:verifyReleaseNeverSignsWithDebugKeystore\b" "$log"; then
-            echo "::error::The signing guard ran; this job must stop short of it, not pass through it."
-            failed=1
-          fi
-          apks="$(find app/build/outputs/apk/release -name '*.apk' 2>/dev/null || true)"
-          bundles="$(find app/build/intermediates -path '*release*' -name '*.aab' 2>/dev/null || true)"
-          [ -n "$apks" ] || { echo "::error::No release APK under app/build/outputs/apk/release."; failed=1; }
-          [ -n "$bundles" ] || { echo "::error::No release app bundle under app/build/intermediates."; failed=1; }
-          [ "$failed" -eq 0 ] || exit 1
-
-          {
-            echo "### Release variant (unsigned)"
-            echo
-            echo "Compiled and packaged with no signing key; the signing guard did not run."
-            echo
-            for f in $apks $bundles; do echo "- \`$f\` ($(stat -c %s "$f") bytes)"; done
-          } >> "$GITHUB_STEP_SUMMARY"
+          # 1. Wiring: the key check is in bundleRelease's and assembleRelease's task graphs, and not in packageRelease's.
+          ./gradlew --console=plain --dry-run bundleRelease > app/build/dry-bundle.log 2>&1 || { tail -40 app/build/dry-bundle.log; echo "::error::dry run of bundleRelease failed"; exit 1; }
+          ./gradlew --console=plain --dry-run assembleRelease > app/build/dry-assemble.log 2>&1 || { tail -40 app/build/dry-assemble.log; echo "::error::dry run of assembleRelease failed"; exit 1; }
+          ./gradlew --console=plain --dry-run packageRelease packageReleaseBundle > app/build/dry-package.log 2>&1 || { tail -40 app/build/dry-package.log; echo "::error::dry run of packageRelease failed"; exit 1; }
+          grep -q '^:app:verifyReleaseHasRoutingAppKey ' app/build/dry-bundle.log || { echo "::error::bundleRelease does not run the key check"; exit 1; }
+          grep -q '^:app:verifyReleaseHasRoutingAppKey ' app/build/dry-assemble.log || { echo "::error::assembleRelease does not run the key check"; exit 1; }
+          if grep -q '^:app:verifyReleaseHasRoutingAppKey ' app/build/dry-package.log; then echo "::error::packageRelease runs the key check"; exit 1; fi
+          echo "Wiring: in bundleRelease and assembleRelease, not in packageRelease or packageReleaseBundle."
+          # 2. No key: refused, with its own message.
+          if ./gradlew --console=plain verifyReleaseHasRoutingAppKey > app/build/m2-nokey.log 2>&1; then echo "::error::the check passed with no key"; exit 1; fi
+          grep -q 'A release build needs the routing app key' app/build/m2-nokey.log || { tail -40 app/build/m2-nokey.log; echo "::error::refused, but not by the key check"; exit 1; }
+          echo "No key: refused with the key check's own message."
+          # 3. A stand-in key (not the real one): passes, and the value is not printed.
+          FORAGER_ROUTING_APP_KEY=stand-in-not-the-real-key ./gradlew --console=plain verifyReleaseHasRoutingAppKey > app/build/m2-key.log 2>&1 || { tail -40 app/build/m2-key.log; echo "::error::refused with a key"; exit 1; }
+          grep -q 'a routing app key is set' app/build/m2-key.log || { echo "::error::no confirmation line"; exit 1; }
+          if grep -q 'stand-in-not-the-real-key' app/build/m2-key.log; then echo "::error::the key value was printed"; exit 1; fi
+          echo "With a key: passes, value not printed."
+          cat app/build/dry-bundle.log app/build/m2-nokey.log app/build/m2-key.log > "$log"
 
       - name: Upload the release compile log
         # if: always(), so a failing run still leaves the log that says why.
