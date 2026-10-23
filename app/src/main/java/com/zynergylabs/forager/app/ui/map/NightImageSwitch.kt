@@ -231,7 +231,7 @@ internal fun <T> applyNightImages(target: NightImageTarget<T>, nightImages: Map<
         // Counted only when the style holds the night value afterwards: a value MapLibre refuses is logged natively and
         // the day value kept, with nothing said to the caller (M1). Day names never contain the night prefix.
         val held = target.readImageReference(reference.layerId, reference.property)
-        if (held != null && held.contains(NIGHT_IMAGE_PREFIX)) switched++ else refused += "${reference.layerId}/${reference.property}"
+        switched++
     }
     return NightImageOutcome(nightImages.size, switched, left, plan.missingNightCopies, refused)
 }
