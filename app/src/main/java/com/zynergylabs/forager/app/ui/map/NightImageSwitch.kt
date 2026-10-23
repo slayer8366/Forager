@@ -128,7 +128,7 @@ internal fun nightImageSwitchPlan(styleJson: String, nightNames: Set<String>): N
  * The operators whose image outputs the switch walks into, keeping the operator itself, its inputs, its labels and its
  * zoom stops: `match` and `case` by feature, `step` by zoom or feature. `interpolate` cannot give an image.
  */
-internal val IMAGE_OUTPUT_OPERATORS: Set<String> = setOf("match", "case", "step")
+internal val IMAGE_OUTPUT_OPERATORS: Set<String> = setOf("case", "step")
 
 /** Whether element [index] of a [size]-element [operator] expression is one of its outputs. */
 private fun isOutput(operator: String, index: Int, size: Int): Boolean = when (operator) {
