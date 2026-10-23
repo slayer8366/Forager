@@ -54,7 +54,7 @@ internal fun fetchRouteArea(
     }
 }
 
-private const val SUPERSEDED_RETRIES = 1
+private const val SUPERSEDED_RETRIES = 0
 
 private sealed interface Attempt {
     data class Done(val record: RegionRouteRecord) : Attempt
