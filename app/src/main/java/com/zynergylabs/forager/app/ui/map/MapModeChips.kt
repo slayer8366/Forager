@@ -27,15 +27,16 @@ internal val MapModeChipSelectedFill = SemanticsPropertyKey<Color>("MapModeChipS
 private var SemanticsPropertyReceiver.mapModeChipSelectedFill by MapModeChipSelectedFill
 
 /**
- * Whether [mode], the chosen map type, is standing aside for Trail Map because there is no signal (dispatch
- * 2026-10-22-06 Amendment 3; the owner: "Have the toggle color be grey to reflect it's chosen, but offline."). The
- * no-signal rule ([drawsFromDownloads]) draws Trail Map from the downloaded areas for an OSM or Topographical user;
- * for a Trail user it draws Trail Map, which is what they chose, so their chip is unchanged. [noSignal] is the same
- * state the map reads ([LocalNoSignal], after its hysteresis), so the chip turns grey when the map switches and back
- * when it switches back. The stored choice never changes; only the chip's colour does.
+ * Whether [mode], the chosen map type, is standing aside for Trail Map (dispatch 2026-10-22-06 Amendment 3; the
+ * owner: "Have the toggle color be grey to reflect it's chosen, but offline.", then "Same meaning everywhere: grey =
+ * chosen, but Trail is being shown instead."). Decided by the map's own rule, [drawsFromDownloads], so the chip and
+ * the map cannot disagree. It draws Trail Map from the downloaded areas in place of a chosen OSM or Topographical
+ * map on two paths: no signal ([noSignal], [LocalNoSignal] after its hysteresis, the state the map reads), and "Use
+ * offline tiles" ([offlineTiles], `MapRenderMode.useOfflineTiles`). For a Trail user it draws Trail Map, which is what
+ * they chose, so their chip is unchanged. The stored choice never changes; only the chip's colour does.
  */
-internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean): Boolean =
-    noSignal && mode.basemap != Basemap.FORAGER_TRAIL
+internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean, offlineTiles: Boolean = false): Boolean =
+    mode.basemap != Basemap.FORAGER_TRAIL && drawsFromDownloads(offlineTiles, mode.basemap, noSignal)
 
 /** [LocalNoSignal]'s current value; `false` where nothing provides it, as the map reads it. */
 @Composable
@@ -66,7 +67,7 @@ internal fun MapModeChipRow(mapMode: MapMode, onMapModeSelected: (MapMode) -> Un
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
     ) {
         MapMode.entries.forEach { mode ->
-            val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal)
+            val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal, offlineTiles)
             val colors = if (standsAside) {
                 FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.outlineVariant,
