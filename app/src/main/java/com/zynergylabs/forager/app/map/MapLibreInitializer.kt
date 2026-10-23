@@ -27,7 +27,7 @@ import android.content.Context
  */
 internal class MapLibreInitializer(
     private val getInstance: (Context) -> Unit,
-    private val installHttpClient: () -> Unit,
+    private val installHttpClient: (Context) -> Unit,
     private val info: (String) -> Unit,
     private val error: (String, Throwable) -> Unit,
 ) {
@@ -38,7 +38,7 @@ internal class MapLibreInitializer(
         if (initialized) return
         try {
             getInstance(context.applicationContext)
-            installHttpClient()
+            installHttpClient(context.applicationContext)
         } catch (e: Throwable) {
             // Throwable, not Exception: a missing or unloadable native library is an UnsatisfiedLinkError.
             error("MapLibre initialisation failed; it will be retried on the next call.", e)

@@ -57,14 +57,14 @@ class MapUserAgentTest {
 
     @Test
     fun `the client replaces the library's own User-Agent rather than adding a second`() {
-        val seen = sendThrough(mapHttpClient("Forager/test (Android 15; id; +c)"), libraryUserAgent = "MapLibre Android/13.5.0")
+        val seen = sendThrough(mapHttpClient("Forager/test (Android 15; id; +c)", passThrough), libraryUserAgent = "MapLibre Android/13.5.0")
 
         assertEquals(listOf("Forager/test (Android 15; id; +c)"), seen.headers("User-Agent"))
     }
 
     @Test
     fun `the client keeps MapLibre's own request limit per host`() {
-        assertEquals(20, mapHttpClient("x").dispatcher.maxRequestsPerHost)
+        assertEquals(20, mapHttpClient("x", passThrough).dispatcher.maxRequestsPerHost)
     }
 
     /**
@@ -91,7 +91,7 @@ class MapUserAgentTest {
     fun `a successful install carries the app's User-Agent into MapLibre`() {
         val before = mapLibreClient()
         try {
-            installMapHttpClient()
+            installMapHttpClient(ApplicationProvider.getApplicationContext())
 
             val installed = mapLibreClient()
             assertNotNull("installMapHttpClient put no HTTP client into MapLibre", installed)
@@ -101,6 +101,9 @@ class MapUserAgentTest {
             mapLibreClientField().set(null, before)
         }
     }
+
+    /** No tile retry, so these tests see the User-Agent interceptor alone; the retry has its own tests. */
+    private val passThrough = Interceptor { chain -> chain.proceed(chain.request()) }
 
     private fun mapLibreClientField() = Class.forName("org.maplibre.android.module.http.HttpRequestImpl")
         .getDeclaredField("client").apply { isAccessible = true }
