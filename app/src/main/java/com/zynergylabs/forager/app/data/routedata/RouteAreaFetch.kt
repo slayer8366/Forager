@@ -94,5 +94,5 @@ private fun fetchOnce(
     if (list.missing.isNotEmpty()) {
         log("Routes for region $regionId are stored without ${list.missing.joinToString()}: build ${list.runId} does not cover them.", null)
     }
-    return Attempt.Done(RegionRouteRecord.Stored(list.runId, list.osmTimestamp, list.files.map { RecordedFile(it.name, it.size, it.sha256) }, list.missing))
+    return Attempt.Done(RegionRouteRecord.Stored(list.runId, list.osmTimestamp, list.files.map { RecordedFile(it.name, it.size, it.sha256) }, emptyList()))
 }
