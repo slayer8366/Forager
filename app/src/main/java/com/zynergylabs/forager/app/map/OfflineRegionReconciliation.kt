@@ -104,7 +104,6 @@ internal suspend fun reconcileOfflineRegions(
             sizeBytes = region.sizeBytes + routeData.sizeBytes,
             createdAtEpochMillis = row.createdAtEpochMillis,
             styleUrl = region.styleUrl,
-            routeData = routeData,
         )
     }
 
