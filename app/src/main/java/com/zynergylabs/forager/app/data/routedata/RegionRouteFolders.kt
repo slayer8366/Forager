@@ -53,10 +53,10 @@ class LocalRegionRouteFolders internal constructor(
             log("Routes for region $regionId are already being fetched; not fetched again.", null)
             return@withContext RegionRouteData.Fetching
         }
-        try {
+        val failed: RegionRouteData? = try {
             val record = fetchRouteArea(client, appKey, routeAreaFor(region), partial, regionId, log)
             store.commit(regionId, partial, record)
-            store.status(regionId)
+            null
         } catch (e: CancellationException) {
             throw e
         } catch (e: IOException) {
@@ -72,6 +72,8 @@ class LocalRegionRouteFolders internal constructor(
         } finally {
             store.endFetch(regionId)
         }
+        // Read after the fetch has ended, so the answer is what was stored, not "still fetching".
+        failed ?: store.status(regionId)
     }
 
     override suspend fun status(regionId: Long): RegionRouteData = withContext(io) { store.status(regionId) }
