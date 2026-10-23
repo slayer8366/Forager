@@ -174,7 +174,7 @@ class RegionRouteFetchTest {
     }
 
     @Test
-    fun `more bytes than the list promised are refused, and reading stops one byte past it`() {
+    fun `more bytes than the list promised are refused`() {
         server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA), sizeOverride = mapOf("W125_N45.rd5" to 1_000L))
 
         assertMissing(RouteDataMissingReason.CHECKSUM_MISMATCH)
