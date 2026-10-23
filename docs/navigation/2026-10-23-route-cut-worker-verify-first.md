@@ -105,3 +105,42 @@ The shape is a proposal: nothing is built until the access question is answered.
   allow only read-only checks of the public Worker URL, and the Worker has no route to those keys.
 - Memory and CPU for a cut at a dense city core: reasoned, not measured.
 - The Workers Paid plan: the owner's word in the record, not checked by me.
+
+## Addendum, 2026-10-23: the owner's answers, and what was built
+
+This supersedes the status line at the top ("stopped … no route is built") and the "My recommendation" paragraph.
+The text above stands as the record of the stop.
+
+- **Access, option B.** The owner chose "B: app key (Recommended)". The option text was "Stops casual use of the address;
+  not true secrecy; fits Saturday; upgradeable later". The planner fixed the contract as follows:
+  - the header is `X-Forager-App-Key`;
+  - the Worker's secret is `ROUTING_APP_KEY`;
+  - a missing or wrong key gets 403 `{"error":"forbidden"}`, never cached;
+  - the app has `BuildConfig.ROUTING_APP_KEY`, from the Gradle property `forager.routingAppKey` or the environment
+    variable `FORAGER_ROUTING_APP_KEY`, and it is empty when neither is set.
+
+  The repository is public (GitHub reports `private: false`), so the key is in no committed file. It is a deterrent,
+  not secrecy.
+- **Rate limits, option D, in the server code.** The owner said, verbatim, "And option D also, we'll try this without
+  Google for now". The method is Cloudflare's Workers Rate Limiting binding, which is GA and needs wrangler 4.36.0 or
+  later; this package pins 4.124.0. It is declared in `wrangler.toml` and needs no dashboard step: Cloudflare
+  documents that these bindings are "not currently visible in the Cloudflare dashboard". Cloudflare's binding page
+  and its Workers pricing page state no price and no plan restriction for it, and say nothing about workers.dev.
+  The limits proposed for the owner to confirm are in `wrangler.toml`:
+  - 30 requests a minute per client address;
+  - 600 a minute for the app key.
+- **The response shape is as in section 3,** plus these errors:
+
+  | Error | Status | When |
+  |---|---|---|
+  | `forbidden` | 403 | Missing or wrong key |
+  | `rate_limited` | 429 | Over a limit; sent with `Retry-After: 60` |
+  | `not_configured` | 503 | The Worker is missing the secret or a limiter, so it never serves open |
+  | `manifest_invalid` | 503 | The manifest cannot be read |
+  | `unsupported_square` | 502 | A square in a format the cutter refuses |
+  | `run_superseded` | 409 | A file URL from a replaced run, not in the edge cache; the body names the current run |
+
+- **Coverage is all or nothing.** If any square the area needs (its margin included) is missing from the manifest,
+  the area is refused with `outside_coverage`, and the missing squares are named. A coastal area whose neighbouring
+  square was never built therefore gets no route data. The other choice would be to serve the squares that exist and
+  name the missing ones, which would be a change to the shape, so it is left as a question.
