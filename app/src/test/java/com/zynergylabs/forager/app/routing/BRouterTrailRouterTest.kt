@@ -184,13 +184,15 @@ class BRouterTrailRouterTest {
         val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "trail-router-test") }
         try {
             val router = BRouterTrailRouter(File(tmp.root, "no-profile-here"), { _, _, error ->
-                synchronized(logged) { logged += IllegalStateException(Thread.currentThread().name, error) }
+                // Without the " @coroutine#N" the coroutines debug agent adds to a thread's name under test.
+                val thread = Thread.currentThread().name.substringBefore(" @coroutine")
+                synchronized(logged) { logged += IllegalStateException(thread, error) }
             }, dispatcher = executor.asCoroutineDispatcher())
             val result = route(ACROSS_FROM, ACROSS_TO, router = router)
             assertTrue("$result", (result as TrailRouteResult.Failed).failure is TrailRouteFailure.EngineFailed)
             assertEquals("logged once", 1, logged.size)
             assertEquals("the engine ran on the router's thread", "trail-router-test", logged.single().message)
-            assertNotEquals("not the caller's", Thread.currentThread().name, logged.single().message)
+            assertNotEquals("not the caller's", Thread.currentThread().name.substringBefore(" @coroutine"), logged.single().message)
         } finally {
             executor.shutdown()
         }
