@@ -330,6 +330,14 @@
       ]
     },
     {
+      "name": "BRouter, the trail router (v1.7.10)",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2019 BRouter contributors"
+      ],
+      "note": "Built into the app from BRouter's source (github.com/abrensch/brouter), with its hiking-mountain profile."
+    },
+    {
       "name": "Forager Trail Map's icons, from Mapzen's tangrams icon set",
       "licence": "MIT",
       "credit": [
