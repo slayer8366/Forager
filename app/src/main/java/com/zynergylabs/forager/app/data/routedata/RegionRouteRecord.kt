@@ -14,7 +14,7 @@ import java.util.Properties
  * **Why a file in the folder and not a Room column** is in [RegionRouteStore]'s doc comment.
  */
 internal sealed interface RegionRouteRecord {
-    data class Stored(val runId: String, val osmTimestamp: String, val files: List<RecordedFile>) : RegionRouteRecord
+    data class Stored(val runId: String, val osmTimestamp: String, val files: List<RecordedFile>, val missingSquares: List<String> = emptyList()) : RegionRouteRecord
 
     data object NoneHere : RegionRouteRecord
 
@@ -31,6 +31,7 @@ internal fun RegionRouteRecord.toBytes(): ByteArray {
             properties.setProperty(KEY_RUN_ID, runId)
             properties.setProperty(KEY_OSM_TIMESTAMP, osmTimestamp)
             properties.setProperty(KEY_FILES, files.joinToString(",") { it.name })
+            properties.setProperty(KEY_MISSING_SQUARES, missingSquares.joinToString(","))
             files.forEach { file ->
                 properties.setProperty("file.${file.name}.size", file.size.toString())
                 properties.setProperty("file.${file.name}.sha256", file.sha256)
@@ -81,7 +82,9 @@ internal fun ByteArray.readRegionRouteRecord(): RegionRouteRecordRead {
                 val sha = properties.getProperty("file.$name.sha256") ?: return unreadable("no sha256 for $name")
                 RecordedFile(name, size, sha)
             }
-            RegionRouteRecordRead.Parsed(RegionRouteRecord.Stored(runId, osmTimestamp, files))
+            val missing = properties.getProperty(KEY_MISSING_SQUARES)?.split(",")?.filter { it.isNotEmpty() } ?: return unreadable("no $KEY_MISSING_SQUARES")
+            missing.firstOrNull { !SQUARE_NAME.matches(it) }?.let { return unreadable("not a square name in $KEY_MISSING_SQUARES: '$it'") }
+            RegionRouteRecordRead.Parsed(RegionRouteRecord.Stored(runId, osmTimestamp, files, missing))
         }
         null -> unreadable("no $KEY_STATE")
         else -> unreadable("unknown state '$state'")
@@ -95,6 +98,7 @@ private const val KEY_REASON = "reason"
 private const val KEY_RUN_ID = "run_id"
 private const val KEY_OSM_TIMESTAMP = "osm_timestamp"
 private const val KEY_FILES = "files"
+private const val KEY_MISSING_SQUARES = "missing_squares"
 private const val STATE_STORED = "stored"
 private const val STATE_NONE_HERE = "none_here"
 private const val STATE_MISSING = "missing"

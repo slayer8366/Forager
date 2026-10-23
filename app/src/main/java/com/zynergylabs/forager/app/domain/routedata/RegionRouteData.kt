@@ -25,7 +25,12 @@ sealed interface RegionRouteData {
      */
     data object NotFetched : RegionRouteData
 
-    /** Every file the Worker named is in [folder], each checked against its sha256 when it was stored. */
+    /**
+     * Every file the Worker named is in [folder], each checked against its sha256 when it was stored. [missingSquares]
+     * names the five-degree squares the area needs that the Worker's build does not have (the owner's ruling on
+     * partial coverage, relayed by the planner for PR #381): the stored part is kept, and a point in a missing square
+     * has no routes here.
+     */
     data class Stored(
         /** The route-data build the files were cut from (`run_id` in the Worker's answer). */
         val runId: String,
@@ -34,6 +39,8 @@ sealed interface RegionRouteData {
         override val sizeBytes: Long,
         /** A folder of BRouter `.rd5` files under BRouter's own names, what [com.zynergylabs.forager.app.domain.routing.TrailRouter.route] takes. */
         val folder: File,
+        /** BRouter square names without `.rd5` (`W130_N45`), as the Worker's `missing` list gives them; empty when whole. */
+        val missingSquares: List<String> = emptyList(),
     ) : RegionRouteData
 
     /** The Worker answered 404 `outside_coverage`: the route data has no square for this area. A fact, not a failure. */
@@ -65,6 +72,21 @@ enum class RouteDataMissingReason(val code: String) {
 
     /** 503 `run_missing_square`: the area is in coverage and the build lacks a square it needs. */
     RUN_MISSING_SQUARE("run_missing_square"),
+
+    /** 503 `manifest_invalid`: the Worker's build list can't be read. */
+    MANIFEST_INVALID("manifest_invalid"),
+
+    /** 503 `not_configured`: the Worker is deployed without its key or rate limits, and refuses every request. */
+    NOT_CONFIGURED("not_configured"),
+
+    /** 502 `unsupported_square`: the Worker cannot cut a square in the form it has it. */
+    UNSUPPORTED_SQUARE("unsupported_square"),
+
+    /** 409 `run_superseded`, twice: the build changed between the list and its files, and again on the one retry. */
+    RUN_SUPERSEDED("run_superseded"),
+
+    /** 404 `not_found`: a file url the Worker does not know. */
+    NOT_FOUND("not_found"),
 
     /** 502 `checksum`: the Worker found its own copy of a square damaged. */
     SERVER_CHECKSUM("checksum"),
@@ -110,6 +132,16 @@ enum class RouteDataMissingReason(val code: String) {
  * builds its download bounds from this same [GeoDistance.boundingBox]), so map and routes cover one area.
  */
 fun routeAreaFor(region: Region): GeoBoundingBox = GeoDistance.boundingBox(LatLng(region.lat, region.lng), region.radiusKm)
+
+/**
+ * The five-degree square [point] lies in, named as BRouter and the Worker name it without `.rd5` (`W125_N45`): the
+ * square's south-west corner, floored to a multiple of five (the Worker's `squareName`, PR #381 `routing/area.ts`).
+ */
+fun routeSquareName(point: LatLng): String {
+    val lon = Math.floorDiv(Math.floor(point.lng).toInt(), 5) * 5
+    val lat = Math.floorDiv(Math.floor(point.lat).toInt(), 5) * 5
+    return "${if (lon < 0) "W${-lon}" else "E$lon"}_${if (lat < 0) "S${-lat}" else "N$lat"}"
+}
 
 /** Whether [point] is inside this rectangle, edges included; a box whose [GeoBoundingBox.east] is west of its [GeoBoundingBox.west] crosses the antimeridian. */
 fun GeoBoundingBox.contains(point: LatLng): Boolean {

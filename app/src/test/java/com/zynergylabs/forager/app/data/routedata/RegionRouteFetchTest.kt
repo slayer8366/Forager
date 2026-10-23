@@ -82,10 +82,15 @@ class RegionRouteFetchTest {
         val box = routeAreaFor(region)
         val list = server.requests.first().url
         assertEquals(LIST_PATH, list.encodedPath)
-        assertEquals(
-            mapOf("south" to box.south, "west" to box.west, "north" to box.north, "east" to box.east),
-            listOf("south", "west", "north", "east").associateWith { list.queryParameter(it)!!.toDouble() },
-        )
+        val asked = listOf("south", "west", "north", "east").associateWith { list.queryParameter(it)!! }
+        // The Worker takes at most nine decimals (PR #381 routing/area.ts, DECIMAL), plain, never exponent form.
+        asked.values.forEach { assertTrue("'$it' is plain decimal with at most nine places", Regex("^-?\\d{1,3}(\\.\\d{1,9})?$").matches(it)) }
+        // Rounded outward, so the area asked for holds the whole region, and by less than a nanodegree.
+        val edges = asked.mapValues { it.value.toDouble() }
+        assertTrue(edges.getValue("south") <= box.south && box.south - edges.getValue("south") < 1e-9)
+        assertTrue(edges.getValue("west") <= box.west && box.west - edges.getValue("west") < 1e-9)
+        assertTrue(edges.getValue("north") >= box.north && edges.getValue("north") - box.north < 1e-9)
+        assertTrue(edges.getValue("east") >= box.east && edges.getValue("east") - box.east < 1e-9)
         assertEquals(listOf(LIST_PATH, "/routing/run-1/W125_N45.rd5"), server.requests.map { it.url.encodedPath })
         assertEquals(listOf(listOf(KEY), listOf(KEY)), server.requests.map { it.headers(RouteAreaClient.APP_KEY_HEADER) })
     }
@@ -115,12 +120,16 @@ class RegionRouteFetchTest {
             Triple(400, "bad_request", RouteDataMissingReason.BAD_REQUEST),
             Triple(403, "forbidden", RouteDataMissingReason.FORBIDDEN),
             Triple(429, "rate_limited", RouteDataMissingReason.RATE_LIMITED),
+            Triple(503, "manifest_invalid", RouteDataMissingReason.MANIFEST_INVALID),
+            Triple(503, "not_configured", RouteDataMissingReason.NOT_CONFIGURED),
+            Triple(502, "unsupported_square", RouteDataMissingReason.UNSUPPORTED_SQUARE),
+            Triple(404, "not_found", RouteDataMissingReason.NOT_FOUND),
         )
-        for ((code, error, reason) in cases) {
-            server.answers[LIST_PATH] = { error(code, error) }
+        for ((status, errorCode, reason) in cases) {
+            server.answers[LIST_PATH] = { error(status, errorCode) }
             logs.clear()
-            assertMissing(reason, "HTTP $code $error")
-            assertEquals("HTTP $code $error is logged with its code", 1, logs.count { "(${reason.code})" in it && error in it })
+            assertMissing(reason, "HTTP $status $errorCode")
+            assertEquals("HTTP $status $errorCode is logged with its code", 1, logs.count { "(${reason.code})" in it && errorCode in it })
         }
     }
 
@@ -166,11 +175,71 @@ class RegionRouteFetchTest {
 
     @Test
     fun `bytes that do not hash to the list's sha256 are refused and not kept`() {
-        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA), shaOverride = mapOf("W125_N45.rd5" to FakeRouteServer.sha256(squareB)))
+        val wrong = FakeRouteServer.sha256(squareB)
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA), shaOverride = mapOf("W125_N45.rd5" to wrong), headerShaOverride = mapOf("W125_N45.rd5" to wrong))
 
         assertMissing(RouteDataMissingReason.CHECKSUM_MISMATCH)
         assertFalse(File(regionFolder(), "W125_N45.rd5").exists())
-        assertEquals(1, logs.count { "sha256" in it && "W125_N45.rd5" in it })
+        assertEquals(1, logs.count { "W125_N45.rd5: sha256 ${FakeRouteServer.sha256(squareA)}, the list gave $wrong" in it })
+    }
+
+    @Test
+    fun `a file whose sha256 header disagrees with the list is refused`() {
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA), headerShaOverride = mapOf("W125_N45.rd5" to FakeRouteServer.sha256(squareB)))
+
+        assertMissing(RouteDataMissingReason.CHECKSUM_MISMATCH)
+        assertEquals(1, logs.count { "X-Forager-Sha256" in it && "W125_N45.rd5" in it })
+    }
+
+    @Test
+    fun `a file that comes without its sha256 header is refused`() {
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA), headerShaOverride = mapOf("W125_N45.rd5" to null))
+
+        assertMissing(RouteDataMissingReason.MALFORMED_RESPONSE)
+    }
+
+    @Test
+    fun `partial coverage stores the squares that came and records the ones that did not`() {
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA), missing = listOf("W130_N45"))
+
+        val expected = RegionRouteData.Stored("run-1", "2026-10-21T00:00:00Z", 3_000L, regionFolder(), missingSquares = listOf("W130_N45"))
+        assertEquals(expected, fetch())
+        assertEquals(expected, listed())
+        assertEquals(listOf(LIST_PATH, "/routing/run-1/W125_N45.rd5"), server.requests.map { it.url.encodedPath })
+        assertEquals(1, logs.count { "stored without W130_N45" in it })
+    }
+
+    @Test
+    fun `a list without its missing field is not the agreed shape`() {
+        server.serveList("""{"run_id":"r","osm_timestamp":"t","files":[{"name":"W125_N45.rd5","size":3000,"sha256":"${FakeRouteServer.sha256(squareA)}","url":"/x"}]}""")
+
+        assertMissing(RouteDataMissingReason.MALFORMED_RESPONSE)
+    }
+
+    @Test
+    fun `run_superseded on a file asks for the area again once, and the second answer is stored`() {
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA))
+        var lists = 0
+        val firstList = server.answers.getValue(LIST_PATH)
+        server.answers[LIST_PATH] = {
+            lists++
+            if (lists == 1) firstList() else status(200, server.listFor("run-2", "W125_N45.rd5", squareB))
+        }
+        server.answers["/routing/run-1/W125_N45.rd5"] = { error(409, "run_superseded") }
+        server.answers["/routing/run-2/W125_N45.rd5"] = { FakeRouteServer.bytes(squareB, FakeRouteServer.sha256(squareB)) }
+
+        assertEquals(RegionRouteData.Stored("run-2", "t", 5_000L, regionFolder()), fetch())
+        assertEquals(2, lists)
+        assertEquals(1, logs.count { "asking for the area again" in it })
+    }
+
+    @Test
+    fun `run_superseded twice is recorded as such, not retried again`() {
+        server.serveArea("run-1", mapOf("W125_N45.rd5" to squareA))
+        server.answers["/routing/run-1/W125_N45.rd5"] = { error(409, "run_superseded") }
+
+        assertMissing(RouteDataMissingReason.RUN_SUPERSEDED)
+        assertEquals(4, server.requests.size) // list, file, list, file; the assertion's own listing reads storage only
     }
 
     @Test
@@ -200,7 +269,7 @@ class RegionRouteFetchTest {
     @Test
     fun `a file url on another host is refused, and the key goes nowhere but the routing host`() {
         server.serveList(
-            """{"run_id":"r","osm_timestamp":"t","files":[{"name":"W125_N45.rd5","size":3000,"sha256":"${FakeRouteServer.sha256(squareA)}","url":"https://elsewhere.test/W125_N45.rd5"}]}""",
+            """{"run_id":"r","osm_timestamp":"t","files":[{"name":"W125_N45.rd5","size":3000,"sha256":"${FakeRouteServer.sha256(squareA)}","url":"https://elsewhere.test/W125_N45.rd5"}],"missing":[]}""",
         )
 
         assertMissing(RouteDataMissingReason.MALFORMED_RESPONSE)
@@ -210,7 +279,7 @@ class RegionRouteFetchTest {
     @Test
     fun `a file name that is not BRouter's cannot write outside the region's folder`() {
         server.serveList(
-            """{"run_id":"r","osm_timestamp":"t","files":[{"name":"../../escape.rd5","size":3000,"sha256":"${FakeRouteServer.sha256(squareA)}","url":"/x"}]}""",
+            """{"run_id":"r","osm_timestamp":"t","files":[{"name":"../../escape.rd5","size":3000,"sha256":"${FakeRouteServer.sha256(squareA)}","url":"/x"}],"missing":[]}""",
         )
 
         assertMissing(RouteDataMissingReason.MALFORMED_RESPONSE)
@@ -227,7 +296,7 @@ class RegionRouteFetchTest {
 
     @Test
     fun `a list that names no files is malformed, not none here`() {
-        server.serveList("""{"run_id":"r","osm_timestamp":"t","files":[]}""")
+        server.serveList("""{"run_id":"r","osm_timestamp":"t","files":[],"missing":[]}""")
 
         assertMissing(RouteDataMissingReason.MALFORMED_RESPONSE)
     }

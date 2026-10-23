@@ -90,7 +90,7 @@ internal class RegionRouteStore(
                     val on = File(folder, file.name)
                     return damaged(regionId, if (on.exists()) "${file.name} is ${on.length()} bytes, recorded ${file.size}" else "${file.name} is gone")
                 }
-                RegionRouteData.Stored(record.runId, record.osmTimestamp, record.files.sumOf { it.size }, folder)
+                RegionRouteData.Stored(record.runId, record.osmTimestamp, record.files.sumOf { it.size }, folder, record.missingSquares)
             }
         }
     }

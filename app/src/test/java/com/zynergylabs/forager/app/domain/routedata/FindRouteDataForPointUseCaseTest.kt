@@ -32,11 +32,28 @@ class FindRouteDataForPointUseCaseTest {
     }
 
     @Test
-    fun `a point in the rectangle's corner, outside the drawn circle, is covered: the routes were cut to the rectangle`() {
+    fun `a point in the rectangle's corner, outside the drawn circle, is covered, since the routes were cut to the rectangle`() {
         val box = routeAreaFor(Region(CENTRE.lat, CENTRE.lng, 10))
         val corner = LatLng(box.north - 0.001, box.east - 0.001)
 
         assertTrue(find(corner, region(1, stored(1))) is RouteDataForPoint.Found)
+    }
+
+    @Test
+    fun `a point whose square the build lacked is not found there, and says which square`() {
+        val partial = RegionRouteData.Stored("run-1", "t", 10L, File("/routes/1"), missingSquares = listOf("W120_N45"))
+
+        // CENTRE (45.0, -120.0) lies in W120_N45, the square from 120 W to 115 W.
+        assertEquals(RouteDataForPoint.SquareMissing(1, "W120_N45"), find(CENTRE, region(1, partial)))
+        assertEquals(RouteDataForPoint.Found(1, File("/routes/1"), "run-1"), find(LatLng(45.0, -120.05), region(1, partial)))
+    }
+
+    @Test
+    fun `square names follow BRouter's five-degree squares on both sides of zero`() {
+        assertEquals("W125_N45", routeSquareName(LatLng(45.02, -120.01)))
+        assertEquals("W120_N45", routeSquareName(LatLng(45.0, -120.0)))
+        assertEquals("E0_S5", routeSquareName(LatLng(-0.5, 0.5)))
+        assertEquals("W5_N0", routeSquareName(LatLng(0.0, -0.1)))
     }
 
     @Test

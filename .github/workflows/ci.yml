@@ -113,6 +113,10 @@ jobs:
         # Finalized by verifyNothingTestOnlyReachesTheApk (app/build.gradle.kts), which opens
         # the APK this step produced and fails if Robolectric, JUnit or Compose UI Test
         # classes are inside it.
+        # The routing app key reaches BuildConfig.ROUTING_APP_KEY in this APK only (dispatch 2026-10-23-03). The
+        # unit-test step has no key, and a fork's PR gets none: both build with routes unavailable.
+        env:
+          FORAGER_ROUTING_APP_KEY: ${{ secrets.FORAGER_ROUTING_APP_KEY }}
         run: ./gradlew --stacktrace assembleDebug
 
       - name: Verify the version on the built APK

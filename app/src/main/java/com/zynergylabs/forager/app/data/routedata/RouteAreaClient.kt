@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.model.GeoBoundingBox
 import com.zynergylabs.forager.app.domain.routedata.RouteDataMissingReason
 import java.io.File
 import java.io.IOException
+import java.math.RoundingMode
 import java.security.MessageDigest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -24,8 +25,8 @@ import okhttp3.Response
  * throws for an answer; a network failure is an [IOException] the caller turns into a missing reason.
  *
  * **Unverified against a live Worker:** the routes are not deployed (dispatch: "the routes aren't deployed yet"), so
- * every test here runs against a fake server. The bytes' own sha256 header is not read: the contract does not name
- * it, and the list's sha256 is checked instead, which is the one the list promised.
+ * every test here runs against a fake server. A file's bytes are checked against the list's sha256 and must come with
+ * the same value in [SHA256_HEADER].
  */
 internal class RouteAreaClient(
     private val http: OkHttpClient,
@@ -37,10 +38,12 @@ internal class RouteAreaClient(
     fun fetchList(box: GeoBoundingBox): RouteAnswer<RouteAreaList> {
         val url = baseUrl.newBuilder()
             .encodedPath("/routing/area.json")
-            .addQueryParameter("south", box.south.plain())
-            .addQueryParameter("west", box.west.plain())
-            .addQueryParameter("north", box.north.plain())
-            .addQueryParameter("east", box.east.plain())
+            // Rounded outward to nine decimals, the most the Worker accepts (PR #381 `routing/area.ts`, DECIMAL), so
+            // the area asked for still holds the whole region.
+            .addQueryParameter("south", box.south.edge(RoundingMode.FLOOR))
+            .addQueryParameter("west", box.west.edge(RoundingMode.FLOOR))
+            .addQueryParameter("north", box.north.edge(RoundingMode.CEILING))
+            .addQueryParameter("east", box.east.edge(RoundingMode.CEILING))
             .build()
         return http.newCall(request(url)).execute().use { response ->
             if (response.code != 200) return@use errorAnswer<RouteAreaList>(response)
@@ -89,7 +92,16 @@ internal class RouteAreaClient(
                 }
             }
             val sha = digest.digest().joinToString("") { "%02x".format(it) }
+            val headerSha = response.header(SHA256_HEADER)
             when {
+                headerSha == null -> {
+                    destination.delete()
+                    RouteAnswer.Missing(RouteDataMissingReason.MALFORMED_RESPONSE, "${file.name} came without $SHA256_HEADER")
+                }
+                !headerSha.equals(file.sha256, ignoreCase = true) -> {
+                    destination.delete()
+                    RouteAnswer.Missing(RouteDataMissingReason.CHECKSUM_MISMATCH, "${file.name}: $SHA256_HEADER $headerSha, the list gave ${file.sha256}")
+                }
                 written != file.size -> {
                     destination.delete()
                     RouteAnswer.Missing(RouteDataMissingReason.CHECKSUM_MISMATCH, "${file.name}: ${if (written > file.size) "more than" else written.toString() + " of"} the ${file.size} bytes the list gave")
@@ -103,8 +115,6 @@ internal class RouteAreaClient(
         }
     }
 
-    /** Plain decimal, never `1.0E-4`: Kotlin's [Double.toString] uses exponent form near the equator and meridian. */
-    private fun Double.plain(): String = toBigDecimal().toPlainString()
 
     private fun request(url: HttpUrl): Request = Request.Builder().url(url).header(APP_KEY_HEADER, appKey).get().build()
 
@@ -137,6 +147,9 @@ internal class RouteAreaClient(
         /** The header every routing request carries the app key in: the planner's contract (dispatch 2026-10-23-03). */
         const val APP_KEY_HEADER = "X-Forager-App-Key"
 
+        /** The header a file's bytes come with, carrying their sha256 (PR #381's final shape). */
+        const val SHA256_HEADER = "X-Forager-Sha256"
+
         /**
          * The Worker the map tiles come from (`OfflineStyle.kt`), which PR #381 adds the routing routes to. **An
          * assumption about a route not yet deployed**: #381's report places them in `server/pmtiles-worker`.
@@ -164,6 +177,8 @@ internal data class RouteAreaList(
     @SerialName("run_id") val runId: String,
     @SerialName("osm_timestamp") val osmTimestamp: String,
     val files: List<RouteAreaFile>,
+    /** The squares the area needs that the build lacks, as `W130_N45`; always present, empty when none (PR #381). */
+    val missing: List<String>,
 )
 
 @Serializable
@@ -186,6 +201,7 @@ internal fun parseRouteAreaList(text: String): RouteAnswer<RouteAreaList> {
     if (list.files.isEmpty()) return malformed("the file list names no files")
     list.files.firstOrNull { !BROUTER_FILE_NAME.matches(it.name) }?.let { return malformed("not a BRouter file name: '${it.name.take(80)}'") }
     if (list.files.map { it.name }.toSet().size != list.files.size) return malformed("a file name appears twice")
+    list.missing.firstOrNull { !SQUARE_NAME.matches(it) }?.let { return malformed("not a square name in missing: '${it.take(80)}'") }
     list.files.firstOrNull { it.size <= 0 }?.let { return malformed("${it.name} has size ${it.size}") }
     list.files.firstOrNull { !SHA256_HEX.matches(it.sha256) }?.let { return malformed("${it.name}'s sha256 is not 64 hex digits") }
     if (list.files.size > RouteAreaLimits.MAX_FILES) {
@@ -200,5 +216,11 @@ internal fun parseRouteAreaList(text: String): RouteAnswer<RouteAreaList> {
 
 /** BRouter's own segment file names, `W125_N45.rd5`: a five-degree square's south-west corner. */
 internal val BROUTER_FILE_NAME = Regex("^[EW][0-9]{1,3}_[NS][0-9]{1,2}\\.rd5$")
+
+/** A five-degree square's name without `.rd5`, as the Worker's `missing` list gives it. */
+internal val SQUARE_NAME = Regex("^[EW][0-9]{1,3}_[NS][0-9]{1,2}$")
+
+/** [this] degrees as plain decimal with at most nine places, rounded by [mode]; never exponent form (`1.0E-4`). */
+internal fun Double.edge(mode: RoundingMode): String = toBigDecimal().setScale(9, mode).stripTrailingZeros().toPlainString()
 
 private val SHA256_HEX = Regex("^[0-9a-fA-F]{64}$")

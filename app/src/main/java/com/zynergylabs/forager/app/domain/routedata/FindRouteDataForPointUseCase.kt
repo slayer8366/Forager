@@ -29,12 +29,15 @@ fun routeDataForPoint(point: LatLng, regions: List<OfflineRegionSummary>): Route
         .filter { it.isDownloaded && routeAreaFor(it.region).contains(point) }
         .sortedByDescending { it.createdAtEpochMillis }
     if (covering.isEmpty()) return RouteDataForPoint.NoRegionCovers
-    val stored = covering.firstNotNullOfOrNull { region -> (region.routeData as? RegionRouteData.Stored)?.let { region to it } }
-    return if (stored != null) {
-        RouteDataForPoint.Found(regionId = stored.first.id, folder = stored.second.folder, runId = stored.second.runId)
-    } else {
+    val square = routeSquareName(point)
+    val storedHere = covering.mapNotNull { region -> (region.routeData as? RegionRouteData.Stored)?.let { region to it } }
+    val usable = storedHere.firstOrNull { (_, routes) -> square !in routes.missingSquares }
+    return when {
+        usable != null -> RouteDataForPoint.Found(regionId = usable.first.id, folder = usable.second.folder, runId = usable.second.runId)
+        // Routes are stored for the area, and the point's own square is one the Worker's build lacked.
+        storedHere.isNotEmpty() -> RouteDataForPoint.SquareMissing(regionId = storedHere.first().first.id, square = square)
         // The newest covering region's state, so the caller can say why (none here, missing, never fetched).
-        RouteDataForPoint.NotStored(regionId = covering.first().id, routeData = covering.first().routeData)
+        else -> RouteDataForPoint.NotStored(regionId = covering.first().id, routeData = covering.first().routeData)
     }
 }
 
@@ -45,6 +48,9 @@ sealed interface RouteDataForPoint {
 
     /** Downloaded regions cover the point and none has stored routes; [routeData] is the newest one's state. */
     data class NotStored(val regionId: Long, val routeData: RegionRouteData) : RouteDataForPoint
+
+    /** A region with stored routes covers the point, and the point's [square] was missing from the build it came from. */
+    data class SquareMissing(val regionId: Long, val square: String) : RouteDataForPoint
 
     /** No downloaded region covers the point. */
     data object NoRegionCovers : RouteDataForPoint

@@ -44,6 +44,12 @@ private val AGREED_ERRORS: Map<String, AgreedError> = mapOf(
     "bad_request" to AgreedError(400, RouteDataMissingReason.BAD_REQUEST),
     "forbidden" to AgreedError(403, RouteDataMissingReason.FORBIDDEN),
     "rate_limited" to AgreedError(429, RouteDataMissingReason.RATE_LIMITED),
+    // Added to the contract by PR #381's final shape (the planner's message of 2026-10-23).
+    "manifest_invalid" to AgreedError(503, RouteDataMissingReason.MANIFEST_INVALID),
+    "not_configured" to AgreedError(503, RouteDataMissingReason.NOT_CONFIGURED),
+    "unsupported_square" to AgreedError(502, RouteDataMissingReason.UNSUPPORTED_SQUARE),
+    "run_superseded" to AgreedError(409, RouteDataMissingReason.RUN_SUPERSEDED),
+    "not_found" to AgreedError(404, RouteDataMissingReason.NOT_FOUND),
 )
 
 @Serializable
