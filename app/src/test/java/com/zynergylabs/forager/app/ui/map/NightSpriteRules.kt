@@ -82,7 +82,7 @@ internal val STREET_NIGHT_PATTERN_COLOURS: Map<String, Int> = mapOf(
  * inverting". At @2x every visible tufts pixel is `#3fa0c8`, whose inversion is exactly `#2485ad`, so painting changes
  * nothing there; the 1x sheet's tufts has mixed edge colours, which painting sets to `#2485ad` too.
  */
-internal val STREET_NIGHT_PATTERN_PAINTS: Map<String, Int> = STREET_NIGHT_PATTERN_COLOURS + ("tufts" to 0x2485AD)
+internal val STREET_NIGHT_PATTERN_PAINTS: Map<String, Int> = STREET_NIGHT_PATTERN_COLOURS
 
 /**
  * [pixels] (ARGB) painted [rgb], each pixel's alpha kept: a fully transparent pixel stays as it is, and every other
