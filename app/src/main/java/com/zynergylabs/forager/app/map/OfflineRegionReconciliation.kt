@@ -101,7 +101,7 @@ internal suspend fun reconcileOfflineRegions(
             maxZoom = row.maxZoom,
             tileCount = region.tileCount.toInt(),
             // One unit to the user: the region's size is its tiles and its routes (dispatch 2026-10-23-03, item 2).
-            sizeBytes = region.sizeBytes + routeData.sizeBytes,
+            sizeBytes = region.sizeBytes,
             createdAtEpochMillis = row.createdAtEpochMillis,
             styleUrl = region.styleUrl,
             routeData = routeData,
