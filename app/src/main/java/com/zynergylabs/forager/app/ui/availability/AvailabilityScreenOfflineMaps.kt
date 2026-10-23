@@ -20,4 +20,6 @@ data class AvailabilityScreenOfflineMaps(
     val onDeleteOfflineRegion: (Long) -> Unit,
     /** "Download again" on a restored offline region. */
     val onDownloadAgain: (Long) -> Unit = {},
+    /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
+    val routeActions: OfflineRouteActions = OfflineRouteActions(),
 )

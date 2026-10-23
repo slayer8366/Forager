@@ -11,7 +11,8 @@ package com.zynergylabs.forager.app.ui.availability
 sealed interface OfflineMapStatus {
     data object Idle : OfflineMapStatus
 
-    data class Downloading(val downloaded: Int, val total: Int) : OfflineMapStatus
+    /** [gettingRoutes]: the tiles are in and the region's trail routes are being fetched (dispatch 2026-10-23-03, L4). */
+    data class Downloading(val downloaded: Int, val total: Int, val gettingRoutes: Boolean = false) : OfflineMapStatus
 
     /** The picker's last download finished; [AvailabilityUiState.offlineRegions] already reflects it. */
     data object Succeeded : OfflineMapStatus

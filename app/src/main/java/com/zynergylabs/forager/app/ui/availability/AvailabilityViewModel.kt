@@ -159,6 +159,8 @@ class AvailabilityViewModel(
     private val basemapPreferenceRepository: BasemapPreferenceRepository = NoStoredBasemap,
     /** RECORD -711: where the Maps tab's icon cluster's side and height persist across restarts. */
     private val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = NoStoredMapIconClusterPlacement,
+    /** The maps' "no signal" state (NoSignalTrailMap.kt), read when Offline maps opens; defaulted to "no signal", so nothing fetches. */
+    internal val noSignal: () -> Boolean = { true },
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -236,13 +238,23 @@ class AvailabilityViewModel(
      * split Phase 2.4 PR 4. Whether a download starts stays in [onDownloadAgain] and [onDownloadOfflineMaps].
      * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
      */
-    internal val offlineMaps = AvailabilityOfflineMaps(
+    internal val offlineMaps: AvailabilityOfflineMaps = AvailabilityOfflineMaps(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         offlineMapRepository = offlineMapRepository,
         mapPreferencesRepository = mapPreferencesRepository,
         locationProvider = locationProvider,
         getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        errorLog = errorLog,
+        onDownloaded = { region -> offlineRoutes.noteDownloaded(region) },
+    )
+
+    internal val offlineRoutes: AvailabilityOfflineRoutes = AvailabilityOfflineRoutes(
+        updateState = { transform -> _uiState.update(transform) },
+        currentState = { _uiState.value },
+        scope = { viewModelScope },
+        offlineMapRepository = offlineMapRepository,
+        reloadRegions = { offlineMaps.loadOfflineRegions() },
         errorLog = errorLog,
     )
 

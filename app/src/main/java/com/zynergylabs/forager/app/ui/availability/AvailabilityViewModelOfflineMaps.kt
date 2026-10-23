@@ -4,7 +4,9 @@ import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
 import com.zynergylabs.forager.app.domain.estimateServedOfflineTileCount
 import com.zynergylabs.forager.app.domain.model.Region
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /*
  * The Offline maps submenu's ViewModel functions: the picker's fields, download, download again, opening the submenu and the region deletes, moved out of AvailabilityViewModel.kt unchanged as extension functions on [AvailabilityViewModel]
@@ -46,8 +48,35 @@ fun AvailabilityViewModel.onDownloadAgain(id: Long) {
     offlineMaps.beginDownloadAgain(row)
 }
 
-/** See [AvailabilityOfflineMaps.onOfflineMapsOpened]. */
-fun AvailabilityViewModel.onOfflineMapsOpened() = offlineMaps.onOfflineMapsOpened()
+/**
+ * See [AvailabilityOfflineMaps.onOfflineMapsOpened]. Then, with signal, the trail routes of every listed region that
+ * still wants them are fetched once (dispatch 2026-10-23-03; the owner: "Automatic, button as backup"). Its limits:
+ * one attempt per opening, after the list is read, never a loop; nothing at all with no signal (the maps' own
+ * state, read at the opening); a region already being fetched is not fetched twice.
+ */
+fun AvailabilityViewModel.onOfflineMapsOpened() {
+    val listed = offlineMaps.onOfflineMapsOpened()
+    if (noSignal()) return
+    viewModelScope.launch {
+        listed.join()
+        offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+    }
+}
+
+/**
+ * Signal came back while Offline maps is on screen (dispatch 2026-10-23-03 Amendment 1; the owner: "Yes, fetch when
+ * signal returns (Recommended)"): the regions that still want routes are fetched, once for this return. The list
+ * tells this once per return (`OfflineRegionsSection`); a region already being fetched is not fetched again.
+ */
+fun AvailabilityViewModel.onOfflineMapsSignalReturned() {
+    if (noSignal()) return
+    offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+}
+
+/** "Try again" on a region's trail routes: one more fetch of that region, shown only after an attempt failed. */
+fun AvailabilityViewModel.onTryAgainRoutes(id: Long) {
+    offlineRoutes.fetch(listOf(id))
+}
 
 /**
  * Adds a region to whatever's already downloaded — see

@@ -370,6 +370,10 @@ data class AvailabilityUiState(
     val forecastWeek: LocalDate? = null,
     /** The forecast groups the store has data for in [forecastWeek]; empty for "no forecast data" (L0b, B5). */
     val forecastGroups: Set<String> = emptySet(),
+    /** Regions whose trail routes are being fetched now (dispatch 2026-10-23-03); their rows say "Getting trail routes". */
+    val offlineRouteFetchingIds: Set<Long> = emptySet(),
+    /** Regions whose route fetch failed this session, at download or automatically; only these offer "Try again". */
+    val offlineRouteFailedIds: Set<Long> = emptySet(),
 ) {
     /**
      * [offlineRegions] without [pendingOfflineRegionDelete]: what the Journal's region rows, the All

@@ -149,7 +149,11 @@ internal fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
         OfflineMapStatus.Idle, OfflineMapStatus.Succeeded -> Unit
 
         is OfflineMapStatus.Downloading -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            if (status.total > 0) {
+            if (status.gettingRoutes) {
+                // The owner's step path A, "the bar says 'Getting trail routes' for a moment" (Amendment 1, L4).
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text(ROUTES_GETTING, style = MaterialTheme.typography.bodySmall)
+            } else if (status.total > 0) {
                 LinearProgressIndicator(
                     progress = { status.downloaded.toFloat() / status.total },
                     modifier = Modifier.fillMaxWidth(),

@@ -14,6 +14,8 @@ internal fun createAvailabilityViewModel(
     container: AppContainer,
     androidErrorLog: ErrorLog,
     trackRecording: () -> TrackRecordingViewModel,
+    /** The maps' "no signal" state (NoSignalTrailMap.kt), read when Offline maps opens (dispatch 2026-10-23-03). */
+    noSignal: () -> Boolean,
 ): AvailabilityViewModel = AvailabilityViewModel(
         container.locationProvider,
         container.locationTracker,
@@ -56,4 +58,5 @@ internal fun createAvailabilityViewModel(
         lastKnownLocation = container.lastKnownLocation,
         basemapPreferenceRepository = container.basemapPreferenceRepository,
         mapIconClusterPlacementRepository = container.mapIconClusterPlacementRepository,
+        noSignal = noSignal,
     )

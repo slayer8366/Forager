@@ -18,7 +18,9 @@ import com.zynergylabs.forager.app.ui.availability.onOfflineMapRadiusChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapsOpened
 import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import com.zynergylabs.forager.app.ui.availability.onSundownAlertsEnabledChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapsSignalReturned
 import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
+import com.zynergylabs.forager.app.ui.availability.onTryAgainRoutes
 import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.Manifest
@@ -88,6 +90,7 @@ import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
+import com.zynergylabs.forager.app.ui.availability.OfflineRouteActions
 import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
 import com.zynergylabs.forager.app.ui.map.noSignalState
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
@@ -108,7 +111,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: AvailabilityViewModel by viewModels {
         viewModelFactory {
             initializer {
-                createAvailabilityViewModel(container, androidErrorLog, trackRecording = { trackRecordingViewModel })
+                createAvailabilityViewModel(container, androidErrorLog, trackRecording = { trackRecordingViewModel }, noSignal = { noSignal.value })
             }
         }
     }
@@ -498,6 +501,7 @@ class MainActivity : ComponentActivity() {
                         // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
                         onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                         onDownloadAgain = viewModel::onDownloadAgain,
+                        routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned),
                     ),
                     settings = AvailabilityScreenSettings(
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
