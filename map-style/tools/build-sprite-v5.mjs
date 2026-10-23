@@ -7,8 +7,8 @@
 // --check decodes both sides and compares RGBA and JSON. Every build also re-reads what it wrote and confirms that each
 // v4 icon is pixel for pixel v4's and each new image pixel for pixel its cut-out.
 //
-// Day images only. Night is drawn by the app: the six icons and the tufts by the inversion every icon takes
-// (`STREET_SPRITE_ICON_NAMES`), the tree glyph by its own colour (`STREET_NIGHT_PATTERN_COLOURS`).
+// Day images only. The night copies ship in the app (app/src/main/assets/night-sprite/v5, dispatch 2026-10-22-06
+// Amendment 1), generated from these day sheets by the app's night rules and held to them by NightSpriteTest.
 // The cut-outs are Forager's own art (the owner, 2026-10-22: "As the project's own art"); v4's icons keep their MIT
 // credit (licences/sprites-tangrams-icons-MIT.md).
 import fs from "node:fs";

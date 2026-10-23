@@ -35,7 +35,7 @@ const LOCAL = "http://localhost:8765";
 const VERSION = "v2";
 const SPRITE = "sprites/v5/light";
 
-// The sprite's images the app inverts for night by name (Style.getImage / addImage), recorded in the style's
+// The sprite's images the app's night rules invert (its bundled night set since dispatch 2026-10-22-06), recorded in the style's
 // metadata because MapLibre has no call that lists a style's images; the app's copy is checked against this one by
 // a unit test (StreetStyleTest). The patterns the app paints one colour instead (forager:night-patterns) are left
 // off it, so no image is both inverted and painted.

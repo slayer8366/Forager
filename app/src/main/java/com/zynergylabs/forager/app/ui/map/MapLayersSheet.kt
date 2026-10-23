@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -237,6 +236,15 @@ internal fun MapLayersSheet(
     onOpacityChanged: (layerId: String, opacity: Float) -> Unit,
     onColourFieldMoved: (layerId: String, move: ColourFieldMove) -> Unit,
     onDismiss: () -> Unit,
+    /**
+     * Whether this sheet's map is set to draw the downloaded areas ("Use offline tiles", `MapRenderMode.useOfflineTiles`),
+     * which draws Trail Map in place of a chosen Topo or OSM, as the no-signal rule does (dispatch 2026-10-22-06
+     * Amendment 3, the owner's follow-up: "Same meaning everywhere: grey = chosen, but Trail is being shown instead.").
+     * Only the Cartography entry map has the setting; the Maps tab never sets it.
+     */
+    offlineTiles: Boolean = false,
+    /** The process's Trail Map fallback (RECORD -1513); a parameter so a test can give it its own. */
+    fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`,
@@ -274,18 +282,7 @@ internal fun MapLayersSheet(
             // panel sides. The height position on the panel is fine as is."; dispatch 2026-09-28-104, item 9). The column above has
             // equal padding at both ends, so centring in it is centring in the sheet; the spacing between chips and the row's height
             // are unchanged.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
-            ) {
-                MapMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = mode == mapMode,
-                        onClick = { onMapModeSelected(mode) },
-                        label = { Text(mode.label) },
-                    )
-                }
-            }
+            MapModeChipRow(mapMode, onMapModeSelected, offlineTiles, fallback)
             Text("Overlays", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.sm))
             overlays.forEach { option ->
                 LayerSwitchRow(

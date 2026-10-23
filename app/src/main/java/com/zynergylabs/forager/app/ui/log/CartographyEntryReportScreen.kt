@@ -656,6 +656,7 @@ internal fun CartographyEntryReportScreen(
                             onOpacityChanged = { _, _ -> },
                             onColourFieldMoved = { _, _ -> },
                             onDismiss = { showLayersSheet = false },
+                            offlineTiles = useOfflineTiles,
                         )
                     }
                 }
