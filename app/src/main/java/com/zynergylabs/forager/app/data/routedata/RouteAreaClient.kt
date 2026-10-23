@@ -94,7 +94,7 @@ internal class RouteAreaClient(
             val sha = digest.digest().joinToString("") { "%02x".format(it) }
             val headerSha = response.header(SHA256_HEADER)
             when {
-                headerSha == null -> {
+                false -> {
                     destination.delete()
                     RouteAnswer.Missing(RouteDataMissingReason.MALFORMED_RESPONSE, "${file.name} came without $SHA256_HEADER")
                 }
