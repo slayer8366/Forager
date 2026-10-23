@@ -331,3 +331,92 @@ is step 1's line, plus step 3's dark place dots, plus the owner's eye on steps 2
     here only for the `night/` prefix. If MapLibre were ever to rename an image in that text, the line would say
     "refused" for a value that took, which is the safe direction.
 - **L1:** the kept coercion matches the day style by construction. The two typings were never compared on a device.
+
+## Amendment 3: the chosen chip grey while offline (added 2026-10-23 UTC)
+
+**Background.** The owner's S22 night check passed on 1.0.3833:
+- "6 switched, 0 refused" online;
+- "4 switched, 0 refused" offline, where the S22's regions hold v1;
+- no "Error setting" line;
+- dark place dots, Topographical night right, and the aeroplane test right.
+
+The owner then asked, with a screenshot of the Topo chip filled while offline: "Have the toggle color be grey to reflect
+it's chosen, but offline."
+
+**What changed.** The Layers sheet's "Map type" row moves to its own file, `MapModeChips.kt`. It moves unchanged, plus a
+test tag per chip and a record of each chip's selected fill. While the no-signal rule draws Trail Map for a Topo or OSM
+user, the chosen chip stays selected and is filled `colorScheme.outlineVariant`:
+- light: `#D5CEBF`, in place of `secondaryContainer` `#F6DFC8`;
+- dark: `#444444`, in place of `#6B421A`.
+
+The label stays `onSurface`.
+
+**Rules held:**
+- The state is `LocalNoSignal`, after its hysteresis: the one the map reads. The chip turns grey when the map switches
+  to Trail and back when the chosen map returns.
+- The stored choice never changes.
+- A tap is still a real choice.
+- The Trail chip is not highlighted while Trail Map stands in.
+- A Trail user's chip is unchanged.
+
+**Why `outlineVariant`.** Contrast was measured against the sheet's own colour, `surfaceContainer` (`#F4EFE2` light,
+`#202020` dark):
+
+| | Light | Dark |
+|---|---|---|
+| Grey fill off the sheet | 1.36:1 | 1.67:1 |
+| Normal selected fill off the sheet | 1.12:1 | 1.88:1 |
+| Label on the grey | 8.4:1 | 7.7:1 |
+
+- An unselected chip has no fill, only its outline, so a grey fill with no outline still reads as selected.
+- Material's disabled colours were rejected: they dim the label to 38%, which reads as "can't tap".
+- `surfaceContainerHighest` (1.19:1 and 1.37:1) and `surfaceVariant` (1.11:1 and 1.17:1) stand off the sheet less, and
+  `surfaceVariant` is Cream in light, not grey.
+
+**Commits:**
+- `b64b89c7a`: the move, the tags, and the test, with the grey condition still `false`.
+- `f67877619`: the condition wired.
+
+**Failing first.** Run 39904490932, filtered to `MapLayersSheetOfflineChipTest`, `MapLayersSheetTest` and
+`MapModeTest` (29 tests). No compile errors; 2 failures, both on the grey step: the drawn pixel was `#6b421a` (the normal
+selected fill) where `#444444` was expected, dark theme, no signal. The signal-on steps passed, so the pixel read itself
+works.
+
+**The test.** `MapLayersSheetOfflineChipTest`, Robolectric with native graphics, 4 tests:
+- It composes the sheet inside `ForagerThemeWithNoSignal`, the app's own root, with a no-signal flow.
+- It reads each chip's **drawn** fill, a pixel 3 dp in from the chip's edge, alongside the chip's record of its fill.
+- In the dark and the light theme, Topo chosen: normal with signal; selected and grey without; Trail not selected;
+  normal again when the signal returns. No choice is written throughout.
+- OSM chosen and offline: grey.
+- Trail chosen and offline: unchanged.
+- A tap while offline is a real choice. That is a semantic click, since the claim is wiring.
+
+**Revert checks.** Each was a one-line edit to `MapModeChips.kt` on its own branch from `f67877619`, never merged, with
+the same filter. No compile errors, and "Build the debug APK" succeeded.
+
+| # | Edit | Run | Failed with (only these) |
+|---|---|---|---|
+| R9 | the Trail exclusion dropped (`noSignal` alone) | 39905102839 | Trail chosen, offline: drawn `#444444` where `#6b421a` |
+| R10 | the condition back to `false` | 39905104988 | Topo and OSM offline: drawn `#6b421a` where `#444444` |
+
+**Suite.** Run 39905056952 on `f67877619`, the PR's merge commit, all jobs green: 5290 tests, 0 failures, the same 24
+skipped IDs. Before this amendment there were 5286; the 4 are the new class. The debug APK is 82,918,387 bytes.
+
+**S22 launch check.** 1.0.3837+gbbbcb4d0, an upgrade from 3833; schema 22 on both.
+- `scripts/s22-launch-check.sh` PASS. The full logcat holds no `Error setting` line.
+- The phone was dozing, so no map was drawn, and the grey chip needs aeroplane mode, so it is the owner's (below).
+- The S22 is left on 1.0.3837.
+
+**Device step (the owner's):**
+1. Choose Topo in Layers, with signal. **Pass:** Topo is in its normal selected colour.
+2. Turn on aeroplane mode and wait about 5 s, until the map shows Trail Map. Open Layers. **Pass:** Topo is still
+   selected and filled grey, and Trail is not highlighted.
+3. Turn aeroplane mode off and wait about 30 s, until the map is Topo again. Open Layers. **Pass:** Topo is in its
+   normal colour.
+4. Optionally, the same with Night Maps on (the dark theme) and with OSM chosen. Trail chosen: unchanged throughout.
+
+**Not verified, and not ruled.**
+- The grey chip on the phone, which is the step above.
+- The "Use offline tiles" setting, when it is on with signal, also draws Trail Map from the downloaded areas for a Topo
+  or OSM user (`drawsFromDownloads`). The amendment rules only the no-signal case, so the chip stays in its normal colour
+  there. Whether it should also be grey there is the owner's question; I did not decide it.
