@@ -42,7 +42,7 @@ class TileRetryPolicy(
     fun decide(failure: TileFailure, failedAttempts: Int, heldForMs: Long, networkValidated: Boolean): TileRetryDecision {
         require(failedAttempts >= 1) { "failedAttempts starts at 1" }
         if (heldForMs >= holdLimitMs) return TileRetryDecision.GiveUp
-        if (!networkValidated) return TileRetryDecision.WaitForNetwork
+        if (!networkValidated) return TileRetryDecision.GiveUp
         val backoff = backoffMs[minOf(failedAttempts, backoffMs.size) - 1]
         return TileRetryDecision.RetryAfter(minOf(backoff, holdLimitMs - heldForMs))
     }
