@@ -72,7 +72,7 @@ internal class RouteAreaClient(
             if (response.code != 200) return@use errorAnswer<Unit>(response)
             val source = response.body?.source()
                 ?: return@use RouteAnswer.Missing(RouteDataMissingReason.MALFORMED_RESPONSE, "${file.name} came with no body")
-            val temp = File(destination.parentFile, destination.name + DOWNLOAD_SUFFIX)
+            val temp = destination
             val digest = MessageDigest.getInstance("SHA-256")
             var written = 0L
             val buffer = ByteArray(64 * 1024)
