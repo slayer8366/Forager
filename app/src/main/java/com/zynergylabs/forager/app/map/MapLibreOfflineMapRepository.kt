@@ -436,7 +436,7 @@ private suspend fun OfflineRegion.downloadToCompletionSuspend(
  * 404 included, fails it as before.
  */
 internal fun downloadErrorKind(reason: String): DownloadErrorKind = when (reason) {
-    OfflineRegionError.REASON_CONNECTION, OfflineRegionError.REASON_SERVER -> DownloadErrorKind.Pausable
+    OfflineRegionError.REASON_CONNECTION, OfflineRegionError.REASON_SERVER -> DownloadErrorKind.Final
     else -> DownloadErrorKind.Final
 }
 
