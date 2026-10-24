@@ -56,7 +56,7 @@ internal fun drawsFromDownloads(
     noSignal: Boolean,
     hasDownloadedArea: Boolean,
     trailMapDraws: Boolean = true,
-): Boolean = useOfflineTiles || (noSignal && hasDownloadedArea && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws))
+): Boolean = useOfflineTiles || (noSignal && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws))
 
 /**
  * Whether the phone holds a downloaded offline area the map can draw from: a region whose tiles are here. A region
