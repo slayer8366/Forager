@@ -238,7 +238,7 @@ Evidence:
 - **Restoring the files:** I copied both edited files to `/tmp/a3-save` before the first revert edit and restored them from those copies after each one. Afterwards the files' SHA-1s matched the saved copies, `HEAD` and `origin/way-home-domain` were both `6ed43928a`, and a grep found `run.join()`, the short check and the `needsAppUpdate()` mapping all present.
 - The revert branches are left on the remote, not deleted.
 
-**Full suite** (#389, run 40079203529, on `6ed43928a`): FULL_SUITE_RESULT
+**Full suite** (#389, run 40079203529, on `6ed43928a`): `success`, every job. 731 suites, 5,485 tests, 0 failures, 24 skipped, counted from the run's JUnit XML; zero `e:` lines in its log. Pre-main `073fc77bd` (run 40078250926) is 726 suites, 5,447 tests, 0 failures, 24 skipped. The difference, 38 tests, is #389's 33 from before plus this amendment's 5 (the four in `FindWayHomeShortTrailPartTest` and the app-update test).
 
 ### Finding for the owner: a real trail shortcut under 100 m is now dropped
 
@@ -248,7 +248,7 @@ Fix 2 is built as ruled. One consequence the ruling's framing ("the track home w
 - Now it is under 100 m, so the way home is the 2 km loop, with no note.
 - The case needs the walker's *first* contact with any routable way to be at A. A walk that starts at a trailhead or on a road has its entry point there, its trail part is long, and the rule does not fire.
 
-So it bites only when the walk starts off the network. That is plausible for a forager, but I have no data on how often it happens. I did not guard against it: no walk shows it, and the ruling is explicit. The owner's option (b), applying the ratio only when the track between the points is over N m, would not drop this case. I'm reporting it so the owner can weigh it before part 2 wires the use case. No production code calls it yet (`FindWayHomeUseCase.kt:27-28`).
+So it bites only when the walk starts off the network. That is plausible for a forager, but I have no data on how often it happens. I did not guard against it: no walk shows it, and the ruling is explicit. The owner's option (b), applying the ratio only when the track between the points is over N m, would not drop this case. I'm reporting it so the owner can weigh it before part 2 wires the use case. No production code calls it yet (`git grep "FindWayHomeUseCase("` in `app/src/main` finds only its own declaration; its doc says so at `FindWayHomeUseCase.kt:28-29`).
 
 ### Confirmed vs inferred
 
