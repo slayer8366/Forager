@@ -10,6 +10,8 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -65,6 +67,9 @@ class DownloadPausedShownTest {
         rig.settle()
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.OFFLINE_MAPS)).performClick()
         rig.settle()
+        if (composeRule.onAllNodes(hasText("Download Maps")).fetchSemanticsNodes().isEmpty()) {
+            throw AssertionError("DIAGNOSTIC no Download Maps; tree:\n" + composeRule.onAllNodes(isRoot()).onFirst().printToString(maxDepth = 60))
+        }
         val button = composeRule.onNodeWithText("Download Maps").performScrollTo()
         rig.settle()
         rig.touch(button)
