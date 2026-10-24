@@ -27376,3 +27376,17 @@ The planner's calls: the length check flags a route over 1.5× the track home, p
 **Observed:** Report accepted; choices in -1589. The tile-retry Hazel holds the S22.
 **Decision:** the owner: "Go ahead and get started". Dispatch 2026-10-23-09 Amendment 1: split TrackRecordingViewModel.kt, then the cancel fix and the way-home domain code, nothing visible. Each part is its own PR into pre-main.
 **Notes:** Written by the planner by hand. Next free ID -1591.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1591
+**Timestamp:** 2026-10-24T04:29:08Z
+**Continues:** 2026-09-28-1585
+**Title:** Tile retry: pause text in #386; blank-patch follow-up; review now (owner)
+**Observed:** Amendment 3 on the S22 (1.0.3894+ga554619d). The download paused at no signal and finished by itself 7 s after Wi-Fi returned. Suite 5444/0, revert checks D, A1, A2 and L4 specific. A hard fling offline left a blank patch: tiles refused by the full 8 places are dropped. The paused row shows a frozen count.
+**Decision:** the owner:
+- "Fix in a follow-up (Recommended)", for the blank patch: every failed tile reloads when signal returns, after the promotion;
+- "Yes, in #386 (Recommended)", for "Paused · no signal · continues by itself" (dispatch 06 Amendment 4);
+- "Yes, now", to Sorrel's review of #386.
+**Notes:** Written by the planner by hand. Next free ID -1592.
