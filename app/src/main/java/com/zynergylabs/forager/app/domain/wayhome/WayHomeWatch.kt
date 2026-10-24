@@ -154,7 +154,6 @@ class WayHomeWatch(
             loggedWhy = why
             return
         }
-        armed = false
         launchJob(id, origin, firstOfReturn = false)
     }
 
