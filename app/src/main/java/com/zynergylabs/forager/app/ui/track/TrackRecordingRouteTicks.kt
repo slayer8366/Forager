@@ -100,7 +100,7 @@ internal class TrackRecordingRouteTicks(
         // on it; otherwise, and while it is still being worked out, the track as before.
         val shown = state.wayHome
         val line = shown?.line
-        val next = if (shown != null && line != null && state.activeTrack != null) {
+        val next = if (false && shown != null && line != null && state.activeTrack != null) {
             val progress = wayHomeProgress(state.activeTrack.trackId) ?: placeOnWayHome(line, here, previous = null, previousHopBand)
             wayHomeAhead(line, progress, here, shown.generation)
         } else {
