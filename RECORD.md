@@ -27343,3 +27343,25 @@ Waypoints and alerts follow as separate dispatches.
 **Observed:** No commits newer than -1587 on records-after-173, pre-main (adcbedb19) or tile-retry (f0b087b5c). way-home-report has no commits beyond pre-main and is not on the remote. The outgoing session is not visible from this one.
 **Decision:** the owner, asked which session carries on: "This session carries on".
 **Notes:** Written by the planner by hand. Next free ID -1589.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1589
+**Timestamp:** 2026-10-24T04:07:47Z
+**Continues:** 2026-09-28-1586
+**Title:** Way home along trails: the report's choices ruled (owner)
+**Observed:** Hazel's report, docs/audits/2026-10-23-09-way-home-along-trails-report.md (way-home-report 00be122ed). The off-track judge checks against start plus the walked track (ReturnWatch.kt:188, :256; 40 m, OffTrackJudge.kt:8), so following a trail route that strays from the track would alert.
+**Decision:** the owner chose:
+- off-track: "Ship with the alerts step" (step 5 ships with step 7);
+- sundown: "Yes, app-wide (Recommended)"; before Return: "Track until Return (Recommended)";
+- while computing: "Silent swap";
+- trail join: "25 m (Recommended)", provisional; method: "Measure, then pick (Recommended)" (snap vs full route, timed on the S22);
+- far end: "Back on your track (Recommended)";
+- re-route: "Once, plus if you stray (Recommended)" (more than 50 m from the line);
+- track part: "Dotted, same colour"; the trail part solid;
+- notes: "Accept all": missing data "No trail routes here · following your track"; damaged or unreadable "Trail routes couldn't be read · following your track"; never near a trail "No trail on your way out · following your track"; no path or engine failure "Couldn't find a trail route · following your track";
+- leaves the area: "Edge + length check (Recommended)".
+
+The planner's calls: the length check flags a route over 1.5× the track home, provisional; TrackRecordingViewModel.kt (958 lines) is split before adding, per -1490.
+**Notes:** Written by the planner by hand. Next free ID -1590.
