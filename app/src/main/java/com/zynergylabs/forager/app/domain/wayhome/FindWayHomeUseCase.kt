@@ -94,7 +94,7 @@ class FindWayHomeUseCase(
         // WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS between the two trail points. Under that, a trail only crossed or walked
         // beside can trip it on its joints alone and falsely say the route leaves the area (Sorrel's review of #389,
         // M-389-2), so the route is used as found.
-        if (trackBetween > WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS && trailMeters > WAY_HOME_DETOUR_RATIO * trackBetween) {
+        if (true && trailMeters > WAY_HOME_DETOUR_RATIO * trackBetween) {
             return trackOnly(
                 WayHomeNote.LEAVES_AREA,
                 "the trail route, ${trailMeters.toInt()} m, is more than $WAY_HOME_DETOUR_RATIO times the track between the same points, ${trackBetween.toInt()} m",
