@@ -27216,3 +27216,21 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 
 Dispatch 2026-10-23-07 covers the privacy policy, the key-refused line, no blank map without downloads, and the small items. The promotion waits for it.
 **Notes:** Written by the planner by hand. Next free ID -1579.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1579
+**Timestamp:** 2026-10-24T01:52:03Z
+**Continues:** 2026-09-28-1578
+**Title:** PR #387: privacy policy approved; no-key line and "any download" kept (owner)
+**Observed:**
+- PR #387 (dispatch 2026-10-23-07, head e873a251a): CI run 40049844015 green, 5,412 tests, 0 failures; tests failed first on the old code; revert checks R1–R3 each failed only on their own edit.
+- The policy now covers route requests (area edges plus a shared app key), the Worker's warning and error lines, the per-IP rate limit and the 30-day route cache. It drops "the Worker's own code writes no log lines".
+**Decision:** the owner chose:
+- policy: "Approve (Recommended)";
+- a build with no app key: "App-update line (Recommended)";
+- which download switches OSM or Topo to Trail with no signal: "Any download (Recommended)".
+
+The website copy and Play's Data safety form follow after the merge.
+**Notes:** Written by the planner by hand. Sorrel's review is pending. Next free ID -1580.
