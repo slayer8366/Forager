@@ -56,7 +56,7 @@ recording rather than hiding:
 | `/sprites/v4/light{,@2x}.{json,png}` | the icon set (MIT, from tangrams; `sprites/LICENSE-MIT.md` beside it) | R2 `sprites/v4/` |
 | `/sprites/v5/light{,@2x}.{json,png}` | v4 unchanged plus Trail Map's own icons and patterns (`map-style/tools/build-sprite-v5.mjs`) | R2 `sprites/v5/` |
 
-**Offline downloads south of 15.92°N** (the live `us.pmtiles` header's south bound) get world tiles to z8 and empty tiles from z9 up, z15 included: the overflow no longer runs south of the archive's own bounds, by the owner's "Stop it" (dispatch 2026-10-22-01 Amendment 4).
+**Offline downloads south of 15.92°N** (the live `us.pmtiles` header's south bound) store only empty tiles. The live map there has world tiles to z8 and empty tiles from z9 up, z15 included: the overflow no longer runs south of the archive's own bounds, by the owner's "Stop it" (dispatch 2026-10-22-01 Amendment 4). Downloads ask for z10 to z15 only (`OfflineMapRepository.kt`, `MapLibreOfflineMapRepository.kt`), all above the world fill's z8, so nothing they store there has data (RECORD -1558; dispatch 2026-10-23-07). Listed in `docs/process/known-bugs.md`.
 
 **The Pi is no longer tried first** (RECORD -879: the Pi "Builds the maps and keeps a copy, nothing live").
 Every tile comes from R2. The response header `X-Forager-Origin` still names the source (`r2`).

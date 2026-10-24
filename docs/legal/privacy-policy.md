@@ -1,6 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-10-19.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
+**Last updated: 2026-10-23.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
 actually does; where a claim comes from a particular file, that file is named so the claim can be
@@ -12,7 +12,8 @@ Forager has no account, no sign-in, no sync and no analytics. Nothing you record
 entries, photos, offline map regions, settings — is uploaded to the developer or to anyone else.
 
 What is transmitted, while the phone is online, is **where you are looking**: the coordinates a
-search runs on, and the map tiles for the area on screen. Those go to iNaturalist, Open-Meteo, the
+search runs on, the map tiles for the area on screen, and the edges of any area you download for
+offline use. Those go to iNaturalist, Open-Meteo, the
 map tile providers, and a Cloudflare Worker run by the developer. They carry a location and your IP
 address, and they are logged by the services that receive them.
 
@@ -56,8 +57,8 @@ send.
 | iNaturalist (`api.inaturalist.org`) | Latitude and longitude of the searched area, a radius, a month, taxon filters (`INaturalistApi.kt`) | Which species have been observed near that place at that time of year |
 | Open-Meteo (`api.open-meteo.com`) | Latitude and longitude, forecast/past day counts (`OpenMeteoApi.kt`) | Rain, soil moisture and soil temperature for the trip window |
 | Open-Meteo archive (`archive-api.open-meteo.com`) | Latitude and longitude, a date range (`OpenMeteoArchiveApi.kt`) | Historical rainfall, for the fruiting-lag calculation |
-| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`) | Drawing the map |
-| `forager-pmtiles.brandonlee1-894.workers.dev` — a Cloudflare Worker operated by the developer | The offline map style, and vector map tiles by `z/x/y` (`OfflineStyle.kt`, `server/pmtiles-worker/`) | The offline basemap, and downloading an offline region |
+| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`) | Drawing the map when you choose OSM or Topo under "Map type" in Layers (the default is Trail, Forager Trail Map, below), and OpenStreetMap's map in place of Forager Trail Map if Trail Map's style fails to load (`MapMode.kt`, `OwnStreetFallback.kt`) |
+| `forager-pmtiles.brandonlee1-894.workers.dev` — a Cloudflare Worker operated by the developer | Forager Trail Map's style, its vector map tiles by `z/x/y`, and its fonts and icons (`StreetStyle.kt`, `OfflineStyle.kt`, `server/pmtiles-worker/`). For trail routes: the four edges of an area you download (south, west, north and east, to six decimal places), and a key that is the same in every copy of the app, so it identifies the app, not you (`RouteAreaClient.kt`, `server/pmtiles-worker/src/routing/`) | Drawing the map, which is Forager Trail Map unless you choose another, online and offline; downloading an offline region; and the trail routes stored with each downloaded region |
 
 As with any HTTP request, each of these also reveals your IP address and ordinary request metadata
 to the recipient. Each recipient's own privacy policy governs what it then does with that.
@@ -68,34 +69,59 @@ One thing the app does not request itself: tapping an observation to open it on 
 app, under its own terms, not a request Forager makes.
 
 Downloading an offline region issues a large number of tile requests to the Cloudflare Worker in a
-short time, covering the whole region — that is the download. Once a region is downloaded, viewing
-the map inside it makes no tile requests at all. Searching still does.
+short time, covering the whole region — that is the download. The app then asks the Worker for that
+region's trail routes: one request carrying the region's edges and the app key, then one request per
+route file, each carrying the same edges. It asks again for a region whose routes are missing when you
+open Offline maps with signal, or tap "Try again" (`AvailabilityViewModelOfflineMaps.kt`). Once a region
+is downloaded, the map inside it can be drawn with no connection at all. Searching still makes
+requests.
 
 ## The Cloudflare Worker
 
-The map tile endpoint above is operated by the developer of this app, on Cloudflare's platform,
-serving tiles out of a Cloudflare R2 bucket.
+The Worker above is operated by the developer of this app, on Cloudflare's platform, serving the
+map and the trail route data out of a Cloudflare R2 bucket.
 
-**We keep no request logs.** The Worker's own code writes no log lines
-(`server/pmtiles-worker/src/`), and Workers Logs is explicitly disabled rather than left to the
-platform default: `wrangler.toml` sets `[observability] enabled = false`. Verified in the Cloudflare
-dashboard on 2026-09-09, where the Worker's Logs tab reported observability disabled.
+**We keep no request logs.** Workers Logs is explicitly disabled rather than left to the platform
+default: `wrangler.toml` sets `[observability] enabled = false`. Verified in the Cloudflare dashboard
+on 2026-09-09, where the Worker's Logs tab reported observability disabled.
+
+The Worker's own code writes a few warning and error lines, when its own data is missing, damaged
+or misconfigured (`console.warn` and `console.error` in `server/pmtiles-worker/src/index.ts` and
+`server/pmtiles-worker/src/routing/handler.ts`). None of them carries an IP address, the app key, a
+tile or an area's edges. The most any of them names is a five-degree square of the route data, such
+as `W125_N45`, and, for a damaged route file, the one-degree cell inside it. With observability off,
+these lines are not stored anywhere. Only the developer can see them, live, in a tail session
+(`wrangler tail`) while one is open; Cloudflare documents that a tail session also shows each request
+as it arrives. Nothing from a tail session is kept.
 
 The setting is pinned deliberately. Cloudflare documents `observability.enabled` as defaulting to
 `true` for newly created Workers, so an absent block would have left this claim resting on a default
 that can move.
 
-No per-request log is available to us by any other route either. Logpush and Logpull are
-Enterprise-only, Workers Trace Events Logpush requires the Workers Paid plan, and the zone-level
+No per-request log is kept by any other route either. Logpush and Logpull for HTTP requests are
+Enterprise-only. The Worker's account is on the Workers Paid plan, where Workers Trace Events Logpush
+is available, but it is not turned on for this Worker: Cloudflare pushes a Worker's events only when
+its configuration sets `logpush = true`, and `wrangler.toml` does not. The zone-level
 `httpRequestsAdaptive` dataset that retains 7 days on the Free plan covers `zynergy-labs.com`, not
 `*.workers.dev`. Workers metrics show aggregate request counts, not individual requests.
 
+To limit route requests to 30 a minute from one address, the Worker counts them by IP address in
+Cloudflare's rate-limiting counters, over a one-minute period (`wrangler.toml`, `[[ratelimits]]`;
+`server/pmtiles-worker/src/routing/handler.ts`). The count is how the limit works; it is not a list of
+requests.
+
 Cloudflare, as the host, processes these requests under its own privacy policy. **No retention
-figure is published here, because no setting of ours produces one.** That is the answer to the
+figure for request records is published here, because no setting of ours produces one.** That is the answer to the
 retention question rather than a number, and it is the only accurate one available while Cloudflare
 documents no figure for host-level records. This section previously carried an open question asking for a
 retention figure, with an instruction not to guess one. The resolution turned out to be that no
 figure applies.
+
+One setting of ours does keep something for a set time, and it is not a record of a request: a
+trail-route file the Worker cuts for an area is kept in Cloudflare's cache, at the location that
+served it, for up to 30 days (`max-age=2592000`, `server/pmtiles-worker/src/routing/handler.ts`),
+under an address that includes the area's edges, so that the same area asked for again is not cut
+again. It holds the area's routes, not who asked for them or when.
 
 Nothing about these requests is linked to any account, because the app has none. Nothing is sold,
 shared with anyone else, or used for advertising or profiling.
