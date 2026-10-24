@@ -117,11 +117,7 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
     val distances = DoubleArray(nodes.size) { GeoDistance.metersBetween(current, nodes[it]) }
     val from = previous?.index ?: 0
     fun earliest(range: IntRange, within: Double): Int? = range.firstOrNull { distances[it] <= within }
-    val index = earliest(from..nodes.lastIndex, WAY_HOME_TRAIL_JOIN_METERS)
-        ?: earliest(from..nodes.lastIndex, HOP_FAR_ENTER_ABOVE_METERS)
-        ?: earliest(nodes.indices, WAY_HOME_TRAIL_JOIN_METERS)
-        ?: earliest(nodes.indices, HOP_FAR_ENTER_ABOVE_METERS)
-        ?: return WayHomeProgress.OffLine(distances.min())
+    val index = nodes.indices.minBy { distances[it] }.takeIf { distances[it] <= HOP_FAR_ENTER_ABOVE_METERS } ?: return WayHomeProgress.OffLine(distances.min())
     val hop = distances[index]
     val band = nextHopBand(previousHopBand, hop)
     if (band == HopBand.FAR) return WayHomeProgress.OffLine(distances.min())
