@@ -250,6 +250,11 @@
             android:name=".alert.WakeUpAlarmReceiver"
             android:exported="false" />
 
+        <!-- THROWAWAY, never merged: the way-home timing run's adb entry point (dispatch 2026-10-24-10 Amendment 1). -->
+        <receiver
+            android:name=".routing.WayHomeTimingReceiver"
+            android:exported="true" />
+
         <service
             android:name=".service.TrackRecordingService"
             android:exported="false"
