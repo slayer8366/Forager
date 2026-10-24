@@ -132,7 +132,7 @@ class WayHomeWatch(
         // last place is kept through it.
         val band = when (progress) {
             is WayHomeProgress.Placed -> (progress as WayHomeProgress.Placed).place.hopBand
-            is WayHomeProgress.OffLine -> HopBand.FAR
+            is WayHomeProgress.OffLine -> HopBand.NONE
             null -> HopBand.NONE
         }
         val next = placeOnWayHome(line, current, lastPlace, band)
