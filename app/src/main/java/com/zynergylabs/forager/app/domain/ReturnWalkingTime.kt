@@ -78,7 +78,7 @@ fun returnWalkingTimeAlong(track: Track, path: PathHome, fixFreshness: FixFreshn
     if (fixFreshness == FixFreshness.LOST) return ReturnWalkingTime.Withheld(WithholdReason.NO_FIX)
     // Both of returnWalkingTime's no-points withholds: hasNoUsablePoints is false for a track with no points at all
     // (storedPointCount 0), which returnWalkingTime withholds through pathHome returning null.
-    if (track.points.isEmpty() || track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
+    if (track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
     return estimateAlong(track, path, fixFreshness)
 }
 
