@@ -51,7 +51,6 @@ internal class TileRetryInterceptor(
         val request = chain.request()
         if (!isMapTileRequest(request.url)) return chain.proceed(request)
         val usage = request.tag(MapRequestUsage::class.java)
-        if (usage?.offline == true) return chain.proceed(request)
         val tile = tileName(request.url)
         if (usage == null && untaggedLogged.compareAndSet(false, true)) {
             log("Tile $tile carries no download-or-map mark, so it is treated as the map's; later ones are not logged in this process.")
