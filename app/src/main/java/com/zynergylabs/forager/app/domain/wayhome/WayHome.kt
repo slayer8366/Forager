@@ -133,6 +133,22 @@ const val WAY_HOME_DETOUR_RATIO = 1.5
 const val WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS = 100.0
 
 /**
+ * The longest trail part used when the [WAY_HOME_DETOUR_RATIO] check is skipped, at [WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS]
+ * or less walked between the two trail points (RECORD -1603, the owner: "Add a cap in part 2 (Recommended)"; RECORD -1613,
+ * "150 m, no note (Recommended)"). Over it, the route is not used and the track is the way home, with no note.
+ * **Provisional**, as the figures it is made of are.
+ *
+ * Why: with the check skipped, nothing but the area's rectangle bounds the route, so a crossing where the two matched
+ * ways only meet far away could be handed a route of kilometres where the walker's own short track was the answer
+ * (Sorrel's re-check of #389, L-389R-1). Why this figure: it is 1.5 × 100, the longest trail part the ratio check accepts
+ * just over its floor, so the rule is continuous at 100 m and adds no free number of its own. The cases the floor was
+ * built for stay under it: a crossing's trail part of 50 to 80 m (M-389-2) and the looped walk's 80 m shortcut.
+ * Why no note: the walker's track between the points is 100 m or less, a short way they know; "leaves your downloaded
+ * area" would be false, and so would "couldn't find a trail route", since one was found and refused.
+ */
+const val WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS = WAY_HOME_DETOUR_RATIO * WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS
+
+/**
  * How far apart, along the track, the points tested for a trail are: every point at least this far on from the last
  * one tested, plus the scan's first point. **Provisional**: the test's cost is one engine call per point (the S22
  * timing decides the method, RECORD -1589). Under [WAY_HOME_TRAIL_JOIN_METERS], so a walk along a trail is tested at
