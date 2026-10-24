@@ -27247,3 +27247,14 @@ The website copy and Play's Data safety form follow after the merge.
 - the S22 check: "Yes, run them (Recommended)";
 - the promotion: "This promotion". #386 and #387 go to main together, after both reviews and the phone check.
 **Notes:** Written by the planner by hand. Sorrel's review of #387 found two Medium policy errors (the tile and font cache, a missed re-ask trigger), now with Hazel; the owner sees the changed sentences again. Next free ID -1581.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1581
+**Timestamp:** 2026-10-24T02:08:23Z
+**Continues:** 2026-09-28-917
+**Title:** Code shrinking (R8) on before the next production release; report first (owner)
+**Observed:** Play Console flags release 3500: "DEX code optimization is below our threshold", Obfuscation 0%, fix by Feb 2027. `isMinifyEnabled = false` (app/build.gradle.kts:307 at 32d381e45), as -917 chose.
+**Decision:** the owner: "Before the next release, we should fix this"; chose "Next production (Recommended)" and "Yes, report first (Recommended)". This promotion's internal draft goes without R8.
+**Notes:** Written by the planner by hand. Dispatch 2026-10-23-08. Next free ID -1582.
