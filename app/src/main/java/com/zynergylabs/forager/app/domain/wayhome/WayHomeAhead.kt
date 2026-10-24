@@ -32,7 +32,7 @@ fun wayHomeAhead(line: WayHomeLine, progress: WayHomeProgress, current: LatLng, 
         // The place is the earliest node near the walker, so it can be up to 25 m behind them: right for the distance,
         // which must never be short, wrong for the needle, which would aim back at it (and the corner guard would hold
         // it there). The needle aims from the node nearest the walker within the next stretch of line instead.
-        val aimFrom = aimFrom(line, place.index, current)
+        val aimFrom = place.index
         val chosen = lookaheadIndex(nodes, line.alongMeters, aimFrom, line.alongMeters[aimFrom] + ROUTE_LOOKAHEAD_METERS, current)
         RouteHome.Ahead(
             lookahead = nodes[chosen],
