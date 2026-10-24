@@ -27573,3 +27573,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's second review at f0360352e (prompts/preserved/2026-10-24-sorrel-391-review-2.md, 2e738597b): merge-ready, 0 Blocking, 0 M, 4 L. CI green on f0360352e (40091393614, 5450/0). S22 1.0.3906: the solid line shows 1.2 to 1.7 s after both Stop paths.
 **Decision:** the owner: "Merge it (Recommended)". Merged as 79a01ae1b, pinned to f0360352e. Elder's short look follows, then the promotion PR.
 **Notes:** Written by the planner by hand. Next free ID -1607.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1607
+**Timestamp:** 2026-10-24T14:26:19Z
+**Continues:** 2026-09-28-1606
+**Title:** Elder passes the #391 range; known-bugs row 20 added (#392); the promotion PR opened (#393) (owner)
+**Observed:** Elder (Claude Fable 5.1), prompts/preserved/2026-10-24-08-promotion-recheck-391-report.md (114f29229): pass with items. CI green on 79a01ae1b (40098461329, 5450/0, recounted). Item 1: a row for a deleted track staying on the map until a tab change (live, not serious). Item 2: a failed end write leaves no line and no notice (pre-existing; for later recording work).
+**Decision:** the owner: "Add row, open PR (Recommended)". Row 20 merged as #392 (bfbaca47c). Promotion PR #393, pre-main → main, opened; it merges only on the owner's approval.
+**Notes:** Written by the planner by hand. Next free ID -1608.
