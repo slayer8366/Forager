@@ -27406,3 +27406,14 @@ The planner's calls: the length check flags a route over 1.5× the track home, p
 
 Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's review is clean, CI is green and the S22 check passes.
 **Notes:** Written by the planner by hand. Dispatch 09 Amendment 2. Next free ID -1593.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1593
+**Timestamp:** 2026-10-24T06:54:55Z
+**Continues:** 2026-09-28-1591
+**Title:** PR #386 (tile retry) merged into pre-main
+**Observed:** Sorrel (Fable 5.1) found it merge-ready: no Blocking, no M, six Lows (prompts/preserved/2026-10-24-sorrel-386-review.md). CI run 40064295038 was green on head c3d06b2f1. S22 build 1.0.3897: the download pauses, shows "Paused · no signal · continues by itself", and finishes with nothing tapped.
+**Decision:** the owner: "Merge when ready", scoped to "#386 only (Recommended)" (-1592). Merged as fefc89129.
+**Notes:** Written by the planner by hand. The Lows are open for after the promotion, and L-b's wording is the owner's call. Next free ID -1594.
