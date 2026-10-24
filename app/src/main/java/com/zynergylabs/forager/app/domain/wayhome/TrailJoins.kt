@@ -81,7 +81,6 @@ internal suspend fun findTrailJoin(
 ): JoinScan {
     for (i in indices) {
         val point = points[i]
-        if (!area.contains(point)) continue
         when (val result = snapper.nearestTrail(point, toward, routeData)) {
             is TrailSnapResult.OnNetwork ->
                 if (GeoDistance.metersBetween(point, result.trailPoint) <= WAY_HOME_TRAIL_JOIN_METERS) {
