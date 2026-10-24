@@ -27494,3 +27494,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Elder (Claude Fable 5.1): pass with items for fefc89129..073fc77bd (prompts/preserved/2026-10-24-02-promotion-recheck-388-report.md, 8bea14165). #388 is a pure move; CI green on e26c0f591 (40078191007) and 073fc77bd (40078250926). Item 1: TrackRecordingViewModel.kt is still 852 lines, and part 2 adds to it; to be decided before part 2.
 **Decision:** the owner: "Start now (Recommended)", to the S22 check on 073fc77bd: the offline row, a day and a night glance, and Elder's record, lock, stop line.
 **Notes:** Written by the planner by hand. Next free ID -1600.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1600
+**Timestamp:** 2026-10-24T09:33:22Z
+**Continues:** 2026-09-28-1599
+**Title:** #389 Amendment 3 done; the short-trail rule switches from (c) to (b) (dispatch 2026-10-23-09 Amendment 4); S22 promotion check passes (owner)
+**Observed:** Hazel: Amendment 3 on way-home-domain, head 89ae07b97, CI green (40079203529 full suite 5,485/0; 40080701724); four revert checks specific. Open item 1: (c) drops a real trail shortcut on a looped walk. S22 check on 1.0.3901+g073fc77b (prompts/preserved/2026-10-24-03-s22-promotion-check-report.md, 0adfa17a4): database 22 to 22, steps 1 to 6 pass; the End waypoint lands on the last fix, the last track point within one 5 s sample.
+**Decision:** the owner: "Switch to (b) (Recommended)": the 1.5× check runs only when the walked stretch between the two trail points is over 100 m (provisional); (c)'s short-trail rule is removed.
+**Notes:** Written by the planner by hand. Next free ID -1601.
