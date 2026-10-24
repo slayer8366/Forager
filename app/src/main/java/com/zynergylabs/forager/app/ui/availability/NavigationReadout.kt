@@ -180,7 +180,6 @@ internal fun navigationReadout(
             // the start is, and the note stays there, as it was.
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
             // Dispatch 2026-10-24-10: why the way home is the walker's track, where the line is empty otherwise.
-            route is ReturnRoute.Ahead && route.note != null -> route.note.text
             else -> ""
         }
     }
