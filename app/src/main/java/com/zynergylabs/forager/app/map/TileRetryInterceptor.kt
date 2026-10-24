@@ -162,7 +162,6 @@ internal class TileRetryInterceptor(
 
         /** Closes a failed response before the request is sent again. */
         fun discard() {
-            response?.close()
         }
     }
 
