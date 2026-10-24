@@ -44,8 +44,9 @@ class WayHomeAheadTest {
         val place = (placeOnWayHome(line, at(100.0, 0.0), null) as WayHomeProgress.Placed).place
         assertEquals(place.remainingMeters, route.routeMeters, 0.0)
         assertEquals(place.remainingMeters, route.pathHome.totalMeters, 0.01)
-        // Placed at (80, 0); the needle 25 m on is the first node at least that far, (110, 0).
-        assertEquals(0.0, GeoDistance.metersBetween(route.lookahead, at(110.0, 0.0)), 0.5)
+        // Placed at (80, 0), 20 m behind the walker, for the distance. The needle aims from the node nearest the walker,
+        // (100, 0), not back at the place: the first node at least 25 m on from there is (130, 0).
+        assertEquals(0.0, GeoDistance.metersBetween(route.lookahead, at(130.0, 0.0)), 0.5)
     }
 
     @Test

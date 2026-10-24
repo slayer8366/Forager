@@ -107,6 +107,21 @@ class WayHomeWatchTest {
     }
 
     @Test
+    fun `a search a second Return replaced, finishing anyway, never shows`() {
+        val first = CompletableDeferred<WayHomeResult>()
+        val second = CompletableDeferred<WayHomeResult>()
+        val calls = mutableListOf(first, second)
+        val stubborn = WayHomeWatch(scope, { Result.success(track) }, { _, _ -> val mine = calls.removeAt(0); withContext(NonCancellable) { mine.await() } }, { true }, errorLog)
+        stubborn.find("t1", null)
+        scope.runCurrent()
+        stubborn.find("t1", null)
+        scope.runCurrent()
+        first.complete(alongTrails)
+        scope.runCurrent()
+        assertEquals("the second Return's search is still the one shown, still working", WayHomeShown("t1", 2, null), stubborn.shown.value)
+    }
+
+    @Test
     fun `Stop, and the service ending, cancel the work and show nothing, and another track's end is ignored`() {
         watch.find("t1", null)
         scope.runCurrent()
