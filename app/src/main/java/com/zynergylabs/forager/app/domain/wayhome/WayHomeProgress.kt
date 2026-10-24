@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.domain.wayhome
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.HOP_FAR_ENTER_ABOVE_METERS
 import com.zynergylabs.forager.app.domain.HopBand
+import com.zynergylabs.forager.app.domain.LIVE_FIX_MAX_ACCURACY_METERS
 import com.zynergylabs.forager.app.domain.PathHome
 import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -68,9 +69,11 @@ class WayHomeLine(val wayHome: WayHome) {
 /**
  * Where the walker is on a [WayHomeLine], and how far home along it.
  *
- * [index] is the node they are placed at, [hopMeters] the straight line from their fix to it, [hopBand] that hop's
- * band ([nextHopBand], passed back as the next call's previous band). [remainingMeters] is the distance home: the line
- * from [index] to its end, plus the hop as counted, plus [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when [onTrail].
+ * [index] is the node they are placed at, which the needle and the greyed walked part read; [hopMeters] the straight line
+ * from their fix to it, [hopBand] that hop's band ([nextHopBand], passed back as the next call's previous band).
+ * [remainingMeters] is the distance home, counted from its own node, the earliest within the gate's 50 m anywhere on the
+ * line ([placeOnWayHome]; Amendment 3), plus [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part
+ * ([onTrail]).
  */
 data class WayHomePlace(
     val index: Int,
@@ -81,13 +84,12 @@ data class WayHomePlace(
 )
 
 /**
- * This place's distance home as a [PathHome], the shape the walking time and the HUD's route read: the line's metres
- * from the place, the trail allowance included, as `trackMeters`, and the hop as measured with its band.
+ * This place's distance home as a [PathHome], the shape the walking time and the HUD's route read: [remainingMeters] as
+ * `trackMeters`, whole. The hop is kept as measured but not counted (band NONE): since Amendment 3 the figure's 50 m
+ * reach already covers the fix's distance from the line.
  */
-fun WayHomePlace.toPathHome(pointCount: Int): PathHome {
-    val hopCounted = if (hopBand == HopBand.NONE) 0.0 else hopMeters
-    return PathHome(trackMeters = remainingMeters - hopCounted, hopMeters = hopMeters, hopBand = hopBand, originLegMeters = null, pointCount = pointCount)
-}
+fun WayHomePlace.toPathHome(pointCount: Int): PathHome =
+    PathHome(trackMeters = remainingMeters, hopMeters = hopMeters, hopBand = HopBand.NONE, originLegMeters = null, pointCount = pointCount)
 
 /** What [placeOnWayHome] found: a place on the line, or the walker more than the far band from it. */
 sealed interface WayHomeProgress {
@@ -107,9 +109,17 @@ sealed interface WayHomeProgress {
  * [WAY_HOME_TRAIL_JOIN_METERS] of the fix; failing that, within the far band ([HOP_FAR_ENTER_ABOVE_METERS]); and only
  * when nothing from [previous] on is that near, the earliest anywhere on the line (a walker who has turned back). The
  * earliest node near the walker is never further along than where they truly are, so the line's metres from it are
- * never short; where the place is on the trail part, which is not the walker's own track, the figure also carries
- * [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] for the up to 25 m between the place and the fix. A switchback's later leg
- * within reach is never chosen over the leg the walker is on.
+ * never short. A switchback's later leg within reach is never chosen over the leg the walker is on. That place is what
+ * the needle and the greyed walked part read.
+ *
+ * **The figure counts from its own node** (RECORD -1618, the owner: "2: within 50 m (Recommended)"; dispatch
+ * 2026-10-24-10 Amendment 3, replacing Amendment 2's item 1 after Sorrel's B-395-1): the earliest node within
+ * [WAY_HOME_FIGURE_REACH_METERS] of the fix **anywhere on the line**, ignoring [previous], plus
+ * [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part. "Not before the last place" made the figure
+ * short on a hairpin (one fix 30 m off leg 1, nearer leg 2, read 245 m against 420 m), and so would a 25 m reach; the
+ * gate's own 50 m covers every fix the gate admits, so the figure is never short, as `PathHome.kt`'s ruling requires
+ * ("Its error is never short"). The owner accepted that it reads about 50 to 75 m long on an ordinary trail. No hop is
+ * added to it: the reach already covers the fix's distance from the line.
  */
 fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, previousHopBand: HopBand = previous?.hopBand ?: HopBand.NONE): WayHomeProgress {
     val nodes = line.nodes
@@ -125,9 +135,10 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
     val hop = distances[index]
     val band = nextHopBand(previousHopBand, hop)
     if (band == HopBand.FAR) return WayHomeProgress.OffLine(distances.min())
-    val onTrail = line.kinds[index] == RouteLinePartKind.TRAIL
-    val remaining = line.totalMeters - line.alongMeters[index] +
-        (if (band == HopBand.NONE) 0.0 else hop) +
+    // The place is within the far band, so a node within the reach always exists here.
+    val figureIndex = earliest(nodes.indices, WAY_HOME_FIGURE_REACH_METERS) ?: index
+    val onTrail = line.kinds[figureIndex] == RouteLinePartKind.TRAIL
+    val remaining = line.totalMeters - line.alongMeters[figureIndex] +
         (if (onTrail) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0)
     return WayHomeProgress.Placed(WayHomePlace(index, hop, band, onTrail, remaining))
 }
@@ -140,6 +151,13 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
  * as the 25 m it matches is.
  */
 const val WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS = WAY_HOME_TRAIL_JOIN_METERS
+
+/**
+ * How far from the fix the distance home's node may be (RECORD -1618; dispatch 2026-10-24-10 Amendment 3): the live-fix
+ * gate's own ceiling, [LIVE_FIX_MAX_ACCURACY_METERS], not a figure of this file's, so the figure is never short for any
+ * fix the gate admits (`PathHome.kt`'s "never short" ruling).
+ */
+val WAY_HOME_FIGURE_REACH_METERS: Double = LIVE_FIX_MAX_ACCURACY_METERS.toDouble()
 
 /**
  * The longest stretch between two nodes of a [WayHomeLine]: longer stretches (an engine route's long straight, a gap in
