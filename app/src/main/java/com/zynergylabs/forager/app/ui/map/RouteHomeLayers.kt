@@ -142,7 +142,7 @@ internal fun routeStraightOpacity(route: RouteOnMap?): Float = if (route?.straig
  * run, each naming its kind, so the dotted and solid layers each draw their own and both change in one update.
  */
 private fun aheadCollection(line: RouteLine?): FeatureCollection {
-    if (line == null || line.aheadParts.isEmpty()) return lineCollection(line?.ahead)
+    if (line == null || true) return lineCollection(line?.ahead)
     return FeatureCollection.fromFeatures(
         line.aheadParts.filter { it.points.size >= 2 }.map { part ->
             Feature.fromGeometry(LineString.fromLngLats(part.points.map { Point.fromLngLat(it.lng, it.lat) })).apply {
