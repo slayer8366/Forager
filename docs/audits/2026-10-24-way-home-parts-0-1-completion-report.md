@@ -283,3 +283,68 @@ So it bites only when the walk starts off the network. That is plausible for a f
 - **A new test class** for fix 2, rather than growing `FindWayHomeUseCaseTest` (now 303 lines), per the modular-code skill.
 - **The guard loop in fix 3** covers every other `RouteDataMissingReason`, not only the three the old test listed.
 - **The comments** for L-389-4 and L-389-8 are worded as above.
+
+## Addendum: Amendment 4 (RECORD -1600, option (b) replaces (c))
+
+**This replaces Amendment 3's fix 2** and closes its open item 1, the looped walk that lost its shortcut. Fixes 1 and 3 of Amendment 3 stand unchanged.
+
+**Base.** origin/pre-main was still `073fc77bd` (`git ls-remote`), already merged into `way-home-domain`, so no new merge was needed. I started from `89ae07b97`.
+
+**Commits:**
+- `65ebfda70`: the tests, failing first.
+- `7e4dd4f31`: the rule.
+- This section.
+
+### The rule
+
+- `WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS = 100.0` is provisional and named (`WayHome.kt`). Its doc gives the reason and the rejected alternative, option (c).
+- The length check is now `trackBetween > 100 m && trailMeters > 1.5 × trackBetween` (`FindWayHomeUseCase.kt:97`). At or under 100 m walked between the two trail points, the check is skipped and the route is used as found. "Over 100 m" is read as strictly over.
+- The rectangle check is unchanged and still runs first.
+- `WAY_HOME_SHORT_TRAIL_METERS` and its `TrackOnly(null)` result are removed. No reference is left in `app/src`, checked by grep.
+- `TrackOnly(null)`'s doc is back to its two cases from before Amendment 3.
+
+### Tests
+
+`FindWayHomeShortWalkTest` replaces `FindWayHomeShortTrailPartTest`. It has 4 tests, and each along-trails case also asserts that nothing was logged.
+- **The false-warning case:** a walk crossing a trail, with 40 m walked between the near points and a trail part of 66.2 m (25 m of route plus about 41.2 m of joints). It gets the route, with a trail part of 66.2 m, and no "leaves your downloaded area" note.
+- **The loop case:** the walk starts 190 m off the trail and crosses it at 100 m east. It loops about 2,040 m, crosses again at 160 m east, then walks 180 m south. It keeps the 80 m trail shortcut: 60 m of route plus two 10 m joints. Track back 180 m, track to start 180 m, total 440 m, not the loop.
+- **Both sides of 100 m,** with a 200 m trail part on the trail and no joints: 98 m walked skips the check and gets the route; 102 m walked runs it and gets `LEAVES_AREA`.
+- **A short route outside the rectangle** (98 m walked, one route point 20 km north) still gets `LEAVES_AREA`.
+
+### Evidence
+
+- **Failing first** (run 40082554090, on `65ebfda70`, throwaway branch `way-home-a4-failfirst`, filtered to `domain.wayhome.*`): zero `e:` lines, and the tests compiled. 29 tests ran and 3 failed, the predicted three:
+  - The crossing and the loop: "along trails, not TrackOnly(note=null)". Their logs say "the trail part, 66 m / 80 m, is under 100.0 m", which is Amendment 3's rule.
+  - The 98 m side: "along trails, not TrackOnly(note=LEAVES_AREA)", logged as "200 m, is more than 1.5 times … 98 m".
+  - The rectangle test passed, as it should today. It is a guard.
+- **Revert check 1** (`way-home-a4-revert-1`, run 40082620678): `if (true && trailMeters > …)`, so there is no floor. Zero `e:` lines. 29 tests, 2 failures, both `LEAVES_AREA` where a route was expected:
+  - the crossing, logged as "66 m … 39 m";
+  - the 98 m side.
+  - The loop kept its shortcut, as it should, because its ratio passes.
+- **Revert check 2** (`way-home-a4-revert-2`, run 40082622304): Amendment 3's rule put back as one line, `if (trailMeters < 100.0) return trackOnly(null, "short trail part")`. Zero `e:` lines. 29 tests, 2 failures, the crossing and the loop, each `TrackOnly(note=null)`. Their log reads "short trail part", a string that exists only in this revert, so the result is from this build.
+- **How the revert branches were made.** This time I built them with git plumbing (a temporary index, `commit-tree`) from an edited copy in `/tmp/a4-work`, so the working tree was never edited. The forward file was saved to `/tmp/a4-save` first. Afterwards its SHA-1 matched the saved copy, `git status` was clean, and `HEAD` was `7e4dd4f31`. Each revert branch differs from `7e4dd4f31` by one line (`git diff --stat`). The branches are left on the remote.
+- **Full suite** (#389, run 40083121709, on `7e4dd4f31`): FULL_SUITE_A4
+
+### Confirmed vs inferred
+
+**Confirmed:**
+- each result above, from that run's own test-result files, with zero `e:` lines;
+- that each failure is one its edit could cause;
+- that the removed rule has no references left.
+
+**Inferred:**
+- That 100 m walked covers the false-warning cases on real walks. Walking beside a trail within 25 m for longer than about 100 m, with a trail part over 1.5× of it, could still trip the check. That would need an engine route much longer than the walker's track beside the same trail, which I take to be rare.
+
+### Could not determine
+
+- How often either case happens on real walks. No real walk has been run, and the S22 timing is still to do.
+
+### Premises that were wrong
+
+- None. The dispatch's description of the loop case and of the rule matched the code.
+
+### Decided beyond scope
+
+- "Over 100 m" is strict: exactly 100 m skips the check. The tests sit at 98 m and 102 m, not at exactly 100 m, because the walked metres come from geodesic distances, which are not exact.
+- I renamed the test class to `FindWayHomeShortWalkTest`, since the old name described the removed rule.
+- The loop test's walk starts off the network. That is the only shape in which the old rule bit, as Amendment 3's finding said.
