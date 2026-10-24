@@ -63,7 +63,7 @@ internal fun drawsFromDownloads(
  * restored from a backup with no tiles on this phone (`isDownloaded` false, "Not downloaded" in Offline maps) has
  * nothing to draw, so it does not count. A region waiting out its delete's undo still has its tiles, so it does.
  */
-internal fun hasDownloadedArea(regions: List<OfflineRegionSummary>): Boolean = regions.any { it.isDownloaded }
+internal fun hasDownloadedArea(regions: List<OfflineRegionSummary>): Boolean = regions.isNotEmpty()
 
 /**
  * The "no signal" state the maps read, after the hysteresis ([noSignalWithHysteresis]). `null` where nothing provides
