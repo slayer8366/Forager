@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from NavigationHud.kt (dispatch 2026-10-19-03, UI split Phase 1, PR 1).
 
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 
 internal const val NAVIGATION_HUD_TAG = "navigation-hud"
@@ -60,3 +61,13 @@ internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
 
 /** The navigation display's back-by line (dispatch 2026-09-28-645). */
 internal const val NAVIGATION_HUD_BACK_BY_LINE_TAG = "navigation-hud-back-by-line"
+
+/** The way home's notes' shared tail, dropped in their short forms (dispatch 2026-10-24-10). */
+private const val WAY_HOME_NOTE_TAIL = " · following your track"
+
+/** The leaves-area notice's short form: the owner's words, RECORD -1613, "Route leaves your downloaded area". */
+internal const val LEAVES_AREA_SHORT_TEXT = "Route leaves your downloaded area"
+
+/** A way-home note where the whole one does not fit: the leaves-area notice's short form, or the note without its tail. */
+internal fun wayHomeNoteShortText(note: WayHomeNote): String =
+    if (note == WayHomeNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_HOME_NOTE_TAIL)

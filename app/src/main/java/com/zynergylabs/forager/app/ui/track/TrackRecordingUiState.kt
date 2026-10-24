@@ -13,6 +13,9 @@ import com.zynergylabs.forager.app.domain.SundownLine
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeShown
 
 /**
  * A track currently being recorded. [ActiveTrack.trackId] is the id
@@ -96,6 +99,12 @@ data class TrackRecordingUiState(
      */
     val routeLine: RouteLine? = null,
     /**
+     * The way home along trails for this screen's recording (dispatch 2026-10-24-10; RECORD -1613), copied from the
+     * app's `WayHomeWatch` while it is for this recording; `null` otherwise. A `null` result is still being worked out,
+     * and the route tick shows the track meanwhile.
+     */
+    val wayHome: WayHomeShown? = null,
+    /**
      * Every recorded track, newest-started first — the Settings "Recorded Tracks" export surface's
      * only data source. Loaded on init and refreshed whenever that panel is opened (see
      * [TrackRecordingViewModel.loadTracks]), not reactively: [TrackRepository] is plain suspend
@@ -171,11 +180,13 @@ data class TrackRecordingUiState(
      * so it comes from the same route search (dispatch 2026-09-28-423, the planner's ruling on
      * question 1; until then the 15 s poll ran a search of its own for it). `null` whenever
      * [routeHome] is not [RouteHome.Ahead], which, unlike before, includes a walker in the far hop
-     * band; nothing reads it there, since the HUD shows [routeHome] itself. The walking time built
-     * on the same value ([com.zynergylabs.forager.app.domain.returnWalkingTime]) still has no
-     * caller, on purpose.
+     * band; nothing reads it there, since the HUD shows [routeHome] itself. The walking time is
+     * worked out by `SundownWatch`, from the track or the way home shown, not from this value.
      */
     val pathHome: PathHome? get() = (routeHome as? RouteHome.Ahead)?.pathHome
+
+    /** Why the way home is the walker's track, shown beside it (RECORD -1586, -1589), or `null` with nothing to say. */
+    val wayHomeNote: WayHomeNote? get() = (wayHome?.result as? WayHomeResult.TrackOnly)?.note
 
     /**
      * [waypoints] without [pendingWaypointDelete]: what every screen shows (J4, "a pending record is

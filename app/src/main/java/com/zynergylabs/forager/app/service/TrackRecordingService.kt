@@ -160,6 +160,7 @@ class TrackRecordingService : Service() {
         (application as ForagerApplication).container.returnWatch.end(null)
         (application as ForagerApplication).container.sundownWatch.end(null)
         (application as ForagerApplication).container.backByWatch.end(null)
+        (application as ForagerApplication).container.wayHomeWatch.end(null)
         // A recording that ends without a Stop leaves no alert behind either (RECORD -800).
         cancelRecordingAlerts(this)
         recordingJob?.cancel()
@@ -234,6 +235,8 @@ class TrackRecordingService : Service() {
                             if (guardWatch("The back-by watch", candidate) { watches.backByOnFix(candidate, fix.provider) } == true) {
                                 launch { tickBackBy(container) }
                             }
+                            // Dispatch 2026-10-24-10: every raw fix to the way home too, guarded as the others are.
+                            guardWatch("The way-home watch", candidate) { watches.wayHomeOnFix(candidate, fix.provider) }
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 // Dispatch 2026-09-28-425: the kept point to the watch too, which
@@ -378,6 +381,7 @@ class TrackRecordingService : Service() {
             container.returnWatch.end(trackId)
             container.sundownWatch.end(trackId)
             container.backByWatch.end(trackId)
+            container.wayHomeWatch.end(trackId)
             // The reminder ends with the recording (the owner: "Cancel automatically"), so an alert
             // still in the shade has nothing left to answer; the sundown alert goes with it (RECORD -800).
             cancelRecordingAlerts(this)
