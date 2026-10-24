@@ -27417,3 +27417,16 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable 5.1) found it merge-ready: no Blocking, no M, six Lows (prompts/preserved/2026-10-24-sorrel-386-review.md). CI run 40064295038 was green on head c3d06b2f1. S22 build 1.0.3897: the download pauses, shows "Paused · no signal · continues by itself", and finishes with nothing tapped.
 **Decision:** the owner: "Merge when ready", scoped to "#386 only (Recommended)" (-1592). Merged as fefc89129.
 **Notes:** Written by the planner by hand. The Lows are open for after the promotion, and L-b's wording is the owner's call. Next free ID -1594.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1594
+**Timestamp:** 2026-10-24T07:44:14Z
+**Continues:** 2026-09-28-1593
+**Title:** Pause line wording for both causes; S22 test areas deleted (owner)
+**Observed:** Sorrel's L-b on #386: a 5xx with signal up also pauses, and shows "no signal". The S22 has test regions 2 to 4 from the tile-retry checks, with 625 tiles of budget left.
+**Decision:** the owner:
+- "One line for both (Recommended)": "Paused · continues by itself", as a fix after the promotion;
+- "Delete the test areas", for regions 2, 3 and 4 on the S22.
+**Notes:** Written by the planner by hand. Next free ID -1595.
