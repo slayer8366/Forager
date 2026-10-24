@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
+import com.zynergylabs.forager.app.domain.routedata.needsAppUpdate
 import com.zynergylabs.forager.app.domain.routedata.needsFetch
 
 /**
@@ -17,7 +18,10 @@ import com.zynergylabs.forager.app.domain.routedata.needsFetch
  * route reaches that edge (Recommended)").
  *
  * - [fetching]: "Getting trail routes".
- * - No routes for the area, or a reason a retry can't fix: C's line, no button (path C; F uses C's line).
+ * - The server refused the app's key, or the build has none ([needsAppUpdate]): "Map only. Trail routes need an app
+ *   update.", no button, with or without signal (dispatch 2026-10-23-07, Elder's item 2; the owner's sentence).
+ * - No routes for the area, or any other reason a retry can't fix (too large, bad request, over the phone's limit):
+ *   C's line, no button (path C; F's area reasons use C's line).
  * - Routes wanted and no signal: "...download next time you're online.", no button (path E, offline).
  * - Routes wanted, and an attempt this session has failed ([attemptFailed]): B's line with **Try again**.
  * - Routes wanted with signal and no attempt yet: no line, for the moment before the automatic fetch starts.
@@ -27,6 +31,7 @@ import com.zynergylabs.forager.app.domain.routedata.needsFetch
 internal fun offlineRouteLine(routeData: RegionRouteData, fetching: Boolean, attemptFailed: Boolean, noSignal: Boolean): OfflineRouteLine? = when {
     fetching || routeData is RegionRouteData.Fetching -> OfflineRouteLine(ROUTES_GETTING, tryAgain = false)
     routeData is RegionRouteData.Stored -> null
+    routeData is RegionRouteData.Missing && routeData.reason.needsAppUpdate() -> OfflineRouteLine(ROUTES_NEED_APP_UPDATE, tryAgain = false)
     !routeData.needsFetch() -> OfflineRouteLine(ROUTES_NONE_HERE, tryAgain = false)
     noSignal -> OfflineRouteLine(ROUTES_NEXT_TIME_ONLINE, tryAgain = false)
     attemptFailed -> OfflineRouteLine(ROUTES_DIDNT_DOWNLOAD, tryAgain = true)
@@ -58,6 +63,7 @@ internal fun OfflineRouteLineContent(regionId: Long, line: OfflineRouteLine, onT
 internal const val ROUTES_GETTING = "Getting trail routes"
 internal const val ROUTES_DIDNT_DOWNLOAD = "Map only. Trail routes didn't download."
 internal const val ROUTES_NONE_HERE = "Map only. No trail routes for this area yet."
+internal const val ROUTES_NEED_APP_UPDATE = "Map only. Trail routes need an app update."
 internal const val ROUTES_NEXT_TIME_ONLINE = "Map only. Trail routes download next time you're online."
 internal const val ROUTES_TRY_AGAIN = "Try again"
 
