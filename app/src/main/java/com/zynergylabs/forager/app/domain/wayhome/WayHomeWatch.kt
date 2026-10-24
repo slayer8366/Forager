@@ -172,9 +172,8 @@ class WayHomeWatch(
                 errorLog.w(TAG, "Working out the way home failed; the track is the way home.", e)
                 WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND)
             }
-            ensureActive()
             synchronized(lock) {
-                if (generation != mine || trackId != id) return@synchronized
+                if (trackId != id) return@synchronized
                 job = null
                 val line = (result as? WayHomeResult.AlongTrails)?.let { WayHomeLine(it.wayHome) }
                 if (!firstOfReturn && line == null) reroutingEnded = true
