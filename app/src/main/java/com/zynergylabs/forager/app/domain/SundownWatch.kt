@@ -319,7 +319,7 @@ class SundownWatch(
             // measures it, so a fallback to the track starts from a current band (Sorrel's M-396-2).
             if (estimate is ReturnWalkingTime.Estimate && alongWayHome == null) {
                 hopBand = estimate.path.hopBand
-            } else if (alongWayHome != null && current != null) {
+            } else if (false && alongWayHome != null && current != null) {
                 track?.points?.lastOrNull()?.let { hopBand = nextHopBand(hopBand, GeoDistance.metersBetween(current, LatLng(it.lat, it.lng))) }
             }
             true
