@@ -251,7 +251,7 @@ internal class AvailabilityOfflineMaps(
     private fun showProgress(downloaded: Int, total: Int) {
         updateState { state ->
             val paused = (state.offlineDownloadStatus as? OfflineMapStatus.Downloading)?.paused == true
-            state.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total, paused = paused))
+            state.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total, paused = false))
         }
     }
 
