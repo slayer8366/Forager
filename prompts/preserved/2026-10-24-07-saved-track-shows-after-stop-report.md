@@ -165,4 +165,4 @@ Option 1 could also close the track-delete gap above, by a track parameter in `w
 - **Premises that were wrong.** The amendment names `AvailabilityViewModelTest`, and no class by that name exists: the ViewModel's tests are split by topic. The test went into `AvailabilityViewModelMapLayersTest`, which tests what `onMapShown` loads into `mapRecords`. That is a file outside the three the amendment named.
 - **Decided beyond scope.**
   - Branch `recording-line-clears-revert-2` is left on the remote for review, as revert-1 was. Do not merge it.
-  - Installing the new build restarted the app. The Journal tab came back on Entries; I left it there.
+  - Installing the new build restarted the app, so the Journal tab opened on Entries. I switched it to Records for the cleanup and did not check which chip it was left on.
