@@ -27321,3 +27321,14 @@ The website copy and Play's Data safety form follow after the merge.
 
 Waypoints and alerts follow as separate dispatches.
 **Notes:** Written by the planner by hand. Dispatch 2026-10-23-09. Next free ID -1587.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1587
+**Timestamp:** 2026-10-24T02:53:39Z
+**Continues:** 2026-09-28-1586
+**Title:** Planner handoff, 2026-10-23
+**Observed:** pre-main adcbedb19, main 381515c61. Running: tile retry #386 (Amendment 3, holds the S22) and the way-home report (dispatch 09).
+**Decision:** the owner: "Write a handoff for another session also".
+**Notes:** Written by the planner by hand. prompts/preserved/2026-10-23-planner-handoff.md. Next free ID -1588.
