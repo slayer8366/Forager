@@ -27443,3 +27443,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - "Yes, carry on (Recommended)": Elder re-checks adcbedb19..fefc89129 (dispatch 2026-10-24-01), then the S22 phone check, the main backup and the diff read, then the promotion PR;
 - "Yes, that's right", to a failed route fetch reading "Trail routes not downloaded · following your track" (#389).
 **Notes:** Written by the planner by hand. Next free ID -1596.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1596
+**Timestamp:** 2026-10-24T08:00:28Z
+**Continues:** 2026-09-28-1595
+**Title:** Planner handoff, 2026-10-24
+**Observed:** pre-main fefc89129 (#386 merged), main 381515c61. Elder's re-check passes with items (9495c77b0). Sorrel: #388 merge-ready, #389 2 M / 9 L (932fdd0f1). No helper is running, and every worktree is pushed.
+**Decision:** the owner: "Have everyone commit their work, and get ready for a session switch. Write a handoff for the next planner please."
+**Notes:** Written by the planner by hand. prompts/preserved/2026-10-24-planner-handoff.md. Next free ID -1597.
