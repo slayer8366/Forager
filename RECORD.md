@@ -27305,3 +27305,19 @@ The website copy and Play's Data safety form follow after the merge.
 - No request field marks a download; the engine's flag is dropped before OkHttp.
 **Decision:** the owner chose "Pause + own lane (Recommended)" (dispatch 06 Amendment 3) and "Merge now (Recommended)" for #387, merged into pre-main as adcbedb19.
 **Notes:** Written by the planner by hand. Supersedes the separate-holds design of -1582. Next free ID -1586.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1586
+**Timestamp:** 2026-10-24T02:52:44Z
+**Continues:** 2026-09-28-1498
+**Title:** Way home along trails: fallbacks ruled; coder reports first (owner)
+**Observed:** The engine and the route data have no production caller (TrailRouter.kt:12). Return today draws the recorded track (RouteHome.kt:140).
+**Decision:** the owner: "Let's work on the way home, route to a waypoint, alerts, etc." For the way home they chose:
+- no trail routes stored: "Your track + a note (Recommended)", with the note "No trail routes here · following your track";
+- route would leave the downloaded area: "Your track + the notice (Recommended)", the -1546 wording;
+- "Yes, report first (Recommended)".
+
+Waypoints and alerts follow as separate dispatches.
+**Notes:** Written by the planner by hand. Dispatch 2026-10-23-09. Next free ID -1587.
