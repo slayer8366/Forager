@@ -27551,3 +27551,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** S22 re-check of #391 on 1.0.3904+gb4206e22 (prompts/preserved/2026-10-24-06-s22-recording-line-recheck-report.md, 454e712c6): the dotted line clears at once on both Stop paths and stays gone. After Stop in the app, the saved track's solid line does not appear until a tab change (30 s and more watched); the same was seen at 073fc77bd, hidden then by the stale dotted line.
 **Decision:** the owner: "Fix the gap too, first (Recommended)": hold #391, find why the saved track waits for a tab change, and fix it in #391 so both go in this promotion together.
 **Notes:** Written by the planner by hand. Next free ID -1605.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1605
+**Timestamp:** 2026-10-24T11:26:08Z
+**Continues:** 2026-09-28-1604
+**Title:** The saved track waits because only Records hears "track saved"; #391 widened so the Maps tab hears it too (dispatch 2026-10-24-07 Amendment 1) (owner)
+**Observed:** Hazel's part 1 (prompts/preserved/2026-10-24-07-saved-track-shows-after-stop-report.md, 850f855ae): the map's saved tracks come from the Maps tab's own snapshot, re-read only when the tab comes into view or after a restore; only the recording screen collects TrackEnds (planner confirmed by git grep at 3ad490b59). S22: no solid line for 45 s after either Stop; it appears at a tab change. A deleted track staying until a tab change is probably the same cause (inferred, not reproduced).
+**Decision:** the owner: "Yes, widen #391 (Recommended)": the Maps tab's ViewModel collects TrackEnds and reloads its map records; deletes are not included now.
+**Notes:** Written by the planner by hand. The delete case stays open. Next free ID -1606.

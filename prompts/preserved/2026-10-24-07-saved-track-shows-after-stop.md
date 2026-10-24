@@ -21,3 +21,14 @@
 **Rules:** CI only, no local Gradle. Commits end "Co-Authored-By: Claude <noreply@anthropic.com>". Screenshots off GitHub; no positions in the repository. Merge nothing.
 
 **Deliver:** push to #391 and add a comment to the PR with the cause, the fix and the runs. Then the S22: both Stop paths show the solid line at once, after installing the new PR APK (check the database version first). Leave the phone as found. Your report at `prompts/preserved/2026-10-24-07-saved-track-shows-after-stop-report.md` on records-after-173 (add only that file; merge, never rebase). Your final message gives the cause, the fix, the runs, the phone results, and that the phone is free.
+
+## Amendment 1 (2026-10-24, after the part 1 report): scope widened to the Maps tab (the owner's go)
+
+Part 1's report (`prompts/preserved/2026-10-24-07-saved-track-shows-after-stop-report.md`, 850f855ae) is accepted. The planner confirmed from the code that only `TrackRecordingViewModel` collects `TrackEnds.latest`, and that `loadMapRecords` is called only from `onMapShown` and `reloadAfterRestore`. The owner: "Yes, widen #391 (Recommended)" (RECORD -1605).
+
+**Build your option 1, on #391:** `AvailabilityViewModel` collects `TrackEnds.latest` and calls the map's records reload. The factory passes `container.trackEnds.latest`, with a default so the existing tests keep compiling, as `TrackRecordingViewModel` does. You own `AvailabilityViewModel.kt`, its factory and `AvailabilityViewModelTest` for this amendment. No other screen's behaviour changes.
+
+- The test fails first, through the real path: a track end reported through `TrackEnds` puts the finished track in the Maps tab's map records with no `onMapShown` call. Then a revert check under the usual rules.
+- Keep `AvailabilityViewModel.kt` under 800 lines. If it won't fit, stop and report.
+- **Not in scope:** the deleted track staying on the map until a tab change. It is recorded as open and inferred, and the owner did not choose to include it now.
+- Then a green full CI run, a PR comment, and the S22 check of both Stop paths, as part 2 of the dispatch says. Merge nothing.
