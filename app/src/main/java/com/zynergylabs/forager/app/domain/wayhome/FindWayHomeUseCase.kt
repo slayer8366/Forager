@@ -37,8 +37,8 @@ import java.io.File
  * 3. **The trail route** from the leave point to the entry point.
  * 4. **The area checks** (the owner: "Edge + length check"): every point of the trail route inside the rectangle the
  *    region's routes were cut to, and the trail route no longer than [WAY_HOME_DETOUR_RATIO] times the walker's own
- *    track between the same two points. Between the two, a trail part under [WAY_HOME_SHORT_TRAIL_METERS] gives the
- *    track home with no note (RECORD -1597, option (c)).
+ *    track between the same two points, checked only when that track is over [WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS]
+ *    (RECORD -1600, option (b)).
  * 5. **The line**: the walker's track back to the leave point, the trail route, and the walker's track from the entry
  *    point to the first stored point, then the origin waypoint (RECORD -1589, "Back on your track").
  *
@@ -89,14 +89,12 @@ class FindWayHomeUseCase(
         }
         val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
         val trailMeters = route.lengthMetres + joints
-        // RECORD -1597, the owner's option (c): "a trail part under a short provisional length gives the track home with no
-        // note". Before the length check, which a trail only crossed or walked beside can trip on its joints alone, and
-        // then falsely say the route leaves the area (Sorrel's review of #389, M-389-2).
-        if (trailMeters < WAY_HOME_SHORT_TRAIL_METERS) {
-            return trackOnly(null, "the trail part, ${trailMeters.toInt()} m, is under $WAY_HOME_SHORT_TRAIL_METERS m")
-        }
         val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
-        if (trailMeters > WAY_HOME_DETOUR_RATIO * trackBetween) {
+        // RECORD -1600, the owner: "Switch to (b)": the length check only runs when the walker went over
+        // WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS between the two trail points. Under that, a trail only crossed or walked
+        // beside can trip it on its joints alone and falsely say the route leaves the area (Sorrel's review of #389,
+        // M-389-2), so the route is used as found.
+        if (trackBetween > WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS && trailMeters > WAY_HOME_DETOUR_RATIO * trackBetween) {
             return trackOnly(
                 WayHomeNote.LEAVES_AREA,
                 "the trail route, ${trailMeters.toInt()} m, is more than $WAY_HOME_DETOUR_RATIO times the track between the same points, ${trackBetween.toInt()} m",
