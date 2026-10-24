@@ -186,10 +186,26 @@ class FindWayHomeUseCaseTest {
     }
 
     @Test
-    fun `routes whose fetch failed mean trail routes not downloaded`() {
-        for (reason in listOf(RouteDataMissingReason.NETWORK, RouteDataMissingReason.RATE_LIMITED, RouteDataMissingReason.NO_APP_KEY)) {
+    fun `routes whose fetch failed mean trail routes not downloaded, unless only an app update fixes them`() {
+        // RECORD -1595: a failed fetch reads "not downloaded"; -1597: except the two the Offline maps row says need an update.
+        val appUpdate = setOf(RouteDataMissingReason.NO_APP_KEY, RouteDataMissingReason.FORBIDDEN)
+        for (reason in RouteDataMissingReason.entries - appUpdate) {
             logs.clear()
-            assertTrackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, find(regions = FakeRegions(Ground.region(routeData = RegionRouteData.Missing(reason)))))
+            val result = find(regions = FakeRegions(Ground.region(routeData = RegionRouteData.Missing(reason))))
+            assertEquals("$reason", WayHomeResult.TrackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED), result)
+            assertEquals("$reason logged once: $logs", 1, logs.size)
+        }
+    }
+
+    @Test
+    fun `routes the server refused this app's key for, or a build with no key, say the app needs an update`() {
+        // RECORD -1597, the owner: "Say \"needs an update\"", as the Offline maps row does (RegionRouteData.needsAppUpdate).
+        for (reason in listOf(RouteDataMissingReason.NO_APP_KEY, RouteDataMissingReason.FORBIDDEN)) {
+            logs.clear()
+            val result = find(regions = FakeRegions(Ground.region(routeData = RegionRouteData.Missing(reason))))
+            assertTrue("$reason: along the track, not $result", result is WayHomeResult.TrackOnly)
+            assertEquals("$reason", "Trail routes need an app update · following your track", (result as WayHomeResult.TrackOnly).note?.text)
+            assertEquals("$reason logged once: $logs", 1, logs.size)
         }
     }
 

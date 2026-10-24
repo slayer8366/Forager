@@ -27,6 +27,12 @@ import java.util.concurrent.atomic.AtomicReference
  * `RoutingEngine`, built from the real request, whose search is replaced by a wait: it holds for up to ten seconds unless
  * it is terminated, which is what BRouter's own search loop does with the flag (`RoutingEngine.java:1975`). Every
  * engine after it is the real one, untouched.
+ *
+ * Once terminated, the held search keeps going for [STOPPING_MILLIS] before it returns, as a real engine does while it
+ * finishes its pass and runs its own `finally` (releasing the static `ProfileCache`, `RoutingEngine.java:332-339`), and
+ * sets `stopped` as its last act. So the test pins the wait for the engine to stop, not only the `terminate()` call: a
+ * cancel that gave up the one-route lock before the engine stopped would return before `stopped` is set, and sooner
+ * than [STOPPING_MILLIS] (Sorrel's review of #389, M-389-1; dispatch 2026-10-23-09 Amendment 3, fix 1).
  */
 class BRouterTrailRouterCancelTest {
 
@@ -37,10 +43,11 @@ class BRouterTrailRouterCancelTest {
     private val errorLog = ErrorLog { _, _, error -> synchronized(logged) { logged += error } }
 
     @Test
-    fun `cancelling a route terminates its engine at once, and the next route does not wait behind it`() = runBlocking {
+    fun `cancelling a route terminates its engine, waits for it to stop, and the next route does not wait behind it`() = runBlocking {
         val searching = CountDownLatch(1)
         val held = AtomicReference<RoutingEngine>()
         val firstEngine = AtomicBoolean(true)
+        val stopped = AtomicBoolean(false)
         val router = BRouterTrailRouter(
             RoutingTestData.profileDir(tmp),
             errorLog,
@@ -54,6 +61,8 @@ class BRouterTrailRouterCancelTest {
                             searching.countDown()
                             val until = System.nanoTime() + TimeUnit.SECONDS.toNanos(HELD_SEARCH_SECONDS)
                             while (!isTerminated && System.nanoTime() < until) Thread.sleep(5)
+                            if (isTerminated) Thread.sleep(STOPPING_MILLIS)
+                            stopped.set(true)
                         }
                     }
                 } else {
@@ -70,6 +79,8 @@ class BRouterTrailRouterCancelTest {
         val cancelMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - cancelledAt)
 
         assertTrue("the cancelled route's engine was terminated", held.get().isTerminated)
+        assertTrue("the cancel waited for the engine to stop before it returned", stopped.get())
+        assertTrue("the cancel took at least the engine's $STOPPING_MILLIS ms to stop: took $cancelMillis ms", cancelMillis >= STOPPING_MILLIS)
         assertTrue("the cancelled route ended within 2 s, not at its search's own end: took $cancelMillis ms", cancelMillis < 2_000)
         val next = withTimeout(5_000) { router.route(ACROSS_FROM, ACROSS_TO, data) }
         assertTrue("the next route is a route: $next", next is TrailRouteResult.Found)
@@ -78,5 +89,8 @@ class BRouterTrailRouterCancelTest {
 
     private companion object {
         const val HELD_SEARCH_SECONDS = 10L
+
+        /** How long the held search keeps going after it is terminated, before it returns. */
+        const val STOPPING_MILLIS = 300L
     }
 }
