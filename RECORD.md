@@ -27196,3 +27196,23 @@ The owner, verbatim: "Looking to also see about start on creating some topo maps
 - A minzoom of 11 hides only the z11 fallback case.
 **Decision:** the owner chose "A: retry failed map pieces (Recommended)". Re-request failed tiles in the app, with no visual change. Verify first why MapLibre doesn't retry. The glyph minzoom stays 12.
 **Notes:** Written by the planner by hand. Dispatch 2026-10-23-06. Next free ID -1578.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1578
+**Timestamp:** 2026-10-24T01:17:22Z
+**Continues:** 2026-09-28-1576
+**Title:** Promotion of pre-main 32d381e45: Elder passes with items; items 1–3 fixed before main (owner)
+**Observed:**
+- **The gate:**
+  - CI run 40026293407: attempt 1 red only on MushroomLogViewModelWiringTest (known bug 2); the one re-run was green on all five jobs.
+  - Elder's audit (Fable, `prompts/preserved/2026-10-23-05-promotion-audit-report.md`, 734d7e911): pass with items.
+  - The S22 had 1.0.3879+g32d381e4: launch check PASS, Trail map with the Trail · Topo · OSM chips, and the Protomaps credit.
+**Decision:** the owner chose:
+- "Fix 1–3 first (Recommended)";
+- item 3: "Keep their map as it was (Recommended)";
+- item 2: "Map only. Trail routes need an app update.".
+
+Dispatch 2026-10-23-07 covers the privacy policy, the key-refused line, no blank map without downloads, and the small items. The promotion waits for it.
+**Notes:** Written by the planner by hand. Next free ID -1579.
