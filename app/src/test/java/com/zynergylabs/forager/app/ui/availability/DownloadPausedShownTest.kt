@@ -10,6 +10,8 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,8 +21,6 @@ import androidx.compose.ui.test.performScrollTo
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.ui.log.RecordsSubTab
-import com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -37,8 +37,8 @@ import org.robolectric.annotation.GraphicsMode
  * continues by itself" while it waits). On the S22 a paused download showed "627 / 1608 tiles" with the bar frozen and nothing
  * saying it was paused (Amendment 3 report).
  *
- * Driven through the real [AvailabilityScreen] and the real [AvailabilityViewModel] ([RealSearchScreenRig]): Journal, Records,
- * the Offline maps chip, a real touch on Download Maps, and the confirmation's Download. The repository is a fake that reports
+ * Driven through the real [AvailabilityScreen] and the real [AvailabilityViewModel] ([RealSearchScreenRig]): Tools, the
+ * drawer's Offline maps row, a real touch on Download Maps, and the confirmation's Download. The repository is a fake that reports
  * what `MapLibreOfflineMapRepository` reports from MapLibre's observer: progress, a pause, progress again, the continue. Those
  * calls run on the main thread, as the observer's do.
  */
@@ -57,14 +57,15 @@ class DownloadPausedShownTest {
 
     private fun startDownload() {
         rig.setScreen()
+        // The way in the S22 run took: Tools, then the drawer's Offline maps row.
         rig.touch(
-            composeRule.onAllNodes(hasText("Journal") and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG)), useUnmergedTree = true)
+            composeRule.onAllNodes(hasText("Tools") and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG)), useUnmergedTree = true)
                 .onFirst(),
         )
-        composeRule.onNodeWithText("Records").performClick()
-        rig.settle()
-        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.OFFLINE_MAPS)).performClick()
-        rig.settle()
+        rig.touch(composeRule.onNodeWithTag(TOOLS_OFFLINE_MAPS_ROW_TAG))
+        if (composeRule.onAllNodes(hasText("Download Maps")).fetchSemanticsNodes().isEmpty()) {
+            throw AssertionError("positive control: the Offline maps screen is not up; tree:\n" + composeRule.onAllNodes(isRoot()).onFirst().printToString(maxDepth = 60))
+        }
         val button = composeRule.onNodeWithText("Download Maps").performScrollTo()
         rig.settle()
         rig.touch(button)
