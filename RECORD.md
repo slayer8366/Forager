@@ -27706,3 +27706,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - B-395-1: "(a) Count from earliest (Recommended)": the remaining figure counts from the earliest point within 25 m anywhere on the line, plus 25 m; "not before" stays for the needle and the greyed part only;
 - M-396-1: "Fall back to your track (Recommended)": the HUD shows the track home once re-routing has ended.
 **Notes:** Written by the planner by hand. The planner's calls: M-395-2 (catch engine Errors, fall back, log), M-396-2 (carry sundown's band), L-395-4, L-395-9, L-396-6. Next free ID -1618.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1618
+**Timestamp:** 2026-10-24T20:26:06Z
+**Continues:** 2026-09-28-1617
+**Title:** The distance home counts from the earliest point within 50 m, so never short for any accepted fix (dispatch 2026-10-24-10 Amendment 3) (owner)
+**Observed:** Hazel (hand-worked from WayHomeProgress.kt): under -1617's "earliest within 25 m anywhere", a fix 30 m off the walker's leg, admitted by the 50 m gate and nearer a parallel leg, gives 245 m against a true 420 m.
+**Decision:** the owner: "2: within 50 m (Recommended)": earliest vertex within 50 m anywhere on the line, plus 25 m; reads about 50 to 75 m long on an ordinary trail; never short for any fix the gate admits. Replaces item 1 of -1617.
+**Notes:** Written by the planner by hand. Hazel recommended "nearest + 25 m, capped at 50 m"; the planner recommended 50 m, after PathHome.kt's "Its error is never short, and that's the only property that matters in a safety input." Next free ID -1619.
