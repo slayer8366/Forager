@@ -27516,3 +27516,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** S22 check 2026-10-24-03, step 5: the recording line stayed on the map after the test tracks were stopped and deleted; whether it clears was not seen.
 **Decision:** the owner: "Quick check first (Recommended)": repeat on the S22 and read the code before the promotion PR; a confirmed bug becomes a known-bugs row or a fix, as the owner decides.
 **Notes:** Written by the planner by hand. Next free ID -1602.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1602
+**Timestamp:** 2026-10-24T09:55:31Z
+**Continues:** 2026-09-28-1601
+**Title:** The recording line stays after Stop (on main too); fix it in this promotion (dispatch 2026-10-24-05) (owner)
+**Observed:** S22 check 2026-10-24-04 (f5d54a02e): the dotted recording line survives Stop from the app and from the notification, a tab change, backgrounding and deleting the track, until the next Record or the process ends. clearRecordingState()'s update omits breadcrumbPoints (planner re-read at 073fc77bd); the same at main 381515c61. The one test asserting it empty after Stop runs before any point is read.
+**Decision:** the owner: "Fix it in this promotion (Recommended)": the fix and a test that can fail, then Sorrel, an S22 re-check of Stop, and the merge on the owner's word.
+**Notes:** Written by the planner by hand. Next free ID -1603.
