@@ -54,7 +54,9 @@ internal class SignalNetworkWait(signal: NetworkSignal, scope: CoroutineScope) :
     override fun awaitValidated(timeoutMs: Long) {
         if (timeoutMs <= 0) return
         lock.withLock {
-            if (validated != true) changed.await(timeoutMs, TimeUnit.MILLISECONDS)
+            // Every reading wakes the waiters, a `false` one too, so wait again until validated or out of time.
+            var remainingNs = TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+            while (validated != true && remainingNs > 0) remainingNs = changed.awaitNanos(remainingNs)
         }
     }
 }
