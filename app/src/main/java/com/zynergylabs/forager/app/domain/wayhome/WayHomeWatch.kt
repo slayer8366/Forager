@@ -92,19 +92,48 @@ class WayHomeWatch(
      * The walker tapped Return on [trackId], with [origin] its start marker: the track is shown, and the way home is
      * worked out. Cancels anything in flight, for this or any track.
      */
-    fun find(trackId: String, origin: Waypoint?): Unit = TODO("stub: failing first")
+    fun find(trackId: String, origin: Waypoint?) = synchronized(lock) {
+        this.trackId = trackId
+        this.origin = origin
+        reroutingEnded = false
+        resetProgress()
+        launchJob(trackId, origin, firstOfReturn = true)
+    }
 
     /** The return or the recording on [trackId] has ended: the work is cancelled and nothing is shown. Ignored for another track. */
-    fun stop(trackId: String): Unit = TODO("stub: failing first")
+    fun stop(trackId: String) = synchronized(lock) {
+        if (trackId != this.trackId) return@synchronized
+        forget()
+    }
 
     /** The service stopped [trackId], or, with `null`, was destroyed: as [stop]. */
-    fun end(trackId: String?): Unit = TODO("stub: failing first")
+    fun end(trackId: String?) = synchronized(lock) {
+        if (trackId != null && trackId != this.trackId) return@synchronized
+        forget()
+    }
 
     /** Where the walker is on the way home shown for [trackId], or `null` when none is shown, they are not returning, or no fix has placed them yet. */
-    fun progressFor(trackId: String): WayHomeProgress? = TODO("stub: failing first")
+    fun progressFor(trackId: String): WayHomeProgress? = synchronized(lock) {
+        if (trackId != this.trackId || !isReturning(trackId)) return@synchronized null
+        progress
+    }
 
     /** One raw fix from the service: the walker's place on the line, and the stray judge. See the class doc. */
-    fun onFix(point: TrackPoint, provider: FixProvider): Unit = TODO("stub: failing first")
+    fun onFix(point: TrackPoint, provider: FixProvider) = synchronized(lock) {
+        val id = trackId ?: return@synchronized
+        val shownNow = _shown.value ?: return@synchronized
+        val line = shownNow.line ?: return@synchronized
+        if (!isReturning(id) || !provider.mayAct) return@synchronized
+        if ((point.accuracyMeters ?: 0f) > LIVE_FIX_MAX_ACCURACY_METERS) return@synchronized
+        val current = LatLng(point.lat, point.lng)
+        val previous = (progress as? WayHomeProgress.Placed)?.place
+        val next = placeOnWayHome(line, current, previous)
+        if (next is WayHomeProgress.OffLine && progress !is WayHomeProgress.OffLine) {
+            errorLog.w(TAG, "The walker is over the far band from the way home; sundown reads the track until they are back on it.", WayHomeFallback("off the line"))
+        }
+        progress = next
+        judgeStray(id, line.metersFrom(current))
+    }
 
     /** Call with [lock] held. */
     private fun judgeStray(id: String, metersFromLine: Double) {

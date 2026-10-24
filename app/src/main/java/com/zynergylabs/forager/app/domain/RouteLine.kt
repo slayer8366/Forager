@@ -41,7 +41,7 @@ enum class RouteLinePartKind { TRACK, TRAIL }
 fun nextRouteLine(previous: RouteLine?, routeHome: RouteHome?): RouteLine? = when (routeHome) {
     null -> previous
     is RouteHome.Ahead -> RouteLine(
-        atReturn = previous?.atReturn ?: routeHome.route,
+        atReturn = previous?.takeIf { it.atReturnGeneration == routeHome.generation }?.atReturn ?: routeHome.route,
         ahead = routeHome.routeAhead,
         aheadIsCurrent = true,
         aheadParts = routeHome.aheadParts,

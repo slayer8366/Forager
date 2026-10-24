@@ -39,7 +39,21 @@ class WayHomeRouting(
     private var findWayHome: FindWayHomeUseCase? = null
 
     suspend fun find(track: Track, origin: Waypoint?): WayHomeResult {
-        TODO("stub: failing first")
+        val useCase = building.withLock {
+            findWayHome ?: run {
+                val profileDir = try {
+                    withContext(ioDispatcher) { installProfile() }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    errorLog.w(TAG, "The routing profile could not be installed; the way home follows the track.", e)
+                    return WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND)
+                }
+                val router = newRouter(profileDir)
+                FindWayHomeUseCase(offlineMapRepository, router, BRouterTrailSnapper(router, method), errorLog).also { findWayHome = it }
+            }
+        }
+        return useCase(track, origin)
     }
 
     private companion object {

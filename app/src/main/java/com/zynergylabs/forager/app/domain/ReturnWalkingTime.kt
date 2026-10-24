@@ -75,7 +75,9 @@ fun returnWalkingTime(
  * one caller is `SundownWatch`, while a way home along trails is shown and the walker is placed on it.
  */
 fun returnWalkingTimeAlong(track: Track, path: PathHome, fixFreshness: FixFreshness): ReturnWalkingTime {
-    TODO("stub: failing first")
+    if (fixFreshness == FixFreshness.LOST) return ReturnWalkingTime.Withheld(WithholdReason.NO_FIX)
+    if (track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
+    return estimateAlong(track, path, fixFreshness)
 }
 
 /** The estimate over [path], the part [returnWalkingTime] and [returnWalkingTimeAlong] share. */

@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.domain.wayhome
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.HOP_FAR_ENTER_ABOVE_METERS
 import com.zynergylabs.forager.app.domain.HopBand
+import com.zynergylabs.forager.app.domain.PathHome
 import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.nextHopBand
@@ -79,6 +80,15 @@ data class WayHomePlace(
     val remainingMeters: Double,
 )
 
+/**
+ * This place's distance home as a [PathHome], the shape the walking time and the HUD's route read: the line's metres
+ * from the place, the trail allowance included, as `trackMeters`, and the hop as measured with its band.
+ */
+fun WayHomePlace.toPathHome(pointCount: Int): PathHome {
+    val hopCounted = if (hopBand == HopBand.NONE) 0.0 else hopMeters
+    return PathHome(trackMeters = remainingMeters - hopCounted, hopMeters = hopMeters, hopBand = hopBand, originLegMeters = null, pointCount = pointCount)
+}
+
 /** What [placeOnWayHome] found: a place on the line, or the walker more than the far band from it. */
 sealed interface WayHomeProgress {
     data class Placed(val place: WayHomePlace) : WayHomeProgress
@@ -102,7 +112,24 @@ sealed interface WayHomeProgress {
  * within reach is never chosen over the leg the walker is on.
  */
 fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, previousHopBand: HopBand = previous?.hopBand ?: HopBand.NONE): WayHomeProgress {
-    TODO("stub: failing first")
+    val nodes = line.nodes
+    if (nodes.isEmpty()) return WayHomeProgress.OffLine(Double.POSITIVE_INFINITY)
+    val distances = DoubleArray(nodes.size) { GeoDistance.metersBetween(current, nodes[it]) }
+    val from = previous?.index ?: 0
+    fun earliest(range: IntRange, within: Double): Int? = range.firstOrNull { distances[it] <= within }
+    val index = earliest(from..nodes.lastIndex, WAY_HOME_TRAIL_JOIN_METERS)
+        ?: earliest(from..nodes.lastIndex, HOP_FAR_ENTER_ABOVE_METERS)
+        ?: earliest(nodes.indices, WAY_HOME_TRAIL_JOIN_METERS)
+        ?: earliest(nodes.indices, HOP_FAR_ENTER_ABOVE_METERS)
+        ?: return WayHomeProgress.OffLine(distances.min())
+    val hop = distances[index]
+    val band = nextHopBand(previousHopBand, hop)
+    if (band == HopBand.FAR) return WayHomeProgress.OffLine(distances.min())
+    val onTrail = line.kinds[index] == RouteLinePartKind.TRAIL
+    val remaining = line.totalMeters - line.alongMeters[index] +
+        (if (band == HopBand.NONE) 0.0 else hop) +
+        (if (onTrail) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0)
+    return WayHomeProgress.Placed(WayHomePlace(index, hop, band, onTrail, remaining))
 }
 
 /**
