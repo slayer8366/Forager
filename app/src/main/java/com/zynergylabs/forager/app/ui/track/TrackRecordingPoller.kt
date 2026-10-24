@@ -20,6 +20,16 @@ import kotlinx.coroutines.launch
  * than kept, so it gets no scope, dispatcher or lifetime of its own. What it calls back into the
  * ViewModel ([settleTakenUpOrigin], [handStartPointToWatch], [nextNoticeId]) is called from the same place
  * in the poll body, in the same order, as before.
+ *
+ * ## Why breadcrumbs are polled, not reactive
+ *
+ * (Moved here from the ViewModel's own doc by the split before the way home, dispatch 2026-10-23-09 Amendment 1, part 0.)
+ * [com.zynergylabs.forager.app.domain.TrackRepository] is plain suspend calls, matching every other Room-backed repository in this
+ * app — there is no `Flow<Track>` to collect. [com.zynergylabs.forager.app.service.TrackRecordingService]
+ * itself batches writes (every 20 points or 30 seconds, whichever first) rather than writing per
+ * fix, so polling at roughly that same cadence ([POLL_INTERVAL_MILLIS]) shows breadcrumbs about as
+ * fresh as the data actually is, without adding a reactive-query layer this database has never
+ * needed anywhere else.
  */
 internal class TrackRecordingPoller(
     private val uiState: () -> TrackRecordingUiState,
