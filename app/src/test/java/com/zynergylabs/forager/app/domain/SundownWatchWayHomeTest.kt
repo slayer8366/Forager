@@ -75,4 +75,29 @@ class SundownWatchWayHomeTest {
         val trackTime = (returnWalkingTime(t, origin, LatLng(points.last().lat, points.last().lng), FixFreshness.FRESH) as ReturnWalkingTime.Estimate).walkingMillis
         assertSameSecond(sunset() - hour - trackTime, startBackAt())
     }
+
+    @Test
+    fun `the track's hop band is carried while the way home is in use, so a fallback starts from it`() {
+        // M-396-2. Tick 1 along the way home with the fix 30 m from the track's last point: the track's band becomes
+        // COUNTED (over 25 m). Tick 2 back on the track with the fix 22 m away: a carried COUNTED stays COUNTED (not
+        // under 20 m), so the 22 m hop is counted; a band left at NONE from before the way home would omit it.
+        val t = Track("t1", null, points.first().timestampEpochMillis, null, points, originWaypointId = origin.id)
+        track = t
+        val last = points.last()
+        fun east(m: Double) = last.copy(lng = last.lng + m / (111_195.0 * kotlin.math.cos(Math.toRadians(last.lat))), timestampEpochMillis = now / 1_000L * 1_000L)
+        watch.begin("t1")
+        along = PathHome(trackMeters = 3_000.0, hopMeters = 0.0, hopBand = HopBand.NONE, originLegMeters = null, pointCount = 0)
+        watch.onFix(east(30.0), FixProvider.GPS)
+        runBlocking { watch.tick() }
+
+        along = null
+        now += 15_000L
+        val fix = east(22.0)
+        watch.onFix(fix, FixProvider.GPS)
+        runBlocking { watch.tick() }
+        val counted = (returnWalkingTime(t, origin, LatLng(fix.lat, fix.lng), FixFreshness.FRESH, HopBand.COUNTED) as ReturnWalkingTime.Estimate)
+        assertTrue("precondition: the hop is counted from COUNTED", counted.path.hopCountedMeters > 20.0)
+        val shown = (watch.shown.value!!.line as SundownLine.BeforeSunset).startBackAtEpochMillis!!
+        assertSameSecond(sunset() - hour - counted.walkingMillis, shown)
+    }
 }
