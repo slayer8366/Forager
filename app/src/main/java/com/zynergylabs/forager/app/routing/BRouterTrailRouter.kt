@@ -86,7 +86,20 @@ class BRouterTrailRouter internal constructor(
      * (`routing/BRouterTrailSnapper`). Unlike [route], a route of one point is an answer here: a route from a point
      * to itself is that one matched point (seen on BRouter v1.7.10 with the Harriman fixture).
      */
-    internal suspend fun firstRoutePoint(start: LatLng, end: LatLng, routeData: File): TrailSnapResult = TODO("failing-first stub")
+    internal suspend fun firstRoutePoint(start: LatLng, end: LatLng, routeData: File): TrailSnapResult =
+        when (val outcome = runEngine(start, end, routeData)) {
+            is EngineOutcome.Failed -> TrailSnapResult.Failed(outcome.failure)
+            is EngineOutcome.Ran -> {
+                val first = outcome.track.nodes.firstOrNull()
+                if (first == null) {
+                    val detail = "no error reported and no route points"
+                    errorLog.w(TAG, "BRouter failed", BRouterFailure(detail))
+                    TrailSnapResult.Failed(TrailRouteFailure.EngineFailed(detail))
+                } else {
+                    TrailSnapResult.OnNetwork(latLngOf(first.getILat(), first.getILon()))
+                }
+            }
+        }
 
     private fun foundRoute(track: OsmTrack): TrailRouteResult {
         if (track.nodes.size < 2) {
@@ -154,7 +167,14 @@ class BRouterTrailRouter internal constructor(
      * engine, waits (not cancellably) for it to stop, and rethrows: see the class doc, "Cancelling stops the engine".
      */
     private suspend fun runToEnd(engine: RoutingEngine) {
-        engine.doRun(maxRunningTimeMillis) // FAILING-FIRST STUB: no cancel yet
+        val run = ENGINE_RUNS.async { engine.doRun(maxRunningTimeMillis) }
+        try {
+            run.await()
+        } catch (e: CancellationException) {
+            engine.terminate()
+            withContext(NonCancellable) { run.join() }
+            throw e
+        }
     }
 
     private sealed interface EngineOutcome {

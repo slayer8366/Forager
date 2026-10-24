@@ -46,7 +46,20 @@ internal sealed interface JoinScan {
  * The indices of [points] a scan tests, in [order]: its first index, then each one at least [spacingMeters] along the
  * track from the last one taken ([WAY_HOME_SCAN_SPACING_METERS]). [order] runs one step at a time, up or down.
  */
-internal fun scanIndices(points: List<LatLng>, order: IntProgression, spacingMeters: Double = WAY_HOME_SCAN_SPACING_METERS): List<Int> = TODO("failing-first stub")
+internal fun scanIndices(points: List<LatLng>, order: IntProgression, spacingMeters: Double = WAY_HOME_SCAN_SPACING_METERS): List<Int> {
+    val taken = ArrayList<Int>()
+    var sinceTaken = 0.0
+    var previous: Int? = null
+    for (i in order) {
+        if (previous != null) sinceTaken += GeoDistance.metersBetween(points[previous], points[i])
+        if (taken.isEmpty() || sinceTaken >= spacingMeters) {
+            taken += i
+            sinceTaken = 0.0
+        }
+        previous = i
+    }
+    return taken
+}
 
 /**
  * The first of [indices] whose point is within [WAY_HOME_TRAIL_JOIN_METERS] of a trail, on [routeData] by [snapper].
@@ -65,4 +78,22 @@ internal suspend fun findTrailJoin(
     area: GeoBoundingBox,
     routeData: File,
     snapper: TrailSnapper,
-): JoinScan = TODO("failing-first stub")
+): JoinScan {
+    for (i in indices) {
+        val point = points[i]
+        if (!area.contains(point)) continue
+        when (val result = snapper.nearestTrail(point, toward, routeData)) {
+            is TrailSnapResult.OnNetwork ->
+                if (GeoDistance.metersBetween(point, result.trailPoint) <= WAY_HOME_TRAIL_JOIN_METERS) {
+                    return JoinScan.Found(TrailJoin(i, point, result.trailPoint))
+                }
+            is TrailSnapResult.Failed -> when (val failure = result.failure) {
+                is TrailRouteFailure.EndOutsideData -> if (failure.end == RouteEnd.END) return JoinScan.Stopped(failure)
+                is TrailRouteFailure.NoPath -> Unit
+                is TrailRouteFailure.DataMissing, is TrailRouteFailure.DataCorrupt, is TrailRouteFailure.EngineFailed ->
+                    return JoinScan.Stopped(failure)
+            }
+        }
+    }
+    return JoinScan.NoneNear
+}

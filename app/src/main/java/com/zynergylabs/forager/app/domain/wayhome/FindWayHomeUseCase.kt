@@ -53,7 +53,64 @@ class FindWayHomeUseCase(
     private val errorLog: ErrorLog,
 ) {
 
-    suspend operator fun invoke(track: Track, origin: Waypoint?): WayHomeResult = TODO("failing-first stub")
+    suspend operator fun invoke(track: Track, origin: Waypoint?): WayHomeResult {
+        val stored = track.points
+        if (stored.size < 2) return trackOnly(null, "the track has ${stored.size} stored points")
+        val regions = offlineMapRepository.listRegions().getOrElse { error ->
+            return trackOnly(WayHomeNote.ROUTES_UNREADABLE, "the downloaded regions could not be listed", error)
+        }
+        val points = stored.map { LatLng(it.lat, it.lng) }
+        val routes = when (val found = routesFor(points, regions)) {
+            is Routes.Fallback -> return found.result
+            is Routes.On -> found
+        }
+
+        val entry = when (val scan = findTrailJoin(points, scanIndices(points, 0 until points.lastIndex), points.last(), routes.area, routes.folder, snapper)) {
+            is JoinScan.Found -> scan.join
+            JoinScan.NoneNear -> return trackOnly(WayHomeNote.NEVER_NEAR_TRAIL, "no tested track point is within $WAY_HOME_TRAIL_JOIN_METERS m of a trail")
+            is JoinScan.Stopped -> return failedOn(scan.failure, "finding where the track joined a trail")
+        }
+        val leave = when (val scan = findTrailJoin(points, scanIndices(points, points.lastIndex downTo entry.index + 1), entry.trackPoint, routes.area, routes.folder, snapper)) {
+            is JoinScan.Found -> scan.join
+            // The track touches a trail only where it first joined one: the track itself is the way home.
+            JoinScan.NoneNear -> return trackOnly(null, "the track is near a trail only where it first joined one")
+            is JoinScan.Stopped -> return failedOn(scan.failure, "finding where the track left a trail")
+        }
+
+        val route = when (val result = router.route(leave.trackPoint, entry.trackPoint, routes.folder)) {
+            is TrailRouteResult.Found -> result.route
+            is TrailRouteResult.Failed -> return failedOn(result.failure, "routing from the leave point to the entry point")
+        }
+        val trailPoints = listOf(leave.trackPoint) + route.points + entry.trackPoint
+        if (trailPoints.any { !routes.area.contains(it) }) {
+            return trackOnly(WayHomeNote.LEAVES_AREA, "the trail route runs outside region ${routes.regionId}'s area")
+        }
+        val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
+        val trailMeters = route.lengthMetres + joints
+        val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
+        if (trailMeters > WAY_HOME_DETOUR_RATIO * trackBetween) {
+            return trackOnly(
+                WayHomeNote.LEAVES_AREA,
+                "the trail route, ${trailMeters.toInt()} m, is more than $WAY_HOME_DETOUR_RATIO times the track between the same points, ${trackBetween.toInt()} m",
+            )
+        }
+
+        val toStart = trackPart(stored, from = entry.index, to = 0, kind = WayHomePartKind.TRACK_TO_START)
+        val originLeg = origin?.let { LatLng(it.lat, it.lng) }
+        return WayHomeResult.AlongTrails(
+            WayHome(
+                trackBack = trackPart(stored, from = points.lastIndex, to = leave.index, kind = WayHomePartKind.TRACK_BACK),
+                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters),
+                trackToStart = if (originLeg == null) {
+                    toStart
+                } else {
+                    toStart.copy(points = toStart.points + originLeg, meters = toStart.meters + GeoDistance.metersBetween(points.first(), originLeg))
+                },
+                trailJointMeters = joints,
+                regionId = routes.regionId,
+            ),
+        )
+    }
 
     /** Which region's routes the way home is routed on, or the fallback when there are none to route on. See step 1. */
     private fun routesFor(points: List<LatLng>, regions: List<OfflineRegionSummary>): Routes =
