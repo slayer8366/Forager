@@ -177,7 +177,7 @@ class WayHomeWatch(
                 work(id, origin)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 // Throwable, not Exception (Sorrel's M-395-2): an engine OutOfMemoryError must not escape the job, leave it
                 // set (no re-route for the rest of the return) or reach the thread's handler and end the app.
                 errorLog.w(TAG, "Working out the way home failed; the track is the way home.", e)
