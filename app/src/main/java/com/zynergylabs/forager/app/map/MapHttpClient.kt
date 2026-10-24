@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.net.AppUserAgent
 import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import org.maplibre.android.MapLibre
 import org.maplibre.android.module.http.HttpRequestUtil
 
 /**
@@ -39,5 +40,9 @@ internal fun mapHttpClient(userAgent: String, tileRetry: Interceptor): OkHttpCli
  * call again; the client is read per request, so a call before the first request is enough.
  */
 internal fun installMapHttpClient(context: Context, userAgent: String = AppUserAgent.forThisApp()) {
-    HttpRequestUtil.setOkHttpClient(mapHttpClient(userAgent, tileRetryInterceptor(context)))
+    // Each request MapLibre makes is marked as an offline-area download's or the map's (MapRequestUsage.kt), so the
+    // tile retry holds only the map's (dispatch 2026-10-23-06 Amendment 3). MapLibre reads the provider per request.
+    val provider = MapLibre.getModuleProvider()
+    if (provider !is UsageMarkingModuleProvider) MapLibre.setModuleProvider(UsageMarkingModuleProvider(provider))
+    HttpRequestUtil.setOkHttpClient(UsageTaggingCallFactory(mapHttpClient(userAgent, tileRetryInterceptor(context))))
 }

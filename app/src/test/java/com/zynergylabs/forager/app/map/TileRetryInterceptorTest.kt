@@ -7,7 +7,11 @@ import okhttp3.Interceptor
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.asResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
+import okio.ForwardingSource
+import okio.buffer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -71,9 +75,9 @@ class TileRetryInterceptorTest {
     private fun response(request: Request, code: Int, body: String) = Response.Builder().request(request)
         .protocol(Protocol.HTTP_1_1).code(code).message("m").body(body.toResponseBody(null)).build()
 
-    private fun call(wire: Wire, url: String = tileUrl): Call =
+    private fun call(wire: Wire, url: String = tileUrl, usage: MapRequestUsage? = MapRequestUsage(offline = false)): Call =
         mapHttpClient("Forager/test", interceptor).newBuilder().addInterceptor(wire).build()
-            .newCall(Request.Builder().url(url).build())
+            .newCall(Request.Builder().url(url).apply { usage?.let { tag(MapRequestUsage::class.java, it) } }.build())
 
     @Test
     fun `a tile that failed with no network is sent again when the network returns, and the map gets the tile`() {
@@ -122,7 +126,7 @@ class TileRetryInterceptorTest {
     }
 
     @Test
-    fun `after 5 minutes without signal the map gets the original failure`() {
+    fun `after 5 minutes without signal the map gets the last failure`() {
         val dns = UnknownHostException("Unable to resolve host")
         val wire = Wire(listOf(throws(dns)))
 
@@ -206,5 +210,52 @@ class TileRetryInterceptorTest {
 
         assertEquals(404, call(wire).execute().code)
         assertEquals(1, wire.sent.size)
+    }
+
+    @Test
+    fun `an offline-area download's tile is never held, so the engine retries it and the map keeps its places`() {
+        val dns = UnknownHostException("x")
+        val wire = Wire(listOf(throws(dns), ok("t")))
+        network.validatedAt = 1_000
+
+        try {
+            call(wire, usage = MapRequestUsage(offline = true)).execute()
+            fail("a download's tile was held")
+        } catch (e: IOException) {
+            assertSame(dns, e)
+        }
+        assertEquals(1, wire.sent.size)
+        assertEquals(0L, now)
+        assertEquals(0, gate.heldNow)
+    }
+
+    @Test
+    fun `a tile with no mark is held as the map's, and that is logged once`() {
+        network.validatedAt = 1_000
+        call(Wire(listOf(throws(UnknownHostException("x")), ok("t"))), usage = null).execute().close()
+        call(Wire(listOf(throws(UnknownHostException("x")), ok("t"))), usage = null).execute().close()
+
+        assertEquals(1, logs.count { "no download-or-map mark" in it })
+        assertEquals(2, logs.count { "loaded after 1 failed attempts" in it })
+    }
+
+    @Test
+    fun `a server error's body is closed before the tile is sent again`() {
+        val closed = mutableListOf<Boolean>()
+        val failing: (Request) -> Response = { request ->
+            val source = object : ForwardingSource(Buffer().writeUtf8("busy")) {
+                override fun close() {
+                    closed += true
+                    super.close()
+                }
+            }.buffer()
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(503).message("m")
+                .body(source.asResponseBody(null, 4)).build()
+        }
+        val wire = Wire(listOf(failing, ok("t")))
+        network.validatedAt = 0
+
+        assertEquals(200, call(wire).execute().code)
+        assertEquals("the 503's body was closed", listOf(true), closed)
     }
 }

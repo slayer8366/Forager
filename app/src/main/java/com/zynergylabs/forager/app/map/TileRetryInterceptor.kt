@@ -10,6 +10,7 @@ import okhttp3.Response
 import java.io.IOException
 import java.io.InterruptedIOException
 import java.net.SocketTimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -21,12 +22,15 @@ import java.util.concurrent.atomic.AtomicInteger
  * a connection error, a timeout or a 5xx answer. While held the tile stays "loading" in MapLibre, which draws it from a
  * lower zoom exactly as it does for a failed tile, until this returns:
  * - the first answer that is not a failure, once the network is back or a backoff has passed;
- * - the last failure, unchanged, once [TileRetryPolicy]'s hold limit has passed, or straight away when
- *   [TileHoldGate]'s limit is already held;
+ * - the last failure, unchanged, once [TileRetryPolicy]'s hold limit has passed; or the first failure, which is then
+ *   also the last, straight away when [TileHoldGate]'s limit is already held;
  * - a cancellation, within [checkEveryMs], when MapLibre cancels the call (the tile left the view).
  *
- * Offline-area downloads go through the same client and are held the same way: the owner chose "pause and continue"
- * for a download that loses signal (dispatch 2026-10-23-06 Amendment 1).
+ * Offline-area downloads go through the same client but are never held (dispatch 2026-10-23-06 Amendment 3, the
+ * owner's "Pause + own lane"): their requests carry [MapRequestUsage] with `offline = true`, MapLibre retries them
+ * itself, and the download waits for it ([com.zynergylabs.forager.app.domain.DownloadPause]). So the [TileHoldGate]'s
+ * places stay for the tiles on screen. A request with no [MapRequestUsage] is treated as the map's; that is logged
+ * once per process, since every request MapLibre makes should carry one ([UsageTaggingCallFactory]).
  *
  * Blocking by design: an OkHttp interceptor runs on the call's own thread. Waiting is in slices of [checkEveryMs] so a
  * cancelled call is let go promptly; there is no polling of the network, [network] wakes the wait when it changes.
@@ -41,11 +45,17 @@ internal class TileRetryInterceptor(
     private val checkEveryMs: Long = TILE_RETRY_CANCEL_CHECK_MS,
 ) : Interceptor {
     private val notHeldLogged = AtomicInteger(0)
+    private val untaggedLogged = AtomicBoolean(false)
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         if (!isMapTileRequest(request.url)) return chain.proceed(request)
+        val usage = request.tag(MapRequestUsage::class.java)
+        // FAILING-FIRST STUB: downloads are held like the map's
         val tile = tileName(request.url)
+        if (false && usage == null && untaggedLogged.compareAndSet(false, true)) { // FAILING-FIRST STUB
+            log("Tile $tile carries no download-or-map mark, so it is treated as the map's; later ones are not logged in this process.")
+        }
         var heldSince = NOT_HELD
         var failedAttempts = 0
         try {
@@ -69,7 +79,7 @@ internal class TileRetryInterceptor(
                 val deadline = heldSince + policy.holdLimitMs
                 when (val decision = policy.decide(attempt.failure, failedAttempts, clock() - heldSince, network.isValidated())) {
                     TileRetryDecision.GiveUp -> {
-                        log("Tile $tile given up after $failedAttempts failed attempts (${attempt.failure}); the map shows it as failed.")
+                        log("Tile $tile given up after $failedAttempts failed attempts; the map gets the last failure (${attempt.failure}).")
                         return attempt.deliver()
                     }
                     TileRetryDecision.WaitForNetwork -> {
@@ -102,7 +112,11 @@ internal class TileRetryInterceptor(
             if (network.isValidated()) return
             val remaining = deadline - clock()
             if (remaining <= 0) return
-            network.awaitValidated(minOf(checkEveryMs, remaining))
+            try {
+                network.awaitValidated(minOf(checkEveryMs, remaining))
+            } catch (e: InterruptedException) {
+                throw interrupted(e)
+            }
         }
     }
 
@@ -116,10 +130,15 @@ internal class TileRetryInterceptor(
             try {
                 pause(minOf(checkEveryMs, remaining))
             } catch (e: InterruptedException) {
-                Thread.currentThread().interrupt()
-                throw InterruptedIOException("Interrupted while holding a tile request").apply { initCause(e) }
+                throw interrupted(e)
             }
         }
+    }
+
+    /** An interrupt while waiting, as OkHttp reports one: the thread's flag set again, and an [InterruptedIOException]. */
+    private fun interrupted(e: InterruptedException): InterruptedIOException {
+        Thread.currentThread().interrupt()
+        return InterruptedIOException("Interrupted while holding a tile request").apply { initCause(e) }
     }
 
     private fun throwIfCanceled(chain: Interceptor.Chain) {
@@ -135,7 +154,7 @@ internal class TileRetryInterceptor(
 
     /** One answer from the wire: a response, or the exception the call threw. */
     private class Attempt(val response: Response?, val exception: IOException?, val failure: TileFailure?) {
-        /** Hands the failure to the map unchanged: the 5xx response, or the exception rethrown. */
+        /** Hands this failure, the last one, to the map unchanged: the 5xx response, or the exception rethrown. */
         fun deliver(): Response {
             exception?.let { throw it }
             return response!!

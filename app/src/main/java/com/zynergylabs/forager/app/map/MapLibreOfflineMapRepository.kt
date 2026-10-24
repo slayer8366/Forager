@@ -1,12 +1,19 @@
 package com.zynergylabs.forager.app.map
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.zynergylabs.forager.app.data.local.OfflineRegionDao
 import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
 import com.zynergylabs.forager.app.data.routedata.RegionRouteFolders
 import com.zynergylabs.forager.app.data.local.OfflineRegionEntity
 import com.zynergylabs.forager.app.data.repository.runCatchingCancellable
+import com.zynergylabs.forager.app.domain.DOWNLOAD_PAUSE_LIMIT_MS
+import com.zynergylabs.forager.app.domain.DownloadErrorKind
+import com.zynergylabs.forager.app.domain.DownloadPause
+import com.zynergylabs.forager.app.domain.DownloadPauseDecision
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
@@ -358,33 +365,79 @@ private suspend fun OfflineManager.createOfflineRegionSuspend(
 private suspend fun OfflineRegion.downloadToCompletionSuspend(
     onProgress: (downloaded: Int, total: Int) -> Unit,
 ): OfflineRegionStatus = suspendCancellableCoroutine { continuation ->
+    // Dispatch 2026-10-23-06 Amendment 3: a connection, timeout or server error pauses the download rather than ending
+    // it; MapLibre keeps that request and retries it itself (DownloadPause.kt has the source lines). The usual error
+    // comes only after DOWNLOAD_PAUSE_LIMIT_MS without progress. Observer callbacks and the timer share the main thread.
+    val pause = DownloadPause()
+    val handler = Handler(Looper.getMainLooper())
+    var completed = 0L
+    fun fail(reason: String, message: String) {
+        if (!continuation.isActive) return
+        // MapLibre's own diagnostic fields — kept for logging only, per the error-presentation
+        // spec's "no user-facing string is ever derived from an exception, at any layer": the
+        // exception this throws must carry a fixed message of its own, not SDK text, since a
+        // caller further up reads only `.message` and has no way to tell SDK diagnostic text
+        // apart from a message this app wrote on purpose. (#26's version of this file threw
+        // `IOException("${error.reason}: ${error.message}")` here — that passthrough is
+        // deliberately not carried forward; see Workstream B's dispatch, finding 1.)
+        Log.w(TAG, "Offline region download failed: $reason: $message")
+        continuation.resumeWithException(java.io.IOException("Offline map download failed."))
+    }
+    var lastPauseError = ""
+    val giveUp = Runnable {
+        if (pause.giveUpDue(SystemClock.elapsedRealtime())) fail("paused ${DOWNLOAD_PAUSE_LIMIT_MS / 1000} s without progress", lastPauseError)
+    }
+    continuation.invokeOnCancellation { handler.removeCallbacks(giveUp) }
     setObserver(object : OfflineRegion.OfflineRegionObserver {
         override fun onStatusChanged(status: OfflineRegionStatus) {
+            completed = status.completedResourceCount
             onProgress(status.completedResourceCount.toInt(), status.requiredResourceCount.toInt())
-            if (status.isComplete && continuation.isActive) continuation.resume(status)
+            if (pause.onProgress(completed)) {
+                handler.removeCallbacks(giveUp)
+                Log.i(TAG, "Offline region download continuing: ${status.completedResourceCount} of ${status.requiredResourceCount} done.")
+            }
+            if (status.isComplete && continuation.isActive) {
+                handler.removeCallbacks(giveUp)
+                continuation.resume(status)
+            }
         }
 
         override fun onError(error: OfflineRegionError) {
-            if (continuation.isActive) {
-                // MapLibre's own diagnostic fields — kept for logging only, per the error-presentation
-                // spec's "no user-facing string is ever derived from an exception, at any layer": the
-                // exception this throws must carry a fixed message of its own, not SDK text, since a
-                // caller further up reads only `.message` and has no way to tell SDK diagnostic text
-                // apart from a message this app wrote on purpose. (#26's version of this file threw
-                // `IOException("${error.reason}: ${error.message}")` here — that passthrough is
-                // deliberately not carried forward; see Workstream B's dispatch, finding 1.)
-                Log.w(TAG, "Offline region download failed: ${error.reason}: ${error.message}")
-                continuation.resumeWithException(java.io.IOException("Offline map download failed."))
+            if (!continuation.isActive) return
+            val now = SystemClock.elapsedRealtime()
+            when (val decision = pause.onError(downloadErrorKind(error.reason), completed, now)) {
+                is DownloadPauseDecision.Paused -> {
+                    lastPauseError = "${error.reason}: ${error.message}"
+                    Log.i(TAG, "Offline region download paused after $completed done: $lastPauseError; MapLibre retries it, the usual error after ${DOWNLOAD_PAUSE_LIMIT_MS / 1000} s without progress.")
+                    handler.postDelayed(giveUp, decision.giveUpAtMs - now)
+                }
+                DownloadPauseDecision.StillPaused -> lastPauseError = "${error.reason}: ${error.message}"
+                DownloadPauseDecision.Fail -> {
+                    handler.removeCallbacks(giveUp)
+                    fail(error.reason, error.message)
+                }
             }
         }
 
         override fun mapboxTileCountLimitExceeded(limit: Long) {
             if (continuation.isActive) {
+                handler.removeCallbacks(giveUp)
                 continuation.resumeWithException(java.io.IOException("Offline tile count limit exceeded ($limit)."))
             }
         }
     })
     setDownloadState(OfflineRegion.STATE_ACTIVE)
+}
+
+/**
+ * What a download's error means for it (dispatch 2026-10-23-06 Amendment 3): a connection error, or a server error, which
+ * is also how MapLibre 13.5.0 reports a timeout (`HttpRequestImpl.getFailureType`: an `InterruptedIOException` is a
+ * temporary error, which `http_file_source.cpp:209-210` turns into `Reason::Server`), pauses it. Everything else,
+ * 404 included, fails it as before.
+ */
+internal fun downloadErrorKind(reason: String): DownloadErrorKind = when (reason) {
+    OfflineRegionError.REASON_CONNECTION, OfflineRegionError.REASON_SERVER -> DownloadErrorKind.Final // FAILING-FIRST STUB
+    else -> DownloadErrorKind.Final
 }
 
 private suspend fun OfflineRegion.getStatusSuspend(): OfflineRegionStatus =

@@ -63,8 +63,11 @@ sealed interface TileRetryDecision {
 }
 
 /**
- * At most [limit] tile requests held at once. Held requests each occupy one of the map client's per-host request slots
- * (20), so the rest of the map keeps its own; a request beyond the limit fails as it would have without holding.
+ * At most [limit] tile requests held at once. A held request keeps two places busy for as long as it is held: one of
+ * the map client's 20 requests per host (`MapHttpClient.kt`), and one of MapLibre Native's 20 requests in flight
+ * (`online_file_source.cpp:131`, android-v13.5.0; the default is `DEFAULT_MAXIMUM_CONCURRENT_REQUESTS` = 20). With 8
+ * held, 12 of each stay for the rest of the map. Offline-area downloads are never held (Amendment 3), so they do not
+ * count here. A request beyond the limit gets its failure straight away, as it would have without holding.
  * Thread-safe: OkHttp runs each call on its own thread.
  */
 class TileHoldGate(val limit: Int = TILE_RETRY_MAX_HELD) {
