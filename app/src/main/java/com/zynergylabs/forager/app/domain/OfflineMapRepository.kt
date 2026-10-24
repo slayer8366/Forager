@@ -56,6 +56,19 @@ interface OfflineMapRepository {
         onRouteStep: () -> Unit,
     ): Result<OfflineRegionSummary> = download(name, region, onProgress)
 
+    /**
+     * [download], also telling [onPauseChanged] when the download pauses because the signal went (`true`) and when it
+     * continues by itself (`false`), so the progress can say "Paused · no signal · continues by itself" while it waits
+     * (dispatch 2026-10-23-06 Amendment 4, RECORD -1591). A repository that never pauses never calls it.
+     */
+    suspend fun download(
+        name: String,
+        region: Region,
+        onProgress: (downloaded: Int, total: Int) -> Unit,
+        onRouteStep: () -> Unit,
+        onPauseChanged: (paused: Boolean) -> Unit,
+    ): Result<OfflineRegionSummary> = download(name, region, onProgress, onRouteStep)
+
     /** Deletes one downloaded region by [id]. A no-op success, not a failure, if [id] isn't found. */
     suspend fun deleteRegion(id: Long): Result<Unit>
 
