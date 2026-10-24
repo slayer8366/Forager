@@ -27527,3 +27527,16 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** S22 check 2026-10-24-04 (f5d54a02e): the dotted recording line survives Stop from the app and from the notification, a tab change, backgrounding and deleting the track, until the next Record or the process ends. clearRecordingState()'s update omits breadcrumbPoints (planner re-read at 073fc77bd); the same at main 381515c61. The one test asserting it empty after Stop runs before any point is read.
 **Decision:** the owner: "Fix it in this promotion (Recommended)": the fix and a test that can fail, then Sorrel, an S22 re-check of Stop, and the merge on the owner's word.
 **Notes:** Written by the planner by hand. Next free ID -1603.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1603
+**Timestamp:** 2026-10-24T11:07:26Z
+**Continues:** 2026-09-28-1602
+**Title:** #389 merges after the promotion; a cap on long routes when the length check is skipped, in part 2 (owner)
+**Observed:** Sorrel's re-check of #389 at 8043e2b50 (prompts/preserved/2026-10-24-sorrel-389-recheck.md, a8be1e088): merge-ready, 0 Blocking, 0 M, 3 L. L-389R-1: when 100 m or less is walked between the trail points, the route has no length bound but the rectangle, so a crossing where ways only meet far away could be handed a very long route. Sorrel's #391 review (8b45e0605): merge-ready, 0 Blocking, 0 M, 3 L; the S22 re-check is dispatched (2026-10-24-06).
+**Decision:** the owner:
+- "After the promotion (Recommended)": #389 merges into pre-main once the promotion has merged to main;
+- "Add a cap in part 2 (Recommended)": when the length check is skipped, a route over a set length (provisional) is not used and the track home is shown; built with part 2.
+**Notes:** Written by the planner by hand. Next free ID -1604.
