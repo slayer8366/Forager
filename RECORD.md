@@ -27483,3 +27483,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - "Short Elder re-check (Recommended)": Elder reads fefc89129..073fc77bd (dispatch 2026-10-24-02);
 - "Start Hazel now (Recommended)": M-389-1, M-389-2 (c) at 100 m (provisional, the planner's figure) and L-389-2 on #389 (2026-10-23-09 Amendment 3), then Sorrel re-checks.
 **Notes:** Written by the planner by hand. Next free ID -1599.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1599
+**Timestamp:** 2026-10-24T09:09:42Z
+**Continues:** 2026-09-28-1598
+**Title:** Elder passes the #388 range with one item; the S22 promotion check starts on 073fc77bd (dispatch 2026-10-24-03) (owner)
+**Observed:** Elder (Claude Fable 5.1): pass with items for fefc89129..073fc77bd (prompts/preserved/2026-10-24-02-promotion-recheck-388-report.md, 8bea14165). #388 is a pure move; CI green on e26c0f591 (40078191007) and 073fc77bd (40078250926). Item 1: TrackRecordingViewModel.kt is still 852 lines, and part 2 adds to it; to be decided before part 2.
+**Decision:** the owner: "Start now (Recommended)", to the S22 check on 073fc77bd: the offline row, a day and a night glance, and Elder's record, lock, stop line.
+**Notes:** Written by the planner by hand. Next free ID -1600.
