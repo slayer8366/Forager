@@ -49,7 +49,6 @@ internal class UsageMarkingHttpRequest(private val delegate: HttpRequest) : Http
         modified: String,
         offlineUsage: Boolean,
     ) {
-        usageOnThisThread.set(offlineUsage)
         try {
             delegate.executeRequest(httpRequest, nativePtr, resourceUrl, dataRange, etag, modified, offlineUsage)
         } finally {
