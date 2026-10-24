@@ -29,4 +29,7 @@ internal open class RecordingWatches(private val container: AppContainer) {
      * [com.zynergylabs.forager.app.domain.BackByWatch.onFix].
      */
     open fun backByOnFix(point: TrackPoint, provider: FixProvider): Boolean = container.backByWatch.onFix(point, provider)
+
+    /** Every raw fix, to the way home (dispatch 2026-10-24-10): where the walker is on it, and the stray judge. See [com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch.onFix]. */
+    open fun wayHomeOnFix(point: TrackPoint, provider: FixProvider) = container.wayHomeWatch.onFix(point, provider)
 }

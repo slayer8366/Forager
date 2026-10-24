@@ -23,6 +23,14 @@ import com.zynergylabs.forager.app.data.backup.AndroidBackupNotifier
 import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
 import androidx.core.content.pm.PackageInfoCompat
 import android.util.Log
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch
+import com.zynergylabs.forager.app.domain.wayhome.toPathHome
+import com.zynergylabs.forager.app.routing.RoutingProfile
+import com.zynergylabs.forager.app.routing.WayHomeRouting
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.zynergylabs.forager.app.data.remote.ApiClients
 import com.zynergylabs.forager.app.data.routedata.LocalRegionRouteFolders
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
@@ -410,6 +418,20 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
      */
     val wakeUpAlarms: com.zynergylabs.forager.app.domain.WakeUpAlarms = com.zynergylabs.forager.app.alert.AndroidWakeUpAlarms(context)
 
+    // The way home along trails (dispatch 2026-10-24-10 Amendment 1, PR C; RECORD -1613: "Yes, keep working"), held
+    // here so it outlives the Activity, as ReturnWatch is. The recording ViewModel finds and stops it; the service feeds
+    // it fixes and ends it; the HUD's tick and sundown read where the walker is on it. Its engine is built, and the
+    // routing profile installed, on the first Return (WayHomeRouting).
+    private val wayHomeRouting = WayHomeRouting(installProfile = { RoutingProfile.install(context) }, offlineMapRepository = offlineMapRepository, errorLog = errorLog)
+    val wayHomeWatch = WayHomeWatch(
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        readTrack = trackRepository::getById,
+        findWayHome = wayHomeRouting::find,
+        // Returning now, not after arrival: the way home is for the walk back, and arrival ends it.
+        isReturning = { id -> returnWatch.state.value.let { it.trackId == id && it.isReturning } },
+        errorLog = errorLog,
+    )
+
     // The three sundown alerts, held here so they outlive the Activity, as ReturnWatch is
     // (dispatch 2026-09-28-516). TrackRecordingService begins, feeds, ticks and ends it.
     val sundownWatch = SundownWatch(
@@ -423,6 +445,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         errorLog = errorLog,
         lastKnownLocation = lastKnownLocation,
         alarms = wakeUpAlarms,
+        // RECORD -1589, "app-wide", "Track until Return": the way home shown, while returning and placed on it.
+        wayHomeFor = { id -> (wayHomeWatch.progressFor(id) as? WayHomeProgress.Placed)?.place?.toPathHome(pointCount = 0) },
     )
 
     // Back by (dispatch 2026-09-28-645, plan task T15), held here for the same reason and driven by

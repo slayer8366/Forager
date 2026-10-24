@@ -36,6 +36,7 @@ internal fun createTrackRecordingViewModel(
         shouldPromptBackgroundRun = container.offTrackReminderCheck::atRecordingStart,
         recordingHalts = container.recordingHalts.latest,
         trackEnds = container.trackEnds.latest,
+        wayHomeWatch = container.wayHomeWatch,
         // Data part D (RECORD -703): new origin/end waypoint names follow the phone's 12/24-hour setting.
         is24HourClock = { android.text.format.DateFormat.is24HourFormat(context) },
     )

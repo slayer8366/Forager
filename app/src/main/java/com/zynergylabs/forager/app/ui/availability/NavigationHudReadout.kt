@@ -5,6 +5,7 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 
 /** Everything the HUD draws, as plain values — the pure half, so a sign or threshold error is a pinned-literal test failure, not a visual one. */
 internal data class NavigationHudReadout(
@@ -88,8 +89,11 @@ sealed interface ReturnRoute {
     /** No route result yet: the first seconds of a return, before there is a good fix. The large slot is a dash, not a failure. */
     data object Pending : ReturnRoute
 
-    /** The needle aims at [lookahead]; the large figure is [routeMeters]. */
-    data class Ahead(val lookahead: LatLng, val routeMeters: Double) : ReturnRoute
+    /**
+     * The needle aims at [lookahead]; the large figure is [routeMeters]. [note] says why the way home is the walker's
+     * track, shown in the status line (dispatch 2026-10-24-10; RECORD -1586, -1589, -1613), or `null`.
+     */
+    data class Ahead(val lookahead: LatLng, val routeMeters: Double, val note: WayHomeNote? = null) : ReturnRoute
 
     /**
      * Withheld: "Unable to calculate route". [canRetry] is false where recomputing against the
@@ -104,8 +108,8 @@ sealed interface ReturnRoute {
  * the walker moving back towards it changes the answer; one withheld for
  * [RouteWithheldReason.NO_USABLE_POINTS] does not, since nothing would (dispatch 2026-09-28-423).
  */
-fun returnRouteOf(routeHome: RouteHome?): ReturnRoute = when (routeHome) {
+fun returnRouteOf(routeHome: RouteHome?, wayHomeNote: WayHomeNote? = null): ReturnRoute = when (routeHome) {
     null -> ReturnRoute.Pending
-    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters)
+    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters, wayHomeNote)
     is RouteHome.Withheld -> ReturnRoute.Unavailable(canRetry = routeHome.reason == RouteWithheldReason.OFF_ROUTE)
 }
