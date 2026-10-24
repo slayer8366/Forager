@@ -27234,3 +27234,16 @@ Dispatch 2026-10-23-07 covers the privacy policy, the key-refused line, no blank
 
 The website copy and Play's Data safety form follow after the merge.
 **Notes:** Written by the planner by hand. Sorrel's review is pending. Next free ID -1580.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1580
+**Timestamp:** 2026-10-24T02:04:30Z
+**Continues:** 2026-09-28-1579
+**Title:** Tile retry (#386) joins this promotion; S22 check run now (owner)
+**Observed:** PR #386 (dispatch 2026-10-23-06 Amendment 1, head af3b45b37): CI run 40050584024 green, 5,425 tests, 0 failures; no phone run yet.
+**Decision:** the owner chose:
+- the S22 check: "Yes, run them (Recommended)";
+- the promotion: "This promotion". #386 and #387 go to main together, after both reviews and the phone check.
+**Notes:** Written by the planner by hand. Sorrel's review of #387 found two Medium policy errors (the tile and font cache, a missed re-ask trigger), now with Hazel; the owner sees the changed sentences again. Next free ID -1581.
