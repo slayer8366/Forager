@@ -27606,3 +27606,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Cloudflare's first build from main deployed version a5c79d5c at 14:47Z. Live: us.json bounds south -85.05; 8/75/124 served 200 from r2-world-south (an edge cache HIT, so not proof of the new build); /routing/area.json without the key 403. The rollback is 1a85a35e. #389 (8043e2b50) shares no file with 073fc77bd..pre-main and trial-merges clean.
 **Decision:** the owner: "After the promotion (Recommended)" (-1603). #389 merged as c83a06722, pinned to 8043e2b50. pre-main's push CI checks the merge.
 **Notes:** Written by the planner by hand. Still to do: dev rebased onto main (-1087); the first release run on the owner's approval; the website privacy policy and Play's Data safety form. Next free ID -1610.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1610
+**Timestamp:** 2026-10-24T14:51:18Z
+**Continues:** 2026-09-28-1609
+**Title:** dev rebased onto main 177215135 (dispatch 2026-10-24-09) (owner)
+**Observed:** origin/dev 82b55f06a is 23 commits on main 381515c61; main is now 177215135 (#393).
+**Decision:** the owner: "Go ahead and dispatch the helper": Hazel rebases dev onto 177215135 on a new branch, by the -1087 rule and the 2026-10-19-42 method; the planner moves dev after the proof and an S22 launch check.
+**Notes:** Written by the planner by hand. Next free ID -1611.
