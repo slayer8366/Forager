@@ -89,11 +89,13 @@ class FindWayHomeShortWalkTest {
 
     @Test
     fun `the length check is skipped at 98 m walked and runs at 102 m walked`() {
-        // A 200 m trail part: over 1.5 times either stretch (147 m, 153 m), so the two sides differ only by the floor.
-        assertEquals(200.0, alongTrails(find(detourOf(18.0), FakeRouter(FakeRouter.found(200, at(18.0, 0.0), at(0.0, 0.0))))).trail.meters, 0.05)
+        // At 98 m walked a 150 m trail part is over 1.5 times the stretch (147 m), so only the skipped check lets it
+        // through. It is at the short-walk cap, not over it (RECORD -1613; FindWayHomeCapTest), which is why this is
+        // 150 m and no longer the 200 m it was before the cap. At 102 m walked the check runs: 160 m is over 153 m.
+        assertEquals(150.0, alongTrails(find(detourOf(18.0), FakeRouter(FakeRouter.found(150, at(18.0, 0.0), at(0.0, 0.0))))).trail.meters, 0.05)
 
         logs.clear()
-        assertLeavesArea(find(detourOf(22.0), FakeRouter(FakeRouter.found(200, at(22.0, 0.0), at(0.0, 0.0)))))
+        assertLeavesArea(find(detourOf(22.0), FakeRouter(FakeRouter.found(160, at(22.0, 0.0), at(0.0, 0.0)))))
     }
 
     @Test
