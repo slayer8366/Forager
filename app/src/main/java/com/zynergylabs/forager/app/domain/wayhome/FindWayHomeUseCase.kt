@@ -129,7 +129,7 @@ class FindWayHomeUseCase(
                 when (val state = data.routeData) {
                     is RegionRouteData.Damaged -> trackOnly(WayHomeNote.ROUTES_UNREADABLE, "region ${data.regionId}'s routes are damaged")
                     // RECORD -1592, "Two honest notes": routes not on the phone are never "no trail routes here".
-                    RegionRouteData.NotFetched -> trackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, "region ${data.regionId}'s routes were never fetched")
+                    RegionRouteData.NotFetched -> trackOnly(WayHomeNote.NO_TRAIL_ROUTES, "region ${data.regionId}'s routes were never fetched")
                     is RegionRouteData.Missing -> trackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, "region ${data.regionId}'s route fetch failed (${state.reason.code})")
                     RegionRouteData.Fetching -> trackOnly(WayHomeNote.ROUTES_FETCHING, "region ${data.regionId}'s routes are being fetched")
                     RegionRouteData.NoneHere -> trackOnly(WayHomeNote.NO_TRAIL_ROUTES, "the server has no trail routes for region ${data.regionId}")
