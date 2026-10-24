@@ -136,3 +136,33 @@ Both read the first point of the route the engine returns. Before building, I ch
    - If `SNAP` is clearly cheaper, ship `SNAP`.
    - If they are close, the `FULL_ROUTE` limitation in finding 2 still favours `SNAP`.
 2. **The rest waits for part 2:** the dotted and solid line, the HUD distance and arrival, as the dispatch lists them.
+
+## Addendum: Amendment 2 (RECORD -1592, "Two honest notes")
+
+This supersedes finding 3 above. **Finding 3 is closed:** each kind of missing route data now gets a true note, which keeps the rule at `RegionRouteData.kt:23-25`.
+
+| Region's route data | Note |
+|---|---|
+| Never fetched (`NotFetched`) | "Trail routes not downloaded · following your track" |
+| Fetched and failed (`Missing`) | "Trail routes not downloaded · following your track" |
+| Being fetched (`Fetching`) | "Getting trail routes… · following your track" |
+| No downloaded region covers the start | "No trail routes here · following your track" |
+| The server has none for the area (`NoneHere`) | "No trail routes here · following your track" |
+| The build lacks the start's square | "No trail routes here · following your track" |
+
+**One reading of the ruling for the owner to confirm.** The ruling names never-fetched routes, not failed fetches. I gave a failed fetch "not downloaded" too, because a failed fetch also means the routes are not on the phone. That is not the same as there being none.
+
+**One unreachable case.** Stored routes reported as not stored can't happen through `routeDataForPoint`. If it ever does, it reads as unreadable routes and is logged.
+
+**Commits:**
+- `303ff5233`: the two notes and the four tests, failing first.
+- `860a69e38`: the mapping.
+
+**Evidence:**
+- **Failing first** (run 40071226588): it compiled cleanly. The suite ran 24 tests and 3 failed. Never-fetched, fetching and fetch-failed each expected their new note and got `NO_TRAIL_ROUTES`.
+- **Revert checks** (cut from `860a69e38`; both compiled cleanly):
+  - Run 40071638715 mapped never-fetched back to the old note. Only the never-fetched test failed.
+  - Run 40071644561 mapped fetching back to the old note. Only the fetching test failed.
+- **Full suite** (#389, run 40071638070): 724 suites, 5,445 tests, 0 failures, 24 skipped. The combined old test was split into four.
+
+**The split at 852 lines** is accepted for now, and will be revisited when part 2 adds to the file.
