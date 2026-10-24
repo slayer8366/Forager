@@ -27562,3 +27562,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's part 1 (prompts/preserved/2026-10-24-07-saved-track-shows-after-stop-report.md, 850f855ae): the map's saved tracks come from the Maps tab's own snapshot, re-read only when the tab comes into view or after a restore; only the recording screen collects TrackEnds (planner confirmed by git grep at 3ad490b59). S22: no solid line for 45 s after either Stop; it appears at a tab change. A deleted track staying until a tab change is probably the same cause (inferred, not reproduced).
 **Decision:** the owner: "Yes, widen #391 (Recommended)": the Maps tab's ViewModel collects TrackEnds and reloads its map records; deletes are not included now.
 **Notes:** Written by the planner by hand. The delete case stays open. Next free ID -1606.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1606
+**Timestamp:** 2026-10-24T13:31:12Z
+**Continues:** 2026-09-28-1605
+**Title:** #391 merged into pre-main (the recording line clears on Stop; the saved track shows at once); Elder re-checks (dispatch 2026-10-24-08) (owner)
+**Observed:** Sorrel's second review at f0360352e (prompts/preserved/2026-10-24-sorrel-391-review-2.md, 2e738597b): merge-ready, 0 Blocking, 0 M, 4 L. CI green on f0360352e (40091393614, 5450/0). S22 1.0.3906: the solid line shows 1.2 to 1.7 s after both Stop paths.
+**Decision:** the owner: "Merge it (Recommended)". Merged as 79a01ae1b, pinned to f0360352e. Elder's short look follows, then the promotion PR.
+**Notes:** Written by the planner by hand. Next free ID -1607.
