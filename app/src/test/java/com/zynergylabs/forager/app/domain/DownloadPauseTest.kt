@@ -44,7 +44,7 @@ class DownloadPauseTest {
     }
 
     @Test
-    fun `MapLibre's connection and server reasons pause; not-found and other reasons fail`() {
+    fun `MapLibre's connection and server reasons pause, and not-found and other reasons fail`() {
         assertEquals(DownloadErrorKind.Pausable, downloadErrorKind("REASON_CONNECTION"))
         assertEquals(DownloadErrorKind.Pausable, downloadErrorKind("REASON_SERVER"))
         assertEquals(DownloadErrorKind.Final, downloadErrorKind("REASON_NOT_FOUND"))
