@@ -92,7 +92,7 @@ class FindWayHomeUseCase(
         // RECORD -1597, the owner's option (c): "a trail part under a short provisional length gives the track home with no
         // note". Before the length check, which a trail only crossed or walked beside can trip on its joints alone, and
         // then falsely say the route leaves the area (Sorrel's review of #389, M-389-2).
-        if (trailMeters < WAY_HOME_SHORT_TRAIL_METERS) {
+        if (false && trailMeters < WAY_HOME_SHORT_TRAIL_METERS) {
             return trackOnly(null, "the trail part, ${trailMeters.toInt()} m, is under $WAY_HOME_SHORT_TRAIL_METERS m")
         }
         val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
