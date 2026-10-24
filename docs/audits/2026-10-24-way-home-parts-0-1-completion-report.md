@@ -166,3 +166,120 @@ This supersedes finding 3 above. **Finding 3 is closed:** each kind of missing r
 - **Full suite** (#389, run 40071638070): 724 suites, 5,445 tests, 0 failures, 24 skipped. The combined old test was split into four.
 
 **The split at 852 lines** is accepted for now, and will be revisited when part 2 adds to the file.
+
+## Addendum: Amendment 3 (RECORD -1597, -1598; Sorrel's review of #389)
+
+Three fixes to #389, from Sorrel's review (`prompts/preserved/2026-10-24-sorrel-388-389-review.md`, records-after-173 932fdd0f1). The owner's go is RECORD -1598.
+
+**Base.** origin/pre-main was `073fc77bd` when I fetched, which matches the dispatch. I merged it into `way-home-domain` as `92811e301`, with no conflicts and no rebase. That merge's own PR run (40078416754) was cancelled when I pushed the fixes, because a newer push to the branch cancels the run in flight. The full-suite run below is on a head that includes the merge.
+
+**Commits:**
+- `92811e301`: merge of origin/pre-main `073fc77bd`.
+- `0f74300c0`: the tests, failing first.
+- `6ed43928a`: fixes 2 and 3, plus the two optional Lows.
+- This addendum.
+
+### Fix 1, M-389-1: the cancel test now pins the wait for the engine to stop (test only)
+
+`BRouterTrailRouterCancelTest` follows Sorrel's shape. Once terminated, the held search keeps going for `STOPPING_MILLIS = 300` ms and then sets `stopped` as its last act (`:64-65`). Straight after `cancelAndJoin()`, the test asserts that `stopped` is true and that the cancel took at least 300 ms (`:82-83`). The existing checks still apply: the engine was terminated, the cancel took under 2 s, the next route is found, and nothing is logged. No production code changed.
+
+- **Failing first:** not possible as a forward run, because the join is already in the code. The new assertion passed in the failing-first run, as expected. Its evidence is the revert check.
+- **Revert check 1** (`way-home-a3-revert-1`, run 40078813878): I deleted the `withContext(NonCancellable) { run.join() }` line (`BRouterTrailRouter.kt:175`). The test failed on "the cancel waited for the engine to stop before it returned", which is the new assertion and the only failure. The earlier assertions held, as they should: `terminate()` still runs, and the next route still waits its turn on the single engine thread.
+
+### Fix 2, M-389-2: a trail part under 100 m gives the track home with no note
+
+`WAY_HOME_SHORT_TRAIL_METERS = 100.0` is provisional and named (`WayHome.kt:131`). Its doc gives the reason and the source of the figure (RECORD -1598, the planner's figure). In `FindWayHomeUseCase.kt:95-97`, when `trailMeters` (the engine route plus both joints) is under 100 m, the result is `TrackOnly(null)`, logged once as "no note". The check runs after the rectangle check and before the 1.5× check.
+
+New test class `FindWayHomeShortTrailPartTest` (90 lines, 4 tests):
+- **A walk that crosses a trail:** it runs south to north, with the first and last near points 20 m either side of the trail. The trail part is 25 m of route plus about 41.2 m of joints, 66.2 m in all, which is over 1.5× the 40 m of track. Result: `TrackOnly(null)`, not `LEAVES_AREA`, and the router was asked once.
+- **The joints count:** 60 m of route plus the joints comes to about 101.2 m, so the length check runs and returns `LEAVES_AREA`.
+- **Both sides of the boundary,** with no joints and 30 m of track: 99 m gives `TrackOnly(null)`, 100 m gives `LEAVES_AREA` (the check is "shorter than", so exactly 100 m is not short), and so does 101 m.
+- **The order:** a short trail part outside the rectangle still gives `LEAVES_AREA`.
+
+Evidence:
+- **Failing first** (run 40078652887): the 99 m test and the crossing test failed, each "expected:<TrackOnly(note=null)> but was:<TrackOnly(note=LEAVES_AREA)>". The other two passed, as they should today: they guard behaviour the fix must keep.
+- **Revert check 2** (`way-home-a3-revert-2`, run 40078816050): `if (false && trailMeters < …)`, so the check never runs. Exactly those two tests failed, with the same messages.
+- **Revert check 3** (`way-home-a3-revert-3`, run 40078817546): the check measures `route.lengthMetres` alone, without the joints. Only "the joints count toward the short length" failed: "expected:<TrackOnly(note=LEAVES_AREA)> but was:<TrackOnly(note=null)>".
+
+### Fix 3, L-389-2: a failed fetch that only an app update can fix says so
+
+New note `ROUTES_NEED_APP_UPDATE`: "Trail routes need an app update · following your track" (`WayHome.kt:72`). `Missing(reason)` maps to it when `reason.needsAppUpdate()` is true (`FindWayHomeUseCase.kt:142-147`). That is the same function the Offline maps row uses (`RegionRouteData.kt:152-153`, `OfflineRegionRouteLine.kt:34`), so the two can't drift apart. It is true for `NO_APP_KEY` and `FORBIDDEN` only. Every other `Missing` reason stays "Trail routes not downloaded · following your track" (-1595).
+
+**Checked against -1589 and the row before building:**
+- -1589's list of notes has no app-update case, so the new note adds to the list and replaces nothing. -1597 is the ruling that adds it.
+- The row reads "Map only. Trail routes need an app update." (`OfflineRegionRouteLine.kt:66`). The new note uses the same words, "Trail routes need an app update", in the shape of the other notes.
+- I found no clash.
+
+**Tests** (`FindWayHomeUseCaseTest`):
+- The old fetch-failed test listed `NO_APP_KEY` as "not downloaded". It now loops over every `RouteDataMissingReason` except the two and expects "not downloaded" for each.
+- A new test expects the app-update text for `NO_APP_KEY` and for `FORBIDDEN`, one log each. It compares the note's text, not the enum constant, so the failing-first build compiled without the new constant.
+
+Evidence:
+- **Failing first** (run 40078652887): the new test failed on `NO_APP_KEY`: expected "Trail routes n[eed an app update]…", got "Trail routes n[ot downloaded]…". The loop over the other reasons passed, which is correct today. It is a guard, not a fail-first test.
+- **Revert check 4** (`way-home-a3-revert-4`, run 40078819190): `if (false)` in place of `needsAppUpdate()`. Only the new test failed, with the same message.
+
+### The optional Lows
+
+- **L-389-4:** a two-line comment above "the engine runs on the router's own thread" (`BRouterTrailRouterTest.kt`). It says the test now proves where the engine is *built*, and that the search runs on `brouter-engine`.
+- **L-389-8:** a comment on `trackPart`. Every caller passes `from >= to`, so the reversed branch is not reached. It is kept so the function does what its name says.
+- I left the other Lows alone, as the dispatch said.
+
+### How the runs were read
+
+- **Failing first:** run 40078652887, on `0f74300c0`. I pushed it to the throwaway branch `way-home-a3-failfirst` and ran it filtered to `BRouterTrailRouterCancelTest` and `domain.wayhome.*`, so the merge's run on `way-home-domain` would not be cancelled. That run was cancelled later anyway (see Base).
+- **Revert checks:** each revert branch differs from the forward commit `6ed43928a` by exactly its one line. I checked this with `git diff 6ed43928a origin/way-home-a3-revert-N`. The branches were made one on top of the next, but each diff against the forward commit is that single edit.
+- **Compile errors:** every run's build log had zero `e:` lines, and each run compiled its tests (`compileDebugUnitTestKotlin`) before running them.
+- **Results:** read from that run's own JUnit XML, inside its `unit-test-report` artifact. Each CI run is a fresh checkout, so no result could be left over from an earlier run.
+- **Counts:**
+  - Failing first: 30 tests, 3 failures.
+  - Revert 1: 1 test, 1 failure.
+  - Reverts 2 to 4: 29 tests each, failing 2, 1 and 1.
+  - The cancel class runs alone in revert 1, which is why its count is 1.
+- **Restoring the files:** I copied both edited files to `/tmp/a3-save` before the first revert edit and restored them from those copies after each one. Afterwards the files' SHA-1s matched the saved copies, `HEAD` and `origin/way-home-domain` were both `6ed43928a`, and a grep found `run.join()`, the short check and the `needsAppUpdate()` mapping all present.
+- The revert branches are left on the remote, not deleted.
+
+**Full suite** (#389, run 40079203529, on `6ed43928a`): FULL_SUITE_RESULT
+
+### Finding for the owner: a real trail shortcut under 100 m is now dropped
+
+Fix 2 is built as ruled. One consequence the ruling's framing ("the track home with no note") does not cover:
+- A walker crosses a trail at A, bushwhacks a 2 km loop, and crosses the same trail again at B, 80 m along the trail from A.
+- The trail part B→A is 80 m. Before this fix it passed the 1.5× check (80 m against 2 km of track) and was a 1.9 km shortcut.
+- Now it is under 100 m, so the way home is the 2 km loop, with no note.
+- The case needs the walker's *first* contact with any routable way to be at A. A walk that starts at a trailhead or on a road has its entry point there, its trail part is long, and the rule does not fire.
+
+So it bites only when the walk starts off the network. That is plausible for a forager, but I have no data on how often it happens. I did not guard against it: no walk shows it, and the ruling is explicit. The owner's option (b), applying the ratio only when the track between the points is over N m, would not drop this case. I'm reporting it so the owner can weigh it before part 2 wires the use case. No production code calls it yet (`FindWayHomeUseCase.kt:27-28`).
+
+### Confirmed vs inferred
+
+**Confirmed** (read, or run on CI):
+- the base, `073fc77bd`;
+- the merge, conflict-free;
+- the three fixes as above;
+- each failing-first and revert result, from that run's XML, with zero `e:` lines;
+- the forward change present after the revert checks;
+- the note wording against -1589, -1592, -1597 and `OfflineRegionRouteLine.kt:66`;
+- that `needsAppUpdate()` is the row's own predicate.
+
+**Inferred** (not run):
+- That a joint never exceeds 25 m on the real engine. Each joint runs from a track point within 25 m of its *snap* to the first or last point of a *separate* route request. I take it that BRouter matches the same point the same way both times, which `BRouterTrailSnapperTest`'s "the snap is where the router's own route starts" supports on the fixture.
+- So Sorrel's bound for a crossing, up to 30 m of route plus 50 m of joints, about 80 m, stays under 100 m.
+
+### Could not determine
+
+- How often a true trail part under 100 m is a real shortcut (the finding above), or how often a crossing trips the 1.5× check on a real walk. No real walk has been run.
+- The S22 timing, and the cost of a long scan with no trail on it (L-389-5). The phone is not mine in this stage.
+
+### Premises that were wrong
+
+- **None in the dispatch.** The base, the file locations, `needsAppUpdate()`, the row's wording and -1589's notes all matched the code.
+- **One nuance on the geometry behind 100 m.** By my arithmetic, a *straight* crossing with ideal matching does not trip the 1.5× check: the trail part is about (cos θ + sin θ) times the track between the points, at most 1.41×. The false alarm comes from walking *beside* a trail within 25 m, from a wiggling track, or from an engine route longer than the straight line between the two matched points. The crossing test therefore uses an engine route of 25 m between points 10 m apart, standing for a trail that bends at the crossing. The fix is still needed, and the 100 m figure still covers Sorrel's 50 to 80 m. This changes the example, not the ruling.
+
+### Decided beyond scope
+
+- **Where the short check sits.** It runs after the rectangle check, not before it. The dispatch says "before the 1.5× check", so a short route outside the cut data still reads `LEAVES_AREA`. A test pins this order.
+- **"Shorter than" means strictly under.** Exactly 100 m goes on to the length check. A test pins this.
+- **Logging.** The short case is logged once, as "no note", with the trail part's metres, as every `TrackOnly` result is. A short trail part is a fallback to the track, so CLAUDE.md's logging rule applies.
+- **A new test class** for fix 2, rather than growing `FindWayHomeUseCaseTest` (now 303 lines), per the modular-code skill.
+- **The guard loop in fix 3** covers every other `RouteDataMissingReason`, not only the three the old test listed.
+- **The comments** for L-389-4 and L-389-8 are worded as above.
