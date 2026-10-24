@@ -27258,3 +27258,14 @@ The website copy and Play's Data safety form follow after the merge.
 **Observed:** Play Console flags release 3500: "DEX code optimization is below our threshold", Obfuscation 0%, fix by Feb 2027. `isMinifyEnabled = false` (app/build.gradle.kts:307 at 32d381e45), as -917 chose.
 **Decision:** the owner: "Before the next release, we should fix this"; chose "Next production (Recommended)" and "Yes, report first (Recommended)". This promotion's internal draft goes without R8.
 **Notes:** Written by the planner by hand. Dispatch 2026-10-23-08. Next free ID -1582.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1582
+**Timestamp:** 2026-10-24T02:12:58Z
+**Continues:** 2026-09-28-1577
+**Title:** Tile retry: downloads get their own holds, so they pause and continue (owner)
+**Observed:** Sorrel's review of #386 (Fable): no Blocker. With a shared gate of 8 and MapLibre's 20 download requests in flight, a download still fails at once with no signal, and can take the on-screen map's places.
+**Decision:** the owner chose "Pause and continue (Recommended)". Downloads get their own holds, separate from the map's 8; the 5-minute limit stays. Dispatch 2026-10-23-06 Amendment 2.
+**Notes:** Written by the planner by hand. Next free ID -1583.
