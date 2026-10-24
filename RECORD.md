@@ -27469,3 +27469,17 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - "Fix #389 first (Recommended)": merge #388 now; Hazel fixes M-389-1 and M-389-2, then #389 merges after a re-check;
 - "Say \"needs an update\" (Recommended)": NO_APP_KEY and FORBIDDEN on the way home say the app needs an update, as the Offline maps row does. Every other missing case stays "not downloaded" (-1595).
 **Notes:** Written by the planner by hand. Next free ID -1598.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1598
+**Timestamp:** 2026-10-24T08:31:07Z
+**Continues:** 2026-09-28-1597
+**Title:** L-389-7 confirmed; Elder re-checks #388; Hazel fixes #389 (dispatch 2026-10-23-09 Amendment 3) (owner)
+**Observed:** #388 merged as e26c0f591 and the known-bugs rows as #390 (073fc77bd), after Elder's re-check at fefc89129, so the promotion now includes them. The planner takes SNAP as the method (L-389-1), pending the S22 timing.
+**Decision:** the owner:
+- "Keep it (Recommended)", to both of L-389-7: no note when the track touches a trail only where it first joined one, and a start outside every area while the walker is inside one reads as leaves-area;
+- "Short Elder re-check (Recommended)": Elder reads fefc89129..073fc77bd (dispatch 2026-10-24-02);
+- "Start Hazel now (Recommended)": M-389-1, M-389-2 (c) at 100 m (provisional, the planner's figure) and L-389-2 on #389 (2026-10-23-09 Amendment 3), then Sorrel re-checks.
+**Notes:** Written by the planner by hand. Next free ID -1599.
