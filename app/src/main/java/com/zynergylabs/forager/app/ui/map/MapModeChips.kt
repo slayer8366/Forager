@@ -33,13 +33,21 @@ private var SemanticsPropertyReceiver.mapModeChipSelectedFill by MapModeChipSele
  * the map cannot disagree. It draws Trail Map from the downloaded areas in place of a chosen OSM or Topographical
  * map on two paths: no signal ([noSignal], [LocalNoSignal] after its hysteresis, the state the map reads), and "Use
  * offline tiles" ([offlineTiles], `MapRenderMode.useOfflineTiles`). For a Trail user it draws Trail Map, which is what
- * they chose. The one path that shows something else to a Trail user is the -1513 fallback ([trailMapDraws] false):
+ * they chose. No signal with no downloaded area ([hasDownloadedArea] false) draws the chosen map, so the chip stays
+ * normal (dispatch 2026-10-23-07, Elder's item 3: grey only when Trail Map is actually drawn instead). The one path
+ * that shows something else to a Trail user is the -1513 fallback ([trailMapDraws] false):
  * once Trail Map's style has failed to load, the map draws OpenStreetMap's raster until the next cold start, and the
  * Trail chip is grey (the owner: "Same meaning everywhere: grey = chosen, but something else is shown."). The stored
  * choice never changes; only the chip's colour does.
  */
-internal fun chosenMapModeStandsAside(mode: MapMode, noSignal: Boolean, offlineTiles: Boolean = false, trailMapDraws: Boolean = true): Boolean {
-    val fromDownloads = drawsFromDownloads(offlineTiles, mode.basemap, noSignal, trailMapDraws)
+internal fun chosenMapModeStandsAside(
+    mode: MapMode,
+    noSignal: Boolean,
+    hasDownloadedArea: Boolean,
+    offlineTiles: Boolean = false,
+    trailMapDraws: Boolean = true,
+): Boolean {
+    val fromDownloads = drawsFromDownloads(offlineTiles, mode.basemap, noSignal, hasDownloadedArea, trailMapDraws)
     return if (mode.basemap == Basemap.FORAGER_TRAIL) {
         // Trail chosen: something else is shown only when its style has failed to load (RECORD -1513) and the map draws
         // OpenStreetMap's raster in its place. From the downloads it is Trail Map again, which is what was chosen.
@@ -78,6 +86,7 @@ internal fun MapModeChipRow(
     fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
 ) {
     val noSignal = rememberNoSignal()
+    val hasDownloadedArea = LocalHasDownloadedArea.current
     // RECORD -1513: false once Trail Map's style has failed to load in this process; Compose state, so the chip follows it.
     val trailMapDraws = fallback.ownStreet()
     Row(
@@ -85,7 +94,7 @@ internal fun MapModeChipRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
     ) {
         MapMode.entries.forEach { mode ->
-            val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal, offlineTiles, trailMapDraws)
+            val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal, hasDownloadedArea, offlineTiles, trailMapDraws)
             val colors = if (standsAside) {
                 FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.outlineVariant,

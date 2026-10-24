@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
@@ -105,6 +106,32 @@ class OfflineRegionRouteRowTest {
 
         composeRule.onNodeWithText("Map only. No trail routes for this area yet.").assertIsDisplayed()
         composeRule.onNodeWithTag(offlineRouteTryAgainTag(3)).assertDoesNotExist()
+    }
+
+    /** Elder's item 2 (dispatch 2026-10-23-07; the owner's sentence: "Map only. Trail routes need an app update."). */
+    @Test
+    fun `a refused key says the routes need an app update, with no button`() {
+        show(listOf(region(9, RegionRouteData.Missing(RouteDataMissingReason.FORBIDDEN))), failed = setOf(9L))
+
+        composeRule.onNodeWithText("Map only. Trail routes need an app update.").assertIsDisplayed()
+        composeRule.onNodeWithText("Map only. No trail routes for this area yet.").assertDoesNotExist()
+        composeRule.onNodeWithTag(offlineRouteTryAgainTag(9)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `an area the server will not take keeps C's line, with no button`() {
+        show(
+            listOf(
+                region(10, RegionRouteData.Missing(RouteDataMissingReason.TOO_LARGE)),
+                region(11, RegionRouteData.Missing(RouteDataMissingReason.BAD_REQUEST)),
+            ),
+            failed = setOf(10L, 11L),
+        )
+
+        assertEquals(2, composeRule.onAllNodesWithText("Map only. No trail routes for this area yet.").fetchSemanticsNodes().size)
+        composeRule.onNodeWithText("Map only. Trail routes need an app update.").assertDoesNotExist()
+        composeRule.onNodeWithTag(offlineRouteTryAgainTag(10)).assertDoesNotExist()
+        composeRule.onNodeWithTag(offlineRouteTryAgainTag(11)).assertDoesNotExist()
     }
 
     @Test

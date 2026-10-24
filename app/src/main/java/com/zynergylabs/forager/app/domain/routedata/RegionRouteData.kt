@@ -135,10 +135,22 @@ enum class RouteDataMissingReason(val code: String) {
 
 /**
  * Whether asking again could change the answer. Not for a build with no key, a key the server refuses (an app update
- * is needed), or an area the server or this app will never take (too large, refused as a bad request): those read to
- * the user as "no trail routes for this area yet" with no button (the owner's step path F, dispatch 2026-10-23-03).
+ * is needed, [needsAppUpdate]), or an area the server or this app will never take (too large, refused as a bad
+ * request): none of them offers a button (the owner's step path F, dispatch 2026-10-23-03).
  */
 fun RouteDataMissingReason.retryHelps(): Boolean = this !in NOT_RETRYABLE
+
+/**
+ * Whether the routes are missing because of this app, not the area: the server refused its key ([FORBIDDEN][RouteDataMissingReason.FORBIDDEN],
+ * a wrong key in a build or a key rotated on the Worker after the build shipped), or the build has none
+ * ([NO_APP_KEY][RouteDataMissingReason.NO_APP_KEY], a developer build without the key; a Play build cannot be made
+ * without one, since `verifyReleaseHasRoutingAppKey` guards `assembleRelease` and `bundleRelease`, though CI's
+ * unsigned release-compile job builds the release variant without a key). Either way only a different build fixes it, so the row says "Map
+ * only. Trail routes need an app update." (dispatch 2026-10-23-07, Elder's item 2, the owner's sentence) instead of
+ * C's line, which would state something false about the area.
+ */
+fun RouteDataMissingReason.needsAppUpdate(): Boolean =
+    this == RouteDataMissingReason.FORBIDDEN || this == RouteDataMissingReason.NO_APP_KEY
 
 private val NOT_RETRYABLE = setOf(
     RouteDataMissingReason.NO_APP_KEY,

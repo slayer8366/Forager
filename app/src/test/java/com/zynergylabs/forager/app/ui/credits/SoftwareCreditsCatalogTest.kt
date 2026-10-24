@@ -61,12 +61,13 @@ class SoftwareCreditsCatalogTest {
     /**
      * Forager Trail Map's label font (Noto Sans, OFL) and icon set (tangrams, MIT), under their own licences. Since
      * dispatch 2026-10-22-01 the map is always offered, so both are always listed, named for "Forager Trail Map"
-     * (RECORD -1556). Was "the Street map's font and icons are credited only while the own Street is on" (dispatch
+     * (RECORD -1556). The icon row names 53 of the 61, since the other 8 are Forager's own art (RECORD -1561, the owner:
+     * "As the project's own art"; dispatch 2026-10-23-07, Elder's item 7). Was "the Street map's font and icons are credited only while the own Street is on" (dispatch
      * 2026-10-18-05 Part 2), which drove the removed release switch both ways.
      */
     @Test
     fun `Forager Trail Map's font and icons are always credited, under their own licences`() {
-        val trail = listOf("Noto Sans, Forager Trail Map's labels", "Forager Trail Map's icons, from Mapzen's tangrams icon set")
+        val trail = listOf("Noto Sans, Forager Trail Map's labels", "53 of Forager Trail Map's 61 icons, from Mapzen's tangrams icon set")
         assertEquals(listOf("OFL-1.1", "MIT"), trail.map { name -> libraries.single { it.name == name }.licence })
         // A word match, so "OpenStreetMap" does not count.
         val street = Regex("""\bStreet\b""")
