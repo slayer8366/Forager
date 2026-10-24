@@ -27505,3 +27505,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel: Amendment 3 on way-home-domain, head 89ae07b97, CI green (40079203529 full suite 5,485/0; 40080701724); four revert checks specific. Open item 1: (c) drops a real trail shortcut on a looped walk. S22 check on 1.0.3901+g073fc77b (prompts/preserved/2026-10-24-03-s22-promotion-check-report.md, 0adfa17a4): database 22 to 22, steps 1 to 6 pass; the End waypoint lands on the last fix, the last track point within one 5 s sample.
 **Decision:** the owner: "Switch to (b) (Recommended)": the 1.5× check runs only when the walked stretch between the two trail points is over 100 m (provisional); (c)'s short-trail rule is removed.
 **Notes:** Written by the planner by hand. Next free ID -1601.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1601
+**Timestamp:** 2026-10-24T09:34:32Z
+**Continues:** 2026-09-28-1600
+**Title:** Before the promotion PR: does the recording line clear after Stop and delete? (dispatch 2026-10-24-04) (owner)
+**Observed:** S22 check 2026-10-24-03, step 5: the recording line stayed on the map after the test tracks were stopped and deleted; whether it clears was not seen.
+**Decision:** the owner: "Quick check first (Recommended)": repeat on the S22 and read the code before the promotion PR; a confirmed bug becomes a known-bugs row or a fix, as the owner decides.
+**Notes:** Written by the planner by hand. Next free ID -1602.
