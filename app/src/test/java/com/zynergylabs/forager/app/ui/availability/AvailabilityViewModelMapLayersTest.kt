@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchTaxaUseCase
 import com.zynergylabs.forager.app.domain.TaxonSearchRepository
+import com.zynergylabs.forager.app.domain.TrackEnds
 import com.zynergylabs.forager.app.domain.TripPlanningWeatherProvider
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.WeatherProvider
@@ -47,6 +48,7 @@ import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.SightingsPage
@@ -62,6 +64,8 @@ import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -99,6 +103,7 @@ class AvailabilityViewModelMapLayersTest {
         getMapRecords: suspend () -> MapRecords = { MapRecords.NONE },
         layerPreferences: MapLayerPreferencesRepository = RecordingLayerPreferences(),
         store: ForecastCellStore = FixedStore(ForecastAvailability.NoForecastData),
+        trackEnds: StateFlow<String?> = MutableStateFlow(null),
     ): AvailabilityViewModel {
         val plannedTripRepository = LayersInMemoryPlannedTripRepository()
         return AvailabilityViewModel(
@@ -129,6 +134,7 @@ class AvailabilityViewModelMapLayersTest {
             forecastCellStore = store,
             // A Sunday: the week the store is asked about is the Monday before it.
             today = { LocalDate.of(2026, 10, 4) },
+            trackEnds = trackEnds,
         )
     }
 
@@ -169,6 +175,33 @@ class AvailabilityViewModelMapLayersTest {
 
         assertEquals(2, calls)
         assertEquals(2, vm.uiState.value.mapRecords.findMarkers.size)
+    }
+
+    /**
+     * Dispatch 2026-10-24-07 (RECORD -1605): recording happens on the Maps tab, so the tab-shown reload never
+     * runs at a Stop, and the saved track's line was missing until a tab change. The service stores the end and
+     * then reports it through [TrackEnds], the order `TrackRecordingService.stopRecording` uses, and the records
+     * must reload on that report alone: no [AvailabilityViewModel.onMapShown] after it. The records read here
+     * follow the store, so the track is only readable once its end is stored, as `GetMapRecordsUseCase` keeps
+     * only ended tracks.
+     */
+    @Test
+    fun `a track end reported through TrackEnds puts the finished track in the map records with no tab change`() = runTest(dispatcher) {
+        val trackEnds = TrackEnds()
+        val finished = RecordPolyline("track-1", listOf(LatLng(45.0, -122.0), LatLng(45.001, -122.0)))
+        var storedEndedTracks = emptyList<RecordPolyline>()
+        val vm = viewModel(getMapRecords = { MapRecords.NONE.copy(trackPolylines = storedEndedTracks) }, trackEnds = trackEnds.latest)
+        advanceUntilIdle()
+        // The Maps tab is shown while the track is still recording: it is not in the records yet.
+        vm.onMapShown()
+        advanceUntilIdle()
+        assertEquals(emptyList<RecordPolyline>(), vm.uiState.value.mapRecords.trackPolylines)
+
+        storedEndedTracks = listOf(finished)
+        trackEnds.report("track-1")
+        advanceUntilIdle()
+
+        assertEquals("the finished track is in the map records after Stop", listOf(finished), vm.uiState.value.mapRecords.trackPolylines)
     }
 
     @Test

@@ -161,6 +161,12 @@ class AvailabilityViewModel(
     private val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = NoStoredMapIconClusterPlacement,
     /** The maps' "no signal" state (NoSignalTrailMap.kt), read when Offline maps opens; defaulted to "no signal", so nothing fetches. */
     internal val noSignal: () -> Boolean = { true },
+    /**
+     * The service's report that it has stored a track's end (dispatch 2026-10-24-07, RECORD -1605):
+     * `AppContainer.trackEnds`, the same report the recording screen reloads its track list on.
+     * Defaulted to no report, as [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel] does.
+     */
+    private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
