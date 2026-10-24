@@ -27693,3 +27693,16 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #395 (B) at 82da028e2, run 40109476203, and #396 (C) at e00a20557, run 40109484404: one failure each, the same test, ReturnWalkingTimeAlongTest "the track's degrade rules still apply, and a lost fix withholds" (ReturnWalkingTimeAlongTest.kt:40). The session usage limit stopped Hazel and both Sorrel reviews about 09:30 PDT (reset 11:20). #394 (A): Sorrel merge-ready, 0 Blocking, 0 M, 3 L (prompts/preserved/2026-10-24-sorrel-394-review.md, e6a431d95).
 **Decision:** the owner: "Hike without it (Recommended)". Hazel fixes the failure now; the pace of -1614 ends, so B's revert checks are done before review completes; the owner tests part 2 on a later walk with a build that passes.
 **Notes:** Written by the planner by hand. Next free ID -1617.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1617
+**Timestamp:** 2026-10-24T20:11:44Z
+**Continues:** 2026-09-28-1616
+**Title:** Part 2 reviews: B blocks on a short distance on hairpins; fixes ruled (dispatch 2026-10-24-10 Amendment 2) (owner)
+**Observed:** Sorrel (Fable 5.1): #394 merge-ready (e6a431d95); #395 not merge-ready (5eb3b0dd1): B-395-1 Blocking, "not before the last place" with a later leg within 50 m places the walker on the later leg and the figure reads short (hand-worked on the PR's hairpin fixture: 235 m against 420 m), against PathHome.kt:15-24 and -1613; M-395-2, an engine Error escapes WayHomeWatch.kt:171. #396 merge-ready apart from M-396-1 (6007fe7dc): after a second stray, the HUD withholds for the rest of the return while sundown falls back to the track. B and C green at bedb6d809 and 18e038a9c. The S22 is not connected to the laptop.
+**Decision:** the owner:
+- B-395-1: "(a) Count from earliest (Recommended)": the remaining figure counts from the earliest point within 25 m anywhere on the line, plus 25 m; "not before" stays for the needle and the greyed part only;
+- M-396-1: "Fall back to your track (Recommended)": the HUD shows the track home once re-routing has ended.
+**Notes:** Written by the planner by hand. The planner's calls: M-395-2 (catch engine Errors, fall back, log), M-396-2 (carry sundown's band), L-395-4, L-395-9, L-396-6. Next free ID -1618.
