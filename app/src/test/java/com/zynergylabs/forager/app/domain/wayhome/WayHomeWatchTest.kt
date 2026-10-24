@@ -195,6 +195,32 @@ class WayHomeWatchTest {
     }
 
     @Test
+    fun `an engine Error in a re-route does not escape, ends that search, and gives the track, logged`() {
+        // Sorrel's M-395-2: an OutOfMemoryError from BRouter is an Error, not an Exception.
+        var calls = 0
+        val oom = WayHomeWatch(scope, { Result.success(track) }, { _, _ -> if (++calls == 1) alongTrails else throw OutOfMemoryError("engine") }, { true }, errorLog)
+        oom.find("t1", null)
+        scope.runCurrent()
+        oom.onFix(gps(-60.0, -50.0), FixProvider.GPS)
+        scope.runCurrent()
+        assertEquals("the re-route's Error gives the track", WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND), oom.shown.value!!.result)
+        assertEquals("logged once: $logs", 1, logs.count { "failed" in it })
+    }
+
+    @Test
+    fun `the far band's hysteresis holds across off the line - out above 50 m, back only below 45 m`() {
+        foundOnFirstReturn()
+        watch.onFix(gps(-48.0, -50.0), FixProvider.GPS)
+        assertTrue("48 m: placed", watch.progressFor("t1") is WayHomeProgress.Placed)
+        watch.onFix(gps(-51.0, -50.0), FixProvider.GPS)
+        assertTrue("51 m: off the line", watch.progressFor("t1") is WayHomeProgress.OffLine)
+        watch.onFix(gps(-48.0, -50.0), FixProvider.GPS)
+        assertTrue("48 m again: still off the line, not back until under 45 m", watch.progressFor("t1") is WayHomeProgress.OffLine)
+        watch.onFix(gps(-44.0, -50.0), FixProvider.GPS)
+        assertTrue("44 m: placed again", watch.progressFor("t1") is WayHomeProgress.Placed)
+    }
+
+    @Test
     fun `a search that throws gives the track with Couldn't find a trail route, logged`() {
         val throwing = WayHomeWatch(scope, { Result.success(track) }, { _, _ -> error("boom") }, { true }, errorLog)
         throwing.find("t1", null)
