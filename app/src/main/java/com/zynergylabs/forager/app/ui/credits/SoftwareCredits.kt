@@ -71,12 +71,19 @@ internal object SoftwareCredits {
      * file does not have, or a licence or notice file that is missing or blank, fails the whole load
      * rather than showing a partial list as if it were complete.
      */
-    fun groups(catalog: SoftwareCatalog, readText: (String) -> String): List<LicenceGroup> {
+    fun groups(
+        catalog: SoftwareCatalog,
+        readText: (String) -> String,
+    ): List<LicenceGroup> {
         val known = catalog.licences.map { it.id }.toSet()
         catalog.libraries.firstOrNull { it.licence !in known }?.let { error("\"${it.name}\" names licence ${it.licence}, which the list does not have") }
+        // Forager Trail Map's font and icons used to be listed only while the release switch was on (`onlyWithOwnStreetMap`,
+        // dispatch 2026-10-18-05 Part 2). The switch is gone and Trail Map is always offered (dispatch 2026-10-22-01), so
+        // every entry is listed and the flag went with it.
+        val shown = catalog.libraries
         fun read(path: String): String = readText("$DIRECTORY/$path").also { require(it.isNotBlank()) { "$DIRECTORY/$path is blank" } }
         return catalog.licences.mapNotNull { licence ->
-            val libraries = catalog.libraries.filter { it.licence == licence.id }
+            val libraries = shown.filter { it.licence == licence.id }
             if (libraries.isEmpty()) return@mapNotNull null
             LicenceGroup(
                 licence = licence,
@@ -89,7 +96,7 @@ internal object SoftwareCredits {
 
     fun load(assets: AssetManager): Result<List<LicenceGroup>> = runCatching {
         fun readAsset(path: String) = assets.open(path).bufferedReader().use { it.readText() }
-        groups(parse(readAsset(CATALOG_ASSET)), ::readAsset)
+        groups(parse(readAsset(CATALOG_ASSET)), readText = ::readAsset)
     }
 }
 

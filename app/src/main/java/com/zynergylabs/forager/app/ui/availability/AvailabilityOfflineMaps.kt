@@ -34,6 +34,8 @@ internal class AvailabilityOfflineMaps(
     private val locationProvider: LocationProvider,
     private val getOfflineRegionReferenceCount: suspend (Long) -> Int,
     private val errorLog: ErrorLog,
+    /** Told of each finished download, so a route fetch that failed with it shows "Try again" (dispatch 2026-10-23-03). */
+    private val onDownloaded: (OfflineRegionSummary) -> Unit = {},
 ) {
 
     fun onOfflineMapLatChanged(text: String) {
@@ -82,14 +84,14 @@ internal class AvailabilityOfflineMaps(
      * a `listRegions` re-read has no side effect beyond what [loadOfflineRegions] already does on
      * every call.
      */
-    fun onOfflineMapsOpened() {
+    fun onOfflineMapsOpened(): Job {
         scope().launch {
             val result = locationProvider.getCurrentLocation()
             if (result is LocationResult.Success) {
                 updateState { it.copy(offlineMapPickerDefaultCenter = LatLng(result.lat, result.lng)) }
             }
         }
-        loadOfflineRegions()
+        return loadOfflineRegions()
     }
 
     /**
@@ -183,10 +185,15 @@ internal class AvailabilityOfflineMaps(
      */
     fun beginDownloadAgain(row: OfflineRegionSummary) {
         scope().launch {
-            offlineMapRepository.download(row.name, row.region) { downloaded, total ->
-                updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
-            }.fold(
+            offlineMapRepository.download(
+                row.name,
+                row.region,
+                onProgress = ::showProgress,
+                onRouteStep = ::showGettingTrailRoutes,
+                onPauseChanged = ::showPaused,
+            ).fold(
                 onSuccess = { downloadedRegion ->
+                    onDownloaded(downloadedRegion)
                     offlineMapRepository.replaceRegion(row.id, downloadedRegion.id).onFailure { error ->
                         errorLog.w(TAG, "Downloaded ${row.name} again, but couldn't move region ${row.id}'s references to ${downloadedRegion.id}.", error)
                     }
@@ -207,10 +214,15 @@ internal class AvailabilityOfflineMaps(
      */
     fun beginDownload(name: String, region: Region) {
         scope().launch {
-            offlineMapRepository.download(name, region) { downloaded, total ->
-                updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
-            }.fold(
-                onSuccess = {
+            offlineMapRepository.download(
+                name,
+                region,
+                onProgress = ::showProgress,
+                onRouteStep = ::showGettingTrailRoutes,
+                onPauseChanged = ::showPaused,
+            ).fold(
+                onSuccess = { downloadedRegion ->
+                    onDownloaded(downloadedRegion)
                     updateState {
                         it.copy(
                             offlineDownloadStatus = OfflineMapStatus.Succeeded,
@@ -229,6 +241,37 @@ internal class AvailabilityOfflineMaps(
                     }
                 },
             )
+        }
+    }
+
+    /**
+     * The download's progress. A pause it is in stays shown through it: MapLibre reports status while paused too, with
+     * the same count, and only the download says when it continues ([showPaused], dispatch 2026-10-23-06 Amendment 4).
+     */
+    private fun showProgress(downloaded: Int, total: Int) {
+        updateState { state ->
+            val paused = (state.offlineDownloadStatus as? OfflineMapStatus.Downloading)?.paused == true
+            state.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total, paused = paused))
+        }
+    }
+
+    /**
+     * The download paused because the signal went, or continued by itself (dispatch 2026-10-23-06 Amendment 4, RECORD
+     * -1591): the progress says "Paused · no signal · continues by itself" in place of the count, which comes back on
+     * continuing. The counts are kept, so the bar stays where it was.
+     */
+    private fun showPaused(paused: Boolean) {
+        updateState { state ->
+            val status = state.offlineDownloadStatus as? OfflineMapStatus.Downloading ?: return@updateState state
+            state.copy(offlineDownloadStatus = status.copy(paused = paused))
+        }
+    }
+
+    /** The tiles are in; the download's own route fetch has started (Amendment 1, L4). */
+    private fun showGettingTrailRoutes() {
+        updateState { state ->
+            val status = state.offlineDownloadStatus as? OfflineMapStatus.Downloading ?: OfflineMapStatus.Downloading(0, 0)
+            state.copy(offlineDownloadStatus = status.copy(gettingRoutes = true))
         }
     }
 

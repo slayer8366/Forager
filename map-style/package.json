@@ -6,10 +6,14 @@
   "scripts": {
     "generate": "node generate.mjs",
     "check": "node tools/check-style.mjs",
-    "diff": "node tools/diff-style.mjs"
+    "diff": "node tools/diff-style.mjs",
+    "generate:street": "node generate-street.mjs",
+    "check:street": "node tools/build-sprite-v5.mjs --check && node tools/check-style.mjs forager-street-v2.preview.json && node tools/check-street-night.mjs && node tools/check-street-trails.mjs",
+    "build:sprite": "node tools/build-sprite-v5.mjs"
   },
   "dependencies": {
     "@protomaps/basemaps": "5.7.2",
-    "maplibre-gl": "6.12.0"
+    "maplibre-gl": "6.12.0",
+    "pngjs": "7.0.0"
   }
 }

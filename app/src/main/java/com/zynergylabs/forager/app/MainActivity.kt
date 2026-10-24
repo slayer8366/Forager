@@ -1,5 +1,28 @@
 package com.zynergylabs.forager.app
 
+import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.onAutoSaveLocationToPhotosChanged
+import com.zynergylabs.forager.app.ui.availability.onBatterySaverChanged
+import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
+import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
+import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
+import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
+import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
+import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
+import com.zynergylabs.forager.app.ui.availability.onOffTrackReminderChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapLatChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapLngChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapNameChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapRadiusChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapsOpened
+import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
+import com.zynergylabs.forager.app.ui.availability.onSundownAlertsEnabledChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapsSignalReturned
+import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
+import com.zynergylabs.forager.app.ui.availability.onTryAgainRoutes
+import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.Manifest
 import android.content.Intent
 import android.os.Build
@@ -22,8 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
-import kotlinx.coroutines.joinAll
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
@@ -67,13 +90,17 @@ import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
-import com.zynergylabs.forager.app.ui.theme.ForagerTheme
+import com.zynergylabs.forager.app.ui.availability.OfflineRouteActions
+import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
+import com.zynergylabs.forager.app.ui.map.noSignalState
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
-import com.zynergylabs.forager.app.ui.track.TrackRecordingReturnLeg
 
 class MainActivity : ComponentActivity() {
 
     private val container: AppContainer get() = (application as ForagerApplication).container
+
+    /** No signal for the maps (dispatch 2026-10-22-01, NoSignalTrailMap.kt), for this Activity's life. */
+    private val noSignal by lazy { noSignalState(applicationContext, lifecycleScope) }
 
     /**
      * The real [ErrorLog] production wires in — see that interface's own doc comment for why
@@ -84,49 +111,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: AvailabilityViewModel by viewModels {
         viewModelFactory {
             initializer {
-                AvailabilityViewModel(
-                    container.locationProvider,
-                    container.locationTracker,
-                    container.getAvailabilityUseCase,
-                    container.getRecentSearchesUseCase,
-                    container.getSightingsUseCase,
-                    container.searchTaxaUseCase,
-                    container.getConditionsUseCase,
-                    container.getTripWindowsUseCase,
-                    container.getPlannedTripsUseCase,
-                    container.savePlannedTripUseCase,
-                    container.deletePlannedTripUseCase,
-                    container.getSeasonalPatternUseCase,
-                    container.offlineMapRepository,
-                    androidErrorLog,
-                    container.mapPreferencesRepository,
-                    container.unitSystemPreferenceRepository,
-                    container.appThemePreferenceRepository,
-                    container.getTodaysForecastUseCase,
-                    getOfflineRegionReferenceCount = { id -> offlineRegionEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forOfflineRegion, androidErrorLog) },
-                    getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
-                    setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
-                    getSundownAlertsEnabled = container.sundownPreferencesRepository::getAlertsEnabled,
-                    setSundownAlertsEnabled = container.sundownPreferencesRepository::setAlertsEnabled,
-                    getDarknessMarginMinutes = container.sundownPreferencesRepository::getDarknessMarginMinutes,
-                    setDarknessMarginMinutes = container.sundownPreferencesRepository::setDarknessMarginMinutes,
-                    onDarknessMarginStored = container.sundownWatch::onMarginChanged,
-                    getOffTrackReminderEnabled = container.offTrackReminderPreferences::getEnabled,
-                    setOffTrackReminderEnabled = container.offTrackReminderPreferences::setEnabled,
-                    getBatterySaverEnabled = container.batterySaverPreferences::getEnabled,
-                    setBatterySaverEnabled = container.batterySaverPreferences::setEnabled,
-                    getMapRecords = { container.getMapRecordsUseCase() },
-                    mapLayerPreferencesRepository = container.mapLayerPreferencesRepository,
-                    forecastCellStore = container.forecastCellStore,
-                    // Dispatch 2026-09-28-502: the waypoint navigation kept across the process, and the return it pauses
-                    // and picks back up. The leg holds the recording ViewModel itself, not this Activity, so a recreated
-                    // Activity leaves nothing behind in it.
-                    waypointNavigationRepository = container.waypointNavigationRepository,
-                    returnLeg = TrackRecordingReturnLeg(trackRecordingViewModel),
-                    lastKnownLocation = container.lastKnownLocation,
-                    basemapPreferenceRepository = container.basemapPreferenceRepository,
-                    mapIconClusterPlacementRepository = container.mapIconClusterPlacementRepository,
-                )
+                createAvailabilityViewModel(container, androidErrorLog, trackRecording = { trackRecordingViewModel }, noSignal = { noSignal.value })
             }
         }
     }
@@ -146,54 +131,22 @@ class MainActivity : ComponentActivity() {
     private val cartographyViewModel: CartographyViewModel by viewModels {
         viewModelFactory {
             initializer {
-                CartographyViewModel(
-                    container.getCartographyEntriesUseCase,
-                    container.getCartographyDraftEntriesUseCase,
-                    container.createCartographyEntryUseCase,
-                    container.saveCartographyEntryUseCase,
-                    container.getCartographyEntryUseCase,
-                    container.commitCartographyEntryUseCase,
-                    container.deleteCartographyEntryUseCase,
-                    container.getDerivedTripUseCase,
-                    container.getTripReportOfflineRegionsUseCase,
-                    container.computeTrackStatisticsUseCase,
-                    container.setCartographyEntryShownOnMapUseCase,
-                )
+                createCartographyViewModel(container)
             }
         }
     }
 
-    /**
-     * Settings' Backup section (journal backup and restore, dispatches 2026-09-28-127 and -137). After a restore that
-     * worked, everything that reads the journal once and holds it is told to read again, and the restore's loading
-     * page waits for all of them: there is no Flow anywhere in `data/local`, so nothing else refreshes. The list, with
-     * where each read is: the entries and drafts (`CartographyViewModel.reloadAfterRestore`), the finds and drafts
-     * (`MushroomLogViewModel.reloadAfterRestore`; both also close an open entry or find whose record the restore removed,
-     * dispatch 2026-09-28-182 item 5) and the gallery photos with their reference counts (`MushroomLogViewModel.loadGalleryPhotos`), the tracks
-     * and the waypoints with their reference counts (`TrackRecordingViewModel.loadTracks`, `loadWaypoints`), and the
-     * planned trips, the offline regions with their reference counts, and the Maps tab's records
-     * (`AvailabilityViewModel.reloadAfterRestore`).
-     */
+    /** Settings' Backup section: built by [createBackupViewModel], whose doc comment lists what a restore reloads. */
     private val backupViewModel: BackupViewModel by viewModels {
         viewModelFactory {
             initializer {
-                BackupViewModel(
-                    backup = container.journalBackup,
-                    preferences = container.backupSchedulePreferences,
-                    scheduler = container.backupScheduler,
-                    files = container.backupFiles,
-                    errorLog = androidErrorLog,
-                    isRecording = { trackRecordingViewModel.uiState.value.isRecording },
-                    reloadAfterRestore = {
-                        listOf(
-                            cartographyViewModel.reloadAfterRestore(),
-                            mushroomLogViewModel.reloadAfterRestore(),
-                            mushroomLogViewModel.loadGalleryPhotos(),
-                            trackRecordingViewModel.loadTracks(),
-                            trackRecordingViewModel.loadWaypoints(),
-                        ).joinAll()
-                        viewModel.reloadAfterRestore()
-                    },
+                createBackupViewModel(
+                    container,
+                    androidErrorLog,
+                    trackRecording = { trackRecordingViewModel },
+                    cartography = { cartographyViewModel },
+                    mushroomLog = { mushroomLogViewModel },
+                    availability = { viewModel },
                 )
             }
         }
@@ -231,31 +184,7 @@ class MainActivity : ComponentActivity() {
     private val trackRecordingViewModel: TrackRecordingViewModel by viewModels {
         viewModelFactory {
             initializer {
-                TrackRecordingViewModel(
-                    container.trackRepository,
-                    container.startTrackUseCase,
-                    container.getWaypointsUseCase,
-                    container.createWaypointUseCase,
-                    container.deleteWaypointUseCase,
-                    container.computeReturnToStartUseCase,
-                    container.locationTracker,
-                    container.getTracksUseCase,
-                    container.returnWatch,
-                    container.alertAudibility,
-                    androidErrorLog,
-                    getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
-                    getTrackReferenceCount = { id -> trackEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forTrack, androidErrorLog) },
-                    deleteTrack = container.deleteTrackUseCase,
-                    getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
-                    alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
-                    abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
-                    sundownShown = container.sundownWatch.shown,
-                    backBy = container.backByWatch,
-                    shouldPromptBackgroundRun = container.offTrackReminderCheck::atRecordingStart,
-                    recordingHalts = container.recordingHalts.latest,
-                    // Data part D (RECORD -703): new origin/end waypoint names follow the phone's 12/24-hour setting.
-                    is24HourClock = { android.text.format.DateFormat.is24HourFormat(this@MainActivity) },
-                )
+                createTrackRecordingViewModel(container, androidErrorLog, context = this@MainActivity)
             }
         }
     }
@@ -455,7 +384,7 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            ForagerTheme(darkTheme = effectiveDarkTheme) {
+            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()
@@ -572,6 +501,7 @@ class MainActivity : ComponentActivity() {
                         // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
                         onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                         onDownloadAgain = viewModel::onDownloadAgain,
+                        routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned),
                     ),
                     settings = AvailabilityScreenSettings(
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,

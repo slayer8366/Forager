@@ -113,6 +113,20 @@ fun resolveBuildIdentity(): BuildIdentity {
 val buildIdentity = resolveBuildIdentity()
 
 /**
+ * The routing app key (dispatch 2026-10-23-03, the planner's contract): sent as X-Forager-App-Key on every routing
+ * request, through `BuildConfig.ROUTING_APP_KEY`. From the Gradle property `forager.routingAppKey`, else the
+ * environment variable `FORAGER_ROUTING_APP_KEY`, else empty. **Where it lives:** the build machine's own
+ * `~/.gradle/gradle.properties` or the environment, never this repository's tracked `gradle.properties` (the
+ * repository is public). CI's debug APK step gets it from the `FORAGER_ROUTING_APP_KEY` secret; the unit tests and a
+ * fork's builds have none. A debug build without it sends no routing request and records why (`NO_APP_KEY`); a
+ * release build without it does not build ([verifyReleaseHasRoutingAppKey]). Not a secret from anyone who unpacks the
+ * APK (PR #381's report, option B): it keeps the route from anyone who has only the URL.
+ */
+val routingAppKey: String = providers.gradleProperty("forager.routingAppKey")
+    .orElse(providers.environmentVariable("FORAGER_ROUTING_APP_KEY"))
+    .getOrElse("")
+
+/**
  * The beta-and-release signing identity — dedicated-beta-signing-identity dispatch (owner
  * decision): testers keep their data across the beta-to-release transition, so the beta build and
  * the release build carry one identity, and it is not the committed debug key.
@@ -252,6 +266,8 @@ android {
         targetSdk = 37
         versionCode = buildIdentity.code
         versionName = buildIdentity.name
+        // The routing app key: see routingAppKey above.
+        buildConfigField("String", "ROUTING_APP_KEY", "\"${routingAppKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     // A stable debug signing identity, committed at app/debug.keystore (return-estimate device
@@ -457,9 +473,11 @@ tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
                     "the keystore in use is the wrong one -- check what signing.properties points at.",
             )
         }
+        // No key alias in this line: release.yml tees this log to the public Actions log, and the alias is stored
+        // there as a secret (Sorrel's review of PR #385, L1).
         logger.lifecycle(
             "Verified: the release build type signs with '${releaseSigningConfig.name}' " +
-                "(${storeFile.absolutePath}, alias '$keyAlias'), certificate SHA-256 $fingerprint -- not the debug identity.",
+                "(${storeFile.absolutePath}), certificate SHA-256 $fingerprint -- not the debug identity.",
         )
         logger.lifecycle(
             "Verified: that certificate matches the pinned upload identity " +
@@ -470,6 +488,37 @@ tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
 
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }
     .configureEach { dependsOn("verifyReleaseNeverSignsWithDebugKeystore") }
+
+/**
+ * A release build refuses to build without the routing app key (dispatch 2026-10-23-03 Amendment 1, Sorrel's review of
+ * #383, M2): a keyless Play build would tell every user that no area has trail routes. Wired, like the signing guard
+ * above, to `assembleRelease` and `bundleRelease`, the two tasks that make a shippable artifact. **CI's
+ * release-compile job is exempt by construction, not by a flag:** it runs `packageRelease` and
+ * `packageReleaseBundle`, stopping short of both tasks, exactly as it stops short of the signing guard (its own check
+ * fails if that guard runs). It exists to prove the release variant compiles; giving it the key would put the key in
+ * a second job and fail every fork's pull request, which gets no secrets. Debug builds are untouched.
+ *
+ * **For the next Play build:** on the machine that builds it, put `forager.routingAppKey=<the key>` in
+ * `~/.gradle/gradle.properties` (or export `FORAGER_ROUTING_APP_KEY`) before `./gradlew bundleRelease`; this task
+ * then logs that a key is present, never the key.
+ */
+tasks.register("verifyReleaseHasRoutingAppKey") {
+    val hasKey = routingAppKey.isNotEmpty()
+    doLast {
+        if (!hasKey) {
+            error(
+                "A release build needs the routing app key, and none is set. Put forager.routingAppKey=<key> in " +
+                    "~/.gradle/gradle.properties (never in the repository's gradle.properties) or export " +
+                    "FORAGER_ROUTING_APP_KEY, then build again. Without it every region would say it has no trail " +
+                    "routes. See routingAppKey in app/build.gradle.kts.",
+            )
+        }
+        logger.lifecycle("Verified: a routing app key is set for this release build (its value is not printed).")
+    }
+}
+
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }
+    .configureEach { dependsOn("verifyReleaseHasRoutingAppKey") }
 
 // The classic `kotlin-android` plugin (needed for Room's KSP compiler — see gradle.properties)
 // defaults Kotlin's own JVM target to the Gradle daemon's JDK (21 here) rather than reading
@@ -490,6 +539,8 @@ ksp {
 }
 
 dependencies {
+    // BRouter v1.7.10, vendored (third_party/brouter): the trail router behind domain/routing/TrailRouter.
+    implementation(project(":brouter"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

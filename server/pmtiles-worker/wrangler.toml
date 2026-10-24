@@ -26,4 +26,39 @@ bucket_name = "forager-maps"
 # client (e.g. a future web viewer) ever calls this Worker directly.
 ALLOWED_ORIGINS = "*"
 
-# PI_ORIGIN_URL removed: the Pi serves nothing live (RECORD -879, -1303); dispatch 2026-10-18-05 (Part 2) removes the Pi-first code.
+# PI_ORIGIN_URL removed: the Pi serves nothing live (RECORD -879, -1303), and since dispatch 2026-10-18-05
+# Part 2 the code no longer reads it either: every tile comes from R2. The two Access secrets left on the
+# deployed Worker are unused and can be removed in the dashboard at the owner's convenience.
+
+# Route data (dispatch 2026-10-23-01; src/routing/handler.ts). Two rate limits, Cloudflare's Workers Rate Limiting
+# binding (GA; wrangler 4.36.0 or later, this package pins 4.124.0). Counts are per Cloudflare location and
+# approximate, as Cloudflare documents them; they are a brake on abuse, not an exact quota. The period may only be
+# 10 or 60 seconds. The namespace ids only need to be unique in the account; no other Worker in this repository
+# declares one. These are operating limits (CLAUDE.md): the owner confirms the numbers before deploy.
+#
+# One download is one area.json and at most four files (an area of the app's largest size touches at most four
+# squares): five requests. Three tries of each is fifteen; two areas back to back is thirty.
+#
+# Per client address: 30 a minute. Several phones behind one address (a carrier's shared address, one household)
+# share it, which is why it is not lower.
+[[ratelimits]]
+name = "ROUTING_IP_LIMITER"
+namespace_id = "2310231"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+# For the app key: 600 a minute. Every copy of the app sends the same key, so this is a ceiling on all route-data
+# traffic at one Cloudflare location, about 120 full downloads a minute. It is what stops a copied key from being
+# used to pull the whole map.
+[[ratelimits]]
+name = "ROUTING_KEY_LIMITER"
+namespace_id = "2310232"
+
+  [ratelimits.simple]
+  limit = 600
+  period = 60
+
+# ROUTING_APP_KEY is a secret, never written here (the repository is public): `wrangler secret put ROUTING_APP_KEY`
+# at deploy. Without it, or without either limiter above, every /routing/ request is refused with 503.

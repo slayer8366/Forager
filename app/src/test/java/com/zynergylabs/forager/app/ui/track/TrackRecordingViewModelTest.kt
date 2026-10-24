@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.RingerMode
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
+import com.zynergylabs.forager.app.domain.TrackEnds
 import com.zynergylabs.forager.app.domain.TrackRepository
 import com.zynergylabs.forager.app.domain.isNetworkProviderFix
 import com.zynergylabs.forager.app.domain.model.Track
@@ -39,6 +40,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -139,9 +141,11 @@ class TrackRecordingViewModelTest {
         findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
         shouldPromptBackgroundRun: suspend () -> Boolean = { false },
         is24HourClock: () -> Boolean = { false },
+        trackEnds: TrackEnds = TrackEnds(),
+        trackIdGenerator: () -> String = { "track-1" },
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
-        startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
+        startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = trackIdGenerator),
         getWaypoints = GetWaypointsUseCase(waypointRepository),
         // A counter, not a fixed id: navigation HUD stage one creates an origin *and* an end
         // waypoint per recording, and a fixed id would make the second silently replace the first.
@@ -163,7 +167,78 @@ class TrackRecordingViewModelTest {
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
         findRouteHome = findRouteHome,
         shouldPromptBackgroundRun = shouldPromptBackgroundRun,
+        trackEnds = trackEnds.latest,
     ).also(createdViewModels::add)
+
+    /**
+     * Dispatch 2026-10-21-04, review finding 1. The service's report of a stored end resyncs this screen when the
+     * ended track is its recording, and the resync reads the row, which suspends. If the walker stops and records
+     * again during that read (a Stop from the shade, then Record before the old end was written), the old
+     * track's end must not clear the new recording. The read is held on a gate while that happens.
+     */
+    @Test
+    fun `an old track's end, read while a new recording starts, does not clear the new recording`() = runRecordingTest {
+        val inner = InMemoryTrackRepository()
+        val gated = GetByIdGatedTrackRepository(inner, gatedId = "track-1")
+        val trackEnds = TrackEnds()
+        val ids = ArrayDeque(listOf("track-1", "track-2"))
+        val vm = viewModel(gated, trackEnds = trackEnds, trackIdGenerator = { ids.removeFirst() })
+        vm.startRecording()
+        runCurrent()
+        assertEquals("precondition: recording track-1", "track-1", vm.uiState.value.activeTrack?.trackId)
+
+        // The service stores track-1's end and reports it; the resync's read of track-1 is held.
+        inner.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+        assertEquals("precondition: the read is held, so nothing has cleared yet", "track-1", vm.uiState.value.activeTrack?.trackId)
+
+        // During the read: Stop, then Record again.
+        vm.stopRecording()
+        runCurrent()
+        vm.startRecording()
+        runCurrent()
+        assertEquals("precondition: the new recording runs", "track-2", vm.uiState.value.activeTrack?.trackId)
+
+        gated.release()
+        runCurrent()
+        assertEquals(
+            "the old track's end, read while the new recording started, must not clear the new recording",
+            "track-2",
+            vm.uiState.value.activeTrack?.trackId,
+        )
+    }
+
+    /**
+     * Dispatch 2026-10-21-02 (RECORD -1521): after Stop, Records showed "Tracks 0" until the Tracks chip was
+     * tapped or the app restarted, because nothing reloaded the list. The screen's Stop does not end the row;
+     * the service does, later, then reports it through [TrackEnds] (`TrackRecordingService.stopRecording`).
+     * The test plays the service's part in that order, store and then report, and asserts on the list itself.
+     */
+    @Test
+    fun `a track the service ends after Stop is in the track list with its end, without reopening Records`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val trackEnds = TrackEnds()
+        val vm = viewModel(trackRepository, trackEnds = trackEnds)
+        runCurrent()
+        assertTrue("nothing recorded yet", vm.uiState.value.tracks.isEmpty())
+
+        vm.startRecording()
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+
+        // The service, on the stop intent: the end is stored first, and only then reported.
+        trackRepository.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+
+        assertEquals(
+            "the finished track, with its end, is in the list the Tracks count and the All list read",
+            listOf("track-1" to 5_000L),
+            vm.uiState.value.tracks.map { it.id to it.endedAtEpochMillis },
+        )
+    }
 
     @Test
     fun `starting a recording creates a track and sets active state`() = runRecordingTest {
@@ -238,6 +313,8 @@ class TrackRecordingViewModelTest {
         vm.stopRecording()
 
         assertNull(vm.uiState.value.activeTrack)
+        // No point was ever polled here, so this cannot fail; the clear on Stop is tested by
+        // `the recording line is cleared by the screen's Stop` (dispatch 2026-10-24-05).
         assertTrue(vm.uiState.value.breadcrumbPoints.isEmpty())
 
         // If the poll job weren't actually cancelled, this would hang forever the same way an
@@ -261,6 +338,56 @@ class TrackRecordingViewModelTest {
         assertEquals(listOf(45.0), vm.uiState.value.breadcrumbPoints.map { it.lat })
 
         vm.stopRecording()
+    }
+
+    /**
+     * Dispatch 2026-10-24-05 (RECORD -1602): the dotted recording line stayed on the map after Stop, until the
+     * next Record or the process ended, because `clearRecordingState` reset every recording field but
+     * [TrackRecordingUiState.breadcrumbPoints] (found on the S22, report 2026-10-24-04). The poll has read
+     * points first, so the list is not empty before Stop: the assertion in
+     * `stopping clears active state and the poll loop stops scheduling further work` runs before any point is
+     * read, and passes with or without the clear.
+     */
+    @Test
+    fun `the recording line is cleared by the screen's Stop`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("the line is drawn while recording", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        vm.stopRecording()
+        runCurrent()
+
+        assertEquals("no recording line after Stop", emptyList<TrackPoint>(), vm.uiState.value.breadcrumbPoints)
+    }
+
+    /**
+     * The same, for Stop from the notification: the service ends the row and reports it through [TrackEnds],
+     * and this screen clears through the resync (`onTrackEnded`), never through [TrackRecordingViewModel.stopRecording].
+     * The test plays the service's part in its order, store and then report.
+     */
+    @Test
+    fun `the recording line is cleared by Stop from the notification`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val trackEnds = TrackEnds()
+        val vm = viewModel(trackRepository, trackEnds = trackEnds)
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("the line is drawn while recording", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        trackRepository.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+
+        assertFalse("the screen took the notification's Stop", vm.uiState.value.isRecording)
+        assertEquals("no recording line after Stop from the notification", emptyList<TrackPoint>(), vm.uiState.value.breadcrumbPoints)
     }
 
     /**
@@ -1241,6 +1368,26 @@ private class NoOpLocationTracker : LocationTracker {
 
 
 private class FakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker
+
+/**
+ * [InMemoryTrackRepository] with every [getById] of [gatedId] held until [release], so a test can change the
+ * screen's state while a read of that track is suspended. Everything else passes straight through.
+ */
+private class GetByIdGatedTrackRepository(
+    private val inner: InMemoryTrackRepository,
+    private val gatedId: String,
+) : TrackRepository by inner {
+    private val gate = CompletableDeferred<Unit>()
+
+    fun release() {
+        gate.complete(Unit)
+    }
+
+    override suspend fun getById(id: String): Result<Track?> {
+        if (id == gatedId) gate.await()
+        return inner.getById(id)
+    }
+}
 
 private class InMemoryTrackRepository : TrackRepository {
     private val tracks = mutableMapOf<String, Track>()

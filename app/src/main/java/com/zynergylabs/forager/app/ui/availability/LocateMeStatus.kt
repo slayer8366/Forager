@@ -19,8 +19,12 @@ sealed interface LocateMeStatus {
      * carries — null when this fix didn't report one, read by the top compass/elevation strip
      * (elevation is read off this same fix, not a separate network lookup), shown there as
      * unavailable rather than defaulted.
+     *
+     * [searchFrameSerial] is [AvailabilityUiState.searchFrameSerial] when this fix arrived: the search it belongs to (RECORD
+     * -1525). The map pans to a fix only for the search it arrived under ([compactMapLocateFocus]), so a fix from before a
+     * search is never replayed as that search's locate-me when the Maps tab is composed again.
      */
-    data class Located(val location: LatLng, val altitude: Double?) : LocateMeStatus
+    data class Located(val location: LatLng, val altitude: Double?, val searchFrameSerial: Int = 0) : LocateMeStatus
     data object PermissionDenied : LocateMeStatus
     data object Unavailable : LocateMeStatus
 }

@@ -5,11 +5,16 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.domain.LocationResult
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.ui.map.SearchFrameMove
@@ -17,7 +22,9 @@ import com.zynergylabs.forager.app.ui.map.searchFrameMove
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -94,6 +101,33 @@ class SearchClearAndFrameTest {
         assertEquals("the recent searches are untouched", recentBefore, state.recentSearches)
     }
 
+    /**
+     * RECORD -1525, the owner: "Clear removes it too (Recommended)". The map's "Showing: <species> (n)" chip, set by "View on
+     * Map" on a List-tab row, goes with the search bar's Clear; before, it stayed, reading "Showing: this species (0)".
+     */
+    @Test
+    fun `Clear also removes the map's View on Map chip`() {
+        rig.setScreen()
+        rig.searchCoordinates("45.326", "-122.634")
+        rig.touch(composeRule.onNodeWithText("List"))
+        rig.settle()
+        rig.touch(composeRule.onNodeWithText("View on Map"))
+        rig.settle()
+        assertTrue(
+            "positive control: View on Map shows the chip",
+            composeRule.onAllNodes(hasTestTag(MAP_TAXON_FILTER_CHIP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
+        )
+
+        rig.touch(composeRule.onNodeWithTag(SEARCH_BAR_CLEAR_TAG))
+        rig.settle()
+
+        assertTrue(
+            "Clear removes the chip",
+            composeRule.onAllNodes(hasTestTag(MAP_TAXON_FILTER_CHIP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+        )
+        assertTrue("and no \"Showing:\" text is left", !summaryShown("Showing:", substring = true))
+    }
+
     // ── Item 5 ──
 
     private val near = Region(45.326, -122.634, 8)
@@ -162,6 +196,66 @@ class SearchClearAndFrameTest {
         assertEquals("locate resumes following", resume + 1, rig.mapResumeTrackingRequestId)
     }
 
+    /**
+     * RECORD -1525: a search on the Maps tab puts the sightings spinner in place of the map, and the map that comes back must
+     * not take a locate-me from before the search as its pan target, which panned the searched map away to the GPS fix on
+     * the S22 (2026-10-21, frames 5 and 6). The locate-me target (`focusOverride`) is held above the spinner, so returning
+     * from it does not replay an earlier Located status.
+     */
+    @Test
+    fun `a locate from before a search is not the pan target of the map that returns from the spinner`() {
+        rig.setScreen()
+        rig.searchCoordinates("45.326", "-122.634")
+        rig.settle()
+        // Stands in for MainActivity's permission-granted call: the rig's locate button is not wired past the Activity's gate.
+        composeRule.runOnUiThread { rig.viewModel.locateMe() }
+        rig.settle()
+        assertEquals("positive control: a locate after a search is the map's pan target", LatLng(45.0, -122.0), rig.mapFocusOverride)
+
+        val gate = CompletableDeferred<Unit>()
+        rig.sightingsGate = gate
+        rig.searchCoordinates("-41.2865", "174.7762")
+        rig.settle()
+        assertTrue(
+            "positive control: the spinner has replaced the map",
+            composeRule.onAllNodes(hasTestTag(LAYOUT_FIXES_MAP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+        )
+        rig.sightingsGate = null
+        gate.complete(Unit)
+        rig.settle()
+
+        assertEquals("positive control: the map is back, on the new search", far, rig.mapRegion)
+        assertNull("the earlier locate is not replayed as the new search's pan target", rig.mapFocusOverride)
+    }
+
+    /**
+     * RECORD -1525 (Sorrel's case, the S22's step 3): a locate from before a search is not replayed when the Maps tab is
+     * composed again after a tab change; a locate tap after the search still pans.
+     */
+    @Test
+    fun `a locate from before a search is not replayed on a tab return, and a fresh locate still pans`() {
+        rig.setScreen()
+        // Stands in for the app-open auto-locate (the scaffold's LaunchedEffect calls MainActivity's permission-gated locate,
+        // which the rig does not wire through).
+        composeRule.runOnUiThread { rig.viewModel.locateMe() }
+        rig.settle()
+        rig.searchCoordinates("45.326", "-122.634")
+        rig.settle()
+        assertNull("positive control: the search's map has no locate-me target", rig.mapFocusOverride)
+
+        rig.touch(composeRule.onNode(hasText("List") and hasClickAction() and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))))
+        rig.settle()
+        rig.touch(composeRule.onNode(hasText("Maps") and hasClickAction() and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))))
+        rig.settle()
+        assertEquals("positive control: the map is back, on the search", near, rig.mapRegion)
+        assertNull("the earlier locate is not replayed as this search's pan target", rig.mapFocusOverride)
+
+        // Stands in for a locate tap after the search.
+        composeRule.runOnUiThread { rig.viewModel.locateMe() }
+        rig.settle()
+        assertEquals("a fresh locate still pans", LatLng(45.0, -122.0), rig.mapFocusOverride)
+    }
+
     @Test
     fun `the map applies a frame request once per id, following or not`() {
         assertEquals(SearchFrameMove.NONE, searchFrameMove(isGpsTracking = true, requestId = 0, lastAppliedId = 0))
@@ -170,3 +264,5 @@ class SearchClearAndFrameTest {
         assertEquals(SearchFrameMove.FRAME, searchFrameMove(isGpsTracking = false, requestId = 4, lastAppliedId = 3))
     }
 }
+
+private const val MAP_TAXON_FILTER_CHIP_TAG = "map-taxon-filter-chip"

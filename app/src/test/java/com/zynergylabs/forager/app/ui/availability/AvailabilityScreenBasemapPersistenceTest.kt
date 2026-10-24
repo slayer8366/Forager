@@ -158,7 +158,8 @@ class AvailabilityScreenBasemapPersistenceTest {
     }
 
     @Test
-    fun `the Layers sheet offers only Street and Topographical`() {
+    // Was "…offers only Street and Topographical"; three map types since dispatch 2026-10-22-01 (RECORD -1554, -1556).
+    fun `the Layers sheet offers only Trail, Topo and OSM`() {
         val (repository, _) = launchRepository()
         val viewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = repository)
         composeRule.setContent { MapLayersTestScreen(viewModel, slot, AbsentForecastCellStore) }
@@ -167,9 +168,11 @@ class AvailabilityScreenBasemapPersistenceTest {
         touchLayersRow()
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Street").assertIsDisplayed()
-        composeRule.onNodeWithText("Topographical").assertIsDisplayed()
+        composeRule.onNodeWithText("Trail").assertIsDisplayed()
+        composeRule.onNodeWithText("Topo").assertIsDisplayed()
+        composeRule.onNodeWithText("OSM").assertIsDisplayed()
         composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Street").assertCountEquals(0)
     }
 
     @Test
@@ -191,9 +194,9 @@ class AvailabilityScreenBasemapPersistenceTest {
             listOf(Basemap.OPEN_TOPO_MAP),
             released().map { it.basemap }.distinct(),
         )
-        composeRule.onNode(hasContentDescription("Layers: Topographical map.", substring = true)).assertExists()
+        composeRule.onNode(hasContentDescription("Layers: Topo map.", substring = true)).assertExists()
         assertEquals(
-            listOf("The stored basemap \"satellite\" names no map type; opening on Topographical and storing that."),
+            listOf("The stored basemap \"satellite\" names no map type; opening on OpenTopoMap and storing that."),
             logged.filter { "basemap" in it },
         )
         release(repositoryScope)
@@ -202,18 +205,17 @@ class AvailabilityScreenBasemapPersistenceTest {
 
     @Test
     fun `a basemap picked in the sheet survives a restart, with no style released for the default first`() {
-        // First launch: nothing stored, the map opens on Street, and Topographical is picked with real touches. (Was the
-        // other way round, opening on Topographical with Street picked, until Street became the opening map:
-        // dispatch 2026-10-18-04, Amendment 2; RECORD -1297.)
+        // First launch: nothing stored, the map opens on Trail, and Topo is picked with real touches. (Opened on Street from
+        // dispatch 2026-10-18-04 Amendment 2, RECORD -1297, until Trail became the opening map: dispatch 2026-10-22-01.)
         val (firstRepository, firstScope) = launchRepository()
         val firstViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = firstRepository)
         var current by mutableStateOf(firstViewModel)
         composeRule.setContent { key(current) { MapLayersTestScreen(current, slot, AbsentForecastCellStore) } }
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
-        assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
+        assertEquals(Basemap.FORAGER_TRAIL, released().last().basemap)
 
         touchLayersRow()
-        composeRule.onNodeWithText("Topographical").performTouchInput { click() }
+        composeRule.onNodeWithText("Topo").performTouchInput { click() }
         awaitIdle("Topographical to be stored") { stored(firstRepository) == "topographic" }
         assertEquals(Basemap.OPEN_TOPO_MAP, released().last().basemap)
 
@@ -242,7 +244,47 @@ class AvailabilityScreenBasemapPersistenceTest {
             listOf(Basemap.OPEN_TOPO_MAP),
             released().map { it.basemap }.distinct(),
         )
-        composeRule.onNode(hasContentDescription("Layers: Topographical map.", substring = true)).assertExists()
+        composeRule.onNode(hasContentDescription("Layers: Topo map.", substring = true)).assertExists()
+        assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
+    }
+
+    /**
+     * Dispatch 2026-10-22-01 (RECORD -1554, -1556), as steps: Street chosen before the update → opens on Trail Map;
+     * OpenStreetMap picked with a real touch → stored under its own key → still OpenStreetMap after a restart. Driven
+     * through the real DataStore file and the Layers sheet's chip, as the persistence test above.
+     */
+    @Test
+    fun `Street stored before the update opens on Trail, and OSM picked after it survives a restart`() {
+        val (seeder, seederScope) = launchRepository()
+        runBlocking {
+            seeder.setBasemapKey("street").getOrThrow()
+            seederScope.cancelAndJoin()
+        }
+
+        val (firstRepository, firstScope) = launchRepository()
+        val firstViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = firstRepository)
+        var current by mutableStateOf(firstViewModel)
+        composeRule.setContent { key(current) { MapLayersTestScreen(current, slot, AbsentForecastCellStore) } }
+        awaitIdle("a style to be released to the map") { released().isNotEmpty() }
+        assertEquals("Street from before the update opens on Trail", listOf(Basemap.FORAGER_TRAIL), released().map { it.basemap }.distinct())
+        assertEquals("the move rewrites nothing", "street", stored(firstRepository))
+
+        touchLayersRow()
+        composeRule.onNodeWithText("OSM").performTouchInput { click() }
+        awaitIdle("OSM to be stored") { stored(firstRepository) == "openstreetmap" }
+        assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
+        release(firstScope)
+
+        val (secondRepository, _) = launchRepository()
+        val secondViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = secondRepository)
+        composeRule.runOnIdle {
+            modes.clear()
+            current = secondViewModel
+        }
+        awaitIdle("a style to be released to the map") { released().isNotEmpty() }
+
+        assertEquals("after the restart, OSM", listOf(Basemap.OSM_STANDARD), released().map { it.basemap }.distinct())
+        composeRule.onNode(hasContentDescription("Layers: OSM map.", substring = true)).assertExists()
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }
 }

@@ -44,12 +44,15 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `offline off loads the basemap's own raster style as JSON, night applied`() {
+        // ownStreet = false: the raster path, which Trail Map's own style would otherwise take over for Trail Map and for
+        // Topographical at night (D3 of #359, carried over by dispatch 2026-10-22-01); those sources are
+        // OwnStreetStyleSourceTest's. rasterDrawn: Trail Map's raster stand-in is OpenStreetMap's (the -1513 fallback).
         Basemap.entries.forEach { basemap ->
-            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false)
-            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false)
+            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false, ownStreet = false)
+            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false, ownStreet = false)
 
             assertTrue("$basemap day must be a JSON style", day is MapStyleSource.Json)
-            assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.tileUrlTemplate))
+            assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.rasterDrawn().tileUrlTemplate))
             assertTrue(
                 "$basemap night must still be the basemap's JSON style, with the V1 night paint",
                 (night as MapStyleSource.Json).json.contains("raster-hue-rotate"),

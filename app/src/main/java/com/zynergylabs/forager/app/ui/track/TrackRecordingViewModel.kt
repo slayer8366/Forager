@@ -11,7 +11,6 @@ import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.BackByChoice
 import com.zynergylabs.forager.app.domain.BackByControl
 import com.zynergylabs.forager.app.domain.NoBackBy
-import com.zynergylabs.forager.app.domain.backByAtFor
 import com.zynergylabs.forager.app.domain.SundownShown
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
@@ -21,17 +20,13 @@ import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.HopBand
-import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.routeHome
-import com.zynergylabs.forager.app.domain.LocationFix
-import com.zynergylabs.forager.app.domain.mayAct
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.domain.TrackRepository
-import com.zynergylabs.forager.app.domain.autoWaypointName
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
@@ -47,7 +42,6 @@ import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,12 +59,7 @@ import kotlinx.coroutines.launch
  *
  * ## Why breadcrumbs are polled, not reactive
  *
- * [TrackRepository] is plain suspend calls, matching every other Room-backed repository in this
- * app — there is no `Flow<Track>` to collect. [com.zynergylabs.forager.app.service.TrackRecordingService]
- * itself batches writes (every 20 points or 30 seconds, whichever first) rather than writing per
- * fix, so polling at roughly that same cadence ([POLL_INTERVAL_MILLIS]) shows breadcrumbs about as
- * fresh as the data actually is, without adding a reactive-query layer this database has never
- * needed anywhere else.
+ * Recorded on [TrackRecordingPoller], which holds the poll (UI split Phase 2.7, PR 4).
  *
  * ## What this does not handle
  *
@@ -89,16 +78,8 @@ import kotlinx.coroutines.launch
  *
  * ## Why return-to-start is fed by [locationTracker], not a one-shot fetch
  *
- * The first pass of the return-to-vehicle screen recomputed [ReturnToStartInfo] from
- * `AvailabilityViewModel`'s `locateMeStatus` — a one-shot "where am I right now" fetch, refreshed
- * only when the user taps the locate-me icon. That made the bearing/distance shown stale between
- * taps. This ViewModel now collects [LocationTracker.fixes] itself, the same continuous stream
- * [com.zynergylabs.forager.app.service.TrackRecordingService] collects for the track's own points, whenever a
- * recording is active — so [TrackRecordingUiState.returnToStart] updates on every fix, not just on
- * demand. This does mean two independent OS location-listener
- * registrations while recording (the service's and this one) rather than one shared stream — a
- * real, accepted duplication, not a hidden one, in exchange for not re-plumbing the service to
- * publish its fixes back out to the UI layer for this one reader.
+ * Recorded on [TrackRecordingLocationFixes], which holds that collection since the split before the way home
+ * (dispatch 2026-10-23-09 Amendment 1, part 0).
  *
  * ## The off-track decision is not here any more (dispatch 2026-09-28-400, Amendment 2)
  *
@@ -224,6 +205,13 @@ class TrackRecordingViewModel(
      * not recording, with the reason. Defaults to a service that never reports.
      */
     private val recordingHalts: StateFlow<RecordingHalt?> = MutableStateFlow(null),
+    /**
+     * Dispatch 2026-10-21-02 (RECORD -1521): the id of the last track whose end the recording service has
+     * stored, `AppContainer.trackEnds` in production. This screen reloads its track list on each one, so
+     * a finished track is in Records at once, and, for its own recording, shows not recording at once
+     * (dispatch 2026-10-21-04: see [onTrackEnded]). Defaults to a service that never reports.
+     */
+    private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -255,12 +243,9 @@ class TrackRecordingViewModel(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         lastPolledTrack = { poller.lastPolledTrack },
-        lastGatedGpsFix = { lastGatedGpsFix },
+        lastGatedGpsFix = { locationFixes.lastGatedGpsFix },
         findRouteHome = findRouteHome,
     )
-
-    /** The arrival hold's timer (RECORD -845), running only while [TrackRecordingUiState.isArrivalHeld]. See [holdArrival]. */
-    private var arrivalHoldJob: Job? = null
 
     /**
      * The waypoint and track lists, moved to their own class by UI split Phase 2.7 PR 2. It reads and
@@ -296,20 +281,8 @@ class TrackRecordingViewModel(
         reloadWaypoints = { loadWaypoints() },
         reloadTracks = { loadTracks() },
     )
-    private var locationJob: Job? = null
-
-    // Navigation HUD stage one — the auto-created origin/end waypoints. lastGatedFix is the most
-    // recent fix that passed the active mode's own accuracy gate (LocationSampler's first-fix
-    // rule), what stopRecording() seeds the end waypoint from; originCreationInFlight stops a
-    // second fix arriving during the origin's own async save from creating a second origin.
-    //
-    // Dispatch 2026-09-28-527 split it in two. lastGatedGpsFix is the same rule for GPS fixes only,
-    // and is what everything that acts reads: the origin and end waypoints and the route home (RECORD
-    // -558, and the dispatch's rule 2 for the end). lastGatedFix, any provider, was read only by the
-    // sundown countdown, and went with it (dispatch 2026-09-28-592): the line is the watch's now, which
-    // takes its sunset from any fix as that countdown did.
-    private var lastGatedGpsFix: TrackPoint? = null
-
+    // originCreationInFlight stops a second fix arriving during the origin's own async save from creating a
+    // second origin. The last gated GPS fix it sits beside is [TrackRecordingLocationFixes.lastGatedGpsFix].
     private var originCreationInFlight = false
     private var recordingNoticeIds = 0
 
@@ -330,6 +303,49 @@ class TrackRecordingViewModel(
 
     private var takeUpInFlight = false
 
+    /** Back by, the watch copies and the arrival hold's timer (nav step 2, PR 2): see [TrackRecordingWatchCopies]. */
+    private val watchCopies = TrackRecordingWatchCopies(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        sundownShown = sundownShown,
+        backBy = backBy,
+        errorLog = errorLog,
+        currentTime = currentTime,
+        zone = zone,
+    )
+
+    /** The origin and end waypoints and the start point (nav step 2, PR 2): see [TrackRecordingAutoWaypoints]. */
+    private val autoWaypoints = TrackRecordingAutoWaypoints(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        trackRepository = trackRepository,
+        createWaypoint = createWaypoint,
+        computeReturnToStart = computeReturnToStart,
+        returnWatch = returnWatch,
+        errorLog = errorLog,
+        currentTime = currentTime,
+        zone = zone,
+        is24HourClock = is24HourClock,
+        setOriginCreationInFlight = { originCreationInFlight = it },
+        loadWaypoints = { loadWaypoints() },
+    )
+
+    /** The live-fix collection and the last gated GPS fix (dispatch 2026-10-23-09, part 0): see [TrackRecordingLocationFixes]. */
+    private val locationFixes = TrackRecordingLocationFixes(
+        uiState = { _uiState.value },
+        scope = { viewModelScope },
+        locationTracker = locationTracker,
+        isTakenUp = { takeUp.isTakenUp },
+        originCreationInFlight = { originCreationInFlight },
+        createOriginWaypoint = { active, fix -> createOriginWaypoint(active, fix) },
+        returnToStart = { point -> returnToStart(point) },
+    )
+
+    /** The reads of the track's own row for take-up and the resync (dispatch 2026-10-23-09, part 0): see [TrackRecordingRowReads]. */
+    private val rowReads = TrackRecordingRowReads(uiState = { _uiState.value }, trackRepository = trackRepository, errorLog = errorLog)
+
     init {
         loadWaypoints()
         loadTracks()
@@ -344,40 +360,20 @@ class TrackRecordingViewModel(
         // Back by, the same way: the service's ticks and the alert's buttons change it too.
         viewModelScope.launch { backBy.shown.collect { copyBackBy() } }
         viewModelScope.launch { recordingHalts.collect { halt -> if (halt != null) onRecordingHalted(halt) } }
+        // A track's end is stored by the service after this screen's Stop has returned, so the list is
+        // reloaded on the service's report of that write, not on Stop (dispatch 2026-10-21-02, TrackEnds);
+        // and a recording the service ended without this screen is shown as ended (dispatch 2026-10-21-04).
+        viewModelScope.launch { trackEnds.collect { endedTrackId -> if (endedTrackId != null) onTrackEnded(endedTrackId) } }
     }
 
-    /**
-     * The quick menu's "+1 h", "+2 h", "+3 h" or a picked time (dispatch 2026-09-28-645): sets this
-     * recording's back-by time, worked out from this class's clock and zone ([backByAtFor]). Does
-     * nothing with no recording: Back by exists only while recording (the owner, "During a recording
-     * only"), and the menu offers no choice then.
-     */
-    fun setBackBy(choice: BackByChoice) {
-        val trackId = uiState.value.activeTrack?.trackId ?: run {
-            // Dispatch 2026-09-28-796: no longer silent. The menu offers no choice without a recording,
-            // so reaching here means the screen and the recording disagree; it is logged.
-            errorLog.w(TAG, "Back by was not set: no recording on this screen.", IllegalStateException("back-by with no active track"))
-            return
-        }
-        val at = backByAtFor(choice, currentTime.nowEpochMillis(), zone)
-        if (!backBy.set(trackId, at)) {
-            errorLog.w(TAG, "Back by was not set for track '$trackId': another recording is being watched.", IllegalStateException("back-by refused"))
-        }
-    }
+    /** The quick menu's "+1 h", "+2 h", "+3 h" or a picked time: see [TrackRecordingWatchCopies.setBackBy]. */
+    fun setBackBy(choice: BackByChoice) = watchCopies.setBackBy(choice)
 
-    /** The quick menu's "Clear". */
-    fun clearBackBy() {
-        val trackId = uiState.value.activeTrack?.trackId ?: return
-        backBy.clear(trackId)
-    }
+    /** The quick menu's "Clear": see [TrackRecordingWatchCopies.clearBackBy]. */
+    fun clearBackBy() = watchCopies.clearBackBy()
 
-    /** Copies the watch's back-by time into the screen's state while it is for this screen's recording, as [copySundownLine] does. */
-    private fun copyBackBy() {
-        _uiState.update { state ->
-            val shown = backBy.shown.value
-            state.copy(backBy = shown?.takeIf { state.activeTrack != null && it.trackId == state.activeTrack.trackId })
-        }
-    }
+    /** See [TrackRecordingWatchCopies.copyBackBy]. */
+    private fun copyBackBy() = watchCopies.copyBackBy()
 
     /**
      * The service stopped [halt]'s recording on its own (RECORD -660, item 4; the owner: "Fix it, say
@@ -394,6 +390,27 @@ class TrackRecordingViewModel(
             RecordingHaltReason.NO_LOCATION_PERMISSION -> RECORDING_NEEDS_LOCATION_PERMISSION_MESSAGE
         }
         _uiState.update { it.copy(startRecordingErrorMessage = message) }
+    }
+
+    /**
+     * The service stored the end of [endedTrackId] (dispatch 2026-10-21-02; [TrackEnds]). A reload of the
+     * track list is started. If it is this screen's recording, the screen also resynchronises against the
+     * row, as on a resume ([resyncRecordingState]).
+     *
+     * **The defect this closes (dispatch 2026-10-21-04, RECORD -1527).** Stop from the notification reaches the
+     * service and never this ViewModel, and the resync ran only on ON_START and ON_STOP. Pulling the shade
+     * back up fires neither, so the map went on showing a recording, and Delete refused the track as still
+     * recording ([TrackRecordingPendingDeletes.requestRemoveTrack]), until the app went to the background.
+     *
+     * **Why the resync and not [stopRecording].** The same reason [resyncRecordingState] gives: this inherits
+     * the identical cleared state by construction, without [stopRecording]'s end waypoint, whose last fix is
+     * not where the walker pressed Stop. A track stopped from the shade still has no end waypoint, the gap
+     * already recorded there. The screen's own Stop has cleared [TrackRecordingUiState.activeTrack] before the
+     * report arrives, and a halt clears it through [onRecordingHalted] first, so both are untouched by this.
+     */
+    private suspend fun onTrackEnded(endedTrackId: String) {
+        loadTracks()
+        if (uiState.value.activeTrack?.trackId == endedTrackId) resyncRecordingState()
     }
 
     /** The process's one sweep of tracks an earlier process left open: see [TrackRecordingLists.sweepAbandonedTracks]. */
@@ -423,32 +440,11 @@ class TrackRecordingViewModel(
         }
     }
 
-    /**
-     * Copies the watch's sundown line into the screen's state while it is for this screen's
-     * recording, the rule [copyFromWatch] follows; `null` otherwise. Called when the watch publishes
-     * and from [copyFromWatch], which runs whenever this screen's recording changes.
-     */
-    private fun copySundownLine() {
-        _uiState.update { state ->
-            val shown = sundownShown.value
-            state.copy(sundownLine = shown?.line?.takeIf { state.activeTrack != null && shown.trackId == state.activeTrack.trackId })
-        }
-    }
+    /** See [TrackRecordingWatchCopies.copySundownLine]. */
+    private fun copySundownLine() = watchCopies.copySundownLine()
 
-    /** The start point as the screen shows it: the origin waypoint once it exists, the first breadcrumb before that. */
-    private fun startPoint(): TrackPoint? =
-        uiState.value.originWaypoint?.asStartPoint() ?: uiState.value.breadcrumbPoints.firstOrNull()
-
-    /**
-     * Gives the watch the start point this ViewModel shows, so the alert and the screen measure to
-     * one place. Called whenever that point can have changed. The watch keeps the last one after
-     * this ViewModel is gone.
-     */
-    private fun handStartPointToWatch() {
-        val active = uiState.value.activeTrack ?: return
-        val start = startPoint() ?: return
-        returnWatch.setStartPoint(active.trackId, start)
-    }
+    /** See [TrackRecordingAutoWaypoints.handStartPointToWatch]. */
+    private fun handStartPointToWatch() = autoWaypoints.handStartPointToWatch()
 
     /**
      * Creates and persists the [com.zynergylabs.forager.app.domain.model.Track] row the recording will write
@@ -479,7 +475,7 @@ class TrackRecordingViewModel(
         viewModelScope.launch {
             startTrack(null)
                 .onSuccess { track ->
-                    lastGatedGpsFix = null
+                    locationFixes.lastGatedGpsFix = null
                     poller.resetForNewRecording()
                     originCreationInFlight = false
                     takeUp.clear()
@@ -544,31 +540,26 @@ class TrackRecordingViewModel(
      * The difference between the two callers is then exactly one documented side effect, the end
      * waypoint, which lives in [stopRecording] and not here.
      *
-     * Cancelling [locationJob] is what releases the platform location listener, not merely what
-     * stops this ViewModel reading it: `LocationTracker.fixes` is a `callbackFlow` whose
-     * `awaitClose { removeUpdates(listener) }` runs on cancellation and at no other time. See
-     * [com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel.onLeftForeground], where this
-     * project recorded the same mechanism after finding a subscription that outlived every
-     * backgrounding.
+     * Cancelling the location collection is what releases the platform location listener: see
+     * [TrackRecordingLocationFixes.cancel].
      */
     private fun clearRecordingState() {
         endArrivalHold()
         poller.cancel()
         routeTicks.cancel()
         poller.resetPolledTrack()
-        locationJob?.cancel()
-        locationJob = null
+        locationFixes.cancel()
         // This screen's return is over with its recording. The service ends the watch itself when
         // it stops; this covers the moment before it has, and a recording the service never began.
         uiState.value.activeTrack?.let {
             returnWatch.stopReturn(it.trackId)
             takeUp.rememberStopped(it.trackId)
         }
-        lastGatedGpsFix = null
+        locationFixes.lastGatedGpsFix = null
         originCreationInFlight = false
         takeUp.clear()
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null, backBy = null)
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null, backBy = null, breadcrumbPoints = emptyList())
         }
     }
 
@@ -595,8 +586,7 @@ class TrackRecordingViewModel(
      * this ViewModel already has a recording, or the watch is not begun: a recording that ended
      * while the app was away is not taken up, and the screen offers Record.
      *
-     * **A row that cannot be read takes up nothing** and is logged. "Could not read the row" is
-     * not "no recording", and it is tried again at the next foreground.
+     * **A row that cannot be read takes up nothing** and is logged: see [TrackRecordingRowReads.trackToTakeUp].
      */
     private suspend fun takeUpRunningRecording() {
         if (uiState.value.activeTrack != null || takeUpInFlight) return
@@ -606,25 +596,14 @@ class TrackRecordingViewModel(
         val mode = running.mode ?: return
         takeUpInFlight = true
         try {
-            val track = trackRepository.getById(trackId).getOrElse { error ->
-                errorLog.w(TAG, "Couldn't read track '$trackId' to take up its recording; the screen shows no recording.", error)
-                return
-            }
-            if (track == null) {
-                errorLog.w(
-                    TAG,
-                    "The recording service is recording track '$trackId', which has no row; the screen shows no recording.",
-                    IllegalStateException("no track '$trackId'"),
-                )
-                return
-            }
+            val track = rowReads.trackToTakeUp(trackId) ?: return
             // The read suspended. Go by what is true now, not by what was true before it.
             val stillRunning = returnWatch.state.value
             if (uiState.value.activeTrack != null || !stillRunning.isBegun || stillRunning.trackId != trackId) return
             if (takeUp.isOwnStoppedRecording(stillRunning)) return
 
             val active = ActiveTrack(trackId, track.startedAtEpochMillis, mode)
-            lastGatedGpsFix = null
+            locationFixes.lastGatedGpsFix = null
             poller.resetPolledTrack()
             originCreationInFlight = false
             takeUp.markNotLookedUp()
@@ -659,21 +638,10 @@ class TrackRecordingViewModel(
      */
     fun stopRecording() {
         val endingTrack = uiState.value.activeTrack
-        val endFix = lastGatedGpsFix
+        val endFix = locationFixes.lastGatedGpsFix
         clearRecordingState()
         if (endingTrack != null && endFix != null) {
-            viewModelScope.launch {
-                createWaypoint(
-                    lat = endFix.lat,
-                    lng = endFix.lng,
-                    altitude = endFix.altitude,
-                    name = autoWaypointName(WaypointDesignation.END, currentTime.nowEpochMillis(), zone, is24HourClock()),
-                    trackId = endingTrack.trackId,
-                    designation = WaypointDesignation.END,
-                )
-                    .onSuccess { loadWaypoints() }
-                    .onFailure { error -> errorLog.w(TAG, "Couldn't save the track's end waypoint.", error) }
-            }
+            autoWaypoints.saveEndWaypoint(endingTrack, endFix)
         }
     }
 
@@ -696,33 +664,12 @@ class TrackRecordingViewModel(
      *
      * **Why both, when the dispatch asked only for resume.** Resume alone leaves the case where the
      * user stops from the shade and never reopens the app: nothing runs, so nothing clears, and
-     * [locationJob] keeps a platform location listener registered with no foreground service and no
+     * the location collection keeps a platform location listener registered with no foreground service and no
      * notification behind it. Resyncing here closes that, because backgrounding is the one thing
      * that reliably happens after a stop from the shade.
      *
-     * **Why this and not the foreground gate `AvailabilityViewModel` uses.** That gate releases the
-     * subscription on `ON_STOP` unconditionally, which is right there and would be a regression
-     * here: two things in [beginLocationTracking]'s collector must keep running with the screen off
-     * during a *legitimate* recording.
-     *
-     * 1. The origin waypoint. It is seeded from the first fix that clears the mode's accuracy gate,
-     *    with no timeout, and [com.zynergylabs.forager.app.domain.pathHome]'s own doc records that under
-     *    canopy that fix may arrive very late or never. A pocketed phone is the normal way to walk
-     *    a track. Gate the collector off and a canopy recording acquires no origin at all, and the
-     *    navigation HUD then has no target to point at — the return-to-vehicle safety feature.
-     * 2. The off-track alert. [returnToStart] was fed from that collector and ran the decision.
-     *    **No longer true since dispatch 2026-09-28-400, Amendment 2:** the decision is
-     *    [ReturnWatch]'s and is fed by the recording service, so it does not depend on this
-     *    collector at all. Reason 1 still stands on its own, so the collector is left as it was.
-     *
-     * So the collector stays bounded by the recording, as it always was. What changes is that
-     * "the recording" now means the track's own row rather than a field nothing repopulates.
-     *
-     * **What this does not close, recorded rather than fixed.** During a legitimate recording,
-     * backgrounding still does not release this ViewModel's subscription, and it is a *second*
-     * platform registration on top of the service's own — `LocationTracker.fixes` is a cold
-     * `callbackFlow`, so every collector runs `requestLocationUpdates` independently. Routing this
-     * ViewModel off the service's fixes instead is the structural change and is out of this scope.
+     * **Why this and not the foreground gate `AvailabilityViewModel` uses,** and what that leaves open: recorded on
+     * [TrackRecordingLocationFixes], "Why the collection keeps running with the screen off".
      */
     fun onLeftForeground() {
         viewModelScope.launch { resyncRecordingState() }
@@ -742,24 +689,15 @@ class TrackRecordingViewModel(
      * **Why this is not routed through [stopRecording], which §2 asks to be justified.** It shares
      * [clearRecordingState] with it, so the state left behind is identical by construction rather
      * than by inspection. What it deliberately does **not** inherit is [stopRecording]'s end
-     * waypoint, which is seeded from [lastGatedGpsFix] — the last GPS fix that cleared the gate, which by
+     * waypoint, which is seeded from [TrackRecordingLocationFixes.lastGatedGpsFix] — the last GPS fix that cleared the gate, which by
      * the time this runs is where the walker was when they backgrounded the app, not where they
      * stopped recording. Writing a waypoint there would be a data write from a stale position onto
      * an already-ended track, which is the class of thing this whole change is about not doing.
      * A track stopped from the shade therefore still has no end waypoint; that is unchanged by
      * this, and recorded as a known gap rather than fixed here on a position nobody measured.
      *
-     * **A read failure clears nothing** and is logged. "Could not read the row" is not evidence the
-     * recording ended, and silently treating it as such would stop a live recording's UI on a
-     * transient database error. That is the only branch [errorLog] carries, because it is the only
-     * one holding a `Throwable` — [ErrorLog] takes a non-null one by design, and fabricating an
-     * exception to report a state through it would misuse the abstraction rather than honour the
-     * "never swallow a failure" rule it exists for.
-     *
-     * **A missing row clears, in the same branch as an ended one**, and that is a state rather than
-     * an error: a track that no longer exists cannot still be recording, so there is no failure to
-     * report. The two are folded together because the ViewModel's response to them is identical and
-     * splitting them would imply a distinction the code does not make.
+     * **A read failure clears nothing** and is logged; **a missing row clears, in the same branch as an ended
+     * one.** Both are [TrackRecordingRowReads.rowSaysEnded]'s, where the reasons are recorded.
      *
      * Cheap, and a no-op when nothing is recording: it returns before touching storage unless
      * [TrackRecordingUiState.activeTrack] is set. A background-and-return **during** a live
@@ -767,13 +705,7 @@ class TrackRecordingViewModel(
      */
     private suspend fun resyncRecordingState() {
         val active = uiState.value.activeTrack ?: return
-        trackRepository.getById(active.trackId)
-            .onSuccess { track ->
-                if (track == null || track.endedAtEpochMillis != null) clearRecordingState()
-            }
-            .onFailure { error ->
-                errorLog.w(TAG, "Couldn't re-read track '${active.trackId}'; leaving recording state as it is.", error)
-            }
+        if (rowReads.rowSaysEnded(active)) clearRecordingState()
     }
 
     /**
@@ -826,23 +758,11 @@ class TrackRecordingViewModel(
         holdArrival()
     }
 
-    /** Starts the arrival hold, ending by itself after [ARRIVAL_HOLD_MILLIS]. */
-    private fun holdArrival() {
-        arrivalHoldJob?.cancel()
-        _uiState.update { it.copy(isArrivalHeld = true) }
-        arrivalHoldJob = viewModelScope.launch {
-            delay(ARRIVAL_HOLD_MILLIS)
-            _uiState.update { it.copy(isArrivalHeld = false) }
-            arrivalHoldJob = null
-        }
-    }
+    /** See [TrackRecordingWatchCopies.holdArrival]. */
+    private fun holdArrival() = watchCopies.holdArrival()
 
-    /** Ends the arrival hold now, if one is running: the walker closed it, tapped Return again, or stopped the recording. */
-    private fun endArrivalHold() {
-        arrivalHoldJob?.cancel()
-        arrivalHoldJob = null
-        if (uiState.value.isArrivalHeld) _uiState.update { it.copy(isArrivalHeld = false) }
-    }
+    /** See [TrackRecordingWatchCopies.endArrivalHold]. */
+    private fun endArrivalHold() = watchCopies.endArrivalHold()
 
     /**
      * Clears returning/off-track state without touching the recording itself — see [startReturn]. Also
@@ -865,83 +785,14 @@ class TrackRecordingViewModel(
     }
 
     /**
-     * See this class's own doc comment for why [returnToStart] is driven from here rather than a
-     * one-shot fetch. Navigation HUD stage one: this same stream is what seeds the track's origin
-     * waypoint — the **first fix that passes the active mode's accuracy gate**, no timeout (owner
-     * decision): the origin lands where the recorder actually stood within seconds in the open,
-     * and under canopy it may never, in which case the track validly has no origin. The last-known
-     * fix from elsewhere was rejected as a seed because it may be minutes old and somewhere the
-     * user has already left; the first breadcrumb because it arrives 30–45 s late via the
-     * service's flush and this ViewModel's poll.
+     * Starts the live-fix collection that feeds [returnToStart] and seeds the origin waypoint: see
+     * [TrackRecordingLocationFixes.begin]. The decision to start it stays here (RECORD -1450).
      */
-    private fun beginLocationTracking() {
-        locationJob?.cancel()
-        locationJob = viewModelScope.launch {
-            locationTracker.fixes.collect { fix ->
-                if (fix is LocationFix.Update) {
-                    val point = TrackPoint(
-                        lat = fix.lat,
-                        lng = fix.lng,
-                        altitude = fix.altitude,
-                        accuracyMeters = fix.accuracyMeters,
-                        timestampEpochMillis = fix.timestampEpochMillis,
-                    )
-                    val active = uiState.value.activeTrack
-                    // LocationSampler's own first-fix rule *is* the accuracy gate: with no
-                    // lastAccepted it accepts exactly the fixes whose reported accuracy clears the
-                    // mode's ceiling — reused rather than restated.
-                    if (active != null && LocationSampler(active.mode).shouldAccept(lastAccepted = null, candidate = point)) {
-                        // Dispatch 2026-09-28-527: only a GPS fix acts.
-                        if (fix.provider.mayAct) {
-                            lastGatedGpsFix = point
-                            // Not for a recording that was taken up: its marker is the one it already
-                            // has, or its first recorded point, never this fix. See settleTakenUpOrigin.
-                            if (!takeUp.isTakenUp && uiState.value.originWaypoint == null && !originCreationInFlight) createOriginWaypoint(active, point)
-                        }
-                    }
-                    returnToStart(point)
-                }
-            }
-        }
-    }
+    private fun beginLocationTracking() = locationFixes.begin()
 
-    /**
-     * [namedAtEpochMillis] is the time in the marker's default name. For a marker made from the
-     * first good fix it is now, which is when that fix arrived. For one made later from a track's
-     * first recorded point it is that point's own time, so the name says when the walk started
-     * and not when the app was reopened.
-     */
-    private fun createOriginWaypoint(active: ActiveTrack, fix: TrackPoint, namedAtEpochMillis: Long = currentTime.nowEpochMillis()) {
-        originCreationInFlight = true
-        viewModelScope.launch {
-            createWaypoint(
-                lat = fix.lat,
-                lng = fix.lng,
-                altitude = fix.altitude,
-                name = autoWaypointName(WaypointDesignation.ORIGIN, namedAtEpochMillis, zone, is24HourClock()),
-                trackId = active.trackId,
-                designation = WaypointDesignation.ORIGIN,
-            )
-                .onSuccess { waypoint ->
-                    // The pointer is what survives the process; the state field is this session's
-                    // target. A failed pointer write is logged and the session still navigates —
-                    // a partial result reported as such, not hidden and not fatal.
-                    trackRepository.setOriginWaypoint(active.trackId, waypoint.id)
-                        .onFailure { error -> errorLog.w(TAG, "Couldn't point track '${active.trackId}' at its origin waypoint.", error) }
-                    if (uiState.value.activeTrack?.trackId == active.trackId) {
-                        _uiState.update { it.copy(originWaypoint = waypoint) }
-                        handStartPointToWatch()
-                    }
-                    loadWaypoints()
-                }
-                .onFailure { error ->
-                    errorLog.w(TAG, "Couldn't save the track's origin waypoint.", error)
-                    // Cleared so the next gated fix tries again rather than leaving the track
-                    // origin-less for a transient write failure.
-                    originCreationInFlight = false
-                }
-        }
-    }
+    /** Saves the origin waypoint: see [TrackRecordingAutoWaypoints.createOriginWaypoint]. */
+    private fun createOriginWaypoint(active: ActiveTrack, fix: TrackPoint, namedAtEpochMillis: Long = currentTime.nowEpochMillis()) =
+        autoWaypoints.createOriginWaypoint(active, fix, namedAtEpochMillis)
 
     /** Reads the waypoints and their reference counts: see [TrackRecordingLists.loadWaypoints]. */
     fun loadWaypoints(): Job = lists.loadWaypoints()
@@ -980,40 +831,12 @@ class TrackRecordingViewModel(
     /** Deletes a waypoint at once, with no Undo: see [TrackRecordingLists.removeWaypoint]. */
     fun removeWaypoint(id: String) = lists.removeWaypoint(id)
 
-    /**
-     * [ReturnToStartInfo] from [current] back to the active track's start, or `null` if either is
-     * unavailable. Called on every fix [beginLocationTracking] collects, and also directly by
-     * tests — its result is written to [TrackRecordingUiState.returnToStart] either way, so a
-     * direct call and a collected fix behave identically. It is what the Return button describes.
-     *
-     * **It decides nothing.** Until dispatch 2026-09-28-400, Amendment 2, this method was also the
-     * off-track decision: while returning, each call's distance joined a window here, the check
-     * re-ran, and the alert was delivered from here. That is all [ReturnWatch]'s now, fed by the
-     * recording service, so that it survives this ViewModel being cleared. The measurement stays
-     * because the screen needs a distance whether or not anything is deciding on it (the planner's
-     * ruling on question 1: the distance is not a copy of the watch's).
-     */
-    fun returnToStart(current: TrackPoint): ReturnToStartInfo? {
-        // Navigation HUD stage one (owner decision): the origin *waypoint* is the target once it
-        // exists, so the return arm and the HUD point at one place; before it exists — or for a
-        // track that never gets one — the first breadcrumb stands in exactly as it always did.
-        val start = startPoint() ?: return null
-        val info = computeReturnToStart(current, start)
-        _uiState.update { it.copy(returnToStart = info) }
-        return info
-    }
-
-    private fun Waypoint.asStartPoint() = TrackPoint(
-        lat = lat,
-        lng = lng,
-        altitude = altitude,
-        accuracyMeters = null,
-        timestampEpochMillis = createdAtEpochMillis,
-    )
+    /** The Return button's distance, on every fix the collector gets and from tests: see [TrackRecordingAutoWaypoints.returnToStart]. */
+    fun returnToStart(current: TrackPoint): ReturnToStartInfo? = autoWaypoints.returnToStart(current)
 
     override fun onCleared() {
         poller.cancelOnCleared()
-        locationJob?.cancel()
+        locationFixes.cancel()
         // Journal redesign J4: a waypoint or track still pending is committed there, since no snackbar is
         // left to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
         pendingDeletes.commitOnCleared()

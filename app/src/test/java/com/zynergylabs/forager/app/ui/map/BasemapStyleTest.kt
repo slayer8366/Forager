@@ -71,9 +71,11 @@ class BasemapStyleTest {
     fun `the style's declared maxzoom matches Basemap's own operating limit`() {
         Basemap.entries.forEach { basemap ->
             val source = parsedStyle(basemap).getValue("sources").jsonObject.getValue(RASTER_SOURCE_ID).jsonObject
+            // rasterDrawn: Forager Trail Map is not a raster; its raster style is OpenStreetMap's, the -1513 fallback, with
+            // OpenStreetMap's limit (dispatch 2026-10-22-01; held on its own below). Every raster basemap is itself.
             assertEquals(
                 "${basemap.name}: styleJsonFor's maxzoom must equal Basemap.maxZoom, the app's own operating limit.",
-                basemap.maxZoom,
+                basemap.rasterDrawn().maxZoom,
                 source.getValue("maxzoom").jsonPrimitive.int,
             )
         }
@@ -92,7 +94,7 @@ class BasemapStyleTest {
             val source = parsedStyle(basemap).getValue("sources").jsonObject.getValue(RASTER_SOURCE_ID).jsonObject
             assertEquals(
                 "${basemap.name}: the style JSON's attribution must match Basemap.fullAttribution exactly.",
-                basemap.fullAttribution,
+                basemap.rasterDrawn().fullAttribution,
                 source.getValue("attribution").jsonPrimitive.content,
             )
         }
@@ -122,13 +124,45 @@ class BasemapStyleTest {
      * and no layer the app adds has drawn map text since.
      */
     @Test
-    fun `no style declares a glyphs URL, day or night`() {
+    fun `no raster style declares a glyphs URL, day or night`() {
+        // Every Basemap is a raster style the app builds (styleJsonFor). The own vector Street is not one of them: it is
+        // loaded by URL, and the test below holds its fonts and icons to the owner's host (dispatch 2026-10-18-05 Part 2).
         Basemap.entries.forEach { basemap ->
             listOf(false, true).forEach { night ->
                 val style = json.parseToJsonElement(styleJsonFor(basemap, night)).jsonObject
                 assertFalse("${basemap.name} (night=$night) still declares glyphs: ${style["glyphs"]}", style.containsKey("glyphs"))
             }
         }
+    }
+
+    /**
+     * Dispatch 2026-10-18-05 Part 2: the vector Street style declares fonts and icons, and every URL in it names only the
+     * owner's mapping Worker: its tiles, its glyphs and its sprite. Read from the copies the Worker bundles and serves
+     * (`server/pmtiles-worker/src/street-style-v{1,2}.json`, which `map-style/tools/check-street-night.mjs` holds equal
+     * to the generated v2 and to frozen v1), as text, so a URL anywhere in the document counts, not only in the three
+     * known fields. v2 (dispatch 2026-10-22-03) uses sprite v5; v1 keeps v4.
+     */
+    @Test
+    fun `the vector Street style names only the owner's Worker host, for tiles, fonts and icons`() {
+        for ((version, sprite) in listOf("v1" to "v4", "v2" to "v5")) streetStyleNamesOnlyTheWorker(version, sprite)
+    }
+
+    private fun streetStyleNamesOnlyTheWorker(version: String, sprite: String) {
+        val text = java.io.File("../server/pmtiles-worker/src/street-style-$version.json").readText()
+        val style = json.parseToJsonElement(text).jsonObject
+        val host = "https://forager-pmtiles.brandonlee1-894.workers.dev/"
+        assertEquals("${host}fonts/{fontstack}/{range}.pbf", style.getValue("glyphs").jsonPrimitive.content)
+        assertEquals("${host}sprites/$sprite/light", style.getValue("sprite").jsonPrimitive.content)
+        val source = style.getValue("sources").jsonObject.getValue("protomaps").jsonObject
+        assertEquals("${host}us.json", source.getValue("url").jsonPrimitive.content)
+        // Every http(s) URL in the document, attribution links included, minus the two credit links the licences ask for.
+        // A backslash ends a URL: inside the JSON text the attribution's quotes are escaped (\").
+        val urls = Regex("""https?://[^"\\\s<>]+""").findAll(text).map { it.value }.toList()
+        val credits = setOf("https://github.com/protomaps/basemaps", "https://osm.org/copyright")
+        val foreign = urls.filterNot { it.startsWith(host) || it in credits }
+        assertEquals("URLs in the Street style that are not the owner's host: $foreign", emptyList<String>(), foreign)
+        assertFalse(text.contains("demotiles.maplibre.org"))
+        assertFalse(text.contains("localhost"))
     }
 
     /**
@@ -144,7 +178,7 @@ class BasemapStyleTest {
                 val sources = style.getValue("sources").jsonObject
                 assertEquals(
                     "${basemap.name} (night=$night): the basemap's own tiles",
-                    listOf(basemap.tileUrlTemplate),
+                    listOf(basemap.rasterDrawn().tileUrlTemplate),
                     sources.getValue(RASTER_SOURCE_ID).jsonObject.getValue("tiles").jsonArray.map { it.jsonPrimitive.content },
                 )
                 sources.values.forEach { assertEquals("raster", it.jsonObject.getValue("type").jsonPrimitive.content) }
@@ -174,6 +208,23 @@ class BasemapStyleTest {
             assertEquals("raster", layer.getValue("type").jsonPrimitive.content)
             assertEquals(RASTER_SOURCE_ID, layer.getValue("source").jsonPrimitive.content)
         }
+    }
+
+    /**
+     * Dispatch 2026-10-22-01: Forager Trail Map is a [Basemap] entry but not a raster. Where a raster has to draw it
+     * (the -1513 fallback, `OwnStreetFallback`), the style is OpenStreetMap's exactly, day and night, and its own vector
+     * tile URL never lands in a raster source.
+     */
+    @Test
+    fun `Forager Trail Map's raster stand-in is OpenStreetMap's style exactly, never its own vector tiles`() {
+        assertFalse(Basemap.FORAGER_TRAIL.isRaster)
+        assertEquals(Basemap.OSM_STANDARD, Basemap.FORAGER_TRAIL.rasterDrawn())
+        listOf(false, true).forEach { night ->
+            val style = styleJsonFor(Basemap.FORAGER_TRAIL, night)
+            assertEquals("night=$night", styleJsonFor(Basemap.OSM_STANDARD, night), style)
+            assertFalse("night=$night", style.contains(Basemap.FORAGER_TRAIL.tileUrlTemplate))
+        }
+        Basemap.entries.filter { it.isRaster }.forEach { assertEquals(it, it.rasterDrawn()) }
     }
 
     private fun tileTemplateFor(basemap: Basemap): String =

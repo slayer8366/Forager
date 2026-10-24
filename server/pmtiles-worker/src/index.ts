@@ -6,8 +6,9 @@
 // Adapted from protomaps/PMTiles serverless/cloudflare/src/index.ts (MIT licensed) — the upstream
 // reference implementation this project's chosen stack (Cloudflare R2 + Workers) is based on. The
 // only changes from upstream: importing the inlined ./shared helpers instead of a sibling
-// monorepo package, renamed identifiers to match this project's naming conventions, and the
-// z>14 overflow path below (not present upstream at all).
+// monorepo package, renamed identifiers to match this project's naming conventions, the
+// z>14 overflow path below (not present upstream at all), the Street style, font and sprite
+// routes (dispatch 2026-10-18-05 Part 2, also not upstream), and the world fill (dispatch 2026-10-22-01 Part A).
 import {
   Compression,
   EtagMismatch,
@@ -21,18 +22,17 @@ import {
 } from "pmtiles";
 import { pmtilesPath, tilePath } from "./shared";
 import offlineStyle from "./offline-style.json";
+import streetStyle from "./street-style-v1.json";
+import streetStyleV2 from "./street-style-v2.json";
+import { type RoutingEnv, routingResponse } from "./routing/handler.ts";
 
-interface Env {
+// The route-data fields (ROUTING_APP_KEY, the two limiters) come from RoutingEnv (src/routing/handler.ts).
+interface Env extends RoutingEnv {
   ALLOWED_ORIGINS?: string;
   BUCKET: R2Bucket;
   CACHE_CONTROL?: string;
   PMTILES_PATH?: string;
   PUBLIC_HOSTNAME?: string;
-  /** Base URL of the Pi tile origin (`pmtiles serve` behind a tunnel and Cloudflare Access). */
-  PI_ORIGIN_URL?: string;
-  /** Access service token, set as Worker secrets — never in wrangler.toml or the repo. */
-  CF_ACCESS_CLIENT_ID?: string;
-  CF_ACCESS_CLIENT_SECRET?: string;
 }
 
 class KeyNotFoundError extends Error {}
@@ -195,6 +195,18 @@ async function resolveRemoteBuildUrl(ctx: ExecutionContext): Promise<string> {
   );
 }
 
+/**
+ * The latitude of tile row [y]'s north edge at zoom [z] (Web Mercator). Dispatch 2026-10-22-01 Amendment 4: once
+ * us.json's south bound was widened for the world fill (Amendment 3), MapLibre asks for z15 tiles south of the
+ * archive too, and the overflow would read each one live from Protomaps' build and write it into R2. The owner,
+ * asked "South of 16°N at zoom 15, the server would fetch tiles live from the public map provider. Stop that?",
+ * chose "Stop it". So a tile lying wholly south of the archive's own header minLat (not the widened TileJSON bound)
+ * answers 204, as z9-14 do there. A tile that reaches north of minLat keeps the overflow, unchanged.
+ */
+export function tileNorthLat(z: number, y: number): number {
+  return (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** z))) * 180) / Math.PI;
+}
+
 function overflowCacheKey(name: string, z: number, x: number, y: number, ext: string): string {
   return `overflow/${name}/${z}/${x}/${y}.${ext}`;
 }
@@ -250,79 +262,190 @@ async function overflowTileResponse(
   return cacheableResponse(tiledata.data, cacheableHeaders, 200);
 }
 
-// --- Pi origin, tried first for z/x/y tiles (dispatch 2026-10-04-01, part 2). The Pi runs
-// `pmtiles serve` on the same `us.pmtiles` R2 holds (verified identical by size and whole-object
-// MD5, docs/plans/2026-10-04-pi-origin-part1-report.md), reached through a tunnel behind an Access
-// Service Auth policy, so every request carries the service token's two headers. Anything other
-// than a 200 or 204 from the Pi — a 404 above its z14 ceiling, a 403, a tunnel 5xx, a timeout, a
-// network error — falls through to the R2 path below, which is unchanged and still owns TileJSON,
-// the z15 overflow and the archive-type check. The owner's ruling: Pi first, R2 fallback.
-//
-// Every fallback is logged, without the tile coordinates: observability is off for privacy (see
-// wrangler.toml), so these reach only a live `wrangler tail`. Which origin produced a response is
-// also stamped on it as X-Forager-Origin, so it can be read from the outside without any log.
-// -------------------------------------------------------------------------------------------------
-
-/**
- * Operating limit on one Pi request, not a measured figure. The Pi is on a weak Wi-Fi link (part 1
- * report, -65 dBm, 1.65% TX failures), and a slow Pi must cost a user seconds at most before R2
- * answers instead. Revisit once real Pi latencies are observed.
- */
-const PI_ORIGIN_TIMEOUT_MS = 4000;
-
+// --- R2 only (dispatch 2026-10-18-05 Part 2; RECORD -879, -1300 (1)). The Pi-first step that was here
+// (dispatch 2026-10-04-01 part 2) is gone: the owner ruled "Builds the maps and keeps a copy, nothing live"
+// (-879), and the Part 1 report found the Pi answering z0-14 for every request. Every tile now comes from
+// R2's archive, or from the z15 overflow above. The response still says which, as X-Forager-Origin, so
+// the deploy check can read it from outside; with the Pi gone it is always "r2".
 const ORIGIN_HEADER = "X-Forager-Origin";
 
-type PiResult = { kind: "served"; status: 200 | 204; body?: ArrayBuffer; contentType?: string } | { kind: "fallback" };
+// --- The world fill (dispatch 2026-10-22-01 Part A; RECORD -1554). us.pmtiles stops at about 16°N (its TileJSON
+// bounds read 15.92° south on 2026-10-22), so south of that the Street map drew grey. Where the Street archive has
+// no tile at z0-8, the tile is read from a second R2 archive, world-south.pmtiles (the Protomaps planet to z8,
+// uploaded by the Pi planner), and served labelled with its own origin. Nothing else changes: the TileJSON, the
+// z15 overflow, the style routes and every other archive name answer as before.
+//
+// Which archive is "the Street archive": the Worker has no setting naming it. The name lives in the bundled Street
+// style's source URL (…/us.json), so it is read from there rather than written a second time here; the offline
+// style points at the same archive. A request under any other name never reaches the world archive.
+//
+// If world-south.pmtiles is not on R2, the tile answers 204 exactly as before, and a warning is logged. Other
+// read errors are not caught here, as with the Street archive's own reads below: a 500 is not cached, a 204 is
+// cached for a day.
+// -------------------------------------------------------------------------------------------------
 
-async function fetchFromPi(env: Env, name: string, tile: [number, number, number], ext: string): Promise<PiResult> {
-  if (!env.PI_ORIGIN_URL) {
-    console.warn("pi-origin: PI_ORIGIN_URL not set, serving from R2");
-    return { kind: "fallback" };
-  }
-  if (!env.CF_ACCESS_CLIENT_ID || !env.CF_ACCESS_CLIENT_SECRET) {
-    console.warn("pi-origin: Access token secrets not set, serving from R2");
-    return { kind: "fallback" };
-  }
-  // The token rides on every Pi request, so only a plain archive name is forwarded: tilePath's
-  // pattern also admits '/' and '.', which would let a crafted path address other URLs on the origin.
-  if (!/^[A-Za-z0-9_-]+$/.test(name)) {
-    return { kind: "fallback" };
-  }
-  const [z, x, y] = tile;
-  const url = `${env.PI_ORIGIN_URL.replace(/\/+$/, "")}/${name}/${z}/${x}/${y}.${ext}`;
+/** The R2 archive name (key `world-south.pmtiles`) the fill reads. To be confirmed against the uploaded object. */
+const WORLD_FILL_ARCHIVE = "world-south";
+
+/** The fill answers at this zoom and below only; the world archive is built to z8 (RECORD -1554). */
+const WORLD_FILL_MAX_ZOOM = 8;
+
+/** X-Forager-Origin on a tile the fill answered. */
+const WORLD_FILL_ORIGIN = "r2-world-south";
+
+/** The archive name a bundled style's TileJSON URL names: `https://host/us.json` gives `us`. */
+export function archiveNameFromTileJsonUrl(url: string): string {
+  const match = new URL(url).pathname.match(/^\/(.+)\.json$/);
+  if (!match) throw new Error(`Bundled style source is not a /{name}.json TileJSON URL: ${url}`);
+  return match[1];
+}
+
+/**
+ * The TileJSON [bounds] for the Street archive while the world fill can answer (dispatch 2026-10-22-01 Amendment 3).
+ * MapLibre Native never requests a tile outside a source's TileJSON `bounds` (`tile_pyramid.cpp:178-188` at
+ * android-v13.5.0, the app's pinned version), and us.pmtiles's header stops at about 15.92°N, so without this the app
+ * never asks for a tile the fill could serve. The south bound becomes the world archive's own (its header's minLat,
+ * -85.05 on the uploaded file); west, east and north stay as the Street archive's header gives them.
+ *
+ * Only while the world archive is on R2: presence is one R2 `head` of its key at TileJSON time (the TileJSON is then
+ * cached at the edge for a day, so this is not per tile). Absent, or a tile type the fill would refuse, the bounds are
+ * returned unchanged and a warning is logged.
+ */
+async function worldFillBounds(env: Env, bounds: number[], streetTileType: TileType): Promise<number[]> {
+  const key = pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH);
   try {
-    const resp = await fetch(url, {
-      headers: {
-        "CF-Access-Client-Id": env.CF_ACCESS_CLIENT_ID,
-        "CF-Access-Client-Secret": env.CF_ACCESS_CLIENT_SECRET,
-      },
-      signal: AbortSignal.timeout(PI_ORIGIN_TIMEOUT_MS),
-      // A precaution, not an observed case: if Access ever answered with a redirect to its login
-      // page, following it would turn a refusal into a 200 of HTML. Any 3xx is a fallback instead.
-      redirect: "manual",
-    });
-    if (resp.status === 200) {
-      return {
-        kind: "served",
-        status: 200,
-        body: await resp.arrayBuffer(),
-        contentType: resp.headers.get("Content-Type") ?? undefined,
-      };
+    if (!(await env.BUCKET.head(key))) {
+      console.warn(`World fill bounds skipped: ${key} is not on R2; the TileJSON keeps the Street archive's bounds`);
+      return bounds;
     }
-    if (resp.status === 204) {
-      return { kind: "served", status: 204 };
+    const header = await new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress).getHeader();
+    if (header.tileType !== streetTileType) {
+      console.warn(`World fill bounds skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}; the TileJSON keeps the Street archive's bounds`);
+      return bounds;
     }
-    // A 404 is the expected answer above the Pi's z14 ceiling (not yet observed through the Worker),
-    // where R2's overflow path takes over, so it is not logged as a fault.
-    if (resp.status !== 404) {
-      console.warn(`pi-origin: HTTP ${resp.status}, serving from R2`);
-    }
-    return { kind: "fallback" };
+    return [bounds[0], Math.min(bounds[1], header.minLat), bounds[2], bounds[3]];
   } catch (e) {
-    const reason = e instanceof Error ? e.name : "unknown error";
-    console.warn(`pi-origin: ${reason}, serving from R2`);
-    return { kind: "fallback" };
+    if (e instanceof KeyNotFoundError) {
+      console.warn(`World fill bounds skipped: ${key} vanished during the read; the TileJSON keeps the Street archive's bounds`);
+      return bounds;
+    }
+    throw e;
   }
+}
+
+/** The Street archive: the one the bundled Street style draws from. */
+export const STREET_ARCHIVE_NAME = archiveNameFromTileJsonUrl(streetStyle.sources.protomaps.url);
+
+/**
+ * The world archive's tile at [tile], or undefined when the fill does not apply or has no tile: above
+ * [WORLD_FILL_MAX_ZOOM], outside the archive's own zoom range, a tile type that differs from the Street archive's,
+ * or the archive missing from R2. Each of the last two is logged, since each means the deploy is not as intended.
+ */
+async function worldFillTile(
+  env: Env,
+  tile: [number, number, number],
+  streetTileType: TileType
+): Promise<ArrayBuffer | undefined> {
+  const [z, x, y] = tile;
+  if (z > WORLD_FILL_MAX_ZOOM) return undefined;
+  const world = new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress);
+  try {
+    const header = await world.getHeader();
+    if (header.tileType !== streetTileType) {
+      console.warn(
+        `World fill skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}, ${STREET_ARCHIVE_NAME} has ${streetTileType}; answering 204`
+      );
+      return undefined;
+    }
+    const tiledata = await world.getZxy(z, x, y);
+    return tiledata?.data;
+  } catch (e) {
+    if (e instanceof KeyNotFoundError) {
+      console.warn(`World fill skipped: ${pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH)} is not on R2; answering 204`);
+      return undefined;
+    }
+    throw e;
+  }
+}
+
+// --- The vector Street style, its fonts and its icons (dispatch 2026-10-18-05 Part 2).
+//
+// /style/street-v1.json is map-style/forager-street-v1.json, bundled in like offline-style.json so it needs
+// no upload. The "v1" is load-bearing: MapLibre's offline store keys a pack by the style URL it was
+// downloaded against, so a later design ships as street-v2.json beside this one and packs downloaded
+// against v1 keep drawing while v1 still serves. /style/offline.json is untouched for the same reason
+// (-1294).
+//
+// /style/street-v2.json is that later design (dispatch 2026-10-22-03, RECORD -1561: Trail Map's character, with
+// sprite v5), map-style/forager-street-v2.json bundled the same way. v1 is served exactly as before, for apps older
+// than v2 and for regions downloaded against it.
+//
+// Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
+// sprites/{v4,v5}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
+// v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs). They are matched
+// before tilePath, because tilePath's tileset pattern also matches /sprites/v4/light.json.
+// Only these exact shapes are read; anything else under /fonts/ or /sprites/ is a 404, never an R2 read of
+// an arbitrary key.
+// -------------------------------------------------------------------------------------------------
+
+/** Fonts and icons never change under one name: a new set gets a new path. A week, at the edge and on the phone. */
+const ASSET_CACHE_CONTROL = "public, max-age=604800";
+
+const FONT_PATH = /^\/fonts\/([A-Za-z0-9 ,-]+)\/(\d+-\d+)\.pbf$/;
+const SPRITE_PATH = /^\/sprites\/(v4|v5)\/(light(?:@2x)?)\.(json|png)$/;
+
+/** The R2 key and content type for a font or sprite URL, or null when [pathname] is neither. */
+export function assetKeyFor(pathname: string): { key: string; contentType: string } | null {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  const font = decoded.match(FONT_PATH);
+  if (font) return { key: `fonts/${font[1]}/${font[2]}.pbf`, contentType: "application/x-protobuf" };
+  const sprite = decoded.match(SPRITE_PATH);
+  if (sprite) {
+    return { key: `sprites/${sprite[1]}/${sprite[2]}.${sprite[3]}`, contentType: sprite[3] === "png" ? "image/png" : "application/json" };
+  }
+  return null;
+}
+
+function streetStyleResponse(allowedOrigin: string, style: unknown = streetStyle): Response {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    "Cache-Control": "public, max-age=86400",
+  });
+  if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  return new Response(JSON.stringify(style), { headers });
+}
+
+async function assetResponse(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  asset: { key: string; contentType: string },
+  allowedOrigin: string
+): Promise<Response> {
+  const cache = caches.default;
+  const withOrigin = (r: Response): Response => {
+    const headers = new Headers(r.headers);
+    if (allowedOrigin) headers.set("Access-Control-Allow-Origin", allowedOrigin);
+    headers.set("Vary", "Origin");
+    return new Response(r.body, { headers, status: r.status });
+  };
+  const cached = await cache.match(request.url);
+  if (cached) return withOrigin(cached);
+
+  const object = await env.BUCKET.get(asset.key);
+  if (!object) {
+    // Not cached: a missing font range or icon file is a deploy gap to fix, not a fact to keep for a week.
+    return withOrigin(new Response("Not found", { status: 404 }));
+  }
+  const body = await object.arrayBuffer();
+  const headers = new Headers({ "Content-Type": asset.contentType, "Cache-Control": ASSET_CACHE_CONTROL });
+  ctx.waitUntil(cache.put(request.url, new Response(body, { headers })));
+  return withOrigin(new Response(body, { headers }));
 }
 
 export default {
@@ -331,8 +454,29 @@ export default {
 
     const url = new URL(request.url);
 
+    // Route data (dispatch 2026-10-23-01): its own key check, limits and errors, in src/routing/handler.ts.
+    if (url.pathname.startsWith("/routing/")) {
+      return routingResponse(request, env, caches.default);
+    }
+
     if (url.pathname === "/style/offline.json") {
       return offlineStyleResponse(resolveAllowedOrigin(request, env));
+    }
+
+    if (url.pathname === "/style/street-v1.json") {
+      return streetStyleResponse(resolveAllowedOrigin(request, env));
+    }
+
+    if (url.pathname === "/style/street-v2.json") {
+      return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV2);
+    }
+
+    const asset = assetKeyFor(url.pathname);
+    if (asset) {
+      return assetResponse(request, env, ctx, asset, resolveAllowedOrigin(request, env));
+    }
+    if (url.pathname.startsWith("/fonts/") || url.pathname.startsWith("/sprites/")) {
+      return new Response("Not found", { status: 404 });
     }
 
     const { ok, name, tile, ext } = tilePath(url.pathname);
@@ -379,15 +523,6 @@ export default {
 
     const cacheableHeaders = new Headers();
 
-    if (tile) {
-      const pi = await fetchFromPi(env, name, tile, ext);
-      if (pi.kind === "served") {
-        if (pi.contentType) cacheableHeaders.set("Content-Type", pi.contentType);
-        cacheableHeaders.set(ORIGIN_HEADER, "pi");
-        return cacheableResponse(pi.body, cacheableHeaders, pi.status);
-      }
-    }
-
     cacheableHeaders.set(ORIGIN_HEADER, "r2");
     const source = new R2Source(env, name);
     const p = new PMTiles(source, CACHE, nativeDecompress);
@@ -403,12 +538,20 @@ export default {
         // Advertise the overflow ceiling, not just the local archive's own maxzoom, so MapLibre's
         // OfflineManager knows tiles are actually servable past 14 — see the overflow block above.
         const declaredMaxZoom = typeof t.maxzoom === "number" ? t.maxzoom : pHeader.maxZoom;
-        const advertised = { ...t, maxzoom: Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) };
+        const advertised: Record<string, unknown> = { ...t, maxzoom: Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) };
+        // The world fill is only reachable if the bounds cover it (worldFillBounds, dispatch 2026-10-22-01 Amendment 3).
+        if (name === STREET_ARCHIVE_NAME && Array.isArray(t.bounds) && t.bounds.length === 4) {
+          advertised.bounds = await worldFillBounds(env, t.bounds as number[], pHeader.tileType);
+        }
         return cacheableResponse(JSON.stringify(advertised), cacheableHeaders, 200);
       }
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
         if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
+          // Dispatch 2026-10-22-01 Amendment 4 (the owner: "Stop it"): never south of the archive's own bounds.
+          if (tileNorthLat(tile[0], tile[2]) <= pHeader.minLat) {
+            return cacheableResponse(undefined, cacheableHeaders, 204);
+          }
           return await overflowTileResponse(env, ctx, name, tile, ext, cacheableHeaders, cacheableResponse);
         }
         return cacheableResponse(undefined, cacheableHeaders, 404);
@@ -439,6 +582,13 @@ export default {
 
       if (tiledata) {
         return cacheableResponse(tiledata.data, cacheableHeaders, 200);
+      }
+      if (name === STREET_ARCHIVE_NAME) {
+        const filled = await worldFillTile(env, tile, pHeader.tileType);
+        if (filled) {
+          cacheableHeaders.set(ORIGIN_HEADER, WORLD_FILL_ORIGIN);
+          return cacheableResponse(filled, cacheableHeaders, 200);
+        }
       }
       return cacheableResponse(undefined, cacheableHeaders, 204);
     } catch (e) {

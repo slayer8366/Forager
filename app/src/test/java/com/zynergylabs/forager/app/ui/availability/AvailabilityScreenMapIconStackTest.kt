@@ -1134,7 +1134,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Trail map. Choose the map type and overlays.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -2458,8 +2458,8 @@ class AvailabilityScreenMapIconStackTest {
     // ── Expanded-panels dispatch: AddActionTile follows the bar's live position (the map mode ──
     // ── popover did too, until map layers L0b replaced it with the Layers sheet)             ──
 
-    /** [MapIconBar]'s layers row, as it reads at this file's default basemap: Street since it became the opening map (dispatch 2026-10-18-04, Amendment 2; RECORD -1297); was Topographical. */
-    private val layersRowDescription = "Layers: Street map. Choose the map type and overlays."
+    /** [MapIconBar]'s layers row, as it reads at this file's default basemap: Trail since dispatch 2026-10-22-01 (RECORD -1554); Street before that (RECORD -1297), and Topographical before that. */
+    private val layersRowDescription = "Layers: Trail map. Choose the map type and overlays."
 
     /** [MapIconBar]'s add row. */
     private val addRowDescription = "Plan a trip or log a find here"
@@ -2615,11 +2615,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        // Topographical, away from the opening Street (Amendment 2), so the description has to change.
-        composeRule.onNodeWithText("Topographical").performTouchInput { click() }
+        // Topo, away from the opening Trail (dispatch 2026-10-22-01), so the description has to change.
+        composeRule.onNodeWithText("Topo").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /** The same on the left edge: one drag snaps the bar left and drops it to the bottom of its range. */
@@ -2640,11 +2640,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        // Topographical, away from the opening Street (Amendment 2), so the description has to change.
-        composeRule.onNodeWithText("Topographical").performTouchInput { click() }
+        // Topo, away from the opening Trail (dispatch 2026-10-22-01), so the description has to change.
+        composeRule.onNodeWithText("Topo").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /**

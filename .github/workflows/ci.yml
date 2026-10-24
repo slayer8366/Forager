@@ -113,6 +113,10 @@ jobs:
         # Finalized by verifyNothingTestOnlyReachesTheApk (app/build.gradle.kts), which opens
         # the APK this step produced and fails if Robolectric, JUnit or Compose UI Test
         # classes are inside it.
+        # The routing app key reaches BuildConfig.ROUTING_APP_KEY in this APK only (dispatch 2026-10-23-03). The
+        # unit-test step has no key, and a fork's PR gets none: both build with routes unavailable.
+        env:
+          FORAGER_ROUTING_APP_KEY: ${{ secrets.FORAGER_ROUTING_APP_KEY }}
         run: ./gradlew --stacktrace assembleDebug
 
       - name: Verify the version on the built APK
@@ -606,4 +610,116 @@ jobs:
         with:
           name: release-compile-log
           path: app/build/release-compile-gradle.log
+          if-no-files-found: error
+
+  # The route-data cutter (server/pmtiles-worker/src/rd5/) and its proof that BRouter 1.7.10 routes the same on
+  # a cut as on the square it came from (dispatch 2026-10-21-07, RECORD -1546). No Gradle: Node runs the
+  # TypeScript directly and the tests run BRouter's own pinned release jar in a JVM. Counts come from the JUnit
+  # XML Node's test runner writes, and a file with no tests is a failure, not an empty pass.
+  route-cutter:
+    name: Route-data cutter routes the same as the full square
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with: { distribution: temurin, java-version: "21" }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.22.1" }
+      - name: Fetch the pinned BRouter jar and profiles
+        run: server/pmtiles-worker/test/rd5/fetch-brouter.sh "$RUNNER_TEMP/brouter"
+      - name: Run the cutter's tests
+        env: { BROUTER_HOME: "${{ runner.temp }}/brouter" }
+        run: >-
+          node --test --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=junit --test-reporter-destination=route-cutter-junit.xml
+          "server/pmtiles-worker/test/rd5/*.test.mjs"
+      - name: Summarize from the JUnit XML
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, sys, xml.etree.ElementTree as ET
+          if not os.path.exists("route-cutter-junit.xml"):
+              sys.exit("No route-cutter-junit.xml: the tests produced no results, which is a failure.")
+          cases = list(ET.parse("route-cutter-junit.xml").getroot().iter("testcase"))
+          failed = sum(1 for c in cases if c.find("failure") is not None or c.find("error") is not None)
+          skipped = sum(1 for c in cases if c.find("skipped") is not None)
+          line = f"Route cutter: {len(cases)} tests, {failed} failed, {skipped} skipped"
+          print(line)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f: f.write(f"### {line}\n")
+          if not cases or failed or skipped:
+              sys.exit("No tests ran, or a test failed or was skipped.")
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with: { name: route-cutter-junit, path: route-cutter-junit.xml, if-no-files-found: error }
+
+  # The tile Worker's route tests (server/pmtiles-worker/test/worker.test.mjs, and since dispatch 2026-10-23-01 the
+  # route-data routes in test/routing.test.mjs), run against dist/index.js, the bundle
+  # the owner pastes into the dashboard (dispatch 2026-10-22-01 Amendment 2, RECORD -1556: the owner, "Yes, add it").
+  # No Gradle. The build is wrangler's dry run, which needs no Cloudflare login and deploys nothing. Its log is kept,
+  # so a run whose bundle did not build is never read as a test result (CLAUDE.md, the revert-runner rules). Counts
+  # come from the JUnit XML, and a file with no tests is a failure, as in route-cutter above.
+  pmtiles-worker:
+    name: Tile Worker serves what its tests say
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server/pmtiles-worker
+    env:
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.22.1" }
+      - name: Install the locked dependencies
+        run: npm ci
+      - name: Build the bundle (wrangler dry run)
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee worker-build.log
+          test -s dist/index.js || { echo "::error::No dist/index.js: the bundle did not build."; exit 1; }
+      # The bundle the owner pastes into the Cloudflare dashboard, kept so it can be downloaded from a pre-main run
+      # (dispatch 2026-10-22-02; the owner, "CI keeps the built file"). Its sha256 goes in the log, so a downloaded
+      # copy can be checked against the run it came from.
+      - name: Record the bundle's sha256
+        run: sha256sum dist/index.js
+      - name: Run the Worker's tests
+        run: >-
+          node --test --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=junit --test-reporter-destination=pmtiles-worker-junit.xml
+          test/worker.test.mjs test/routing.test.mjs
+      - name: Summarize from the JUnit XML
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, sys, xml.etree.ElementTree as ET
+          if not os.path.exists("pmtiles-worker-junit.xml"):
+              sys.exit("No pmtiles-worker-junit.xml: the tests produced no results, which is a failure.")
+          cases = list(ET.parse("pmtiles-worker-junit.xml").getroot().iter("testcase"))
+          failed = [c.get("name") for c in cases if c.find("failure") is not None or c.find("error") is not None]
+          skipped = sum(1 for c in cases if c.find("skipped") is not None)
+          line = f"Tile Worker: {len(cases)} tests, {len(failed)} failed, {skipped} skipped"
+          print(line)
+          for name in failed: print(f"FAILED: {name}")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(f"### {line}\n")
+              for name in failed: f.write(f"- failed: {name}\n")
+          if not cases or failed or skipped:
+              sys.exit("No tests ran, or a test failed or was skipped.")
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: pmtiles-worker-results
+          path: |
+            server/pmtiles-worker/pmtiles-worker-junit.xml
+            server/pmtiles-worker/worker-build.log
+          if-no-files-found: warn
+      # Only when the tests above passed, so the kept file is always one the tests ran against.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pmtiles-worker-dist
+          path: server/pmtiles-worker/dist/index.js
           if-no-files-found: error

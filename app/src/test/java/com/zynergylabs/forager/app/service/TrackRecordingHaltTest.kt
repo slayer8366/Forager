@@ -80,6 +80,13 @@ class TrackRecordingHaltTest {
             assertEquals("the screen shows not recording", true, await { vm.uiState.value.activeTrack == null })
             assertEquals(RECORDING_NEEDS_LOCATION_PERMISSION_MESSAGE, vm.uiState.value.startRecordingErrorMessage)
             assertEquals("the track is ended, not left open", true, await { trackEnded(trackId) })
+            // Dispatch 2026-10-21-02: the halt reports the stored end too, so Records reloads its list. Awaited,
+            // as the end is: the report follows the write on the service's coroutine.
+            assertEquals(
+                "the service reports the halted track's stored end, which the screen reloads its track list on",
+                true,
+                await { container.trackEnds.latest.value == trackId },
+            )
         } finally {
             created.forEach { it.stopRecording() }
             controller?.destroy()

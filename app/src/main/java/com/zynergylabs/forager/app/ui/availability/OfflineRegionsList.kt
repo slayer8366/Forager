@@ -2,6 +2,8 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from AvailabilityOfflineMapsUi.kt (dispatch 2026-10-19-19, UI split Phase 1, PR 10c), apart from private to internal on the declarations the panel calls.
 
+import com.zynergylabs.forager.app.map.OLDER_MAP_STYLE_NOTICE
+import com.zynergylabs.forager.app.map.regionHasOlderMapStyle
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
@@ -15,7 +17,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
+import com.zynergylabs.forager.app.ui.map.LocalNoSignal
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.log.RecordType
@@ -74,7 +83,24 @@ internal fun OfflineRegionsSection(
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
     onOpenRegionDetails: ((Long) -> Unit)?,
+    /** Regions whose trail routes are being fetched now, and those whose fetch failed this session (dispatch 2026-10-23-03). */
+    routeFetchingIds: Set<Long> = emptySet(),
+    routeFailedIds: Set<Long> = emptySet(),
+    routeActions: OfflineRouteActions = OfflineRouteActions(),
 ) {
+    // The same "no signal" the maps read (NoSignalTrailMap.kt); none provided (a test without MainActivity) is signal.
+    val noSignal = LocalNoSignal.current?.collectAsState()?.value ?: false
+    // Signal back while this list is on screen: told once per return, from no signal to signal, never at the first
+    // composition (Amendment 1; the owner: "Yes, fetch when signal returns (Recommended)"). The ViewModel decides.
+    var sawNoSignal by remember { mutableStateOf(false) }
+    LaunchedEffect(noSignal) {
+        if (noSignal) {
+            sawNoSignal = true
+        } else if (sawNoSignal) {
+            sawNoSignal = false
+            routeActions.onSignalReturned()
+        }
+    }
 
     // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit (see
     // its doc comment), so this section just renders at its natural height as the last thing in
@@ -125,6 +151,12 @@ internal fun OfflineRegionsSection(
                             nowEpochMillis = nowEpochMillis,
                             onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
                             onDownloadAgain = { onDownloadAgain(region.id) },
+                            routeLine = if (region.isDownloaded) {
+                                offlineRouteLine(region.routeData, region.id in routeFetchingIds, region.id in routeFailedIds, noSignal)
+                            } else {
+                                null
+                            },
+                            onTryAgainRoutes = { routeActions.onTryAgain(region.id) },
                         )
                     }
                 } }
@@ -166,6 +198,9 @@ internal fun OfflineRegionRow(
     onClick: (() -> Unit)? = null,
     /** What "Download again" does on a region restored from a backup ([OfflineRegionSummary.isDownloaded] `false`); unused for a downloaded one. */
     onDownloadAgain: (() -> Unit)? = null,
+    /** What the row says about the region's trail routes ([offlineRouteLine]); `null` says nothing, as the All logbook's rows. */
+    routeLine: OfflineRouteLine? = null,
+    onTryAgainRoutes: () -> Unit = {},
 ) {
     val parts = offlineRegionRowParts(region, distanceUnit, nowEpochMillis)
     Row(
@@ -194,6 +229,17 @@ internal fun OfflineRegionRow(
                     )
                 }
             }
+            // RECORD -1294: a region built against an older map style keeps drawing, and says so in one line. Nothing is
+            // re-downloaded for the user. Shown on every region downloaded before Forager Trail Map (dispatch 2026-10-22-01).
+            if (regionHasOlderMapStyle(region.styleUrl, region.isDownloaded)) {
+                Text(
+                    OLDER_MAP_STYLE_NOTICE,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(offlineRegionOlderStyleTag(region.id)),
+                )
+            }
+            if (routeLine != null) OfflineRouteLineContent(region.id, routeLine, onTryAgainRoutes)
             // A region restored from a backup onto a phone that never downloaded it (owner, "1 B"): a way to get its tiles.
             if (!region.isDownloaded && onDownloadAgain != null) {
                 OutlinedButton(onClick = onDownloadAgain) { Text("Download again") }
@@ -219,6 +265,9 @@ internal fun offlineRegionRowParts(region: OfflineRegionSummary, distanceUnit: D
 
 /** The last part of a not-downloaded region's line (owner, "1 B"). */
 internal const val OFFLINE_REGION_NOT_DOWNLOADED = "Not downloaded"
+
+/** [OfflineRegionRow]'s older-map-style notice (RECORD -1294), for tests. */
+internal fun offlineRegionOlderStyleTag(regionId: Long): String = "offline-region-older-style-$regionId"
 
 /** [OfflineRegionRow]'s one line, for tests. */
 internal fun offlineRegionRowLineTag(regionId: Long): String = "offline-region-line-$regionId"

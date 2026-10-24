@@ -94,7 +94,7 @@ import com.zynergylabs.forager.app.ui.log.CartographyUiState
  */
 
 /** The Layers row's description at the default basemap (the dispatch, B1): Street since it became the opening map (dispatch 2026-10-18-04, Amendment 2; RECORD -1297); was Topographical. */
-internal const val LAYERS_ROW_DESCRIPTION = "Layers: Street map. Choose the map type and overlays."
+internal const val LAYERS_ROW_DESCRIPTION = "Layers: Trail map. Choose the map type and overlays."
 
 /** Both synthetic groups, as the debug store reports them with the switch on. */
 internal val BOTH_FORECAST_GROUPS: Set<String> = COLOUR_FIELDS.map { it.group }.toSet()

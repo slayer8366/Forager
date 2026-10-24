@@ -328,9 +328,12 @@ class TrackRecordingService : Service() {
         val container = (application as ForagerApplication).container
         container.recordingHalts.report(RecordingHalt(trackId, reason))
         scope.launch {
-            container.endTrackUseCase(trackId).onFailure { error ->
-                Log.w(TAG, "Couldn't mark track '$trackId' ended after it could not be recorded.", error)
-            }
+            // Reported once stored, as stopRecording does (dispatch 2026-10-21-02).
+            container.endTrackUseCase(trackId)
+                .onSuccess { container.trackEnds.report(trackId) }
+                .onFailure { error ->
+                    Log.w(TAG, "Couldn't mark track '$trackId' ended after it could not be recorded.", error)
+                }
             stopSelf()
         }
     }
@@ -380,9 +383,13 @@ class TrackRecordingService : Service() {
             cancelRecordingAlerts(this)
             scope.launch {
                 flushPendingPoints(trackId, container)
-                container.endTrackUseCase(trackId).onFailure { error ->
-                    Log.w(TAG, "Couldn't mark track '$trackId' ended.", error)
-                }
+                // The end is reported only once it is stored, so the screen's reload never reads the track
+                // still open (dispatch 2026-10-21-02); a failed write reports nothing and is logged.
+                container.endTrackUseCase(trackId)
+                    .onSuccess { container.trackEnds.report(trackId) }
+                    .onFailure { error ->
+                        Log.w(TAG, "Couldn't mark track '$trackId' ended.", error)
+                    }
                 stopSelf()
             }
         } else {

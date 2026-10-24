@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 
 /**
  * Owned abstraction over a persistent store of downloaded map regions — the same pattern as
@@ -43,6 +44,31 @@ interface OfflineMapRepository {
         onProgress: (downloaded: Int, total: Int) -> Unit,
     ): Result<OfflineRegionSummary>
 
+    /**
+     * [download], also telling [onRouteStep] when the tiles are in and the region's trail routes are being fetched
+     * (dispatch 2026-10-23-03 Amendment 1, L4: the progress says "Getting trail routes" for that step). A repository
+     * that fetches no routes never calls it.
+     */
+    suspend fun download(
+        name: String,
+        region: Region,
+        onProgress: (downloaded: Int, total: Int) -> Unit,
+        onRouteStep: () -> Unit,
+    ): Result<OfflineRegionSummary> = download(name, region, onProgress)
+
+    /**
+     * [download], also telling [onPauseChanged] when the download pauses because the signal went (`true`) and when it
+     * continues by itself (`false`), so the progress can say "Paused · no signal · continues by itself" while it waits
+     * (dispatch 2026-10-23-06 Amendment 4, RECORD -1591). A repository that never pauses never calls it.
+     */
+    suspend fun download(
+        name: String,
+        region: Region,
+        onProgress: (downloaded: Int, total: Int) -> Unit,
+        onRouteStep: () -> Unit,
+        onPauseChanged: (paused: Boolean) -> Unit,
+    ): Result<OfflineRegionSummary> = download(name, region, onProgress, onRouteStep)
+
     /** Deletes one downloaded region by [id]. A no-op success, not a failure, if [id] isn't found. */
     suspend fun deleteRegion(id: Long): Result<Unit>
 
@@ -68,6 +94,14 @@ interface OfflineMapRepository {
      */
     suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> =
         Result.failure(UnsupportedOperationException("this repository does not replace a region's id"))
+
+    /**
+     * Fetches the trail routes of the downloaded region [id] again, its tiles untouched (dispatch 2026-10-23-03: the
+     * automatic fetch on opening Offline maps, and "Try again"). Succeeds with whatever state the fetch ended in, a
+     * failed fetch included; fails only when [id] is not a region downloaded on this phone.
+     */
+    suspend fun fetchRoutes(id: Long): Result<RegionRouteData> =
+        Result.failure(UnsupportedOperationException("this repository does not fetch routes"))
 
     companion object {
         /**
@@ -215,6 +249,7 @@ data class OfflineRegionSummary(
     val minZoom: Double,
     val maxZoom: Double,
     val tileCount: Int,
+    /** The region's bytes on the phone: its tiles plus its stored route data ([routeData]). */
     val sizeBytes: Long,
     val createdAtEpochMillis: Long,
     /**
@@ -223,4 +258,16 @@ data class OfflineRegionSummary(
      * that re-downloads from its stored centre and radius. [tileCount] and [sizeBytes] are 0 for it.
      */
     val isDownloaded: Boolean = true,
+    /**
+     * The style URL this region was downloaded against, as MapLibre's own region definition records it (dispatch
+     * 2026-10-18-05 Part 2), or `null` when unknown: a region not downloaded on this phone has no definition. Read on
+     * every listing, never stored in Room: the store already holds it, so no schema change carries it. Decides the
+     * "Older map style" notice (RECORD -1294).
+     */
+    val styleUrl: String? = null,
+    /**
+     * The region's trail route data (dispatch 2026-10-23-03), read from its route folder on every listing. Its bytes
+     * are already inside [sizeBytes]: map and routes are one unit to the user (RECORD -1498 q1).
+     */
+    val routeData: RegionRouteData = RegionRouteData.NotFetched,
 )

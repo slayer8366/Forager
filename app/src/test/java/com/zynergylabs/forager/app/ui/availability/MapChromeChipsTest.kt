@@ -76,17 +76,17 @@ internal abstract class LayersChipsTests(private val baseChipTopDp: Float) {
         openSheet()
         val sheet = composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).getUnclippedBoundsInRoot()
         val sheetCentre = (sheet.left.value + sheet.right.value) / 2f
-        // The last chip has been Topographical since dispatch 2026-09-28-708 removed Satellite.
-        val firstBox = laidOutBox("Street")
-        val lastBox = laidOutBox("Topographical")
+        // Three chips since dispatch 2026-10-22-01: Trail first, OSM last (was Street and Topographical).
+        val firstBox = laidOutBox("Trail")
+        val lastBox = laidOutBox("OSM")
         assertEquals(
             "the row of laid-out chip boxes [${firstBox.start}, ${lastBox.endInclusive}] is centred on the sheet [${sheet.left.value}, ${sheet.right.value}]",
             sheetCentre,
             (firstBox.start + lastBox.endInclusive) / 2f,
             1f,
         )
-        val first = chip("Street")
-        val last = chip("Topographical")
+        val first = chip("Trail")
+        val last = chip("OSM")
         assertEquals(
             "the drawn chips [${first.left.value}, ${last.right.value}] are centred on the sheet [${sheet.left.value}, ${sheet.right.value}]",
             sheetCentre,
@@ -98,7 +98,7 @@ internal abstract class LayersChipsTests(private val baseChipTopDp: Float) {
     @Test
     fun `guard - the map-type chips' top is where it was`() {
         openSheet()
-        assertEquals("the chip row's top", baseChipTopDp, chip("Street").top.value, 0.5f)
+        assertEquals("the chip row's top", baseChipTopDp, chip("Trail").top.value, 0.5f)
     }
 }
 

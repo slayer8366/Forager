@@ -38,15 +38,15 @@ class AvailabilityViewModelBasemapTest {
         mapLayersViewModel(errorLog = errorLog, basemapPreferences = preferences)
 
     @Test
-    // Was "nothing stored opens on Topographical…", asserting MapMode.TOPOGRAPHIC; the opening map became Street (dispatch 2026-10-18-04, Amendment 2; RECORD -1297).
-    fun `nothing stored opens on Street, stores nothing and logs nothing`() = runTest(dispatcher) {
+    // Was "nothing stored opens on Street…", asserting MapMode.STREET; the opening map became Trail (dispatch 2026-10-22-01; RECORD -1554).
+    fun `nothing stored opens on Trail, stores nothing and logs nothing`() = runTest(dispatcher) {
         val preferences = InMemoryBasemapPreference(stored = null)
         val vm = viewModel(preferences)
 
         assertNull("the gate is closed until the read lands", vm.uiState.value.mapMode)
         advanceUntilIdle()
 
-        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals(MapMode.TRAIL, vm.uiState.value.mapMode)
         assertEquals(emptyList<String>(), preferences.writes)
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }
@@ -63,14 +63,43 @@ class AvailabilityViewModelBasemapTest {
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }
 
+    /**
+     * Was "a stored Street opens on Street". Street chosen before the update opens on Trail Map, once (RECORD -1554):
+     * Trail keeps the key "street" (option (a), RECORD -1556), so nothing is rewritten and nothing is logged.
+     */
     @Test
-    fun `a stored Street opens on Street`() = runTest(dispatcher) {
+    fun `a stored Street, from before the update, opens on Trail, stores nothing and logs nothing`() = runTest(dispatcher) {
         val preferences = InMemoryBasemapPreference(stored = "street")
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals(MapMode.TRAIL, vm.uiState.value.mapMode)
         assertEquals(emptyList<String>(), preferences.writes)
+        assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
+    }
+
+    /** OpenStreetMap picked after the update keeps across restarts: it has a key of its own (RECORD -1556). */
+    @Test
+    fun `a stored OpenStreetMap opens on OSM`() = runTest(dispatcher) {
+        val preferences = InMemoryBasemapPreference(stored = "openstreetmap")
+        val vm = viewModel(preferences)
+        advanceUntilIdle()
+
+        assertEquals(MapMode.OPENSTREETMAP, vm.uiState.value.mapMode)
+        assertEquals(emptyList<String>(), preferences.writes)
+    }
+
+    @Test
+    fun `picking OSM stores the new key, never "street"`() = runTest(dispatcher) {
+        val preferences = InMemoryBasemapPreference(stored = "street")
+        val vm = viewModel(preferences)
+        advanceUntilIdle()
+
+        vm.onMapModeSelected(MapMode.OPENSTREETMAP)
+        advanceUntilIdle()
+
+        assertEquals(MapMode.OPENSTREETMAP, vm.uiState.value.mapMode)
+        assertEquals(listOf("openstreetmap"), preferences.writes)
     }
 
     @Test
@@ -82,14 +111,15 @@ class AvailabilityViewModelBasemapTest {
         assertEquals(MapMode.TOPOGRAPHIC, vm.uiState.value.mapMode)
         assertEquals(listOf("topographic"), preferences.writes)
         assertEquals(
-            listOf("The stored basemap \"satellite\" names no map type; opening on Topographical and storing that."),
+            // The basemap's own label, "OpenTopoMap": a log line names the map, not a chip (dispatch 2026-10-22-01 Amendment 3).
+            listOf("The stored basemap \"satellite\" names no map type; opening on OpenTopoMap and storing that."),
             logged.filter { "basemap" in it },
         )
     }
 
     @Test
-    // Was "a failed read opens on Topographical…": a failed read opens on the default, now Street (dispatch 2026-10-18-04, Amendment 2; RECORD -1297).
-    fun `a failed read opens on Street, is logged, and stores nothing`() = runTest(dispatcher) {
+    // Was "a failed read opens on Street…": a failed read opens on the default, now Trail (dispatch 2026-10-22-01; RECORD -1554).
+    fun `a failed read opens on Trail, is logged, and stores nothing`() = runTest(dispatcher) {
         val preferences = object : BasemapPreferenceRepository {
             val writes = mutableListOf<String>()
             override suspend fun getBasemapKey(): Result<String?> = Result.failure(IllegalStateException("datastore unreadable"))
@@ -98,9 +128,9 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        assertEquals("the gate must not block forever on a failed read", MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals("the gate must not block forever on a failed read", MapMode.TRAIL, vm.uiState.value.mapMode)
         assertEquals("the stored value may be fine; nothing overwrites it", emptyList<String>(), preferences.writes)
-        assertEquals(listOf("Couldn't read the stored basemap; opening on Street."), logged.filter { "basemap" in it })
+        assertEquals(listOf("Couldn't read the stored basemap; opening on Trail."), logged.filter { "basemap" in it })
     }
 
     @Test
@@ -109,7 +139,7 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        // Topographical, not Street, since Street became the opening map (Amendment 2): a pick away from what is shown.
+        // Topographical, not Trail, the opening map: a pick away from what is shown.
         vm.onMapModeSelected(MapMode.TOPOGRAPHIC)
         assertEquals(MapMode.TOPOGRAPHIC, vm.uiState.value.mapMode)
         advanceUntilIdle()
@@ -122,10 +152,10 @@ class AvailabilityViewModelBasemapTest {
         val preferences = InMemoryBasemapPreference(stored = "topographic")
         val vm = viewModel(preferences)
 
-        vm.onMapModeSelected(MapMode.STREET)
+        vm.onMapModeSelected(MapMode.TRAIL)
         advanceUntilIdle()
 
-        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals(MapMode.TRAIL, vm.uiState.value.mapMode)
     }
 
     @Test
@@ -137,7 +167,7 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        // Topographical, away from the opening Street (Amendment 2), so "the pick still holds" is not the default holding.
+        // Topographical, away from the opening Trail, so "the pick still holds" is not the default holding.
         vm.onMapModeSelected(MapMode.TOPOGRAPHIC)
         advanceUntilIdle()
 

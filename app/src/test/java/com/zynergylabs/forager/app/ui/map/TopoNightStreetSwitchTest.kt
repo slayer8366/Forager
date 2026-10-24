@@ -307,9 +307,10 @@ class TopoNightStreetSwitchTest {
 
     @Test
     fun `the caption at topo night credits both sources`() {
+        // Below topo at night is Forager Trail Map now (dispatch 2026-10-22-01; #359's change 15), so its credit is the second.
         val credits = mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true)
-        assertEquals(listOf(Basemap.OPEN_TOPO_MAP.attribution, Basemap.OSM_STANDARD.attribution), credits)
-        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors", attributionCaption(credits))
+        assertEquals(listOf(Basemap.OPEN_TOPO_MAP.attribution, Basemap.FORAGER_TRAIL.attribution), credits)
+        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA) · Protomaps © OpenStreetMap", attributionCaption(credits))
     }
 
     @Test

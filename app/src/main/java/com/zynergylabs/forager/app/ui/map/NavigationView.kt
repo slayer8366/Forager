@@ -158,8 +158,16 @@ const val NAVIGATION_VIEW_ZOOM = 18.0
  * no navigation input, held by `BasemapStyleTest`) does not, so no tile beyond a basemap's limit is
  * ever requested: MapLibre enlarges the deepest tiles instead, softer on Topo.
  */
-fun navigationMaxZoom(basemap: Basemap, navigating: Boolean): Double =
-    if (navigating) maxOf(basemap.maxZoom.toDouble(), NAVIGATION_VIEW_ZOOM) else basemap.maxZoom.toDouble()
+fun navigationMaxZoom(
+    basemap: Basemap,
+    navigating: Boolean,
+    /** Whether Trail Map draws in this process (`OwnStreetFallback`, RECORD -1513); a parameter so a test can drive both. */
+    ownStreet: Boolean = true,
+): Double {
+    // The operating limit: Trail Map 18, OpenStreetMap 19, Topographical 17 ([operatingMaxZoom]).
+    val limit = operatingMaxZoom(basemap, ownStreet).toDouble()
+    return if (navigating) maxOf(limit, NAVIGATION_VIEW_ZOOM) else limit
+}
 
 /**
  * MapLibre's [CompassEngine] fed the app's own true heading (ruling A). MapLibre's built-in engine

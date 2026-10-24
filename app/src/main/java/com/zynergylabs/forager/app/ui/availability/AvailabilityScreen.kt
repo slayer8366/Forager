@@ -13,137 +13,27 @@ import com.zynergylabs.forager.app.ui.map.MapCompass
 import com.zynergylabs.forager.app.ui.map.MapPosition
 import com.zynergylabs.forager.app.ui.map.rememberShownPosition
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
-import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.shrinkOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Directions
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DividerDefaults
-import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -156,80 +46,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import com.zynergylabs.forager.app.BuildConfig
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
-import com.zynergylabs.forager.app.domain.ForagingSelection
-import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
-import com.zynergylabs.forager.app.domain.MgrsConverter
-import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
-import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
-import com.zynergylabs.forager.app.domain.isOfflineRegionStale
-import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
-import com.zynergylabs.forager.app.domain.model.ConditionsSummary
-import com.zynergylabs.forager.app.domain.model.DailyWeather
-import com.zynergylabs.forager.app.domain.model.UnitSystem
-import com.zynergylabs.forager.app.domain.model.formatDistanceKm
-import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
-import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
-import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
-import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
-import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
-import com.zynergylabs.forager.app.domain.model.PlannedTrip
-import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.domain.model.Sighting
-import com.zynergylabs.forager.app.domain.model.TaxonFilter
-import com.zynergylabs.forager.app.domain.model.TripWindow
-import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
 import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.union
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
@@ -242,52 +72,12 @@ import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.domain.GpxImportOutcome
 import com.zynergylabs.forager.app.importgpx.gpxImportMessage
-import com.zynergylabs.forager.app.ui.map.Basemap
-import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
-import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
-import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
-import com.zynergylabs.forager.app.ui.map.MapBarIconButton
-import com.zynergylabs.forager.app.ui.map.MapIconBar
-import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
-import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
-import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
-import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
-import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
-import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
-import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
-import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
-import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
-import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
-import com.zynergylabs.forager.app.ui.map.MapForecastFeed
-import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
-import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.map.SightingsMapSlot
-import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
-import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
-import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
-import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
-import com.zynergylabs.forager.app.ui.theme.Spacing
-import java.time.Instant
-import java.time.Month
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.min
-import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlinx.coroutines.delay
 
 /**
@@ -439,20 +229,15 @@ fun AvailabilityScreen(
     val onNavigateToWaypoint = navigation.onNavigateToWaypoint
     val onStopWaypointNavigation = navigation.onStopWaypointNavigation
     // Phase 2.1 (dispatch 2026-10-19-28): the recording bundle, unpacked under the parameter names it replaced.
-    val isRecording = recording.isRecording
     val tripStartWarning = recording.tripStartWarning
     val networkFixesNotice = recording.networkFixesNotice
     val backgroundRunPrompt = recording.backgroundRunPrompt
-    val recordingBackBy = recording.recordingBackBy
-    val onBackByChoice = recording.onBackByChoice
-    val onClearBackBy = recording.onClearBackBy
     // Phase 2.1 (dispatch 2026-10-19-28): the settings bundle, unpacked under the parameter names it replaced.
     val onNightModeMapsChanged = settings.onNightModeMapsChanged
     val onAutoSaveLocationToPhotosChanged = settings.onAutoSaveLocationToPhotosChanged
     val onSundownAlertsEnabledChanged = settings.onSundownAlertsEnabledChanged
     val onDarknessMarginChanged = settings.onDarknessMarginChanged
     val onOffTrackReminderChanged = settings.onOffTrackReminderChanged
-    val onBatterySaverChanged = settings.onBatterySaverChanged
     val settingsResetNoticePending = settings.settingsResetNoticePending
     val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
     val onThemeModeChanged = settings.onThemeModeChanged
@@ -564,57 +349,13 @@ fun AvailabilityScreen(
     var mapWaypointReopen by remember { mutableStateOf<WaypointNavigationOrigin?>(null) }
     var recordsWaypointReopen by remember { mutableStateOf<String?>(null) }
 
-    // Local remembered state, same reasoning as selectedTab below: purely a display
-    // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
-    // this — see CompactMapTab's call site. Only reachable while on the
-    // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
-    // selectedTab != MAP cannot happen in practice.
-    var isMapFullscreen by remember { mutableStateOf(false) }
-    // Persisted across restarts (persist-fullscreen dispatch — see
-    // MapPreferencesRepository.getMapFullscreen for the precedent and its reasoning). The loaded
-    // value is applied exactly once, when it first arrives, and only if it arrived at all (a
-    // failed read leaves it null and the screen starts as it always did). Two load-bearing
-    // choices here:
-    //
-    // 1. Writes happen at the three user-driven mutation sites (the toggle below, the fullscreen
-    //    BackHandler, the tab handler's exit) — never from a LaunchedEffect on isMapFullscreen.
-    //    Such an effect would fire on first composition with the default `false` and write it
-    //    before the DataStore read lands, clobbering a persisted `true`: a data-loss bug that
-    //    would present as "the feature doesn't work" and be hard to trace.
-    // 2. The read is asynchronous, so the first frame composes with `false`; when a persisted
-    //    `true` lands the search bar, nav and cluster slide away rather than starting hidden.
-    //    Chosen, not overlooked (owner's call): the alternatives were gating the map's first
-    //    composition on a disk read, or recreating the map once loaded, which would re-fit it —
-    //    the very thing the "nothing may re-fit the map" rule exists to protect. A DataStore
-    //    first read is a few milliseconds, typically before any tile has appeared.
-    var hasAppliedPersistedMapFullscreen by remember { mutableStateOf(false) }
-    LaunchedEffect(uiState.persistedMapFullscreen) {
-        val persisted = uiState.persistedMapFullscreen
-        if (persisted != null && !hasAppliedPersistedMapFullscreen) {
-            hasAppliedPersistedMapFullscreen = true
-            isMapFullscreen = persisted
-        }
-    }
-    // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
-    // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
-    //
-    // RECORD -711: its side and height also persist across restarts (the owner: "have the map icon bar
-    // persist between restarts so left handed users don't need to change it every time they open the
-    // app", "Side and height (Recommended)"). The holder waits for uiState.mapIconClusterPlacement and is
-    // not drawn until it has applied it (first effect), so there is no frame on the default side. Every
-    // drag that ends is stored (second effect), keyed on the holder's own count of ended drags rather
-    // than on the position itself: a write per drag, not per frame of one, and never a write of the
-    // default before the read lands (the trap isMapFullscreen's comment above describes).
-    val mapIconClusterPosition = rememberMapIconClusterPositionState(awaitingPlacement = true)
-    val mapIconClusterDensity = LocalDensity.current
-    LaunchedEffect(uiState.mapIconClusterPlacement) {
-        uiState.mapIconClusterPlacement?.let { mapIconClusterPosition.applyPlacement(it, mapIconClusterDensity) }
-    }
-    LaunchedEffect(mapIconClusterPosition.settledCount) {
-        if (mapIconClusterPosition.settledCount > 0) {
-            onMapIconClusterPlacementChanged(mapIconClusterPosition.placement(mapIconClusterDensity))
-        }
-    }
+    // The fullscreen flag and its one-time restore across restarts: see rememberMapFullscreen (ScreenMapFullscreen.kt),
+    // whose comments say why it is written only at the user's mutation sites.
+    val mapFullscreen = rememberMapFullscreen(uiState)
+    var isMapFullscreen by mapFullscreen::isMapFullscreen
+    // The icon cluster's position, persisted across restarts (RECORD -711): see rememberPersistedMapIconClusterPosition
+    // (ScreenMapIconClusterPlacement.kt).
+    val mapIconClusterPosition = rememberPersistedMapIconClusterPosition(uiState, onMapIconClusterPlacementChanged)
     // Part 1 layout fixes, item 4 (planner message 2026-09-28-98, under CLAUDE.md's UX defaults): the
     // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
     // leave composition with the tab. See MapCameraMemory. Session only.
@@ -666,24 +407,12 @@ fun AvailabilityScreen(
     // that sheet opens (Records, a map bubble's Details, an entry report's track row), so it survives within a session
     // (CLAUDE.md, UX defaults). One flag for every track's sheet. Not across a restart (not asked for).
     val trackDetailsFoldOpen = rememberSaveable { mutableStateOf(false) }
-    // Dispatch 2026-09-28-430 (plan task T22): whether the user has moved the map away from the
-    // navigation view, and the "Return to Route" requests, held here above the tab so that leaving
-    // the Maps tab and coming back keeps them (CLAUDE.md, UX defaults; the legend's flag above is
-    // held the same way). Cleared when navigation stops, so the next Return starts in the view.
-    var navigationFollowBroken by rememberSaveable { mutableStateOf(false) }
-    var navigationViewRequestId by rememberSaveable { mutableIntStateOf(0) }
-    LaunchedEffect(isNavigating) { if (!isNavigating) navigationFollowBroken = false }
-    // Dispatch 2026-09-28-440: the set zoom is applied once per navigation, when it starts: pending
-    // from the start until the map reports it applied. Held above the tab, so a tab change does not
-    // apply it again; the navigating flag it is set from is saved too, so a configuration change
-    // that recomposes this screen mid-navigation is not read as a new start.
-    var navigationZoomPending by rememberSaveable { mutableStateOf(false) }
-    var navigationWasOn by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(isNavigating) {
-        if (isNavigating && !navigationWasOn) navigationZoomPending = true
-        if (!isNavigating) navigationZoomPending = false
-        navigationWasOn = isNavigating
-    }
+    // The navigation view's follow and zoom requests, held above the tab (T22, -440): see rememberNavigationViewRequests
+    // (ScreenNavigationViewRequests.kt).
+    val navigationViewRequests = rememberNavigationViewRequests(isNavigating)
+    var navigationFollowBroken by navigationViewRequests::navigationFollowBroken
+    var navigationViewRequestId by navigationViewRequests::navigationViewRequestId
+    var navigationZoomPending by navigationViewRequests::navigationZoomPending
     // Dispatch -502, the owner's choice at the S22 desk check ("Keep the last line, faded"): the dashed line to the
     // waypoint, and the one drawn last, which nextStraightLine keeps, faded, once the fix is lost. Held here, above the tab
     // switch, so a lost fix does not lose the line by a trip to the Journal; not across a restart, where there is no last
@@ -701,24 +430,14 @@ fun AvailabilityScreen(
     }
     val nextWaypointLine = navigatingToWaypoint?.let { nextStraightLine(waypointStraightLine, uiState.liveFix, it, straightLineNow) }
     LaunchedEffect(nextWaypointLine) { waypointStraightLine = nextWaypointLine }
-    var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
-    var forecastZoomedOut by remember { mutableStateOf(false) }
-    val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
-    val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
-    val forecastWeek = uiState.forecastWeek
-    val forecastFeed = remember(forecastCellStore, forecastWeek, availableColourFieldGroups) {
-        if (forecastWeek == null || availableColourFieldGroups.isEmpty()) {
-            null
-        } else {
-            MapForecastFeed(
-                store = forecastCellStore,
-                week = forecastWeek,
-                groupsByLayer = availableColourFieldGroups,
-                onCellsShown = { forecastCellsShown = it },
-                onZoomedOutChanged = { forecastZoomedOut = it },
-            )
-        }
-    }
+    // The forecast cells, the colour fields with data and the layers the map draws: see rememberMapForecastFeed
+    // (ScreenMapForecastFeed.kt).
+    val mapForecast = rememberMapForecastFeed(uiState, forecastCellStore)
+    val forecastCellsShown by mapForecast::forecastCellsShown
+    val forecastZoomedOut by mapForecast::forecastZoomedOut
+    val availableColourFieldGroups = mapForecast.availableColourFieldGroups
+    val drawnMapLayers = mapForecast.drawnMapLayers
+    val forecastFeed = mapForecast.forecastFeed
     val mapRecordsDrawn = uiState.drawnMapRecords(logUiState)
     // J8-2 (owner: "Highlight in place", "Live records", "Saved entries only"): the saved entries shown
     // on the map and the records they keep, among the records the Maps tab draws. cartographyUiState is
@@ -1124,41 +843,16 @@ fun AvailabilityScreen(
                 isOffTrack = isOffTrack,
                 // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
                 // the Tools drawer's own values and callbacks (the same two classes its Sundown section is given below).
-                quickSettings = MapQuickSettings(
-                    isRecording = isRecording,
-                    backBy = recordingBackBy,
-                    onBackByChoice = onBackByChoice,
-                    onClearBackBy = onClearBackBy,
-                    sundown = SundownSettings(
-                        alertsEnabled = uiState.sundownAlertsEnabled,
-                        darknessMarginMinutes = uiState.darknessMarginMinutes,
-                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
-                        onDarknessMarginChanged = onDarknessMarginChanged,
-                    ),
-                    offTrackReminder = OffTrackReminderSettings(
-                        enabled = uiState.offTrackReminderEnabled,
-                        onEnabledChanged = onOffTrackReminderChanged,
-                    ),
-                    batterySaver = BatterySaverSettings(
-                        enabled = uiState.batterySaverEnabled,
-                        onEnabledChanged = onBatterySaverChanged,
-                    ),
-                    currentTime = currentTime,
-                ),
+                quickSettings = mapQuickSettingsFor(uiState, recording, settings, currentTime),
                 compassProvider = compassProvider,
                 computeTrueHeading = computeTrueHeading,
                 navigationTarget = target,
                 returnRoute = returnRoute,
                 routeLine = routeLine,
                 onRetryRoute = onRetryRoute,
-                waypointNavigate = WaypointNavigateControls(
-                    isNavigatingToWaypoint = navigatingToWaypoint != null,
-                    straightLine = nextWaypointLine,
-                    onNavigate = onNavigateToWaypoint?.let { startWaypointNavigation },
-                    mapReopen = mapWaypointReopen,
-                    onMapReopenConsumed = { mapWaypointReopen = null },
-                    recordsReopenDetails = recordsWaypointReopen,
-                    onRecordsReopenConsumed = { recordsWaypointReopen = null },
+                waypointNavigate = waypointNavigateControlsFor(
+                    navigatingToWaypoint, nextWaypointLine, onNavigateToWaypoint, startWaypointNavigation,
+                    mapWaypointReopen, recordsWaypointReopen, screenState,
                 ),
                 showDecimalDegrees = showDecimalDegrees,
                 onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
@@ -1218,7 +912,9 @@ fun AvailabilityScreen(
             entryReportData = entryReportData,
             offlineMaps = offlineMaps,
             records = records,
-            searchInputs = searchInputs,
+            // RECORD -1525 (the owner: "Clear removes it too"): the search bar's Clear also drops the map's "View on Map" chip,
+            // first, then the ViewModel's clear as before. Both Clear controls (portrait header, landscape map bar) take it from here.
+            searchInputs = searchInputs.copy(onClearSearch = { onClearMapTaxonFilter(); searchInputs.onClearSearch() }),
             recording = recording,
         )
     }

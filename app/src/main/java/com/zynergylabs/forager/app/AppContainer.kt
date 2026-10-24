@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.BackByWatch
 import com.zynergylabs.forager.app.domain.SettingsResetNotice
 import com.zynergylabs.forager.app.domain.RecordingHalts
+import com.zynergylabs.forager.app.domain.TrackEnds
 import com.zynergylabs.forager.app.domain.BackupScheduler
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
@@ -22,6 +23,8 @@ import com.zynergylabs.forager.app.data.backup.AndroidBackupNotifier
 import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
 import androidx.core.content.pm.PackageInfoCompat
 import android.util.Log
+import com.zynergylabs.forager.app.data.remote.ApiClients
+import com.zynergylabs.forager.app.data.routedata.LocalRegionRouteFolders
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.zynergylabs.forager.app.data.repository.DataStoreAppThemePreferenceRepository
@@ -182,6 +185,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     /** The recording service's report of a recording it stopped on its own (RECORD -660, item 4); the recording screen reads it. */
     val recordingHalts = RecordingHalts()
 
+    /** The recording service's report that it stored a track's end (dispatch 2026-10-21-02); the recording screen reloads its track list on it. */
+    val trackEnds = TrackEnds()
+
     private val api = INaturalistClient.create(debug = BuildConfig.DEBUG)
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)
     private val historicalWeatherApi = OpenMeteoArchiveClient.create(debug = BuildConfig.DEBUG)
@@ -278,7 +284,15 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val getAvailabilityUseCase = GetAvailabilityUseCase(predictAvailabilityUseCase, searchCacheRepository)
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
-    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao(), RoomOfflineRegionIdReplacer(database))
+    // Each offline region's trail route data, fetched with its tiles from the Worker (dispatch 2026-10-23-03). The key
+    // is empty in any build made without it (CI's included), and then no routing request is sent at all.
+    private val regionRouteFolders = LocalRegionRouteFolders.create(
+        filesDir = context.filesDir,
+        http = ApiClients.httpClient(debug = BuildConfig.DEBUG),
+        appKey = BuildConfig.ROUTING_APP_KEY,
+        log = { message, error -> Log.w("RegionRoutes", message, error) },
+    )
+    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao(), RoomOfflineRegionIdReplacer(database), regionRouteFolders)
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     // One instance for both interfaces (map layers L0b, planner's ruling on F1): DataStore refuses a
     // second live instance on `map_preferences`, so the layer choices live in this same class.

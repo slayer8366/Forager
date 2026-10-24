@@ -18,7 +18,8 @@ package com.zynergylabs.forager.app.ui.availability
 //   its shape. The pin was `Basemap.OPEN_TOPO_MAP` until dispatch 2026-10-18-07 (Forager RECORD
 //   -1309; the owner, from a screenshot of this screen showing Topo: "Offline maps displays topo
 //   maps. Have it display the street map", then, asked whether it should always be Street or
-//   follow the Layers choice, "Always be street."). It is `Basemap.OSM_STANDARD` now, named
+//   follow the Layers choice, "Always be street."). It is `Basemap.FORAGER_TRAIL` since dispatch 2026-10-22-01 (RECORD
+//   -1556: "Offline-maps picker: shows Forager Trail Map"); it was `Basemap.OSM_STANDARD` from -1309, named
 //   directly rather than read from `MapMode.DEFAULT` (which is also Street today), so a later
 //   change to the app's opening map does not move this one, and rather than the Layers choice,
 //   which the owner turned down. Night mode is unchanged (Street's night paint, as on the Maps
@@ -102,11 +103,10 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * Download Maps option"). Until then it fired from the picker's own OK, which this screen no longer
  * has; every other picker keeps OK and Cancel. See [CentrePinLocationPicker]'s class doc comment for
  * why every location-placing site in this app, this one included, replaced long-press with a fixed
- * centre pin (an accessibility decision, not a style one). [Basemap.OSM_STANDARD] here
- * is only context for choosing *where* to download — this picker map is unrelated to which
- * source the download itself actually reads from underneath. Always Street since dispatch
- * 2026-10-18-07 (Forager RECORD -1309; the owner: "Always be street."), whatever the Layers choice;
- * see this file's header comment. Before that it was [Basemap.OPEN_TOPO_MAP], and before that
+ * centre pin (an accessibility decision, not a style one). [Basemap.FORAGER_TRAIL] here
+ * is the map the download is made in (RECORD -1554, -1556), whatever the Layers choice; see this
+ * file's header comment. From dispatch 2026-10-18-07 (RECORD -1309; the owner: "Always be street.") it
+ * was [Basemap.OSM_STANDARD]; before that [Basemap.OPEN_TOPO_MAP], and before that
  * `Basemap.USGS_TOPO` (US-only), until [MapMode] removed it from the app entirely.
  *
  * Before anything is picked, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so the
@@ -136,6 +136,8 @@ internal fun OfflineMapsPanel(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
+    /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
+    routeActions: OfflineRouteActions = OfflineRouteActions(),
     /**
      * Journal redesign J5c: passed through to the downloaded-region rows, where a tap on a closed row
      * opens that region's details sheet, given its id. The picker and download code above does not
@@ -165,8 +167,9 @@ internal fun OfflineMapsPanel(
     // CartographyEntryReportScreen's fullscreen relies on), losing the camera the pin reads.
     val pickerMap = remember(pinState, mapSlot) {
         movableContentOf { night: Boolean, mapModifier: Modifier ->
-            // Always Street (dispatch 2026-10-18-07, RECORD -1309): the pin this file's header comment names, for Stage 2e-ii too.
-            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.OSM_STANDARD, night = night, modifier = mapModifier)
+            // Always Forager Trail Map (dispatch 2026-10-22-01 Amendment 2, RECORD -1556, superseding -1309's Street): the map an
+            // offline download is made in. The pin this file's header comment names, for Stage 2e-ii too.
+            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.FORAGER_TRAIL, night = night, modifier = mapModifier)
         }
     }
     // Dispatch 2026-10-18-03 (Forager RECORD -1269): the "Pin at" line alone under the map, with no OK and no Cancel. Back leaves
@@ -290,6 +293,9 @@ internal fun OfflineMapsPanel(
             onDeleteOfflineRegion = onDeleteOfflineRegion,
             onDownloadAgain = onDownloadAgain,
             onOpenRegionDetails = onOpenRegionDetails,
+            routeFetchingIds = uiState.offlineRouteFetchingIds,
+            routeFailedIds = uiState.offlineRouteFailedIds,
+            routeActions = routeActions,
         )
     }
 

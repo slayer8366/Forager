@@ -67,15 +67,110 @@ internal sealed interface NightRecolour {
 }
 
 /**
- * The colour paint properties the offline night recolour walks, by layer type: background, fill and
- * line, the three types `offline-style.json` has. Symbol layers (text, icons) and the overlay layers
- * `SightingsMap` adds after the recolour are not walked.
+ * The colour paint properties the night recolour walks, by layer type: background, fill and line (the three types
+ * `offline-style.json` has), and since dispatch 2026-10-18-05 Part 2 the symbol layers' text, halo and icon colours,
+ * which the own Street style has and the offline style does not (-1288: "Labels are inverted too"). `icon-color` acts
+ * only on SDF icons; the Street sprite's are not SDF, so its icons are inverted as images instead ([nightPixelsOf]).
+ * The overlay layers `SightingsMap` adds after the recolour are not walked.
  */
 internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
     "background" to listOf("background-color"),
     "fill" to listOf("fill-color", "fill-outline-color"),
     "line" to listOf("line-color"),
+    "symbol" to listOf("text-color", "text-halo-color", "icon-color"),
 )
+
+/**
+ * The own Street's night water, on every water fill and line (rivers, streams, lakes, the sea): a dark teal, `#163f4b`
+ * (dispatch 2026-10-22-03; the owner, Forager-cartography's night-colours record: "When the water is on my phone against
+ * the dark maps, it lights up the display which runs against the point of night maps", then the round-5 pair, and for
+ * streams "Same as water (Recommended)"). It replaces -1343's lighter `#8ec5f0`, which the owner had asked for so
+ * creeks read against the dark land; -1344 allows such exceptions to -1288's pure inversion ("we can go outside the
+ * purity for the UX").
+ *
+ * Held to the owner's "Rules from your colours" with the planner's numbers: relative luminance at most 0.050 and blue
+ * at most 96 (this is 0.042 and 75; `#8ec5f0` was 0.52 and 240), and at least 1.05:1 on every night land fill (1.08:1
+ * on the night grass `#2d3911` at least), in `NightWaterTest` and `map-style/tools/check-street-night.mjs`, which reads
+ * the same colour from the style's design file. The day water colour is unchanged. Only the own Street takes it: the
+ * offline style keeps its inverted water.
+ */
+internal const val STREET_NIGHT_WATER = "#163f4b"
+
+/** The vector source layer the own Street's water is drawn from (Protomaps' `water`). */
+internal const val WATER_SOURCE_LAYER = "water"
+
+/** The colour properties [streetNightRecolourOf] gives [STREET_NIGHT_WATER]: fills and lines, never label text. */
+private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", "line-color")
+
+/**
+ * The own Street's night line colours by layer (RECORD -1345, the owner: "Roads (Recommended), Railways + boundaries
+ * (Recommended)"): the inversion left these at 1.0 to 1.5:1 on the night forest (Part 1 report, round 1). Tunnels keep
+ * the inversion. The design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-street.mjs`, recorded in
+ * the style's metadata; `NightExceptionsTest` holds the two equal and each colour to 2.5:1 on the night forest, grass
+ * and ground, except where the design gives a layer its own band on one ground (`NIGHT_LAYER_BANDS`: informal paths on
+ * the night forest).
+ */
+internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
+    "roads_minor_casing" to "#c4bcae", // minor road edge, 3.21:1 on the night forest
+    "roads_bridges_minor_casing" to "#c4bcae",
+    "roads_minor_service_casing" to "#b3ab9d", // service road edge, 2.65:1
+    "roads_major" to "#e0ad4f", // major road centre, 2.95:1; links take the major palette
+    "roads_bridges_major" to "#e0ad4f",
+    "roads_link" to "#e0ad4f",
+    "roads_bridges_link" to "#e0ad4f",
+    "roads_highway" to "#f0c060", // highway centre, 3.57:1
+    "roads_bridges_highway" to "#f0c060",
+    "roads_rail" to "#b4bec0", // railways, 3.18:1
+    "boundaries" to "#bdbdbd", // 3.21:1
+    "boundaries_country" to "#bdbdbd",
+    // Informal paths' own night colour (dispatch 2026-10-19-41; the owner: "Own night colour (Recommended)"), in place of
+    // the inversion #9b694d, which nearly vanished on the night forest. 2.01:1 there: below the 2.5 the others hold, by
+    // the owner's band for this layer ("Accept the range (Recommended)", 1.9 to 2.3), which NightExceptionsTest holds.
+    "roads_path_informal_z13" to "#bb8a6f",
+    "roads_path_informal" to "#bb8a6f",
+)
+
+/**
+ * The own Street's night fill colours by day colour (dispatch 2026-10-22-03 and its Amendment 1, RECORD -1561): wherever
+ * a fill layer's `fill-color` draws one of these day colours, as a literal or inside an expression, night draws this
+ * colour instead of the inversion. RGB, no alpha; a colour matches only at full opacity.
+ * - Forest `#a9d39b` to `#446835`, the owner's pick over the inversion `#436d35`. It ships with the tree glyph, which is
+ *   1.42:1 on it and 1.34:1 on the inversion, below its 1.35 floor (`STREET_NIGHT_PATTERN_COLOURS`).
+ * - Wetland `#c5e3d6` to `#2a4f47`; the inversion, `#1b392c`, sat on the night ground.
+ * - Bare rock `#c9c4bb` to `#6e7580` (the owner: "Rock night color ... good"); the inversion would be `#433e35`.
+ *
+ * The design's copy is `NIGHT_FILL_COLOURS` in `map-style/overrides/forager-character.mjs`, recorded in the style as
+ * `forager:night-fills`; `NightExceptionsTest` holds the two equal.
+ */
+internal val STREET_NIGHT_FILL_COLOURS: Map<Int, Int> = mapOf(
+    0xA9D39B to 0x446835,
+    0xC5E3D6 to 0x2A4F47,
+    0xC9C4BB to 0x6E7580,
+)
+
+/**
+ * The own Street's night for one colour property: [STREET_NIGHT_WATER] for a water fill or line (a layer drawn from
+ * [sourceLayer] `water`), a [STREET_NIGHT_LAYER_COLOURS] colour for those layers' lines, [STREET_NIGHT_FILL_COLOURS] for
+ * the fill colours it names (the rest of the same expression inverted), and [offlineNightRecolourOf]'s pure inversion
+ * for everything else, labels included.
+ */
+internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: String?): NightRecolour {
+    if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
+        return NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
+    }
+    val layerNight = STREET_NIGHT_LAYER_COLOURS[property.layerId]
+    if (layerNight != null && property.property == "line-color") {
+        return NightRecolour.Recoloured(property, StyleColourValue.Literal(layerNight))
+    }
+    if (property.property == "fill-color") return nightRecolourOf(property, ::streetFillNightOf)
+    return offlineNightRecolourOf(property)
+}
+
+/** One fill colour's Street night: its [STREET_NIGHT_FILL_COLOURS] colour at full opacity, else the inversion. */
+private fun streetFillNightOf(day: RgbaColour): RgbaColour {
+    val night = if (day.alpha == 1.0) STREET_NIGHT_FILL_COLOURS[(day.r shl 16) or (day.g shl 8) or day.b] else null
+    return if (night == null) day.night() else RgbaColour((night shr 16) and 0xFF, (night shr 8) and 0xFF, night and 0xFF, day.alpha)
+}
 
 /**
  * The night value for one layer colour property: [nightColorOf] of a literal, or of every colour
@@ -90,14 +185,17 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
  * CSS colour names inside an expression are not recognised and stay as they are; the repository's
  * offline style uses none.
  */
-internal fun offlineNightRecolourOf(property: LayerColourProperty): NightRecolour =
+internal fun offlineNightRecolourOf(property: LayerColourProperty): NightRecolour = nightRecolourOf(property, RgbaColour::night)
+
+/** [offlineNightRecolourOf] with [night] in place of the inversion for each colour literal: the walk both nights share. */
+private fun nightRecolourOf(property: LayerColourProperty, night: (RgbaColour) -> RgbaColour): NightRecolour =
     when (val value = property.value) {
         is StyleColourValue.Literal -> {
             val colour = parseStyleColour(value.text)
             if (colour == null) {
                 NightRecolour.Left(property, "literal colour \"${value.text}\" is not a form this recolour reads")
             } else {
-                NightRecolour.Recoloured(property, StyleColourValue.Literal(colour.night().format()))
+                NightRecolour.Recoloured(property, StyleColourValue.Literal(night(colour).format()))
             }
         }
         is StyleColourValue.Expression -> {
@@ -110,24 +208,28 @@ internal fun offlineNightRecolourOf(property: LayerColourProperty): NightRecolou
                 NightRecolour.Left(property, "expression is not JSON: ${value.json.take(120)}")
             } else {
                 var found = 0
-                val night = nightOfColourLiterals(parsed) { found++ }
+                val recoloured = nightOfColourLiterals(parsed, night) { found++ }
                 if (found == 0) {
                     NightRecolour.Left(property, "expression has no colour literal: ${value.json.take(120)}")
                 } else {
-                    NightRecolour.Recoloured(property, StyleColourValue.Expression(night.toString()))
+                    NightRecolour.Recoloured(property, StyleColourValue.Expression(recoloured.toString()))
                 }
             }
         }
     }
 
-private fun nightOfColourLiterals(element: JsonElement, onColour: () -> Unit): JsonElement = when (element) {
+private fun nightOfColourLiterals(
+    element: JsonElement,
+    night: (RgbaColour) -> RgbaColour,
+    onColour: () -> Unit,
+): JsonElement = when (element) {
     is JsonPrimitive -> {
         val colour = if (element.isString) parseStyleColour(element.content) else null
         if (colour == null) {
             element
         } else {
             onColour()
-            JsonPrimitive(colour.night().format())
+            JsonPrimitive(night(colour).format())
         }
     }
     is JsonArray -> {
@@ -138,14 +240,17 @@ private fun nightOfColourLiterals(element: JsonElement, onColour: () -> Unit): J
             (operator == "rgb" || (element[4] as? JsonPrimitive)?.takeUnless { it.isString }?.doubleOrNull != null)
         if (isColourArray) {
             onColour()
-            val day = RgbaColour(channels[0]!!.toChannel(), channels[1]!!.toChannel(), channels[2]!!.toChannel(), 1.0)
-            val night = day.night()
-            JsonArray(listOf(element[0], JsonPrimitive(night.r), JsonPrimitive(night.g), JsonPrimitive(night.b)) + element.drop(4))
+            // The alpha stays the expression's own element; it is read here only so a night that depends on it (the
+            // Street's fill colours match at full opacity only) sees it.
+            val alpha = if (operator == "rgba") (element[4] as JsonPrimitive).doubleOrNull!! else 1.0
+            val day = RgbaColour(channels[0]!!.toChannel(), channels[1]!!.toChannel(), channels[2]!!.toChannel(), alpha)
+            val dark = night(day)
+            JsonArray(listOf(element[0], JsonPrimitive(dark.r), JsonPrimitive(dark.g), JsonPrimitive(dark.b)) + element.drop(4))
         } else {
-            JsonArray(element.map { nightOfColourLiterals(it, onColour) })
+            JsonArray(element.map { nightOfColourLiterals(it, night, onColour) })
         }
     }
-    is JsonObject -> JsonObject(element.mapValues { (_, v) -> nightOfColourLiterals(v, onColour) })
+    is JsonObject -> JsonObject(element.mapValues { (_, v) -> nightOfColourLiterals(v, night, onColour) })
 }
 
 /** A style colour with its alpha kept as the style's own 0-1 value, so a recolour never re-rounds it. */

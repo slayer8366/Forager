@@ -142,19 +142,19 @@ class MapChromeEntryMapTest {
     // 2026-10-18-04, Amendment 2; RECORD -1297), so the pick still moves the Maps tab off what it opens on.
     fun `an entry map opened after the Maps tab is set to Topographical starts on Topographical`() {
         setScreen()
-        pickMapType("Topographical")
+        pickMapType("Topo")
         openJournal()
 
         assertEquals(Basemap.OPEN_TOPO_MAP, recorder.entryMode()?.basemap)
     }
 
     @Test
-    // Was "…starts on Topographical", asserting Basemap.OPEN_TOPO_MAP; the default became Street (Amendment 2, RECORD -1297).
-    fun `an entry map opened with the Maps tab on its default starts on Street`() {
+    // Was "…starts on Street" (RECORD -1297); the default became Forager Trail Map (dispatch 2026-10-22-01, RECORD -1554).
+    fun `an entry map opened with the Maps tab on its default starts on Trail`() {
         setScreen()
         openJournal()
 
-        assertEquals(Basemap.OSM_STANDARD, recorder.entryMode()?.basemap)
+        assertEquals(Basemap.FORAGER_TRAIL, recorder.entryMode()?.basemap)
     }
 
     @Test
@@ -162,15 +162,16 @@ class MapChromeEntryMapTest {
     // became the opening map (Amendment 2, RECORD -1297), so both picks still move off what each map shows.
     fun `changing the basemap on the entry map leaves the Maps tab on Topographical`() {
         setScreen()
-        pickMapType("Topographical")
+        pickMapType("Topo")
         openJournal()
         // Fullscreen (a tap on the preview) brings the map's own Layers control.
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.CARTOGRAPHY_MAP_TEST_TAG).performTouchInput { click(center) }
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
-        // The entry map starts on the Maps tab's Topographical, so Street is the other choice it can take.
-        pickMapType("Street", closeWithBack = false)
-        assertEquals("the entry map took Street", Basemap.OSM_STANDARD, recorder.entryMode()?.basemap)
+        // The entry map starts on the Maps tab's Topographical, so Trail is another choice it can take (Street until
+        // dispatch 2026-10-22-01).
+        pickMapType("Trail", closeWithBack = false)
+        assertEquals("the entry map took Trail", Basemap.FORAGER_TRAIL, recorder.entryMode()?.basemap)
 
         // Back leaves fullscreen, which unmounts the sheet with it.
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
