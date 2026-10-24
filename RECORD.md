@@ -27617,3 +27617,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** origin/dev 82b55f06a is 23 commits on main 381515c61; main is now 177215135 (#393).
 **Decision:** the owner: "Go ahead and dispatch the helper": Hazel rebases dev onto 177215135 on a new branch, by the -1087 rule and the 2026-10-19-42 method; the planner moves dev after the proof and an S22 launch check.
 **Notes:** Written by the planner by hand. Next free ID -1611.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1611
+**Timestamp:** 2026-10-24T14:52:42Z
+**Continues:** 2026-09-28-1610
+**Title:** TrackRecordingViewModel.kt's 852 lines stand for now, before way-home part 2 (owner)
+**Observed:** Elder's item 1 of the #388 re-check (prompts/preserved/2026-10-24-02-promotion-recheck-388-report.md): the file is still 852 lines, over the ~800 line of the modular-code skill (-1490), and part 2 adds to it. -1592 accepted 852 "for now" and said to revisit when part 2 adds to the file.
+**Decision:** the owner: "852 stands for now". Part 2 is not preceded by a split of this file; part 2's dispatch puts new code in new collaborator files where it can, and reports the file's size after.
+**Notes:** Written by the planner by hand. Next free ID -1612.
