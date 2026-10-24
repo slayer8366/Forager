@@ -27660,3 +27660,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - the rest: "Accept all (Recommended)" (stray judge 50 m / 45 m, track-only line solid, sundown on the track when over 50 m off, the timing run on a throwaway branch);
 - "Start building (Recommended)": PRs A, B, C in order; Sorrel reviews each; each merge on the owner's word.
 **Notes:** Written by the planner by hand. The planner's call (10.4.9): a test rig composing the real recording ViewModel into the screen, with a coordinate-touch test. Next free ID -1614.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1614
+**Timestamp:** 2026-10-24T15:18:25Z
+**Continues:** 2026-09-28-1613
+**Title:** The owner tests way home part 2 on a hike today, on the S26, from the PR build (owner)
+**Observed:** Part 2 is three PRs (A, B, C), each with fail-first tests, revert checks and 20-27 min CI runs, Sorrel's review, and an S22 check for C.
+**Decision:** the owner: "I'll be testing part 2 when it's done today. I have a hike to go on"; "S26, within ~4 hours"; if it isn't ready, "Take whatever's ready". So: Hazel builds A, B and C back to back, each on top of the last, without waiting for reviews between them; Sorrel reviews alongside; the owner gets the newest build that passes CI (and the S22 check, if done), told what is unreviewed. Merges still wait for the owner's word after the hike.
+**Notes:** Written by the planner by hand. With this build, following a trail away from the outbound track gives a false off-track alert (step 7 fixes it); an offline area must be downloaded on a build from #383 on to carry trail routes. Next free ID -1615.
