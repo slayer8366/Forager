@@ -102,7 +102,7 @@ class FindWayHomeUseCase(
             )
         }
         // RECORD -1603, -1613: with the length check skipped, a trail part over the cap is not used; the track, no note.
-        if (trackBetween <= WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS && trailMeters > WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS) {
+        if (false && trackBetween <= WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS && trailMeters > WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS) {
             return trackOnly(null, "the trail route, ${trailMeters.toInt()} m, is over the $WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS m cap for ${trackBetween.toInt()} m walked between the trail points")
         }
 
