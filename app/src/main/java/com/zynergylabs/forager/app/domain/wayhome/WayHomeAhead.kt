@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.domain.wayhome
 
+import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.ROUTE_LOOKAHEAD_METERS
 import com.zynergylabs.forager.app.domain.RouteHome
@@ -28,7 +29,11 @@ fun wayHomeAhead(line: WayHomeLine, progress: WayHomeProgress, current: LatLng, 
     is WayHomeProgress.Placed -> {
         val place = progress.place
         val nodes = line.nodes
-        val chosen = lookaheadIndex(nodes, line.alongMeters, place.index, line.alongMeters[place.index] + ROUTE_LOOKAHEAD_METERS, current)
+        // The place is the earliest node near the walker, so it can be up to 25 m behind them: right for the distance,
+        // which must never be short, wrong for the needle, which would aim back at it (and the corner guard would hold
+        // it there). The needle aims from the node nearest the walker within the next stretch of line instead.
+        val aimFrom = aimFrom(line, place.index, current)
+        val chosen = lookaheadIndex(nodes, line.alongMeters, aimFrom, line.alongMeters[aimFrom] + ROUTE_LOOKAHEAD_METERS, current)
         RouteHome.Ahead(
             lookahead = nodes[chosen],
             routeMeters = place.remainingMeters,
@@ -43,6 +48,29 @@ fun wayHomeAhead(line: WayHomeLine, progress: WayHomeProgress, current: LatLng, 
         )
     }
 }
+
+/**
+ * The node the needle aims from: of the nodes from [placeIndex] to [WAY_HOME_AIM_WINDOW_METERS] further along, the one
+ * nearest [current]. For aiming only; the distance home is the place's.
+ */
+internal fun aimFrom(line: WayHomeLine, placeIndex: Int, current: LatLng): Int {
+    val limit = line.alongMeters[placeIndex] + WAY_HOME_AIM_WINDOW_METERS
+    var best = placeIndex
+    var bestMeters = Double.POSITIVE_INFINITY
+    var i = placeIndex
+    while (i < line.nodes.size && line.alongMeters[i] <= limit) {
+        val meters = GeoDistance.metersBetween(current, line.nodes[i])
+        if (meters < bestMeters) {
+            best = i
+            bestMeters = meters
+        }
+        i++
+    }
+    return best
+}
+
+/** How far along the line from the place the needle may aim from: twice the 25 m the place can lie behind the walker. */
+internal const val WAY_HOME_AIM_WINDOW_METERS = 2 * WAY_HOME_TRAIL_JOIN_METERS
 
 /** The line from node [from] to its end, as runs of one kind each; neighbouring runs share their joining node. */
 internal fun partsFrom(line: WayHomeLine, from: Int): List<RouteLinePart> {
