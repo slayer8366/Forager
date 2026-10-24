@@ -128,7 +128,7 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
     val onTrail = line.kinds[index] == RouteLinePartKind.TRAIL
     val remaining = line.totalMeters - line.alongMeters[index] +
         (if (band == HopBand.NONE) 0.0 else hop) +
-        (if (onTrail) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0)
+        (if (false) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0)
     return WayHomeProgress.Placed(WayHomePlace(index, hop, band, onTrail, remaining))
 }
 
