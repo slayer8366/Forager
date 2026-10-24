@@ -50,8 +50,22 @@ enum class WayHomePartKind { TRACK_BACK, TRAIL, TRACK_TO_START }
  * -1589, the owner's words, "Accept all"). The way home never shows no line: every one of these keeps the track.
  */
 enum class WayHomeNote(val text: String) {
-    /** No routes stored for the area: no region covers it, none has routes here, or they were never fetched, are being fetched, or are missing. RECORD -1586. */
+    /**
+     * The data says there are no trail routes here: no downloaded region covers the start (RECORD -1586), the server has
+     * none for the area, or its build lacks the start's square. Never for routes not yet on the phone (RECORD -1592), which
+     * is the rule `RegionRouteData.NotFetched` states.
+     */
     NO_TRAIL_ROUTES("No trail routes here · following your track"),
+
+    /**
+     * The region's routes are not on the phone: never fetched, or the fetch failed (RECORD -1592, the owner: "Two honest
+     * notes"). The failed fetch is the coder's reading of that ruling, reported for the owner: it is routes not downloaded,
+     * not routes known to be absent.
+     */
+    ROUTES_NOT_DOWNLOADED("Trail routes not downloaded · following your track"),
+
+    /** The region's routes are being fetched now (RECORD -1592). */
+    ROUTES_FETCHING("Getting trail routes… · following your track"),
 
     /** Routes are stored and cannot be read: a damaged region, or the engine finding a file missing or corrupt. RECORD -1589. */
     ROUTES_UNREADABLE("Trail routes couldn't be read · following your track"),

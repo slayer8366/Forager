@@ -174,16 +174,30 @@ class FindWayHomeUseCaseTest {
     }
 
     @Test
-    fun `routes never fetched, being fetched, missing, or not on the server mean no trail routes here`() {
-        for (state in listOf(
-            RegionRouteData.NotFetched,
-            RegionRouteData.Fetching,
-            RegionRouteData.Missing(RouteDataMissingReason.NETWORK),
-            RegionRouteData.NoneHere,
-        )) {
+    fun `routes the server has none of for the area mean no trail routes here`() {
+        assertTrackOnly(WayHomeNote.NO_TRAIL_ROUTES, find(regions = FakeRegions(Ground.region(routeData = RegionRouteData.NoneHere))))
+    }
+
+    @Test
+    fun `routes never fetched mean trail routes not downloaded, never no trail routes here`() {
+        val result = find(regions = FakeRegions(Ground.region(routeData = RegionRouteData.NotFetched)))
+        assertTrackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, result)
+        assertEquals("Trail routes not downloaded · following your track", (result as WayHomeResult.TrackOnly).note!!.text)
+    }
+
+    @Test
+    fun `routes whose fetch failed mean trail routes not downloaded`() {
+        for (reason in listOf(RouteDataMissingReason.NETWORK, RouteDataMissingReason.RATE_LIMITED, RouteDataMissingReason.NO_APP_KEY)) {
             logs.clear()
-            assertTrackOnly(WayHomeNote.NO_TRAIL_ROUTES, find(regions = FakeRegions(Ground.region(routeData = state))))
+            assertTrackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, find(regions = FakeRegions(Ground.region(routeData = RegionRouteData.Missing(reason)))))
         }
+    }
+
+    @Test
+    fun `routes being fetched now mean getting trail routes`() {
+        val result = find(regions = FakeRegions(Ground.region(routeData = RegionRouteData.Fetching)))
+        assertTrackOnly(WayHomeNote.ROUTES_FETCHING, result)
+        assertEquals("Getting trail routes… · following your track", (result as WayHomeResult.TrackOnly).note!!.text)
     }
 
     @Test
