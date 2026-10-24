@@ -27454,3 +27454,18 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** pre-main fefc89129 (#386 merged), main 381515c61. Elder's re-check passes with items (9495c77b0). Sorrel: #388 merge-ready, #389 2 M / 9 L (932fdd0f1). No helper is running, and every worktree is pushed.
 **Decision:** the owner: "Have everyone commit their work, and get ready for a session switch. Write a handoff for the next planner please."
 **Notes:** Written by the planner by hand. prompts/preserved/2026-10-24-planner-handoff.md. Next free ID -1597.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1597
+**Timestamp:** 2026-10-24T08:28:28Z
+**Continues:** 2026-09-28-1596
+**Title:** New planner session carries on; known-bugs rows first; way-home M-389-2 and L-389-2 ruled; #388 merges, #389 after fixes (owner)
+**Observed:** Nothing landed after the -1596 handoff (main 381515c61, pre-main fefc89129, way-home-split 7629d5874, way-home-domain ba205a0d1). The outgoing session is gone (owner). Sorrel's M-389-2: crossing a trail can trip the 1.5× check and show "This route leaves your downloaded area", which is false. L-389-2: NO_APP_KEY and FORBIDDEN read "not downloaded" on the way home but "need an app update" on the Offline maps row.
+**Decision:** the owner:
+- "Add both first (Recommended)": Elder's two known-bugs rows (-1591, -1594) go on pre-main before the promotion PR;
+- "(c) No note if short (Recommended)": a trail part under a short provisional length gives the track home with no note;
+- "Fix #389 first (Recommended)": merge #388 now; Hazel fixes M-389-1 and M-389-2, then #389 merges after a re-check;
+- "Say \"needs an update\" (Recommended)": NO_APP_KEY and FORBIDDEN on the way home say the app needs an update, as the Offline maps row does. Every other missing case stays "not downloaded" (-1595).
+**Notes:** Written by the planner by hand. Next free ID -1598.
