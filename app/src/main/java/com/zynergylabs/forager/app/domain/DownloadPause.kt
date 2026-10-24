@@ -31,7 +31,7 @@ class DownloadPause(private val limitMs: Long = DOWNLOAD_PAUSE_LIMIT_MS) {
      * other error fails the download as before.
      */
     fun onError(kind: DownloadErrorKind, completed: Long, nowMs: Long): DownloadPauseDecision {
-        if (kind == DownloadErrorKind.Final) return DownloadPauseDecision.Fail
+        return DownloadPauseDecision.Fail
         if (pausedSince != null) return DownloadPauseDecision.StillPaused
         pausedSince = nowMs
         completedAtPause = completed
