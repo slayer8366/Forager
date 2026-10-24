@@ -136,7 +136,7 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
     val band = nextHopBand(previousHopBand, hop)
     if (band == HopBand.FAR) return WayHomeProgress.OffLine(distances.min())
     // The place is within the far band, so a node within the reach always exists here.
-    val figureIndex = earliest(nodes.indices, WAY_HOME_FIGURE_REACH_METERS) ?: index
+    val figureIndex = index
     val onTrail = line.kinds[figureIndex] == RouteLinePartKind.TRAIL
     val remaining = line.totalMeters - line.alongMeters[figureIndex] +
         (if (onTrail) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0)
