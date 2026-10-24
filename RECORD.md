@@ -27390,3 +27390,19 @@ The planner's calls: the length check flags a route over 1.5× the track home, p
 - "Yes, in #386 (Recommended)", for "Paused · no signal · continues by itself" (dispatch 06 Amendment 4);
 - "Yes, now", to Sorrel's review of #386.
 **Notes:** Written by the planner by hand. Next free ID -1592.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1592
+**Timestamp:** 2026-10-24T06:40:38Z
+**Continues:** 2026-09-28-1590
+**Title:** Way home parts 0 and 1: notes for routes not yet fetched; 852 lines accepted; review (owner)
+**Observed:** #388 (split, 7629d5874) and #389 (domain, 425972bbc) are green. TrackRecordingViewModel.kt is at 852 lines. -1589's "No trail routes here" was applied to never-fetched and fetching, against RegionRouteData.kt:23-25.
+**Decision:** the owner:
+- "Two honest notes (Recommended)": "Trail routes not downloaded · following your track", and "Getting trail routes… · following your track";
+- "Accept 852 for now (Recommended)";
+- "Yes, now", to Sorrel's review of #388 and #389.
+
+Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's review is clean, CI is green and the S22 check passes.
+**Notes:** Written by the planner by hand. Dispatch 09 Amendment 2. Next free ID -1593.
