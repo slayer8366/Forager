@@ -96,6 +96,24 @@ class NoSignalTrailMapTest {
         assertEquals("fallen back, signal back: the OSM raster again", false, trail)
     }
 
+    /**
+     * Elder's item 3 (dispatch 2026-10-23-07; the owner: "Only switch to Trail Map when a downloaded area exists", "Keep
+     * their map as it was"): with nothing downloaded there is nothing to draw Trail Map from, so OSM and Topo stay as
+     * chosen, with whatever MapLibre has cached, rather than reloading to a style no region holds (a blank map).
+     */
+    @Test
+    fun `with no signal and no downloaded area, OSM and Topo keep the chosen map`() {
+        val noSignal = MutableStateFlow(true)
+        val seen = mutableMapOf<Basemap, Boolean>()
+        composeRule.setContent {
+            CompositionLocalProvider(LocalNoSignal provides noSignal) {
+                Basemap.entries.forEach { basemap -> seen[basemap] = rememberDrawsFromDownloads(useOfflineTiles = false, basemap = basemap) }
+            }
+        }
+        composeRule.waitForIdle()
+        assertEquals("no signal, nothing downloaded: every map draws itself", Basemap.entries.associateWith { false }, seen.toMap())
+    }
+
     @Test
     fun `with nothing provided, as in a test with no MainActivity, the chosen map is always drawn`() {
         val seen = mutableMapOf<Basemap, Boolean>()

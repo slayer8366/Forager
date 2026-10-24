@@ -40,9 +40,29 @@ class OfflineRouteLineTest {
     }
 
     @Test
-    fun `F, a reason a retry can't fix reads as C, with no button, attempted or not`() {
-        for (reason in listOf(RouteDataMissingReason.FORBIDDEN, RouteDataMissingReason.TOO_LARGE, RouteDataMissingReason.NO_APP_KEY, RouteDataMissingReason.OVER_PHONE_LIMIT, RouteDataMissingReason.BAD_REQUEST)) {
-            assertEquals(reason.code, OfflineRouteLine("Map only. No trail routes for this area yet.", tryAgain = false), line(RegionRouteData.Missing(reason), failed = true))
+    fun `F, an area the server or this app will not take reads as C, with no button, attempted or not`() {
+        for (reason in listOf(RouteDataMissingReason.TOO_LARGE, RouteDataMissingReason.OVER_PHONE_LIMIT, RouteDataMissingReason.BAD_REQUEST)) {
+            for (failed in listOf(false, true)) {
+                assertEquals("${reason.code} failed=$failed", OfflineRouteLine("Map only. No trail routes for this area yet.", tryAgain = false), line(RegionRouteData.Missing(reason), failed = failed))
+            }
+        }
+    }
+
+    /**
+     * Elder's item 2 (dispatch 2026-10-23-07; the owner: "Map only. Trail routes need an app update."): a refused key, or a
+     * build with no key, is a fact about the app, not the area, so the row says what fixes it. No button: asking again
+     * with the same key gets the same answer. With no signal it still says so, since a connection would not help either.
+     */
+    @Test
+    fun `F, a refused or absent app key says the routes need an app update, with no button`() {
+        for (reason in listOf(RouteDataMissingReason.FORBIDDEN, RouteDataMissingReason.NO_APP_KEY)) {
+            for (failed in listOf(false, true)) for (noSignal in listOf(false, true)) {
+                assertEquals(
+                    "${reason.code} failed=$failed noSignal=$noSignal",
+                    OfflineRouteLine("Map only. Trail routes need an app update.", tryAgain = false),
+                    line(RegionRouteData.Missing(reason), failed = failed, noSignal = noSignal),
+                )
+            }
         }
     }
 

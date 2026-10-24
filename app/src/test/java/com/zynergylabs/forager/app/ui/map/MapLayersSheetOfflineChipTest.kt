@@ -142,6 +142,19 @@ class MapLayersSheetOfflineChipTest {
         assertEquals(grey, drawnFill(MapMode.OPENSTREETMAP))
     }
 
+    /** Elder's item 3 (dispatch 2026-10-23-07): grey only when Trail Map is actually drawn instead, so not with nothing downloaded. */
+    @Test
+    fun `with no downloaded area, no signal leaves the chosen Topo and OSM chips in the normal selected fill`() {
+        noSignal.value = true
+        setSheet()
+        for (mode in listOf(MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP)) {
+            settle { chosen = mode }
+            composeRule.onNodeWithTag(mapModeChipTag(mode)).assertIsSelected()
+            assertEquals("$mode, no signal, nothing downloaded: drawn in the normal selected fill", normalSelected, drawnFill(mode))
+            assertEquals("$mode, no signal, nothing downloaded: its selected fill", normalSelected, recordedFill(mode))
+        }
+    }
+
     @Test
     fun `with offline tiles on and signal, the chosen Topo chip is grey too, and normal again when they are off`() {
         // The owner: "Same meaning everywhere: grey = chosen, but Trail is being shown instead."
