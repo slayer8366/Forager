@@ -27540,3 +27540,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - "After the promotion (Recommended)": #389 merges into pre-main once the promotion has merged to main;
 - "Add a cap in part 2 (Recommended)": when the length check is skipped, a route over a set length (provisional) is not used and the track home is shown; built with part 2.
 **Notes:** Written by the planner by hand. Next free ID -1604.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1604
+**Timestamp:** 2026-10-24T11:12:00Z
+**Continues:** 2026-09-28-1603
+**Title:** #391 passes on the S22; the saved track waits for a tab change after Stop; fix that first, in #391 (dispatch 2026-10-24-07) (owner)
+**Observed:** S22 re-check of #391 on 1.0.3904+gb4206e22 (prompts/preserved/2026-10-24-06-s22-recording-line-recheck-report.md, 454e712c6): the dotted line clears at once on both Stop paths and stays gone. After Stop in the app, the saved track's solid line does not appear until a tab change (30 s and more watched); the same was seen at 073fc77bd, hidden then by the stale dotted line.
+**Decision:** the owner: "Fix the gap too, first (Recommended)": hold #391, find why the saved track waits for a tab change, and fix it in #391 so both go in this promotion together.
+**Notes:** Written by the planner by hand. Next free ID -1605.
