@@ -38,7 +38,8 @@ import java.io.File
  * 4. **The area checks** (the owner: "Edge + length check"): every point of the trail route inside the rectangle the
  *    region's routes were cut to, and the trail route no longer than [WAY_HOME_DETOUR_RATIO] times the walker's own
  *    track between the same two points, checked only when that track is over [WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS]
- *    (RECORD -1600, option (b)).
+ *    (RECORD -1600, option (b)); when it is skipped, a trail part over [WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS] is not
+ *    used (RECORD -1603, -1613).
  * 5. **The line**: the walker's track back to the leave point, the trail route, and the walker's track from the entry
  *    point to the first stored point, then the origin waypoint (RECORD -1589, "Back on your track").
  *
@@ -99,6 +100,10 @@ class FindWayHomeUseCase(
                 WayHomeNote.LEAVES_AREA,
                 "the trail route, ${trailMeters.toInt()} m, is more than $WAY_HOME_DETOUR_RATIO times the track between the same points, ${trackBetween.toInt()} m",
             )
+        }
+        // RECORD -1603, -1613: with the length check skipped, a trail part over the cap is not used; the track, no note.
+        if (trackBetween <= WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS && trailMeters > WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS) {
+            return trackOnly(null, "the trail route, ${trailMeters.toInt()} m, is over the $WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS m cap for ${trackBetween.toInt()} m walked between the trail points")
         }
 
         val toStart = trackPart(stored, from = entry.index, to = 0, kind = WayHomePartKind.TRACK_TO_START)
