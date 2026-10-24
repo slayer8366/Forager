@@ -27628,3 +27628,18 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Elder's item 1 of the #388 re-check (prompts/preserved/2026-10-24-02-promotion-recheck-388-report.md): the file is still 852 lines, over the ~800 line of the modular-code skill (-1490), and part 2 adds to it. -1592 accepted 852 "for now" and said to revisit when part 2 adds to the file.
 **Decision:** the owner: "852 stands for now". Part 2 is not preceded by a split of this file; part 2's dispatch puts new code in new collaborator files where it can, and reports the file's size after.
 **Notes:** Written by the planner by hand. Next free ID -1612.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1612
+**Timestamp:** 2026-10-24T15:01:03Z
+**Continues:** 2026-09-28-1611
+**Title:** Way home part 2 starts with a report (dispatch 2026-10-24-10); no promotion until step 7; release steps on hold (owner)
+**Observed:** Part 2 is the visible half of plan step 5. -1589: step 5 ships with step 7, because today's off-track alert judges against the walked track. Main is 177215135; the first release run and the privacy-policy and Data safety updates are still to do.
+**Decision:** the owner:
+- "Hold off on promotion for now. Let's start way home part 2", clarified as "The release steps": the first release run, the website privacy policy and Play's Data safety form are on hold;
+- the part 2 step path: "Yes, as written (Recommended)";
+- holding part 2 back: "We won't promote until step 7 lands". No switch; pre-main is not promoted until step 7;
+- "Short report first (Recommended)": Hazel reports on dispatch 2026-10-24-10, then the owner's go to build.
+**Notes:** Written by the planner by hand. Next free ID -1613.
