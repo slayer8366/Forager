@@ -293,7 +293,7 @@ class SundownWatch(
             }
         }
 
-        val alongWayHome = if (current != null) wayHomeFor(id) else null
+        val alongWayHome: PathHome? = null
         val estimate = track?.let { alongWayHome?.let { path -> returnWalkingTimeAlong(it, path, freshness) } ?: returnWalkingTime(it, origin, current, freshness, band) }
         val walkBack = when (estimate) {
             is ReturnWalkingTime.Estimate -> if (estimate.isAtLeast) WalkBack.AtLeast(estimate.walkingMillis) else WalkBack.About(estimate.walkingMillis)
