@@ -171,7 +171,6 @@ class BRouterTrailRouter internal constructor(
         try {
             run.await()
         } catch (e: CancellationException) {
-            engine.terminate()
             withContext(NonCancellable) { run.join() }
             throw e
         }
