@@ -43,7 +43,6 @@ internal class SignalNetworkWait(signal: NetworkSignal, scope: CoroutineScope) :
             signal.validated.collect { value ->
                 lock.withLock {
                     validated = value
-                    changed.signalAll()
                 }
             }
         }
