@@ -161,7 +161,7 @@ internal fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    if (status.paused) DOWNLOAD_PAUSED else "${status.downloaded} / ${status.total} tiles",
+                    "${status.downloaded} / ${status.total} tiles",
                     style = MaterialTheme.typography.bodySmall,
                 )
             } else {
