@@ -119,7 +119,6 @@ internal class TrackRecordingLocationFixes(
                             if (!isTakenUp() && uiState().originWaypoint == null && !originCreationInFlight()) createOriginWaypoint(active, point)
                         }
                     }
-                    returnToStart(point)
                 }
             }
         }
