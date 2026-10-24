@@ -27280,3 +27280,14 @@ The website copy and Play's Data safety form follow after the merge.
 **Observed:** Hazel's report (branch r8-report, c9d15825, prompts/preserved/2026-10-23-08-report.md): no keep rules needed on the paths read; one app line (app/build.gradle.kts:307) plus about 150 lines of CI checks; runtime proof only on a phone; the mapping file goes inside the .aab.
 **Decision:** the owner chose "Hold", "Not now (Recommended)" for shrinkResources, and "Keep the list as is" for the phone steps.
 **Notes:** Written by the planner by hand. Next free ID -1584.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1584
+**Timestamp:** 2026-10-24T02:27:51Z
+**Continues:** 2026-09-28-1579
+**Title:** PR #387: corrected privacy policy approved; no Logpush job (owner)
+**Observed:** Sorrel's review of #387 (Fable): no Blocker; M1 (tile, font and icon caches missing), M2 (a missed re-ask trigger), L1–L6. All fixed in b41324a76; CI run 40052699316 green.
+**Decision:** the owner chose "Approve (Recommended)" for the corrected text, and "None (checked)": no Logpush job in the Cloudflare account.
+**Notes:** Written by the planner by hand. Next free ID -1585.
