@@ -27584,3 +27584,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Elder (Claude Fable 5.1), prompts/preserved/2026-10-24-08-promotion-recheck-391-report.md (114f29229): pass with items. CI green on 79a01ae1b (40098461329, 5450/0, recounted). Item 1: a row for a deleted track staying on the map until a tab change (live, not serious). Item 2: a failed end write leaves no line and no notice (pre-existing; for later recording work).
 **Decision:** the owner: "Add row, open PR (Recommended)". Row 20 merged as #392 (bfbaca47c). Promotion PR #393, pre-main → main, opened; it merges only on the owner's approval.
 **Notes:** Written by the planner by hand. Next free ID -1608.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1608
+**Timestamp:** 2026-10-24T14:47:17Z
+**Continues:** 2026-09-28-1607
+**Title:** Promotion #393 merged: main is 177215135 (owner)
+**Observed:** PR #393's two runs (push 40102450509, pull_request 40102486133) green on bfbaca47c; merge state clean. The owner showed the Worker's "Disable builds" switched off. The live Worker is 1a85a35e (pre-main 54f4d56c4); between it and main, server/pmtiles-worker changes only one README line.
+**Decision:** the owner: "Merge it". Merged as 177215135 (parents 381515c61 and bfbaca47c). Next: the first Worker build from main checked live; #389 into pre-main (-1603); dev rebased onto main (-1087); the first release run on the owner's approval; the website privacy policy and Play's Data safety form.
+**Notes:** Written by the planner by hand. Next free ID -1609.
