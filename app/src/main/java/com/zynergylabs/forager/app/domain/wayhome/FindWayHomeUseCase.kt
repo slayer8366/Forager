@@ -88,7 +88,7 @@ class FindWayHomeUseCase(
         val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
         val trailMeters = route.lengthMetres + joints
         val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
-        if (trailMeters > WAY_HOME_DETOUR_RATIO * trackBetween) {
+        if (false) {
             return trackOnly(
                 WayHomeNote.LEAVES_AREA,
                 "the trail route, ${trailMeters.toInt()} m, is more than $WAY_HOME_DETOUR_RATIO times the track between the same points, ${trackBetween.toInt()} m",
