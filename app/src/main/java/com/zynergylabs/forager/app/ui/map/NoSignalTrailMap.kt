@@ -5,9 +5,11 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.zynergylabs.forager.app.domain.NO_SIGNAL_SWITCH_DELAY_MS
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SIGNAL_RETURN_SWITCH_DELAY_MS
 import com.zynergylabs.forager.app.domain.noSignalWithHysteresis
 import com.zynergylabs.forager.app.net.AndroidNetworkSignal
@@ -23,7 +25,7 @@ import kotlinx.coroutines.flow.stateIn
  * signal returns (dispatch 2026-10-22-01; RECORD -1554 for OpenStreetMap, -1556 for Topographical too). The steps:
  *
  * ```
- * OSM or Topo chosen, signal lost for 5 s  → Trail Map, drawn from the downloaded areas
+ * OSM or Topo chosen, signal lost for 5 s  → Trail Map, drawn from the downloaded areas (if any exist; else unchanged)
  * signal back for 30 s                     → the chosen map again
  * Trail chosen                             → unchanged: it is already Trail Map
  * Trail chosen, but fallen back to OSM      → as OSM: Trail Map from the downloaded areas after 5 s
@@ -39,11 +41,28 @@ import kotlinx.coroutines.flow.stateIn
  * process. The fallback never fires in offline mode, so its rules stay as they are, and nothing asks OpenStreetMap's
  * tile host for anything (its tiles are never stored, -1554).
  *
- * **Known limit, stated and not worked around (Amendment 2):** with no signal and no downloaded area, the map is
- * blank, as offline mode is today. A user whose only areas predate Trail Map sees them in the older offline style.
+ * **Only when a downloaded area exists** ([hasDownloadedArea]; dispatch 2026-10-23-07, Elder's item 3; the owner: "Only
+ * switch to Trail Map when a downloaded area exists", and for the user with none, "Keep their map as it was"). With
+ * nothing downloaded the offline branch has no style to load and the map went blank (Amendment 2's stated limit, now
+ * closed); the chosen map stays instead, showing whatever MapLibre has cached. "Exists" means any downloaded area on
+ * the phone, not one covering the view: the owner's words, and a rule that cannot change while the user pans. A user
+ * whose only areas predate Trail Map sees them in the older offline style. "Use offline tiles" ([useOfflineTiles]) is
+ * the user's own setting and is not gated: it draws from the downloads as it always has.
  */
-internal fun drawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, noSignal: Boolean, trailMapDraws: Boolean = true): Boolean =
-    useOfflineTiles || (noSignal && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws))
+internal fun drawsFromDownloads(
+    useOfflineTiles: Boolean,
+    basemap: Basemap,
+    noSignal: Boolean,
+    hasDownloadedArea: Boolean,
+    trailMapDraws: Boolean = true,
+): Boolean = useOfflineTiles || (noSignal && hasDownloadedArea && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws))
+
+/**
+ * Whether the phone holds a downloaded offline area the map can draw from: a region whose tiles are here. A region
+ * restored from a backup with no tiles on this phone (`isDownloaded` false, "Not downloaded" in Offline maps) has
+ * nothing to draw, so it does not count. A region waiting out its delete's undo still has its tiles, so it does.
+ */
+internal fun hasDownloadedArea(regions: List<OfflineRegionSummary>): Boolean = regions.any { it.isDownloaded }
 
 /**
  * The "no signal" state the maps read, after the hysteresis ([noSignalWithHysteresis]). `null` where nothing provides
@@ -51,6 +70,13 @@ internal fun drawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, noSi
  * drawn, as before this change. `MainActivity` provides the real one ([ForagerThemeWithNoSignal]).
  */
 internal val LocalNoSignal = staticCompositionLocalOf<StateFlow<Boolean>?> { null }
+
+/**
+ * Whether a downloaded offline area exists ([hasDownloadedArea]), as the maps and the "Map type" chips read it. `false`
+ * where nothing provides it: with no known area the chosen map is drawn, which is the safe side (the map it would
+ * replace is at least cached). `MainActivity` provides it from the Offline maps list ([ForagerThemeWithNoSignal]).
+ */
+internal val LocalHasDownloadedArea = compositionLocalOf { false }
 
 /**
  * [drawsFromDownloads] for this composition: [LocalNoSignal]'s current value, `false` when none is provided, and
@@ -61,7 +87,7 @@ internal val LocalNoSignal = staticCompositionLocalOf<StateFlow<Boolean>?> { nul
 internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, fallback: OwnStreetFallback = OWN_STREET_FALLBACK): Boolean {
     val flow = LocalNoSignal.current ?: return useOfflineTiles
     val noSignal by flow.collectAsState()
-    return drawsFromDownloads(useOfflineTiles, basemap, noSignal, trailMapDraws = fallback.ownStreet())
+    return drawsFromDownloads(useOfflineTiles, basemap, noSignal, LocalHasDownloadedArea.current, trailMapDraws = fallback.ownStreet())
 }
 
 /**
@@ -82,11 +108,23 @@ internal fun noSignalState(context: Context, scope: CoroutineScope): StateFlow<B
         }
         .stateIn(scope, SharingStarted.Eagerly, false)
 
-/** [ForagerTheme] with [noSignal] provided as [LocalNoSignal] to everything inside it; `MainActivity`'s root. */
+/**
+ * [ForagerTheme] with [noSignal] provided as [LocalNoSignal], and whether [offlineRegions] hold a downloaded area as
+ * [LocalHasDownloadedArea], to everything inside it; `MainActivity`'s root.
+ */
 @Composable
-internal fun ForagerThemeWithNoSignal(darkTheme: Boolean, noSignal: StateFlow<Boolean>, content: @Composable () -> Unit) {
+internal fun ForagerThemeWithNoSignal(
+    darkTheme: Boolean,
+    noSignal: StateFlow<Boolean>,
+    offlineRegions: List<OfflineRegionSummary>,
+    content: @Composable () -> Unit,
+) {
     ForagerTheme(darkTheme = darkTheme) {
-        CompositionLocalProvider(LocalNoSignal provides noSignal, content = content)
+        CompositionLocalProvider(
+            LocalNoSignal provides noSignal,
+            LocalHasDownloadedArea provides hasDownloadedArea(offlineRegions),
+            content = content,
+        )
     }
 }
 

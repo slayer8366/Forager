@@ -17,6 +17,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,13 +70,16 @@ class MapLayersSheetOfflineChipTest {
     private val fallback = OwnStreetFallback(log = {})
     private var darkTheme by mutableStateOf(true)
     private var chosen by mutableStateOf(MapMode.TOPOGRAPHIC)
+
+    /** The Offline maps list `MainActivity` feeds its root: one downloaded area, unless a test says otherwise. */
+    private var offlineRegions by mutableStateOf(listOf(region(1, isDownloaded = true)))
     private val choices = mutableListOf<MapMode>()
     private var normalSelected = Color.Unspecified
     private var grey = Color.Unspecified
 
     private fun setSheet() {
         composeRule.setContent {
-            ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal) {
+            ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
                 normalSelected = MaterialTheme.colorScheme.secondaryContainer
                 grey = MaterialTheme.colorScheme.outlineVariant
                 MapLayersSheet(
@@ -145,6 +150,8 @@ class MapLayersSheetOfflineChipTest {
     /** Elder's item 3 (dispatch 2026-10-23-07): grey only when Trail Map is actually drawn instead, so not with nothing downloaded. */
     @Test
     fun `with no downloaded area, no signal leaves the chosen Topo and OSM chips in the normal selected fill`() {
+        // A region restored from a backup with no tiles here is not a downloaded area: nothing to draw Trail Map from.
+        offlineRegions = listOf(region(1, isDownloaded = false))
         noSignal.value = true
         setSheet()
         for (mode in listOf(MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP)) {
@@ -153,7 +160,16 @@ class MapLayersSheetOfflineChipTest {
             assertEquals("$mode, no signal, nothing downloaded: drawn in the normal selected fill", normalSelected, drawnFill(mode))
             assertEquals("$mode, no signal, nothing downloaded: its selected fill", normalSelected, recordedFill(mode))
         }
+        // A download landing while out of signal: Trail Map is now drawn instead, so the chosen chip turns grey.
+        settle { offlineRegions = offlineRegions + region(2, isDownloaded = true) }
+        assertEquals("OPENSTREETMAP, a downloaded area appears: grey", grey, drawnFill(MapMode.OPENSTREETMAP))
     }
+
+    private fun region(id: Long, isDownloaded: Boolean) = OfflineRegionSummary(
+        id = id, name = "Region $id", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0,
+        tileCount = if (isDownloaded) 100 else 0, sizeBytes = if (isDownloaded) 2_000_000L else 0L, createdAtEpochMillis = 1_000L,
+        isDownloaded = isDownloaded,
+    )
 
     @Test
     fun `with offline tiles on and signal, the chosen Topo chip is grey too, and normal again when they are off`() {

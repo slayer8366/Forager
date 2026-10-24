@@ -4,8 +4,13 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
 import com.zynergylabs.forager.app.map.STREET_STYLE_V1_URL
@@ -47,7 +52,7 @@ class NoSignalTrailMapTest {
         val noSignal = MutableStateFlow(false)
         val seen = mutableMapOf<Basemap, Boolean>()
         composeRule.setContent {
-            CompositionLocalProvider(LocalNoSignal provides noSignal) {
+            CompositionLocalProvider(LocalNoSignal provides noSignal, LocalHasDownloadedArea provides true) {
                 Basemap.entries.forEach { basemap -> seen[basemap] = rememberDrawsFromDownloads(useOfflineTiles = false, basemap = basemap) }
             }
         }
@@ -78,7 +83,7 @@ class NoSignalTrailMapTest {
         val fallback = OwnStreetFallback(log = {})
         var trail: Boolean? = null
         composeRule.setContent {
-            CompositionLocalProvider(LocalNoSignal provides noSignal) {
+            CompositionLocalProvider(LocalNoSignal provides noSignal, LocalHasDownloadedArea provides true) {
                 trail = rememberDrawsFromDownloads(useOfflineTiles = false, basemap = Basemap.FORAGER_TRAIL, fallback = fallback)
             }
         }
@@ -106,13 +111,66 @@ class NoSignalTrailMapTest {
         val noSignal = MutableStateFlow(true)
         val seen = mutableMapOf<Basemap, Boolean>()
         composeRule.setContent {
-            CompositionLocalProvider(LocalNoSignal provides noSignal) {
+            CompositionLocalProvider(LocalNoSignal provides noSignal, LocalHasDownloadedArea provides false) {
                 Basemap.entries.forEach { basemap -> seen[basemap] = rememberDrawsFromDownloads(useOfflineTiles = false, basemap = basemap) }
             }
         }
         composeRule.waitForIdle()
         assertEquals("no signal, nothing downloaded: every map draws itself", Basemap.entries.associateWith { false }, seen.toMap())
     }
+
+    /**
+     * The same rule through `MainActivity`'s root, [ForagerThemeWithNoSignal], fed the Offline maps list as `MainActivity`
+     * feeds it: a region restored from a backup with no tiles here does not count; a downloaded one appearing (a download
+     * finishing while out of signal) switches OSM and Topo to the downloads; its delete puts the chosen map back.
+     */
+    @Test
+    fun `through the app's root, only a region with tiles here switches OSM and Topo with no signal`() {
+        val noSignal = MutableStateFlow(true)
+        var regions by mutableStateOf(listOf(region(1, isDownloaded = false)))
+        val seen = mutableMapOf<Basemap, Boolean>()
+        composeRule.setContent {
+            ForagerThemeWithNoSignal(darkTheme = false, noSignal = noSignal, offlineRegions = regions) {
+                Basemap.entries.forEach { basemap -> seen[basemap] = rememberDrawsFromDownloads(useOfflineTiles = false, basemap = basemap) }
+            }
+        }
+        composeRule.waitForIdle()
+        assertEquals("only a restored region with no tiles: every map draws itself", Basemap.entries.associateWith { false }, seen.toMap())
+
+        composeRule.runOnIdle { regions = regions + region(2, isDownloaded = true) }
+        composeRule.waitForIdle()
+        assertEquals(
+            "a downloaded region: OSM and Topo from the downloads; Trail is already Trail Map",
+            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, Basemap.OSM_STANDARD to true),
+            seen.toMap(),
+        )
+
+        composeRule.runOnIdle { regions = regions.filterNot { it.id == 2L } }
+        composeRule.waitForIdle()
+        assertEquals("the downloaded region deleted: every map draws itself again", Basemap.entries.associateWith { false }, seen.toMap())
+    }
+
+    @Test
+    fun `a Trail user fallen back to OSM with no downloaded area keeps the OSM raster with no signal`() {
+        val fallback = OwnStreetFallback(log = {})
+        var trail: Boolean? = null
+        composeRule.setContent {
+            CompositionLocalProvider(LocalNoSignal provides MutableStateFlow(true), LocalHasDownloadedArea provides false) {
+                trail = rememberDrawsFromDownloads(useOfflineTiles = false, basemap = Basemap.FORAGER_TRAIL, fallback = fallback)
+            }
+        }
+        composeRule.runOnIdle {
+            fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(STREET_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404")
+        }
+        composeRule.waitForIdle()
+        assertEquals("fallen back, no signal, nothing downloaded: the OSM raster stays", false, trail)
+    }
+
+    private fun region(id: Long, isDownloaded: Boolean) = OfflineRegionSummary(
+        id = id, name = "Region $id", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0,
+        tileCount = if (isDownloaded) 100 else 0, sizeBytes = if (isDownloaded) 2_000_000L else 0L, createdAtEpochMillis = 1_000L,
+        isDownloaded = isDownloaded,
+    )
 
     @Test
     fun `with nothing provided, as in a test with no MainActivity, the chosen map is always drawn`() {
@@ -125,16 +183,20 @@ class NoSignalTrailMapTest {
     }
 
     @Test
-    fun `the offline flag a screen sets wins whatever the signal`() {
+    fun `the offline flag a screen sets wins whatever the signal, downloaded area or not`() {
         listOf(false, true).forEach { noSignal ->
-            Basemap.entries.forEach { basemap -> assertEquals(true, drawsFromDownloads(useOfflineTiles = true, basemap = basemap, noSignal = noSignal)) }
+            listOf(false, true).forEach { area ->
+                Basemap.entries.forEach { basemap ->
+                    assertEquals(true, drawsFromDownloads(useOfflineTiles = true, basemap = basemap, noSignal = noSignal, hasDownloadedArea = area))
+                }
+            }
         }
     }
 
     @Test
     fun `drawn from the downloads, OSM and Topo load the regions' style by URL, credited as such, and never fall back`() {
         for (basemap in listOf(Basemap.OSM_STANDARD, Basemap.OPEN_TOPO_MAP)) for (night in listOf(false, true)) {
-            val offline = drawsFromDownloads(useOfflineTiles = false, basemap = basemap, noSignal = true)
+            val offline = drawsFromDownloads(useOfflineTiles = false, basemap = basemap, noSignal = true, hasDownloadedArea = true)
             for (regionsStyle in listOf(OFFLINE_STYLE_URL, STREET_STYLE_URL, STREET_STYLE_V1_URL)) {
                 val source = mapStyleSourceFor(basemap, night, useOfflineTiles = offline, offlineStyleUrl = regionsStyle)
                 assertEquals("$basemap night=$night", MapStyleSource.Uri(regionsStyle), source)
