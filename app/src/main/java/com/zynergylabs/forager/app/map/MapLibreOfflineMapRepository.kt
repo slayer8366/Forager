@@ -127,6 +127,14 @@ class MapLibreOfflineMapRepository(
         region: Region,
         onProgress: (downloaded: Int, total: Int) -> Unit,
         onRouteStep: () -> Unit,
+    ): Result<OfflineRegionSummary> = download(name, region, onProgress, onRouteStep, onPauseChanged = {})
+
+    override suspend fun download(
+        name: String,
+        region: Region,
+        onProgress: (downloaded: Int, total: Int) -> Unit,
+        onRouteStep: () -> Unit,
+        onPauseChanged: (paused: Boolean) -> Unit,
     ): Result<OfflineRegionSummary> = runCatchingCancellable {
         val definition = OfflineTilePyramidRegionDefinition(
             // OFFLINE_STYLE_URL, unless the own Street is on (StreetStyle.kt): then the Street style.
@@ -154,7 +162,7 @@ class MapLibreOfflineMapRepository(
                 inFlightRegionIds += id
             }
             try {
-                offlineRegion.downloadToCompletionSuspend(onProgress)
+                offlineRegion.downloadToCompletionSuspend(onProgress, onPauseChanged)
             } catch (e: Exception) {
                 // Never leave a half-downloaded region looking like a complete one.
                 offlineRegion.deleteSuspend()
@@ -364,6 +372,7 @@ private suspend fun OfflineManager.createOfflineRegionSuspend(
  */
 private suspend fun OfflineRegion.downloadToCompletionSuspend(
     onProgress: (downloaded: Int, total: Int) -> Unit,
+    onPauseChanged: (paused: Boolean) -> Unit,
 ): OfflineRegionStatus = suspendCancellableCoroutine { continuation ->
     // Dispatch 2026-10-23-06 Amendment 3: a connection, timeout or server error pauses the download rather than ending
     // it; MapLibre keeps that request and retries it itself (DownloadPause.kt has the source lines). The usual error
@@ -394,6 +403,7 @@ private suspend fun OfflineRegion.downloadToCompletionSuspend(
             onProgress(status.completedResourceCount.toInt(), status.requiredResourceCount.toInt())
             if (pause.onProgress(completed)) {
                 handler.removeCallbacks(giveUp)
+                onPauseChanged(false)
                 Log.i(TAG, "Offline region download continuing: ${status.completedResourceCount} of ${status.requiredResourceCount} done.")
             }
             if (status.isComplete && continuation.isActive) {
@@ -410,6 +420,7 @@ private suspend fun OfflineRegion.downloadToCompletionSuspend(
                     lastPauseError = "${error.reason}: ${error.message}"
                     Log.i(TAG, "Offline region download paused after $completed done: $lastPauseError; MapLibre retries it, the usual error after ${DOWNLOAD_PAUSE_LIMIT_MS / 1000} s without progress.")
                     handler.postDelayed(giveUp, decision.giveUpAtMs - now)
+                    onPauseChanged(true)
                 }
                 DownloadPauseDecision.StillPaused -> lastPauseError = "${error.reason}: ${error.message}"
                 DownloadPauseDecision.Fail -> {

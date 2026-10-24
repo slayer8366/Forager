@@ -153,12 +153,17 @@ internal fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
                 // The owner's step path A, "the bar says 'Getting trail routes' for a moment" (Amendment 1, L4).
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text(ROUTES_GETTING, style = MaterialTheme.typography.bodySmall)
-            } else if (status.total > 0) {
+            } else if (status.total > 0 || status.paused) {
+                // While paused the bar stays at the last count (dispatch 2026-10-23-06 Amendment 4); a pause before any
+                // count holds it at the start rather than leaving it moving.
                 LinearProgressIndicator(
-                    progress = { status.downloaded.toFloat() / status.total },
+                    progress = { if (status.total > 0) status.downloaded.toFloat() / status.total else 0f },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("${status.downloaded} / ${status.total} tiles", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (status.paused) DOWNLOAD_PAUSED else "${status.downloaded} / ${status.total} tiles",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             } else {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text("Starting download…", style = MaterialTheme.typography.bodySmall)
@@ -172,3 +177,9 @@ internal fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
         )
     }
 }
+
+/**
+ * What a download's progress says while it waits for signal, in place of the count (dispatch 2026-10-23-06 Amendment 4,
+ * RECORD -1591; the owner chose "Yes, in #386", whose option text was this line).
+ */
+internal const val DOWNLOAD_PAUSED = "Paused · no signal · continues by itself"

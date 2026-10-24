@@ -261,7 +261,6 @@ internal class AvailabilityOfflineMaps(
      * continuing. The counts are kept, so the bar stays where it was.
      */
     private fun showPaused(paused: Boolean) {
-        return // FAILING-FIRST STUB
         updateState { state ->
             val status = state.offlineDownloadStatus as? OfflineMapStatus.Downloading ?: return@updateState state
             state.copy(offlineDownloadStatus = status.copy(paused = paused))
