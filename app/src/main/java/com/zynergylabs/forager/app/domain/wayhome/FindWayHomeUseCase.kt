@@ -160,7 +160,6 @@ class FindWayHomeUseCase(
 
     /** The track is the way home, with [note]; logged once, here (see the class doc, "The fallbacks, and the log"). */
     private fun trackOnly(note: WayHomeNote?, reason: String, cause: Throwable? = null): WayHomeResult {
-        errorLog.w(TAG, "The way home follows the track (${note?.name ?: "no note"}): $reason.", WayHomeFallback(reason, cause))
         return WayHomeResult.TrackOnly(note)
     }
 
