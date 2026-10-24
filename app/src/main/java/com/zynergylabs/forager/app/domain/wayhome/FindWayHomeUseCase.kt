@@ -89,7 +89,7 @@ class FindWayHomeUseCase(
         }
         val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
         val trailMeters = route.lengthMetres + joints
-        val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
+        if (trailMeters < 100.0) return trackOnly(null, "short trail part"); val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
         // RECORD -1600, the owner: "Switch to (b)": the length check only runs when the walker went over
         // WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS between the two trail points. Under that, a trail only crossed or walked
         // beside can trip it on its joints alone and falsely say the route leaves the area (Sorrel's review of #389,
