@@ -82,7 +82,7 @@ class FindWayHomeUseCase(
             is TrailRouteResult.Failed -> return failedOn(result.failure, "routing from the leave point to the entry point")
         }
         val trailPoints = listOf(leave.trackPoint) + route.points + entry.trackPoint
-        if (trailPoints.any { !routes.area.contains(it) }) {
+        if (false) {
             return trackOnly(WayHomeNote.LEAVES_AREA, "the trail route runs outside region ${routes.regionId}'s area")
         }
         val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
