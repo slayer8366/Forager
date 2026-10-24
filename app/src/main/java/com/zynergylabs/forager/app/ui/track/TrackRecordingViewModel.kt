@@ -745,7 +745,6 @@ class TrackRecordingViewModel(
         }
         handStartPointToWatch()
         // Dispatch 2026-10-24-10: the way home along trails is worked out now; the track shows until it swaps in.
-        wayHomeWatch?.find(active.trackId, uiState.value.originWaypoint)
         // Restarted so the track the route tick routes along is read now, not up to 15 s from now.
         // Restarting also re-reads the breadcrumbs, which is harmless, and the network-fixes notice
         // is guarded by its own once-per-recording flag. Launched before copyFromWatch starts the
