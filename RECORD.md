@@ -27291,3 +27291,17 @@ The website copy and Play's Data safety form follow after the merge.
 **Observed:** Sorrel's review of #387 (Fable): no Blocker; M1 (tile, font and icon caches missing), M2 (a missed re-ask trigger), L1–L6. All fixed in b41324a76; CI run 40052699316 green.
 **Decision:** the owner chose "Approve (Recommended)" for the corrected text, and "None (checked)": no Logpush job in the Cloudflare account.
 **Notes:** Written by the planner by hand. Next free ID -1585.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1585
+**Timestamp:** 2026-10-24T02:29:02Z
+**Continues:** 2026-09-28-1582
+**Title:** #387 merged; tile retry: downloads pause and get their own lane (owner)
+**Observed:**
+- S22, #386 build 3884: the bare patch filled in about 10 s after Wi-Fi returned; the 5-minute limit gave up cleanly; the download failed at once.
+- The engine keeps a failed download request and retries it; Forager's first-error handling deletes the region (MapLibreOfflineMapRepository.kt:367-377, :153).
+- No request field marks a download; the engine's flag is dropped before OkHttp.
+**Decision:** the owner chose "Pause + own lane (Recommended)" (dispatch 06 Amendment 3) and "Merge now (Recommended)" for #387, merged into pre-main as adcbedb19.
+**Notes:** Written by the planner by hand. Supersedes the separate-holds design of -1582. Next free ID -1586.
