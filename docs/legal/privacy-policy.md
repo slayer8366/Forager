@@ -70,9 +70,12 @@ app, under its own terms, not a request Forager makes.
 
 Downloading an offline region issues a large number of tile requests to the Cloudflare Worker in a
 short time, covering the whole region — that is the download. The app then asks the Worker for that
-region's trail routes: one request carrying the region's edges and the app key, then one request per
-route file, each carrying the same edges. It asks again for a region whose routes are missing when you
-open Offline maps with signal, or tap "Try again" (`AvailabilityViewModelOfflineMaps.kt`). Once a region
+region's trail routes: one request carrying the region's edges, then one request per route file, each
+carrying the same edges. Every one of these route requests carries the app key (`RouteAreaClient.kt`).
+If the Worker's route data is replaced between the first request and the files, the app asks once more,
+the same way (`RouteAreaFetch.kt`). It asks again for a region whose routes are missing when you open
+Offline maps with signal, when the signal returns while Offline maps is on screen, or when you tap "Try
+again" (`AvailabilityViewModelOfflineMaps.kt`). Once a region
 is downloaded, the map inside it can be drawn with no connection at all. Searching still makes
 requests.
 
@@ -87,9 +90,10 @@ on 2026-09-09, where the Worker's Logs tab reported observability disabled.
 
 The Worker's own code writes a few warning and error lines, when its own data is missing, damaged
 or misconfigured (`console.warn` and `console.error` in `server/pmtiles-worker/src/index.ts` and
-`server/pmtiles-worker/src/routing/handler.ts`). None of them carries an IP address, the app key, a
-tile or an area's edges. The most any of them names is a five-degree square of the route data, such
-as `W125_N45`, and, for a damaged route file, the one-degree cell inside it. With observability off,
+`server/pmtiles-worker/src/routing/handler.ts`). What they can carry is about the Worker's own data:
+the names of its data files, their sizes and positions inside them, the build of the route data, and
+route squares of five degrees, such as `W125_N45`, with, for a damaged route file, the one-degree cell
+inside it. None of them carries an IP address, the app key, a tile or an area's edges. With observability off,
 these lines are not stored anywhere. Only the developer can see them, live, in a tail session
 (`wrangler tail`) while one is open; Cloudflare documents that a tail session also shows each request
 as it arrives. Nothing from a tail session is kept.
@@ -100,15 +104,16 @@ that can move.
 
 No per-request log is kept by any other route either. Logpush and Logpull for HTTP requests are
 Enterprise-only. The Worker's account is on the Workers Paid plan, where Workers Trace Events Logpush
-is available, but it is not turned on for this Worker: Cloudflare pushes a Worker's events only when
-its configuration sets `logpush = true`, and `wrangler.toml` does not. The zone-level
+is available. It is not set up for this Worker: `wrangler.toml` does not set `logpush = true`, and no
+Logpush job sends this Worker's events anywhere. The zone-level
 `httpRequestsAdaptive` dataset that retains 7 days on the Free plan covers `zynergy-labs.com`, not
 `*.workers.dev`. Workers metrics show aggregate request counts, not individual requests.
 
-To limit route requests to 30 a minute from one address, the Worker counts them by IP address in
-Cloudflare's rate-limiting counters, over a one-minute period (`wrangler.toml`, `[[ratelimits]]`;
-`server/pmtiles-worker/src/routing/handler.ts`). The count is how the limit works; it is not a list of
-requests.
+To limit route requests, the Worker counts them in Cloudflare's rate-limiting counters, over a
+one-minute period: 30 a minute from one IP address, and 600 a minute in all on the one app key that
+every copy of the app shares, which counts the app's traffic, not any person's (`wrangler.toml`,
+`[[ratelimits]]`; `server/pmtiles-worker/src/routing/handler.ts`). The counts are how the limits work;
+they are not a list of requests.
 
 Cloudflare, as the host, processes these requests under its own privacy policy. **No retention
 figure for request records is published here, because no setting of ours produces one.** That is the answer to the
@@ -117,11 +122,14 @@ documents no figure for host-level records. This section previously carried an o
 retention figure, with an instruction not to guess one. The resolution turned out to be that no
 figure applies.
 
-One setting of ours does keep something for a set time, and it is not a record of a request: a
-trail-route file the Worker cuts for an area is kept in Cloudflare's cache, at the location that
-served it, for up to 30 days (`max-age=2592000`, `server/pmtiles-worker/src/routing/handler.ts`),
-under an address that includes the area's edges, so that the same area asked for again is not cut
-again. It holds the area's routes, not who asked for them or when.
+What our settings do keep for a set time is content, not records of requests. The Worker keeps
+copies of what it serves in Cloudflare's cache, at the location that served them, so the same thing
+asked for again is not read or cut again: map tiles and the map's tile descriptions for up to a day,
+under their tile address (`max-age=86400`, `server/pmtiles-worker/src/index.ts:509`, `:516`); the
+map's fonts and icons for up to seven days (`max-age=604800`, `index.ts:392`, `:447`); and a
+trail-route file cut for an area for up to 30 days, under an address that includes the area's edges
+(`max-age=2592000`, `server/pmtiles-worker/src/routing/handler.ts:47`, `:128`). Each copy is kept
+under its own address, and none records who asked for it or when.
 
 Nothing about these requests is linked to any account, because the app has none. Nothing is sold,
 shared with anyone else, or used for advertising or profiling.

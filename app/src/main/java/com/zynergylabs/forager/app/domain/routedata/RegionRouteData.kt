@@ -143,8 +143,9 @@ fun RouteDataMissingReason.retryHelps(): Boolean = this !in NOT_RETRYABLE
 /**
  * Whether the routes are missing because of this app, not the area: the server refused its key ([FORBIDDEN][RouteDataMissingReason.FORBIDDEN],
  * a wrong key in a build or a key rotated on the Worker after the build shipped), or the build has none
- * ([NO_APP_KEY][RouteDataMissingReason.NO_APP_KEY], a developer build without the key; a release build cannot be made
- * without one, `verifyReleaseHasRoutingAppKey`). Either way only a different build fixes it, so the row says "Map
+ * ([NO_APP_KEY][RouteDataMissingReason.NO_APP_KEY], a developer build without the key; a Play build cannot be made
+ * without one, since `verifyReleaseHasRoutingAppKey` guards `assembleRelease` and `bundleRelease`, though CI's
+ * unsigned release-compile job builds the release variant without a key). Either way only a different build fixes it, so the row says "Map
  * only. Trail routes need an app update." (dispatch 2026-10-23-07, Elder's item 2, the owner's sentence) instead of
  * C's line, which would state something false about the area.
  */
