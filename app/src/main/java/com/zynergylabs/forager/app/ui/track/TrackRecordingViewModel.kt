@@ -559,7 +559,7 @@ class TrackRecordingViewModel(
         originCreationInFlight = false
         takeUp.clear()
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null, backBy = null)
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null, backBy = null, breadcrumbPoints = emptyList())
         }
     }
 
