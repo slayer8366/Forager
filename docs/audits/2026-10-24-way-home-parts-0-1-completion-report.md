@@ -323,7 +323,7 @@ So it bites only when the walk starts off the network. That is plausible for a f
   - The loop kept its shortcut, as it should, because its ratio passes.
 - **Revert check 2** (`way-home-a4-revert-2`, run 40082622304): Amendment 3's rule put back as one line, `if (trailMeters < 100.0) return trackOnly(null, "short trail part")`. Zero `e:` lines. 29 tests, 2 failures, the crossing and the loop, each `TrackOnly(note=null)`. Their log reads "short trail part", a string that exists only in this revert, so the result is from this build.
 - **How the revert branches were made.** This time I built them with git plumbing (a temporary index, `commit-tree`) from an edited copy in `/tmp/a4-work`, so the working tree was never edited. The forward file was saved to `/tmp/a4-save` first. Afterwards its SHA-1 matched the saved copy, `git status` was clean, and `HEAD` was `7e4dd4f31`. Each revert branch differs from `7e4dd4f31` by one line (`git diff --stat`). The branches are left on the remote.
-- **Full suite** (#389, run 40083121709, on `7e4dd4f31`): FULL_SUITE_A4
+- **Full suite** (#389, run 40083121709, on `7e4dd4f31`): `success`, every job, on the second attempt. 731 suites, 5,485 tests, 0 failures, 24 skipped, counted from the run's own test-result files; zero `e:` lines. That is the same count as Amendment 3: four tests replaced four. On the first attempt, only the Android lint job failed. It could not install Android SDK Build-Tools 36 ("Error reading Zip content from a SeekableByteChannel"), which is a download failure on the runner and has nothing to do with this change. I re-ran only that job, and it passed. No test or check was skipped.
 
 ### Confirmed vs inferred
 
