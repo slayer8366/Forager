@@ -27682,3 +27682,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel, dispatch 2026-10-24-09: dev-rebased-177215135 at 7517c146c; 23 commits in order, only the dev-tools commit with hand-resolved conflicts (imports; one edit moved to TrackRecordingWatchCopies.kt); nothing of main's lost; all 389 dev cases present and unchanged. CI run 40104529178 failed: 5832 tests, 3 failed with OutOfMemoryError in toPixelMap (MapCreditCaptionNoOutlineDayTest, -NightTest, MapCreditCaptionTouchTest), which pass on main 177215135 (40104009411), pre-main and old dev. Cause inferred (heap pressure from dev's extra cases), not verified.
 **Decision:** the owner: "Park until after hike (Recommended)". dev stays at 82b55f06a; after part 2, one re-run, then a diagnosis if it repeats.
 **Notes:** Written by the planner by hand. Next free ID -1616.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1616
+**Timestamp:** 2026-10-24T19:07:52Z
+**Continues:** 2026-09-28-1614
+**Title:** Part 2 not ready for the hike: a sundown safety test fails in B and C; the owner hikes without it (owner)
+**Observed:** #395 (B) at 82da028e2, run 40109476203, and #396 (C) at e00a20557, run 40109484404: one failure each, the same test, ReturnWalkingTimeAlongTest "the track's degrade rules still apply, and a lost fix withholds" (ReturnWalkingTimeAlongTest.kt:40). The session usage limit stopped Hazel and both Sorrel reviews about 09:30 PDT (reset 11:20). #394 (A): Sorrel merge-ready, 0 Blocking, 0 M, 3 L (prompts/preserved/2026-10-24-sorrel-394-review.md, e6a431d95).
+**Decision:** the owner: "Hike without it (Recommended)". Hazel fixes the failure now; the pace of -1614 ends, so B's revert checks are done before review completes; the owner tests part 2 on a later walk with a build that passes.
+**Notes:** Written by the planner by hand. Next free ID -1617.
