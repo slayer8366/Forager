@@ -27430,3 +27430,16 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - "One line for both (Recommended)": "Paused · continues by itself", as a fix after the promotion;
 - "Delete the test areas", for regions 2, 3 and 4 on the S22.
 **Notes:** Written by the planner by hand. Next free ID -1595.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1595
+**Timestamp:** 2026-10-24T07:45:40Z
+**Continues:** 2026-09-28-1594
+**Title:** Promotion carries on: Elder re-checks #386; a failed route fetch reads "not downloaded" (owner)
+**Observed:** CI is green on pre-main fefc89129 (run 40072059837). #386 added a visible line after Elder's audit.
+**Decision:** the owner:
+- "Yes, carry on (Recommended)": Elder re-checks adcbedb19..fefc89129 (dispatch 2026-10-24-01), then the S22 phone check, the main backup and the diff read, then the promotion PR;
+- "Yes, that's right", to a failed route fetch reading "Trail routes not downloaded · following your track" (#389).
+**Notes:** Written by the planner by hand. Next free ID -1596.
