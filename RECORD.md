@@ -27332,3 +27332,14 @@ Waypoints and alerts follow as separate dispatches.
 **Observed:** pre-main adcbedb19, main 381515c61. Running: tile retry #386 (Amendment 3, holds the S22) and the way-home report (dispatch 09).
 **Decision:** the owner: "Write a handoff for another session also".
 **Notes:** Written by the planner by hand. prompts/preserved/2026-10-23-planner-handoff.md. Next free ID -1588.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1588
+**Timestamp:** 2026-10-24T03:41:04Z
+**Continues:** 2026-09-28-1587
+**Title:** The new planner session carries on (owner)
+**Observed:** No commits newer than -1587 on records-after-173, pre-main (adcbedb19) or tile-retry (f0b087b5c). way-home-report has no commits beyond pre-main and is not on the remote. The outgoing session is not visible from this one.
+**Decision:** the owner, asked which session carries on: "This session carries on".
+**Notes:** Written by the planner by hand. Next free ID -1589.
