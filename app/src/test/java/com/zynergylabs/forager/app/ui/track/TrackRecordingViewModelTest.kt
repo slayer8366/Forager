@@ -313,6 +313,8 @@ class TrackRecordingViewModelTest {
         vm.stopRecording()
 
         assertNull(vm.uiState.value.activeTrack)
+        // No point was ever polled here, so this cannot fail; the clear on Stop is tested by
+        // `the recording line is cleared by the screen's Stop` (dispatch 2026-10-24-05).
         assertTrue(vm.uiState.value.breadcrumbPoints.isEmpty())
 
         // If the poll job weren't actually cancelled, this would hang forever the same way an
@@ -336,6 +338,56 @@ class TrackRecordingViewModelTest {
         assertEquals(listOf(45.0), vm.uiState.value.breadcrumbPoints.map { it.lat })
 
         vm.stopRecording()
+    }
+
+    /**
+     * Dispatch 2026-10-24-05 (RECORD -1602): the dotted recording line stayed on the map after Stop, until the
+     * next Record or the process ended, because `clearRecordingState` reset every recording field but
+     * [TrackRecordingUiState.breadcrumbPoints] (found on the S22, report 2026-10-24-04). The poll has read
+     * points first, so the list is not empty before Stop: the assertion in
+     * `stopping clears active state and the poll loop stops scheduling further work` runs before any point is
+     * read, and passes with or without the clear.
+     */
+    @Test
+    fun `the recording line is cleared by the screen's Stop`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("the line is drawn while recording", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        vm.stopRecording()
+        runCurrent()
+
+        assertEquals("no recording line after Stop", emptyList<TrackPoint>(), vm.uiState.value.breadcrumbPoints)
+    }
+
+    /**
+     * The same, for Stop from the notification: the service ends the row and reports it through [TrackEnds],
+     * and this screen clears through the resync (`onTrackEnded`), never through [TrackRecordingViewModel.stopRecording].
+     * The test plays the service's part in its order, store and then report.
+     */
+    @Test
+    fun `the recording line is cleared by Stop from the notification`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val trackEnds = TrackEnds()
+        val vm = viewModel(trackRepository, trackEnds = trackEnds)
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("the line is drawn while recording", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        trackRepository.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+
+        assertFalse("the screen took the notification's Stop", vm.uiState.value.isRecording)
+        assertEquals("no recording line after Stop from the notification", emptyList<TrackPoint>(), vm.uiState.value.breadcrumbPoints)
     }
 
     /**
