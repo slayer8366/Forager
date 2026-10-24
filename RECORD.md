@@ -27595,3 +27595,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** PR #393's two runs (push 40102450509, pull_request 40102486133) green on bfbaca47c; merge state clean. The owner showed the Worker's "Disable builds" switched off. The live Worker is 1a85a35e (pre-main 54f4d56c4); between it and main, server/pmtiles-worker changes only one README line.
 **Decision:** the owner: "Merge it". Merged as 177215135 (parents 381515c61 and bfbaca47c). Next: the first Worker build from main checked live; #389 into pre-main (-1603); dev rebased onto main (-1087); the first release run on the owner's approval; the website privacy policy and Play's Data safety form.
 **Notes:** Written by the planner by hand. Next free ID -1609.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-1609
+**Timestamp:** 2026-10-24T14:48:17Z
+**Continues:** 2026-09-28-1608
+**Title:** The Worker builds from main and is checked live (a5c79d5c); #389 merged into pre-main (owner)
+**Observed:** Cloudflare's first build from main deployed version a5c79d5c at 14:47Z. Live: us.json bounds south -85.05; 8/75/124 served 200 from r2-world-south (an edge cache HIT, so not proof of the new build); /routing/area.json without the key 403. The rollback is 1a85a35e. #389 (8043e2b50) shares no file with 073fc77bd..pre-main and trial-merges clean.
+**Decision:** the owner: "After the promotion (Recommended)" (-1603). #389 merged as c83a06722, pinned to 8043e2b50. pre-main's push CI checks the merge.
+**Notes:** Written by the planner by hand. Still to do: dev rebased onto main (-1087); the first release run on the owner's approval; the website privacy policy and Play's Data safety form. Next free ID -1610.
