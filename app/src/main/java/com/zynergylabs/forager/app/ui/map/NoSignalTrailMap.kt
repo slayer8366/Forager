@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -87,7 +88,15 @@ internal val LocalHasDownloadedArea = compositionLocalOf { false }
 internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, fallback: OwnStreetFallback = OWN_STREET_FALLBACK): Boolean {
     val flow = LocalNoSignal.current ?: return useOfflineTiles
     val noSignal by flow.collectAsState()
-    return drawsFromDownloads(useOfflineTiles, basemap, noSignal, LocalHasDownloadedArea.current, trailMapDraws = fallback.ownStreet())
+    val hasArea = LocalHasDownloadedArea.current
+    val trailMapDraws = fallback.ownStreet()
+    // The kept map is a fallback of its own (CLAUDE.md: logged when it fires): no signal would have drawn from the
+    // downloads, and there are none.
+    val keptForNoArea = noSignal && !hasArea && !useOfflineTiles && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws)
+    LaunchedEffect(keptForNoArea, basemap) {
+        if (keptForNoArea) Log.i(NO_SIGNAL_LOG_TAG, "No validated network and no downloaded area: $basemap stays as chosen, from what is cached.")
+    }
+    return drawsFromDownloads(useOfflineTiles, basemap, noSignal, hasArea, trailMapDraws)
 }
 
 /**
@@ -100,7 +109,7 @@ internal fun noSignalState(context: Context, scope: CoroutineScope): StateFlow<B
             Log.i(
                 NO_SIGNAL_LOG_TAG,
                 if (noSignal) {
-                    "No validated network (${NO_SIGNAL_SWITCH_DELAY_MS / 1000} s): OSM and Topo maps draw Forager Trail Map from the downloaded areas."
+                    "No validated network (${NO_SIGNAL_SWITCH_DELAY_MS / 1000} s): OSM and Topo maps draw Forager Trail Map from the downloaded areas, if any."
                 } else {
                     "Validated network (${SIGNAL_RETURN_SWITCH_DELAY_MS / 1000} s, or at start): maps draw the chosen map type."
                 },
