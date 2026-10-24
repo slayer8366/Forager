@@ -27365,3 +27365,14 @@ Waypoints and alerts follow as separate dispatches.
 
 The planner's calls: the length check flags a route over 1.5× the track home, provisional; TrackRecordingViewModel.kt (958 lines) is split before adding, per -1490.
 **Notes:** Written by the planner by hand. Next free ID -1590.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1590
+**Timestamp:** 2026-10-24T04:27:30Z
+**Continues:** 2026-09-28-1589
+**Title:** Way home: build parts 0 and 1 (owner's go)
+**Observed:** Report accepted; choices in -1589. The tile-retry Hazel holds the S22.
+**Decision:** the owner: "Go ahead and get started". Dispatch 2026-10-23-09 Amendment 1: split TrackRecordingViewModel.kt, then the cancel fix and the way-home domain code, nothing visible. Each part is its own PR into pre-main.
+**Notes:** Written by the planner by hand. Next free ID -1591.
