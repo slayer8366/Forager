@@ -92,7 +92,7 @@ class WayHomeWatchTest {
     }
 
     @Test
-    fun `Stop, and the service ending, cancel the work and show nothing; another track's end is ignored`() {
+    fun `Stop, and the service ending, cancel the work and show nothing, and another track's end is ignored`() {
         watch.find("t1", null)
         scope.runCurrent()
         watch.stop("t1")
@@ -124,7 +124,7 @@ class WayHomeWatchTest {
     }
 
     @Test
-    fun `a stray over 50 m re-routes once; the line stays until the new one; within 45 m re-arms it`() {
+    fun `a stray over 50 m re-routes once, the line stays until the new one, and within 45 m re-arms it`() {
         foundOnFirstReturn()
         watch.onFix(gps(-60.0, -50.0), FixProvider.GPS)
         scope.runCurrent()
