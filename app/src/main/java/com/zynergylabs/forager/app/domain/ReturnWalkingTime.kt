@@ -64,6 +64,24 @@ fun returnWalkingTime(
     if (current == null || fixFreshness == FixFreshness.LOST) return ReturnWalkingTime.Withheld(WithholdReason.NO_FIX)
     if (track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
     val path = pathHome(track, current, origin, previousHopBand) ?: return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
+    return estimateAlong(track, path, fixFreshness)
+}
+
+/**
+ * The walking time along the way home shown, in place of the walked track (dispatch 2026-10-24-10; RECORD -1589,
+ * "app-wide", "Track until Return"): [path] is the distance home along that line from the walker's place
+ * (`domain/wayhome/WayHomeProgress`), as a [PathHome] so every rule above reads it unchanged. The pace, and every
+ * degrade and withhold rule, are [returnWalkingTime]'s, read from [track] as there; only the distance differs. Its
+ * one caller is `SundownWatch`, while a way home along trails is shown and the walker is placed on it.
+ */
+fun returnWalkingTimeAlong(track: Track, path: PathHome, fixFreshness: FixFreshness): ReturnWalkingTime {
+    if (fixFreshness == FixFreshness.LOST) return ReturnWalkingTime.Withheld(WithholdReason.NO_FIX)
+    if (track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
+    return estimateAlong(track, path, fixFreshness)
+}
+
+/** The estimate over [path], the part [returnWalkingTime] and [returnWalkingTimeAlong] share. */
+private fun estimateAlong(track: Track, path: PathHome, fixFreshness: FixFreshness): ReturnWalkingTime {
     val pace = movingPace(track.points)
 
     val reasons = buildSet {
