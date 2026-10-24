@@ -27643,3 +27643,20 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - holding part 2 back: "We won't promote until step 7 lands". No switch; pre-main is not promoted until step 7;
 - "Short report first (Recommended)": Hazel reports on dispatch 2026-10-24-10, then the owner's go to build.
 **Notes:** Written by the planner by hand. Next free ID -1613.
+
+---
+
+**Kind:** dispatch
+**ID:** 2026-09-28-1613
+**Timestamp:** 2026-10-24T15:15:54Z
+**Continues:** 2026-09-28-1612
+**Title:** Way home part 2: the report's proposals ruled; build PRs A, B and C (dispatch 2026-10-24-10 Amendment 1) (owner)
+**Observed:** Hazel's report (docs/audits/2026-10-24-10-way-home-part-2-report.md, 818974203). Two premises were wrong: sundown app-wide needs work that outlives the screen; and once-plus-stray routing leaves the walker's place on a trail line unruled, against PathHome.kt's "never short" ruling. Nothing installs the routing profile.
+**Decision:** the owner:
+- placement: "A, plus 25 m (Recommended)": the first point ahead within 25 m, plus 25 m added, so never short;
+- "Yes, keep working (Recommended)": the way-home work is held by the process, beside the return and sundown watches;
+- the cap: "150 m, no note (Recommended)";
+- the short form: "Route leaves your downloaded area" (Recommended);
+- the rest: "Accept all (Recommended)" (stray judge 50 m / 45 m, track-only line solid, sundown on the track when over 50 m off, the timing run on a throwaway branch);
+- "Start building (Recommended)": PRs A, B, C in order; Sorrel reviews each; each merge on the owner's word.
+**Notes:** Written by the planner by hand. The planner's call (10.4.9): a test rig composing the real recording ViewModel into the screen, with a coordinate-touch test. Next free ID -1614.
