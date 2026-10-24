@@ -80,7 +80,11 @@ import org.robolectric.Shadows
  * suggestion tests. What the map is handed is read from the [MapSlot] the screen composes: [mapSightings] is the
  * `content.sightings` of its latest composition. Every touch is real, at screen coordinates, in touch mode.
  */
-internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>) {
+internal class RealSearchScreenRig(
+    private val composeRule: AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>,
+    /** The offline maps the ViewModel is handed: none, unless a test drives a download (DownloadPausedShownTest). */
+    private val offlineMapRepository: OfflineMapRepository = RigNoOfflineMaps,
+) {
 
     /** Every sightings fetch the ViewModel made: region, month and filter. */
     val sightingsFetches = mutableListOf<Triple<Region, Int, TaxonFilter>>()
@@ -186,7 +190,7 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
             savePlannedTrip = SavePlannedTripUseCase(RigNoTrips),
             deletePlannedTrip = DeletePlannedTripUseCase(RigNoTrips),
             getSeasonalPattern = GetSeasonalPatternUseCase(GetSightingsUseCase(repository), RigNoWeather, ComputeFruitingLagDistributionUseCase()),
-            offlineMapRepository = RigNoOfflineMaps,
+            offlineMapRepository = offlineMapRepository,
             mapPreferencesRepository = RigNoMapPreferences,
             unitSystemPreferenceRepository = RigMetricUnits,
             appThemePreferenceRepository = RigLightTheme,

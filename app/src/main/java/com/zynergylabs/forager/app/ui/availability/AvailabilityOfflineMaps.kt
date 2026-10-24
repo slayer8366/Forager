@@ -188,8 +188,9 @@ internal class AvailabilityOfflineMaps(
             offlineMapRepository.download(
                 row.name,
                 row.region,
-                onProgress = { downloaded, total -> updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) } },
+                onProgress = ::showProgress,
                 onRouteStep = ::showGettingTrailRoutes,
+                onPauseChanged = ::showPaused,
             ).fold(
                 onSuccess = { downloadedRegion ->
                     onDownloaded(downloadedRegion)
@@ -216,8 +217,9 @@ internal class AvailabilityOfflineMaps(
             offlineMapRepository.download(
                 name,
                 region,
-                onProgress = { downloaded, total -> updateState { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) } },
+                onProgress = ::showProgress,
                 onRouteStep = ::showGettingTrailRoutes,
+                onPauseChanged = ::showPaused,
             ).fold(
                 onSuccess = { downloadedRegion ->
                     onDownloaded(downloadedRegion)
@@ -239,6 +241,30 @@ internal class AvailabilityOfflineMaps(
                     }
                 },
             )
+        }
+    }
+
+    /**
+     * The download's progress. A pause it is in stays shown through it: MapLibre reports status while paused too, with
+     * the same count, and only the download says when it continues ([showPaused], dispatch 2026-10-23-06 Amendment 4).
+     */
+    private fun showProgress(downloaded: Int, total: Int) {
+        updateState { state ->
+            val paused = (state.offlineDownloadStatus as? OfflineMapStatus.Downloading)?.paused == true
+            state.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total, paused = paused))
+        }
+    }
+
+    /**
+     * The download paused because the signal went, or continued by itself (dispatch 2026-10-23-06 Amendment 4, RECORD
+     * -1591): the progress says "Paused · no signal · continues by itself" in place of the count, which comes back on
+     * continuing. The counts are kept, so the bar stays where it was.
+     */
+    private fun showPaused(paused: Boolean) {
+        return // FAILING-FIRST STUB
+        updateState { state ->
+            val status = state.offlineDownloadStatus as? OfflineMapStatus.Downloading ?: return@updateState state
+            state.copy(offlineDownloadStatus = status.copy(paused = paused))
         }
     }
 
