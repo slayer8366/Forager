@@ -179,6 +179,8 @@ class BRouterTrailRouterTest {
         assertTrue(pending.await() is TrailRouteResult.Found)
     }
 
+    // Since the cancel fix (#382 M1) this proves the engine is *built* on the router's dispatcher, where a missing profile
+    // fails; the search itself runs on the `brouter-engine` thread (BRouterTrailRouter's class doc, "Threading"). L-389-4.
     @Test
     fun `the engine runs on the router's own thread, and an engine that cannot start is a logged failure`() {
         val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "trail-router-test") }

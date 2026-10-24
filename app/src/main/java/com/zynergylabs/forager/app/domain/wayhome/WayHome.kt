@@ -59,10 +59,17 @@ enum class WayHomeNote(val text: String) {
 
     /**
      * The region's routes are not on the phone: never fetched, or the fetch failed (RECORD -1592, the owner: "Two honest
-     * notes"). The failed fetch is the coder's reading of that ruling, reported for the owner: it is routes not downloaded,
-     * not routes known to be absent.
+     * notes"; a failed fetch confirmed by the owner, RECORD -1595), except a fetch only an app update can fix
+     * ([ROUTES_NEED_APP_UPDATE]).
      */
     ROUTES_NOT_DOWNLOADED("Trail routes not downloaded · following your track"),
+
+    /**
+     * The region's routes were refused because of this app, not the area: the server refused its key, or the build has
+     * none (`RouteDataMissingReason.needsAppUpdate`). Only a different build fixes it, as the Offline maps row says ("Map
+     * only. Trail routes need an app update."). RECORD -1597, the owner: "Say \"needs an update\"".
+     */
+    ROUTES_NEED_APP_UPDATE("Trail routes need an app update · following your track"),
 
     /** The region's routes are being fetched now (RECORD -1592). */
     ROUTES_FETCHING("Getting trail routes… · following your track"),
@@ -88,7 +95,8 @@ sealed interface WayHomeResult {
     /**
      * The way home is the walker's track ([com.zynergylabs.forager.app.domain.routeHome], as today). [note] says why,
      * shown beside it. `null` when the track is the way home and there is nothing to explain: too few points to have a
-     * way home at all, or a track that touches a trail only where it first joined one, so no trail route is shorter.
+     * way home at all, a track that touches a trail only where it first joined one, so no trail route is shorter, or a
+     * trail part under [WAY_HOME_SHORT_TRAIL_METERS] (RECORD -1597).
      */
     data class TrackOnly(val note: WayHomeNote?) : WayHomeResult
 }
@@ -110,6 +118,17 @@ const val WAY_HOME_TRAIL_JOIN_METERS = 25.0
  * how often a true trail route is this much longer than a track; the figure is a first guess to be tuned.
  */
 const val WAY_HOME_DETOUR_RATIO = 1.5
+
+/**
+ * A trail part shorter than this, its two joints included, gives the track home with no note, before the
+ * [WAY_HOME_DETOUR_RATIO] check runs (RECORD -1597, the owner's option (c): "a trail part under a short provisional length
+ * gives the track home with no note"; 100 m is the planner's figure, RECORD -1598). **Provisional**, like the 25 m and
+ * the 1.5×. Why 100 m: a walk that crosses a trail, or walks beside one, gives a trail part of about 50 to 80 m (Sorrel's
+ * geometry in the review of #389, M-389-2: up to 30 m of engine route plus two joints of up to
+ * [WAY_HOME_TRAIL_JOIN_METERS] each), which the length check could flag as leaving the area when it does not.
+ * Not yet measured on a walk.
+ */
+const val WAY_HOME_SHORT_TRAIL_METERS = 100.0
 
 /**
  * How far apart, along the track, the points tested for a trail are: every point at least this far on from the last

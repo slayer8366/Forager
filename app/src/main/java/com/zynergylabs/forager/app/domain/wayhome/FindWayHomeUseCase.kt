@@ -13,6 +13,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 import com.zynergylabs.forager.app.domain.routedata.RouteDataForPoint
 import com.zynergylabs.forager.app.domain.routedata.contains
+import com.zynergylabs.forager.app.domain.routedata.needsAppUpdate
 import com.zynergylabs.forager.app.domain.routedata.routeAreaFor
 import com.zynergylabs.forager.app.domain.routedata.routeDataForPoint
 import com.zynergylabs.forager.app.domain.routing.TrailRouteFailure
@@ -36,7 +37,8 @@ import java.io.File
  * 3. **The trail route** from the leave point to the entry point.
  * 4. **The area checks** (the owner: "Edge + length check"): every point of the trail route inside the rectangle the
  *    region's routes were cut to, and the trail route no longer than [WAY_HOME_DETOUR_RATIO] times the walker's own
- *    track between the same two points.
+ *    track between the same two points. Between the two, a trail part under [WAY_HOME_SHORT_TRAIL_METERS] gives the
+ *    track home with no note (RECORD -1597, option (c)).
  * 5. **The line**: the walker's track back to the leave point, the trail route, and the walker's track from the entry
  *    point to the first stored point, then the origin waypoint (RECORD -1589, "Back on your track").
  *
@@ -87,6 +89,12 @@ class FindWayHomeUseCase(
         }
         val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
         val trailMeters = route.lengthMetres + joints
+        // RECORD -1597, the owner's option (c): "a trail part under a short provisional length gives the track home with no
+        // note". Before the length check, which a trail only crossed or walked beside can trip on its joints alone, and
+        // then falsely say the route leaves the area (Sorrel's review of #389, M-389-2).
+        if (trailMeters < WAY_HOME_SHORT_TRAIL_METERS) {
+            return trackOnly(null, "the trail part, ${trailMeters.toInt()} m, is under $WAY_HOME_SHORT_TRAIL_METERS m")
+        }
         val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
         if (trailMeters > WAY_HOME_DETOUR_RATIO * trackBetween) {
             return trackOnly(
@@ -130,7 +138,12 @@ class FindWayHomeUseCase(
                     is RegionRouteData.Damaged -> trackOnly(WayHomeNote.ROUTES_UNREADABLE, "region ${data.regionId}'s routes are damaged")
                     // RECORD -1592, "Two honest notes": routes not on the phone are never "no trail routes here".
                     RegionRouteData.NotFetched -> trackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, "region ${data.regionId}'s routes were never fetched")
-                    is RegionRouteData.Missing -> trackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, "region ${data.regionId}'s route fetch failed (${state.reason.code})")
+                    // RECORD -1597: as the Offline maps row says, only an app update fixes these two; every other failed fetch is "not downloaded" (-1595).
+                    is RegionRouteData.Missing -> if (state.reason.needsAppUpdate()) {
+                        trackOnly(WayHomeNote.ROUTES_NEED_APP_UPDATE, "region ${data.regionId}'s route fetch needs an app update (${state.reason.code})")
+                    } else {
+                        trackOnly(WayHomeNote.ROUTES_NOT_DOWNLOADED, "region ${data.regionId}'s route fetch failed (${state.reason.code})")
+                    }
                     RegionRouteData.Fetching -> trackOnly(WayHomeNote.ROUTES_FETCHING, "region ${data.regionId}'s routes are being fetched")
                     RegionRouteData.NoneHere -> trackOnly(WayHomeNote.NO_TRAIL_ROUTES, "the server has no trail routes for region ${data.regionId}")
                     // routeDataForPoint never reports stored routes as not stored; said plainly if it ever does.
@@ -149,7 +162,9 @@ class FindWayHomeUseCase(
 
     /** The walker's own track from stored point [from] to stored point [to], along the track joined to itself, as `RouteHome` walks it. */
     private fun trackPart(stored: List<TrackPoint>, from: Int, to: Int, kind: WayHomePartKind): WayHomePart {
-        // joinedTrackRoute walks from a list's last point to its first, so the list is put in that order.
+        // joinedTrackRoute walks from a list's last point to its first, so the list is put in that order. Every caller
+        // passes from >= to today (the leave index is above the entry index, and the track to the start runs down to 0),
+        // so the reversed branch is not reached; it is kept so the function means what its name says (L-389-8).
         val section = if (from >= to) stored.subList(to, from + 1) else stored.subList(from, to + 1).asReversed()
         val joined = joinedTrackRoute(section)
         return WayHomePart(kind, joined.route.map { LatLng(section[it].lat, section[it].lng) }, joined.meters)
