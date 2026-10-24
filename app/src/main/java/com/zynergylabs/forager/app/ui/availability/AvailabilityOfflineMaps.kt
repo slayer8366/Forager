@@ -263,7 +263,7 @@ internal class AvailabilityOfflineMaps(
     private fun showPaused(paused: Boolean) {
         updateState { state ->
             val status = state.offlineDownloadStatus as? OfflineMapStatus.Downloading ?: return@updateState state
-            state.copy(offlineDownloadStatus = status.copy(paused = paused))
+            state.copy(offlineDownloadStatus = status)
         }
     }
 
