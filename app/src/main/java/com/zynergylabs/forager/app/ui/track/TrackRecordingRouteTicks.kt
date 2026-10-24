@@ -107,7 +107,7 @@ internal class TrackRecordingRouteTicks(
         } else {
             null
         }
-        val next = if (shown != null && line != null && progress is WayHomeProgress.Placed) {
+        val next = if (shown != null && line != null && progress != null) {
             wayHomeAhead(line, progress, here, shown.generation)
         } else {
             findRouteHome(track, here, state.originWaypoint, previousHopBand)
