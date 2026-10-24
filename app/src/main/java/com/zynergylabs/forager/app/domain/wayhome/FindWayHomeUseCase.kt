@@ -95,7 +95,7 @@ class FindWayHomeUseCase(
             )
         }
 
-        val toStart = trackPart(stored, from = entry.index, to = 0, kind = WayHomePartKind.TRACK_TO_START)
+        val toStart = WayHomePart(WayHomePartKind.TRACK_TO_START, listOf(entry.trackPoint), 0.0)
         val originLeg = origin?.let { LatLng(it.lat, it.lng) }
         return WayHomeResult.AlongTrails(
             WayHome(
