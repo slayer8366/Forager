@@ -27269,3 +27269,14 @@ The website copy and Play's Data safety form follow after the merge.
 **Observed:** Sorrel's review of #386 (Fable): no Blocker. With a shared gate of 8 and MapLibre's 20 download requests in flight, a download still fails at once with no signal, and can take the on-screen map's places.
 **Decision:** the owner chose "Pause and continue (Recommended)". Downloads get their own holds, separate from the map's 8; the 5-minute limit stays. Dispatch 2026-10-23-06 Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -1583.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1583
+**Timestamp:** 2026-10-24T02:20:19Z
+**Continues:** 2026-09-28-1581
+**Title:** R8: report received; build held, shrinkResources out, phone list unchanged (owner)
+**Observed:** Hazel's report (branch r8-report, c9d15825, prompts/preserved/2026-10-23-08-report.md): no keep rules needed on the paths read; one app line (app/build.gradle.kts:307) plus about 150 lines of CI checks; runtime proof only on a phone; the mapping file goes inside the .aab.
+**Decision:** the owner chose "Hold", "Not now (Recommended)" for shrinkResources, and "Keep the list as is" for the phone steps.
+**Notes:** Written by the planner by hand. Next free ID -1584.
