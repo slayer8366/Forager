@@ -11,6 +11,8 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomeLines.hairpin
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -89,6 +91,19 @@ class WayHomeWatchTest {
         answers[1].complete(alongTrails)
         scope.runCurrent()
         assertEquals(WayHomeShown("t1", 2, alongTrails, watch.shown.value!!.line), watch.shown.value)
+    }
+
+    @Test
+    fun `a cancelled search that finishes anyway never shows`() {
+        // A search that does not stop when cancelled (as a routing call waits for its engine, NonCancellable).
+        val answer = CompletableDeferred<WayHomeResult>()
+        val stubborn = WayHomeWatch(scope, { Result.success(track) }, { _, _ -> withContext(NonCancellable) { answer.await() } }, { true }, errorLog)
+        stubborn.find("t1", null)
+        scope.runCurrent()
+        stubborn.stop("t1")
+        answer.complete(alongTrails)
+        scope.runCurrent()
+        assertNull("the stopped search's answer is not shown", stubborn.shown.value)
     }
 
     @Test
