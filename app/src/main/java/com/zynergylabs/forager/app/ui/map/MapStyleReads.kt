@@ -24,7 +24,9 @@ import org.maplibre.android.maps.Style
  */
 internal fun currentStyle(loaded: Style?, reader: String): Style? {
     if (loaded == null) return null
-    return loaded
+    if (loaded.isFullyLoaded) return loaded
+    Log.w(SIGHTINGS_MAP_TAG, "$reader skipped: a newer style is loading. It runs again when that style has loaded.")
+    return null
 }
 
 /** The way home's layers on the current style, or nothing in a style change (logged); true when pushed. `MapDataRefresh`'s first effect. */
@@ -70,8 +72,18 @@ internal class PendingLocate {
     private var pending = false
 
     /** A locate tap; [styleCurrent] is whether the style can be read now. True: locate now. False: remembered. */
-    fun onTap(styleCurrent: Boolean): Boolean = true
+    fun onTap(styleCurrent: Boolean): Boolean {
+        if (styleCurrent) return true
+        pending = true
+        Log.i(POSITION_DOT_LOG_TAG, "locate tapped during a style change: remembered until the new style loads")
+        return false
+    }
 
     /** The style changed; [styleCurrent] as for [onTap]. True: carry out the remembered tap now (and forget it). */
-    fun onStyle(styleCurrent: Boolean): Boolean = false
+    fun onStyle(styleCurrent: Boolean): Boolean {
+        if (!pending || !styleCurrent) return false
+        pending = false
+        Log.i(POSITION_DOT_LOG_TAG, "the remembered locate is carried out on the new style")
+        return true
+    }
 }

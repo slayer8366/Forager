@@ -65,7 +65,9 @@ internal fun MapFan(
     // changes nothing, and the originals stay hidden (the planner's review of a5185a2f).
     val fanHideGate = remember(state.loadedStyle) { FanOutHideGate() }
     LaunchedEffect(state.loadedStyle, state.mapLibreMap, focusedObservationId) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): the style only while fully loaded, here and at each step below; a style
+        // change skips, logged, and the new style's load starts this effect again (loadedStyle is a key).
+        val style = currentStyle(state.loadedStyle, "The fan") ?: return@LaunchedEffect
         val map = state.mapLibreMap ?: return@LaunchedEffect
         val density = resources.displayMetrics.density
         val effectScope = this
@@ -76,6 +78,7 @@ internal fun MapFan(
         // True to start with, so a restart that finds the fan folding drops a wait that was still pending (gate.onFold) on its first pass.
         var wasOpen = true
         snapshotFlow { Triple(state.fanOut.members, state.fanOut.progress, state.fanOut.wantOpen) }.collect { (members, progress, wantOpen) ->
+            if (currentStyle(style, "A fan step") == null) return@collect
             if (hiddenFor !== members) {
                 hiddenFor = members
                 waiting?.cancel()
@@ -87,7 +90,8 @@ internal fun MapFan(
                     // renderer reports the originals drawn, so the stack is never empty for a frame at the fold's end.
                     clearing = effectScope.launch {
                         clearCopiesWhenOriginalsDrawn(map, state.mapView, step.reveal) {
-                            pushFanFrame(style, fanFrameCollections(emptyList(), { fanMemberLatLng(map, it, 0f, density) }, focusedObservationId, 0f, drawOrder = orderedLayers(MAP_LAYER_REGISTRY, state.layersState)))
+                            // Dispatch 2026-10-25-02 (RECORD -1634): the wait spans frames; not on a replaced style (logged).
+                            if (currentStyle(style, "Clearing the fan's copies") != null) pushFanFrame(style, fanFrameCollections(emptyList(), { fanMemberLatLng(map, it, 0f, density) }, focusedObservationId, 0f, drawOrder = orderedLayers(MAP_LAYER_REGISTRY, state.layersState)))
                         }
                     }
                 }
@@ -126,8 +130,10 @@ internal fun MapFan(
     // state (fanFadedPaint multiplies the resolved paint) and the restore on folding is the state's own
     // value. Device-only: see FanClarity.kt.
     LaunchedEffect(state.loadedStyle, drawnLayersState) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): as the fan's effect above, at the start and at each change.
+        val style = currentStyle(state.loadedStyle, "The fan's fade") ?: return@LaunchedEffect
         snapshotFlow { state.fanOut.isOpen }.collect { fanOpen ->
+            if (currentStyle(style, "A fan fade") == null) return@collect
             MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, fanFadedPaint(spec, layerPaintFor(spec, drawnLayersState), fanOpen)) }
         }
     }
@@ -135,7 +141,8 @@ internal fun MapFan(
     // Item 3: the circles' colour is the map chrome's, which follows the app's theme, so a theme change
     // recolours them on the loaded style (the layer was built with the colour current at style load).
     LaunchedEffect(state.loadedStyle, chromeColour) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): skipped in a style change, logged; the new style's load runs it again.
+        val style = currentStyle(state.loadedStyle, "The fan circles' colour") ?: return@LaunchedEffect
         if (fanCircleNeedsRecolour(state.fanCircleColour[0], chromeColour)) {
             applyFanCircleStyle(style, chromeColour, resources.displayMetrics.density)
             state.fanCircleColour[0] = chromeColour
