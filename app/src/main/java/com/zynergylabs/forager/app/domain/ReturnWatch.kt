@@ -270,7 +270,7 @@ class ReturnWatch(
                 endReturnOnArrival()
             } else if (returning) {
                 takeTrailShown()
-                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider, alsoOn = trailsShown)
+                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider)
                 offTrack = verdict.isOffTrack
                 shouldAlert = verdict.alert
             }
