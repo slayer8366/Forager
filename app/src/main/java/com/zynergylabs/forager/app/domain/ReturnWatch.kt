@@ -112,6 +112,8 @@ class ReturnWatch(
      * setting's own default.
      */
     private val isReminderOn: () -> Boolean = { true },
+    /** Fail-first stub (dispatch 2026-10-25-08): accepted and not read, so the new tests run against today's rule. */
+    @Suppress("unused") private val wayHomeTrail: (trackId: String) -> ShownTrail? = { null },
 ) {
     private val _state = MutableStateFlow(ReturnWatchState())
     val state: StateFlow<ReturnWatchState> = _state.asStateFlow()
@@ -342,3 +344,5 @@ class ReturnWatch(
         )
     }
 }
+
+data class ShownTrail(val generation: Long, val points: List<LatLng>)

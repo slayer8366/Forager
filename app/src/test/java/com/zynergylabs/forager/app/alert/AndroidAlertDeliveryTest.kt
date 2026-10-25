@@ -75,6 +75,10 @@ class AndroidAlertDeliveryTest {
         assertEquals("off_track_alert_v2", notification.channelId)
         assertEquals(activity.getString(R.string.off_track_notification_title), NotificationCompat.getContentTitle(notification))
         assertEquals(activity.getString(R.string.off_track_notification_text), NotificationCompat.getContentText(notification))
+        // The words themselves (dispatch 2026-10-25-08, RECORD -1631), pinned so a change of text is a test change: the
+        // line above reads the resource, and would pass whatever it said.
+        assertEquals("Off track", NotificationCompat.getContentTitle(notification))
+        assertEquals("You're far from the trail and your track. The line on the map shows the way back.", NotificationCompat.getContentText(notification))
     }
 
     @Config(sdk = [33])
