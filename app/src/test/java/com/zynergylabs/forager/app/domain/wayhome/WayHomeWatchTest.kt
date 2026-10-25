@@ -228,4 +228,33 @@ class WayHomeWatchTest {
         assertEquals(WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND), throwing.shown.value!!.result)
         assertEquals(1, logs.size)
     }
+
+    @Test
+    fun `after a re-route, a walker who walks on past the new line's start reads more with each metre walked out`() {
+        // Hazel's S22 check, section 3 (dispatch 2026-10-25-06, RECORD -1630): the re-routed line starts at the newest
+        // stored point, (-60, -50) here; the walker walks on west, away from it, and the figure held at the line's total.
+        foundOnFirstReturn()
+        watch.onFix(gps(-60.0, -50.0), FixProvider.GPS)
+        scope.runCurrent()
+        val rerouted = WayHomeResult.AlongTrails(
+            WayHomeLines.wayHome(
+                WayHomeLines.part(WayHomePartKind.TRACK_BACK, -60.0 to -50.0, 0.0 to -50.0, 0.0 to 0.0),
+                hairpin.trail,
+                hairpin.trackToStart,
+            ),
+        )
+        answers[1].complete(rerouted)
+        scope.runCurrent()
+        val total = watch.shown.value!!.line!!.totalMeters
+        assertEquals(630.0, total, 0.5)
+        var previous = 0.0
+        for (out in listOf(0.0, 10.0, 20.0, 30.0, 40.0)) {
+            watch.onFix(gps(-60.0 - out, -50.0), FixProvider.GPS)
+            val figure = (watch.progressFor("t1") as WayHomeProgress.Placed).place.remainingMeters
+            assertTrue("$out m on: never short of the line drawn, $figure against ${total + out}", figure >= total + out - 0.5)
+            if (out > 0.0) assertTrue("$out m on: more than at the last fix, $figure against $previous", figure > previous)
+            previous = figure
+        }
+        assertEquals("no second re-route within the stray band", 2, answers.size)
+    }
 }
