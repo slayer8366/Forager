@@ -27805,3 +27805,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's 60 m re-check (Fable; prompts/preserved/2026-10-25-sorrel-60m-recheck.md, branch sorrel-60m-recheck, 61701ffea): A, B, C merge-ready in that order. Merged by the planner: A at aff033375 (pre-main c1ca63a0b, CI 40154717124 green), B at ac6f6826f (c64b308d3, 40163946754 green), C at 679d9c3e8 (fb692fb57, 40165007509 green); B and C retargeted to pre-main before merging.
 **Decision:** the owner: "Merge now, phone after (Recommended)": a short S22 check of the distance figure on the merged pre-main build, which is also the build for the owner's next walk.
 **Notes:** Written by the planner by hand. No promotion until step 7 lands (-1612). The crash fix (-1624) is PR #397, under Sorrel's review. Next free ID -1627.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1627
+**Timestamp:** 2026-10-25T05:50:15Z
+**Continues:** 2026-09-28-1624
+**Title:** The map crash fix merged into pre-main; the shared fix for the other style readers next; main waits for step 7 (owner)
+**Observed:** Sorrel's #397 review (Fable; prompts/preserved/2026-10-25-sorrel-397-review.md, branch sorrel-397, 753e77336): merge-ready; the S22 logs show 15 of 34 style changes reached the state that used to throw, 0 crashes. M-397-1 and M-397-2: five other effects read a replaced style (the way-home route and the overlay data Medium; the locate tap confirmed to throw, low rate; MapFan Low); one fix at the writer, MapStyleReload.kt:117, recommended over five guards. Merged by the planner: #397 at d46f6626e, pre-main f5a0cfafc.
+**Decision:** the owner: "Merge now (Recommended)"; "Wait for step 7 (Recommended)": the fix reaches main with part 2 and step 7, not before; "Yes, after the S22 check (Recommended)": Hazel builds the shared fix after the current S22 figure check, failing first, into pre-main.
+**Notes:** Written by the planner by hand. Next free ID -1628.
