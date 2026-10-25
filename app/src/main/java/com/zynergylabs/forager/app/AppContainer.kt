@@ -395,12 +395,13 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // recording starts. The watch reads the checkbox at the moment it decides to alert.
     val offTrackReminderPreferences: OffTrackReminderPreferenceRepository = DataStoreOffTrackReminderPreferenceRepository(context, settingsReset = settingsResetNotice)
     val offTrackReminderCheck = OffTrackReminderCheck(AndroidBackgroundRunCheck(context.applicationContext), offTrackReminderPreferences, errorLog)
-    val returnWatch = ReturnWatch(
+    val returnWatch: ReturnWatch = ReturnWatch(
         computeReturnToStartUseCase,
         alertDelivery,
         isReminderOn = offTrackReminderPreferences::enabledNow,
         // Dispatch 2026-10-25-08 (RECORD -1631): the way home's trail part counts as on course. Read through the
-        // StateFlow's value, which takes no lock; wayHomeWatch is declared below, and this runs only on a fix.
+        // StateFlow's value, which takes no lock; wayHomeWatch is declared below, and this runs only on a fix. Both watches
+        // are typed explicitly: each reads the other, and Kotlin cannot infer either type otherwise (CI 40171062417).
         wayHomeTrail = { id ->
             wayHomeWatch.shown.value?.takeIf { it.trackId == id }?.let { shown ->
                 shown.line?.let { ShownTrail(shown.generation, it.wayHome.trail.points) }
@@ -435,7 +436,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // it fixes and ends it; the HUD's tick and sundown read where the walker is on it. Its engine is built, and the
     // routing profile installed, on the first Return (WayHomeRouting).
     private val wayHomeRouting = WayHomeRouting(installProfile = { RoutingProfile.install(context) }, offlineMapRepository = offlineMapRepository, errorLog = errorLog)
-    val wayHomeWatch = WayHomeWatch(
+    val wayHomeWatch: WayHomeWatch = WayHomeWatch(
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
         readTrack = trackRepository::getById,
         findWayHome = wayHomeRouting::find,
