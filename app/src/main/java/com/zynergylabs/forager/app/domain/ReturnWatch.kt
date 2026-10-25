@@ -361,6 +361,7 @@ class ReturnWatch(
         if (shown.generation == lastTrailGeneration) return
         lastTrailGeneration = shown.generation
         if (shown.points.isNotEmpty()) trailsShown += shown.points
+        if (shown.trackBack.isNotEmpty()) trailsShown += shown.trackBack
     }
 
     /** Call with [lock] held. */
