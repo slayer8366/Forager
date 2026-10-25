@@ -93,7 +93,7 @@ class OffTrackJudge(path: List<TrackPoint>) {
         val limit = OFF_TRACK_LINE_METERS + (reading.accuracyMeters?.toDouble() ?: 0.0)
         var alert = false
         val here = LatLng(reading.lat, reading.lng)
-        if (metersToLine(here, line) > limit && alsoOn.all { it.isEmpty() || metersToLine(here, it) > limit }) {
+        if (metersToLine(here, line) > limit && alsoOn.all { it.isNotEmpty() && metersToLine(here, it) > limit }) {
             onSinceMillis = null
             val since = offSinceMillis ?: t.also { offSinceMillis = it; offReadings = 0 }
             offReadings++
