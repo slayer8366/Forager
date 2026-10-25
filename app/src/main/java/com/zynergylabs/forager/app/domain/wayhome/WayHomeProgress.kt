@@ -165,7 +165,7 @@ const val WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS = WAY_HOME_TRAIL_JOIN_METERS
  * alone, measured to nodes up to 10 m apart, it could be (Sorrel's B-395-2: short by up to a node step on a track part,
  * and 265 m against 419 m at the gate's edge beside a hairpin's later leg).
  */
-val WAY_HOME_FIGURE_REACH_METERS: Double = LIVE_FIX_MAX_ACCURACY_METERS.toDouble() + WAY_HOME_LINE_STEP_METERS
+val WAY_HOME_FIGURE_REACH_METERS: Double = LIVE_FIX_MAX_ACCURACY_METERS.toDouble()
 
 /**
  * The longest stretch between two nodes of a [WayHomeLine]: longer stretches (an engine route's long straight, a gap in
