@@ -217,12 +217,12 @@ class AvailabilityScreenNavigationViewTest {
     }
 
     /**
-     * A move away shows "Return to Route"; a real touch on it brings the view back and it follows
+     * A move away shows "Re-center"; a real touch on it brings the view back and it follows
      * again. Five touches across the pill's own bounds, each after its own move away (CLAUDE.md: a
      * finger is not a point; a semantic click asserts wiring, not routing).
      */
     @Test
-    fun `a move away shows Return to Route, and a real touch anywhere on it brings the view back`() {
+    fun `a move away shows Re-center, and a real touch anywhere on it brings the view back`() {
         setScreen()
         switchReturning(true)
         val firstId = view()!!.restoreRequestId
@@ -230,7 +230,7 @@ class AvailabilityScreenNavigationViewTest {
             userMovesTheMapAway()
             assertTrue("move $index shows the pill", pillShown())
             assertFalse(view()!!.following)
-            composeRule.onNodeWithText("Return to Route").assertExists()
+            composeRule.onNodeWithText("Re-center").assertExists()
             val b = boundsOf(RETURN_TO_ROUTE_TAG)
             val inset = 4.dp
             val samples = listOf(
@@ -249,7 +249,7 @@ class AvailabilityScreenNavigationViewTest {
 
     /** CLAUDE.md, the `Surface` pitfall: real long-presses beside the pill, either side of it along its height, reach the map. */
     @Test
-    fun `long-presses beside Return to Route reach the map`() {
+    fun `long-presses beside Re-center reach the map`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()
@@ -269,7 +269,7 @@ class AvailabilityScreenNavigationViewTest {
         assertTrue("the pill is still there", pillShown())
     }
 
-    /** Ruling D: locate while navigating brings the navigation view back, as "Return to Route" does. A real touch on it. */
+    /** Ruling D: locate while navigating brings the navigation view back, as "Re-center" does. A real touch on it. */
     @Test
     fun `locate while navigating asks for the navigation view again`() {
         setScreen()
@@ -352,9 +352,9 @@ class AvailabilityScreenNavigationViewTest {
         assertEquals("Compass unavailable · north up", headingLabel())
     }
 
-    /** Continuation -432: a notice shown while "Return to Route" is up sits above it, not over it. */
+    /** Continuation -432: a notice shown while "Re-center" is up sits above it, not over it. */
     @Test
-    fun `a snackbar shown while Return to Route is up sits above it`() {
+    fun `a snackbar shown while Re-center is up sits above it`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()
@@ -396,7 +396,7 @@ class AvailabilityScreenNavigationViewTest {
     }
 
     @Test
-    fun `Return to Route brings the view back at the walker's zoom, without asking for the set one`() {
+    fun `Re-center brings the view back at the walker's zoom, without asking for the set one`() {
         setScreen()
         switchReturning(true)
         theMapAppliesTheStartZoom()
@@ -441,7 +441,7 @@ class AvailabilityScreenNavigationViewTest {
 
     /** "Nothing fully obstructs the map view": the pill's fill is the map chrome's 80%. */
     @Test
-    fun `Return to Route has the map chrome's 80 percent fill`() {
+    fun `Re-center has the map chrome's 80 percent fill`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()
