@@ -199,4 +199,33 @@ class WayHomeProgressTest {
         )
         assertNeverShort(wide, walker = at(105.0, 0.0), fix = at(105.0, 49.9), truth = 95.0 + 70.0 + 200.0 + 100.0)
     }
+
+    // Dispatch 2026-10-25-06 (RECORD -1630, the owner: "Add it, fix first"): a walker past the line's first point reads the
+    // distance back to it on top of the line's total, so the figure is never short of the line drawn. Hazel's S22 check
+    // (prompts/preserved/2026-10-25-hazel-s22-figure-check.md, section 3): after a re-route the figure held at the line's
+    // total while the walker walked 27 m on, out past the line's start.
+
+    @Test
+    fun `a walker past the line's first point reads the distance back to it on top of the line's total`() {
+        // The hairpin starts at (0, -50) heading north; (0, -80) is 30 m past its start, the way the walker was going.
+        for (beyond in listOf(5.0, 10.0, 20.0, 30.0, 45.0)) {
+            val place = placed(placeOnWayHome(line, at(0.0, -50.0 - beyond), previous = null))
+            assertEquals("$beyond m past the start", 570.0 + beyond, place.remainingMeters, 0.5)
+        }
+    }
+
+    @Test
+    fun `beside the line's first point, the walker reads the distance across to it as well`() {
+        // 20 m east of the start, square to the first stretch: to the line is 20 m, then the whole line.
+        assertEquals(590.0, placed(placeOnWayHome(line, at(20.0, -50.0), previous = null)).remainingMeters, 0.5)
+    }
+
+    @Test
+    fun `a walker on the line ahead of its first point reads today's figure, with nothing added`() {
+        // Pins that the gap is added only past the start: along the first stretch the figure stays the line's metres from
+        // the earliest node within the reach, here node 0, as before this dispatch.
+        for (north in listOf(-50.0, -45.0, -30.0, -10.0)) {
+            assertEquals("at (0, $north)", 570.0, placed(placeOnWayHome(line, at(0.0, north), previous = null)).remainingMeters, 0.5)
+        }
+    }
 }
