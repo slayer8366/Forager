@@ -48,7 +48,7 @@ So the dispatch's premise, "the profile alone does not [need a pipeline]", holds
 ## 3. Slope and aspect: two ways (a stop-and-ask)
 
 **S1. Read from the relief tiles on the phone (recommended).** Slope and aspect at a point, computed in `domain/` from the Terrarium-encoded relief the Topo map already needs. Height is `R×256 + G + B/256 − 32768` metres per pixel; that is the Terrarium encoding, from recall and not read from a source this session, so the build re-reads it. Slope and aspect come from a 3×3 neighbourhood: plain arithmetic, testable headless.
-- *Where it shows:* in a readout ("Slope 18° · faces north-east · 4,210 ft") on a long-press point and, later, on a find's site context (Navigator stage G, which stays in the Navigator plan: `2026-10-21-trail-navigation-plan-update.md:87`).
+- *Where it shows:* in a readout ("Slope 18° · faces north-east · 4,210 ft") where the walker stands or at a picked point (the two shapes in §6) and, later, on a find's site context (Navigator stage G, which stays in the Navigator plan: `2026-10-21-trail-navigation-plan-update.md:87`).
 - *Cost:* the app must read relief pixels. MapLibre's offline database has no public read API for stored tiles (inferred: `OfflineManager` exposes no tile getter in 13.5.0; not exhaustively checked). So the app keeps its own copy of the relief tiles under an area, like the route files (`A/data/routedata/RegionRouteFolders.kt:92`, `filesDir/offline_routes/<regionId>/`). Inferred size, for a 24 km region at 45°N: z10 to z12 is about 70 to 100 tiles at 50 to 100 KB, so about 4 to 10 MB. That is computed from tile widths (z12 is about 6.9 km wide at 45°N) and the topo sizing's per-tile figure, not measured.
 - *Online:* one tile fetched from the Worker per readout.
 
@@ -97,10 +97,15 @@ The elevation sizing (`docs/navigation/2026-10-21-elevation-sizing.md`, Juniper,
 4. Back → closes the sheet. The route stays.
 5. Where the route data has no heights → nothing extra shows. No zero, no guess.
 
-**How steep here** (S1):
-1. Long-press a point on the map → the usual long-press options, plus a line "Slope 18° · faces north-east · 4,210 ft".
-2. Offline in an area without relief tiles → the line is not shown. Where shown, it reads "Slope not available offline here", not a guess.
-3. Back → closes the options.
+**How steep here** (S1). The map's long-press has no production consumer: both map call sites pass `{}` (`A/ui/availability/CompactMapMapSlot.kt:126`, and the centre-pin picker at `A/ui/map/CentrePinLocationPicker.kt:207-215`; the reason is recorded at `A/ui/map/SightingsMap.kt:77-83`, 759 lines). Picking a point today means panning under the centre pin. So there are two shapes, and the owner picks:
+- **(a) Where I stand.**
+  1. Tap the compass and elevation strip at the top of the map → it opens one line: "Slope 18° · faces north-east".
+  2. Tap again, or Back → it closes.
+- **(b) A point.**
+  1. Tap the add (+) button → pan the map under the centre pin → the picker shows "Slope 18° · faces north-east · 4,210 ft" for the point under the pin.
+  2. Back → the picker closes.
+
+In both, offline in an area without relief tiles the line reads "Slope not known offline here", never a guess.
 
 **A recorded walk:** no change. Records → a track → Climb, Descent and the height chart, as today.
 
@@ -127,7 +132,7 @@ The elevation sizing (`docs/navigation/2026-10-21-elevation-sizing.md`, Juniper,
 | **10a. Heights on a route** | `TrailRoute` gains per-point heights (nullable). `BRouterTrailRouter` reads `getElev()` where present. A domain function turns a route into the existing `HeightProfile` and a climb and descent figure. No UI. | `A/domain/routing/TrailRouter.kt` (70); `A/routing/BRouterTrailRouter.kt` (218); new `A/domain/RouteHeightProfile.kt` (new, under 150: a route's heights to a profile, reusing `HeightProfile` from `EntryReport.kt`). | Testable now with a fake router. Real heights need server item 1. |
 | **10b. The climb on the way back** | The readout line and the profile sheet from §6. | `A/ui/availability/NavigationReadout.kt` (239) or `NavigationHudReadout.kt` (115), whichever owns the line at build time; new `A/ui/availability/RouteProfileSheet.kt` (new, under 200, reusing `EntryHeightProfile`). | Needs item 1 to show anything. |
 | **10c. Own Topo in the Topographical slot** | `MapMode.TOPOGRAPHIC` points at a new own-topo style (Street plus relief and contours); the night pair for the hillshade; the credits. | `A/ui/map/MapMode.kt` (78); `A/ui/map/Basemap.kt` (186); `A/ui/map/BasemapStyles.kt` (460); new `A/ui/map/TopoReliefNight.kt` (new, under 100: the night pair, one call in `MapStyleReload.kt` (177)); a new style file in `map-style/` and `server/` (generated); `A/ui/credits/DataSourceCredits.kt` (80). | Needs items 2 and 3; buildable against a tiny synthetic raster-dem fixture (the Worker's fixtures already make tiny archives: `test/fixtures/make-tiny-pmtiles.py`). |
-| **10d. Slope and aspect at a point (S1)** | Domain decode and slope/aspect, a relief tile client, the long-press line. Offline relief only if the owner rules Q3. | New `A/domain/terrain/TerrainAtPoint.kt` (new, under 200); new `A/data/terrain/ReliefTileClient.kt` (new, under 200, behind an interface the domain owns: CLAUDE.md, Architecture); the long-press options file (to be named at build time). | Needs item 2. |
+| **10d. Slope and aspect at a point (S1)** | Domain decode and slope/aspect, a relief tile client, and the readout in shape (a) or (b) from §6. Offline relief only if the owner rules Q3. | New `A/domain/terrain/TerrainAtPoint.kt` (new, under 200); new `A/data/terrain/ReliefTileClient.kt` (new, under 200, behind an interface the domain owns: CLAUDE.md, Architecture); for (a) `A/ui/availability/CompassElevationStrip.kt` (150), for (b) `A/ui/map/CentrePinLocationPicker.kt` (508). | Needs item 2. |
 
 **The modular-code skill's four questions:**
 1. Files touched and sizes: in the table, `wc -l` at `f5a0cfafc`.
@@ -140,7 +145,7 @@ The elevation sizing (`docs/navigation/2026-10-21-elevation-sizing.md`, Juniper,
 ## 10. Questions for the owner
 
 Q1. **The route profile** (10a and 10b): wanted for the way home and for waypoints, once the route data carries heights? It is separate from whether routes *avoid* climbs (the flat-first ruling, -1498 item 2), and from a climbing allowance on the walk-back time (sizing :16, the owner's walk under -1629).
-Q2. **Slope and aspect:** S1, a readout at a point (recommended), or S2, a map layer, or neither for now?
+Q2. **Slope and aspect:** S1, a readout (recommended), or S2, a map layer, or neither for now? If S1, shape (a), where I stand, or (b), a picked point (§6)?
 Q3. **Own Topo offline:** today only Trail Map is stored offline (-1554). Keep that (Topo users see Trail Map offline, flat), or let a download also carry relief and contours?
 Q4. **Water:** OSM water is drawn today. Is a separate national water layer (NHD) wanted, for intermittent streams and springs, or does OSM's water stand?
 Q5. **The topo rulings:** the eight were given in Aspen's window (Forager-cartography `topo-rulings.md`). Should they be recorded in Forager's RECORD before 10c is dispatched, since 10c is app code?
@@ -177,5 +182,7 @@ Q5. **The topo rulings:** the eight were given in Aspen's window (Forager-cartog
 - The elevation sizing is on records-after-173 only, not on pre-main as the dispatch's "docs/navigation/2026-10-21-elevation-sizing.md" might suggest. It was read there.
 - The sizing quotes 3DEP's licence as "All 3DEP products are public domain". The 3DEP products page read today says "available, free of charge and without use restrictions", and USGS's National Map terms page says "free and in the public domain". The substance holds; the quoted wording was not found on the page read.
 - "The own-tiles scope B choice it overlaps" (`navigator-completion-plan.md:182`): scope B (own topo) has since been chosen, as "Our own Topo" in Aspen's topo rulings, but not in Forager's RECORD (Q5).
+
+**Corrected in this report before hand-off:** the first push (`b7382c8ae`) put the slope readout on "Long-press a point on the map → the usual long-press options". The map has no production long-press consumer (`CompactMapMapSlot.kt:126` passes `{}`), so that step path described a menu that does not exist. §3, §6, 10d and Q2 now give the two shapes that do fit the app.
 
 **Decided beyond scope:** nothing. S1 against S2, offline Topo, NHD and the route profile are each put to the owner. `docs/audits/README.md` was not touched.
