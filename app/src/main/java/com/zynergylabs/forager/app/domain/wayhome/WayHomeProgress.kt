@@ -71,8 +71,8 @@ class WayHomeLine(val wayHome: WayHome) {
  *
  * [index] is the node they are placed at, which the needle and the greyed walked part read; [hopMeters] the straight line
  * from their fix to it, [hopBand] that hop's band ([nextHopBand], passed back as the next call's previous band).
- * [remainingMeters] is the distance home, counted from its own node, the earliest within the gate's 50 m anywhere on the
- * line ([placeOnWayHome]; Amendment 3), plus [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part
+ * [remainingMeters] is the distance home, counted from its own node, the earliest within [WAY_HOME_FIGURE_REACH_METERS]
+ * anywhere on the line ([placeOnWayHome]; Amendments 3 and 4), plus [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part
  * ([onTrail]).
  */
 data class WayHomePlace(
@@ -85,8 +85,8 @@ data class WayHomePlace(
 
 /**
  * This place's distance home as a [PathHome], the shape the walking time and the HUD's route read: [remainingMeters] as
- * `trackMeters`, whole. The hop is kept as measured but not counted (band NONE): since Amendment 3 the figure's 50 m
- * reach already covers the fix's distance from the line.
+ * `trackMeters`, whole. The hop is kept as measured but not counted (band NONE): since Amendment 3 the figure's reach
+ * already covers the fix's distance from the line.
  */
 fun WayHomePlace.toPathHome(pointCount: Int): PathHome =
     PathHome(trackMeters = remainingMeters, hopMeters = hopMeters, hopBand = HopBand.NONE, originLegMeters = null, pointCount = pointCount)
@@ -116,10 +116,11 @@ sealed interface WayHomeProgress {
  * 2026-10-24-10 Amendment 3, replacing Amendment 2's item 1 after Sorrel's B-395-1): the earliest node within
  * [WAY_HOME_FIGURE_REACH_METERS] of the fix **anywhere on the line**, ignoring [previous], plus
  * [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part. "Not before the last place" made the figure
- * short on a hairpin (one fix 30 m off leg 1, nearer leg 2, read 245 m against 420 m), and so would a 25 m reach; the
- * gate's own 50 m covers every fix the gate admits, so the figure is never short, as `PathHome.kt`'s ruling requires
- * ("Its error is never short"). The owner accepted that it reads about 50 to 75 m long on an ordinary trail. No hop is
- * added to it: the reach already covers the fix's distance from the line.
+ * short on a hairpin (one fix 30 m off leg 1, nearer leg 2, read 245 m against 420 m), and so would a 25 m reach. The
+ * reach is the gate's 50 m plus the line's node step (RECORD -1620, Amendment 4), so it covers every fix the gate admits
+ * and the figure is never short, as `PathHome.kt`'s ruling requires ("Its error is never short"). The owner accepted
+ * that it reads about 50 to 75 m long on an ordinary trail (-1618), and up to 10 m more with the node step (-1620). No
+ * hop is added to it: the reach already covers the fix's distance from the line.
  */
 fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, previousHopBand: HopBand = previous?.hopBand ?: HopBand.NONE): WayHomeProgress {
     val nodes = line.nodes
@@ -144,20 +145,27 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
 }
 
 /**
- * Added to the distance home whenever the walker is placed on the trail part (RECORD -1613, the owner: "A, plus 25 m
- * (Recommended)"; dispatch 2026-10-24-10 Amendment 1, ruling 1), so the figure is never short: the place is the earliest
- * node within [WAY_HOME_TRAIL_JOIN_METERS] of the fix, which can be up to that far from where the walker truly is on a
- * line that is not their own track. It keeps `PathHome.kt`'s "never short" ruling for the trail part. **Provisional**,
- * as the 25 m it matches is.
+ * Added to the distance home whenever the figure's node is on the trail part (RECORD -1613, the owner: "A, plus 25 m
+ * (Recommended)"; dispatch 2026-10-24-10 Amendment 1, ruling 1). It was ruled when the figure counted from the place,
+ * the earliest node within [WAY_HOME_TRAIL_JOIN_METERS] of the fix, which could be up to that far ahead of the walker.
+ * Since Amendments 3 and 4 (RECORD -1618, -1620) the figure counts from the earliest node within
+ * [WAY_HOME_FIGURE_REACH_METERS], which on its own keeps it never short for every fix the gate admits, so the allowance
+ * is now a margin on top: the trail part is the engine's line, not the walker's own track. Neither amendment removed
+ * it, so it stays as ruled. **Provisional**, as the 25 m it matches is.
  */
 const val WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS = WAY_HOME_TRAIL_JOIN_METERS
 
 /**
- * How far from the fix the distance home's node may be (RECORD -1618; dispatch 2026-10-24-10 Amendment 3): the live-fix
- * gate's own ceiling, [LIVE_FIX_MAX_ACCURACY_METERS], not a figure of this file's, so the figure is never short for any
- * fix the gate admits (`PathHome.kt`'s "never short" ruling).
+ * How far from the fix the distance home's node may be (RECORD -1620, the owner: "Widen to 60 m (Recommended)"; dispatch
+ * 2026-10-24-10 Amendment 4, replacing Amendment 3's 50 m): the live-fix gate's ceiling,
+ * [LIVE_FIX_MAX_ACCURACY_METERS], plus the line's node step, [WAY_HOME_LINE_STEP_METERS], so 60 m, and no figure of its
+ * own. A fix the gate admits is within 50 m of the walker, and the node at or behind the walker is at most one step
+ * behind them, so that node is always within the reach and the earliest node within it is never past where the walker
+ * is: the figure is never short for any fix the gate admits (`PathHome.kt`'s "never short" ruling). With the gate's 50 m
+ * alone, measured to nodes up to 10 m apart, it could be (Sorrel's B-395-2: short by up to a node step on a track part,
+ * and 265 m against 419 m at the gate's edge beside a hairpin's later leg).
  */
-val WAY_HOME_FIGURE_REACH_METERS: Double = LIVE_FIX_MAX_ACCURACY_METERS.toDouble()
+val WAY_HOME_FIGURE_REACH_METERS: Double = LIVE_FIX_MAX_ACCURACY_METERS.toDouble() + WAY_HOME_LINE_STEP_METERS
 
 /**
  * The longest stretch between two nodes of a [WayHomeLine]: longer stretches (an engine route's long straight, a gap in
