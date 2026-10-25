@@ -27925,3 +27925,16 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's bends report (Fable; prompts/preserved/2026-10-25-07-report.md, branch bends-report, 6ffac27ca): no step drops the bend (the Pi's 0.4 m Douglas-Peucker, the cutter's byte copy, BRouter's length over its own nodes, the app's node mapping); the drawn trail part is 320 to 326 m against OSM's 325.4 m. The 27 m went to the line's start: the way home reads the track as written, flushed every 30 s or 20 points, so the line started 18.7 m behind the walker; up to about 42 m at Return and at each re-route. The dispatch's premise (a cut bend) was wrong.
 **Decision:** the owner: "Yes, after Hazel's queue (Recommended)": dispatch 2026-10-25-10, after -06 and -02.
 **Notes:** Written by the planner by hand. #398 keeps the figure from reading short meanwhile. Next free ID -1637.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1637
+**Timestamp:** 2026-10-25T21:14:57Z
+**Continues:** 2026-09-28-1635, 2026-09-28-1634
+**Title:** A drawn line counts for the alert only while heading back along it; #400 and #398 merge; pre-main's memory failure did not repeat (owner)
+**Observed:**
+- Pre-main push run 40192708715 (#399 merged): three MapCreditCaption tests OutOfMemoryError (ImageBitmap.kt:124), 5,546 of 5,549 passed; the owner: "Re-run once, diagnose if it repeats (Recommended)"; the re-run was green. Recorded as memory pressure on the runner, as on the dev rebase (-1615).
+- Sorrel's review (Fable; prompts/preserved/2026-10-25-sorrel-398-401-402-review.md, branch sorrel-398-401-402, 7ad9cf52f): #398 mergeable; #401 mergeable on the code, its evidence comment and an S22 run that hits the gap still to come; #402 mergeable as ruled, but 402-1: a steady stray may never alert, and counting the live track-only line would disable the alert entirely.
+**Decision:** the owner: earlier "Yes, same rule (Recommended)" for the track-only case, then, after 402-1, "Counts while heading back (Recommended)": a drawn line counts as on course only while the walker heads back along it (dispatch 2026-10-25-09 Amendment 1). "Merge now (Recommended)" for #398. #400 merged at e97b2e1e7 (pre-main 3e1a5fd1b) under -1635.
+**Notes:** Written by the planner by hand. #398 merges once pre-main's CI on #400 is green. The S22 dropped off USB at 17:06:34 UTC mid-check; the owner is asked to reconnect it. Next free ID -1638.
