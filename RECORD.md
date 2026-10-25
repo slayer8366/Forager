@@ -27816,3 +27816,15 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #397 review (Fable; prompts/preserved/2026-10-25-sorrel-397-review.md, branch sorrel-397, 753e77336): merge-ready; the S22 logs show 15 of 34 style changes reached the state that used to throw, 0 crashes. M-397-1 and M-397-2: five other effects read a replaced style (the way-home route and the overlay data Medium; the locate tap confirmed to throw, low rate; MapFan Low); one fix at the writer, MapStyleReload.kt:117, recommended over five guards. Merged by the planner: #397 at d46f6626e, pre-main f5a0cfafc.
 **Decision:** the owner: "Merge now (Recommended)"; "Wait for step 7 (Recommended)": the fix reaches main with part 2 and step 7, not before; "Yes, after the S22 check (Recommended)": Hazel builds the shared fix after the current S22 figure check, failing first, into pre-main.
 **Notes:** Written by the planner by hand. Next free ID -1628.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1628
+**Timestamp:** 2026-10-25T06:21:44Z
+**Continues:** 2026-09-28-1612, 2026-09-28-1498
+**Supersedes:** -1612's "We won't promote until step 7 lands" as the release gate
+**Title:** The release waits for the whole trail navigation plan, elevation routing included (owner)
+**Observed:** docs/plans/2026-10-21-trail-navigation-plan-update.md on pre-main: steps 1 to 5 built (step 5 merged into pre-main, -1626); steps 6 (waypoint along trails), 7 (off the trail and back, wrong turn), 8 (reference layer), 9 (the owner's walks), 10 and 11 (Navigator H and I, folded in by -1498) not started; elevation in routing a parallel sizing check, filed, not ruled.
+**Decision:** the owner: "We should finish the entire plan before release." Asked which steps, the owner chose "Everything": steps 6 to 11 plus elevation in routing.
+**Notes:** Written by the planner by hand. Each step is still its own dispatch on the owner's go. Next free ID -1629.
