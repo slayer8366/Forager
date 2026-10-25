@@ -106,11 +106,13 @@ class WayHomeProgressTest {
     }
 
     @Test
-    fun `between 25 and 50 m off the line the hop is counted, and over 50 m the walker is off the line`() {
+    fun `between 25 and 50 m off the line the hop is counted, beside the start the distance to it is added (-1634), and over 50 m the walker is off the line`() {
         val off35 = placed(placeOnWayHome(line, at(-35.0, -50.0), previous = null))
         assertEquals(HopBand.COUNTED, off35.hopBand)
-        // Amendment 3: the reach covers the fix's distance from the line, so no hop is added to the figure.
-        assertEquals(570.0, off35.remainingMeters, 0.5)
+        // RECORD -1634 (the owner: "Add it, never short (Recommended)"; dispatch 2026-10-25-06 Amendment 1) supersedes
+        // -1618's "no hop is added" for a fix beside or behind the line's first point: this fix is 35 m square beside it,
+        // so the figure adds the 35 m back to it. GPS wobble at the start reads up to about 50 m long, never short.
+        assertEquals(570.0 + 35.0, off35.remainingMeters, 0.5)
 
         val off60 = placeOnWayHome(line, at(-60.0, -50.0), previous = null)
         assertTrue("off the line: $off60", off60 is WayHomeProgress.OffLine)
@@ -146,9 +148,11 @@ class WayHomeProgressTest {
     }
 
     @Test
-    fun `a fix just inside the 50 m gate is placed and counts from the line, one just outside is off the line`() {
+    fun `a fix just inside the 50 m gate beside the start is placed and adds its distance to the start (-1634), one just outside is off the line`() {
         val inside = placed(placeOnWayHome(line, at(-49.9, -50.0), previous = null))
-        assertEquals(570.0, inside.remainingMeters, 0.5)
+        // RECORD -1634 supersedes -1618's "no hop is added" for a fix beside or behind the line's first point
+        // (dispatch 2026-10-25-06 Amendment 1): 49.9 m beside it, so 570 + 49.9.
+        assertEquals(570.0 + 49.9, inside.remainingMeters, 0.5)
         assertTrue(placeOnWayHome(line, at(-50.1, -50.0), previous = null) is WayHomeProgress.OffLine)
     }
 
