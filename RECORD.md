@@ -27772,3 +27772,25 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Juniper's options (Fable; branch rising-figure-options, prompts/preserved/2026-10-25-juniper-rising-figure-options.md, 85ae4dc63) and Sorrel's check of them (Fable; prompts/preserved/2026-10-25-sorrel-rising-figure-options-review.md, 3598ae369). On the out-and-back, the current rule reads 630 m 20 m from the car but is never short. B (follow progress, trust a fix to 10 m) reads 75 m there, but 205 m against a true 500 m while the fix is 20 to 40 m off toward the trail. A shares that exposure. E (a reach from the phone's reported accuracy) meets the recorded objection to trusting reported accuracy.
 **Decision:** the owner: "Keep today's rule (Recommended)". The rule stays the earliest vertex within 60 m anywhere on the line, plus 25 m (-1620). The climb near the car is accepted; E is to be revisited with walk data on reported accuracy.
 **Notes:** Written by the planner by hand. Closes M-395-5 without a code change. Next free ID -1624.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1624
+**Timestamp:** 2026-10-25T02:22:06Z
+**Continues:** 2026-09-28-1621
+**Title:** The map crash on a style change is fixed now, into pre-main (dispatch 2026-10-25-01) (owner)
+**Observed:** Hazel's S22 check (prompts/preserved/2026-10-25-hazel-s22-way-home-2-report.md, branch s22-way-home-2-report, 3c7b20237), F1: IllegalStateException "Calling getSourceAs when a newer style is loading/has loaded" at MapForecastCells.kt:58; 4 crashes in 17 Night Maps toggles and basemap switches, one with no recording; each crash ended the recording. The file is the same on main, pre-main and dev.
+**Decision:** the owner: "Start now (Recommended)": diagnose, fail first, fix into pre-main, promote the usual way.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1625
+**Timestamp:** 2026-10-25T02:22:06Z
+**Continues:** 2026-09-28-1617
+**Title:** The way home re-routes on every stray, and the track shows while a re-route is worked out (owner)
+**Observed:** Hazel's S22 check, step 3: both re-routes went trail to trail in 0.6 to 0.7 s, with 0 frames of the track; step 4 (F2): every stray re-routes, because each new line starts at the walker. Sorrel's #396 re-check, O-396-10, left Hazel's track-while-re-routing call to the owner.
+**Decision:** the owner: "Re-route every stray (Recommended)": "re-routes once" in dispatch 2026-10-24-10 means one re-route per stray. And "Keep Hazel's call (Recommended)" for the track while a re-route is worked out.
+**Notes:** Written by the planner by hand. The 60 m fix (-1620) is green: B 99abdb150 and ac6f6826f, run 40147173906; C 679d9c3e8, run 40147874822; Sorrel re-checks those two commits before the A, B, C merges come to the owner. The owner's walk on build 3937: which 3937 (#395's CI build or the b10 revert build) cannot be known; the routing is the same code in both, the figure is not. Next free ID -1626.
