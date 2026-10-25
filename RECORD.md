@@ -27761,3 +27761,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #395 re-check, M-395-5: out 300 m along a trail, forage back 30 m off it, Return 20 m from the trailhead, and the figure rises from 400 m to 630 m over the last 290 m, reading 630 m 20 m from the car.
 **Decision:** the owner: "Ask for options first (Recommended)": Sorrel and a researcher write rules that are never short and do not climb this way, brought as step paths; nothing built until the owner picks.
 **Notes:** Written by the planner by hand. The owner tested build 3937 on the S26: "the trail navigation worked great on returning back"; which 3937 (#395's CI build or the b10 revert build) is not yet known. Next free ID -1623.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1623
+**Timestamp:** 2026-10-25T01:13:56Z
+**Continues:** 2026-09-28-1622
+**Title:** The distance home keeps the never-short rule beside the walker's own wander (owner)
+**Observed:** Juniper's options (Fable; branch rising-figure-options, prompts/preserved/2026-10-25-juniper-rising-figure-options.md, 85ae4dc63) and Sorrel's check of them (Fable; prompts/preserved/2026-10-25-sorrel-rising-figure-options-review.md, 3598ae369). On the out-and-back, the current rule reads 630 m 20 m from the car but is never short. B (follow progress, trust a fix to 10 m) reads 75 m there, but 205 m against a true 500 m while the fix is 20 to 40 m off toward the trail. A shares that exposure. E (a reach from the phone's reported accuracy) meets the recorded objection to trusting reported accuracy.
+**Decision:** the owner: "Keep today's rule (Recommended)". The rule stays the earliest vertex within 60 m anywhere on the line, plus 25 m (-1620). The climb near the car is accepted; E is to be revisited with walk data on reported accuracy.
+**Notes:** Written by the planner by hand. Closes M-395-5 without a code change. Next free ID -1624.
