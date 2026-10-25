@@ -3,9 +3,11 @@ package com.zynergylabs.forager.app.ui.map
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import com.zynergylabs.forager.app.domain.ForecastCell
 import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
+import org.maplibre.android.maps.Style
 import org.maplibre.android.style.sources.GeoJsonSource
 
 /**
@@ -55,12 +57,7 @@ internal fun MapForecastCells(state: SightingsMapState, forecast: MapForecastFee
                     }
                 }
             }
-            val source = style.getSourceAs<GeoJsonSource>(field.sourceId)
-            if (source == null) {
-                Log.w(SIGHTINGS_MAP_TAG, "The ${field.sourceId} source is not in the loaded style; its cells were not drawn.")
-            } else {
-                source.setGeoJson(forecastCellsFeatureCollection(cells))
-            }
+            if (!pushForecastCells(style, field.sourceId, cells)) return@LaunchedEffect
             forecastCellsShownOf(cells)?.let { shown[field.layerId] = it }
         }
         state.forecast?.onCellsShown?.invoke(shown)
@@ -68,4 +65,20 @@ internal fun MapForecastCells(state: SightingsMapState, forecast: MapForecastFee
         // Only while there is a feed to draw; with none the legend is not shown at all.
         state.forecast?.onZoomedOutChanged?.invoke(feed != null && isBelowForecastZoom(map.cameraPosition.zoom))
     }
+}
+
+/**
+ * One colour field's cells pushed into [style]'s [sourceId] source: the read that crashed on the S22 (dispatch
+ * 2026-10-25-01, finding F1), moved out of the effect above so a test can hand it a style in the state MapLibre leaves
+ * an old style in. A source the style does not have is logged and skipped, as before. Returns whether the effect may
+ * go on to the next field.
+ */
+internal fun pushForecastCells(style: Style, sourceId: String, cells: List<ForecastCell>): Boolean {
+    val source = style.getSourceAs<GeoJsonSource>(sourceId)
+    if (source == null) {
+        Log.w(SIGHTINGS_MAP_TAG, "The $sourceId source is not in the loaded style; its cells were not drawn.")
+    } else {
+        source.setGeoJson(forecastCellsFeatureCollection(cells))
+    }
+    return true
 }
