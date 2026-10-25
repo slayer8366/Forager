@@ -360,7 +360,6 @@ class ReturnWatch(
 
     /** Call with [lock] held. */
     private fun forgetTrails() {
-        trailsShown.clear()
         lastTrailGeneration = null
     }
 
