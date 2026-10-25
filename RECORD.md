@@ -27717,3 +27717,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (hand-worked from WayHomeProgress.kt): under -1617's "earliest within 25 m anywhere", a fix 30 m off the walker's leg, admitted by the 50 m gate and nearer a parallel leg, gives 245 m against a true 420 m.
 **Decision:** the owner: "2: within 50 m (Recommended)": earliest vertex within 50 m anywhere on the line, plus 25 m; reads about 50 to 75 m long on an ordinary trail; never short for any fix the gate admits. Replaces item 1 of -1617.
 **Notes:** Written by the planner by hand. Hazel recommended "nearest + 25 m, capped at 50 m"; the planner recommended 50 m, after PathHome.kt's "Its error is never short, and that's the only property that matters in a safety input." Next free ID -1619.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1619
+**Timestamp:** 2026-10-25T00:03:06Z
+**Continues:** 2026-09-28-1618
+**Title:** Planner handoff, 2026-10-24 (2)
+**Observed:** main 177215135 (#393), pre-main c83a06722 (#389, CI green), dev 82b55f06a. Way home part 2: A #394 aff033375 merge-ready; B #395 77963f8a4 and C #396 44e28ba9b green with -1617 and -1618 in, their Sorrel re-checks cut off by the session usage limit. The S22 is not visible to the laptop. Every helper worktree is committed and pushed; nothing running.
+**Decision:** the owner: "Keep an eye on the context window. Once it reaches 98% write a handoff and have everyone commit their work", then "Handoff now (Recommended)".
+**Notes:** Written by the planner by hand. prompts/preserved/2026-10-24-planner-handoff-2.md. Next free ID -1620.
