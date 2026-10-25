@@ -24,7 +24,7 @@ import org.maplibre.android.maps.Style
  */
 internal fun currentStyle(loaded: Style?, reader: String): Style? {
     if (loaded == null) return null
-    if (loaded.isFullyLoaded) return loaded
+    if (true || loaded.isFullyLoaded) return loaded
     Log.w(SIGHTINGS_MAP_TAG, "$reader skipped: a newer style is loading. It runs again when that style has loaded.")
     return null
 }
