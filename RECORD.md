@@ -27849,3 +27849,18 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's S22 figure check on 1.0.3952+gfb692fb5 (prompts/preserved/2026-10-25-hazel-s22-figure-check.md, branch s22-figure-check-report, 5ff7aeae6): ordinary trail 68 to 86 m long, never short; after a re-route, a walker who walks on past the new line's first point reads short (27 m, then 12 m), up to the 50 m re-route stray; the drawn trail part cuts across a bend, 516 m against 553 m walked; the parallel leg reads up to about 290 m long (-1623's accepted case); the swap and re-routes clean; F1's crash as expected without #397.
 **Decision:** the owner: "Add it, fix first (Recommended)": Hazel fixes the re-route gap before the shared crash fix (dispatch 2026-10-25-06). "Investigate, read-only (Recommended)": Sorrel looks into the straightened bends (dispatch 2026-10-25-07).
 **Notes:** Written by the planner by hand. The owner's walk build stays 1.0.3955+gf5a0cfaf on the S26. Next free ID -1631.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1631
+**Timestamp:** 2026-10-25T06:37:11Z
+**Continues:** 2026-09-28-1629, 2026-09-28-1498, 2026-09-28-445, 2026-09-28-447
+**Title:** Step 7's step paths, wording and trail-name source ruled (owner)
+**Observed:** the step 7 report (Opus; docs/audits/2026-10-25-04-off-trail-and-wrong-turn-report.md, branch off-trail-report, 228d521fb): ReturnWatch judges fixes only against the path copied at Return (ReturnWatch.kt:187, :255; OffTrackJudge.kt:8, :11), so following the trail line home can raise the off-track alert; none of -445's quiet state exists; no trail names are readable by the background service (lookups.dat has no name or ref key).
+**Decision:** the owner:
+- "Yes, as sketched (Recommended)": Re-center replaces the map button's words; the quiet off-trail state after about 15 s off (trail dims, track brightens, notice, no sound), "Back on trail" for about 5 s after about 10 s back on; one far-from-both alert at about 40 m for 15 s, once per stray; one wrong-turn alert on a named trail or road only, then the 50 m re-route. Timings provisional.
+- Notice: "Off trail · Return to Route along your track (Recommended)", short form "Return to Route".
+- Trail names: "A names file from the Pi (Recommended)", per area, from the same extract as the routes, stored beside them; the owner takes it to Aspen; the wrong-turn alert is built after it exists.
+- "Accept all three (Recommended)": far-from-both stays 40 m plus accuracy; the existing sundown alerts serve as the near-dusk alert; L-394-1 waits for a walk.
+**Notes:** Written by the planner by hand. The report's Q2 (what "step 7 lands" means for promotion) is moot under -1628. The alert texts: "Off track" / "You're far from the trail and your track. The line on the map shows the way back."; "Wrong way" / "Your route is back there. The line on the map shows the way back." Next free ID -1632.
