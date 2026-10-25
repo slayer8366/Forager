@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeShown
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -118,9 +119,13 @@ class ReturnWatch(
      * its own: a `StateFlow`'s `value` takes none. Every trail part shown on a return is kept for the rest of it and
      * counts as on course beside the path, so following the app's own trail line home does not alert.
      *
-     * Why the trail parts and not the whole line: a re-routed line starts at the walker's newest stored point and runs
-     * back along where they just strayed, so the walker is always near it and a stray could never read as far from it
-     * (the step 7 report, 8.4). The line's other track parts are stored points from before Return, already in the path.
+     * The dotted part back along the walker's stray counts too (dispatch 2026-10-25-09; RECORD -1635, the owner: "Yes,
+     * count it (Recommended)", on Sorrel's 399-1): after a re-route that part is the stray walked after Return, not in
+     * the path, and a walker following it back stood on a drawn line while reading "far from the trail and your track".
+     * So following any line the way home draws never raises the alert. This replaces PR 1's "the trail parts and not
+     * the whole line" (the step 7 report, 8.4), whose reason was that a re-routed line starts at the walker; but a line
+     * once shown is fixed, so a walker who keeps straying still goes far from it (Sorrel, 399-1). The line's last part,
+     * from where the walker joined the trail back to the start, is stored points from before Return, already in the path.
      */
     private val wayHomeTrail: (trackId: String) -> ShownTrail? = { null },
 ) {
@@ -379,7 +384,19 @@ class ReturnWatch(
 }
 
 /**
- * The trail part of a way home as [ReturnWatch] is given it: [generation] is the way home's own (`WayHomeShown.generation`),
- * so the watch keeps each line once; [points] is the trail part, in walking order.
+ * The lines of a way home as [ReturnWatch] is given them: [generation] is the way home's own (`WayHomeShown.generation`),
+ * so the watch keeps each line once; [points] is the trail part, and [trackBack] the dotted part from the walker's newest
+ * stored point back to where they left the trail (RECORD -1635), each in walking order.
  */
-data class ShownTrail(val generation: Long, val points: List<LatLng>)
+data class ShownTrail(val generation: Long, val points: List<LatLng>, val trackBack: List<LatLng> = emptyList())
+
+/**
+ * What [ReturnWatch] is given for [trackId] from the way home shown now (`WayHomeWatch.shown`): `null` when it is for
+ * another track, still being worked out, or the track alone (no line along trails). Here rather than in `AppContainer`
+ * so the mapping is tested (dispatch 2026-10-25-09).
+ */
+fun shownTrailOf(shown: WayHomeShown?, trackId: String): ShownTrail? {
+    if (shown == null || shown.trackId != trackId) return null
+    val wayHome = shown.line?.wayHome ?: return null
+    return ShownTrail(shown.generation, wayHome.trail.points, wayHome.trackBack.points)
+}

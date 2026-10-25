@@ -3,8 +3,15 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
+import com.zynergylabs.forager.app.domain.wayhome.WayHome
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
+import com.zynergylabs.forager.app.domain.wayhome.WayHomePart
+import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeShown
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -114,6 +121,48 @@ class ReturnWatchWayHomeTest {
         watch.onFix(point(lat = 45.003, metersEast = TRAIL_EAST_METERS, t = 90_000L), FixProvider.GPS)
 
         assertEquals(listOf(TRACK), askedFor.distinct())
+    }
+
+    /**
+     * Dispatch 2026-10-25-09 (RECORD -1635; Sorrel's 399-1): the walker strays west after Return, the way home re-routes,
+     * and its dotted part runs back along that stray. Following the dotted part, 80 m from the walk out and 160 m from the
+     * trail line, is following a line the app draws, and must not alert.
+     */
+    @Test
+    fun `following the dotted line back along a stray after a re-route gives no alert`() {
+        shown = trail(generation = 1)
+        val watch = begunWatch()
+        watch.startReturn(TRACK)
+        watch.onFix(point(lat = 45.003, metersEast = TRAIL_EAST_METERS, t = 90_000L), FixProvider.GPS)
+
+        // The re-route: the same trail line, and the dotted part back along a stray 80 m west of the walk out.
+        val stray = (0..6).map { i -> LatLng(45.0025 - i * 0.0002, -122.0 - TRAIL_EAST_METERS / METERS_PER_DEGREE_LNG) }
+        shown = trail(generation = 2).copy(trackBack = stray)
+        watch.walk(metersEast = -TRAIL_EAST_METERS, fromMillis = 100_000L)
+
+        assertEquals("following the dotted line the app draws must not alert", emptyList<Alert>(), delivered)
+        assertFalse(watch.state.value.isOffTrack)
+    }
+
+    /** The mapping AppContainer hands the watch (dispatch 2026-10-25-09): a real way home's trail part and dotted part. */
+    @Test
+    fun `the watch is given the way home's trail part and its dotted part, for its own track only`() {
+        val back = listOf(LatLng(45.0020, -122.001), LatLng(45.0010, -122.001))
+        val trailPart = listOf(LatLng(45.0010, -122.001), LatLng(45.0000, -122.000))
+        val toStart = listOf(LatLng(45.0000, -122.000))
+        val wayHome = WayHome(
+            trackBack = WayHomePart(WayHomePartKind.TRACK_BACK, back, 111.0),
+            trail = WayHomePart(WayHomePartKind.TRAIL, trailPart, 140.0),
+            trackToStart = WayHomePart(WayHomePartKind.TRACK_TO_START, toStart, 0.0),
+            trailJointMeters = 0.0,
+            regionId = 1L,
+        )
+        val shownNow = WayHomeShown(TRACK, generation = 7, result = WayHomeResult.AlongTrails(wayHome), line = WayHomeLine(wayHome))
+
+        assertEquals(ShownTrail(7, trailPart, back), shownTrailOf(shownNow, TRACK))
+        assertNull("another track's way home", shownTrailOf(shownNow, "track-2"))
+        assertNull("still being worked out", shownTrailOf(WayHomeShown(TRACK, generation = 8, result = null), TRACK))
+        assertNull("none shown", shownTrailOf(null, TRACK))
     }
 
     private companion object {

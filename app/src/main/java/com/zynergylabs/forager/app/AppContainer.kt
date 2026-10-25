@@ -79,7 +79,7 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
-import com.zynergylabs.forager.app.domain.ShownTrail
+import com.zynergylabs.forager.app.domain.shownTrailOf
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CartographyEntryRepository
@@ -399,14 +399,10 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         computeReturnToStartUseCase,
         alertDelivery,
         isReminderOn = offTrackReminderPreferences::enabledNow,
-        // Dispatch 2026-10-25-08 (RECORD -1631): the way home's trail part counts as on course. Read through the
+        // Dispatch 2026-10-25-08 (RECORD -1631) and -09 (RECORD -1635): the way home's lines count as on course. Read through the
         // StateFlow's value, which takes no lock; wayHomeWatch is declared below, and this runs only on a fix. Both watches
         // are typed explicitly: each reads the other, and Kotlin cannot infer either type otherwise (CI 40171062417).
-        wayHomeTrail = { id ->
-            wayHomeWatch.shown.value?.takeIf { it.trackId == id }?.let { shown ->
-                shown.line?.let { ShownTrail(shown.generation, it.wayHome.trail.points) }
-            }
-        },
+        wayHomeTrail = { id -> shownTrailOf(wayHomeWatch.shown.value, id) },
     )
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
