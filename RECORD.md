@@ -27903,3 +27903,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel, PR #398 (d30dcedcd): fail-first 40169276425 and revert 40169731488 as predicted; PR run 40169746142 has 2 failures, the two WayHomeProgressTest cases pinning -1618 (35 m beside the start: 605 m against 570; 49.9 m: 620 against 570). Hazel's verify-first for 2026-10-25-02: clearing loadedStyle at MapStyleReload.kt changes visible things (an open fan folds early, a locate tap is dropped, the camera memory and the cover picture are skipped during the load).
 **Decision:** the owner: "Add it, never short (Recommended)": the two assertions move to the longer figure (dispatch 2026-10-25-06 Amendment 1). "A check at each reader (Recommended)" and "Do it when the map is ready (Recommended)" (dispatch 2026-10-25-02 Amendment 1).
 **Notes:** Written by the planner by hand. Next free ID -1635.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1635
+**Timestamp:** 2026-10-25T12:21:28Z
+**Continues:** 2026-09-28-1631, 2026-09-28-1632
+**Title:** #399 and #400 merge into pre-main; the dotted line after a re-route counts as your track (owner)
+**Observed:** Sorrel's review (Fable; prompts/preserved/2026-10-25-sorrel-399-400-review.md, branch sorrel-399-400, 025d34d6c): #399 mergeable as ruled, #400 mergeable; 399-1: after a re-route the dotted part along the stray walked after Return is not counted, so following it can raise "You're far from the trail and your track."
+**Decision:** the owner: "Yes, count it (Recommended)": following any line the app draws never raises the alert (dispatch 2026-10-25-09). "Merge both, then fix (Recommended)": #399 merged at 502e3b06f (pre-main 5ed0114f8), #400 to follow once pre-main's CI is green; the S22 checks run on the merged build.
+**Notes:** Written by the planner by hand. Next free ID -1636.
