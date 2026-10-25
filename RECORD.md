@@ -27891,3 +27891,15 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - "By sight for now (Recommended)": a band with no trail line in it is the gap; no server flagging.
 - "Count them (Recommended)": the band's tiles count toward the 6,000-tile limit.
 **Notes:** Written by the planner by hand. The server side (one agency-trails archive, its size first) is for the owner to take to Aspen. Building waits for that archive's format and a go; the app side can be built against a synthetic archive. Next free ID -1634.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1634
+**Timestamp:** 2026-10-25T11:45:51Z
+**Continues:** 2026-09-28-1630, 2026-09-28-1627, 2026-09-28-1618
+**Supersedes:** -1618's "no hop is added" for a fix beside or behind the line's first point
+**Title:** A fix beside the line's start adds its distance; the shared style fix is a check at each reader; a locate tap waits for the map (owner)
+**Observed:** Hazel, PR #398 (d30dcedcd): fail-first 40169276425 and revert 40169731488 as predicted; PR run 40169746142 has 2 failures, the two WayHomeProgressTest cases pinning -1618 (35 m beside the start: 605 m against 570; 49.9 m: 620 against 570). Hazel's verify-first for 2026-10-25-02: clearing loadedStyle at MapStyleReload.kt changes visible things (an open fan folds early, a locate tap is dropped, the camera memory and the cover picture are skipped during the load).
+**Decision:** the owner: "Add it, never short (Recommended)": the two assertions move to the longer figure (dispatch 2026-10-25-06 Amendment 1). "A check at each reader (Recommended)" and "Do it when the map is ready (Recommended)" (dispatch 2026-10-25-02 Amendment 1).
+**Notes:** Written by the planner by hand. Next free ID -1635.
