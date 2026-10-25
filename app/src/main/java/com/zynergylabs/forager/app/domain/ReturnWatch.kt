@@ -399,5 +399,5 @@ data class ShownTrail(val generation: Long, val points: List<LatLng>, val trackB
 fun shownTrailOf(shown: WayHomeShown?, trackId: String): ShownTrail? {
     if (shown == null || shown.trackId != trackId) return null
     val wayHome = shown.line?.wayHome ?: return null
-    return ShownTrail(shown.generation, wayHome.trail.points, wayHome.trackBack.points)
+    return ShownTrail(shown.generation, wayHome.trail.points)
 }
