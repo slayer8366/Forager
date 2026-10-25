@@ -27728,3 +27728,36 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** main 177215135 (#393), pre-main c83a06722 (#389, CI green), dev 82b55f06a. Way home part 2: A #394 aff033375 merge-ready; B #395 77963f8a4 and C #396 44e28ba9b green with -1617 and -1618 in, their Sorrel re-checks cut off by the session usage limit. The S22 is not visible to the laptop. Every helper worktree is committed and pushed; nothing running.
 **Decision:** the owner: "Keep an eye on the context window. Once it reaches 98% write a handoff and have everyone commit their work", then "Handoff now (Recommended)".
 **Notes:** Written by the planner by hand. prompts/preserved/2026-10-24-planner-handoff-2.md. Next free ID -1620.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1620
+**Timestamp:** 2026-10-25T00:29:00Z
+**Continues:** 2026-09-28-1618
+**Title:** The distance home's reach widens to 60 m, so never short between vertices (dispatch 2026-10-24-10 Amendment 4) (owner)
+**Observed:** Sorrel's #395 re-check (Fable; prompts/preserved/2026-10-24-sorrel-395-recheck.md, B-395-2): the 50 m reach is measured to vertices up to 10 m apart; a fix 40 to 50 m ahead on a track part reads up to 10 m short, and a fix at the gate's edge beside a later leg gave 265 m against 419 m.
+**Decision:** the owner: "Widen to 60 m (Recommended)": the reach is the gate's 50 m plus the 10 m line step. Replaces the radius in -1618.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1621
+**Timestamp:** 2026-10-25T00:29:00Z
+**Continues:** 2026-09-28-1620
+**Title:** The S22 device check and timing run go ahead on C's current head (owner)
+**Observed:** Sorrel's #396 re-check (Fable; prompts/preserved/2026-10-24-sorrel-396-recheck.md): merge-ready after #395; O-396-10 (the track showing while a re-route is worked out) left for the owner with the step 3 clip. #395 not merge-ready (-1620). The S22 is visible again.
+**Decision:** the owner: "Run it now", on C's build at 44e28ba9b, the distance figure re-checked after the 60 m fix. Earlier, the owner: "Go once the re-checks pass".
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1622
+**Timestamp:** 2026-10-25T00:29:00Z
+**Continues:** 2026-09-28-1620
+**Title:** The distance home climbing near the car: options to the owner before anything is built (owner)
+**Observed:** Sorrel's #395 re-check, M-395-5: out 300 m along a trail, forage back 30 m off it, Return 20 m from the trailhead, and the figure rises from 400 m to 630 m over the last 290 m, reading 630 m 20 m from the car.
+**Decision:** the owner: "Ask for options first (Recommended)": Sorrel and a researcher write rules that are never short and do not climb this way, brought as step paths; nothing built until the owner picks.
+**Notes:** Written by the planner by hand. The owner tested build 3937 on the S26: "the trail navigation worked great on returning back"; which 3937 (#395's CI build or the b10 revert build) is not yet known. Next free ID -1623.
