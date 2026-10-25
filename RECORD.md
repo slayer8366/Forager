@@ -27864,3 +27864,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Trail names: "A names file from the Pi (Recommended)", per area, from the same extract as the routes, stored beside them; the owner takes it to Aspen; the wrong-turn alert is built after it exists.
 - "Accept all three (Recommended)": far-from-both stays 40 m plus accuracy; the existing sundown alerts serve as the near-dusk alert; L-394-1 waits for a walk.
 **Notes:** Written by the planner by hand. The report's Q2 (what "step 7 lands" means for promotion) is moot under -1628. The alert texts: "Off track" / "You're far from the trail and your track. The line on the map shows the way back."; "Wrong way" / "Your route is back there. The line on the map shows the way back." Next free ID -1632.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1632
+**Timestamp:** 2026-10-25T06:54:44Z
+**Continues:** 2026-09-28-1631
+**Title:** Step 7 PRs 1 and 2 start: the false off-track alert and Re-center (owner)
+**Decision:** asked "Shall I start a coder on step 7's first two PRs (stopping the false alert, and Re-center)?", the owner: "Yes". Dispatch 2026-10-25-08, to the step 7 report's coder (Opus).
+**Notes:** Written by the planner by hand. The reports for steps 8, 10 and 11 (Opus; branch later-steps-reports, e4f9324c8) are in and await the owner's rulings, step 8 first. Next free ID -1633.
