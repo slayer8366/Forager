@@ -27794,3 +27794,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's S22 check, step 3: both re-routes went trail to trail in 0.6 to 0.7 s, with 0 frames of the track; step 4 (F2): every stray re-routes, because each new line starts at the walker. Sorrel's #396 re-check, O-396-10, left Hazel's track-while-re-routing call to the owner.
 **Decision:** the owner: "Re-route every stray (Recommended)": "re-routes once" in dispatch 2026-10-24-10 means one re-route per stray. And "Keep Hazel's call (Recommended)" for the track while a re-route is worked out.
 **Notes:** Written by the planner by hand. The 60 m fix (-1620) is green: B 99abdb150 and ac6f6826f, run 40147173906; C 679d9c3e8, run 40147874822; Sorrel re-checks those two commits before the A, B, C merges come to the owner. The owner's walk on build 3937: which 3937 (#395's CI build or the b10 revert build) cannot be known; the routing is the same code in both, the figure is not. Next free ID -1626.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1626
+**Timestamp:** 2026-10-25T05:33:56Z
+**Continues:** 2026-09-28-1625
+**Title:** Way home part 2 merged into pre-main: A #394, B #395, C #396 (owner)
+**Observed:** Sorrel's 60 m re-check (Fable; prompts/preserved/2026-10-25-sorrel-60m-recheck.md, branch sorrel-60m-recheck, 61701ffea): A, B, C merge-ready in that order. Merged by the planner: A at aff033375 (pre-main c1ca63a0b, CI 40154717124 green), B at ac6f6826f (c64b308d3, 40163946754 green), C at 679d9c3e8 (fb692fb57, 40165007509 green); B and C retargeted to pre-main before merging.
+**Decision:** the owner: "Merge now, phone after (Recommended)": a short S22 check of the distance figure on the merged pre-main build, which is also the build for the owner's next walk.
+**Notes:** Written by the planner by hand. No promotion until step 7 lands (-1612). The crash fix (-1624) is PR #397, under Sorrel's review. Next free ID -1627.
