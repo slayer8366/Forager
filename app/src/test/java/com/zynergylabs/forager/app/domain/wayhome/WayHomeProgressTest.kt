@@ -39,18 +39,22 @@ class WayHomeProgressTest {
         // At (100, 12): 12 m from leg 1, 8 m from leg 2. The true distance home from leg 1 there is 100 + 20 + 200 + 100.
         val place = placed(placeOnWayHome(line, at(100.0, 12.0), previous = null))
         assertTrue("on leg 1, not the later leg: ${place.remainingMeters}", place.remainingMeters >= 420.0)
-        assertTrue("short by nothing, long by at most the 25 m reach and the allowance: ${place.remainingMeters}", place.remainingMeters <= 420.0 + 50.0)
+        // Amendment 3: the figure counts from the earliest node within the gate's 50 m, so it reads up to 50 m long, plus
+        // the 25 m allowance, plus a node's spacing.
+        assertTrue("long by at most the 50 m reach, the allowance and a node: ${place.remainingMeters}", place.remainingMeters <= 420.0 + 50.0 + 25.0 + 10.0)
         assertTrue(place.onTrail)
     }
 
     @Test
-    fun `once on the second leg, the walker stays placed on it`() {
+    fun `once on the second leg, the walker's place stays on it, and the figure is still never short`() {
         val leg2At160 = line.nodes.indexOfFirst { com.zynergylabs.forager.app.domain.GeoDistance.metersBetween(it, at(160.0, 20.0)) < 0.5 }
         val previous = WayHomePlace(leg2At160, hopMeters = 0.0, hopBand = HopBand.NONE, onTrail = true, remainingMeters = 0.0)
         val next = placed(placeOnWayHome(line, at(100.0, 12.0), previous = previous))
         // From leg 2 at 100 m east the true distance home is 100 + 100.
         assertTrue("never short: ${next.remainingMeters}", next.remainingMeters >= 200.0)
-        assertTrue("not put back on leg 1: ${next.remainingMeters}", next.remainingMeters < 300.0)
+        // "Not before the last place" holds for the place the needle and the greyed part read (Amendment 3); the figure
+        // counts from the earliest node within 50 m anywhere, which here is on leg 1, so it reads long, never short.
+        assertTrue("the place stays on leg 2: ${next.index}", next.index >= leg2At160)
     }
 
     @Test
@@ -84,15 +88,17 @@ class WayHomeProgressTest {
 
         val onTrail = placed(placeOnWayHome(line, at(200.0, 0.0), previous = null))
         assertEquals(true, onTrail.onTrail)
-        // Earliest node within 25 m of (200, 0) is at (180, 0): 50 + 180 along, so 340 m of line, plus the 25 m.
-        assertEquals(340.0 + WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS, onTrail.remainingMeters, 0.5)
+        // The figure's node is the earliest within 50 m of (200, 0) anywhere: (150, 0), 50 + 150 along, so 370 m of line,
+        // plus the 25 m.
+        assertEquals(370.0 + WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS, onTrail.remainingMeters, 0.5)
     }
 
     @Test
     fun `between 25 and 50 m off the line the hop is counted, and over 50 m the walker is off the line`() {
         val off35 = placed(placeOnWayHome(line, at(-35.0, -50.0), previous = null))
         assertEquals(HopBand.COUNTED, off35.hopBand)
-        assertEquals(570.0 + 35.0, off35.remainingMeters, 0.5)
+        // Amendment 3: the 50 m reach covers the fix's distance from the line, so no hop is added to the figure.
+        assertEquals(570.0, off35.remainingMeters, 0.5)
 
         val off60 = placeOnWayHome(line, at(-60.0, -50.0), previous = null)
         assertTrue("off the line: $off60", off60 is WayHomeProgress.OffLine)
@@ -102,5 +108,35 @@ class WayHomeProgressTest {
     fun `every stretch of the line is a track or a trail stretch, in order`() {
         val runs = line.kinds.fold(emptyList<RouteLinePartKind>()) { acc, k -> if (acc.lastOrNull() == k) acc else acc + k }
         assertEquals(listOf(RouteLinePartKind.TRACK, RouteLinePartKind.TRAIL, RouteLinePartKind.TRACK), runs)
+    }
+
+    @Test
+    fun `Sorrel's case - one fix 30 m off leg 1, nearer leg 2, does not read short`() {
+        // B-395-1: placed on leg 1 at (90, 0); one fix at (100, 30), 30 m from leg 1 and 10 m from leg 2. The truth from
+        // leg 1 at 100 m east is 100 + 20 + 200 + 100 = 420 m. It read 245 m before Amendment 3.
+        val at90 = line.nodes.indexOfFirst { com.zynergylabs.forager.app.domain.GeoDistance.metersBetween(it, at(90.0, 0.0)) < 0.5 }
+        val previous = WayHomePlace(at90, hopMeters = 0.0, hopBand = HopBand.NONE, onTrail = true, remainingMeters = 0.0)
+        val place = placed(placeOnWayHome(line, at(100.0, 30.0), previous = previous))
+        assertTrue("never short: ${place.remainingMeters}", place.remainingMeters >= 420.0)
+    }
+
+    @Test
+    fun `a double-back through the hairpin does not read short`() {
+        // Sorrel's case 2: placed on leg 2, the walker turns back round the riser and west along leg 1, away from home.
+        val leg2At190 = line.nodes.indexOfFirst { com.zynergylabs.forager.app.domain.GeoDistance.metersBetween(it, at(190.0, 20.0)) < 0.5 }
+        var previous: WayHomePlace? = WayHomePlace(leg2At190, hopMeters = 0.0, hopBand = HopBand.NONE, onTrail = true, remainingMeters = 0.0)
+        // True distances home from leg 1: 100 + 20 + 200 + 100 at 100 m east, 200 + 20 + 200 + 100 at 0 m east.
+        for ((east, truth) in listOf(200.0 to 320.0, 150.0 to 370.0, 100.0 to 420.0, 50.0 to 470.0, 0.0 to 520.0)) {
+            val place = placed(placeOnWayHome(line, at(east, 0.0), previous = previous))
+            assertTrue("at $east m east, never short: ${place.remainingMeters} against $truth", place.remainingMeters >= truth)
+            previous = place
+        }
+    }
+
+    @Test
+    fun `a fix just inside the 50 m gate is placed and counts from the line, one just outside is off the line`() {
+        val inside = placed(placeOnWayHome(line, at(-49.9, -50.0), previous = null))
+        assertEquals(570.0, inside.remainingMeters, 0.5)
+        assertTrue(placeOnWayHome(line, at(-50.1, -50.0), previous = null) is WayHomeProgress.OffLine)
     }
 }

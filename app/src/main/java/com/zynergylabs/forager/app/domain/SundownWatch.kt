@@ -314,8 +314,14 @@ class SundownWatch(
             if (trackId != id) return@synchronized false
             fired = decision.spent
             sunsetAt = countdown.sunsetAtEpochMillis
-            // The track's hop band only: a band from the way home's place is that line's, not the track's.
-            if (estimate is ReturnWalkingTime.Estimate && alongWayHome == null) hopBand = estimate.path.hopBand
+            // The track's hop band only: a band from the way home's place is that line's, not the track's. While the way
+            // home is in use the track's band is still carried, from the hop to its most recent point as pathHome
+            // measures it, so a fallback to the track starts from a current band (Sorrel's M-396-2).
+            if (estimate is ReturnWalkingTime.Estimate && alongWayHome == null) {
+                hopBand = estimate.path.hopBand
+            } else if (alongWayHome != null && current != null) {
+                track?.points?.lastOrNull()?.let { hopBand = nextHopBand(hopBand, GeoDistance.metersBetween(current, LatLng(it.lat, it.lng))) }
+            }
             true
         }
         val kind = when (decision.fire) {

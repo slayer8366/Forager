@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HOP_FAR_ENTER_ABOVE_METERS
 import com.zynergylabs.forager.app.domain.HOP_FAR_LEAVE_BELOW_METERS
+import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LIVE_FIX_MAX_ACCURACY_METERS
 import com.zynergylabs.forager.app.domain.mayAct
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -84,6 +85,7 @@ class WayHomeWatch(
     private var generation = 0L
     private var job: Job? = null
     private var progress: WayHomeProgress? = null
+    private var lastPlace: WayHomePlace? = null
     private var armed = true
     private var reroutingEnded = false
     private var loggedWhy: String? = null
@@ -126,8 +128,15 @@ class WayHomeWatch(
         if (!isReturning(id) || !provider.mayAct) return@synchronized
         if ((point.accuracyMeters ?: 0f) > LIVE_FIX_MAX_ACCURACY_METERS) return@synchronized
         val current = LatLng(point.lat, point.lng)
-        val previous = (progress as? WayHomeProgress.Placed)?.place
-        val next = placeOnWayHome(line, current, previous)
+        // L-395-4: the far band's hysteresis holds across off the line (out above 50 m, back only below 45 m), and the
+        // last place is kept through it.
+        val band = when (progress) {
+            is WayHomeProgress.Placed -> (progress as WayHomeProgress.Placed).place.hopBand
+            is WayHomeProgress.OffLine -> HopBand.FAR
+            null -> HopBand.NONE
+        }
+        val next = placeOnWayHome(line, current, lastPlace, band)
+        if (next is WayHomeProgress.Placed) lastPlace = next.place
         if (next is WayHomeProgress.OffLine && progress !is WayHomeProgress.OffLine) {
             errorLog.w(TAG, "The walker is over the far band from the way home; sundown reads the track until they are back on it.", WayHomeFallback("off the line"))
         }
@@ -168,12 +177,17 @@ class WayHomeWatch(
                 work(id, origin)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // Throwable, not Exception (Sorrel's M-395-2): an engine OutOfMemoryError must not escape the job, leave it
+                // set (no re-route for the rest of the return) or reach the thread's handler and end the app.
                 errorLog.w(TAG, "Working out the way home failed; the track is the way home.", e)
                 WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND)
             }
             ensureActive()
             synchronized(lock) {
+                // trackId covers stop and end. The generation covers one window ensureActive cannot: a second find that
+                // cancels this job after it passed ensureActive and before it took the lock (L-395-9). A single-thread
+                // test cannot open that window, so the tests pin the guard as a whole (revert b3 removes both lines).
                 if (generation != mine || trackId != id) return@synchronized
                 job = null
                 val line = (result as? WayHomeResult.AlongTrails)?.let { WayHomeLine(it.wayHome) }
@@ -181,6 +195,7 @@ class WayHomeWatch(
                 // A new line places the walker afresh. After a re-route the stray stays spent until a fix comes back
                 // within the re-arm figure of the line shown: once per stray.
                 progress = null
+                lastPlace = null
                 _shown.value = WayHomeShown(id, mine, result, line)
             }
         }
@@ -200,6 +215,7 @@ class WayHomeWatch(
     /** Call with [lock] held. */
     private fun resetProgress() {
         progress = null
+        lastPlace = null
         armed = true
         loggedWhy = null
     }

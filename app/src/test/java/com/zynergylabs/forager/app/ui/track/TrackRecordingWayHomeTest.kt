@@ -1,34 +1,14 @@
 package com.zynergylabs.forager.app.ui.track
 
-import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
-import com.zynergylabs.forager.app.domain.AlertAudibility
-import com.zynergylabs.forager.app.domain.AlertAudibilityState
 import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
-import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
-import com.zynergylabs.forager.app.domain.CurrentTimeProvider
-import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
-import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
-import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.FixProvider
-import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
-import com.zynergylabs.forager.app.domain.GetTracksUseCase
-import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
-import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.LocationFix
-import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.ReturnWatch
-import com.zynergylabs.forager.app.domain.RingerMode
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteLinePartKind
-import com.zynergylabs.forager.app.domain.StartTrackUseCase
-import com.zynergylabs.forager.app.domain.TrackRepository
-import com.zynergylabs.forager.app.domain.WaypointRepository
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
-import com.zynergylabs.forager.app.domain.model.TrackPointRecord
-import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.wayhome.Ground
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLines
@@ -37,14 +17,12 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch
 import com.zynergylabs.forager.app.ui.availability.ReturnRoute
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
-import java.time.ZoneOffset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -144,6 +122,29 @@ class TrackRecordingWayHomeTest {
         assertEquals("the line at Return is the way home now", line.nodes, swapped.routeLine!!.atReturn)
         assertEquals("the HUD's figure is along the way home", 570.0, (returnRouteOf(route, swapped.wayHomeNote) as ReturnRoute.Ahead).routeMeters, 0.5)
         assertNull(swapped.wayHomeNote)
+    }
+
+    @Test
+    fun `off the way home by more than 50 m the HUD shows the track home, not Unable to calculate route`() = runRecordingTest {
+        // M-396-1, the owner: "Fall back to your track (Recommended)".
+        val viewModel = viewModel(wayHomeWatch())
+        recordingAtTheHairpin(viewModel)
+        viewModel.startReturn()
+        runCurrent()
+        answers.single().complete(WayHomeResult.AlongTrails(WayHomeLines.hairpin))
+        runCurrent()
+        // The walker strays 80 m west of the line's start; the stray is recorded, so the track ends where they stand.
+        tracks.appendPoints("track-1", listOf(point(Ground.at(-40.0, -50.0), 10), point(Ground.at(-80.0, -50.0), 11)))
+        val away = Ground.at(-80.0, -50.0)
+        tracker.emitted.emit(LocationFix.Update(away.lat, away.lng, null, 5f, T + 12_000L, FixProvider.GPS))
+        runCurrent()
+        // The next poll reads the stray, then the tick routes.
+        advanceTimeBy(15_001L)
+        runCurrent()
+        viewModel.retryRoute()
+        val route = viewModel.uiState.value.routeHome
+        assertTrue("the track home, not withheld: $route", route is RouteHome.Ahead)
+        assertEquals("it is the track's line (generation 0), with no parts", 0L, (route as RouteHome.Ahead).generation)
     }
 
     @Test

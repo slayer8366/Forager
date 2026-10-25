@@ -100,8 +100,14 @@ internal class TrackRecordingRouteTicks(
         // on it; otherwise, and while it is still being worked out, the track as before.
         val shown = state.wayHome
         val line = shown?.line
-        val next = if (shown != null && line != null && state.activeTrack != null) {
-            val progress = wayHomeProgress(state.activeTrack.trackId) ?: placeOnWayHome(line, here, previous = null, previousHopBand)
+        // M-396-1, the owner: "Fall back to your track (Recommended)": off the line by more than the far band, the HUD
+        // shows the track home and its distance, as sundown does, never "Unable to calculate route" for the way home.
+        val progress = if (shown != null && line != null && state.activeTrack != null) {
+            wayHomeProgress(state.activeTrack.trackId) ?: placeOnWayHome(line, here, previous = null, previousHopBand)
+        } else {
+            null
+        }
+        val next = if (shown != null && line != null && progress is WayHomeProgress.Placed) {
             wayHomeAhead(line, progress, here, shown.generation)
         } else {
             findRouteHome(track, here, state.originWaypoint, previousHopBand)
