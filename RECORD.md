@@ -27874,3 +27874,20 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Step 7 PRs 1 and 2 start: the false off-track alert and Re-center (owner)
 **Decision:** asked "Shall I start a coder on step 7's first two PRs (stopping the false alert, and Re-center)?", the owner: "Yes". Dispatch 2026-10-25-08, to the step 7 report's coder (Opus).
 **Notes:** Written by the planner by hand. The reports for steps 8, 10 and 11 (Opus; branch later-steps-reports, e4f9324c8) are in and await the owner's rulings, step 8 first. Next free ID -1633.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1633
+**Timestamp:** 2026-10-25T06:56:19Z
+**Continues:** 2026-09-28-1176, 2026-09-28-1629
+**Title:** Step 8, the official-trails band, ruled (owner)
+**Observed:** the step 8 report (Opus; docs/audits/2026-10-25-05-reference-layer-report.md, branch later-steps-reports, 0b97f4619): offline downloads store every source in the style (MapLibreOfflineMapRepository.kt:139-146); night recolours every line layer (OfflineNightRecolourApply.kt:76-82); an app overlay draws nothing offline.
+**Decision:** the owner:
+- "On (Recommended)": the band is on by default, a switch under Layers → Overlays.
+- "Part of Trail Map (Recommended)": drawn inside the Trail Map style, so offline areas carry it; areas downloaded before need a re-download (the existing older-style notice).
+- "Trail Map only (Recommended)".
+- "Hide them (Recommended)": winter and snow trails left out.
+- "By sight for now (Recommended)": a band with no trail line in it is the gap; no server flagging.
+- "Count them (Recommended)": the band's tiles count toward the 6,000-tile limit.
+**Notes:** Written by the planner by hand. The server side (one agency-trails archive, its size first) is for the owner to take to Aspen. Building waits for that archive's format and a go; the app side can be built against a synthetic archive. Next free ID -1634.
