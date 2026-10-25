@@ -27838,3 +27838,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The rest of the plan in code: reports first for steps 6, 7, 8, 10 and 11; the owner walks for elevation (owner)
 **Decision:** the owner: "Let's get what we can done in code, and I'll do a walk for the elevation." Asked, "Start as sketched (Recommended)": Hazel continues (the S22 figure check, the shared crash fix 2026-10-25-02), then step 6's report (2026-10-25-03); a second Opus coder writes step 7's report (2026-10-25-04); a third writes the reports for steps 8, 10 and 11 (2026-10-25-05); builds only after the owner rules on each report; step 7's wording comes back as a step path first. For the walk, "A hilly walk to log climbs": a recorded walk with real climbs as data for a climbing allowance on the walk-back time.
 **Notes:** Written by the planner by hand. Elevation data on the server is Aspen's side, not directed by this planner. Next free ID -1630.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1630
+**Timestamp:** 2026-10-25T06:27:14Z
+**Continues:** 2026-09-28-1626, 2026-09-28-1620
+**Title:** The figure after a re-route counts the walker's distance back to the line; the routed trail's straightened bends investigated (owner)
+**Observed:** Hazel's S22 figure check on 1.0.3952+gfb692fb5 (prompts/preserved/2026-10-25-hazel-s22-figure-check.md, branch s22-figure-check-report, 5ff7aeae6): ordinary trail 68 to 86 m long, never short; after a re-route, a walker who walks on past the new line's first point reads short (27 m, then 12 m), up to the 50 m re-route stray; the drawn trail part cuts across a bend, 516 m against 553 m walked; the parallel leg reads up to about 290 m long (-1623's accepted case); the swap and re-routes clean; F1's crash as expected without #397.
+**Decision:** the owner: "Add it, fix first (Recommended)": Hazel fixes the re-route gap before the shared crash fix (dispatch 2026-10-25-06). "Investigate, read-only (Recommended)": Sorrel looks into the straightened bends (dispatch 2026-10-25-07).
+**Notes:** Written by the planner by hand. The owner's walk build stays 1.0.3955+gf5a0cfaf on the S26. Next free ID -1631.
