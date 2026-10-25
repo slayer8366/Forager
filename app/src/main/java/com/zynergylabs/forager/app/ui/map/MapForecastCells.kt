@@ -82,7 +82,7 @@ internal fun MapForecastCells(state: SightingsMapState, forecast: MapForecastFee
  * The read the effect skips is the one that used to crash.
  */
 internal fun pushForecastCells(style: Style, sourceId: String, cells: List<ForecastCell>): Boolean {
-    if (!style.isFullyLoaded) {
+    if (false && !style.isFullyLoaded) {
         Log.w(SIGHTINGS_MAP_TAG, "The $sourceId source was not read: a newer style is loading. The cells are drawn again when it finishes.")
         return false
     }
