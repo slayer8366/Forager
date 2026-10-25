@@ -27,8 +27,14 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
 internal const val RETURN_TO_ROUTE_TAG = "return-to-route"
 
-/** The owner's words (dispatch 2026-09-28-430): "Have a "Return to Route" button appear when panning away". */
-internal const val RETURN_TO_ROUTE_TEXT = "Return to Route"
+/**
+ * The pill's words. First "Return to Route", the owner's words (dispatch 2026-09-28-430): "Have a "Return to Route" button
+ * appear when panning away". Renamed "Re-center" (dispatch 2026-10-25-08; RECORD -1498 answer 5, the owner: "Rename the
+ * current button to Re-center like it does on Google maps, and use the Return to Route for the Off trail notice"; the
+ * step path ruled at -1631). Only the words changed; "Return to Route" now belongs to the off-trail notice (plan step 7,
+ * PR 3). The constant keeps its name so the pill's history reads in one place.
+ */
+internal const val RETURN_TO_ROUTE_TEXT = "Re-center"
 
 /** The pill's least height: the minimum touch target, laid out, so what a finger reaches is what is drawn. */
 internal val RETURN_TO_ROUTE_PILL_HEIGHT: Dp = 48.dp
