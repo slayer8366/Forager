@@ -79,6 +79,7 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.domain.ShownTrail
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CartographyEntryRepository
@@ -394,7 +395,18 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // recording starts. The watch reads the checkbox at the moment it decides to alert.
     val offTrackReminderPreferences: OffTrackReminderPreferenceRepository = DataStoreOffTrackReminderPreferenceRepository(context, settingsReset = settingsResetNotice)
     val offTrackReminderCheck = OffTrackReminderCheck(AndroidBackgroundRunCheck(context.applicationContext), offTrackReminderPreferences, errorLog)
-    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery, isReminderOn = offTrackReminderPreferences::enabledNow)
+    val returnWatch = ReturnWatch(
+        computeReturnToStartUseCase,
+        alertDelivery,
+        isReminderOn = offTrackReminderPreferences::enabledNow,
+        // Dispatch 2026-10-25-08 (RECORD -1631): the way home's trail part counts as on course. Read through the
+        // StateFlow's value, which takes no lock; wayHomeWatch is declared below, and this runs only on a fix.
+        wayHomeTrail = { id ->
+            wayHomeWatch.shown.value?.takeIf { it.trackId == id }?.let { shown ->
+                shown.line?.let { ShownTrail(shown.generation, it.wayHome.trail.points) }
+            }
+        },
+    )
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
     // Amendment 3, Part 3b). The rule is the use case's; AbandonedTrackSweepOnce runs it once per

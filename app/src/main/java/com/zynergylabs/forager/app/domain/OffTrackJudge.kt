@@ -54,6 +54,13 @@ data class OffTrackVerdict(val isOffTrack: Boolean, val alert: Boolean)
  *   it alert again, and only then does [OffTrackVerdict.isOffTrack] clear. A stray that lasts is not
  *   reminded of ("once per stray", the owner's choice; the 120 s repeat it replaces is gone).
  * - **An empty path decides nothing.**
+ * - **Also on course near the way home's trail line** (dispatch 2026-10-25-08, plan step 7 PR 1; RECORD -1631):
+ *   [next]'s `alsoOn` lines count as on course beside the path. The return passes the trail parts of every way home
+ *   shown on it, so a walker following the app's own trail line home, where it runs far from the way they walked
+ *   out, is not off track. Off is then further than the line from the path **and** from every one of them: the
+ *   far-from-both alert of the step 7 report (`docs/audits/2026-10-25-04-off-trail-and-wrong-turn-report.md`, 3.4).
+ *   Passed per reading rather than fixed at construction, so a line that arrives or changes mid-return (a re-route)
+ *   applies at once without restarting the hold or re-arming.
  *
  * Every figure is provisional, named once above, and is for the owner's next walk to test.
  *
@@ -74,7 +81,7 @@ class OffTrackJudge(path: List<TrackPoint>) {
      * reading that has none, a stored point, which the timestamp rule judges instead. Not a default
      * standing in for a provider: a stored point genuinely has none.
      */
-    fun next(reading: TrackPoint, provider: FixProvider? = null): OffTrackVerdict {
+    fun next(reading: TrackPoint, provider: FixProvider? = null, alsoOn: List<List<LatLng>> = emptyList()): OffTrackVerdict {
         val counts = provider?.mayAct ?: !reading.isNetworkProviderFix()
         if (line.isEmpty() || !counts) return OffTrackVerdict(offTrack, alert = false)
         val t = reading.timestampEpochMillis
@@ -85,7 +92,8 @@ class OffTrackJudge(path: List<TrackPoint>) {
         // when the off-track alert fires, which is the owner's call, and was taken to them.
         val limit = OFF_TRACK_LINE_METERS + (reading.accuracyMeters?.toDouble() ?: 0.0)
         var alert = false
-        if (metersToLine(LatLng(reading.lat, reading.lng)) > limit) {
+        val here = LatLng(reading.lat, reading.lng)
+        if (metersToLine(here, line) > limit && alsoOn.all { it.isEmpty() || metersToLine(here, it) > limit }) {
             onSinceMillis = null
             val since = offSinceMillis ?: t.also { offSinceMillis = it; offReadings = 0 }
             offReadings++
@@ -106,8 +114,8 @@ class OffTrackJudge(path: List<TrackPoint>) {
         return OffTrackVerdict(offTrack, alert)
     }
 
-    /** Metres from [p] to the nearest point of the path's line, on a flat projection about [p]; tens to hundreds of metres, where its error is far below the fixes'. */
-    private fun metersToLine(p: LatLng): Double {
+    /** Metres from [p] to the nearest point of [line], on a flat projection about [p]; tens to hundreds of metres, where its error is far below the fixes'. */
+    private fun metersToLine(p: LatLng, line: List<LatLng>): Double {
         if (line.size == 1) return GeoDistance.metersBetween(p, line[0])
         val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(p.lat)
         var best = Double.MAX_VALUE
