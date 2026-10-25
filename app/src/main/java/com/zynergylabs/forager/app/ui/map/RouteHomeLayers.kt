@@ -6,9 +6,11 @@ import android.graphics.Paint
 import android.graphics.Path
 import androidx.core.graphics.createBitmap
 import com.zynergylabs.forager.app.domain.RouteLine
+import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
@@ -60,6 +62,12 @@ internal object RouteHomeIds {
     const val AHEAD_SOURCE = "route-home-ahead"
     const val AHEAD_CASING_LAYER = "route-home-ahead-casing-layer"
     const val AHEAD_LAYER = "route-home-ahead-layer"
+    const val AHEAD_DOTTED_LAYER = "route-home-ahead-dotted-layer"
+
+    /** The line ahead's features' property naming their kind (dispatch 2026-10-24-10): [PART_TRACK] or [PART_TRAIL]; none for the track home. */
+    const val PART_PROPERTY = "part"
+    const val PART_TRACK = "track"
+    const val PART_TRAIL = "trail"
     const val ARRIVED_SOURCE = "route-home-arrived"
     const val ARRIVED_LAYER = "route-home-arrived-layer"
     const val ARRIVED_IMAGE = "route-home-arrived-image"
@@ -88,6 +96,13 @@ private const val STRAIGHT_WIDTH_DP = 3f
 /** Its dashes and gaps, in multiples of its width (MapLibre's unit for `line-dasharray`): 6 dp on, 6 dp off. Provisional. */
 private val STRAIGHT_DASHES = arrayOf(2f, 2f)
 
+/**
+ * Dispatch 2026-10-24-10 (RECORD -1589, "Dotted, same colour"): the walker's own track in a way home along trails, as
+ * round dots in the line ahead's colour and width, one width long and two apart (MapLibre's unit is the line's width).
+ * Its dots carry no casing: a solid casing under them would read as a solid line. Provisional, to be judged on the phone.
+ */
+private val AHEAD_DOTS = arrayOf(0f, 2f)
+
 /** The arrival ring's diameter. */
 private const val ARRIVED_RING_DP = 36f
 
@@ -103,7 +118,7 @@ internal fun routeHomeFeatureCollections(route: RouteOnMap?): Map<String, Featur
     val arrivedAt = route?.arrivedAt
     return mapOf(
         RouteHomeIds.PASSED_SOURCE to lineCollection(line?.atReturn),
-        RouteHomeIds.AHEAD_SOURCE to lineCollection(line?.ahead?.takeIf { arrivedAt == null }),
+        RouteHomeIds.AHEAD_SOURCE to aheadCollection(line?.takeIf { arrivedAt == null }),
         RouteHomeIds.STRAIGHT_SOURCE to lineCollection(route?.straight?.takeIf { arrivedAt == null && !route.straightOffline }),
         RouteHomeIds.STRAIGHT_OFFLINE_SOURCE to lineCollection(route?.straight?.takeIf { arrivedAt == null && route.straightOffline }),
         RouteHomeIds.ARRIVED_SOURCE to FeatureCollection.fromFeatures(
@@ -121,6 +136,21 @@ internal fun routeAheadOpacity(route: RouteOnMap?): Float = if (route?.line?.ahe
  * the last line, faded").
  */
 internal fun routeStraightOpacity(route: RouteOnMap?): Float = if (route?.straightIsCurrent == false) ROUTE_AHEAD_FADED_OPACITY else 1f
+
+/**
+ * The line ahead: one feature with no kind for the track home, as before; for a way home along trails one feature per
+ * run, each naming its kind, so the dotted and solid layers each draw their own and both change in one update.
+ */
+private fun aheadCollection(line: RouteLine?): FeatureCollection {
+    if (line == null || line.aheadParts.isEmpty()) return lineCollection(line?.ahead)
+    return FeatureCollection.fromFeatures(
+        line.aheadParts.filter { it.points.size >= 2 }.map { part ->
+            Feature.fromGeometry(LineString.fromLngLats(part.points.map { Point.fromLngLat(it.lng, it.lat) })).apply {
+                addStringProperty(RouteHomeIds.PART_PROPERTY, if (part.kind == RouteLinePartKind.TRAIL) RouteHomeIds.PART_TRAIL else RouteHomeIds.PART_TRACK)
+            }
+        },
+    )
+}
 
 private fun lineCollection(points: List<LatLng>?): FeatureCollection =
     FeatureCollection.fromFeatures(
@@ -147,15 +177,26 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
         PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
     )
-    val aheadCasing = LineLayer(RouteHomeIds.AHEAD_CASING_LAYER, RouteHomeIds.AHEAD_SOURCE).withProperties(
+    // Dispatch 2026-10-24-10: the solid line and its casing draw everything but the walker's track in a way home
+    // along trails, which the dotted layer draws.
+    val notDotted = Expression.neq(Expression.get(RouteHomeIds.PART_PROPERTY), Expression.literal(RouteHomeIds.PART_TRACK))
+    val dottedOnly = Expression.eq(Expression.get(RouteHomeIds.PART_PROPERTY), Expression.literal(RouteHomeIds.PART_TRACK))
+    val aheadCasing = LineLayer(RouteHomeIds.AHEAD_CASING_LAYER, RouteHomeIds.AHEAD_SOURCE).withFilter(notDotted).withProperties(
         PropertyFactory.lineColor(palette.casing),
         PropertyFactory.lineWidth(ROUTE_AHEAD_WIDTH_DP + 2 * CASING_WIDTH_DP),
         PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
     )
-    val ahead = LineLayer(RouteHomeIds.AHEAD_LAYER, RouteHomeIds.AHEAD_SOURCE).withProperties(
+    val ahead = LineLayer(RouteHomeIds.AHEAD_LAYER, RouteHomeIds.AHEAD_SOURCE).withFilter(notDotted).withProperties(
         PropertyFactory.lineColor(if (night) ROUTE_AHEAD_COLOUR_NIGHT else ROUTE_AHEAD_COLOUR_DAY),
         PropertyFactory.lineWidth(ROUTE_AHEAD_WIDTH_DP),
+        PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+        PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+    )
+    val aheadDotted = LineLayer(RouteHomeIds.AHEAD_DOTTED_LAYER, RouteHomeIds.AHEAD_SOURCE).withFilter(dottedOnly).withProperties(
+        PropertyFactory.lineColor(if (night) ROUTE_AHEAD_COLOUR_NIGHT else ROUTE_AHEAD_COLOUR_DAY),
+        PropertyFactory.lineWidth(ROUTE_AHEAD_WIDTH_DP),
+        PropertyFactory.lineDasharray(AHEAD_DOTS),
         PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
     )
@@ -181,7 +222,8 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
     style.addLayerAbove(passed, aboveLineLayerId)
     style.addLayerAbove(aheadCasing, RouteHomeIds.PASSED_LAYER)
     style.addLayerAbove(ahead, RouteHomeIds.AHEAD_CASING_LAYER)
-    style.addLayerAbove(straight, RouteHomeIds.AHEAD_LAYER)
+    style.addLayerAbove(aheadDotted, RouteHomeIds.AHEAD_LAYER)
+    style.addLayerAbove(straight, RouteHomeIds.AHEAD_DOTTED_LAYER)
     style.addLayerAbove(straightOffline, RouteHomeIds.STRAIGHT_LAYER)
     style.addLayerAbove(ring, aboveMarkerLayerId)
 }
@@ -194,6 +236,7 @@ internal fun updateRouteHomeLayers(style: Style, route: RouteOnMap?) {
     val opacity = routeAheadOpacity(route)
     style.getLayer(RouteHomeIds.AHEAD_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
     style.getLayer(RouteHomeIds.AHEAD_CASING_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
+    style.getLayer(RouteHomeIds.AHEAD_DOTTED_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
     style.getLayer(RouteHomeIds.STRAIGHT_LAYER)?.setProperties(PropertyFactory.lineOpacity(routeStraightOpacity(route)))
 }
 

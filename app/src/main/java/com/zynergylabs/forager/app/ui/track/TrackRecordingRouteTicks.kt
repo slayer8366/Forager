@@ -7,6 +7,9 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.nextRouteLine
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
+import com.zynergylabs.forager.app.domain.wayhome.placeOnWayHome
+import com.zynergylabs.forager.app.domain.wayhome.wayHomeAhead
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.Companion.ROUTE_TICK_MILLIS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -30,6 +33,8 @@ internal class TrackRecordingRouteTicks(
     private val lastPolledTrack: () -> Track?,
     private val lastGatedGpsFix: () -> TrackPoint?,
     private val findRouteHome: (track: Track, current: LatLng, origin: Waypoint?, previousHopBand: HopBand) -> RouteHome,
+    /** Where the service's fixes place the walker on the way home shown (`WayHomeWatch.progressFor`); `null` with none. */
+    private val wayHomeProgress: (trackId: String) -> WayHomeProgress? = { null },
 ) {
 
     /** The route tick, running only while returning. See [begin]. */
@@ -90,7 +95,23 @@ internal class TrackRecordingRouteTicks(
             is RouteHome.Withheld -> previous.hopBand ?: HopBand.NONE
             null -> HopBand.NONE
         }
-        val next = findRouteHome(track, LatLng(current.lat, current.lng), state.originWaypoint, previousHopBand)
+        val here = LatLng(current.lat, current.lng)
+        // Dispatch 2026-10-24-10: with a way home along trails shown, the route is that line, from the walker's place
+        // on it; otherwise, and while it is still being worked out, the track as before.
+        val shown = state.wayHome
+        val line = shown?.line
+        // M-396-1, the owner: "Fall back to your track (Recommended)": off the line by more than the far band, the HUD
+        // shows the track home and its distance, as sundown does, never "Unable to calculate route" for the way home.
+        val progress = if (shown != null && line != null && state.activeTrack != null) {
+            wayHomeProgress(state.activeTrack.trackId) ?: placeOnWayHome(line, here, previous = null, previousHopBand)
+        } else {
+            null
+        }
+        val next = if (shown != null && line != null && progress is WayHomeProgress.Placed) {
+            wayHomeAhead(line, progress, here, shown.generation)
+        } else {
+            findRouteHome(track, here, state.originWaypoint, previousHopBand)
+        }
         // Dispatch -497: the line the map draws moves with the route (nextRouteLine).
         updateState { it.copy(routeHome = next, routeLine = nextRouteLine(it.routeLine, next)) }
     }

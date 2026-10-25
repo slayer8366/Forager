@@ -179,6 +179,8 @@ internal fun navigationReadout(
             // route and with the route withheld the large slot holds a dash or the route message, so nothing else says how far
             // the start is, and the note stays there, as it was.
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
+            // Dispatch 2026-10-24-10: why the way home is the walker's track, where the line is empty otherwise.
+            route is ReturnRoute.Ahead && route.note != null -> route.note.text
             else -> ""
         }
     }
@@ -191,6 +193,8 @@ internal fun navigationReadout(
             arrived -> emptyList()
             approaching -> listOf("")
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> listOf(straightLineText, "")
+            // The note's short form, and no empty form: a note is never dropped silently.
+            route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
             else -> emptyList()
         }
     }

@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.SundownShown
 import com.zynergylabs.forager.app.domain.backByAtFor
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeShown
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.Companion.TAG
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,8 @@ internal class TrackRecordingWatchCopies(
     private val errorLog: ErrorLog,
     private val currentTime: CurrentTimeProvider,
     private val zone: ZoneId,
+    /** The app's way home (dispatch 2026-10-24-10), or `null` where none is wired. */
+    private val wayHomeShown: StateFlow<WayHomeShown?>?,
 ) {
 
     /** The arrival hold's timer (RECORD -845), running only while [TrackRecordingUiState.isArrivalHeld]. See [holdArrival]. */
@@ -79,6 +82,14 @@ internal class TrackRecordingWatchCopies(
         updateState { state ->
             val shown = sundownShown.value
             state.copy(sundownLine = shown?.line?.takeIf { state.activeTrack != null && shown.trackId == state.activeTrack.trackId })
+        }
+    }
+
+    /** Copies the way home into the screen's state while it is for this screen's recording, as [copySundownLine] does. */
+    fun copyWayHome() {
+        updateState { state ->
+            val shown = wayHomeShown?.value
+            state.copy(wayHome = shown?.takeIf { state.activeTrack != null && it.trackId == state.activeTrack.trackId })
         }
     }
 

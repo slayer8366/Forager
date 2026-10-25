@@ -121,6 +121,13 @@ class SundownWatch(
      * fix (Recommended)"). Asked for after each decision, cancelled when nothing more is due. Called outside [lock].
      */
     private val alarms: WakeUpAlarms = NoWakeUpAlarms,
+    /**
+     * The distance home along the way home shown for a track, while the walker is returning and placed on it
+     * (`WayHomeWatch.progressFor`; dispatch 2026-10-24-10, RECORD -1589: "app-wide", "Track until Return"). `null`
+     * before Return, while it is worked out, for the track home, and off the line: the walk back is the track's then,
+     * as before. Only the figure changes; every rule that reads it is as it was.
+     */
+    private val wayHomeFor: (String) -> PathHome? = { null },
 ) {
     private val lock = Any()
     private val tickMutex = Mutex()
@@ -286,7 +293,8 @@ class SundownWatch(
             }
         }
 
-        val estimate = track?.let { returnWalkingTime(it, origin, current, freshness, band) }
+        val alongWayHome = if (current != null) wayHomeFor(id) else null
+        val estimate = track?.let { alongWayHome?.let { path -> returnWalkingTimeAlong(it, path, freshness) } ?: returnWalkingTime(it, origin, current, freshness, band) }
         val walkBack = when (estimate) {
             is ReturnWalkingTime.Estimate -> if (estimate.isAtLeast) WalkBack.AtLeast(estimate.walkingMillis) else WalkBack.About(estimate.walkingMillis)
             is ReturnWalkingTime.Withheld, null -> WalkBack.Unknown
@@ -306,7 +314,14 @@ class SundownWatch(
             if (trackId != id) return@synchronized false
             fired = decision.spent
             sunsetAt = countdown.sunsetAtEpochMillis
-            if (estimate is ReturnWalkingTime.Estimate) hopBand = estimate.path.hopBand
+            // The track's hop band only: a band from the way home's place is that line's, not the track's. While the way
+            // home is in use the track's band is still carried, from the hop to its most recent point as pathHome
+            // measures it, so a fallback to the track starts from a current band (Sorrel's M-396-2).
+            if (estimate is ReturnWalkingTime.Estimate && alongWayHome == null) {
+                hopBand = estimate.path.hopBand
+            } else if (alongWayHome != null && current != null) {
+                track?.points?.lastOrNull()?.let { hopBand = nextHopBand(hopBand, GeoDistance.metersBetween(current, LatLng(it.lat, it.lng))) }
+            }
             true
         }
         val kind = when (decision.fire) {
