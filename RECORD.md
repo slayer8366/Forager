@@ -27914,3 +27914,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's review (Fable; prompts/preserved/2026-10-25-sorrel-399-400-review.md, branch sorrel-399-400, 025d34d6c): #399 mergeable as ruled, #400 mergeable; 399-1: after a re-route the dotted part along the stray walked after Return is not counted, so following it can raise "You're far from the trail and your track."
 **Decision:** the owner: "Yes, count it (Recommended)": following any line the app draws never raises the alert (dispatch 2026-10-25-09). "Merge both, then fix (Recommended)": #399 merged at 502e3b06f (pre-main 5ed0114f8), #400 to follow once pre-main's CI is green; the S22 checks run on the merged build.
 **Notes:** Written by the planner by hand. Next free ID -1636.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1636
+**Timestamp:** 2026-10-25T12:28:56Z
+**Continues:** 2026-09-28-1630, 2026-09-28-1634
+**Title:** The routed trail does not cut bends; the way home starts from the walker's newest point (owner)
+**Observed:** Sorrel's bends report (Fable; prompts/preserved/2026-10-25-07-report.md, branch bends-report, 6ffac27ca): no step drops the bend (the Pi's 0.4 m Douglas-Peucker, the cutter's byte copy, BRouter's length over its own nodes, the app's node mapping); the drawn trail part is 320 to 326 m against OSM's 325.4 m. The 27 m went to the line's start: the way home reads the track as written, flushed every 30 s or 20 points, so the line started 18.7 m behind the walker; up to about 42 m at Return and at each re-route. The dispatch's premise (a cut bend) was wrong.
+**Decision:** the owner: "Yes, after Hazel's queue (Recommended)": dispatch 2026-10-25-10, after -06 and -02.
+**Notes:** Written by the planner by hand. #398 keeps the figure from reading short meanwhile. Next free ID -1637.
