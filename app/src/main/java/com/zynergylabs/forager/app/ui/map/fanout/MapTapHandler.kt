@@ -111,7 +111,11 @@ class MapTapHandler(
             boxHits = { probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * density, tappable) },
             drawOrder = order,
         )
-        val winner = resolved?.takeUnless { referenceAgencyOf(it.layerId) != null && bandStopped(pointHits, xPx, yPx) }
+        // A band the way home or the recording trail stops falls through (Amendment 3, Sorrel's #419 review): the tap is
+        // resolved again as before bands took taps, with no band tappable, so a kept track in the box or a cell under the
+        // finger still takes it, and only where nothing else is there is it a plain tap.
+        val bandWon = resolved != null && referenceAgencyOf(resolved.layerId) != null
+        val winner = if (bandWon && bandStopped(pointHits, xPx, yPx)) resolveWithoutBands(tappable, order, xPx, yPx) else resolved
         if (holdFanForEmptyTap && winner != null) fan.fold()
         if (winner != null && openStackAround(winner, order, xPx, yPx)) {
             // A tap on a stack closes a bubble that is showing, as the fan opens (the owner, dispatch 2026-09-28-387, Part A: "1 yes"). By the bubble's
@@ -241,15 +245,25 @@ class MapTapHandler(
 
     /**
      * Whether the way home or the recording trail under the finger stops a band that won the tap (dispatch 2026-10-26-16
-     * Amendment 2; RECORD -1688): the tap is then a plain one, as before bands took taps. The stoppers are judged as an app
-     * line over the band would be ([resolveTap]): one exactly under the finger stops it; one only within the finger's box
-     * stops it only when the band too was only within the box ([pointHits] holds no band), so a band exactly under the
-     * finger is not lost to a route beside it.
+     * Amendment 2; RECORD -1688): the band then does not take the tap, which resolves as before bands took taps
+     * (Amendment 3). The stoppers are judged as an app line over the band would be ([resolveTap]): one exactly under the
+     * finger stops it; one only within the finger's box stops it only when the band too was only within the box
+     * ([pointHits] holds no band), so a band exactly under the finger is not lost to a route beside it.
      */
     private fun bandStopped(pointHits: List<TapHit>, xPx: Float, yPx: Float): Boolean {
         if (probe.hitsAt(xPx, yPx, REFERENCE_TRAIL_BLOCKER_LAYER_IDS).isNotEmpty()) return true
         val bandUnderFinger = pointHits.any { referenceAgencyOf(it.layerId) != null }
         return !bandUnderFinger && probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * probe.density, REFERENCE_TRAIL_BLOCKER_LAYER_IDS).isNotEmpty()
+    }
+
+    /** [resolveTap] over [tappable] with every band's id removed: the tap as it resolved before 8c. */
+    private fun resolveWithoutBands(tappable: List<String>, order: List<MapLayerSpec>, xPx: Float, yPx: Float): TapHit? {
+        val withoutBands = tappable.filter { referenceAgencyOf(it) == null }
+        return resolveTap(
+            pointHits = probe.hitsAt(xPx, yPx, withoutBands),
+            boxHits = { probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * probe.density, withoutBands) },
+            drawOrder = order,
+        )
     }
 
     private fun dispatch(outcome: MapTapOutcome, at: LatLng, xPx: Float, yPx: Float) {

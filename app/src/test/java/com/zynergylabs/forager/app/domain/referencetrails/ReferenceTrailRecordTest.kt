@@ -137,7 +137,8 @@ class ReferenceTrailRecordTest {
     fun `US stays in capitals directly before a number, and is the common word elsewhere`() {
         assertEquals("US 101 Connector", shownFs("US 101 CONNECTOR"))
         assertEquals("Old US 26", shownFs("OLD US 26"))
-        assertEquals("Us-26", shownFs("US-26"))
+        // A hyphen joins the number as a space does (the coder's reading of "directly before a number", for the planner).
+        assertEquals("US-26", shownFs("US-26"))
         assertEquals("We Do As Us", shownFs("WE DO AS US"))
         assertEquals("Us And Them", shownFs("US AND THEM"))
     }
