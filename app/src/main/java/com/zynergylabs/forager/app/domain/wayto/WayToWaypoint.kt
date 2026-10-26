@@ -32,7 +32,10 @@ sealed interface WayToWaypointResult {
  * the straight line (the leaves-area note too, RECORD -1665), and three of the waypoint's own.
  */
 enum class WayToWaypointNote(val text: String) {
-    /** No downloaded region covers either end, the server has no routes for the area, or the build lacks an end's square. */
+    /**
+     * No downloaded region covers either end, the server has no routes for the area, or the build lacks an end's square
+     * (listed as missing, or with no route file in the folder, RECORD -1667).
+     */
     NO_TRAIL_ROUTES("No trail routes here · straight line"),
 
     /** An end's region has routes not on the phone: never fetched, or the fetch failed (RECORD -1592, -1595). */

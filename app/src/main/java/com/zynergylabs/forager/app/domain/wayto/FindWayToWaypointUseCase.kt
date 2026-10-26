@@ -114,14 +114,20 @@ class FindWayToWaypointUseCase(
             is RouteDataForPoint.Found, RouteDataForPoint.NoRegionCovers -> straight(WayToWaypointNote.ROUTES_UNREADABLE, "the routes were reported unusable as ${state.javaClass.simpleName}")
         }
 
-    /** A failure from the engine, as its note: which end is far from a trail, unreadable data, or no route found. */
+    /** A failure from the engine, as its note: which end is far from a trail, an end's square with no routes, unreadable data, or no route found. */
     private fun failedOn(failure: TrailRouteFailure): WayToWaypointResult {
         val note = when (failure) {
-            is TrailRouteFailure.EndOutsideData -> if (failure.end == RouteEnd.START) WayToWaypointNote.WALKER_FAR_FROM_TRAIL else WayToWaypointNote.WAYPOINT_FAR_FROM_TRAIL
+            // A square with no route file is a gap in the route build, not distance from a trail (RECORD -1667).
+            is TrailRouteFailure.EndOutsideData -> when {
+                failure.squareHasNoFile -> WayToWaypointNote.NO_TRAIL_ROUTES
+                failure.end == RouteEnd.START -> WayToWaypointNote.WALKER_FAR_FROM_TRAIL
+                else -> WayToWaypointNote.WAYPOINT_FAR_FROM_TRAIL
+            }
             is TrailRouteFailure.DataMissing, is TrailRouteFailure.DataCorrupt -> WayToWaypointNote.ROUTES_UNREADABLE
             is TrailRouteFailure.NoPath, is TrailRouteFailure.EngineFailed -> WayToWaypointNote.NO_ROUTE_FOUND
         }
-        return straight(note, "routing from the walker to the waypoint failed: ${failure.javaClass.simpleName}")
+        val noFile = if (failure is TrailRouteFailure.EndOutsideData && failure.squareHasNoFile) " (the ${failure.end} end's square has no route file)" else ""
+        return straight(note, "routing from the walker to the waypoint failed: ${failure.javaClass.simpleName}$noFile")
     }
 
     /** The straight line, with [note]; logged once, here (see the class doc, "The fallbacks, and the log"). */
