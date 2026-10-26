@@ -37,16 +37,24 @@ import kotlin.math.pow
  *
  * Every limit here is a starting value, not a measured one (RECORD -867), for the device check to confirm.
  *
- * A point with no usable pressure gets `null`; [trackHeights] uses this only for a walk where most points carry
- * pressure, so that is a reading missed at the very start, before the sensor's first sample.
+ * **A point with no usable pressure** between two that have one is bridged (dispatch 2026-10-26-18, RECORD -1687): its
+ * height is the straight line, in time, between the readings either side, and the passes above run across it. On the
+ * S26 about 3% of a walk's kept points carry no pressure, singly and all through the walk; each used to break the run
+ * and reset Climb's reference, so the height change across it was lost (the 2026-10-24 walk read 31 m and 41 m of
+ * climb where bridged it reads 53 m and 72 m; the owner: "We went 200ft"). Bridging invents no climb: the change
+ * across a gap is the barometer's own, measured at both ends. A point before a walk's first reading or after its last
+ * has nothing on one side to bridge from, and gets `null`.
  */
 internal fun barometricHeights(points: List<TrackPoint>): List<Double?> {
-    val baro: List<Double?> = points.map { point -> point.pressureHpa?.toDouble()?.takeIf { it in PRESSURE_MIN_HPA..PRESSURE_MAX_HPA }?.let(::pressureAltitudeMeters) }
-
     val times = points.map { it.timestampEpochMillis }
 
-    // The median over the window, per unbroken run of usable readings (a missing one breaks the run, so nothing is
-    // bridged across it).
+    val baro: List<Double?> = bridgedAcrossGaps(
+        points.map { point -> point.pressureHpa?.toDouble()?.takeIf { it in PRESSURE_MIN_HPA..PRESSURE_MAX_HPA }?.let(::pressureAltitudeMeters) },
+        times,
+    )
+
+    // The median over the window, per unbroken run of readings (after bridging, only a walk's leading and trailing
+    // points without one fall outside it).
     val filtered = MutableList<Double?>(points.size) { null }
     runsOf(baro).forEach { run ->
         run.forEach { i -> filtered[i] = median(run.filter { j -> abs(times[j] - times[i]) <= BARO_WINDOW_HALF_MILLIS }.map { baro[it]!! }) }
@@ -101,6 +109,25 @@ internal fun barometricHeights(points: List<TrackPoint>): List<Double?> {
 
 /** Height in metres for a pressure in hPa, by the standard atmosphere (sea level 1013.25 hPa). */
 fun pressureAltitudeMeters(hPa: Double): Double = 44_330.0 * (1.0 - (hPa / STANDARD_SEA_LEVEL_HPA).pow(1.0 / 5.255))
+
+/**
+ * [values] with each `null` that has a value on both sides replaced by the straight line, in [times], between the
+ * nearest value before it and the nearest after; a `null` before the first value or after the last stays `null`.
+ */
+private fun bridgedAcrossGaps(values: List<Double?>, times: List<Long>): List<Double?> {
+    var before = -1
+    return values.mapIndexed { i, value ->
+        if (value != null) {
+            before = i
+            return@mapIndexed value
+        }
+        if (before < 0) return@mapIndexed null
+        val after = (i + 1 until values.size).firstOrNull { values[it] != null } ?: return@mapIndexed null
+        val span = times[after] - times[before]
+        val fraction = if (span > 0) (times[i] - times[before]).toDouble() / span else 0.0
+        values[before]!! + (values[after]!! - values[before]!!) * fraction
+    }
+}
 
 /** The indices of each unbroken run of non-null [values], in order. */
 private fun runsOf(values: List<Double?>): List<List<Int>> {
