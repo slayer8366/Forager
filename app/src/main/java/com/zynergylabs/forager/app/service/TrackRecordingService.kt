@@ -248,7 +248,6 @@ class TrackRecordingService : Service() {
                                 guardWatch("The way-home watch's kept point", candidate) { watches.wayHomeOnKeptPoint(trackId, candidate) }
                                 // Dispatch 2026-10-26-05 (RECORD -1651): and to the recording line, which reaches the newest
                                 // kept point, written or not. Nothing below, what is written or when, changes.
-                                guardWatch("The recording line's kept point", candidate) { watches.recordingLineOnKeptPoint(trackId, candidate) }
                                 val shouldFlush = bufferMutex.withLock {
                                     pendingPoints += candidate
                                     pendingPoints.size >= FLUSH_BATCH_SIZE
