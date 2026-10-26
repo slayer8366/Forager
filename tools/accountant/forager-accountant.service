@@ -1,0 +1,9 @@
+[Unit]
+Description=Forager accountant: count yesterday's (UTC) tokens and push the report on the accounting branch
+Documentation=file:///home/zynergy-labs/.cache/forager-wt/accountant-profile/tools/accountant/run-daily.sh
+
+[Service]
+Type=oneshot
+ExecStart=/home/zynergy-labs/.cache/forager-wt/accountant-profile/tools/accountant/run-daily.sh
+Nice=10
+# A failed run is logged by the script and not retried (no Restart=).
