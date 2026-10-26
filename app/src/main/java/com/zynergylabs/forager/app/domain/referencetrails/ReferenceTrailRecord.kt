@@ -84,33 +84,43 @@ data class ReferenceTrailRecord(val agency: ReferenceAgency, val number: String?
  * (Recommended)"): a name published entirely in capitals ("WEST LEG NORDIC") is shown in normal case ("West Leg Nordic");
  * a name with any lower-case letter, or with no letter at all, is shown as published.
  *
- * Normal case, word by word (RECORD -1690, the owner: "Keep short words and codes"). A word is a run of letters, digits
- * and apostrophes, so a hyphen, a bracket, a full stop or a space ends one ("NORTH-FORK (UPPER)" -> "North-Fork (Upper)",
- * "BOB'S" -> "Bob's"). A word stays as published when it holds a digit ("17A", "4WD"), is a Roman numeral ("II", "XIV";
- * "I" alone counts as one), or has one or two letters and is not one of [COMMON_SHORT_WORDS] ("NF", "FS"). Every other
- * word keeps its first letter capital and the rest go lower case ("OF" -> "Of", "THE" -> "The"). No dictionary beyond that
- * list: a two-letter word outside it is read as a code ("MT." stays "MT.", "NO" stays "NO"), and a longer word that
- * happens to spell a valid numeral stays in capitals ("MIX", "LIV", "DIX").
+ * Normal case, word by word (RECORD -1690, the owner: "Keep short words and codes"; RECORD -1692, "Fix as proposed"). A
+ * word is a run of letters, digits and apostrophes, so a hyphen, a bracket, a full stop or a space ends one
+ * ("NORTH-FORK (UPPER)" -> "North-Fork (Upper)", "BOB'S" -> "Bob's"). A word stays as published when it holds a digit
+ * ("17A", "4WD"), or is a Roman numeral from I to XX ("II", "XIV"; "I" alone counts as one; "XXI" and "MIX" are words), or
+ * has one or two letters, is not one of [COMMON_SHORT_WORDS] and is not directly followed by a full stop ("NF", "FS"; but
+ * "MT." -> "Mt.", "ST." -> "St."). The numeral is checked first, so "II." stays "II.". Every other word keeps its first
+ * letter capital and the rest go lower case ("OF" -> "Of", "NO" -> "No", "MIX" -> "Mix"). No dictionary beyond that list.
  */
 internal fun shownName(name: String): String {
     if (name.any { it.isLowerCase() } || name.none { it.isUpperCase() }) return name
     return WORD.replace(name) { match ->
         val word = match.value
-        if (keptAsPublished(word)) word else word.first().titlecaseChar() + word.drop(1).lowercase()
+        val abbreviated = name.getOrNull(match.range.last + 1) == '.'
+        if (keptAsPublished(word, abbreviated)) word else word.first().titlecaseChar() + word.drop(1).lowercase()
     }
 }
 
 /** A word of a name, for [shownName]: a run of letters, digits and apostrophes (straight or curly). */
 private val WORD = Regex("""[\p{L}\p{N}'\u2019]+""")
 
-/** A Roman numeral, I to MMMCMXCIX, written in capitals. */
-private val ROMAN_NUMERAL = Regex("^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$")
+/** The Roman numerals kept as published in an all-capitals name: I to XX only (RECORD -1692). */
+private val ROMAN_NUMERALS = setOf(
+    "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+    "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
+)
 
-/** The one- and two-letter words capitalised as words in an all-capitals name; any other is read as a code (RECORD -1690). */
-internal val COMMON_SHORT_WORDS = setOf("A", "AN", "AS", "AT", "BY", "IN", "IS", "IT", "OF", "ON", "OR", "TO", "UP")
+/** The one- and two-letter words capitalised as words in an all-capitals name; any other is read as a code (RECORD -1692). */
+internal val COMMON_SHORT_WORDS = setOf(
+    "A", "AN", "AS", "AT", "BE", "BY", "DO", "GO", "HE", "IF", "IN", "IS", "IT",
+    "ME", "MY", "NO", "OF", "OH", "ON", "OR", "OX", "SO", "TO", "UP", "US", "WE",
+)
 
-/** Whether [word] of an all-capitals name stays as published: a word with a digit, a Roman numeral, or a short code. */
-private fun keptAsPublished(word: String): Boolean =
+/**
+ * Whether [word] of an all-capitals name stays as published: a word with a digit, a numeral from I to XX, or a short code.
+ * A short word [abbreviated] (directly followed by a full stop) is an abbreviation, capitalised as a word (RECORD -1692).
+ */
+private fun keptAsPublished(word: String, abbreviated: Boolean): Boolean =
     word.any { it.isDigit() } ||
-        ROMAN_NUMERAL.matches(word) ||
-        (word.count { it.isLetter() } <= 2 && word !in COMMON_SHORT_WORDS)
+        word in ROMAN_NUMERALS ||
+        (word.count { it.isLetter() } <= 2 && word !in COMMON_SHORT_WORDS && !abbreviated)
