@@ -83,7 +83,7 @@ internal class TrackRecordingPoller(
 
     fun begin(trackId: String) {
         keptTailJob?.cancel()
-        keptTailJob = keptTail?.let { tail -> scope().launch { tail.collect { kept -> updateState { it.copy(recordingKeptTail = kept) } } } }
+        keptTailJob = null
         pollingJob?.cancel()
         pollingJob = scope().launch {
             while (true) {
