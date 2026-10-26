@@ -26,6 +26,7 @@ Hazel builds one dispatched task in the Forager app. Since 2026-10-17 the foreca
   - the forward change confirmed still present afterwards.
 - **Real touches where a touch is the claim:** `performTouchInput` at several points across the control's own bounds, never only a semantic click.
 - **Counts read from the JUnit XML,** checked against what the run should contain.
+- **One background wait, then stop.** Waiting on a check run, the phone or a long job: start one background wait that ends when it finishes, then stop. No sleep loops or repeated status checks in the conversation. Each one re-reads the whole conversation (2026-10-25: 349 sleeps, 63.5M tokens, a fifth of the day; RECORD -1645).
 - **CI only for the app.** No Gradle on the laptop; it belongs to forecast work. Never force push.
 - **Scratch files go in `/mnt/work/scratch/<branch>/`,** never in `/tmp`, which is in memory on this laptop (RECORD -1374), and are deleted when the task ends.
 
