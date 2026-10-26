@@ -1,0 +1,22 @@
+track 9685146a: 457 kept points, 186 distinct accuracy values
+    9.9350 m:  229 (50.1 %)
+    3.7901 m:   44 (9.6 %)
+    6.2673 m:    1 (0.2 %)
+    9.9451 m:    1 (0.2 %)
+   10.1363 m:    1 (0.2 %)
+   10.4621 m:    1 (0.2 %)
+   10.6563 m:    1 (0.2 %)
+   10.8437 m:    1 (0.2 %)
+  tight (<6 m): n_alt=60 median |raw alt - baro height| = 2.66 m; n_spd=49 median |Doppler - differenced| = 0.139 m/s
+  loose (>=6 m): n_alt=383 median |raw alt - baro height| = 3.01 m; n_spd=244 median |Doppler - differenced| = 0.165 m/s
+track cad94737: 677 kept points, 55 distinct accuracy values
+    9.9350 m:  330 (48.7 %)
+    3.7901 m:  294 (43.4 %)
+    9.0969 m:    1 (0.1 %)
+   10.8123 m:    1 (0.1 %)
+   10.1699 m:    1 (0.1 %)
+   10.3469 m:    1 (0.1 %)
+   10.4128 m:    1 (0.1 %)
+   10.1508 m:    1 (0.1 %)
+  tight (<6 m): n_alt=312 median |raw alt - baro height| = 6.05 m; n_spd=276 median |Doppler - differenced| = 0.132 m/s
+  loose (>=6 m): n_alt=345 median |raw alt - baro height| = 5.54 m; n_spd=271 median |Doppler - differenced| = 0.158 m/s

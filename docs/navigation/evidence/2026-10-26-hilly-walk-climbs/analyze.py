@@ -241,6 +241,40 @@ def main():
     series = {"raw_gps": raw, "app_smoothed_gps": gps_s}
     if baro is not None:
         series["app_barometric"] = baro
+        # Diagnostic beyond the app: where the points without pressure fall (each one breaks a
+        # barometric run and resets the climb reference, so climb across it is dropped), and the
+        # same barometric pipeline with pressure linearly interpolated in time across them.
+        missing = [i for i, p in enumerate(kept) if p[PRES] is None]
+        runs = []
+        for i in missing:
+            if runs and i == runs[-1][-1] + 1:
+                runs[-1].append(i)
+            else:
+                runs.append([i])
+        R["pressure_gaps"] = dict(
+            missing_points=len(missing), gap_runs=len(runs),
+            positions_pct=[round(100.0 * r[0] / len(kept), 1) for r in runs],
+            longest_gap_points=max((len(r) for r in runs), default=0),
+            longest_gap_s=max(((kept[r[-1] + 1][TS] - kept[r[0] - 1][TS]) / 1000.0 for r in runs if r[0] > 0 and r[-1] + 1 < len(kept)), default=0),
+            gaps_inside_walk=sum(1 for r in runs if r[0] > 0 and r[-1] + 1 < len(kept)),
+        )
+        bridged = []
+        last_known = None
+        for i, p in enumerate(kept):
+            if p[PRES] is not None:
+                bridged.append(p)
+                last_known = i
+                continue
+            nxt = next((j for j in range(i + 1, len(kept)) if kept[j][PRES] is not None), None)
+            if last_known is None or nxt is None:
+                bridged.append(p)
+                continue
+            a, b = kept[last_known], kept[nxt]
+            f = (p[TS] - a[TS]) / (b[TS] - a[TS]) if b[TS] != a[TS] else 0.0
+            bridged.append(p[:PRES] + (a[PRES] + (b[PRES] - a[PRES]) * f,))
+        series["barometric_bridged"] = barometric_heights(bridged)
+        hb = [h for h in series["barometric_bridged"] if h is not None]
+        R["height_range_bridged"] = (max(hb) - min(hb)) if hb else None
     R["climb"] = {}
     for name, h in series.items():
         R["climb"][name] = {}
