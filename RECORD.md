@@ -28223,3 +28223,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the diagnosis (Opus; prompts/preserved/2026-10-26-09-report.md, branch wiring-test-report, 050cd1921): the tests wait for the database row to go (MushroomLogViewModelWiringTest.kt:77, :95), drain the looper once and assert once, while the app clears the Maps snapshot just after the delete returns (MushroomLogPendingDeletes.kt:145-148, :264); 301 runs each: with #409 1 and 2 failures (run 40283791999), without #409 4 and 3 (run 40283794462); 8 earlier failures since 2026-10-18 in CI history; the app's wiring sound.
 **Decision:** the owner: "Fix now, option 1 (Recommended)": wait on the snapshot itself, same assertion; dispatch 2026-10-26-09 Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -1664.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1664
+**Timestamp:** 2026-10-26T07:51:44Z
+**Continues:** 2026-09-28-1663
+**Title:** #411, the wiring tests' race fix, merges (owner)
+**Observed:** #411 (wiring-test-snapshot-wait @ 9bead6f4c; test file only): both delete tests wait on the Maps snapshot (an idleUntil without a throw, so the unchanged assertion and its message decide); revert runs 40286709643 (find hook removed: only the find test fails, its own message) and 40286712226 (photo hook: only the photo test); 600 repeats 0 failures (run 40286714873); full run 40286721990 green, 5,587 tests. Pre-main push run 40285924160 on 85f05c784 (#408) green.
+**Decision:** the owner: "Merge now (Recommended)": merged by the planner (pre-main 7b388b599); the three revert and repeat scratch branches deleted.
+**Notes:** Written by the planner by hand. Next free ID -1665.
