@@ -115,6 +115,66 @@ class ReferenceTrailRecordTest {
         assertEquals("NF Road", shown("NF ROAD"))
     }
 
+    // Amendment 3 (RECORD -1694, the owner: "Small known list (Recommended)"), one test per part of the ruling.
+
+    private fun shownFs(name: String) = fs("trail_name" to name).firstLine.removePrefix("Forest Service trail · ")
+
+    @Test
+    fun `the known agency and trail names stay in capitals`() {
+        assertEquals("BLM Route 12", shownFs("BLM ROUTE 12"))
+        assertEquals("USFS Spur", shownFs("USFS SPUR"))
+        assertEquals("NFS Tie", shownFs("NFS TIE"))
+        assertEquals("NF Road", shownFs("NF ROAD"))
+        assertEquals("FS Spur", shownFs("FS SPUR"))
+        assertEquals("PCT Alternate", shownFs("PCT ALTERNATE"))
+        assertEquals("Ridge To CDT", shownFs("RIDGE TO CDT"))
+        assertEquals("BLM trail · BLM Route 12", blm("ROUTE_PRMRY_NM" to "BLM ROUTE 12").firstLine)
+        // Not on the list: a longer code is capitalised as a word, as before.
+        assertEquals("Nps Spur", shownFs("NPS SPUR"))
+    }
+
+    @Test
+    fun `US stays in capitals directly before a number, and is the common word elsewhere`() {
+        assertEquals("US 101 Connector", shownFs("US 101 CONNECTOR"))
+        assertEquals("Old US 26", shownFs("OLD US 26"))
+        assertEquals("Us-26", shownFs("US-26"))
+        assertEquals("We Do As Us", shownFs("WE DO AS US"))
+        assertEquals("Us And Them", shownFs("US AND THEM"))
+    }
+
+    @Test
+    fun `AT stays in capitals only as the name's first word`() {
+        assertEquals("AT Spur", shownFs("AT SPUR"))
+        assertEquals("AT", shownFs("AT"))
+        assertEquals("Lake At Dawn", shownFs("LAKE AT DAWN"))
+    }
+
+    @Test
+    fun `a name beginning MC reads Mc and a capital`() {
+        assertEquals("McDonald Ridge", shownFs("MCDONALD RIDGE"))
+        assertEquals("Upper McCall", shownFs("UPPER MCCALL"))
+        assertEquals("McDonald's Spur", shownFs("MCDONALD'S SPUR"))
+    }
+
+    @Test
+    fun `a letter and an apostrophe before a name read as two capitals`() {
+        assertEquals("O'Brien Creek", shownFs("O'BRIEN CREEK"))
+        assertEquals("D'Arcy", shownFs("D'ARCY"))
+        assertEquals("O’Neil Loop", shownFs("O’NEIL LOOP"))
+        // An apostrophe later in the word is a possessive, as before.
+        assertEquals("Bob's Cabin", shownFs("BOB'S CABIN"))
+    }
+
+    @Test
+    fun `an ordinal reads its suffix in lower case`() {
+        assertEquals("2nd Loop", shownFs("2ND LOOP"))
+        assertEquals("21st Street Tie", shownFs("21ST STREET TIE"))
+        assertEquals("3rd", shownFs("3RD"))
+        assertEquals("4th Of July", shownFs("4TH OF JULY"))
+        // Any other word with a digit stays as published, as before.
+        assertEquals("Spur 17A", shownFs("SPUR 17A"))
+    }
+
     @Test
     fun `the number is never recased, only the name`() {
         assertEquals("Forest Service trail 017A · Spur", fs("trail_no" to "017A", "trail_name" to "SPUR").firstLine)

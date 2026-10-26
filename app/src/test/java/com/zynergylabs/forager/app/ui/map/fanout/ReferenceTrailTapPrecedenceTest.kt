@@ -195,6 +195,59 @@ class ReferenceTrailTapPrecedenceTest {
         assertEquals(listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.3,-115.0"), tap(LinesProbe(listOf(cell, route))))
     }
 
+    // Amendment 3 (Sorrel's #419 review, should-fix 1): a band the way home stops falls through. The band must not win, and
+    // everything else under the finger or in its box resolves as it did before 8c, when the band took no tap at all.
+
+    /** One way-home line and the recording trail, each tried as the stopper in the rows below. */
+    private val stopperSamples = listOf(RouteHomeIds.AHEAD_LAYER, MapLayerIds.BREADCRUMB)
+
+    private fun band(id: String) = Line(id, null, BAND_Y, BAND_HALF_PX, threeBlaze)
+
+    @Test
+    fun `a stopped band falls through to a kept track within the finger's box`() {
+        // Route and band exactly under the finger, a kept track 15 px off (in the box, not under it): before 8c the track won.
+        val track = Line(MapLayerIds.KEPT_TRACKS, "track-1", BAND_Y + 15f, 2f)
+        for (bandId in listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND)) {
+            for (stopper in stopperSamples) {
+                val events = tap(LinesProbe(listOf(band(bandId), track, Line(stopper, null, BAND_Y, 3f))))
+                assertEquals("$stopper over $bandId, track in the box", listOf("feature:${MapLayerIds.KEPT_TRACKS}:track-1"), events)
+            }
+        }
+    }
+
+    @Test
+    fun `a stopped band falls through to a forecast cell under the finger`() {
+        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.3,-115.0", BAND_Y, 500f)
+        for (bandId in listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND)) {
+            for (stopper in stopperSamples) {
+                val events = tap(LinesProbe(listOf(cell, band(bandId), Line(stopper, null, BAND_Y, 3f))))
+                assertEquals("$stopper over $bandId, cell under the finger", listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.3,-115.0"), events)
+            }
+        }
+    }
+
+    @Test
+    fun `a band only in the finger's box, stopped by the way home under or beside the finger, falls through to the cell`() {
+        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.3,-115.0", BAND_Y, 500f)
+        val fingerY = BAND_Y + BAND_HALF_PX + 10f
+        for (bandId in listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND)) {
+            for (stopper in stopperSamples) {
+                // Under the finger, then beside it (20 px off: in the box, not under it).
+                for ((where, routeY) in listOf("under" to fingerY, "beside" to fingerY + 20f)) {
+                    val events = tap(LinesProbe(listOf(cell, band(bandId), Line(stopper, null, routeY, 3f))), yPx = fingerY)
+                    assertEquals("$stopper $where the finger, $bandId in the box", listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.3,-115.0"), events)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `when a stopped band falls through, the other band does not take the tap in its place`() {
+        // Both bands under the finger with the way home: removing only the winning band would hand the tap to the other one.
+        val events = tap(LinesProbe(listOf(band(MapLayerIds.REFERENCE_FS_BAND), band(MapLayerIds.REFERENCE_BLM_BAND), Line(RouteHomeIds.AHEAD_LAYER, null, BAND_Y, 3f))))
+        assertEquals(listOf("plain"), events)
+    }
+
     private companion object {
         const val BAND_Y = 400f
         const val BAND_HALF_PX = 4f
