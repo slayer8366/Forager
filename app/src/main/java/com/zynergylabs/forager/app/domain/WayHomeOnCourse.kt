@@ -116,6 +116,6 @@ fun shownTrailOf(watch: WayHomeWatch, trackId: String): ShownTrail? {
 fun isHeadingBackAlong(line: WayHomeLine, place: WayHomePlace?, here: LatLng): Boolean {
     if (metersPastLineStart(line, here) > 0.0) return false
     val placeAlong = place?.let { line.alongMeters.getOrNull(it.index) } ?: 0.0
-    val placeCounts = placeAlong > 0.0 && line.nodes.first().let { GeoDistance.metersBetween(it, here) > WAY_HOME_TRAIL_JOIN_METERS }
+    val placeCounts = placeAlong > 0.0 && metersAheadOfLineStart(line, here) > 0.0
     return placeCounts || metersAheadOfLineStart(line, here) >= WAY_HOME_LINE_STEP_METERS
 }
