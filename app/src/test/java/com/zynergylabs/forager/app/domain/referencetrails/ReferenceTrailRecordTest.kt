@@ -61,20 +61,34 @@ class ReferenceTrailRecordTest {
     }
 
     /**
-     * The rule's edges, as reported to the planner: plain word capitalisation with no dictionary. A word starts at a letter
-     * that follows anything but a letter, a digit or an apostrophe; it keeps its first letter capital and the rest go lower.
+     * The rule's edges (RECORD -1690, the owner: "Keep short words and codes"): in an all-capitals name each word is
+     * capitalised, except a word with a digit, a Roman numeral, or a word of one or two letters that is not one of the
+     * common short words (A, AN, AS, AT, BY, IN, IS, IT, OF, ON, OR, TO, UP), which stay as published. No dictionary beyond
+     * that list. A word is a run of letters, digits and apostrophes, so a hyphen or a bracket starts a new one.
      */
     @Test
-    fun `the all-capitals rule is plain word capitalisation, short words, abbreviations and numerals included`() {
+    fun `in an all-capitals name, codes, numerals and words with digits stay as published`() {
+        fun shown(name: String) = fs("trail_name" to name).firstLine.removePrefix("Forest Service trail · ")
+        assertEquals("NF Loop II", shown("NF LOOP II"))
+        assertEquals("Spur 17A", shown("SPUR 17A"))
+        assertEquals("4WD Road", shown("4WD ROAD"))
+        assertEquals("FS Spur", shown("FS SPUR"))
+        assertEquals("Loop III", shown("LOOP III"))
+        assertEquals("Lake IV Tie", shown("LAKE IV TIE"))
+        assertEquals("Camp XIV", shown("CAMP XIV"))
+        // "I" alone is a numeral (Rowan, relaying the owner), so it stays as published either way.
+        assertEquals("Ridge I", shown("RIDGE I"))
+    }
+
+    @Test
+    fun `in an all-capitals name, the common short words and every longer word are capitalised as words`() {
         fun shown(name: String) = fs("trail_name" to name).firstLine.removePrefix("Forest Service trail · ")
         assertEquals("Trail Of The Cedars", shown("TRAIL OF THE CEDARS"))
-        assertEquals("Nf Loop Ii", shown("NF LOOP II"))
-        assertEquals("Spur 17a", shown("SPUR 17A"))
-        assertEquals("4wd Road", shown("4WD ROAD"))
+        assertEquals("West Leg Nordic", shown("WEST LEG NORDIC"))
+        assertEquals("Up And Over To A Lake", shown("UP AND OVER TO A LAKE"))
         assertEquals("North-Fork (Upper)", shown("NORTH-FORK (UPPER)"))
         assertEquals("Bob's Cabin", shown("BOB'S CABIN"))
         assertEquals("Bob’s Cabin", shown("BOB’S CABIN"))
-        assertEquals("Mt. Hood Tie", shown("MT. HOOD TIE"))
         // A name with no letter at all is not all capitals; it reads as published.
         assertEquals("Forest Service trail · 1234", fs("trail_name" to "1234").firstLine)
     }
