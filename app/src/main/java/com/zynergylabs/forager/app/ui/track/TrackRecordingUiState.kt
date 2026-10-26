@@ -208,7 +208,7 @@ data class TrackRecordingUiState(
     val routeLineShown: RouteLine?
         get() = routeLine?.let { line ->
             val dim = wayHomeOffTrail == OffTrailState.OFF && line.aheadParts.any { it.kind == RouteLinePartKind.TRAIL }
-            if (dim && false) line.copy(trailDimmed = true) else line // FAIL-FIRST STUB
+            if (dim) line.copy(trailDimmed = true) else line
         }
 
     /**

@@ -184,6 +184,8 @@ internal fun navigationReadout(
             // Dispatch 2026-10-24-10: why the way home is the walker's track, where the line is empty otherwise.
             route is ReturnRoute.Ahead && route.note != null -> route.note.text
             // Plan step 7 PR 3 (RECORD -1631, -1676): the quiet off-trail state, where the line is empty otherwise.
+            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> OFF_TRAIL_TEXT
+            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.BACK_ON -> BACK_ON_TRAIL_TEXT
             // Step 6 PR 3 (RECORD -1652 Q4): why the way to a waypoint is the straight line.
             route is ReturnRoute.Straight -> route.note.text
             else -> ""
@@ -201,6 +203,7 @@ internal fun navigationReadout(
             // The note's short form, and no empty form: a note is never dropped silently.
             route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
             // The notice's short form, and no empty form, as a note's; "Back on trail" has none shorter.
+            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> listOf(OFF_TRAIL_SHORT_TEXT)
             route is ReturnRoute.Straight -> listOf(wayToWaypointNoteShortText(route.note))
             else -> emptyList()
         }

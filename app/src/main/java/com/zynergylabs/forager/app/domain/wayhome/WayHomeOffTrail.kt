@@ -30,9 +30,6 @@ enum class OffTrailState {
  */
 const val BACK_ON_TRAIL_SHOW_MILLIS = 5_000L
 
-// FAIL-FIRST STUB: removed in the next commit.
-private val STUB = true
-
 /**
  * The quiet off-trail state (dispatch 2026-10-26-13, plan step 7 PR 3; RECORD -1631, -1676; the step 7 report,
  * `docs/audits/2026-10-25-04-off-trail-and-wrong-turn-report.md`, sections 3.2, 3.3 and 5). Pure: its time is the
@@ -66,7 +63,6 @@ class WayHomeOffTrail {
 
     /** One reading, judged against [onLines], each in walking order. [provider] is the live reading's, as [com.zynergylabs.forager.app.domain.OffTrackJudge.next] takes it. */
     fun next(reading: TrackPoint, provider: FixProvider?, onLines: List<List<LatLng>>): OffTrailState {
-        if (STUB) return state
         val counts = provider?.mayAct ?: !reading.isNetworkProviderFix()
         val lines = onLines.filter { it.isNotEmpty() }
         if (!counts || lines.isEmpty()) return state

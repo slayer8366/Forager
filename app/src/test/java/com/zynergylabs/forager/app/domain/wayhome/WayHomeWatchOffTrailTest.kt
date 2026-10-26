@@ -74,6 +74,14 @@ class WayHomeWatchOffTrailTest {
     }
 
     @Test
+    fun `walking the track from the trailhead to the start never reads off trail`() {
+        found()
+        // 80 m north of the trail's end, on the walker's own track to the car, for 30 s.
+        val shown = walk(0.0, 100.0, 0..30)
+        assertTrue(shown.all { it!!.offTrail == OffTrailState.ON })
+    }
+
+    @Test
     fun `network fixes never change it`() {
         found()
         val shown = walk(0.0, -50.0, 0..30, FixProvider.NETWORK)
@@ -86,6 +94,7 @@ class WayHomeWatchOffTrailTest {
         walk(0.0, -50.0, 0..15)
         // Over 50 m from the line: one re-route.
         walk(-80.0, -50.0, 16..17)
+        scope.runCurrent()
         assertEquals("a re-route is being worked out", 2, answers.size)
         answers.last().complete(WayHomeResult.AlongTrails(hairpin))
         scope.runCurrent()
@@ -96,6 +105,7 @@ class WayHomeWatchOffTrailTest {
         // Back within the re-arm figure, then a second stray whose re-route falls back to the track.
         walk(0.0, -50.0, 18..18)
         walk(-80.0, -50.0, 19..19)
+        scope.runCurrent()
         assertEquals(3, answers.size)
         answers.last().complete(WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND))
         scope.runCurrent()
