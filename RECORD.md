@@ -28234,3 +28234,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #411 (wiring-test-snapshot-wait @ 9bead6f4c; test file only): both delete tests wait on the Maps snapshot (an idleUntil without a throw, so the unchanged assertion and its message decide); revert runs 40286709643 (find hook removed: only the find test fails, its own message) and 40286712226 (photo hook: only the photo test); 600 repeats 0 failures (run 40286714873); full run 40286721990 green, 5,587 tests. Pre-main push run 40285924160 on 85f05c784 (#408) green.
 **Decision:** the owner: "Merge now (Recommended)": merged by the planner (pre-main 7b388b599); the three revert and repeat scratch branches deleted.
 **Notes:** Written by the planner by hand. Next free ID -1665.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1665
+**Timestamp:** 2026-10-26T08:22:27Z
+**Continues:** 2026-09-28-1662, 2026-09-28-1653
+**Title:** Step 6 PR 2 built (#412), to Sorrel; the waypoint's leaves-area note ends "· straight line" (owner)
+**Observed:** #412 (waypoint-route-domain @ 9d0b7f8f9, dispatch 2026-10-26-10): PR run 40287886244 green, 5,606 tests; fail-first 40287085019 (20 of 21); six reverts each biting with edit-specific messages. Beyond scope, for review: one engine route from walker to waypoint, its first and last points taken as the trail points (not two snaps then a route); a new domain/routing/TrailEngine.kt; the note order for ends in different regions; the leaves-area note kept as the way home's full sentence.
+**Decision:** the owner, for the waypoint route's leaves-area note: "Add '· straight line' (Recommended)": "This route leaves your downloaded area · straight line"; the short form stays "Route leaves your downloaded area". Sorrel reviews #412 before its merge comes to the owner.
+**Notes:** Written by the planner by hand. Next free ID -1666.
