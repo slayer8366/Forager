@@ -28147,3 +28147,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the heap report (Opus; prompts/preserved/2026-10-26-04-report.md, branch caption-oom-diag-report, 27f9c1076; diagnostic branch caption-oom-diag, never to merge; runs 40267434673 (did not compile) and 40267714277 (reproduced the OOM)): live heap 490 of 512 MiB at the first caption class (#663), flat from #625; per-SDK framework resource tables 127.1 MiB in Robolectric's static registries; the four non-36 SDKs at least 132.8 MiB for 6 of 746 classes; routing ProfileCache 0.7 MiB; a NoBackBy collector in viewModelScope keeps test Applications alive (about 0.3 MiB).
 **Decision:** the owner: "2: old-Android tests apart (Recommended)"; "Yes, same PR (Recommended)" for the leak; "Keep until the fix merges (Recommended)" for the 2.3 GB of dumps. Dispatch 2026-10-26-08.
 **Notes:** Written by the planner by hand. Next free ID -1657.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1657
+**Timestamp:** 2026-10-26T05:16:31Z
+**Continues:** 2026-09-28-1655, 2026-09-28-1645
+**Title:** #406 merges with the 25 m gate after #404's pre-main run; step 6 PR 1 looks the waypoint up by id (owner)
+**Observed:** Sorrel's #406 review (Fable; prompts/preserved/2026-10-26-sorrel-406-review.md, branch sorrel-406, 770a4e68f): mergeable as ruled; the coder's r2 no-op claim right and the earlier 402a2-1 suggestion wrong; standing at the start, 200 trials, sigma 3/5/8/10 m: 25 m gate 200/200/177/123 alerts, 10 m 200/192/71/26, old 1; cost: on a stray that loops back within 25 m of its start, one extra alert while following the drawn line home; 406-1 comment wording, 406-2 device step counted from the line's start, 406-3 no joint build with #404 yet; no evidence any revert branch was force-pushed over (not provable from the API). The PR 1 coder's second stop: the Undo-pending waypoint is only in TrackRecordingViewModel's collaborator and the waypoint store has no change stream.
+**Decision:** the owner: "Merge with 25 m (Recommended)": #406 merges once pre-main's push run on #404 (40271808291) is green, so that run is not cancelled; 406-1 and 406-2 ride a later change. "Option 2: look up by id (Recommended)": dispatch 2026-10-26-06 Amendment 2.
+**Notes:** Written by the planner by hand. Next free ID -1658.
