@@ -28202,3 +28202,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's S22 check (Opus; prompts/preserved/2026-10-26-05-s22-check-report.md, branch recording-line-s22-report, cf806ba48; build 1.0.3994+gb0014e7e from run 40274130158 attempt 2, schema 22 both sides): across 105 measured screenshots the purple line's end was never 10 m or more from the dot (largest about 4.9 m, 4 s after a kept point, closing at the next), against up to 40.3 m for a line from stored points alone; the saved track (62 points) matches the drawn line; 0 FATAL; gfxinfo 19.7% janky frames with no baseline to compare. Pre-main push run 40283306657 on d63fa0db1 (#410) green, MushroomLogViewModelWiringTest included.
 **Decision:** under the owner's "S22 check, then merge (Recommended)" (-1660): #408 merged by the planner at f0eff0369 (pre-main 85f05c784).
 **Notes:** Written by the planner by hand. /tmp/claude-1000 hit its quota (another session's 3.1 GB scratchpad, f732725c, last written 2026-10-23); the planner cleared only its own finished review downloads. Next free ID -1662.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1662
+**Timestamp:** 2026-10-26T07:29:11Z
+**Continues:** 2026-09-28-1660, 2026-09-28-1653
+**Title:** Step 6 PR 2 starts now; the old session's temp scratch deleted (owner)
+**Decision:** the owner: "Start step 6 PR 2 now", before the wiring-test diagnosis returns (pre-main green on d63fa0db1 and later): dispatch 2026-10-26-10, with Q3 as superseded in -1653 (no short-walk cut-off). For the temp area, "Delete it (Recommended)": the planner removed session f732725c's 3.1 GB scratch folder from /tmp/claude-1000 (4.2 GB to 910 MB used).
+**Notes:** Written by the planner by hand. Next free ID -1663.
