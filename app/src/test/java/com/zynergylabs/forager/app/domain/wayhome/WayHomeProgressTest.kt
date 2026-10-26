@@ -105,6 +105,20 @@ class WayHomeProgressTest {
         assertEquals(380.0 + WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS, onTrail.remainingMeters, 0.5)
     }
 
+    /**
+     * The way to a waypoint (dispatch 2026-10-26-11 Amendment 3, item 5; RECORD -1671, the owner: "Drop it (Recommended)",
+     * Juniper's O2): a line built with no trail allowance reads the 60 m reach alone, so the same fix as above reads 380 m,
+     * not 405. The way home's line, built without saying, keeps its 25 m (the case above).
+     */
+    @Test
+    fun `a line with no trail allowance, the waypoint's, reads the reach alone on the trail`() {
+        val waypointLine = WayHomeLine(hairpin, trailAllowanceMeters = 0.0)
+        val onTrail = placed(placeOnWayHome(waypointLine, at(195.0, 0.0), previous = null))
+        assertEquals(true, onTrail.onTrail)
+        assertEquals("no 25 m on the waypoint's line", 380.0, onTrail.remainingMeters, 0.5)
+        assertEquals("the way home's line keeps it", 405.0, placed(placeOnWayHome(line, at(195.0, 0.0), previous = null)).remainingMeters, 0.5)
+    }
+
     @Test
     fun `between 25 and 50 m off the line the hop is counted, beside the start the distance to it is added (-1634), and over 50 m the walker is off the line`() {
         val off35 = placed(placeOnWayHome(line, at(-35.0, -50.0), previous = null))

@@ -120,9 +120,35 @@ class AvailabilityViewModelWaypointRouteTest {
         runCurrent()
 
         val hud = vm.shown()?.hud as ReturnRoute.Ahead
-        // On the trail 200 m along: about 300 m of trail and the 60 m leg ahead, with the reach and the 25 m allowance.
+        // On the trail 200 m along: about 300 m of trail and the 60 m leg ahead, with the reach (no trail allowance on the
+        // waypoint's line since Amendment 3, item 5; RECORD -1671).
         assertTrue("counted down: ${hud.routeMeters}", hud.routeMeters < 600.0 && hud.routeMeters >= 360.0)
         assertEquals("still one route", 1, router.asked.size)
+    }
+
+    /**
+     * Amendment 3, item 5 (RECORD -1671, the owner: "Drop it (Recommended)"; Juniper's O2, checked by Sorrel): on the
+     * trail, the waypoint's figure is the 60 m reach alone, without the way home's 25 m. From (205, 0) the earliest node
+     * within 60 m is the trail's at about (150, 0), 190 m along the 600 m line, so about 410 m; with the 25 m it would
+     * read about 435. The tolerance is the node fill's (500 m of trail may fill at 9.8 m steps, not 10), well under 25.
+     * The walker is truly 355 m from the waypoint along the line, so it is still never short.
+     */
+    @Test
+    fun `on the trail the waypoint's figure is the reach alone, without the way home's 25 m`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.onEnteredForeground()
+        fixes.emit(fixAt(at(0.0, 40.0)))
+        runCurrent()
+        vm.onNavigateToWaypoint("wp-1")
+        runCurrent()
+
+        fixes.emit(fixAt(at(205.0, 0.0)))
+        runCurrent()
+
+        val hud = vm.shown()?.hud
+        assertTrue("by trail, not $hud", hud is ReturnRoute.Ahead)
+        assertEquals("no 25 m on the waypoint's figure", 412.0, (hud as ReturnRoute.Ahead).routeMeters, 5.0)
+        assertTrue("never short of the 355 m left", hud.routeMeters >= 355.0)
     }
 
     @Test

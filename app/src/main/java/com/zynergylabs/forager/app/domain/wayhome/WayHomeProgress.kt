@@ -19,8 +19,11 @@ import kotlin.math.hypot
  * The distances along each part add up to that part's own metres ([WayHomePart.meters]): the trail part's are the
  * engine's, its joints included, and the track parts' the self-joined track's. So the line's length is
  * [WayHome.totalMeters] exactly, and the HUD's figure at Return is the figure the way home was found with.
+ *
+ * [trailAllowanceMeters] is what [placeOnWayHome] adds to the figure while its node is on the trail part: the way home's
+ * [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] by default, 0 for the way to a waypoint (RECORD -1671; see that constant).
  */
-class WayHomeLine(val wayHome: WayHome) {
+class WayHomeLine(val wayHome: WayHome, val trailAllowanceMeters: Double = WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS) {
     val nodes: List<LatLng>
     val alongMeters: DoubleArray
 

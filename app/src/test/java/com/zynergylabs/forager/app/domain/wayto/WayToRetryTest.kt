@@ -105,4 +105,40 @@ class WayToRetryTest {
         assertFalse(r.judge(at(300.0, 40.0), listOf(area)))
         assertFalse(r.judge(at(-300.0, 40.0), listOf(area)))
     }
+
+    /**
+     * Amendment 3, item 3 (RECORD -1671: the owner's question said "Inside an area"): the 50 m retry runs only while the
+     * walker's fix is inside a downloaded area. Outside every one, no note tries again on walking on, however far; walking
+     * into an area holding both ends still tries at once (the first case above).
+     */
+    @Test
+    fun `outside every downloaded area no note tries again on walking on`() {
+        for (note in WayToWaypointNote.entries) {
+            val r = retry(note, from = outside)
+            assertFalse("$note: 100 m on, outside", r.judge(at(-1_100.0, 40.0), listOf(area)))
+            assertFalse("$note: 300 m on, outside", r.judge(at(-1_300.0, 40.0), listOf(area)))
+            assertFalse("$note: no area listed", retry(note, from = outside, regions = emptyList()).judge(at(-900.0, 40.0), emptyList()))
+        }
+    }
+
+    /**
+     * "Inside" is the walker's fix inside a downloaded area, which need not hold the waypoint: a note such as
+     * WAYPOINT_IN_ANOTHER_AREA is one a walk inside the walker's own area can change.
+     */
+    @Test
+    fun `inside an area that holds the walker and not the waypoint, walking on tries again (49 m no, 51 m yes)`() {
+        val mine = Ground.region(id = 2, centre = at(-3_000.0, 40.0), radiusKm = 1)
+        val from = at(-3_000.0, 40.0)
+        val note = WayToWaypointNote.WAYPOINT_IN_ANOTHER_AREA
+        assertFalse(retry(note, from = from, regions = listOf(mine, area)).judge(at(-2_951.0, 40.0), listOf(mine, area)))
+        assertTrue(retry(note, from = from, regions = listOf(mine, area)).judge(at(-2_949.0, 40.0), listOf(mine, area)))
+    }
+
+    /** A region listed but not downloaded on this phone (restored from a backup) is not an area the walker is inside. */
+    @Test
+    fun `a region not downloaded is not inside`() {
+        val restored = area.copy(isDownloaded = false)
+        val r = retry(WayToWaypointNote.NO_ROUTE_FOUND, from = inside, regions = listOf(restored))
+        assertFalse(r.judge(at(100.0, 40.0), listOf(restored)))
+    }
 }
