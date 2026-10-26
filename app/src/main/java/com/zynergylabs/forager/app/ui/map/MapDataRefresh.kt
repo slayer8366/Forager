@@ -53,19 +53,23 @@ internal fun MapDataRefresh(
     // because MapLibre's own API separates "style ready" from "camera/property changed".
     // Dispatch -497: the way back, pushed whenever it or the style changes (a new style starts empty).
     LaunchedEffect(state.loadedStyle, route) {
-        state.loadedStyle?.let { updateRouteHomeLayers(it, route) }
+        // Dispatch 2026-10-25-02 (RECORD -1634): read only while fully loaded; a style change skips it, logged, and the
+        // new style's load runs it again (loadedStyle is a key).
+        routeHomeOnCurrentStyle(state.loadedStyle, route)
     }
     LaunchedEffect(
         state.loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
         keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest, journalHighlights,
         searchFrameRequestId,
     ) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        if (state.loadedStyle == null) return@LaunchedEffect
         val map = state.mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(
-            style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
+        // Dispatch 2026-10-25-02 (RECORD -1634): in a style change the push is skipped, logged, and this run stops before
+        // its camera work; the new style's load runs it again (loadedStyle is a key).
+        overlayDataOnCurrentStyle(
+            state.loadedStyle, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
             keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, journalHighlights,
-        )
+        ) ?: return@LaunchedEffect
 
         // Once the live-location "puck" is actively tracking (the default once permission is
         // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its

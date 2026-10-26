@@ -9,6 +9,7 @@ import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.nextHopBand
 import kotlin.math.ceil
+import kotlin.math.hypot
 
 /**
  * A [WayHome] as a line the walker's place can be found on (dispatch 2026-10-24-10 Amendment 1, PR B): its points,
@@ -170,6 +171,23 @@ internal fun metersPastLineStart(line: WayHomeLine, current: LatLng): Double {
     val toEast = (current.lng - start.lng) * perDegree.lng
     val toNorth = (current.lat - start.lat) * perDegree.lat
     return if (stretchEast * toEast + stretchNorth * toNorth <= 0.0) GeoDistance.metersBetween(start, current) else 0.0
+}
+
+/**
+ * How far [current] is ahead of the line's first point along its first stretch, toward home (dispatch 2026-10-25-09
+ * Amendment 2): the fix's distance from that point, projected on the stretch, so 0 at the point and below 0 past it. The
+ * first stretch is taken as [metersPastLineStart] takes it, to the first node apart from node 0; 0 when there is none.
+ */
+internal fun metersAheadOfLineStart(line: WayHomeLine, current: LatLng): Double {
+    val nodes = line.nodes
+    val start = nodes.firstOrNull() ?: return 0.0
+    val next = nodes.firstOrNull { GeoDistance.metersBetween(start, it) > WAY_HOME_LINE_START_EPSILON_METERS } ?: return 0.0
+    val perDegree = GeoDistance.metersPerDegree(start.lat)
+    val stretchEast = (next.lng - start.lng) * perDegree.lng
+    val stretchNorth = (next.lat - start.lat) * perDegree.lat
+    val toEast = (current.lng - start.lng) * perDegree.lng
+    val toNorth = (current.lat - start.lat) * perDegree.lat
+    return (stretchEast * toEast + stretchNorth * toNorth) / hypot(stretchEast, stretchNorth)
 }
 
 /** Nodes closer than this to the line's first point are the same point, for [metersPastLineStart]. */
