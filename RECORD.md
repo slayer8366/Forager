@@ -28169,3 +28169,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** pre-main push run 40271808291 on 19c85f78e (#404 with #401 and #402) green, all five jobs; #406 merged by the planner at 4ca137578 (pre-main 12a073783). #407 (way-home-gps-start @ 4ac7a0212, dispatch 2026-10-26-07): fail-first 40272902541 and revert 40273472036 as predicted (0 compile errors; only the new test, with the 45.023 message); PR run 40273514261 failed 1 of 5,570: WayHomeWatchKeptPointTest's held points carry 3 ms and 4 ms timestamps, which the store's rule reads as network fixes (NetworkProviderFix.kt:118), so the fix filters them.
 **Decision:** the owner: "Fix the sample times (Recommended)": the fixture's times become whole seconds; the assertions unchanged.
 **Notes:** Written by the planner by hand. Next free ID -1659.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1659
+**Timestamp:** 2026-10-26T06:11:27Z
+**Continues:** 2026-09-28-1658, 2026-09-28-1656, 2026-09-28-1654
+**Title:** #407 merges; #410 and #408 go to Sorrel before merging (owner)
+**Observed:** #407 at ac00c5d6e (fixture times moved to whole seconds; the coder also moved two other held-point literals so those tests can still fail, accepted by the planner): PR run 40275346944 green, 5,573 tests. #410 (test-jvm-split-backby, dispatch 2026-10-26-08): PR run 40275281651 green, 743 + 6 classes, heap at the first caption class 220.1 MiB against 490, drift check and leak revert biting. #408 (recording-line-reaches-dot, dispatch 2026-10-26-05): reverts r1-r3 biting, r4 uncovered; full run 40274130158 red on attempt 1 with the three MapCreditCaption OOMs (the fourth sighting), green on its re-run. Pre-main push run 40273704348 on 12a073783 (#406) green.
+**Decision:** the owner: "Merge now (Recommended)" for #407, merged by the planner (pre-main c3e132a54). "Sorrel first (Recommended)" for #410: a fresh Sorrel recounts the classes in both test JVMs. #408 to a fresh Sorrel as the other PRs, its S22 check after.
+**Notes:** Written by the planner by hand. Next free ID -1660.
