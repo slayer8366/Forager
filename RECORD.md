@@ -28475,3 +28475,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #418 review (Fable; prompts/preserved/2026-10-26-sorrel-418-review.md, branch sorrel-418, 08db1c131): mergeable, no blocking item; the re-pinned existing tests extend exact values and none weakened; nothing visible on v2, Topo, OSM or v2 regions; the 0.35 opacity only in forager-reference.mjs; S1 the entry map took 3 lines against Amendment 2's "one or two" (the coder had disclosed it to the planner; accepted); S2 two layer-order tests now say less about the screen; S3 no forward test for a partial style; S4 stale names; every map tap now queries the two absent band ids (no hit possible).
 **Decision:** the owner: "Merge now (Recommended)": #418 merges once pre-main's run on #415 is green; S2 to S4 ride the switch PR. 8c continues on 8b's branch.
 **Notes:** Written by the planner by hand. Next free ID -1687.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1687
+**Timestamp:** 2026-10-26T22:00:43Z
+**Continues:** 2026-09-28-1685, 2026-09-28-1629, 2026-09-28-1628
+**Title:** The 10-24 walk is the hilly walk; a climbing allowance of about 2.2 s per metre; the barometric climb undercount fixed (owner)
+**Observed:** Juniper's read of the S26 (Fable; docs/navigation/2026-10-26-hilly-walk-climbs.md, branch s26-hilly-walk-report, 018d376d3 method, e576021d8 results; read-only, database checksums equal before and after; raw data kept in /mnt/work/scratch/s26-hilly-walk/): one outing on 2026-10-24 in two recordings, 6.3 km, 4.5 h, 92 min moving, flat pace 0.93 m/s; time model 2.23 s per metre climbed (90% CI 1.27-3.20), 3.19 s per metre descended; the walk-back time has no climb term today and ran 19% and 44% long on these returns; the app's barometric climb read 31 m and 41 m where bridging the scattered pressure-less points (3% of points) gives 53 m and 72 m; reported horizontal accuracy mostly two constants (9.935 m, 3.790 m).
+**Decision:** the owner: "Yes, that's it" (the 10-24 outing is the hilly walk); "The climb was that steep. We went 200ft"; then "(a) ~2.2 s per metre (Recommended)" for both climbing and descending: dispatch 2026-10-26-19, Phase 1 report first (heights exist for the walker's track but not the engine's trail route). "Diagnose, then fix (Recommended)" for the undercount: dispatch 2026-10-26-18.
+**Notes:** Written by the planner by hand. Next free ID -1688.
