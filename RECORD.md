@@ -28059,3 +28059,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus), PR #404 at b50afeb73 (dispatch 2026-10-25-10): the cause held (the way home reads the stored track, written every 20 points or 30 s); the watch is handed the kept points (WayHomeKeptPoints.kt, 64 lines), no forced write; fail-first 40264412743 (2 of 4 as predicted), revert 40265113193, PR run 40265119510 green, 5,557 tests; no file in common with #402. Hazel stopped before the dispatch's S22 check for a go; her conversation was past 200,000 tokens (-1645).
 **Decision:** the owner: "S22 check and Sorrel review (Recommended)": a fresh Hazel runs the S22 check while a fresh Sorrel (Fable) reviews the code, then the merge comes to the owner. "Yes, after the S22 check (Recommended)": the same fresh Hazel then writes the step 6 report (2026-10-25-03).
 **Notes:** Written by the planner by hand. Next free ID -1649.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1649
+**Timestamp:** 2026-10-26T04:01:44Z
+**Continues:** 2026-09-28-1641
+**Title:** The test memory failure is measured first, on a throwaway branch (owner)
+**Observed:** the step 7 coder's report (Opus; prompts/preserved/2026-10-26-01-report.md, branch caption-oom-report, 249383c9e): one test JVM runs all 744 classes at Gradle's 512 MB default; the three MapCreditCaption classes run 662-664 and each takes an 8.3 MB screen capture into a heap already near full; 3 OOM runs in 2,961 reachable, none before 2026-10-24 14:53 UTC; what fills the heap not measured (suspects: Robolectric's sandbox cache, the routing profile cache).
+**Decision:** the owner: "Measure first (Recommended)": dispatch 2026-10-26-04, a diagnostic branch that never merges records the heap; findings before any fix.
+**Notes:** Written by the planner by hand. Given to a fresh coder (the step 7 coder's conversation passed 200,000 tokens, -1645). Next free ID -1650.
