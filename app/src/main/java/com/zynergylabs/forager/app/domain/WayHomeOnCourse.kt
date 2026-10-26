@@ -97,7 +97,6 @@ fun shownTrailOf(watch: WayHomeWatch, trackId: String): ShownTrail? {
  * while the walker stays short of the start. A network fix is not judged at all (OffTrackJudge.kt:85).
  */
 fun isHeadingBackAlong(line: WayHomeLine, place: WayHomePlace?, here: LatLng): Boolean {
-    if (metersPastLineStart(line, here) > 0.0) return false
     val placeAlong = place?.let { line.alongMeters.getOrNull(it.index) } ?: 0.0
     return placeAlong > 0.0 || metersAheadOfLineStart(line, here) >= WAY_HOME_LINE_STEP_METERS
 }
