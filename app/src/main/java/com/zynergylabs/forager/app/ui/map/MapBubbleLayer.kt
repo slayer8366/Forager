@@ -83,7 +83,7 @@ internal fun MapBubbleLayer(
         when (val target = thing.target) {
             is MapBubbleTarget.SightingTarget -> ShownBubble(thing, content = null)
             // Step 8c: an official-trails band's bubble is its own record's two lines, never a lookup.
-            is MapBubbleTarget.ReferenceTrailTarget -> null
+            is MapBubbleTarget.ReferenceTrailTarget -> ShownBubble(thing, referenceTrailBubble(target.record))
             is MapBubbleTarget.FeatureTarget -> {
                 val content: MapBubbleContent? = if (target.kind == MapBubbleKind.FORECAST_CELL) {
                     when (val cell = rememberForecastCell(target, forecast).value) {

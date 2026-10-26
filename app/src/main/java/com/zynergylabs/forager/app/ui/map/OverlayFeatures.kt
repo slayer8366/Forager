@@ -35,6 +35,7 @@ internal fun tapHitOf(layerId: String, feature: Feature): TapHit = TapHit(
     } else {
         feature.getStringProperty(FEATURE_ID_PROPERTY)
     },
+    attributes = referenceAgencyOf(layerId)?.let { referenceAttributesOf(feature, ReferenceTrailFields.of(it)) }.orEmpty(),
 )
 
 /**

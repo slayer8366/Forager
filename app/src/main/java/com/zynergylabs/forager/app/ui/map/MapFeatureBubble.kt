@@ -136,7 +136,10 @@ internal fun MapFeatureBubble(
                 )
             }
             // Step 8c (RECORD -1680, -1681): whose trail it is, then that routes follow the trail map. No action.
-            is MapBubbleContent.ReferenceTrail -> Unit
+            is MapBubbleContent.ReferenceTrail -> {
+                Box(Modifier.testTag(MAP_BUBBLE_REFERENCE_TITLE_TAG)) { BubbleTitle(content.title) }
+                Box(Modifier.testTag(MAP_BUBBLE_REFERENCE_NOTE_TAG)) { BubbleLine(content.note) }
+            }
         }
     }
 }

@@ -45,6 +45,8 @@ export const FS_TRAIL_NUMBER_FIELD = "trail_no";
  * (`trail-data-comparison` branch, `analyze.py:325-327`). No style layer uses them, so street-v3 is unchanged by them;
  * the app mirrors them (`domain/referencetrails/ReferenceTrailRecord.kt`, held to this file by its test).
  */
+export const FS_TRAIL_NAME_FIELD = "trail_name";
+export const BLM_ROUTE_NAME_FIELD = "ROUTE_PRMRY_NM";
 
 /**
  * The band's look (report section 2, an example the owner has not yet seen on a phone): violet, a family nothing else

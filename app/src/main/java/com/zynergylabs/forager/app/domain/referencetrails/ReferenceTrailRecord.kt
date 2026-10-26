@@ -47,10 +47,17 @@ data class ReferenceTrailRecord(val agency: ReferenceAgency, val number: String?
      * trail". BLM: "BLM trail · Badlands Rock", or "BLM trail" with no name.
      */
     val firstLine: String
-        get() = TODO_STUB
+        get() {
+            val base = when (agency) {
+                ReferenceAgency.FOREST_SERVICE -> "Forest Service trail"
+                ReferenceAgency.BLM -> "BLM trail"
+            }
+            val numbered = number?.let { "$base $it" } ?: base
+            return name?.let { "$numbered · $it" } ?: numbered
+        }
 
     /** The bubble's second line, the same for every band (RECORD -1680). */
-    val secondLine: String get() = TODO_STUB
+    val secondLine: String get() = OFFICIAL_RECORD_LINE
 
     companion object {
         /** The owner's second line (RECORD -1680, "Confirm as sketched (Recommended)"): the -445 rule, said plainly. */
@@ -62,10 +69,11 @@ data class ReferenceTrailRecord(val agency: ReferenceAgency, val number: String?
          * is not settled, forager-reference.mjs).
          */
         fun fromAttributes(agency: ReferenceAgency, attribute: (String) -> String?): ReferenceTrailRecord {
-            return ReferenceTrailRecord(agency, null, null)
+            fun read(field: String) = attribute(field)?.trim()?.takeIf { it.isNotEmpty() }
+            return when (agency) {
+                ReferenceAgency.FOREST_SERVICE -> ReferenceTrailRecord(agency, read(ReferenceTrailFields.FS_TRAIL_NUMBER), read(ReferenceTrailFields.FS_TRAIL_NAME))
+                ReferenceAgency.BLM -> ReferenceTrailRecord(agency, number = null, name = read(ReferenceTrailFields.BLM_ROUTE_NAME))
+            }
         }
     }
 }
-
-/** Fail-first stub (8c): replaced by the build commit. */
-private const val TODO_STUB = ""

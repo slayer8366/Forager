@@ -108,6 +108,9 @@ sealed interface MapBubbleTarget {
 /** The [TappedMapThing] a feature tap makes, or `null` for a layer no bubble is built for. */
 fun tappedThingOf(tap: MapFeatureTap): TappedMapThing? {
     // Step 8c: a band's tap carries its record; its empty feature id is never looked up.
+    tap.referenceTrail?.let { record ->
+        return TappedMapThing(MapBubbleTarget.ReferenceTrailTarget(tap.layerId, record, tap.at), tap.screenPoint, tap.bearingDeg)
+    }
     val kind = mapBubbleKindOf(tap.layerId) ?: return null
     return TappedMapThing(MapBubbleTarget.FeatureTarget(kind, tap.layerId, tap.featureId, tap.at), tap.screenPoint, tap.bearingDeg)
 }
@@ -269,7 +272,7 @@ sealed interface MapBubbleContent {
 
 /** [record]'s bubble: its two lines, as [ReferenceTrailRecord] writes them. */
 fun referenceTrailBubble(record: ReferenceTrailRecord): MapBubbleContent.ReferenceTrail =
-    MapBubbleContent.ReferenceTrail(title = "", note = "")
+    MapBubbleContent.ReferenceTrail(title = record.firstLine, note = record.secondLine)
 
 /**
  * What [target]'s bubble says, looked up by its feature id in [sources]; `null` when the record is

@@ -86,9 +86,11 @@ sealed interface MapTapOutcome {
 
 /** [winner]'s [MapTapOutcome]; see that type. */
 fun mapTapOutcome(winner: TapHit?): MapTapOutcome {
+    val agency = winner?.let { referenceAgencyOf(it.layerId) }
     return when {
         winner == null -> MapTapOutcome.Plain
         // Step 8c: a band's feature carries no feature id, so this comes before the unidentified case below.
+        agency != null -> MapTapOutcome.OnReferenceTrail(winner.layerId, ReferenceTrailRecord.fromAttributes(agency) { winner.attributes[it] })
         winner.layerId == MapLayerIds.SIGHTINGS -> MapTapOutcome.OnSighting(winner.featureId?.toLongOrNull())
         winner.featureId == null -> MapTapOutcome.UnidentifiedFeature(winner.layerId)
         else -> MapTapOutcome.OnFeature(winner.layerId, winner.featureId)
