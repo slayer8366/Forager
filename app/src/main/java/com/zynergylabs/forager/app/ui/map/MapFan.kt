@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.ui.map.fanout.FanMember
 import com.zynergylabs.forager.app.ui.map.fanout.FanOutHideGate
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import com.zynergylabs.forager.app.ui.map.layers.LayerRenderer
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import kotlinx.coroutines.Job
@@ -134,7 +135,12 @@ internal fun MapFan(
         val style = currentStyle(state.loadedStyle, "The fan's fade") ?: return@LaunchedEffect
         snapshotFlow { state.fanOut.isOpen }.collect { fanOpen ->
             if (currentStyle(style, "A fan fade") == null) return@collect
-            MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, fanFadedPaint(spec, layerPaintFor(spec, drawnLayersState), fanOpen)) }
+            MAP_LAYER_REGISTRY.forEach { spec ->
+                val paint = fanFadedPaint(spec, layerPaintFor(spec, drawnLayersState), fanOpen)
+                // Step 8b: a layer the style carries (the official-trails band) takes its visibility only, and is
+                // passed over quietly on a style without it (ReferenceTrailsVisibility.kt). This is the switch's path.
+                if (spec.renderer == LayerRenderer.STYLE_LAYER) applyStyleLayerPaint(MapLibreStyleLayerSwitches(style), paint) else applyLayerPaint(style, paint)
+            }
         }
     }
 

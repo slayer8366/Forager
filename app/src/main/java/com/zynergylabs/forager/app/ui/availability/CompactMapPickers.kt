@@ -106,6 +106,7 @@ internal fun BoxScope.CompactMapPickers(
             onOpacityChanged = mapLayers.onOpacityChanged,
             onColourFieldMoved = mapLayers.onColourFieldMoved,
             onDismiss = { showLayersSheet = false },
+            referenceTrails = mapLayers.referenceTrailsShown,
         )
     }
 

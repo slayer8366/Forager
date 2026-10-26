@@ -5,9 +5,12 @@ import android.content.res.Resources
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.currentOfflineRenderStyleUrl
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import org.maplibre.android.maps.Style
 
@@ -31,6 +34,13 @@ internal fun MapStyleReload(
     resources: Resources,
     appCompassEngine: TrueHeadingCompassEngine?,
     appLocationEngine: AppLocationEngine?,
+    /**
+     * Step 8b: set on each style load to whether the style draws the official-trails band
+     * ([applyReferenceTrailsOnStyleLoad]); [SightingsMap] draws, credits and reports with it.
+     */
+    referenceTrailsLoaded: MutableState<Boolean>,
+    /** Step 8b: the layer choices as the map was given them, before the band is hidden for a style without it. */
+    chosenLayers: State<MapLayersState>,
 ) {
     // Style swap: basemap, palette, the offline style (Stage 2e-ii), or effective night (colour
     // build C1: nightMode is a key, and AppliedMapStyle.night is compared). Keyed on the inputs
@@ -130,6 +140,10 @@ internal fun MapStyleReload(
             // (NightImageSwitch.kt; dispatch 2026-10-22-06 Amendment 1). The sprite is not loaded yet at this point.
             if (requested.night && usesStreetSprite(source)) applyStreetNightImages(style, context)
             if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
+            // Step 8b (dispatch 2026-10-26-15): the official-trails band's visibility from the user's choice, after the night
+            // recolour (which walks every layer, hidden or not, so the band is in its night colour whenever it shows) and
+            // before the overlays are added above it. Under Topographical the band is not offered (Trail Map only, -1633).
+            referenceTrailsLoaded.value = applyReferenceTrailsOnStyleLoad(MapLibreStyleLayerSwitches(style), drawnOnThisMap = source !is MapStyleSource.StreetWithTopoOver, chosen = chosenLayers.value)
             initializeOverlayLayers(
                 style,
                 density = resources.displayMetrics.density,

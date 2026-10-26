@@ -16,6 +16,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Step 8b (dispatch 2026-10-26-15 Amendment 2): the official-trails switch on a loaded style, headless. The style is a
@@ -26,8 +29,11 @@ import org.junit.Test
  * What runs here is what the map runs: [applyReferenceTrailsOnStyleLoad] is the one call in `MapStyleReload`'s style-load
  * callback; [applyStyleLayerPaint] over [layerPaintFor] of each style-layer spec is `MapFan`'s registry walk, the path a
  * flip of the switch takes; [withReferenceTrailsHiddenUnlessLoaded] is what `SightingsMap` draws, credits and hit-tests
- * with; and the caption is `SightingsMapLayout`'s own expression over it.
+ * with; and the caption is `SightingsMapLayout`'s own expression over it. Under Robolectric only for `android.util.Log`,
+ * which the style-load call writes one line to.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ReferenceTrailsVisibilityTest {
 
     private val referenceIds = listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND, MapLayerIds.REFERENCE_FS_NUMBER)

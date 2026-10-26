@@ -334,6 +334,37 @@ private fun colourField(field: ColourFieldSpec) = MapLayerSpec(
     credit = SYNTHETIC_DATA_CREDIT,
 )
 
+/**
+ * Step 8b (dispatch 2026-10-26-15 Amendments 1 and 2; RECORD -1633, -1680, -1681): one of the official-trails band's
+ * layers in Trail Map's own style, as a registry entry, so the Layers sheet's switch, its stored choice, its caption
+ * credit and 8c's taps reach it through the machinery every overlay uses. [LayerRenderer.STYLE_LAYER]: the style draws
+ * it, the app only shows or hides it. Its colours and its 0.35 opacity are the style's, so no palette role and no base
+ * opacity. [owner] null is the switch's own layer ("Official trails", on by default, credited while shown); the others
+ * follow it, so one switch shows or hides all three.
+ */
+private fun referenceTrailLayer(id: String, tapGroup: TapGroup, owner: String?) = MapLayerSpec(
+    id = id,
+    kind = LayerKind.LINE,
+    renderer = LayerRenderer.STYLE_LAYER,
+    sourceId = MapSourceIds.REFERENCE,
+    zGroup = ZGroup.LINES,
+    paletteRole = null,
+    userToggleable = owner == null,
+    userOpacity = false,
+    userReorderable = false,
+    tapGroup = tapGroup,
+    baseOpacities = emptyList(),
+    stateOwnerId = owner,
+    credit = if (owner == null) REFERENCE_TRAILS_CREDIT else null,
+)
+
+/**
+ * The caption's credit while the official-trails band is shown, the owner's wording (RECORD -1680, "Confirm as sketched
+ * (Recommended)"): the Forest Service's data is CC BY 4.0, which asks for the credit and the licence's name; BLM's is
+ * public domain and credited anyway (the step 8 report, section 1).
+ */
+const val REFERENCE_TRAILS_CREDIT = "Trails: USDA Forest Service, CC BY 4.0 · BLM"
+
 /** A colour field's base fill opacity; see [colourField]. */
 private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
 
@@ -401,6 +432,12 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
     journalHalo(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.WAYPOINTS, zGroup = ZGroup.DECORATIONS),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_FINDS, MapSourceIds.JOURNAL_ENTRY_FINDS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.FINDS, zGroup = ZGroup.DECORATIONS),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_PHOTOS, MapSourceIds.JOURNAL_ENTRY_PHOTOS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.PHOTOS, zGroup = ZGroup.DECORATIONS),
+    // Step 8b: the official-trails band, drawn by Trail Map's own style beneath every layer the app adds, so first in
+    // the lines band: below every app line here too, and so last among lines in a tap (tapWinner ranks the higher
+    // first). In the style's own order: the two bands, then the Forest Service number (forager-reference.mjs).
+    referenceTrailLayer(MapLayerIds.REFERENCE_FS_BAND, TapGroup.LINE, owner = null),
+    referenceTrailLayer(MapLayerIds.REFERENCE_BLM_BAND, TapGroup.LINE, owner = MapLayerIds.REFERENCE_FS_BAND),
+    referenceTrailLayer(MapLayerIds.REFERENCE_FS_NUMBER, TapGroup.NONE, owner = MapLayerIds.REFERENCE_FS_BAND),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_REGIONS, MapSourceIds.JOURNAL_ENTRY_REGIONS, LayerKind.LINE, LayerRenderer.LINE, decorates = MapLayerIds.OFFLINE_REGION_OUTLINE),
     line(MapLayerIds.OFFLINE_REGION_BORDER, MapSourceIds.OFFLINE_REGIONS, PaletteRole.OFFLINE_REGION_BORDER, TapGroup.NONE, owner = MapLayerIds.OFFLINE_REGION_FILL)
         .copy(baseOpacities = listOf(BaseOpacity(OpacityProperty.LINE, OFFLINE_REGION_BORDER_OPACITY))),

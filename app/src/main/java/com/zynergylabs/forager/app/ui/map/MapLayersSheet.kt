@@ -109,6 +109,10 @@ private var SemanticsPropertyReceiver.mapLayersSheetContentColor by MapLayersShe
 /** One overlay switch row, by registry layer id. */
 internal fun mapLayerSwitchTag(layerId: String) = "map-layer-switch:$layerId"
 
+/** Step 8b: the official-trails switch's label and second line, the owner's wording (RECORD -1680, "Confirm as sketched"). */
+internal const val REFERENCE_TRAILS_LABEL = "Official trails"
+internal const val REFERENCE_TRAILS_DETAIL = "Forest Service and BLM"
+
 /** A colour field's opacity slider, by registry layer id. */
 internal fun mapLayerOpacityTag(layerId: String) = "map-layer-opacity:$layerId"
 
@@ -301,6 +305,16 @@ internal fun MapLayersSheet(
                     onCheckedChange = { onVisibilityChanged(option.layerId, it) },
                 )
             }
+            // Step 8b: after the record overlays, before the colour fields, and only while the map draws the band.
+            if (referenceTrails) {
+                LayerSwitchRow(
+                    layerId = MapLayerIds.REFERENCE_FS_BAND,
+                    label = REFERENCE_TRAILS_LABEL,
+                    detail = REFERENCE_TRAILS_DETAIL,
+                    checked = state.stateOf(MapLayerIds.REFERENCE_FS_BAND).visible,
+                    onCheckedChange = { onVisibilityChanged(MapLayerIds.REFERENCE_FS_BAND, it) },
+                )
+            }
             ColourFieldRows(colourFields, state, onVisibilityChanged, onOpacityChanged, onColourFieldMoved)
         }
     }
@@ -311,7 +325,7 @@ internal fun MapLayersSheet(
  * it; the [Switch] inside draws the state and takes no input of its own.
  */
 @Composable
-private fun LayerSwitchRow(layerId: String, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun LayerSwitchRow(layerId: String, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, detail: String? = null) {
     // Amendment 1 to motion Part 1 (RECORD -657): the row's press is drawn in a rounded shape; the toggle's touch is unchanged.
     val pressSource = remember { MutableInteractionSource() }
     Row(
@@ -323,7 +337,15 @@ private fun LayerSwitchRow(layerId: String, label: String, checked: Boolean, onC
             .testTag(mapLayerSwitchTag(layerId)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        if (detail == null) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        } else {
+            // Step 8b: a second line under the label, Material's two-line list item (headline, then supporting text).
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                Text(detail, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         Switch(checked = checked, onCheckedChange = null)
     }
 }

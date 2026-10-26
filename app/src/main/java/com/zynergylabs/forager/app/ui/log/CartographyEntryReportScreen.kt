@@ -317,6 +317,7 @@ internal fun CartographyEntryReportScreen(
     var entryMapMode by remember(entry.id) { mutableStateOf(initialMapMode) }
     var isMapFullscreen by remember(entry.id) { mutableStateOf(false) }
     var showLayersSheet by remember(entry.id) { mutableStateOf(false) }
+    val referenceTrails = remember { com.zynergylabs.forager.app.ui.map.ReferenceTrailsShown() } // Step 8b: the map's report, for the sheet's row.
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
     var resetOrientationRequestId by remember(entry.id) { mutableIntStateOf(0) }
     // The one-shot camera pan a locate-me tap resolves to — see this file's own doc comment,
@@ -573,6 +574,7 @@ internal fun CartographyEntryReportScreen(
                         // too while this map is fullscreen, so Back leaves fullscreen first and the next Back folds
                         // the fan (dispatch 2026-09-28-298, the same rule as the Maps tab's fullscreen).
                         backEnabled = backEnabled && !isMapFullscreen,
+                        onReferenceTrailsShown = referenceTrails.onShown,
                     ),
                     focusOverrideTarget,
                     {},
@@ -657,6 +659,7 @@ internal fun CartographyEntryReportScreen(
                             onColourFieldMoved = { _, _ -> },
                             onDismiss = { showLayersSheet = false },
                             offlineTiles = useOfflineTiles,
+                            referenceTrails = referenceTrails.shown,
                         )
                     }
                 }

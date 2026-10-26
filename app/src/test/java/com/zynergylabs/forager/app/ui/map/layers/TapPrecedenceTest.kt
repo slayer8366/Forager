@@ -24,6 +24,9 @@ class TapPrecedenceTest {
             listOf(
                 MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS,
                 MapLayerIds.FORECAST_CHANTERELLES,
+                // Step 8b (dispatch 2026-10-26-15 Amendment 1): the official-trails bands, below every app line; 8c's taps.
+                MapLayerIds.REFERENCE_FS_BAND,
+                MapLayerIds.REFERENCE_BLM_BAND,
                 MapLayerIds.OFFLINE_REGION_OUTLINE,
                 MapLayerIds.KEPT_TRACKS,
                 MapLayerIds.SIGHTINGS,

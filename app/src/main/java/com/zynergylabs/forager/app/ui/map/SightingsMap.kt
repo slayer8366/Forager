@@ -308,9 +308,16 @@ fun SightingsMap(
     // feed (the Cartography entry map, the centre-pin pickers, any map in a release build, whose store
     // never has data) never draws, credits or hit-tests a colour field, whatever the stored choice
     // says; the stored choice is not changed.
-    val drawnLayersState = remember(layersState, forecast?.groupsByLayer) {
-        withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty())
+    // Step 8b (dispatch 2026-10-26-15 Amendment 2): whether the loaded style draws the official-trails band, set on each style
+    // load (MapStyleReload.kt). Until one does, the band's layers are hidden in the drawn state, so no caption credit and no tap.
+    val referenceTrailsLoaded = remember { mutableStateOf(false) }
+    val chosenLayersState = rememberUpdatedState(layersState)
+    val drawnLayersState = remember(layersState, forecast?.groupsByLayer, referenceTrailsLoaded.value) {
+        withReferenceTrailsHiddenUnlessLoaded(withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty()), referenceTrailsLoaded.value)
     }
+    // ...and the host is told, for its Layers sheet's row (MapRenderMode.onReferenceTrailsShown).
+    val currentOnReferenceTrailsShown by rememberUpdatedState(onReferenceTrailsShown)
+    LaunchedEffect(referenceTrailsLoaded.value) { currentOnReferenceTrailsShown(referenceTrailsLoaded.value) }
     val currentLayersStateState = rememberUpdatedState(drawnLayersState)
     // The map chrome's colour (the navigation bar's), read here because it follows the app's theme.
     val chromeColour = navigationBarContainerColor().toArgb()
@@ -603,6 +610,8 @@ fun SightingsMap(
         resources = resources,
         appCompassEngine = appCompassEngine,
         appLocationEngine = appLocationEngine,
+        referenceTrailsLoaded = referenceTrailsLoaded,
+        chosenLayers = chosenLayersState,
     )
 
     // The way home (dispatch -497) and the data + camera refresh: MapDataRefresh.kt.
