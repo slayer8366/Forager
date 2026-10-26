@@ -311,7 +311,7 @@ class AvailabilityViewModel(
     private val waypointLine = AvailabilityWaypointLine({ transform -> _uiState.update(transform) }, readWaypoint, currentTime, errorLog)
     /** The way to that waypoint along trails (step 6 PR 3): see the class. Started and ended beside the line, below. */
     private val waypointRoute =
-        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, readWaypoint, findWayToWaypoint, { _uiState.value.offlineRegions }, errorLog)
+        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, readWaypoint, findWayToWaypoint, { _uiState.value.offlineRegions }, currentTime, errorLog)
 
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own

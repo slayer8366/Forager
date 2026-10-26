@@ -19,13 +19,16 @@ import com.zynergylabs.forager.app.domain.wayhome.WAY_HOME_STRAY_METERS
  *   no storage. Walking out and back in tries again; walking on inside does not. The same rising edge takes routes
  *   arriving for an area already holding both ends (a download, or its routes, finishing while navigating), since the
  *   list it is handed is read afresh at each fix.
- * - **Far from any trail** ([WayToWaypointNote.WALKER_FAR_FROM_TRAIL]): more than [WAY_HOME_STRAY_METERS] (50 m, the
- *   stray figure) from where the search was asked. Where the trails are is the engine's to know, so the walker's coming
- *   within its reach of one is found by asking again, once per 50 m walked from the last ask.
+ * - **Walking on,** for a note walking can change ([WALKING_CAN_CHANGE]): more than [WAY_HOME_STRAY_METERS] (50 m, the
+ *   stray figure) from where the search was asked, so once per 50 m walked from the last ask. Until Amendment 2 this was
+ *   [WayToWaypointNote.WALKER_FAR_FROM_TRAIL] alone, where the trails are being the engine's to know; Amendment 2, item 3
+ *   (RECORD -1670, the owner: "Every 50 m walked (Recommended)") adds the others a walk can change, inside an area too.
  *
- * Every other note waits for the area trigger: walking does not move the waypoint, and the rest name the area's data
- * or a route the engine did not find, which the owner's ruling does not ask to retry on walking. Pure: no clock, no
- * Android.
+ * The rest wait for the area trigger: [WayToWaypointNote.WAYPOINT_FAR_FROM_TRAIL] (walking does not move the waypoint),
+ * [WayToWaypointNote.ROUTES_UNREADABLE] and [WayToWaypointNote.ROUTES_NEED_APP_UPDATE] (the area's data, which walking
+ * inside it does not change), as the owner's ruling lists them, and the two it does not list,
+ * [WayToWaypointNote.ROUTES_NOT_DOWNLOADED] and [WayToWaypointNote.ROUTES_FETCHING], which the region list's own change
+ * reaches through the area trigger. Pure: no clock, no Android.
  */
 class WayToRetry(
     private val waypoint: LatLng,
@@ -41,9 +44,18 @@ class WayToRetry(
         val walkedIn = holdsNow && !heldBoth
         heldBoth = holdsNow
         if (walkedIn) return true
-        return note == WayToWaypointNote.WALKER_FAR_FROM_TRAIL && GeoDistance.metersBetween(searchedFrom, here) > WAY_HOME_STRAY_METERS
+        return note in WALKING_CAN_CHANGE && GeoDistance.metersBetween(searchedFrom, here) > WAY_HOME_STRAY_METERS
     }
 
     private fun holdsBoth(walker: LatLng, regions: List<OfflineRegionSummary>) =
         routeDataForPoints(walker, waypoint, regions) is RouteDataForPoints.Found
 }
+
+/** The notes a walk can change, tried again every 50 m walked (Amendment 2, item 3; RECORD -1670), as the dispatch lists them. */
+private val WALKING_CAN_CHANGE = setOf(
+    WayToWaypointNote.LEAVES_AREA,
+    WayToWaypointNote.NO_ROUTE_FOUND,
+    WayToWaypointNote.NO_TRAIL_ROUTES,
+    WayToWaypointNote.WALKER_FAR_FROM_TRAIL,
+    WayToWaypointNote.WAYPOINT_IN_ANOTHER_AREA,
+)
