@@ -73,6 +73,16 @@ internal const val LEAVES_AREA_SHORT_TEXT = "Route leaves your downloaded area"
 internal fun wayHomeNoteShortText(note: WayHomeNote): String =
     if (note == WayHomeNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_HOME_NOTE_TAIL)
 
+/**
+ * The quiet off-trail notice in the status line (plan step 7 PR 3; RECORD -1631, the owner: "Off trail · Return to Route
+ * along your track (Recommended)", short form "Return to Route"). Not a button: "Re-center" is the one control.
+ */
+internal const val OFF_TRAIL_TEXT = "Off trail · Return to Route along your track"
+internal const val OFF_TRAIL_SHORT_TEXT = "Return to Route"
+
+/** Back on the trail line, shown for `BACK_ON_TRAIL_SHOW_MILLIS` (RECORD -445's words, -1631). */
+internal const val BACK_ON_TRAIL_TEXT = "Back on trail"
+
 /** The way to a waypoint's notes' shared tail, dropped in their short forms (step 6 PR 3; RECORD -1652 Q4: "short forms drop the tail"). */
 private const val WAY_TO_WAYPOINT_NOTE_TAIL = " · straight line"
 

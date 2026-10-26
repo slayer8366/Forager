@@ -19,6 +19,7 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy
 import com.zynergylabs.forager.app.domain.relativeBearingDegrees
 import com.zynergylabs.forager.app.domain.DistanceKind
 import com.zynergylabs.forager.app.domain.turnText
+import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.COMPASS_NORTH_UP_TEXT
 import com.zynergylabs.forager.app.ui.map.COMPASS_CALIBRATING_TEXT
@@ -182,6 +183,7 @@ internal fun navigationReadout(
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
             // Dispatch 2026-10-24-10: why the way home is the walker's track, where the line is empty otherwise.
             route is ReturnRoute.Ahead && route.note != null -> route.note.text
+            // Plan step 7 PR 3 (RECORD -1631, -1676): the quiet off-trail state, where the line is empty otherwise.
             // Step 6 PR 3 (RECORD -1652 Q4): why the way to a waypoint is the straight line.
             route is ReturnRoute.Straight -> route.note.text
             else -> ""
@@ -198,6 +200,7 @@ internal fun navigationReadout(
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> listOf(straightLineText, "")
             // The note's short form, and no empty form: a note is never dropped silently.
             route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
+            // The notice's short form, and no empty form, as a note's; "Back on trail" has none shorter.
             route is ReturnRoute.Straight -> listOf(wayToWaypointNoteShortText(route.note))
             else -> emptyList()
         }

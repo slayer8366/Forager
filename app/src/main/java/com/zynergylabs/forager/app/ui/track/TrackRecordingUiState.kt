@@ -15,6 +15,8 @@ import com.zynergylabs.forager.app.domain.SundownLine
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.RouteLinePartKind
+import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeShown
@@ -194,6 +196,20 @@ data class TrackRecordingUiState(
 
     /** Why the way home is the walker's track, shown beside it (RECORD -1586, -1589), or `null` with nothing to say. */
     val wayHomeNote: WayHomeNote? get() = (wayHome?.result as? WayHomeResult.TrackOnly)?.note
+
+    /** The way home's quiet off-trail state (plan step 7 PR 3; RECORD -1631), [OffTrailState.ON] with no way home along trails. */
+    val wayHomeOffTrail: OffTrailState get() = wayHome?.takeIf { it.line != null }?.offTrail ?: OffTrailState.ON
+
+    /**
+     * [routeLine] as the map draws it (plan step 7 PR 3; RECORD -1676, "A: trail dims only"): its trail part dimmed while
+     * the walker is off the trail ([wayHomeOffTrail]), when the line ahead has one. Derived, so the 5 s route tick never
+     * holds a stale flag.
+     */
+    val routeLineShown: RouteLine?
+        get() = routeLine?.let { line ->
+            val dim = wayHomeOffTrail == OffTrailState.OFF && line.aheadParts.any { it.kind == RouteLinePartKind.TRAIL }
+            if (dim && false) line.copy(trailDimmed = true) else line // FAIL-FIRST STUB
+        }
 
     /**
      * The recording line the map draws (dispatch 2026-10-26-05, RECORD -1651, the owner: "(b) Reach the dot
