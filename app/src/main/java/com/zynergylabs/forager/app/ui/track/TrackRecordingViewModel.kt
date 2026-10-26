@@ -20,6 +20,7 @@ import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.HopBand
+import com.zynergylabs.forager.app.domain.KeptTail
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.routeHome
@@ -215,6 +216,8 @@ class TrackRecordingViewModel(
     private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
     /** The app's way home along trails (dispatch 2026-10-24-10, RECORD -1613): found at Return, stopped with it. `null`: none. */
     private val wayHomeWatch: WayHomeWatch? = null,
+    /** The service's newest kept points, for the line to reach the dot (dispatch 2026-10-26-05). `null`: the stored track only. */
+    private val recordingKeptTail: StateFlow<KeptTail>? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -234,6 +237,7 @@ class TrackRecordingViewModel(
         settleTakenUpOrigin = { active, track -> takeUp.settleTakenUpOrigin(active, track) },
         handStartPointToWatch = { handStartPointToWatch() },
         nextNoticeId = { ++recordingNoticeIds },
+        keptTail = recordingKeptTail,
     )
 
     /**

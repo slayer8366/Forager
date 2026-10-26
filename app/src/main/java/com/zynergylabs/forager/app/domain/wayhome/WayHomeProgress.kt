@@ -152,7 +152,8 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
  * How far [current] is from the line's first point when the walker is past it (dispatch 2026-10-25-06; RECORD -1630, the
  * owner: "Add it, fix first (Recommended)"), and 0 otherwise. Past means not ahead of the first point along the line's
  * first stretch: the angle between that stretch and the way to [current] is at least a right angle. A line starts at
- * the newest stored track point, so a walker who walks on after a re-route (or after Return) is beyond it. Their figure
+ * the newest kept track point, written or not (since dispatch 2026-10-25-10; Sorrel's #404 review S1, branch sorrel-404,
+ * 9c3866e17), so a walker who walks on after a re-route (or after Return) is beyond it. Their figure
  * counted from node 0 and held at the line's total, short of the line drawn by the distance walked on (Hazel's S22
  * check, prompts/preserved/2026-10-25-hazel-s22-figure-check.md, section 3: 27 m). The figure adds this, so it is never
  * short of the line drawn; the line, the place, the needle and the greyed part are unchanged. Only called when the

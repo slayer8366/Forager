@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.KeptTail
 import com.zynergylabs.forager.app.domain.PathHome
+import com.zynergylabs.forager.app.domain.recordingLineOf
 import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteLine
@@ -37,6 +39,11 @@ data class TrackRecordingUiState(
      * for why this is polled rather than reactive. Empty whenever [activeTrack] is null.
      */
     val breadcrumbPoints: List<TrackPoint> = emptyList(),
+    /**
+     * The recording's newest kept points, written or not, as `AppContainer.recordingKeptTail` last gave them (dispatch
+     * 2026-10-26-05, RECORD -1651). Read only by [recordingLine]; [breadcrumbPoints] stays the stored track.
+     */
+    val recordingKeptTail: KeptTail = KeptTail.NONE,
     val waypoints: List<Waypoint> = emptyList(),
     val waypointsErrorMessage: String? = null,
     /**
@@ -187,6 +194,14 @@ data class TrackRecordingUiState(
 
     /** Why the way home is the walker's track, shown beside it (RECORD -1586, -1589), or `null` with nothing to say. */
     val wayHomeNote: WayHomeNote? get() = (wayHome?.result as? WayHomeResult.TrackOnly)?.note
+
+    /**
+     * The recording line the map draws (dispatch 2026-10-26-05, RECORD -1651, the owner: "(b) Reach the dot
+     * (Recommended)"): [breadcrumbPoints], the stored track, with the kept points not yet written after it, so the line
+     * reaches the walker's newest kept point rather than the last written one. Only for this screen's recording; with
+     * none, [breadcrumbPoints], which is then empty. See [recordingLineOf].
+     */
+    val recordingLine: List<TrackPoint> get() = recordingLineOf(breadcrumbPoints, recordingKeptTail, activeTrack?.trackId)
 
     /**
      * [waypoints] without [pendingWaypointDelete]: what every screen shows (J4, "a pending record is

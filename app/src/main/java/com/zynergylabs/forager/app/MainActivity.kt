@@ -651,7 +651,9 @@ class MainActivity : ComponentActivity() {
                         tripStartWarning = trackUiState.tripStartWarning,
                         backgroundRunPrompt = trackUiState.backgroundRunPrompt,
                         networkFixesNotice = trackUiState.networkFixesNotice,
-                        breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
+                        // Dispatch 2026-10-26-05 (RECORD -1651): the stored track and the kept points not yet written, so the
+                        // line reaches the walker's dot.
+                        breadcrumbPoints = trackUiState.recordingLine.map { LatLng(it.lat, it.lng) },
                         recordingSundownLine = trackUiState.sundownLine,
                         recordingBackBy = trackUiState.backBy,
                         onBackByChoice = trackRecordingViewModel::setBackBy,

@@ -10,6 +10,8 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
+import com.zynergylabs.forager.app.domain.KeptTail
+import com.zynergylabs.forager.app.domain.RecordingKeptTail
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.HopBand
@@ -45,6 +47,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -143,6 +146,7 @@ class TrackRecordingViewModelTest {
         is24HourClock: () -> Boolean = { false },
         trackEnds: TrackEnds = TrackEnds(),
         trackIdGenerator: () -> String = { "track-1" },
+        recordingKeptTail: StateFlow<KeptTail>? = null,
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = trackIdGenerator),
@@ -168,6 +172,7 @@ class TrackRecordingViewModelTest {
         findRouteHome = findRouteHome,
         shouldPromptBackgroundRun = shouldPromptBackgroundRun,
         trackEnds = trackEnds.latest,
+        recordingKeptTail = recordingKeptTail,
     ).also(createdViewModels::add)
 
     /**
@@ -348,6 +353,42 @@ class TrackRecordingViewModelTest {
      * `stopping clears active state and the poll loop stops scheduling further work` runs before any point is
      * read, and passes with or without the clear.
      */
+    /**
+     * Dispatch 2026-10-26-05 (RECORD -1651, the owner: "(b) Reach the dot (Recommended)"): the line drawn while recording
+     * ([TrackRecordingUiState.recordingLine]) reaches the newest kept point each time one is kept, not the last written
+     * point at the next poll. The holder is fed as the service feeds it ([RecordingKeptTail.add], one call per kept
+     * point); the time is not advanced after the third point, so only the kept points' flow can carry it. The stored
+     * track ([TrackRecordingUiState.breadcrumbPoints]) is unchanged, and after Stop no line is drawn.
+     */
+    @Test
+    fun `the recording line reaches the newest kept point without waiting for the poll`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val kept = RecordingKeptTail()
+        val vm = viewModel(trackRepository, recordingKeptTail = kept.tail)
+        vm.startRecording()
+        runCurrent()
+        val written = listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L))
+        written.forEach { kept.add("track-1", it) }
+        trackRepository.appendPoints("track-1", written)
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("precondition: the poll has read the two written points", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        kept.add("track-1", point(lat = 45.002, t = 3_000L))
+        runCurrent()
+
+        assertEquals(
+            "the line reaches the newest kept point, not yet written, before the next poll",
+            listOf(45.0, 45.001, 45.002),
+            vm.uiState.value.recordingLine.map { it.lat },
+        )
+        assertEquals("the stored track is as read", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        vm.stopRecording()
+        runCurrent()
+        assertEquals("no recording line after Stop", emptyList<TrackPoint>(), vm.uiState.value.recordingLine)
+    }
+
     @Test
     fun `the recording line is cleared by the screen's Stop`() = runRecordingTest {
         val trackRepository = InMemoryTrackRepository()
