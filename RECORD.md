@@ -27982,3 +27982,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the step 7 coder (Opus), PR #402 at d83d11999: fail-first 40259798402 (4 of 4 as the old rule), full run 40261211097 green 5,560 of 5,560, reverts r1-r8 each biting (evidence https://github.com/slayer8366/Forager/pull/402#issuecomment-6407408157); proposed figure: heading back once 10 m along the line from its start, or once the place has moved off the first point; never past the start. Run 40258542687 on ff9b2ea56 hit the same three MapCreditCaption OutOfMemoryErrors as 40192708715.
 **Decision:** Sorrel checks the figure, as ruled in -1640. For the memory failure, the owner: "Diagnose now (Recommended)": dispatch 2026-10-26-01, read and diagnose only, to the step 7 coder.
 **Notes:** Written by the planner by hand. Next free ID -1642.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1642
+**Timestamp:** 2026-10-26T03:23:23Z
+**Continues:** 2026-09-28-1641
+**Title:** An accountant role counts token usage daily and proposes savings that keep the result (owner)
+**Observed:** Claude Code's session logs on the laptop (~/.claude/projects/) carry a logged usage record per assistant turn, helpers included; the Pi team's and cloud sessions' logs are not on the laptop.
+**Decision:** the owner: "Create an accountant profile that monitors token usage and generates ideas on how to reduce usage while getting the same result." Asked, "Daily report (Recommended)", "Haiku (Recommended)", "Propose only (Recommended)", and all three teams (app, forecast, Pi). Written as docs/process/accountant-profile.md on branch accountant-profile (e54f25896), from pre-main 44af58a3c.
+**Notes:** Written by the planner by hand. An idea that drops a check is listed as "would change the result", never as a saving. The role names itself on its first run. Not yet scheduled or run. Next free ID -1643.
