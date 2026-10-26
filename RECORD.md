@@ -28343,3 +28343,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Step 7 PR 3, the quiet off-trail state, starts (owner)
 **Decision:** the owner: "Start step 7 PR 3": dispatch 2026-10-26-13, the way home's quiet off-trail state and "Back on trail" as -1631's step paths, from the step 7 report (branch off-trail-report, 228d521fb), re-checked against everything merged since; kept clear of the running tidy PR's files.
 **Notes:** Written by the planner by hand. Next free ID -1675.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1675
+**Timestamp:** 2026-10-26T17:39:11Z
+**Continues:** 2026-09-28-1673
+**Title:** The tidy PR #414 merges; known-bugs' duplicated rows to a later tidy (owner)
+**Observed:** #414 (tidy-comments-older-sdk @ 59c02a7ae, dispatch 2026-10-26-12): the older-SDK check attributes method-level @Config past nested classes, reports nested-class and abstract/open/sealed bases with actionable messages (plant runs 40367555370 old, 40367616978 fixed; reverts 40368724602, 40368797612); PR run 40367655813 green, 6 older-SDK and 760 main classes identical to pre-main's run 40360081059, 5,655 tests; eight comment sets corrected; known-bugs row 21 (the waypoint pop-up). docs/process/known-bugs.md carries rows 10 to 16 twice (pre-existing).
+**Decision:** the owner: "Merge now (Recommended)": merged by the planner. "Yes, in a later tidy (Recommended)" for the duplicated rows.
+**Notes:** Written by the planner by hand. Next free ID -1676.
