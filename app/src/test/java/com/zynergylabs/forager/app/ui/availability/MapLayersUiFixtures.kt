@@ -84,6 +84,8 @@ import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 
 /**
@@ -208,6 +210,9 @@ internal fun mapLayersViewModel(
     basemapPreferences: BasemapPreferenceRepository = InMemoryBasemapPreference(),
     // RECORD -711: where the icon cluster's side and height are kept. Defaulted to nothing stored, which opens it where it always opened.
     clusterPlacements: MapIconClusterPlacementRepository = InMemoryClusterPlacement(),
+    // Step 6 PR 1 (dispatch 2026-10-26-06): the waypoint line's lookup by id and its clock. Defaulted to none stored and the system clock.
+    readWaypoint: suspend (String) -> Result<Waypoint?> = { Result.success(null) },
+    currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -252,6 +257,8 @@ internal fun mapLayersViewModel(
         setBatterySaverEnabled = setBatterySaverEnabled,
         basemapPreferenceRepository = basemapPreferences,
         mapIconClusterPlacementRepository = clusterPlacements,
+        readWaypoint = readWaypoint,
+        currentTime = currentTime,
     )
 }
 
