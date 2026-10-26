@@ -71,6 +71,6 @@ class RecordingKeptTail {
 fun recordingLineOf(stored: List<TrackPoint>, tail: KeptTail, trackId: String?): List<TrackPoint> {
     if (trackId == null || tail.trackId != trackId) return stored
     val lastStored = stored.lastOrNull()?.timestampEpochMillis ?: Long.MIN_VALUE
-    val newer = excludeNetworkProviderFixes(tail.points.filter { it.timestampEpochMillis > lastStored })
+    val newer = tail.points.filter { it.timestampEpochMillis > lastStored }
     return if (newer.isEmpty()) stored else stored + newer
 }
