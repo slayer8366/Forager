@@ -28245,3 +28245,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #412 (waypoint-route-domain @ 9d0b7f8f9, dispatch 2026-10-26-10): PR run 40287886244 green, 5,606 tests; fail-first 40287085019 (20 of 21); six reverts each biting with edit-specific messages. Beyond scope, for review: one engine route from walker to waypoint, its first and last points taken as the trail points (not two snaps then a route); a new domain/routing/TrailEngine.kt; the note order for ends in different regions; the leaves-area note kept as the way home's full sentence.
 **Decision:** the owner, for the waypoint route's leaves-area note: "Add '· straight line' (Recommended)": "This route leaves your downloaded area · straight line"; the short form stays "Route leaves your downloaded area". Sorrel reviews #412 before its merge comes to the owner.
 **Notes:** Written by the planner by hand. Next free ID -1666.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1666
+**Timestamp:** 2026-10-26T08:34:13Z
+**Continues:** 2026-09-28-1665
+**Title:** Two note fixes for #412 after Sorrel's review (owner)
+**Observed:** Sorrel's #412 review (Fable; prompts/preserved/2026-10-26-sorrel-412-review.md, branch sorrel-412, e53f3b3e9): mergeable, no blocking item; the one-route design matches each end as a snap would (BRouter's WaypointMatcherImpl), the way home unchanged, six reverts specific. S-412-1: walker in one region, waypoint in a second covering only it with routes unfetched, gives "Trail routes not downloaded" though no region holds both. S-412-2: a square with no route file (RoutingDataFolder.kt:33-34) reads as "far from any trail".
+**Decision:** the owner: "Fix: check both ends first (Recommended)"; "Trail routes damaged (Recommended)": a missing route file counts as damaged routes in both features, so the way home's note for that case changes too. With -1665's leaves-area wording: dispatch 2026-10-26-10 Amendment 1, to a fresh coder.
+**Notes:** Written by the planner by hand. Next free ID -1667.
