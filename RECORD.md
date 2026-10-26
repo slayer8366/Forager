@@ -28464,3 +28464,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the #415 fix (Opus; f44398276, dispatch 2026-10-26-13 Amendment 2): "on" is the engine's trail route without the straight joints; run 40399232541 green, 5,682; four reverts biting. Hazel's S22 re-check (prompts/preserved/2026-10-26-hazel-415-s22-recheck-report.md, branch quiet-off-trail-s22-recheck, 5615927bf; build 1.0.4042+g52858a09): step 1 at 64 m quiet in 14-17 s; step 3 off from 47 m to 80 m and back to 35 m with no "Back on trail" while walking away, "on" from about 44 m; steps 2 and 4 met; no sound, vibration or notification. 8b is up as #418, under Sorrel's review; 8c building on it.
 **Decision:** the owner: "Merge now (Recommended)": #415 merged by the planner (pre-main 0914bed23). The owner plugged in the S26: "Your hilly walk: climbs (Recommended)": Juniper reads the most recent hilly track read-only for climbs, pace against grade and reported accuracy; raw data and coordinates stay on the laptop, the report figures only.
 **Notes:** Written by the planner by hand. Next free ID -1686.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1686
+**Timestamp:** 2026-10-26T21:46:01Z
+**Continues:** 2026-09-28-1685, 2026-09-28-1682
+**Title:** 8b (#418) merges after #415's pre-main run; its small fixes ride the switch PR (owner)
+**Observed:** Sorrel's #418 review (Fable; prompts/preserved/2026-10-26-sorrel-418-review.md, branch sorrel-418, 08db1c131): mergeable, no blocking item; the re-pinned existing tests extend exact values and none weakened; nothing visible on v2, Topo, OSM or v2 regions; the 0.35 opacity only in forager-reference.mjs; S1 the entry map took 3 lines against Amendment 2's "one or two" (the coder had disclosed it to the planner; accepted); S2 two layer-order tests now say less about the screen; S3 no forward test for a partial style; S4 stale names; every map tap now queries the two absent band ids (no hit possible).
+**Decision:** the owner: "Merge now (Recommended)": #418 merges once pre-main's run on #415 is green; S2 to S4 ride the switch PR. 8c continues on 8b's branch.
+**Notes:** Written by the planner by hand. Next free ID -1687.
