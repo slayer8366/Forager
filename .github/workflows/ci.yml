@@ -64,7 +64,7 @@ jobs:
     # rather than a mutable tag -- CLAUDE.md, "pin dependency versions ... so a build is
     # reproducible".
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 70  # DIAGNOSTIC (2026-10-26-08): room for the histograms
 
     steps:
       - name: Check out the full history
@@ -514,6 +514,18 @@ jobs:
             app/build/reports/tests/testDebugUnitTestOlderSdks/
             app/build/test-results/testDebugUnitTestOlderSdks/
           if-no-files-found: error
+
+      # DIAGNOSTIC ONLY (dispatch 2026-10-26-08, branch scratch/older-sdk-heap-diag, never merges).
+      - name: Upload heap diagnostics (logs, histograms)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: heapdiag-logs
+          path: |
+            app/build/heapdiag/
+            !app/build/heapdiag/**/*.hprof
+          retention-days: 7
+          if-no-files-found: warn
 
   # Android lint on the debug variant (production release T3; dispatch 2026-10-17-03, owner's go RECORD -1195).
   # A separate job, so the build job above is unchanged. lintDebug fails on any error (lint's abortOnError default)
