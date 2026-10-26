@@ -28420,3 +28420,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the 8c coder's verify-first (Opus; no code): forager-reference.mjs holds no name fields; tappability comes only from the layer registry (MapLayers.kt, 8b's file) and a band's own attributes have no path to a bubble (TapHit, tapHitOf, MapFeatureTap, MapBubbleTarget carry ids only); the BLM wording was never confirmed.
 **Decision:** the owner: "'BLM trail · Badlands Rock' (Recommended)"; the missing-part forms "Confirm (Recommended)" ("Forest Service trail · Three Blaze", "Forest Service trail 017", "Forest Service trail", "BLM trail"). The planner: 8b gives each band its own tappable registry spec (dispatch -15 Amendment 1); 8c follows 8b with the name fields added to forager-reference.mjs and a wider file list through the existing tap path (dispatch -16 Amendment 1).
 **Notes:** Written by the planner by hand. Next free ID -1682.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1682
+**Timestamp:** 2026-10-26T19:19:13Z
+**Continues:** 2026-09-28-1681
+**Title:** 8b gets the full wiring after a split of the map screen; both maps; Data sources rows with the switch (owner)
+**Observed:** the 8b coder's verify-first (Opus; no code): the planned four files cannot keep today's style unchanged (the credit would show now and over Topo, OSM and v2 regions; the row cannot know the loaded style; a flip takes effect only on the next style load; the overlay paint path logs and would duplicate the style's 0.35 opacity); the full wiring needs OverlayLayerSetup.kt, MapFan.kt, SightingsMap.kt and an upward flag through AvailabilityScreen.kt (1,007 lines).
+**Decision:** the owner: "Split first, then 8b (Recommended)": dispatch 2026-10-26-17 (pure split), then 8b per dispatch -15 Amendment 2; "Yes, both maps (Recommended)" for the entry map's switch; "Once the band can appear (Recommended)": the Forest Service and BLM Data sources rows come with the switch PR. 8c follows 8b.
+**Notes:** Written by the planner by hand. Next free ID -1683.
