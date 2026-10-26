@@ -28048,3 +28048,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the timer coder (Opus; dispatch 2026-10-26-02, PR #403 at c110c177b): rerun for 2026-10-25 matches 3c266c41a exactly (316,183,632 tokens, 1,368 turns; docs/accounting/2026-10-25-rerun.md, abf789df2); the run uses only command-line permissions, no user-level settings, no MCP servers; Linger=no, so it runs only while logged in, catching up once at login. Alder relayed that / had 24 MB free and ~/.cache/forager-wt held 19 GB.
 **Decision:** the owner: "On, while logged in (Recommended)": enabled, next run 2026-10-26 06:47 PDT. "Clear finished ones (Recommended)", asked in this window: 108 worktrees removed with git worktree remove (clean, HEAD on a remote branch, no open PR or running helper); kept 2 dirty and 10 with unpushed commits; branches untouched; 13,936 MB free after.
 **Notes:** Written by the planner by hand. The timer runs the script from ~/.cache/forager-wt/accountant-profile, kept for that reason. Next free ID -1648.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1648
+**Timestamp:** 2026-10-26T03:58:58Z
+**Continues:** 2026-09-28-1636, 2026-09-28-1645
+**Title:** #404 gets its S22 check and Sorrel's review side by side; then the step 6 report (owner)
+**Observed:** Hazel (Opus), PR #404 at b50afeb73 (dispatch 2026-10-25-10): the cause held (the way home reads the stored track, written every 20 points or 30 s); the watch is handed the kept points (WayHomeKeptPoints.kt, 64 lines), no forced write; fail-first 40264412743 (2 of 4 as predicted), revert 40265113193, PR run 40265119510 green, 5,557 tests; no file in common with #402. Hazel stopped before the dispatch's S22 check for a go; her conversation was past 200,000 tokens (-1645).
+**Decision:** the owner: "S22 check and Sorrel review (Recommended)": a fresh Hazel runs the S22 check while a fresh Sorrel (Fable) reviews the code, then the merge comes to the owner. "Yes, after the S22 check (Recommended)": the same fresh Hazel then writes the step 6 report (2026-10-25-03).
+**Notes:** Written by the planner by hand. Next free ID -1649.
