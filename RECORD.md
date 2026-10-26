@@ -27949,3 +27949,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** main 177215135; pre-main 44af58a3c (CI green) with #394-#400 and #398 in; dev 82b55f06a. Open: #401 (needs evidence and an S22 run that hits the gap), #402 (needs Amendment 1, -1637). Dispatched, not built: 2026-10-25-10, 2026-10-25-03. Hazel and the step 7 coder stopped by the owner; all worktrees checked against their remotes; the step 7 coder's 4 local commits (a pre-main merge) saved to off-track-reroute-track-wip. The S22 is off USB mid-check with a test recording running.
 **Decision:** the owner: "Write a handoff and let's get ready to switch accounts."
 **Notes:** Written by the planner by hand. prompts/preserved/2026-10-25-planner-handoff.md. Next free ID -1639.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1639
+**Timestamp:** 2026-10-26T02:19:16Z
+**Continues:** 2026-09-28-1638
+**Title:** The S22 is cleaned up; Hazel and the step 7 coder restart as queued (owner)
+**Observed:** after the account switch the S22 is back on USB (R5CT321008R), still carrying the dropped check's state per the handoff; no helper running; branches as in -1638.
+**Decision:** the owner: "Clean up now (Recommended)": stop the test recording, delete the test track and its waypoints, remove the test providers, stay-awake 0, confirm Night Maps off and Trail; Area 1 untouched. "Both, as queued (Recommended)": Hazel on #401's evidence comment and S22 run, then 2026-10-25-10, then the step 6 report; the step 7 coder on 2026-10-25-09 Amendment 1, verifying first.
+**Notes:** Written by the planner by hand. Both helpers are fresh Opus subagents; each reports after its first item. Next free ID -1640.
