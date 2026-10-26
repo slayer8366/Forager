@@ -28497,3 +28497,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #419 (step8c-reference-tap @ b3e28cc01, dispatch 2026-10-26-16): green, 5,734; the record gives the confirmed lines; bands queried only while drawn, so nothing is tappable on v2 by test; four reverts biting. The way-home line is not in the tap registry and the recording trail is TapGroup.NONE, so a tap on either over a band would open the band's bubble; the agency publishes some names in capitals ("WEST LEG NORDIC"). The coder could not regenerate v3 (no Node on its path).
 **Decision:** the owner: "Nothing (Recommended)": the band yields where the route or the recording trail is under the finger; "Normal case (Recommended)" for all-capital names. Dispatch 2026-10-26-16 Amendment 2, to a fresh coder; Sorrel reviews #419 after it, including the v3 regeneration.
 **Notes:** Written by the planner by hand. Next free ID -1689.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1689
+**Timestamp:** 2026-10-26T22:09:24Z
+**Continues:** 2026-09-28-1687
+**Title:** The climbing allowance: the walker's track stands in for the trail's heights; barometer only; built after the climb fix (owner)
+**Observed:** the Phase 1 report (Opus; prompts/preserved/2026-10-26-19-report.md, branch climb-allowance-report, 188557fbc): only SundownWatch computes the walk-back time; Back by and the HUD distance do not change; before Return every stored point has a height; after Return on a trail way home the trail part has none (route files carry none; the routing adapter drops the engine's elevation, BRouterTrailRouter.kt:114; the way home's track parts lose their heights at FindWayHomeUseCase.kt:173); on the 10-24 shape the far point's walk back grows about 2 min, 3-4.5 min after the climb fix; GPS-only heights over-read climbs 2 to 5 times.
+**Decision:** the owner: "(b) Your track as a stand-in (Recommended)"; "Add it as ruled (Recommended)"; "No allowance there (Recommended)" (no barometer, no allowance). Dispatch 2026-10-26-19 Amendment 1, Phase 2, built after dispatch -18 merges.
+**Notes:** Written by the planner by hand. The owner's 2.2 s/m for descent is below Juniper's fitted 3.19 s/m (90% 2.15-4.20), as chosen. For Aspen's elevation work: the app's adapter must keep the engine's elevation. Next free ID -1690.
