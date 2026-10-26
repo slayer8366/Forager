@@ -27938,3 +27938,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Sorrel's review (Fable; prompts/preserved/2026-10-25-sorrel-398-401-402-review.md, branch sorrel-398-401-402, 7ad9cf52f): #398 mergeable; #401 mergeable on the code, its evidence comment and an S22 run that hits the gap still to come; #402 mergeable as ruled, but 402-1: a steady stray may never alert, and counting the live track-only line would disable the alert entirely.
 **Decision:** the owner: earlier "Yes, same rule (Recommended)" for the track-only case, then, after 402-1, "Counts while heading back (Recommended)": a drawn line counts as on course only while the walker heads back along it (dispatch 2026-10-25-09 Amendment 1). "Merge now (Recommended)" for #398. #400 merged at e97b2e1e7 (pre-main 3e1a5fd1b) under -1635.
 **Notes:** Written by the planner by hand. #398 merges once pre-main's CI on #400 is green. The S22 dropped off USB at 17:06:34 UTC mid-check; the owner is asked to reconnect it. Next free ID -1638.
+
+---
+
+**Kind:** handoff
+**ID:** 2026-09-28-1638
+**Timestamp:** 2026-10-26T02:12:25Z
+**Continues:** 2026-09-28-1637
+**Title:** Planner handoff, 2026-10-25
+**Observed:** main 177215135; pre-main 44af58a3c (CI green) with #394-#400 and #398 in; dev 82b55f06a. Open: #401 (needs evidence and an S22 run that hits the gap), #402 (needs Amendment 1, -1637). Dispatched, not built: 2026-10-25-10, 2026-10-25-03. Hazel and the step 7 coder stopped by the owner; all worktrees checked against their remotes; the step 7 coder's 4 local commits (a pre-main merge) saved to off-track-reroute-track-wip. The S22 is off USB mid-check with a test recording running.
+**Decision:** the owner: "Write a handoff and let's get ready to switch accounts."
+**Notes:** Written by the planner by hand. prompts/preserved/2026-10-25-planner-handoff.md. Next free ID -1639.
