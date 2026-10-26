@@ -413,7 +413,7 @@ fun AvailabilityScreen(
     var navigationZoomPending by navigationViewRequests::navigationZoomPending
     // Dispatch -502: the dashed line to the waypoint, worked out and held by the ViewModel since step 6 PR 1 (dispatch
     // 2026-10-26-06; see AvailabilityWaypointLine), so it outlives a tab change. Drawn only while the target is found here.
-    val nextWaypointLine = navigatingToWaypoint?.let { uiState.waypointStraightLine }
+    val nextWaypointLine: StraightLine? = null // REVERT r1: the screen no longer reads the ViewModel's line
     // The forecast cells, the colour fields with data and the layers the map draws: see rememberMapForecastFeed
     // (ScreenMapForecastFeed.kt).
     val mapForecast = rememberMapForecastFeed(uiState, forecastCellStore)
