@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.wayhome.WAY_HOME_LINE_STEP_METERS
+import com.zynergylabs.forager.app.domain.wayhome.WAY_HOME_TRAIL_JOIN_METERS
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePlace
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
@@ -71,14 +72,30 @@ fun shownTrailOf(watch: WayHomeWatch, trackId: String): ShownTrail? {
  *   the walker is beyond the start along the way out, which is walking out along the stray however far along the line
  *   they once were.
  * - **Otherwise, heading back** when either:
- *   - their [place] has moved off the line's first node (its distance along the line above 0). The place is the earliest
- *     node within 25 m of the fix, never moving back while one from it on is within 50 m (`placeOnWayHome`), so it leaves
- *     the first node only once the walker is over 25 m from it, ahead along the line, and it holds where they stop; or
+ *   - their [place] has moved off the line's first node (its distance along the line above 0) **and** the fix is over
+ *     [WAY_HOME_TRAIL_JOIN_METERS] (25 m) from that node. The place is the earliest node within 25 m of the fix, never
+ *     moving back while one from it on is within 50 m (`placeOnWayHome`), so it leaves the first node only once the
+ *     walker is over 25 m from it, ahead along the line, and it holds where they stop; or
  *   - they are at least [WAY_HOME_LINE_STEP_METERS] (10 m) ahead of the start along the line's first stretch
  *     ([metersAheadOfLineStart]), which counts the first 25 m the place cannot.
  *
  * **A pause counts:** both halves hold while the walker stands still where they were heading back. **Held at the start**
  * (within 10 m of it, either side, or behind it) is walking out: the alert comes after the hold, as before #402.
+ *
+ * **Why the place half stops at 25 m from the start** (dispatch 2026-10-26-03; RECORD -1645; Sorrel's 402a2-1): the
+ * place does not move back (`placeOnWayHome`, the needle's rule, RECORD -1613), so once it has left the first node,
+ * after 30 m back along the line or one reading that jumps that far toward home, it stays off it when the walker walks
+ * out again to the start and stands there. Without the 25 m, every reading that wandered a metre toward home counted
+ * there and restarted the hold, so a walker held at the start was never alerted. Within 25 m of the start a place that
+ * did move back would be the first node again, so inside it the place half reads as that place would, and the node-step
+ * half alone decides; beyond it nothing changes. The 25 m is the place's own reach, no figure of its own.
+ * Rejected: (a) only while the fix is ahead of the start at all (`metersAheadOfLineStart > 0`), which is what "not past
+ * the start" above already gives, so it changes nothing; and the place half dropped, which stops counting a walker
+ * heading back along a line that turned within a node step of its start once they are on the next part (the bent
+ * stray in ReturnWatchDottedLineTest), and that is following the dotted line home.
+ * **What it costs:** a line that curls back to within 25 m of its own start, and a walker following it there who is
+ * under 10 m ahead along its first stretch: those readings no longer count by the place. Behind the start such a line
+ * already did not count (the first rule above).
  *
  * **Why 10 m:** it is the line's own node step, the finest figure the line is drawn and judged at, and no figure of its
  * own. A smaller one (any distance ahead, 0 m) lets a walker who walked out and stopped at the start read as heading back
@@ -99,5 +116,6 @@ fun shownTrailOf(watch: WayHomeWatch, trackId: String): ShownTrail? {
 fun isHeadingBackAlong(line: WayHomeLine, place: WayHomePlace?, here: LatLng): Boolean {
     if (metersPastLineStart(line, here) > 0.0) return false
     val placeAlong = place?.let { line.alongMeters.getOrNull(it.index) } ?: 0.0
-    return placeAlong > 0.0 || metersAheadOfLineStart(line, here) >= WAY_HOME_LINE_STEP_METERS
+    val placeCounts = placeAlong > 0.0 && line.nodes.first().let { GeoDistance.metersBetween(it, here) > WAY_HOME_TRAIL_JOIN_METERS }
+    return placeCounts || metersAheadOfLineStart(line, here) >= WAY_HOME_LINE_STEP_METERS
 }
