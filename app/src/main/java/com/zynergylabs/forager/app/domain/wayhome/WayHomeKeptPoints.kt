@@ -58,6 +58,9 @@ internal class WayHomeKeptPoints {
         points.clear()
     }
 
+    // DIAGNOSTIC ONLY (branch way-home-fresh-start-diag, never merged): what is held, for the S22 log.
+    fun describe(): String = "heldTrack=${trackId?.take(8)} held=${points.size} heldFirst=${points.firstOrNull()?.timestampEpochMillis?.div(1000)} heldLast=${points.lastOrNull()?.timestampEpochMillis?.div(1000)}"
+
     companion object {
         const val MAX = 200
     }

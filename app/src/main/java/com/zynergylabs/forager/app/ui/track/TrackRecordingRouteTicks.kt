@@ -37,6 +37,8 @@ internal class TrackRecordingRouteTicks(
     private val wayHomeProgress: (trackId: String) -> WayHomeProgress? = { null },
 ) {
 
+    private var lastDiagKey: String? = null
+
     /** The route tick, running only while returning. See [begin]. */
     private var routeJob: Job? = null
 
@@ -111,6 +113,18 @@ internal class TrackRecordingRouteTicks(
             wayHomeAhead(line, progress, here, shown.generation)
         } else {
             findRouteHome(track, here, state.originWaypoint, previousHopBand)
+        }
+        // DIAGNOSTIC ONLY (branch way-home-fresh-start-diag, never merged).
+        if (line != null) {
+            val ahead = (next as? RouteHome.Ahead)?.aheadParts?.firstOrNull()?.points?.firstOrNull()
+            val node0 = line.nodes.firstOrNull()
+            val index = (progress as? WayHomeProgress.Placed)?.place?.index
+            val key = "${shown.generation}/$index/${next.javaClass.simpleName}"
+            if (key != lastDiagKey) {
+                lastDiagKey = key
+                fun d(a: LatLng?, b: LatLng?) = if (a == null || b == null) "-" else "%.1f".format(com.zynergylabs.forager.app.domain.GeoDistance.metersBetween(a, b))
+                println("WayHomeDiag tick generation=${shown.generation} progressFromWatch=${state.activeTrack?.let { wayHomeProgress(it.trackId) } != null} placeIndex=$index route=${next.javaClass.simpleName} node0ToDrawnStart=${d(node0, ahead)} hereToNode0=${d(here, node0)} fixT=${current.timestampEpochMillis / 1000}")
+            }
         }
         // Dispatch -497: the line the map draws moves with the route (nextRouteLine).
         updateState { it.copy(routeHome = next, routeLine = nextRouteLine(it.routeLine, next)) }

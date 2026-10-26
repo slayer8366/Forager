@@ -96,6 +96,7 @@ class WayHomeWatch(
      * worked out. Cancels anything in flight, for this or any track.
      */
     fun find(trackId: String, origin: Waypoint?) = synchronized(lock) {
+        println("WayHomeDiag find track=${trackId.take(8)} ${keptPoints.describe()}")
         this.trackId = trackId
         this.origin = origin
         reroutingEnded = false
@@ -128,6 +129,7 @@ class WayHomeWatch(
      */
     fun onKeptPoint(trackId: String, point: TrackPoint) = synchronized(lock) {
         keptPoints.add(trackId, point)
+        println("WayHomeDiag kept track=${trackId.take(8)} t=${point.timestampEpochMillis / 1000} ${keptPoints.describe()}")
     }
 
     /** One raw fix from the service: the walker's place on the line, and the stray judge. See the class doc. */
@@ -207,6 +209,7 @@ class WayHomeWatch(
                 progress = null
                 lastPlace = null
                 _shown.value = WayHomeShown(id, mine, result, line)
+                println("WayHomeDiag shown track=${id.take(8)} generation=$mine firstOfReturn=$firstOfReturn nodes=${line?.nodes?.size}")
             }
         }
     }
@@ -221,7 +224,15 @@ class WayHomeWatch(
         }
         // Dispatch 2026-10-25-10 (RECORD -1636): with the points kept since the last one written, so the line starts
         // from the walker's newest point.
-        return findWayHome(synchronized(lock) { keptPoints.addedTo(track) }, origin)
+        val before = synchronized(lock) { keptPoints.describe() }
+        val extended = synchronized(lock) { keptPoints.addedTo(track) }
+        println("WayHomeDiag work track=${id.take(8)} readId=${track.id.take(8)} stored=${track.points.size} storedLast=${track.points.lastOrNull()?.timestampEpochMillis?.div(1000)} $before -> used=${extended.points.size} appended=${extended.points.size - track.points.size} usedLast=${extended.points.lastOrNull()?.timestampEpochMillis?.div(1000)}")
+        val result = findWayHome(extended, origin)
+        val back = (result as? WayHomeResult.AlongTrails)?.wayHome?.trackBack?.points
+        val first = back?.firstOrNull()
+        fun m(p: com.zynergylabs.forager.app.domain.model.TrackPoint?) = if (first == null || p == null) "-" else "%.1f".format(com.zynergylabs.forager.app.domain.GeoDistance.metersBetween(first, com.zynergylabs.forager.app.domain.model.LatLng(p.lat, p.lng)))
+        println("WayHomeDiag result track=${id.take(8)} ${result.javaClass.simpleName} trackBackPoints=${back?.size} lineStartToUsedLast=${m(extended.points.lastOrNull())} lineStartToStoredLast=${m(track.points.lastOrNull())}")
+        return result
     }
 
     /** Call with [lock] held. */
