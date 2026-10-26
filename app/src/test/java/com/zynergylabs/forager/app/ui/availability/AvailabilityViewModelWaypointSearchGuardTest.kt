@@ -41,10 +41,15 @@ import kotlin.coroutines.CoroutineContext
  *
  * The ViewModel's scope is `Dispatchers.Main.immediate`: on the main thread a launch needs no dispatch, so its body runs in
  * the caller's stack until it first suspends, unless the caller is itself inside a dispatch-free resumption (coroutines
- * queue those on the thread's event loop). The case that reaches it is a navigation resumed by a real dispatch, as after
- * the waypoint's lookup returns from the database's thread: its first fix's search then starts in place. [MainImmediateLike]
- * is that dispatcher on the test scheduler: no dispatch needed while running a dispatched task ("on the main thread"),
- * dispatched otherwise. A [StandardTestDispatcher] never starts a launch in place, so the other classes cannot see this.
+ * queue those on the thread's event loop). When this test was written the case that reached it was a navigation resumed by
+ * a real dispatch, as after the waypoint's lookup returns from the database's thread: its first fix's search then started
+ * in place. It no longer does: since Amendment 2 the follower reads fixes with `collectLatest`
+ * (`AvailabilityWaypointRoute.follow`), whose per-fix child runs inside an unconfined event loop, so the search's launch is
+ * queued on that loop and its body runs only after the job is held (Sorrel's re-check of #413, S-413R-1). So this test
+ * does not guard the `CoroutineStart.LAZY` line in `startSearch`: with it reverted (a4) the test stays green. That line
+ * is the guard, by construction, on every path; this test stands as a regression check on the search path.
+ * [MainImmediateLike] is the main dispatcher on the test scheduler: no dispatch needed while running a dispatched task
+ * ("on the main thread"), dispatched otherwise. A [StandardTestDispatcher] never starts a launch in place.
  * Every step of the real [FindWayToWaypointUseCase] over these fakes returns without suspending.
  */
 class AvailabilityViewModelWaypointSearchGuardTest {
