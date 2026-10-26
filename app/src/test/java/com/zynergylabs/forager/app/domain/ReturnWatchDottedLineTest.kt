@@ -5,16 +5,20 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.wayhome.WayHome
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePart
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch
+import com.zynergylabs.forager.app.domain.wayhome.placeOnWayHome
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -49,7 +53,7 @@ class ReturnWatchDottedLineTest {
     private val watch = ReturnWatch(
         computeReturnToStart = ComputeReturnToStartUseCase(),
         alertDelivery = { delivered += it },
-        wayHomeTrail = { id -> shownTrailOf(wayHome.shown.value, id) },
+        wayHomeTrail = { id -> shownTrailOf(wayHome, id) },
     )
 
     init {
@@ -150,6 +154,31 @@ class ReturnWatchDottedLineTest {
         assertEquals("back on course along the dotted line, then a second stray out: two alerts", 2, delivered.size)
     }
 
+    /**
+     * The place half of [isHeadingBackAlong], read directly: a stray that turned within a node step of the line's start,
+     * so the first stretch says only 5 m ahead however far back along the line the walker is. Their place on the line,
+     * from the real [placeOnWayHome], has moved on, and that counts; past the start it does not.
+     */
+    @Test
+    fun `a place moved along the line counts where the line turns within a node step of its start`() {
+        val south5 = WALK_LAT - 5.0 / METERS_PER_DEGREE_LAT
+        val wayHome = WayHome(
+            trackBack = part(WayHomePartKind.TRACK_BACK, listOf(at(WALK_LAT, 200.0), at(south5, 200.0), at(south5, 140.0))),
+            trail = part(WayHomePartKind.TRAIL, listOf(at(south5, 140.0), at(45.0, 140.0))),
+            trackToStart = part(WayHomePartKind.TRACK_TO_START, listOf(at(45.0, 140.0))),
+            trailJointMeters = 0.0,
+            regionId = 1L,
+        )
+        val line = WayHomeLine(wayHome)
+        val here = at(south5, 160.0)
+        val placed = placeOnWayHome(line, here, previous = null) as WayHomeProgress.Placed
+
+        assertTrue("the sample: the place has moved off the first node", line.alongMeters[placed.place.index] > 0.0)
+        assertTrue("40 m back along the line, placed on it, is heading back", isHeadingBackAlong(line, placed.place, here))
+        assertFalse("the sample: with no place, 5 m ahead of the start is under the node step", isHeadingBackAlong(line, null, here))
+        assertFalse("past the start, a place once moved on does not count", isHeadingBackAlong(line, placed.place, at(WALK_LAT + 20.0 / METERS_PER_DEGREE_LAT, 200.0)))
+    }
+
     /** The way home at Return: across to the trail, down it, and across to the start. */
     private fun firstWayHome() = WayHome(
         trackBack = part(WayHomePartKind.TRACK_BACK, listOf(at(45.003, 0.0), at(45.003, TRAIL_EAST_METERS))),
@@ -183,5 +212,6 @@ class ReturnWatchDottedLineTest {
 
         /** Metres per degree of longitude at 45° N, near enough for tens of metres (as ReturnWatchTest uses). */
         const val METERS_PER_DEGREE_LNG = 78_620.0
+        const val METERS_PER_DEGREE_LAT = 111_195.0
     }
 }

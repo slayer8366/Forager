@@ -7,6 +7,8 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHome
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePart
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
+import com.zynergylabs.forager.app.domain.wayhome.WayHomePlace
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeShown
 import org.junit.Assert.assertEquals
@@ -126,7 +128,9 @@ class ReturnWatchWayHomeTest {
     /**
      * Dispatch 2026-10-25-09 (RECORD -1635; Sorrel's 399-1): the walker strays west after Return, the way home re-routes,
      * and its dotted part runs back along that stray. Following the dotted part, 80 m from the walk out and 160 m from the
-     * trail line, is following a line the app draws, and must not alert.
+     * trail line, is following a line the app draws, and must not alert. Since Amendment 2 (RECORD -1640) it counts only
+     * while the walker heads back along it, so the line is given whole and the walk goes from its start toward home; the
+     * cases for walking out are in ReturnWatchDottedLineTest.
      */
     @Test
     fun `following the dotted line back along a stray after a re-route gives no alert`() {
@@ -137,14 +141,25 @@ class ReturnWatchWayHomeTest {
 
         // The re-route: the same trail line, and the dotted part back along a stray 80 m west of the walk out.
         val stray = (0..6).map { i -> LatLng(45.0025 - i * 0.0002, -122.0 - TRAIL_EAST_METERS / METERS_PER_DEGREE_LNG) }
-        shown = trail(generation = 2).copy(trackBack = stray)
+        val trailPart = trail(generation = 2).points
+        val wayHome = WayHome(
+            trackBack = WayHomePart(WayHomePartKind.TRACK_BACK, stray, 133.0),
+            trail = WayHomePart(WayHomePartKind.TRAIL, trailPart, 333.0),
+            trackToStart = WayHomePart(WayHomePartKind.TRACK_TO_START, listOf(trailPart.last()), 0.0),
+            trailJointMeters = 0.0,
+            regionId = 1L,
+        )
+        shown = trail(generation = 2).copy(trackBack = stray, line = WayHomeLine(wayHome))
         watch.walk(metersEast = -TRAIL_EAST_METERS, fromMillis = 100_000L)
 
         assertEquals("following the dotted line the app draws must not alert", emptyList<Alert>(), delivered)
         assertFalse(watch.state.value.isOffTrack)
     }
 
-    /** The mapping AppContainer hands the watch (dispatch 2026-10-25-09): a real way home's trail part and dotted part. */
+    /**
+     * The mapping AppContainer hands the watch (dispatch 2026-10-25-09): a real way home's trail part and dotted part, the
+     * whole line, and the walker's place on it when the way-home watch has placed them (Amendment 2).
+     */
     @Test
     fun `the watch is given the way home's trail part and its dotted part, for its own track only`() {
         val back = listOf(LatLng(45.0020, -122.001), LatLng(45.0010, -122.001))
@@ -157,12 +172,16 @@ class ReturnWatchWayHomeTest {
             trailJointMeters = 0.0,
             regionId = 1L,
         )
-        val shownNow = WayHomeShown(TRACK, generation = 7, result = WayHomeResult.AlongTrails(wayHome), line = WayHomeLine(wayHome))
+        val line = WayHomeLine(wayHome)
+        val shownNow = WayHomeShown(TRACK, generation = 7, result = WayHomeResult.AlongTrails(wayHome), line = line)
+        val place = WayHomePlace(index = 3, hopMeters = 4.0, hopBand = HopBand.NONE, onTrail = false, remainingMeters = 200.0)
 
-        assertEquals(ShownTrail(7, trailPart, back), shownTrailOf(shownNow, TRACK))
-        assertNull("another track's way home", shownTrailOf(shownNow, "track-2"))
-        assertNull("still being worked out", shownTrailOf(WayHomeShown(TRACK, generation = 8, result = null), TRACK))
-        assertNull("none shown", shownTrailOf(null, TRACK))
+        assertEquals(ShownTrail(7, trailPart, back, line, place), shownTrailOf(shownNow, WayHomeProgress.Placed(place), TRACK))
+        assertEquals("not placed yet", ShownTrail(7, trailPart, back, line, null), shownTrailOf(shownNow, null, TRACK))
+        assertEquals("over the far band", ShownTrail(7, trailPart, back, line, null), shownTrailOf(shownNow, WayHomeProgress.OffLine(80.0), TRACK))
+        assertNull("another track's way home", shownTrailOf(shownNow, null, "track-2"))
+        assertNull("still being worked out", shownTrailOf(WayHomeShown(TRACK, generation = 8, result = null), null, TRACK))
+        assertNull("none shown", shownTrailOf(null, null, TRACK))
     }
 
     private companion object {

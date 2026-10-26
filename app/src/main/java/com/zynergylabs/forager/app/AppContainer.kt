@@ -399,10 +399,11 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         computeReturnToStartUseCase,
         alertDelivery,
         isReminderOn = offTrackReminderPreferences::enabledNow,
-        // Dispatch 2026-10-25-08 (RECORD -1631) and -09 (RECORD -1635): the way home's lines count as on course. Read through the
-        // StateFlow's value, which takes no lock; wayHomeWatch is declared below, and this runs only on a fix. Both watches
-        // are typed explicitly: each reads the other, and Kotlin cannot infer either type otherwise (CI 40171062417).
-        wayHomeTrail = { id -> shownTrailOf(wayHomeWatch.shown.value, id) },
+        // Dispatch 2026-10-25-08 (RECORD -1631) and -09 (RECORD -1635, -1640): the way home's lines count as on course, the
+        // dotted part only while heading back along it. Reads the line, then the place under the way-home watch's lock; see
+        // shownTrailOf for the order. wayHomeWatch is declared below, and this runs only on a fix. Both watches are typed
+        // explicitly: each reads the other, and Kotlin cannot infer either type otherwise (CI 40171062417).
+        wayHomeTrail = { id -> shownTrailOf(wayHomeWatch, id) },
     )
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
