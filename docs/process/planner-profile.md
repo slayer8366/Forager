@@ -55,6 +55,7 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 - **Name the stops.** Each dispatch lists what makes the coder stop and ask rather than choose: an owner-level choice, a migration number, a restricted permission, a wrong premise.
 - **Fix choices before data.** Anything that could be tuned to a result (a test, a threshold, a sample, a tolerance) is written down and committed before the result is read.
 - **Assign globally unique numbers up front** (decision IDs, migration numbers) when branches run in parallel, so they can't collide at merge.
+- **Name and role first.** Every helper's prompt opens with its name and role ("You are Hazel, the app coder"), so the accountant can count it (RECORD -1645).
 - **Gradle waits for the owner's "go"**, given in the planner's own window.
 
 ## Running several things at once
@@ -63,6 +64,7 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 - **Every heavy command runs under a hard cap:** `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0 <command>`, so a runaway job dies alone instead of restarting the session. Coders stream large counts instead of building whole tables.
 - **After any restart,** check `journalctl -k | grep -i oom`, read what each stopped agent had pushed, and relaunch with what was learned, rather than repeating the run that failed.
 - **Coders commit and push after every step,** so a restart loses minutes, not hours.
+- **A fresh helper past about 200,000 tokens.** Between work items, when a helper's conversation has passed about 200,000 tokens, the planner starts a fresh helper with a short handoff: the dispatch, the RECORD entries, the branch heads and what the helper learned. It doesn't resume the old one. The helper commits and pushes before the switch (RECORD -1645).
 - **Long work runs in resumable sections** with a stop time (T6b), started when the owner says, mostly overnight.
 - **Waiting is a background loop that exits on a result,** never polling in the conversation. Merges wait on green CI in the same way.
 
