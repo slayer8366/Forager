@@ -93,7 +93,7 @@ class OffTrackJudge(path: List<TrackPoint>) {
         val limit = OFF_TRACK_LINE_METERS + (reading.accuracyMeters?.toDouble() ?: 0.0)
         var alert = false
         val here = LatLng(reading.lat, reading.lng)
-        if (metersToLine(here, line) > limit && alsoOn.all { it.isEmpty() || metersToLine(here, it) > limit }) {
+        if (metersToPolyline(here, line) > limit && alsoOn.all { it.isEmpty() || metersToPolyline(here, it) > limit }) {
             onSinceMillis = null
             val since = offSinceMillis ?: t.also { offSinceMillis = it; offReadings = 0 }
             offReadings++
@@ -113,23 +113,27 @@ class OffTrackJudge(path: List<TrackPoint>) {
         }
         return OffTrackVerdict(offTrack, alert)
     }
+}
 
-    /** Metres from [p] to the nearest point of [line], on a flat projection about [p]; tens to hundreds of metres, where its error is far below the fixes'. */
-    private fun metersToLine(p: LatLng, line: List<LatLng>): Double {
-        if (line.size == 1) return GeoDistance.metersBetween(p, line[0])
-        val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(p.lat)
-        var best = Double.MAX_VALUE
-        for (i in 0 until line.lastIndex) {
-            val ax = (line[i].lng - p.lng) * metersPerDegreeLng
-            val ay = (line[i].lat - p.lat) * metersPerDegreeLat
-            val bx = (line[i + 1].lng - p.lng) * metersPerDegreeLng
-            val by = (line[i + 1].lat - p.lat) * metersPerDegreeLat
-            val vx = bx - ax
-            val vy = by - ay
-            val lengthSquared = vx * vx + vy * vy
-            val s = if (lengthSquared == 0.0) 0.0 else (-(ax * vx + ay * vy) / lengthSquared).coerceIn(0.0, 1.0)
-            best = minOf(best, hypot(ax + s * vx, ay + s * vy))
-        }
-        return best
+/**
+ * Metres from [p] to the nearest point of [line], on a flat projection about [p]; tens to hundreds of metres, where its
+ * error is far below the fixes'. [OffTrackJudge]'s, made top-level unchanged so the quiet off-trail state
+ * (`wayhome/WayHomeOffTrail`, plan step 7 PR 3) measures the same way.
+ */
+internal fun metersToPolyline(p: LatLng, line: List<LatLng>): Double {
+    if (line.size == 1) return GeoDistance.metersBetween(p, line[0])
+    val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(p.lat)
+    var best = Double.MAX_VALUE
+    for (i in 0 until line.lastIndex) {
+        val ax = (line[i].lng - p.lng) * metersPerDegreeLng
+        val ay = (line[i].lat - p.lat) * metersPerDegreeLat
+        val bx = (line[i + 1].lng - p.lng) * metersPerDegreeLng
+        val by = (line[i + 1].lat - p.lat) * metersPerDegreeLat
+        val vx = bx - ax
+        val vy = by - ay
+        val lengthSquared = vx * vx + vy * vy
+        val s = if (lengthSquared == 0.0) 0.0 else (-(ax * vx + ay * vy) / lengthSquared).coerceIn(0.0, 1.0)
+        best = minOf(best, hypot(ax + s * vx, ay + s * vy))
     }
+    return best
 }

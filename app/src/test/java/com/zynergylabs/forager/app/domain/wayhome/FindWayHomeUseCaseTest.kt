@@ -111,6 +111,21 @@ class FindWayHomeUseCaseTest {
     }
 
     @Test
+    fun `the trail route is the engine's route, the trail part without its two joints`() {
+        // Dispatch 2026-10-26-13 Amendment 2 (RECORD -1683): the quiet off-trail state's "on the trail" is the trail itself.
+        val track = Ground.track(at(0.0, 20.0), *(1..50).map { at(it * 10.0, 0.0) }.dropLast(1).toTypedArray(), at(500.0, 10.0), *intoTheForest.toTypedArray())
+        val wayHome = alongTrails(find(track))
+
+        assertEquals(listOf(at(500.0, 0.0), at(250.0, 0.0), at(0.0, 0.0)), wayHome.trailRoute)
+    }
+
+    @Test
+    fun `a trail part with no joints in it is all trail route`() {
+        // The way to a waypoint's shape (FindWayToWaypointUseCase: its straight legs are their own parts, no joints).
+        assertEquals(WayHomeLines.hairpin.trail.points, WayHomeLines.hairpin.trailRoute)
+    }
+
+    @Test
     fun `a walker on the trail now has no track back`() {
         val wayHome = alongTrails(find(Ground.track(*outAlongTheTrail.toTypedArray())))
 

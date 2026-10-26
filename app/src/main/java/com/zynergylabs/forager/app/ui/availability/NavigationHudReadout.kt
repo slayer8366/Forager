@@ -5,6 +5,7 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
 
@@ -92,9 +93,15 @@ sealed interface ReturnRoute {
 
     /**
      * The needle aims at [lookahead]; the large figure is [routeMeters]. [note] says why the way home is the walker's
-     * track, shown in the status line (dispatch 2026-10-24-10; RECORD -1586, -1589, -1613), or `null`.
+     * track, shown in the status line (dispatch 2026-10-24-10; RECORD -1586, -1589, -1613), or `null`. [offTrail] is the
+     * way home's quiet off-trail state (plan step 7 PR 3; RECORD -1631), read by the status line.
      */
-    data class Ahead(val lookahead: LatLng, val routeMeters: Double, val note: WayHomeNote? = null) : ReturnRoute
+    data class Ahead(
+        val lookahead: LatLng,
+        val routeMeters: Double,
+        val note: WayHomeNote? = null,
+        val offTrail: OffTrailState = OffTrailState.ON,
+    ) : ReturnRoute
 
     /**
      * Withheld: "Unable to calculate route". [canRetry] is false where recomputing against the
@@ -116,8 +123,8 @@ sealed interface ReturnRoute {
  * the walker moving back towards it changes the answer; one withheld for
  * [RouteWithheldReason.NO_USABLE_POINTS] does not, since nothing would (dispatch 2026-09-28-423).
  */
-fun returnRouteOf(routeHome: RouteHome?, wayHomeNote: WayHomeNote? = null): ReturnRoute = when (routeHome) {
+fun returnRouteOf(routeHome: RouteHome?, wayHomeNote: WayHomeNote? = null, offTrail: OffTrailState = OffTrailState.ON): ReturnRoute = when (routeHome) {
     null -> ReturnRoute.Pending
-    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters, wayHomeNote)
+    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters, wayHomeNote, offTrail)
     is RouteHome.Withheld -> ReturnRoute.Unavailable(canRetry = routeHome.reason == RouteWithheldReason.OFF_ROUTE)
 }

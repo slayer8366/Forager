@@ -17,6 +17,10 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  *
  * [aheadIsOffline] draws the line ahead grey: the way to a waypoint's line kept once location is lost, as its straight
  * line is (dispatch 2026-10-26-11 Amendment 2, item 1; RECORD -1670, Sorrel's S-413-1). The way home never sets it.
+ *
+ * [trailDimmed] dims the line ahead's trail part while the walker is off the trail (plan step 7 PR 3; RECORD -1631,
+ * -1676, the owner: "A: trail dims only"); the dotted track is left as it is. Set only on the line the screen draws
+ * (`TrackRecordingUiState.routeLineShown`), never by [nextRouteLine].
  */
 data class RouteLine(
     val atReturn: List<LatLng>,
@@ -25,6 +29,7 @@ data class RouteLine(
     val aheadParts: List<RouteLinePart> = emptyList(),
     val atReturnGeneration: Long = 0,
     val aheadIsOffline: Boolean = false,
+    val trailDimmed: Boolean = false,
 )
 
 /**
