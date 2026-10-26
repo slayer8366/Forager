@@ -28519,3 +28519,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #419's Amendment 2 (19710b2f4): the band yields to the way-home line and the recording trail (eight route layers plus the breadcrumb and its casing as stoppers); green 5,746; plain capitalisation gave "Nf Loop Ii", "Spur 17a", "4wd Road". #420 (climb-pressure-gaps @ ddc760233, dispatch 2026-10-26-18): a mid-walk point without pressure is bridged linearly; the walk copy now reads 52.8 and 72.4 m climbed (was 31.2 and 41.0); green 5,709; the 2 s/5 s mismatch would predict about 60% gaps, not the 3% seen, so the cause is unconfirmed and the window unchanged; one existing test's mid-walk null assertion moved to an end-of-walk case.
 **Decision:** the owner: "Keep short words and codes (Recommended)": in an all-capitals name, words with a digit, Roman numerals and 1-2 letter words that are not common words stay as published. "Short Sorrel check, then merge (Recommended)" for #420; "Leave it (Recommended)" for the pressure age window.
 **Notes:** Written by the planner by hand. The planner accepted 8c's stoppers (arrival ring, breadcrumb casing), the point/box rule and the reflection test. Next free ID -1691.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1691
+**Timestamp:** 2026-10-26T22:50:54Z
+**Continues:** 2026-09-28-1690, 2026-09-28-1689
+**Title:** The climb fix #420 merges; a pressure gap is bridged whatever its length; the climbing allowance starts
+**Observed:** Sorrel's #420 check (Fable; prompts/preserved/2026-10-26-sorrel-420-review.md, branch sorrel-420, c63dd5261): mergeable, no blocking item; walk figures recomputed 52.8/43.1 and 72.4/68.7 m; the moved test still proves non-use at the walk's edge (the mid-walk half proves bridging); a synthetic 10-minute outage moved climb and descent by under 1 m, the climb across any gap bounded by the barometer's own net change; should-fix S1, S2 doc comments; the gap cause unconfirmed (continuous 5 s batching would give 60%; intermittent batching or a negative age both possible).
+**Decision:** under the owner's "Short Sorrel check, then merge (Recommended)": #420 merged by the planner at ddc760233. The gap bridge stays unbounded: a cap would be a new figure, and a gap cannot add climb beyond the barometer's net change. The climbing allowance (dispatch 2026-10-26-19 Amendment 1) starts on the merged base.
+**Notes:** Written by the planner by hand. S1, S2 to a later tidy. Next free ID -1692.
