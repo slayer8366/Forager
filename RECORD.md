@@ -27993,3 +27993,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Claude Code's session logs on the laptop (~/.claude/projects/) carry a logged usage record per assistant turn, helpers included; the Pi team's and cloud sessions' logs are not on the laptop.
 **Decision:** the owner: "Create an accountant profile that monitors token usage and generates ideas on how to reduce usage while getting the same result." Asked, "Daily report (Recommended)", "Haiku (Recommended)", "Propose only (Recommended)", and all three teams (app, forecast, Pi). Written as docs/process/accountant-profile.md on branch accountant-profile (e54f25896), from pre-main 44af58a3c.
 **Notes:** Written by the planner by hand. An idea that drops a check is listed as "would change the result", never as a saving. The role names itself on its first run. Not yet scheduled or run. Next free ID -1643.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1643
+**Timestamp:** 2026-10-26T03:32:01Z
+**Continues:** 2026-09-28-1639, 2026-09-28-1637
+**Title:** The S22 is cleaned up; Sorrel judges #401's S22 run before the merge comes to the owner (owner)
+**Observed:** Hazel (Opus; prompts/preserved/2026-10-26-hazel-s22-cleanup-and-401-gap-report.md, branch s22-401-gap-report, 4122181ab): cleanup done; the test providers had removed themselves at 17:06:37 UTC. #401's run on its CI APK (40192329788): the guard fired while returning only under ~70 ms rapid switching (2 route and 2 overlay skips, 162 loads); route and breadcrumbs back; 0 FATAL; two remembered-locate triples, both from the app's own wifi-drop switch after the way home ended, 0 of 36 while returning, re-centring not shown. Left on the phone: Areas 1 and 2, two 2026-10-24 tracks with their waypoints, Waypoint 1. One stray tap opened a third-party app's login screen; nothing typed.
+**Decision:** the owner: "Sorrel checks it (Recommended)": a fresh Sorrel session judges the run against its review's §2.6 and the three caveats; then the merge comes to the owner. "Leave them (Recommended)" for the 2026-10-24 tracks, Waypoint 1 and Region 2.
+**Notes:** Written by the planner by hand. Hazel moved on to dispatch 2026-10-25-10. Next free ID -1644.
