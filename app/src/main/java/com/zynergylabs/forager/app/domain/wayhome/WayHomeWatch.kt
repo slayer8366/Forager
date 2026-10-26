@@ -41,8 +41,8 @@ data class WayHomeShown(val trackId: String, val generation: Long, val result: W
  *
  * - **The recording ViewModel** calls [find] from its Return ([find] is its decision, RECORD -1450) and [stop] when the
  *   return or the recording ends.
- * - **The recording service** calls [onFix] for every raw fix, and [end] when it stops or is destroyed, as it does for
- *   the other watches.
+ * - **The recording service** calls [onFix] for every raw fix, [onKeptPoint] for every point it keeps (dispatch
+ *   2026-10-25-10), and [end] when it stops or is destroyed, as it does for the other watches.
  * - **Readers:** the ViewModel collects [shown]; the HUD's tick and sundown read [progressFor].
  *
  * ## The job
@@ -55,7 +55,7 @@ data class WayHomeShown(val trackId: String, val generation: Long, val result: W
  * ## Straying (RECORD -1589, "Once, plus if you stray"; the stray rules, RECORD -1613)
  *
  * A GPS fix within the live-fix gate more than [WAY_HOME_STRAY_METERS] from the line starts one re-route on the track
- * as now stored. Three things stop a loop: one job at a time; once per stray (the next stray counts only after a fix
+ * as now stored, with the points kept since its last written one ([WayHomeKeptPoints]). Three things stop a loop: one job at a time; once per stray (the next stray counts only after a fix
  * within [WAY_HOME_STRAY_REARM_METERS] of the line shown); and a re-route that falls back to the track ends re-routing
  * for the return. A stray that starts nothing is logged once.
  *
@@ -89,6 +89,7 @@ class WayHomeWatch(
     private var armed = true
     private var reroutingEnded = false
     private var loggedWhy: String? = null
+    private val keptPoints = WayHomeKeptPoints()
 
     /**
      * The walker tapped Return on [trackId], with [origin] its start marker: the track is shown, and the way home is
@@ -108,8 +109,9 @@ class WayHomeWatch(
         forget()
     }
 
-    /** The service stopped [trackId], or, with `null`, was destroyed: as [stop]. */
+    /** The service stopped [trackId], or, with `null`, was destroyed: as [stop], and the points kept on it are forgotten. */
     fun end(trackId: String?) = synchronized(lock) {
+        keptPoints.forget(trackId)
         if (trackId != null && trackId != this.trackId) return@synchronized
         forget()
     }
@@ -120,9 +122,13 @@ class WayHomeWatch(
         progress
     }
 
-    /** A point the recording kept on [trackId] (fail-first stub, dispatch 2026-10-25-10: not used yet). */
-    @Suppress("UNUSED_PARAMETER")
-    fun onKeptPoint(trackId: String, point: TrackPoint) = Unit
+    /**
+     * A point the recording kept on [trackId], written or not (dispatch 2026-10-25-10, RECORD -1636): held so that the
+     * way home, at Return and at each re-route, starts from the walker's newest point ([WayHomeKeptPoints]).
+     */
+    fun onKeptPoint(trackId: String, point: TrackPoint) = synchronized(lock) {
+        keptPoints.add(trackId, point)
+    }
 
     /** One raw fix from the service: the walker's place on the line, and the stray judge. See the class doc. */
     fun onFix(point: TrackPoint, provider: FixProvider) = synchronized(lock) {
@@ -213,7 +219,9 @@ class WayHomeWatch(
             errorLog.w(TAG, "Track '$id' was not found for the way home; the track is the way home.", WayHomeFallback("no track"))
             return WayHomeResult.TrackOnly(null)
         }
-        return findWayHome(track, origin)
+        // Dispatch 2026-10-25-10 (RECORD -1636): with the points kept since the last one written, so the line starts
+        // from the walker's newest point.
+        return findWayHome(synchronized(lock) { keptPoints.addedTo(track) }, origin)
     }
 
     /** Call with [lock] held. */
