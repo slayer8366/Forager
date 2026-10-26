@@ -55,6 +55,22 @@ class MushroomLogViewModelWiringTest {
         throw AssertionError("timed out waiting for: $what")
     }
 
+    /**
+     * [awaitUntil] without the throw, for the delete tests' last wait (dispatch 2026-10-26-09, Amendment 1): the hook
+     * edits the snapshot in the Journal's coroutine once the delete returns, which reaches the main looper a moment
+     * after the database shows the row gone, so a single drain could assert before it ran (about 1 run in 100, both
+     * tests). It waits on the snapshot itself and then returns either way, so a hook that is not wired still fails on
+     * the test's own assertion and its own message, after the 10 s wait, instead of on a timeout.
+     */
+    private fun idleUntil(condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + 10_000
+        while (System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            if (condition()) return
+            Thread.sleep(20)
+        }
+    }
+
     private fun rig(): Pair<AvailabilityViewModel, MushroomLogViewModel> {
         val container = app.container
         val availability = mapLayersViewModel(getMapRecords = { container.getMapRecordsUseCase() })
@@ -75,7 +91,7 @@ class MushroomLogViewModelWiringTest {
         awaitUntil("the find is pending") { log.uiState.value.pendingDelete?.item?.id == find.id }
         log.commitDeleteEntry(find.id)
         awaitUntil("the delete finished") { runBlocking { app.container.mushroomLogRepository.getAll().getOrThrow() }.none { it.id == find.id } }
-        shadowOf(Looper.getMainLooper()).idle()
+        idleUntil { availability.uiState.value.mapRecords.findMarkers.none { it.recordId == find.id } }
 
         assertEquals("the snapshot still holds the deleted find: onFindDeleted is not wired", emptyList<String>(), availability.uiState.value.mapRecords.findMarkers.map { it.recordId })
     }
@@ -93,7 +109,7 @@ class MushroomLogViewModelWiringTest {
         awaitUntil("the photo is pending") { log.uiState.value.pendingPhotoDelete?.item?.photo?.id == photo.id }
         log.commitDeleteGalleryPhoto(photo.id)
         awaitUntil("the delete finished") { runBlocking { app.container.mushroomLogRepository.getAllPhotos().getOrThrow() }.none { it.photo.id == photo.id } }
-        shadowOf(Looper.getMainLooper()).idle()
+        idleUntil { availability.uiState.value.mapRecords.photoMarkers.none { it.recordId == photo.id } }
 
         assertEquals("the snapshot still holds the deleted photo: onPhotoDeleted is not wired", emptyList<String>(), availability.uiState.value.mapRecords.photoMarkers.map { it.recordId })
     }
