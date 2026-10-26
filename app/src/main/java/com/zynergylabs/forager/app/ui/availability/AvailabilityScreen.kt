@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowRailEdgeFor
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
 import com.zynergylabs.forager.app.domain.waypointNavigationTarget
+import com.zynergylabs.forager.app.ui.map.ReferenceTrailsShown
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOriginSaver
 import android.content.Intent
@@ -451,8 +452,11 @@ fun AvailabilityScreen(
     val endWaypointNavigation = waypointNavigation.end
     // Phase 2.6, PR 2: the Layers sheet's inputs and how the Maps tab's map is drawn (AvailabilityScreenMapInputs.kt), built
     // here, once the holder is; the map reads both only in the frame's call below.
+    // Step 8b: whether the Maps tab's map last reported its loaded style draws the official-trails band, for the sheet's row.
+    val referenceTrails = remember { ReferenceTrailsShown() }
     val mapLayersControls = availabilityMapLayersControls(
         state = screenState,
+        referenceTrailsShown = referenceTrails.shown,
         uiState = uiState,
         availableColourFieldGroups = availableColourFieldGroups,
         mapRecordsDrawn = mapRecordsDrawn,
@@ -469,6 +473,7 @@ fun AvailabilityScreen(
         isNightMode = isNightMode,
         drawnMapLayers = drawnMapLayers,
         forecastFeed = forecastFeed,
+        onReferenceTrailsShown = referenceTrails.onShown,
     )
     // Phase 2.6, PR 3: the Tools drawer's "Offline maps" row, built in AvailabilityScreenJournalReturn.kt.
     val openOfflineMapsFromTools = buildOpenOfflineMapsFromTools(state = screenState, onMapFullscreenChanged = onMapFullscreenChanged)

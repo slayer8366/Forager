@@ -46,6 +46,12 @@ import org.junit.Test
  * order is the base's, pinned by a guard. The enum-order pin and the rings' band pin are re-pinned; the band's
  * contents, the line halos' band and the guard are new tests below. These tests find the band by name
  * ([decorationsBand]), so they compiled at base, where it did not exist, and failed there on its absence.
+ *
+ * Step 8b (dispatch 2026-10-26-15 Amendments 1 and 2): the official-trails band's three layers, which Trail Map's own
+ * style draws ([LayerRenderer.STYLE_LAYER]), join the registry at the bottom of the lines band. No layer the app adds
+ * moved. The assertions that pin the registry's contents are re-pinned with the three added ([referenceTrails]); the
+ * marker ring that sat directly below the lowest line now sits directly below the band, which is the lowest line; the
+ * guard compares the layers the app adds, which is what it guards. Their own rules are `ReferenceTrailLayersTest`.
  */
 class MapLayerRegistryTest {
 
@@ -81,6 +87,9 @@ class MapLayerRegistryTest {
         MapLayerIds.JOURNAL_ENTRY_TRACKS,
     )
 
+    /** Step 8b: the official-trails band's layers, Trail Map's own, bottom to top (registry order). */
+    private val referenceTrails = listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND, MapLayerIds.REFERENCE_FS_NUMBER)
+
     /** The night border under the offline outline (dispatch `2026-09-28-79`). */
     private val nightBorder = listOf(MapLayerIds.OFFLINE_REGION_BORDER)
 
@@ -89,6 +98,9 @@ class MapLayerRegistryTest {
         MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
         MapLayerIds.JOURNAL_ENTRY_FINDS,
         MapLayerIds.JOURNAL_ENTRY_PHOTOS,
+        MapLayerIds.REFERENCE_FS_BAND,
+        MapLayerIds.REFERENCE_BLM_BAND,
+        MapLayerIds.REFERENCE_FS_NUMBER,
         MapLayerIds.JOURNAL_ENTRY_REGIONS,
         MapLayerIds.OFFLINE_REGION_BORDER,
         MapLayerIds.OFFLINE_REGION_OUTLINE,
@@ -105,8 +117,8 @@ class MapLayerRegistryTest {
         MapLayerIds.PHOTOS,
     )
 
-    /** Every line layer, bottom to top as J8 and `-79` left them: halos, the night border, casings and lines. */
-    private val lineLayers = listOf(
+    /** Every line layer, bottom to top as J8 and `-79` left them: halos, the night border, casings and lines; since 8b the band first. */
+    private val lineLayers = referenceTrails + listOf(
         MapLayerIds.JOURNAL_ENTRY_REGIONS,
         MapLayerIds.OFFLINE_REGION_BORDER,
         MapLayerIds.OFFLINE_REGION_OUTLINE,
@@ -159,8 +171,8 @@ class MapLayerRegistryTest {
     fun `every current layer is in the registry exactly once, and nothing else is`() {
         val ids = MAP_LAYER_REGISTRY.map { it.id }
         assertEquals("ids are unique", ids.size, ids.toSet().size)
-        assertEquals((orderBeforeL0a + colourFields + journalHalos + nightBorder).toSet(), ids.toSet())
-        assertEquals(20, ids.size)
+        assertEquals((orderBeforeL0a + colourFields + journalHalos + nightBorder + referenceTrails).toSet(), ids.toSet())
+        assertEquals(23, ids.size)
     }
 
     @Test
@@ -172,7 +184,7 @@ class MapLayerRegistryTest {
     fun `the only change from the order before L0a is the search centre and the sightings moving above every line`() {
         val moved = setOf(MapLayerIds.SEARCH_CENTRE, MapLayerIds.SIGHTINGS)
         val ids = MAP_LAYER_REGISTRY.map { it.id }
-        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved - colourFields.toSet() - journalHalos.toSet() - nightBorder.toSet())
+        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved - colourFields.toSet() - journalHalos.toSet() - nightBorder.toSet() - referenceTrails.toSet())
         val lastLine = ids.indexOfLast { spec(it).zGroup == ZGroup.LINES }
         moved.forEach { assertTrue("$it draws above every line", ids.indexOf(it) > lastLine) }
     }
@@ -217,6 +229,10 @@ class MapLayerRegistryTest {
             MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS),
             MapLayerIds.JOURNAL_ENTRY_FINDS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.JOURNAL_ENTRY_FINDS),
             MapLayerIds.JOURNAL_ENTRY_PHOTOS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.JOURNAL_ENTRY_PHOTOS),
+            // Step 8b: drawn by Trail Map's own style, from its own source; the app sets their visibility only.
+            MapLayerIds.REFERENCE_FS_BAND to Triple(LayerKind.LINE, LayerRenderer.STYLE_LAYER, MapSourceIds.REFERENCE),
+            MapLayerIds.REFERENCE_BLM_BAND to Triple(LayerKind.LINE, LayerRenderer.STYLE_LAYER, MapSourceIds.REFERENCE),
+            MapLayerIds.REFERENCE_FS_NUMBER to Triple(LayerKind.LINE, LayerRenderer.STYLE_LAYER, MapSourceIds.REFERENCE),
         )
         assertEquals(expected, MAP_LAYER_REGISTRY.associate { it.id to Triple(it.kind, it.renderer, it.sourceId) })
     }
@@ -249,6 +265,10 @@ class MapLayerRegistryTest {
             MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to TapGroup.NONE,
             MapLayerIds.JOURNAL_ENTRY_FINDS to TapGroup.NONE,
             MapLayerIds.JOURNAL_ENTRY_PHOTOS to TapGroup.NONE,
+            // Step 8b (Amendment 1): each band is a line a tap can land on (8c's bubble); the number label is not.
+            MapLayerIds.REFERENCE_FS_BAND to TapGroup.LINE,
+            MapLayerIds.REFERENCE_BLM_BAND to TapGroup.LINE,
+            MapLayerIds.REFERENCE_FS_NUMBER to TapGroup.NONE,
         )
         assertEquals(expected, MAP_LAYER_REGISTRY.associate { it.id to it.tapGroup })
     }
@@ -283,6 +303,8 @@ class MapLayerRegistryTest {
                 MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
                 MapLayerIds.JOURNAL_ENTRY_FINDS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
                 MapLayerIds.JOURNAL_ENTRY_PHOTOS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
+                MapLayerIds.REFERENCE_BLM_BAND to MapLayerIds.REFERENCE_FS_BAND,
+                MapLayerIds.REFERENCE_FS_NUMBER to MapLayerIds.REFERENCE_FS_BAND,
             ),
             owners,
         )
@@ -292,11 +314,15 @@ class MapLayerRegistryTest {
     fun `only the colour fields are reorderable, offer an opacity slider and carry a credit, and no other layer's flags changed`() {
         assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.userReorderable }.map { it.id })
         assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.userOpacity }.map { it.id })
-        assertEquals(colourFields.associateWith { SYNTHETIC_DATA_CREDIT }, MAP_LAYER_REGISTRY.filter { it.credit != null }.associate { it.id to it.credit })
         assertEquals(
-            "toggleable: L0a's seven, plus the two colour fields, plus J8's Journal entries switch",
+            colourFields.associateWith { SYNTHETIC_DATA_CREDIT } + (MapLayerIds.REFERENCE_FS_BAND to REFERENCE_TRAILS_CREDIT),
+            MAP_LAYER_REGISTRY.filter { it.credit != null }.associate { it.id to it.credit },
+        )
+        assertEquals(
+            "toggleable: L0a's seven, plus the two colour fields, plus J8's Journal entries switch, plus 8b's Official trails",
             colourFields + listOf(
                 MapLayerIds.OFFLINE_REGION_FILL,
+                MapLayerIds.REFERENCE_FS_BAND,
                 MapLayerIds.BREADCRUMB,
                 JOURNAL_ENTRIES_SWITCH_LAYER_ID,
                 MapLayerIds.KEPT_TRACKS,
@@ -321,7 +347,8 @@ class MapLayerRegistryTest {
             MapLayerIds.JOURNAL_ENTRY_TRACKS to (MapLayerIds.KEPT_TRACKS to MapLayerIds.KEPT_TRACKS_CASING),
             MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to (MapLayerIds.WAYPOINTS to MapLayerIds.JOURNAL_ENTRY_FINDS),
             MapLayerIds.JOURNAL_ENTRY_FINDS to (MapLayerIds.FINDS to MapLayerIds.JOURNAL_ENTRY_PHOTOS),
-            MapLayerIds.JOURNAL_ENTRY_PHOTOS to (MapLayerIds.PHOTOS to MapLayerIds.JOURNAL_ENTRY_REGIONS),
+            // Step 8b: the lowest line is now the official-trails band, Trail Map's own.
+            MapLayerIds.JOURNAL_ENTRY_PHOTOS to (MapLayerIds.PHOTOS to MapLayerIds.REFERENCE_FS_BAND),
         )
         assertEquals(
             "only the halos decorate another layer",
@@ -412,12 +439,15 @@ class MapLayerRegistryTest {
      */
     @Test
     fun `guard - the full draw order is the base's, layer for layer`() {
-        assertEquals("default state", drawOrderAtBase, orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT).map { it.id })
+        // Step 8b: the layers the app adds, which is what this guards; the band's three are Trail Map's own and drawn by
+        // the style beneath all of them whatever the registry says (ReferenceTrailLayersTest pins where they are listed).
+        fun appAdded(order: List<MapLayerSpec>) = order.filter { it.renderer != LayerRenderer.STYLE_LAYER }.map { it.id }
+        assertEquals("default state", drawOrderAtBase, appAdded(orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT)))
         val swapped = MapLayersState(reorderableOrder = colourFields.reversed())
         assertEquals(
             "colour fields in the other order",
             colourFields.reversed() + drawOrderAtBase.drop(colourFields.size),
-            orderedLayers(MAP_LAYER_REGISTRY, swapped).map { it.id },
+            appAdded(orderedLayers(MAP_LAYER_REGISTRY, swapped)),
         )
     }
 

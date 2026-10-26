@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.withReferenceTrailsHiddenUnlessLoaded
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -256,7 +257,8 @@ class AvailabilityScreenMapLayersSheetTest {
         composeRule.onAllNodesWithText(CHICKEN_LABEL).assertCountEqualsZero()
         composeRule.closeSheetByTappingOutside()
         composeRule.onAllNodesWithTag(MAP_LEGEND_CHIP_TAG).assertCountEqualsZero()
-        assertEquals(emptyList<String>(), activeLayerCredits(MAP_LAYER_REGISTRY, map.renderMode?.layers ?: error("no layer state")))
+        // Step 8b: as SightingsMap draws the state it is handed: this stand-in map reports no official-trails band.
+        assertEquals(emptyList<String>(), activeLayerCredits(MAP_LAYER_REGISTRY, withReferenceTrailsHiddenUnlessLoaded(map.renderMode?.layers ?: error("no layer state"), loaded = false)))
         assertEquals("no colour field is fed", emptyMap<String, String>(), map.renderMode?.forecast?.groupsByLayer.orEmpty())
     }
 
