@@ -28070,3 +28070,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the step 7 coder's report (Opus; prompts/preserved/2026-10-26-01-report.md, branch caption-oom-report, 249383c9e): one test JVM runs all 744 classes at Gradle's 512 MB default; the three MapCreditCaption classes run 662-664 and each takes an 8.3 MB screen capture into a heap already near full; 3 OOM runs in 2,961 reachable, none before 2026-10-24 14:53 UTC; what fills the heap not measured (suspects: Robolectric's sandbox cache, the routing profile cache).
 **Decision:** the owner: "Measure first (Recommended)": dispatch 2026-10-26-04, a diagnostic branch that never merges records the heap; findings before any fix.
 **Notes:** Written by the planner by hand. Given to a fresh coder (the step 7 coder's conversation passed 200,000 tokens, -1645). Next free ID -1650.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1650
+**Timestamp:** 2026-10-26T04:21:38Z
+**Continues:** 2026-09-28-1648
+**Title:** #404's fix does not show on the S22; Hazel diagnoses before the step 6 report (owner)
+**Observed:** Sorrel's #404 review (Fable; prompts/preserved/2026-10-26-sorrel-404-review.md, branch sorrel-404, 9c3866e17): mergeable, nothing blocking; S1, four comments in #402's files go stale (passed to the 2026-10-26-03 coder); S2, no run has built #404 with #402 and #401. Hazel's S22 check on 1.0.3969+g433e1937 (prompts/preserved/2026-10-25-10-s22-check-report.md, branch way-home-fresh-start-s22-report, 7ac84c9dd): the line still starts at the last written point, 12.1 to 13.2 m behind the dot with 2 points unwritten and 31.4 to 31.7 m with 5, against 12.4 and 31.3 m predicted for no fix; re-route case not run.
+**Decision:** the owner: "Diagnose now, step 6 waits (Recommended)": Hazel reads how the screen draws the line first, then if needed logs the counts on a diagnostic branch that never merges and runs it on the S22; the cause comes back before any fix.
+**Notes:** Written by the planner by hand. #404 does not merge. Next free ID -1651.
