@@ -37,6 +37,9 @@ import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.ReturnLeg
 import com.zynergylabs.forager.app.domain.WaypointNavigation
 import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
+import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
+import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchTaxaUseCase
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
@@ -56,6 +59,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -167,6 +173,10 @@ class AvailabilityViewModel(
      * Defaulted to no report, as [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel] does.
      */
     private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
+    /** Step 6 PR 1 (RECORD -1657): the waypoint being navigated to, read by id for its line. Defaulted to none stored. */
+    private val readWaypoint: suspend (String) -> Result<Waypoint?> = { Result.success(null) },
+    /** Step 6 PR 1 (RECORD -1655): the clock the waypoint line's freshness is read against. */
+    private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -293,6 +303,9 @@ class AvailabilityViewModel(
         errorLog = errorLog,
     )
 
+    /** The straight line to the waypoint being navigated to, moved out of the screen by step 6 PR 1: see the class. */
+    private val waypointLine = AvailabilityWaypointLine({ transform -> _uiState.update(transform) }, readWaypoint, currentTime, errorLog)
+
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
      * class by UI split Phase 2.4 PR 7. Whether a lookup starts, and each cancel, stay in this class's
@@ -361,6 +374,13 @@ class AvailabilityViewModel(
         mapDisplay.loadBasemapPreference()
         mapDisplay.loadMapIconClusterPlacement()
         waypointNavigationStore.loadWaypointNavigation()
+        // Step 6 PR 1: the waypoint line runs while a waypoint is navigated to, started when one is chosen or picked back
+        // up and cancelled when it ends or another is chosen. Decided here, not in the collaborator (RECORD -1450).
+        viewModelScope.launch {
+            _uiState.map { it.waypointNavigation?.waypointId }.distinctUntilChanged().collectLatest { id ->
+                waypointLine.follow(id, _uiState.map { it.liveFix }.distinctUntilChanged())
+            }
+        }
         // Dispatch 2026-10-24-07 (RECORD -1605): a finished track is on the map right after Stop. Recording
         // happens on the Maps tab, so the tab-shown reload never runs at a Stop; the records reload when the
         // service reports the stored end instead, which is never before the row reads ended (TrackEnds).

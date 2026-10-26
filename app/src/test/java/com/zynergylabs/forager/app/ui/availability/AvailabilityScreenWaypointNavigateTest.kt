@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.ReturnLeg
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigation
@@ -63,6 +64,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -122,9 +124,31 @@ class AvailabilityScreenWaypointNavigateTest {
         aheadIsCurrent = true,
     )
 
-    private var fix by mutableStateOf(southOfCreek(500.0))
+    // Step 6 PR 1 (dispatch 2026-10-26-06): the ViewModel now draws the line from its own live fix, so every fix the
+    // screen is given is also sent through the ViewModel's location source ([publishedFix]); the cases are unchanged.
+    private val publishedFix = MutableStateFlow<LocationFix.Update?>(null)
+    private var fixState by mutableStateOf(southOfCreek(500.0))
+    private var fix: LocationFix.Update
+        get() = fixState
+        set(value) {
+            fixState = value
+            publishFix()
+        }
+    private var fixPresentState by mutableStateOf(true)
     /** False while the phone has no fix at all, as just after the app opens. */
-    private var fixPresent by mutableStateOf(true)
+    private var fixPresent: Boolean
+        get() = fixPresentState
+        set(value) {
+            fixPresentState = value
+            publishFix()
+        }
+    private fun publishFix() {
+        publishedFix.value = if (fixPresentState) fixState else null
+    }
+    private val tracker = object : LocationTracker { override val fixes: Flow<LocationFix> = publishedFix.filterNotNull() }
+    /** The waypoints as stored, which the ViewModel looks the navigated one up in by id (RECORD -1657). */
+    private val storedWaypoints = listOf(creek, oak)
+    private val clock = CurrentTimeProvider { t + 1_000L }
     private var waypoints by mutableStateOf(listOf(creek, oak))
     private var waypointsLoaded by mutableStateOf(true)
     private var recording by mutableStateOf(false)
@@ -152,7 +176,15 @@ class AvailabilityScreenWaypointNavigateTest {
     private lateinit var viewModel: AvailabilityViewModel
 
     private fun setScreen(entryMapData: CartographyEntryMapData? = null) {
-        viewModel = mapLayersViewModel(waypointNavigationRepository = store, returnLeg = leg)
+        publishFix()
+        viewModel = mapLayersViewModel(
+            waypointNavigationRepository = store,
+            returnLeg = leg,
+            locationTracker = tracker,
+            readWaypoint = { id -> Result.success(storedWaypoints.firstOrNull { it.id == id }) },
+            currentTime = clock,
+        )
+        viewModel.onEnteredForeground()
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
             AvailabilityScreen(
@@ -206,7 +238,7 @@ class AvailabilityScreenWaypointNavigateTest {
                 ),
                 compassProvider = FixedCompass(0f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
-                currentTime = CurrentTimeProvider { t + 1_000L },
+                currentTime = clock,
                 journalEntries = AvailabilityScreenJournalEntries(
                     cartographyUiState = cartography,
                 ),

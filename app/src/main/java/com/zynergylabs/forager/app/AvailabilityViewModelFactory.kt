@@ -61,4 +61,7 @@ internal fun createAvailabilityViewModel(
         noSignal = noSignal,
         // Dispatch 2026-10-24-07: the service's stored-end report, so a finished track is on the map right after Stop.
         trackEnds = container.trackEnds.latest,
+        // Step 6 PR 1 (RECORD -1655, -1657): the waypoint line's own lookup by id and its clock.
+        readWaypoint = container.waypointRepository::getById,
+        currentTime = container.currentTimeProvider,
     )

@@ -33,7 +33,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -78,7 +77,6 @@ import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.map.SightingsMapSlot
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
-import kotlinx.coroutines.delay
 
 /**
  * Map-first layout: the results (map or ranked list) own the content area, and everything set far
@@ -413,23 +411,9 @@ fun AvailabilityScreen(
     var navigationFollowBroken by navigationViewRequests::navigationFollowBroken
     var navigationViewRequestId by navigationViewRequests::navigationViewRequestId
     var navigationZoomPending by navigationViewRequests::navigationZoomPending
-    // Dispatch -502, the owner's choice at the S22 desk check ("Keep the last line, faded"): the dashed line to the
-    // waypoint, and the one drawn last, which nextStraightLine keeps, faded, once the fix is lost. Held here, above the tab
-    // switch, so a lost fix does not lose the line by a trip to the Journal; not across a restart, where there is no last
-    // line and the first fix draws it (the option the owner chose said so). The owner's "Fade with the HUD" (RECORD -506)
-    // fades it from 30 s as well. The clock moves on at each of those two moments, so the line fades then even though
-    // no new fix comes to prompt it.
-    var waypointStraightLine by remember { mutableStateOf<StraightLine?>(null) }
-    val straightLineNow by produceState(currentTime.nowEpochMillis(), uiState.liveFix, currentTime) {
-        value = currentTime.nowEpochMillis()
-        while (true) {
-            val untilNextChange = millisUntilFreshnessChanges(uiState.liveFix, value) ?: break
-            delay(untilNextChange)
-            value = currentTime.nowEpochMillis()
-        }
-    }
-    val nextWaypointLine = navigatingToWaypoint?.let { nextStraightLine(waypointStraightLine, uiState.liveFix, it, straightLineNow) }
-    LaunchedEffect(nextWaypointLine) { waypointStraightLine = nextWaypointLine }
+    // Dispatch -502: the dashed line to the waypoint, worked out and held by the ViewModel since step 6 PR 1 (dispatch
+    // 2026-10-26-06; see AvailabilityWaypointLine), so it outlives a tab change. Drawn only while the target is found here.
+    val nextWaypointLine = navigatingToWaypoint?.let { uiState.waypointStraightLine }
     // The forecast cells, the colour fields with data and the layers the map draws: see rememberMapForecastFeed
     // (ScreenMapForecastFeed.kt).
     val mapForecast = rememberMapForecastFeed(uiState, forecastCellStore)

@@ -346,6 +346,13 @@ data class AvailabilityUiState(
      */
     val waypointNavigation: WaypointNavigation? = null,
     /**
+     * The dashed line to the waypoint being navigated to (dispatch -502), worked out by [AvailabilityWaypointLine]
+     * and held here, so it outlives a tab change (step 6 PR 1, dispatch 2026-10-26-06: moved from the screen's own
+     * `remember`). `null` with no navigation, before the first fix, and once arrived. The screen draws it only while
+     * its own resolved target is found: the one rule for a deleted or Undo-pending waypoint (RECORD -1657).
+     */
+    val waypointStraightLine: StraightLine? = null,
+    /**
      * The system of units this person reads, restored from
      * [com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository.getUnitSystem] at startup and
      * persisted on every change — see [DistanceUnit]'s own doc comment for the bug the persisted
