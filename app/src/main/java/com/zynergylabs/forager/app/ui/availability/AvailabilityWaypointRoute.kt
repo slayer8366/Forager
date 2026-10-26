@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -13,6 +14,7 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
 import com.zynergylabs.forager.app.domain.wayhome.placeOnWayHome
 import com.zynergylabs.forager.app.domain.wayhome.wayHomeAhead
 import com.zynergylabs.forager.app.domain.wayto.StrayVerdict
+import com.zynergylabs.forager.app.domain.wayto.WayToRetry
 import com.zynergylabs.forager.app.domain.wayto.WayToStray
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointResult
@@ -51,8 +53,10 @@ data class WaypointRouteShown(val hud: ReturnRoute?, val line: RouteLine?)
  * - **Each fix** places the walker on the line and gives the figure, the needle and the line ahead exactly as the way
  *   home's do ([placeOnWayHome], [wayHomeAhead]); off the line by more than the far band, today's straight line shows.
  * - **A stray** of more than 50 m re-routes once from where the walker is ([WayToStray]), quietly.
- * - **No trail route** ([WayToWaypointResult.StraightLine]) is today's straight line with its note, for the rest of
- *   this navigation. Arrival is not judged here: the HUD and the map judge it on the straight distance, as today.
+ * - **No trail route** ([WayToWaypointResult.StraightLine]) is today's straight line with its note, until [WayToRetry]
+ *   says to try again: on walking into an area holding the walker and the waypoint, or, far from any trail, after walking
+ *   on more than 50 m (Amendment 1, item C, RECORD -1669). Arrival is not judged here: the HUD and the map judge it on
+ *   the straight distance, as today.
  *
  * Every write goes through [updateState]. Runs on the ViewModel's scope, one thread, so its fields need no lock; the
  * engine moves its own work off that thread (`TrailRouter.route`). [findWayToWaypoint] `null` (a ViewModel built without
@@ -62,6 +66,8 @@ internal class AvailabilityWaypointRoute(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
     private val readWaypoint: suspend (String) -> Result<Waypoint?>,
     private val findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)?,
+    /** The downloaded regions as the ViewModel last read them, for [WayToRetry]'s area check at each fix. */
+    private val regions: () -> List<OfflineRegionSummary>,
     private val errorLog: ErrorLog,
 ) {
 
@@ -95,7 +101,8 @@ internal class AvailabilityWaypointRoute(
         private var band = HopBand.NONE
         private var search: Job? = null
         private var lastHere: LatLng? = null
-        private var straightOnly = false
+        /** Set while a straight-line result stands: says when to search again. */
+        private var retry: WayToRetry? = null
         private val stray = WayToStray()
         private var loggedWhy: StrayVerdict? = null
 
@@ -103,7 +110,8 @@ internal class AvailabilityWaypointRoute(
             lastHere = here
             val shown = line
             if (shown == null) {
-                if (search == null && !straightOnly) startSearch(here)
+                // The first fix, or a straight-line result [retry] says to try again. One search at a time: no judging while one runs.
+                if (search == null && retry?.judge(here, regions()) != false) startSearch(here)
                 return
             }
             show(shown, here)
@@ -142,6 +150,7 @@ internal class AvailabilityWaypointRoute(
         }
 
         private fun startSearch(from: LatLng) {
+            val regionsAtSearch = regions()
             search = scope.launch {
                 val result = try {
                     find(from, waypoint)
@@ -160,12 +169,13 @@ internal class AvailabilityWaypointRoute(
                     is WayToWaypointResult.AlongTrails -> {
                         val found = WayHomeLine(result.way)
                         line = found
+                        retry = null
                         lastHere?.let { show(found, it) }
                     }
                     // FindWayToWaypointUseCase has logged why.
                     is WayToWaypointResult.StraightLine -> {
                         line = null
-                        straightOnly = true
+                        retry = WayToRetry(waypoint, result.note, from, regionsAtSearch)
                         updateState { it.copy(waypointRoute = WaypointRouteShown(hud = ReturnRoute.Straight(result.note), line = null)) }
                     }
                 }
