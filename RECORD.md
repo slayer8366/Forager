@@ -28354,3 +28354,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #414 (tidy-comments-older-sdk @ 59c02a7ae, dispatch 2026-10-26-12): the older-SDK check attributes method-level @Config past nested classes, reports nested-class and abstract/open/sealed bases with actionable messages (plant runs 40367555370 old, 40367616978 fixed; reverts 40368724602, 40368797612); PR run 40367655813 green, 6 older-SDK and 760 main classes identical to pre-main's run 40360081059, 5,655 tests; eight comment sets corrected; known-bugs row 21 (the waypoint pop-up). docs/process/known-bugs.md carries rows 10 to 16 twice (pre-existing).
 **Decision:** the owner: "Merge now (Recommended)": merged by the planner. "Yes, in a later tidy (Recommended)" for the duplicated rows.
 **Notes:** Written by the planner by hand. Next free ID -1676.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1676
+**Timestamp:** 2026-10-26T17:40:26Z
+**Continues:** 2026-09-28-1674, 2026-09-28-1631
+**Title:** Off the trail, the trail line dims to 60% and the track stays as it is (owner)
+**Observed:** the step 7 PR 3 coder's verify-first (Opus; no code): the dotted track is already drawn at full opacity (RouteHomeLayers.kt:154-157, :302), so -1631's "your dotted track brightens" cannot be done by opacity; options A (trail dims only), B (wider dots, a new width), C (day-blue dots, day only), D (track faded normally).
+**Decision:** the owner: "A: trail dims only (Recommended)" and "60%, like passed route (Recommended)" (ROUTE_PASSED_OPACITY). Dispatch 2026-10-26-13 Amendment 1. The 21 old "Return to Route" comments (Sorrel's 400-2) go to a later tidy with known-bugs' duplicated rows.
+**Notes:** Written by the planner by hand. Next free ID -1677.
