@@ -29,6 +29,7 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,6 +55,7 @@ import org.junit.Test
  * ViewModel in the first is the default's doing, not a probe that cannot see a collector. Nothing here records, so
  * the ViewModel's poll loop never starts.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class TrackRecordingNoBackByLeakTest {
 
     @Before fun setUpMain() = Dispatchers.setMain(UnconfinedTestDispatcher())
