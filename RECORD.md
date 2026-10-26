@@ -28486,3 +28486,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Juniper's read of the S26 (Fable; docs/navigation/2026-10-26-hilly-walk-climbs.md, branch s26-hilly-walk-report, 018d376d3 method, e576021d8 results; read-only, database checksums equal before and after; raw data kept in /mnt/work/scratch/s26-hilly-walk/): one outing on 2026-10-24 in two recordings, 6.3 km, 4.5 h, 92 min moving, flat pace 0.93 m/s; time model 2.23 s per metre climbed (90% CI 1.27-3.20), 3.19 s per metre descended; the walk-back time has no climb term today and ran 19% and 44% long on these returns; the app's barometric climb read 31 m and 41 m where bridging the scattered pressure-less points (3% of points) gives 53 m and 72 m; reported horizontal accuracy mostly two constants (9.935 m, 3.790 m).
 **Decision:** the owner: "Yes, that's it" (the 10-24 outing is the hilly walk); "The climb was that steep. We went 200ft"; then "(a) ~2.2 s per metre (Recommended)" for both climbing and descending: dispatch 2026-10-26-19, Phase 1 report first (heights exist for the walker's track but not the engine's trail route). "Diagnose, then fix (Recommended)" for the undercount: dispatch 2026-10-26-18.
 **Notes:** Written by the planner by hand. Next free ID -1688.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1688
+**Timestamp:** 2026-10-26T22:02:40Z
+**Continues:** 2026-09-28-1681, 2026-09-28-1686
+**Title:** 8c: a band yields to the way-home line and the recording trail; all-capital names in normal case (owner)
+**Observed:** #419 (step8c-reference-tap @ b3e28cc01, dispatch 2026-10-26-16): green, 5,734; the record gives the confirmed lines; bands queried only while drawn, so nothing is tappable on v2 by test; four reverts biting. The way-home line is not in the tap registry and the recording trail is TapGroup.NONE, so a tap on either over a band would open the band's bubble; the agency publishes some names in capitals ("WEST LEG NORDIC"). The coder could not regenerate v3 (no Node on its path).
+**Decision:** the owner: "Nothing (Recommended)": the band yields where the route or the recording trail is under the finger; "Normal case (Recommended)" for all-capital names. Dispatch 2026-10-26-16 Amendment 2, to a fresh coder; Sorrel reviews #419 after it, including the v3 regeneration.
+**Notes:** Written by the planner by hand. Next free ID -1689.
