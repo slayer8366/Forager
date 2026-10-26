@@ -378,7 +378,7 @@ class AvailabilityViewModel(
         // up and cancelled when it ends or another is chosen. Decided here, not in the collaborator (RECORD -1450).
         viewModelScope.launch {
             _uiState.map { it.waypointNavigation?.waypointId }.distinctUntilChanged().collectLatest { id ->
-                waypointLine.follow(id, _uiState.map { it.liveFix }.distinctUntilChanged())
+                waypointLine.follow(null /* REVERT r2 */, _uiState.map { it.liveFix }.distinctUntilChanged())
             }
         }
         // Dispatch 2026-10-24-07 (RECORD -1605): a finished track is on the map right after Stop. Recording
