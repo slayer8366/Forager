@@ -10,8 +10,6 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
-import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.wayhome.Ground
 import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLines
@@ -94,10 +92,7 @@ class TrackRecordingOffTrailTest {
         val here = Ground.at(0.0, -50.0)
         val liveFix = LocationFix.Update(here.lat, here.lng, null, 5f, T + second * 1_000L, FixProvider.GPS)
         val route = returnRouteOf(state.routeHome, state.wayHomeNote, state.wayHomeOffTrail)
-        // The start as the HUD's target: the origin waypoint when this rig has made one, else the walk's first point.
-        val start = Ground.at(0.0, 120.0)
-        val target = state.originWaypoint ?: Waypoint("origin", start.lat, start.lng, null, "Start", "", T, "track-1", WaypointDesignation.ORIGIN)
-        return navigationReadout(TrueHeadingReading.Available(0f), liveFix, target, DistanceUnit.MILES, T + second * 1_000L, route = route).statusText
+        return navigationReadout(TrueHeadingReading.Available(0f), liveFix, state.originWaypoint!!, DistanceUnit.MILES, T + second * 1_000L, route = route).statusText
     }
 
     /** Recording, the walk out stored and kept (start at (0, 120), south to the trail at (0, 0), off it to (0, -50)), Return tapped, the way home found. */
@@ -109,7 +104,10 @@ class TrackRecordingOffTrailTest {
         val walk = listOf(point(Ground.at(0.0, 120.0), 0), point(Ground.at(0.0, 20.0), 1), point(Ground.at(0.0, 0.0), 2), point(Ground.at(0.0, -50.0), 3))
         tracks.appendPoints("track-1", walk)
         walk.forEach(returnWatch::onKeptPoint)
-        returnWatch.setStartPoint("track-1", walk.first())
+        // The first good fix at the walk's start, where the screen makes the origin waypoint (TrackRecordingAutoWaypoints),
+        // then the walker where they stand. The first run of this test made the origin at (0, -50), its first fix, so the
+        // HUD read "Arrived" (an empty status line) there: a rig fault, not the state under test.
+        fix(watch, 0.0, 120.0, 0)
         fix(watch, 0.0, -50.0, 4)
 
         viewModel.startReturn()
@@ -124,6 +122,7 @@ class TrackRecordingOffTrailTest {
         val watch = wayHomeWatch()
         val viewModel = returnedOffTheTrail(watch)
         assertTrue("the return watch is judging", returnWatch.state.value.isReturning)
+        assertEquals("the origin is the walk's start", Ground.at(0.0, 120.0).lat, viewModel.uiState.value.originWaypoint!!.lat, 1e-9)
         assertEquals(OffTrailState.ON, viewModel.uiState.value.wayHomeOffTrail)
 
         // Still off the trail, on the dotted track back, for 15 s.
