@@ -84,21 +84,33 @@ data class ReferenceTrailRecord(val agency: ReferenceAgency, val number: String?
  * (Recommended)"): a name published entirely in capitals ("WEST LEG NORDIC") is shown in normal case ("West Leg Nordic");
  * a name with any lower-case letter, or with no letter at all, is shown as published.
  *
- * Normal case is plain word capitalisation with no dictionary: a letter that follows anything other than a letter, a digit
- * or an apostrophe starts a word and is capitalised; every other letter is lower case. So short words are capitalised
- * like any other ("TRAIL OF THE CEDARS" -> "Trail Of The Cedars"), abbreviations and Roman numerals lose their capitals
- * after the first ("NF" -> "Nf", "LOOP II" -> "Loop Ii"), a hyphen or a bracket starts a word ("NORTH-FORK (UPPER)" ->
- * "North-Fork (Upper)"), an apostrophe does not ("BOB'S" -> "Bob's"), and letters after a digit stay with it ("17A" ->
- * "17a", "4WD" -> "4wd"). Digits are unchanged.
+ * Normal case, word by word (RECORD -1690, the owner: "Keep short words and codes"). A word is a run of letters, digits
+ * and apostrophes, so a hyphen, a bracket, a full stop or a space ends one ("NORTH-FORK (UPPER)" -> "North-Fork (Upper)",
+ * "BOB'S" -> "Bob's"). A word stays as published when it holds a digit ("17A", "4WD"), is a Roman numeral ("II", "XIV";
+ * "I" alone counts as one), or has one or two letters and is not one of [COMMON_SHORT_WORDS] ("NF", "FS"). Every other
+ * word keeps its first letter capital and the rest go lower case ("OF" -> "Of", "THE" -> "The"). No dictionary beyond that
+ * list: a two-letter word outside it is read as a code ("MT." stays "MT.", "NO" stays "NO"), and a longer word that
+ * happens to spell a valid numeral stays in capitals ("MIX", "LIV", "DIX").
  */
 internal fun shownName(name: String): String {
     if (name.any { it.isLowerCase() } || name.none { it.isUpperCase() }) return name
-    val shown = StringBuilder(name.length)
-    var previous: Char? = null
-    for (c in name) {
-        val startsWord = previous == null || !(previous.isLetterOrDigit() || previous == '\'' || previous == '\u2019')
-        shown.append(if (c.isLetter() && startsWord) c.titlecaseChar() else c.lowercaseChar())
-        previous = c
+    return WORD.replace(name) { match ->
+        val word = match.value
+        if (keptAsPublished(word)) word else word.first().titlecaseChar() + word.drop(1).lowercase()
     }
-    return shown.toString()
 }
+
+/** A word of a name, for [shownName]: a run of letters, digits and apostrophes (straight or curly). */
+private val WORD = Regex("""[\p{L}\p{N}'\u2019]+""")
+
+/** A Roman numeral, I to MMMCMXCIX, written in capitals. */
+private val ROMAN_NUMERAL = Regex("^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$")
+
+/** The one- and two-letter words capitalised as words in an all-capitals name; any other is read as a code (RECORD -1690). */
+internal val COMMON_SHORT_WORDS = setOf("A", "AN", "AS", "AT", "BY", "IN", "IS", "IT", "OF", "ON", "OR", "TO", "UP")
+
+/** Whether [word] of an all-capitals name stays as published: a word with a digit, a Roman numeral, or a short code. */
+private fun keptAsPublished(word: String): Boolean =
+    word.any { it.isDigit() } ||
+        ROMAN_NUMERAL.matches(word) ||
+        (word.count { it.isLetter() } <= 2 && word !in COMMON_SHORT_WORDS)
