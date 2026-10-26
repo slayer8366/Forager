@@ -28114,3 +28114,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Step 6: a trail route is always worth it; PR 1 starts (owner)
 **Decision:** asked again at the owner's request ("Show the questions again"): Q1 "(a) Straight to nearest trail", Q2 "Confirm", Q4 "Approve as written", Q5 "(a) As today", all as in -1652. Q3, the owner: "It's always worth it": no short-walk cut-off; a waypoint under 150 m also gets the trail route (the 250 m reach of Q2 still stands). PR 1, the owner: "Start PR 1 now": dispatch 2026-10-26-06.
 **Notes:** Written by the planner by hand. Next free ID -1654.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1654
+**Timestamp:** 2026-10-26T05:09:21Z
+**Continues:** 2026-09-28-1651
+**Title:** The recording line's plan goes ahead as reported; the way home's network-only start fixed in its own PR (owner)
+**Observed:** the 2026-10-26-05 coder's verify-first (Opus; no code): a separate holder of the kept-not-written points the service feeds and the screen collects (domain/RecordingKeptTail.kt), not #404's held points (their lock, no per-point signal, pruning against a different store read); network fixes removed as on the store's read path; the screen also polls only every 15 s, so today's lag can reach about 45 s; TrackRecordingViewModel.kt (864 lines) gets 2 or 3 wiring lines; the map's overlay refresh would run at each kept point (up to every 5 s) instead of every 15 s; finding: WayHomeKeptPoints.addedTo (:52) does not remove network fixes from the held points.
+**Decision:** the owner: "Few lines OK (Recommended)"; "Accept, check on the S22 (Recommended)" (the phone check also watches for stutter or battery change while recording); "Small fix, own PR (Recommended)": dispatch 2026-10-26-07.
+**Notes:** Written by the planner by hand. Next free ID -1655.
