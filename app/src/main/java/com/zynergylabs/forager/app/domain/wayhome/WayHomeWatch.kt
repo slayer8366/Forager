@@ -168,7 +168,7 @@ class WayHomeWatch(
         }
         progress = next
         val wayHome = line.wayHome
-        val state = offTrail.next(point, provider, listOf(wayHome.trail.points, wayHome.trackToStart.points))
+        val state = offTrail.next(point, provider, listOf(wayHome.trailRoute, wayHome.trackToStart.points))
         if (state != shownNow.offTrail) _shown.value = shownNow.copy(offTrail = state)
         judgeStray(id, line.metersFrom(current))
     }

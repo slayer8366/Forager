@@ -145,6 +145,11 @@ class TrackRecordingOffTrailTest {
         assertEquals(OffTrailState.ON, usual.wayHomeOffTrail)
         assertEquals("the HUD's usual line", "", statusLine(usual, 41))
 
+        // On along the trail, 100 m from the path walked before Return, for 16 s: the alert counts the trail shown as on
+        // course (AppContainer's wayHomeTrail; Sorrel's S-415-1), so the rig judges as the service does.
+        for (s in 42..58) fix(watch, 100.0, 0.0, s)
+        assertEquals(OffTrailState.ON, viewModel.uiState.value.wayHomeOffTrail)
+
         assertEquals("quiet: no alert on any of it", emptyList<Alert>(), alerts)
     }
 

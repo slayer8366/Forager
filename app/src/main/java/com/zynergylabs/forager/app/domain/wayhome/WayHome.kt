@@ -37,6 +37,14 @@ data class WayHome(
 
     /** The length of [line]: the three parts' metres, summed. */
     val totalMeters: Double get() = trackBack.meters + trail.meters + trackToStart.meters
+
+    /**
+     * The engine's trail route alone: [trail] without its two straight joints (dispatch 2026-10-26-13 Amendment 2;
+     * RECORD -1683, the owner: "The trail itself (Recommended)"), what the quiet off-trail state counts as on the trail.
+     * STUB (fail first): still the whole trail part.
+     */
+    val trailRoute: List<LatLng>
+        get() = trail.points
 }
 
 /** One part of a [WayHome]: its [kind], its line in walking order, and its length. */
