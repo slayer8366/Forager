@@ -27971,3 +27971,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the step 7 coder's verify-first for 2026-10-25-09 Amendment 1 (no code; #402 merged with pre-main at ff9b2ea56): the track-only line has no figure the off-track watch can read (ReturnWatch.kt:399-402, WayHomeWatch.kt:126-127, RouteHome.kt:142-149); the place on a trail line (WayHomeProgress.kt:127-147) moves forward while heading back and holds at the start on a stray; the distance home is flat for the first ~60 m and cannot judge it.
 **Decision:** the owner: "A: dotted line only (Recommended)": the track-only clause of -1637 is deferred. "Yes, a pause counts (Recommended)". "Coder proposes, Sorrel checks (Recommended)" for the forward-progress figure. Dispatch 2026-10-25-09 Amendment 2.
 **Notes:** Written by the planner by hand. With no trail routes, heading back along a stray after Return can still alert, as before #402. Next free ID -1641.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1641
+**Timestamp:** 2026-10-26T03:17:08Z
+**Continues:** 2026-09-28-1637, 2026-09-28-1640
+**Title:** #402's heading-back rule built and green, to Sorrel; the caption tests' memory failure diagnosed (owner)
+**Observed:** the step 7 coder (Opus), PR #402 at d83d11999: fail-first 40259798402 (4 of 4 as the old rule), full run 40261211097 green 5,560 of 5,560, reverts r1-r8 each biting (evidence https://github.com/slayer8366/Forager/pull/402#issuecomment-6407408157); proposed figure: heading back once 10 m along the line from its start, or once the place has moved off the first point; never past the start. Run 40258542687 on ff9b2ea56 hit the same three MapCreditCaption OutOfMemoryErrors as 40192708715.
+**Decision:** Sorrel checks the figure, as ruled in -1640. For the memory failure, the owner: "Diagnose now (Recommended)": dispatch 2026-10-26-01, read and diagnose only, to the step 7 coder.
+**Notes:** Written by the planner by hand. Next free ID -1642.
