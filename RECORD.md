@@ -28431,3 +28431,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the 8b coder's verify-first (Opus; no code): the planned four files cannot keep today's style unchanged (the credit would show now and over Topo, OSM and v2 regions; the row cannot know the loaded style; a flip takes effect only on the next style load; the overlay paint path logs and would duplicate the style's 0.35 opacity); the full wiring needs OverlayLayerSetup.kt, MapFan.kt, SightingsMap.kt and an upward flag through AvailabilityScreen.kt (1,007 lines).
 **Decision:** the owner: "Split first, then 8b (Recommended)": dispatch 2026-10-26-17 (pure split), then 8b per dispatch -15 Amendment 2; "Yes, both maps (Recommended)" for the entry map's switch; "Once the band can appear (Recommended)": the Forest Service and BLM Data sources rows come with the switch PR. 8c follows 8b.
 **Notes:** Written by the planner by hand. Next free ID -1683.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1683
+**Timestamp:** 2026-10-26T20:10:33Z
+**Continues:** 2026-09-28-1676, 2026-09-28-1682
+**Title:** The quiet off-trail state measures from the trail itself; #417 to Sorrel (owner)
+**Observed:** Sorrel's #415 review (Fable; prompts/preserved/2026-10-26-sorrel-415-review.md, branch sorrel-415, 77e6ffe6f): mergeable, no blocking item; S-415-1 the rig's ReturnWatch lacks the wayHomeTrail input. Hazel's S22 check of #415 (Opus; prompts/preserved/2026-10-26-hazel-415-s22-check-report.md, branch quiet-off-trail-s22-report, f87d728b8; build 1.0.4033+gbc5b9e61): steps 1, 2, 4 met, no sound or vibration, no flicker in 56 edge crossings; step 3 not met: "Back on trail" at 64 m out after a re-route, because "on" includes the straight joint from the leave point (up to 25 m), reaching about 64-69 m along the leaving track. #413's fade, grey and retry seen working on the phone. The split #417 (split-availability-screen @ f80216422, dispatch 2026-10-26-17): 1,007 to 722 lines, CI per-suite identical to pre-main.
+**Decision:** the owner: "The trail itself (Recommended)": dispatch 2026-10-26-13 Amendment 2, with S-415-1 folded in. For #417, "Sorrel check first (Recommended)".
+**Notes:** Written by the planner by hand. Next free ID -1684.
