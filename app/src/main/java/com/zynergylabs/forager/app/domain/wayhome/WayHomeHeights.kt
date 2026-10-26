@@ -43,7 +43,7 @@ data class PartHeight(val alongMeters: Double, val height: Double?)
  * [PartHeights.NoBarometer] when [heights], the whole track's barometric heights, is `null`.
  */
 internal fun trackPartHeights(stored: List<TrackPoint>, indices: List<Int>, heights: List<Double?>?): PartHeights {
-    if (heights == null || heights.size >= 0) return PartHeights.Barometric(emptyList()) // STUB (fail first)
+    if (heights == null) return PartHeights.NoBarometer
     var along = 0.0
     return PartHeights.Barometric(
         indices.mapIndexed { k, i ->
@@ -92,7 +92,6 @@ internal fun lineHeightsOf(parts: List<Pair<WayHomePart, Double>>): LineHeights?
  * [alongMeters] (the first, when none is), so the climb starts no later than the distance does.
  */
 internal fun climbFrom(heights: LineHeights?, alongMeters: Double): WayBackClimb? = when (heights) {
-    is LineHeights -> null // STUB (fail first)
     null -> null
     LineHeights.NoBarometer -> WayBackClimb.NoBarometer
     is LineHeights.Barometric -> {

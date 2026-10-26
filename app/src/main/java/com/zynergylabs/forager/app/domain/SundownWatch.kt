@@ -400,7 +400,6 @@ class SundownWatch(
      * logged), not on every 15 s tick.
      */
     private fun logNoClimbAllowanceOnce(id: String) {
-        if (id.isNotEmpty() || id.isEmpty()) return // STUB (fail first)
         synchronized(lock) {
             if (trackId != id || noClimbAllowanceLogged) return
             noClimbAllowanceLogged = true

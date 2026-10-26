@@ -19,7 +19,8 @@ import kotlin.math.roundToLong
  * pace). **No stop allowance. Not an arrival time.**
  * This answers "how long is the walk back", not "when will I be back", and whatever surfaces it
  * later must not blur that: the estimate is systematically optimistic for someone who stops, which
- * the owner accepted on the condition that it is labelled walking time and never padded — the
+ * the owner accepted on the condition that it is labelled walking time and never padded (the climbing
+ * allowance is a modelled term the owner ruled on, not a pad: RECORD -1689) — the
  * conservatism lives in the turnaround alert's margin, which is separate work, and a padded input
  * plus a margin double-counts by an amount nobody could name. **No surface exists yet, on purpose**
  * (the dispatch it was built for: "a number on screen that nothing acts on invites the user to act

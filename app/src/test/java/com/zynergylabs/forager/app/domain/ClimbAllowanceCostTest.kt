@@ -17,7 +17,7 @@ import kotlin.math.sin
  * Measured, not asserted: a time bound on a shared CI machine would be a flaky test, and this is here to give a figure.
  * The figures are printed to the test's standard output (in its JUnit XML), for two track sizes: the 10-24 outing's
  * 1,135 stored points, and a four-hour walk at the high-accuracy sampler's 5 s, 2,880 points (the size `TrackSelfJoin`'s
- * cost note uses). Each figure is the median of nine runs after three warm-up runs, on the JVM, not a phone.
+ * cost note uses). Each figure is the median of nine runs after ten warm-up runs, on the JVM, not a phone.
  */
 class ClimbAllowanceCostTest {
 
@@ -32,7 +32,7 @@ class ClimbAllowanceCostTest {
     }
 
     private fun medianMillis(runs: Int, block: () -> Unit): Double {
-        repeat(3) { block() }
+        repeat(10) { block() }
         val times = (1..runs).map {
             val start = System.nanoTime()
             block()

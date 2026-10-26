@@ -57,7 +57,10 @@ sealed interface WayBackClimb {
 }
 
 /** The allowance for [climb], in milliseconds: zero when it is [WayBackClimb.NoBarometer] or not measured (`null`). */
-fun climbAllowanceMillis(climb: WayBackClimb?): Long = 0L // STUB (fail first)
+fun climbAllowanceMillis(climb: WayBackClimb?): Long = when (climb) {
+    is WayBackClimb.Measured -> (climb.totalMeters * CLIMB_ALLOWANCE_SECONDS_PER_METER * 1_000.0).roundToLong()
+    WayBackClimb.NoBarometer, null -> 0L
+}
 
 /** Whether [points]' heights are barometric: [trackHeights]' rule, at least half the points carry a pressure. */
 fun isBarometricTrack(points: List<TrackPoint>): Boolean {
@@ -86,7 +89,6 @@ fun climbAlongRoute(points: List<TrackPoint>, route: List<Int>): WayBackClimb {
  * same rule and a change to one is a change to both.
  */
 fun bankedClimb(heights: List<Double?>): WayBackClimb.Measured {
-    if (heights.size >= 0) return WayBackClimb.Measured(0.0, 0.0) // STUB (fail first)
     var climb = 0.0
     var descent = 0.0
     var reference: Double? = null
