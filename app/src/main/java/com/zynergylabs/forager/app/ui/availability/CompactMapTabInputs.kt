@@ -50,6 +50,8 @@ internal data class CompactMapNavigation(
      * then the straight-line one (decision D2: no route given), the map draws the dashed line from the
      * walker to the waypoint instead of the return's way back, and the return control is the X-circle
      * whether or not a track is recording.
+     * Since step 6 PR 3 (dispatch 2026-10-26-11) the HUD and the map take the way to it along trails from
+     * [AvailabilityUiState.waypointRoute] when there is one, in place of the straight line.
      */
     val isNavigatingToWaypoint: Boolean = false,
     /**

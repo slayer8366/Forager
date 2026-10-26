@@ -119,8 +119,9 @@ internal fun CompactMapPortraitNavigationInfo(
                 currentTime = currentTime,
                 showDecimalDegrees = showDecimalDegrees,
                 onExit = navigation.onToggleReturning,
-                // Dispatch -502: no route to a chosen waypoint, so the straight-line display (decision D2).
-                route = if (navigation.isNavigatingToWaypoint) null else navigation.returnRoute,
+                // Dispatch -502: the straight-line display (decision D2) for a chosen waypoint, until step 6 PR 3 (dispatch 2026-10-26-11):
+                // the way to it along trails when there is one, "by trail", or the straight line with its note (WaypointRouteShown).
+                route = if (navigation.isNavigatingToWaypoint) uiState.waypointRoute?.hud else navigation.returnRoute,
                 onRetryRoute = navigation.onRetryRoute,
                 facing = navigationFacing,
                 approximateFix = uiState.approximateFix,

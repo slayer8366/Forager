@@ -63,8 +63,11 @@ internal fun CompactMapMapSlot(
     val waypoints = recording.waypoints
     val isNavigating = navigation.isNavigating
     val navigationTarget = navigation.navigationTarget
-    val routeLine = navigation.routeLine
-    val waypointStraightLine = navigation.waypointStraightLine
+    // Step 6 PR 3 (dispatch 2026-10-26-11): navigating to a waypoint, its way along trails, when there is one, is drawn
+    // in place of the straight dashed line, in the same frame, so the swap leaves no blank frame (WaypointRouteShown).
+    val waypointTrailLine = if (navigation.isNavigatingToWaypoint) uiState.waypointRoute?.line else null
+    val routeLine = waypointTrailLine ?: navigation.routeLine
+    val waypointStraightLine = navigation.waypointStraightLine.takeIf { waypointTrailLine == null }
     val navigationFollowing = navigation.navigationFollowing
     val navigationViewRequestId = navigation.navigationViewRequestId
     val navigationZoomPending = navigation.navigationZoomPending

@@ -54,18 +54,14 @@ sealed interface TrailRouteFailure {
      *
      * [squareHasNoFile] says the end's five-degree square has no route file at all, ordinarily a square the route
      * build lacked, rather than the engine finding no way within reach (dispatch 2026-10-26-10 Amendment 2, RECORD
-     * -1667: the way to a waypoint says "No trail routes here" for it). It is declared in the body, so it is not part of
-     * [equals]: every reader that does not ask for it, the way home's trail-join scan and its notes among them, sees the
-     * same failure as before, which is the point (the owner: the way home's scan and notes unchanged).
+     * -1667: the way to a waypoint says "No trail routes here" for it). A primary-constructor field since step 6 PR 3
+     * (dispatch 2026-10-26-11; Sorrel's S-412R-1, the owner: "safer design in PR 3"), so equality, `copy` and
+     * `toString` carry it and no later copy, log or comparison can drop it silently. It was declared in the body
+     * before, outside all four. Every reader that does not ask for it reads the failure as before: the way home's
+     * trail-join scan tests only [end], and its notes map every [EndOutsideData] alike (`TrailJoins`,
+     * `FindWayHomeUseCase.failedOn`), so the way home is unchanged.
      */
-    data class EndOutsideData(val end: RouteEnd) : TrailRouteFailure {
-        var squareHasNoFile: Boolean = false
-            private set
-
-        constructor(end: RouteEnd, squareHasNoFile: Boolean) : this(end) {
-            this.squareHasNoFile = squareHasNoFile
-        }
-    }
+    data class EndOutsideData(val end: RouteEnd, val squareHasNoFile: Boolean = false) : TrailRouteFailure
 
     /** Both ends are on trails in the data, and no path joins them. */
     data class NoPath(val detail: String) : TrailRouteFailure

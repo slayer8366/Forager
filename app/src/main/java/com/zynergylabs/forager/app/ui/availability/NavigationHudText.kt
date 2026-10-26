@@ -73,5 +73,12 @@ internal const val LEAVES_AREA_SHORT_TEXT = "Route leaves your downloaded area"
 internal fun wayHomeNoteShortText(note: WayHomeNote): String =
     if (note == WayHomeNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_HOME_NOTE_TAIL)
 
-/** STUB for the fail-first commit (dispatch 2026-10-26-11). */
-internal fun wayToWaypointNoteShortText(note: WayToWaypointNote): String = note.text
+/** The way to a waypoint's notes' shared tail, dropped in their short forms (step 6 PR 3; RECORD -1652 Q4: "short forms drop the tail"). */
+private const val WAY_TO_WAYPOINT_NOTE_TAIL = " · straight line"
+
+/**
+ * A way-to-waypoint note where the whole one does not fit (step 6 PR 3, dispatch 2026-10-26-11): the note without its
+ * tail, or, for the leaves-area note, the way home's short form, which RECORD -1665 keeps as it is.
+ */
+internal fun wayToWaypointNoteShortText(note: WayToWaypointNote): String =
+    if (note == WayToWaypointNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_TO_WAYPOINT_NOTE_TAIL)

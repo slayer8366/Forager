@@ -83,10 +83,10 @@ internal fun navigationReadout(
     // itself with no route given. A route that is pending or withheld has nothing to aim at, so
     // there is no needle (decision D5: never a straight line standing in for the route).
     val aim = when (route) {
-        null -> there
+        // Step 6 PR 3: no trail route to a waypoint is today's straight line, aimed at the waypoint as with no route.
+        null, is ReturnRoute.Straight -> there
         is ReturnRoute.Ahead -> route.lookahead
         ReturnRoute.Pending, is ReturnRoute.Unavailable -> null
-        is ReturnRoute.Straight -> null // STUB for the fail-first commit
     }
     val bearing = aim?.let { GeoDistance.initialBearingDegrees(here, it) }
     val distanceMeters = GeoDistance.metersBetween(here, there)
@@ -110,7 +110,7 @@ internal fun navigationReadout(
         // and the map's ring read the one rule and agree. There is no arrival flag: until -502 this
         // branch was gated on a route being given.
         arrivedAtStart(liveFix, target, nowEpochMillis) -> ARRIVED_TEXT
-        route == null -> straightLineText
+        route == null || route is ReturnRoute.Straight -> straightLineText
         route is ReturnRoute.Ahead -> formatDistanceMeters(route.routeMeters, distanceUnit)
         route is ReturnRoute.Unavailable -> ROUTE_UNAVAILABLE_TEXT
         else -> "—"
@@ -120,7 +120,7 @@ internal fun navigationReadout(
     val insideFixCircle = liveFix.accuracyMeters?.let { distanceMeters <= it } == true
     val distanceKind = when {
         freshness == FixFreshness.LOST || arrived -> null
-        route == null -> DistanceKind.STRAIGHT.takeIf { !insideFixCircle }
+        route == null || route is ReturnRoute.Straight -> DistanceKind.STRAIGHT.takeIf { !insideFixCircle }
         route is ReturnRoute.Ahead -> DistanceKind.BY_TRAIL
         else -> null
     }
@@ -182,6 +182,8 @@ internal fun navigationReadout(
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
             // Dispatch 2026-10-24-10: why the way home is the walker's track, where the line is empty otherwise.
             route is ReturnRoute.Ahead && route.note != null -> route.note.text
+            // Step 6 PR 3 (RECORD -1652 Q4): why the way to a waypoint is the straight line.
+            route is ReturnRoute.Straight -> route.note.text
             else -> ""
         }
     }
@@ -196,6 +198,7 @@ internal fun navigationReadout(
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> listOf(straightLineText, "")
             // The note's short form, and no empty form: a note is never dropped silently.
             route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
+            route is ReturnRoute.Straight -> listOf(wayToWaypointNoteShortText(route.note))
             else -> emptyList()
         }
     }
