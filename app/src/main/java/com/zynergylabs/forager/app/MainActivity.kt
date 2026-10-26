@@ -671,8 +671,8 @@ class MainActivity : ComponentActivity() {
                             if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                         },
                         navigationTarget = trackUiState.originWaypoint,
-                        returnRoute = returnRouteOf(trackUiState.routeHome, trackUiState.wayHomeNote),
-                        routeLine = trackUiState.routeLine,
+                        returnRoute = returnRouteOf(trackUiState.routeHome, trackUiState.wayHomeNote, trackUiState.wayHomeOffTrail),
+                        routeLine = trackUiState.routeLineShown,
                         onRetryRoute = trackRecordingViewModel::retryRoute,
                         // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
                         onNavigateToWaypoint = viewModel::onNavigateToWaypoint,

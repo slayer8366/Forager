@@ -37,6 +37,21 @@ data class WayHome(
 
     /** The length of [line]: the three parts' metres, summed. */
     val totalMeters: Double get() = trackBack.meters + trail.meters + trackToStart.meters
+
+    /**
+     * The engine's trail route alone: [trail] without its two straight joints (dispatch 2026-10-26-13 Amendment 2;
+     * RECORD -1683, the owner: "The trail itself (Recommended)"), what the quiet off-trail state counts as on the trail.
+     * Measured against the joints too, "on" reached up to [WAY_HOME_TRAIL_JOIN_METERS] further out along the track the
+     * walker left by, and a re-route mid-stray put that joint out on the stray (Hazel's S22 check of #415, step 3).
+     *
+     * Told apart from data the line carries, no new figure: [FindWayHomeUseCase] makes [trail] as the leave point, the
+     * engine's route, then the entry point, so the joints are its first and last segments; and [trailJointMeters] is
+     * their length. Zero means there are none to drop: the way to a waypoint has its straight legs as parts of their
+     * own (`FindWayToWaypointUseCase`, `trailJointMeters = 0.0`), and a way home whose joints are both zero long has its
+     * end points on the route already, so the whole part is the same line.
+     */
+    val trailRoute: List<LatLng>
+        get() = if (trailJointMeters > 0.0) trail.points.drop(1).dropLast(1) else trail.points
 }
 
 /** One part of a [WayHome]: its [kind], its line in walking order, and its length. */

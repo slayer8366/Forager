@@ -23,9 +23,16 @@ import kotlinx.coroutines.launch
 /**
  * What [WayHomeWatch] shows for [trackId]: the way home of [generation], or `null` [result] while the first one of a
  * return is still being worked out (the track is shown meanwhile, "as today"). [line] is [result]'s line when it is
- * along trails.
+ * along trails. [offTrail] is the quiet off-trail state along [line] (plan step 7 PR 3; RECORD -1631), [OffTrailState.ON]
+ * with no line.
  */
-data class WayHomeShown(val trackId: String, val generation: Long, val result: WayHomeResult?, val line: WayHomeLine? = null)
+data class WayHomeShown(
+    val trackId: String,
+    val generation: Long,
+    val result: WayHomeResult?,
+    val line: WayHomeLine? = null,
+    val offTrail: OffTrailState = OffTrailState.ON,
+)
 
 /**
  * The way home along trails for the recording being returned on (dispatch 2026-10-24-10 Amendment 1, PR B; RECORD
@@ -59,6 +66,14 @@ data class WayHomeShown(val trackId: String, val generation: Long, val result: W
  * within [WAY_HOME_STRAY_REARM_METERS] of the line shown); and a re-route that falls back to the track ends re-routing
  * for the return. A stray that starts nothing is logged once.
  *
+ * ## Off the trail, quietly (dispatch 2026-10-26-13, plan step 7 PR 3; RECORD -1631, -1676)
+ *
+ * Each fix that passes the gates in [onFix] also goes to [WayHomeOffTrail], against the line's trail route without its
+ * straight joints ([WayHome.trailRoute]; Amendment 2, RECORD -1683) and its track from the trailhead to the start; [WayHomeShown.offTrail] is republished only when the state changes, a few times a
+ * stray, never once a fix (`WayHomeOnCourse.kt`'s reason for keeping the place off [shown]). The state carries across a
+ * re-route, so a walker more than 50 m off stays in it ("still quiet"), and ends with the trail: a re-route that falls
+ * back to the track, a second Return, Stop. Nothing here alerts.
+ *
  * ## Threads
  *
  * [onFix] comes from the service's collector, [find] and [stop] from the main thread, the job's end from [scope].
@@ -90,6 +105,7 @@ class WayHomeWatch(
     private var reroutingEnded = false
     private var loggedWhy: String? = null
     private val keptPoints = WayHomeKeptPoints()
+    private val offTrail = WayHomeOffTrail()
 
     /**
      * The walker tapped Return on [trackId], with [origin] its start marker: the track is shown, and the way home is
@@ -151,6 +167,9 @@ class WayHomeWatch(
             errorLog.w(TAG, "The walker is over the far band from the way home; sundown reads the track until they are back on it.", WayHomeFallback("off the line"))
         }
         progress = next
+        val wayHome = line.wayHome
+        val state = offTrail.next(point, provider, listOf(wayHome.trailRoute, wayHome.trackToStart.points))
+        if (state != shownNow.offTrail) _shown.value = shownNow.copy(offTrail = state)
         judgeStray(id, line.metersFrom(current))
     }
 
@@ -206,7 +225,9 @@ class WayHomeWatch(
                 // within the re-arm figure of the line shown: once per stray.
                 progress = null
                 lastPlace = null
-                _shown.value = WayHomeShown(id, mine, result, line)
+                // Step 7 PR 3: the off-trail state carries onto a re-routed line, and ends with a fallback to the track.
+                if (line == null) offTrail.reset()
+                _shown.value = WayHomeShown(id, mine, result, line, offTrail.state)
             }
         }
     }
@@ -230,6 +251,7 @@ class WayHomeWatch(
         lastPlace = null
         armed = true
         loggedWhy = null
+        offTrail.reset()
     }
 
     /** Call with [lock] held. */
