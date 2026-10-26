@@ -80,6 +80,13 @@ internal object RouteHomeIds {
     const val PART_TRACK = "track"
     const val PART_TRAIL = "trail"
     const val PART_STRAIGHT = "straight"
+
+    /**
+     * Carried by every feature of a line ahead drawn grey ([RouteLine.aheadIsOffline], dispatch 2026-10-26-11 Amendment 2,
+     * item 1): the line ahead's layers take the passed line's grey for it, as the straight line kept once location is lost
+     * does. Absent on every other line, so the way home is drawn as before.
+     */
+    const val OFFLINE_PROPERTY = "offline"
     const val ARRIVED_SOURCE = "route-home-arrived"
     const val ARRIVED_LAYER = "route-home-arrived-layer"
     const val ARRIVED_IMAGE = "route-home-arrived-image"

@@ -11,6 +11,7 @@ import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.routing.TrailRouteFailure
 import com.zynergylabs.forager.app.domain.wayhome.Ground
 import com.zynergylabs.forager.app.domain.wayhome.Ground.at
 import com.zynergylabs.forager.app.domain.wayto.FakeEngines
@@ -184,6 +185,33 @@ class AvailabilityViewModelWaypointRetryTest {
             runCurrent()
         }
         assertEquals(1, searches.size)
+    }
+
+    /**
+     * Amendment 2, item 3 (RECORD -1670, the owner: "Every 50 m walked (Recommended)"): inside the area, a straight result
+     * walking can change (here the engine finding no path) tries again after each 50 m walked from the last ask, without
+     * restarting Navigate; a search per fix never.
+     */
+    @Test
+    fun `inside the area, no route found tries again after walking on more than 50 m, and the route found replaces it`() = runTest(dispatcher) {
+        val vm = viewModel(there, area)
+        vm.onEnteredForeground()
+        fixes.emit(fixAt(at(0.0, 40.0)))
+        runCurrent()
+        router.failWith = TrailRouteFailure.NoPath("no path")
+        vm.onNavigateToWaypoint("wp-1")
+        runCurrent()
+        assertEquals(ReturnRoute.Straight(WayToWaypointNote.NO_ROUTE_FOUND), vm.hud())
+
+        fixes.emit(fixAt(at(49.0, 40.0))) // 49 m on
+        runCurrent()
+        assertEquals("49 m on: no search", 1, searches.size)
+
+        router.failWith = null
+        fixes.emit(fixAt(at(51.0, 40.0))) // 51 m on
+        runCurrent()
+        assertEquals("51 m on: one search, from there", listOf(at(0.0, 40.0), at(51.0, 40.0)), searches)
+        assertTrue("by trail, not ${vm.hud()}", vm.hud() is ReturnRoute.Ahead)
     }
 
     /** The one repository the ViewModel's list and the use case both read; [list] changes as a download would. */

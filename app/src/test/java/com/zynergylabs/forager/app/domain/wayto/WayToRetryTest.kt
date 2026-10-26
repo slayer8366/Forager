@@ -40,12 +40,47 @@ class WayToRetryTest {
         assertTrue(r.judge(inside, listOf(area)))
     }
 
+    /**
+     * Until Amendment 2 this case used NO_ROUTE_FOUND, which item 3 (RECORD -1670, "Every 50 m walked (Recommended)") now
+     * retries every 50 m walked; the claim it pins, that walking into the area fires once and walking on inside does not,
+     * is kept for a note walking cannot change.
+     */
     @Test
-    fun `a search made inside the area does not try again while the walker stays inside`() {
+    fun `a search made inside the area does not try again while the walker stays inside, for a note walking cannot change`() {
         // The area held both ends when this search ran and it still came back straight: walking on inside changes nothing.
-        val r = retry(WayToWaypointNote.NO_ROUTE_FOUND, from = inside)
+        val r = retry(WayToWaypointNote.ROUTES_UNREADABLE, from = inside)
         assertFalse(r.judge(at(100.0, 40.0), listOf(area)))
         assertFalse(r.judge(at(200.0, 40.0), listOf(area)))
+    }
+
+    /**
+     * Dispatch 2026-10-26-11 Amendment 2, item 3 (RECORD -1670, the owner: "Every 50 m walked (Recommended)"): while a
+     * straight result shows, the notes walking can change try again after each 50 m walked from where the search was
+     * asked, the stray figure, as WALKER_FAR_FROM_TRAIL already did.
+     */
+    @Test
+    fun `each note walking can change tries again after walking on more than 50 m from where it was asked (49 m no, 51 m yes)`() {
+        val walkingCanChange = listOf(
+            WayToWaypointNote.LEAVES_AREA,
+            WayToWaypointNote.NO_ROUTE_FOUND,
+            WayToWaypointNote.NO_TRAIL_ROUTES,
+            WayToWaypointNote.WALKER_FAR_FROM_TRAIL,
+            WayToWaypointNote.WAYPOINT_IN_ANOTHER_AREA,
+        )
+        for (note in walkingCanChange) {
+            assertFalse("$note: 49 m on", retry(note, from = inside).judge(at(49.0, 40.0), listOf(area)))
+            assertTrue("$note: 51 m on", retry(note, from = inside).judge(at(51.0, 40.0), listOf(area)))
+        }
+    }
+
+    /** Item 3's other half: walking cannot change these, so they wait for the area trigger alone, however far the walker goes. */
+    @Test
+    fun `the notes walking cannot change do not try again on walking on`() {
+        for (note in listOf(WayToWaypointNote.WAYPOINT_FAR_FROM_TRAIL, WayToWaypointNote.ROUTES_UNREADABLE, WayToWaypointNote.ROUTES_NEED_APP_UPDATE)) {
+            val r = retry(note, from = inside)
+            assertFalse("$note: 300 m east", r.judge(at(300.0, 40.0), listOf(area)))
+            assertFalse("$note: 300 m west", r.judge(at(-300.0, 40.0), listOf(area)))
+        }
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.domain.RouteLinePart
 import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.model.LatLng
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.maplibre.geojson.LineString
@@ -60,5 +61,37 @@ class RouteHomeWayHomeLayersTest {
         val line = RouteLine(atReturn = emptyList(), ahead = listOf(a, b, c, d), aheadIsCurrent = true, aheadParts = waypointParts)
         val features = routeHomeFeatureCollections(RouteOnMap(line, arrivedAt = null)).getValue(RouteHomeIds.AHEAD_SOURCE).features()!!
         assertEquals(listOf(RouteHomeIds.PART_STRAIGHT, RouteHomeIds.PART_TRAIL, RouteHomeIds.PART_STRAIGHT), features.map { it.getStringProperty(RouteHomeIds.PART_PROPERTY) })
+    }
+
+    /**
+     * Dispatch 2026-10-26-11 Amendment 2, item 1 (RECORD -1670, the owner: "Fade and grey too (Recommended)"; Sorrel's
+     * S-413-1): the way to a waypoint's line fades on a stale fix as the straight line does (the same faded opacity), and
+     * once location is lost every part of it is marked grey, at full opacity, as the straight line kept then is drawn by
+     * its grey layer. The way home's lines never carry the mark. How MapLibre draws the grey is device-only.
+     */
+    @Test
+    fun `the way to a waypoint's line fades on a stale fix and is marked grey, at full opacity, once location is lost`() {
+        val waypointParts = listOf(
+            RouteLinePart(RouteLinePartKind.STRAIGHT, listOf(a, b)),
+            RouteLinePart(RouteLinePartKind.TRAIL, listOf(b, c)),
+            RouteLinePart(RouteLinePartKind.STRAIGHT, listOf(c, d)),
+        )
+        val lost = RouteLine(atReturn = emptyList(), ahead = listOf(a, b, c, d), aheadIsCurrent = false, aheadParts = waypointParts, aheadIsOffline = true)
+        val greyed = routeHomeFeatureCollections(RouteOnMap(lost, arrivedAt = null)).getValue(RouteHomeIds.AHEAD_SOURCE).features()!!
+        assertEquals("every part marked grey", listOf(true, true, true), greyed.map { it.hasNonNullValueForProperty(RouteHomeIds.OFFLINE_PROPERTY) })
+        assertEquals("grey at full opacity, as the straight line's grey layer", 1f, routeAheadOpacity(RouteOnMap(lost, arrivedAt = null)))
+
+        val stale = lost.copy(aheadIsOffline = false)
+        val faded = routeHomeFeatureCollections(RouteOnMap(stale, arrivedAt = null)).getValue(RouteHomeIds.AHEAD_SOURCE).features()!!
+        assertFalse("a stale fix: not grey", faded.any { it.hasProperty(RouteHomeIds.OFFLINE_PROPERTY) })
+        assertEquals("a stale fix: faded, as the straight line", ROUTE_AHEAD_FADED_OPACITY, routeAheadOpacity(RouteOnMap(stale, arrivedAt = null)))
+
+        val wayHome = RouteLine(atReturn = listOf(a, b, c, d), ahead = listOf(a, b, c, d), aheadIsCurrent = false, aheadParts = parts)
+        val track = RouteLine(atReturn = listOf(a, b, c), ahead = listOf(a, b, c), aheadIsCurrent = false)
+        for (line in listOf(wayHome, track)) {
+            val features = routeHomeFeatureCollections(RouteOnMap(line, arrivedAt = null)).getValue(RouteHomeIds.AHEAD_SOURCE).features()!!
+            assertFalse("the way home is never grey", features.any { it.hasProperty(RouteHomeIds.OFFLINE_PROPERTY) })
+            assertEquals("the way home's withheld line is faded, as before", ROUTE_AHEAD_FADED_OPACITY, routeAheadOpacity(RouteOnMap(line, arrivedAt = null)))
+        }
     }
 }
