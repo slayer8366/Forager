@@ -82,6 +82,8 @@ internal fun MapBubbleLayer(
     val resolved: ShownBubble? = tapped?.let { thing ->
         when (val target = thing.target) {
             is MapBubbleTarget.SightingTarget -> ShownBubble(thing, content = null)
+            // Step 8c: an official-trails band's bubble is its own record's two lines, never a lookup.
+            is MapBubbleTarget.ReferenceTrailTarget -> null
             is MapBubbleTarget.FeatureTarget -> {
                 val content: MapBubbleContent? = if (target.kind == MapBubbleKind.FORECAST_CELL) {
                     when (val cell = rememberForecastCell(target, forecast).value) {
@@ -130,7 +132,7 @@ internal fun MapBubbleLayer(
                     )
                 }
 
-                is MapBubbleTarget.FeatureTarget -> bubble.content?.let { content ->
+                is MapBubbleTarget.FeatureTarget, is MapBubbleTarget.ReferenceTrailTarget -> bubble.content?.let { content ->
                     AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight) { tip ->
                         MapFeatureBubble(
                             content = content,

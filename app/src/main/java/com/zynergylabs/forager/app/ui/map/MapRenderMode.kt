@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.time.LocalDate
@@ -324,6 +325,10 @@ data class MapForecastFeed(
  * coordinates, as `onSightingTap`'s is; [bearingDeg] is the camera's bearing; [at] is the tapped
  * map position. For a point feature re-anchored at a camera idle ([MapOverlayContent.focusedFeature]),
  * [screenPoint] and [at] are the glyph's own.
+ *
+ * [referenceTrail] (step 8c, dispatch 2026-10-26-16): set for a tap on an official-trails band, whose feature names no
+ * app record, so the bubble is read from the feature itself; [featureId] is then empty and never looked up
+ * ([tappedThingOf] reads [referenceTrail] first; build one with [forReferenceTrail]). `null` for every other tap.
  */
 data class MapFeatureTap(
     val layerId: String,
@@ -331,4 +336,11 @@ data class MapFeatureTap(
     val screenPoint: Offset,
     val bearingDeg: Float,
     val at: LatLng,
-)
+    val referenceTrail: ReferenceTrailRecord? = null,
+) {
+    companion object {
+        /** A tap on an official-trails band on [layerId], read as [record]. */
+        fun forReferenceTrail(layerId: String, record: ReferenceTrailRecord, screenPoint: Offset, bearingDeg: Float, at: LatLng) =
+            MapFeatureTap(layerId, featureId = "", screenPoint = screenPoint, bearingDeg = bearingDeg, at = at, referenceTrail = record)
+    }
+}

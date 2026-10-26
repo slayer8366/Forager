@@ -1,10 +1,12 @@
 package com.zynergylabs.forager.app.ui.map.fanout
 
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerSpec
 import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
+import com.zynergylabs.forager.app.ui.map.layers.referenceAgencyOf
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 
@@ -32,13 +34,19 @@ interface MapProbe {
 
 /**
  * Where a tap goes once decided: the four outcomes the click listener always had ([MapTapOutcome]),
- * with the tap's position in px. The host turns each into its own callback.
+ * and since step 8c a tap on an official-trails band, with the tap's position in px. The host turns each into its own callback.
  */
 interface MapTapSinks {
     fun onPlainTap()
     fun onSightingTap(observationId: Long?, xPx: Float, yPx: Float)
     fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng)
     fun onUnidentifiedFeature(layerId: String)
+
+    /**
+     * Step 8c (dispatch 2026-10-26-16): a tap on an official-trails band, [record] read from the tapped feature itself. It
+     * wins only where no marker or app line does ([resolveTap]: the bands are lines drawn below every app line).
+     */
+    fun onReferenceTrailTap(layerId: String, record: ReferenceTrailRecord, xPx: Float, yPx: Float, at: LatLng)
 
     /** A tap on a stack closes the bubble that is showing (dispatch 2026-09-28-387, Part A). Not the plain tap: that one also leaves fullscreen. */
     fun onCloseBubble()
@@ -90,6 +98,10 @@ class MapTapHandler(
         }
 
         val order = drawOrder()
+        // Step 8c: an official-trails band is asked about only while it is drawn. Until a style that carries the band has
+        // loaded (Trail Map v2 today, Topographical, OSM), 8b's drawn state has it off, so the band's ids are never sent to
+        // the map's query and no tap can reach a band on a style without one (dispatch 2026-10-26-16: "On v2 ... nothing
+        // is tappable").
         val tappable = tappableLayerIds(order)
         val winner = resolveTap(
             pointHits = probe.hitsAt(xPx, yPx, tappable),
@@ -230,6 +242,7 @@ class MapTapHandler(
             is MapTapOutcome.UnidentifiedFeature -> {
                 sinks.onUnidentifiedFeature(outcome.layerId)
             }
+            is MapTapOutcome.OnReferenceTrail -> sinks.onReferenceTrailTap(outcome.layerId, outcome.record, xPx, yPx, at)
             MapTapOutcome.Plain -> sinks.onPlainTap()
         }
     }

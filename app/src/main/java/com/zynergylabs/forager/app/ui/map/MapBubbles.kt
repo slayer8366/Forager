@@ -22,6 +22,7 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackDecision
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
@@ -96,10 +97,17 @@ sealed interface MapBubbleTarget {
 
     /** A record or a cell, by the layer it was tapped on and its feature id; [at] is the tapped map position. */
     data class FeatureTarget(val kind: MapBubbleKind, val layerId: String, val featureId: String, val at: LatLng) : MapBubbleTarget
+
+    /**
+     * Step 8c (dispatch 2026-10-26-16): an official-trails band, tapped on [layerId] at [at]. It names no app record, so
+     * it carries what its bubble reads ([record], from the feature itself); like a line, its bubble keeps the tap point.
+     */
+    data class ReferenceTrailTarget(val layerId: String, val record: ReferenceTrailRecord, val at: LatLng) : MapBubbleTarget
 }
 
 /** The [TappedMapThing] a feature tap makes, or `null` for a layer no bubble is built for. */
 fun tappedThingOf(tap: MapFeatureTap): TappedMapThing? {
+    // Step 8c: a band's tap carries its record; its empty feature id is never looked up.
     val kind = mapBubbleKindOf(tap.layerId) ?: return null
     return TappedMapThing(MapBubbleTarget.FeatureTarget(kind, tap.layerId, tap.featureId, tap.at), tap.screenPoint, tap.bearingDeg)
 }
@@ -250,7 +258,18 @@ sealed interface MapBubbleContent {
         val dates: String,
         val referenceClass: String,
     ) : MapBubbleContent
+
+    /**
+     * An official-trails band (step 8c; RECORD -1680, -1681): [title] says whose trail it is, "Forest Service trail 017 ·
+     * Three Blaze" or "BLM trail · Badlands Rock", and [note] that routes follow the trail map, not this layer. No action:
+     * the record is the agency's, with nothing in the app to open.
+     */
+    data class ReferenceTrail(val title: String, val note: String) : MapBubbleContent
 }
+
+/** [record]'s bubble: its two lines, as [ReferenceTrailRecord] writes them. */
+fun referenceTrailBubble(record: ReferenceTrailRecord): MapBubbleContent.ReferenceTrail =
+    MapBubbleContent.ReferenceTrail(title = "", note = "")
 
 /**
  * What [target]'s bubble says, looked up by its feature id in [sources]; `null` when the record is
