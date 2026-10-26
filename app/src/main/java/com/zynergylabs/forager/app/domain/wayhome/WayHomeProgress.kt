@@ -33,7 +33,12 @@ class WayHomeLine(val wayHome: WayHome) {
         val kindOf = ArrayList<RouteLinePartKind>()
         var total = 0.0
         for (part in listOf(wayHome.trackBack, wayHome.trail, wayHome.trackToStart)) {
-            val kind = if (part.kind == WayHomePartKind.TRAIL) RouteLinePartKind.TRAIL else RouteLinePartKind.TRACK
+            val kind = when (part.kind) {
+                WayHomePartKind.TRAIL -> RouteLinePartKind.TRAIL
+                // The way to a waypoint's straight legs (dispatch 2026-10-26-10): not the walker's track, so never dotted.
+                WayHomePartKind.STRAIGHT -> RouteLinePartKind.STRAIGHT
+                WayHomePartKind.TRACK_BACK, WayHomePartKind.TRACK_TO_START -> RouteLinePartKind.TRACK
+            }
             val geometric = part.points.zipWithNext { a, b -> GeoDistance.metersBetween(a, b) }
             val sum = geometric.sum()
             val scale = if (sum > 0.0) part.meters / sum else 0.0
