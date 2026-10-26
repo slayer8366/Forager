@@ -22,6 +22,9 @@ fun referenceAgencyOf(layerId: String): ReferenceAgency? = when (layerId) {
     else -> null
 }
 
+/** STUB (tests first): the layers whose line under the finger stops a band from taking the tap. */
+internal val REFERENCE_TRAIL_BLOCKER_LAYER_IDS: List<String> = emptyList()
+
 /**
  * The side of the square box, in dp, that a tap queries when nothing lies exactly under the tap
  * point (owner's ruling 4 on 2026-09-27-30: a finger-sized box, so thin lines are hittable).

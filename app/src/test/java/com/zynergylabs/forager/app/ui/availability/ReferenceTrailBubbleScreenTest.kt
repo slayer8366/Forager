@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.RouteHomeIds
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.fanout.MapProbe
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
@@ -86,12 +87,28 @@ class ReferenceTrailBubbleScreenTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    /** One horizontal band across the map, [halfWidthPx] each side of [yPx], on [layerId], carrying [attributes]. */
-    private class BandProbe(override val density: Float, val layerId: String, val yPx: Float, val halfWidthPx: Float, val attributes: Map<String, String>) : MapProbe {
+    /** A vertical line down the map, [halfWidthPx] each side of [xPx], on [layerId]: the way home or the recording trail (Amendment 2). */
+    private data class Crossing(val layerId: String, val xPx: Float, val halfWidthPx: Float)
+
+    /**
+     * One horizontal band across the map, [halfWidthPx] each side of [yPx], on [layerId], carrying [attributes]; and, when
+     * [crossing] is set, a line crossing it at right angles, which the map returns for its own layer id as it would any other.
+     */
+    private class BandProbe(
+        override val density: Float,
+        val layerId: String,
+        val yPx: Float,
+        val halfWidthPx: Float,
+        val attributes: Map<String, String>,
+        val crossing: Crossing? = null,
+    ) : MapProbe {
         override fun hitsAt(xPx: Float, yPx: Float, layerIds: List<String>): List<TapHit> = hitsInBox(xPx, yPx, 0f, layerIds)
 
-        override fun hitsInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<TapHit> =
-            if (layerId in layerIds && abs(this.yPx - yPx) <= halfWidthPx + halfPx) listOf(TapHit(layerId, null, attributes)) else emptyList()
+        override fun hitsInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<TapHit> {
+            val band = if (layerId in layerIds && abs(this.yPx - yPx) <= halfWidthPx + halfPx) listOf(TapHit(layerId, null, attributes)) else emptyList()
+            val line = crossing?.takeIf { it.layerId in layerIds && abs(it.xPx - xPx) <= it.halfWidthPx + halfPx }?.let { TapHit(it.layerId, null) }
+            return band + listOfNotNull(line)
+        }
 
         override fun markersInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<ProbedMarker> = emptyList()
 
@@ -100,6 +117,9 @@ class ReferenceTrailBubbleScreenTest {
 
     private var bandLayer = MapLayerIds.REFERENCE_FS_BAND
     private var bandAttributes = mapOf("trail_no" to "017", "trail_name" to "Three Blaze")
+
+    /** The line crossing the band, in dp, set before [setScreen]; none by default. */
+    private var crossingLayer: String? = null
 
     private val slot: MapSlot = { _, content, renderMode, _, _, onTap, _, _, modifier ->
         val density = LocalDensity.current.density
@@ -111,7 +131,10 @@ class ReferenceTrailBubbleScreenTest {
         val handler = remember {
             MapTapHandler(
                 fan = MarkerFanOutState(),
-                probe = BandProbe(density, bandLayer, BAND_Y * density, BAND_HALF_DP * density, bandAttributes),
+                probe = BandProbe(
+                    density, bandLayer, BAND_Y * density, BAND_HALF_DP * density, bandAttributes,
+                    crossingLayer?.let { Crossing(it, SPOT_X * density, CROSSING_HALF_DP * density) },
+                ),
                 drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT) },
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = currentOnTap()
@@ -218,11 +241,51 @@ class ReferenceTrailBubbleScreenTest {
         assertLine(MAP_BUBBLE_REFERENCE_TITLE_TAG, "Forest Service trail 017")
     }
 
+    /**
+     * Amendment 2 (RECORD -1688, the owner: "Nothing (Recommended)"): real touches at several points across the crossing of
+     * [layer] and the band open nothing, and touches on the band beside the crossing, clear of the line, open the band's
+     * bubble as before. Each touch beside is the control that the touches reach the handler.
+     */
+    private fun assertCrossingStopsTheBand(layer: String) {
+        crossingLayer = layer
+        setScreen()
+        val acrossBand = listOf(-BAND_HALF_DP + 1f, 0f, BAND_HALF_DP - 1f)
+        val acrossLine = listOf(-CROSSING_HALF_DP + 0.5f, 0f, CROSSING_HALF_DP - 0.5f)
+        for (dx in acrossLine) {
+            for (dy in acrossBand) {
+                touchMap(SPOT_X + dx, BAND_Y + dy)
+                assertFalse("$layer under the touch at (${SPOT_X + dx}, ${BAND_Y + dy}) kept the band's bubble shut", bubbleShown())
+            }
+        }
+        // Beside the crossing: near (in the finger's reach of the line, the band exactly under it) and far.
+        for (x in listOf(SPOT_X + 15f, SPOT_X - 15f, SPOT_X + 60f)) {
+            for (dy in acrossBand) {
+                touchMap(x, BAND_Y + dy)
+                assertTrue("the touch on the band at ($x, ${BAND_Y + dy}), beside $layer, opened the band's bubble", bubbleShown())
+                assertLine(MAP_BUBBLE_REFERENCE_TITLE_TAG, "Forest Service trail 017 · Three Blaze")
+                back()
+            }
+        }
+    }
+
+    @Test
+    fun `a finger where the way home crosses the band opens nothing, and beside it opens the band's bubble`() {
+        assertCrossingStopsTheBand(RouteHomeIds.AHEAD_LAYER)
+    }
+
+    @Test
+    fun `a finger where the recording trail crosses the band opens nothing, and beside it opens the band's bubble`() {
+        assertCrossingStopsTheBand(MapLayerIds.BREADCRUMB)
+    }
+
     private companion object {
         const val MAP_TAG = "reference-trail-bubble-map"
         const val SPOT_X = 150f
         const val BAND_Y = 420f
         const val BAND_HALF_DP = 5f
         const val ELSEWHERE_Y = 620f
+
+        /** Half the way home's 6 dp line ahead (RouteHomeLayers.kt, ROUTE_AHEAD_WIDTH_DP). */
+        const val CROSSING_HALF_DP = 3f
     }
 }

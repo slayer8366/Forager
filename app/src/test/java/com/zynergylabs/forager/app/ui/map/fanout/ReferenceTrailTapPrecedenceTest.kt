@@ -1,7 +1,9 @@
 package com.zynergylabs.forager.app.ui.map.fanout
 
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.ui.map.RouteHomeIds
 import com.zynergylabs.forager.app.ui.map.withReferenceTrailsHiddenUnlessLoaded
+import com.zynergylabs.forager.app.ui.map.layers.REFERENCE_TRAIL_BLOCKER_LAYER_IDS
 import com.zynergylabs.forager.app.ui.map.layers.LayerState
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
@@ -11,6 +13,7 @@ import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import com.zynergylabs.forager.app.ui.map.layers.referenceAgencyOf
+import java.lang.reflect.Modifier
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -129,6 +132,67 @@ class ReferenceTrailTapPrecedenceTest {
     @Test
     fun `a tap clear of the band, its box included, is a plain tap`() {
         assertEquals(listOf("plain"), tap(LinesProbe(listOf(fsBand)), yPx = BAND_Y + BAND_HALF_PX + 100f))
+    }
+
+    // Amendment 2 (RECORD -1688, the owner: "Nothing (Recommended)"): where the way home or the recording trail is under the
+    // finger, a tap does not open the band's bubble; it is a plain tap as before 8c. Neither line takes a tap itself.
+
+    /** The way home's layers, read from RouteHomeIds itself (every `*_LAYER` id), so a layer added there is held here too. */
+    private val routeHomeLayers: List<String> = RouteHomeIds::class.java.declaredFields
+        .filter { Modifier.isStatic(it.modifiers) && it.type == String::class.java && it.name.endsWith("_LAYER") }
+        .map { it.isAccessible = true; it.get(null) as String }
+
+    /** What stops a band: the way home's layers and the recording trail's two, listed independently of the code's own list. */
+    private val stoppers get() = routeHomeLayers + listOf(MapLayerIds.BREADCRUMB_CASING, MapLayerIds.BREADCRUMB)
+
+    @Test
+    fun `the way home's layers are the eight RouteHomeLayers_kt draws`() {
+        // The count read against RouteHomeLayers.kt's RouteHomeIds (seven lines and the arrival ring), so the reflection above
+        // is shown to have found them rather than an empty list that would pass every loop below.
+        assertEquals(8, routeHomeLayers.size)
+        assertTrue(RouteHomeIds.AHEAD_LAYER in routeHomeLayers && RouteHomeIds.ARRIVED_LAYER in routeHomeLayers)
+    }
+
+    @Test
+    fun `the way home or the recording trail under the finger stops either band from taking the tap`() {
+        for (band in listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND)) {
+            for (stopper in stoppers) {
+                val events = tap(LinesProbe(listOf(Line(band, null, BAND_Y, BAND_HALF_PX, threeBlaze), Line(stopper, null, BAND_Y, 3f))))
+                assertEquals("$stopper over $band", listOf("plain"), events)
+            }
+        }
+    }
+
+    @Test
+    fun `the code's list of what stops a band is exactly the way home's layers and the recording trail`() {
+        assertEquals(stoppers.toSet(), REFERENCE_TRAIL_BLOCKER_LAYER_IDS.toSet())
+    }
+
+    @Test
+    fun `a way home beside the band, not under the finger, leaves the band the tap, as a track beside it would`() {
+        // The band is exactly under the finger and the route only within the finger's box: the point decides, as for any two lines.
+        val route = Line(RouteHomeIds.AHEAD_LAYER, null, BAND_Y + 20f, 3f)
+        assertEquals(listOf("reference:${MapLayerIds.REFERENCE_FS_BAND}:Forest Service trail 017 · Three Blaze"), tap(LinesProbe(listOf(fsBand, route))))
+    }
+
+    @Test
+    fun `a finger off the band with the way home in its reach is a plain tap, not the band's`() {
+        // Neither line is exactly under the finger; both are in its box. The band would win through the box (as it does over
+        // a cell, above); the way home in the same box stops it, as an app line there would win.
+        val route = Line(RouteHomeIds.AHEAD_LAYER, null, BAND_Y + BAND_HALF_PX + 20f, 3f)
+        assertEquals(listOf("plain"), tap(LinesProbe(listOf(fsBand, route)), yPx = BAND_Y + BAND_HALF_PX + 10f))
+        // Control: without the way home, the same finger reaches the band through the box.
+        assertEquals(listOf("reference:${MapLayerIds.REFERENCE_FS_BAND}:Forest Service trail 017 · Three Blaze"), tap(LinesProbe(listOf(fsBand)), yPx = BAND_Y + BAND_HALF_PX + 10f))
+    }
+
+    @Test
+    fun `the way home stops only a band, never a track, a marker or a cell`() {
+        val route = Line(RouteHomeIds.AHEAD_LAYER, null, BAND_Y, 3f)
+        val track = Line(MapLayerIds.KEPT_TRACKS, "track-1", BAND_Y, 3f)
+        assertEquals(listOf("feature:${MapLayerIds.KEPT_TRACKS}:track-1"), tap(LinesProbe(listOf(fsBand, track, route))))
+        assertEquals(listOf("feature:${MapLayerIds.WAYPOINTS}:m-1"), tap(LinesProbe(listOf(fsBand, route), listOf(MapLayerIds.WAYPOINTS to (200f to BAND_Y)))))
+        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.3,-115.0", BAND_Y, 500f)
+        assertEquals(listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.3,-115.0"), tap(LinesProbe(listOf(cell, route))))
     }
 
     private companion object {

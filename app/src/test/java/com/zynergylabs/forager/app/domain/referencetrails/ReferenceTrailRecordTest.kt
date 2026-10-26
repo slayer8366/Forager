@@ -46,6 +46,44 @@ class ReferenceTrailRecordTest {
         assertEquals(ReferenceTrailRecord(ReferenceAgency.BLM, number = null, name = "Badlands Rock"), blm("ROUTE_PRMRY_NM" to "Badlands Rock"))
     }
 
+    /** Amendment 2 (RECORD -1688, the owner: "Normal case (Recommended)"): a name published all in capitals. */
+    @Test
+    fun `a name published entirely in capitals is shown in normal case, for both agencies`() {
+        assertEquals("Forest Service trail 017 · West Leg Nordic", fs("trail_no" to "017", "trail_name" to "WEST LEG NORDIC").firstLine)
+        assertEquals("BLM trail · West Leg Nordic", blm("ROUTE_PRMRY_NM" to "WEST LEG NORDIC").firstLine)
+    }
+
+    @Test
+    fun `a name with any lower-case letter is shown as published`() {
+        assertEquals("Forest Service trail · McDONALD RIDGE", fs("trail_name" to "McDONALD RIDGE").firstLine)
+        assertEquals("Forest Service trail · west leg nordic", fs("trail_name" to "west leg nordic").firstLine)
+        assertEquals("BLM trail · Badlands Rock", blm("ROUTE_PRMRY_NM" to "Badlands Rock").firstLine)
+    }
+
+    /**
+     * The rule's edges, as reported to the planner: plain word capitalisation with no dictionary. A word starts at a letter
+     * that follows anything but a letter, a digit or an apostrophe; it keeps its first letter capital and the rest go lower.
+     */
+    @Test
+    fun `the all-capitals rule is plain word capitalisation, short words, abbreviations and numerals included`() {
+        fun shown(name: String) = fs("trail_name" to name).firstLine.removePrefix("Forest Service trail · ")
+        assertEquals("Trail Of The Cedars", shown("TRAIL OF THE CEDARS"))
+        assertEquals("Nf Loop Ii", shown("NF LOOP II"))
+        assertEquals("Spur 17a", shown("SPUR 17A"))
+        assertEquals("4wd Road", shown("4WD ROAD"))
+        assertEquals("North-Fork (Upper)", shown("NORTH-FORK (UPPER)"))
+        assertEquals("Bob's Cabin", shown("BOB'S CABIN"))
+        assertEquals("Bob’s Cabin", shown("BOB’S CABIN"))
+        assertEquals("Mt. Hood Tie", shown("MT. HOOD TIE"))
+        // A name with no letter at all is not all capitals; it reads as published.
+        assertEquals("Forest Service trail · 1234", fs("trail_name" to "1234").firstLine)
+    }
+
+    @Test
+    fun `the number is never recased, only the name`() {
+        assertEquals("Forest Service trail 017A · Spur", fs("trail_no" to "017A", "trail_name" to "SPUR").firstLine)
+    }
+
     @Test
     fun `the second line is the same for both agencies`() {
         assertEquals(fs().secondLine, blm().secondLine)
