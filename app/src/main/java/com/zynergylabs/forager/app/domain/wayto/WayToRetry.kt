@@ -44,13 +44,22 @@ class WayToRetry(
 ) {
     private var heldBoth = holdsBoth(searchedFrom, regionsAtSearch)
 
+    /**
+     * Where the last search was asked from: [searchedFrom], then each [here] this says to search from, so the 50 m is
+     * counted from the last ask point (Amendment 2, item 3). The ViewModel's collaborator builds a new instance from each
+     * search's own point, so there this only matters to a caller that keeps asking the same instance.
+     */
+    private var lastAsk = searchedFrom
+
     /** Whether to search again from [here], given the region list [regions] as it is now. */
     fun judge(here: LatLng, regions: List<OfflineRegionSummary>): Boolean {
         val holdsNow = holdsBoth(here, regions)
         val walkedIn = holdsNow && !heldBoth
         heldBoth = holdsNow
-        if (walkedIn) return true
-        return note in WALKING_CAN_CHANGE && insideAnArea(here, regions) && GeoDistance.metersBetween(searchedFrom, here) > WAY_HOME_STRAY_METERS
+        val again = walkedIn ||
+            (note in WALKING_CAN_CHANGE && insideAnArea(here, regions) && GeoDistance.metersBetween(lastAsk, here) > WAY_HOME_STRAY_METERS)
+        if (again) lastAsk = here
+        return again
     }
 
     private fun holdsBoth(walker: LatLng, regions: List<OfflineRegionSummary>) =
