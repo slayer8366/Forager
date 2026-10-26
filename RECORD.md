@@ -28279,3 +28279,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #412 re-check (Fable; prompts/preserved/2026-10-26-sorrel-412-recheck.md, branch sorrel-412-recheck, 00aa57876): mergeable, no blocking item; every note row right, S-412-1 closed; the missing-square marker sits outside the data class's equality, so nothing loses it today but a future copy, log or set could lose it silently (S-412R-1); the dispatch's own example (a distinct kind) and its constraint (one router test unchanged) excluded each other, the planner's error; all seven failed runs compiled and bit as predicted; PR run 40298236888 green, 5,613.
 **Decision:** the owner: "Merge now, safer design in PR 3 (Recommended)": #412 merged by the planner at f497427c0 (pre-main c1deeef85); PR 3 makes the marker part of the failure's equality, changing one expected value at BRouterTrailRouterTest.kt:106 (approved). "Start after the merge (Recommended)": dispatch 2026-10-26-11.
 **Notes:** Written by the planner by hand. Next free ID -1669.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1669
+**Timestamp:** 2026-10-26T10:30:54Z
+**Continues:** 2026-09-28-1668
+**Title:** Step 6 PR 3's visible choices: three parts only, straight while re-routing, and the straight fallback tries again (owner)
+**Observed:** #413 (waypoint-route-on-map @ daf529d0a, dispatch 2026-10-26-11): PR run green, 5,634 tests; fail-first run 40304392875 19 of 23 as predicted; seven reverts biting; AvailabilityViewModel.kt 792 lines; MainActivity not touched (the HUD cards and map slot read the route from the UI state). The coder's choices: no grey walked line; the straight HUD and line while more than 50 m off until the re-route returns; a straight-line result never re-tried.
+**Decision:** the owner: "No, three parts only (Recommended)"; "Straight line briefly (Recommended)"; "Try again on entering an area (Recommended)": dispatch 2026-10-26-11 Amendment 1, to a fresh coder; Sorrel reviews #413 after it.
+**Notes:** Written by the planner by hand. Next free ID -1670.
