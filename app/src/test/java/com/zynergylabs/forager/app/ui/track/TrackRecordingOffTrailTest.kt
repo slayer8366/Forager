@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
+import com.zynergylabs.forager.app.domain.shownTrailOf
 import com.zynergylabs.forager.app.domain.wayhome.Ground
 import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLines
@@ -40,7 +41,8 @@ import org.junit.Test
  * collector: the return watch first, the way home last). Asserted on what the screen reads: the HUD's status line
  * (`navigationReadout` of `returnRouteOf`, as `MainActivity` builds it) and the line the map draws
  * ([TrackRecordingUiState.routeLineShown]). And quiet: no alert is delivered on any path. The return watch is begun
- * and given the walk's kept points, as the service does, so its alert is live in this rig: the second test is the
+ * and given the walk's kept points and the way home's shown trail, as the service does (`AppContainer`'s
+ * `wayHomeTrail`; Sorrel's S-415-1), so its alert is live in this rig and judged as there: the second test is the
  * positive control showing the rig sees an alert when there is one (far from both the trail and the track).
  *
  * Every recording is stopped inside the body, in a `finally` ([runRecordingTest]; CLAUDE.md, the stalled-run pitfall).
@@ -65,7 +67,15 @@ class TrackRecordingOffTrailTest {
     private val tracks = WayHomeTestTracks()
     private val tracker = WayHomeTestTracker()
     private val alerts = mutableListOf<Alert>()
-    private val returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), AlertDelivery { alerts += it })
+    /** The way-home watch the rig made, for [returnWatch]'s trail input. */
+    private var wayHome: WayHomeWatch? = null
+
+    /** Given the shown trail as `AppContainer`'s `returnWatch` is, so its alert judges as the service's does (S-415-1). */
+    private val returnWatch = ReturnWatch(
+        ComputeReturnToStartUseCase(),
+        AlertDelivery { alerts += it },
+        wayHomeTrail = { id -> wayHome?.let { shownTrailOf(it, id) } },
+    )
     private val answers = mutableListOf<CompletableDeferred<WayHomeResult>>()
 
     private fun TestScope.wayHomeWatch() = WayHomeWatch(
@@ -74,7 +84,7 @@ class TrackRecordingOffTrailTest {
         findWayHome = { _, _ -> CompletableDeferred<WayHomeResult>().also { answers += it }.await() },
         isReturning = { id -> returnWatch.state.value.let { it.trackId == id && it.isReturning } },
         errorLog = { _, _, _ -> },
-    )
+    ).also { wayHome = it }
 
     private fun point(at: LatLng, i: Int) = TrackPoint(at.lat, at.lng, null, 5f, T + i * 1_000L)
 

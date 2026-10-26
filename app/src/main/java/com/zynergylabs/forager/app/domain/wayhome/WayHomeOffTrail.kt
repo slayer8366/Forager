@@ -39,8 +39,9 @@ const val BACK_ON_TRAIL_SHOW_MILLIS = 5_000L
  * ## The rule, with the off-track alert's figures and no new one but [BACK_ON_TRAIL_SHOW_MILLIS]
  *
  * - **On** is within [OFF_TRACK_LINE_METERS] plus the reading's accuracy of any of the [next] call's `onLines`. The way
- *   home passes its trail part and its track from the trailhead to the start, so walking your own track back to the
- *   car never reads "off trail".
+ *   home passes its trail route, without the straight joints to the walker's track (`WayHome.trailRoute`, Amendment
+ *   2, RECORD -1683), and its track from the trailhead to the start, so walking your own track back to the car never
+ *   reads "off trail".
  * - **Off** is further than that from every one of them for [OFF_TRACK_HOLD_MILLIS], over at least
  *   [OFF_TRACK_MIN_READINGS] counting readings, none back on in between. At Return too: a walker who is off the trail
  *   when they tap it gets the state after the same hold (the report's 8.4, one rule).

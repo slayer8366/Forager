@@ -68,8 +68,8 @@ data class WayHomeShown(
  *
  * ## Off the trail, quietly (dispatch 2026-10-26-13, plan step 7 PR 3; RECORD -1631, -1676)
  *
- * Each fix that passes the gates in [onFix] also goes to [WayHomeOffTrail], against the line's trail part and its track
- * from the trailhead to the start; [WayHomeShown.offTrail] is republished only when the state changes, a few times a
+ * Each fix that passes the gates in [onFix] also goes to [WayHomeOffTrail], against the line's trail route without its
+ * straight joints ([WayHome.trailRoute]; Amendment 2, RECORD -1683) and its track from the trailhead to the start; [WayHomeShown.offTrail] is republished only when the state changes, a few times a
  * stray, never once a fix (`WayHomeOnCourse.kt`'s reason for keeping the place off [shown]). The state carries across a
  * re-route, so a walker more than 50 m off stays in it ("still quiet"), and ends with the trail: a re-route that falls
  * back to the track, a second Return, Stop. Nothing here alerts.
