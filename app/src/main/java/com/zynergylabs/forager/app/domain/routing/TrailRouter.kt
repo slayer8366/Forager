@@ -49,8 +49,23 @@ enum class RouteEnd { START, END }
 
 /** Why there is no route. Each kind is one the caller can tell the walker about differently. */
 sealed interface TrailRouteFailure {
-    /** [end] has no trail near it in the stored data: it lies outside the area the data covers. */
-    data class EndOutsideData(val end: RouteEnd) : TrailRouteFailure
+    /**
+     * [end] has no trail near it in the stored data: it lies outside the area the data covers.
+     *
+     * [squareHasNoFile] says the end's five-degree square has no route file at all, ordinarily a square the route
+     * build lacked, rather than the engine finding no way within reach (dispatch 2026-10-26-10 Amendment 2, RECORD
+     * -1667: the way to a waypoint says "No trail routes here" for it). It is declared in the body, so it is not part of
+     * [equals]: every reader that does not ask for it, the way home's trail-join scan and its notes among them, sees the
+     * same failure as before, which is the point (the owner: the way home's scan and notes unchanged).
+     */
+    data class EndOutsideData(val end: RouteEnd) : TrailRouteFailure {
+        var squareHasNoFile: Boolean = false
+            private set
+
+        constructor(end: RouteEnd, squareHasNoFile: Boolean) : this(end) {
+            this.squareHasNoFile = squareHasNoFile
+        }
+    }
 
     /** Both ends are on trails in the data, and no path joins them. */
     data class NoPath(val detail: String) : TrailRouteFailure

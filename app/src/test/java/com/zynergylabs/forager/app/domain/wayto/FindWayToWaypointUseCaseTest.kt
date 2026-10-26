@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 import com.zynergylabs.forager.app.domain.routedata.RouteDataMissingReason
+import com.zynergylabs.forager.app.domain.routing.RouteEnd
 import com.zynergylabs.forager.app.domain.routing.TrailRouteFailure
 import com.zynergylabs.forager.app.domain.wayhome.FakeRegions
 import com.zynergylabs.forager.app.domain.wayhome.Ground
@@ -198,6 +199,21 @@ class FindWayToWaypointUseCaseTest {
         assertEquals(straight(WayToWaypointNote.ROUTES_UNREADABLE), failing(TrailRouteFailure.DataMissing("gone")))
         assertEquals(straight(WayToWaypointNote.ROUTES_UNREADABLE), failing(TrailRouteFailure.DataCorrupt("checksum")))
         assertEquals(4, logs.size)
+    }
+
+    @Test
+    fun `an end in a square with no route file is "No trail routes here", not far from a trail`() {
+        // Dispatch 2026-10-26-10 Amendment 2, RECORD -1667, the owner: "'No trail routes here' (Recommended)".
+        fun failing(failure: TrailRouteFailure): WayToWaypointResult {
+            router.failWith = failure
+            return find(at(0.0, 40.0), at(500.0, -60.0), Ground.region())
+        }
+
+        assertEquals(straight(WayToWaypointNote.NO_TRAIL_ROUTES), failing(TrailRouteFailure.EndOutsideData(RouteEnd.END, squareHasNoFile = true)))
+        assertEquals(straight(WayToWaypointNote.NO_TRAIL_ROUTES), failing(TrailRouteFailure.EndOutsideData(RouteEnd.START, squareHasNoFile = true)))
+        // The engine's own "position not mapped" keeps its notes.
+        assertEquals(straight(WayToWaypointNote.WAYPOINT_FAR_FROM_TRAIL), failing(TrailRouteFailure.EndOutsideData(RouteEnd.END)))
+        assertEquals(straight(WayToWaypointNote.WALKER_FAR_FROM_TRAIL), failing(TrailRouteFailure.EndOutsideData(RouteEnd.START)))
     }
 
     @Test

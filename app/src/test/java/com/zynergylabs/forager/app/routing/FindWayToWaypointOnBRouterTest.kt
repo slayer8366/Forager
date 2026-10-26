@@ -48,8 +48,8 @@ class FindWayToWaypointOnBRouterTest {
     }
 
     // 20 km round the trail start: the fixture's ways and NO_TRAIL_NEAR, about 14 km north, all inside its rectangle.
-    private fun find(from: LatLng, waypoint: LatLng) = runBlocking {
-        val region = Ground.region(id = 7, centre = ACROSS_FROM, radiusKm = 20, routeData = RegionRouteData.Stored("run", "t", 10L, data))
+    private fun find(from: LatLng, waypoint: LatLng, radiusKm: Int = 20) = runBlocking {
+        val region = Ground.region(id = 7, centre = ACROSS_FROM, radiusKm = radiusKm, routeData = RegionRouteData.Stored("run", "t", 10L, data))
         FindWayToWaypointUseCase(FakeRegions(region), engines, errorLog)(from, waypoint)
     }
 
@@ -89,5 +89,16 @@ class FindWayToWaypointOnBRouterTest {
     fun `an end with no trail in the engine's reach gets its own note`() {
         assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.WAYPOINT_FAR_FROM_TRAIL), find(ACROSS_FROM, NO_TRAIL_NEAR))
         assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.WALKER_FAR_FROM_TRAIL), find(NO_TRAIL_NEAR, ACROSS_FROM))
+    }
+
+    @Test
+    fun `an end in a square the stored data has no file for is "No trail routes here"`() {
+        // Dispatch 2026-10-26-10 Amendment 2, RECORD -1667. The fixture holds W75_N40 only; this point is in W80_N40, about
+        // 92 km west, so a 100 km region holds both ends and lists no square missing: only the folder lacks the file.
+        val noFileSquare = LatLng(ACROSS_FROM.lat, -75.1)
+        val noRoutes = WayToWaypointResult.StraightLine(WayToWaypointNote.NO_TRAIL_ROUTES)
+
+        assertEquals(noRoutes, find(ACROSS_FROM, noFileSquare, radiusKm = 100))
+        assertEquals(noRoutes, find(noFileSquare, ACROSS_FROM, radiusKm = 100))
     }
 }
