@@ -12,6 +12,8 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { gunzipSync } from "node:zlib";
+import crypto from "node:crypto";
+import * as reference from "../../../map-style/overrides/forager-reference.mjs";
 
 const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
@@ -23,6 +25,10 @@ const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
 const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
 const STREET_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json"), "utf8");
+// Step 8a (dispatch 2026-10-26-14): Trail Map v3, with the official-trails band, and the synthetic archive standing in
+// for reference-trails.pmtiles (test/fixtures/make-reference-trails-pmtiles.py; invented positions, marker bodies).
+const STREET_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
+const REFERENCE = fs.readFileSync(here("./fixtures/reference-trails.pmtiles"));
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 
 let fetchCalls;
@@ -31,6 +37,7 @@ let assets;
 let worldOnR2;
 let bucketHeads;
 let bucketPuts;
+let referenceOnR2;
 
 class FakeCache {
   constructor() { this.entries = new Map(); }
@@ -58,6 +65,7 @@ const bucket = {
     // from it is missing from us too, and only the archive's name differs.
     if (key === "us.pmtiles" || key === "other.pmtiles") return rangeRead(ARCHIVE, options);
     if (key === "world-south.pmtiles" && worldOnR2) return rangeRead(WORLD, options);
+    if (key === "reference-trails.pmtiles" && referenceOnR2) return rangeRead(REFERENCE, options);
     if (assets.has(key)) {
       const bytes = assets.get(key);
       return { body: true, etag: "asset", httpMetadata: {}, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
@@ -72,6 +80,7 @@ const bucket = {
     bucketHeads.push(key);
     if (key === "us.pmtiles" || key === "other.pmtiles") return { key };
     if (key === "world-south.pmtiles" && worldOnR2) return { key };
+    if (key === "reference-trails.pmtiles" && referenceOnR2) return { key };
     return null;
   },
 };
@@ -115,6 +124,7 @@ beforeEach(() => {
   bucketReads = [];
   pending = [];
   worldOnR2 = true;
+  referenceOnR2 = true;
   bucketHeads = [];
   bucketPuts = [];
   globalThis.caches.default = new FakeCache();
@@ -385,4 +395,149 @@ test("overflow: a z15 tile inside the archive's own bounds still goes to the ove
   assert.equal(await tileText(response), "live 15/5303/11553");
   assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
   assert.ok(bucketReads.includes("overflow/us/15/5303/11553.mvt"));
+});
+
+// --- Step 8a: Trail Map v3 with the official-trails band (dispatch 2026-10-26-14 and Amendment 1; RECORD -1633, -1678).
+// The archive's names come from map-style/overrides/forager-reference.mjs, the one place they are written.
+
+const sha256 = (path) => crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
+const v3Style = () => JSON.parse(STREET_V3_STYLE_SOURCE);
+const referenceLayers = (style) => style.layers.filter((l) => l.source === reference.REFERENCE_SOURCE_ID);
+
+test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are served as before", async () => {
+  const response = await call("/style/street-v3.json");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/json");
+  const text = await response.text();
+  assert.equal(text, JSON.stringify(JSON.parse(STREET_V3_STYLE_SOURCE)));
+  assert.equal(JSON.parse(text).name, "Forager Street v3");
+  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(STREET_STYLE_SOURCE)));
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("v2 is frozen: all three copies byte for byte what pre-main c91f34c49 held", () => {
+  // Regions downloaded against v2 keep drawing in it (MapLibre keys a region by its style URL), so v2 never changes.
+  const v2 = "7547507bc2b7dbdae24e8b3735eeda569c0f903c068282259b1e51b4bcc7886d";
+  assert.deepEqual(
+    {
+      worker: sha256("../src/street-style-v2.json"),
+      app: sha256("../../../map-style/forager-street-v2.json"),
+      preview: sha256("../../../map-style/forager-street-v2.preview.json"),
+    },
+    { worker: v2, app: v2, preview: "d07ce0e343c1187e607f04e5bb455898776e9acaa41c9133430f459f98fdd039" },
+  );
+});
+
+test("v3 is v2 plus the reference source and its layers, and nothing else", () => {
+  const v3 = v3Style();
+  const v2 = JSON.parse(STREET_V2_STYLE_SOURCE);
+  const { [reference.REFERENCE_SOURCE_ID]: added, ...sources } = v3.sources;
+  assert.ok(added, "v3 has no reference source");
+  assert.deepEqual(sources, v2.sources);
+  assert.deepEqual(v3.layers.filter((l) => l.source !== reference.REFERENCE_SOURCE_ID), v2.layers);
+  assert.deepEqual({ ...v3, name: v2.name, sources: v2.sources, layers: v2.layers, metadata: undefined }, { ...v2, metadata: undefined });
+  // The same app tiles, glyphs and sprite: a v3 region draws v2's tiles and fonts.
+  assert.equal(v3.sources.protomaps.url, v2.sources.protomaps.url);
+});
+
+test("the reference source carries its tile address on this Worker, zooms 10 to 15, and no TileJSON URL", () => {
+  const source = v3Style().sources[reference.REFERENCE_SOURCE_ID];
+  // A TileJSON URL would 404 until the archive exists, and MapLibre treats that 404 as an error (Amendment 1).
+  assert.deepEqual(source, {
+    type: "vector",
+    tiles: [`${HOST}/reference-trails/{z}/{x}/{y}.mvt`],
+    minzoom: 10,
+    maxzoom: 15,
+  });
+  assert.equal(source.url, undefined);
+});
+
+test("the bands sit below every Trail Map trail line, the number above them all", () => {
+  const ids = v3Style().layers.map((l) => l.id);
+  const trails = ids.flatMap((id, i) => (id.startsWith("roads_path_") ? [i] : []));
+  assert.equal(trails.length, 18, "Trail Map v2 has 18 trail layers (roads_path_track to roads_path_hard_faint)");
+  const at = (id) => ids.indexOf(id);
+  assert.deepEqual(
+    { fsBand: at("reference_fs_band"), blmBand: at("reference_blm_band"), number: at("reference_fs_number") },
+    { fsBand: trails[0] - 2, blmBand: trails[0] - 1, number: trails[trails.length - 1] + 1 },
+  );
+  assert.deepEqual(referenceLayers(v3Style()).map((l) => l.id), ["reference_fs_band", "reference_blm_band", "reference_fs_number"]);
+});
+
+test("the bands: one per agency source-layer, violet at 35%, 6 to 10 wide, from zoom 12; the number from 14", () => {
+  const byId = Object.fromEntries(referenceLayers(v3Style()).map((l) => [l.id, l]));
+  for (const [id, sourceLayer] of [["reference_fs_band", "fs_trails"], ["reference_blm_band", "blm_trails"]]) {
+    const l = byId[id];
+    assert.ok(l, `v3 has no ${id} layer`);
+    assert.equal(l.type, "line", id);
+    assert.equal(l["source-layer"], sourceLayer, id);
+    assert.equal(l.minzoom, 12, id);
+    assert.equal(l.paint["line-color"], "#7b5ea7", id);
+    assert.equal(l.paint["line-opacity"], 0.35, id);
+    assert.deepEqual(l.paint["line-width"], ["interpolate", ["linear"], ["zoom"], 12, 6, 15, 10], id);
+    // The -1633 default "On": visible until 8b's switch says otherwise.
+    assert.notEqual(l.layout?.visibility, "none", id);
+  }
+  const number = byId.reference_fs_number;
+  assert.ok(number, "v3 has no reference_fs_number layer");
+  assert.equal(number.type, "symbol");
+  assert.equal(number["source-layer"], "fs_trails");
+  assert.equal(number.minzoom, 14);
+  assert.deepEqual(number.layout["text-field"], ["get", "trail_no"]);
+});
+
+test("Forest Service snow trails are left out of its band and its number; BLM's band has no snow filter", () => {
+  const byId = Object.fromEntries(referenceLayers(v3Style()).map((l) => [l.id, l]));
+  const notSnow = ["!=", ["coalesce", ["get", "trail_type"], ""], "SNOW"];
+  for (const id of ["reference_fs_band", "reference_blm_band", "reference_fs_number"]) assert.ok(byId[id], `v3 has no ${id} layer`);
+  assert.deepEqual(byId.reference_fs_band.filter, notSnow);
+  assert.deepEqual(byId.reference_fs_number.filter, ["all", notSnow, ["has", "trail_no"]]);
+  assert.equal(byId.reference_blm_band.filter, undefined);
+});
+
+test("reference archive, generic path: a z10 tile is served from reference-trails.pmtiles, with no outside request", async () => {
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}/10/163/360.mvt`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.equal(response.headers.get("Content-Type"), "application/x-protobuf");
+  assert.equal(await tileText(response), "reference 10/163/360");
+  assert.deepEqual(fetchCalls, []);
+  assert.ok(bucketReads.every((k) => k === "reference-trails.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("reference archive, generic path: a z15 tile comes from the archive, never from the Protomaps overflow", async () => {
+  // live-build.pmtiles holds this tile too, so an overflow answer would read "live 15/5303/11553".
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}/15/5303/11553.mvt`);
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "reference 15/5303/11553");
+  assert.deepEqual({ fetchCalls, bucketPuts }, { fetchCalls: [], bucketPuts: [] });
+});
+
+test("reference archive, generic path: a tile it lacks is 204, never us's tile or the world fill's", async () => {
+  // tiny.pmtiles (us) holds 14/2651/5776; the world fill answers only for us, and only to z8.
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}/14/2651/5776.mvt`);
+  assert.equal(response.status, 204);
+  assert.ok(bucketReads.every((k) => k === "reference-trails.pmtiles"), JSON.stringify(bucketReads));
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("reference archive, generic path: its TileJSON has its own zooms and bounds, and never asks after the world archive", async () => {
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}.json`);
+  assert.equal(response.status, 200);
+  const tilejson = await response.json();
+  assert.deepEqual(
+    { tiles: tilejson.tiles, minzoom: tilejson.minzoom, maxzoom: tilejson.maxzoom, bounds: tilejson.bounds },
+    { tiles: [`${HOST}/reference-trails/{z}/{x}/{y}.mvt`], minzoom: 10, maxzoom: 15, bounds: [-123, 42, -120, 46] },
+  );
+  assert.deepEqual(bucketHeads, []);
+});
+
+test("reference archive not on R2 yet: a tile is a 404 (no content to MapLibre), with no Protomaps read or R2 write", async () => {
+  referenceOnR2 = false;
+  for (const path of ["10/163/360", "15/5303/11553"]) {
+    const response = await call(`/${reference.REFERENCE_ARCHIVE}/${path}.mvt`);
+    assert.equal(response.status, 404, path);
+  }
+  assert.deepEqual({ fetchCalls, bucketPuts }, { fetchCalls: [], bucketPuts: [] });
 });
