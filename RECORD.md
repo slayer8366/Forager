@@ -28453,3 +28453,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #417 review (Fable; prompts/preserved/2026-10-26-sorrel-417-review.md, branch sorrel-417, ca2ebfedd): a pure move; 980 of 980 old lines accounted for (20 declared rewrites); 58 slots before and after in the same order; 52 arguments to 52 parameters by name; CI per-suite identical; S-417-1 a comment miscounts the rememberSaveable calls moved (six, not four); N-417-4 the modular-code skill's CI size warning was not found in the build job.
 **Decision:** under the owner's "Sorrel check first (Recommended)": #417 merged by the planner at f80216422. 8b proceeds per dispatch 2026-10-26-15 Amendment 2.
 **Notes:** Written by the planner by hand. S-417-1 to a later tidy. Next free ID -1685.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1685
+**Timestamp:** 2026-10-26T21:34:02Z
+**Continues:** 2026-09-28-1683, 2026-09-28-1629
+**Title:** #415, the quiet off-trail state, merges; the S26 hilly walk is read for climbs (owner)
+**Observed:** the #415 fix (Opus; f44398276, dispatch 2026-10-26-13 Amendment 2): "on" is the engine's trail route without the straight joints; run 40399232541 green, 5,682; four reverts biting. Hazel's S22 re-check (prompts/preserved/2026-10-26-hazel-415-s22-recheck-report.md, branch quiet-off-trail-s22-recheck, 5615927bf; build 1.0.4042+g52858a09): step 1 at 64 m quiet in 14-17 s; step 3 off from 47 m to 80 m and back to 35 m with no "Back on trail" while walking away, "on" from about 44 m; steps 2 and 4 met; no sound, vibration or notification. 8b is up as #418, under Sorrel's review; 8c building on it.
+**Decision:** the owner: "Merge now (Recommended)": #415 merged by the planner (pre-main 0914bed23). The owner plugged in the S26: "Your hilly walk: climbs (Recommended)": Juniper reads the most recent hilly track read-only for climbs, pace against grade and reported accuracy; raw data and coordinates stay on the laptop, the report figures only.
+**Notes:** Written by the planner by hand. Next free ID -1686.
