@@ -28365,3 +28365,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the step 7 PR 3 coder's verify-first (Opus; no code): the dotted track is already drawn at full opacity (RouteHomeLayers.kt:154-157, :302), so -1631's "your dotted track brightens" cannot be done by opacity; options A (trail dims only), B (wider dots, a new width), C (day-blue dots, day only), D (track faded normally).
 **Decision:** the owner: "A: trail dims only (Recommended)" and "60%, like passed route (Recommended)" (ROUTE_PASSED_OPACITY). Dispatch 2026-10-26-13 Amendment 1. The 21 old "Return to Route" comments (Sorrel's 400-2) go to a later tidy with known-bugs' duplicated rows.
 **Notes:** Written by the planner by hand. Next free ID -1677.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1677
+**Timestamp:** 2026-10-26T18:14:23Z
+**Continues:** 2026-09-28-1633
+**Title:** Step 8's app side starts: 8a, then 8b and 8c, then 8d (owner)
+**Decision:** the owner: "Start the step 8 app side"; asked whether the go covers all four PRs, "All four, in order (Recommended)": 8a (style v3 with a hidden reference source, against a synthetic archive) first, dispatch 2026-10-26-14; 8b and 8c side by side after it; 8d last, its real content waiting on Aspen's coverage list and dates. Each still goes to Sorrel and comes to the owner to merge.
+**Notes:** Written by the planner by hand. The archive itself is Aspen's, for the owner to take to them. Next free ID -1678.
