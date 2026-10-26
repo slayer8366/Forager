@@ -41,7 +41,7 @@ The first check's scripts and its saved OSM extract, copied to `/mnt/work/scratc
 **Sample:** one process, pid 18033 (one `Start proc`, 21:10:25), from a cleared buffer, 21:10:17 to 21:30. Each fix is logged about three times by `ForagerFix`; counted by distinct fix time, as the first check did.
 - **FATAL EXCEPTION:** 0. **ANR:** 0.
 - **Fixes, steps 1 to 4** (out leg loaded 21:11:06 to the end at 21:26:52): **947 fed, 946 received**, 0 received that were not fed. The 1 missed is 21:11:34, the second the test providers removed themselves (feeder log 21:11:33, re-added).
-- **Whole session:** 1,033 fed, 1,011 received. The other 21 missed are all before the out leg: 7 before the app's process started (21:10:18 to 21:10:24), 10 between 21:10:26 and 21:10:35 while I unlocked the phone and started the recording (cause not determined), 4 around the providers' self-removals at 21:10:40 to 21:10:47.
+- **Whole session:** 1,033 fed, 1,011 received. The other 21 missed are all before the out leg: 7 before the app's process started (21:10:18 to 21:10:24), 10 between 21:10:26 and 21:10:35 while the app opened and I started the recording (cause not determined), 4 around the providers' self-removals at 21:10:40 to 21:10:47.
 - **Quiet:**
   - the vibrator history's entries for the app are identical before and after (the last is from 2026-10-25);
   - `dumpsys audio` names the app 0 times, before and after;
