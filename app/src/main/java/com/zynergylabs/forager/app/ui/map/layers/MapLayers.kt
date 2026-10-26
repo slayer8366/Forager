@@ -38,7 +38,21 @@ enum class ZGroup { COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS }
  * circle, the sighting dot, or a symbol, every bitmap marker), and each renderer has its own opacity
  * property ([OpacityProperty.renderer]).
  */
-enum class LayerRenderer { FILL, LINE, CIRCLE, SYMBOL }
+enum class LayerRenderer {
+    FILL,
+    LINE,
+    CIRCLE,
+    SYMBOL,
+
+    /**
+     * A layer the loaded style itself carries, which the app never builds (step 8, PR 8b; dispatch 2026-10-26-15
+     * Amendments 1 and 2): Trail Map's official-trails band. The app sets only its `visibility`, and only when the
+     * loaded style has it (`ReferenceTrailsVisibility.kt`). Its paint, the 0.35 opacity included, is the style's own
+     * (`map-style/overrides/forager-reference.mjs`), so its spec carries no base opacity: [registryProblems] refuses one,
+     * since no [OpacityProperty] belongs to this renderer, and [layerPaintFor] then resolves visibility alone.
+     */
+    STYLE_LAYER,
+}
 
 /**
  * The tap precedence the owner chose (L0 design rulings, 3: "Markers, then lines, then colour"):
@@ -156,6 +170,14 @@ object MapLayerIds {
     const val JOURNAL_ENTRY_WAYPOINTS = "journal-entry-waypoints-layer"
     const val JOURNAL_ENTRY_FINDS = "journal-entry-finds-layer"
     const val JOURNAL_ENTRY_PHOTOS = "journal-entry-photos-layer"
+
+    // Step 8b: the official-trails band, layers of Trail Map's own style (street-v3), not of the app. The ids are the
+    // style's, mirrored from map-style/overrides/forager-reference.mjs (bandLayers, labelLayers) and held to it by
+    // ReferenceTrailLayerIdsTest, which reads that file. Bottom to top: the Forest Service band, the BLM band, the
+    // Forest Service trail number.
+    const val REFERENCE_FS_BAND = "reference_fs_band"
+    const val REFERENCE_BLM_BAND = "reference_blm_band"
+    const val REFERENCE_FS_NUMBER = "reference_fs_number"
 }
 
 /** Every overlay GeoJSON source id, the values `SightingsMap` has always used. */
@@ -178,6 +200,10 @@ object MapSourceIds {
     const val JOURNAL_ENTRY_WAYPOINTS = "journal-entry-waypoints"
     const val JOURNAL_ENTRY_FINDS = "journal-entry-finds"
     const val JOURNAL_ENTRY_PHOTOS = "journal-entry-photos"
+
+    // Step 8b: the style's own vector source for the official trails (forager-reference.mjs, REFERENCE_SOURCE_ID). The
+    // app adds no source by this id; the style brings it.
+    const val REFERENCE = "reference"
 }
 
 /**

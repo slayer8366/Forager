@@ -239,6 +239,8 @@ fun SightingsMap(
     trueHeading: State<TrueHeadingReading>? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.nudgeSpringBack]'s own doc comment. */
     nudgeSpringBack: Boolean = false,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onReferenceTrailsShown]'s own doc comment. */
+    onReferenceTrailsShown: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     // Resources through LocalResources, which Compose re-reads on a configuration change, rather than

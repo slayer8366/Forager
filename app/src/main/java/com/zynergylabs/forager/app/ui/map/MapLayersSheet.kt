@@ -194,6 +194,8 @@ data class MapLayersControls(
     val onHideJournalEntry: (entryId: String) -> Unit = {},
     /** J8-3: the chip list's "Hide all": writes `shownOnMap` false for every shown entry. */
     val onHideAllJournalEntries: () -> Unit = {},
+    /** Step 8b: the map reported its loaded style draws the official-trails band, so the sheet offers its switch. */
+    val referenceTrailsShown: Boolean = false,
 ) {
     /** The colour fields the sheet lists: the ones with data, top of the draw order first. */
     val listedColourFields: List<ColourFieldSpec>
@@ -245,6 +247,13 @@ internal fun MapLayersSheet(
     offlineTiles: Boolean = false,
     /** The process's Trail Map fallback (RECORD -1513); a parameter so a test can give it its own. */
     fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
+    /**
+     * Step 8b (dispatch 2026-10-26-15 Amendment 2): whether this sheet's map reported that its loaded style draws the
+     * official-trails band ([MapRenderMode.onReferenceTrailsShown]). Only then is the "Official trails" row shown, so
+     * a switch that would do nothing (today's style, Topographical, OpenStreetMap, an area downloaded before) is never
+     * offered ("Don't make me think").
+     */
+    referenceTrails: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`,
