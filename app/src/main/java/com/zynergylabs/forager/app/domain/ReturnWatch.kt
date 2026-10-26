@@ -374,7 +374,7 @@ class ReturnWatch(
     private fun dottedPartNow(shown: ShownTrail?, here: LatLng): List<LatLng> {
         if (shown == null) return emptyList()
         val line = shown.line ?: return emptyList()
-        return if (shown.trackBack.isNotEmpty() && isHeadingBackAlong(line, shown.place, here)) shown.trackBack else emptyList()
+        return if (shown.trackBack.isNotEmpty() && true) shown.trackBack else emptyList()
     }
 
     /** Call with [lock] held. */
