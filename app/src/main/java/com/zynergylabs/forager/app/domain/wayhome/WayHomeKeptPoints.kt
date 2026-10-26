@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.domain.wayhome
 
+import com.zynergylabs.forager.app.domain.excludeNetworkProviderFixes
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 
@@ -27,6 +28,15 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
  * every 20, so more than 20 are held only while writes fail (logged by the service), and then the newest [MAX] still
  * give the line its start.
  *
+ * ## Network fixes
+ *
+ * The service hands over every point its sampler keeps, and the sampler keeps a network fix whose reported accuracy
+ * clears the mode's ceiling (`LocationSampler.shouldAccept`). The stored track [addedTo] is handed has already been
+ * through the store's read path, which leaves network fixes out ([excludeNetworkProviderFixes], `RoomTrackRepository`).
+ * [addedTo] applies the same rule to the held points, so the way home never starts from a network-only position, as no
+ * other display of the track does (dispatch 2026-10-26-07, RECORD -1654). The held list itself is not filtered: the
+ * pruning by time above works the same either way, and the rule stays at the one place the points are read.
+ *
  * Not thread-safe: [WayHomeWatch] calls it under its lock.
  */
 internal class WayHomeKeptPoints {
@@ -42,13 +52,14 @@ internal class WayHomeKeptPoints {
         while (points.size > MAX) points.removeFirst()
     }
 
-    /** [track] with the points held for it that are newer than its last point, in order. */
+    /** [track] with the points held for it that are newer than its last point, in order, network fixes left out. */
     fun addedTo(track: Track): Track {
         if (track.id != trackId || points.isEmpty()) return track
         val lastStored = track.points.lastOrNull()?.timestampEpochMillis ?: Long.MIN_VALUE
         while (points.isNotEmpty() && points.first().timestampEpochMillis <= lastStored) points.removeFirst()
-        if (points.isEmpty()) return track
-        return track.copy(points = track.points + points)
+        val newer = excludeNetworkProviderFixes(points)
+        if (newer.isEmpty()) return track
+        return track.copy(points = track.points + newer)
     }
 
     /** The recording on [trackId] (or, with `null`, any) has ended. */
