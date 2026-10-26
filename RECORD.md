@@ -28387,3 +28387,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the 8a coder's verify-first (Opus; no code): a TileJSON source with no archive makes every v3 area download fail ("Offline map download failed": a 404 on a non-tile resource is final, MapLibreOfflineMapRepository.kt:449-452) and holds the return-to-Maps cover for its 1.5 s cap online (the style never fully loads); an inline tile address avoids both but areas downloaded before the archive would silently lack the band; counting the band's tiles doubles the estimate (24 km's worst case 10,492 against 6,000; the new maximum at most 18 km).
 **Decision:** the owner: "When Aspen's data is live (Recommended)": 8a builds style v3 with an inline tile address and its Worker route, and the app stays on v2; switching is its own PR once the archive is live. "Don't count, keep 24 km (Recommended)": the 6,000 budget stays the basemap's. Dispatch 2026-10-26-14 Amendment 1.
 **Notes:** Written by the planner by hand. For Aspen (via the owner): the archive must be built to zoom 15. Next free ID -1679.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1679
+**Timestamp:** 2026-10-26T18:45:56Z
+**Continues:** 2026-09-28-1678
+**Title:** Step 8a built (#416), to Sorrel; a tile-budget question parked for the switch PR
+**Observed:** #416 (step8a-reference-style-v3 @ 6cfed1aba, dispatch 2026-10-26-14 Amendment 1): street-v3.json is v2 plus a reference source with an inline tile address (zooms 10-15) and two bands below the trail lines plus a number label; the Worker serves /style/street-v3.json; synthetic fixture; the app unchanged on v2; PR run 40378668913 green; four reverts biting. For the later switch PR: MapLibre's native tile limit never fires for Forager downloads (it counts only its own scheme's tile URLs); each region's "Tiles" will include the band's (mostly empty) tiles, so "Tile budget: x / 6000" would fill after one 24 km v3 download and refuse the next, against -1678's "don't count"; the archive must reach zoom 15 (the Worker's overflow path has no name check); the edge caches a 404 for a day.
+**Decision:** none by the owner; #416 to a fresh Sorrel review before its merge comes to the owner. The region-row count question waits for the switch PR, where the owner rules on it.
+**Notes:** Written by the planner by hand. Next free ID -1680.
