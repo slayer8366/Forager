@@ -29,7 +29,7 @@ class WayHomeWatchKeptPointTest {
     private val handed = mutableListOf<Track>()
 
     /** Written: the first two kept points. */
-    private val stored = Track("t1", null, 0L, null, listOf(kept(-50.0, -60.0, 1L), kept(-50.0, -55.0, 2L)))
+    private val stored = Track("t1", null, 0L, null, listOf(kept(-50.0, -60.0, 1_000L), kept(-50.0, -55.0, 2_000L)))
 
     private val watch = WayHomeWatch(
         scope = scope,
@@ -42,6 +42,7 @@ class WayHomeWatchKeptPointTest {
         errorLog = ErrorLog { _, _, _ -> },
     )
 
+    // Times are whole seconds: non-zero milliseconds mark a network fix (NetworkProviderFix.kt:118), which the way home leaves out.
     private fun kept(east: Double, north: Double, time: Long): TrackPoint = at(east, north).let { p: LatLng -> TrackPoint(p.lat, p.lng, null, 5f, time) }
 
     @Test
@@ -53,7 +54,7 @@ class WayHomeWatchKeptPointTest {
         scope.runCurrent()
 
         // The walker strays west, past 50 m from the line; the service keeps two points and has not written them.
-        val strayed = listOf(kept(-60.0, -50.0, 3L), kept(-70.0, -50.0, 4L))
+        val strayed = listOf(kept(-60.0, -50.0, 3_000L), kept(-70.0, -50.0, 4_000L))
         strayed.forEach { watch.onKeptPoint("t1", it) }
         watch.onFix(strayed.last(), FixProvider.GPS)
         scope.runCurrent()
@@ -61,7 +62,7 @@ class WayHomeWatchKeptPointTest {
         assertEquals("one re-route", 2, handed.size)
         assertEquals(
             "the re-route is found on the written points and the two kept since, once each, in order",
-            listOf(1L, 2L, 3L, 4L),
+            listOf(1_000L, 2_000L, 3_000L, 4_000L),
             handed[1].points.map { it.timestampEpochMillis },
         )
         assertEquals("its line starts from the newest kept point", strayed.last(), handed[1].points.last())
@@ -69,18 +70,18 @@ class WayHomeWatchKeptPointTest {
 
     @Test
     fun `points kept on another recording are not added`() {
-        watch.onKeptPoint("other", kept(-50.0, -50.0, 9L))
+        watch.onKeptPoint("other", kept(-50.0, -50.0, 9_000L))
         watch.find("t1", null)
         scope.runCurrent()
-        assertEquals(listOf(1L, 2L), handed.single().points.map { it.timestampEpochMillis })
+        assertEquals(listOf(1_000L, 2_000L), handed.single().points.map { it.timestampEpochMillis })
     }
 
     @Test
     fun `a recording's end forgets its kept points`() {
-        watch.onKeptPoint("t1", kept(-50.0, -50.0, 3L))
+        watch.onKeptPoint("t1", kept(-50.0, -50.0, 3_000L))
         watch.end("t1")
         watch.find("t1", null)
         scope.runCurrent()
-        assertEquals(listOf(1L, 2L), handed.single().points.map { it.timestampEpochMillis })
+        assertEquals(listOf(1_000L, 2_000L), handed.single().points.map { it.timestampEpochMillis })
     }
 }
