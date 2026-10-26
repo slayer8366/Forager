@@ -28442,3 +28442,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #415 review (Fable; prompts/preserved/2026-10-26-sorrel-415-review.md, branch sorrel-415, 77e6ffe6f): mergeable, no blocking item; S-415-1 the rig's ReturnWatch lacks the wayHomeTrail input. Hazel's S22 check of #415 (Opus; prompts/preserved/2026-10-26-hazel-415-s22-check-report.md, branch quiet-off-trail-s22-report, f87d728b8; build 1.0.4033+gbc5b9e61): steps 1, 2, 4 met, no sound or vibration, no flicker in 56 edge crossings; step 3 not met: "Back on trail" at 64 m out after a re-route, because "on" includes the straight joint from the leave point (up to 25 m), reaching about 64-69 m along the leaving track. #413's fade, grey and retry seen working on the phone. The split #417 (split-availability-screen @ f80216422, dispatch 2026-10-26-17): 1,007 to 722 lines, CI per-suite identical to pre-main.
 **Decision:** the owner: "The trail itself (Recommended)": dispatch 2026-10-26-13 Amendment 2, with S-415-1 folded in. For #417, "Sorrel check first (Recommended)".
 **Notes:** Written by the planner by hand. Next free ID -1684.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1684
+**Timestamp:** 2026-10-26T20:26:38Z
+**Continues:** 2026-09-28-1683, 2026-09-28-1682
+**Title:** The map screen split #417 merges after Sorrel's check; 8b starts (owner)
+**Observed:** Sorrel's #417 review (Fable; prompts/preserved/2026-10-26-sorrel-417-review.md, branch sorrel-417, ca2ebfedd): a pure move; 980 of 980 old lines accounted for (20 declared rewrites); 58 slots before and after in the same order; 52 arguments to 52 parameters by name; CI per-suite identical; S-417-1 a comment miscounts the rememberSaveable calls moved (six, not four); N-417-4 the modular-code skill's CI size warning was not found in the build job.
+**Decision:** under the owner's "Sorrel check first (Recommended)": #417 merged by the planner at f80216422. 8b proceeds per dispatch 2026-10-26-15 Amendment 2.
+**Notes:** Written by the planner by hand. S-417-1 to a later tidy. Next free ID -1685.
