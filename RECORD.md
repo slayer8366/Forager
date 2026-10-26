@@ -28081,3 +28081,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #404 review (Fable; prompts/preserved/2026-10-26-sorrel-404-review.md, branch sorrel-404, 9c3866e17): mergeable, nothing blocking; S1, four comments in #402's files go stale (passed to the 2026-10-26-03 coder); S2, no run has built #404 with #402 and #401. Hazel's S22 check on 1.0.3969+g433e1937 (prompts/preserved/2026-10-25-10-s22-check-report.md, branch way-home-fresh-start-s22-report, 7ac84c9dd): the line still starts at the last written point, 12.1 to 13.2 m behind the dot with 2 points unwritten and 31.4 to 31.7 m with 5, against 12.4 and 31.3 m predicted for no fix; re-route case not run.
 **Decision:** the owner: "Diagnose now, step 6 waits (Recommended)": Hazel reads how the screen draws the line first, then if needed logs the counts on a diagnostic branch that never merges and runs it on the S22; the cause comes back before any fix.
 **Notes:** Written by the planner by hand. #404 does not merge. Next free ID -1651.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1651
+**Timestamp:** 2026-10-26T04:59:23Z
+**Continues:** 2026-09-28-1650, 2026-09-28-1648
+**Title:** #404 works on the phone and merges; the recording line is to reach the dot too (owner)
+**Observed:** Hazel's diagnosis (Opus; prompts/preserved/2026-10-25-10-s22-diagnosis-report.md, branch way-home-fresh-start-s22-report, e06635aaf), superseding her first S22 verdict (7ac84c9dd, left unedited): she had measured the purple recording line (TrackRecordingPoller.kt:76, stored points only), not the way home's azure dots (RouteHomeLayers.kt:82-83, :104). On a diagnostic build (way-home-fresh-start-diag, 8895f80f9, never to merge; CI 40268903898) the way home's line started 0.0 m from the newest point in all three cases (Return 12 s after a write, 5 s before one, a re-route), against 12.4, 18.8 and 35.1 m from the last stored point. The step 6 report is pushed (docs/audits/2026-10-25-03-waypoint-along-trails-report.md, branch waypoint-trails-report, 079666037), five owner questions.
+**Decision:** the owner: "Merge now (Recommended)": #404 merged by the planner at b50afeb73 (pre-main 19c85f78e). For the recording line, "(b) Reach the dot (Recommended)": drawn from the stored points plus the kept points not yet written; written as dispatch 2026-10-26-05, waiting on the owner's go.
+**Notes:** Written by the planner by hand. Pre-main's push run on 19c85f78e is the first to build #404 with #401 and #402 (Sorrel's S2). Next free ID -1652.
