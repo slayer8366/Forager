@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.BackByWatch
 import com.zynergylabs.forager.app.domain.SettingsResetNotice
 import com.zynergylabs.forager.app.domain.RecordingHalts
+import com.zynergylabs.forager.app.domain.RecordingKeptTail
 import com.zynergylabs.forager.app.domain.TrackEnds
 import com.zynergylabs.forager.app.domain.BackupScheduler
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
@@ -433,6 +434,11 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // it fixes and ends it; the HUD's tick and sundown read where the walker is on it. Its engine is built, and the
     // routing profile installed, on the first Return (WayHomeRouting).
     private val wayHomeRouting = WayHomeRouting(installProfile = { RoutingProfile.install(context) }, offlineMapRepository = offlineMapRepository, errorLog = errorLog)
+    // Dispatch 2026-10-26-05 (RECORD -1651): the recording's newest kept points, written or not, held here so they outlive
+    // the Activity, as the watches are. The service adds each kept point and ends it; the recording screen draws its line
+    // from the stored track and these (TrackRecordingUiState.recordingLine).
+    val recordingKeptTail = RecordingKeptTail()
+
     val wayHomeWatch: WayHomeWatch = WayHomeWatch(
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
         readTrack = trackRepository::getById,

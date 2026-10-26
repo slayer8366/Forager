@@ -38,4 +38,10 @@ internal open class RecordingWatches(private val container: AppContainer) {
      * from the walker's newest point and not the last one written. See [com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch.onKeptPoint].
      */
     open fun wayHomeOnKeptPoint(trackId: String, point: TrackPoint) = container.wayHomeWatch.onKeptPoint(trackId, point)
+
+    /**
+     * Each point the sampler keeps on [trackId], to the recording line (dispatch 2026-10-26-05, RECORD -1651), so it
+     * reaches the walker's newest point and not the last one written. See [com.zynergylabs.forager.app.domain.RecordingKeptTail.add].
+     */
+    open fun recordingLineOnKeptPoint(trackId: String, point: TrackPoint) = container.recordingKeptTail.add(trackId, point)
 }
