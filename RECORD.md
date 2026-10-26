@@ -28256,3 +28256,15 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #412 review (Fable; prompts/preserved/2026-10-26-sorrel-412-review.md, branch sorrel-412, e53f3b3e9): mergeable, no blocking item; the one-route design matches each end as a snap would (BRouter's WaypointMatcherImpl), the way home unchanged, six reverts specific. S-412-1: walker in one region, waypoint in a second covering only it with routes unfetched, gives "Trail routes not downloaded" though no region holds both. S-412-2: a square with no route file (RoutingDataFolder.kt:33-34) reads as "far from any trail".
 **Decision:** the owner: "Fix: check both ends first (Recommended)"; "Trail routes damaged (Recommended)": a missing route file counts as damaged routes in both features, so the way home's note for that case changes too. With -1665's leaves-area wording: dispatch 2026-10-26-10 Amendment 1, to a fresh coder.
 **Notes:** Written by the planner by hand. Next free ID -1667.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1667
+**Timestamp:** 2026-10-26T09:06:36Z
+**Continues:** 2026-09-28-1666
+**Supersedes:** -1666's "Trail routes damaged" for a missing route file
+**Title:** A missing trail-route square reads "No trail routes here" for a waypoint; the way home unchanged (owner)
+**Observed:** the #412 fix coder (Opus): items 1 and 2 built (52e320eaf; PR run 40294571611 green, 5,611; fail-first 40293756104 six as predicted; reverts R7-R9 specific); item 3 stopped at verify-first: the missing-file EndOutsideData (RoutingDataFolder.kt:33-34) is ordinarily a build gap the app calls "No trail routes here", and it feeds the way home's trail-join scan (TrailJoins.kt:85-94), which a damaged reading would stop. The planner's earlier question had described it as damage.
+**Decision:** asked again with that corrected, the owner: "'No trail routes here' (Recommended)": the waypoint note for a missing square is "No trail routes here · straight line"; the way home's scan and notes unchanged. "Confirm (Recommended)": neither end in any region stays "No trail routes here". Dispatch 2026-10-26-10 Amendment 2.
+**Notes:** Written by the planner by hand. Next free ID -1668.
