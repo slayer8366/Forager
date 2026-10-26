@@ -28541,3 +28541,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #419 at 32bd34c22 (green, 5,747): the relayed rule kept "MT." in capitals against the planner's own example "Mt. Hood Tie" (the planner's error); everyday 2-letter words not on the list (NO, GO, SO, DO, BE, MY, US, OX) stayed in capitals; real words spelling numerals (MIX, DIX, LIV, CIV) stayed in capitals.
 **Decision:** the owner: "Fix as proposed (Recommended)": a 1-2 letter word followed by a full stop is capitalised as an abbreviation ("Mt.", "St."); the common-word list grows (A, AN, AS, AT, BE, BY, DO, GO, HE, IF, IN, IS, IT, ME, MY, NO, OF, OH, ON, OR, OX, SO, TO, UP, US, WE); Roman numerals kept only from I to XX.
 **Notes:** Written by the planner by hand. Next free ID -1693.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1693
+**Timestamp:** 2026-10-26T23:00:06Z
+**Continues:** 2026-09-28-1633, 2026-09-28-1631, 2026-09-28-1628, 2026-09-28-1687
+**Title:** Aspen is asked for three Pi builds: the official-trails archive, the trail-names file, elevation (owner)
+**Decision:** the owner: "Let's put Aspen to work on the build"; asked which, all three ("Official-trails archive (step 8)", "Trail-names file (step 7 PR 4)", "Elevation build"); handover "Write a brief, you start Aspen (Recommended)": prompts/preserved/2026-10-26-20-aspen-brief.md, read from source with citations; suggested order archive, names, elevation, Aspen's to change.
+**Notes:** Written by the planner by hand. Aspen's sessions were offline (ListAgents). Next free ID -1694.
