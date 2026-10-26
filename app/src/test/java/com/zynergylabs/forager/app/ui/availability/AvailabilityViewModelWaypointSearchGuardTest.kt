@@ -72,8 +72,12 @@ class AvailabilityViewModelWaypointSearchGuardTest {
     private val lookedUp = CompletableDeferred<Unit>()
 
     private fun viewModel(): AvailabilityViewModel {
-        val find = FindWayToWaypointUseCase(FakeRegions(Ground.region()), FakeEngines(router), ErrorLog { _, _, _ -> })
+        // One region list for the ViewModel and the use case, as the app's two readers of the one repository have: since
+        // Amendment 3, item 3 (RECORD -1671), walking on retries only while the ViewModel's list has the walker inside an area.
+        val regions = FakeRegions(Ground.region())
+        val find = FindWayToWaypointUseCase(regions, FakeEngines(router), ErrorLog { _, _, _ -> })
         return mapLayersViewModel(
+            offlineMapRepository = regions,
             waypointNavigationRepository = InMemoryWaypointNavigation(),
             locationTracker = tracker,
             readWaypoint = { id ->

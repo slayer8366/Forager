@@ -62,9 +62,11 @@ data class WaypointRouteShown(val hud: ReturnRoute?, val line: RouteLine?)
  *   home's do ([placeOnWayHome], [wayHomeAhead]); off the line by more than the far band, today's straight line shows.
  * - **A stray** of more than 50 m re-routes once from where the walker is ([WayToStray]), quietly.
  * - **No trail route** ([WayToWaypointResult.StraightLine]) is today's straight line with its note, until [WayToRetry]
- *   says to try again: on walking into an area holding the walker and the waypoint, or, far from any trail, after walking
- *   on more than 50 m for a note walking can change (Amendment 1, item C, RECORD -1669; Amendment 2, item 3, RECORD
- *   -1670). Arrival is not judged here: the HUD and the map judge it on the straight distance, as today.
+ *   says to try again: on walking into an area holding the walker and the waypoint, or, inside a downloaded area, after
+ *   walking on more than 50 m for a note walking can change (Amendment 1, item C, RECORD -1669; Amendment 2, item 3,
+ *   RECORD -1670; Amendment 3, item 3, RECORD -1671). Arrival is not judged here: the HUD and the map judge it on the
+ *   straight distance, as today.
+ * - **The figure** is the way home's without its 25 m trail allowance (Amendment 3, item 5; RECORD -1671).
  * - **The fix's freshness** fades the line on a stale fix and greys it once location is lost, by the straight line's
  *   rule and figures ([nextStraightLine], [millisUntilFreshnessChanges]; Amendment 2, item 1, RECORD -1670, the owner:
  *   "Fade and grey too (Recommended)", Sorrel's S-413-1). Between fixes the clock moves on at each moment the freshness
@@ -210,7 +212,8 @@ internal class AvailabilityWaypointRoute(
                 band = HopBand.NONE
                 when (result) {
                     is WayToWaypointResult.AlongTrails -> {
-                        val found = WayHomeLine(result.way)
+                        // No 25 m trail allowance on the waypoint's figure (Amendment 3, item 5; RECORD -1671): the reach alone.
+                        val found = WayHomeLine(result.way, trailAllowanceMeters = 0.0)
                         line = found
                         retry = null
                         lastHere?.let { show(found, it) }

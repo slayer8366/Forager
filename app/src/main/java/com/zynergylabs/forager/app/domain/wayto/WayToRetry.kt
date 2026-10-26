@@ -4,6 +4,8 @@ import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.routedata.RouteDataForPoints
+import com.zynergylabs.forager.app.domain.routedata.contains
+import com.zynergylabs.forager.app.domain.routedata.routeAreaFor
 import com.zynergylabs.forager.app.domain.routedata.routeDataForPoints
 import com.zynergylabs.forager.app.domain.wayhome.WAY_HOME_STRAY_METERS
 
@@ -19,10 +21,14 @@ import com.zynergylabs.forager.app.domain.wayhome.WAY_HOME_STRAY_METERS
  *   no storage. Walking out and back in tries again; walking on inside does not. The same rising edge takes routes
  *   arriving for an area already holding both ends (a download, or its routes, finishing while navigating), since the
  *   list it is handed is read afresh at each fix.
- * - **Walking on,** for a note walking can change ([WALKING_CAN_CHANGE]): more than [WAY_HOME_STRAY_METERS] (50 m, the
- *   stray figure) from where the search was asked, so once per 50 m walked from the last ask. Until Amendment 2 this was
+ * - **Walking on inside an area,** for a note walking can change ([WALKING_CAN_CHANGE]): while the walker's fix is
+ *   inside a downloaded area ([insideAnArea]), more than [WAY_HOME_STRAY_METERS] (50 m, the stray figure) from where the
+ *   search was asked, so once per 50 m walked from the last ask. Until Amendment 2 this was
  *   [WayToWaypointNote.WALKER_FAR_FROM_TRAIL] alone, where the trails are being the engine's to know; Amendment 2, item 3
- *   (RECORD -1670, the owner: "Every 50 m walked (Recommended)") adds the others a walk can change, inside an area too.
+ *   (RECORD -1670, the owner: "Every 50 m walked (Recommended)") adds the others a walk can change. Amendment 3, item 3
+ *   (RECORD -1671) makes "inside" exact, as the owner's question put it ("Inside an area, after a straight result"):
+ *   outside every downloaded area there is no 50 m retry, so no search on a fix outside one (Amendment 1); walking into
+ *   an area holding both ends still tries at once, by the trigger above.
  *
  * The rest wait for the area trigger: [WayToWaypointNote.WAYPOINT_FAR_FROM_TRAIL] (walking does not move the waypoint),
  * [WayToWaypointNote.ROUTES_UNREADABLE] and [WayToWaypointNote.ROUTES_NEED_APP_UPDATE] (the area's data, which walking
@@ -44,12 +50,19 @@ class WayToRetry(
         val walkedIn = holdsNow && !heldBoth
         heldBoth = holdsNow
         if (walkedIn) return true
-        return note in WALKING_CAN_CHANGE && GeoDistance.metersBetween(searchedFrom, here) > WAY_HOME_STRAY_METERS
+        return note in WALKING_CAN_CHANGE && insideAnArea(here, regions) && GeoDistance.metersBetween(searchedFrom, here) > WAY_HOME_STRAY_METERS
     }
 
     private fun holdsBoth(walker: LatLng, regions: List<OfflineRegionSummary>) =
         routeDataForPoints(walker, waypoint, regions) is RouteDataForPoints.Found
 }
+
+/**
+ * Whether [walker] is inside a downloaded area (Amendment 3, item 3): a region downloaded on this phone whose route area
+ * holds the fix, as [routeDataForPoints] judges a point in a downloaded region. The waypoint need not be in it.
+ */
+private fun insideAnArea(walker: LatLng, regions: List<OfflineRegionSummary>): Boolean =
+    regions.any { it.isDownloaded && routeAreaFor(it.region).contains(walker) }
 
 /** The notes a walk can change, tried again every 50 m walked (Amendment 2, item 3; RECORD -1670), as the dispatch lists them. */
 private val WALKING_CAN_CHANGE = setOf(
