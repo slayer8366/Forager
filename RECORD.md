@@ -28037,3 +28037,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's check of Hazel's S22 run (Fable; prompts/preserved/2026-10-26-sorrel-401-s22-check.md, branch sorrel-401-s22, d83a487c6): met with stated limits; every figure recounted from the phone log and matched; the CI APK hash matches Hazel's. Caveat 2 is by construction: while the way home shows, the locate button is Re-center and never reaches the remembered locate (CompactMapIconCluster.kt:64), so Sorrel's earlier §2.6 item 3 was wrong to ask for it while returning. Caveat 3: the camera was already following, so MapLibre makes the follow a no-op; the remembered tap is shown to run once, the camera move in that state is not. Optional further run: one remembered locate with following broken first. #403 now also carries the daily script and timer files (dispatch 2026-10-26-02), mid-test.
 **Decision:** the owner: "Merge now (Recommended)" for #401, merged by the planner at d335076ac (pre-main 10142c1d2; no files in common with the pre-main changes since its base, clean merge). "Merge #403 and #405": #405 on its checks going green; for #403, "After the test run (Recommended)", once the coder reports, its checks are green and the accountant's name is in.
 **Notes:** Written by the planner by hand. Next free ID -1647.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1647
+**Timestamp:** 2026-10-26T03:55:06Z
+**Continues:** 2026-09-28-1646, 2026-09-28-1644
+**Title:** The accountant's timer is on; finished app worktrees cleared, 24 MB to 13.9 GB free (owner)
+**Observed:** the timer coder (Opus; dispatch 2026-10-26-02, PR #403 at c110c177b): rerun for 2026-10-25 matches 3c266c41a exactly (316,183,632 tokens, 1,368 turns; docs/accounting/2026-10-25-rerun.md, abf789df2); the run uses only command-line permissions, no user-level settings, no MCP servers; Linger=no, so it runs only while logged in, catching up once at login. Alder relayed that / had 24 MB free and ~/.cache/forager-wt held 19 GB.
+**Decision:** the owner: "On, while logged in (Recommended)": enabled, next run 2026-10-26 06:47 PDT. "Clear finished ones (Recommended)", asked in this window: 108 worktrees removed with git worktree remove (clean, HEAD on a remote branch, no open PR or running helper); kept 2 dirty and 10 with unpushed commits; branches untouched; 13,936 MB free after.
+**Notes:** Written by the planner by hand. The timer runs the script from ~/.cache/forager-wt/accountant-profile, kept for that reason. Next free ID -1648.
