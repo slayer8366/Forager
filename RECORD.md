@@ -28333,3 +28333,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The tidy PR starts (owner)
 **Decision:** the owner: "Start the tidy PR": dispatch 2026-10-26-12: #410's two list-check fixes, the stale comments named by Sorrel's #406, #408, #409 and #413 reviews, and the waypoint pop-up's known-bugs row.
 **Notes:** Written by the planner by hand. Next free ID -1674.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1674
+**Timestamp:** 2026-10-26T17:35:05Z
+**Continues:** 2026-09-28-1631, 2026-09-28-1673
+**Title:** Step 7 PR 3, the quiet off-trail state, starts (owner)
+**Decision:** the owner: "Start step 7 PR 3": dispatch 2026-10-26-13, the way home's quiet off-trail state and "Back on trail" as -1631's step paths, from the step 7 report (branch off-trail-report, 228d521fb), re-checked against everything merged since; kept clear of the running tidy PR's files.
+**Notes:** Written by the planner by hand. Next free ID -1675.
