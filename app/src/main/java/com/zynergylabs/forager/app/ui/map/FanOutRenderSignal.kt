@@ -125,7 +125,8 @@ internal suspend fun hideWhenCopiesDrawn(
 ) {
     if (!anyMemberOnScreen(map, mapView, members)) {
         Log.i(SIGNAL_TAG, "None of the ${members.size} fanned markers is on screen; their originals are hidden at once.")
-        gate.onCopiesDrawn(generation)?.let { applyFanOutHiding(style, it.hide) }
+        // Dispatch 2026-10-25-02 (RECORD -1634): not on a style a style change has replaced (skipped, logged).
+        gate.onCopiesDrawn(generation)?.let { step -> currentStyle(style, "Hiding the fanned originals")?.let { applyFanOutHiding(it, step.hide) } }
         return
     }
     var framesAtRest = 0
@@ -140,7 +141,8 @@ internal suspend fun hideWhenCopiesDrawn(
             Log.w(SIGNAL_TAG, "The renderer did not report the ${members.size} copies drawn within $REST_FRAMES_BEFORE_GIVING_UP rendered frames of the fan being at rest; their originals were hidden anyway.")
         }
     }
-    step?.let { applyFanOutHiding(style, it.hide) }
+    // Dispatch 2026-10-25-02 (RECORD -1634): the wait above spans frames, so the style may have been replaced meanwhile.
+    step?.let { s -> currentStyle(style, "Hiding the fanned originals")?.let { applyFanOutHiding(it, s.hide) } }
 }
 
 /**

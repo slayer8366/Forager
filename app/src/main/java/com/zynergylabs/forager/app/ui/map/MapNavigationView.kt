@@ -30,7 +30,9 @@ internal fun MapNavigationView(
     // then draws is device-only: a real MapView cannot run under Robolectric.
     LaunchedEffect(state.mapLibreMap, state.loadedStyle, navigationView != null, navigationView?.following, navigationView?.facing, navigationView?.restoreRequestId, navigationView?.zoomOnStart, state.navigationMapHeightPx) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
-        if (state.loadedStyle == null || !trackLiveLocation) return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): not on a style being replaced (skipped, logged); the new style's load runs
+        // this again (loadedStyle is a key).
+        if (!trackLiveLocation || currentStyle(state.loadedStyle, "The navigation view") == null) return@LaunchedEffect
         val component = map.locationComponent
         if (!component.isLocationComponentActivated) return@LaunchedEffect
         val view = navigationView
