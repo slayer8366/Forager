@@ -890,3 +890,144 @@ tasks.register("verifyCreditsCoverEveryDependency") {
 
 tasks.matching { it.name == "assembleDebug" }
     .configureEach { finalizedBy("verifyCreditsCoverEveryDependency") }
+
+// ---------------------------------------------------------------------------------------------
+// DIAGNOSTIC ONLY. Dispatch 2026-10-26-04 (RECORD -1649), branch caption-oom-diag, which never
+// merges. Records what holds the unit-test JVM's heap as the suite runs, so the question "what
+// holds the heap at class 662" can be answered on a green run. The heap limit is deliberately left
+// at Gradle's default: nothing here sets maxHeapSize or -Xmx.
+//
+// - A GC log of every pause, with wall-clock time, to line up with the class timeline below.
+// - A heap dump if the worker throws OutOfMemoryError.
+// - A listener in the build JVM that, against the test worker's pid (found by its command line):
+//   records VM.command_line and VM.flags once (the real heap limit and collector), a live class
+//   histogram (GC.class_histogram, which runs a full GC first) after every 5th class, class-loader
+//   stats after every 50th, and a live heap dump plus class-loader stats when the first
+//   MapCreditCaption class starts. Every command's exit code, or its failure, goes to diag.log.
+// ---------------------------------------------------------------------------------------------
+val heapDiagDir: File = layout.buildDirectory.dir("heapdiag").get().asFile
+
+class HeapDiagListener(private val dir: File) : TestListener {
+    private val jcmd = File(System.getProperty("java.home"), "bin/jcmd").absolutePath
+    private val queue = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val seen = LinkedHashSet<String>()
+    private val histDone = HashSet<Int>()
+    private var pid: Long = -1L
+    private var dumped = false
+    @Volatile private var current = ""
+
+    @Synchronized
+    private fun note(line: String) {
+        File(dir, "diag.log").appendText("${System.currentTimeMillis()}\t$line\n")
+    }
+
+    @Synchronized
+    private fun suiteLine(line: String) {
+        File(dir, "suites.tsv").appendText("${System.currentTimeMillis()}\t$line\n")
+    }
+
+    private fun findWorker(): Long {
+        val all = ProcessHandle.current().descendants().collect(java.util.stream.Collectors.toList())
+        val found = all.filter { ph ->
+            ph.info().arguments().map { args -> args.any { it.contains("Gradle Test Executor") } }.orElse(false)
+        }.map { it.pid() }
+        note("worker candidates: $found among ${all.size} descendants")
+        if (found.isEmpty()) {
+            for (ph in all) {
+                note("descendant ${ph.pid()}: ${ph.info().commandLine().orElse("?").take(400)}")
+            }
+        }
+        if (found.isNotEmpty()) return found.first()
+        val workers = all.filter { ph ->
+            ph.info().commandLine().map { it.contains("GradleWorkerMain") }.orElse(false)
+        }.map { it.pid() }
+        note("FALLBACK: no 'Gradle Test Executor' argument found; GradleWorkerMain processes: $workers")
+        return if (workers.size == 1) workers.first() else -1L
+    }
+
+    private fun jcmdTo(tag: String, vararg cmd: String) {
+        if (pid < 0) {
+            note("$tag skipped: no worker pid")
+            return
+        }
+        val out = File(dir, "$tag.txt")
+        out.parentFile.mkdirs()
+        val startedAt = current
+        try {
+            val p = ProcessBuilder(listOf(jcmd, pid.toString()) + cmd.toList())
+                .redirectErrorStream(true)
+                .redirectOutput(out)
+                .start()
+            val code = p.waitFor()
+            note("$tag exit=$code requested-during=[$startedAt] finished-during=[$current]")
+        } catch (e: Exception) {
+            note("$tag failed: $e")
+        }
+    }
+
+    override fun beforeSuite(suite: TestDescriptor) {
+        val cls = suite.className ?: return
+        if (suite.parent == null || !seen.add(cls)) return
+        val n = seen.size
+        current = "$n $cls"
+        suiteLine("start\t$n\t$cls")
+        if (pid < 0) {
+            pid = findWorker()
+            queue.execute {
+                jcmdTo("vm-command-line", "VM.command_line")
+                jcmdTo("vm-flags", "VM.flags")
+            }
+        }
+        if (!dumped && cls.contains("MapCreditCaption")) {
+            dumped = true
+            val tag = "dump/at-%04d".format(n)
+            val hprof = File(dir, "$tag.hprof").absolutePath
+            Thread {
+                jcmdTo("$tag-dump-log", "GC.heap_dump", hprof)
+                jcmdTo("$tag-classloaders", "VM.classloader_stats")
+            }.start()
+        }
+    }
+
+    override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+        if (suite.parent == null) {
+            note("root suite finished; draining the jcmd queue")
+            queue.shutdown()
+            queue.awaitTermination(5, java.util.concurrent.TimeUnit.MINUTES)
+            return
+        }
+        val cls = suite.className ?: return
+        val n = seen.indexOf(cls) + 1
+        suiteLine("end\t$n\t$cls\t${result.resultType}")
+        if (n > 0 && n % 5 == 0 && histDone.add(n)) {
+            val tag = "hist/%04d".format(n)
+            queue.execute { jcmdTo(tag, "GC.class_histogram") }
+            if (n % 50 == 0) {
+                queue.execute { jcmdTo("classloaders/%04d".format(n), "VM.classloader_stats") }
+            }
+        }
+    }
+
+    override fun beforeTest(testDescriptor: TestDescriptor) {}
+
+    override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
+}
+
+tasks.withType<Test>().configureEach {
+    if (name == "testDebugUnitTest") {
+        jvmArgs(
+            "-Xlog:gc,gc+heap,gc+metaspace:file=${heapDiagDir.absolutePath}/gc.log:time,uptime,level,tags:filecount=0",
+            "-XX:+HeapDumpOnOutOfMemoryError",
+            "-XX:HeapDumpPath=${heapDiagDir.absolutePath}/oom",
+        )
+        val diagDir = heapDiagDir
+        doFirst {
+            diagDir.deleteRecursively()
+            File(diagDir, "oom").mkdirs()
+            File(diagDir, "dump").mkdirs()
+            File(diagDir, "hist").mkdirs()
+            File(diagDir, "classloaders").mkdirs()
+        }
+        addTestListener(HeapDiagListener(heapDiagDir))
+    }
+}

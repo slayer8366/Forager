@@ -64,7 +64,7 @@ jobs:
     # rather than a mutable tag -- CLAUDE.md, "pin dependency versions ... so a build is
     # reproducible".
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 70  # DIAGNOSTIC (2026-10-26-04): room for histograms, a dump and MAT
 
     steps:
       - name: Check out the full history
@@ -487,6 +487,60 @@ jobs:
             app/build/reports/tests/testDebugUnitTest/
             app/build/test-results/testDebugUnitTest/
           if-no-files-found: error
+
+      # DIAGNOSTIC ONLY (dispatch 2026-10-26-04, branch caption-oom-diag, never merges).
+      - name: Analyse heap dumps with Eclipse MAT
+        if: always()
+        run: |
+          set -uo pipefail
+          diag=app/build/heapdiag
+          shopt -s nullglob
+          dumps=("$diag"/dump/*.hprof "$diag"/oom/*.hprof)
+          echo "Heap dumps found: ${#dumps[@]}"
+          ls -la "$diag" "$diag"/dump "$diag"/oom || true
+          [ "${#dumps[@]}" -gt 0 ] || exit 0
+          zip=MemoryAnalyzer-1.16.1.20250109-linux.gtk.x86_64.zip
+          sha=bf31765edbad3185d3d6a2f2ff23c23a43838b0d46566b0c1d2152dc199e7277492d62318a5b298305870673cb503040fe2ee1000a68f949f333222bdac09149
+          curl -sSfL -o "$RUNNER_TEMP/$zip" "https://download.eclipse.org/mat/1.16.1/rcp/$zip"
+          echo "$sha  $RUNNER_TEMP/$zip" | sha512sum -c - || { echo "::error::MAT checksum mismatch"; exit 1; }
+          unzip -q "$RUNNER_TEMP/$zip" -d "$RUNNER_TEMP/mat"
+          mat="$RUNNER_TEMP/mat/mat"
+          sed -i 's/^-Xmx.*/-Xmx8g/' "$mat/MemoryAnalyzer.ini"
+          grep -n Xmx "$mat/MemoryAnalyzer.ini"
+          mkdir -p "$diag/mat"
+          for f in "${dumps[@]}"; do
+            ls -la "$f"
+            "$mat/ParseHeapDump.sh" "$f" org.eclipse.mat.api:suspects org.eclipse.mat.api:overview org.eclipse.mat.api:top_components \
+              || echo "::warning::MAT reports failed for $f"
+            "$mat/ParseHeapDump.sh" "$f" "-command=histogram -groupBy BY_CLASSLOADER" -format=csv -unzip org.eclipse.mat.api:query \
+              || echo "::warning::MAT classloader histogram failed for $f"
+            base="${f%.hprof}"
+            mv "$base"_*.zip "$diag/mat/" 2>/dev/null || echo "::warning::no MAT report zips for $f"
+            for d in "$base"_Query*; do [ -d "$d" ] && mv "$d" "$diag/mat/"; done
+            ls -la "$diag/mat"
+          done
+
+      - name: Upload heap diagnostics (logs, histograms, MAT reports)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: heapdiag-logs
+          path: |
+            app/build/heapdiag/
+            !app/build/heapdiag/**/*.hprof
+            !app/build/heapdiag/**/*.index
+            !app/build/heapdiag/**/*.threads
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload heap dumps
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: heapdiag-dumps
+          path: app/build/heapdiag/**/*.hprof
+          retention-days: 7
+          if-no-files-found: warn
 
   # Android lint on the debug variant (production release T3; dispatch 2026-10-17-03, owner's go RECORD -1195).
   # A separate job, so the build job above is unchanged. lintDebug fails on any error (lint's abortOnError default)
