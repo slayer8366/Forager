@@ -84,7 +84,7 @@ interface BackByControl {
  * process (dispatch 2026-10-26-08, the heap report's `NoBackBy.shown`; TrackRecordingNoBackByLeakTest).
  */
 object NoBackBy : BackByControl {
-    override val shown: kotlinx.coroutines.flow.StateFlow<BackByShown?> get() = kotlinx.coroutines.flow.MutableStateFlow(null)
+    override val shown: kotlinx.coroutines.flow.StateFlow<BackByShown?> = kotlinx.coroutines.flow.MutableStateFlow(null)
     override fun set(trackId: String, atEpochMillis: Long): Boolean = false
     override fun clear(trackId: String) = Unit
 }
