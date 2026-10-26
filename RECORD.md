@@ -28136,3 +28136,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the PR 1 coder's verify-first (Opus; no code): the ViewModel holds only the waypoint id and no clock, so the report's pure move cannot stand; the screen test feeds fix and clock to the screen; no effect-order dependency; after a move the kept line would survive a dark-mode or language change.
 **Decision:** the owner: "A: ViewModel gets waypoint + clock (Recommended)": its own waypoint source (the Undo-hiding rule shared, not rewritten) and time provider via the factory; the test setup may change, its assertions not; the dark-mode survival accepted. Dispatch 2026-10-26-06 Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -1656.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1656
+**Timestamp:** 2026-10-26T05:15:15Z
+**Continues:** 2026-09-28-1649
+**Title:** The test memory fix: the old-Android classes in their own test JVM; the NoBackBy leak closed (owner)
+**Observed:** the heap report (Opus; prompts/preserved/2026-10-26-04-report.md, branch caption-oom-diag-report, 27f9c1076; diagnostic branch caption-oom-diag, never to merge; runs 40267434673 (did not compile) and 40267714277 (reproduced the OOM)): live heap 490 of 512 MiB at the first caption class (#663), flat from #625; per-SDK framework resource tables 127.1 MiB in Robolectric's static registries; the four non-36 SDKs at least 132.8 MiB for 6 of 746 classes; routing ProfileCache 0.7 MiB; a NoBackBy collector in viewModelScope keeps test Applications alive (about 0.3 MiB).
+**Decision:** the owner: "2: old-Android tests apart (Recommended)"; "Yes, same PR (Recommended)" for the leak; "Keep until the fix merges (Recommended)" for the 2.3 GB of dumps. Dispatch 2026-10-26-08.
+**Notes:** Written by the planner by hand. Next free ID -1657.
