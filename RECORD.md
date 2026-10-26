@@ -28268,3 +28268,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the #412 fix coder (Opus): items 1 and 2 built (52e320eaf; PR run 40294571611 green, 5,611; fail-first 40293756104 six as predicted; reverts R7-R9 specific); item 3 stopped at verify-first: the missing-file EndOutsideData (RoutingDataFolder.kt:33-34) is ordinarily a build gap the app calls "No trail routes here", and it feeds the way home's trail-join scan (TrailJoins.kt:85-94), which a damaged reading would stop. The planner's earlier question had described it as damage.
 **Decision:** asked again with that corrected, the owner: "'No trail routes here' (Recommended)": the waypoint note for a missing square is "No trail routes here · straight line"; the way home's scan and notes unchanged. "Confirm (Recommended)": neither end in any region stays "No trail routes here". Dispatch 2026-10-26-10 Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -1668.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1668
+**Timestamp:** 2026-10-26T09:49:18Z
+**Continues:** 2026-09-28-1667, 2026-09-28-1665
+**Title:** #412 merges; step 6 PR 3 starts, carrying the safer missing-square marker (owner)
+**Observed:** Sorrel's #412 re-check (Fable; prompts/preserved/2026-10-26-sorrel-412-recheck.md, branch sorrel-412-recheck, 00aa57876): mergeable, no blocking item; every note row right, S-412-1 closed; the missing-square marker sits outside the data class's equality, so nothing loses it today but a future copy, log or set could lose it silently (S-412R-1); the dispatch's own example (a distinct kind) and its constraint (one router test unchanged) excluded each other, the planner's error; all seven failed runs compiled and bit as predicted; PR run 40298236888 green, 5,613.
+**Decision:** the owner: "Merge now, safer design in PR 3 (Recommended)": #412 merged by the planner at f497427c0 (pre-main c1deeef85); PR 3 makes the marker part of the failure's equality, changing one expected value at BRouterTrailRouterTest.kt:106 (approved). "Start after the merge (Recommended)": dispatch 2026-10-26-11.
+**Notes:** Written by the planner by hand. Next free ID -1669.
