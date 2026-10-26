@@ -113,10 +113,48 @@ class BarometricHeightTest {
         assertEquals(36.0, stats(points).elevationGainMeters!!, 2.0)
     }
 
+    /**
+     * A reading outside the operating range is not used. At a walk's end there is nothing after it to bridge to, so the
+     * point has no height; mid-walk it is a gap like a missing reading (dispatch 2026-10-26-18), bridged from the readings
+     * either side, so its height is theirs, not 1200 hPa's (about 1,500 m lower).
+     */
     @Test
     fun `a reading outside the operating range is not used`() {
-        val points = walk(3, gps = { 100.0 }, hPa = { i -> if (i == 1) 1200.0f else 1000.0f })
-        assertNull(barometricHeights(points)[1])
+        val atEnd = walk(3, gps = { 100.0 }, hPa = { i -> if (i == 2) 1200.0f else 1000.0f })
+        assertNull(barometricHeights(atEnd)[2])
+        val midWalk = barometricHeights(walk(3, gps = { 100.0 }, hPa = { i -> if (i == 1) 1200.0f else 1000.0f }))
+        assertEquals("mid-walk, bridged from either side (NaN: no height)", midWalk[0]!!, midWalk[1] ?: Double.NaN, 1e-6)
+    }
+
+    /**
+     * Dispatch 2026-10-26-18 (RECORD -1687): on the S26, about 3% of a walk's kept points carry no pressure, one at a time
+     * and all through the walk, not only at its start. Each such point broke the barometer's run and reset Climb's
+     * reference, so the height change across it was lost: the 2026-10-24 walk read 31 m and 41 m of climb where the same
+     * heights with the gaps bridged read 53 m and 72 m (the owner: "We went 200ft").
+     *
+     * Shaped like that walk: the 50 m climb of `a real climb is read from pressure`, with one point in 23 (about 4%)
+     * missing its pressure, singly, all through it. Bridged, each gap's height is the straight line between the readings
+     * either side, which on this steady climb is the reading it missed; so Climb and Descent equal the same walk's with
+     * no gaps, to well under a centimetre (the float pressures' rounding).
+     */
+    @Test
+    fun `a reading missed mid-walk does not drop the climb`() {
+        val truth = { i: Int -> 100.0 + minOf(i, 360) / 360.0 * 50.0 }
+        val gaps = (17 until 720 step 23).toSet()
+        val whole = walk(720, gps = { i -> truth(i) + 10.0 * sin(i * 2.3) }, hPa = { i -> pressureAt(truth(i)) })
+        val gapped = walk(720, gps = { i -> truth(i) + 10.0 * sin(i * 2.3) }, hPa = { i -> if (i in gaps) null else pressureAt(truth(i)) })
+        assertTrue("the gaps are mid-walk, and none is the climb's corner", gaps.min() > 0 && gaps.max() < 719 && 360 !in gaps)
+        assertEquals("climb", stats(whole).elevationGainMeters!!, stats(gapped).elevationGainMeters!!, 0.01)
+        assertEquals("descent", stats(whole).elevationLossMeters!!, stats(gapped).elevationLossMeters!!, 0.01)
+    }
+
+    /** A walk's first and last points with no pressure have no reading on one side to bridge from, so they keep none. */
+    @Test
+    fun `a reading missed at a walk's start or end is not made up`() {
+        val heights = barometricHeights(walk(10, gps = { 100.0 }, hPa = { i -> if (i == 0 || i == 9) null else 1000.0f }))
+        assertNull("start", heights[0])
+        assertNull("end", heights[9])
+        assertTrue("between", (1..8).all { heights[it] != null })
     }
 
     /** A walk with no pressure, or pressure on under half its points, reads smoothed GPS height, as every walk before the barometer does. */
