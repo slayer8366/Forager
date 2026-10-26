@@ -32,4 +32,10 @@ internal open class RecordingWatches(private val container: AppContainer) {
 
     /** Every raw fix, to the way home (dispatch 2026-10-24-10): where the walker is on it, and the stray judge. See [com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch.onFix]. */
     open fun wayHomeOnFix(point: TrackPoint, provider: FixProvider) = container.wayHomeWatch.onFix(point, provider)
+
+    /**
+     * Each point the sampler keeps on [trackId], to the way home (dispatch 2026-10-25-10, RECORD -1636), so it starts
+     * from the walker's newest point and not the last one written. See [com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch.onKeptPoint].
+     */
+    open fun wayHomeOnKeptPoint(trackId: String, point: TrackPoint) = container.wayHomeWatch.onKeptPoint(trackId, point)
 }
