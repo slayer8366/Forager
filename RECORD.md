@@ -28375,3 +28375,15 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Step 8's app side starts: 8a, then 8b and 8c, then 8d (owner)
 **Decision:** the owner: "Start the step 8 app side"; asked whether the go covers all four PRs, "All four, in order (Recommended)": 8a (style v3 with a hidden reference source, against a synthetic archive) first, dispatch 2026-10-26-14; 8b and 8c side by side after it; 8d last, its real content waiting on Aspen's coverage list and dates. Each still goes to Sorrel and comes to the owner to merge.
 **Notes:** Written by the planner by hand. The archive itself is Aspen's, for the owner to take to them. Next free ID -1678.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1678
+**Timestamp:** 2026-10-26T18:22:27Z
+**Continues:** 2026-09-28-1677, 2026-09-28-1633
+**Supersedes:** -1633's "Count them (Recommended)"
+**Title:** Step 8a: the app stays on today's style until the official-trails data is live; the band's tiles are not counted (owner)
+**Observed:** the 8a coder's verify-first (Opus; no code): a TileJSON source with no archive makes every v3 area download fail ("Offline map download failed": a 404 on a non-tile resource is final, MapLibreOfflineMapRepository.kt:449-452) and holds the return-to-Maps cover for its 1.5 s cap online (the style never fully loads); an inline tile address avoids both but areas downloaded before the archive would silently lack the band; counting the band's tiles doubles the estimate (24 km's worst case 10,492 against 6,000; the new maximum at most 18 km).
+**Decision:** the owner: "When Aspen's data is live (Recommended)": 8a builds style v3 with an inline tile address and its Worker route, and the app stays on v2; switching is its own PR once the archive is live. "Don't count, keep 24 km (Recommended)": the 6,000 budget stays the basemap's. Dispatch 2026-10-26-14 Amendment 1.
+**Notes:** Written by the planner by hand. For Aspen (via the owner): the archive must be built to zoom 15. Next free ID -1679.
