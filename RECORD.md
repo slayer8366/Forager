@@ -28103,3 +28103,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the step 6 report (Hazel, Opus; docs/audits/2026-10-25-03-waypoint-along-trails-report.md, branch waypoint-trails-report, 079666037): inside a downloaded area the line becomes a straight leg to the nearest trail, the trail, and a straight leg to the waypoint, "by trail" in the HUD; re-route past 50 m, once per stray, quiet; arrival on straight distance as today; outside an area today's straight line with a note. Four PRs: a pure move of the straight line to the ViewModel; the route in the domain; map and HUD; step 7's quiet off-trail state (after step 7).
 **Decision:** the owner: Q1 "(a) Straight to nearest trail (Recommended)"; Q2 "Confirm (Recommended)" (straight leg from the trail point nearest the waypoint; over 250 m from any trail, today's straight line with a note); Q3 "(a) Under 150 m, straight (Recommended)"; Q4 "Approve as written (Recommended)": the way home's notes ending "· straight line", plus "The waypoint is far from any trail · straight line", "You're far from any trail · straight line", "The waypoint is in another area · straight line"; Q5 "(a) As today (Recommended)": on screen only. Asked to start PR 1: "Not yet".
 **Notes:** Written by the planner by hand. Next free ID -1653.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1653
+**Timestamp:** 2026-10-26T05:08:11Z
+**Continues:** 2026-09-28-1652
+**Supersedes:** -1652's Q3 ruling (under 150 m, straight) and its "Not yet" for PR 1
+**Title:** Step 6: a trail route is always worth it; PR 1 starts (owner)
+**Decision:** asked again at the owner's request ("Show the questions again"): Q1 "(a) Straight to nearest trail", Q2 "Confirm", Q4 "Approve as written", Q5 "(a) As today", all as in -1652. Q3, the owner: "It's always worth it": no short-walk cut-off; a waypoint under 150 m also gets the trail route (the 250 m reach of Q2 still stands). PR 1, the owner: "Start PR 1 now": dispatch 2026-10-26-06.
+**Notes:** Written by the planner by hand. Next free ID -1654.
