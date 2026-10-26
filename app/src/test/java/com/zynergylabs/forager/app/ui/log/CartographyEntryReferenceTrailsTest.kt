@@ -21,6 +21,9 @@ import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -59,9 +62,17 @@ class CartographyEntryReferenceTrailsTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private val entry = CartographyEntry.draft(id = "entry-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L).copy(isDraft = false)
+    // As CartographyEntryMapLayersTest's: an entry with one kept waypoint, so its map section has a place to show.
+    private val entry = CartographyEntry.draft(id = "entry-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
+        .copy(isDraft = false, waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -122.5, kept = true)))
 
-    private val mapData = CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+    private val mapData = CartographyEntryMapData(
+        trackPolylines = emptyList(),
+        findMarkers = emptyList(),
+        waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
+        photoMarkers = emptyList(),
+        offlineRegionCircles = emptyList(),
+    )
 
     private var renderMode: MapRenderMode? = null
     private var onTap: (() -> Unit)? = null
