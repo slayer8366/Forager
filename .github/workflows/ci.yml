@@ -187,8 +187,11 @@ jobs:
           TESTS: ${{ inputs.tests }}
         run: |
           set -euo pipefail
+          # Two test JVMs (dispatch 2026-10-26-08): testDebugUnitTestOlderSdks runs the classes on Android
+          # SDKs other than 36 (gradle/older-sdk-tests.gradle.kts) and testDebugUnitTest the rest. The second
+          # finalizes the first, so it runs even when the first fails; it is named here so the command says so.
           if [ -z "${TESTS//[[:space:]]/}" ]; then
-            ./gradlew --stacktrace testDebugUnitTest
+            ./gradlew --stacktrace testDebugUnitTest testDebugUnitTestOlderSdks
             exit 0
           fi
           if [[ "$TESTS" == *$'\n'* ]]; then
@@ -220,7 +223,10 @@ jobs:
           for ((i = 1; i < ${#args[@]}; i += 2)); do
             printf 'Test filter pattern: %s\n' "${args[i]}"
           done
-          ./gradlew --stacktrace testDebugUnitTest "${args[@]}"
+          # The filter goes to both tasks; forager.filteredTestRun lets the one it matches nothing in pass
+          # empty. A filter matching nothing in either still fails the summary below ("no tests ran").
+          ./gradlew --stacktrace -Pforager.filteredTestRun=true \
+            testDebugUnitTest "${args[@]}" testDebugUnitTestOlderSdks "${args[@]}"
 
       - name: Summarize the test results
         # Runs even when the test task failed, so the summary reports the failure rather than
@@ -238,12 +244,31 @@ jobs:
           import sys
           import xml.etree.ElementTree as ET
 
-          results = sorted(glob.glob("app/build/test-results/testDebugUnitTest/TEST-*.xml"))
+          # Both test tasks' XML (dispatch 2026-10-26-08). On an unfiltered run each must have written some,
+          # and no class may appear in both: a class in both ran twice, a class in neither did not run.
+          task_dirs = ("testDebugUnitTest", "testDebugUnitTestOlderSdks")
+          filtered = bool(os.environ.get("TESTS", "").strip())
+          results = []
+          for task in task_dirs:
+              found = sorted(glob.glob("app/build/test-results/{}/TEST-*.xml".format(task)))
+              if not found and not filtered:
+                  sys.exit(
+                      "No JUnit XML in app/build/test-results/{}/. The test task "
+                      "produced no results at all, which is a failure, not an empty pass.".format(task)
+                  )
+              print("{}: {} result files".format(task, len(found)))
+              results += found
           if not results:
               sys.exit(
-                  "No JUnit XML in app/build/test-results/testDebugUnitTest/. The test task "
+                  "No JUnit XML from either test task. The filtered run "
                   "produced no results at all, which is a failure, not an empty pass."
               )
+          seen_in = {}
+          for path in results:
+              seen_in.setdefault(os.path.basename(path), []).append(path)
+          twice = sorted(name for name, paths in seen_in.items() if len(paths) > 1)
+          if twice:
+              sys.exit("Test classes ran in both test tasks: " + ", ".join(twice))
 
           keys = ("tests", "failures", "errors", "skipped")
           totals = dict.fromkeys(keys, 0)
@@ -486,6 +511,8 @@ jobs:
           path: |
             app/build/reports/tests/testDebugUnitTest/
             app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTestOlderSdks/
+            app/build/test-results/testDebugUnitTestOlderSdks/
           if-no-files-found: error
 
   # Android lint on the debug variant (production release T3; dispatch 2026-10-17-03, owner's go RECORD -1195).
