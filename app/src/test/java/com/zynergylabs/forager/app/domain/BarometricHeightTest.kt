@@ -123,7 +123,7 @@ class BarometricHeightTest {
         val atEnd = walk(3, gps = { 100.0 }, hPa = { i -> if (i == 2) 1200.0f else 1000.0f })
         assertNull(barometricHeights(atEnd)[2])
         val midWalk = barometricHeights(walk(3, gps = { 100.0 }, hPa = { i -> if (i == 1) 1200.0f else 1000.0f }))
-        assertEquals("mid-walk, bridged from either side", midWalk[0]!!, midWalk[1]!!, 1e-6)
+        assertEquals("mid-walk, bridged from either side (NaN: no height)", midWalk[0]!!, midWalk[1] ?: Double.NaN, 1e-6)
     }
 
     /**
