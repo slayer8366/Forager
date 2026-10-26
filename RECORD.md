@@ -28212,3 +28212,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Step 6 PR 2 starts now; the old session's temp scratch deleted (owner)
 **Decision:** the owner: "Start step 6 PR 2 now", before the wiring-test diagnosis returns (pre-main green on d63fa0db1 and later): dispatch 2026-10-26-10, with Q3 as superseded in -1653 (no short-walk cut-off). For the temp area, "Delete it (Recommended)": the planner removed session f732725c's 3.1 GB scratch folder from /tmp/claude-1000 (4.2 GB to 910 MB used).
 **Notes:** Written by the planner by hand. Next free ID -1663.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1663
+**Timestamp:** 2026-10-26T07:33:58Z
+**Continues:** 2026-09-28-1660
+**Title:** The Journal-delete wiring tests' race is the tests', not #409's; fixed now (owner)
+**Observed:** the diagnosis (Opus; prompts/preserved/2026-10-26-09-report.md, branch wiring-test-report, 050cd1921): the tests wait for the database row to go (MushroomLogViewModelWiringTest.kt:77, :95), drain the looper once and assert once, while the app clears the Maps snapshot just after the delete returns (MushroomLogPendingDeletes.kt:145-148, :264); 301 runs each: with #409 1 and 2 failures (run 40283791999), without #409 4 and 3 (run 40283794462); 8 earlier failures since 2026-10-18 in CI history; the app's wiring sound.
+**Decision:** the owner: "Fix now, option 1 (Recommended)": wait on the snapshot itself, same assertion; dispatch 2026-10-26-09 Amendment 1.
+**Notes:** Written by the planner by hand. Next free ID -1664.
