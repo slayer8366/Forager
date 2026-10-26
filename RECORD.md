@@ -28125,3 +28125,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the 2026-10-26-05 coder's verify-first (Opus; no code): a separate holder of the kept-not-written points the service feeds and the screen collects (domain/RecordingKeptTail.kt), not #404's held points (their lock, no per-point signal, pruning against a different store read); network fixes removed as on the store's read path; the screen also polls only every 15 s, so today's lag can reach about 45 s; TrackRecordingViewModel.kt (864 lines) gets 2 or 3 wiring lines; the map's overlay refresh would run at each kept point (up to every 5 s) instead of every 15 s; finding: WayHomeKeptPoints.addedTo (:52) does not remove network fixes from the held points.
 **Decision:** the owner: "Few lines OK (Recommended)"; "Accept, check on the S22 (Recommended)" (the phone check also watches for stutter or battery change while recording); "Small fix, own PR (Recommended)": dispatch 2026-10-26-07.
 **Notes:** Written by the planner by hand. Next free ID -1655.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1655
+**Timestamp:** 2026-10-26T05:11:53Z
+**Continues:** 2026-09-28-1653, 2026-09-28-1450
+**Title:** Step 6 PR 1: the ViewModel gets the waypoint and a clock (owner)
+**Observed:** the PR 1 coder's verify-first (Opus; no code): the ViewModel holds only the waypoint id and no clock, so the report's pure move cannot stand; the screen test feeds fix and clock to the screen; no effect-order dependency; after a move the kept line would survive a dark-mode or language change.
+**Decision:** the owner: "A: ViewModel gets waypoint + clock (Recommended)": its own waypoint source (the Undo-hiding rule shared, not rewritten) and time provider via the factory; the test setup may change, its assertions not; the dark-mode survival accepted. Dispatch 2026-10-26-06 Amendment 1.
+**Notes:** Written by the planner by hand. Next free ID -1656.
