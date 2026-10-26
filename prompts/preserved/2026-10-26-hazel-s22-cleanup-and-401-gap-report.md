@@ -31,11 +31,11 @@ The build was this PR's CI APK, byte-identical to run 40192329788's artifact. Pi
 
 **Why the paced gap was never hit.** A style change took 50 to 180 ms from the change to "activated on a style load", and input events were mostly handled only after the load. So a tap through the sheet or drawer, which covers the locate button, cannot land inside the change.
 
-**Phone state changed for the run, and restored:** stay-awake 7 then 0; gps and network test providers added then removed; the shell's mock-location appop allowed then set back to `default` (its record showed a reject 5 days earlier, so it was not allowed before); wifi off and on 20 times, left on; overlay switches toggled in pairs. That last one leaves `offline-region-circles-layer.visible = true` stored explicitly, where before the key was absent; the default is the same value (`MapLayerState.kt:14`). Basemap Trail, Night Maps off, the run's test track and its two waypoints deleted through the app. Final database: as after item 1.
+**Phone state changed for the run, and restored:** stay-awake 7 then 0; gps and network test providers added then removed; the shell's mock-location appop allowed then set back to `default` (its record showed a reject 5 days earlier, so it was not allowed before); wifi off and on 37 times, left on; overlay switches toggled in pairs. That last one leaves `offline-region-circles-layer.visible = true` stored explicitly, where before the key was absent; the default is the same value (`MapLayerState.kt:14`). Basemap Trail, Night Maps off, the run's test track and its two waypoints deleted through the app. Final database: as after item 1.
 
 ## Unverified, and for the owner
 
-- **Unverified:** that a remembered locate re-centres a map that was not following. That needs a hit after a pan: 0 in 21 such tries.
+- **Unverified:** that a remembered locate re-centres a map that was not following. That needs a hit after a pan: 0 in 27 such tries.
 - **Unverified:** a remembered locate from a user's own basemap or Night Maps tap. The way the controls are laid out appears to make that window unreachable by hand.
 - **For the owner or Rowan:** does #401's S22 condition count as met, given caveats 1 to 3 above? Sorrel's 2.6 asked for a locate "within the same second as a basemap or Night Maps tap".
 - **For the owner:** the two 2026-10-24 tracks, and Region 2. Both are on the phone, neither is from this test, and I don't know who made them.
