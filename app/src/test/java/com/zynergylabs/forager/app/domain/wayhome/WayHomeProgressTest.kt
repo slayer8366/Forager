@@ -106,11 +106,13 @@ class WayHomeProgressTest {
     }
 
     @Test
-    fun `between 25 and 50 m off the line the hop is counted, and over 50 m the walker is off the line`() {
+    fun `between 25 and 50 m off the line the hop is counted, beside the start the distance to it is added (-1634), and over 50 m the walker is off the line`() {
         val off35 = placed(placeOnWayHome(line, at(-35.0, -50.0), previous = null))
         assertEquals(HopBand.COUNTED, off35.hopBand)
-        // Amendment 3: the reach covers the fix's distance from the line, so no hop is added to the figure.
-        assertEquals(570.0, off35.remainingMeters, 0.5)
+        // RECORD -1634 (the owner: "Add it, never short (Recommended)"; dispatch 2026-10-25-06 Amendment 1) supersedes
+        // -1618's "no hop is added" for a fix beside or behind the line's first point: this fix is 35 m square beside it,
+        // so the figure adds the 35 m back to it. GPS wobble at the start reads up to about 50 m long, never short.
+        assertEquals(570.0 + 35.0, off35.remainingMeters, 0.5)
 
         val off60 = placeOnWayHome(line, at(-60.0, -50.0), previous = null)
         assertTrue("off the line: $off60", off60 is WayHomeProgress.OffLine)
@@ -146,9 +148,11 @@ class WayHomeProgressTest {
     }
 
     @Test
-    fun `a fix just inside the 50 m gate is placed and counts from the line, one just outside is off the line`() {
+    fun `a fix just inside the 50 m gate beside the start is placed and adds its distance to the start (-1634), one just outside is off the line`() {
         val inside = placed(placeOnWayHome(line, at(-49.9, -50.0), previous = null))
-        assertEquals(570.0, inside.remainingMeters, 0.5)
+        // RECORD -1634 supersedes -1618's "no hop is added" for a fix beside or behind the line's first point
+        // (dispatch 2026-10-25-06 Amendment 1): 49.9 m beside it, so 570 + 49.9.
+        assertEquals(570.0 + 49.9, inside.remainingMeters, 0.5)
         assertTrue(placeOnWayHome(line, at(-50.1, -50.0), previous = null) is WayHomeProgress.OffLine)
     }
 
@@ -198,5 +202,34 @@ class WayHomeProgressTest {
             ),
         )
         assertNeverShort(wide, walker = at(105.0, 0.0), fix = at(105.0, 49.9), truth = 95.0 + 70.0 + 200.0 + 100.0)
+    }
+
+    // Dispatch 2026-10-25-06 (RECORD -1630, the owner: "Add it, fix first"): a walker past the line's first point reads the
+    // distance back to it on top of the line's total, so the figure is never short of the line drawn. Hazel's S22 check
+    // (prompts/preserved/2026-10-25-hazel-s22-figure-check.md, section 3): after a re-route the figure held at the line's
+    // total while the walker walked 27 m on, out past the line's start.
+
+    @Test
+    fun `a walker past the line's first point reads the distance back to it on top of the line's total`() {
+        // The hairpin starts at (0, -50) heading north; (0, -80) is 30 m past its start, the way the walker was going.
+        for (beyond in listOf(5.0, 10.0, 20.0, 30.0, 45.0)) {
+            val place = placed(placeOnWayHome(line, at(0.0, -50.0 - beyond), previous = null))
+            assertEquals("$beyond m past the start", 570.0 + beyond, place.remainingMeters, 0.5)
+        }
+    }
+
+    @Test
+    fun `beside the line's first point, the walker reads the distance across to it as well`() {
+        // 20 m east of the start, square to the first stretch: to the line is 20 m, then the whole line.
+        assertEquals(590.0, placed(placeOnWayHome(line, at(20.0, -50.0), previous = null)).remainingMeters, 0.5)
+    }
+
+    @Test
+    fun `a walker on the line ahead of its first point reads today's figure, with nothing added`() {
+        // Pins that the gap is added only past the start: along the first stretch the figure stays the line's metres from
+        // the earliest node within the reach, here node 0, as before this dispatch.
+        for (north in listOf(-50.0, -45.0, -30.0, -10.0)) {
+            assertEquals("at (0, $north)", 570.0, placed(placeOnWayHome(line, at(0.0, north), previous = null)).remainingMeters, 0.5)
+        }
     }
 }

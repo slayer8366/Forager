@@ -73,7 +73,8 @@ class WayHomeLine(val wayHome: WayHome) {
  * from their fix to it, [hopBand] that hop's band ([nextHopBand], passed back as the next call's previous band).
  * [remainingMeters] is the distance home, counted from its own node, the earliest within [WAY_HOME_FIGURE_REACH_METERS]
  * anywhere on the line ([placeOnWayHome]; Amendments 3 and 4), plus [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part
- * ([onTrail]).
+ * ([onTrail]), plus, for a walker past the line's first point, their distance back to it ([metersPastLineStart]; RECORD
+ * -1630).
  */
 data class WayHomePlace(
     val index: Int,
@@ -120,7 +121,8 @@ sealed interface WayHomeProgress {
  * reach is the gate's 50 m plus the line's node step (RECORD -1620, Amendment 4), so it covers every fix the gate admits
  * and the figure is never short, as `PathHome.kt`'s ruling requires ("Its error is never short"). The owner accepted
  * that it reads about 50 to 75 m long on an ordinary trail (-1618), and up to 10 m more with the node step (-1620). No
- * hop is added to it: the reach already covers the fix's distance from the line.
+ * hop is added to it: the reach already covers the fix's distance from the line. The one exception is a walker past the
+ * line's first point (RECORD -1630): the figure then adds their distance back to it ([metersPastLineStart]).
  */
 fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, previousHopBand: HopBand = previous?.hopBand ?: HopBand.NONE): WayHomeProgress {
     val nodes = line.nodes
@@ -140,9 +142,38 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
     val figureIndex = earliest(nodes.indices, WAY_HOME_FIGURE_REACH_METERS) ?: index
     val onTrail = line.kinds[figureIndex] == RouteLinePartKind.TRAIL
     val remaining = line.totalMeters - line.alongMeters[figureIndex] +
-        (if (onTrail) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0)
+        (if (onTrail) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0) +
+        (if (figureIndex == 0) metersPastLineStart(line, current) else 0.0)
     return WayHomeProgress.Placed(WayHomePlace(index, hop, band, onTrail, remaining))
 }
+
+/**
+ * How far [current] is from the line's first point when the walker is past it (dispatch 2026-10-25-06; RECORD -1630, the
+ * owner: "Add it, fix first (Recommended)"), and 0 otherwise. Past means not ahead of the first point along the line's
+ * first stretch: the angle between that stretch and the way to [current] is at least a right angle. A line starts at
+ * the newest stored track point, so a walker who walks on after a re-route (or after Return) is beyond it. Their figure
+ * counted from node 0 and held at the line's total, short of the line drawn by the distance walked on (Hazel's S22
+ * check, prompts/preserved/2026-10-25-hazel-s22-figure-check.md, section 3: 27 m). The figure adds this, so it is never
+ * short of the line drawn; the line, the place, the needle and the greyed part are unchanged. Only called when the
+ * figure counts from node 0, which it always does for a walker past the start within the far band (node 0 is then the
+ * nearest node, within 50 m, inside the 60 m reach). A walker on the first stretch, ahead of node 0, gets nothing added,
+ * as before. The first stretch is taken to the first node apart from node 0, so a repeated first point cannot make the
+ * stretch a zero vector, which would read every walker as past.
+ */
+internal fun metersPastLineStart(line: WayHomeLine, current: LatLng): Double {
+    val nodes = line.nodes
+    val start = nodes.firstOrNull() ?: return 0.0
+    val next = nodes.firstOrNull { GeoDistance.metersBetween(start, it) > WAY_HOME_LINE_START_EPSILON_METERS } ?: return 0.0
+    val perDegree = GeoDistance.metersPerDegree(start.lat)
+    val stretchEast = (next.lng - start.lng) * perDegree.lng
+    val stretchNorth = (next.lat - start.lat) * perDegree.lat
+    val toEast = (current.lng - start.lng) * perDegree.lng
+    val toNorth = (current.lat - start.lat) * perDegree.lat
+    return if (stretchEast * toEast + stretchNorth * toNorth <= 0.0) GeoDistance.metersBetween(start, current) else 0.0
+}
+
+/** Nodes closer than this to the line's first point are the same point, for [metersPastLineStart]. */
+private const val WAY_HOME_LINE_START_EPSILON_METERS = 0.5
 
 /**
  * Added to the distance home whenever the figure's node is on the trail part (RECORD -1613, the owner: "A, plus 25 m
