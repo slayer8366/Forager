@@ -86,6 +86,7 @@ internal fun navigationReadout(
         null -> there
         is ReturnRoute.Ahead -> route.lookahead
         ReturnRoute.Pending, is ReturnRoute.Unavailable -> null
+        is ReturnRoute.Straight -> null // STUB for the fail-first commit
     }
     val bearing = aim?.let { GeoDistance.initialBearingDegrees(here, it) }
     val distanceMeters = GeoDistance.metersBetween(here, there)

@@ -68,6 +68,7 @@ internal object RouteHomeIds {
     const val PART_PROPERTY = "part"
     const val PART_TRACK = "track"
     const val PART_TRAIL = "trail"
+    const val PART_STRAIGHT = "straight"
     const val ARRIVED_SOURCE = "route-home-arrived"
     const val ARRIVED_LAYER = "route-home-arrived-layer"
     const val ARRIVED_IMAGE = "route-home-arrived-image"

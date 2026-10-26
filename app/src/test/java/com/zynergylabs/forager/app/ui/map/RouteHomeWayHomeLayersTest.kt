@@ -45,4 +45,20 @@ class RouteHomeWayHomeLayersTest {
         val arrived = RouteLine(atReturn = listOf(a, b, c, d), ahead = listOf(a, b, c, d), aheadIsCurrent = true, aheadParts = parts)
         assertEquals(0, routeHomeFeatureCollections(RouteOnMap(arrived, arrivedAt = a)).getValue(RouteHomeIds.AHEAD_SOURCE).features()!!.size)
     }
+
+    /**
+     * Step 6 PR 3 (dispatch 2026-10-26-11, N-412-1): the way to a waypoint's straight legs reach the ahead source named as
+     * straight, for their own thin dashed layer, never as the walker's track, which is drawn dotted (RECORD -1589).
+     */
+    @Test
+    fun `the way to a waypoint's straight legs are named straight, and its trail trail`() {
+        val waypointParts = listOf(
+            RouteLinePart(RouteLinePartKind.STRAIGHT, listOf(a, b)),
+            RouteLinePart(RouteLinePartKind.TRAIL, listOf(b, c)),
+            RouteLinePart(RouteLinePartKind.STRAIGHT, listOf(c, d)),
+        )
+        val line = RouteLine(atReturn = emptyList(), ahead = listOf(a, b, c, d), aheadIsCurrent = true, aheadParts = waypointParts)
+        val features = routeHomeFeatureCollections(RouteOnMap(line, arrivedAt = null)).getValue(RouteHomeIds.AHEAD_SOURCE).features()!!
+        assertEquals(listOf(RouteHomeIds.PART_STRAIGHT, RouteHomeIds.PART_TRAIL, RouteHomeIds.PART_STRAIGHT), features.map { it.getStringProperty(RouteHomeIds.PART_PROPERTY) })
+    }
 }
