@@ -13,6 +13,7 @@ import com.zynergylabs.forager.app.domain.wayhome.Ground
 import com.zynergylabs.forager.app.domain.wayhome.Ground.at
 import com.zynergylabs.forager.app.domain.wayhome.WayHome
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
 import com.zynergylabs.forager.app.domain.wayhome.partsFrom
 import kotlinx.coroutines.runBlocking
@@ -114,7 +115,12 @@ class FindWayToWaypointUseCaseTest {
     fun `a trail route with a point outside the area gets the straight line, with the leaves-area note`() {
         router.via = listOf(at(250.0, 5_000.0))
 
-        assertEquals(straight(WayToWaypointNote.LEAVES_AREA), find(at(0.0, 40.0), at(500.0, -60.0), Ground.region(radiusKm = 1)))
+        val result = find(at(0.0, 40.0), at(500.0, -60.0), Ground.region(radiusKm = 1))
+
+        assertEquals(straight(WayToWaypointNote.LEAVES_AREA), result)
+        // RECORD -1665, the owner: "Add '· straight line'" (Amendment 1, item 1). The way home's sentence is unchanged.
+        assertEquals("This route leaves your downloaded area · straight line", (result as WayToWaypointResult.StraightLine).note.text)
+        assertEquals("This route leaves your downloaded area. Download a larger area to route there.", WayHomeNote.LEAVES_AREA.text)
     }
 
     @Test
@@ -196,7 +202,7 @@ class FindWayToWaypointUseCaseTest {
 
     @Test
     fun `the notes are the owner's words`() {
-        // RECORD -1652 Q4, "Approve as written"; -1653. LEAVES_AREA is the way home's sentence, which had no tail to swap.
+        // RECORD -1652 Q4, "Approve as written"; -1653. LEAVES_AREA: RECORD -1665, the owner: "Add '· straight line'".
         assertEquals(
             listOf(
                 "No trail routes here · straight line",
@@ -205,7 +211,7 @@ class FindWayToWaypointUseCaseTest {
                 "Getting trail routes… · straight line",
                 "Trail routes couldn't be read · straight line",
                 "Couldn't find a trail route · straight line",
-                "This route leaves your downloaded area. Download a larger area to route there.",
+                "This route leaves your downloaded area · straight line",
                 "The waypoint is far from any trail · straight line",
                 "You're far from any trail · straight line",
                 "The waypoint is in another area · straight line",
