@@ -1,3 +1,6 @@
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.util.Properties
@@ -909,7 +912,7 @@ val heapDiagDir: File = layout.buildDirectory.dir("heapdiag").get().asFile
 
 class HeapDiagListener(private val dir: File) : TestListener {
     private val jcmd = File(System.getProperty("java.home"), "bin/jcmd").absolutePath
-    private val queue = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val queue = Executors.newSingleThreadExecutor()
     private val seen = LinkedHashSet<String>()
     private val histDone = HashSet<Int>()
     private var pid: Long = -1L
@@ -927,7 +930,7 @@ class HeapDiagListener(private val dir: File) : TestListener {
     }
 
     private fun findWorker(): Long {
-        val all = ProcessHandle.current().descendants().collect(java.util.stream.Collectors.toList())
+        val all: List<ProcessHandle> = ProcessHandle.current().descendants().collect(Collectors.toList())
         val found = all.filter { ph ->
             ph.info().arguments().map { args -> args.any { it.contains("Gradle Test Executor") } }.orElse(false)
         }.map { it.pid() }
@@ -993,7 +996,7 @@ class HeapDiagListener(private val dir: File) : TestListener {
         if (suite.parent == null) {
             note("root suite finished; draining the jcmd queue")
             queue.shutdown()
-            queue.awaitTermination(5, java.util.concurrent.TimeUnit.MINUTES)
+            queue.awaitTermination(5, TimeUnit.MINUTES)
             return
         }
         val cls = suite.className ?: return
