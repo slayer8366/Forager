@@ -29,10 +29,15 @@ import org.junit.Test
  * from barometric heights only.
  *
  * Each case compares a walk over a hill with the same walk on flat ground: the same points, the same pace, the same
- * distance, so the only difference in "start back by" is the allowance. The barometer's one-minute smoothing and the
- * 4 m hysteresis can each leave up to one threshold unbanked at a turn, so the figures are checked to within two
- * thresholds' worth (2 × 4 m × 2.2 s, about 18 s), which still tells counting both climb and descent from counting
- * either alone.
+ * distance, so the only difference in "start back by" is the allowance. The climb is banked through the journal's 4 m
+ * hysteresis, which only ever counts less than the true change: at the end of the way back up to one threshold stays
+ * unbanked, and at each turn from climbing to descending (or back) up to one threshold is lost from the climb before
+ * it and again from the descent after it, since the descent is measured from the last banked height. So a way back
+ * with no turn is checked to within one threshold's worth below the true figure (4 m × 2.2 s, 8.8 s) and one with a
+ * turn to within three (26.4 s), and never above it. Both still tell counting climb and descent from counting either
+ * alone. (The first version of this test allowed two thresholds either side and failed at 110.0 s against 132 s on
+ * the hill: the hysteresis had lost 3.6 m of climb at the top and 6.4 m of descent, its rule, not a fault. A port of
+ * the heights on the same walk read 16.4 m up and 33.6 m down.)
  */
 class SundownWatchClimbAllowanceTest {
 
@@ -43,8 +48,12 @@ class SundownWatchClimbAllowanceTest {
     private val sunset = (ComputeSundownCountdownUseCase()(morning, start, morning, 0L) as SundownCountdown.Known).sunsetAtEpochMillis
     private val now = sunset - 3 * hour
 
-    /** Two thresholds' worth of allowance: see the class doc. */
-    private val tolerance = 2 * ElevationHysteresis.THRESHOLD_METERS * CLIMB_ALLOWANCE_SECONDS_PER_METER * 1_000.0
+    /** One hysteresis threshold's worth of allowance, in ms: see the class doc. */
+    private val threshold = ElevationHysteresis.THRESHOLD_METERS * CLIMB_ALLOWANCE_SECONDS_PER_METER * 1_000.0
+
+    /** [actual] is [trueMillis] less at most [thresholds] thresholds' worth, and never more. */
+    private fun assertAllowance(message: String, trueMillis: Double, thresholds: Int, actual: Long) =
+        assertTrue("$message: $actual ms, for $trueMillis ms true, at most $thresholds thresholds under", actual <= trueMillis + 1_000.0 && actual >= trueMillis - thresholds * threshold - 1_000.0)
 
     private val logged = mutableListOf<String>()
 
@@ -87,7 +96,7 @@ class SundownWatchClimbAllowanceTest {
         val hilly = startBackAt(walk(Heights.BAROMETER))
 
         // The way back climbs 20 m and descends 40 m: 60 m at 2.2 s, 132 s. Climb alone would be 44 s, descent alone 88 s.
-        assertEquals("start back by moves earlier by the allowance", 132_000.0, (flat - hilly).toDouble(), tolerance)
+        assertAllowance("start back by moves earlier by the allowance", 132_000.0, thresholds = 3, actual = flat - hilly)
         assertEquals("a barometric walk logs nothing about the allowance", emptyList<String>(), noAllowanceLogs())
     }
 
@@ -134,7 +143,7 @@ class SundownWatchClimbAllowanceTest {
         val hilly = startBackAt(walk(Heights.BAROMETER, alongATrail), wayHome = ::wayHomeAlongTheTrail)
 
         // 10 m down out of the forest and 40 m down the trail: 50 m, 110 s. Without the trail's share it would be 22 s.
-        assertEquals("the allowance along the way home", 110_000.0, (flat - hilly).toDouble(), tolerance)
+        assertAllowance("the allowance along the way home", 110_000.0, thresholds = 1, actual = flat - hilly)
     }
 
     @Test
@@ -144,7 +153,7 @@ class SundownWatchClimbAllowanceTest {
         val beforeReturn = startBackAt(flatPoints) - startBackAt(points)
         val afterReturn = startBackAt(flatPoints, wayHome = ::wayHomeAlongTheTrail) - startBackAt(points, wayHome = ::wayHomeAlongTheTrail)
 
-        assertEquals("the same climb on the same ground, before and after Return", beforeReturn.toDouble(), afterReturn.toDouble(), tolerance / 2)
+        assertEquals("the same climb on the same ground, before and after Return", beforeReturn.toDouble(), afterReturn.toDouble(), threshold)
         assertTrue("and it is there: $beforeReturn ms", beforeReturn > 90_000L)
     }
 }
