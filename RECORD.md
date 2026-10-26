@@ -28015,3 +28015,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the accountant's first run (Haiku; docs/accounting/2026-10-25.md, branch accounting, 3c266c41a): 316,183,632 tokens on 2026-10-25 UTC, 95.1% cache reads; Hazel 59.7%, Rowan 16.8%, unassigned 12.4%, Sorrel 10.7%, Juniper 0.5%; forecast 0 turns; Pi and cloud not visible. Ideas: no in-chat polling (349 sleeps in 191 turns, 63.5M); a fresh helper between items past ~200k context (75% of tokens in turns above 200k; net saving not computable); a role name on each session's first line. Its three proposed names each reused another role's surname. One unneeded session-creation call, refused, nothing created.
 **Decision:** the owner: "Three new names (Recommended)"; all three ideas to come back as wording before anything changes; the daily run "Morning, 6:47 AM Pacific", on the laptop, set up by a coder (dispatch 2026-10-26-02), installed disabled until the owner's go.
 **Notes:** Written by the planner by hand. Next free ID -1645.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1645
+**Timestamp:** 2026-10-26T03:40:09Z
+**Continues:** 2026-09-28-1640, 2026-09-28-1641, 2026-09-28-1644
+**Title:** #402 merges, the standing-at-start gap fixed after; the accountant is Thistle Plumbline; three token-saving rules approved (owner)
+**Observed:** Sorrel's #402 review (Fable; prompts/preserved/2026-10-26-sorrel-402-a2-review.md, branch sorrel-402-a2, 760cfd0c3): mergeable as ruled; 402a2-1 (Medium): once the place has left the line's first point, a walker standing at the line's start is never alerted; 10 m defensible (200/200 alerts standing at the far end at 3 m jitter, against 34/200 at 0 m); the lock order holds; the OOM in 40258542687 is not this PR's (first seen on 5ed0114f8, before #402's code). The accountant's revised names: Yarrow Quadrat, Birch Benchmark, Thistle Plumbline.
+**Decision:** the owner: "Merge now, fix after (Recommended)": #402 merged by the planner at d83d11999 (pre-main efeeda359); the fix is dispatch 2026-10-26-03. "Thistle Plumbline" for the accountant. All three wordings approved as written: one background wait, then stop (coder profile); name and role first, and a fresh helper past about 200,000 tokens (planner profile); on branch token-savings-rules.
+**Notes:** Written by the planner by hand. Next free ID -1646.
