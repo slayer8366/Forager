@@ -188,7 +188,7 @@ jobs:
         run: |
           set -euo pipefail
           # Two test JVMs (dispatch 2026-10-26-08): testDebugUnitTestOlderSdks runs the classes on Android
-          # SDKs other than 36 (app/older-sdk-tests.gradle.kts) and testDebugUnitTest the rest. The second
+          # SDKs other than 36 (gradle/older-sdk-tests.gradle.kts) and testDebugUnitTest the rest. The second
           # finalizes the first, so it runs even when the first fails; it is named here so the command says so.
           if [ -z "${TESTS//[[:space:]]/}" ]; then
             ./gradlew --stacktrace testDebugUnitTest testDebugUnitTestOlderSdks

@@ -24,6 +24,11 @@ import java.io.File
  * The list cannot drift silently: [verifyOlderSdkTestClassList] reads every `@Config` in the unit-test sources and
  * fails the build when a class that sets an SDK other than [MAIN_JVM_SDK] is not listed, when a listed class sets
  * none, or when it meets an `sdk` it cannot read. Both test tasks depend on it.
+ *
+ * Applied from app/build.gradle.kts, and kept here rather than in app/: Android lint reads every Kotlin script in the
+ * module directory as a build script and crashed on this one there (CI run 40273911138, `lintAnalyzeDebug` and
+ * `lintVitalAnalyzeRelease`: "findFirCompiledSymbol only works on compiled declarations"). `file(...)` below still
+ * resolves against the app project, the one that applies it.
  */
 val MAIN_JVM_SDK = 36
 
@@ -50,7 +55,7 @@ val testResourceDirs = listOf("src/test/resources", "src/testDebug/resources").m
 
 val verifyOlderSdkTestClassList = tasks.register("verifyOlderSdkTestClassList") {
     group = "verification"
-    description = "Fails when the older-SDK test class list in older-sdk-tests.gradle.kts no longer matches the sources."
+    description = "Fails when the older-SDK test class list in gradle/older-sdk-tests.gradle.kts no longer matches the sources."
     val sourceDirs = testSourceDirs
     val resourceDirs = testResourceDirs
     val listed = olderSdkTestClasses.toSet()
@@ -76,7 +81,7 @@ val verifyOlderSdkTestClassList = tasks.register("verifyOlderSdkTestClassList") 
         stale.sorted().forEach { scan.problems += "$it is in olderSdkTestClasses but sets no SDK other than $mainSdk" }
         if (scan.problems.isNotEmpty()) {
             throw GradleException(
-                "The older-SDK test class list (app/older-sdk-tests.gradle.kts) does not match the sources:\n" +
+                "The older-SDK test class list (gradle/older-sdk-tests.gradle.kts) does not match the sources:\n" +
                     scan.problems.joinToString("\n") { "  - $it" },
             )
         }
@@ -100,7 +105,7 @@ class OlderSdkScan(private val mainSdk: Int) {
         val text = blankComments(raw)
         val pkg = Regex("""(?m)^\s*package\s+([\w.]+)""").find(text)?.groupValues?.get(1)
         val constants = Regex("""const\s+val\s+(\w+)\s*(?::\s*Int\s*)?=\s*(\d+)""").findAll(text)
-            .associate { it.groupValues[1] to it.groupValues[2].toInt() }
+            .mapNotNull { m -> m.groupValues[2].toIntOrNull()?.let { m.groupValues[1] to it } }.toMap()
         val classes = topLevelClasses(text)
         Regex("""@Config\s*\(""").findAll(text).forEach { match ->
             configsRead++
