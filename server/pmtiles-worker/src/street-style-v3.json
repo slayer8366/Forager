@@ -2,7 +2,7 @@
   "version": 8,
   "name": "Forager Street v3",
   "metadata": {
-    "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs and overrides/forager-character.mjs",
+    "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs and overrides/forager-reference.mjs",
     "forager:sprite-icons": [
       "NL:S-road-1char",
       "NL:S-road-2char",
@@ -150,6 +150,14 @@
       "type": "vector",
       "url": "https://forager-pmtiles.brandonlee1-894.workers.dev/us.json",
       "attribution": "<a href=\"https://github.com/protomaps/basemaps\">Protomaps</a> © <a href=\"https://osm.org/copyright\">OpenStreetMap</a>"
+    },
+    "reference": {
+      "type": "vector",
+      "tiles": [
+        "https://forager-pmtiles.brandonlee1-894.workers.dev/reference-trails/{z}/{x}/{y}.mvt"
+      ],
+      "minzoom": 10,
+      "maxzoom": 15
     }
   },
   "glyphs": "https://forager-pmtiles.brandonlee1-894.workers.dev/fonts/{fontstack}/{range}.pbf",
@@ -1545,6 +1553,74 @@
           0.5,
           20,
           12
+        ]
+      }
+    },
+    {
+      "id": "reference_fs_band",
+      "type": "line",
+      "source": "reference",
+      "source-layer": "fs_trails",
+      "minzoom": 12,
+      "filter": [
+        "!=",
+        [
+          "coalesce",
+          [
+            "get",
+            "trail_type"
+          ],
+          ""
+        ],
+        "SNOW"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7b5ea7",
+        "line-opacity": 0.35,
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          6,
+          15,
+          10
+        ]
+      }
+    },
+    {
+      "id": "reference_blm_band",
+      "type": "line",
+      "source": "reference",
+      "source-layer": "blm_trails",
+      "minzoom": 12,
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7b5ea7",
+        "line-opacity": 0.35,
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          6,
+          15,
+          10
         ]
       }
     },
@@ -3537,6 +3613,48 @@
           18,
           3.9
         ]
+      }
+    },
+    {
+      "id": "reference_fs_number",
+      "type": "symbol",
+      "source": "reference",
+      "source-layer": "fs_trails",
+      "minzoom": 14,
+      "filter": [
+        "all",
+        [
+          "!=",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_type"
+            ],
+            ""
+          ],
+          "SNOW"
+        ],
+        [
+          "has",
+          "trail_no"
+        ]
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": [
+          "get",
+          "trail_no"
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 10
+      },
+      "paint": {
+        "text-color": "#7b5ea7",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.5
       }
     },
     {

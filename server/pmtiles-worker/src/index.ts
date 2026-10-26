@@ -24,6 +24,7 @@ import { pmtilesPath, tilePath } from "./shared";
 import offlineStyle from "./offline-style.json";
 import streetStyle from "./street-style-v1.json";
 import streetStyleV2 from "./street-style-v2.json";
+import streetStyleV3 from "./street-style-v3.json";
 import { type RoutingEnv, routingResponse } from "./routing/handler.ts";
 
 // The route-data fields (ROUTING_APP_KEY, the two limiters) come from RoutingEnv (src/routing/handler.ts).
@@ -380,6 +381,11 @@ async function worldFillTile(
 // sprite v5), map-style/forager-street-v2.json bundled the same way. v1 is served exactly as before, for apps older
 // than v2 and for regions downloaded against it.
 //
+// /style/street-v3.json is v2 plus the official-trails band (step 8a, dispatch 2026-10-26-14, RECORD -1677, -1678),
+// map-style/forager-street-v3.json bundled the same way. Its tiles come from reference-trails.pmtiles through the
+// generic /{name}/{z}/{x}/{y}.mvt path below, with no code of its own; until that archive is on R2 each of its tiles
+// answers 404, which MapLibre takes as an empty tile. v2 and v1 are served exactly as before.
+//
 // Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
 // sprites/{v4,v5}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
 // v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs). They are matched
@@ -469,6 +475,10 @@ export default {
 
     if (url.pathname === "/style/street-v2.json") {
       return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV2);
+    }
+
+    if (url.pathname === "/style/street-v3.json") {
+      return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV3);
     }
 
     const asset = assetKeyFor(url.pathname);
