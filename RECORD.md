@@ -28026,3 +28026,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #402 review (Fable; prompts/preserved/2026-10-26-sorrel-402-a2-review.md, branch sorrel-402-a2, 760cfd0c3): mergeable as ruled; 402a2-1 (Medium): once the place has left the line's first point, a walker standing at the line's start is never alerted; 10 m defensible (200/200 alerts standing at the far end at 3 m jitter, against 34/200 at 0 m); the lock order holds; the OOM in 40258542687 is not this PR's (first seen on 5ed0114f8, before #402's code). The accountant's revised names: Yarrow Quadrat, Birch Benchmark, Thistle Plumbline.
 **Decision:** the owner: "Merge now, fix after (Recommended)": #402 merged by the planner at d83d11999 (pre-main efeeda359); the fix is dispatch 2026-10-26-03. "Thistle Plumbline" for the accountant. All three wordings approved as written: one background wait, then stop (coder profile); name and role first, and a fresh helper past about 200,000 tokens (planner profile); on branch token-savings-rules.
 **Notes:** Written by the planner by hand. Next free ID -1646.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1646
+**Timestamp:** 2026-10-26T03:47:34Z
+**Continues:** 2026-09-28-1643, 2026-09-28-1645
+**Title:** #401 merges into pre-main; #405 merges on green; #403 after the timer test run (owner)
+**Observed:** Sorrel's check of Hazel's S22 run (Fable; prompts/preserved/2026-10-26-sorrel-401-s22-check.md, branch sorrel-401-s22, d83a487c6): met with stated limits; every figure recounted from the phone log and matched; the CI APK hash matches Hazel's. Caveat 2 is by construction: while the way home shows, the locate button is Re-center and never reaches the remembered locate (CompactMapIconCluster.kt:64), so Sorrel's earlier §2.6 item 3 was wrong to ask for it while returning. Caveat 3: the camera was already following, so MapLibre makes the follow a no-op; the remembered tap is shown to run once, the camera move in that state is not. Optional further run: one remembered locate with following broken first. #403 now also carries the daily script and timer files (dispatch 2026-10-26-02), mid-test.
+**Decision:** the owner: "Merge now (Recommended)" for #401, merged by the planner at d335076ac (pre-main 10142c1d2; no files in common with the pre-main changes since its base, clean merge). "Merge #403 and #405": #405 on its checks going green; for #403, "After the test run (Recommended)", once the coder reports, its checks are green and the accountant's name is in.
+**Notes:** Written by the planner by hand. Next free ID -1647.
