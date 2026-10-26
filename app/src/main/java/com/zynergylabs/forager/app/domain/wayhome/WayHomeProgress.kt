@@ -216,9 +216,11 @@ private const val WAY_HOME_LINE_START_EPSILON_METERS = 0.5
  * -1671, the owner: "Drop it (Recommended)", Juniper's O2): its line is built with [WayHomeLine.trailAllowanceMeters] 0,
  * so its figure is the reach alone, still never short for a walker on the drawn line, and reads 25 m less on the trail,
  * where a short final leg made it read several times what was left before "Arrived" (115 m with 16 m left on the S22
- * walk's shape, 90 m without). What it gives up, from Sorrel's check (S-1): a walker beside the drawn trail, from about
- * 7 m out, can read short by about half their offset (about 10 m short at 20 m beside), which the 25 m covers to about
- * 33 m. Nothing but the HUD reads the waypoint's figure (no sundown), so that trade was the owner's to make there; the
+ * walk's shape, 90 m without). What it gives up, from Sorrel's check (S-1), on two premises: a walker beside the drawn
+ * trail, from about 7 m out, can read short by about half their offset (about 10 m short at 20 m beside), which the 25 m
+ * covers to about 33 m; and a fix whose true error lies forward along the line reads short from about 65 m of that error
+ * on the waypoint's line, against about 80 m on the way home's with the 25 m (the gate's bound is 50 m of reported
+ * accuracy). Nothing but the HUD reads the waypoint's figure (no sundown), so that trade was the owner's to make there; the
  * way home keeps the 25 m until walk data says otherwise.
  */
 const val WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS = WAY_HOME_TRAIL_JOIN_METERS

@@ -441,8 +441,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     private val wayHomeRouting = WayHomeRouting(engines = trailRoutingEngine, offlineMapRepository = offlineMapRepository, errorLog = errorLog)
 
     /**
-     * The way to a waypoint along trails (dispatch 2026-10-26-10, step 6 PR 2), on the shared engine. Nothing calls it yet:
-     * step 6 PR 3 does, from the waypoint navigation, in the foreground only (RECORD -1652 Q5).
+     * The way to a waypoint along trails (dispatch 2026-10-26-10, step 6 PR 2), on the shared engine. Called since step 6
+     * PR 3 (#413) from the waypoint navigation, in the foreground only (RECORD -1652 Q5): `AvailabilityViewModelFactory`
+     * hands it to the ViewModel, whose `AvailabilityWaypointRoute` asks it at the first fix.
      */
     val findWayToWaypoint = FindWayToWaypointUseCase(offlineMapRepository = offlineMapRepository, engines = trailRoutingEngine, errorLog = errorLog)
     // Dispatch 2026-10-26-05 (RECORD -1651): the recording's newest kept points, written or not, held here so they outlive

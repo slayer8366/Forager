@@ -94,9 +94,10 @@ fun shownTrailOf(watch: WayHomeWatch, trackId: String): ShownTrail? {
  * the start" above already gives, so it changes nothing; and the place half dropped, which stops counting a walker
  * heading back along a line that turned within a node step of its start once they are on the next part (the bent
  * stray in ReturnWatchDottedLineTest), and that is following the dotted line home.
- * **What it costs:** a line that curls back to within 25 m of its own start, and a walker following it there who is
- * under 10 m ahead along its first stretch: those readings no longer count by the place. Behind the start such a line
- * already did not count (the first rule above).
+ * **What it costs:** one alert while following the drawn line home, on a line that curls back to within 25 m of its
+ * own start, where the old rule gave none: a walker following it there who is under 10 m ahead along its first stretch
+ * no longer counts by the place, and in Sorrel's replica that ran 29 to 32 s uncounted against the 15 s hold (Sorrel's
+ * #406 review, 406-1, section 3.5). Behind the start such a line already did not count (the first rule above).
  *
  * **Why 10 m:** it is the line's own node step, the finest figure the line is drawn and judged at, and no figure of its
  * own. A smaller one (any distance ahead, 0 m) lets a walker who walked out and stopped at the start read as heading back

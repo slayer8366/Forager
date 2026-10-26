@@ -75,7 +75,8 @@ internal fun MapDataRefresh(
         // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
         // own internal update loop, independent of recomposition. Jumping the camera to the search
         // region here too — on every sightings/breadcrumb update this effect already keys on,
-        // which includes roughly every 15s while a track is recording — would fight it, snapping the
+        // which while a track is recording includes each kept point (the line reaches the walker's
+        // dot, RECORD -1651) as well as the 15 s re-read of the stored track — would fight it, snapping the
         // view back to the search center out from under a walker watching their live position. Once
         // a pan/zoom/the CameraMode.NONE break in activateLiveLocationIfPermitted's own doc comment
         // drops tracking, this resumes controlling the camera exactly as it did before that existed.

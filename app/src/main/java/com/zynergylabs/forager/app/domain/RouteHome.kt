@@ -105,7 +105,9 @@ const val ROUTE_LOOKAHEAD_METERS = 25.0
  *
  * The stored track lags the walker. The service writes points every 30 s or every 20 kept points,
  * and the screen re-reads the track every 15 s, so the most recent stored point can be 30 to 45 s
- * behind the walker: at walking pace, 27 to 40 m, more than the lookahead itself. Measured from
+ * behind the walker: at walking pace, 27 to 40 m, more than the lookahead itself. (That lag is the
+ * stored track's, which this route reads; the drawn recording line no longer has it, since it adds
+ * each kept point not yet written, RECORD -1651.) Measured from
  * that point alone, the lookahead would often land behind a walker heading home. The walker has
  * covered at least the straight-line hop of route since the stored point, so the lookahead is
  * measured from there: the first route point at least `hop + [ROUTE_LOOKAHEAD_METERS]` along the

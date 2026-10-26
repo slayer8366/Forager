@@ -14,7 +14,8 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  * [RouteHome] the track home gives, so everything downstream reads one shape.
  *
  * - **The place** is [WayHomeProgress]'s, never the most recent stored point: the trail part is not the walker's track.
- * - **The figure** is [WayHomePlace.remainingMeters], the 25 m trail allowance included.
+ * - **The figure** is [WayHomePlace.remainingMeters], the line's trail allowance included: 25 m on the way home's
+ *   line, none on a waypoint's (RECORD -1671; [WayHomeLine.trailAllowanceMeters]).
  * - **The needle** aims [ROUTE_LOOKAHEAD_METERS] along the line from the place, held to the line by the same corner
  *   guard as the track home ([lookaheadIndex]).
  * - **The line ahead** is the line from the place, in its dotted and solid runs ([RouteHome.Ahead.aheadParts]).

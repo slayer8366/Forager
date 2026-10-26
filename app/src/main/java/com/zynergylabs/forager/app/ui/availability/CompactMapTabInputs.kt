@@ -55,9 +55,10 @@ internal data class CompactMapNavigation(
      */
     val isNavigatingToWaypoint: Boolean = false,
     /**
-     * Dispatch 2026-09-28-502, step 3: the dashed line from the walker to the waypoint, current or kept faded after the
-     * fix was lost (the owner's "Keep the last line, faded"). Worked out and held in [AvailabilityScreen], above the tab
-     * switch; `null` draws none.
+     * Dispatch 2026-09-28-502, step 3: the straight dashed line from the walker to the waypoint, current or kept faded
+     * after the fix was lost (the owner's "Keep the last line, faded"). Worked out in the ViewModel
+     * (`AvailabilityWaypointLine`, #409) and held in [AvailabilityUiState.waypointStraightLine], above the tab switch;
+     * `null` draws none. The map draws it only while there is no way along trails ([AvailabilityUiState.waypointRoute]).
      */
     val waypointStraightLine: StraightLine? = null,
     /**
