@@ -28530,3 +28530,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's #420 check (Fable; prompts/preserved/2026-10-26-sorrel-420-review.md, branch sorrel-420, c63dd5261): mergeable, no blocking item; walk figures recomputed 52.8/43.1 and 72.4/68.7 m; the moved test still proves non-use at the walk's edge (the mid-walk half proves bridging); a synthetic 10-minute outage moved climb and descent by under 1 m, the climb across any gap bounded by the barometer's own net change; should-fix S1, S2 doc comments; the gap cause unconfirmed (continuous 5 s batching would give 60%; intermittent batching or a negative age both possible).
 **Decision:** under the owner's "Short Sorrel check, then merge (Recommended)": #420 merged by the planner at ddc760233. The gap bridge stays unbounded: a cap would be a new figure, and a gap cannot add climb beyond the barometer's net change. The climbing allowance (dispatch 2026-10-26-19 Amendment 1) starts on the merged base.
 **Notes:** Written by the planner by hand. S1, S2 to a later tidy. Next free ID -1692.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1692
+**Timestamp:** 2026-10-26T22:54:02Z
+**Continues:** 2026-09-28-1690
+**Title:** 8c's name rule: abbreviations with a full stop, a larger common-word list, numerals I to XX (owner)
+**Observed:** #419 at 32bd34c22 (green, 5,747): the relayed rule kept "MT." in capitals against the planner's own example "Mt. Hood Tie" (the planner's error); everyday 2-letter words not on the list (NO, GO, SO, DO, BE, MY, US, OX) stayed in capitals; real words spelling numerals (MIX, DIX, LIV, CIV) stayed in capitals.
+**Decision:** the owner: "Fix as proposed (Recommended)": a 1-2 letter word followed by a full stop is capitalised as an abbreviation ("Mt.", "St."); the common-word list grows (A, AN, AS, AT, BE, BY, DO, GO, HE, IF, IN, IS, IT, ME, MY, NO, OF, OH, ON, OR, OX, SO, TO, UP, US, WE); Roman numerals kept only from I to XX.
+**Notes:** Written by the planner by hand. Next free ID -1693.
