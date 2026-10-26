@@ -1,0 +1,211 @@
+# Android and iOS from one codebase: feasibility report (pre-build; nothing built in the app)
+
+**Asked by the owner, 2026-10-26:** "Can we figure out a way to write an interface for Android and iOS
+development that bridges the two together into a unifying code?"
+
+**Owner ruling, 2026-10-26, verbatim:** "Option B, file the report on pre-main". Option B is Kotlin
+Multiplatform with Compose Multiplatform (below). Decisions 2 to 4 under "Options for the owner" are
+still open.
+
+**Base:** `pre-main` at `b2c4951e` (merge of PR #416). Every figure below was measured on that commit. A
+first pass was measured on `main` at `1772151` and then re-run here, because `pre-main` had moved 29 files
+in the measured areas (see "Premises that were wrong"). Nothing in `app/` was changed. All builds ran in a
+scratch project outside the repository, with the domain sources copied in unchanged.
+
+Paths are under `app/src/main/java/com/zynergylabs/forager/app/` unless stated. Each claim is marked
+**read** (file and line), **built** (compiler output, checked as described), **counted** (a script over
+the tree), **external** (a cited page or Maven metadata read on 2026-10-26), or **not verified**.
+
+---
+
+## Short answer
+
+Yes. The route that fits this codebase is **Kotlin Multiplatform (KMP)**. The "interface that bridges
+the two" mostly exists already: the ports in `domain/` that CLAUDE.md's Architecture rule asked for
+(`LocationProvider`, `LocationTracker`, `CompassProvider`, `PressureProvider`, `AlertDelivery`,
+`WakeUpAlarms`, `PhotoSource`, `TrailRouter`, `OfflineMapRepository` and about 60 more; counted). Each has
+an Android implementation outside `domain/` (`location/AndroidLocationProvider.kt`,
+`sensor/AndroidCompassProvider.kt`, `alert/AndroidWakeUpAlarms.kt`, and so on). In KMP the interfaces move
+to shared code and iOS gets a second set of implementations. Domain logic keeps its shape.
+
+What an interface cannot bridge is **behaviour the two operating systems do not share**. The largest of
+those are trail routing, background wake-ups, the map and the camera (Finding 3).
+
+---
+
+## Findings
+
+### 1. The domain compiles as shared code once 66 files change (built)
+
+All 227 files of `domain/` and its sub-packages (16,871 lines) were copied unchanged into a scratch KMP
+project's `commonMain` and compiled with `compileCommonMainKotlinMetadata`. The probe used Kotlin 2.3.10,
+coroutines 1.11.0 and serialization-json 1.11.0, the versions in `gradle/libs.versions.toml` (read), and
+Forager's own Gradle wrapper, 9.7.0.
+
+- **66 files fail** (522 errors). The cause in each file, by file count, is:
+  - `java.time`: 27
+  - `java.io` files and streams: 11
+  - `Math.*`: 8
+  - `java.util.UUID`: 8
+  - `String.format`: 6
+  - `System.*`: 5
+  - `synchronized`: 4
+  - `Locale`: 3
+  - XML DOM parsing: 2 (`domain/GpxCodec.kt`, `domain/GpxImportReader.kt`)
+  - `AtomicInteger` and `TimeUnit`: 2
+  - the NGA MGRS Java library: 1 (`domain/MgrsConverter.kt`)
+  - `java.text.Normalizer`: 1 (`domain/NormalizeSearchName.kt`)
+  - `ByteBuffer`: 1 (`domain/TrackPathCodec.kt`)
+  - `PriorityQueue`: 1 (`domain/TrackSelfJoin.kt`)
+  - plus 5 that read as cascades or one-offs (`javaClass`, inference failures).
+- **161 files compile with no change, but only while the 66 are present.** The failing files were then
+  removed and the build recompiled until clean, which took six rounds. That left **100 files (5,752
+  lines) that stand alone**. The other 61 depend on types declared in the 66, mostly `LocalDate`.
+- So **66 files need edits, and the other 161 are expected to need none once those land.** That second
+  part is a prediction, not a build result.
+- **One port leaks a JVM type into its signature (read):** `domain/routing/TrailRouter.kt:27`,
+  `suspend fun route(start: LatLng, end: LatLng, routeData: File)`, with `import java.io.File` at line 4.
+
+### 2. Shared code compiles for iOS on Linux (built)
+
+The 100-file stand-alone set was compiled with `compileKotlinIosArm64 compileKotlinJvm` on a Linux
+container, with `kotlin.native.enableKlibsCrossCompilation=true` in the probe's `gradle.properties`. The
+result was `BUILD SUCCESSFUL`, and it was checked against the output rather than the summary line:
+
+- the log shows `> Task :compileKotlinIosArm64` ran (not skipped);
+- the klib manifest reads `native_targets=ios_arm64` and `builtins_platform=NATIVE`;
+- 103 of the klib's 110 files contain the `zynergylabs` package name;
+- the JVM side produced 306 classes.
+
+The only "disabled" text in the log is the proxy's `disabledSchemes` JVM option, not a disabled target.
+
+What this shows: shared Forager code can be compiled for iOS without a Mac. The owner's Ubuntu host and
+the existing `ubuntu-24.04` CI can therefore check that shared code still compiles for iOS. What it does
+not show: linking an app, running it, or anything on a device. Those need macOS and Xcode (Finding 4).
+
+### 3. What is Android-bound, and how hard each piece is
+
+| Piece | Where (read or counted) | iOS path | Difficulty |
+|---|---|---|---|
+| Trail routing | `:brouter`, BRouter v1.7.10 vendored as 19,327 lines of Java (`third_party/brouter/README.md`), used by `routing/BRouterTrailRouter.kt` and `routing/RoutingDataFolder.kt` | Java does not run on iOS. Port BRouter to Kotlin, or ship iOS without trail routing at first | **Highest.** Owner decision 2 |
+| Wake-up alarms (back-by, sundown) | `alert/AndroidWakeUpAlarms.kt:36`: `AlarmManager.setAndAllowWhileIdle` into a `BroadcastReceiver` that runs the watch | iOS has no general way to run app code at a chosen time. `BGTaskScheduler` timing is the system's choice (external, secondary sources). Needs its own design | **High** and safety-relevant. Owner decision 3 |
+| Track recording | `service/TrackRecordingService.kt`, a foreground service with `foregroundServiceType="location"` (`AndroidManifest.xml`) | iOS background location mode (not verified) | High |
+| Map | `org.maplibre.android` imported in 30 files (26 in `ui/map`, 4 in `map`); offline in `map/MapLibreOfflineMapRepository.kt` (494 lines) | `maplibre-compose` 0.20.0 has iOS artifacts and lists offline maps on Android and iOS, but says "The API is not yet stable" (external). Or host MapLibre iOS directly | High |
+| Camera, RAW, DNG | CameraX in `photo/` (2,822 lines), `data/raw/ForagerDngWriter.kt`, `photo/RawShotSaver.kt` | AVFoundation, as a separate implementation (not verified) | High |
+| Database | Room 2.8.4. `data/local/Migrations.kt` has 20 `SupportSQLiteDatabase` references; `data/local/fungiindex/FungiIndexDatabase.kt` uses `createFromAsset` | Room ships iOS artifacts for 2.8.4 and 2.8.5 (external, Google Maven). Migrations move to the `SQLiteConnection` API. How the asset database maps to iOS is not verified | Medium |
+| Settings | DataStore 1.2.1 | DataStore ships iOS artifacts for 1.2.1 and 1.3.0 (external) | Low |
+| Network | Retrofit and OkHttp in `data/remote/` (463 lines with DTOs) | Ktor (3.6.0 has a Darwin engine; external) behind the existing repositories | Low to medium |
+| Logging, icons | `android.util.Log` in 80 files; 181 Material icon import lines. 58 files (13,858 lines) are bound by only these two (counted) | A logging port. JetBrains' `material-icons-extended` 1.7.3 has iOS variants, frozen since 2024 (external) | Low |
+| Compose UI | 213 files import Compose (44,186 lines); 69 of them also import Android, MapLibre or CameraX APIs (counted, upper bound) | Compose Multiplatform: latest stable 1.12.2, iOS stable since 1.8.0 (external). Forager pins Jetpack Material3 `1.5.0-alpha26`; whether CMP's Material3 has the same APIs is not verified | Medium, file by file |
+
+The UI counts come from an import scan. Finding 1 showed that scan misses JVM APIs that need no import,
+so treat the UI figures as upper bounds until a compiler pass is run over them.
+
+### 4. Build and tooling facts
+
+- **AGP 9 (external):** the KMP plugin "stops being compatible with the `com.android.application` and the
+  `com.android.library` plugins". Shared code goes in a module using
+  `com.android.kotlin.multiplatform.library`, and the Android app stays its own module. Forager is one
+  `:app` module today (`settings.gradle.kts`, read) with `android.builtInKotlin=false` for KSP
+  (`gradle.properties`, read). A module split comes first.
+- **A Mac is required** to build, link and run the iOS app (external, Kotlin quickstart: "you need a macOS
+  host with Xcode installed"). CI is `ubuntu-24.04` only (`.github/workflows/ci.yml`, read). Local runs
+  moved to native Ubuntu 26.04 (`docs/windows-host-test-baseline.tsv:2`, read).
+- **Tests (counted):** there are 696 test files with 5,121 `@Test`. 365 files use Robolectric or
+  `AndroidJUnit4`, which run on the JVM only. Of the 138 domain test files, 125 are plain JUnit 4, 5 run
+  under Robolectric or `AndroidJUnit4`, and 8 are fakes or fixtures. The plain JUnit ones can keep
+  running on the JVM against shared code. Running them on iOS too would need `kotlin.test`.
+- **Google's position (external):** KMP "is officially supported by Google for sharing business logic
+  between Android and iOS". The same page attributes Compose Multiplatform to JetBrains and does not claim
+  Google support for it.
+
+### 5. A prior mention of iOS (read)
+
+`docs/plans/ideas-from-fusion-plan.md:219` lists "iOS, and a third-party SDK." under **EXPLICITLY
+REJECTED**. Its scope is a planner's ideas register harvested from an outside location-fusion plan. The
+register's header says "nothing here is authorised or scheduled", and it rejects that plan's iOS SDK, not
+an iOS Forager. `RECORD.md` has no match for iOS, iPhone, multiplatform or KMP (counted). No earlier
+owner ruling either way was found.
+
+---
+
+## Options for the owner
+
+| | What is shared | iOS UI | Cost | Fit |
+|---|---|---|---|---|
+| A. KMP, logic only | domain, data, repositories | SwiftUI, written fresh | Up to ~44k lines of screens rewritten in Swift | Most native feel; two UIs kept in step forever |
+| **B. KMP + Compose Multiplatform (ruled)** | domain, data, most screens | Shared Compose, with native map, camera, sensors and background pieces | Smallest total; map and camera still per platform | Best fit for a one-owner codebase already in Compose |
+| C. Separate iOS app in Swift | nothing | Swift | Everything written twice | See below |
+| D. Flutter or React Native | everything, after a rewrite | their own | All ~98k Kotlin lines rewritten | Throws away the codebase |
+
+**Why C was not chosen (the owner asked what it offers).**
+
+What it offers:
+- Zero change to the Android app or its Play path. B needs the module split, the `java.time`
+  replacement and the Room migration rewrite to pass the `pre-main` gate first.
+- Fully native iOS controls. Compose Multiplatform draws its own controls and ships its own renderer.
+- No pre-1.0 bridge such as `maplibre-compose`.
+- Apple's tools end to end.
+
+The hardest pieces (routing, wake-ups, map, camera) are per platform under B as well, so B's saving is
+the domain and the ordinary screens.
+
+What it costs:
+- Every feature and fix is built twice.
+- The safety logic (`ReturnWatch`, `SundownWatch`, `OffTrackJudge`, track sampling) is kept in two
+  copies that drift, with the domain tests covering one.
+- The evidence work doubles: failing-first tests, revert checks and device checks.
+- Backup, GPX and journal formats have to be kept compatible by hand.
+
+B does not rule out native iOS screens later: Compose Multiplatform can host Apple's own views, which is
+how the map and camera would be done anyway.
+
+**The first step under B** is a shared module holding `domain/`, with the 66 files ported and the
+`TrailRouter` signature fixed. It is not free on Android: `kotlinx-datetime` types replace `java.time` in
+domain signatures, and that reaches every caller.
+
+**Decisions still open:**
+
+1. ~~A or B~~: B (owner, 2026-10-26).
+2. Routing on iOS: port BRouter to Kotlin, or ship iOS without trail routing at first.
+3. What back-by and sundown alerts promise on iOS, since a wake-up at a set time is not available there.
+4. Mac access (a Mac, or macOS CI runners), plus an Apple Developer account for TestFlight and the App
+   Store.
+
+---
+
+## Premises that were wrong
+
+- **The first repository read was the wrong one.** The session started on `slayer8366/Forager-app` until
+  the owner redirected it to `slayer8366/Forager`.
+- **The first figures were measured on `main` (`1772151`), not `pre-main`.** `pre-main` had moved 29
+  files in the measured areas, including new `domain/wayhome/` and `domain/wayto/` packages and an edit
+  to `domain/routing/TrailRouter.kt`. Every figure here was re-run on `b2c4951e`. Those first figures were
+  60 failing files, 96 stand-alone and 29 MapLibre files, and they appear in no other document.
+- **The import scan overstated what was shareable.** It called 20 domain files platform-free that the
+  compiler rejected (`Math`, `synchronized`, `String.format` and `System` need no import). The compiler
+  result replaces it for the domain. The UI figures in Finding 3 still come from the scan.
+- **"161 files compile" is true only with the 66 failing files present.** The stand-alone set is 100.
+- **The first MapLibre figure (128) was import lines, not files.** It is 30 files on `pre-main`.
+
+## Not verified
+
+- No iOS app was linked or run. Finding 2 is a compile, not a binary.
+- Whether Forager's Material3 `1.5.0-alpha26` APIs exist in Compose Multiplatform's Material3.
+- Whether `maplibre-compose`'s offline API covers what `MapLibreOfflineMapRepository.kt` does, including
+  the PMTiles basemap.
+- iOS background location during a recording, and App Store review of "Always" location.
+- iOS RAW capture and DNG output.
+- How `createFromAsset` for the fungi index maps to Room on iOS.
+- The 66-file port itself. The prediction that the other 161 then compile unchanged is untested.
+
+## Sources (read 2026-10-26)
+
+- Kotlin, AGP 9 migration for KMP: https://kotlinlang.org/docs/multiplatform/multiplatform-project-agp-9-migration.html
+- Kotlin, quickstart (macOS for iOS): https://kotlinlang.org/docs/multiplatform/quickstart.html
+- Android, KMP and supported Jetpack libraries: https://developer.android.com/kotlin/multiplatform
+- Android, Room for KMP: https://developer.android.com/kotlin/multiplatform/room
+- JetBrains, Compose Multiplatform 1.8.0 (iOS stable): https://blog.jetbrains.com/kotlin/2025/05/compose-multiplatform-1-8-0-released-compose-multiplatform-for-ios-is-stable-and-production-ready/
+- MapLibre Compose: https://maplibre.org/maplibre-compose/
+- Apple, background tasks: https://developer.apple.com/documentation/uikit/using-background-tasks-to-update-your-app
+- Versions: Maven Central and Google Maven `maven-metadata.xml` for the artifacts named above.
