@@ -242,6 +242,9 @@ class TrackRecordingService : Service() {
                                 // Dispatch 2026-09-28-425: the kept point to the watch too, which
                                 // measures a return against the track as it stood at Return.
                                 guardWatch("The return watch's kept point", candidate) { watches.returnOnKeptPoint(candidate) }
+                                // Dispatch 2026-10-25-10 (RECORD -1636): and to the way home, which starts from the newest
+                                // kept point, written or not. Guarded as the others are.
+                                guardWatch("The way-home watch's kept point", candidate) { watches.wayHomeOnKeptPoint(trackId, candidate) }
                                 val shouldFlush = bufferMutex.withLock {
                                     pendingPoints += candidate
                                     pendingPoints.size >= FLUSH_BATCH_SIZE

@@ -120,6 +120,10 @@ class WayHomeWatch(
         progress
     }
 
+    /** A point the recording kept on [trackId] (fail-first stub, dispatch 2026-10-25-10: not used yet). */
+    @Suppress("UNUSED_PARAMETER")
+    fun onKeptPoint(trackId: String, point: TrackPoint) = Unit
+
     /** One raw fix from the service: the walker's place on the line, and the stray judge. See the class doc. */
     fun onFix(point: TrackPoint, provider: FixProvider) = synchronized(lock) {
         val id = trackId ?: return@synchronized
