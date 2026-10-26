@@ -28508,3 +28508,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the Phase 1 report (Opus; prompts/preserved/2026-10-26-19-report.md, branch climb-allowance-report, 188557fbc): only SundownWatch computes the walk-back time; Back by and the HUD distance do not change; before Return every stored point has a height; after Return on a trail way home the trail part has none (route files carry none; the routing adapter drops the engine's elevation, BRouterTrailRouter.kt:114; the way home's track parts lose their heights at FindWayHomeUseCase.kt:173); on the 10-24 shape the far point's walk back grows about 2 min, 3-4.5 min after the climb fix; GPS-only heights over-read climbs 2 to 5 times.
 **Decision:** the owner: "(b) Your track as a stand-in (Recommended)"; "Add it as ruled (Recommended)"; "No allowance there (Recommended)" (no barometer, no allowance). Dispatch 2026-10-26-19 Amendment 1, Phase 2, built after dispatch -18 merges.
 **Notes:** Written by the planner by hand. The owner's 2.2 s/m for descent is below Juniper's fitted 3.19 s/m (90% 2.15-4.20), as chosen. For Aspen's elevation work: the app's adapter must keep the engine's elevation. Next free ID -1690.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1690
+**Timestamp:** 2026-10-26T22:38:33Z
+**Continues:** 2026-09-28-1688, 2026-09-28-1687
+**Title:** 8c's names keep short codes; the climb fix #420 to Sorrel; the pressure window left (owner)
+**Observed:** #419's Amendment 2 (19710b2f4): the band yields to the way-home line and the recording trail (eight route layers plus the breadcrumb and its casing as stoppers); green 5,746; plain capitalisation gave "Nf Loop Ii", "Spur 17a", "4wd Road". #420 (climb-pressure-gaps @ ddc760233, dispatch 2026-10-26-18): a mid-walk point without pressure is bridged linearly; the walk copy now reads 52.8 and 72.4 m climbed (was 31.2 and 41.0); green 5,709; the 2 s/5 s mismatch would predict about 60% gaps, not the 3% seen, so the cause is unconfirmed and the window unchanged; one existing test's mid-walk null assertion moved to an end-of-walk case.
+**Decision:** the owner: "Keep short words and codes (Recommended)": in an all-capitals name, words with a digit, Roman numerals and 1-2 letter words that are not common words stay as published. "Short Sorrel check, then merge (Recommended)" for #420; "Leave it (Recommended)" for the pressure age window.
+**Notes:** Written by the planner by hand. The planner accepted 8c's stoppers (arrival ring, breadcrumb casing), the point/box rule and the reflection test. Next free ID -1691.
