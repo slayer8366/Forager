@@ -77,7 +77,7 @@ val verifyOlderSdkTestClassList = tasks.register("verifyOlderSdkTestClassList") 
         }
         val unlisted = scan.found.keys - listed
         val stale = listed - scan.found.keys
-        unlisted.sorted().forEach { scan.problems += "$it sets sdk ${scan.found.getValue(it)} but is not in olderSdkTestClasses" }
+        (unlisted - scan.inherited).sorted().forEach { scan.problems += "$it sets sdk ${scan.found.getValue(it)} but is not in olderSdkTestClasses" }
         stale.sorted().forEach { scan.problems += "$it is in olderSdkTestClasses but sets no SDK other than $mainSdk" }
         if (scan.problems.isNotEmpty()) {
             throw GradleException(
@@ -91,14 +91,27 @@ val verifyOlderSdkTestClassList = tasks.register("verifyOlderSdkTestClassList") 
 
 /**
  * Reads `@Config(...)` annotations from test sources. Comments are blanked first (string and backtick literals are
- * kept), so an `@Config` quoted in a doc comment is not read. The class a `@Config` belongs to: written at the
- * start of a line, the next top-level class; indented, the top-level class it sits in. An indented `@Config` with an
- * older SDK inside a nested class is reported, not guessed, because the Test filters name top-level classes.
+ * kept), so an `@Config` quoted in a doc comment is not read. Where a `@Config` sits is read by brace depth, on a copy
+ * with the literals blanked too, so a brace in a string does not move it:
+ * - **outside every class**, it is on the next top-level class;
+ * - **directly in a top-level class's body**, on a method, it is that class's, whatever nested classes (a private fake,
+ *   say) sit above it (Sorrel's #410 review, should-fix 1);
+ * - **on a nested class, or inside one**, it is reported with its line, because the list names top-level classes: the
+ *   test is moved to a top-level class of its own, which is then listed. Rejected: listing the top-level class for it,
+ *   which Gradle 9.7's class filter would honour today (a pattern with no wildcard also matches `Outer$Nested`), since
+ *   that rests on a filter detail a Gradle upgrade could change silently, and no test here is shaped that way.
+ *
+ * A `@Config` with an older SDK on an `abstract`, `open` or `sealed` top-level class, or on one of its methods, is
+ * reported too (Sorrel's #410 review, should-fix 2): Robolectric applies it to every subclass, and the list, which names
+ * the class the annotation is written in, would carry the base and miss the subclasses that run.
  */
 class OlderSdkScan(private val mainSdk: Int) {
     val found = sortedMapOf<String, MutableSet<Int>>()
     val problems = mutableListOf<String>()
     var configsRead = 0
+
+    /** Classes in [found] whose `@Config` their subclasses inherit; reported once each, and not as "not listed". */
+    val inherited = sortedSetOf<String>()
 
     fun scanFile(file: File) {
         val raw = file.readText()
@@ -106,7 +119,9 @@ class OlderSdkScan(private val mainSdk: Int) {
         val pkg = Regex("""(?m)^\s*package\s+([\w.]+)""").find(text)?.groupValues?.get(1)
         val constants = Regex("""const\s+val\s+(\w+)\s*(?::\s*Int\s*)?=\s*(\d+)""").findAll(text)
             .mapNotNull { m -> m.groupValues[2].toIntOrNull()?.let { m.groupValues[1] to it } }.toMap()
-        val classes = topLevelClasses(text)
+        val code = blankLiterals(text)
+        val depth = braceDepths(code)
+        val classes = classDeclarations(code, depth)
         Regex("""@Config\s*\(""").findAll(text).forEach { match ->
             configsRead++
             val open = match.range.last
@@ -124,15 +139,29 @@ class OlderSdkScan(private val mainSdk: Int) {
             }
             val older = sdks.filter { it != mainSdk }
             if (older.isEmpty()) return@forEach
-            val owner = ownerClass(text, match.range.first, classes) ?: run {
-                problems += "${file.path}:${lineOf(text, match.range.first)}: @Config(sdk = $older) with no class this check can name"
-                return@forEach
+            val at = "${file.path}:${lineOf(text, match.range.first)}"
+            val owner = when (val placed = ownerClass(code, depth, match.range.first, close, classes)) {
+                is Owner.TopLevel -> placed.declaration
+                is Owner.Nested -> {
+                    problems += "$at: @Config(sdk = $older) is on or inside a nested class of ${placed.outer}; the older-SDK " +
+                        "list names top-level classes, so move this test into a top-level class of its own and list that"
+                    return@forEach
+                }
+                null -> {
+                    problems += "$at: @Config(sdk = $older) with no class this check can name"
+                    return@forEach
+                }
             }
             if (pkg == null) {
                 problems += "${file.path}: no package line"
                 return@forEach
             }
-            found.getOrPut("$pkg.$owner") { sortedSetOf() }.addAll(older)
+            val name = "$pkg.${owner.name}"
+            found.getOrPut(name) { sortedSetOf() }.addAll(older)
+            if (owner.modifier != null && inherited.add(name)) {
+                problems += "$at: $name is ${owner.modifier} and sets sdk $older; Robolectric applies its @Config to every " +
+                    "subclass, which the older-SDK list cannot see, so put the @Config on each runnable subclass instead"
+            }
         }
     }
 
@@ -151,28 +180,68 @@ class OlderSdkScan(private val mainSdk: Int) {
         }
     }
 
-    private fun topLevelClasses(text: String): List<Pair<Int, String>> {
-        val result = mutableListOf<Pair<Int, String>>()
-        var lineStart = 0
-        for (line in text.split('\n')) {
-            if (line.isNotEmpty() && !line[0].isWhitespace()) {
-                Regex("""(?<!::)\bclass\s+([A-Za-z_]\w*)""").find(line)?.let { result += lineStart to it.groupValues[1] }
-            }
-            lineStart += line.length + 1
-        }
-        return result
+    /** A class declaration: where its keyword is, its name, its brace depth, and `abstract`/`open`/`sealed` if written. */
+    class Declaration(val at: Int, val name: String, val depth: Int, val modifier: String?)
+
+    sealed interface Owner {
+        class TopLevel(val declaration: Declaration) : Owner
+        class Nested(val outer: String) : Owner
     }
 
-    private fun ownerClass(text: String, at: Int, classes: List<Pair<Int, String>>): String? {
-        val lineStart = text.lastIndexOf('\n', at - 1) + 1
-        val indented = text[lineStart].isWhitespace()
-        if (!indented) return classes.firstOrNull { it.first >= lineStart }?.second
-        val outer = classes.lastOrNull { it.first < lineStart } ?: return null
-        val between = text.substring(outer.first, lineStart).split('\n').drop(1)
-        if (between.any { it.isNotEmpty() && it[0].isWhitespace() && Regex("""(?<!::)\bclass\s+\w""").containsMatchIn(it) }) {
-            problems += "an indented @Config with an older SDK sits in a nested class of ${outer.second}; list it by hand"
+    /** The brace depth at every offset of [code] (comments and literals already blanked). */
+    private fun braceDepths(code: String): IntArray {
+        val depths = IntArray(code.length + 1)
+        var d = 0
+        for (i in code.indices) {
+            if (code[i] == '}') d = maxOf(0, d - 1)
+            depths[i] = d
+            if (code[i] == '{') d++
         }
-        return outer.second
+        depths[code.length] = d
+        return depths
+    }
+
+    private fun classDeclarations(code: String, depth: IntArray): List<Declaration> =
+        Regex("""(?<!::)\bclass\s+([A-Za-z_]\w*)""").findAll(code).map { m ->
+            val lineStart = code.lastIndexOf('\n', m.range.first - 1) + 1
+            val modifier = Regex("""\b(abstract|open|sealed)\b""").find(code.substring(lineStart, m.range.first))?.value
+            Declaration(m.range.first, m.groupValues[1], depth[m.range.first], modifier)
+        }.toList()
+
+    /**
+     * The class the `@Config` from [at] to [close] belongs to. Outside every class, the next top-level class. In a
+     * top-level class's body (depth 1), that class, unless what it annotates is itself a class. Deeper, a nested class.
+     */
+    private fun ownerClass(code: String, depth: IntArray, at: Int, close: Int, classes: List<Declaration>): Owner? {
+        val topLevel = classes.filter { it.depth == 0 }
+        return when (depth[at]) {
+            0 -> topLevel.firstOrNull { it.at > close }?.let { Owner.TopLevel(it) }
+            1 -> {
+                val outer = topLevel.lastOrNull { it.at < at } ?: return null
+                if (annotatesAClass(code, close + 1)) Owner.Nested(outer.name) else Owner.TopLevel(outer)
+            }
+            else -> topLevel.lastOrNull { it.at < at }?.let { Owner.Nested(it.name) }
+        }
+    }
+
+    /**
+     * Whether the declaration from [from] on is a class (or object, interface or enum) rather than a method: the
+     * annotations after the `@Config` are skipped, arguments and all, and the words before the declaration's first `(`,
+     * `{`, `=` or `;` are read. A Kotlin `fun` or a Java method has no class keyword there.
+     */
+    private fun annotatesAClass(code: String, from: Int): Boolean {
+        var i = from
+        while (true) {
+            while (i < code.length && code[i].isWhitespace()) i++
+            if (i >= code.length || code[i] != '@') break
+            i++
+            while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_' || code[i] == '.' || code[i] == ':')) i++
+            var j = i
+            while (j < code.length && code[j].isWhitespace()) j++
+            if (j < code.length && code[j] == '(') i = (matchingParen(code, j) ?: return false) + 1
+        }
+        val end = (i until code.length).firstOrNull { code[it] in "({=;" } ?: code.length
+        return Regex("""\b(class|object|interface|enum)\b""").containsMatchIn(code.substring(i, end))
     }
 
     private fun matchingParen(text: String, open: Int): Int? {
@@ -215,6 +284,30 @@ class OlderSdkScan(private val mainSdk: Int) {
                         if (src[i] != '\n') out.setCharAt(i, ' ')
                         i++
                     }
+                }
+                else -> i++
+            }
+        }
+        return out.toString()
+    }
+
+    /** [blankComments]'s output with string, char and backtick literals blanked to spaces too, newlines kept. */
+    private fun blankLiterals(src: String): String {
+        val out = StringBuilder(src)
+        var i = 0
+        while (i < src.length) {
+            val c = src[i]
+            when {
+                src.startsWith("\"\"\"", i) -> {
+                    val end = src.indexOf("\"\"\"", i + 3).let { if (it < 0) src.length else it + 3 }
+                    for (k in i until end) if (src[k] != '\n') out.setCharAt(k, ' ')
+                    i = end
+                }
+                c == '"' || c == '\'' || c == '`' -> {
+                    var j = i + 1
+                    while (j < src.length && src[j] != c && src[j] != '\n') j += if (src[j] == '\\' && c != '`') 2 else 1
+                    for (k in i until minOf(j + 1, src.length)) if (src[k] != '\n') out.setCharAt(k, ' ')
+                    i = j + 1
                 }
                 else -> i++
             }
