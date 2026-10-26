@@ -28092,3 +28092,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's diagnosis (Opus; prompts/preserved/2026-10-25-10-s22-diagnosis-report.md, branch way-home-fresh-start-s22-report, e06635aaf), superseding her first S22 verdict (7ac84c9dd, left unedited): she had measured the purple recording line (TrackRecordingPoller.kt:76, stored points only), not the way home's azure dots (RouteHomeLayers.kt:82-83, :104). On a diagnostic build (way-home-fresh-start-diag, 8895f80f9, never to merge; CI 40268903898) the way home's line started 0.0 m from the newest point in all three cases (Return 12 s after a write, 5 s before one, a re-route), against 12.4, 18.8 and 35.1 m from the last stored point. The step 6 report is pushed (docs/audits/2026-10-25-03-waypoint-along-trails-report.md, branch waypoint-trails-report, 079666037), five owner questions.
 **Decision:** the owner: "Merge now (Recommended)": #404 merged by the planner at b50afeb73 (pre-main 19c85f78e). For the recording line, "(b) Reach the dot (Recommended)": drawn from the stored points plus the kept points not yet written; written as dispatch 2026-10-26-05, waiting on the owner's go.
 **Notes:** Written by the planner by hand. Pre-main's push run on 19c85f78e is the first to build #404 with #401 and #402 (Sorrel's S2). Next free ID -1652.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1652
+**Timestamp:** 2026-10-26T05:02:48Z
+**Continues:** 2026-09-28-1651, 2026-09-28-1629, 2026-09-28-1498
+**Title:** Step 6, navigate to a waypoint along trails, ruled; not yet built (owner)
+**Observed:** the step 6 report (Hazel, Opus; docs/audits/2026-10-25-03-waypoint-along-trails-report.md, branch waypoint-trails-report, 079666037): inside a downloaded area the line becomes a straight leg to the nearest trail, the trail, and a straight leg to the waypoint, "by trail" in the HUD; re-route past 50 m, once per stray, quiet; arrival on straight distance as today; outside an area today's straight line with a note. Four PRs: a pure move of the straight line to the ViewModel; the route in the domain; map and HUD; step 7's quiet off-trail state (after step 7).
+**Decision:** the owner: Q1 "(a) Straight to nearest trail (Recommended)"; Q2 "Confirm (Recommended)" (straight leg from the trail point nearest the waypoint; over 250 m from any trail, today's straight line with a note); Q3 "(a) Under 150 m, straight (Recommended)"; Q4 "Approve as written (Recommended)": the way home's notes ending "· straight line", plus "The waypoint is far from any trail · straight line", "You're far from any trail · straight line", "The waypoint is in another area · straight line"; Q5 "(a) As today (Recommended)": on screen only. Asked to start PR 1: "Not yet".
+**Notes:** Written by the planner by hand. Next free ID -1653.
