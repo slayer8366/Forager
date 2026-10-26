@@ -28290,3 +28290,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #413 (waypoint-route-on-map @ daf529d0a, dispatch 2026-10-26-11): PR run green, 5,634 tests; fail-first run 40304392875 19 of 23 as predicted; seven reverts biting; AvailabilityViewModel.kt 792 lines; MainActivity not touched (the HUD cards and map slot read the route from the UI state). The coder's choices: no grey walked line; the straight HUD and line while more than 50 m off until the re-route returns; a straight-line result never re-tried.
 **Decision:** the owner: "No, three parts only (Recommended)"; "Straight line briefly (Recommended)"; "Try again on entering an area (Recommended)": dispatch 2026-10-26-11 Amendment 1, to a fresh coder; Sorrel reviews #413 after it.
 **Notes:** Written by the planner by hand. Next free ID -1670.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1670
+**Timestamp:** 2026-10-26T12:21:41Z
+**Continues:** 2026-09-28-1669
+**Title:** #413 reviewed and checked on the S22; the trail line fades and greys, retries every 50 m inside, the waypoint figure investigated (owner)
+**Observed:** Sorrel's #413 review (Fable; prompts/preserved/2026-10-26-sorrel-413-review.md, branch sorrel-413, f95f83a53): mergeable, no blocking item; S-413-1 the trail line never fades or greys (AvailabilityWaypointRoute.kt:146); S-413-2 a latent blocked search (:154, :164). Hazel's S22 check (Opus; prompts/preserved/2026-10-26-hazel-413-s22-check-report.md, branch waypoint-route-s22-report, bb016dd37; build 1.0.4021+g67abb0cd): steps 1-6 met (three parts 0.70 s after Navigate, no blank frame; one quiet re-route per stray; Arrived at about 12 m; the straight fallback and note); item C met on the second test, while the first retried once at the edge, got "Route leaves your downloaded area" and never again over 330 m inside; the figure reads 200-280 ft high from the way home's never-short margin (-1620, -1613); the waypoint pop-up stays open after Navigate; 0 FATAL, 2,771 of 2,821 fixes received. Slip disclosed: an unrequested map-data fetch from the public OpenStreetMap service carried the owner's email address in its first request's header.
+**Decision:** the owner: "Fade and grey too (Recommended)"; "Yes, with the fade fix (Recommended)" for the guard; "Every 50 m walked (Recommended)" for retrying inside an area; "Check against today (Recommended)" for the pop-up: dispatch 2026-10-26-11 Amendment 2. "Look into it first (Recommended)" for the waypoint figure: Sorrel and a researcher bring options; #413 merges without it.
+**Notes:** Written by the planner by hand. Which notes retry every 50 m is the planner's reading of "Every 50 m walked" (those walking can change), stated to the owner. Next free ID -1671.
