@@ -62,7 +62,10 @@ import kotlinx.coroutines.sync.withLock
  *   and this used the timestamp rule ([isNetworkProviderFix]), which on the S22's walks disagreed with
  *   the provider 4 times in 1,969 fixes. Its freshness is [fixFreshness]
  *   of its age, so a GPS fix older than five minutes withholds the estimate. The hop band is
- *   carried between ticks, as [returnWalkingTime] asks.
+ *   carried between ticks, as [returnWalkingTime] asks. It includes the climbing allowance
+ *   ([CLIMB_ALLOWANCE_SECONDS_PER_METER], RECORD -1689) along whichever path it is measured on: the track's route home,
+ *   or the way home shown, whose trail part's climb is the walker's own track's between the same two trail points, a
+ *   stand-in until the routes carry elevation (`WayHomeLine`). No barometer, no allowance, logged once per recording.
  * - **The decision**, [DecideSundownAlertUseCase], with what has already fired.
  *
  * **Failure direction** (recorded in -516's report against RECORD -519, and still the direction): a
@@ -139,6 +142,9 @@ class SundownWatch(
     private var fired: Set<SundownAlert> = emptySet()
     private var hopBand: HopBand = HopBand.NONE
     private var arrived = false
+
+    // Whether this recording's walk back has been logged as having no climbing allowance (no barometer; RECORD -1689).
+    private var noClimbAllowanceLogged = false
 
     // The next alert's due time, as the last decision worked it out, and the time the wake-up is set
     // for (dispatch 2026-09-28-796). [nextDueAt] is consumed by the fix that finds it passed.
@@ -299,6 +305,7 @@ class SundownWatch(
             is ReturnWalkingTime.Estimate -> if (estimate.isAtLeast) WalkBack.AtLeast(estimate.walkingMillis) else WalkBack.About(estimate.walkingMillis)
             is ReturnWalkingTime.Withheld, null -> WalkBack.Unknown
         }
+        if (estimate is ReturnWalkingTime.Estimate && estimate.path.climb == WayBackClimb.NoBarometer) logNoClimbAllowanceOnce(id)
         publish(id, sundownLineFor(countdown, position, startBackAt(countdown, walkBack)), LineInputs(countdown, position, walkBack))
 
         // The alerts from here on. Off, or arrived: nothing is decided and nothing remembered, so
@@ -387,6 +394,24 @@ class SundownWatch(
         }
     }
 
+    /**
+     * The walk back carries no climbing allowance because this recording's heights are not from the barometer (RECORD
+     * -1689, C3: "No allowance there (Recommended)"). Logged once per recording (CLAUDE.md: no fallback that isn't
+     * logged), not on every 15 s tick.
+     */
+    private fun logNoClimbAllowanceOnce(id: String) {
+        if (id.isNotEmpty() || id.isEmpty()) return // STUB (fail first)
+        synchronized(lock) {
+            if (trackId != id || noClimbAllowanceLogged) return
+            noClimbAllowanceLogged = true
+        }
+        errorLog.w(
+            TAG,
+            "The walk back has no climbing allowance: this recording's heights are not from the barometer.",
+            IllegalStateException("no barometric heights"),
+        )
+    }
+
     /** Publishes [line] for recording [id], if it is still the one watched. */
     private fun publish(id: String, line: SundownLine, inputs: LineInputs?) = synchronized(lock) {
         if (trackId != id) return@synchronized
@@ -408,6 +433,7 @@ class SundownWatch(
         fired = emptySet()
         hopBand = HopBand.NONE
         arrived = false
+        noClimbAllowanceLogged = false
         sunsetAt = null
         lineInputs = null
         nextDueAt = null
