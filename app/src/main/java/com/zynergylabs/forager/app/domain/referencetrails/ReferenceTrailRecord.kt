@@ -37,7 +37,8 @@ object ReferenceTrailFields {
 /**
  * One tapped official trail: its agency, and its number and name as published, each `null` when the feature does not
  * carry it (absent or blank). Nothing is made up for a missing part (Amendment 1, the owner: "Confirm (Recommended)");
- * the line reads only what the record has. Names are shown as the agency publishes them, case included.
+ * the line reads only what the record has. [name] is held as published; the line shows it as published unless it is all
+ * capitals, which is shown in normal case ([shownName], Amendment 2). The number is always shown as published.
  */
 data class ReferenceTrailRecord(val agency: ReferenceAgency, val number: String?, val name: String?) {
 
@@ -53,7 +54,7 @@ data class ReferenceTrailRecord(val agency: ReferenceAgency, val number: String?
                 ReferenceAgency.BLM -> "BLM trail"
             }
             val numbered = number?.let { "$base $it" } ?: base
-            return name?.let { "$numbered · $it" } ?: numbered
+            return name?.let { "$numbered · ${shownName(it)}" } ?: numbered
         }
 
     /** The bubble's second line, the same for every band (RECORD -1680). */
@@ -76,4 +77,28 @@ data class ReferenceTrailRecord(val agency: ReferenceAgency, val number: String?
             }
         }
     }
+}
+
+/**
+ * A trail or route name as the bubble shows it (dispatch 2026-10-26-16 Amendment 2; RECORD -1688, the owner: "Normal case
+ * (Recommended)"): a name published entirely in capitals ("WEST LEG NORDIC") is shown in normal case ("West Leg Nordic");
+ * a name with any lower-case letter, or with no letter at all, is shown as published.
+ *
+ * Normal case is plain word capitalisation with no dictionary: a letter that follows anything other than a letter, a digit
+ * or an apostrophe starts a word and is capitalised; every other letter is lower case. So short words are capitalised
+ * like any other ("TRAIL OF THE CEDARS" -> "Trail Of The Cedars"), abbreviations and Roman numerals lose their capitals
+ * after the first ("NF" -> "Nf", "LOOP II" -> "Loop Ii"), a hyphen or a bracket starts a word ("NORTH-FORK (UPPER)" ->
+ * "North-Fork (Upper)"), an apostrophe does not ("BOB'S" -> "Bob's"), and letters after a digit stay with it ("17A" ->
+ * "17a", "4WD" -> "4wd"). Digits are unchanged.
+ */
+internal fun shownName(name: String): String {
+    if (name.any { it.isLowerCase() } || name.none { it.isUpperCase() }) return name
+    val shown = StringBuilder(name.length)
+    var previous: Char? = null
+    for (c in name) {
+        val startsWord = previous == null || !(previous.isLetterOrDigit() || previous == '\'' || previous == '\u2019')
+        shown.append(if (c.isLetter() && startsWord) c.titlecaseChar() else c.lowercaseChar())
+        previous = c
+    }
+    return shown.toString()
 }

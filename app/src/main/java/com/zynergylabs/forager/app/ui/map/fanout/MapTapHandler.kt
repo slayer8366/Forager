@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerSpec
 import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
+import com.zynergylabs.forager.app.ui.map.layers.REFERENCE_TRAIL_BLOCKER_LAYER_IDS
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.referenceAgencyOf
@@ -44,7 +45,8 @@ interface MapTapSinks {
 
     /**
      * Step 8c (dispatch 2026-10-26-16): a tap on an official-trails band, [record] read from the tapped feature itself. It
-     * wins only where no marker or app line does ([resolveTap]: the bands are lines drawn below every app line).
+     * wins only where no marker or app line does ([resolveTap]: the bands are lines drawn below every app line), and never
+     * where the way home or the recording trail is under the finger (Amendment 2, [REFERENCE_TRAIL_BLOCKER_LAYER_IDS]).
      */
     fun onReferenceTrailTap(layerId: String, record: ReferenceTrailRecord, xPx: Float, yPx: Float, at: LatLng)
 
@@ -103,11 +105,13 @@ class MapTapHandler(
         // the map's query and no tap can reach a band on a style without one (dispatch 2026-10-26-16: "On v2 ... nothing
         // is tappable").
         val tappable = tappableLayerIds(order).filter { referenceAgencyOf(it) == null || layerDrawn(it) }
-        val winner = resolveTap(
-            pointHits = probe.hitsAt(xPx, yPx, tappable),
+        val pointHits = probe.hitsAt(xPx, yPx, tappable)
+        val resolved = resolveTap(
+            pointHits = pointHits,
             boxHits = { probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * density, tappable) },
             drawOrder = order,
         )
+        val winner = resolved?.takeUnless { referenceAgencyOf(it.layerId) != null && bandStopped(pointHits, xPx, yPx) }
         if (holdFanForEmptyTap && winner != null) fan.fold()
         if (winner != null && openStackAround(winner, order, xPx, yPx)) {
             // A tap on a stack closes a bubble that is showing, as the fan opens (the owner, dispatch 2026-09-28-387, Part A: "1 yes"). By the bubble's
@@ -233,6 +237,19 @@ class MapTapHandler(
                 FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
             },
         )
+    }
+
+    /**
+     * Whether the way home or the recording trail under the finger stops a band that won the tap (dispatch 2026-10-26-16
+     * Amendment 2; RECORD -1688): the tap is then a plain one, as before bands took taps. The stoppers are judged as an app
+     * line over the band would be ([resolveTap]): one exactly under the finger stops it; one only within the finger's box
+     * stops it only when the band too was only within the box ([pointHits] holds no band), so a band exactly under the
+     * finger is not lost to a route beside it.
+     */
+    private fun bandStopped(pointHits: List<TapHit>, xPx: Float, yPx: Float): Boolean {
+        if (probe.hitsAt(xPx, yPx, REFERENCE_TRAIL_BLOCKER_LAYER_IDS).isNotEmpty()) return true
+        val bandUnderFinger = pointHits.any { referenceAgencyOf(it.layerId) != null }
+        return !bandUnderFinger && probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * probe.density, REFERENCE_TRAIL_BLOCKER_LAYER_IDS).isNotEmpty()
     }
 
     private fun dispatch(outcome: MapTapOutcome, at: LatLng, xPx: Float, yPx: Float) {

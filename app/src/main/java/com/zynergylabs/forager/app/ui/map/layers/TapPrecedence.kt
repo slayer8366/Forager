@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map.layers
 
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceAgency
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
+import com.zynergylabs.forager.app.ui.map.RouteHomeIds
 
 /**
  * One feature a tap query returned: the layer it was queried on and the feature's own id (the
@@ -22,8 +23,25 @@ fun referenceAgencyOf(layerId: String): ReferenceAgency? = when (layerId) {
     else -> null
 }
 
-/** STUB (tests first): the layers whose line under the finger stops a band from taking the tap. */
-internal val REFERENCE_TRAIL_BLOCKER_LAYER_IDS: List<String> = emptyList()
+/**
+ * The layers whose line under the finger stops an official-trails band from taking a tap (dispatch 2026-10-26-16 Amendment 2;
+ * RECORD -1688, the owner: "Nothing (Recommended)"): every layer of the way home (RouteHomeLayers.kt, its arrival ring
+ * included) and the recording trail with its casing. They stop a band only; they take no tap themselves (M1, "Not
+ * tappable"), so a tap they stop is a plain tap, as it was before bands took taps. MapTapHandler queries them only once a
+ * band has won.
+ */
+internal val REFERENCE_TRAIL_BLOCKER_LAYER_IDS: List<String> = listOf(
+    RouteHomeIds.PASSED_LAYER,
+    RouteHomeIds.AHEAD_CASING_LAYER,
+    RouteHomeIds.AHEAD_LAYER,
+    RouteHomeIds.AHEAD_DOTTED_LAYER,
+    RouteHomeIds.AHEAD_STRAIGHT_LAYER,
+    RouteHomeIds.STRAIGHT_LAYER,
+    RouteHomeIds.STRAIGHT_OFFLINE_LAYER,
+    RouteHomeIds.ARRIVED_LAYER,
+    MapLayerIds.BREADCRUMB_CASING,
+    MapLayerIds.BREADCRUMB,
+)
 
 /**
  * The side of the square box, in dp, that a tap queries when nothing lies exactly under the tap
