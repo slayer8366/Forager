@@ -9,11 +9,16 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
  *    recording.
  * 2. The navigation view starts as for a return; the HUD points at the waypoint with its straight-line
  *    distance; the navigation control shows the X in a circle, "Stop navigating".
- * 3. A straight dashed line from the walker to the waypoint.
+ * 3. A straight dashed line from the walker to the waypoint. Since step 6 PR 3 (dispatch 2026-10-26-11; RECORD -1652,
+ *    -1653, -1665 to -1668), inside a downloaded area with trail routes, about a second later it is swapped for the
+ *    way along trails: a thin dashed leg to the nearest trail, the trail, a thin dashed leg to the waypoint, "by trail"
+ *    in the HUD, re-routed quietly once per stray of more than 50 m. Outside an area, or with no route, the straight
+ *    line stays, with a note in the HUD saying why. Foreground only; arrival is still the straight distance's.
  * 4. Arrival as at the start: the ring with a check and "Arrived"; navigation stays on until ended.
  * 5. Back or the X-circle ends it. Back goes back to where Navigate was tapped.
  * 6. A return under way is overruled while this is active, and picks up again when it ends.
- * 7. The off-track alert and the walked-path line belong to the return; neither runs meanwhile.
+ * 7. The off-track alert and the walked-path line belong to the return; neither runs meanwhile. The way along trails
+ *    to the waypoint (step 6 PR 3) has no alert of its own: its re-route makes no sound and no vibration.
  * "Pick navigation back up": the chosen waypoint survives the app being closed by the phone.
  */
 

@@ -5,7 +5,7 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
 
 /**
  * What [FindWayToWaypointUseCase] found (dispatch 2026-10-26-10, step 6 PR 2; the rulings are RECORD -1652 and -1653).
- * Nothing draws or reads this yet: PR 3 puts it on the map and in the HUD.
+ * Step 6 PR 3 (dispatch 2026-10-26-11) puts it on the map and in the HUD (`ui/availability/AvailabilityWaypointRoute`).
  */
 sealed interface WayToWaypointResult {
     /**

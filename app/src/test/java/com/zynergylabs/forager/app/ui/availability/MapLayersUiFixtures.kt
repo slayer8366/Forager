@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.wayto.WayToWaypointResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -213,6 +215,8 @@ internal fun mapLayersViewModel(
     // Step 6 PR 1 (dispatch 2026-10-26-06): the waypoint line's lookup by id and its clock. Defaulted to none stored and the system clock.
     readWaypoint: suspend (String) -> Result<Waypoint?> = { Result.success(null) },
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
+    // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails. Defaulted to none, today's straight line.
+    findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -259,6 +263,7 @@ internal fun mapLayersViewModel(
         mapIconClusterPlacementRepository = clusterPlacements,
         readWaypoint = readWaypoint,
         currentTime = currentTime,
+        findWayToWaypoint = findWayToWaypoint,
     )
 }
 

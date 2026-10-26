@@ -103,7 +103,8 @@ class BRouterTrailRouterTest {
     @Test
     fun `an end in a five-degree square the stored data has no file for fails as outside the data`() {
         assertEquals(
-            TrailRouteResult.Failed(TrailRouteFailure.EndOutsideData(RouteEnd.END)),
+            // S-412R-1 (dispatch 2026-10-26-11): the mark is part of equality now, so the expected value names it.
+            TrailRouteResult.Failed(TrailRouteFailure.EndOutsideData(RouteEnd.END, squareHasNoFile = true)),
             route(ACROSS_FROM, LatLng(46.0, -74.0)), // W75_N45
         )
     }

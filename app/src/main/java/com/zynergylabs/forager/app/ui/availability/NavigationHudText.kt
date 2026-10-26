@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 // Moved unchanged from NavigationHud.kt (dispatch 2026-10-19-03, UI split Phase 1, PR 1).
 
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
+import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 
 internal const val NAVIGATION_HUD_TAG = "navigation-hud"
@@ -71,3 +72,13 @@ internal const val LEAVES_AREA_SHORT_TEXT = "Route leaves your downloaded area"
 /** A way-home note where the whole one does not fit: the leaves-area notice's short form, or the note without its tail. */
 internal fun wayHomeNoteShortText(note: WayHomeNote): String =
     if (note == WayHomeNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_HOME_NOTE_TAIL)
+
+/** The way to a waypoint's notes' shared tail, dropped in their short forms (step 6 PR 3; RECORD -1652 Q4: "short forms drop the tail"). */
+private const val WAY_TO_WAYPOINT_NOTE_TAIL = " · straight line"
+
+/**
+ * A way-to-waypoint note where the whole one does not fit (step 6 PR 3, dispatch 2026-10-26-11): the note without its
+ * tail, or, for the leaves-area note, the way home's short form, which RECORD -1665 keeps as it is.
+ */
+internal fun wayToWaypointNoteShortText(note: WayToWaypointNote): String =
+    if (note == WayToWaypointNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_TO_WAYPOINT_NOTE_TAIL)

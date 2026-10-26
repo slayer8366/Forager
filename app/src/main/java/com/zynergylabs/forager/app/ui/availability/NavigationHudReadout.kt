@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
+import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
 
 /** Everything the HUD draws, as plain values — the pure half, so a sign or threshold error is a pinned-literal test failure, not a visual one. */
 internal data class NavigationHudReadout(
@@ -100,6 +101,13 @@ sealed interface ReturnRoute {
      * same inputs cannot change the answer, a track with no usable points.
      */
     data class Unavailable(val canRetry: Boolean) : ReturnRoute
+
+    /**
+     * Step 6 PR 3 (dispatch 2026-10-26-11): no trail route to the waypoint being navigated to, so the HUD is today's
+     * straight-line one, with [note] in its status line saying why (RECORD -1652 Q4, -1653, -1665, -1667). Only the way
+     * to a waypoint gives it.
+     */
+    data class Straight(val note: WayToWaypointNote) : ReturnRoute
 }
 
 /**

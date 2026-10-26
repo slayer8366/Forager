@@ -44,6 +44,11 @@ import org.maplibre.geojson.Point
  * return's lines; the return's lines are not drawn meanwhile. Arrival is the start's: the ring at the
  * waypoint, and the line ends. Once the fix is lost, the last line is kept, faded, as the withheld way back
  * is (the owner's choice at the desk check: "Keep the last line, faded"): [RouteOnMap.straightIsCurrent].
+ *
+ * Step 6 PR 3 (dispatch 2026-10-26-11): inside a downloaded area with trail routes, the way to the waypoint along trails
+ * replaces that line once worked out, through [RouteOnMap.line] as the way home's line does: its trail solid, and its
+ * two straight legs (to the nearest trail, and from the trail to the waypoint) thin and dashed like the straight line,
+ * in their own layer on the line ahead's source ([RouteHomeIds.AHEAD_STRAIGHT_LAYER]).
  */
 
 /**
@@ -64,10 +69,24 @@ internal object RouteHomeIds {
     const val AHEAD_LAYER = "route-home-ahead-layer"
     const val AHEAD_DOTTED_LAYER = "route-home-ahead-dotted-layer"
 
-    /** The line ahead's features' property naming their kind (dispatch 2026-10-24-10): [PART_TRACK] or [PART_TRAIL]; none for the track home. */
+    /** Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint's straight legs, thin and dashed, from the ahead source. */
+    const val AHEAD_STRAIGHT_LAYER = "route-home-ahead-straight-layer"
+
+    /**
+     * The line ahead's features' property naming their kind (dispatch 2026-10-24-10): [PART_TRACK], [PART_TRAIL] or, since
+     * step 6 PR 3, [PART_STRAIGHT]; none for the track home.
+     */
     const val PART_PROPERTY = "part"
     const val PART_TRACK = "track"
     const val PART_TRAIL = "trail"
+    const val PART_STRAIGHT = "straight"
+
+    /**
+     * Carried by every feature of a line ahead drawn grey ([RouteLine.aheadIsOffline], dispatch 2026-10-26-11 Amendment 2,
+     * item 1): the line ahead's layers take the passed line's grey for it, as the straight line kept once location is lost
+     * does. Absent on every other line, so the way home is drawn as before.
+     */
+    const val OFFLINE_PROPERTY = "offline"
     const val ARRIVED_SOURCE = "route-home-arrived"
     const val ARRIVED_LAYER = "route-home-arrived-layer"
     const val ARRIVED_IMAGE = "route-home-arrived-image"
@@ -127,8 +146,15 @@ internal fun routeHomeFeatureCollections(route: RouteOnMap?): Map<String, Featur
     )
 }
 
-/** The line ahead's opacity: full while the route is current, faded while it is withheld. */
-internal fun routeAheadOpacity(route: RouteOnMap?): Float = if (route?.line?.aheadIsCurrent == false) ROUTE_AHEAD_FADED_OPACITY else 1f
+/**
+ * The line ahead's opacity: full while the route is current, faded while it is withheld. Grey ([RouteLine.aheadIsOffline],
+ * the way to a waypoint once location is lost) is full, as the straight line's grey layer is, "so it still shows over a
+ * pale map" (dispatch -502; Amendment 2 of dispatch 2026-10-26-11, item 1).
+ */
+internal fun routeAheadOpacity(route: RouteOnMap?): Float {
+    val line = route?.line
+    return if (line != null && !line.aheadIsOffline && !line.aheadIsCurrent) ROUTE_AHEAD_FADED_OPACITY else 1f
+}
 
 /**
  * Dispatch -502: the straight line's opacity. Full while drawn from a fresh fix; faded, the same as the way back's
@@ -142,14 +168,31 @@ internal fun routeStraightOpacity(route: RouteOnMap?): Float = if (route?.straig
  * run, each naming its kind, so the dotted and solid layers each draw their own and both change in one update.
  */
 private fun aheadCollection(line: RouteLine?): FeatureCollection {
-    if (line == null || line.aheadParts.isEmpty()) return lineCollection(line?.ahead)
-    return FeatureCollection.fromFeatures(
-        line.aheadParts.filter { it.points.size >= 2 }.map { part ->
-            Feature.fromGeometry(LineString.fromLngLats(part.points.map { Point.fromLngLat(it.lng, it.lat) })).apply {
-                addStringProperty(RouteHomeIds.PART_PROPERTY, if (part.kind == RouteLinePartKind.TRAIL) RouteHomeIds.PART_TRAIL else RouteHomeIds.PART_TRACK)
-            }
-        },
-    )
+    val collection = if (line == null || line.aheadParts.isEmpty()) {
+        lineCollection(line?.ahead)
+    } else {
+        FeatureCollection.fromFeatures(
+            line.aheadParts.filter { it.points.size >= 2 }.map { part ->
+                Feature.fromGeometry(LineString.fromLngLats(part.points.map { Point.fromLngLat(it.lng, it.lat) })).apply {
+                    addStringProperty(RouteHomeIds.PART_PROPERTY, partPropertyOf(part.kind))
+                }
+            },
+        )
+    }
+    // Amendment 2 of dispatch 2026-10-26-11, item 1: a line kept once location is lost is drawn grey, every part of it.
+    if (line?.aheadIsOffline == true) collection.features()?.forEach { it.addBooleanProperty(RouteHomeIds.OFFLINE_PROPERTY, true) }
+    return collection
+}
+
+/**
+ * The kind each run of the line ahead is drawn as. Step 6 PR 3 (N-412-1): a straight leg of the way to a waypoint is its
+ * own kind, thin and dashed as the straight line to a waypoint is, never dotted, which means "your own track" (RECORD
+ * -1589). Until then every kind but the trail was tagged track.
+ */
+private fun partPropertyOf(kind: RouteLinePartKind): String = when (kind) {
+    RouteLinePartKind.TRAIL -> RouteHomeIds.PART_TRAIL
+    RouteLinePartKind.TRACK -> RouteHomeIds.PART_TRACK
+    RouteLinePartKind.STRAIGHT -> RouteHomeIds.PART_STRAIGHT
 }
 
 private fun lineCollection(points: List<LatLng>?): FeatureCollection =
@@ -166,6 +209,13 @@ private fun lineCollection(points: List<LatLng>?): FeatureCollection =
  */
 internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Float, aboveLineLayerId: String, aboveMarkerLayerId: String) {
     val night = palette == MapPalette.NIGHT
+    // Amendment 2 of dispatch 2026-10-26-11, item 1: the line ahead in its azure, or, carrying the grey mark, in the grey
+    // the straight line takes once location is lost (its offline layer, below).
+    val aheadColour = Expression.switchCase(
+        Expression.has(RouteHomeIds.OFFLINE_PROPERTY),
+        Expression.color(if (night) ROUTE_PASSED_COLOUR_NIGHT else ROUTE_PASSED_COLOUR_DAY),
+        Expression.color(if (night) ROUTE_AHEAD_COLOUR_NIGHT else ROUTE_AHEAD_COLOUR_DAY),
+    )
     listOf(RouteHomeIds.PASSED_SOURCE, RouteHomeIds.AHEAD_SOURCE, RouteHomeIds.STRAIGHT_SOURCE, RouteHomeIds.STRAIGHT_OFFLINE_SOURCE, RouteHomeIds.ARRIVED_SOURCE).forEach {
         if (style.getSource(it) == null) style.addSource(GeoJsonSource(it, FeatureCollection.fromFeatures(emptyList())))
     }
@@ -178,9 +228,14 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
     )
     // Dispatch 2026-10-24-10: the solid line and its casing draw everything but the walker's track in a way home
-    // along trails, which the dotted layer draws.
-    val notDotted = Expression.neq(Expression.get(RouteHomeIds.PART_PROPERTY), Expression.literal(RouteHomeIds.PART_TRACK))
+    // along trails, which the dotted layer draws, and (step 6 PR 3) the way to a waypoint's straight legs, which the
+    // thin dashed layer draws.
+    val notDotted = Expression.all(
+        Expression.neq(Expression.get(RouteHomeIds.PART_PROPERTY), Expression.literal(RouteHomeIds.PART_TRACK)),
+        Expression.neq(Expression.get(RouteHomeIds.PART_PROPERTY), Expression.literal(RouteHomeIds.PART_STRAIGHT)),
+    )
     val dottedOnly = Expression.eq(Expression.get(RouteHomeIds.PART_PROPERTY), Expression.literal(RouteHomeIds.PART_TRACK))
+    val straightOnly = Expression.eq(Expression.get(RouteHomeIds.PART_PROPERTY), Expression.literal(RouteHomeIds.PART_STRAIGHT))
     val aheadCasing = LineLayer(RouteHomeIds.AHEAD_CASING_LAYER, RouteHomeIds.AHEAD_SOURCE).withFilter(notDotted).withProperties(
         PropertyFactory.lineColor(palette.casing),
         PropertyFactory.lineWidth(ROUTE_AHEAD_WIDTH_DP + 2 * CASING_WIDTH_DP),
@@ -188,17 +243,24 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
     )
     val ahead = LineLayer(RouteHomeIds.AHEAD_LAYER, RouteHomeIds.AHEAD_SOURCE).withFilter(notDotted).withProperties(
-        PropertyFactory.lineColor(if (night) ROUTE_AHEAD_COLOUR_NIGHT else ROUTE_AHEAD_COLOUR_DAY),
+        PropertyFactory.lineColor(aheadColour),
         PropertyFactory.lineWidth(ROUTE_AHEAD_WIDTH_DP),
         PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
     )
     val aheadDotted = LineLayer(RouteHomeIds.AHEAD_DOTTED_LAYER, RouteHomeIds.AHEAD_SOURCE).withFilter(dottedOnly).withProperties(
-        PropertyFactory.lineColor(if (night) ROUTE_AHEAD_COLOUR_NIGHT else ROUTE_AHEAD_COLOUR_DAY),
+        PropertyFactory.lineColor(aheadColour),
         PropertyFactory.lineWidth(ROUTE_AHEAD_WIDTH_DP),
         PropertyFactory.lineDasharray(AHEAD_DOTS),
         PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+    )
+    // Step 6 PR 3: the way to a waypoint's straight legs, as the straight line to a waypoint is drawn: thin, dashed, no casing.
+    val aheadStraight = LineLayer(RouteHomeIds.AHEAD_STRAIGHT_LAYER, RouteHomeIds.AHEAD_SOURCE).withFilter(straightOnly).withProperties(
+        PropertyFactory.lineColor(aheadColour),
+        PropertyFactory.lineWidth(STRAIGHT_WIDTH_DP),
+        PropertyFactory.lineDasharray(STRAIGHT_DASHES),
+        PropertyFactory.lineCap(Property.LINE_CAP_BUTT),
     )
     val straight = LineLayer(RouteHomeIds.STRAIGHT_LAYER, RouteHomeIds.STRAIGHT_SOURCE).withProperties(
         PropertyFactory.lineColor(if (night) ROUTE_AHEAD_COLOUR_NIGHT else ROUTE_AHEAD_COLOUR_DAY),
@@ -223,7 +285,8 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
     style.addLayerAbove(aheadCasing, RouteHomeIds.PASSED_LAYER)
     style.addLayerAbove(ahead, RouteHomeIds.AHEAD_CASING_LAYER)
     style.addLayerAbove(aheadDotted, RouteHomeIds.AHEAD_LAYER)
-    style.addLayerAbove(straight, RouteHomeIds.AHEAD_DOTTED_LAYER)
+    style.addLayerAbove(aheadStraight, RouteHomeIds.AHEAD_DOTTED_LAYER)
+    style.addLayerAbove(straight, RouteHomeIds.AHEAD_STRAIGHT_LAYER)
     style.addLayerAbove(straightOffline, RouteHomeIds.STRAIGHT_LAYER)
     style.addLayerAbove(ring, aboveMarkerLayerId)
 }
@@ -237,6 +300,7 @@ internal fun updateRouteHomeLayers(style: Style, route: RouteOnMap?) {
     style.getLayer(RouteHomeIds.AHEAD_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
     style.getLayer(RouteHomeIds.AHEAD_CASING_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
     style.getLayer(RouteHomeIds.AHEAD_DOTTED_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
+    style.getLayer(RouteHomeIds.AHEAD_STRAIGHT_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
     style.getLayer(RouteHomeIds.STRAIGHT_LAYER)?.setProperties(PropertyFactory.lineOpacity(routeStraightOpacity(route)))
 }
 

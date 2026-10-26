@@ -64,4 +64,6 @@ internal fun createAvailabilityViewModel(
         // Step 6 PR 1 (RECORD -1655, -1657): the waypoint line's own lookup by id and its clock.
         readWaypoint = container.waypointRepository::getById,
         currentTime = container.currentTimeProvider,
+        // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails, on the shared trail engine (PR 2).
+        findWayToWaypoint = { from, waypoint -> container.findWayToWaypoint(from, waypoint) },
     )

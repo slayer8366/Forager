@@ -19,8 +19,11 @@ import kotlin.math.hypot
  * The distances along each part add up to that part's own metres ([WayHomePart.meters]): the trail part's are the
  * engine's, its joints included, and the track parts' the self-joined track's. So the line's length is
  * [WayHome.totalMeters] exactly, and the HUD's figure at Return is the figure the way home was found with.
+ *
+ * [trailAllowanceMeters] is what [placeOnWayHome] adds to the figure while its node is on the trail part: the way home's
+ * [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] by default, 0 for the way to a waypoint (RECORD -1671; see that constant).
  */
-class WayHomeLine(val wayHome: WayHome) {
+class WayHomeLine(val wayHome: WayHome, val trailAllowanceMeters: Double = WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS) {
     val nodes: List<LatLng>
     val alongMeters: DoubleArray
 
@@ -78,7 +81,7 @@ class WayHomeLine(val wayHome: WayHome) {
  * [index] is the node they are placed at, which the needle and the greyed walked part read; [hopMeters] the straight line
  * from their fix to it, [hopBand] that hop's band ([nextHopBand], passed back as the next call's previous band).
  * [remainingMeters] is the distance home, counted from its own node, the earliest within [WAY_HOME_FIGURE_REACH_METERS]
- * anywhere on the line ([placeOnWayHome]; Amendments 3 and 4), plus [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part
+ * anywhere on the line ([placeOnWayHome]; Amendments 3 and 4), plus the line's [WayHomeLine.trailAllowanceMeters] when that node is on the trail part
  * ([onTrail]), plus, for a walker past the line's first point, their distance back to it ([metersPastLineStart]; RECORD
  * -1630).
  */
@@ -121,8 +124,9 @@ sealed interface WayHomeProgress {
  *
  * **The figure counts from its own node** (RECORD -1618, the owner: "2: within 50 m (Recommended)"; dispatch
  * 2026-10-24-10 Amendment 3, replacing Amendment 2's item 1 after Sorrel's B-395-1): the earliest node within
- * [WAY_HOME_FIGURE_REACH_METERS] of the fix **anywhere on the line**, ignoring [previous], plus
- * [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS] when that node is on the trail part. "Not before the last place" made the figure
+ * [WAY_HOME_FIGURE_REACH_METERS] of the fix **anywhere on the line**, ignoring [previous], plus the line's
+ * [WayHomeLine.trailAllowanceMeters] (the way home's [WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS]; 0 for a waypoint's, RECORD
+ * -1671) when that node is on the trail part. "Not before the last place" made the figure
  * short on a hairpin (one fix 30 m off leg 1, nearer leg 2, read 245 m against 420 m), and so would a 25 m reach. The
  * reach is the gate's 50 m plus the line's node step (RECORD -1620, Amendment 4), so it covers every fix the gate admits
  * and the figure is never short, as `PathHome.kt`'s ruling requires ("Its error is never short"). The owner accepted
@@ -148,7 +152,7 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
     val figureIndex = earliest(nodes.indices, WAY_HOME_FIGURE_REACH_METERS) ?: index
     val onTrail = line.kinds[figureIndex] == RouteLinePartKind.TRAIL
     val remaining = line.totalMeters - line.alongMeters[figureIndex] +
-        (if (onTrail) WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS else 0.0) +
+        (if (onTrail) line.trailAllowanceMeters else 0.0) +
         (if (figureIndex == 0) metersPastLineStart(line, current) else 0.0)
     return WayHomeProgress.Placed(WayHomePlace(index, hop, band, onTrail, remaining))
 }
@@ -207,6 +211,15 @@ private const val WAY_HOME_LINE_START_EPSILON_METERS = 0.5
  * [WAY_HOME_FIGURE_REACH_METERS], which on its own keeps it never short for every fix the gate admits, so the allowance
  * is now a margin on top: the trail part is the engine's line, not the walker's own track. Neither amendment removed
  * it, so it stays as ruled. **Provisional**, as the 25 m it matches is.
+ *
+ * **The way home only.** The way to a waypoint does without it (dispatch 2026-10-26-11 Amendment 3, item 5; RECORD
+ * -1671, the owner: "Drop it (Recommended)", Juniper's O2): its line is built with [WayHomeLine.trailAllowanceMeters] 0,
+ * so its figure is the reach alone, still never short for a walker on the drawn line, and reads 25 m less on the trail,
+ * where a short final leg made it read several times what was left before "Arrived" (115 m with 16 m left on the S22
+ * walk's shape, 90 m without). What it gives up, from Sorrel's check (S-1): a walker beside the drawn trail, from about
+ * 7 m out, can read short by about half their offset (about 10 m short at 20 m beside), which the 25 m covers to about
+ * 33 m. Nothing but the HUD reads the waypoint's figure (no sundown), so that trade was the owner's to make there; the
+ * way home keeps the 25 m until walk data says otherwise.
  */
 const val WAY_HOME_TRAIL_PLACE_ALLOWANCE_METERS = WAY_HOME_TRAIL_JOIN_METERS
 

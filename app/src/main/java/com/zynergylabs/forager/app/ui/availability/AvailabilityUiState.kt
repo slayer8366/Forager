@@ -353,6 +353,12 @@ data class AvailabilityUiState(
      */
     val waypointStraightLine: StraightLine? = null,
     /**
+     * The way to that waypoint along trails (step 6 PR 3, dispatch 2026-10-26-11), worked out by [AvailabilityWaypointRoute]
+     * from this ViewModel's own fixes, in the foreground only (RECORD -1652 Q5). `null` with no navigation and while the
+     * route is worked out, when the HUD and the map are today's straight ones; see [WaypointRouteShown].
+     */
+    val waypointRoute: WaypointRouteShown? = null,
+    /**
      * The system of units this person reads, restored from
      * [com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository.getUnitSystem] at startup and
      * persisted on every change — see [DistanceUnit]'s own doc comment for the bug the persisted

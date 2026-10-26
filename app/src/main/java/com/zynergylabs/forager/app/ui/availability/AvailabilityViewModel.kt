@@ -40,6 +40,7 @@ import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.wayto.WayToWaypointResult
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchTaxaUseCase
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
@@ -62,6 +63,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -177,6 +179,8 @@ class AvailabilityViewModel(
     private val readWaypoint: suspend (String) -> Result<Waypoint?> = { Result.success(null) },
     /** Step 6 PR 1 (RECORD -1655): the clock the waypoint line's freshness is read against. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
+    /** Step 6 PR 3: the way to a waypoint along trails (AppContainer.findWayToWaypoint); `null`, none (tests), is today's straight line. */
+    private val findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -305,6 +309,9 @@ class AvailabilityViewModel(
 
     /** The straight line to the waypoint being navigated to, moved out of the screen by step 6 PR 1: see the class. */
     private val waypointLine = AvailabilityWaypointLine({ transform -> _uiState.update(transform) }, readWaypoint, currentTime, errorLog)
+    /** The way to that waypoint along trails (step 6 PR 3): see the class. Started and ended beside the line, below. */
+    private val waypointRoute =
+        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, readWaypoint, findWayToWaypoint, { _uiState.value.offlineRegions }, currentTime, errorLog)
 
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
@@ -378,7 +385,12 @@ class AvailabilityViewModel(
         // up and cancelled when it ends or another is chosen. Decided here, not in the collaborator (RECORD -1450).
         viewModelScope.launch {
             _uiState.map { it.waypointNavigation?.waypointId }.distinctUntilChanged().collectLatest { id ->
-                waypointLine.follow(id, _uiState.map { it.liveFix }.distinctUntilChanged())
+                val fixes = _uiState.map { it.liveFix }.distinctUntilChanged()
+                // Step 6 PR 3: the way along trails runs beside the line, for the same navigation, and ends with it.
+                coroutineScope {
+                    launch { waypointRoute.follow(id, fixes) }
+                    waypointLine.follow(id, fixes)
+                }
             }
         }
         // Dispatch 2026-10-24-07 (RECORD -1605): a finished track is on the map right after Stop. Recording

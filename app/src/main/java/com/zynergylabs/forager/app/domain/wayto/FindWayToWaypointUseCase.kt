@@ -22,8 +22,8 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
  * The way from the walker to a waypoint along trails, or why it is today's straight line (dispatch 2026-10-26-10, step 6
  * PR 2; the rulings are RECORD -1652 and -1653). Pure domain: it reads the downloaded regions and routes through the
  * engine [engines] gives, behind the interfaces Forager owns; no Android, and no fix of its own (the caller passes the
- * walker's position). Nothing calls it in production yet: PR 3 does, at Navigate and on a re-route, in the foreground
- * only (Q5).
+ * walker's position). Called by the waypoint navigation since step 6 PR 3 (`ui/availability/AvailabilityWaypointRoute`),
+ * at the first fix after Navigate and on a re-route, in the foreground only (Q5).
  *
  * ## The steps
  *

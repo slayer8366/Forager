@@ -79,7 +79,8 @@ internal fun approximateNavigationReadout(
     val far = accuracy != null && !isApproaching(distanceMeters, accuracy)
     // Available only: an unreliable compass, or none, has no degrees, so no needle, as on the GPS HUD.
     val headingDegrees = (heading as? TrueHeadingReading.Available)?.degrees
-    val needle = if (far && route == null && headingDegrees != null) {
+    // Step 6 PR 3: no trail route to a waypoint ([ReturnRoute.Straight]) keeps the needle, as with no route.
+    val needle = if (far && (route == null || route is ReturnRoute.Straight) && headingDegrees != null) {
         relativeBearingDegrees(GeoDistance.initialBearingDegrees(here, there), headingDegrees)
     } else {
         null

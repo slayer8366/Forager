@@ -14,6 +14,9 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  * [aheadParts] is [ahead] in its kinds, the walker's track dotted and the trail solid in one colour (dispatch
  * 2026-10-24-10; RECORD -1589); empty for the track home, drawn solid as before. [atReturnGeneration] is the
  * [RouteHome.Ahead.generation] [atReturn] was taken from.
+ *
+ * [aheadIsOffline] draws the line ahead grey: the way to a waypoint's line kept once location is lost, as its straight
+ * line is (dispatch 2026-10-26-11 Amendment 2, item 1; RECORD -1670, Sorrel's S-413-1). The way home never sets it.
  */
 data class RouteLine(
     val atReturn: List<LatLng>,
@@ -21,14 +24,19 @@ data class RouteLine(
     val aheadIsCurrent: Boolean,
     val aheadParts: List<RouteLinePart> = emptyList(),
     val atReturnGeneration: Long = 0,
+    val aheadIsOffline: Boolean = false,
 )
 
-/** One run of the line ahead and what it is: the map draws [RouteLinePartKind.TRACK] dotted and [RouteLinePartKind.TRAIL] solid. */
+/**
+ * One run of the line ahead and what it is: the map draws [RouteLinePartKind.TRACK] dotted, [RouteLinePartKind.TRAIL]
+ * solid and [RouteLinePartKind.STRAIGHT] thin and dashed.
+ */
 data class RouteLinePart(val kind: RouteLinePartKind, val points: List<LatLng>)
 
 /**
  * [STRAIGHT] is a straight leg that is not the walker's track, the way to a waypoint's lead-in and final leg (dispatch
- * 2026-10-26-10). Nothing draws it yet: the map's own straight-part layer is step 6 PR 3. The way home never makes one.
+ * 2026-10-26-10), drawn thin and dashed by its own layer since step 6 PR 3 (`ui/map/RouteHomeLayers`). The way home never
+ * makes one.
  */
 enum class RouteLinePartKind { TRACK, TRAIL, STRAIGHT }
 
