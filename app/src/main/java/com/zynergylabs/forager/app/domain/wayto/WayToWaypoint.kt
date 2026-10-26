@@ -29,7 +29,7 @@ sealed interface WayToWaypointResult {
 /**
  * Why the way to a waypoint is today's straight line (RECORD -1652 Q4, the owner: "Approve as written"; confirmed at
  * -1653): the way home's notes with "· straight line" in place of "· following your track", since the fallback here is
- * the straight line, and three of the waypoint's own.
+ * the straight line (the leaves-area note too, RECORD -1665), and three of the waypoint's own.
  */
 enum class WayToWaypointNote(val text: String) {
     /** No downloaded region covers either end, the server has no routes for the area, or the build lacks an end's square. */
@@ -51,10 +51,11 @@ enum class WayToWaypointNote(val text: String) {
     NO_ROUTE_FOUND("Couldn't find a trail route · straight line"),
 
     /**
-     * The trail route runs outside the downloaded area. The way home's sentence as it stands: it never ended "· following
-     * your track", so there was no tail to swap (the coder's reading of Q4, reported to the planner).
+     * The trail route runs outside the downloaded area. RECORD -1665, the owner: "Add '· straight line'" (Amendment 1,
+     * item 1), in place of the way home's second sentence, which stays the way home's. Where a short form is shown it
+     * stays "Route leaves your downloaded area" (the same record); PR 3 shows it.
      */
-    LEAVES_AREA("This route leaves your downloaded area. Download a larger area to route there."),
+    LEAVES_AREA("This route leaves your downloaded area · straight line"),
 
     /** No trail within the engine's reach of the waypoint, 250 m (Q2: "a waypoint over 250 m from any trail"). */
     WAYPOINT_FAR_FROM_TRAIL("The waypoint is far from any trail · straight line"),

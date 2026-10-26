@@ -27,7 +27,8 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
  *
  * ## The steps
  *
- * 1. **The region:** the newest download with routes holding both ends ([routeDataForPoints]).
+ * 1. **The region:** the newest download with routes holding both ends ([routeDataForPoints]). When no download holds
+ *    both, the waypoint is in another area, whatever either end's routes are (RECORD -1666).
  * 2. **One trail route** from the walker to the waypoint. The engine matches each end to its nearest routable way within
  *    its reach (250 m for BRouter v1.7.10 with dynamic range off) and starts and ends the route there, on the trail
  *    (`domain/routing/TrailRouter`'s [com.zynergylabs.forager.app.domain.routing.TrailRoute]: "the gap from the walker to
@@ -89,28 +90,29 @@ class FindWayToWaypointUseCase(
         )
     }
 
-    /** An end covered by a region whose routes are not usable, as the way home words the same states (`FindWayHomeUseCase.routesFor`). */
-    private fun notUsable(data: RouteDataForPoints.NotUsable): WayToWaypointResult {
-        val end = if (data.end == RouteEnd.START) "the walker's" else "the waypoint's"
-        return when (val state = data.state) {
-            is RouteDataForPoint.SquareMissing -> straight(WayToWaypointNote.NO_TRAIL_ROUTES, "region ${state.regionId}'s routes lack $end square ${state.square}")
+    /**
+     * Regions holding both ends whose routes are not usable, as the way home words the same states
+     * (`FindWayHomeUseCase.routesFor`). Only a region holding both ends is said here (Amendment 1, item 2, RECORD -1666).
+     */
+    private fun notUsable(data: RouteDataForPoints.NotUsable): WayToWaypointResult =
+        when (val state = data.state) {
+            is RouteDataForPoint.SquareMissing -> straight(WayToWaypointNote.NO_TRAIL_ROUTES, "region ${state.regionId}'s routes lack square ${state.square}")
             is RouteDataForPoint.NotStored -> when (val routes = state.routeData) {
-                is RegionRouteData.Damaged -> straight(WayToWaypointNote.ROUTES_UNREADABLE, "region ${state.regionId}'s routes are damaged, at $end end")
-                RegionRouteData.NotFetched -> straight(WayToWaypointNote.ROUTES_NOT_DOWNLOADED, "region ${state.regionId}'s routes were never fetched, at $end end")
+                is RegionRouteData.Damaged -> straight(WayToWaypointNote.ROUTES_UNREADABLE, "region ${state.regionId}'s routes are damaged")
+                RegionRouteData.NotFetched -> straight(WayToWaypointNote.ROUTES_NOT_DOWNLOADED, "region ${state.regionId}'s routes were never fetched")
                 is RegionRouteData.Missing -> if (routes.reason.needsAppUpdate()) {
-                    straight(WayToWaypointNote.ROUTES_NEED_APP_UPDATE, "region ${state.regionId}'s route fetch needs an app update (${routes.reason.code}), at $end end")
+                    straight(WayToWaypointNote.ROUTES_NEED_APP_UPDATE, "region ${state.regionId}'s route fetch needs an app update (${routes.reason.code})")
                 } else {
-                    straight(WayToWaypointNote.ROUTES_NOT_DOWNLOADED, "region ${state.regionId}'s route fetch failed (${routes.reason.code}), at $end end")
+                    straight(WayToWaypointNote.ROUTES_NOT_DOWNLOADED, "region ${state.regionId}'s route fetch failed (${routes.reason.code})")
                 }
-                RegionRouteData.Fetching -> straight(WayToWaypointNote.ROUTES_FETCHING, "region ${state.regionId}'s routes are being fetched, at $end end")
-                RegionRouteData.NoneHere -> straight(WayToWaypointNote.NO_TRAIL_ROUTES, "the server has no trail routes for region ${state.regionId}, at $end end")
-                // routeDataForPoint never reports stored routes as not stored; said plainly if it ever does.
+                RegionRouteData.Fetching -> straight(WayToWaypointNote.ROUTES_FETCHING, "region ${state.regionId}'s routes are being fetched")
+                RegionRouteData.NoneHere -> straight(WayToWaypointNote.NO_TRAIL_ROUTES, "the server has no trail routes for region ${state.regionId}")
+                // routeDataForPoints never reports stored routes as not stored; said plainly if it ever does.
                 is RegionRouteData.Stored -> straight(WayToWaypointNote.ROUTES_UNREADABLE, "region ${state.regionId}'s stored routes were reported as not stored")
             }
             // routeDataForPoints hands on only the two states above; said plainly if it ever hands on another.
-            is RouteDataForPoint.Found, RouteDataForPoint.NoRegionCovers -> straight(WayToWaypointNote.ROUTES_UNREADABLE, "$end end's routes were reported unusable as ${state.javaClass.simpleName}")
+            is RouteDataForPoint.Found, RouteDataForPoint.NoRegionCovers -> straight(WayToWaypointNote.ROUTES_UNREADABLE, "the routes were reported unusable as ${state.javaClass.simpleName}")
         }
-    }
 
     /** A failure from the engine, as its note: which end is far from a trail, unreadable data, or no route found. */
     private fun failedOn(failure: TrailRouteFailure): WayToWaypointResult {
