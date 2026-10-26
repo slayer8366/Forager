@@ -66,8 +66,8 @@ fun shownTrailOf(watch: WayHomeWatch, trackId: String): ShownTrail? {
  * Whether the walker at [here] is heading back along [line]'s dotted part, toward home (dispatch 2026-10-25-09 Amendment
  * 2; RECORD -1640, the owner: "A: dotted line only (Recommended)", "Yes, a pause counts (Recommended)", and "Coder
  * proposes, Sorrel checks (Recommended)" for the figure). A re-routed line starts at the walker's newest track point
- * the way-home watch has (stored, or with #404 kept), at the far end of their stray, and runs back along it; so heading back is being ahead of that start, toward home, and
- * walking out is being at it or past it.
+ * the way-home watch has (stored, or with #404 kept), at the far end of their stray, and runs back along it; so heading
+ * back is being ahead of that start, toward home, and walking out is being at it or past it.
  *
  * - **Past the line's start, never** ([metersPastLineStart] above 0, the test #398 added for the figure, RECORD -1630):
  *   the walker is beyond the start along the way out, which is walking out along the stray however far along the line
@@ -107,8 +107,9 @@ fun shownTrailOf(watch: WayHomeWatch, trackId: String): ShownTrail? {
  * **What it costs, said plainly:** a walker who goes a few metres past the re-route point before turning back can still
  * be alerted in their first 10 m back, while within 40 m of nothing else counted. Where the line starts at the newest
  * stored point, its start lags the walker by up to one store write (RECORD -1636), and that lag is added to the 10 m;
- * #404 (dispatch 2026-10-25-10) starts it at the newest kept point instead, which closes that lag. The first stretch gives the direction, so a stray that turned within a node step of the start reads ahead or past
- * by that stretch, as [metersPastLineStart] does.
+ * #404 (dispatch 2026-10-25-10) starts it at the newest kept point instead, which closes that lag. The first stretch
+ * gives the direction, so a stray that turned within a node step of the start reads ahead or past by that stretch, as
+ * [metersPastLineStart] does.
  *
  * A stale or jumping fix: a GPS fix the way-home gate refuses (over 50 m accuracy) leaves the place where it was, so it
  * holds as a pause does; one that jumps ahead counts for that reading by the second half, and by the first half only
