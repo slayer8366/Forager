@@ -28323,3 +28323,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the Amendment 3 coder (Opus; 72126f633): retry only inside a downloaded area's route rectangle, counted from the last ask point; the waypoint line's allowance 0; run 40348126871 green, 5,655; fail-first 40342616649 six as predicted; reverts r1-r4 biting. Sorrel's re-check (Fable; prompts/preserved/2026-10-26-sorrel-413-recheck.md, branch sorrel-413-recheck, 218c2aa98): mergeable, no blocking item; the LAZY guard closes the hazard on every path and its revert cannot bite because collectLatest queues the launch; S-413R-1 the guard test's comment now wrong; S-413R-2 the PR body not updated (the planner updated it after merge); N-413R-1 a fix arriving already lost is drawn grey by the trail line where the straight line draws nothing: accepted by the planner in Amendment 3, not put to the owner.
 **Decision:** under the owner's "Sorrel re-check, then merge (Recommended)": #413 merged by the planner at 72126f633 (pre-main d2c2d18b5). S-413R-1, the stale comments (AppContainer.kt:444, WaypointNavigateControls.kt:9-12, CompactMapTabInputs.kt:57-59, WayHomeAhead.kt:17), #410's two list-check fixes and the waypoint pop-up's known-bugs row go to the queued tidy PR; the phone look at fade, grey and the new figure to the next S22 session.
 **Notes:** Written by the planner by hand. Next free ID -1673.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1673
+**Timestamp:** 2026-10-26T17:10:56Z
+**Continues:** 2026-09-28-1672, 2026-09-28-1660
+**Title:** The tidy PR starts (owner)
+**Decision:** the owner: "Start the tidy PR": dispatch 2026-10-26-12: #410's two list-check fixes, the stale comments named by Sorrel's #406, #408, #409 and #413 reviews, and the waypoint pop-up's known-bugs row.
+**Notes:** Written by the planner by hand. Next free ID -1674.
