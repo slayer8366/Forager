@@ -31,7 +31,6 @@ CLAUDE=/home/zynergy-labs/.local/bin/claude
 WT=/home/zynergy-labs/.cache/forager-wt/accounting
 LOGDIR=/home/zynergy-labs/.cache/accountant
 PROFILE_REFS="origin/pre-main origin/accountant-profile"
-RECORD_REF="${ACCOUNTANT_RECORD_REF:-origin/pre-main}"
 TIMEOUT=2h
 
 DAY="${1:-$(date -u -d yesterday +%F)}"
@@ -70,18 +69,31 @@ for ref in $PROFILE_REFS; do
   fi
 done
 [ -n "$PROFILE_FROM" ] || fail 6 "accountant profile not found on: $PROFILE_REFS"
+# The RECORD lives on whichever records branch is current, not on pre-main
+# until it merges (on 2026-10-26 pre-main lacked -1642 and -1644). Take it from
+# the ref among origin/pre-main and origin/records* whose last change to
+# RECORD.md is newest, unless ACCOUNTANT_RECORD_REF names one.
+RECORD_REF="${ACCOUNTANT_RECORD_REF:-}"
+if [ -z "$RECORD_REF" ]; then
+  RECORD_REF=$(for r in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/pre-main 'refs/remotes/origin/records*'); do
+      echo "$(git log -1 --format=%ct "$r" -- RECORD.md) $r"; done | sort -n | tail -1 | cut -d' ' -f2)
+fi
 RECORD="$RUNDIR/RECORD.md"
-git show "$RECORD_REF:RECORD.md" >"$RECORD" 2>/dev/null || fail 6 "RECORD.md not found on $RECORD_REF"
+git show "$RECORD_REF:RECORD.md" >"$RECORD" 2>/dev/null || fail 6 "RECORD.md not found on ${RECORD_REF:-any ref}"
 log "profile from $PROFILE_FROM ($(git rev-parse --short "$PROFILE_FROM")); RECORD from $RECORD_REF ($(git rev-parse --short "$RECORD_REF")); worktree at $(git rev-parse --short HEAD)"
 
 PROMPT="You are Thistle Plumbline, the accountant (docs/process/accountant-profile.md).
 
 1. Read CLAUDE.md in this directory, then the profile at $PROFILE. Rulings are in $RECORD (search it; do not read it whole).
-2. Count the logged tokens for the UTC day $DAY (00:00 to 24:00) from ~/.claude/projects/, as the profile says: one script in $EVIDENCE/, run with python3 -I, its raw output beside it. You may start from the newest earlier script under docs/accounting/evidence/.
+2. Count the logged tokens for the UTC day $DAY (00:00 to 24:00) from ~/.claude/projects/, as the profile says: one script in $EVIDENCE/ (the folder exists), its raw output beside it. Only the script reads ~/.claude/projects/; you do not list or read it. You may start from the newest earlier script under docs/accounting/evidence/: read it, then write your copy with the Write tool. Run it as: python3 -I $EVIDENCE/<script>.py > $EVIDENCE/<output>.txt
 3. Write the report at $REPORT, in the profile's five parts.
 4. Commit only $REPORT and $EVIDENCE/ with git add and git commit -m on plain text (no command substitution), ending the message with the line: Co-Authored-By: Claude <noreply@anthropic.com>
    Then run exactly: git push origin accounting
-5. No PR. Change nothing else, and start no other session or helper. If something stops you, say what and stop."
+5. Run shell commands one at a time from this directory, with relative paths, no && or ; chains and no cd: only those forms are permitted, and anything else is refused. No PR. Change nothing else, and start no other session or helper. If something stops you, say what and stop."
+
+# The evidence folder is made here, so the session needs no mkdir; removed
+# again below if the session leaves it empty.
+mkdir -p "$EVIDENCE"
 
 log "claude: model haiku, prompt ${#PROMPT} chars; session output follows"
 
@@ -114,6 +126,7 @@ timeout "$TIMEOUT" "$CLAUDE" -p "$PROMPT" \
   </dev/null >>"$LOG" 2>&1
 RC=$?
 echo >>"$LOG"
+rmdir "$EVIDENCE" 2>/dev/null
 log "claude exit=$RC"
 
 # What the session left behind, checked from outside it.
