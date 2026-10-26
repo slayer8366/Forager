@@ -221,7 +221,7 @@ class WayHomeWatch(
         }
         // Dispatch 2026-10-25-10 (RECORD -1636): with the points kept since the last one written, so the line starts
         // from the walker's newest point.
-        return findWayHome(synchronized(lock) { keptPoints.addedTo(track) }, origin)
+        return findWayHome(track, origin)
     }
 
     /** Call with [lock] held. */
