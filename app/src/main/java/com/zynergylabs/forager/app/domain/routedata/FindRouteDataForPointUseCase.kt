@@ -15,7 +15,8 @@ import java.io.File
  *
  * **When several regions cover the point**, the newest download with stored routes wins: its files come from the
  * newest route-data build this phone has. The coder's choice, stated so it can be changed: nothing calls this yet,
- * and a caller routing between two points may want the region covering both, which is a different question.
+ * and a caller routing between two points may want the region covering both, which is a different question, answered
+ * by [routeDataForPoints] (`FindRouteDataForPoints.kt`, the way to a waypoint's, dispatch 2026-10-26-10).
  */
 class FindRouteDataForPointUseCase(private val offlineMapRepository: OfflineMapRepository) {
 

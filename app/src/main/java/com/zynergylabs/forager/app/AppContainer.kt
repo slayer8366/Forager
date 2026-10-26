@@ -28,7 +28,9 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch
 import com.zynergylabs.forager.app.domain.wayhome.toPathHome
 import com.zynergylabs.forager.app.routing.RoutingProfile
+import com.zynergylabs.forager.app.routing.TrailRoutingEngine
 import com.zynergylabs.forager.app.routing.WayHomeRouting
+import com.zynergylabs.forager.app.domain.wayto.FindWayToWaypointUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -431,9 +433,18 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
 
     // The way home along trails (dispatch 2026-10-24-10 Amendment 1, PR C; RECORD -1613: "Yes, keep working"), held
     // here so it outlives the Activity, as ReturnWatch is. The recording ViewModel finds and stops it; the service feeds
-    // it fixes and ends it; the HUD's tick and sundown read where the walker is on it. Its engine is built, and the
-    // routing profile installed, on the first Return (WayHomeRouting).
-    private val wayHomeRouting = WayHomeRouting(installProfile = { RoutingProfile.install(context) }, offlineMapRepository = offlineMapRepository, errorLog = errorLog)
+    // it fixes and ends it; the HUD's tick and sundown read where the walker is on it. Its engine is the shared one below.
+    // The app's one trail engine (dispatch 2026-10-26-10, step 6 PR 2), shared by the way home and the way to a waypoint:
+    // BRouter runs one route at a time in the whole process, so a second engine would gain nothing. Built, and the routing
+    // profile installed, on first use by either (TrailRoutingEngine).
+    private val trailRoutingEngine = TrailRoutingEngine(installProfile = { RoutingProfile.install(context) }, errorLog = errorLog)
+    private val wayHomeRouting = WayHomeRouting(engines = trailRoutingEngine, offlineMapRepository = offlineMapRepository, errorLog = errorLog)
+
+    /**
+     * The way to a waypoint along trails (dispatch 2026-10-26-10, step 6 PR 2), on the shared engine. Nothing calls it yet:
+     * step 6 PR 3 does, from the waypoint navigation, in the foreground only (RECORD -1652 Q5).
+     */
+    val findWayToWaypoint = FindWayToWaypointUseCase(offlineMapRepository = offlineMapRepository, engines = trailRoutingEngine, errorLog = errorLog)
     // Dispatch 2026-10-26-05 (RECORD -1651): the recording's newest kept points, written or not, held here so they outlive
     // the Activity, as the watches are. The service adds each kept point and ends it; the recording screen draws its line
     // from the stored track and these (TrackRecordingUiState.recordingLine).
