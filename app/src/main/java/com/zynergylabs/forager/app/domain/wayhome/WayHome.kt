@@ -42,8 +42,12 @@ data class WayHome(
 /** One part of a [WayHome]: its [kind], its line in walking order, and its length. */
 data class WayHomePart(val kind: WayHomePartKind, val points: List<LatLng>, val meters: Double)
 
-/** What a [WayHomePart] is, which part 2 draws differently: the track parts dotted, the trail part solid (RECORD -1589). */
-enum class WayHomePartKind { TRACK_BACK, TRAIL, TRACK_TO_START }
+/**
+ * What a [WayHomePart] is, which part 2 draws differently: the track parts dotted, the trail part solid (RECORD -1589).
+ * [STRAIGHT] is a straight leg that is not the walker's track: the way to a waypoint's lead-in and final leg (dispatch
+ * 2026-10-26-10, `domain/wayto/WayToWaypoint`). The way home never makes one.
+ */
+enum class WayHomePartKind { TRACK_BACK, TRAIL, TRACK_TO_START, STRAIGHT }
 
 /**
  * Why the way home is the walker's track alone, each with the line shown beside today's track line (RECORD -1586 and

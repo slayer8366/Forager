@@ -26,7 +26,11 @@ data class RouteLine(
 /** One run of the line ahead and what it is: the map draws [RouteLinePartKind.TRACK] dotted and [RouteLinePartKind.TRAIL] solid. */
 data class RouteLinePart(val kind: RouteLinePartKind, val points: List<LatLng>)
 
-enum class RouteLinePartKind { TRACK, TRAIL }
+/**
+ * [STRAIGHT] is a straight leg that is not the walker's track, the way to a waypoint's lead-in and final leg (dispatch
+ * 2026-10-26-10). Nothing draws it yet: the map's own straight-part layer is step 6 PR 3. The way home never makes one.
+ */
+enum class RouteLinePartKind { TRACK, TRAIL, STRAIGHT }
 
 /**
  * The line after [routeHome]: the first route of a return becomes the line at Return, later routes
