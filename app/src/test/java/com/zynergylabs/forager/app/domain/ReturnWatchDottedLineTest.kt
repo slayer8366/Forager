@@ -33,7 +33,8 @@ import org.junit.Test
  * Synthetic ground, no real place: the walk out runs north from the start along one meridian; the trail way home runs
  * parallel to it 80 m east. After Return the walker stands on the trail at 45.0015 and strays due east, one GPS reading
  * a second at 1.4 m/s. "d" is metres east of the trail. A re-route comes at each 50 m from the line shown: the first at
- * d = 50.4, the second at d = 100.8. Readings carry no accuracy, so the off-track line is 40 m exactly.
+ * d = 50.4, the second at d = 100.8. Readings carry no accuracy, so the off-track line is 40 m exactly. "n" is metres
+ * north of that line of walk, 0 except on the bent stray.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReturnWatchDottedLineTest {
@@ -48,6 +49,7 @@ class ReturnWatchDottedLineTest {
 
     /** The walker's metres east of the trail, and the next reading's time. */
     private var d = 0.0
+    private var n = 0.0
     private var t = 100_000L
 
     private val watch = ReturnWatch(
@@ -84,7 +86,7 @@ class ReturnWatchDottedLineTest {
 
     /** One reading at [d] metres east of the trail, in the service's order, then a second passes. */
     private fun reading() {
-        val p = point(WALK_LAT, TRAIL_EAST_METERS + d, t)
+        val p = point(WALK_LAT + n / METERS_PER_DEGREE_LAT, TRAIL_EAST_METERS + d, t)
         watch.onFix(p, FixProvider.GPS)
         wayHome.onFix(p, FixProvider.GPS)
         keep(p)
@@ -96,6 +98,14 @@ class ReturnWatchDottedLineTest {
     private fun walkTo(target: Double) {
         while (d != target) {
             d = if (target > d) minOf(target, d + PACE) else maxOf(target, d - PACE)
+            reading()
+        }
+    }
+
+    /** North or south at walking pace to [target], one reading a second, the last one on it. */
+    private fun walkNorthTo(target: Double) {
+        while (n != target) {
+            n = if (target > n) minOf(target, n + PACE) else maxOf(target, n - PACE)
             reading()
         }
     }
@@ -152,6 +162,62 @@ class ReturnWatchDottedLineTest {
 
         assertEquals("the sample must include two re-routes and no third", 3L, generation)
         assertEquals("back on course along the dotted line, then a second stray out: two alerts", 2, delivered.size)
+    }
+
+    /**
+     * Sorrel's 402a2-1, the first way in (dispatch 2026-10-26-03; RECORD -1645): the place on the line never moves back
+     * while a node from it on is within 50 m (`placeOnWayHome`), so after 30 m back along the dotted line it stays off the
+     * line's first node when the walker walks out to where the line starts. Standing there, with readings either side of
+     * the start, is walking out, and the alert comes after the hold, once.
+     */
+    @Test
+    fun `after heading back 30 m, standing at the line's start alerts again, once`() {
+        reading()
+        walkTo(110.0)
+        walkTo(70.0)
+        walkTo(100.8)
+        pause(60, jitter = listOf(0.0, -3.0, 3.0, -2.0, 2.0, -1.0, 1.0))
+
+        assertEquals("the sample must include two re-routes and no third", 3L, generation)
+        assertEquals("headed back 30 m, then held at the line's start: the stray out and the stand there, two alerts", 2, delivered.size)
+    }
+
+    /**
+     * Sorrel's 402a2-1, the second way in: one GPS reading 30 m toward home along the dotted line moves the place off its
+     * first node, and it does not come back. A walker who then stands at the far end of the stray, where the line starts,
+     * is walking out, and is alerted after the hold, once.
+     */
+    @Test
+    fun `after one reading jumps 30 m toward home, standing at the line's start alerts`() {
+        reading()
+        walkTo(52.0)
+        pause(1, jitter = listOf(-30.0))
+        pause(60, jitter = listOf(0.0, -3.0, 3.0, -2.0, 2.0, -1.0, 1.0))
+
+        assertEquals("the sample must include the re-route and no second", 2L, generation)
+        assertEquals("one reading jumped toward home, then held at the line's start: one alert", 1, delivered.size)
+    }
+
+    /**
+     * Sorrel's 402a2-3: the place half of [isHeadingBackAlong] through both watches. The stray goes 50.4 m east, 49.6 m
+     * north, then 7 m east, where the third line starts; so its first stretch runs 7 m west and the walker heading back
+     * south along the next part is never 10 m ahead of the start along it. Only their place on the line, moved on, counts
+     * the dotted part there, and 40 m down that part they are on course.
+     */
+    @Test
+    fun `heading back along a stray that turned within a node step of the line's start is on course`() {
+        reading()
+        walkTo(50.4)
+        walkNorthTo(49.6)
+        walkTo(57.4)
+        assertEquals("the sample must include the second re-route at the last turn", 3L, generation)
+        walkTo(50.4)
+        walkNorthTo(9.6)
+        pause(30)
+
+        assertEquals("the sample must include no third re-route", 3L, generation)
+        assertEquals("only the stray out alerted", 1, delivered.size)
+        assertFalse("40 m back along the bent dotted line, placed on it, is on course", watch.state.value.isOffTrack)
     }
 
     /**
