@@ -93,6 +93,28 @@ class ReferenceTrailRecordTest {
         assertEquals("Forest Service trail · 1234", fs("trail_name" to "1234").firstLine)
     }
 
+    /**
+     * RECORD -1692 (the owner: "Fix as proposed"): a one- or two-letter word followed directly by a full stop is an
+     * abbreviation and is capitalised; the common short words include NO, GO, US and the rest of the owner's list; only
+     * I to XX count as numerals, so a longer word spelling one (MIX, DIX, LIV, CIV) is capitalised as a word.
+     */
+    @Test
+    fun `abbreviations with a full stop, the wider common list, and numerals only to XX`() {
+        fun shown(name: String) = fs("trail_name" to name).firstLine.removePrefix("Forest Service trail · ")
+        assertEquals("Mt. Hood Tie", shown("MT. HOOD TIE"))
+        assertEquals("St. Helens Loop", shown("ST. HELENS LOOP"))
+        assertEquals("No Name Trail", shown("NO NAME TRAIL"))
+        assertEquals("Go Back Spur", shown("GO BACK SPUR"))
+        assertEquals("We Do As Us", shown("WE DO AS US"))
+        assertEquals("Mix Creek", shown("MIX CREEK"))
+        assertEquals("Dix Liv Civ", shown("DIX LIV CIV"))
+        assertEquals("Camp XX", shown("CAMP XX"))
+        assertEquals("Camp Xxi", shown("CAMP XXI"))
+        // A numeral is checked before the full stop: "II." stays a numeral. A code with no full stop stays a code.
+        assertEquals("Loop II. Spur", shown("LOOP II. SPUR"))
+        assertEquals("NF Road", shown("NF ROAD"))
+    }
+
     @Test
     fun `the number is never recased, only the name`() {
         assertEquals("Forest Service trail 017A · Spur", fs("trail_no" to "017A", "trail_name" to "SPUR").firstLine)
