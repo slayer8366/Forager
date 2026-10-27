@@ -28649,3 +28649,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The switch to street-v3 starts with a report (owner)
 **Decision:** the owner: "Start, report first (Recommended)": dispatch 2026-10-26-21, Phase 1 read-only report on the tile budget, water trails, #418's and #416's should-fixes, night, the 8d card's dates and the device checks.
 **Notes:** Written by the planner by hand. Next free ID -1703.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1703
+**Timestamp:** 2026-10-27T03:25:25Z
+**Continues:** 2026-09-28-1702, 2026-09-28-1609, 2026-09-28-1678
+**Title:** Before the switch: one manual Worker deploy after a small PR; areas count by their estimate; water trails hidden; credits approved (owner)
+**Observed:** the switch report (Opus; prompts/preserved/2026-10-26-21-report.md, branch switch-v3-report, c8b13c076): the live Worker builds from main, which lacks #416, so /style/street-v3.json would 404 (cached a day) and an app switched to v3 would lose Trail Map and fail downloads; the budget, the picker warning, the download and re-download gates and the Tiles detail all read MapLibre's doubled count, which has no per-source split; 76 WATER trails would draw as lone bands; the generic /reference-trails.json drops the archive's forager_reference metadata.
+**Decision:** the owner: "Yes, after the small PR (Recommended)": dispatch 2026-10-26-22 (water filter, manifest route, README), then one manual wrangler deploy of pre-main's Worker on this word (an exception to -1609's main-only deploys), then the switch PR and the S22 check. "Yes, the estimate (Recommended)" (T1); "Hide them (Recommended)" (W1); "Approve as drafted (Recommended)" for the Data sources rows. Dispatch 2026-10-26-21 Amendment 1.
+**Notes:** Written by the planner by hand. Nobody requests the live Worker's v3 or manifest URLs before the deploy. Next free ID -1704.
