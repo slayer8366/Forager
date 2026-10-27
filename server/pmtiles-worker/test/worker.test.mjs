@@ -29,6 +29,8 @@ const STREET_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json
 // for reference-trails.pmtiles (test/fixtures/make-reference-trails-pmtiles.py; invented positions, marker bodies).
 const STREET_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
 const REFERENCE = fs.readFileSync(here("./fixtures/reference-trails.pmtiles"));
+// The archive's manifest (dispatch 2026-10-26-22 M1), an R2 object beside it: invented values in the real file's shape.
+const MANIFEST = fs.readFileSync(here("./fixtures/reference-trails-manifest.json"));
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 
 let fetchCalls;
@@ -134,6 +136,7 @@ beforeEach(() => {
     ["sprites/v4/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47])],
     ["sprites/v5/light.json", Buffer.from('{"townspot":{},"trailhead_b":{}}')],
     ["sprites/v5/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x35])],
+    ["reference-trails-manifest.json", MANIFEST],
   ]);
 });
 
@@ -487,12 +490,55 @@ test("the bands: one per agency source-layer, violet at 35%, 6 to 10 wide, from 
   assert.deepEqual(number.layout["text-field"], ["get", "trail_no"]);
 });
 
-test("Forest Service snow trails are left out of its band and its number; BLM's band has no snow filter", () => {
+// The filters are evaluated on features, not compared as text: what is claimed is which trails draw. The evaluator below
+// knows only the operators these filters may use and throws on any other, so a filter written with a new operator fails
+// here rather than being read wrongly. Its answers were checked against MapLibre GL JS 6.12.0's own featureFilter
+// (map-style's pinned copy) when written (dispatch 2026-10-26-22).
+function evaluate(expression, properties) {
+  if (!Array.isArray(expression)) return expression;
+  const [op, ...args] = expression;
+  const value = (e) => evaluate(e, properties);
+  switch (op) {
+    case "get": return Object.hasOwn(properties, args[0]) ? properties[args[0]] : null;
+    case "has": return Object.hasOwn(properties, args[0]);
+    case "literal": return args[0];
+    case "coalesce": for (const a of args) { const v = value(a); if (v !== null && v !== undefined) return v; } return null;
+    case "==": return value(args[0]) === value(args[1]);
+    case "!=": return value(args[0]) !== value(args[1]);
+    case "!": return !value(args[0]);
+    case "all": return args.every((a) => value(a) === true);
+    case "any": return args.some((a) => value(a) === true);
+    case "match": {
+      const input = value(args[0]);
+      for (let i = 1; i + 1 < args.length; i += 2) {
+        const labels = Array.isArray(args[i]) ? args[i] : [args[i]];
+        if (labels.includes(input)) return value(args[i + 1]);
+      }
+      return value(args[args.length - 1]);
+    }
+    default: throw new Error(`the test's evaluator does not know the operator ${JSON.stringify(op)}`);
+  }
+}
+
+// One Forest Service feature per trail_type the live archive carries (RECORD -1700: TERRA 78,169, SNOW 8,177, WATER 76),
+// and one with no type, which is kept.
+const FS_FEATURES = {
+  terra: { trail_type: "TERRA", trail_no: "060" },
+  snow: { trail_type: "SNOW", trail_no: "061" },
+  water: { trail_type: "WATER", trail_no: "062" },
+  untyped: { trail_no: "063" },
+};
+const drawnBy = (layer) => Object.keys(FS_FEATURES).filter((k) => layer.filter === undefined || evaluate(layer.filter, FS_FEATURES[k]) === true);
+
+test("Forest Service snow and water trails are left out of its band and its number; BLM's band has no filter", () => {
   const byId = Object.fromEntries(referenceLayers(v3Style()).map((l) => [l.id, l]));
-  const notSnow = ["!=", ["coalesce", ["get", "trail_type"], ""], "SNOW"];
   for (const id of ["reference_fs_band", "reference_blm_band", "reference_fs_number"]) assert.ok(byId[id], `v3 has no ${id} layer`);
-  assert.deepEqual(byId.reference_fs_band.filter, notSnow);
-  assert.deepEqual(byId.reference_fs_number.filter, ["all", notSnow, ["has", "trail_no"]]);
+  assert.deepEqual(
+    { band: drawnBy(byId.reference_fs_band), number: drawnBy(byId.reference_fs_number) },
+    { band: ["terra", "untyped"], number: ["terra", "untyped"] },
+  );
+  // The number also needs a number to show.
+  assert.equal(evaluate(byId.reference_fs_number.filter, { trail_type: "TERRA" }), false);
   assert.equal(byId.reference_blm_band.filter, undefined);
 });
 
@@ -540,4 +586,47 @@ test("reference archive not on R2 yet: a tile is a 404 (no content to MapLibre),
     assert.equal(response.status, 404, path);
   }
   assert.deepEqual({ fetchCalls, bucketPuts }, { fetchCalls: [], bucketPuts: [] });
+});
+
+// --- The official-trails manifest (dispatch 2026-10-26-22 M1; the switch report section 5): the archive's dates, sources
+// and coverage, which the generic /reference-trails.json drops (pmtiles' getTileJson keeps no custom metadata). Served
+// from R2's reference-trails-manifest.json as its bytes, never through the tileset path.
+
+const MANIFEST_PATH = "/reference-trails-manifest.json";
+
+test("manifest: served from R2's reference-trails-manifest.json byte for byte, as JSON, cached a day like the other JSON routes", async () => {
+  const response = await call(MANIFEST_PATH);
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    {
+      type: response.headers.get("Content-Type"),
+      cache: response.headers.get("Cache-Control"),
+      origin: response.headers.get("Access-Control-Allow-Origin"),
+      body: Buffer.from(await response.arrayBuffer()).equals(MANIFEST),
+      reads: bucketReads,
+    },
+    { type: "application/json", cache: "public, max-age=86400", origin: "*", body: true, reads: ["reference-trails-manifest.json"] },
+  );
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("manifest: a second request is answered from the edge cache, with no R2 read", async () => {
+  await call(MANIFEST_PATH);
+  bucketReads = [];
+  const again = await call(MANIFEST_PATH);
+  assert.equal(again.status, 200);
+  assert.ok(Buffer.from(await again.arrayBuffer()).equals(MANIFEST));
+  assert.deepEqual(bucketReads, []);
+});
+
+test("manifest: not on R2 is a 404 that is not cached, and never a read of a .pmtiles archive", async () => {
+  assets.delete("reference-trails-manifest.json");
+  const response = await call(MANIFEST_PATH);
+  assert.equal(response.status, 404);
+  assert.deepEqual(bucketReads, ["reference-trails-manifest.json"]);
+  // Uploaded later: the next request finds it, because the 404 was not kept.
+  assets.set("reference-trails-manifest.json", MANIFEST);
+  const later = await call(MANIFEST_PATH);
+  assert.equal(later.status, 200);
+  assert.ok(Buffer.from(await later.arrayBuffer()).equals(MANIFEST));
 });
