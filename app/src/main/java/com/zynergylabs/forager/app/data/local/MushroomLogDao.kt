@@ -91,7 +91,6 @@ abstract class MushroomLogDao {
      */
     @Transaction
     open suspend fun deleteEntryAndCrossRefs(id: String) {
-        deleteCrossRefsForEntry(id)
         deleteEntryById(id)
     }
 
