@@ -75,7 +75,6 @@ internal class PatternRelayout<S : Any, V>(
             cancelPending?.invoke()
             cancelPending = null
             restoreNow = null
-            restore()
         }
         generation++
         loadedStyle = null
