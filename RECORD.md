@@ -28573,3 +28573,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen's plan (Forager-cartography main, docs/design/2026-10-26-three-builds-plan.md, 0aef91d; message to the planner): FS fields trail_no, trail_name, trail_type are lower case and text (trail_no keeps leading zeros, "060", "02S20C"; trail_type SNOW, TERRA, WATER); BLM ROUTE_PRMRY_NM on all five layers 2-6 of BLM_Natl_GTLF_Public_Display; counts FS 86,422, BLM 17,616; the archive header z10-15; names "FNAM v1", one file per 5° square from the build's own routing input, a top-level names array in the manifest; the upload would move R2's routes from 261021 to 261024, whose extracts are deleted at the 11-01 publish; elevation pilot on W125_N45 and W100_N40, the .bef store on the SD card; GDAL 3.6.2 installed. The owner had told Aspen "Go ahead".
 **Decision:** the owner, in the planner's window: "Aspen's compact format (Recommended)"; "Go, when names are ready (Recommended)": routes and names upload together. The planner to Aspen: dates in both the pmtiles metadata and a manifest object; the 8d coder chooses which to read.
 **Notes:** Written by the planner by hand. Nothing the app reads changes. Next free ID -1696.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1696
+**Timestamp:** 2026-10-27T00:06:15Z
+**Continues:** 2026-09-28-1691, 2026-09-28-1689
+**Title:** The climbing allowance #421 merges; whether the walk-back time reads short is investigated (owner)
+**Observed:** #421 (climb-allowance @ b5d464483, dispatch 2026-10-26-19 Amendment 1): green 5,723; on the 10-24 walk's far points start-back-by moves 48 s and 4 min 7 s earlier. Sorrel's review (Fable; prompts/preserved/2026-10-26-sorrel-421-review.md, branch sorrel-421, 3cab5cc63): mergeable; figures reproduced exactly; the one-sided test bound sound; phone tick cost inferred 200-400 ms; S1 no cost figure in the doc, S2 the reverts' record, S3 a once-only log can fire wrongly on the first tick; N5 the self-joined route home was 459 m where the walker walked 1,121 m back (8 min 45 s pace-only against 14 min 51 s moving), against Juniper's earlier finding that the figure ran 19% and 44% long.
+**Decision:** the owner: "Merge now (Recommended)": #421 merged by the planner (pre-main cfef2f4cb); S1 to S3 to a later tidy. "Investigate (Recommended)": Juniper reconciles the two findings on the walk, read-only, with options.
+**Notes:** Written by the planner by hand. Next free ID -1697.
