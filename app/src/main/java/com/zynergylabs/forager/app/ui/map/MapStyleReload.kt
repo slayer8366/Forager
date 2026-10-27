@@ -124,7 +124,9 @@ internal fun MapStyleReload(
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
             is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
+        glyphLog("setStyle requested night=${requested.night} source=${source.javaClass.simpleName} zoom=${map.cameraPosition.zoom}") // dispatch 2026-10-27-08
         map.setStyle(builder) { style ->
+            glyphSnapshot("setStyleCallback.start", map, style, state.mapView) // dispatch 2026-10-27-08, logging only
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)
             // Offline night (colour build C1 (d)): the offline style has no raster layer for
@@ -139,6 +141,7 @@ internal fun MapStyleReload(
             // Trail Map's night icons and patterns: the bundled night copies, added under their own names and switched to
             // (NightImageSwitch.kt; dispatch 2026-10-22-06 Amendment 1). The sprite is not loaded yet at this point.
             if (requested.night && usesStreetSprite(source)) applyStreetNightImages(style, context)
+            glyphSnapshot("setStyleCallback.afterNightImages", map, style, state.mapView) // dispatch 2026-10-27-08, logging only
             if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
             // Step 8b (dispatch 2026-10-26-15): the official-trails band's visibility from the user's choice, after the night
             // recolour (which walks every layer, hidden or not, so the band is in its night colour whenever it shows) and
@@ -170,6 +173,7 @@ internal fun MapStyleReload(
             }
             state.appliedStyle = requested
             state.loadedStyle = style
+            glyphSnapshot("setStyleCallback.end", map, style, state.mapView) // dispatch 2026-10-27-08, logging only
             // setStyle discards the previous style's LocationComponent state the same way it does
             // this composable's own layers (see initializeOverlayLayers' own doc comment on why
             // that function re-runs here) — so the live-location "puck" needs the same

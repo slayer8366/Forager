@@ -75,6 +75,8 @@ internal fun MapListeners(
             }
         }
         state.mapView.addOnDidFinishRenderingFrameListener(frameLogger)
+        // Dispatch 2026-10-27-08: logging only, scratch branch glyph-logging (GlyphDiagnostics.kt).
+        val removeGlyphDiagnostics = registerGlyphDiagnostics(state.mapView, { state.mapLibreMap }, { state.loadedStyle })
         state.mapView.getMapAsync { map ->
             // Marker fan-out (dispatch 2026-09-28-197): the tap is decided by MapTapHandler, which is the
             // resolution this listener used to do inline (resolveTap over every tappable layer, a point
@@ -180,6 +182,7 @@ internal fun MapListeners(
             // via getCameraPosition() inside the callback, not received as a parameter the way
             // addOnMapLongClickListener's latLng is.
             map.addOnCameraIdleListener {
+                glyphSnapshot("cameraIdle", map, state.loadedStyle, state.mapView) // dispatch 2026-10-27-08, logging only
                 state.cameraMoveClassifier.onCameraIdle()
                 state.cameraIdleCount++
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
@@ -241,6 +244,7 @@ internal fun MapListeners(
             state.mapLibreMap = map
         }
         onDispose {
+            removeGlyphDiagnostics()
             state.mapView.removeOnDidFinishRenderingFrameListener(frameLogger)
             state.mapView.removeOnTileActionListener(tileErrorLogger)
         }
