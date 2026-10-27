@@ -27,7 +27,6 @@ internal class WorkerReferenceTrailsManifestSource(
             http.newCall(Request.Builder().url(url).get().build()).execute().use { response ->
                 if (response.code != 200) throw IOException("the manifest answered ${response.code}")
                 val source = response.body?.source() ?: throw IOException("the manifest came with no body")
-                if (source.request(MAX_MANIFEST_BYTES + 1)) throw IOException("the manifest is over $MAX_MANIFEST_BYTES bytes")
                 source.readUtf8()
             }
         }
