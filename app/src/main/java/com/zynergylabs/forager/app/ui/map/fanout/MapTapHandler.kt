@@ -168,7 +168,7 @@ class MapTapHandler(
         if (cause == CameraMoveCause.USER_GESTURE) crowded?.onUserGesture()
         // A move the user asked for with a control (Locate, a search result, Return to Route) counts as their own pan
         // (Amendment 1, S1; RECORD -1753). The crowded stack's own camera return is marked plain, so it does not.
-        if (cause == CameraMoveCause.APP_USER_ASKED) crowded?.onUserGesture()
+        if (cause == CameraMoveCause.APP_USER_ASKED || cause == CameraMoveCause.APP_REQUESTED) crowded?.onUserGesture()
         fan.fold()
     }
 
