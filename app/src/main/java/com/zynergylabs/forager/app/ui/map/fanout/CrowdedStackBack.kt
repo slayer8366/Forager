@@ -24,7 +24,7 @@ fun CrowdedStackBackHandlers(host: CrowdedStackHost, bubbleShown: Boolean, backE
     if (!backEnabled || bubbleShown || fanOpen) return
     if (host.list != null) {
         BackHandler { host.closeList() }
-    } else if (host.cameraReturnPending) {
+    } else if (false && host.cameraReturnPending) {
         BackHandler { host.stepBack() }
     }
 }
