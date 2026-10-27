@@ -44,3 +44,14 @@ Report before building if any of these is wrong:
 - the four disclosure sections;
 - the PR number and CI runs;
 - S22 steps as tap > shows > Back, including a crowded country-zoom group like the owner's screenshot.
+
+## Amendment 1 (2026-10-27): Sorrel's fixes before the merge (RECORD -1753)
+Sorrel's review is docs/reviews/2026-10-27-sorrel-pr430.md on branch sorrel-pr430 (a20519ed3), at d5bed7d82. The owner: "Treat it like your own pan (Recommended)" and "Fix all, then merge (Recommended)". On PR #430:
+- **S1.** An app-requested camera move the user asked for (Locate, a search result, Return to Route) counts as the user's own pan: the list closes and the camera-return step is dropped. Back then does the map's usual Back. The restore's own move must not count. It is marked as an app move today (MapStackCamera.kt:53, :63), so give it its own cause or a host flag; don't clear on every APP_REQUESTED. Step path: tap crowded > zoom > Locate > Back > the map's usual Back, with no jump back.
+- **S2.** The camera-return step and the list survive a tab change, as the fan does (CLAUDE.md UX defaults). Hoist CrowdedStackHost beside mapReturnMemory (AvailabilityCompactScaffold.kt:354). Make stepBack use the live camera, or drop the returns when the map is rebuilt; say which, and why. Step path: tap crowded > zoom > fan > icon > bubble > Open in Journal > Back > the fan > Back folds it > Back returns the camera > Back is the usual one.
+- **S3.** In landscape the list keeps clear of the search strip at the top, as the bubble does with bubbleMinY. Add a landscape test.
+- **S4.** Log the "camera did not get closer" fallback (CrowdedStackZoom.kt:180).
+- **S5.** Add to the PR body's S22 steps: the left-side cluster, landscape, a map tap closing the list, and a mid-size group over a control. Fix step 6's pass wording: centred on you at the zoom from before the tap.
+- **Nits:** N1 (a warn when a joined app mark folds the fan) and N3 (make the third long-press point run, or say why not) if they're cheap.
+
+Each fix gets a test that fails first and a revert check: one branch each, restored from a saved copy, the build log checked. Then full CI, and push to #430. Don't merge. SightingsMap.kt is at 779 lines, so add nothing there; split first if needed.

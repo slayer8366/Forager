@@ -29187,3 +29187,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the no-fade coder (Opus; scratch-pattern-no-fade 0736420a8, build 1.0.4102+g0736420a, CI 40578315652; handoff a9e086179): with fill-pattern-transition 0/0 on both pattern layers, night on gave 3.16-3.48% glyph colour at 1 s and 30 s (3 of 3) and night off gave 0.00% (3 of 3). The app already writes an explicit 0/0 style transition (PlacementTransitions.kt), so the 300 ms threshold is unexplained. #429 at b446a3ed2 carries the timer form (clear after the transition plus 100 ms, read as 400 ms; restore at the first full frame at least 100 ms later) and c61867ffa the corrected upstream draft, but the head does not compile (":" in two test names) and the four prf3 revert runs never ran.
 **Decision:** under -1748's fallback, the timer form. A fresh coder fixes the names, reruns the revert checks and full CI, and runs the S22 check on the PR's own build.
 **Notes:** Written by the planner by hand. Next free ID -1753.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1753
+**Timestamp:** 2026-10-27T21:50:16Z
+**Continues:** 2026-09-28-1749, 2026-09-28-1736
+**Title:** #430's Back paths: Locate counts as the user's pan; the camera return survives a tab change; fixes before the merge (owner)
+**Observed:** #430 (spiral-zoom-then-fan d5bed7d82): the line-248 failure was an app bug, the icon cluster covering the list's right end, fixed so the list keeps clear of the cluster's column; full suite 40581663538 and PR run 40584440611 green, 5,861 tests; R1-R7 each failing for their own edit. Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr430.md, branch sorrel-pr430, a20519ed3): no blocking finding; S1 an app-requested move (Locate, search, Return to Route) leaves the list and the camera return behind, so Back would undo it; S2 the list and camera return are remembered inside the tab and lost on a tab change while the fan survives; S3 a landscape list can sit under the search strip (inferred); S4 one silent fallback; S5 S22 gaps. Aspen (message): on the owner's word in Aspen's window, ~/imx (12.14 GB) and ~/archive (2.51 GB) moved to /mnt/storage/moved-20261027/, verified by sha256; NVMe 176.62 GB free, about 18.5 GB in hand at Sunday's start (inferred).
+**Decision:** the owner: "Treat it like your own pan (Recommended)"; "Fix all, then merge (Recommended)": dispatch 2026-10-27-07 Amendment 1, then Sorrel's quick look, then the merge; dispatch -14 builds on the fixed code.
+**Notes:** Written by the planner by hand. The imx project's virtual environment records its old path and needs re-creating before use. Next free ID -1754.
