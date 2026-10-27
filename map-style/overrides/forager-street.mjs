@@ -439,7 +439,7 @@ export function withBuildingOutline(layers) {
   const below = buildings.paint;
   buildings.paint = {
     "fill-color": ["step", ["zoom"], below["fill-color"], BUILDINGS.solidMinZoom, BUILDINGS.lowZoomFill, BUILDINGS.outlineMinZoom, BUILDINGS.fill],
-    "fill-opacity": ["step", ["zoom"], below["fill-opacity"], BUILDINGS.solidMinZoom, 1],
+    "fill-opacity": 1,
   };
   insertAfter(layers, "buildings", {
     id: "buildings_outline",

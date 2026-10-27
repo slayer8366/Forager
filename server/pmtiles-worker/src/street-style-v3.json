@@ -1197,15 +1197,7 @@
           15,
           "#cccccc"
         ],
-        "fill-opacity": [
-          "step",
-          [
-            "zoom"
-          ],
-          0.5,
-          14,
-          1
-        ]
+        "fill-opacity": 1
       }
     },
     {
