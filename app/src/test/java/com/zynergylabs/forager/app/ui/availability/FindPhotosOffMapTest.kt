@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -7,12 +8,17 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.zynergylabs.forager.app.ForagerApplication
-import com.zynergylabs.forager.app.createMushroomLogViewModel
+import com.zynergylabs.forager.app.data.local.ForagerDatabase
+import com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepository
+import com.zynergylabs.forager.app.data.repository.RoomTrackRepository
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
-import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
+import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
@@ -20,11 +26,13 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
-import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -35,8 +43,8 @@ import org.robolectric.annotation.Config
 /**
  * Dispatch 2026-10-27-05 (RECORDs -1734 and -1735): a photo a saved, located find links to has no map icon of its own;
  * standalone photos follow the Photos switch as before. Through the real Maps tab ([AvailabilityScreen], by
- * `MapLayersTestScreen`) over the real database and the real [GetMapRecordsUseCase] on the app container's own read
- * paths, reading what the screen hands the map ([BubbleMapSlot.content] and the render mode's
+ * `MapLayersTestScreen`) over a real database and the real [GetMapRecordsUseCase] on the read paths the app container
+ * builds it from, reading what the screen hands the map ([BubbleMapSlot.content] and the render mode's
  * layers). What MapLibre then draws from those lists is device-only. One test per ruling of Amendment 1, plus the
  * owner's step path and the Photos switch.
  */
@@ -49,8 +57,19 @@ class FindPhotosOffMapTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
 
-    private val app = ApplicationProvider.getApplicationContext<ForagerApplication>()
-    private val repository get() = app.container.mushroomLogRepository
+    // A database of the test's own, closed after it. Over the app container's database, five of twelve map reads never
+    // landed across CI runs 40556724310 and 40558339626, cause not established.
+    private lateinit var database: ForagerDatabase
+    private lateinit var repository: RoomMushroomLogRepository
+
+    @Before
+    fun openDatabase() {
+        database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Application>(), ForagerDatabase::class.java).build()
+        repository = RoomMushroomLogRepository(database.mushroomLogDao())
+    }
+
+    @After
+    fun closeDatabase() = database.close()
     private val map = BubbleMapSlot(emptyList())
     private lateinit var availability: AvailabilityViewModel
 
@@ -66,14 +85,13 @@ class FindPhotosOffMapTest {
     }
 
     private fun show(cartography: CartographyUiState = CartographyUiState()) {
-        val container = app.container
-        // The container's own read paths over the real database, as AppContainer builds getMapRecordsUseCase, but with no
-        // offline maps: the container's offline store is MapLibre's, whose native library Robolectric cannot load
-        // (UnsatisfiedLinkError, CI run 40556724310), and which then left some reads never landing at all.
+        // The read paths AppContainer builds getMapRecordsUseCase from, over this test's database, with no offline maps:
+        // the app's offline store is MapLibre's, whose native library Robolectric cannot load (UnsatisfiedLinkError, CI run
+        // 40556724310).
         val getMapRecords = GetMapRecordsUseCase(
-            getFinds = container.getMushroomLogEntriesUseCase,
-            getTracks = container.getTracksUseCase,
-            getPhotos = container.getGalleryPhotosUseCase,
+            getFinds = GetMushroomLogEntriesUseCase(repository),
+            getTracks = GetTracksUseCase(RoomTrackRepository(database.trackDao())),
+            getPhotos = GetGalleryPhotosUseCase(repository),
             offlineMapRepository = RigNoOfflineMaps,
         )
         availability = mapLayersViewModel(getMapRecords = { getMapRecords() })
@@ -101,7 +119,7 @@ class FindPhotosOffMapTest {
                     "photos=${map.content?.photoMarkers?.map { it.recordId }}; ViewModel finds=" +
                     "${availability.uiState.value.mapRecords.findMarkers.map { it.recordId }} photos=" +
                     "${availability.uiState.value.mapRecords.photoMarkers.map { it.recordId }} failures=" +
-                    "${availability.uiState.value.mapRecords.failures}; stored finds=$stored",
+                    "${availability.uiState.value.mapRecords.failures}; stored finds=$stored\n" + threadDump(),
                 timeout,
             )
         }
@@ -204,15 +222,17 @@ class FindPhotosOffMapTest {
         show()
         assertEquals("positive control: hidden while the find is saved", emptyList<String>(), photos())
 
-        val log = createMushroomLogViewModel(app.container, availability, ErrorLog { _, _, _ -> })
-        composeRule.waitUntil(10_000) { log.uiState.value.entries.any { it.id == "find-1" } }
-        log.requestDeleteEntry("find-1")
-        composeRule.waitForIdle()
-        log.commitDeleteEntry("find-1")
-        composeRule.waitUntil(10_000) { runBlocking { repository.getAll().getOrThrow() }.none { it.id == "find-1" } }
+        // The delete the Journal commits when its Undo window ends (MushroomLogViewModel.commitDeleteEntry calls this use
+        // case); that the Journal's delete reaches the map is MushroomLogViewModelWiringTest's.
+        runBlocking { DeleteMushroomLogEntryUseCase(repository)("find-1").getOrThrow() }
         reload { it.photoMarkers.isNotEmpty() }
 
         assertEquals("the find is gone", emptyList<String>(), finds())
         assertEquals("its photos are standalone again", listOf("ph-a", "ph-b"), photos())
+    }
+
+    /** Every thread's stack, for a wait that ran out: which coroutine or query it stalled on. */
+    private fun threadDump(): String = Thread.getAllStackTraces().entries.joinToString("\n") { (thread, frames) ->
+        "-- ${thread.name} (${thread.state})\n" + frames.take(25).joinToString("\n") { "   at $it" }
     }
 }
