@@ -428,3 +428,113 @@ direction is safe, and the comment says "about", so a wording point (N9), not an
 
 **Decided beyond scope:** I ranked S5 as should-fix rather than a nit, because the untested copy is the
 one S1 was about; and I did not install osmium here to run the shell suite.
+
+## Quick look at `0d2ebc955`
+
+Sorrel (Fable 5.1), 2026-10-27T06:37Z (2026-10-26, 23:37 PDT). Read in a fresh worktree
+`~/.cache/forager-wt/sorrel-pi31-quick` at `0d2ebc955`, one commit past `932c0a0ee`; only
+`git diff 932c0a0ee 0d2ebc955` reviewed (five files, +34 −11, all under `map-build/`). Nothing changed
+in the branch, nothing merged, nothing run on the Pi. Network: GitHub only. Every revert below was made
+on a copy of `map-build/` in the scratchpad, never in a worktree; the worktree's `git status` was clean
+before and after.
+
+**Verdict: mergeable into `pi-build`.** S5, N8 and N9 are fixed as Aspen reports, and each fix has a
+test that fails with its own message when the fix is undone. Three new nits (N10-N12), none worth a
+further round before merge.
+
+### 1. Does the weekly path call the function before BRouter, and die on its failure?
+
+Yes to both, read and probed. `bin/build-usca.sh:794` is `set_stage names-input`; the cut is `:796`,
+the count `:797`, the call `:799`, and `set_stage brouter` is `:802`. The call is a top-level
+statement, `names_ok="$(names_nodes_ok "$names_nodes" "$USCA_NAMES_MAX_INPUT_NODES")" || die "$names_ok"`
+— not inside an `if`, `while`, `&&`-list or subshell — so the question of `set -e` being suppressed
+in a conditional does not arise; and it would not matter if it did, because the function's failure is an
+explicit `return 1` (`:258-259`), which becomes the command substitution's status, which becomes the
+assignment's status, which fires `|| die`; `die` (`:117`) is `exit 1`, and `exit` leaves a script
+from inside an `if` condition as readily as from outside one. Probed here with the function extracted
+by the same `sed` the scripts use, under `set -euo pipefail` and a stand-in `die` that exits 7: at the
+limit (260,000,000 / 260,000,000) the script continues with `names_ok` empty; one over dies with
+"names input has 260000001 nodes, over USCA_NAMES_MAX_INPUT_NODES (260000000); see pins.env …"; an
+empty count, `12 nodes` and `-5` each die with "names input node count is not a whole number: '…'"
+(N9 closed). The one-off script's call at `bin/build-names.sh:82` has the same shape, and its `die`
+(`:31`) also exits 1. `build-names.sh:67` now extracts the third function too, and `declare -F` on that
+extraction here yields all three.
+
+### 2. Does the "called between the cut and BRouter" check bite?
+
+It does, on every edit that could realistically undo S5, and it is a text check — both are true.
+`test_build_usca_functions.sh:80-85` takes the lines of `build-usca.sh` from `^set_stage names-input`
+to `^set_stage brouter` (each occurs exactly once in the script, counted) and `grep -qF`s them for the
+exact call line. Run here against three one-edit copies of `build-usca.sh`, each syntax-checked first:
+(R1) the call moved to just after `set_stage brouter`; (R2) the call deleted; (R3) the call replaced by
+the pre-S5 inline two-line `[[ -le ]] || die` check, the function still defined. All three fail with
+"FAIL: the weekly path checks the names input with it, before BRouter", and the unedited control copy
+passes with 67. So the check holds the two things S5 asked for: that the weekly path uses the *tested*
+function rather than its own copy, and that it does so before BRouter. What a text check cannot see is
+a shape that keeps the exact line but changes its effect — the line wrapped in `( … )`, say, where
+`die` would exit only the subshell. Nobody writes that by accident, and the behavioural half (the
+function dies for the right inputs) is held by the four checks above it, so I do not ask for more.
+
+### 3. What ran here, and the other two fixes
+
+**Suites** (laptop, no osmium): `test_build_usca_functions.sh` 67 OK (61 at `932c0a0ee`; the six new
+are N8's one and S5/N9's five), `test_fnam_build.py` 21 OK, `test_build_usca_disk.sh` 95 OK,
+`test_build_functions.sh` 14 OK, `bash -n` clean on both scripts. `test_build_names.sh` exits "osmium
+is needed": Aspen's 23 are **not reproduced here**; its only change is the `sed` pattern at `:144`,
+matching `build-names.sh:67`.
+
+**N8 (names summary kept on failure).** `test_build_usca_functions.sh:61` now writes an empty
+`names-summary.json` into the run and `:66` asserts it is kept. Revert R4 — `names-summary.json`
+removed from the list at `build-usca.sh:145` — fails with "FAIL: the names summary is kept (Sorrel's
+review N2, N8)".
+
+**N9 (non-numeric count).** Revert R5 — the `=~ ^[0-9]+$` line at `build-usca.sh:258` deleted, the
+function then four lines — fails with "FAIL: an empty count fails as not a whole number". The test's
+`not_whole` helper runs the function in a subshell, so an arithmetic error on a bad count fails the
+check rather than aborting the suite; read, and the R5 run shows it (the suite reported the failure
+and exited through `check`, not through a bash error).
+
+**Pin comment.** `pins.env:250-256` now says 5.6 GB is today's figure and about 6 GB (inferred) at
+260 M, against 7.9 GiB — the clause section 2 of the re-check asked for, and marked inferred, as it is.
+
+### 4. Anything else in the diff?
+
+No. Five files; the commit message ends `Co-Authored-By: Claude <noreply@anthropic.com>` with no
+model name. Three nits from the probes, none blocking:
+
+**N10. A missing limit dies with an empty message.** If `USCA_NAMES_MAX_INPUT_NODES` were unset, the
+call site itself fails under `set -u` ("unbound variable", to stderr) before the function runs, and
+`die "$names_ok"` then logs `FAILED:` with nothing after it; the same if the function is called with one
+argument (`$2: unbound variable`). Both probed. `pins.env` is sourced by both scripts, so this is a
+defensive path only; recorded, no action asked.
+
+**N11. A count with a leading zero is read as octal.** `08` passes the regex, then `(( 08 <= … ))`
+errors "value too great for base" to stderr and the `||` branch prints the *over-the-limit* message for
+a count of eight. Probed. `osmium fileinfo` prints plain decimal, so unreachable in practice;
+`10#$1` in the arithmetic, or `^(0|[1-9][0-9]*)$`, would close it for one token.
+
+**N12. Wrapping at `pins.env:253-254`.** The new clause breaks after "today's" (51 characters) and runs
+the next line to 144, in a block otherwise wrapped near 100. Wording is right; re-wrap when next
+touched.
+
+### Disclosure
+
+**Confirmed (read or run):** every file:line above, in the worktree at `0d2ebc955`; the stage order
+and the call's shape at `:799`; the eight probe cases; the five reverts and the control, each on a
+scratch copy with the edit shown by `diff` or `sed -n` before the run; the four suites; both scripts'
+syntax; the `sed` extraction; the uniqueness of the two `set_stage` lines; the commit trailer.
+
+**Inferred:** that Aspen's three revert checks correspond to three of my five (R2, R4, R5 by their
+descriptions); which three Aspen ran is not in the diff. That the stderr lines in N10 and N11 reach the
+run log is not checked here.
+
+**Could not determine:** whether `test_build_names.sh`'s 23 checks pass at `0d2ebc955` (no osmium);
+anything about the function's behaviour on the Pi beyond what bash does the same everywhere.
+
+**Premises that were wrong:** none in Rowan's brief or in Aspen's report, as far as I could check.
+Rowan's question about `set -e` inside a conditional assumes a shape the call does not have (section
+1); worth asking, and the answer would have been "still dies" either way.
+
+**Decided beyond scope:** I ran two more reverts than asked (R1 and R3, for the two ways S5 could be
+undone without deleting the line), and I ranked N10-N12 as nits rather than should-fix because each
+needs an input the pipeline cannot produce.
