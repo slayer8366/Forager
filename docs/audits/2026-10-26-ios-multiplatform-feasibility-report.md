@@ -337,7 +337,8 @@ sundown time is shown, and the three sundown alerts are not promised on iOS. Und
 unsupported feature or capability returns an explicit 'unsupported'"), the iOS `WakeUpAlarms` returns
 `false` for `SUNDOWN`, and nothing on the iOS screen suggests a sundown alert is coming.
 
-**Two points the ruling does not settle (stop-and-ask):**
+**Two points the ruling does not settle (stop-and-ask; both ruled in "Update, 2026-10-27: the last three
+answers" at the end):**
 
 - **i. A Back by alert after the walker is home.** Android stays quiet once it sees arrival. On iOS a
   notification scheduled for the time fires unless the app is running to cancel it, so it can arrive
@@ -370,6 +371,45 @@ What that leaves (external unless marked):
 - **Device checks.** This project checks behaviour on a phone (the S22). The iOS simulator has no real
   GPS track, compass, barometer or camera. **Open question:** is there an iPhone available for iOS device
   checks? If not, iOS device behaviour (background location, the Back by alert) stays unverified.
+  (Ruled in the update below: no iPhone.)
 
 Source: GitHub, "Supported runners and hardware resources",
 https://docs.github.com/en/actions/reference/runners/github-hosted-runners (read 2026-10-27).
+
+---
+
+## Update, 2026-10-27: the last three answers
+
+**Owner ruling, verbatim:** "1 acceptable, 2 full sundown line, 3 no iPhone".
+
+- **i. A late Back by alert is acceptable.** On iOS the alert is scheduled for the walker's time and may
+  arrive after they are home if the app was not running to cancel it. Nothing is added where Back by is
+  set to say so. Rejected: a note on iOS explaining it.
+- **ii. iOS shows the full sundown line,** as Android does on the map strip and the navigation display,
+  including "start back by" computed from the walk home (`domain/SundownWatch.kt`, its `shown`). The
+  computation is shared domain code under Option B. What drives it on iOS is a design item for the
+  dispatch: on Android it is the recording service's tick, which iOS does not have. The three sundown
+  *alerts* remain unpromised on iOS (decision 3). Rejected: the sundown time alone.
+- **iii. No iPhone is available for device checks.**
+
+### What "no iPhone" means for the evidence
+
+Every iOS check is a simulator check, run in CI. These behaviours will be **unverified on real hardware**
+for as long as that holds, and any report or release note about the iOS app has to say so:
+
+- track recording with the app in the background, which the simulator cannot reproduce on a real walk;
+- whether the Back by notification is delivered at its time on a locked phone;
+- the compass, barometer and level, which the simulator does not have;
+- the camera, RAW capture and DNG output;
+- the map's offline tiles and touch handling on a real screen.
+
+This is the safety-relevant part of the app. CLAUDE.md asks for partial results to be reported as such,
+never as success, so an iOS build that passes CI is "simulator-checked", not "checked".
+
+Options exist that need no iPhone of the owner's own. None was tried and none is chosen:
+
+- a TestFlight tester with an iPhone who runs the device steps;
+- a remote real-device service (cloud device farms offer real iPhones), which still cannot take a real
+  walk.
+
+Raising one of these is the owner's call, when an iOS build is close.
