@@ -29024,3 +29024,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr426.md, branch sorrel-pr426, a52cf2d99) on #426 a06f6a1c4: no blocking finding; S1 buildings draw from zoom 11, so the opaque #c1c1c1 also applied at zooms 11-13; S2 the coder's phone notes and S22 steps existed only in the coder's conversation; v1 and v2 byte-identical; the outline sits below trails, the band, labels and POIs; a deploy is needed (v3 is bundled in the Worker, cached a day), and MapLibre overwrites a stored v3 style at the first online load after expiry, so downloaded v3 areas refresh without a re-download. Aspen (message): the owner plans an early weekly run once the buildings and night glyph fixes are verified on the S22, started by Sat 2026-10-31 10:00 PST.
 **Decision:** the owner: "Change only from zoom 14 (Recommended)": below zoom 14 buildings stay #cccccc at 0.5; from 14 opaque, #c1c1c1 at 14 and #cccccc from 15 with the outline (dispatch 2026-10-27-02 Amendment 2). "Yes, after the merge (Recommended)": one manual Worker deploy of pre-main after #426 merges, its contents brought to the owner first, an exception to -1609 as in -1703.
 **Notes:** Written by the planner by hand. Next free ID -1738.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1738
+**Timestamp:** 2026-10-27T18:27:17Z
+**Continues:** 2026-09-28-1731, 2026-09-28-1732
+**Title:** The S22 check of the v3 switch and the 8d card; pattern loss is not night-only (owner)
+**Observed:** Hazel (Opus; docs/audits/2026-10-27-s22-check-v3-8d.md, branch s22-check-v3-8d, a5b7318f8; builds 4077 a4264e26a and 4094 6064fef86, all schema 22): v3 steps 1, 2, 4, 6, 7, 8, 9 and 12 pass (the budget grew by exactly the estimate 110; Tiles 110; the first real trail-routes request returned 200; the older area shows its notice); step 3 passes, with the band reading grey at night; step 10, 4 of 5 (one "no full frame within 1500 ms" while Wi-Fi reconnected; a finding, not a gate); steps 5 and 11 not run. Card steps 2-5 pass (the dateless line for about 0.2-0.4 s on a first online opening, by design); step 1 cannot run: after Clear storage offline, Trail Map falls back to OpenStreetMap and stays there online until a restart. Tree glyphs and tufts, day and night, go missing at the zoom held when the style reloads; zooming out restores them; consistent with candidate S (layout before the image), not settled without logging.
+**Decision:** the owner: "Logging build on the S22 (Recommended)" (dispatch 2026-10-27-08); "Report, then fix (Recommended)" for the stuck fallback (dispatch 2026-10-27-09); "Leave it (Recommended)" for the band's night opacity, judged on a woods walk.
+**Notes:** Written by the planner by hand. The S22's screen timeout was set to 30 minutes and its old value not recorded. Next free ID -1739.
