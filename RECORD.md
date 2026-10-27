@@ -29079,3 +29079,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the glyph S22 session (Opus; docs/audits/2026-10-27-glyph-cause.md, branch glyph-logging, 4d9a2eb64; logging build 1.0.4096, laptop-only logs): tiles that MapLibre Native 13.5.0 keeps through a style reload are laid out again with the features, image and pattern name present, yet draw no fill-pattern, day or night; a fresh tile at the same zoom draws it, and a tile edge split one forest polygon; clearing and restoring the pattern layers (the probe) restored glyphs by night and by day; no unused-image removal, sprite error or render error was logged. Candidates R, S and D as defined are ruled out. The S22 is back on 4094, schema 22.
 **Decision:** the owner: "Workaround now + report upstream (Recommended)": after each style reload, once the sprite has loaded, every fill-pattern layer is cleared and restored, so kept tiles redraw; the S22 colour counts are the gate; a bug report for maplibre-native is drafted for the owner to file. Dispatch 2026-10-27-11.
 **Notes:** Written by the planner by hand. Posting upstream is outside this session's repository scope, so the owner files it. Next free ID -1743.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1743
+**Timestamp:** 2026-10-27T19:07:31Z
+**Continues:** 2026-09-28-1741
+**Title:** The buildings style is live on the Worker
+**Observed:** deploy helper (Opus; dispatch 2026-10-27-10): one wrangler deploy of f42fd5ef8 at 2026-10-27T19:06:05Z, version 803ff477-d657-4b67-901e-2d555efd3ec3 at 100%, rollback target 5bc6bc3a-d5c4-4e2c-9527-1e8f4561ffc6; eleven other routes byte-identical before and after (the routing check keyless); /style/street-v3.json now sha256 0dd89cfe…9399, deep-equal to src/street-style-v3.json, with buildings_outline and the 0.5/1 opacity step. No rollback. The helper ran no wrangler command before the planner's STOP; the bad draft of the dispatch was d8bcb8819, replaced by c0d00dbcc.
+**Decision:** none new; the deploy ran under -1741. A phone sees the new style at its first load after its own copy (up to a day old) expires.
+**Notes:** Written by the planner by hand. The planner's first commit of the dispatch was an unchecked machine edit of the previous dispatch; it was caught after launch, before any deploy step. Next free ID -1744.
