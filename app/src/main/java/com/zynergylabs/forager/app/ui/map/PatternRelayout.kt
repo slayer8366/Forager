@@ -200,7 +200,7 @@ internal const val PATTERN_RESTORE_MIN_GAP_MS = 100L
  * The wait from T0 to the clear: the style's transition ([transitionMs], its duration plus its delay; 300 on this app's
  * styles), never less than [PATTERN_CLEAR_FLOOR_MS], plus [PATTERN_CLEAR_MARGIN_MS].
  */
-internal fun clearDelayMs(transitionMs: Long): Long = maxOf(transitionMs, PATTERN_CLEAR_FLOOR_MS) + PATTERN_CLEAR_MARGIN_MS
+internal fun clearDelayMs(transitionMs: Long): Long = transitionMs + PATTERN_CLEAR_MARGIN_MS
 
 /** A fill layer that draws a pattern, with its pattern as the style holds it ([value]) and as text for the log ([text]). */
 internal data class PatternLayer<V>(val layerId: String, val value: V, val text: String)
