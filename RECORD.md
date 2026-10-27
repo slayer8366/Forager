@@ -29122,3 +29122,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the pattern-relayout coder (Opus; PR #429, pattern-relayout-fix 6379dddfe, 703ce7d94; CI 40567060530 green, 5,834 tests; F0, R1 and R2 each failing for their own edit): on the S22, clearing and restoring the fill-pattern layers right after the sprite loads leaves glyphs at 0 with the restore at 31 ms, 600 ms or 2000 ms (day control 2.81%); the working probe ran seconds after the reload. Two failed attempts on one symptom, so data next: scratch v2 (scratch-prf-gap-probe 6005f1cdf, run 40572130840) adds a delay before the clear, an on-demand relayout and parse logging. The buildings check was not started. #428 (find-photos-off-map a2bfb4848, dispatch 2026-10-27-05 Amendment 1): CI 40570103019 green, 5,845 tests; revert checks r1-r5 each failing for their own edit; if the finds cannot be read, every find-linked photo is hidden and the failure logged.
 **Decision:** none new. #429 does not merge as it stands. A fresh coder runs the buildings check first, then the glyph data; any change to #429 waits for the owner. #428 goes to Sorrel.
 **Notes:** Written by the planner by hand. The upstream draft's workaround paragraph describes the failed form and is corrected before the owner files it. Next free ID -1747.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1747
+**Timestamp:** 2026-10-27T20:09:04Z
+**Continues:** 2026-09-28-1735, 2026-09-28-1736
+**Title:** #428 merged into pre-main: photos linked to a saved, located find leave the map (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr428.md, branch sorrel-pr428, ba1a2d89b) on a2bfb4848: no blocking finding; the rule holds for all four rulings at both call sites, and no other path draws photos; the fan needs no change. S1: on the Maps tab a deleted find's photos return at the next tab show, not when Undo ends (the map's records are a snapshot reloaded on onMapShown). S2: on a finds read failure every linked photo is hidden, logged only as the finds failure. S3: AvailabilityMapDisplay.loadMapRecords launches reads with no cancellation, so the last to land wins; pre-existing. S4: the revert runs' test-report artefacts carry stale XML from earlier runs; their job logs are the evidence; the green run's artefact is clean.
+**Decision:** the owner: "Next time Maps opens is fine (Recommended)"; "Hide them, log it clearly (Recommended)" (one clause on the log line, to the tidy list); "Merge now (Recommended)". The planner added the S22 steps to the PR body, then merged at a2bfb4848; pre-main fed445489. Follow-ups: S3's cancelled read slot; S4, clear app/build/test-results before CI's test step. Dispatch 2026-10-27-07 (the spiral) can now start.
+**Notes:** Written by the planner by hand. Next free ID -1748.
