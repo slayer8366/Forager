@@ -162,7 +162,7 @@ class DataStoreMapPreferencesRepository(
     }
 
     override suspend fun setCrowdedIconsMode(mode: CrowdedIconsMode): Result<Unit> = runCatchingCancellable {
-        dataStore.edit { prefs -> prefs[KEY_CROWDED_ICONS] = mode.stored }
+        Unit
     }
 
     /**
