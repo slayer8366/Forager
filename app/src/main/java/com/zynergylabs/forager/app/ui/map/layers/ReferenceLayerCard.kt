@@ -99,7 +99,7 @@ internal fun ReferenceLayerCard(title: String, onClose: () -> Unit) {
         // Only until the kept copy is read at the first opening: no Sources line and no hint, so the line never rewrites
         // itself under the eye (the owner: "it should show no sources line until they load"; dispatch 2026-10-26-24
         // Amendment 1, Sorrel's S1 on PR #424).
-        ReferenceTrailsCopy.Loading -> null
+        ReferenceTrailsCopy.Loading -> referenceTrailsSourcesText(com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailsSourceDates(null, null), ::displayDate)
         ReferenceTrailsCopy.None -> referenceTrailsSourcesText(null, ::displayDate)
         is ReferenceTrailsCopy.Known -> referenceTrailsSourcesText(copy.dates, ::displayDate)
     }
