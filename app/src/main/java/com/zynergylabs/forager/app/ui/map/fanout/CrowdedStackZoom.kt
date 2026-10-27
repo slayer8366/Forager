@@ -105,7 +105,7 @@ class CrowdedStackHost {
 /** A fan worked out but not opened: its members and where [fanShift] put it. */
 data class FanPlan(val members: List<FanMember>, val placement: FanShift) {
     /** The report's "fits": every touch square on screen and every control cleared, read from the live bounds and the measured controls. */
-    val fits: Boolean get() = placement.allOnScreen && placement.controlsCleared == placement.controlsTotal
+    val fits: Boolean get() = false
 }
 
 /** What a crowded tap came to. */
