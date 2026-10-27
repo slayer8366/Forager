@@ -70,9 +70,6 @@ internal fun MapStyleReload(
     // RECORD -1513: the switch as the map uses it, off for the rest of the process once the own Street has failed to load
     // (OwnStreetFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
     val ownStreet = OWN_STREET_FALLBACK.ownStreet()
-    // Dispatch 2026-10-27-11 (RECORD -1742): patterns lost on the tiles a reload keeps, a MapLibre 13.5.0 fault worked around
-    // in PatternRelayout.kt. Told of each request below and each callback; it listens for the sprite itself.
-    val patternRelayout = rememberPatternRelayout(state.mapView)
     LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded, ownStreet) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
@@ -127,10 +124,13 @@ internal fun MapStyleReload(
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
             is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
-        patternRelayout.onStyleRequested()
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)
+            // Dispatch 2026-10-27-13 (RECORD -1748): fill-pattern's own fade off on every pattern layer, before the night step
+            // below switches any pattern name; patterns are otherwise lost on the tiles a reload keeps, a MapLibre 13.5.0
+            // fault (PatternNoFade.kt).
+            turnOffPatternFade(style)
             // Offline night (colour build C1 (d)): the offline style has no raster layer for
             // NIGHT_RASTER_PAINT to act on, so its own layers are recoloured here, after it loads
             // from its one URL and before the overlays are added, so the overlays' own line and
@@ -190,9 +190,6 @@ internal fun MapStyleReload(
                 state.navigationModeChange.listenTo(map) { state.navigationView }
                 state.navigationModeChange.gestureProtection = false
             }
-            // Last, once the style holds every layer and image reference it will (the night step's included): the pattern
-            // layers are cleared and restored when the sprite has also loaded (PatternRelayout.kt).
-            patternRelayout.onStyleLoaded(style)
         }
     }
 }
