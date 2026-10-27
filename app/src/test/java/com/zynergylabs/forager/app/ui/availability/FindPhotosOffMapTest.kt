@@ -12,6 +12,7 @@ import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.createMushroomLogViewModel
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
@@ -34,8 +35,8 @@ import org.robolectric.annotation.Config
 /**
  * Dispatch 2026-10-27-05 (RECORDs -1734 and -1735): a photo a saved, located find links to has no map icon of its own;
  * standalone photos follow the Photos switch as before. Through the real Maps tab ([AvailabilityScreen], by
- * `MapLayersTestScreen`) over the real database and the real [com.zynergylabs.forager.app.domain.GetMapRecordsUseCase]
- * from the app's own container, reading what the screen hands the map ([BubbleMapSlot.content] and the render mode's
+ * `MapLayersTestScreen`) over the real database and the real [GetMapRecordsUseCase] on the app container's own read
+ * paths, reading what the screen hands the map ([BubbleMapSlot.content] and the render mode's
  * layers). What MapLibre then draws from those lists is device-only. One test per ruling of Amendment 1, plus the
  * owner's step path and the Photos switch.
  */
@@ -66,7 +67,16 @@ class FindPhotosOffMapTest {
 
     private fun show(cartography: CartographyUiState = CartographyUiState()) {
         val container = app.container
-        availability = mapLayersViewModel(getMapRecords = { container.getMapRecordsUseCase() })
+        // The container's own read paths over the real database, as AppContainer builds getMapRecordsUseCase, but with no
+        // offline maps: the container's offline store is MapLibre's, whose native library Robolectric cannot load
+        // (UnsatisfiedLinkError, CI run 40556724310), and which then left some reads never landing at all.
+        val getMapRecords = GetMapRecordsUseCase(
+            getFinds = container.getMushroomLogEntriesUseCase,
+            getTracks = container.getTracksUseCase,
+            getPhotos = container.getGalleryPhotosUseCase,
+            offlineMapRepository = RigNoOfflineMaps,
+        )
+        availability = mapLayersViewModel(getMapRecords = { getMapRecords() })
         composeRule.setContent {
             MapLayersTestScreen(viewModel = availability, mapSlot = map.slot, store = AbsentForecastCellStore, cartographyUiState = cartography)
         }
@@ -76,7 +86,8 @@ class FindPhotosOffMapTest {
 
     /**
      * The Maps tab shown again, as a tab switch does, and its records read; [loaded] says when the read has landed. The
-     * first read in a class's run pays the container's cold start (12.9 s on CI run 40555150432), hence 30 s. A wait that
+     * class's first test took 12.9 s on CI run 40555150432, cause not established (MapLibre's offline store was then in
+     * the path), hence 30 s. A wait that
      * runs out says what the map, the ViewModel and the database held, so a stall is not read as a wrong answer.
      */
     private fun reload(loaded: (MapOverlayContent) -> Boolean = { it.findMarkers.isNotEmpty() || it.photoMarkers.isNotEmpty() }) {
