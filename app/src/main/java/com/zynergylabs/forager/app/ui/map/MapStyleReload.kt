@@ -127,7 +127,9 @@ internal fun MapStyleReload(
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
             is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
-        patternRelayout.onStyleRequested()
+        // Before setStyle, while the current style can still be written (a pending restore runs here). The MapView's first
+        // style is told apart so it is not relaid out: it keeps no tiles from an earlier style (PatternRelayout.kt).
+        patternRelayout.onStyleRequested(firstStyleOnThisMapView = state.appliedStyle == null)
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)
@@ -190,9 +192,9 @@ internal fun MapStyleReload(
                 state.navigationModeChange.listenTo(map) { state.navigationView }
                 state.navigationModeChange.gestureProtection = false
             }
-            // Last, once the style holds every layer and image reference it will (the night step's included): once the sprite
-            // has also loaded, the pattern layers are cleared after the style's transition plus 100 ms and restored at least
-            // 100 ms later (PatternRelayout.kt).
+            // Last, once the style holds every layer and image reference it will (the night step's included): on a reload, once
+            // the sprite has also loaded, the pattern layers are cleared after the style's transition (at least 300 ms) plus
+            // 100 ms and restored at least 100 ms later (PatternRelayout.kt).
             patternRelayout.onStyleLoaded(style)
         }
     }

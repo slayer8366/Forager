@@ -18,16 +18,21 @@ package com.zynergylabs.forager.app.ui.map
  * - turning fill-pattern's own transition to 0 instead (no clear) brought the night patterns back 3 of 3 and left the day
  *   patterns at 0 3 of 3, so it is not the fix.
  * MapLibre 13.5.0 makes fill-pattern a cross-faded paint property that transitions (`fill_layer_properties.hpp:40`,
- * `properties.hpp:31-64`), and a style with no `transition` gets 300 ms (`parser.hpp:40`, `constants.hpp:59`), which
- * matches the threshold. That link is inferred, not shown.
+ * `properties.hpp:31-64`). A style with no `transition` is given 300 ms by the parser as a set value (`parser.hpp:40`,
+ * `constants.hpp:59`), so Android reads 300 back (`native_map_view.cpp:921-926`), and `disableSymbolFade`
+ * (PlacementTransitions.kt) keeps that duration: the app's styles run at 300/0, which is what the S22 logs. The 300 ms
+ * matches the threshold; that it is the cause is inferred, not shown (Sorrel's review of PR #429, S2).
  *
- * So, once per style load, at T0: the clear waits [clearDelayMs] (the style's transition, 300 ms when it reads 0, plus
- * [PATTERN_CLEAR_MARGIN_MS]); then every fill layer the style holds with a pattern is read from the style (not listed
- * here) and set to `""`; then each is set back to its read value at the first fully rendered frame at least
- * [PATTERN_RESTORE_MIN_GAP_MS] after the clear ([RestoreTrigger], with a timeout fallback). If another style is requested
- * at any point before the restore ([onStyleRequested]), the pending clear or restore is dropped: that style is gone.
- * Android reads an unset style transition as 0 (`native_map_view.cpp:920-930` at `android-v13.5.0`), so 0 stands for
- * "unset" here.
+ * So, once per style reload, at T0: the clear waits [clearDelayMs] (the style's transition, never less than
+ * [PATTERN_CLEAR_FLOOR_MS], plus [PATTERN_CLEAR_MARGIN_MS]); then every fill layer the style holds with a pattern is read
+ * from the style (not listed here) and set to `""`; then each is set back to its read value at the first fully rendered
+ * frame at least [PATTERN_RESTORE_MIN_GAP_MS] after the clear ([RestoreTrigger], with a timeout fallback).
+ * - **A new style before the clear** ([onStyleRequested]) drops the pending clear: nothing was touched.
+ * - **A new style between the clear and the restore** restores the old style's patterns at once, before `setStyle`
+ *   invalidates it: if the new style then failed to load, MapLibre would go on drawing the old style's layers (inferred
+ *   from its source, not seen on a phone), and they must not be left at `""` (Sorrel's S1).
+ * - **The MapView's first style** is not relaid out: the fault is on tiles kept across a reload, a first style keeps
+ *   none, and a clear there would take away glyphs already drawing (Sorrel's S3). Logged.
  *
  * **It can go** once MapLibre fixes the fault upstream (the draft report is
  * `docs/audits/2026-10-27-maplibre-pattern-relayout-upstream-draft.md`); the check that it is no longer needed is the
@@ -35,8 +40,8 @@ package com.zynergylabs.forager.app.ui.map
  *
  * Pure Kotlin: the live style, the clock and the map's frames are behind [PatternLayerTarget], [Deferral] and
  * [RestoreTrigger] (`PatternRelayoutApply.kt`), so every case is asserted headless (`PatternRelayoutTest`). One log line
- * per style load ([log]), written when that load's relayout ends, however it ends. Main thread only, as MapLibre's own
- * callbacks are.
+ * per style load ([log]), written when that load's relayout ends, however it ends (the first-style skip and the restore
+ * before a new style included). Main thread only, as MapLibre's own callbacks are.
  */
 internal class PatternRelayout<S : Any, V>(
     private val targetFor: (S) -> PatternLayerTarget<V>,
@@ -54,12 +59,29 @@ internal class PatternRelayout<S : Any, V>(
     /** What the pending step is waiting for, for the log line if a new style drops it. */
     private var pendingStep = ""
 
-    /** A new style has been asked for (just before `setStyle`): the previous style's sprite and pending step no longer count. */
-    fun onStyleRequested() {
+    /** The restore waiting on [trigger], held so [onStyleRequested] can run it at once while the old style is still valid. */
+    private var restoreNow: (() -> Unit)? = null
+
+    /** Whether this style is the MapView's first, which keeps no tiles from an earlier style and so is not relaid out. */
+    private var firstStyle = false
+
+    /**
+     * A new style has been asked for (just before `setStyle`, while the current style is still valid): a pending restore
+     * runs now, a pending clear is dropped, and the previous style's sprite no longer counts. [firstStyleOnThisMapView] is
+     * true when no style has been applied to this MapView yet.
+     */
+    fun onStyleRequested(firstStyleOnThisMapView: Boolean) {
+        restoreNow?.let { restore ->
+            cancelPending?.invoke()
+            cancelPending = null
+            restoreNow = null
+            restore()
+        }
         generation++
         loadedStyle = null
         spriteLoaded = false
         relaidOut = false
+        firstStyle = firstStyleOnThisMapView
         cancelPending?.let {
             it()
             cancelPending = null
@@ -88,6 +110,10 @@ internal class PatternRelayout<S : Any, V>(
         val style = loadedStyle ?: return
         if (!spriteLoaded || relaidOut) return
         relaidOut = true
+        if (firstStyle) {
+            log("Pattern relayout: the MapView's first style; no tiles kept from an earlier style, so no relayout.")
+            return
+        }
         val target = targetFor(style)
         val transition = try {
             target.transitionMs()
@@ -124,15 +150,21 @@ internal class PatternRelayout<S : Any, V>(
             log("Pattern relayout: $timing; $clearedText${problemsText(problems)}.")
             return
         }
-        pendingStep = "before the restore (${cleared.size} layers left cleared; the new style brings its own)"
+        fun restore() = cleared.filter { layer -> attempt("restore", layer.layerId, problems) { target.restorePattern(layer.layerId, layer.value) } }
+        fun text(restored: List<PatternLayer<V>>) = restored.map { "${it.layerId}=${it.text}" }.toString()
+        restoreNow = {
+            val restored = restore()
+            log("Pattern relayout: $timing; $clearedText; a new style was requested before the restore; restored ${restored.size} before the new style ${text(restored)}${problemsText(problems)}.")
+        }
         cancelPending = trigger.afterRendered(PATTERN_RESTORE_MIN_GAP_MS) { how ->
             cancelPending = null
+            restoreNow = null
             if (requestedFor != generation) {
                 log("Pattern relayout: $timing; $clearedText; the style changed before the restore ($how); nothing restored.")
                 return@afterRendered
             }
-            val restored = cleared.filter { layer -> attempt("restore", layer.layerId, problems) { target.restorePattern(layer.layerId, layer.value) } }
-            log("Pattern relayout: $timing; $clearedText; restored ${restored.size} ${restored.map { "${it.layerId}=${it.text}" }} ($how)${problemsText(problems)}.")
+            val restored = restore()
+            log("Pattern relayout: $timing; $clearedText; restored ${restored.size} ${text(restored)} ($how)${problemsText(problems)}.")
         }
     }
 
@@ -151,8 +183,12 @@ internal class PatternRelayout<S : Any, V>(
     private fun problemsText(problems: List<String>) = if (problems.isEmpty()) "" else "; ${problems.joinToString("; ")}"
 }
 
-/** MapLibre's transition when a style sets none (`constants.hpp:59`, `DEFAULT_TRANSITION_DURATION`, at 13.5.0). */
-internal const val MAPLIBRE_DEFAULT_TRANSITION_MS = 300L
+/**
+ * The least wait before the clear, whatever the style's transition says: the S22 threshold lay between +261 and +300 ms
+ * with the app's 300 ms transition, and nothing has been measured for a shorter one, so a style that sets less (an
+ * explicit 0 included) still waits 300. It equals MapLibre's default (`constants.hpp:59`, `DEFAULT_TRANSITION_DURATION`).
+ */
+internal const val PATTERN_CLEAR_FLOOR_MS = 300L
 
 /** How long after the style's transition the clear waits: the S22 worked from +300 ms, so 400 gives 100 ms of margin. */
 internal const val PATTERN_CLEAR_MARGIN_MS = 100L
@@ -161,18 +197,17 @@ internal const val PATTERN_CLEAR_MARGIN_MS = 100L
 internal const val PATTERN_RESTORE_MIN_GAP_MS = 100L
 
 /**
- * The wait from T0 to the clear: the style's transition ([transitionMs], its duration plus its delay; 0 is taken as unset,
- * since Android reads an unset transition as 0, and becomes [MAPLIBRE_DEFAULT_TRANSITION_MS]) plus [PATTERN_CLEAR_MARGIN_MS].
+ * The wait from T0 to the clear: the style's transition ([transitionMs], its duration plus its delay; 300 on this app's
+ * styles), never less than [PATTERN_CLEAR_FLOOR_MS], plus [PATTERN_CLEAR_MARGIN_MS].
  */
-internal fun clearDelayMs(transitionMs: Long): Long =
-    (if (transitionMs <= 0L) MAPLIBRE_DEFAULT_TRANSITION_MS else transitionMs) + PATTERN_CLEAR_MARGIN_MS
+internal fun clearDelayMs(transitionMs: Long): Long = maxOf(transitionMs, PATTERN_CLEAR_FLOOR_MS) + PATTERN_CLEAR_MARGIN_MS
 
 /** A fill layer that draws a pattern, with its pattern as the style holds it ([value]) and as text for the log ([text]). */
 internal data class PatternLayer<V>(val layerId: String, val value: V, val text: String)
 
 /** The loaded style as the relayout sees it: the live style on a phone, a fake in the tests. */
 internal interface PatternLayerTarget<V> {
-    /** The style's transition as Android reads it, duration plus delay, in ms (0 when the style sets none). */
+    /** The style's transition as Android reads it, duration plus delay, in ms (300 when the style sets none: the parser's default). */
     fun transitionMs(): Long
 
     /** Every fill layer in the style whose fill-pattern is set (a name or an expression), in the style's layer order. */
