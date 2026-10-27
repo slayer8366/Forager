@@ -26,6 +26,8 @@ ME="$(id -un)"
 command -v osmium >/dev/null || { echo "FAIL: osmium is needed"; exit 1; }
 
 # --- The tree: the script under test, its tools, and pins.env with this test's paths -----------
+mkdir -p "$T/bef"; echo one > "$T/bef/srtm_12_03.bef"; echo two > "$T/bef/srtm_17_04.bef"
+(cd "$T/bef" && sha256sum *.bef > SHA256SUMS)
 mkdir -p "$T/tree/map-build/bin" "$T/tree/map-build/tools"
 cp "$here/bin/build-usca.sh" "$T/tree/map-build/bin/"
 cp "$here/tools/"*.py "$T/tree/map-build/tools/"
@@ -42,6 +44,10 @@ cmp -s "$here/bin/build-usca.sh" "$T/tree/map-build/bin/build-usca.sh" || { echo
   echo "USCA_ROUTE_FILE=$T/route"
   echo 'FB_SRV=$STUB_FB_SRV'
   echo '[[ -z "${STUB_USCA_REGIONS:-}" ]] || USCA_REGIONS="$STUB_USCA_REGIONS"'
+  # A two-file elevation store (G8), pinned as the real one is; STUB_BEF_DIR points a run elsewhere.
+  echo "USCA_BEF_DIR=\${STUB_BEF_DIR:-$T/bef}"
+  echo "USCA_BEF_SUMS_SHA256=$(cd "$T/bef" && sha256sum < SHA256SUMS | cut -d' ' -f1)"
+  echo "USCA_BEF_FILES=2"
 } > "$T/tree/map-build/pins.env"
 source "$here/pins.env"   # for the jar names
 mkdir -p "$T/opt/jdk/bin" "$T/opt/basemap" "$T/opt/brouter/profiles2"
@@ -164,7 +170,19 @@ case " $* " in
   *" btools.mapcreator.OsmFastCutter "*)
     { if [[ -e "$C" ]]; then echo "card_work_exists=yes"; echo "card_work=$(find "$C" -mindepth 1 | tr '\n' ' ')"
       else echo "card_work_exists=no"; fi; } > "$STUB_T/cut.rec"
-    exit 1 ;;
+    # STUB_BROUTER=go goes on to PosUnifier; STUB_DROP_STORE moves the store away here, after
+    # the brouter stage's check, as a card dropping out mid-stage would (R10).
+    [[ "${STUB_BROUTER:-}" == go ]] || exit 1
+    if [[ -n "${STUB_DROP_STORE:-}" ]]; then mv "$STUB_DROP_STORE" "$STUB_DROP_STORE.gone"; fi ;;
+  *" btools.mapcreator.PosUnifier "*)
+    # As BRouter 1.7.10 does: <SQUARE>.u5d_3 when it read a .bef, <SQUARE>.u5d when it found none.
+    # W80_N25 is one of the pinned squares without a .bef.
+    dir="${*: -1}"
+    if compgen -G "$dir/*.bef" >/dev/null; then : > unodes55/W125_N45.u5d_3; else : > unodes55/W125_N45.u5d; fi
+    # STUB_ALL_HEIGHTS=1 writes no unsuffixed tile at all, as most bands are (B1).
+    [[ "${STUB_ALL_HEIGHTS:-}" == 1 ]] || : > unodes55/W80_N25.u5d ;;
+  *" btools.mapcreator.WayLinker "*)
+    echo "linked" > "$STUB_T/link.rec"; exit 1 ;;
   *) echo "java stub: unexpected $*" >&2; exit 1 ;;
 esac
 EOF
@@ -209,6 +227,7 @@ show() { echo "  $1: exit $rc, status $(status_field "$S/status-usca.json" state
 new_srv r1 local
 build --local 261017
 show "R1 --local"
+S_R1_LOG="$L"
 check "R1: the run reached BRouter's first step (it fails there on purpose)" '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]'
 check "C: Planetiler read the merged extract from the card's work directory for this run" \
   'grep -qx "merged=$CARD_DIR/work/$run_id/forager-usca.osm.pbf" "$T/planetiler.rec"'
@@ -364,6 +383,47 @@ for v in none two four; do
             '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]' ;;
   esac
 done
+
+# --- R9. The elevation store (G8): missing, or not the pinned one, stops the run before any download --
+new_srv r9-missing local
+STUB_BEF_DIR="$T/no-such-bef" build --local 261017
+show "R9 elevation store missing"
+check "R9: a missing elevation store fails the run at the state stage, naming it, before BRouter" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state && ! -f "$T/cut.rec" ]] && grep -q "FAILED: no elevation store at $T/no-such-bef" "$L"'
+mkdir -p "$T/bef-changed"; cp "$T/bef/"* "$T/bef-changed/"; echo tampered > "$T/bef-changed/srtm_17_04.bef"
+new_srv r9-changed local
+STUB_BEF_DIR="$T/bef-changed" build --local 261017
+show "R9 elevation store changed"
+check "R9: a .bef that no longer matches SHA256SUMS fails the run at the state stage" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]] && grep -q "FAILED: a .bef in $T/bef-changed does not match its SHA256SUMS" "$L"'
+check "R9: a good store is logged at the start of a run (R1)" 'grep -q "elevation store: $T/bef, 2 .bef files matching SHA256SUMS" "$S_R1_LOG"'
+
+# --- R10. Heights read for every square, or the run stops after PosUnifier (S1) ------------------
+mkdir -p "$T/bef-r10"; cp "$T/bef/"* "$T/bef-r10/"
+new_srv r10-ok local; rm -f "$T/link.rec"
+STUB_BROUTER=go STUB_BEF_DIR="$T/bef-r10" build --local 261017
+show "R10 heights read"
+check "R10: with the store there, the run passes PosUnifier's check and reaches WayLinker" \
+  '[[ -f "$T/link.rec" ]] && ! grep -q "read no heights" "$L"'
+check "R10: the pinned squares without heights are logged" 'grep -q "no heights, as pinned in USCA_BEF_NONE, for W80_N25" "$L"'
+new_srv r10-all local; rm -f "$T/link.rec"
+STUB_BROUTER=go STUB_ALL_HEIGHTS=1 STUB_BEF_DIR="$T/bef-r10" build --local 261017
+show "R10 every tile with heights"
+check "R10: a band whose tiles all have heights (the usual one) reaches WayLinker, logging no pinned squares (B1)" \
+  '[[ -f "$T/link.rec" ]] && ! grep -q "no heights, as pinned" "$L" && ! grep -q "run failed with exit 2" "$L"'
+new_srv r10-drop local; rm -f "$T/link.rec"
+STUB_BROUTER=go STUB_BEF_DIR="$T/bef-r10" STUB_DROP_STORE="$T/bef-r10" build --local 261017
+show "R10 store gone after the cutter"
+check "R10: a store gone mid-stage fails the run at brouter, naming the square, before WayLinker" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == brouter && ! -f "$T/link.rec" ]] && grep -q "FAILED: routing band .*: PosUnifier read no heights for W125_N45" "$L"'
+mv "$T/bef-r10.gone" "$T/bef-r10" 2>/dev/null || true
+
+# --- R11. --fetch-only doesn't need the store (N1) ------------------------------------------------
+new_srv r11
+STUB_BEF_DIR="$T/no-such-bef" build --fetch-only
+show "R11 --fetch-only, no store"
+check "R11: a --fetch-only run without the store finishes, ok at fetch-only (N6)" \
+  '[[ $rc -eq 0 && "$(status_field "$S/status-usca.json" state)" == ok && "$(status_field "$S/status-usca.json" stage)" == fetch-only ]] && ! grep -q "no elevation store" "$L"'
 
 if [[ $fails -gt 0 ]]; then echo "FAILED: $fails checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"
