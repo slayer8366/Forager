@@ -42,7 +42,7 @@ fun parseReferenceTrailsManifest(text: String, warn: (String) -> Unit): Result<R
     }
     ReferenceTrailsSourceDates(
         forestService = fetchedDate(byLayer[FOREST_SERVICE_LAYER], FOREST_SERVICE_LAYER, warn),
-        blm = fetchedDate(byLayer[BLM_LAYER], BLM_LAYER, warn),
+        blm = fetchedDate(byLayer[FOREST_SERVICE_LAYER], BLM_LAYER, warn),
     )
 }
 
