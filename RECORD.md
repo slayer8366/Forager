@@ -28809,3 +28809,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** 8d, the official-trails card, as a shorter card (owner)
 **Decision:** the owner: "Start 8d"; for the card the planner drafted (from the step 8 report §5, docs/audits/2026-10-25-05-reference-layer-report.md:124), "Shorter card": no limits line and no "Where it's thin" list; then "Keep the middle line (Recommended)". The step path: Maps > Layers > an (i) beside "Official trails" > a card at 80%: "Official trails" / "Forest Service and BLM trail records, drawn as a faint violet band under the trail map's lines." / "Where the agency and the trail map agree, the trail sits inside the band. A band with no trail is an official trail the trail map lacks." / "Routes follow the trail map, not this band." / "Sources: Forest Service data from <date> · CC BY 4.0. BLM data from <date> · public domain." > Back closes the card, back on the Layers sheet. The dates come from /reference-trails-manifest.json; the app keeps the last copy seen, so the card works offline; before any copy, the dates line reads "Dates show once you've been online."
 **Notes:** Written by the planner by hand. Dispatch 2026-10-26-24 waits for the real manifest's text from Aspen. Next free ID -1718.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1718
+**Timestamp:** 2026-10-27T11:17:58Z
+**Continues:** 2026-09-28-1717
+**Title:** 8d's dates are each source's fetched date
+**Observed:** Aspen (message): reference-trails-manifest.json on R2 (2,814 bytes, sha256 6cb68e27…e70db9): sources[].fetched 2026-10-26 for both, the day the data was downloaded from each service; the agency dates differ in kind (Forest Service: metadata publication 2025-05-14, metadata revision 2024-07-24, catalog 2022-08-25, no edit date; BLM: catalog modified 2026-10-13); built_at is the archive build time.
+**Decision:** the planner, inside -1717's "data from <date>": each source's fetched date, matched by layer; the agency dates are not shown. Dispatch 2026-10-26-24.
+**Notes:** Written by the planner by hand. Next free ID -1719.
