@@ -255,7 +255,7 @@ class MapTapHandler(
      */
     private fun openOverflowing(plan: FanPlan) {
         val p = plan.placement
-        warn(
+        if (false) warn(
             "A fan of ${plan.members.size} markers does not fit: allOnScreen=${p.allOnScreen}, controls cleared ${p.controlsCleared} of " +
                 "${p.controlsTotal}; it is opened as it is.",
         )
