@@ -226,7 +226,7 @@ class MapTapHandler(
             return true
         }
         // Dispatch 2026-10-27-07: a fan that does not fit zooms the map in to the stack instead, when this map can.
-        val zoom = crowded
+        val zoom: CrowdedStackZoom? = null
         if (zoom == null) {
             openOverflowing(plan)
             return true
