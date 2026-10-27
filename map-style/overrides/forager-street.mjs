@@ -412,26 +412,34 @@ export function applyStreetDesign(layers) {
 // layer draws buildings #cccccc at half opacity, so the forest and its tree glyphs below show through them.
 //
 // The structure is the OpenStreetMap Carto style's buildings (openstreetmap-carto, style/buildings.mss; that project
-// is released under CC0 1.0, its LICENSE.txt): an opaque fill, 4% darker at the lowest zoom it draws, and from z15 a
-// 0.75 line 15% darker than the fill (Carto's @building-low-zoom and @building-line, both darkened from @building-fill).
-// Forager keeps Protomaps' grey rather than Carto's tan: #cccccc darkened 15% is #a6a6a6. Darkened 4% would be #c2c2c2,
-// but its night (#3d3d3d) is 1.047:1 against the night water, under NightWaterTest's 1.05 floor; the z14 grey is one
-// shade darker, #c1c1c1 (night #3e3e3e, 1.063:1; dispatch 2026-10-27-02 Amendment 1, RECORD -1733, the owner: "A shade
-// darker: #c1c1c1 (Recommended)"). Night is the app's V1 inversion with no exception (#3e3e3e, #333333, #595959;
-// BuildingsNightTest in the app).
+// is released under CC0 1.0, its LICENSE.txt): an opaque fill from z14, 4% darker at z14 (the lowest zoom Carto draws
+// buildings), and from z15 a 0.75 line 15% darker than the fill (Carto's @building-low-zoom and @building-line, both
+// darkened from @building-fill). Forager keeps Protomaps' grey rather than Carto's tan: #cccccc darkened 15% is #a6a6a6.
+// Darkened 4% would be #c2c2c2, but its night (#3d3d3d) is 1.047:1 against the night water, under NightWaterTest's 1.05
+// floor; the z14 grey is one shade darker, #c1c1c1 (night #3e3e3e, 1.063:1; dispatch 2026-10-27-02 Amendment 1, RECORD
+// -1733, the owner: "A shade darker: #c1c1c1 (Recommended)"). Night is the app's V1 inversion with no exception
+// (#333333 below z14 and from z15, #3e3e3e at z14, #595959 for the outline; BuildingsNightTest in the app).
+//
+// Protomaps' tiles carry buildings from z11, and this layer has no minzoom, so below z14 they stay exactly as
+// Protomaps draws them, #cccccc at half opacity: the change starts at z14 (Amendment 2, RECORD -1737, the owner:
+// "Change only from zoom 14 (Recommended)"). Both steps keep the layer's own paint below z14 rather than restating it.
 //
 // A function of its own, called by generate-street.mjs for v3 only, and not part of applyStreetDesign: v2 and v1 are
 // frozen for the regions downloaded against them.
 
 /** The buildings' day colours and the outline's zoom and width. */
-export const BUILDINGS = { lowZoomFill: "#c1c1c1", fill: "#cccccc", outline: "#a6a6a6", outlineMinZoom: 15, outlineWidth: 0.75 };
+export const BUILDINGS = { solidMinZoom: 14, lowZoomFill: "#c1c1c1", fill: "#cccccc", outline: "#a6a6a6", outlineMinZoom: 15, outlineWidth: 0.75 };
 
-/** Makes Protomaps' buildings layer opaque, with Carto's low-zoom step, and adds buildings_outline directly above it. */
+/**
+ * Makes Protomaps' buildings layer opaque from z14, with Carto's z14 step, keeping its own paint below z14, and adds
+ * buildings_outline directly above it from z15.
+ */
 export function withBuildingOutline(layers) {
   const buildings = byId(layers, "buildings");
+  const below = buildings.paint;
   buildings.paint = {
-    "fill-color": ["step", ["zoom"], BUILDINGS.lowZoomFill, BUILDINGS.outlineMinZoom, BUILDINGS.fill],
-    "fill-opacity": 1,
+    "fill-color": ["step", ["zoom"], below["fill-color"], BUILDINGS.solidMinZoom, BUILDINGS.lowZoomFill, BUILDINGS.outlineMinZoom, BUILDINGS.fill],
+    "fill-opacity": ["step", ["zoom"], below["fill-opacity"], BUILDINGS.solidMinZoom, 1],
   };
   insertAfter(layers, "buildings", {
     id: "buildings_outline",

@@ -1191,11 +1191,21 @@
           [
             "zoom"
           ],
+          "#cccccc",
+          14,
           "#c1c1c1",
           15,
           "#cccccc"
         ],
-        "fill-opacity": 1
+        "fill-opacity": [
+          "step",
+          [
+            "zoom"
+          ],
+          0.5,
+          14,
+          1
+        ]
       }
     },
     {
