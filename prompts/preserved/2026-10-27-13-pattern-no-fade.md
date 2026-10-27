@@ -49,3 +49,22 @@ Update PR #429 (branch pattern-relayout-fix) to whichever form worked. If "no fa
 - the figures;
 - the runs;
 - the phone's state.
+
+## Amendment 1 (2026-10-27): Sorrel's three fixes before the merge (RECORD -1755)
+Sorrel's review is docs/reviews/2026-10-27-sorrel-pr429.md on branch sorrel-pr429 (00b4d0525), at d25afd054. The owner: "Fix all three, then merge (Recommended)". On PR #429:
+1. **S1.** In onStyleRequested, when a restore is pending, restore it synchronously before cancelling, while the old Style is still valid (MapStyleReload.kt:130). Log "restored N before the new style". This turns around the test at PatternRelayoutTest.kt:195-211, which today asserts the old behaviour. Without the fix, a second style request whose load fails leaves the old style's patterns at "".
+2. **S2.** The 300 ms is the parser's default: parser.hpp:40, a present optional, so native_map_view.cpp:921-926 returns 300. PlacementTransitions.kt keeps it, so the app's transition is 300/0, not 0/0. Correct the following:
+   - the comments at PatternRelayout.kt:29-30, :164-165 and :175;
+   - the test fake's default, to 300 (PatternRelayoutTest.kt:24, :26, :131, :146);
+   - the dead 0→300 branch in clearDelayMs: drop it, or rename it as a floor and give the reason;
+   - the PR body's item 1;
+   - the upstream draft's lines 52-55. Its "Against it" bullet is false and inverts evidence.
+
+   Also add Sorrel's N4 "possibly related" upstream issues (maplibre-native#4527, #2650), and drop the "that search was not made" clause.
+3. **S3.** Skip the workaround on the MapView's first style (state.appliedStyle == null, MapStyleReload.kt:114). The fault is only on a reload, and a cold start now blinks glyphs needlessly. Log the skip.
+
+Each change gets a test that fails first and a revert check: restored from a saved copy, the build log checked before any result is read. Then full CI, and the S22 again on the new build:
+- night on and night off, 3 of 3 each at 1 s and 30 s;
+- a cold start at the maximum zoom, with screenshots about every 100 ms from 0.3 to 1.0 s, showing no blink.
+
+Push to #429; don't merge. Leave the new build on the phone.

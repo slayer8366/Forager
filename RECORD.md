@@ -29209,3 +29209,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** coder (Opus; pattern-relayout-fix d25afd054, the two test names renamed): full CI 40582981687 green, 5,854 tests; revert checks R1 40583201353, R2 40583205349, R3 40583210180 and F0 40583195033, each compiling and failing for its own edit. On the S22 with the PR's own build 1.0.4116+g4acbf283 (schema 22): night on 2.97-3.32%, night off 2.66-2.84%, out and back in 2.70-3.24%, each 3 of 3 at 1 s and 30 s; tile edge lowest band 1.80-2.34% (the edge's position inferred); tufts not run (no wetland found). Every reload logged one line: clear deferred 400 ms, 2 of 2 layers cleared and restored 100-109 ms later. The phone reads a 300 ms style transition, unexplained.
 **Decision:** none new; Sorrel reviews, then the owner's merge.
 **Notes:** Written by the planner by hand. Next free ID -1755.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1755
+**Timestamp:** 2026-10-27T22:13:40Z
+**Continues:** 2026-09-28-1754, 2026-09-28-1752
+**Title:** #429 gets three fixes before the merge (owner); the early-run cue is met (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr429.md, branch sorrel-pr429, 00b4d0525) on d25afd054: no blocking finding; S1 a second style request within the restore window whose load fails can leave the old style's patterns at ""; S2 the 300 ms is MapLibre's parser default (parser.hpp:40), so the app's transition is 300/0. This corrects -1752's "the app already writes an explicit 0/0" and -1754's "unexplained"; the code's 0 to 300 branch is dead and the upstream draft's lines 52-55 are wrong. S3 every cold start over forest clears and restores patterns that were drawing (unmeasured).
+**Decision:** the owner: "Fix all three, then merge (Recommended)": dispatch 2026-10-27-13 Amendment 1 (restore before a new style, the corrected explanation and draft, skip on the first style), then a recheck on the S22, Sorrel's quick look and the merge. "Tell Aspen now (Recommended)": the buildings and the glyph fix are verified on the S22, so Aspen is told the early run's cue is met; the run starts only on the owner's word in Aspen's window, by 2026-10-31 10:00 PST.
+**Notes:** Written by the planner by hand. Next free ID -1756.
