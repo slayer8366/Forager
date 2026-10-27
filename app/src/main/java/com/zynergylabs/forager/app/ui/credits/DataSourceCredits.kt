@@ -63,7 +63,6 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 detail = "Trail lines in Forager are simplified from this data.",
             ),
             // Public domain: nothing is required; credited anyway, as the owner's practice is, with no link.
-            SourceCredit("blm-trails", "Trails: Bureau of Land Management, public domain", linkLabel = null, url = null),
         ),
     ),
     // The forager-forecast map layers and the data behind them (GBIF occurrences among it) go here, as
