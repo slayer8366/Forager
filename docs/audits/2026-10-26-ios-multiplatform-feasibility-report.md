@@ -178,9 +178,10 @@ domain signatures, and that reaches every caller.
 1. ~~A or B~~: B (owner, 2026-10-26).
 2. ~~Routing on iOS: port BRouter to Kotlin, or ship iOS without trail routing at first~~: port BRouter to
    Kotlin (owner, 2026-10-27). See "Update, 2026-10-27" at the end.
-3. What back-by and sundown alerts promise on iOS, since a wake-up at a set time is not available there.
-4. Mac access (a Mac, or macOS CI runners), plus an Apple Developer account for TestFlight and the App
-   Store.
+3. ~~What back-by and sundown alerts promise on iOS, since a wake-up at a set time is not available
+   there~~: ruled 2026-10-27; see "Update, 2026-10-27: iOS alerts, and no Mac" at the end.
+4. ~~Mac access (a Mac, or macOS CI runners), plus an Apple Developer account for TestFlight and the App
+   Store~~: no Mac (owner, 2026-10-27); see the same update.
 
 ---
 
@@ -310,3 +311,65 @@ The owner, 2026-10-27, verbatim: "a recommended, b Forager-only, c download in C
   tiles as it does to the fixture.
 
 Building any of it needs a dispatch from the planner, recorded as an intent in `RECORD.md`.
+
+---
+
+## Update, 2026-10-27: iOS alerts, and no Mac
+
+### Decision 3: what the alerts promise on iOS
+
+**Owner ruling, verbatim:** "be back by a certain time, and display when the sundown time is".
+
+**What Android does today (read):**
+
+- **Back by** (`domain/BackBy.kt`, `domain/BackByWatch.kt`): a check-in time set while recording. It
+  alerts once if the walker is still out when the time passes. It ends only by the walker's choice (I'm
+  back, or later), and it stays quiet if it sees they have arrived. It is driven by every fix, the
+  service's 15 s timer, and an inexact wake-up alarm at the time (`BackByWatch.kt`'s header).
+- **Sundown** (`domain/SundownWatch.kt`): three alerts (a heads-up, a leave-by timed from the walk home,
+  and a sunset alert), plus the sundown line on the map strip and the navigation display, with its
+  "start back by" time.
+
+**The reading this report takes of the ruling.** On iOS, Back by keeps its promise: an alert at the
+time the walker set. iOS can post a notification at a set time without the app running; what it cannot
+do is run the watch's own code then (Finding 3). Sundown becomes **displayed, not alerted**: the
+sundown time is shown, and the three sundown alerts are not promised on iOS. Under CLAUDE.md ("An
+unsupported feature or capability returns an explicit 'unsupported'"), the iOS `WakeUpAlarms` returns
+`false` for `SUNDOWN`, and nothing on the iOS screen suggests a sundown alert is coming.
+
+**Two points the ruling does not settle (stop-and-ask):**
+
+- **i. A Back by alert after the walker is home.** Android stays quiet once it sees arrival. On iOS a
+  notification scheduled for the time fires unless the app is running to cancel it, so it can arrive
+  after the walker is back. Is that acceptable, or should iOS say so where Back by is set?
+- **ii. What "display" includes.** The sundown time only, or the sundown line as Android shows it, with
+  "start back by" computed from the walk home? That line is worked out while the app is open, so it needs
+  no background wake-up.
+
+### Decision 4: no Mac
+
+**Owner ruling, verbatim:** "I don't have a Mac and I don't care to get one".
+
+What that leaves (external unless marked):
+
+- **iOS builds run in CI on GitHub's macOS runners.** GitHub's docs: "Use of the standard GitHub-hosted
+  runners is free and unlimited on public repositories", with macOS labels including `macos-15` and
+  `macos-latest`. Forager is public. If it ever went private, macOS minutes would be billed. CI today is
+  `ubuntu-24.04` only (`.github/workflows/ci.yml`, read), so an iOS job is new work.
+- **Shared code is still checked on Linux.** Finding 2 compiled shared code for `ios_arm64` on Linux
+  (built). Linking, running and signing the app happen only in the macOS job.
+- **The iOS project files are edited without Xcode.** An iOS app needs an Xcode project; with no Mac, it
+  would be generated in CI from a text description rather than edited in Xcode. XcodeGen and Tuist are
+  two such tools; neither was tried here.
+- **Signing and TestFlight** need a paid Apple Developer Program membership. Whether the whole chain
+  (certificate request, profiles, upload with an App Store Connect API key) can be done from Linux plus CI
+  is **not verified** in this session.
+- **Slower iOS iteration.** Every iOS-only change (map, camera, location, notifications) is checked by a
+  CI round trip, not on a local simulator. Most screens can still be worked on in the Android build,
+  since they are shared under Option B.
+- **Device checks.** This project checks behaviour on a phone (the S22). The iOS simulator has no real
+  GPS track, compass, barometer or camera. **Open question:** is there an iPhone available for iOS device
+  checks? If not, iOS device behaviour (background location, the Back by alert) stays unverified.
+
+Source: GitHub, "Supported runners and hardware resources",
+https://docs.github.com/en/actions/reference/runners/github-hosted-runners (read 2026-10-27).
