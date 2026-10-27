@@ -22,6 +22,8 @@ internal const val PATTERN_RESTORE_TIMEOUT_MS = 2_000L
 
 /** The live style's fill layers as [PatternLayerTarget]: a pattern held as MapLibre holds it, a name or an expression. */
 private class StylePatternLayers(private val style: Style) : PatternLayerTarget<PropertyValue<String>> {
+    override fun transitionMs(): Long = style.transition.let { it.duration + it.delay }
+
     override fun patternLayers(): List<PatternLayer<PropertyValue<String>>> = style.layers.filterIsInstance<FillLayer>().mapNotNull { layer ->
         val pattern = layer.fillPattern
         when {
@@ -45,23 +47,35 @@ private class StylePatternLayers(private val style: Style) : PatternLayerTarget<
     }
 }
 
+/** The wait before the clear, on the MapView's own main-thread queue (cancelled with the MapView's callbacks). */
+private class MapViewDeferral(private val mapView: MapView) : Deferral {
+    override fun after(ms: Long, run: () -> Unit): () -> Unit {
+        val r = Runnable { run() }
+        mapView.postDelayed(r, ms)
+        return { mapView.removeCallbacks(r) }
+    }
+}
+
 /**
- * The restore at the first fully rendered frame after the clear: the cleared tiles have been laid out and drawn with no
- * pattern by then, which is the state the S22 probe restored from (dispatch 2026-10-27-11 asks for the shortest gap that
- * works; the log line gives the time it took). [PATTERN_RESTORE_TIMEOUT_MS] is the fallback if no such frame comes.
+ * The restore at the first fully rendered frame at least `minGapMs` after the clear: the cleared tiles have been laid out
+ * and drawn with no pattern by then (a restore 2-7 ms after the clear could fail on the S22; see PatternRelayout.kt).
+ * [PATTERN_RESTORE_TIMEOUT_MS] is the fallback if no such frame comes; the log line says which it was and when.
  */
 private class FirstFullFrameTrigger(private val mapView: MapView) : RestoreTrigger {
-    override fun afterRendered(restore: (how: String) -> Unit): () -> Unit {
+    override fun afterRendered(minGapMs: Long, restore: (how: String) -> Unit): () -> Unit {
         val start = SystemClock.uptimeMillis()
+        val gate = RestoreFrameGate(start, minGapMs)
         var done = false
         lateinit var timeout: Runnable
         val frames = object : MapView.OnDidFinishRenderingFrameListener {
             override fun onDidFinishRenderingFrame(fully: Boolean, frameEncodingTime: Double, frameRenderingTime: Double) {
-                if (!fully || done) return
+                val now = SystemClock.uptimeMillis()
+                val elapsed = now - start
+                if (done || !gate.isRestoreFrame(fully, now)) return
                 done = true
                 mapView.removeOnDidFinishRenderingFrameListener(this)
                 mapView.removeCallbacks(timeout)
-                restore("at the first full frame, ${SystemClock.uptimeMillis() - start} ms after the clear")
+                restore("at the first full frame at least $minGapMs ms after the clear, $elapsed ms")
             }
         }
         timeout = Runnable {
@@ -89,6 +103,7 @@ internal fun rememberPatternRelayout(mapView: MapView): PatternRelayout<Style, P
     val relayout = remember(mapView) {
         PatternRelayout<Style, PropertyValue<String>>(
             targetFor = ::StylePatternLayers,
+            deferral = MapViewDeferral(mapView),
             trigger = FirstFullFrameTrigger(mapView),
             log = { Log.i(PATTERN_RELAYOUT_LOG_TAG, it) },
         )
