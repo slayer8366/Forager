@@ -18,7 +18,7 @@ internal const val PATTERN_RELAYOUT_LOG_TAG = "ForagerPatternRelayout"
  * How long the restore waits for a fully rendered frame before it restores anyway, so a map that stops rendering (sent
  * to the background just after a reload) never keeps its patterns cleared. Logged when it fires.
  */
-internal const val PATTERN_RESTORE_TIMEOUT_MS = 2_000L
+internal const val PATTERN_RESTORE_TIMEOUT_MS = 5_000L
 
 /** The live style's fill layers as [PatternLayerTarget]: a pattern held as MapLibre holds it, a name or an expression. */
 private class StylePatternLayers(private val style: Style) : PatternLayerTarget<PropertyValue<String>> {
@@ -53,15 +53,31 @@ private class StylePatternLayers(private val style: Style) : PatternLayerTarget<
 private class FirstFullFrameTrigger(private val mapView: MapView) : RestoreTrigger {
     override fun afterRendered(restore: (how: String) -> Unit): () -> Unit {
         val start = SystemClock.uptimeMillis()
+        // SCRATCH (never merged): the gap read from files/pattern-gap, "delay:<ms>", "fullframes:<n>" or "fullafter:<ms>".
+        val mode = try { java.io.File(mapView.context.filesDir, "pattern-gap").readText().trim() } catch (e: java.io.IOException) { "fullframes:1" }
+        val kind = mode.substringBefore(':')
+        val n = mode.substringAfter(':').toLongOrNull() ?: 1L
+        Log.i(PATTERN_RELAYOUT_LOG_TAG, "SCRATCH gap mode $mode")
+        if (kind == "delay") {
+            val r = Runnable { restore("SCRATCH delay $n ms, ${SystemClock.uptimeMillis() - start} ms after the clear") }
+            mapView.postDelayed(r, n)
+            return { mapView.removeCallbacks(r) }
+        }
+        var fullSeen = 0L
         var done = false
         lateinit var timeout: Runnable
         val frames = object : MapView.OnDidFinishRenderingFrameListener {
             override fun onDidFinishRenderingFrame(fully: Boolean, frameEncodingTime: Double, frameRenderingTime: Double) {
                 if (!fully || done) return
+                val elapsed = SystemClock.uptimeMillis() - start
+                fullSeen++
+                Log.i(PATTERN_RELAYOUT_LOG_TAG, "SCRATCH full frame $fullSeen at $elapsed ms")
+                if (kind == "fullframes" && fullSeen < n) return
+                if (kind == "fullafter" && elapsed < n) return
                 done = true
                 mapView.removeOnDidFinishRenderingFrameListener(this)
                 mapView.removeCallbacks(timeout)
-                restore("at the first full frame, ${SystemClock.uptimeMillis() - start} ms after the clear")
+                restore("SCRATCH $mode: full frame $fullSeen, ${SystemClock.uptimeMillis() - start} ms after the clear")
             }
         }
         timeout = Runnable {
