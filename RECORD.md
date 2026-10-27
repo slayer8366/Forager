@@ -28929,3 +28929,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's re-look (Fable; sorrel-pi32-elevation 4208a9e03) at 8a9331fa6: mergeable; B1 fixed (find, reproduced over five folder shapes in a clean bash); the normal-band R10 case right in shape; N6 correct. Aspen (message): on the owner's "Go, install now (Recommended)" in Aspen's window, pi-32 merged into pi-build at 532f70fd6; the store at /mnt/archive/forager-build/elevation/bef3-20261027 (182 .bef, SHA256SUMS equal to the pin, all OK as forager-build with the cache dropped); COMMIT 532f70fd691a32a755fe99d2727e9df9428c4fdc, rollback map-build.prev 20f75d063; bef_store_ok from the installed copy quick OK and full OK (21 s). Timer Sun 2026-11-01 02:13 PST.
 **Decision:** none new; the install ran under -1720 and -1724. After the run Aspen reads the store line, the pinned no-heights lines and the .rd5 growth. The app keeps consider_elevation off.
 **Notes:** Written by the planner by hand. Next free ID -1729.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1729
+**Timestamp:** 2026-10-27T17:07:28Z
+**Continues:** 2026-09-28-1725, 2026-09-28-1726
+**Title:** #425 merged into pre-main: the quiet off-trail state on a waypoint route; the band read from the walk log (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr425.md, branch sorrel-pr425, bf327ad9f) on d087465f1: no blocking or should-fix finding; the way home unchanged (toWaypoint set only at AvailabilityWaypointRoute.kt:203; WayHomeWatch not in the diff); the one reset() (:236) clears an OFF state only on a stray re-route, every other search runs while no line is shown; only the solid trail layers dim; ten revert branches single edits, five read from XML and logs; CI 40540542677 green, 5,826 tests. Nits N1-N4 (a comment's claim about alert APIs, two reverts editing the shared rule, a line count, a test that cannot fail). The HUD shows no accuracy figure.
+**Decision:** the owner: "Merge now (Recommended)"; merged at d087465f1, pre-main 6064fef86; nits to the tidy list; the S22 steps with Sorrel's corrections (stand 47-48 m off). "No, read the log (Recommended)": after the walk a helper compares the recorded fix accuracy with when the dim showed; nothing new on screen.
+**Notes:** Written by the planner by hand. Next free ID -1730.
