@@ -241,3 +241,145 @@ G8 audit is the cheapest relief and is the owner's call; Rowan may want it asked
 `.rd5`'s `elevationType` byte says 3 whether or not heights were read, so when the app's
 `consider_elevation` change comes, it cannot tell a flat square from a heighted one from the file; S1's
 check at build time is the only place that distinction exists. Noted for the app change's dispatch.
+
+## Quick look at `ea67332db`
+
+Sorrel (Fable 5.1) for Rowan, 2026-10-27T16:23Z (09:23 PDT). Fresh worktree
+`~/.cache/forager-wt/sorrel-pi32-quick` at `ea67332db`; `git diff 6b991fac5 ea67332db` is one commit, four
+files, +105 −18, same base (`merge-base` with `origin/pi-build` is still `20f75d063`). Aspen's fixes for S1,
+N1, N3, N4 and N5 read against the script, the suites, and BRouter `v1.7.10`'s `PosUnifier.java`,
+`WayLinker.java` and `MapCreatorBase.java` fetched again from GitHub. Nothing changed in the branch,
+nothing merged.
+
+### Verdict
+
+**Not mergeable as it stands; one line to fix, then it is.** The S1 check itself is right and bites
+behaviourally (R10). The *log line beside it* kills the weekly run: `bin/build-usca.sh:874` fails under the
+script's own `set -euo pipefail` (`:66`) for every band in which every square has heights, which is most of
+the ten bands, so the 2026-11-01 run would end at `brouter` after the first such band's PosUnifier, exit 2,
+with no `FAILED:` line saying why (B1). The fix is one `find` in place of one `ls`, plus a run-suite case
+with no unsuffixed tile, which is the case that would have caught it. Everything else in the diff does what
+Aspen reports.
+
+### Findings
+
+**B1 (blocking). `bin/build-usca.sh:874` exits the script when a band has no unsuffixed tile.** The line is
+
+```
+none_here="$(cd "$br/unodes55" && ls -- *.u5d 2>/dev/null | sed 's/\.u5d$//' | tr '\n' ' ')"
+```
+
+When no `<SQUARE>.u5d` exists the glob stays literal, `ls` exits 2, `pipefail` (`:66`) makes the pipeline
+exit 2, the assignment takes that status, and `errexit` ends the script: no `die`, no `log`, only `on_exit`'s
+"run failed with exit 2" (`:160-168`) with the stage at `brouter`. The only bands with an unsuffixed tile are
+those whose input (band plus the 1° margin, `pins.env:197`, `:828`) holds one of the five `USCA_BEF_NONE`
+squares *and* has nodes there; `-125:-120`, `-120:-110`, `-110:-100` and `-90:-85` have none, so the run
+cannot pass band two. **Reproduced**, not inferred: the script's own lines `873-875` and its
+`heights_read_ok`, extracted with `sed` and run under `set -euo pipefail` against `unodes55/` holding only
+`W125_N45.u5d_3` and `W125_N40.u5d_3` — exit 2, nothing printed; the same against `W80_N25.u5d` plus
+`W85_N30.u5d_3` — the log line and exit 0. The line before it, `:873`, is fine: `heights_read_ok` uses a
+`for` glob with `[[ -e ]] || continue` (`:433-434`) and returns 0 on an empty folder.
+
+*Why the tests passed:* the run suite's PosUnifier stub always writes `W80_N25.u5d`
+(`tools/test_build_usca_run.sh:183`), so R10's two runs both have an unsuffixed tile, and the functions
+suite's "an empty tile folder passes" (`tools/test_build_usca_functions.sh:112`) exercises the function, not
+line `874`. Aspen's Pi check ran PosUnifier, not the script around it. Same family as CLAUDE.md's "a check
+that passes because it never saw the data that could fail it": the one sample the stub produces is the one
+band shape that cannot trip the line.
+
+*Fix:* `none_here="$(find "$br/unodes55" -maxdepth 1 -name '*.u5d' -printf '%f\n' | sed 's/\.u5d$//' |
+tr '\n' ' ')"` (`find` exits 0 with no match; same idiom as `bef_store_ok`, `:418`), or have
+`heights_read_ok` print the allowed unsuffixed squares on success and log that. Either way, add an R10 case
+in which the stub writes only `_3` tiles and assert the run reaches WayLinker: that is the normal band.
+
+**N6. R11 is a negative text check.** `tools/test_build_usca_run.sh:418` asserts only that "no elevation
+store" is absent from the log, so a `--fetch-only` run that failed for any other reason passes it. R3
+(`:265`) and R6 (`:323`) do assert `rc -eq 0` and stage `fetch-only` for a `--fetch-only` run with the
+store present; R11 should assert the same with the store absent, since that is its claim.
+
+**N7. The names comparison makes the real `SHA256SUMS` load-bearing in a way the old check was not.**
+`bef_store_ok` now requires the sorted name list in `SHA256SUMS` to equal the sorted non-empty `*.bef` list
+(`:417-419`). A line listing anything other than a `.bef` (a README, a checksum of the list itself) passed
+the old count check and now fails the run at `state`. I cannot read the Pi; the G8 audit's install step 3
+ran the *previous* `bef_store_ok` on the real store. **Before merging, run the function from `ea67332db`
+against `/mnt/archive/forager-build/elevation/bef3-20261027` on the Pi, quick and `full`.** One command.
+
+**N8. A square outside the 187 with nodes would stop the run, loudly.** `heights_read_ok` allows only
+`USCA_BEF_NONE`; a node tile for any other square with no `.bef` fails the band and names the square
+(`:438`). The 187-square count of past runs and 182 + 5 = 187 say no such tile occurs today. If one ever
+does (an extract clipping a way into a landless block), the run stops with the square's name and the
+remedy is a pin edit. That is the right direction to fail in; noted so the first such stop is not read as
+a store fault.
+
+### The four questions
+
+**1. Does `heights_read_ok` run after every band, and die before WayLinker writes that band? Does the
+listing see every square of the band?** Yes on both. The call is at `:873`, inside the band loop, after
+PosUnifier (`:870-871`) and before WayLinker (`:876-877`); `$br` is `rm -rf`'d and remade per band
+(`:862-863`), so `unodes55/` holds exactly this band's tiles, margin squares included. Against my
+PosUnifier reading: `nodeFileStart` calls `resetElevationRaster()` (`PosUnifier.java:109-110`, `:310-315`
+clears the map and `lastSrtmRaster`), so each tile's suffix comes from that tile's own lookups;
+`nodeFileEnd` renames to `_3` iff `lastSrtmRaster != null` (`:139-146`); `fileFromTemplate` keeps the base
+name (`MapCreatorBase.java:84-88`), so the tile is the square. Mid-tile loss of the card: the raster is
+decoded whole on the first node (`:217-220`) and cached, so later nodes read memory; a loss *during* the
+decode throws, prints `**** ERROR reading`, then dereferences null at `:222` and Java exits non-zero.
+**Can an empty or missing `unodes55` pass it?** Yes, both (the glob matches nothing; the suite asserts
+the empty case). That is safe: WayLinker links each way tile to the node tile of the same name
+(`WayLinker.java:216-223`), so no tile means no square built, and the directory is made at `:863` each
+band so "missing" is unreachable. Still inferred, as in the review: that the cutter's 5° node tiles sit
+on the same grid as PosUnifier's blocks.
+
+**2. Does R10 bite behaviourally?** Yes, for the drop case. The real script runs; the cutter stub moves
+the store after the `brouter`-stage quick check (`test_build_usca_run.sh:176`); the PosUnifier stub writes
+`W125_N45.u5d` when the store is gone (`:182`); the script's own `heights_read_ok` and `die` fire; the
+WayLinker stub's `link.rec` is asserted absent and the `FAILED:` line is read from the log (`:411`).
+Remove `:873` and the run reaches WayLinker and R10 fails. What R10 proves is the script's half; BRouter's
+half (that the suffix means what the stub says) rests on the source reading above and Aspen's observation
+on the Pi (`.u5d_3` with the store, `.u5d` without, USVI extract), which I cannot re-run. What R10 does not
+see is a band with no unsuffixed tile — B1.
+
+**3. The N1 gate.** Correct. `:662` wraps the `state`-stage check in `fetch_only -eq 0`; a `--fetch-only`
+run exits at `:714-718` before `merge`, so `:853` (the quick check), `:871` (`$USCA_BEF_DIR` to PosUnifier)
+and `:873` (`$USCA_BEF_NONE`) are never reached, and `disk_check` does nothing for it (`:516-517`). Every
+other `USCA_BEF` use is on a path a `--fetch-only` run leaves before. `--local` and `--basemap` still go
+through `:663`, as `pins.env:261-262` now says.
+
+**4. Suites and the rest of the diff.** Run here from the worktree: functions **83 ok**, disk **95 ok**,
+build_functions **14 ok**, matching Aspen's counts. Not run: the run suite (R10, R11) and names, which
+need `osmium` (absent here; `command -v` confirmed), and stop. **Four revert checks** of my own on a scratch
+copy of `map-build/`, each restored from a copy saved before editing and `cmp`'d against the worktree after,
+`bash -n` before each run; the functions suite stops at its first failure:
+
+| Revert | Check that failed |
+|---|---|
+| A. names comparison replaced by `:` | `a listed .bef gone fails the quick check, naming it` |
+| B. `bad+=` never recorded | `a tile without heights that isn't allowed fails, naming the square` |
+| C. `mountpoint` branch deleted | `a missing store with the card not mounted says so (N5)` |
+| D. failing file names dropped from the full check | `a changed .bef passes the quick check but fails the full one, naming the file (N3)` |
+
+Each message is specific to its edit. Aspen's "three revert checks" are not named in the report and I did
+not try to match them. Nothing else in the diff: `pins.env` adds `USCA_BEF_NONE` and reworks the comment;
+the harness's `STUB_BROUTER`/`STUB_DROP_STORE` are R10 plumbing. N3's capture is right: `have="$(…)" ||`
+keeps `sha256sum -c --quiet`'s stdout (the `FAILED` lines) while taking its exit status. N4's `comm -3` is
+fed sorted lists and strips the tab. N5's `mountpoint -q --` passed here with `/` and a non-mount.
+
+### Disclosure
+
+**Confirmed (read or run)**: the diff and every line cited; B1 by running the script's own lines; three
+suites with counts; four revert checks with their messages and byte-identical restores; BRouter
+`v1.7.10` `PosUnifier.java`, `WayLinker.java`, `MapCreatorBase.java` as fetched today.
+
+**Inferred**: which bands have an unsuffixed tile (depends on whether the extract has nodes in the five
+`USCA_BEF_NONE` squares, e.g. Midway in `W180_N25`; with or without, band two `-125:-120` has none); the
+cutter's tile grid, as before.
+
+**Could not determine**: anything on the Pi — the real `SHA256SUMS`'s contents against the new names check
+(N7), R10 and R11's results (no `osmium`), Aspen's marker observation, Aspen's three revert checks.
+
+**Premises that were wrong**: Aspen's report has R10 as the behavioural test of S1, which it is for the
+drop case; the premise that it covers the normal band is what B1 falsifies. My own review's suggested
+check (S1, "list `unodes55/*.u5d` … with a `log` line naming the unsuffixed tiles") is the shape that
+was built, and I did not say the `ls` had to survive an empty match under `pipefail`; the suggestion was
+mine, so part of this is on the review.
+
+**Decided beyond scope**: none new. The headroom and `elevationType` notes from the review stand.
