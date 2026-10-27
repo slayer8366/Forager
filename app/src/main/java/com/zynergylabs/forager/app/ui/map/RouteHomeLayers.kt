@@ -302,7 +302,7 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
  */
 internal fun routeTrailOpacity(route: RouteOnMap?): Float {
     val opacity = routeAheadOpacity(route)
-    return if (route?.line?.trailDimmed == true) minOf(opacity, ROUTE_PASSED_OPACITY) else opacity
+    return if (route?.line?.trailDimmed == true) opacity else opacity
 }
 
 /** Each line layer's opacity for [route], by layer id: what [updateRouteHomeLayers] sets. */
