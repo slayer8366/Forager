@@ -201,7 +201,6 @@ internal fun SettingsContent(
         HorizontalDivider()
         // The Map section (dispatch 2026-10-27-14 Amendment 3, RECORD -1758; the owner: "New \"Map\" section (Recommended)"),
         // after Night Mode and before Backup. Night Maps stays under Night Mode.
-        MapSettingsSection(crowdedIcons)
         HorizontalDivider()
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
         // Settings ends at Sources & credits, the very bottom (dispatch 2026-10-13-05; the owner: "Bottom of settings page
