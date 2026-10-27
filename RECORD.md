@@ -28660,3 +28660,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the switch report (Opus; prompts/preserved/2026-10-26-21-report.md, branch switch-v3-report, c8b13c076): the live Worker builds from main, which lacks #416, so /style/street-v3.json would 404 (cached a day) and an app switched to v3 would lose Trail Map and fail downloads; the budget, the picker warning, the download and re-download gates and the Tiles detail all read MapLibre's doubled count, which has no per-source split; 76 WATER trails would draw as lone bands; the generic /reference-trails.json drops the archive's forager_reference metadata.
 **Decision:** the owner: "Yes, after the small PR (Recommended)": dispatch 2026-10-26-22 (water filter, manifest route, README), then one manual wrangler deploy of pre-main's Worker on this word (an exception to -1609's main-only deploys), then the switch PR and the S22 check. "Yes, the estimate (Recommended)" (T1); "Hide them (Recommended)" (W1); "Approve as drafted (Recommended)" for the Data sources rows. Dispatch 2026-10-26-21 Amendment 1.
 **Notes:** Written by the planner by hand. Nobody requests the live Worker's v3 or manifest URLs before the deploy. Next free ID -1704.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1704
+**Timestamp:** 2026-10-27T04:06:35Z
+**Continues:** 2026-09-28-1703
+**Title:** #422 merged into pre-main: water trails hidden, manifest route (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-26-sorrel-pr422.md, branch sorrel-pr422, 7eb61980c): no blocking or should-fix findings; the server/pmtiles-worker/ diff from main to 748535364 is 8a (cbdc359b7, 6cfed1aba) plus #422 only; the missing-manifest 404 is uncached (font/icon behaviour, not tilePath's day-cached 404), accepted; four nits (N1 fixture licence strings, N2 README Tests line, N3 the uncached-404 test never red for its own reason, N4 no action).
+**Decision:** the owner: "Merge now (Recommended)"; merged at 748535364, pre-main a4264e26a. Nits N1 to N3 join the later tidy list. Next: the manual Worker deploy of pre-main under -1703, brought to the owner first.
+**Notes:** Written by the planner by hand. Next free ID -1705.
