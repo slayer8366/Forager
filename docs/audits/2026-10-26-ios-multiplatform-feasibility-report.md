@@ -288,16 +288,25 @@ unchanged since `b2c4951e` (counted from the diff). Paths below are relative to
 - BRouter is MIT-licensed; the port must carry its copyright notice, and the credits entry in
   `app/src/main/assets/credits/software.json` must stay accurate.
 
-### Decisions this ruling leaves open
+### Decisions this ruling left open, and how they were ruled
 
-- **a. Sequencing.**
-  - *Recommended:* port into shared Kotlin, prove it identical to the Java engine on the JVM, then switch
-    Android to it, keeping the Java engine as a test-only oracle. Both platforms route with one engine.
-  - *Not recommended:* keep Java BRouter on Android and use the port only on iOS. That leaves two engines
-    that can drift apart.
-- **b. Scope.** Port only the path Forager reaches (dropping output formatting, voice hints, the
-  kinematic model and the diff tools), or the whole engine.
-- **c. Test data.** Where the larger rd5 sample for the differential tests comes from: more fixtures in
-  the repository, or tiles fetched in CI. Repository size and ODbL attribution both apply.
+The owner, 2026-10-27, verbatim: "a recommended, b Forager-only, c download in CI".
+
+- **a. Sequencing: the recommended order.** Port into shared Kotlin, prove it identical to the Java engine
+  on the JVM, then switch Android to it, keeping the Java engine as a test-only oracle. Both platforms
+  route with one engine. Rejected: keeping Java BRouter on Android and using the port only on iOS, which
+  leaves two engines that can drift apart.
+- **b. Scope: Forager-only.** Port only the path Forager reaches. Output formatting, voice hints, the
+  kinematic model and the diff tools are left out. Rejected: porting the whole engine. Since the
+  13,400-line estimate is not verified method by method, the port's first step is to establish what
+  Forager's calls actually reach.
+- **c. Test data: downloaded in CI.** The larger rd5 sample for the differential tests is fetched in CI,
+  not committed. Rejected: more fixtures in the repository. Precedent for how: `server/pmtiles-worker/
+  test/rd5/fetch-brouter.sh` downloads the BRouter release from a fixed URL and checks a pinned SHA-256
+  (lines 11-12, 28). The usual tile source is `https://brouter.de/brouter/segments4/`
+  (`docs/navigation/2026-10-03-trail-navigation-research.md:58`). **Not verified:** whether that site
+  keeps a tile's bytes stable at one URL. If tiles are regenerated in place, a pinned hash fails when they
+  change, so the dispatch has to say where a pinned copy lives. ODbL attribution applies to downloaded
+  tiles as it does to the fixture.
 
 Building any of it needs a dispatch from the planner, recorded as an intent in `RECORD.md`.
