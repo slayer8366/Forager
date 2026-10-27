@@ -29133,3 +29133,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr428.md, branch sorrel-pr428, ba1a2d89b) on a2bfb4848: no blocking finding; the rule holds for all four rulings at both call sites, and no other path draws photos; the fan needs no change. S1: on the Maps tab a deleted find's photos return at the next tab show, not when Undo ends (the map's records are a snapshot reloaded on onMapShown). S2: on a finds read failure every linked photo is hidden, logged only as the finds failure. S3: AvailabilityMapDisplay.loadMapRecords launches reads with no cancellation, so the last to land wins; pre-existing. S4: the revert runs' test-report artefacts carry stale XML from earlier runs; their job logs are the evidence; the green run's artefact is clean.
 **Decision:** the owner: "Next time Maps opens is fine (Recommended)"; "Hide them, log it clearly (Recommended)" (one clause on the log line, to the tidy list); "Merge now (Recommended)". The planner added the S22 steps to the PR body, then merged at a2bfb4848; pre-main fed445489. Follow-ups: S3's cancelled read slot; S4, clear app/build/test-results before CI's test step. Dispatch 2026-10-27-07 (the spiral) can now start.
 **Notes:** Written by the planner by hand. Next free ID -1748.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1748
+**Timestamp:** 2026-10-27T20:25:56Z
+**Continues:** 2026-09-28-1746, 2026-09-28-1743, 2026-09-28-1737
+**Title:** Buildings verified on the S22 (owner); map patterns: try turning off their fade first (owner)
+**Observed:** the S22 session (Opus; scratch v2 1.0.4103+g027ce726, laptop-only evidence in /home/zynergy-labs/s22-glyph-fix/): buildings pass every step by day and night after MapLibre's cached style (files/mbgl-offline.db) was expired and the app cold-started (z13 #cccccc at half opacity; z14 #c1c1c1 solid, no edge; z15-18 #a6a6a6 edge and 0 glyph pixels inside buildings; at night the edge is present but faint against forest). Patterns: a clear and restore fails at +0 to +250 ms after the callback and sprite and works from +300 ms, by day and night; a restore 2-7 ms after the clear can fail, and at least 100 ms works 5 of 5; MapLibre 13.5.0 transitions fill-pattern over a default 300 ms, and street-v3 sets no transition.
+**Decision:** the owner: "Accept (Recommended)": the buildings count as verified, half of the early run's cue. "Try 'no fade' first (Recommended)": a probe sets fill-pattern-transition to zero on every pattern layer; if it holds on the S22, it replaces #429's clear and restore; if not, the timer form (clear after the transition plus 100 ms, restore at least 100 ms later). Dispatch 2026-10-27-13.
+**Notes:** Written by the planner by hand. Next free ID -1749.
