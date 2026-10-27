@@ -78,7 +78,7 @@ class WayHomeOffTrail {
             onSinceMillis = null
             val since = offSinceMillis ?: t.also { offSinceMillis = it; offReadings = 0 }
             offReadings++
-            if (state != OffTrailState.OFF && t - since >= OFF_TRACK_HOLD_MILLIS && offReadings >= OFF_TRACK_MIN_READINGS) {
+            if (state != OffTrailState.OFF && t - since >= 0 && offReadings >= OFF_TRACK_MIN_READINGS) {
                 state = OffTrailState.OFF
                 backOnAtMillis = null
             }
