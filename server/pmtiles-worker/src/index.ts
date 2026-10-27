@@ -417,6 +417,16 @@ export function assetKeyFor(pathname: string): { key: string; contentType: strin
   return null;
 }
 
+// /reference-trails-manifest.json (dispatch 2026-10-26-22 M1, RECORD -1703) is the official-trails archive's manifest, an
+// R2 object Aspen uploads beside reference-trails.pmtiles: its build date, its sources' dates and licences, and the
+// coverage list. The generic /reference-trails.json cannot carry them, because pmtiles' getTileJson keeps no custom
+// metadata. Served as its bytes, matched before tilePath (which would read it as an archive named
+// reference-trails-manifest), cached a day like the other JSON routes. A missing object is the uncached 404 a missing
+// font or icon gets: a gap until the upload, not a fact to keep at the edge for a day.
+const REFERENCE_MANIFEST_PATH = "/reference-trails-manifest.json";
+const REFERENCE_MANIFEST = { key: "reference-trails-manifest.json", contentType: "application/json" };
+const REFERENCE_MANIFEST_CACHE_CONTROL = "public, max-age=86400";
+
 function streetStyleResponse(allowedOrigin: string, style: unknown = streetStyle): Response {
   const headers = new Headers({
     "Content-Type": "application/json",
@@ -431,7 +441,8 @@ async function assetResponse(
   env: Env,
   ctx: ExecutionContext,
   asset: { key: string; contentType: string },
-  allowedOrigin: string
+  allowedOrigin: string,
+  cacheControl: string = ASSET_CACHE_CONTROL
 ): Promise<Response> {
   const cache = caches.default;
   const withOrigin = (r: Response): Response => {
@@ -449,7 +460,7 @@ async function assetResponse(
     return withOrigin(new Response("Not found", { status: 404 }));
   }
   const body = await object.arrayBuffer();
-  const headers = new Headers({ "Content-Type": asset.contentType, "Cache-Control": ASSET_CACHE_CONTROL });
+  const headers = new Headers({ "Content-Type": asset.contentType, "Cache-Control": cacheControl });
   ctx.waitUntil(cache.put(request.url, new Response(body, { headers })));
   return withOrigin(new Response(body, { headers }));
 }
@@ -479,6 +490,10 @@ export default {
 
     if (url.pathname === "/style/street-v3.json") {
       return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV3);
+    }
+
+    if (url.pathname === REFERENCE_MANIFEST_PATH) {
+      return assetResponse(request, env, ctx, REFERENCE_MANIFEST, resolveAllowedOrigin(request, env), REFERENCE_MANIFEST_CACHE_CONTROL);
     }
 
     const asset = assetKeyFor(url.pathname);
