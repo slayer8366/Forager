@@ -39,7 +39,7 @@ So the restore gap is not the variable. The clear runs about 36 ms after the nig
 loads. The logging build's probe, which worked, ran many seconds after the reload. **Two fix attempts have failed on
 this symptom, so the next step is data, not a third guess** (CLAUDE.md).
 
-Scratch v2 is CI run 40572130840 (head `027ce7267`), building when this was written. It adds:
+Scratch v2 is CI run 40572130840 (head `027ce7267`) succeeded; APK artefact 12765429476 (zip digest sha256 `1d939757…790`), not downloaded or installed yet. It adds:
 
 - `files/pattern-clear-after`: ms to defer the clear itself.
 - `files/pattern-relayout-now`: a relayout on demand, polled every 500 ms, like the probe.
