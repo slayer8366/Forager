@@ -142,7 +142,7 @@ keep_failed_run() { # exit-code
   mkdir -p "$FAILED_KEEP"
   if [[ -d "$run/out" ]]; then mv "$run/out" "$FAILED_KEEP/out"; fi
   local f
-  for f in metrics.jsonl versions.txt bounds.txt coverage.txt; do
+  for f in metrics.jsonl versions.txt bounds.txt coverage.txt names-summary.json; do
     if [[ -f "$run/$f" ]]; then cp "$run/$f" "$FAILED_KEEP/"; fi
   done
   printf 'run %s failed at stage %s with exit %s at %s; not published, and never publishable from here\n' \
@@ -222,6 +222,41 @@ rd5_west_edge() { # file: the west edge of the square a .rd5 covers, e.g. W125_N
     E[0-9]*) echo "${n#E}" ;;
     *) return 1 ;;
   esac
+}
+
+# The names files (dispatch pi-31, FNAM v1). bin/build-names.sh runs the same two on raw extracts.
+names_cut() { # in out [label-suffix]: in's highway ways with a name or a ref, and their nodes
+  # Two filters, since tags-filter has no "and" of two keys; the first one's output is removed.
+  local hw="$2.highway.osm.pbf" rc=0
+  "${TIMED[@]}" "names-filter-highway${3:-}" -- osmium tags-filter "$1" w/highway --overwrite -o "$hw" || rc=$?
+  # Measured so the disk check can count it (Sorrel's review S2): the whole highway network, named
+  # or not, beside the routing input and its bands.
+  (( rc != 0 )) || echo "names highway cut${3:-}: $(stat -c %s "$hw") bytes"
+  (( rc != 0 )) || "${TIMED[@]}" "names-filter-named${3:-}" -- osmium tags-filter "$hw" w/name w/ref --overwrite -o "$2" || rc=$?
+  rm -f -- "$hw"
+  return $rc
+}
+
+names_encode() { # named-input names-dir rd5-dir osm-timestamp summary-file: one .fnm per .rd5
+  # One export pass, streamed into the encoder, which simplifies each line, splits it at the
+  # 1/8-degree cell edges and assigns each piece to its cell and square: no complete_ways cut per
+  # square (two such passes at once on the named file reached 7.4 GB and were killed,
+  # 2026-10-26). The pipeline's peak is the larger of osmium's and the encoder's; the encoder's
+  # own is in its summary line. Each file's date is set to the extract's, as for the .rd5 files.
+  mkdir -p -- "$2"
+  "${TIMED[@]}" names-encode -- bash -c 'set -euo pipefail
+    osmium export -f geojsonseq -x print_record_separator=false --geometry-types=linestring -c "$1" \
+      -i "$2" -o - "$3" | python3 "$4" encode "$5" --osm-timestamp "$6" --rd5-dir "$7" --jobs "$8" > "$9"' _ \
+    "$here/tools/fnam_export.json" "$USCA_NAMES_EXPORT_INDEX" "$1" "$here/tools/fnam_build.py" \
+    "$2" "$4" "$3" "$USCA_NAMES_JOBS" "$5" || return 1
+  touch -d "$4" -- "$2/"*.fnm
+}
+
+names_nodes_ok() { # count limit: is the names input's node count a whole number no larger than the limit?
+  # Prints the reason when it isn't; the caller dies with it (Sorrel's review S1, S5, N9). Checked
+  # right after the cut, before BRouter's hours, not by an OOM kill in the export after them.
+  [[ "$1" =~ ^[0-9]+$ ]] || { echo "names input node count is not a whole number: '$1'"; return 1; }
+  (( $1 <= $2 )) || { echo "names input has $1 nodes, over USCA_NAMES_MAX_INPUT_NODES ($2); see pins.env for the file-backed index"; return 1; }
 }
 
 basemap_matches() { # file timestamp sequence: does the archive's metadata name this snapshot?
@@ -750,6 +785,18 @@ for band in $USCA_ROUTING_BANDS; do
 done
 [[ ${#over[@]} -eq 0 ]] \
   || die "routing bands over USCA_BROUTER_MAX_BAND_NODES ($USCA_BROUTER_MAX_BAND_NODES): ${over[*]}; split them in USCA_ROUTING_BANDS"
+# The names files' input (dispatch pi-31): the highway ways with a name or a ref, cut from this
+# same routing input, so the names and the .rd5 squares come from one extract by construction.
+# USCA_ROUTING_FILTER keeps every highway way whole with its nodes, so this cut is the same as
+# one from the raw extracts (shown on the USVI extract, pi-31). Cut here, while $routing_in
+# exists, and encoded after BRouter (the names stage), once the square list is known. Two
+# filters, since tags-filter has no "and" of two keys.
+set_stage names-input
+names_in="$run/$USCA_EXTRACT_NAME-names.osm.pbf"
+names_cut "$routing_in" "$names_in" || die "could not cut the names input from $routing_in"
+names_nodes="$(osmium fileinfo -e -g data.count.nodes "$names_in")"
+log "names input: $names_nodes nodes, $(osmium fileinfo -e -g data.count.ways "$names_in") ways, $(stat -c %s "$names_in") bytes"
+names_ok="$(names_nodes_ok "$names_nodes" "$USCA_NAMES_MAX_INPUT_NODES")" || die "$names_ok"
 rm -f -- "$routing_in"
 
 set_stage brouter
@@ -786,6 +833,15 @@ done
 rm -rf -- "$br"
 # Each .rd5's file date is set to the extract's (WayLinker stamps its own run time inside).
 touch -d "$osm_ts" "$run/out/segments/"*.rd5
+
+# --- 6b. Trail and road names per route square (FNAM v1, dispatch pi-31) ----------------------
+# One names1/<NAME>.fnm per .rd5 in segments/, even an empty one (names_encode). Nothing here
+# touches the .rd5 squares.
+set_stage names
+names_encode "$names_in" "$run/out/names1" "$run/out/segments" "$osm_ts" "$run/names-summary.json" \
+  || die "the names encode failed"
+log "names: $(cat "$run/names-summary.json")"
+rm -f -- "$names_in"
 
 # --- 7. Validate before publishing -------------------------------------------------------------
 set_stage validate
@@ -835,7 +891,13 @@ done
 for f in "$run/out/segments/"*.rd5; do
   [[ $(stat -c %s "$f") -gt 0 ]] || die "$(basename "$f") is empty"
 done
-log "validated: archive; $(wc -l < "$run/coverage.txt") sample points covered; $(ls "$run/out/segments" | wc -l) .rd5 squares"
+# The names files: one per .rd5 and no other; each one's magic, version, edges (from its name)
+# and timestamp; its tables, directory and cells inside the file and covering its records
+# exactly. The line names the count, the total bytes and the largest file.
+names_check="$(python3 "$here/tools/fnam_build.py" check "$run/out/names1" --rd5-dir "$run/out/segments" \
+  --osm-timestamp "$osm_ts")" || die "$names_check"
+log "$names_check"
+log "validated: archive; $(wc -l < "$run/coverage.txt") sample points covered; $(ls "$run/out/segments" | wc -l) .rd5 squares; $(ls "$run/out/names1" | wc -l) .fnm names files"
 cat "$run/coverage.txt"
 
 # --- 8. Manifest, then publish both together ---------------------------------------------------
@@ -843,7 +905,7 @@ set_stage publish
 cp "$run/bounds.txt" "$run/coverage.txt" "$run/out/"
 "${RECORD[@]}" manifest "$run/out/manifest.json" --pins "$here/pins.env" --run-dir "$run" \
   --osm-timestamp "$osm_ts" --osm-sequence "$osm_seq" --inputs "${inputs[@]}" --sources "${sources[@]}" \
-  --outputs "$pmtiles_out" "$run/out/segments/"*.rd5
+  --outputs "$pmtiles_out" "$run/out/segments/"*.rd5 "$run/out/names1/"*.fnm
 name="$(date -u -d "$osm_ts" +%Y%m%dT%H%M%SZ)"
 [[ -e "$OUT/$name" ]] && name="$name-$run_id"
 mv "$run/out" "$OUT/$name"

@@ -181,6 +181,17 @@ What it does differently from `build-orwa.sh`, and why:
   `USCA_BROUTER_MAX_BAND_NODES` stops the run before BRouter starts. Checked on Canada built
   whole and in two bands: all 106 squares identical apart from the run time WayLinker stamps
   into each.
+- **Trail and road names per route square (FNAM v1, dispatch pi-31).** The app's wrong-turn
+  alert needs names from the same extract as the `.rd5` squares, which carry none. Just before
+  the merged routing input is deleted, its highway ways with a `name` or a `ref` are cut out
+  (`osmium tags-filter w/highway`, then `w/name w/ref`). After BRouter, that cut is exported once
+  as GeoJSONSeq (`tools/fnam_export.json`) and streamed into `tools/fnam_build.py`, which
+  simplifies each line (Douglas-Peucker, 2 m), splits it exactly at the 1/8-degree cell edges and
+  writes `names1/<NAME>.fnm` beside `segments/<NAME>.rd5`, one per square, even an empty one. The
+  format is in `fnam_build.py`'s docstring. Validation checks every `.rd5` has its `.fnm` and each
+  file's header, tables, directory and cells, as structure only (it doesn't parse record bodies); the manifest lists the `.fnm` files. No
+  `complete_ways` cut per square. `bin/build-names.sh` runs the same steps on raw extracts, with
+  its temporary files on the card.
 - **`--basemap FILE` reuses a finished basemap.** The first run's 7h44m basemap finished and the
   run then failed at routing; the owner's word was to keep it and move on. With `--basemap`,
   Planetiler and the full merge are skipped, FILE is hard-linked into the output, and the run
@@ -208,6 +219,11 @@ What it does differently from `build-orwa.sh`, and why:
 - `bash map-build/tools/test_build_usca_functions.sh`: `build-usca.sh`'s square and tile
   arithmetic, download resuming, failed-run keeping, the `--basemap` snapshot check and the routing bands'
   layout and square ownership, loaded from the script itself.
+- `python3 -m unittest map-build/tools/test_fnam_build.py`: the names encoder, decoded by its own
+  reader: round trip, cell and square edges, what is dropped, Douglas-Peucker within 2 m, the
+  directory, and `check`.
+- `bash map-build/tools/test_build_names.sh`: `build-names.sh` and the stage's `names_cut` and
+  `names_encode` on tiny extracts, which must write the same bytes.
 - `bash map-build/tools/test_build_functions.sh`: `build-orwa.sh`'s square-dropping and
   failed-run keeping, loaded from the script itself.
 - The patch's own tests (`foragerTrail…`, `foragerAccess…` in upstream's `RoadsTest`) run inside
