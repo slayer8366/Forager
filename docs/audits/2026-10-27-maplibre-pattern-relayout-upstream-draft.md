@@ -1,7 +1,8 @@
 # Draft: upstream bug report for maplibre-native (not filed)
 
-Dispatch 2026-10-27-11, RECORD -1742. Written 2026-10-27 by a coder (Opus) for the owner to file; nothing has been
-posted anywhere. The evidence is the S22 logging run in `docs/audits/2026-10-27-glyph-cause.md` (branch
+Dispatch 2026-10-27-11, RECORD -1742; corrected under dispatch 2026-10-27-13 (RECORD -1746, -1748), where the first
+draft's evidence and workaround described a form that failed on the S22. Written 2026-10-27 by a coder (Opus) for the
+owner to file; nothing has been posted anywhere. The evidence is the S22 logging run in `docs/audits/2026-10-27-glyph-cause.md` (branch
 `glyph-logging`, `4d9a2eb64`); the workaround is `PatternRelayout.kt` (PR #429). Before filing, the owner may want to
 search the tracker for an existing report; that search was not made (this session has no network but GitHub, and was
 told to post nothing).
@@ -41,7 +42,20 @@ of a tile edge and not on the other.
   layout draws no pattern.
 - No `canRemoveUnusedStyleImage`, sprite error or render error was reported in the whole session.
 - Setting the layer's `fill-pattern` to `""` and back to its value afterwards makes the kept tile draw the pattern again
-  (by day and by night, at the same zoom). Our app now does this after every reload as a workaround.
+  (by day and by night, at the same zoom), **but only when the clear comes late enough.** With T0 the moment the
+  `setStyle` callback has run and `onSpriteLoaded` has fired: a clear at T0 +0 to +250 ms leaves the
+  pattern at 0; a clear at +300, +500 or +2000 ms brings it back, by day and by night. The threshold lies between +261 ms
+  and +300 ms. The gap between the clear and the restore matters too: a restore at the first full frame 2-7 ms after the
+  clear can fail, while a clear at +400 ms with the restore at the first full frame at least 100 ms later worked 5 of 5.
+- `fill-pattern` is a cross-faded paint property that transitions (`fill_layer_properties.hpp:40`,
+  `properties.hpp:31-64`), and a style that sets no `transition` gets 300 ms (`parser.hpp:40`, `constants.hpp:59`),
+  which matches the threshold. That link is not shown. Against it: our app sets the style's transition in the
+  style-loaded callback with `Style.setTransition(TransitionOptions(duration, delay, false))`, reading duration and delay
+  back first, and Android reads an unset transition as 0 (`native_map_view.cpp:920-930`), so from the callback on the
+  style's transition is an explicit 0/0.
+- Setting `fill-pattern-transition` to `{duration: 0, delay: 0}` on the pattern layers at the start of the style-loaded
+  callback, with no clear and restore, did not fix it: patterns came back 3 of 3 after a reload whose callback also
+  switched the pattern names (our night style), and stayed at 0 3 of 3 after one that did not (our day style).
 - One clue, not explained: after a reload whose new style no longer names some images, `styleImageMissing` is reported
   for the **old** style's pattern names, after the new sprite has loaded and while the kept tile is being laid out
   again, as if a request made with the old style's names were still open.
@@ -51,5 +65,7 @@ of a tile edge and not on the other.
 (`dynamic_texture_atlas.cpp`, `isUploadNeeded`) while the old layout frees its bins on destruction
 (`geometry_tile.cpp:169`); a fill drawable built while the tile has no atlas texture (`render_fill_layer.cpp:214-229`).
 
-**Workaround.** After the reload, once the style callback has run and the sprite has loaded, set each pattern layer's
-`fill-pattern` to `""`, let the map render a full frame, and set it back.
+**Workaround.** After the reload, once the style callback has run and the sprite has loaded, wait the style's
+transition (300 ms when unset) plus 100 ms; then set each pattern layer's `fill-pattern` to `""`, and set it back at the
+first fully rendered frame at least 100 ms after that. Clearing straight after the sprite loads, and restoring at the next
+full frame, does not work.
