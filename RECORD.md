@@ -28733,3 +28733,25 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-26-sorrel-pi31-names.md, branch sorrel-pi31-names, c52732724) on pi-31-names-stage 6cdfaef15: no blocking findings. S1: sparse_mem_array needs 8.6 GB at 268,435,456 named-input nodes (34% above today) and nothing checks the count logged at build-usca.sh:787. S2: the disk check does not count the names files. S3: a names failure fails the whole run after BRouter. S4: no FNAM reader exists in Forager, and the spec lives in a Forager-cartography handoff. Aspen (message): the Pi sees no SSD; the only extra drive is a Lexar USB flash stick, 61.9 GB, ext4 "forecast-data", empty; the micro SD is not readable (the one slot holds the archive card, no reader).
 **Decision:** the owner: "Whole week fails (Recommended)" (S3 kept, with S1's node-count check before BRouter); "Yes: back up heights (Recommended)": after G7, the 3-second .hgt and .bef (about 17 GB) copied to the Lexar and verified by sha256, with nothing else on it; "Wait for the 256 GB drive (Recommended)": no 1-second keep-copies now, and a re-pull needs the owner's word.
 **Notes:** Written by the planner by hand. Aspen fixes S1/S2 and Sorrel re-checks before pi-31 merges into pi-build; the FNAM v1 spec lands in Forager before a reader is dispatched (S4). Next free ID -1711.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1711
+**Timestamp:** 2026-10-27T06:29:56Z
+**Continues:** 2026-09-28-1709, 2026-09-28-1710
+**Title:** The 261024 routes and names are live; pi-31 merges after its test gap is closed (owner)
+**Observed:** Aspen (message; Forager-cartography 392754c): routing/manifest.json replaced at 2026-10-27T06:25:59Z, sha256 faa23768…937aeb; 187 .rd5 and 187 .fnm read back with 0 differences; the Worker's parseManifest parses the read-back copy (runId usca-20261025T101217Z, 187 squares, names array ignored); routing/usca-20261021T111429Z/ untouched; no end-to-end request (the app key). Sorrel's re-check (sorrel-pi31-names f8f4218b6) at 932c0a0ee: mergeable; S5 the weekly path's copy of the node-limit check (build-usca.sh:793-794) is untested; N8, N9.
+**Decision:** the owner: "Fix the gap, then merge (Recommended)": Aspen hoists the check into one shared function, fixes N8 and N9, Sorrel takes a quick look, then pi-31 merges into pi-build before Sunday's build.
+**Notes:** Written by the planner by hand. Next free ID -1712.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1712
+**Timestamp:** 2026-10-27T06:29:56Z
+**Continues:** 2026-09-28-1707
+**Title:** #423 merged into pre-main: the app moves to street-v3 (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-26-sorrel-pr423.md, branch sorrel-pr423, 6ac92e18f): no blocking finding; all six budget readers use the estimate; every stored area holds zooms 10/15, so the fixed zooms match; S1 map-style's check:street, check-street-night.mjs and check-street-trails.mjs still read v2; S2 the PR body lacked run numbers (added by the planner before the merge); nits N1-N6, among them N3: an area downloaded before 2026-09-06 now counts about 3.7 times its old stored figure. JournalPendingDeleteTest's fail-first is the forward run 40450409239 (N6).
+**Decision:** the owner: "Merge now (Recommended)"; merged at e5b5acee0, pre-main 7457bcc11. S1 and N1 join the tidy list. Next: the S22 check, with Sorrel's corrections (a v2 area downloaded with a pre-switch build first; step 12) and the first route-area download from the 261024 squares.
+**Notes:** Written by the planner by hand. Next free ID -1713.
