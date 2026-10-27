@@ -28886,3 +28886,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pi32-elevation.md, branch sorrel-pi32-elevation, c3c914b70) on pi-32-elevation 6b991fac5: mergeable, no blocking finding; a run cannot start or reach BRouter with the store missing, swapped or altered; five revert checks each fail on their own check. S1: a store lost during the routing stage builds the remaining squares without heights silently (BRouter 1.7.10's PosUnifier logs nothing for a missing .bef; WayLinker marks elevationType 3 either way); PosUnifier's .u5d_3 rename tells the two apart. N1: --fetch-only now needs the store. Aspen (message): the scratch folders are copied to /mnt/storage/moved-20261027/ and verified by sha256; removing the originals was refused by Aspen's permission check and waits for the owner's word in Aspen's window.
 **Decision:** the owner: "Fix the gap, then install (Recommended)": Aspen adds a check after each band's PosUnifier against a pinned list of the five squares without heights, plus N1, N3 and N4; Sorrel takes a quick look; then the merge, and the install on the owner's word in Aspen's window before Saturday evening.
 **Notes:** Written by the planner by hand. Next free ID -1725.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1725
+**Timestamp:** 2026-10-27T14:16:19Z
+**Continues:** 2026-09-28-1674, 2026-09-28-1676, 2026-09-28-1671
+**Title:** Step 6 PR 4: the quiet off-trail state on a waypoint route (owner)
+**Decision:** the owner: "Start step 6 PR 4"; the step paths, "Yes, as sketched (Recommended)": on means any part of the waypoint line, dashed legs included; off for about 15 s dims the trail line to 60% quietly; more than 50 m off re-routes from the walker, clearing it; back on for about 10 s shows "Back on trail" for about 5 s; a straight-line route never reads off trail; Back and the X unchanged. The words: "\"Off trail · Head back to the line\" (Recommended)", short form "Off trail". Dispatch 2026-10-27-01.
+**Notes:** Written by the planner by hand. Timings as step 7 PR 3's, provisional under -1631. Next free ID -1726.
