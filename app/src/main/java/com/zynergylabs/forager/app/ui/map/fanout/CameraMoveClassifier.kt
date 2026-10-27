@@ -103,7 +103,7 @@ class CameraMoveClassifier(
                 else -> Kind.PLAIN
             }
             if ((kind == Kind.STACK_ZOOM || new == Kind.STACK_ZOOM) && joined != Kind.STACK_ZOOM) {
-                warn("A crowded stack's zoom joined another camera move of the app's ($kind, $new); its fan folds as the move starts.")
+                // revert RN1: no log
             }
             kind = joined
         }
