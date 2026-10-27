@@ -97,7 +97,7 @@ class CrowdedStackHost(
     }
 
     /** A map was built over this host: Back's camera step moves its camera from now on. */
-    fun attachCamera(live: StackCamera) { camera = live }
+    fun attachCamera(live: StackCamera) { }
 
     /** [gone]'s map is going away; a newer map's camera, already attached, is kept. */
     fun detachCamera(gone: StackCamera) { if (camera === gone) camera = null }
