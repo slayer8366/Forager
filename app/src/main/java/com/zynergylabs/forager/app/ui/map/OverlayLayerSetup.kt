@@ -9,6 +9,7 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.OpacityProperty
 import com.zynergylabs.forager.app.ui.map.layers.OpacityValue
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
+import com.zynergylabs.forager.app.ui.map.layers.LayerRenderer
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.CircleLayer
@@ -73,6 +74,9 @@ internal fun initializeOverlayLayers(
 
     val addedSources = mutableSetOf<String>()
     for (spec in drawOrder) {
+        // Step 8b: a layer the style itself carries (the official-trails band) is never built here and needs no source;
+        // its visibility is set in the style-load callback before this runs (ReferenceTrailsVisibility.kt).
+        if (spec.renderer == LayerRenderer.STYLE_LAYER) continue
         val layer = nativeLayerFor(spec, palette)
         if (layer == null) {
             // A registry entry this function cannot build is a programming error, never a silent

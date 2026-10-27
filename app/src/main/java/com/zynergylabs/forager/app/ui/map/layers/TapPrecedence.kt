@@ -1,11 +1,47 @@
 package com.zynergylabs.forager.app.ui.map.layers
 
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceAgency
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
+import com.zynergylabs.forager.app.ui.map.RouteHomeIds
+
 /**
  * One feature a tap query returned: the layer it was queried on and the feature's own id (the
  * `featureId` property the pure builders write, or a sighting's `observationId`); `null` when the
- * feature carries none.
+ * feature carries none. [attributes]: the feature's own fields a bubble reads, by name, for a layer
+ * the style itself draws (the official-trails band, step 8c), whose features name no app record;
+ * empty for every app layer.
  */
-data class TapHit(val layerId: String, val featureId: String?)
+data class TapHit(val layerId: String, val featureId: String?, val attributes: Map<String, String> = emptyMap())
+
+/**
+ * The agency whose official-trails band [layerId] is (step 8c, dispatch 2026-10-26-16), or `null` for any other layer.
+ * A tap on a band names no app record: its bubble is read from the tapped feature's own [TapHit.attributes].
+ */
+fun referenceAgencyOf(layerId: String): ReferenceAgency? = when (layerId) {
+    MapLayerIds.REFERENCE_FS_BAND -> ReferenceAgency.FOREST_SERVICE
+    MapLayerIds.REFERENCE_BLM_BAND -> ReferenceAgency.BLM
+    else -> null
+}
+
+/**
+ * The layers whose line under the finger stops an official-trails band from taking a tap (dispatch 2026-10-26-16 Amendment 2;
+ * RECORD -1688, the owner: "Nothing (Recommended)"): every layer of the way home (RouteHomeLayers.kt, its arrival ring
+ * included) and the recording trail with its casing. They stop a band only; they take no tap themselves (M1, "Not
+ * tappable"), so a tap they stop is a plain tap, as it was before bands took taps. MapTapHandler queries them only once a
+ * band has won.
+ */
+internal val REFERENCE_TRAIL_BLOCKER_LAYER_IDS: List<String> = listOf(
+    RouteHomeIds.PASSED_LAYER,
+    RouteHomeIds.AHEAD_CASING_LAYER,
+    RouteHomeIds.AHEAD_LAYER,
+    RouteHomeIds.AHEAD_DOTTED_LAYER,
+    RouteHomeIds.AHEAD_STRAIGHT_LAYER,
+    RouteHomeIds.STRAIGHT_LAYER,
+    RouteHomeIds.STRAIGHT_OFFLINE_LAYER,
+    RouteHomeIds.ARRIVED_LAYER,
+    MapLayerIds.BREADCRUMB_CASING,
+    MapLayerIds.BREADCRUMB,
+)
 
 /**
  * The side of the square box, in dp, that a tap queries when nothing lies exactly under the tap
@@ -63,13 +99,21 @@ sealed interface MapTapOutcome {
     data class OnSighting(val observationId: Long?) : MapTapOutcome
     data class OnFeature(val layerId: String, val featureId: String) : MapTapOutcome
     data class UnidentifiedFeature(val layerId: String) : MapTapOutcome
+
+    /** An official-trails band (step 8c): its bubble is [record], read from the feature, never an app record looked up. */
+    data class OnReferenceTrail(val layerId: String, val record: ReferenceTrailRecord) : MapTapOutcome
     data object Plain : MapTapOutcome
 }
 
 /** [winner]'s [MapTapOutcome]; see that type. */
-fun mapTapOutcome(winner: TapHit?): MapTapOutcome = when {
-    winner == null -> MapTapOutcome.Plain
-    winner.layerId == MapLayerIds.SIGHTINGS -> MapTapOutcome.OnSighting(winner.featureId?.toLongOrNull())
-    winner.featureId == null -> MapTapOutcome.UnidentifiedFeature(winner.layerId)
-    else -> MapTapOutcome.OnFeature(winner.layerId, winner.featureId)
+fun mapTapOutcome(winner: TapHit?): MapTapOutcome {
+    val agency = winner?.let { referenceAgencyOf(it.layerId) }
+    return when {
+        winner == null -> MapTapOutcome.Plain
+        // Step 8c: a band's feature carries no feature id, so this comes before the unidentified case below.
+        agency != null -> MapTapOutcome.OnReferenceTrail(winner.layerId, ReferenceTrailRecord.fromAttributes(agency) { winner.attributes[it] })
+        winner.layerId == MapLayerIds.SIGHTINGS -> MapTapOutcome.OnSighting(winner.featureId?.toLongOrNull())
+        winner.featureId == null -> MapTapOutcome.UnidentifiedFeature(winner.layerId)
+        else -> MapTapOutcome.OnFeature(winner.layerId, winner.featureId)
+    }
 }

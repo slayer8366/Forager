@@ -18,7 +18,10 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
  * estimate that swings because someone spent ten minutes photographing is worse than one that does
  * not move. The estimate is therefore systematically optimistic for someone who stops, accepted on
  * two conditions recorded at [returnWalkingTime]: it is labelled walking time, never arrival time,
- * and the conservatism lives in the turnaround alert's margin, never padded in here.
+ * and the conservatism lives in the turnaround alert's margin, never padded in here. The climbing
+ * allowance added to the walking time since dispatch 2026-10-26-19 (RECORD -1689) is a modelled term the
+ * owner ruled on, not a pad, and it is added after this pace, never folded into it
+ * ([CLIMB_ALLOWANCE_SECONDS_PER_METER]; that doc records the accepted double count with this pace's hills).
  *
  * ## Two instruments, both first-class
  *

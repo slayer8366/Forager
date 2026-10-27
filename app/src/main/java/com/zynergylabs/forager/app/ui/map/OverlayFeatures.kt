@@ -10,7 +10,9 @@ import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailFields
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
+import com.zynergylabs.forager.app.ui.map.layers.referenceAgencyOf
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -33,7 +35,19 @@ internal fun tapHitOf(layerId: String, feature: Feature): TapHit = TapHit(
     } else {
         feature.getStringProperty(FEATURE_ID_PROPERTY)
     },
+    attributes = referenceAgencyOf(layerId)?.let { referenceAttributesOf(feature, ReferenceTrailFields.of(it)) }.orEmpty(),
 )
+
+/**
+ * Step 8c: the official-trails band's own fields that its bubble reads, by name, as text. A tile may carry a number as
+ * a number, so any primitive is taken as its text; an absent field, a JSON null or a non-primitive is left out, so the
+ * bubble reads only what the feature has (dispatch 2026-10-26-16, item 4).
+ */
+private fun referenceAttributesOf(feature: Feature, fields: List<String>): Map<String, String> =
+    fields.mapNotNull { field ->
+        val value = feature.getProperty(field)?.takeIf { it.isJsonPrimitive } ?: return@mapNotNull null
+        field to value.asString
+    }.toMap()
 
 /**
  * Pushes the real content into every source [initializeOverlayLayers] created, replacing whatever

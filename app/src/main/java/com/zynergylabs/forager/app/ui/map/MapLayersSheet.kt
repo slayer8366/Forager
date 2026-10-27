@@ -109,6 +109,10 @@ private var SemanticsPropertyReceiver.mapLayersSheetContentColor by MapLayersShe
 /** One overlay switch row, by registry layer id. */
 internal fun mapLayerSwitchTag(layerId: String) = "map-layer-switch:$layerId"
 
+/** Step 8b: the official-trails switch's label and second line, the owner's wording (RECORD -1680, "Confirm as sketched"). */
+internal const val REFERENCE_TRAILS_LABEL = "Official trails"
+internal const val REFERENCE_TRAILS_DETAIL = "Forest Service and BLM"
+
 /** A colour field's opacity slider, by registry layer id. */
 internal fun mapLayerOpacityTag(layerId: String) = "map-layer-opacity:$layerId"
 
@@ -194,6 +198,8 @@ data class MapLayersControls(
     val onHideJournalEntry: (entryId: String) -> Unit = {},
     /** J8-3: the chip list's "Hide all": writes `shownOnMap` false for every shown entry. */
     val onHideAllJournalEntries: () -> Unit = {},
+    /** Step 8b: the map reported its loaded style draws the official-trails band, so the sheet offers its switch. */
+    val referenceTrailsShown: Boolean = false,
 ) {
     /** The colour fields the sheet lists: the ones with data, top of the draw order first. */
     val listedColourFields: List<ColourFieldSpec>
@@ -245,6 +251,13 @@ internal fun MapLayersSheet(
     offlineTiles: Boolean = false,
     /** The process's Trail Map fallback (RECORD -1513); a parameter so a test can give it its own. */
     fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
+    /**
+     * Step 8b (dispatch 2026-10-26-15 Amendment 2): whether this sheet's map reported that its loaded style draws the
+     * official-trails band ([MapRenderMode.onReferenceTrailsShown]). Only then is the "Official trails" row shown, so
+     * a switch that would do nothing (today's style, Topographical, OpenStreetMap, an area downloaded before) is never
+     * offered ("Don't make me think").
+     */
+    referenceTrails: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`,
@@ -292,6 +305,16 @@ internal fun MapLayersSheet(
                     onCheckedChange = { onVisibilityChanged(option.layerId, it) },
                 )
             }
+            // Step 8b: after the record overlays, before the colour fields, and only while the map draws the band.
+            if (referenceTrails) {
+                LayerSwitchRow(
+                    layerId = MapLayerIds.REFERENCE_FS_BAND,
+                    label = REFERENCE_TRAILS_LABEL,
+                    detail = REFERENCE_TRAILS_DETAIL,
+                    checked = state.stateOf(MapLayerIds.REFERENCE_FS_BAND).visible,
+                    onCheckedChange = { onVisibilityChanged(MapLayerIds.REFERENCE_FS_BAND, it) },
+                )
+            }
             ColourFieldRows(colourFields, state, onVisibilityChanged, onOpacityChanged, onColourFieldMoved)
         }
     }
@@ -302,7 +325,7 @@ internal fun MapLayersSheet(
  * it; the [Switch] inside draws the state and takes no input of its own.
  */
 @Composable
-private fun LayerSwitchRow(layerId: String, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun LayerSwitchRow(layerId: String, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, detail: String? = null) {
     // Amendment 1 to motion Part 1 (RECORD -657): the row's press is drawn in a rounded shape; the toggle's touch is unchanged.
     val pressSource = remember { MutableInteractionSource() }
     Row(
@@ -314,7 +337,15 @@ private fun LayerSwitchRow(layerId: String, label: String, checked: Boolean, onC
             .testTag(mapLayerSwitchTag(layerId)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        if (detail == null) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        } else {
+            // Step 8b: a second line under the label, Material's two-line list item (headline, then supporting text).
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                Text(detail, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         Switch(checked = checked, onCheckedChange = null)
     }
 }

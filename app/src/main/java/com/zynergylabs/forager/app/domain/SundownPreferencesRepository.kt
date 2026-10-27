@@ -25,7 +25,9 @@ interface SundownPreferencesRepository {
      * will land beside it once the return estimate is validated. Keeping them named apart is what
      * stops the two silently merging into one number that double-counts, which
      * [returnWalkingTime]'s own header warns about: "a padded input plus a margin double-counts by
-     * an amount nobody could name."
+     * an amount nobody could name." The walk back's climbing allowance (2.2 s per metre climbed and
+     * descended, RECORD -1689) is part of that walk-back time, a modelled term the owner ruled on, not
+     * a margin; this one is unchanged by it.
      *
      * Not clamped here. An absurd value renders as a turnaround already in the past, which is the
      * honest reading of that setting; a range belongs in the control that offers it, not as a

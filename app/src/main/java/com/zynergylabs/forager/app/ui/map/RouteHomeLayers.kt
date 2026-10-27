@@ -291,17 +291,40 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
     style.addLayerAbove(ring, aboveMarkerLayerId)
 }
 
-/** Puts [route] on the map: each source's features, and the line ahead's opacity (and its casing's). */
+/**
+ * The solid line ahead's opacity, and its casing's: [routeAheadOpacity], and while the walker is off the trail
+ * ([RouteLine.trailDimmed], plan step 7 PR 3) no more than [ROUTE_PASSED_OPACITY] (RECORD -1676, the owner: "60%, like
+ * passed route"). The lower of the two wins, so the withheld fade (0.4) is never multiplied into near nothing ("having
+ * your tracks disappear is a scary thing"). Only the solid layers: the dotted track is left as it is (RECORD -1676, "A:
+ * trail dims only"). The solid layers draw only the trail part of a way home along trails; the line is dimmed only when
+ * it has one (`TrackRecordingUiState.routeLineShown`).
+ */
+internal fun routeTrailOpacity(route: RouteOnMap?): Float {
+    val opacity = routeAheadOpacity(route)
+    return if (route?.line?.trailDimmed == true) minOf(opacity, ROUTE_PASSED_OPACITY) else opacity
+}
+
+/** Each line layer's opacity for [route], by layer id: what [updateRouteHomeLayers] sets. */
+internal fun routeHomeLayerOpacities(route: RouteOnMap?): Map<String, Float> {
+    val ahead = routeAheadOpacity(route)
+    val trail = routeTrailOpacity(route)
+    return mapOf(
+        RouteHomeIds.AHEAD_LAYER to trail,
+        RouteHomeIds.AHEAD_CASING_LAYER to trail,
+        RouteHomeIds.AHEAD_DOTTED_LAYER to ahead,
+        RouteHomeIds.AHEAD_STRAIGHT_LAYER to ahead,
+        RouteHomeIds.STRAIGHT_LAYER to routeStraightOpacity(route),
+    )
+}
+
+/** Puts [route] on the map: each source's features, and each line layer's opacity ([routeHomeLayerOpacities]). */
 internal fun updateRouteHomeLayers(style: Style, route: RouteOnMap?) {
     routeHomeFeatureCollections(route).forEach { (sourceId, collection) ->
         style.getSourceAs<GeoJsonSource>(sourceId)?.setGeoJson(collection)
     }
-    val opacity = routeAheadOpacity(route)
-    style.getLayer(RouteHomeIds.AHEAD_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
-    style.getLayer(RouteHomeIds.AHEAD_CASING_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
-    style.getLayer(RouteHomeIds.AHEAD_DOTTED_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
-    style.getLayer(RouteHomeIds.AHEAD_STRAIGHT_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
-    style.getLayer(RouteHomeIds.STRAIGHT_LAYER)?.setProperties(PropertyFactory.lineOpacity(routeStraightOpacity(route)))
+    routeHomeLayerOpacities(route).forEach { (layerId, opacity) ->
+        style.getLayer(layerId)?.setProperties(PropertyFactory.lineOpacity(opacity))
+    }
 }
 
 /**

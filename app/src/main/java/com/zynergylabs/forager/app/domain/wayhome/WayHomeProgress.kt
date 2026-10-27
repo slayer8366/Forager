@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LIVE_FIX_MAX_ACCURACY_METERS
 import com.zynergylabs.forager.app.domain.PathHome
 import com.zynergylabs.forager.app.domain.RouteLinePartKind
+import com.zynergylabs.forager.app.domain.WayBackClimb
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.nextHopBand
 import kotlin.math.ceil
@@ -30,12 +31,21 @@ class WayHomeLine(val wayHome: WayHome, val trailAllowanceMeters: Double = WAY_H
     /** The kind of the stretch from node `i` to node `i + 1`; the last node takes its stretch's kind. */
     val kinds: List<RouteLinePartKind>
 
+    /**
+     * The parts' heights in line metres, for the walk back's climbing allowance (`WayHomeHeights.kt`; RECORD -1689): the
+     * trail part's are a stand-in from the walker's own track until the routes carry elevation. `null` when a part
+     * carries none (the way to a waypoint).
+     */
+    val heights: LineHeights?
+
     init {
         val points = ArrayList<LatLng>()
         val along = ArrayList<Double>()
         val kindOf = ArrayList<RouteLinePartKind>()
+        val partStarts = ArrayList<Pair<WayHomePart, Double>>()
         var total = 0.0
         for (part in listOf(wayHome.trackBack, wayHome.trail, wayHome.trackToStart)) {
+            partStarts += part to total
             val kind = when (part.kind) {
                 WayHomePartKind.TRAIL -> RouteLinePartKind.TRAIL
                 // The way to a waypoint's straight legs (dispatch 2026-10-26-10): not the walker's track, so never dotted.
@@ -67,6 +77,7 @@ class WayHomeLine(val wayHome: WayHome, val trailAllowanceMeters: Double = WAY_H
         nodes = points
         alongMeters = along.toDoubleArray()
         kinds = kindOf
+        heights = lineHeightsOf(partStarts)
     }
 
     val totalMeters: Double get() = alongMeters.lastOrNull() ?: 0.0
@@ -83,7 +94,8 @@ class WayHomeLine(val wayHome: WayHome, val trailAllowanceMeters: Double = WAY_H
  * [remainingMeters] is the distance home, counted from its own node, the earliest within [WAY_HOME_FIGURE_REACH_METERS]
  * anywhere on the line ([placeOnWayHome]; Amendments 3 and 4), plus the line's [WayHomeLine.trailAllowanceMeters] when that node is on the trail part
  * ([onTrail]), plus, for a walker past the line's first point, their distance back to it ([metersPastLineStart]; RECORD
- * -1630).
+ * -1630). [climb] is the climb and descent from that same node home ([climbFrom]), for the walk back's climbing
+ * allowance (RECORD -1689); `null` on a line that carries no heights.
  */
 data class WayHomePlace(
     val index: Int,
@@ -91,6 +103,7 @@ data class WayHomePlace(
     val hopBand: HopBand,
     val onTrail: Boolean,
     val remainingMeters: Double,
+    val climb: WayBackClimb? = null,
 )
 
 /**
@@ -99,7 +112,7 @@ data class WayHomePlace(
  * already covers the fix's distance from the line.
  */
 fun WayHomePlace.toPathHome(pointCount: Int): PathHome =
-    PathHome(trackMeters = remainingMeters, hopMeters = hopMeters, hopBand = HopBand.NONE, originLegMeters = null, pointCount = pointCount)
+    PathHome(trackMeters = remainingMeters, hopMeters = hopMeters, hopBand = HopBand.NONE, originLegMeters = null, pointCount = pointCount, climb = climb)
 
 /** What [placeOnWayHome] found: a place on the line, or the walker more than the far band from it. */
 sealed interface WayHomeProgress {
@@ -154,7 +167,7 @@ fun placeOnWayHome(line: WayHomeLine, current: LatLng, previous: WayHomePlace?, 
     val remaining = line.totalMeters - line.alongMeters[figureIndex] +
         (if (onTrail) line.trailAllowanceMeters else 0.0) +
         (if (figureIndex == 0) metersPastLineStart(line, current) else 0.0)
-    return WayHomeProgress.Placed(WayHomePlace(index, hop, band, onTrail, remaining))
+    return WayHomeProgress.Placed(WayHomePlace(index, hop, band, onTrail, remaining, climbFrom(line.heights, line.alongMeters[figureIndex])))
 }
 
 /**

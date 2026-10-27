@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveCause
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapSinks
@@ -116,6 +117,12 @@ internal fun MapListeners(
                     }
 
                     override fun onCloseBubble() = state.onCloseBubble()
+
+                    override fun onReferenceTrailTap(layerId: String, record: ReferenceTrailRecord, xPx: Float, yPx: Float, at: LatLng) {
+                        // Step 8c (dispatch 2026-10-26-16): a band's bubble, read from the tapped feature, through the same
+                        // feature-tap path as every other bubble ("Bubble only", as above).
+                        state.onFeatureTap(MapFeatureTap.forReferenceTrail(layerId, record, Offset(xPx, yPx), map.cameraPosition.bearing.toFloat(), at))
+                    }
 
                     override fun onUnidentifiedFeature(layerId: String) {
                         // Logged, never silent: a feature with no id cannot name its record, so no
