@@ -113,3 +113,31 @@ internal fun registerGlyphDiagnostics(mapView: MapView, mapProvider: () -> MapLi
         mapView.removeOnRenderErrorListener(renderError)
     }
 }
+
+/**
+ * Probe, inert unless asked for: when `files/glyph-relayout` exists (created over adb with run-as), it is deleted, both
+ * pattern layers' fill-pattern is set to "" and, 600 ms later, back to the value read now. Each set is a layout change
+ * (FillLayer::Impl::hasLayoutDifference compares the pattern), so every retained tile is laid out again. Tells whether
+ * a fresh layout alone brings the patterns back at the held zoom. Logged at each step.
+ */
+internal fun glyphRelayoutProbeIfRequested(map: MapLibreMap, style: Style?, mapView: MapView) {
+    val trigger = java.io.File(mapView.context.filesDir, "glyph-relayout")
+    if (!trigger.exists() || style == null) return
+    trigger.delete()
+    val saved = PATTERN_LAYERS.mapNotNull { id ->
+        (style.getLayer(id) as? FillLayer)?.let { layer -> id to layer.fillPattern.value }
+    }
+    glyphLog("probe: relayout requested; saved=$saved")
+    for ((id, _) in saved) (style.getLayer(id) as? FillLayer)?.setProperties(org.maplibre.android.style.layers.PropertyFactory.fillPattern(""))
+    glyphSnapshot("probe.cleared", map, style, mapView)
+    mapView.postDelayed({
+        if (map.style !== style) {
+            glyphLog("probe: style changed before restore; nothing restored")
+            return@postDelayed
+        }
+        for ((id, value) in saved) {
+            if (value != null) (style.getLayer(id) as? FillLayer)?.setProperties(org.maplibre.android.style.layers.PropertyFactory.fillPattern(value))
+        }
+        glyphSnapshot("probe.restored", map, style, mapView)
+    }, 600)
+}

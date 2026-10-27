@@ -183,6 +183,7 @@ internal fun MapListeners(
             // addOnMapLongClickListener's latLng is.
             map.addOnCameraIdleListener {
                 glyphSnapshot("cameraIdle", map, state.loadedStyle, state.mapView) // dispatch 2026-10-27-08, logging only
+                glyphRelayoutProbeIfRequested(map, state.loadedStyle, state.mapView) // dispatch 2026-10-27-08, inert unless asked
                 state.cameraMoveClassifier.onCameraIdle()
                 state.cameraIdleCount++
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
