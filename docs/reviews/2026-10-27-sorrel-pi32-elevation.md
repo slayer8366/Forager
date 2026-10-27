@@ -383,3 +383,136 @@ was built, and I did not say the `ls` had to survive an empty match under `pipef
 mine, so part of this is on the review.
 
 **Decided beyond scope**: none new. The headroom and `elevationType` notes from the review stand.
+
+## Re-look at `8a9331fa6`
+
+Sorrel (Fable 5.1) for Rowan, 2026-10-27T16:35Z (09:35 PDT). Fresh worktree
+`~/.cache/forager-wt/sorrel-pi32-b1` at `8a9331fa6`; `git diff ea67332db 8a9331fa6` is one commit, two
+files, +12 −3: `bin/build-usca.sh` (+3 −1) and `tools/test_build_usca_run.sh` (+9 −2). Same base
+(`merge-base` with `origin/pi-build` is still `20f75d063`). Aspen's note on the fix read from
+Forager-cartography `docs/audits/2026-10-27-g8-elevation-in-weekly.md` ("Sorrel's quick look: B1 found
+and fixed"), fetched through the GitHub API. Nothing changed in the branch, nothing merged, nothing run
+on the Pi.
+
+### Verdict
+
+**Mergeable into `pi-build` for the 2026-11-01 run.** B1 is fixed, reproduced here on the script's own
+lines in a clean bash: the old line exits 2 on a folder of `_3` tiles and on an empty one, the new line
+reaches the next command on both, and on the mixed folder both lines log the same thing (question 1).
+The new R10 case is the right shape and would fail with the old line back, on the one check Aspen names
+(question 2, inferred from the code since the run suite cannot run here). N6 is correct (question 3).
+Nothing else in the diff. One thing to carry into the install, not a finding against the branch: N7 was
+answered on the backup copy because the pinned path does not exist yet, and the install's step 4 runs
+the same check on the pinned path (below).
+
+### Findings
+
+None blocking, none should-fix. Notes:
+
+**N9. The run harness still cannot run here** (`tools/test_build_usca_run.sh:26` requires `osmium`,
+absent on this machine, `command -v` confirmed), so R10's new case and R11's new assertion are read and
+simulated at line level, not run. Aspen's counts (functions 83, run 70, names 23, disk 95) are taken on
+report; the 70 reconciles with the file — 63 literal `check "` lines plus the loops at `:267-272`
+(2 regions × 4) and `:328-331` (2 islands × 3). Functions suite run here from the worktree: **83 ok**,
+unchanged by the diff, as expected.
+
+**N10. `find` on a missing `unodes55/` exits 1 and ends the run under `pipefail`, like the old `ls`.**
+Run here: the new line against a path with no `unodes55/` prints find's error and exits 1. Unreachable in
+the script, because `mkdir -p "$br"/{…,unodes55,…}` at `bin/build-usca.sh:863` runs each band before
+PosUnifier; noted so nobody moves `:876` above `:863`.
+
+**N11. The three pre-existing `ls` uses in the script are not B1's shape, checked rather than assumed.**
+`:958` substitutes `ls … | wc -l` inside a `log` argument (errexit does not act on a substitution that is
+one word of a command with a name, and `ls` on an existing directory exits 0 even when empty); `:987`
+feeds `mapfile` from a process substitution, whose status errexit never sees. Both run here under
+`set -euo pipefail` against an empty directory: the log line prints "0 .rd5 squares", `mapfile` yields
+an empty array, exit 0. The other `ls` uses in `map-build/` are in the test suites' own assertions
+(`test_build_names.sh:99,106,174`, `test_build_functions.sh:32,50`, `test_build_usca_run.sh:167,221,348`,
+`test_build_usca_stop.sh:94`), each on a directory, not a glob, or already `2>/dev/null || …`-guarded.
+Inside G8: `:417` is `sed` on a file and `:418` is `find`; neither can exit non-zero on an empty match.
+
+**N7, carried.** Aspen ran the new `bef_store_ok` against `/mnt/storage/elevation/bef3`, "the verified
+copy of what the install will put at `USCA_BEF_DIR` (that path doesn't exist yet)" (G8 audit). That
+answers the list half of N7 — `SHA256SUMS` hashes to the pin and every line is `<sha>  srtm_X_Y.bef` —
+and the 13 s full check is plausible against the store's 1,926,598,934 bytes (G7 audit `:156`; about
+148 MB/s). What it cannot answer is the directory half: that `bef3-20261027` on the card will hold
+exactly those 182 non-empty `.bef` and no other. The install's step 4 ("run `bef_store_ok … full` on the
+installed path", G8 audit) is the check for that, and it must run the function from the *installed*
+`8a9331fa6` script, which `install-map-build.sh` in step 3 provides. If step 4 is skipped, the run's own
+`state`-stage check (`:663`) still stops a bad store before anything expensive — loudly, with the
+names — so the cost of skipping it is a missed week, not a wrong map.
+
+### The five questions
+
+**1. Is B1 fixed under `set -euo pipefail`?** Yes. The reproduction from the quick look, rerun on this
+head: `heights_read_ok` (`:427-439`) extracted by its function markers, lines `:873` and `:876-877`
+extracted by number, both the old (`ea67332db:873-875`) and the new, run by `env -i PATH=/usr/bin:/bin
+bash --norc --noprofile` under `set -euo pipefail` with stub `log`/`die` and a sentinel echo after:
+
+| Folder | Old `ls` line | New `find` line |
+|---|---|---|
+| only `W125_N45.u5d_3`, `W125_N40.u5d_3` | exit 2, nothing printed | sentinel reached, exit 0, no log line |
+| `W80_N25.u5d` + `W85_N30.u5d_3` | log "for W80_N25 ", sentinel, exit 0 | the same |
+| empty | exit 2, nothing printed | sentinel reached, exit 0 |
+| `W125_N45.u5d` + `W80_N25.u5d` (disallowed tile) | — | `die` from `:873`, naming `W125_N45`, before `:876` |
+| no `unodes55/` at all | — | find's error, exit 1 (N10, unreachable) |
+
+The driver's `USCA_BEF_NONE` was a stand-in list containing `W80_N25`, not the pin's
+(`pins.env:274`: `W170_N20 W180_N25 W80_N25 W95_N15 W95_N20`); the test is of the pipeline's exit
+status, which does not depend on the list. `find -name '*.u5d'` matches the whole name, so `.u5d_3`
+tiles are not listed (the only-`_3` row above shows no log line); `-maxdepth 1` includes the start
+directory at depth 0, whose name cannot match. The added `sort` makes the log's order stable;
+`-printf` is GNU, as `:418` already is, and that line has run on the Pi (N7). Neither the script nor
+the harness sets `nullglob` or `failglob` (`grep shopt`: none), which fits Aspen's note that an
+interactive profile hid the failure once: under `nullglob` the old `ls --` with no operand would have
+listed the directory and reported `_3` tiles as having no heights — wrong, not fatal — while the build
+runs under plain bash. **Any other pipeline of the same shape?** None in the diff; none in the G8 lines;
+the script's other `ls` uses are a different shape and were run, not reasoned (N11).
+
+**2. Does the new R10 case bite?** By reading, yes, and Aspen's "69 of 70" is the number the code
+predicts. The stub (`test_build_usca_run.sh:182-184`) with `STUB_ALL_HEIGHTS=1` and the store present
+writes `W125_N45.u5d_3` and nothing else — the only-`_3` row above, the band shape B1 missed. The check
+(`:412-413`) wants `link.rec` present, no "no heights, as pinned" line, and no "run failed with exit 2".
+With the old line back the script exits 2 at `:874` before WayLinker, so `link.rec` is absent and
+`on_exit` (`:164`) logs "run failed with exit 2": two of three conditions fail. The WayLinker stub exits
+1 by design (`:186`, "each run stops itself"), so a passing run logs "run failed with exit 1", and the
+third condition is specific to B1's exit code — GNU `ls` exits 2 for a missing operand, confirmed by the
+reproduction. The other two R10 runs are untouched by the revert: `r10-ok` writes `W80_N25.u5d` (mixed
+row, passes either way) and `r10-drop` dies at `:873` before the line. So exactly one check fails,
+matching Aspen's count. `$T/bef-r10` is present during `r10-all` (made at `:400`, moved only by
+`r10-drop` at `:415`). I could not run it (N9).
+
+**3. Is N6 correct?** Yes. `build` sets `rc` (`:217-220`) and `new_srv r11` sets `$S` (`:199`);
+`status_field` (`:193`) reads the JSON; a `--fetch-only` run writes `--state ok --stage fetch-only` and
+exits 0 at `bin/build-usca.sh:714-718`, which is what R3 (`:265`) and R6 (`:323`) already assert with
+the store present. The old negative text check is kept as a fourth condition. N1's gate (`:662`) is
+unchanged.
+
+**4. Anything else in the diff?** The comment at `:874-875` says why `find`; the stub's comment at
+`:183`. Nothing else. `bash -n` on both files: clean. shellcheck is absent here.
+
+**5. Mergeable for 2026-11-01?** Yes. The install sequence in the G8 audit (merge `--no-ff`, copy the
+store to `USCA_BEF_DIR`, `install-map-build.sh`, then `bef_store_ok … full` on the installed path) covers
+what this review cannot see; step 4 is the one that closes N7.
+
+### Disclosure
+
+**Confirmed (read or run)**: the diff and every line cited; B1 fixed, by running the script's own
+extracted lines, old and new, in a clean bash over five folder shapes; the `:958`/`:987` shapes under
+`set -euo pipefail`; the functions suite (83 ok) and `bash -n`; the check count's reconciliation to 70;
+the merge-base; the G7/G8 audits as fetched today (store bytes, install steps, Aspen's N7 note).
+
+**Inferred**: that the new R10 case fails with the old line back, and fails alone — from the stub, the
+check's three conditions, `on_exit`'s text and the reproduction's exit code, not from running the suite;
+that 13 s is a plausible full check, from 1.93 GB and a USB 3 drive on the Pi.
+
+**Could not determine**: anything on the Pi — the run, names and disk suites' results, Aspen's revert
+check, the backup copy's check; whether `bef3-20261027` on the card will hold exactly the 182 listed
+`.bef` (the install's step 4 answers it).
+
+**Premises that were wrong**: none found in Aspen's report. One of my own: the quick look named
+`/mnt/archive/forager-build/elevation/bef3-20261027` as the path to run N7 against; it does not exist
+yet, so Aspen ran the backup copy, which was the available thing to run. The pinned path gets its check
+at install.
+
+**Decided beyond scope**: none. N10 and N11 are notes, not asks.
