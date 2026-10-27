@@ -28702,3 +28702,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The switch PR is built (owner)
 **Decision:** the owner: "Start now (Recommended)": dispatch 2026-10-26-21 Phase 2 (Amendments 1-2): the app's Street map and new downloads to street-v3, areas counted by their estimate, the Data sources rows, tests to v3, #418's S2-S4; then Sorrel, the owner's merge, the S22 check.
 **Notes:** Written by the planner by hand. Next free ID -1708.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1708
+**Timestamp:** 2026-10-27T04:17:04Z
+**Title:** The full elevation download (G7) goes ahead (owner)
+**Observed:** Aspen (message; Forager-cartography 0b69680, docs/audits/2026-10-26-elevation-pilot.md): pilot done on W125_N45 and W100_N40; .bef 26.6 and 14.3 MB, all 187 squares about 2.5-4 GB inferred; .rd5 +14.3 % and +10.0 %; download about 10 GB/h, so the full 3DEP pull is about 13 h; 1-second keep-copies about 98 GB need the USB drive.
+**Decision:** the owner: "Go on the elevation download": G7 only, relayed to Aspen; G8 and the app-side elevation work (hiking-mountain.brf:13, the per-point height at BRouterTrailRouter.kt:114) still wait for the owner.
+**Notes:** Written by the planner by hand. Aspen records the run in Forager-cartography. Next free ID -1709.
