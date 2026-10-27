@@ -54,8 +54,12 @@ data class WayHome(
         get() = if (trailJointMeters > 0.0) trail.points.drop(1).dropLast(1) else trail.points
 }
 
-/** One part of a [WayHome]: its [kind], its line in walking order, and its length. */
-data class WayHomePart(val kind: WayHomePartKind, val points: List<LatLng>, val meters: Double)
+/**
+ * One part of a [WayHome]: its [kind], its line in walking order, and its length. [heights] are its barometric heights
+ * for the walk back's climbing allowance (`WayHomeHeights.kt`; RECORD -1689): the track parts' own, the trail part's a
+ * stand-in from the walker's track; `null` where nothing measured them (the way to a waypoint's parts).
+ */
+data class WayHomePart(val kind: WayHomePartKind, val points: List<LatLng>, val meters: Double, val heights: PartHeights? = null)
 
 /**
  * What a [WayHomePart] is, which part 2 draws differently: the track parts dotted, the trail part solid (RECORD -1589).

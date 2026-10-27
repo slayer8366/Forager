@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.barometricTrackHeightsOrNull
 import com.zynergylabs.forager.app.domain.joinedTrackRoute
 import com.zynergylabs.forager.app.domain.model.GeoBoundingBox
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -63,6 +64,8 @@ class FindWayHomeUseCase(
             return trackOnly(WayHomeNote.ROUTES_UNREADABLE, "the downloaded regions could not be listed", error)
         }
         val points = stored.map { LatLng(it.lat, it.lng) }
+        // The whole track's barometric heights, once, for the climbing allowance (RECORD -1689); null without a barometer.
+        val heights = barometricTrackHeightsOrNull(stored)
         val routes = when (val found = routesFor(points, regions)) {
             is Routes.Fallback -> return found.result
             is Routes.On -> found
@@ -90,7 +93,10 @@ class FindWayHomeUseCase(
         }
         val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
         val trailMeters = route.lengthMetres + joints
-        val trackBetween = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK).meters
+        // The walker's own track between the two trail points: the length check's yardstick, and the trail part's
+        // heights until the routes carry elevation (RECORD -1689, C1: "(b) Your track as a stand-in"; WayHomeHeights.kt).
+        val standIn = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK, heights = heights)
+        val trackBetween = standIn.meters
         // RECORD -1600, the owner: "Switch to (b)": the length check only runs when the walker went over
         // WAY_HOME_DETOUR_CHECK_MIN_TRACK_METERS between the two trail points. Under that, a trail only crossed or walked
         // beside can trip it on its joints alone and falsely say the route leaves the area (Sorrel's review of #389,
@@ -106,12 +112,12 @@ class FindWayHomeUseCase(
             return trackOnly(null, "the trail route, ${trailMeters.toInt()} m, is over the $WAY_HOME_SHORT_WALK_MAX_TRAIL_METERS m cap for ${trackBetween.toInt()} m walked between the trail points")
         }
 
-        val toStart = trackPart(stored, from = entry.index, to = 0, kind = WayHomePartKind.TRACK_TO_START)
+        val toStart = trackPart(stored, from = entry.index, to = 0, kind = WayHomePartKind.TRACK_TO_START, heights = heights)
         val originLeg = origin?.let { LatLng(it.lat, it.lng) }
         return WayHomeResult.AlongTrails(
             WayHome(
-                trackBack = trackPart(stored, from = points.lastIndex, to = leave.index, kind = WayHomePartKind.TRACK_BACK),
-                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters),
+                trackBack = trackPart(stored, from = points.lastIndex, to = leave.index, kind = WayHomePartKind.TRACK_BACK, heights = heights),
+                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters, standInHeights(standIn.heights, standIn.meters, trailMeters)),
                 trackToStart = if (originLeg == null) {
                     toStart
                 } else {
@@ -163,14 +169,24 @@ class FindWayHomeUseCase(
         class Fallback(val result: WayHomeResult) : Routes
     }
 
-    /** The walker's own track from stored point [from] to stored point [to], along the track joined to itself, as `RouteHome` walks it. */
-    private fun trackPart(stored: List<TrackPoint>, from: Int, to: Int, kind: WayHomePartKind): WayHomePart {
+    /**
+     * The walker's own track from stored point [from] to stored point [to], along the track joined to itself, as
+     * `RouteHome` walks it, with its stored points' [heights] (the whole track's barometric heights, or `null`) kept
+     * beside the positions for the climbing allowance (RECORD -1689).
+     */
+    private fun trackPart(stored: List<TrackPoint>, from: Int, to: Int, kind: WayHomePartKind, heights: List<Double?>?): WayHomePart {
         // joinedTrackRoute walks from a list's last point to its first, so the list is put in that order. Every caller
         // passes from >= to today (the leave index is above the entry index, and the track to the start runs down to 0),
         // so the reversed branch is not reached; it is kept so the function means what its name says (L-389-8).
         val section = if (from >= to) stored.subList(to, from + 1) else stored.subList(from, to + 1).asReversed()
+        val storedIndex: (Int) -> Int = if (from >= to) { k -> to + k } else { k -> to - k }
         val joined = joinedTrackRoute(section)
-        return WayHomePart(kind, joined.route.map { LatLng(section[it].lat, section[it].lng) }, joined.meters)
+        return WayHomePart(
+            kind,
+            joined.route.map { LatLng(section[it].lat, section[it].lng) },
+            joined.meters,
+            trackPartHeights(stored, joined.route.map(storedIndex), heights),
+        )
     }
 
     /** A failure from the snapper or the router, as its note: unreadable data, or no route found. */
