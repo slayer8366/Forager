@@ -139,7 +139,7 @@ class CrowdedStackHost(
      * user's ask whether or not the camera moves, so Back never restores the pre-zoom camera over the navigation view. The
      * list stays: List mode lists while navigating, and the view's effect also re-runs on a style or layout change.
      */
-    fun onNavigationViewRequested() = clearReturns()
+    fun onNavigationViewRequested() = Unit
 
     /** Back's camera step: the latest return, restored. `false` when there was none. */
     fun stepBack(): Boolean {
