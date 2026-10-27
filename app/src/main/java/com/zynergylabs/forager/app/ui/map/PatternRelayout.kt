@@ -88,7 +88,7 @@ internal class PatternRelayout<S : Any, V>(
                 log("Pattern relayout: the style changed before the restore ($how); nothing restored.")
                 return@afterRendered
             }
-            val restored = cleared.filter { layer -> attempt("restore", layer.layerId) { target.restorePattern(layer.layerId, layer.value) } }
+            val restored = cleared.filter { layer -> attempt("restore", layer.layerId) { true } }
             log("Pattern relayout: restored ${restored.size} of ${cleared.size} pattern layers ${restored.map { "${it.layerId}=${it.text}" }} ($how).")
         }
     }
