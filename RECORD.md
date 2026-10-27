@@ -28777,3 +28777,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message; Forager-cartography 58ca7c9): pi-31 merged into pi-build at 20f75d063 (--no-ff); on the Pi at the merge head test_build_names.sh 23, test_build_usca_functions.sh 67, test_fnam_build.py 21, test_build_functions.sh 14, test_build_usca_disk.sh 95, test_build_usca_run.sh 62. The installed copy is still aa14e6eaa, with no names stage.
 **Decision:** the owner: "Install before Sunday (Recommended)": Aspen installs 20f75d063 into /opt/forager-build/map-build as for pi-30, with aa14e6eaa kept for rollback, so the 2026-11-01 run publishes squares and names together.
 **Notes:** Written by the planner by hand. Next free ID -1715.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1715
+**Timestamp:** 2026-10-27T10:34:18Z
+**Continues:** 2026-09-28-1714
+**Title:** The names build is installed on the Pi
+**Observed:** Aspen (message): on the owner's "Go" typed in Aspen's window about 03:40 PDT (the relayed go of -1714 was refused by Aspen's permission check as a production deploy), map-build/bin/install-map-build.sh from a clean worktree at 20f75d063. COMMIT 20f75d063fe0721ddf990f3579d037f2007c3081; rollback copy /opt/forager-build/map-build.prev (aa14e6eaa); names pins present; installed files match git archive 20f75d063; 67 function checks from the installed copy; timer unchanged (Sun 2026-11-01 02:13 PST).
+**Decision:** none new; the install ran under -1714.
+**Notes:** Written by the planner by hand. The drives had not moved as of the last USB event (2026-10-27T06:14:26Z), so US 1-second keep-copies (-1713) have not started. Next free ID -1716.
