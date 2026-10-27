@@ -28918,3 +28918,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message): the owner, in Aspen's window, "Wait for Sorrel, then install (Recommended)"; a change asked by Sorrel is not covered. Sorrel's quick look (Fable; sorrel-pi32-elevation 25ecfe7cd) at ea67332db: B1 blocking, build-usca.sh:874 lists *.u5d with ls under pipefail, so a band with no unsuffixed tile (the normal band) ends the run with exit 2 and no message, reproduced by running the script's own lines; the tests' stub always writes W80_N25.u5d. S1's check itself is right and bites. N6 R11 is a negative grep only; N7 the name comparison makes the real SHA256SUMS load-bearing, to be run on the Pi before merging.
 **Decision:** none new; G8 is not merged or installed. Aspen fixes B1 with a normal-band test, N6 and N7; Sorrel takes another quick look; the install needs the owner's word again in Aspen's window.
 **Notes:** Written by the planner by hand. Next free ID -1728.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1728
+**Timestamp:** 2026-10-27T16:44:56Z
+**Continues:** 2026-09-28-1727, 2026-09-28-1720
+**Title:** G8 is installed on the Pi: Sunday's squares carry heights
+**Observed:** Sorrel's re-look (Fable; sorrel-pi32-elevation 4208a9e03) at 8a9331fa6: mergeable; B1 fixed (find, reproduced over five folder shapes in a clean bash); the normal-band R10 case right in shape; N6 correct. Aspen (message): on the owner's "Go, install now (Recommended)" in Aspen's window, pi-32 merged into pi-build at 532f70fd6; the store at /mnt/archive/forager-build/elevation/bef3-20261027 (182 .bef, SHA256SUMS equal to the pin, all OK as forager-build with the cache dropped); COMMIT 532f70fd691a32a755fe99d2727e9df9428c4fdc, rollback map-build.prev 20f75d063; bef_store_ok from the installed copy quick OK and full OK (21 s). Timer Sun 2026-11-01 02:13 PST.
+**Decision:** none new; the install ran under -1720 and -1724. After the run Aspen reads the store line, the pinned no-heights lines and the .rd5 growth. The app keeps consider_elevation off.
+**Notes:** Written by the planner by hand. Next free ID -1729.
