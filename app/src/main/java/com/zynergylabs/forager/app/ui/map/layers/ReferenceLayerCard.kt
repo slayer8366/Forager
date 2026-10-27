@@ -94,7 +94,7 @@ internal fun ReferenceTrailsInfoButton(onClick: () -> Unit, modifier: Modifier =
 internal fun ReferenceLayerCard(title: String, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val sources = LocalReferenceTrailsSources.current
-    LaunchedEffect(sources) { sources?.refresh() }
+    // revert 5: no refresh on open
     val copy = sources?.copy?.collectAsState()?.value ?: ReferenceTrailsCopy.None
     val text = when (copy) {
         // Only until the kept copy is read at start: no dates, and no claim that the phone was never online.
