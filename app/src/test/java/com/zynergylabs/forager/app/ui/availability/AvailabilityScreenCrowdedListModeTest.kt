@@ -9,6 +9,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
@@ -165,11 +167,33 @@ class AvailabilityScreenCrowdedListModeTest {
         val mapBounds = composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).fetchSemanticsNode().boundsInRoot
         val above = Offset(list.center.x, list.top - 120f * density)
         assertFalse("positive control: the point is outside the list", list.contains(above))
-        composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).performTouchInput { click(above - mapBounds.topLeft) }
+        val inMap = above - mapBounds.topLeft
+        val s = checkNotNull(map.scene)
+        val spotPx = Offset(s.xPx(s.centre.lng), s.yPx(s.centre.lat))
+        val half = 24f * density
+        val hits = s.hitsInBox(inMap.x, inMap.y, half, listOf(MapLayerIds.FINDS))
+        val point = s.hitsAt(inMap.x, inMap.y, listOf(MapLayerIds.FINDS))
+        val before = composeRule.onNodeWithTag(CROWDED_LIST_TAG).fetchSemanticsNode().id
+        composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).performTouchInput { click(inMap) }
         settle()
+        val listAfter = composeRule.onAllNodesWithTag(CROWDED_LIST_TAG).fetchSemanticsNodes().map { it.id }
+        val tree = composeRule.onRoot(useUnmergedTree = true).printToString()
+        val diag = "DIAG171 density=$density list=$list map=$mapBounds tapRoot=$above tapMap=$inMap (dp ${inMap / density}) " +
+            "spotPx=$spotPx (dp ${spotPx / density}) dDp=${(inMap - spotPx) / density} boxHalfDp=24 hitsInBox=$hits hitsAt=$point " +
+            "listBefore=$before listAfter=$listAfter bubble=${bubbleShown()} fanOpen=${map.fan?.isOpen} frames=${map.cameras.single().frames.size}"
+        println(diag)
+        println("DIAG171 TREE\n$tree")
 
-        composeRule.onNodeWithTag(CROWDED_LIST_TAG).assertDoesNotExist()
-        assertFalse("and no bubble", bubbleShown())
+        // A second tap far from the spot (top of the map, 60 dp down, the spot's column): does the list close there?
+        val far = Offset(spotPx.x, 60f * density)
+        if (listAfter.isNotEmpty()) {
+            composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).performTouchInput { click(far) }
+            settle()
+        }
+        val farHits = s.hitsInBox(far.x, far.y, half, listOf(MapLayerIds.FINDS))
+        val diag2 = "DIAG171 far=${far / density}dp farHits=$farHits listAfterFar=${listShown()} bubbleAfterFar=${bubbleShown()}"
+        println(diag2)
+        throw AssertionError(diag + "\n" + diag2 + "\n" + tree)
     }
 
     @Test
