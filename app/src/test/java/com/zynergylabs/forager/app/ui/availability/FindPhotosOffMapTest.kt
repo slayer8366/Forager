@@ -136,6 +136,13 @@ class FindPhotosOffMapTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * A standalone photo far from everything else, in the tests whose answer under a broken rule would be an empty map:
+     * it makes a landed read tell itself apart from one that has not landed, so such a test fails on its own assertion
+     * and not on a wait (the revert checks of runs 40564838175 and 40564841571 ran out the wait instead).
+     */
+    private fun addSentinel() = addPhoto(SENTINEL, 46.0, -121.0)
+
     private fun finds() = map.content!!.findMarkers.map { it.recordId }
     private fun photos() = map.content!!.photoMarkers.map { it.recordId }.sorted()
 
@@ -198,11 +205,12 @@ class FindPhotosOffMapTest {
     fun `a find with no location leaves its located photos on the map as standalone photos`() {
         saveFind("unlocated", at = null)
         addPhoto("ph-a", 45.5003, -122.6004, toEntry = "unlocated")
+        addSentinel()
 
         show()
 
         assertEquals(emptyList<String>(), finds())
-        assertEquals(listOf("ph-a"), photos())
+        assertEquals(listOf("ph-a", SENTINEL), photos())
     }
 
     /** Amendment 1, "Hide only after Save (Recommended)": a draft's photos keep their icons until Save. */
@@ -210,9 +218,10 @@ class FindPhotosOffMapTest {
     fun `a draft find's photos keep their icons until it is saved`() {
         saveFind("new-find", LatLng(45.50, -122.60), draft = true)
         addPhoto("ph-a", 45.5003, -122.6004, toEntry = "new-find")
+        addSentinel()
 
         show()
-        assertEquals("while a draft, the photo is drawn", listOf("ph-a"), photos())
+        assertEquals("while a draft, the photo is drawn", listOf("ph-a", SENTINEL), photos())
 
         runBlocking {
             repository.commitDraft("new-find", MushroomLogEntry.draft(id = "new-find", location = LatLng(45.50, -122.60), date = day).copy(isDraft = false)).getOrThrow()
@@ -220,7 +229,7 @@ class FindPhotosOffMapTest {
         reload { it.findMarkers.isNotEmpty() }
 
         assertEquals("saved, the find draws", listOf("new-find"), finds())
-        assertEquals("and its photo no longer does", emptyList<String>(), photos())
+        assertEquals("and its photo no longer does", listOf(SENTINEL), photos())
     }
 
     /** Amendment 1, "Fine, they reappear (Recommended)": after the Undo window, a deleted find's photos are standalone. */
@@ -229,20 +238,24 @@ class FindPhotosOffMapTest {
         saveFind("find-1", LatLng(45.50, -122.60))
         addPhoto("ph-a", 45.5003, -122.6004, toEntry = "find-1")
         addPhoto("ph-b", 45.4998, -122.5997, toEntry = "find-1")
+        addSentinel()
         show()
-        assertEquals("positive control: hidden while the find is saved", emptyList<String>(), photos())
+        assertEquals("positive control: hidden while the find is saved", listOf(SENTINEL), photos())
 
         // The delete the Journal commits when its Undo window ends (MushroomLogViewModel.commitDeleteEntry calls this use
         // case); that the Journal's delete reaches the map is MushroomLogViewModelWiringTest's.
         runBlocking { DeleteMushroomLogEntryUseCase(repository)("find-1").getOrThrow() }
-        reload { it.photoMarkers.isNotEmpty() }
+        reload { it.findMarkers.isEmpty() }
 
-        assertEquals("the find is gone", emptyList<String>(), finds())
-        assertEquals("its photos are standalone again", listOf("ph-a", "ph-b"), photos())
+        assertEquals("its photos are standalone again", listOf("ph-a", "ph-b", SENTINEL), photos())
     }
 
     /** Every thread's stack, for a wait that ran out: which coroutine or query it stalled on. */
     private fun threadDump(): String = Thread.getAllStackTraces().entries.joinToString("\n") { (thread, frames) ->
         "-- ${thread.name} (${thread.state})\n" + frames.take(25).joinToString("\n") { "   at $it" }
+    }
+
+    private companion object {
+        const val SENTINEL = "z-standalone"
     }
 }
