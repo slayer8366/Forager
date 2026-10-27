@@ -182,7 +182,7 @@ internal class AvailabilityWaypointRoute(
          * the way home applies itself (`WayHomeWatch.onFix`); the rule skips network fixes itself.
          */
         private fun judgeOffTrail(shown: WayHomeLine, fix: LocationFix.Update) {
-            offTrail.next(fix.toTrackPoint(), fix.provider, listOf(shown.wayHome.line))
+            offTrail.next(fix.toTrackPoint(), fix.provider, listOf(shown.wayHome.trailRoute))
         }
 
         /** The walker's place on [shown] from [here], as the way home's (L-395-4: the far band's hysteresis held across off the line). */
