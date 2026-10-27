@@ -203,7 +203,7 @@ internal fun navigationReadout(
             // The note's short form, and no empty form: a note is never dropped silently.
             route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
             // The notice's short form, and no empty form, as a note's; "Back on trail" has none shorter.
-            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> listOf(if (route.toWaypoint) WAYPOINT_OFF_TRAIL_SHORT_TEXT else OFF_TRAIL_SHORT_TEXT)
+            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> listOf(OFF_TRAIL_SHORT_TEXT)
             route is ReturnRoute.Straight -> listOf(wayToWaypointNoteShortText(route.note))
             else -> emptyList()
         }
