@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import android.app.Application
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -38,6 +39,7 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -110,9 +112,17 @@ class FindPhotosOffMapTest {
      */
     private fun reload(loaded: (MapOverlayContent) -> Boolean = { it.findMarkers.isNotEmpty() || it.photoMarkers.isNotEmpty() }) {
         availability.onMapShown()
-        try {
-            composeRule.waitUntil(30_000) { map.content?.let(loaded) == true }
-        } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+        // The read resumes on the main looper, which is this test's thread under Robolectric. Run 40560135774's thread dump
+        // showed no thread blocked and the read never landing under composeRule.waitUntil alone, so the looper is idled
+        // here by hand between checks, as MushroomLogViewModelWiringTest's wait does.
+        val deadline = System.currentTimeMillis() + 30_000
+        while (map.content?.let(loaded) != true && System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            composeRule.waitForIdle()
+            Thread.sleep(20)
+        }
+        if (map.content?.let(loaded) != true) {
+            val timeout = IllegalStateException("no landing within 30 s")
             val stored = runBlocking { repository.getAll().getOrNull()?.map { "${it.id} draft=${it.isDraft} at=${it.foundAt}" } }
             throw AssertionError(
                 "the map's records never landed: handed finds=${map.content?.findMarkers?.map { it.recordId }} " +
