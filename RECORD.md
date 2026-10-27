@@ -29198,3 +29198,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #430 (spiral-zoom-then-fan d5bed7d82): the line-248 failure was an app bug, the icon cluster covering the list's right end, fixed so the list keeps clear of the cluster's column; full suite 40581663538 and PR run 40584440611 green, 5,861 tests; R1-R7 each failing for their own edit. Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr430.md, branch sorrel-pr430, a20519ed3): no blocking finding; S1 an app-requested move (Locate, search, Return to Route) leaves the list and the camera return behind, so Back would undo it; S2 the list and camera return are remembered inside the tab and lost on a tab change while the fan survives; S3 a landscape list can sit under the search strip (inferred); S4 one silent fallback; S5 S22 gaps. Aspen (message): on the owner's word in Aspen's window, ~/imx (12.14 GB) and ~/archive (2.51 GB) moved to /mnt/storage/moved-20261027/, verified by sha256; NVMe 176.62 GB free, about 18.5 GB in hand at Sunday's start (inferred).
 **Decision:** the owner: "Treat it like your own pan (Recommended)"; "Fix all, then merge (Recommended)": dispatch 2026-10-27-07 Amendment 1, then Sorrel's quick look, then the merge; dispatch -14 builds on the fixed code.
 **Notes:** Written by the planner by hand. The imx project's virtual environment records its old path and needs re-creating before use. Next free ID -1754.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1754
+**Timestamp:** 2026-10-27T21:56:55Z
+**Continues:** 2026-09-28-1752
+**Title:** #429, the timer form, passes on the S22
+**Observed:** coder (Opus; pattern-relayout-fix d25afd054, the two test names renamed): full CI 40582981687 green, 5,854 tests; revert checks R1 40583201353, R2 40583205349, R3 40583210180 and F0 40583195033, each compiling and failing for its own edit. On the S22 with the PR's own build 1.0.4116+g4acbf283 (schema 22): night on 2.97-3.32%, night off 2.66-2.84%, out and back in 2.70-3.24%, each 3 of 3 at 1 s and 30 s; tile edge lowest band 1.80-2.34% (the edge's position inferred); tufts not run (no wetland found). Every reload logged one line: clear deferred 400 ms, 2 of 2 layers cleared and restored 100-109 ms later. The phone reads a 300 ms style transition, unexplained.
+**Decision:** none new; Sorrel reviews, then the owner's merge.
+**Notes:** Written by the planner by hand. Next free ID -1755.
