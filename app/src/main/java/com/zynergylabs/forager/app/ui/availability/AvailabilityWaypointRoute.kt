@@ -198,7 +198,7 @@ internal class AvailabilityWaypointRoute(
             val state = offTrail.state
             val next = ahead?.let {
                 // Only the trail part dims (RECORD -1676, "A: trail dims only"), so only a line ahead with one is marked.
-                val dim = state == OffTrailState.OFF && it.aheadParts.any { part -> part.kind == RouteLinePartKind.TRAIL }
+                val dim = state == OffTrailState.BACK_ON && it.aheadParts.any { part -> part.kind == RouteLinePartKind.TRAIL }
                 WaypointRouteShown(
                     hud = ReturnRoute.Ahead(it.lookahead, it.routeMeters, offTrail = state, toWaypoint = true),
                     line = RouteLine(atReturn = emptyList(), ahead = it.routeAhead, aheadIsCurrent = true, aheadParts = it.aheadParts, atReturnGeneration = generation, trailDimmed = dim),
