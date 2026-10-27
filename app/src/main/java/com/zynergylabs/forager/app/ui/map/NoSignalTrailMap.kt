@@ -10,6 +10,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.zynergylabs.forager.app.domain.NO_SIGNAL_SWITCH_DELAY_MS
+import com.zynergylabs.forager.app.domain.NetworkSignal
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SIGNAL_RETURN_SWITCH_DELAY_MS
 import com.zynergylabs.forager.app.domain.noSignalWithHysteresis
@@ -38,8 +39,8 @@ import kotlinx.coroutines.flow.stateIn
  *
  * **Drawn through the offline branch** ([mapStyleSourceFor] with `useOfflineTiles`), the style the downloaded regions
  * hold. Not Trail Map's online style: with no signal that load can fail, and an online failure of Trail Map's style is
- * exactly what `OwnStreetFallback` falls back on, which would swap the map to OpenStreetMap for the rest of the
- * process. The fallback never fires in offline mode, so its rules stay as they are, and nothing asks OpenStreetMap's
+ * exactly what `OwnStreetFallback` falls back on, which would swap the map to OpenStreetMap until the signal returns
+ * (since dispatch 2026-10-27-09 Amendment 1; before it, for the rest of the process). The fallback never fires in offline mode, so its rules stay as they are, and nothing asks OpenStreetMap's
  * tile host for anything (its tiles are never stored, -1554).
  *
  * **Only when a downloaded area exists** ([hasDownloadedArea]; dispatch 2026-10-23-07, Elder's item 3; the owner: "Only
@@ -103,8 +104,19 @@ internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basem
  * The app's real "no signal" state: [AndroidNetworkSignal] through [noSignalWithHysteresis], kept for [scope]'s life.
  * Each change is logged (CLAUDE.md: a fallback is logged when it fires).
  */
-internal fun noSignalState(context: Context, scope: CoroutineScope): StateFlow<Boolean> =
-    noSignalWithHysteresis(AndroidNetworkSignal(context).validated)
+internal fun noSignalState(context: Context, scope: CoroutineScope): StateFlow<Boolean> = noSignalState(AndroidNetworkSignal(context), scope)
+
+/**
+ * [noSignalState] from any [NetworkSignal] (a test gives its own, and its own [fallback]). When the state turns to
+ * "signal", the Trail Map fallback is retried ([OwnStreetFallback.onSignalReturned]; dispatch 2026-10-27-09 Amendment 1,
+ * RECORD -1739, the owner: "Yes, retry after 30 s (Recommended)").
+ */
+internal fun noSignalState(
+    signal: NetworkSignal,
+    scope: CoroutineScope,
+    fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
+): StateFlow<Boolean> =
+    noSignalWithHysteresis(signal.validated)
         .onEach { noSignal ->
             Log.i(
                 NO_SIGNAL_LOG_TAG,
@@ -114,6 +126,7 @@ internal fun noSignalState(context: Context, scope: CoroutineScope): StateFlow<B
                     "Validated network (${SIGNAL_RETURN_SWITCH_DELAY_MS / 1000} s, or at start): maps draw the chosen map type."
                 },
             )
+            if (!noSignal) fallback.onSignalReturned()
         }
         .stateIn(scope, SharingStarted.Eagerly, false)
 

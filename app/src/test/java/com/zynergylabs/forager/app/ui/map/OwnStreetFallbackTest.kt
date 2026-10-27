@@ -84,7 +84,7 @@ class OwnStreetFallbackTest {
         assertTrue(fallback.fellBack)
         assertFalse("the map now draws OpenStreetMap's Street", fallback.ownStreet(switch = true))
         assertEquals(
-            listOf("Own Street style failed to load (Failed to load style: 404); drawing OpenStreetMap's Street until the app restarts."),
+            listOf("Own Street style failed to load (Failed to load style: 404); drawing OpenStreetMap's Street until the connection returns or the app restarts."),
             lines,
         )
 

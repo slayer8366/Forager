@@ -36,7 +36,7 @@ private var SemanticsPropertyReceiver.mapModeChipSelectedFill by MapModeChipSele
  * they chose. No signal with no downloaded area ([hasDownloadedArea] false) draws the chosen map, so the chip stays
  * normal (dispatch 2026-10-23-07, Elder's item 3: grey only when Trail Map is actually drawn instead). The one path
  * that shows something else to a Trail user is the -1513 fallback ([trailMapDraws] false):
- * once Trail Map's style has failed to load, the map draws OpenStreetMap's raster until the next cold start, and the
+ * once Trail Map's style has failed to load, the map draws OpenStreetMap's raster until the signal returns or the next cold start, and the
  * Trail chip is grey (the owner: "Same meaning everywhere: grey = chosen, but something else is shown."). The stored
  * choice never changes; only the chip's colour does.
  */
