@@ -28722,3 +28722,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message; Forager-cartography 92fb5a8): 187 .rd5 (1,563,722,864 bytes, OSM 2026-10-24T20:20:51Z, matching the build manifest by size and sha256) and 187 .fnm (603,642,990 bytes) under routing/usca-20261025T101217Z/, read back by sha256, then routing/manifest.json replaced last (files segments4 only; a new top-level names array). The Worker's parser reads only run_id, osm_timestamp and files (server/pmtiles-worker/src/routing/manifest.ts:41-62), so the names array is ignored. The first names run was killed at 7.4 GB (flex_mem), fixed on pi-31-names-stage 6cdfaef15 (sparse_mem_array).
 **Decision:** the owner: "Go, I'll type it to Aspen (Recommended)": the upload as staged, with the go typed in Aspen's window; routing/usca-20261021T111429Z/ stays on R2 as the fallback. Names stay unserved until the Worker change. Sorrel reviews pi-31-names-stage.
 **Notes:** Written by the planner by hand. Next free ID -1710.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1710
+**Timestamp:** 2026-10-27T05:08:54Z
+**Continues:** 2026-09-28-1708, 2026-09-28-1709
+**Title:** A names failure fails the week; the heights are backed up to the Lexar; 1-second keep-copies wait for the 256 GB drive (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-26-sorrel-pi31-names.md, branch sorrel-pi31-names, c52732724) on pi-31-names-stage 6cdfaef15: no blocking findings. S1: sparse_mem_array needs 8.6 GB at 268,435,456 named-input nodes (34% above today) and nothing checks the count logged at build-usca.sh:787. S2: the disk check does not count the names files. S3: a names failure fails the whole run after BRouter. S4: no FNAM reader exists in Forager, and the spec lives in a Forager-cartography handoff. Aspen (message): the Pi sees no SSD; the only extra drive is a Lexar USB flash stick, 61.9 GB, ext4 "forecast-data", empty; the micro SD is not readable (the one slot holds the archive card, no reader).
+**Decision:** the owner: "Whole week fails (Recommended)" (S3 kept, with S1's node-count check before BRouter); "Yes: back up heights (Recommended)": after G7, the 3-second .hgt and .bef (about 17 GB) copied to the Lexar and verified by sha256, with nothing else on it; "Wait for the 256 GB drive (Recommended)": no 1-second keep-copies now, and a re-pull needs the owner's word.
+**Notes:** Written by the planner by hand. Aspen fixes S1/S2 and Sorrel re-checks before pi-31 merges into pi-build; the FNAM v1 spec lands in Forager before a reader is dispatched (S4). Next free ID -1711.
