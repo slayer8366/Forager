@@ -172,6 +172,9 @@ import com.zynergylabs.forager.app.location.AndroidLastKnownLocationSource
 import com.zynergylabs.forager.app.location.AndroidLocationTracker
 import com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
+import com.zynergylabs.forager.app.data.referencetrails.WorkerReferenceTrailsManifestSource
+import com.zynergylabs.forager.app.data.repository.DataStoreReferenceTrailsDatesStore
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailsSources
 import com.zynergylabs.forager.app.photo.FilePhotoStore
 import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
 import com.zynergylabs.forager.app.sensor.AndroidPressureProvider
@@ -313,6 +316,17 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val mapLayerPreferencesRepository: MapLayerPreferencesRepository = dataStoreMapPreferencesRepository
     val basemapPreferenceRepository: BasemapPreferenceRepository = dataStoreMapPreferencesRepository
     val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = dataStoreMapPreferencesRepository
+
+    /**
+     * Step 8d (dispatch 2026-10-26-24): the official-trails card's source dates, from the Worker's manifest, with the
+     * last copy kept on the phone. Fetched only when the card opens; no background job.
+     */
+    val referenceTrailsSources = ReferenceTrailsSources(
+        source = WorkerReferenceTrailsManifestSource(ApiClients.httpClient(debug = BuildConfig.DEBUG)),
+        store = DataStoreReferenceTrailsDatesStore(context),
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        log = { message, error -> Log.w("ReferenceTrailsSources", message, error) },
+    )
 
     /**
      * Where the map's colour fields read their cells (map layers L0b, B5 and B6): the store that reports

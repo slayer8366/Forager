@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -82,6 +83,8 @@ import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.MapLegend
+import com.zynergylabs.forager.app.ui.map.layers.ReferenceLayerCard
+import com.zynergylabs.forager.app.ui.map.layers.ReferenceTrailsInfoButton
 import com.zynergylabs.forager.app.ui.map.layers.colourFieldsTopFirst
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
@@ -280,42 +283,57 @@ internal fun MapLayersSheet(
     ) {
         MapChromeSheetNavigationBar()
         val providedContentColor = LocalContentColor.current
+        // Step 8d: the official-trails card is shown in this sheet in place of its list, and Back brings the list back.
+        // The list's scroll is held here, so it returns where the user left it (CLAUDE.md, UX defaults).
+        var referenceCardOpen by remember { mutableStateOf(false) }
+        val listScroll = rememberScrollState()
+        val cardScroll = rememberScrollState()
         Column(
             modifier = Modifier
                 .semantics { mapLayersSheetContentColor = providedContentColor }
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(if (referenceCardOpen) cardScroll else listScroll)
                 .padding(horizontal = Spacing.lg)
                 .padding(bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            Text("Layers", style = MaterialTheme.typography.titleLarge)
-            Text("Map type", style = MaterialTheme.typography.titleSmall)
-            // Centred between the sheet's sides (owner, 2026-09-29: "have the map street/topo/satellite chips be centered between the
-            // panel sides. The height position on the panel is fine as is."; dispatch 2026-09-28-104, item 9). The column above has
-            // equal padding at both ends, so centring in it is centring in the sheet; the spacing between chips and the row's height
-            // are unchanged.
-            MapModeChipRow(mapMode, onMapModeSelected, offlineTiles, fallback)
-            Text("Overlays", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.sm))
-            overlays.forEach { option ->
-                LayerSwitchRow(
-                    layerId = option.layerId,
-                    label = option.label,
-                    checked = state.stateOf(option.layerId).visible,
-                    onCheckedChange = { onVisibilityChanged(option.layerId, it) },
-                )
+            if (referenceCardOpen) {
+                ReferenceLayerCard(title = REFERENCE_TRAILS_LABEL, onClose = { referenceCardOpen = false })
+            } else {
+                Text("Layers", style = MaterialTheme.typography.titleLarge)
+                Text("Map type", style = MaterialTheme.typography.titleSmall)
+                // Centred between the sheet's sides (owner, 2026-09-29: "have the map street/topo/satellite chips be centered between the
+                // panel sides. The height position on the panel is fine as is."; dispatch 2026-09-28-104, item 9). The column above has
+                // equal padding at both ends, so centring in it is centring in the sheet; the spacing between chips and the row's height
+                // are unchanged.
+                MapModeChipRow(mapMode, onMapModeSelected, offlineTiles, fallback)
+                Text("Overlays", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.sm))
+                overlays.forEach { option ->
+                    LayerSwitchRow(
+                        layerId = option.layerId,
+                        label = option.label,
+                        checked = state.stateOf(option.layerId).visible,
+                        onCheckedChange = { onVisibilityChanged(option.layerId, it) },
+                    )
+                }
+                // Step 8b: after the record overlays, before the colour fields, and only while the map draws the band.
+                if (referenceTrails) {
+                    // Step 8d: the (i) sits beside the row, outside its toggle, as a colour field's drag handle does below.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            LayerSwitchRow(
+                                layerId = MapLayerIds.REFERENCE_FS_BAND,
+                                label = REFERENCE_TRAILS_LABEL,
+                                detail = REFERENCE_TRAILS_DETAIL,
+                                checked = state.stateOf(MapLayerIds.REFERENCE_FS_BAND).visible,
+                                onCheckedChange = { onVisibilityChanged(MapLayerIds.REFERENCE_FS_BAND, it) },
+                            )
+                        }
+                        ReferenceTrailsInfoButton(onClick = { referenceCardOpen = true })
+                    }
+                }
+                ColourFieldRows(colourFields, state, onVisibilityChanged, onOpacityChanged, onColourFieldMoved)
             }
-            // Step 8b: after the record overlays, before the colour fields, and only while the map draws the band.
-            if (referenceTrails) {
-                LayerSwitchRow(
-                    layerId = MapLayerIds.REFERENCE_FS_BAND,
-                    label = REFERENCE_TRAILS_LABEL,
-                    detail = REFERENCE_TRAILS_DETAIL,
-                    checked = state.stateOf(MapLayerIds.REFERENCE_FS_BAND).visible,
-                    onCheckedChange = { onVisibilityChanged(MapLayerIds.REFERENCE_FS_BAND, it) },
-                )
-            }
-            ColourFieldRows(colourFields, state, onVisibilityChanged, onOpacityChanged, onColourFieldMoved)
         }
     }
 }
