@@ -1,0 +1,224 @@
+{
+ "A": {
+  "label": "A",
+  "far_index": 264,
+  "far_min_in": 88.46666666666667,
+  "end_index": 456,
+  "end_min_in": 139.8,
+  "end_to_origin_m": 26.09128768330448,
+  "far": {
+   "route_m": 458.76602990628226,
+   "pace": 0.8740566034861831,
+   "pace_only_s": 524.8699318516553,
+   "allowance_s": 48.208569339252556,
+   "with_allowance_s": 573.0785011909079
+  },
+  "arrivals": {
+   "15.0": {
+    "index": 388,
+    "min_in": 119.75,
+    "elapsed_s": 1877.0,
+    "moving_s": 577.0,
+    "path_m": 671.0431798978402,
+    "moving_m": 446.79572544122743,
+    "pace_only_over_moving": 0.9096532614413437,
+    "with_over_moving": 0.9932036415786966,
+    "pace_only_over_elapsed": 0.279632355808021,
+    "route_over_walked": 0.6836609679516077,
+    "walked_over_moving_m": 1.5019015216297338,
+    "return_speed_over_pace": 0.8859182292304641,
+    "after_arrival_elapsed_s": 1203.0,
+    "after_arrival_path_m": 449.87648288321077
+   },
+   "30.0": {
+    "index": 383,
+    "min_in": 119.26666666666667,
+    "elapsed_s": 1848.0,
+    "moving_s": 548.0,
+    "path_m": 645.1294741438004,
+    "moving_m": 420.88201968718766,
+    "pace_only_over_moving": 0.9577918464446266,
+    "with_over_moving": 1.0457636883045764,
+    "pace_only_over_elapsed": 0.2840205258937529,
+    "route_over_walked": 0.7111224154114877,
+    "walked_over_moving_m": 1.5328035980802417,
+    "return_speed_over_pace": 0.87869925080086,
+    "after_arrival_elapsed_s": 1232.0,
+    "after_arrival_path_m": 475.7901886372505
+   }
+  },
+  "nearest_outward_m": {
+   "n": 192,
+   "min": 0.33439186568357515,
+   "q1": 8.605516049388612,
+   "median": 25.854689625182743,
+   "q3": 49.74411285749692,
+   "p90": 73.40090647759222,
+   "max": 89.58851716489521,
+   "share_within_10": 0.2864583333333333,
+   "share_within_20": 0.4375,
+   "share_within_50": 0.7552083333333334,
+   "share_over_100": 0.0
+  },
+  "nearest_outward_by_tenth_m": [
+   5.275620381824234,
+   29.35032803312896,
+   71.89946694249942,
+   69.96294208029641,
+   59.50964183267308,
+   3.5516977804008554,
+   6.556711508645602,
+   28.582392858203455,
+   32.90497941585783,
+   13.543755555555535
+  ],
+  "epsilon": {
+   "10.0": {
+    "far_route_m": 458.76602990628226,
+    "far_joins": 35,
+    "end_route_m": 28.708422163705208,
+    "end_joins": 3,
+    "threeq_index": 408,
+    "threeq_route_m": 111.88775674597989,
+    "threeq_joins": 4,
+    "threeq_straight_m": 96.48757773777693
+   },
+   "15.0": {
+    "far_route_m": 420.68125946266866,
+    "far_joins": 36,
+    "end_route_m": 26.949268463280553,
+    "end_joins": 2,
+    "threeq_index": 408,
+    "threeq_route_m": 107.58687672526524,
+    "threeq_joins": 4,
+    "threeq_straight_m": 96.48757773777693
+   },
+   "20.0": {
+    "far_route_m": 395.6065482290208,
+    "far_joins": 27,
+    "end_route_m": 26.12675950832758,
+    "end_joins": 2,
+    "threeq_index": 408,
+    "threeq_route_m": 103.64316020997549,
+    "threeq_joins": 7,
+    "threeq_straight_m": 96.48757773777693
+   },
+   "30.0": {
+    "far_route_m": 327.0355302446442,
+    "far_joins": 15,
+    "end_route_m": 26.09128768330448,
+    "end_joins": 1,
+    "threeq_index": 408,
+    "threeq_route_m": 100.36547005516645,
+    "threeq_joins": 4,
+    "threeq_straight_m": 96.48757773777693
+   },
+   "50.0": {
+    "far_route_m": 308.3509758532516,
+    "far_joins": 9,
+    "end_route_m": 26.09128768330448,
+    "end_joins": 1,
+    "threeq_index": 408,
+    "threeq_route_m": 97.4358112051711,
+    "threeq_joins": 3,
+    "threeq_straight_m": 96.48757773777693
+   }
+  }
+ },
+ "B": {
+  "label": "B",
+  "far_index": 404,
+  "far_min_in": 91.45,
+  "end_index": 676,
+  "end_min_in": 130.58333333333334,
+  "end_to_origin_m": 67.29537833684208,
+  "far": {
+   "route_m": 1955.521676213753,
+   "pace": 0.8630831079892115,
+   "pace_only_s": 2276.4405711083796,
+   "allowance_s": 247.40301022259607,
+   "with_allowance_s": 2523.8435813309757
+  },
+  "arrivals": {
+   "15.0": null,
+   "30.0": null
+  },
+  "nearest_outward_m": {
+   "n": 272,
+   "min": 5.439870385334943,
+   "q1": 100.36422924688627,
+   "median": 262.55397322520355,
+   "q3": 399.5192863497664,
+   "p90": 487.77406428408045,
+   "max": 539.6537538538662,
+   "share_within_10": 0.007352941176470588,
+   "share_within_20": 0.06985294117647059,
+   "share_within_50": 0.17279411764705882,
+   "share_over_100": 0.75
+  },
+  "nearest_outward_by_tenth_m": [
+   18.37538613684041,
+   45.21828709863285,
+   131.77163275994758,
+   251.95977299839507,
+   365.5337961483317,
+   492.68257443745324,
+   487.77406428408045,
+   384.3543264648153,
+   269.1871224086297,
+   136.93129407084902
+  ],
+  "epsilon": {
+   "10.0": {
+    "far_route_m": 1955.521676213753,
+    "far_joins": 49,
+    "end_route_m": 3198.1556233488745,
+    "end_joins": 73,
+    "threeq_index": 608,
+    "threeq_route_m": 2813.8879172911475,
+    "threeq_joins": 70,
+    "threeq_straight_m": 377.22522666608876
+   },
+   "15.0": {
+    "far_route_m": 1896.373984497617,
+    "far_joins": 146,
+    "end_route_m": 3082.726308469971,
+    "end_joins": 235,
+    "threeq_index": 608,
+    "threeq_route_m": 2702.2545890788792,
+    "threeq_joins": 207,
+    "threeq_straight_m": 377.22522666608876
+   },
+   "20.0": {
+    "far_route_m": 1849.2528252217235,
+    "far_joins": 111,
+    "end_route_m": 2960.386642763291,
+    "end_joins": 178,
+    "threeq_index": 608,
+    "threeq_route_m": 2582.430980846215,
+    "threeq_joins": 155,
+    "threeq_straight_m": 377.22522666608876
+   },
+   "30.0": {
+    "far_route_m": 1787.5895066140954,
+    "far_joins": 77,
+    "end_route_m": 2832.106913117751,
+    "end_joins": 119,
+    "threeq_index": 608,
+    "threeq_route_m": 2459.3072085631443,
+    "threeq_joins": 105,
+    "threeq_straight_m": 377.22522666608876
+   },
+   "50.0": {
+    "far_route_m": 1712.9588809421007,
+    "far_joins": 43,
+    "end_route_m": 2637.575778825943,
+    "end_joins": 66,
+    "threeq_index": 608,
+    "threeq_route_m": 2271.956903831151,
+    "threeq_joins": 57,
+    "threeq_straight_m": 377.22522666608876
+   }
+  }
+ }
+}

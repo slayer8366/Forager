@@ -1,0 +1,26 @@
+
+=== Recording A: far point 264 at 88.5 min; last point at 139.8 min, 26 m from the origin
+  first arrival within 15 m: point 388 at 119.8 min; far point to there: elapsed 31 min 17 s, moving 9 min 37 s, path 671 m (moving metres 447); then 20 min 03 s and 450 m more before the recording ended
+    app at the far point: route 459 m, pace 0.874, pace-only 8 min 45 s, with allowance 9 min 33 s; pace-only/moving 0.91, with-allowance/moving 0.99, pace-only/elapsed 0.28; route/walked 0.68, walked/moving-m 1.50, return speed/pace 0.89
+  first arrival within 30 m: point 383 at 119.3 min; far point to there: elapsed 30 min 48 s, moving 9 min 08 s, path 645 m (moving metres 421); then 20 min 32 s and 476 m more before the recording ended
+    app at the far point: route 459 m, pace 0.874, pace-only 8 min 45 s, with allowance 9 min 33 s; pace-only/moving 0.96, with-allowance/moving 1.05, pace-only/elapsed 0.28; route/walked 0.71, walked/moving-m 1.53, return speed/pace 0.88
+  homeward points' distance to the nearest outward point (192 points): min 0.3, q1 8.6, median 25.9, q3 49.7, p90 73.4, max 89.6 m; within 10 m 0.29, within 20 m 0.44, within 50 m 0.76, over 100 m 0.00
+  median nearest-outward distance by tenth of the way back: [5.0, 29.0, 72.0, 70.0, 60.0, 4.0, 7.0, 29.0, 33.0, 14.0]
+  epsilon   10 m: route home at the far point    459 m (35 joins); three-quarters of the way home (point 408, 96 m from the origin)    112 m (4 joins); at the end (26 m from the origin)     29 m (3 joins)
+  epsilon   15 m: route home at the far point    421 m (36 joins); three-quarters of the way home (point 408, 96 m from the origin)    108 m (4 joins); at the end (26 m from the origin)     27 m (2 joins)
+  epsilon   20 m: route home at the far point    396 m (27 joins); three-quarters of the way home (point 408, 96 m from the origin)    104 m (7 joins); at the end (26 m from the origin)     26 m (2 joins)
+  epsilon   30 m: route home at the far point    327 m (15 joins); three-quarters of the way home (point 408, 96 m from the origin)    100 m (4 joins); at the end (26 m from the origin)     26 m (1 joins)
+  epsilon   50 m: route home at the far point    308 m (9 joins); three-quarters of the way home (point 408, 96 m from the origin)     97 m (3 joins); at the end (26 m from the origin)     26 m (1 joins)
+
+=== Recording B: far point 404 at 91.5 min; last point at 130.6 min, 67 m from the origin
+  first arrival within 15 m of the origin after the far point: none (closest after far point 66 m)
+  first arrival within 30 m of the origin after the far point: none (closest after far point 66 m)
+  homeward points' distance to the nearest outward point (272 points): min 5.4, q1 100.4, median 262.6, q3 399.5, p90 487.8, max 539.7 m; within 10 m 0.01, within 20 m 0.07, within 50 m 0.17, over 100 m 0.75
+  median nearest-outward distance by tenth of the way back: [18.0, 45.0, 132.0, 252.0, 366.0, 493.0, 488.0, 384.0, 269.0, 137.0]
+  epsilon   10 m: route home at the far point   1956 m (49 joins); three-quarters of the way home (point 608, 377 m from the origin)   2814 m (70 joins); at the end (67 m from the origin)   3198 m (73 joins)
+  epsilon   15 m: route home at the far point   1896 m (146 joins); three-quarters of the way home (point 608, 377 m from the origin)   2702 m (207 joins); at the end (67 m from the origin)   3083 m (235 joins)
+  epsilon   20 m: route home at the far point   1849 m (111 joins); three-quarters of the way home (point 608, 377 m from the origin)   2582 m (155 joins); at the end (67 m from the origin)   2960 m (178 joins)
+  epsilon   30 m: route home at the far point   1788 m (77 joins); three-quarters of the way home (point 608, 377 m from the origin)   2459 m (105 joins); at the end (67 m from the origin)   2832 m (119 joins)
+  epsilon   50 m: route home at the far point   1713 m (43 joins); three-quarters of the way home (point 608, 377 m from the origin)   2272 m (57 joins); at the end (67 m from the origin)   2638 m (66 joins)
+
+Figures only.
