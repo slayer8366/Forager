@@ -81,7 +81,7 @@ internal fun BoxScope.CompactMapCrowdedList(
                     .absolutePadding(
                         left = if (clusterOnLeft) clusterColumn else 16.dp,
                         right = if (clusterOnLeft) 16.dp else clusterColumn,
-                        top = minY,
+                        // revert RA3b: no top clearance
                         bottom = renderMode.bottomInset + 16.dp,
                     ),
             )
