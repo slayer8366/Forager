@@ -22,7 +22,7 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 object FindLinkedPhotos {
     /** The ids of the finds that hide their photos: saved (not a draft) and located. */
     fun hidingFindIds(finds: List<MushroomLogEntry>): Set<String> =
-        finds.filter { !it.isDraft && it.foundAt != null }.mapTo(HashSet()) { it.id }
+        finds.filter { it.foundAt != null }.mapTo(HashSet()) { it.id }
 
     /**
      * Whether [photo] is hidden. [hidingFindIds] `null` means the finds could not be read: then any link to an entry
