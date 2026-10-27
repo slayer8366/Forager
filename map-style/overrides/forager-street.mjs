@@ -414,14 +414,17 @@ export function applyStreetDesign(layers) {
 // The structure is the OpenStreetMap Carto style's buildings (openstreetmap-carto, style/buildings.mss; that project
 // is released under CC0 1.0, its LICENSE.txt): an opaque fill, 4% darker at the lowest zoom it draws, and from z15 a
 // 0.75 line 15% darker than the fill (Carto's @building-low-zoom and @building-line, both darkened from @building-fill).
-// Forager keeps Protomaps' grey rather than Carto's tan: #cccccc darkened 4% is #c2c2c2 and 15% is #a6a6a6. Night is the
-// app's V1 inversion with no exception (#3d3d3d, #333333, #595959; BuildingsNightTest in the app).
+// Forager keeps Protomaps' grey rather than Carto's tan: #cccccc darkened 15% is #a6a6a6. Darkened 4% would be #c2c2c2,
+// but its night (#3d3d3d) is 1.047:1 against the night water, under NightWaterTest's 1.05 floor; the z14 grey is one
+// shade darker, #c1c1c1 (night #3e3e3e, 1.063:1; dispatch 2026-10-27-02 Amendment 1, RECORD -1733, the owner: "A shade
+// darker: #c1c1c1 (Recommended)"). Night is the app's V1 inversion with no exception (#3e3e3e, #333333, #595959;
+// BuildingsNightTest in the app).
 //
 // A function of its own, called by generate-street.mjs for v3 only, and not part of applyStreetDesign: v2 and v1 are
 // frozen for the regions downloaded against them.
 
 /** The buildings' day colours and the outline's zoom and width. */
-export const BUILDINGS = { lowZoomFill: "#c2c2c2", fill: "#cccccc", outline: "#a6a6a6", outlineMinZoom: 15, outlineWidth: 0.75 };
+export const BUILDINGS = { lowZoomFill: "#c1c1c1", fill: "#cccccc", outline: "#a6a6a6", outlineMinZoom: 15, outlineWidth: 0.75 };
 
 /** Makes Protomaps' buildings layer opaque, with Carto's low-zoom step, and adds buildings_outline directly above it. */
 export function withBuildingOutline(layers) {

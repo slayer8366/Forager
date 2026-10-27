@@ -11,14 +11,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Dispatch 2026-10-27-02 (RECORD -1730): Trail Map's buildings are solid, `#c2c2c2` at z14 and `#cccccc` from z15, with
+ * Dispatch 2026-10-27-02 (RECORD -1730): Trail Map's buildings are solid, `#c1c1c1` at z14 (Amendment 1, RECORD -1733) and `#cccccc` from z15, with
  * a `#a6a6a6` outline from z15, after the OpenStreetMap Carto style's buildings (`map-style/overrides/forager-street.mjs`,
  * `withBuildingOutline`). The owner: "Can we have a border around the buildings and houses to separate them from the
  * rest of the map?"
  *
  * Night takes no exception for them: the app's own V1 inversion. This holds what the app's Street night recolour
  * ([streetNightRecolourOf], the function the map's night adapter calls for each layer colour) gives for the served
- * street-v3's buildings layers: `#3d3d3d` at z14, `#333333` from z15, and `#595959` for the outline, the values the
+ * street-v3's buildings layers: `#3e3e3e` at z14, `#333333` from z15, and `#595959` for the outline, the values the
  * dispatch computed by hand from `night = c + 255 - 2 * mean`.
  */
 class BuildingsNightTest {
@@ -35,10 +35,10 @@ class BuildingsNightTest {
     }
 
     @Test
-    fun `the buildings fill inverts to 3d3d3d at z14 and 333333 from z15, its zoom step kept`() {
+    fun `the buildings fill inverts to 3e3e3e at z14 and 333333 from z15, its zoom step kept`() {
         val night = nightOf("buildings", "fill-color") as NightRecolour.Recoloured
         val json = Json.parseToJsonElement((night.night as StyleColourValue.Expression).json)
-        assertEquals(Json.parseToJsonElement("""["step",["zoom"],"rgba(61, 61, 61, 1)",15,"rgba(51, 51, 51, 1)"]"""), json)
+        assertEquals(Json.parseToJsonElement("""["step",["zoom"],"rgba(62, 62, 62, 1)",15,"rgba(51, 51, 51, 1)"]"""), json)
     }
 
     @Test

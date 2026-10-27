@@ -454,13 +454,13 @@ test("v3 is v2 plus the reference source and its layers and the buildings edit, 
 });
 
 test("buildings are solid, a step darker at z14, with a 0.75 outline from z15 directly above them (dispatch 2026-10-27-02)", () => {
-  // After the OpenStreetMap Carto style's buildings (style/buildings.mss): an opaque fill, 4% darker at its lowest zoom,
+  // After the OpenStreetMap Carto style's buildings (style/buildings.mss): an opaque fill, darker at its lowest zoom,
   // and from z15 a line 15% darker. The owner: "Can we have a border around the buildings and houses to separate them
   // from the rest of the map?" (RECORD -1730).
   const layers = v3Style().layers;
   const at = (id) => layers.findIndex((l) => l.id === id);
   const buildings = layers[at("buildings")];
-  assert.deepEqual(buildings.paint, { "fill-color": ["step", ["zoom"], "#c2c2c2", 15, "#cccccc"], "fill-opacity": 1 });
+  assert.deepEqual(buildings.paint, { "fill-color": ["step", ["zoom"], "#c1c1c1", 15, "#cccccc"], "fill-opacity": 1 });
   assert.equal(at("buildings_outline"), at("buildings") + 1, "the outline is not directly above the buildings");
   assert.deepEqual(layers[at("buildings_outline")], {
     id: "buildings_outline",
