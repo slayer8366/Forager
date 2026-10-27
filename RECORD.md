@@ -29068,3 +29068,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** since the last deploy (a4264e26a, live version 5bc6bc3a), server/pmtiles-worker/ differs only in street-style-v3.json (the buildings), worker.test.mjs and README.md. #427 (offline-fallback-retry 3822107a1, dispatch 2026-10-27-09 Amendment 1): OwnStreetFallback.onSignalReturned() called when the no-signal state ends; CI 40561551528 green, 5,829 tests; revert checks R1-R3 (40561602520, 40561606218, 40561612000) each fail for their own edit.
 **Decision:** the owner: "Go (Recommended)": one wrangler deploy of pre-main f42fd5ef8's Worker, every route compared before and after, rollback if any other route changes or v3 does not match its file. Dispatch 2026-10-27-10. #427 goes to Sorrel.
 **Notes:** Written by the planner by hand. Next free ID -1742.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1742
+**Timestamp:** 2026-10-27T19:06:48Z
+**Continues:** 2026-09-28-1738
+**Title:** Lost map patterns after a style reload: a workaround now, an upstream report drafted (owner)
+**Observed:** the glyph S22 session (Opus; docs/audits/2026-10-27-glyph-cause.md, branch glyph-logging, 4d9a2eb64; logging build 1.0.4096, laptop-only logs): tiles that MapLibre Native 13.5.0 keeps through a style reload are laid out again with the features, image and pattern name present, yet draw no fill-pattern, day or night; a fresh tile at the same zoom draws it, and a tile edge split one forest polygon; clearing and restoring the pattern layers (the probe) restored glyphs by night and by day; no unused-image removal, sprite error or render error was logged. Candidates R, S and D as defined are ruled out. The S22 is back on 4094, schema 22.
+**Decision:** the owner: "Workaround now + report upstream (Recommended)": after each style reload, once the sprite has loaded, every fill-pattern layer is cleared and restored, so kept tiles redraw; the S22 colour counts are the gate; a bug report for maplibre-native is drafted for the owner to file. Dispatch 2026-10-27-11.
+**Notes:** Written by the planner by hand. Posting upstream is outside this session's repository scope, so the owner files it. Next free ID -1743.
