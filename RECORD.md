@@ -29003,3 +29003,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the find photos coder (Opus; verify-first, no code): the find link is in Room (GalleryPhoto.referencingEntryIds); the Maps tab and the entry map draw photos; the fan groups only what is drawn. #426 (buildings-outline a06f6a1c4): CI 40551870555 green, 5,828 tests; revert check 40551856919 failing for its own edit; Carto LICENSE.txt read: CC0 1.0. The spiral report (Opus; docs/audits/2026-10-27-spiral-overflow-report.md, branch spiral-overflow-report, 6226d7deb): a stack is decided at the tap (26 dp each way, MarkerFanOut.kt:71-78) with no cap; a fan bigger than the screen is centred and its allOnScreen=false flag is read by nothing (FanPlacement.kt:99-100), an unlogged fallback; about 30-39 icons fit; journal entries are rings, not members; B (a list) and C (clustering) were turned down by the owner on 2026-09-29 for the fan.
 **Decision:** the owner: "No icon anywhere (Recommended)", "Show its photos (Recommended)", "Hide only after Save (Recommended)", "Fine, they reappear (Recommended)": a photo leaves every map while a saved, located find links to it. Dispatch 2026-10-27-05 Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -1736.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1736
+**Timestamp:** 2026-10-27T17:52:54Z
+**Continues:** 2026-09-28-1734, 2026-09-28-1735
+**Title:** A crowded group zooms in, then fans (owner)
+**Decision:** the owner, on the spiral report's options: "Zoom in, then fan (Recommended)": a tapped group whose fan would not fit zooms the map to it until it splits or fits; "Open by itself (Recommended)"; "Back folds, then zooms out (Recommended)": Back folds the fan, then returns the camera to where it was; "Icon, name, date (Recommended)" for the list rows when everything is on one spot at the closest zoom; "Zoom 17, like the entry map (Recommended)"; "Start after find photos (Recommended)". This keeps the 2026-09-29 ruling for the fan and adds the list only for one exact spot. Dispatch 2026-10-27-07, to start after dispatch -05 merges.
+**Notes:** Written by the planner by hand. Next free ID -1737.
