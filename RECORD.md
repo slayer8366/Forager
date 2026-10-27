@@ -29035,3 +29035,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus; docs/audits/2026-10-27-s22-check-v3-8d.md, branch s22-check-v3-8d, a5b7318f8; builds 4077 a4264e26a and 4094 6064fef86, all schema 22): v3 steps 1, 2, 4, 6, 7, 8, 9 and 12 pass (the budget grew by exactly the estimate 110; Tiles 110; the first real trail-routes request returned 200; the older area shows its notice); step 3 passes, with the band reading grey at night; step 10, 4 of 5 (one "no full frame within 1500 ms" while Wi-Fi reconnected; a finding, not a gate); steps 5 and 11 not run. Card steps 2-5 pass (the dateless line for about 0.2-0.4 s on a first online opening, by design); step 1 cannot run: after Clear storage offline, Trail Map falls back to OpenStreetMap and stays there online until a restart. Tree glyphs and tufts, day and night, go missing at the zoom held when the style reloads; zooming out restores them; consistent with candidate S (layout before the image), not settled without logging.
 **Decision:** the owner: "Logging build on the S22 (Recommended)" (dispatch 2026-10-27-08); "Report, then fix (Recommended)" for the stuck fallback (dispatch 2026-10-27-09); "Leave it (Recommended)" for the band's night opacity, judged on a woods walk.
 **Notes:** Written by the planner by hand. The S22's screen timeout was set to 30 minutes and its old value not recorded. Next free ID -1739.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1739
+**Timestamp:** 2026-10-27T18:33:31Z
+**Continues:** 2026-09-28-1738, 2026-09-28-1513
+**Title:** A Trail Map fallback is retried once the connection holds 30 s (owner)
+**Observed:** the fallback report (Opus; docs/audits/2026-10-27-offline-fallback-stuck-report.md, branch offline-fallback-stuck-report, 2bb9f6954): the fallback flag is never cleared (OwnStreetFallback.kt:48, :85) by a planner verify-first ruling at :21-22, not an owner ruling (-1513's words set no retry time); it fires offline because fallsBack checks only useOfflineTiles (:74-79) and the signal monitor never reaches it; both fallback lines are logged.
+**Decision:** the owner: "Yes, retry after 30 s (Recommended)": when the no-signal state ends (the existing 30 s held connection), the fallback is cleared and Trail Map reloads by itself; if it still cannot load, it falls back quietly again and logs it. Any fallback, not only ones taken offline. Dispatch 2026-10-27-09 Amendment 1. This replaces the planner's "next cold start" ruling.
+**Notes:** Written by the planner by hand. Next free ID -1740.
