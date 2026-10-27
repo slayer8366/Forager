@@ -28671,3 +28671,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-26-sorrel-pr422.md, branch sorrel-pr422, 7eb61980c): no blocking or should-fix findings; the server/pmtiles-worker/ diff from main to 748535364 is 8a (cbdc359b7, 6cfed1aba) plus #422 only; the missing-manifest 404 is uncached (font/icon behaviour, not tilePath's day-cached 404), accepted; four nits (N1 fixture licence strings, N2 README Tests line, N3 the uncached-404 test never red for its own reason, N4 no action).
 **Decision:** the owner: "Merge now (Recommended)"; merged at 748535364, pre-main a4264e26a. Nits N1 to N3 join the later tidy list. Next: the manual Worker deploy of pre-main under -1703, brought to the owner first.
 **Notes:** Written by the planner by hand. Next free ID -1705.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1705
+**Timestamp:** 2026-10-27T04:10:23Z
+**Continues:** 2026-09-28-1703, 2026-09-28-1704
+**Title:** The manual Worker deploy from pre-main goes ahead (owner)
+**Decision:** the owner: "Go (Recommended)": one wrangler deploy of pre-main a4264e26a's Worker (8a plus #422 only), with the live version recorded first, before/after checks of every existing route, and an immediate rollback if any of them breaks. Dispatch 2026-10-26-23.
+**Notes:** Written by the planner by hand. The next automatic build from main would redeploy main's Worker without v3; main only changes by promotion from pre-main, which carries these. Next free ID -1706.
