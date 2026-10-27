@@ -28788,3 +28788,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message): on the owner's "Go" typed in Aspen's window about 03:40 PDT (the relayed go of -1714 was refused by Aspen's permission check as a production deploy), map-build/bin/install-map-build.sh from a clean worktree at 20f75d063. COMMIT 20f75d063fe0721ddf990f3579d037f2007c3081; rollback copy /opt/forager-build/map-build.prev (aa14e6eaa); names pins present; installed files match git archive 20f75d063; 67 function checks from the installed copy; timer unchanged (Sun 2026-11-01 02:13 PST).
 **Decision:** none new; the install ran under -1714.
 **Notes:** Written by the planner by hand. The drives had not moved as of the last USB event (2026-10-27T06:14:26Z), so US 1-second keep-copies (-1713) have not started. Next free ID -1716.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1716
+**Timestamp:** 2026-10-27T10:47:18Z
+**Continues:** 2026-09-28-1713
+**Title:** The 256 GB drive is the maps storage; the 64 GB drive is not returning (owner)
+**Observed:** Aspen (message): the 256 GB drive moved to USB 3 at 03:32:39 PDT; /mnt/storage mounted as /dev/sda1 at 03:38; cell-1in.sh swapped in at 03:39:05 with 3,540 of 4,403 cells done, so 296 US cells get a 1-second copy and 1,145 do not; the first 1-second files landed at 03:43:28. Both drives are Lexar; forecast-data/ on the 256 GB drive is an empty folder.
+**Decision:** the owner, in Aspen's window about 03:45 PDT: "The 64GB isn't returning, this is your maps storage now". This replaces -1713's "Lexar back for backup" and the 256 GB drive holding 1-second copies only: the heights backup (3-second .hgt and .bef, about 17 GB) goes to /mnt/storage/elevation/ after G7, verified by sha256.
+**Notes:** Written by the planner by hand; Aspen records it in Forager-cartography. Next free ID -1717.
