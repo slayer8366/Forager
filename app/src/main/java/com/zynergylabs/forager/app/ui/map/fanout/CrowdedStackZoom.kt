@@ -198,7 +198,7 @@ class CrowdedStackZoom(
             current = now
             // A camera that did not get closer (the basemap's own limit) is as close as it goes.
             if (zoomAfter <= zoomBefore + ZOOM_EPS) {
-                warn("Crowded stack: the camera did not get closer than zoom $zoomAfter; ${current.size} markers are offered as a list there.")
+                // revert RA4: no log
                 return list(host, current, tapped)
             }
             zoomBefore = zoomAfter
