@@ -28950,3 +28950,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the owner on the S22 (relayed by Aspen; Forager-cartography 51d6358, docs/handoffs/2026-10-27-buildings-outline-and-night-glyphs.md): "The buildings and houses are soft against the background, and the forest also overlaps them. Can we have a border around the buildings and houses to separate them from the rest of the map?" and "Also, in night mode, the tree glyphs disappear when all the way zoomed in, but reappear when full zoom is broken." Aspen's reading of street-v3: buildings #cccccc at fill-opacity 0.5 with no outline; landuse_forest_glyphs minzoom 12, no maxzoom.
 **Decision:** the owner: "Build it (Recommended)": buildings opaque, #c2c2c2 at z14 and #cccccc from z15, a new buildings_outline #a6a6a6 at 0.75 from z15, night by the V1 rule with no exception, after the OpenStreetMap Carto style's structure (dispatch 2026-10-27-02). "Diagnose from code first (Recommended)": a report on the night pattern path, with the S22 reproduction for the next session (dispatch 2026-10-27-03).
 **Notes:** Written by the planner by hand. A v3 change reaches phones only with a Worker deploy. Next free ID -1731.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1731
+**Timestamp:** 2026-10-27T17:21:43Z
+**Continues:** 2026-09-28-1712, 2026-09-28-1723, 2026-09-28-1730
+**Title:** The S22 check of the v3 switch and the 8d card runs, with the night glyph reproduction (owner)
+**Decision:** the owner: "S22 is plugged in"; asked what to run, "The S22 check (Recommended)" and "Night glyph reproduction": dispatch 2026-10-27-04. The night tree glyphs are reproduced on the current build. Then an older-style area is downloaded with the pre-switch build (a4264e26a), the current pre-main is installed over it with the schema compared first, and the v3 switch's 12 steps and the card's 7 run. The walking steps (step 6 PR 4) wait for a woods walk.
+**Notes:** Written by the planner by hand. Screenshots stay off GitHub. Next free ID -1732.
