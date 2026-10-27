@@ -81,5 +81,5 @@ fun referenceTrailsSourcesText(dates: ReferenceTrailsSourceDates?, formatDate: (
     fun part(name: String, date: LocalDate?, licence: String) =
         if (date == null) "$name · $licence." else "$name data from ${formatDate(date)} · $licence."
     val line = "$REFERENCE_SOURCES_LEAD ${part("Forest Service", dates?.forestService, "CC BY 4.0")} ${part("BLM", dates?.blm, "public domain")}"
-    return ReferenceTrailsSourcesText(line = line, hint = if (dates == null) REFERENCE_SOURCES_NO_COPY_HINT else null)
+    return ReferenceTrailsSourcesText(line = line, hint = null)
 }
