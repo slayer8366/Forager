@@ -296,7 +296,7 @@ internal fun CompactMapTab(
     val onCloseBubble: () -> Unit = remember { { tapped = null } }
     // Dispatch 2026-10-27-07 (RECORD -1736): a crowded stack's list and the cameras Back returns to (CrowdedStackHost), held
     // with the camera above the tab switch, so they survive a tab change (Amendment 1, S2).
-    val crowdedStacks = cameraMemory.crowdedStacks
+    val crowdedStacks = remember { com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost() }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
