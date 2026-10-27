@@ -1,0 +1,208 @@
+=== SAMPLE ===
+day window (UTC turn timestamps): 2026-10-26
+project folders found: 130
+jsonl files read: 884 (main 170, subagent 714)
+lines read: 374,371
+files with a turn in the window: 72
+usage-bearing turns in window before dedup: 8,854
+duplicate chunk records dropped (same message, same file): 4,368
+duplicate records dropped (same message, another file): 0
+turns after dedup: 4,486
+files with unparseable lines (team/kind/id-prefix=bad lines): app/main/59951a5d=1, app/main/8febc5bf=3, app/main/876af3d1=3, app/main/c56ecd27=2, app/main/30a38d5d=1, app/main/76efdcca=1, app/helper/agent-a0=1, app/main/748fa9d1=2, app/helper/agent-ad=1, app/main/594b88a0=2, app/helper/agent-a9=1, app/helper/agent-a0=2, forecast/main/fc6471b2=1
+unparseable lines total: 21 in 13 files
+
+=== TOTALS BY TEAM ===
+app                                turns=  4,011 files=  62 input=      27,044 cache_w=    31,276,014 cache_r=     820,757,593 output=    412,962 total=     852,473,613
+forecast                           turns=    461 files=   6 input=         934 cache_w=     2,734,688 cache_r=      78,022,457 output=    106,727 total=      80,864,806
+other                              turns=     14 files=   4 input=          28 cache_w=        18,687 cache_r=          69,114 output=      1,912 total=          89,741
+ALL                                turns=  4,486 files=  72 input=      28,006 cache_w=    34,029,389 cache_r=     898,849,164 output=    521,601 total=     933,428,160
+reconcile team sum == overall: True (933,428,160 vs 933,428,160)
+not visible on this laptop: Pi team sessions (logs stay on the Pi); cloud sessions
+
+=== TOTALS BY ROLE (team, role) ===
+app/unassigned                     turns=    869 files=  10 input=       2,030 cache_w=     6,532,812 cache_r=     261,739,730 output=    301,488 total=     268,576,060
+app/Rowan                          turns=  1,360 files=  18 input=       2,834 cache_w=    11,455,066 cache_r=     248,537,030 output=     43,032 total=     260,037,962
+app/Hazel                          turns=    910 files=   6 input=       1,842 cache_w=     5,395,856 cache_r=     186,410,841 output=     17,630 total=     191,826,169
+app/Sorrel                         turns=    540 files=  19 input=      16,620 cache_w=     4,586,674 cache_r=      78,590,306 output=     12,446 total=      83,206,046
+forecast/Ash                       turns=    323 files=   4 input=         646 cache_w=     1,927,899 cache_r=      57,544,341 output=      5,851 total=      59,478,737
+app/app coder (step 7, unnamed)    turns=    185 files=   3 input=         390 cache_w=     1,814,021 cache_r=      25,770,815 output=      2,755 total=      27,587,981
+forecast/Alder                     turns=    138 files=   2 input=         288 cache_w=       806,789 cache_r=      20,478,116 output=    100,876 total=      21,386,069
+app/Juniper                        turns=    104 files=   3 input=       3,238 cache_w=     1,060,932 cache_r=      16,268,079 output=      1,138 total=      17,333,387
+app/accountant                     turns=     43 files=   3 input=          90 cache_w=       430,653 cache_r=       3,440,792 output=     34,473 total=       3,906,008
+other/unassigned                   turns=     14 files=   4 input=          28 cache_w=        18,687 cache_r=          69,114 output=      1,912 total=          89,741
+reconcile role sum == overall: True (933,428,160 vs 933,428,160)
+sessions with window turns but unassigned role: 14 files, 1,579 turns
+
+=== TOTALS BY MODEL ===
+claude-opus-5-5                    turns=  3,785 files=  43 input=       8,030 cache_w=    27,932,443 cache_r=     800,480,873 output=    471,632 total=     828,892,978
+claude-fable-5-1                   turns=    644 files=  22 input=      19,858 cache_w=     5,647,606 cache_r=      94,858,385 output=     13,584 total=     100,539,433
+claude-haiku-5-5                   turns=     57 files=   7 input=         118 cache_w=       449,340 cache_r=       3,509,906 output=     36,385 total=       3,995,749
+
+=== TASKS (task = git branch of the turn), top 15 by total tokens ===
+main                               turns=  3,967 files=  58 input=      26,476 cache_w=    30,329,696 cache_r=     815,842,410 output=    371,692 total=     846,570,274
+worktree-bridge-cse_01ExhkVf2ZVytf4RtvGdugNs turns=    478 files=   7 input=       1,448 cache_w=     3,292,123 cache_r=      80,488,500 output=    106,896 total=      83,888,967
+sorrel-398-401-402                 turns=      6 files=   1 input=          12 cache_w=       272,628 cache_r=       1,510,506 output=      6,767 total=       1,789,913
+accounting                         turns=     21 files=   2 input=          42 cache_w=       116,255 cache_r=         938,634 output=     34,334 total=       1,089,265
+HEAD                               turns=     14 files=   4 input=          28 cache_w=        18,687 cache_r=          69,114 output=      1,912 total=          89,741
+tasks listed: 5; reconcile task sum == overall: True
+
+=== FIVE MOST EXPENSIVE SINGLE TURNS ===
+team=app role=unassigned task=main model=claude-opus-5-5 sub=False input=4 cache_w=586 cache_r=833,345 output=36 total=833,971
+team=app role=unassigned task=main model=claude-opus-5-5 sub=False input=2 cache_w=2,547 cache_r=830,798 output=82 total=833,429
+team=app role=unassigned task=main model=claude-opus-5-5 sub=False input=4 cache_w=4,395 cache_r=826,403 output=1,664 total=832,466
+team=app role=unassigned task=main model=claude-opus-5-5 sub=False input=4 cache_w=744 cache_r=825,659 output=30 total=826,437
+team=app role=unassigned task=main model=claude-opus-5-5 sub=False input=2 cache_w=868 cache_r=824,791 output=198 total=825,859
+
+=== CONTEXT SIZE (max input-side tokens in any one turn, per session) ===
+sessions: 72; median max context: 229,926; max: 833,935
+  sessions with max context >= 100,000: 64
+  sessions with max context >= 200,000: 47
+  sessions with max context >= 300,000: 14
+compaction records in window by role: none found
+
+=== FILES READ MORE THAN ONCE (Read tool, per session file, in window) ===
+Hazel                              repeated-file pairs=    2 extra reads=    35 all reads=   107
+unassigned                         repeated-file pairs=    4 extra reads=     6 all reads=    26
+Sorrel                             repeated-file pairs=    4 extra reads=     5 all reads=    30
+Rowan                              repeated-file pairs=    2 extra reads=     2 all reads=    42
+accountant                         repeated-file pairs=    0 extra reads=     0 all reads=     7
+app coder (step 7, unnamed)        repeated-file pairs=    0 extra reads=     0 all reads=     2
+Juniper                            repeated-file pairs=    0 extra reads=     0 all reads=    18
+Alder                              repeated-file pairs=    0 extra reads=     0 all reads=     1
+Ash                                repeated-file pairs=    0 extra reads=     0 all reads=     9
+
+=== POLLED WAITS (Bash sleep commands in window) ===
+Rowan                              sleep commands=   73 seconds asked=    1276
+Hazel                              sleep commands=  393 seconds asked=    1209
+unassigned                         sleep commands=   32 seconds asked=     862
+app coder (step 7, unnamed)        sleep commands=    9 seconds asked=     119
+Ash                                sleep commands=    4 seconds asked=      13
+Sorrel                             sleep commands=    1 seconds asked=       5
+
+=== PROMPT SIZE (first user message of sessions that started in window, characters) ===
+helper Hazel                              n=   6 median=  3,031 max=  3,469
+helper unassigned                         n=   8 median=  2,396 max=  3,459
+helper Juniper                            n=   3 median=  2,178 max=  2,943
+helper Sorrel                             n=  19 median=  2,474 max=  2,847
+helper Alder                              n=   1 median=  2,604 max=  2,604
+helper Rowan                              n=  18 median=  1,778 max=  2,547
+helper app coder (step 7, unnamed)        n=   3 median=  2,117 max=  2,150
+helper accountant                         n=   1 median=  1,940 max=  1,940
+helper Ash                                n=   4 median=  1,545 max=  1,884
+main   accountant                         n=   2 median=  1,339 max=  1,549
+main   unassigned                         n=   5 median=    217 max=    291
+main   Alder                              n=   1 median=     45 max=     45
+
+=== ROLE ASSIGNMENT METHOD (files) ===
+helper  none                                     files=333
+helper  rule: 'You are <name>'                   files=258
+main    none                                     files=154
+helper  inherited from parent session            files=63
+helper  rule: name in first 120 chars            files=56
+main    rule: name in first 120 chars            files=13
+main    rule: accountant title or name           files=3
+helper  rule: 'step 7'                           files=3
+helper  rule: accountant title or name           files=1
+
+=== TURNS THAT ISSUED A BASH SLEEP (polled waits), tokens they cost ===
+Hazel                              sleep turns=  248 tokens in those turns=    55,973,568
+Rowan                              sleep turns=   71 tokens in those turns=    15,561,219
+unassigned                         sleep turns=   29 tokens in those turns=     6,709,948
+app coder (step 7, unnamed)        sleep turns=    9 tokens in those turns=     1,414,831
+Ash                                sleep turns=    4 tokens in those turns=       982,707
+Sorrel                             sleep turns=    1 tokens in those turns=       163,776
+
+=== SESSIONS WITH WINDOW TURNS (id = first 8 chars of file name) ===
+dd088739 main    app       unassigned                         branch=main                                     turns= 441 total=   198,895,466 max_ctx= 833,935 sleeps=  11
+agent-a1 helper  app       Hazel                              branch=main                                     turns= 179 total=    44,505,211 max_ctx= 435,750 sleeps=  42
+agent-ab helper  app       Hazel                              branch=main                                     turns= 188 total=    44,235,406 max_ctx= 369,618 sleeps= 124
+agent-a0 helper  app       Hazel                              branch=main                                     turns= 199 total=    38,484,635 max_ctx= 310,410 sleeps=  81
+agent-a4 helper  app       Hazel                              branch=main                                     turns= 143 total=    31,976,427 max_ctx= 303,540 sleeps= 100
+agent-a9 helper  app       Rowan                              branch=main                                     turns= 110 total=    28,213,919 max_ctx= 360,703 sleeps=   5
+agent-a5 helper  forecast  Ash                                branch=worktree-bridge-cse_01ExhkVf2ZVytf4RtvGd turns= 117 total=    26,651,452 max_ctx= 340,056 sleeps=   0
+agent-ab helper  app       Hazel                              branch=main                                     turns= 144 total=    25,606,049 max_ctx= 251,960 sleeps=  28
+agent-ac helper  app       Rowan                              branch=main                                     turns= 110 total=    25,583,057 max_ctx= 321,876 sleeps=   8
+agent-ab helper  app       Rowan                              branch=main                                     turns= 116 total=    24,947,166 max_ctx= 302,380 sleeps=   2
+agent-a1 helper  app       Rowan                              branch=main                                     turns=  99 total=    23,383,949 max_ctx= 333,023 sleeps=   2
+agent-a8 helper  app       Rowan                              branch=main                                     turns=  95 total=    21,035,255 max_ctx= 298,302 sleeps=   3
+5ce4fdcd main    forecast  Alder                              branch=worktree-bridge-cse_01ExhkVf2ZVytf4RtvGd turns= 118 total=    20,013,384 max_ctx= 277,795 sleeps=   0
+agent-a9 helper  app       Rowan                              branch=main                                     turns=  81 total=    18,394,319 max_ctx= 292,338 sleeps=   4
+agent-a1 helper  forecast  Ash                                branch=worktree-bridge-cse_01ExhkVf2ZVytf4RtvGd turns= 112 total=    18,260,211 max_ctx= 264,379 sleeps=   2
+agent-a7 helper  app       Rowan                              branch=main                                     turns=  94 total=    18,035,592 max_ctx= 257,903 sleeps=   6
+agent-ae helper  app       unassigned                         branch=main                                     turns=  83 total=    16,963,166 max_ctx= 269,698 sleeps=   4
+agent-a6 helper  app       unassigned                         branch=main                                     turns=  84 total=    13,539,961 max_ctx= 212,538 sleeps=   4
+agent-a5 helper  app       Rowan                              branch=main                                     turns=  83 total=    13,488,753 max_ctx= 220,138 sleeps=   4
+agent-a8 helper  forecast  Ash                                branch=worktree-bridge-cse_01ExhkVf2ZVytf4RtvGd turns=  79 total=    13,364,545 max_ctx= 251,908 sleeps=   2
+agent-a4 helper  app       Rowan                              branch=main                                     turns=  78 total=    12,876,132 max_ctx= 215,953 sleeps=  11
+agent-aa helper  app       app coder (step 7, unnamed)        branch=main                                     turns=  84 total=    12,553,853 max_ctx= 225,318 sleeps=   2
+agent-ae helper  app       Rowan                              branch=main                                     turns=  83 total=    11,777,654 max_ctx= 190,925 sleeps=   4
+agent-a1 helper  app       unassigned                         branch=main                                     turns=  61 total=    10,609,821 max_ctx= 218,995 sleeps=   3
+agent-ae helper  app       Rowan                              branch=main                                     turns=  67 total=    10,438,779 max_ctx= 198,084 sleeps=   4
+agent-a8 helper  app       Rowan                              branch=main                                     turns=  54 total=    10,378,249 max_ctx= 247,636 sleeps=   5
+agent-a6 helper  app       unassigned                         branch=main                                     turns=  61 total=    10,107,381 max_ctx= 215,488 sleeps=   4
+agent-a9 helper  app       Rowan                              branch=main                                     turns=  65 total=     9,819,711 max_ctx= 198,126 sleeps=   4
+agent-ac helper  app       Rowan                              branch=main                                     turns=  49 total=     9,552,762 max_ctx= 253,687 sleeps=   1
+agent-a3 helper  app       app coder (step 7, unnamed)        branch=main                                     turns=  59 total=     8,940,332 max_ctx= 187,038 sleeps=   3
+agent-a0 helper  app       Sorrel                             branch=main                                     turns=  57 total=     8,526,030 max_ctx= 234,165 sleeps=   0
+agent-ad helper  app       Sorrel                             branch=main                                     turns=  50 total=     8,342,310 max_ctx= 249,294 sleeps=   0
+agent-a4 helper  app       Rowan                              branch=main                                     turns=  67 total=     8,033,721 max_ctx= 148,504 sleeps=   8
+agent-a8 helper  app       Sorrel                             branch=main                                     turns=  45 total=     8,014,350 max_ctx= 290,118 sleeps=   0
+agent-ac helper  app       Juniper                            branch=main                                     turns=  49 total=     7,516,399 max_ctx= 225,884 sleeps=   0
+agent-a5 helper  app       Hazel                              branch=main                                     turns=  57 total=     7,018,441 max_ctx= 154,554 sleeps=  18
+agent-aa helper  app       Juniper                            branch=main                                     turns=  38 total=     6,792,827 max_ctx= 312,262 sleeps=   0
+agent-ad helper  app       app coder (step 7, unnamed)        branch=main                                     turns=  42 total=     6,093,796 max_ctx= 173,602 sleeps=   4
+agent-a0 helper  app       Sorrel                             branch=main                                     turns=  40 total=     5,692,513 max_ctx= 229,733 sleeps=   0
+agent-ab helper  app       Rowan                              branch=main                                     turns=  39 total=     5,619,679 max_ctx= 202,432 sleeps=   0
+agent-a7 helper  app       Sorrel                             branch=main                                     turns=  37 total=     5,394,098 max_ctx= 235,855 sleeps=   0
+agent-a8 helper  app       unassigned                         branch=main                                     turns=  38 total=     5,151,456 max_ctx= 166,006 sleeps=   3
+agent-a7 helper  app       Sorrel                             branch=main                                     turns=  36 total=     5,065,082 max_ctx= 198,634 sleeps=   1
+agent-ab helper  app       unassigned                         branch=main                                     turns=  39 total=     4,919,751 max_ctx= 157,226 sleeps=   3
+agent-a8 helper  app       Sorrel                             branch=main                                     turns=  29 total=     4,897,332 max_ctx= 265,554 sleeps=   0
+agent-a4 helper  app       Sorrel                             branch=main                                     turns=  30 total=     4,575,306 max_ctx= 255,385 sleeps=   0
+agent-a0 helper  app       Rowan                              branch=main                                     turns=  33 total=     4,358,770 max_ctx= 155,951 sleeps=   2
+agent-ad helper  app       Sorrel                             branch=main                                     turns=  29 total=     4,197,286 max_ctx= 278,135 sleeps=   0
+agent-af helper  app       unassigned                         branch=main                                     turns=  33 total=     4,163,732 max_ctx= 193,021 sleeps=   0
+agent-a3 helper  app       Rowan                              branch=main                                     turns=  37 total=     4,100,495 max_ctx= 134,759 sleeps=   0
+agent-ad helper  app       Sorrel                             branch=main                                     turns=  25 total=     3,946,536 max_ctx= 267,731 sleeps=   0
+agent-ab helper  app       Sorrel                             branch=main                                     turns=  27 total=     3,927,761 max_ctx= 258,748 sleeps=   0
+agent-a1 helper  app       Sorrel                             branch=main                                     turns=  25 total=     3,725,155 max_ctx= 250,895 sleeps=   0
+agent-a3 helper  app       Juniper                            branch=worktree-bridge-cse_01ExhkVf2ZVytf4RtvGd turns=  17 total=     3,024,161 max_ctx= 300,568 sleeps=   0
+agent-ae helper  app       Sorrel                             branch=main                                     turns=  13 total=     2,821,278 max_ctx= 326,260 sleeps=   0
+agent-a4 helper  app       accountant                         branch=main                                     turns=  22 total=     2,816,743 max_ctx= 158,960 sleeps=   0
+agent-a8 helper  app       Sorrel                             branch=main                                     turns=  17 total=     2,769,933 max_ctx= 234,625 sleeps=   0
+agent-a7 helper  app       Sorrel                             branch=main                                     turns=  20 total=     2,436,247 max_ctx= 187,734 sleeps=   0
+agent-ad helper  app       unassigned                         branch=main                                     turns=  23 total=     2,435,413 max_ctx= 144,759 sleeps=   0
+agent-ac helper  app       Sorrel                             branch=main                                     turns=  17 total=     2,432,119 max_ctx= 201,750 sleeps=   0
+agent-a3 helper  app       Sorrel                             branch=main                                     turns=  16 total=     2,362,056 max_ctx= 195,407 sleeps=   0
+agent-aa helper  app       Sorrel                             branch=main                                     turns=  15 total=     2,125,030 max_ctx= 202,143 sleeps=   0
+agent-a5 helper  app       Sorrel                             branch=main                                     turns=  12 total=     1,955,624 max_ctx= 230,120 sleeps=   0
+388afeac main    app       unassigned                         branch=sorrel-398-401-402                       turns=   6 total=     1,789,913 max_ctx= 301,709 sleeps=   0
+agent-ad helper  forecast  Alder                              branch=worktree-bridge-cse_01ExhkVf2ZVytf4RtvGd turns=  20 total=     1,372,685 max_ctx=  92,805 sleeps=   0
+agent-aa helper  forecast  Ash                                branch=worktree-bridge-cse_01ExhkVf2ZVytf4RtvGd turns=  15 total=     1,202,529 max_ctx=  89,929 sleeps=   0
+9b48f0f9 main    app       accountant                         branch=accounting                               turns=  15 total=       867,278 max_ctx=  81,393 sleeps=   0
+3f6116d8 main    app       accountant                         branch=accounting                               turns=   6 total=       221,987 max_ctx=  47,248 sleeps=   0
+0ff472da main    other     unassigned                         branch=HEAD                                     turns=   6 total=        43,602 max_ctx=   8,007 sleeps=   0
+278fea76 main    other     unassigned                         branch=HEAD                                     turns=   4 total=        22,181 max_ctx=   5,836 sleeps=   0
+40be7f10 main    other     unassigned                         branch=HEAD                                     turns=   2 total=        12,898 max_ctx=   6,463 sleeps=   0
+f477de1c main    other     unassigned                         branch=HEAD                                     turns=   2 total=        11,060 max_ctx=   5,515 sleeps=   0
+
+=== TURNS WHOSE CONTEXT EXCEEDED 200,000 TOKENS (input side of that turn), by role ===
+unassigned                         turns=  471 total=   211,373,416 cache_r=   207,855,983
+Rowan                              turns=  570 total=   147,658,962 cache_r=   141,833,459
+Hazel                              turns=  471 total=   128,783,015 cache_r=   124,999,698
+Ash                                turns=  136 total=    34,386,065 cache_r=    33,413,277
+Sorrel                             turns=  146 total=    34,317,321 cache_r=    33,157,229
+Alder                              turns=   49 total=    11,719,428 cache_r=    11,125,054
+Juniper                            turns=   37 total=     9,085,511 cache_r=     8,560,785
+app coder (step 7, unnamed)        turns=   12 total=     2,530,687 cache_r=     2,503,403
+input-side tokens above 200,000 in those turns, by role (upper bound on cache reads a 200,000-token cap would avoid):
+  unassigned                            116,924,714
+  Hazel                                  34,574,374
+  Rowan                                  33,648,412
+  Ash                                     7,182,494
+  Sorrel                                  5,114,230
+  Alder                                   1,868,641
+  Juniper                                 1,685,064
+  app coder (step 7, unnamed)               130,586
+  all roles 201,128,515
+all roles: turns=1892 total=579,854,405 share of day total=62.1%
