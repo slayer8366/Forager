@@ -73,18 +73,18 @@ highway cut in `names_cut`, so the next run measures it, and a note in `pins.env
 
 **S3. A names failure fails the whole weekly build, after BRouter. A decision, not a defect.** The names
 stage `die`s on an encode failure (`bin/build-usca.sh:829-830`) and on a check failure
-(`:885-886`), and `names_cut`'s failure dies at `:786`. `die` runs `on_exit` (`:117`, `:153-167`):
+(`:885-886`), and `names_cut`'s failure dies at `:786`. `die` runs `on_exit` (`:117`, `:152-167`):
 status `failed` naming the stage, the log kept, this run's `out/` (the finished `.rd5` squares and the
 basemap link) moved to `failed-usca/latest`, "never publishable from here", and the previous output and
 `current` untouched. So nothing is silent and the fallback is last week's set — but a names failure
 costs the week's squares and basemap too, and the squares are hours of BRouter. The dispatch did not
 rule on this ("Nothing about the `.rd5` squares may change" is about the files, not the failure path),
 and the script's own stated rule is "Both outputs are published together or not at all"
-(`:94-95`), which Willow extended to a third output. *The two options, for Aspen and the owner:* (a) keep
+(`:63-66`), which Willow extended to a third output. *The two options, for Aspen and the owner:* (a) keep
 it — names and squares must come from one extract (`:778-779`), and once the Worker serves names the app
 has no path for a set without them, so a soft failure here would be a silent gap on the phone; or
 (b) publish squares and basemap, write the names failure as a post-publish warning (the `warn`
-mechanism at `:911-915` exists for steps after publishing), and have the manifest's `names` array
+mechanism at `:909-912` exists for steps after publishing), and have the manifest's `names` array
 absent — which needs a Worker and app fallback that does not exist yet. I recommend (a), with S1 in
 place so the one failure already seen stops before BRouter, not after.
 
@@ -118,7 +118,7 @@ peak RSS survive only as the one log line at `:831`. Add it to the list.
 the tables parse up to the directory, and that the cells' spans cover the records exactly; it never
 parses a record body, so a body with consistent lengths but a string index past the table, a highway
 index past M, or a point count under 2 passes. The test decoder does check these, on fixtures. Fine for
-now; worth saying in the README's "Validation checks ..." sentence (`README.md:189-190`) so nobody reads
+now; worth saying in the README's "Validation checks ..." sentence (`README.md:191-192`) so nobody reads
 it as a content check.
 
 **N4. The commit trailers name a model.** All four commits end `Co-Authored-By: Claude Opus 5.5
@@ -163,9 +163,9 @@ On closed ways, one fact to carry to the reader: osmium export's rule (osmium-to
 LineString under `linear_tags: true` / `area_tags: false` — roundabouts and loop roads are kept as
 lines, which is right for name matching. `test_build_names.sh` exercises this through real osmium on
 a closed footway (`w6`, "Loop", kept) and `test_fnam_build.py` through the encoder ("kept closed line",
-`:288-292`).
+`:313`, `:317`).
 
-Determinism: `the_same_bytes_whatever_the_jobs_and_chunks` (`test_fnam_build.py:188-200`) shows 1 and
+Determinism: `the_same_bytes_whatever_the_jobs_and_chunks` (`test_fnam_build.py:197-209`) shows 1 and
 3 jobs with 4 KiB chunks write identical bytes; the encoder takes results in input order (`:437-444`).
 
 **What the app will read:** there is no reader (S4). The spec has no reader-side counterpart to disagree
@@ -196,7 +196,7 @@ fallback that keeps *this* week's squares when only the names fail — see S3 fo
 
 One more path checked: `build-names.sh` refuses to start while `forager-build-usca.service` is active
 (`bin/build-names.sh:33`), removes its temporary directory on any exit (`:62`), and puts it on the card
-unless `FNAM_TMP_ROOT` says otherwise (`:29`); its names1 must not exist (`:38`). All four refusals are
+unless `FNAM_TMP_ROOT` says otherwise (`:29`); its names1 must not exist (`:36`). All four refusals are
 tested (`test_build_names.sh:158-173`).
 
 ## 3. The memory fix
@@ -220,7 +220,7 @@ fallback if the input outgrows memory.
 **Is anything else pinned that could go dense?** Read through `pins.env` and the stage commands:
 - `USCA_NODEMAP_TYPE=sparsearray` (`pins.env:177`) for Planetiler, memory-mapped on disk — unchanged by
   this branch, not a dense switch.
-- `osmium tags-filter` (`names_cut`, `:230-232`; the routing filters, `:748-751`) and `osmium extract -s
+- `osmium tags-filter` (`names_cut`, `:230-232`; the routing filters, `:749-750`) and `osmium extract -s
   complete_ways` (`:769-770`) keep id *sets*, not location maps; they have no `-i` and no dense/sparse
   choice. Unchanged by this branch except for the two new filter passes, whose peak Aspen measured only
   indirectly (the first run died in the export, not the filters; the second run passed).
@@ -258,7 +258,7 @@ before its run so no stale result could be read. All 21 tests ran each time.
 lines on known edges, a 1,500-point random walk at hiking step lengths across several cells, 400 random
 lines for determinism, 300 for the directory, and a 257-value highway table. The properties are the keys
 the export config emits (`name ref highway area`) and the record separator is tested on
-(`rs=True`, `:133`). Real osmium output is exercised only by `test_build_names.sh`: two tiny OPL extracts
+(`rs=True`, `:151`). Real osmium output is exercised only by `test_build_names.sh`: two tiny OPL extracts
 through the real `tags-filter`, `merge` and `export`, including a closed way, a relation member with no
 highway tag, a way present in both extracts, and an extract of another snapshot to be passed over, with
 the stage's functions and the one-off script required to write the same bytes (`:155`). No test runs on a
