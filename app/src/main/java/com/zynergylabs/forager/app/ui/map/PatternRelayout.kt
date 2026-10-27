@@ -98,7 +98,7 @@ internal class PatternRelayout<S : Any, V>(
         val delay = clearDelayMs(transition)
         val requestedFor = generation
         pendingStep = "during the $delay ms wait before the clear (nothing cleared)"
-        cancelPending = deferral.after(delay) {
+        cancelPending = Deferral { _, run -> run(); {} }.after(delay) {
             cancelPending = null
             // The cancel in onStyleRequested stops this on a phone; the check holds even if a cancel were missed.
             if (requestedFor != generation) return@after
