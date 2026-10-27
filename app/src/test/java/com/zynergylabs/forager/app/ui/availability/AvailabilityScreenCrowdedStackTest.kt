@@ -18,7 +18,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
@@ -180,6 +183,22 @@ class AvailabilityScreenCrowdedStackTest {
         settle()
     }
 
+    /**
+     * `null` when the bubble a touch on a list row opens is displayed; otherwise what was missed: the row, the touch point (in
+     * the row and in the root), the row's bounds, the bubble nodes and whether the list is still up. [dumpTree] sends the
+     * screen's tree to the test's output, so the first failure also says what the touch reached.
+     */
+    private fun bubbleMissAfterRowTouch(row: Int, point: Offset, rowBounds: Rect, dumpTree: Boolean): String? {
+        val bubbles = composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).fetchSemanticsNodes()
+        val shown = bubbles.isNotEmpty() && runCatching { composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed() }.isSuccess
+        if (shown) return null
+        if (dumpTree) println("Screen after the touch on row $row at $point:\n" + composeRule.onRoot(useUnmergedTree = true).printToString())
+        val listUp = composeRule.onAllNodesWithTag(CROWDED_LIST_TAG).fetchSemanticsNodes().isNotEmpty()
+        return "row $row at $point in the row (${rowBounds.topLeft + point} in the root); row bounds $rowBounds; " +
+            "bubble nodes ${bubbles.size}" + (bubbles.firstOrNull()?.let { ", the first at ${it.boundsInRoot}" } ?: "") +
+            "; the list ${if (listUp) "still up" else "closed"}"
+    }
+
     private fun assertMapsTabOwnBack() {
         ShadowToast.reset()
         back()
@@ -228,7 +247,9 @@ class AvailabilityScreenCrowdedStackTest {
         composeRule.onNodeWithText("30 records at this spot").assertIsDisplayed()
 
         // The first three rows by name: a real touch at five places across each opens that record's bubble, and Back
-        // brings the list back.
+        // brings the list back. Every touch is tried and each one that opens no bubble is named, so a failure says which
+        // parts of which rows a finger cannot reach.
+        val missed = mutableListOf<String>()
         for (i in 0 until 3) {
             val key = FanKey(MapLayerIds.FINDS, "find-$i")
             val name = "Chanterelle %02d".format(i)
@@ -243,9 +264,14 @@ class AvailabilityScreenCrowdedStackTest {
                 Offset(size.width * 0.5f, size.height * 0.85f),
             )
             for (point in points) {
+                val rowBounds = composeRule.onNodeWithTag(crowdedListRowTag(key)).fetchSemanticsNode().boundsInRoot
                 composeRule.onNodeWithTag(crowdedListRowTag(key)).performTouchInput { click(point) }
                 settle()
-                composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+                val miss = bubbleMissAfterRowTouch(row = i, point = point, rowBounds = rowBounds, dumpTree = missed.isEmpty())
+                if (miss != null) {
+                    missed += miss
+                    continue
+                }
                 composeRule.onNodeWithText(name).assertIsDisplayed()
                 composeRule.onNodeWithTag(CROWDED_LIST_TAG).assertDoesNotExist()
 
@@ -254,6 +280,7 @@ class AvailabilityScreenCrowdedStackTest {
                 composeRule.onNodeWithTag(CROWDED_LIST_TAG).assertIsDisplayed()
             }
         }
+        assertTrue("${missed.size} of 15 real touches on the rows opened no bubble:\n" + missed.joinToString("\n"), missed.isEmpty())
 
         back()
         composeRule.onNodeWithTag(CROWDED_LIST_TAG).assertDoesNotExist()
