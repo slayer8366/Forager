@@ -326,7 +326,7 @@ internal fun MapLayersSheet(
                                 label = REFERENCE_TRAILS_LABEL,
                                 detail = REFERENCE_TRAILS_DETAIL,
                                 checked = state.stateOf(MapLayerIds.REFERENCE_FS_BAND).visible,
-                                onCheckedChange = { onVisibilityChanged(MapLayerIds.REFERENCE_FS_BAND, it) },
+                                onCheckedChange = { onVisibilityChanged(MapLayerIds.REFERENCE_FS_BAND, it); referenceCardOpen = true },
                             )
                         }
                         ReferenceTrailsInfoButton(onClick = { referenceCardOpen = true })
