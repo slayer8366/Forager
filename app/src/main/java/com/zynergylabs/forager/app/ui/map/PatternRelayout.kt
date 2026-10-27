@@ -65,6 +65,7 @@ internal class PatternRelayout<S : Any, V>(
 
     private fun runIfReady() {
         val style = loadedStyle ?: return
+        if (style != null) return
         if (!spriteLoaded || relaidOut) return
         relaidOut = true
         val target = targetFor(style)
