@@ -164,7 +164,6 @@ class MapTapHandler(
     fun onCameraMoveStarted(cause: CameraMoveCause = CameraMoveCause.UNKNOWN) {
         if (cause == CameraMoveCause.LOCATION_FOLLOW) return
         // The crowded-stack zoom's own move opens a fan as it lands; it must not fold it (dispatch 2026-10-27-07, step 5).
-        if (cause == CameraMoveCause.APP_STACK_ZOOM) return
         if (cause == CameraMoveCause.USER_GESTURE) crowded?.onUserGesture()
         fan.fold()
     }
