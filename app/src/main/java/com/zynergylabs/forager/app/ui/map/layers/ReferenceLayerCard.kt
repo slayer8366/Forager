@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import com.zynergylabs.forager.app.domain.referencetrails.REFERENCE_SOURCES_LEAD
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailsCopy
-import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailsSourceDates
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailsSources
 import com.zynergylabs.forager.app.domain.referencetrails.referenceTrailsSourcesText
 import com.zynergylabs.forager.app.ui.format.displayDate
@@ -97,8 +96,10 @@ internal fun ReferenceLayerCard(title: String, onClose: () -> Unit) {
     LaunchedEffect(sources) { sources?.refresh() }
     val copy = sources?.copy?.collectAsState()?.value ?: ReferenceTrailsCopy.None
     val text = when (copy) {
-        // Only until the kept copy is read at start: no dates, and no claim that the phone was never online.
-        ReferenceTrailsCopy.Loading -> referenceTrailsSourcesText(ReferenceTrailsSourceDates(null, null), ::displayDate)
+        // Only until the kept copy is read at the first opening: no Sources line and no hint, so the line never rewrites
+        // itself under the eye (the owner: "it should show no sources line until they load"; dispatch 2026-10-26-24
+        // Amendment 1, Sorrel's S1 on PR #424).
+        ReferenceTrailsCopy.Loading -> null
         ReferenceTrailsCopy.None -> referenceTrailsSourcesText(null, ::displayDate)
         is ReferenceTrailsCopy.Known -> referenceTrailsSourcesText(copy.dates, ::displayDate)
     }
@@ -110,15 +111,17 @@ internal fun ReferenceLayerCard(title: String, onClose: () -> Unit) {
         Text(REFERENCE_CARD_WHAT, style = MaterialTheme.typography.bodyMedium)
         Text(REFERENCE_CARD_READING, style = MaterialTheme.typography.bodyMedium)
         Text(REFERENCE_CARD_ROUTES, style = MaterialTheme.typography.bodyMedium)
-        Text(
-            buildAnnotatedString {
-                val rest = text.line.removePrefix(REFERENCE_SOURCES_LEAD)
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(REFERENCE_SOURCES_LEAD) }
-                append(rest)
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.testTag(REFERENCE_LAYER_CARD_SOURCES_TAG),
-        )
-        text.hint?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(REFERENCE_LAYER_CARD_HINT_TAG)) }
+        text?.let { sourcesText ->
+            Text(
+                buildAnnotatedString {
+                    val rest = sourcesText.line.removePrefix(REFERENCE_SOURCES_LEAD)
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(REFERENCE_SOURCES_LEAD) }
+                    append(rest)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag(REFERENCE_LAYER_CARD_SOURCES_TAG),
+            )
+            sourcesText.hint?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(REFERENCE_LAYER_CARD_HINT_TAG)) }
+        }
     }
 }

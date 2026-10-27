@@ -30,6 +30,7 @@ import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import java.io.IOException
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -82,8 +83,17 @@ class ReferenceLayerCardTest {
         override suspend fun write(dates: ReferenceTrailsSourceDates): Result<Unit> = Result.success(Unit).also { kept = dates }
     }
 
-    private fun setSheet(kept: ReferenceTrailsSourceDates?, answer: () -> Result<String>) {
-        val sources = ReferenceTrailsSources(source = { fetches++; answer() }, store = Store(kept), scope = scope, log = { _, _ -> })
+    /** A store whose read suspends until [kept] is completed, so the card can be seen while the kept copy loads. */
+    private class SlowStore : ReferenceTrailsDatesStore {
+        val kept = CompletableDeferred<ReferenceTrailsSourceDates?>()
+        override suspend fun read(): Result<ReferenceTrailsSourceDates?> = Result.success(kept.await())
+        override suspend fun write(dates: ReferenceTrailsSourceDates): Result<Unit> = Result.success(Unit)
+    }
+
+    private fun setSheet(kept: ReferenceTrailsSourceDates?, answer: () -> Result<String>) = setSheet(Store(kept), answer)
+
+    private fun setSheet(store: ReferenceTrailsDatesStore, answer: () -> Result<String>) {
+        val sources = ReferenceTrailsSources(source = { fetches++; answer() }, store = store, scope = scope, log = { _, _ -> })
         composeRule.setContent {
             ForagerTheme(darkTheme = false) {
                 ProvideReferenceTrailsSources(sources) {
@@ -214,6 +224,32 @@ class ReferenceLayerCardTest {
             cardTexts()[4],
         )
         assertEquals("a copy exists, so no 'once you've been online' line", 5, cardTexts().size)
+    }
+
+    @Test
+    fun `while the kept copy loads, the card shows no Sources line and no hint, then the kept dates`() {
+        val store = SlowStore()
+        setSheet(store) { Result.failure(IOException("offline")) }
+        openCard()
+        assertEquals(
+            "loading: the title and three lines only",
+            listOf(
+                "Official trails",
+                "Forest Service and BLM trail records, drawn as a faint violet band under the trail map's lines.",
+                "Where the agency and the trail map agree, the trail sits inside the band. A band with no trail is an official trail the trail map lacks.",
+                "Routes follow the trail map, not this band.",
+            ),
+            cardTexts(),
+        )
+        assertTrue("loading: no Sources line", !exists(REFERENCE_LAYER_CARD_SOURCES_TAG))
+        assertTrue("loading: no hint", !exists(REFERENCE_LAYER_CARD_HINT_TAG))
+        assertEquals("the fetch waits for the kept copy", 0, fetches)
+
+        store.kept.complete(ReferenceTrailsSourceDates(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 2)))
+        composeRule.waitForIdle()
+        assertEquals("Sources: Forest Service data from Sep 1, 2026 · CC BY 4.0. BLM data from Sep 2, 2026 · public domain.", cardTexts()[4])
+        assertEquals("a kept copy, so no hint", 5, cardTexts().size)
+        assertEquals(1, fetches)
     }
 
     @Test
