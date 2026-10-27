@@ -294,6 +294,9 @@ internal fun CompactMapTab(
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
     val onCloseBubble: () -> Unit = remember { { tapped = null } }
+    // Dispatch 2026-10-27-07 (RECORD -1736): a crowded stack's list and the cameras Back returns to (CrowdedStackHost), held
+    // with the camera above the tab switch, so they survive a tab change (Amendment 1, S2).
+    val crowdedStacks = cameraMemory.crowdedStacks
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -490,6 +493,7 @@ internal fun CompactMapTab(
                     isFullscreen = isFullscreen,
                     onToggleFullscreen = onToggleFullscreen,
                     onCameraIdle = { location -> cameraCenter = location },
+                    crowdedStacks = crowdedStacks,
                 )
                 // Composed right after mapSlot — see searchBarSlot's own doc comment for why this
                 // exact nesting (a direct sibling of the map's own AndroidView content, inside
@@ -521,6 +525,18 @@ internal fun CompactMapTab(
                     // is up), the same value the fan's handler is gated on above.
                     backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     navigation = navigation,
+                )
+                // A crowded stack's list, over the map, and its Back steps (dispatch 2026-10-27-07; CompactMapCrowdedList.kt).
+                CompactMapCrowdedList(
+                    host = crowdedStacks,
+                    tapped = tapped,
+                    bubbleSources = bubbleSources,
+                    renderMode = renderMode,
+                    onFeatureTap = onFeatureTap,
+                    controlsPadding = controlsPadding,
+                    cluster = cluster,
+                    minY = layout.bubbleMinY(topInset, compassStripBottomClearance),
+                    backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                 )
                 // The icon cluster (RECORD -741: CompactMapIconCluster, moved out unchanged; its comments are there).
                 CompactMapIconCluster(

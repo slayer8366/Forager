@@ -82,11 +82,19 @@ class MapTapHandler(
     private val layerDrawn: (String) -> Boolean = { true },
     /** Where a fallback is reported, never silent: the host passes `Log.w`; a test passes its own. */
     private val warn: (String) -> Unit = {},
+    /**
+     * Dispatch 2026-10-27-07 (RECORD -1736): what a tapped stack whose fan does not fit does instead of fanning past the edge,
+     * the zoom ([CrowdedStackZoom]). `null` keeps the fan past the edge, as before, and logs it.
+     */
+    private val crowded: CrowdedStackZoom? = null,
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
         var holdFanForEmptyTap = false
         val bubbleWasUp = bubbleOpen()
+        // The crowded stack's list closes at a tap on the map, as a fan folds; while a row's bubble shows, that tap closes the
+        // bubble only, and the list comes back (one layer at a time, as for the fan, amendment -255).
+        if (!bubbleWasUp) crowded?.onMapTap()
         if (fan.isOpen) {
             val picked = fanMemberAt(liveMembers(), fan.progress, xPx / density, yPx / density)
             if (picked != null) {
@@ -155,6 +163,12 @@ class MapTapHandler(
      */
     fun onCameraMoveStarted(cause: CameraMoveCause = CameraMoveCause.UNKNOWN) {
         if (cause == CameraMoveCause.LOCATION_FOLLOW) return
+        // The crowded-stack zoom's own move opens a fan as it lands; it must not fold it (dispatch 2026-10-27-07, step 5).
+        if (cause == CameraMoveCause.APP_STACK_ZOOM) return
+        if (cause == CameraMoveCause.USER_GESTURE) crowded?.onUserGesture()
+        // A move the user asked for with a control (Locate, a search result, Return to Route) counts as their own pan
+        // (Amendment 1, S1; RECORD -1753). The crowded stack's own camera return is marked plain, so it does not.
+        if (cause == CameraMoveCause.APP_USER_ASKED) crowded?.onUserGesture()
         fan.fold()
     }
 
@@ -209,12 +223,50 @@ class MapTapHandler(
         val stack = stackOf(self, nearby, density)
         if (stack.size < 2) return false
 
-        openFan(stack, order)
+        val plan = fanPlan(stack, order)
+        if (plan.fits) {
+            fan.open(plan.members)
+            return true
+        }
+        // Dispatch 2026-10-27-07: a fan that does not fit zooms the map in to the stack instead, when this map can.
+        val zoom = crowded
+        if (zoom == null) {
+            openOverflowing(plan)
+            return true
+        }
+        zoom.onStackDoesNotFit(
+            stack = stack,
+            tapped = self.key,
+            density = density,
+            locate = { keys -> probe.markersOf(keys) },
+            plan = { now -> fanPlan(now, order) },
+            open = { fanned -> fan.open(fanned.members) },
+            overflow = { rest -> openOverflowing(fanPlan(rest, order)) },
+        )
         return true
     }
 
-    /** Fans [stack] (at least two markers), top layer first, from where they are on screen now. */
+    /** Fans [stack] (at least two markers), top layer first, from where they are on screen now, whether or not it fits (logged when not). */
     private fun openFan(stack: List<ProbedMarker>, order: List<MapLayerSpec>) {
+        val plan = fanPlan(stack, order)
+        if (plan.fits) fan.open(plan.members) else openOverflowing(plan)
+    }
+
+    /**
+     * The fallback the spiral report found unlogged (FanPlacement.kt's `allOnScreen = false`, read by nothing; dispatch
+     * 2026-10-27-07, item 6): a fan that does not fit is opened as it is, past the edge or over a control, and said so.
+     */
+    private fun openOverflowing(plan: FanPlan) {
+        val p = plan.placement
+        warn(
+            "A fan of ${plan.members.size} markers does not fit: allOnScreen=${p.allOnScreen}, controls cleared ${p.controlsCleared} of " +
+                "${p.controlsTotal}; it is opened as it is.",
+        )
+        fan.open(plan.members)
+    }
+
+    /** [stack]'s fan, top layer first, from where its markers are on screen now: worked out, not opened. */
+    private fun fanPlan(stack: List<ProbedMarker>, order: List<MapLayerSpec>): FanPlan {
         val density = probe.density
         val heightOf = order.withIndex().associate { it.value.id to it.index }
         val topFirst = stack.sortedWith(compareByDescending<ProbedMarker> { heightOf.getValue(it.key.layerId) }.thenBy { it.key.featureId })
@@ -231,16 +283,15 @@ class MapTapHandler(
             bounds = space.boundsPx()?.let { it.scaled(1f / density) },
             keepOuts = space.keepOutsPx().map { it.scaled(1f / density) },
         )
-        fan.open(
-            topFirst.mapIndexed { i, m ->
-                val (trueX, trueY) = trueDp[i]
-                val offset = FanOffset(
-                    centreX + ring[i].xDp + placement.shift.xDp - trueX,
-                    centreY + ring[i].yDp + placement.shift.yDp - trueY,
-                )
-                FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
-            },
-        )
+        val members = topFirst.mapIndexed { i, m ->
+            val (trueX, trueY) = trueDp[i]
+            val offset = FanOffset(
+                centreX + ring[i].xDp + placement.shift.xDp - trueX,
+                centreY + ring[i].yDp + placement.shift.yDp - trueY,
+            )
+            FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
+        }
+        return FanPlan(members, placement)
     }
 
     /**

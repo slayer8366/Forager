@@ -60,7 +60,8 @@ internal fun MapNavigationView(
         // the basemap's own cap back.
         map.setMaxZoomPreference(navigationMaxZoom(basemap, navigating = true, ownStreet = OWN_STREET_FALLBACK.ownStreet()))
         if (!view.following) return@LaunchedEffect
-        state.cameraMoveClassifier.markAppMove()
+        // Navigation's view, at its start and at Return to Route: the user's ask (dispatch 2026-10-27-07 Amendment 1, S1).
+        state.cameraMoveClassifier.markUserAskedMove()
         state.navigationModeChange.applyView(
             map,
             view.facing,

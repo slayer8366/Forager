@@ -14,6 +14,8 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
+import com.zynergylabs.forager.app.ui.map.fanout.StackCamera
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutState
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
@@ -238,6 +240,24 @@ internal class SightingsMapState(
  */
 internal class TapHandlerRef {
     var handler: MapTapHandler? = null
+
+    /** Dispatch 2026-10-27-07: the host's crowded-stack state, given by the Maps tab ([MapRenderMode.crowdedStacks]); `null` on a map with none. */
+    var crowdedHost: CrowdedStackHost? = null
+        set(value) {
+            field = value
+            stackCamera?.let { value?.attachCamera(it) }
+        }
+
+    /**
+     * Amendment 1, S2: this map's crowded-stack camera, set when the map is built (`MapListeners`) and cleared as it goes, so the
+     * host, which outlives the map, restores through the live map ([CrowdedStackHost.attachCamera]).
+     */
+    var stackCamera: StackCamera? = null
+        set(value) {
+            field?.let { old -> crowdedHost?.detachCamera(old) }
+            field = value
+            value?.let { crowdedHost?.attachCamera(it) }
+        }
 }
 
 /**

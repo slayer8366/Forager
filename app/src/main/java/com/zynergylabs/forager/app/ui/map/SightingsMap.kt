@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.derivedStateOf
@@ -40,6 +41,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutBackHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutHost
@@ -241,6 +243,8 @@ fun SightingsMap(
     nudgeSpringBack: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onReferenceTrailsShown]'s own doc comment. */
     onReferenceTrailsShown: (Boolean) -> Unit = {},
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.crowdedStacks]'s own doc comment. */
+    crowdedStacks: CrowdedStackHost? = null,
 ) {
     val context = LocalContext.current
     // Resources through LocalResources, which Compose re-reads on a configuration change, rather than
@@ -327,7 +331,7 @@ fun SightingsMap(
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
     // Which camera moves are the location follower's and which are the user's or the app's own (dispatch 2026-09-28-380): MapLibre reports every
     // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
-    val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
+    val cameraMoveClassifier = remember { CameraMoveClassifier({ task -> Handler(Looper.getMainLooper()).post(task) }, warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) }) }
     val currentForecastState = rememberUpdatedState(forecast)
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed (MapForecastCells.kt) is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
@@ -696,7 +700,7 @@ fun SightingsMap(
     val lastResetOrientationRequestId = remember { intArrayOf(resetOrientationRequestId) }
     LaunchedEffect(resetOrientationRequestId) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        cameraMoveClassifier.markAppMove()
+        cameraMoveClassifier.markUserAskedMove()
         val tapped = resetOrientationRequestId != lastResetOrientationRequestId[0]
         lastResetOrientationRequestId[0] = resetOrientationRequestId
         val view = currentNavigationView
@@ -708,6 +712,11 @@ fun SightingsMap(
         map.easeCamera(CameraUpdateFactory.bearingTo(0.0))
     }
 
+    // Dispatch 2026-10-27-07: the tab's crowded-stack host, read by the tap handler at each tap, and told of this map's fan.
+    SideEffect {
+        tapHandlerRef.crowdedHost = crowdedStacks
+        crowdedStacks?.fan = fanOut
+    }
     // The fan's clock, and Back closing it before anything else Back would close.
     MarkerFanOutHost(fanOut)
     MarkerFanOutBackHandler(fanOut, bubbleOpen = focusedObservationId != null || focusedFeature != null, backEnabled = backEnabled)

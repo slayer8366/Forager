@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.time.LocalDate
@@ -289,6 +290,11 @@ data class MapRenderMode(
      * [MapSlot] for the parameter-count reason [layers] gives.
      */
     val onReferenceTrailsShown: (Boolean) -> Unit = {},
+    /**
+     * Dispatch 2026-10-27-07 (RECORD -1736): where a crowded stack's list and its Back steps live, for a stack whose fan does not
+     * fit, which zooms in, then fans. `null` (every caller but the compact Maps tab) keeps the fan past the edge, logged.
+     */
+    val crowdedStacks: CrowdedStackHost? = null,
 )
 
 /**

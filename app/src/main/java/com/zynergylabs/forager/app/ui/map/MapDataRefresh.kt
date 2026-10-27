@@ -88,7 +88,8 @@ internal fun MapDataRefresh(
         val appliedSearchFrameId = state.cameraMemory?.appliedSearchFrameId ?: state.localAppliedSearchFrameId[0]
         val searchFrame = searchFrameMove(isGpsTrackingBefore, searchFrameRequestId, appliedSearchFrameId)
         if (searchFrame != SearchFrameMove.NONE) {
-            state.cameraMoveClassifier.markAppMove()
+            // The user's search: their ask, so a crowded stack's way back ends here (dispatch 2026-10-27-07 Amendment 1, S1).
+            state.cameraMoveClassifier.markUserAskedMove()
             if (searchFrame == SearchFrameMove.STOP_FOLLOWING_AND_FRAME) map.locationComponent.cameraMode = CameraMode.NONE
             map.cameraPosition = CameraPosition.Builder()
                 .target(MapLibreLatLng(region.lat, region.lng))
@@ -119,7 +120,8 @@ internal fun MapDataRefresh(
             // zoom-from-radius heuristic below, both of which stay anchored to region — see
             // MapSlot's doc comment on this parameter for why the two are kept independent.
             val cameraTarget = focusOverride?.let { MapLibreLatLng(it.lat, it.lng) } ?: center
-            state.cameraMoveClassifier.markAppMove()
+            // A new search region or a locate-me result: the user's ask (dispatch 2026-10-27-07 Amendment 1, S1).
+            state.cameraMoveClassifier.markUserAskedMove()
             map.cameraPosition = CameraPosition.Builder()
                 .target(cameraTarget)
                 .zoom(zoomForRadiusKm(region.radiusKm))

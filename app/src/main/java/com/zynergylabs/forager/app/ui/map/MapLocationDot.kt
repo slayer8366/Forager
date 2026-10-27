@@ -79,7 +79,8 @@ internal fun MapLocationDot(
     val pendingLocate = remember { PendingLocate() }
     fun locate(map: MapLibreMap, style: Style) {
         // The user pressed locate: the move that follows is theirs, so it is marked before the mode changes and closes an open fan as before.
-        state.cameraMoveClassifier.markAppMove()
+        // Marked as the user's ask, so a crowded stack's way back ends here too (dispatch 2026-10-27-07 Amendment 1, S1).
+        state.cameraMoveClassifier.markUserAskedMove()
         if (map.locationComponent.isLocationComponentActivated) {
             // Dispatch 2026-10-19-37: a give left on screen by a spring cut short is cleared before following resumes (plain map only).
             state.plainNudge.beforeLocate()
