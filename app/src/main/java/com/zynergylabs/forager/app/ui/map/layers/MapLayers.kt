@@ -173,7 +173,7 @@ object MapLayerIds {
 
     // Step 8b: the official-trails band, layers of Trail Map's own style (street-v3), not of the app. The ids are the
     // style's, mirrored from map-style/overrides/forager-reference.mjs (bandLayers, labelLayers) and held to it by
-    // ReferenceTrailLayerIdsTest, which reads that file. Bottom to top: the Forest Service band, the BLM band, the
+    // ReferenceTrailLayersTest, which reads that file. Bottom to top: the Forest Service band, the BLM band, the
     // Forest Service trail number.
     const val REFERENCE_FS_BAND = "reference_fs_band"
     const val REFERENCE_BLM_BAND = "reference_blm_band"

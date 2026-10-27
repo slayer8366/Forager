@@ -191,7 +191,8 @@ class OfflineRegionRouteRowTest {
         composeRule.setContent { ForagerTheme { OfflineDownloadStatusContent(OfflineMapStatus.Downloading(120, 120, gettingRoutes = true)) } }
 
         composeRule.onNodeWithText("Getting trail routes").assertIsDisplayed()
-        composeRule.onNodeWithText("120 / 120 tiles").assertDoesNotExist()
+        // Since T1 (dispatch 2026-10-26-21) the line it stands in for is a percentage, "100%", not "120 / 120 tiles".
+        composeRule.onNodeWithText("100%").assertDoesNotExist()
     }
 
     @Test

@@ -75,7 +75,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 @Composable
 internal fun OfflineRegionsSection(
     regions: List<OfflineRegionSummary>,
-    tilesUsed: Int,
+    tilesUsed: Long,
     errorMessage: String?,
     staleThresholdDays: Int,
     distanceUnit: DistanceUnit,

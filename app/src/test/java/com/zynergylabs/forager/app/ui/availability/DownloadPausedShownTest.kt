@@ -90,12 +90,15 @@ class DownloadPausedShownTest {
     fun `while the download waits for signal it says so, and the bar stays where it was`() {
         startDownload()
         onMain { download.progress!!(627, 1608) }
-        composeRule.onNodeWithText("627 / 1608 tiles").assertIsDisplayed()
+        // T1 (dispatch 2026-10-26-21 Amendment 1, RECORD -1703): "the download progress line shows a percentage only". 627 of
+        // 1608 is 38.99 %, shown as the whole percent reached, 38 %; no tile count shows (MapLibre's counts every source's).
+        composeRule.onNodeWithText("38%").assertIsDisplayed()
+        composeRule.onNodeWithText("627 / 1608 tiles").assertDoesNotExist()
 
         onMain { download.pauseChanged!!(true) }
 
         composeRule.onNodeWithText("Paused · no signal · continues by itself").assertIsDisplayed()
-        composeRule.onNodeWithText("627 / 1608 tiles").assertDoesNotExist()
+        composeRule.onNodeWithText("38%").assertDoesNotExist()
         assertEquals("the bar stays where it was", listOf(627f / 1608), barFractions())
 
         // MapLibre reports status while paused too, with the same count: the line stays.
@@ -116,7 +119,7 @@ class DownloadPausedShownTest {
             download.pauseChanged!!(false)
         }
 
-        composeRule.onNodeWithText("691 / 1608 tiles").assertIsDisplayed()
+        composeRule.onNodeWithText("42%").assertIsDisplayed()
         composeRule.onNodeWithText("Paused · no signal · continues by itself").assertDoesNotExist()
         assertEquals(listOf(691f / 1608), barFractions())
     }

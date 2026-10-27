@@ -733,4 +733,48 @@ class AvailabilityViewModelOfflineMapsTest {
 
         assertEquals(listOf(1L, 5L), vm.uiState.value.offlineRegions.map { it.id })
     }
+
+    // ---- T1 (dispatch 2026-10-26-21 Amendment 1, RECORD -1703): each area counts by its own estimate ----
+
+    /** A 24 km Trail Map v3 area: estimate 5120 (the literal above), MapLibre's count double that with the band's tiles. */
+    private val v3Area = REFERENCE_REGION_SUMMARY.copy(id = 9L, region = Region(lat = 49.60, lng = -122.607, radiusKm = 24), tileCount = 10_240)
+
+    @Test
+    fun `after one 24 km v3 area the next download is gated on its estimate, so a second 24 km one is refused and a small one goes`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(v3Area)))
+        repository.downloadResult = Result.success(REFERENCE_REGION_SUMMARY)
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOfflineMapLatChanged("49.60")
+        vm.onOfflineMapLngChanged("-122.607")
+        vm.onOfflineMapRadiusChanged(24)
+        vm.onDownloadOfflineMaps()
+        advanceUntilIdle()
+        assertTrue("a second 24 km area does not fit beside the first", !repository.downloadCalled)
+        assertEquals(
+            OfflineMapStatus.Failed("This region needs about 5120 tiles, but only 880 remain in your 6000-tile budget. Delete a region or pick a smaller radius."),
+            vm.uiState.value.offlineDownloadStatus,
+        )
+
+        vm.onOfflineMapLatChanged("45.5")
+        vm.onOfflineMapLngChanged("-122.6")
+        vm.onOfflineMapRadiusChanged(1)
+        vm.onDownloadOfflineMaps()
+        advanceUntilIdle()
+        assertEquals("a 1 km area (19 tiles) fits in the 880 left", Region(lat = 45.5, lng = -122.6, radiusKm = 1), repository.lastRegion)
+    }
+
+    @Test
+    fun `Download again beside a 24 km v3 area is gated on the area's estimate too`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(v3Area)))
+        repository.notDownloaded = listOf(restoredRegion)
+        repository.downloadResult = Result.success(REFERENCE_REGION_SUMMARY.copy(id = 42L, region = restoredRegion.region))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDownloadAgain(5L)
+        advanceUntilIdle()
+
+        assertEquals("the 8 km area (577 tiles) fits in the 880 left", restoredRegion.region, repository.lastRegion)
+    }
 }

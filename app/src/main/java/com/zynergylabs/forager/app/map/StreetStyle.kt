@@ -21,6 +21,9 @@ package com.zynergylabs.forager.app.map
  */
 internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v2.json"
 
+/** STUB (fail-first, dispatch 2026-10-26-21): v2 by name, before the switch makes v3 the current style. */
+internal const val STREET_STYLE_V2_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v2.json"
+
 /**
  * Trail Map's first style, before its character: still served, unchanged, for apps older than v2 and for the regions
  * downloaded against it, which keep drawing in it and show the -1294 notice ("The existing notice", RECORD -1561).

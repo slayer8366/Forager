@@ -276,7 +276,9 @@ class RecordDetailsSheetTest {
         composeRule.onNodeWithTag("record-details-stale").assertTextEquals("Stale")
         field("radius").assertTextEquals("Radius", "9 mi")
         field("centre").assertTextEquals("Centre", "45.5000, -122.5000")
-        field("tiles").assertTextEquals("Tiles", "1234")
+        // T1 (dispatch 2026-10-26-21, RECORD -1703): the area's estimate from its centre and radius (15 km at 45.5, -122.5,
+        // zooms 10 to 15), the figure the tile budget counts it by, not MapLibre's stored count (1234 in the fixture).
+        field("tiles").assertTextEquals("Tiles", "1766")
         field("size").assertTextEquals("Size", "12.3 MB")
         field("downloaded").assertTextEquals("Downloaded", "${stamp(DETAILS_REGION.createdAtEpochMillis)} (70 days ago)")
         composeRule.onNodeWithTag(ZOOM).assertTextEquals(REGION_ZOOM_NOTE)

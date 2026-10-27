@@ -22,8 +22,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Step 8b (dispatch 2026-10-26-15 Amendment 2): the official-trails switch on a loaded style, headless. The style is a
- * fixture read from the repository: the served street-v3 (which holds the three reference layers) and street-v2 (today's,
- * which holds none), each as the set of its layer ids behind [StyleLayerSwitches], the seam `MapLibreStyleLayerSwitches`
+ * fixture read from the repository: the served street-v3 (which holds the three reference layers, and since dispatch
+ * 2026-10-26-21 is what Trail Map loads) and street-v2 (what an area downloaded before the switch holds; it has none), each as the set of its layer ids behind [StyleLayerSwitches], the seam `MapLibreStyleLayerSwitches`
  * puts over a real `Style`. Every write the code makes to the style is recorded.
  *
  * What runs here is what the map runs: [applyReferenceTrailsOnStyleLoad] is the one call in `MapStyleReload`'s style-load
@@ -80,10 +80,22 @@ class ReferenceTrailsVisibilityTest {
     }
 
     @Test
-    fun `on today's v2 style load nothing is found and nothing is written`() {
+    fun `on a v2 area's style load nothing is found and nothing is written`() {
         val style = v2()
         assertEquals(false, applyReferenceTrailsOnStyleLoad(style, drawnOnThisMap = true, chosen = MapLayersState.DEFAULT))
         assertEquals(emptyList<Pair<String, Boolean>>(), style.writes)
+    }
+
+    /**
+     * Sorrel's review of #418, S3: a style with only some of the band's layers is one this app does not know. Here v3
+     * without the Forest Service number: the band is not reported, both layers it has are written hidden, and nothing is
+     * written visible, even with the switch on.
+     */
+    @Test
+    fun `on a style with two of the three layers the band is not offered and both are hidden`() {
+        val style = FixtureStyle(layerIds("../server/pmtiles-worker/src/street-style-v3.json") - MapLayerIds.REFERENCE_FS_NUMBER)
+        assertEquals(false, applyReferenceTrailsOnStyleLoad(style, drawnOnThisMap = true, chosen = MapLayersState.DEFAULT))
+        assertEquals(listOf(MapLayerIds.REFERENCE_FS_BAND to false, MapLayerIds.REFERENCE_BLM_BAND to false), style.writes)
     }
 
     @Test
@@ -102,7 +114,7 @@ class ReferenceTrailsVisibilityTest {
     }
 
     @Test
-    fun `a flip on today's v2 map writes nothing and throws nothing`() {
+    fun `a flip on a v2 area's map writes nothing and throws nothing`() {
         val style = v2()
         flip(style, withReferenceTrailsHiddenUnlessLoaded(off, loaded = false))
         flip(style, withReferenceTrailsHiddenUnlessLoaded(MapLayersState.DEFAULT, loaded = false))
@@ -121,7 +133,7 @@ class ReferenceTrailsVisibilityTest {
     }
 
     @Test
-    fun `the caption adds the credit only while the band is on and loaded, and on today's style it is exactly what it was`() {
+    fun `the caption adds the credit only while the band is on and loaded, and on a style without it it is exactly what it was`() {
         val today = attributionCaption(mapCreditsFor(Basemap.FORAGER_TRAIL, false, activeLayerCredits(MAP_LAYER_REGISTRY.filter { it.renderer != LayerRenderer.STYLE_LAYER }, MapLayersState.DEFAULT)))
         val credit = "Trails: USDA Forest Service, CC BY 4.0 · BLM"
         assertEquals("$today · $credit", caption(MapLayersState.DEFAULT, loaded = true))
