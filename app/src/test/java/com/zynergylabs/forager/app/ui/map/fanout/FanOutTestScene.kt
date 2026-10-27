@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.map.fanout
 
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import kotlin.math.PI
 import kotlin.math.abs
@@ -100,4 +101,8 @@ internal class RecordingSinks : MapTapSinks {
     override fun onUnidentifiedFeature(layerId: String) { events += "unidentified:$layerId" }
 
     override fun onCloseBubble() { events += "closeBubble" }
+
+    override fun onReferenceTrailTap(layerId: String, record: ReferenceTrailRecord, xPx: Float, yPx: Float, at: LatLng) {
+        events += "reference:$layerId:${record.firstLine}"
+    }
 }

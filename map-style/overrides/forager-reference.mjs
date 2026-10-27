@@ -40,6 +40,15 @@ export const FS_SNOW_TRAIL_TYPE = "SNOW";
 export const FS_TRAIL_NUMBER_FIELD = "trail_no";
 
 /**
+ * The names a tapped band reads out (step 8, PR 8c; dispatch 2026-10-26-16 Amendment 1, RECORD -1681): the Forest
+ * Service trail name, and BLM's route name as Juniper read it from the BLM GTLF public display schema on 2026-10-17
+ * (`trail-data-comparison` branch, `analyze.py:325-327`). No style layer uses them, so street-v3 is unchanged by them;
+ * the app mirrors them (`domain/referencetrails/ReferenceTrailRecord.kt`, held to this file by its test).
+ */
+export const FS_TRAIL_NAME_FIELD = "trail_name";
+export const BLM_ROUTE_NAME_FIELD = "ROUTE_PRMRY_NM";
+
+/**
  * The band's look (report section 2, an example the owner has not yet seen on a phone): violet, a family nothing else
  * on the map uses, at 35%, 6 dp at zoom 12 widening to 10 dp at 15, from zoom 12; the number from zoom 14.
  */

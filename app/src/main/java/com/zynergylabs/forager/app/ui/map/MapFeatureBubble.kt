@@ -135,6 +135,11 @@ internal fun MapFeatureBubble(
                     color = LocalContentColor.current.copy(alpha = 0.7f),
                 )
             }
+            // Step 8c (RECORD -1680, -1681): whose trail it is, then that routes follow the trail map. No action.
+            is MapBubbleContent.ReferenceTrail -> {
+                Box(Modifier.testTag(MAP_BUBBLE_REFERENCE_TITLE_TAG)) { BubbleTitle(content.title) }
+                Box(Modifier.testTag(MAP_BUBBLE_REFERENCE_NOTE_TAG)) { BubbleLine(content.note) }
+            }
         }
     }
 }
@@ -233,6 +238,10 @@ internal const val MAP_BUBBLE_NAVIGATE_TAG = "map-bubble-navigate"
 internal const val MAP_BUBBLE_DETAILS_TAG = "map-bubble-details"
 internal const val MAP_BUBBLE_STALE_TAG = "map-bubble-stale"
 internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"
+
+/** Step 8c: an official-trails band's two lines. */
+internal const val MAP_BUBBLE_REFERENCE_TITLE_TAG = "map-bubble-reference-title"
+internal const val MAP_BUBBLE_REFERENCE_NOTE_TAG = "map-bubble-reference-note"
 
 /** J8: a highlighted record's bubble line for one keeping entry, by its date; a tap opens that entry. */
 internal fun mapBubbleEntryLineTag(entryId: String) = "map-bubble-entry-$entryId"
