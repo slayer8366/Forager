@@ -99,7 +99,7 @@ internal fun MapListeners(
                 // Dispatch 2026-10-27-07 (RECORD -1736): a stack whose fan does not fit zooms in, then fans; only on a map whose host
                 // shows the list and walks Back (the Maps tab). Elsewhere it fans past the edge as before, logged.
                 crowded = CrowdedStackZoom(
-                    camera = MapStackCamera(map, state, resources.displayMetrics.density),
+                    camera = MapStackCamera(map, state, resources.displayMetrics.density).also { state.tapHandlerRef.stackCamera = it },
                     host = { state.tapHandlerRef.crowdedHost },
                     warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
                 ),
@@ -249,6 +249,8 @@ internal fun MapListeners(
             state.mapLibreMap = map
         }
         onDispose {
+            // Amendment 1, S2: the host outlives this map; Back's camera step stops moving this one.
+            state.tapHandlerRef.stackCamera = null
             state.mapView.removeOnDidFinishRenderingFrameListener(frameLogger)
             state.mapView.removeOnTileActionListener(tileErrorLogger)
         }

@@ -331,7 +331,7 @@ fun SightingsMap(
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
     // Which camera moves are the location follower's and which are the user's or the app's own (dispatch 2026-09-28-380): MapLibre reports every
     // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
-    val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
+    val cameraMoveClassifier = remember { CameraMoveClassifier({ task -> Handler(Looper.getMainLooper()).post(task) }, warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) }) }
     val currentForecastState = rememberUpdatedState(forecast)
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed (MapForecastCells.kt) is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
@@ -700,7 +700,7 @@ fun SightingsMap(
     val lastResetOrientationRequestId = remember { intArrayOf(resetOrientationRequestId) }
     LaunchedEffect(resetOrientationRequestId) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        cameraMoveClassifier.markAppMove()
+        cameraMoveClassifier.markUserAskedMove()
         val tapped = resetOrientationRequestId != lastResetOrientationRequestId[0]
         lastResetOrientationRequestId[0] = resetOrientationRequestId
         val view = currentNavigationView

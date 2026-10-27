@@ -72,7 +72,6 @@ import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.TappedMapThing
 import com.zynergylabs.forager.app.ui.map.tappedThingOf
-import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
@@ -295,8 +294,9 @@ internal fun CompactMapTab(
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
     val onCloseBubble: () -> Unit = remember { { tapped = null } }
-    // Dispatch 2026-10-27-07 (RECORD -1736): a crowded stack's list and the cameras Back returns to (CrowdedStackHost).
-    val crowdedStacks = remember { CrowdedStackHost() }
+    // Dispatch 2026-10-27-07 (RECORD -1736): a crowded stack's list and the cameras Back returns to (CrowdedStackHost), held
+    // with the camera above the tab switch, so they survive a tab change (Amendment 1, S2).
+    val crowdedStacks = cameraMemory.crowdedStacks
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -535,6 +535,7 @@ internal fun CompactMapTab(
                     onFeatureTap = onFeatureTap,
                     controlsPadding = controlsPadding,
                     cluster = cluster,
+                    minY = layout.bubbleMinY(topInset, compassStripBottomClearance),
                     backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                 )
                 // The icon cluster (RECORD -741: CompactMapIconCluster, moved out unchanged; its comments are there).

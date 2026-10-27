@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.map
 
+import android.util.Log
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.domain.model.Region
 
 /**
@@ -62,4 +64,10 @@ class MapCameraMemory {
      * the camera, so a return to Maps shows it until the compass reports again rather than "—" ([rememberTrueHeading]).
      */
     val heading: HeadingMemory = HeadingMemory()
+
+    /**
+     * Dispatch 2026-10-27-07 Amendment 1, S2 (RECORD -1753): a crowded stack's list and the cameras Back returns to, kept above
+     * the tab like the camera, so a tab change ("Open in Journal", then Back) leaves Back's steps as they were. Session only.
+     */
+    val crowdedStacks: CrowdedStackHost = CrowdedStackHost(warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) })
 }

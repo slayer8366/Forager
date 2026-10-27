@@ -149,4 +149,32 @@ class CameraMoveClassifierTest {
         assertEquals(listOf(CameraMoveCause.APP_REQUESTED), first)
         assertEquals("mark 2's move is the app's whichever settle step runs first", listOf(CameraMoveCause.APP_REQUESTED), second)
     }
+
+    // Dispatch 2026-10-27-07 Amendment 1 (RECORD -1753): the user's ask and the crowded stack's zoom, and how marks join.
+
+    @Test
+    fun `a move the user asked for is classed as their ask, and wins a join with any other mark`() {
+        classifier.markUserAskedMove()
+        assertEquals(CameraMoveCause.APP_USER_ASKED, classifier.classify(isGesture = false, followingLocation = true))
+        classifier.onCameraIdle()
+
+        classifier.markAppMove()
+        classifier.markUserAskedMove()
+        assertEquals("a Locate press during a style load's move is still the user's", CameraMoveCause.APP_USER_ASKED, classifier.classify(isGesture = false, followingLocation = false))
+    }
+
+    @Test
+    fun `a crowded stack's zoom that joins another mark loses its kind, and that is logged`() {
+        val warnings = mutableListOf<String>()
+        val logged = CameraMoveClassifier(looper::post, warn = { warnings += it })
+        logged.markStackZoomMove()
+        assertEquals(CameraMoveCause.APP_STACK_ZOOM, logged.classify(isGesture = false, followingLocation = false))
+        logged.onCameraIdle()
+        assertEquals("a zoom on its own logs nothing", emptyList<String>(), warnings)
+
+        logged.markAppMove()
+        logged.markStackZoomMove()
+        assertEquals(CameraMoveCause.APP_REQUESTED, logged.classify(isGesture = false, followingLocation = false))
+        assertEquals("the zoom's lost kind is logged: $warnings", 1, warnings.count { it.contains("crowded stack's zoom joined another camera move") })
+    }
 }

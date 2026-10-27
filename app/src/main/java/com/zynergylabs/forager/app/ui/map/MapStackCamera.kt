@@ -11,8 +11,9 @@ import org.maplibre.android.maps.MapLibreMap
 
 /**
  * The crowded-stack zoom's camera over MapLibre (dispatch 2026-10-27-07). Every move is marked first, as every other camera
- * move this map makes is ([CameraMoveClassifier.markAppMove]): the zoom's own with `keepsFan`, so the fan it opens as it
- * lands is not folded by it; the return with the plain mark.
+ * move this map makes is: the zoom's own with [CameraMoveClassifier.markStackZoomMove], so the fan it opens as it lands is not
+ * folded by it; the return with the plain [CameraMoveClassifier.markAppMove], which folds a fan but, unlike a move the user
+ * asked for ([CameraMoveClassifier.markUserAskedMove]), does not end the rest of a chain of returns (Amendment 1, S1).
  *
  * **The move is instant** ([applyCameraFrame], the entry map's frame), and the fan is worked out straight after it from the
  * projection. That rests on MapLibre's `moveCamera` applying the camera synchronously (`jumpTo`) and only queueing its
@@ -41,7 +42,7 @@ internal class MapStackCamera(
         val component = map.locationComponent
         val wasFollowing = component.isLocationComponentActivated && component.cameraMode != CameraMode.NONE
         val followMode = if (wasFollowing) component.cameraMode else null
-        state.cameraMoveClassifier.markAppMove(keepsFan = true)
+        state.cameraMoveClassifier.markStackZoomMove()
         if (wasFollowing) component.cameraMode = CameraMode.NONE
         val moved = applyCameraFrame(map, frame, density)
         if (!moved && followMode != null) component.cameraMode = followMode

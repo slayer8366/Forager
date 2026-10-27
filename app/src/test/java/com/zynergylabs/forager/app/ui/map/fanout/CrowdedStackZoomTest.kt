@@ -194,6 +194,96 @@ class CrowdedStackZoomTest {
         assertTrue(camera.frames.isEmpty())
     }
 
+    // Amendment 1 (RECORD -1753, the owner: "Treat it like your own pan (Recommended)"). The press itself (MapLocationDot's
+    // locate, the search frame, the navigation view) marks the move with markUserAskedMove before moving the camera; MapLibre
+    // then reports the move's start, which arrives here as it does from the map's listener (MapListeners.kt).
+
+    @Test
+    fun `a move the user asked for after the zoom (Locate) closes the list and drops Back's camera step`() {
+        addAt(MapLayerIds.FINDS, "f", 30, a.lat, a.lng)
+        val h = handler()
+        tapOn(h, a.lat, a.lng)
+        assertNotNullList()
+        assertTrue(host.cameraReturnPending)
+        classifier.onCameraIdle()
+        looper.runAll()
+
+        classifier.markUserAskedMove()
+        h.onCameraMoveStarted(classifier.classify(isGesture = false, followingLocation = false))
+
+        assertNull("the list closed, as at the user's own pan", host.list)
+        assertFalse("Back no longer moves the camera: the map is where the user sent it", host.cameraReturnPending)
+    }
+
+    @Test
+    fun `a move the user asked for after the zoom's fan was folded drops Back's camera step too`() {
+        addAt(MapLayerIds.PHOTOS, "p", 20, a.lat, a.lng)
+        addAt(MapLayerIds.FINDS, "f", 10, a.lat, a.lng + 0.012)
+        val h = handler()
+        tapOn(h, a.lat, a.lng)
+        assertTrue(fan.isOpen)
+        fan.fold()
+        fan.release()
+        classifier.onCameraIdle()
+        looper.runAll()
+        assertTrue(host.cameraReturnPending)
+
+        classifier.markUserAskedMove()
+        h.onCameraMoveStarted(classifier.classify(isGesture = false, followingLocation = true))
+
+        assertFalse(host.cameraReturnPending)
+    }
+
+    @Test
+    fun `the camera return's own move does not end the rest of the way back`() {
+        // Two crowded taps, each with its own zoom: a grid that splits, then a pile far off that lists. Two returns.
+        for (row in 0 until 5) for (col in 0 until 6) scene.add(MapLayerIds.FINDS, "g$row-$col", a.lat + row * 0.0006, a.lng + col * 0.0006)
+        val far = LatLng(a.lat + 0.5, a.lng)
+        addAt(MapLayerIds.FINDS, "f", 30, far.lat, far.lng)
+        val h = handler()
+        tapOn(h, a.lat, a.lng)
+        classifier.onCameraIdle()
+        looper.runAll()
+        tapOn(h, far.lat, far.lng)
+        classifier.onCameraIdle()
+        looper.runAll()
+        assertEquals("two zooms, two returns", 2, host.cameraReturnCount)
+
+        host.closeList()
+        assertTrue(host.stepBack())
+        // The restore's own move (SceneStackCamera.restore marks it plain, as MapStackCamera does) starts.
+        h.onCameraMoveStarted(classifier.classify(isGesture = false, followingLocation = false))
+
+        assertEquals("the earlier zoom's return is still there for the next Back", 1, host.cameraReturnCount)
+    }
+
+    @Test
+    fun `a camera that does not get closer lists the stack where it stopped, and says so`() {
+        camera.maxZoom = 12.0
+        addAt(MapLayerIds.FINDS, "f", 30, a.lat, a.lng)
+        tapOn(handler(), a.lat, a.lng)
+
+        assertNotNullList()
+        assertEquals(12.0, scene.zoom, 1e-9)
+        assertTrue("logged: $warnings", warnings.any { it.contains("did not get closer than zoom 12.0") })
+    }
+
+    @Test
+    fun `after the map is rebuilt, Back's camera step moves the live map's camera`() {
+        addAt(MapLayerIds.FINDS, "f", 30, a.lat, a.lng)
+        tapOn(handler(), a.lat, a.lng)
+        host.closeList()
+        // A tab change: the old map goes and a new one is built over the same host (TapHandlerRef.stackCamera).
+        val rebuilt = SceneStackCamera(scene, 300f, 600f, classifier)
+        host.detachCamera(camera)
+        host.attachCamera(rebuilt)
+
+        assertTrue(host.stepBack())
+
+        assertTrue("not through the old map's camera", camera.restores.isEmpty())
+        assertEquals(10.0, rebuilt.restores.single().zoom, 1e-9)
+    }
+
     private fun assertNotNullList(): CrowdedList {
         val list = host.list
         assertNotNull("the list opened", list)

@@ -28,16 +28,19 @@ internal class SceneStackCamera(
     /** `false` stands for navigating: the camera is not the app's to move. */
     var available = true
 
+    /** The basemap's own zoom limit (`setMaxZoomPreference`): a frame closer than this stops here. */
+    var maxZoom = Double.POSITIVE_INFINITY
+
     override fun spot(): CameraSpot? =
         if (!available) null else CameraSpot(scene.centre.lat, scene.centre.lng, scene.zoom, bearing = 0.0, tilt = 0.0)
 
     override fun frame(frame: EntryMapFrame): Boolean {
-        classifier.markAppMove(keepsFan = true)
+        classifier.markStackZoomMove()
         frames += frame
         when (frame) {
             is EntryMapFrame.SinglePoint -> {
                 scene.centre = frame.at
-                scene.zoom = frame.zoom
+                scene.zoom = min(maxZoom, frame.zoom)
             }
             is EntryMapFrame.Fit -> {
                 val b = frame.bounds
@@ -48,7 +51,7 @@ internal class SceneStackCamera(
                 val pad = 2.0 * frame.paddingDp
                 val byWidth = if (widthAtZero > 0) log2((viewWidthDp - pad) / widthAtZero) else Double.POSITIVE_INFINITY
                 val byHeight = if (heightAtZero > 0) log2((viewHeightDp - pad) / heightAtZero) else Double.POSITIVE_INFINITY
-                scene.zoom = min(frame.maxZoom, min(byWidth, byHeight))
+                scene.zoom = min(maxZoom, min(frame.maxZoom, min(byWidth, byHeight)))
             }
         }
         return true

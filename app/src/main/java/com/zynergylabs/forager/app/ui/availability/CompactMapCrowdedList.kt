@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.format.is24HourClock
 import com.zynergylabs.forager.app.ui.map.CrowdedStackList
@@ -37,6 +38,9 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * over the rows' cluster-side end and took the touches there (seen on CI: a real touch at 90% across the first two rows
  * reached the cluster, run 40580543726). Cleared at any height, because the user drags the cluster up and down and the list
  * is not to make them move it.
+ *
+ * **Below the search bar and the strip** ([minY], the bubble's own top limit; Amendment 1, S3): the list's top keeps clear of
+ * them, and in a short landscape window, where 300 dp does not fit under them, the list is shorter and its rows scroll.
  */
 @Composable
 internal fun BoxScope.CompactMapCrowdedList(
@@ -47,6 +51,7 @@ internal fun BoxScope.CompactMapCrowdedList(
     onFeatureTap: (MapFeatureTap) -> Unit,
     controlsPadding: PaddingValues,
     cluster: MapIconClusterState,
+    minY: Dp,
     backEnabled: Boolean,
 ) {
     val shown = host.list
@@ -76,6 +81,7 @@ internal fun BoxScope.CompactMapCrowdedList(
                     .absolutePadding(
                         left = if (clusterOnLeft) clusterColumn else 16.dp,
                         right = if (clusterOnLeft) 16.dp else clusterColumn,
+                        top = minY,
                         bottom = renderMode.bottomInset + 16.dp,
                     ),
             )

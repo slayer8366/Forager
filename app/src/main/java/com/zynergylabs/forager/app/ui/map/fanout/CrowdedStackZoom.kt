@@ -61,10 +61,19 @@ data class CrowdedList(val keys: List<FanKey>, val anchorXPx: Float, val anchorY
 
 /**
  * What the Maps tab holds for crowded stacks, observable: the cameras Back returns to, latest last, and the list showing.
- * Made by the tab, which composes the list and its Back steps ([CrowdedStackBackHandlers]); the map writes it through
- * [CrowdedStackZoom] and tells it whether a fan is open ([fan]). A map with no host keeps the overflowing fan, logged.
+ * The tab composes the list and its Back steps ([CrowdedStackBackHandlers]); the map writes it through [CrowdedStackZoom] and
+ * tells it whether a fan is open ([fan]). A map with no host keeps the overflowing fan, logged.
+ *
+ * **Held above the tab switch** (Amendment 1, S2; CLAUDE.md's UX defaults), in the Maps tab's camera memory
+ * (`MapCameraMemory.crowdedStacks`), so the list and the camera returns survive a tab change as the fan does. The map that
+ * comes back is a new one, so the camera Back restores through is **the live map's** ([attachCamera], by the map as it is
+ * built; [detachCamera] as it goes), not the one a return was taken with. The other choice, dropping the returns when the map
+ * is rebuilt, was not taken: "Open in Journal" and Back rebuild the map, and that is the path S2 is for.
  */
-class CrowdedStackHost {
+class CrowdedStackHost(
+    /** Where a camera step that cannot move the camera is reported; the map's memory passes `Log.w`. */
+    private val warn: (String) -> Unit = {},
+) {
     private val returns = mutableStateListOf<CameraSpot>()
 
     /** Whether Back has a camera to return to. */
@@ -79,7 +88,7 @@ class CrowdedStackHost {
     /** The map's fan, so the tab's Back steps wait while it is open (the fan's own Back folds it first). */
     var fan by mutableStateOf<MarkerFanOutState?>(null)
 
-    /** The camera the waiting returns were taken from. */
+    /** The live map's camera, which Back's camera step restores through; `null` while no map is built. */
     private var camera: StackCamera? = null
 
     internal fun pushReturn(spot: CameraSpot, from: StackCamera) {
@@ -87,13 +96,24 @@ class CrowdedStackHost {
         camera = from
     }
 
+    /** A map was built over this host: Back's camera step moves its camera from now on. */
+    fun attachCamera(live: StackCamera) { camera = live }
+
+    /** [gone]'s map is going away; a newer map's camera, already attached, is kept. */
+    fun detachCamera(gone: StackCamera) { if (camera === gone) camera = null }
+
     /** The user moved the map: what they see is theirs now, and Back no longer moves the camera (see [CrowdedStackZoom.onUserGesture]). */
     fun clearReturns() = returns.clear()
 
     /** Back's camera step: the latest return, restored. `false` when there was none. */
     fun stepBack(): Boolean {
         val spot = returns.removeLastOrNull() ?: return false
-        camera?.restore(spot)
+        val live = camera
+        if (live == null) {
+            warn("Crowded stack: Back's camera step found no map to move; the return to zoom ${spot.zoom} is dropped.")
+            return true
+        }
+        live.restore(spot)
         return true
     }
 
@@ -177,7 +197,10 @@ class CrowdedStackZoom(
             }
             current = now
             // A camera that did not get closer (the basemap's own limit) is as close as it goes.
-            if (zoomAfter <= zoomBefore + ZOOM_EPS) return list(host, current, tapped)
+            if (zoomAfter <= zoomBefore + ZOOM_EPS) {
+                warn("Crowded stack: the camera did not get closer than zoom $zoomAfter; ${current.size} markers are offered as a list there.")
+                return list(host, current, tapped)
+            }
             zoomBefore = zoomAfter
         }
         warn("Crowded stack: ${current.size} markers did not split or fit in $MAX_ZOOM_STEPS zoom steps; offered as a list.")
@@ -189,7 +212,10 @@ class CrowdedStackZoom(
         host()?.takeIf { it.list != null }?.closeList()
     }
 
-    /** The user moved the camera themselves: no return is kept and the list closes, as the fan folds. */
+    /**
+     * The user moved the camera themselves, by a touch or by a control that moves it ([CameraMoveCause.APP_USER_ASKED]: Locate,
+     * a search result, Return to Route): no return is kept and the list closes, as the fan folds.
+     */
     fun onUserGesture() {
         host()?.let { h ->
             h.clearReturns()

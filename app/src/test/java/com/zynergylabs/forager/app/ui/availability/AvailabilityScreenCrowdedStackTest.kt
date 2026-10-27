@@ -307,13 +307,15 @@ class AvailabilityScreenCrowdedStackTest {
 
         val list: Rect = composeRule.onNodeWithTag(CROWDED_LIST_TAG).fetchSemanticsNode().boundsInRoot
         val map: Rect = composeRule.onNodeWithTag(MAP_TAG).fetchSemanticsNode().boundsInRoot
-        // Just above the list, further above it, and level with it past its side when there is room.
-        val outside = buildList {
-            add(Offset(list.center.x, list.top - 24f * density))
-            add(Offset(list.center.x, list.top - 120f * density))
-            if (list.left - map.left > 32f * density) add(Offset(map.left + 12f * density, list.center.y))
-        }
-        assertTrue("at least two places to press: $outside", outside.size >= 2)
+        // Just above the list, further above it, and level with it in the gutter beside it (16 dp on the side away from the
+        // icon cluster; Sorrel's #430 review, N3: the side point used to need 32 dp and never ran).
+        val gutter = list.left - map.left
+        assertTrue("positive control: a gutter beside the list, $gutter px", gutter >= 12f * density)
+        val outside = listOf(
+            Offset(list.center.x, list.top - 24f * density),
+            Offset(list.center.x, list.top - 120f * density),
+            Offset(map.left + gutter / 2, list.center.y),
+        )
         for (rootPoint in outside) {
             assertFalse("the point $rootPoint is outside the list $list", list.contains(rootPoint))
             val before = mapLongPresses
