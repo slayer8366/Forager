@@ -29144,3 +29144,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the S22 session (Opus; scratch v2 1.0.4103+g027ce726, laptop-only evidence in /home/zynergy-labs/s22-glyph-fix/): buildings pass every step by day and night after MapLibre's cached style (files/mbgl-offline.db) was expired and the app cold-started (z13 #cccccc at half opacity; z14 #c1c1c1 solid, no edge; z15-18 #a6a6a6 edge and 0 glyph pixels inside buildings; at night the edge is present but faint against forest). Patterns: a clear and restore fails at +0 to +250 ms after the callback and sprite and works from +300 ms, by day and night; a restore 2-7 ms after the clear can fail, and at least 100 ms works 5 of 5; MapLibre 13.5.0 transitions fill-pattern over a default 300 ms, and street-v3 sets no transition.
 **Decision:** the owner: "Accept (Recommended)": the buildings count as verified, half of the early run's cue. "Try 'no fade' first (Recommended)": a probe sets fill-pattern-transition to zero on every pattern layer; if it holds on the S22, it replaces #429's clear and restore; if not, the timer form (clear after the transition plus 100 ms, restore at least 100 ms later). Dispatch 2026-10-27-13.
 **Notes:** Written by the planner by hand. Next free ID -1749.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1749
+**Timestamp:** 2026-10-27T20:42:51Z
+**Continues:** 2026-09-28-1736
+**Title:** The crowded-group zoom and list ship on the Maps tab first; the coder's five choices kept (owner)
+**Observed:** draft PR #430 (spiral-zoom-then-fan 1544a5fd6, dispatch 2026-10-27-07): built on the compact Maps tab only, the one host that knows whether a bubble shows and has the row data; the entry map and the tablet map keep today's overflowing fan, now logged; zoom limits Trail 18, OpenStreetMap 19, Topographical 17, so zoom 17 is always reachable; filtered run 40579018994, 200 tests, one new screen test failing at a list-row touch, cause not yet found; no revert checks yet. A fresh coder continues.
+**Decision:** the owner: "Maps tab only for now (Recommended)": the entry map and tablet follow in a later PR. "All fine (Recommended)": the zoom is a jump; the user's own pan or zoom after it drops the camera-return step; while navigating, a crowded tap fans as before; a map tap closes the list; the list reads "N records at this spot", newest first.
+**Notes:** Written by the planner by hand. Next free ID -1750.
