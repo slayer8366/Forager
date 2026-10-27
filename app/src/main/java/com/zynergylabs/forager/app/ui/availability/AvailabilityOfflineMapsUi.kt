@@ -71,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
+import com.zynergylabs.forager.app.domain.budgetTilesUsed
 import com.zynergylabs.forager.app.domain.estimateServedOfflineTileCount
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -223,7 +224,7 @@ internal fun OfflineMapsPanel(
         // MAX_ZOOM; the min inside is kept as the seam for their next divergence) — see
         // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
         val estimatedTiles = estimateServedOfflineTileCount(pinRegion)
-        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
+        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.budgetTilesUsed()
         val exceedsBudget = estimatedTiles > remainingBudget
         Text(
             if (exceedsBudget) {
@@ -285,7 +286,8 @@ internal fun OfflineMapsPanel(
             // Journal redesign J4: a region whose delete is pending is left out of the rows, but
             // its tiles are still on disk until the delete runs, so the budget counts every region.
             regions = uiState.visibleOfflineRegions,
-            tilesUsed = uiState.offlineRegions.sumOf { it.tileCount },
+            // Each area by its own estimate (budgetTileCount; T1, RECORD -1703), the figure the picker showed for it.
+            tilesUsed = uiState.offlineRegions.budgetTilesUsed(),
             errorMessage = uiState.offlineRegionsErrorMessage,
             staleThresholdDays = uiState.offlineStaleThresholdDays,
             distanceUnit = distanceUnit,

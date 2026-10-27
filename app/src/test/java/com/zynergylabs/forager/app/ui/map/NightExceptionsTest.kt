@@ -26,10 +26,13 @@ import org.junit.Test
  * night colours ([STREET_NIGHT_FILL_COLOURS]), and the tree glyph pattern is painted `#5d804f`
  * ([STREET_NIGHT_PATTERN_COLOURS]), held to 1.35:1 on the night forest. The night forest is now `#446835`, so every
  * floor on "the night forest" here is measured on what the app draws there.
+ *
+ * Read from street-v3 since the switch (dispatch 2026-10-26-21): the style the app loads. Its layers other than the
+ * official-trails band's three are v2's, so these held unchanged; reading v3 keeps a later v3 edit covered.
  */
 class NightExceptionsTest {
 
-    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v2.json").readText()).jsonObject
+    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v3.json").readText()).jsonObject
     private val metadata = style.getValue("metadata").jsonObject
     private val palette = metadata.getValue("forager:palette").jsonObject
 

@@ -20,9 +20,10 @@ import org.maplibre.android.style.layers.PropertyFactory
  * switch on the loaded style. The band's layers ([LayerRenderer.STYLE_LAYER] specs in the registry, ids in
  * `MapLayerIds`) are Trail Map's own, in street-v3; the app never builds them and sets only their visibility.
  *
- * Dormant until the app loads street-v3 (its own PR, RECORD -1678): today's v2, Topographical, OpenStreetMap and areas
- * downloaded before carry no band, so the map reports none, the drawn state hides the layers (no caption credit, no tap
- * target), the sheet offers no row, and every visibility write below finds no layer and does nothing.
+ * Live since the app loads street-v3 (dispatch 2026-10-26-21; the switch was its own PR, RECORD -1678). Styles without
+ * the band (v2 and v1, which areas downloaded before the switch hold; Topographical; OpenStreetMap) report none: the
+ * drawn state hides the layers (no caption credit, no tap target), the sheet offers no row, and every visibility write
+ * below finds no layer and does nothing.
  */
 
 /** Tag for the one line each style load logs about the band. */

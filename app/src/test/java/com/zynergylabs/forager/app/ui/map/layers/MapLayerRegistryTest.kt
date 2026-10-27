@@ -50,8 +50,11 @@ import org.junit.Test
  * Step 8b (dispatch 2026-10-26-15 Amendments 1 and 2): the official-trails band's three layers, which Trail Map's own
  * style draws ([LayerRenderer.STYLE_LAYER]), join the registry at the bottom of the lines band. No layer the app adds
  * moved. The assertions that pin the registry's contents are re-pinned with the three added ([referenceTrails]); the
- * marker ring that sat directly below the lowest line now sits directly below the band, which is the lowest line; the
  * guard compares the layers the app adds, which is what it guards. Their own rules are `ReferenceTrailLayersTest`.
+ *
+ * Since the switch to v3 (dispatch 2026-10-26-21, Sorrel's review of #418, S2): the halo pin and the ring test say what
+ * draws on screen, so they read the layers the app adds and leave the band's three out, as the guard does. The photo
+ * ring is again directly below the region halo, the lowest line the app adds; the style draws the band beneath both.
  */
 class MapLayerRegistryTest {
 
@@ -117,8 +120,13 @@ class MapLayerRegistryTest {
         MapLayerIds.PHOTOS,
     )
 
-    /** Every line layer, bottom to top as J8 and `-79` left them: halos, the night border, casings and lines; since 8b the band first. */
-    private val lineLayers = referenceTrails + listOf(
+    /**
+     * Every line layer the app adds, bottom to top as J8 and `-79` left them: halos, the night border, casings and lines.
+     * The official-trails band's three specs (8b) are LINE kind but are not here: they are Trail Map's own style layers,
+     * drawn by the style beneath everything the app adds (`OverlayLayerSetup` skips STYLE_LAYER specs), so a test of what
+     * draws above or below them on screen cannot be read off the registry (Sorrel's review of #418, S2).
+     */
+    private val lineLayers = listOf(
         MapLayerIds.JOURNAL_ENTRY_REGIONS,
         MapLayerIds.OFFLINE_REGION_BORDER,
         MapLayerIds.OFFLINE_REGION_OUTLINE,
@@ -311,7 +319,7 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `only the colour fields are reorderable, offer an opacity slider and carry a credit, and no other layer's flags changed`() {
+    fun `only the colour fields are reorderable and offer an opacity slider, the colour fields and the official-trails band carry a credit, and no other layer's flags changed`() {
         assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.userReorderable }.map { it.id })
         assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.userOpacity }.map { it.id })
         assertEquals(
@@ -337,7 +345,8 @@ class MapLayerRegistryTest {
 
     @Test
     fun `each journal halo sits below what it decorates, a line's directly below its casing and a marker's ring below every line, in the JOURNAL_ENTRY role, and is drawn only with that record`() {
-        val ids = MAP_LAYER_REGISTRY.map { it.id }
+        // The layers the app adds, in their order: what is drawn on screen above Trail Map's own style layers.
+        val ids = MAP_LAYER_REGISTRY.filter { it.renderer != LayerRenderer.STYLE_LAYER }.map { it.id }
         // halo to (the record layer it decorates, the layer it sits directly below: the record's casing,
         // for a line with one; for a marker's ring, the lowest line, since item 4 of the J8 follow-ups
         // put the three rings below every line, in the order waypoints, finds, photos)
@@ -347,8 +356,9 @@ class MapLayerRegistryTest {
             MapLayerIds.JOURNAL_ENTRY_TRACKS to (MapLayerIds.KEPT_TRACKS to MapLayerIds.KEPT_TRACKS_CASING),
             MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to (MapLayerIds.WAYPOINTS to MapLayerIds.JOURNAL_ENTRY_FINDS),
             MapLayerIds.JOURNAL_ENTRY_FINDS to (MapLayerIds.FINDS to MapLayerIds.JOURNAL_ENTRY_PHOTOS),
-            // Step 8b: the lowest line is now the official-trails band, Trail Map's own.
-            MapLayerIds.JOURNAL_ENTRY_PHOTOS to (MapLayerIds.PHOTOS to MapLayerIds.REFERENCE_FS_BAND),
+            // The lowest line the app adds. The official-trails band is below it in the registry (8b) but drawn by the style
+            // beneath every app layer, so on screen this ring is still directly below the region halo (Sorrel's #418 S2).
+            MapLayerIds.JOURNAL_ENTRY_PHOTOS to (MapLayerIds.PHOTOS to MapLayerIds.JOURNAL_ENTRY_REGIONS),
         )
         assertEquals(
             "only the halos decorate another layer",
@@ -376,7 +386,11 @@ class MapLayerRegistryTest {
     fun `every marker ring draws below every line, still below its own marker, and takes no taps`() {
         val rings = MAP_LAYER_REGISTRY.filter { it.drawnWith != null && it.kind == LayerKind.MARKER }
         assertEquals("the three marker rings", markerRings, rings.map { it.id })
-        assertEquals("every line layer", lineLayers, MAP_LAYER_REGISTRY.filter { it.kind == LayerKind.LINE }.map { it.id })
+        assertEquals(
+            "every line layer the app adds",
+            lineLayers,
+            MAP_LAYER_REGISTRY.filter { it.kind == LayerKind.LINE && it.renderer != LayerRenderer.STYLE_LAYER }.map { it.id },
+        )
         val otherMarkers = MAP_LAYER_REGISTRY.filter { it.kind == LayerKind.MARKER && it.drawnWith == null }.map { it.id }
         assertTrue("the search centre is among the other markers", MapLayerIds.SEARCH_CENTRE in otherMarkers)
         val drawOrder = orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT)

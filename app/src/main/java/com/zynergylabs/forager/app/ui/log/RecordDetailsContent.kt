@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.budgetTileCount
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -215,7 +216,8 @@ internal fun OfflineRegionDetails(region: OfflineRegionSummary, distanceUnit: Di
     DetailsTitle(region.name, stale = stale)
     DetailField(FIELD_RADIUS, "Radius", formatDistanceKm(region.region.radiusKm, distanceUnit))
     DetailField(FIELD_CENTRE, "Centre", decimalDegreesLabel(region.region.lat, region.region.lng))
-    DetailField(FIELD_TILES, "Tiles", region.tileCount.toString())
+    // The same figure the tile budget counts it by (T1, RECORD -1703: "an area's Tiles detail shows the same figure").
+    DetailField(FIELD_TILES, "Tiles", region.budgetTileCount().toString())
     DetailField(FIELD_SIZE, "Size", offlineRegionSizeLabel(region))
     DetailField(
         FIELD_DOWNLOADED,

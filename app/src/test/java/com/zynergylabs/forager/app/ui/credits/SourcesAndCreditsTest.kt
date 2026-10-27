@@ -73,7 +73,7 @@ class SourcesAndCreditsTest {
     }
 
     @Test
-    fun `the page lists exactly the five sources`() {
+    fun `the page lists exactly these sources`() {
         assertEquals(EXPECTED.map { it.key }, DATA_SOURCE_SECTIONS.flatMap { section -> section.credits.map { it.key } })
         assertEquals(listOf("Maps", "Weather", "Sightings and species names"), DATA_SOURCE_SECTIONS.map { it.title })
     }
@@ -85,18 +85,34 @@ class SourcesAndCreditsTest {
         onPage("Sources & credits").assertIsDisplayed()
         listOf("Maps", "Weather", "Sightings and species names").forEach { onPage(it).performScrollTo().assertIsDisplayed() }
         onPage("Rain and soil figures in Forager are summaries calculated from this data.").performScrollTo().assertIsDisplayed()
+        // CC BY 4.0's change note for the Forest Service's trails (dispatch 2026-10-26-21, RECORD -1703: "Approve as drafted").
+        onPage("Trail lines in Forager are simplified from this data.").performScrollTo().assertIsDisplayed()
 
-        EXPECTED.forEach { source ->
+        EXPECTED.filter { it.link == null }.forEach { source ->
+            // Public domain asks for no credit and names no licence to link to: the row is the credit alone, and a touch on
+            // it opens nothing.
             val row = composeRule.onNodeWithTag(sourceCreditRowTag(source.key)).performScrollTo()
-            assertEquals("the ${source.key} row's text", listOf(source.text, source.link), row.fetchSemanticsNode().texts())
-            composeRule.onNodeWithTag(sourceCreditLinkTag(source.key), useUnmergedTree = true).assertTextEquals(source.link)
+            assertEquals("the ${source.key} row's text", listOf(source.text), row.fetchSemanticsNode().texts())
+            composeRule.onNodeWithTag(sourceCreditLinkTag(source.key), useUnmergedTree = true).assertDoesNotExist()
+            FRACTIONS.forEach { fraction ->
+                row.performTouchInput { click(Offset(width * fraction, height / 2f)) }
+                composeRule.waitForIdle()
+                assertEquals("a touch at $fraction across the ${source.key} row opens nothing", null, Shadows.shadowOf(composeRule.activity).nextStartedActivity)
+            }
+        }
+        EXPECTED.filter { it.link != null }.forEach { source ->
+            val link = checkNotNull(source.link)
+            val url = checkNotNull(source.url)
+            val row = composeRule.onNodeWithTag(sourceCreditRowTag(source.key)).performScrollTo()
+            assertEquals("the ${source.key} row's text", listOf(source.text, link), row.fetchSemanticsNode().texts())
+            composeRule.onNodeWithTag(sourceCreditLinkTag(source.key), useUnmergedTree = true).assertTextEquals(link)
 
             FRACTIONS.forEach { fraction ->
                 row.performTouchInput { click(Offset(width * fraction, height / 2f)) }
-                assertOpened(source.url, "a touch at $fraction across the ${source.key} row")
+                assertOpened(url, "a touch at $fraction across the ${source.key} row")
             }
             touchCentreOf(composeRule.onNodeWithTag(sourceCreditLinkTag(source.key), useUnmergedTree = true))
-            assertOpened(source.url, "a touch on the ${source.key} row's \"›\"")
+            assertOpened(url, "a touch on the ${source.key} row's \"›\"")
         }
     }
 
@@ -204,7 +220,8 @@ class SourcesAndCreditsTest {
 
     private fun SemanticsNode.texts(): List<String> = config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text }
 
-    private data class ExpectedSource(val key: String, val text: String, val link: String, val url: String)
+    /** [link] and [url] are `null` for a source whose row has no link (public domain: nothing to link to). */
+    private data class ExpectedSource(val key: String, val text: String, val link: String?, val url: String?)
 
     private companion object {
         val FRACTIONS = listOf(0.05f, 0.5f, 0.95f)
@@ -224,6 +241,13 @@ class SourcesAndCreditsTest {
                 "https://opentopomap.org/about",
             ),
             ExpectedSource("protomaps", "Protomaps (Forager Trail Map and offline maps)", "licence ›", "https://github.com/protomaps/basemaps"),
+            ExpectedSource(
+                "usfs-trails",
+                "Trails: National Forest System Trails, USDA Forest Service, CC BY 4.0",
+                "CC BY 4.0 ›",
+                "https://creativecommons.org/licenses/by/4.0/",
+            ),
+            ExpectedSource("blm-trails", "Trails: Bureau of Land Management, public domain", null, null),
             ExpectedSource("open-meteo", "Weather data by Open-Meteo.com", "CC BY 4.0 ›", "https://open-meteo.com/en/licence"),
             ExpectedSource("inaturalist", "iNaturalist and its observers", "site ›", "https://www.inaturalist.org/"),
         )

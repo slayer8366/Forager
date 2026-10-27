@@ -272,8 +272,8 @@ internal fun ownStreetStyleSourceFor(basemap: Basemap, night: Boolean, ownStreet
 
 /**
  * Whether [source] is a Trail Map style, whose sprite icons the night inverts one by one and whose water and fills take
- * the Street night: v2 ([STREET_STYLE_URL]) or v1, which offline regions downloaded before v2 still load
- * ([STREET_STYLE_URLS]; dispatch 2026-10-22-03 Amendment 1).
+ * the Street night: v3 ([STREET_STYLE_URL], dispatch 2026-10-26-21), or v2 or v1, which offline regions downloaded
+ * before it still load ([STREET_STYLE_URLS]; dispatch 2026-10-22-03 Amendment 1).
  */
 internal fun usesStreetSprite(source: MapStyleSource): Boolean = when (source) {
     is MapStyleSource.Json -> false

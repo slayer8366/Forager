@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
+import com.zynergylabs.forager.app.domain.budgetTilesUsed
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
 import com.zynergylabs.forager.app.domain.estimateServedOfflineTileCount
 import com.zynergylabs.forager.app.domain.model.Region
@@ -39,7 +40,7 @@ fun AvailabilityViewModel.onOfflineMapNameChanged(text: String) = offlineMaps.on
 fun AvailabilityViewModel.onDownloadAgain(id: Long) {
     val row = _uiState.value.offlineRegions.firstOrNull { it.id == id && !it.isDownloaded } ?: return
     val estimatedTiles = estimateServedOfflineTileCount(row.region)
-    val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.sumOf { it.tileCount }
+    val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.budgetTilesUsed()
     if (estimatedTiles > remainingBudget) {
         _uiState.update { it.withTileBudgetExceeded(estimatedTiles, remainingBudget) }
         return
@@ -113,7 +114,8 @@ fun AvailabilityViewModel.onDownloadOfflineMaps() {
     val region = Region(lat, lng, state.offlineMapRadiusKm)
     val name = state.offlineMapNameText.trim().ifBlank { "Region ${state.offlineRegions.size + 1}" }
 
-    val tilesAlreadyUsed = state.offlineRegions.sumOf { it.tileCount }
+    // Each area counts by its own estimate, not MapLibre's count of every source's tiles (budgetTileCount; T1, RECORD -1703).
+    val tilesAlreadyUsed = state.offlineRegions.budgetTilesUsed()
     // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to MAX_ZOOM;
     // the min inside is kept as the seam for their next divergence) — the same function the
     // panel's "~N tiles" label uses, so the gate and the label agree; see
