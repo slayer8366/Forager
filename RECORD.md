@@ -29231,3 +29231,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message): the early run usca-20261027T221400Z started 15:14 PDT on the owner's "Go ahead and begin the run" in Aspen's window, on the 261026 extracts; start checks passed (NVMe 177.9 GB free against 157.2 GB, card 79.8 against 42.7, all 182 .bef verified); the Pi had restarted at 15:11 (the owner: "The power was unplugged, but it's fixed now"); Sunday's run now 02:29:45 PST; on slow Wi-Fi the end is estimated 10-11 AM PDT 2026-10-28 (inferred).
 **Decision:** the owner, in Aspen's window about 15:25 PDT: "Map buildings look much better now. I approve". Any R2 upload of the early run's set needs the owner's word.
 **Notes:** Written by the planner by hand. Next free ID -1757.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1757
+**Timestamp:** 2026-10-27T23:11:08Z
+**Continues:** 2026-09-28-1753, 2026-09-28-1750
+**Title:** #430 merged into pre-main: a crowded group zooms in, then fans (owner); two press rules go to the next PR
+**Observed:** #430 Amendment 1 at db05798c7: S1 built by marking the user's asks (Locate, the search frame, the region and locate-me pan, the navigation view, north-up) as APP_USER_ASKED, treated as a pan, so the plain restore stays harmless; S2 the host in MapCameraMemory with the live camera attached and detached by the map; S3 the list takes the bubble's minY (the landscape test bites only in a 340 dp window, inferred); full run 40595529874 green, 5,870 tests; reverts RA1-RN1 each failing for their own edit. Sorrel's quick look (sorrel-pr430 8467c581a): mergeable; Q1 Locate before a GPS fix leaves the returns for the follower's later move; Q2 navigation starting with no camera move leaves them, so Back could restore over the navigation view.
+**Decision:** the owner: "Merge now; fix both next PR (Recommended)"; merged at db05798c7; pre-main updated. Q1 and Q2 as press rules: dispatch 2026-10-27-14 Amendment 2.
+**Notes:** Written by the planner by hand. Next free ID -1758.

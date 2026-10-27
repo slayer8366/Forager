@@ -56,3 +56,10 @@ Remove the section and anything only it used. Keep the shared rows and labels th
 - each fails first, then a revert check.
 
 Do a verify-first `git grep` for every reference to the section, its tag and its title. Name each one, and say whether it stays or goes.
+
+## Amendment 2 (2026-10-27): two press rules from #430's quick look (RECORD -1757)
+PR #430 merged. Sorrel's quick look is on branch sorrel-pr430, 8467c581a, "Quick look at db05798c7", Q1 and Q2. The owner: "Merge now; fix both next PR (Recommended)". In this PR:
+- **Q1.** Pressing Locate counts as the user's own pan at the press, whether or not the camera moves: clear the crowded host's list and returns there (MapLocationDot.kt:83, via state.tapHandlerRef.crowdedHost). Step path: tap crowded > zoom > Locate with no fix yet > the fix arrives, the map goes to you > Back > the map's usual Back, with no jump back.
+- **Q2.** Starting navigation clears the returns where the view request arrives, before the early returns (MapNavigationView.kt:38). Step path: tap crowded > zoom > Navigate (the camera doesn't move) > Back > navigation's own Back, with no restore over the navigation view.
+
+Each gets a test that fails first and a revert check. Sorrel's N7-N9 are record only.
