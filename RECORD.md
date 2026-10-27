@@ -28606,3 +28606,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message): FNAM v1 on the 261024 extracts, named highway ways only, simplified at 2 m: W75_N40 1,117,150 ways, 52.2 MB with bbox, 38.9 MB without, busiest 50 km area 4.3 MB (New York); W120_N45 139,406 ways, 13.0 / 11.2 MB, busiest area 1.0 MB (Spokane); gzip saves about 20%; a whole set inferred 0.6-0.75 GB beside 1.56 GB of squares; two sets at peak about 1.5 GB of the NVMe's ~6 GB headroom. The Pi's Wi-Fi dropped 16:50 to 17:11 PDT and reconnected.
 **Decision:** the planner accepted dropping the per-record bbox (about 25% smaller); the app's reader computes it from the points. Aspen proceeds with Willow's build stage and reports the upload's contents before it goes up.
 **Notes:** Written by the planner by hand. An area download grows by its names share (up to about 4 MB for a dense 50 km area, about 1 MB rural-urban). Next free ID -1699.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1699
+**Timestamp:** 2026-10-27T00:49:15Z
+**Continues:** 2026-09-28-1696, 2026-09-28-1623
+**Title:** The walk-back figure stays as built; on a loop it reads long and Return is the cover (owner)
+**Observed:** Juniper's reconcile (Fable; docs/navigation/2026-10-26-walk-back-reconcile.md, branch walk-back-reconcile, c7e3250b3 method, ee943f549 results): on the 10-24 walk, recording A (out and back) the figure with #421 was 9:33 against 9:37 walked to first arrival (0.99; pace-only 0.91); the earlier "short" read counted time pottering after arrival. Recording B is a loop: the route home can only be the recorded track and grows as the loop closes (42:04 at the far point against 24:49 moving; 57:37 at 349 m from the car against 5:54). Sorrel's check (Fable; prompts/preserved/2026-10-26-sorrel-walk-back-check.md, branch sorrel-walk-back, 60db48f38): every figure reproduced; a loop detector fired 25 times on a real out-and-back and a straight-line floor read as low as 0.06 of the walk past a river, so O1 does not hold; "never short" holds for the line shown, not for every walk (A was saved partly by its slow-metres lean); on a loop the start-back-by creeps earlier on the way home and, with 45 min of slack at the far point, leave-by would fire about 387 m from the car.
+**Decision:** the owner: "Keep, record it (Recommended)": no change; on a loop walk the figure reads long, the start-back-by can creep earlier on the way home and the leave-by alert can fire within sight of the car; Return (the way home along trails, -1498 answer 4) is the cover. This entry is the record; a doc line in docs/navigation/2026-10-26-climbing-allowance.md rides the next tidy.
+**Notes:** Written by the planner by hand. Juniper's report wording fixes (Sorrel S1-S3) to that branch's author if it is ever merged. Next free ID -1700.
