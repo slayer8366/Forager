@@ -15,12 +15,19 @@ internal data class SourceCredit(
     /** Stable, for test tags. */
     val key: String,
     val text: String,
-    /** What the row's link opens, in a word or two: "licence", "site". */
-    val linkLabel: String,
-    val url: String,
+    /**
+     * What the row's link opens, in a word or two: "licence", "site". `null`, with [url], for a source with nothing to
+     * link to: public-domain data names no licence (dispatch 2026-10-26-21, the BLM's trails).
+     */
+    val linkLabel: String?,
+    val url: String?,
     /** A plain line shown under the row, when the source needs one. */
     val detail: String? = null,
-)
+) {
+    init {
+        require((linkLabel == null) == (url == null)) { "$key: a link needs both its label and its URL" }
+    }
+}
 
 internal data class SourceSection(val title: String, val credits: List<SourceCredit>)
 
@@ -45,6 +52,18 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
             // Forager Trail Map's vector tiles and the offline map packs' (StreetStyle.kt); its OpenStreetMap data is
             // credited in the row above.
             SourceCredit("protomaps", PROTOMAPS_CREDIT_TEXT, "licence", "https://github.com/protomaps/basemaps"),
+            // The official-trails band on Trail Map (street-v3, from dispatch 2026-10-26-21; RECORD -1682: "Once the band can
+            // appear"). The wording is the step 8 report's draft, approved as drafted (RECORD -1703). CC BY 4.0 asks for the
+            // licence's name, a link to it, and a note that the data was changed: the lines are tiled and simplified.
+            SourceCredit(
+                "usfs-trails",
+                "Trails: National Forest System Trails, USDA Forest Service, CC BY 4.0",
+                "CC BY 4.0",
+                "https://creativecommons.org/licenses/by/4.0/",
+                detail = "Trail lines in Forager are simplified from this data.",
+            ),
+            // Public domain: nothing is required; credited anyway, as the owner's practice is, with no link.
+            SourceCredit("blm-trails", "Trails: Bureau of Land Management, public domain", linkLabel = null, url = null),
         ),
     ),
     // The forager-forecast map layers and the data behind them (GBIF occurrences among it) go here, as

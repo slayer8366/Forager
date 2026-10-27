@@ -101,7 +101,7 @@ class MapTapHandler(
 
         val order = drawOrder()
         // Step 8c: an official-trails band is asked about only while it is drawn. Until a style that carries the band has
-        // loaded (Trail Map v2 today, Topographical, OSM), 8b's drawn state has it off, so the band's ids are never sent to
+        // loaded (an area's v2 or v1 offline, Topographical, OSM), 8b's drawn state has it off, so the band's ids are never sent to
         // the map's query and no tap can reach a band on a style without one (dispatch 2026-10-26-16: "On v2 ... nothing
         // is tappable").
         val tappable = tappableLayerIds(order).filter { referenceAgencyOf(it) == null || layerDrawn(it) }
