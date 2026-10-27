@@ -92,7 +92,7 @@ class ReferenceTrailsSources(
         val text = source.fetch().getOrElse { error ->
             if (error is CancellationException) throw error
             log("The official-trails manifest could not be fetched; the card keeps the dates it had.", error)
-            return
+            return _copy.value.let { _copy.value = ReferenceTrailsCopy.None }
         }
         val dates = parseReferenceTrailsManifest(text) { warning -> log(warning, null) }.getOrElse { error ->
             log("The official-trails manifest could not be read; the card keeps the dates it had.", error)
