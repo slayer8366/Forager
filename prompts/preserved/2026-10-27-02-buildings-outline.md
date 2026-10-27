@@ -38,3 +38,15 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 - **Branch:** a new branch off current pre-main, a PR into pre-main, no merges.
 - **The Restricted Object:** never read, name or quote it.
 - **Long conversation:** past about 200k tokens, push and write a handoff.
+
+## Amendment 1 (2026-10-27): the z14 grey is #c1c1c1 (RECORD -1733)
+The coder stopped at buildings-outline 68ce84dd6. The spec's z14 `#c2c2c2` goes to night `#3d3d3d` under V1, which is 1.047:1 against night water `#163f4b`. That is below NightWaterTest's 1.05 floor (run 40550018434, the predicted failure). The owner: "A shade darker: #c1c1c1 (Recommended)". The z14 fill becomes `#c1c1c1` (night `#3e3e3e`, 1.063:1). Everything else stands as specified: `#cccccc` from z15, the outline `#a6a6a6` at 0.75 from z15, and no night exception. NightWaterTest is not changed.
+
+Then finish the dispatch on the same branch:
+- the one-value change and the expected colours in both tests;
+- the revert check (drop the withBuildingOutline call and regenerate, read from CI XML, build log checked);
+- the full CI suite;
+- the PR into pre-main, with no merge and no deploy;
+- the S22 steps.
+
+Check the OpenStreetMap Carto licence from its repository on GitHub (LICENSE.txt) rather than from memory, and fix the credit if it differs.

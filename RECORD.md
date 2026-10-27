@@ -28971,3 +28971,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the night glyph report (Opus; docs/audits/2026-10-27-night-glyph-zoom-report.md, branch night-glyph-zoom-report, ec698da06): after the night switch the forest pattern is one fixed name at every zoom (NightImageSwitch.kt:99-102, NightImageApply.kt:77), the night image matches the day image's size and ratio, and nothing re-applies on zoom; inferred, MapLibre resolves a pattern per tile, so the zoom-18 tiles may lack the night pattern (candidates: image removed as unused, tiles built before the image was added, or lower-level); no fix justified yet; Part A S22 steps on the current build, Part B needs a logging build. The coder found /mnt/work at 100% (40 MB free).
 **Decision:** the owner: "Merged PR worktrees (Recommended)" and "Old review scratch": the planner removed 42 clean worktrees under /mnt/work/forager-wt whose heads are on the remote (git worktree remove, no force), and the scratch folders sorrel-412-recheck, sorrel-413-recheck and street-trails; /mnt/work at 7.4 GB free. Kept: active worktrees, step8a-reference-style-v3 and reference-water-manifest (their node_modules are linked by others), the five revert-8d-a1 worktrees (uncommitted changes), three wiring-snapwait worktrees (heads not on the remote), the old S22 session files, the heap dumps, rw-records (phone screenshots) and t4-rebuild (forecast). The S22 check's files go to /home/zynergy-labs/s22-2026-10-27/.
 **Notes:** Written by the planner by hand. Next free ID -1733.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1733
+**Timestamp:** 2026-10-27T17:33:25Z
+**Continues:** 2026-09-28-1730
+**Title:** Buildings at zoom 14 are #c1c1c1, to keep the night water floor (owner)
+**Observed:** the buildings coder (Opus; dispatch 2026-10-27-02, buildings-outline 68ce84dd6): the spec's z14 #c2c2c2 goes to night #3d3d3d under V1, 1.047:1 against night water #163f4b, below NightWaterTest's 1.05 floor (CI run 40550018434 fails exactly that test); every day grey from #c2 to #c8 fails; the z15 #cccccc gives 1.11:1; the structural diff of v3 holds only the buildings change and the new outline layer.
+**Decision:** the owner: "A shade darker: #c1c1c1 (Recommended)": z14 fill #c1c1c1 (night #3e3e3e, 1.063:1); the rest of -1730 unchanged; the floor and its test unchanged. Dispatch 2026-10-27-02 Amendment 1.
+**Notes:** Written by the planner by hand. Next free ID -1734.
