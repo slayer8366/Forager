@@ -101,7 +101,6 @@ internal class PatternRelayout<S : Any, V>(
         cancelPending = deferral.after(delay) {
             cancelPending = null
             // The cancel in onStyleRequested stops this on a phone; the check holds even if a cancel were missed.
-            if (requestedFor != generation) return@after
             clearThenRestore(target, requestedFor, "clear deferred $delay ms (style transition $transition ms)")
         }
     }
