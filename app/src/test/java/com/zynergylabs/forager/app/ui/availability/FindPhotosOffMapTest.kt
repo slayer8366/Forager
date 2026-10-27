@@ -74,10 +74,26 @@ class FindPhotosOffMapTest {
         reload()
     }
 
-    /** The Maps tab shown again, as a tab switch does, and its records read; [loaded] says when the read has landed. */
+    /**
+     * The Maps tab shown again, as a tab switch does, and its records read; [loaded] says when the read has landed. The
+     * first read in a class's run pays the container's cold start (12.9 s on CI run 40555150432), hence 30 s. A wait that
+     * runs out says what the map, the ViewModel and the database held, so a stall is not read as a wrong answer.
+     */
     private fun reload(loaded: (MapOverlayContent) -> Boolean = { it.findMarkers.isNotEmpty() || it.photoMarkers.isNotEmpty() }) {
         availability.onMapShown()
-        composeRule.waitUntil(10_000) { map.content?.let(loaded) == true }
+        try {
+            composeRule.waitUntil(30_000) { map.content?.let(loaded) == true }
+        } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+            val stored = runBlocking { repository.getAll().getOrNull()?.map { "${it.id} draft=${it.isDraft} at=${it.foundAt}" } }
+            throw AssertionError(
+                "the map's records never landed: handed finds=${map.content?.findMarkers?.map { it.recordId }} " +
+                    "photos=${map.content?.photoMarkers?.map { it.recordId }}; ViewModel finds=" +
+                    "${availability.uiState.value.mapRecords.findMarkers.map { it.recordId }} photos=" +
+                    "${availability.uiState.value.mapRecords.photoMarkers.map { it.recordId }} failures=" +
+                    "${availability.uiState.value.mapRecords.failures}; stored finds=$stored",
+                timeout,
+            )
+        }
         composeRule.waitForIdle()
     }
 
