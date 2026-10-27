@@ -23,7 +23,7 @@ fun CrowdedStackBackHandlers(host: CrowdedStackHost, bubbleShown: Boolean, backE
     val fanOpen = host.fan?.isOpen == true
     if (!backEnabled || bubbleShown || fanOpen) return
     if (host.list != null) {
-        BackHandler { host.closeList() }
+        BackHandler { }
     } else if (host.cameraReturnPending) {
         BackHandler { host.stepBack() }
     }
