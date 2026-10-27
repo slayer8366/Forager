@@ -4,7 +4,6 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.FixFreshness
 import com.zynergylabs.forager.app.domain.HopBand
-import com.zynergylabs.forager.app.domain.LIVE_FIX_MAX_ACCURACY_METERS
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.RouteHome
@@ -179,11 +178,10 @@ internal class AvailabilityWaypointRoute(
 
         /**
          * One fix to the off-trail rule, against [shown]'s whole line, dashed legs included (RECORD -1725: "on" is any
-         * part of it). Gated as the way home's are (`WayHomeWatch.onFix`): a fix past the live-fix gate is skipped; the
-         * rule skips network fixes itself.
+         * part of it). Every fix here has passed the live-fix gate already (`AvailabilityLiveLocation.begin`), the gate
+         * the way home applies itself (`WayHomeWatch.onFix`); the rule skips network fixes itself.
          */
         private fun judgeOffTrail(shown: WayHomeLine, fix: LocationFix.Update) {
-            if ((fix.accuracyMeters ?: 0f) > LIVE_FIX_MAX_ACCURACY_METERS) return
             offTrail.next(fix.toTrackPoint(), fix.provider, listOf(shown.wayHome.line))
         }
 
