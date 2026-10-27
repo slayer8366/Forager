@@ -29057,3 +29057,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's quick look (Fable; sorrel-pr426 569a94d8d) at f5d2433b0: mergeable; below zoom 14 the paint equals v2's (#cccccc at 0.5, taken from the live layer); z14 #c1c1c1 opaque, z15+ #cccccc with the outline; fail-first 40560267668 and the opacity revert 40560272191 each fail only their own test; green 40560260243, 5,828 tests; the PR body's Night Maps path was wrong (no Settings tab) and the map shows no zoom figure. The planner corrected the body's steps 5 and 6 before the merge. Since the last deploy (a4264e26a), server/pmtiles-worker/ differs only in street-style-v3.json (the buildings change), worker.test.mjs and README.md.
 **Decision:** merged at f5d2433b0 under -1737; pre-main f42fd5ef8. The manual Worker deploy waits for the owner's final look at its contents.
 **Notes:** Written by the planner by hand. Next free ID -1741.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1741
+**Timestamp:** 2026-10-27T19:04:09Z
+**Continues:** 2026-09-28-1737, 2026-09-28-1740, 2026-09-28-1739
+**Title:** The buildings style goes to the live Worker by one manual deploy (owner); #427, the fallback retry, is up
+**Observed:** since the last deploy (a4264e26a, live version 5bc6bc3a), server/pmtiles-worker/ differs only in street-style-v3.json (the buildings), worker.test.mjs and README.md. #427 (offline-fallback-retry 3822107a1, dispatch 2026-10-27-09 Amendment 1): OwnStreetFallback.onSignalReturned() called when the no-signal state ends; CI 40561551528 green, 5,829 tests; revert checks R1-R3 (40561602520, 40561606218, 40561612000) each fail for their own edit.
+**Decision:** the owner: "Go (Recommended)": one wrangler deploy of pre-main f42fd5ef8's Worker, every route compared before and after, rollback if any other route changes or v3 does not match its file. Dispatch 2026-10-27-10. #427 goes to Sorrel.
+**Notes:** Written by the planner by hand. Next free ID -1742.
