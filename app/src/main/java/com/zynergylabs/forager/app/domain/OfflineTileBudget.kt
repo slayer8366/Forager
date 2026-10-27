@@ -17,7 +17,7 @@ package com.zynergylabs.forager.app.domain
  *
  * An area restored from a backup and not downloaded on this phone holds no tiles and costs nothing, as before.
  */
-fun OfflineRegionSummary.budgetTileCount(): Int = if (isDownloaded) estimateServedOfflineTileCount(region) else 0
+fun OfflineRegionSummary.budgetTileCount(): Int = tileCount
 
 /** The budget's used side: every area's [budgetTileCount], a pending delete's included (its tiles are still on disk). */
 fun Collection<OfflineRegionSummary>.budgetTilesUsed(): Long = sumOf { it.budgetTileCount().toLong() }
