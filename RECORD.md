@@ -28712,3 +28712,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message; Forager-cartography 0b69680, docs/audits/2026-10-26-elevation-pilot.md): pilot done on W125_N45 and W100_N40; .bef 26.6 and 14.3 MB, all 187 squares about 2.5-4 GB inferred; .rd5 +14.3 % and +10.0 %; download about 10 GB/h, so the full 3DEP pull is about 13 h; 1-second keep-copies about 98 GB need the USB drive.
 **Decision:** the owner: "Go on the elevation download": G7 only, relayed to Aspen; G8 and the app-side elevation work (hiking-mountain.brf:13, the per-point height at BRouterTrailRouter.kt:114) still wait for the owner.
 **Notes:** Written by the planner by hand. Aspen records the run in Forager-cartography. Next free ID -1709.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1709
+**Timestamp:** 2026-10-27T04:51:17Z
+**Title:** The 261024 squares and names are uploaded as staged; the 261021 squares stay (owner)
+**Observed:** Aspen (message; Forager-cartography 92fb5a8): 187 .rd5 (1,563,722,864 bytes, OSM 2026-10-24T20:20:51Z, matching the build manifest by size and sha256) and 187 .fnm (603,642,990 bytes) under routing/usca-20261025T101217Z/, read back by sha256, then routing/manifest.json replaced last (files segments4 only; a new top-level names array). The Worker's parser reads only run_id, osm_timestamp and files (server/pmtiles-worker/src/routing/manifest.ts:41-62), so the names array is ignored. The first names run was killed at 7.4 GB (flex_mem), fixed on pi-31-names-stage 6cdfaef15 (sparse_mem_array).
+**Decision:** the owner: "Go, I'll type it to Aspen (Recommended)": the upload as staged, with the go typed in Aspen's window; routing/usca-20261021T111429Z/ stays on R2 as the fallback. Names stay unserved until the Worker change. Sorrel reviews pi-31-names-stage.
+**Notes:** Written by the planner by hand. Next free ID -1710.
