@@ -29176,3 +29176,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** ToolsSundownSection (AvailabilitySundownSettings.kt:58, drawn at AvailabilitySettingsUi.kt:281) holds Sundown alerts, Dark under trees and the Off-track reminder; the map's quick settings (MapQuickSettings.kt) hold all three plus Back by.
 **Decision:** the owner: "Next PR should also remove the Sundown and Dark Under Trees portion from the tools menu since it's redundant"; the step path confirmed; for the explanation line "Woods get dark before sunset. Alerts allow this much extra.", "Drop it". In the same PR as the Crowded icons setting: dispatch 2026-10-27-14 Amendment 1.
 **Notes:** Written by the planner by hand. This reverses the placement of -707's "Section in the Tools drawer"; the quick settings already carried the rows. Next free ID -1752.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1752
+**Timestamp:** 2026-10-27T20:59:13Z
+**Continues:** 2026-09-28-1748
+**Title:** "No fade" fails for day patterns; #429 takes the timer form
+**Observed:** the no-fade coder (Opus; scratch-pattern-no-fade 0736420a8, build 1.0.4102+g0736420a, CI 40578315652; handoff a9e086179): with fill-pattern-transition 0/0 on both pattern layers, night on gave 3.16-3.48% glyph colour at 1 s and 30 s (3 of 3) and night off gave 0.00% (3 of 3). The app already writes an explicit 0/0 style transition (PlacementTransitions.kt), so the 300 ms threshold is unexplained. #429 at b446a3ed2 carries the timer form (clear after the transition plus 100 ms, read as 400 ms; restore at the first full frame at least 100 ms later) and c61867ffa the corrected upstream draft, but the head does not compile (":" in two test names) and the four prf3 revert runs never ran.
+**Decision:** under -1748's fallback, the timer form. A fresh coder fixes the names, reruns the revert checks and full CI, and runs the S22 check on the PR's own build.
+**Notes:** Written by the planner by hand. Next free ID -1753.
