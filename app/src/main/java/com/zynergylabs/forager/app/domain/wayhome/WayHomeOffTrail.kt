@@ -88,7 +88,7 @@ class WayHomeOffTrail {
             if (state == OffTrailState.OFF) {
                 val since = onSinceMillis ?: t.also { onSinceMillis = it }
                 if (t - since >= OFF_TRACK_REARM_MILLIS) {
-                    state = OffTrailState.BACK_ON
+                    state = OffTrailState.ON
                     backOnAtMillis = t
                     onSinceMillis = null
                 }
