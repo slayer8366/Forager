@@ -28853,3 +28853,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** coder (Opus; dispatch 2026-10-26-24 Amendment 1, 675f3eab9): S1 at 2cbbdc4de, loading shows no Sources line or hint (ReferenceLayerCard.kt:102), with a suspending-store test; S2 and N1 at fc97019f6; head run 40507450521 green, 5,812 tests; five revert checks each failing for its own edit (40504965629, 40504968971, 40504973759, 40504982469, 40507453916). The no-body path is untested: OkHttp 4.12 refuses a bodyless response.
 **Decision:** none new; Sorrel's quick look, then the merge under -1719.
 **Notes:** Written by the planner by hand. The amendment's first append was lost (52a5b8a2d carries only RECORD.md) and the planner launched the coder without checking; the coder stopped on S1 rather than choosing, and the amendment was committed at 675f3eab9. Next free ID -1722.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1722
+**Timestamp:** 2026-10-27T13:47:49Z
+**Continues:** 2026-09-28-1720
+**Title:** Scratch folders move to the 256 GB drive before Sunday (owner)
+**Observed:** Aspen (message; Forager-cartography e183c8f): G8 on branch pi-32-elevation at 6b991fac5 (on pi-build 20f75d063), the .bef read from the card (USCA_BEF_DIR pinned, every file hashed at the state stage before any download); Sunday's NVMe headroom about 3.5 GB (inferred), 1.7 GB less than last week; about 1.2 GB of Aspen's scratch on the NVMe and 2.2 GB of a helper's on the card.
+**Decision:** the owner: "Move them to the 256 GB drive (Recommended)": ~/reference-trails-build, ~/pi31-scratch, ~/names-measure and forager-build/work/pi31-willow go to /mnt/storage, checked by sha256, then the originals are removed. G8 goes to Sorrel, then its install waits for the owner's word in Aspen's window.
+**Notes:** Written by the planner by hand. Next free ID -1723.
