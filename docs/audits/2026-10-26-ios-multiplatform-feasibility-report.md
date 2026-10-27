@@ -176,7 +176,8 @@ domain signatures, and that reaches every caller.
 **Decisions still open:**
 
 1. ~~A or B~~: B (owner, 2026-10-26).
-2. Routing on iOS: port BRouter to Kotlin, or ship iOS without trail routing at first.
+2. ~~Routing on iOS: port BRouter to Kotlin, or ship iOS without trail routing at first~~: port BRouter to
+   Kotlin (owner, 2026-10-27). See "Update, 2026-10-27" at the end.
 3. What back-by and sundown alerts promise on iOS, since a wake-up at a set time is not available there.
 4. Mac access (a Mac, or macOS CI runners), plus an Apple Developer account for TestFlight and the App
    Store.
@@ -218,3 +219,85 @@ domain signatures, and that reaches every caller.
 - MapLibre Compose: https://maplibre.org/maplibre-compose/
 - Apple, background tasks: https://developer.apple.com/documentation/uikit/using-background-tasks-to-update-your-app
 - Versions: Maven Central and Google Maven `maven-metadata.xml` for the artifacts named above.
+
+---
+
+## Update, 2026-10-27: routing ruled, and what the port involves
+
+**Owner ruling, verbatim:** "Port BRouter to Kotlin". This answers decision 2. Nothing has been ported.
+
+Measured on `pre-main` at `a4264e26`. `third_party/brouter/`, `routing/` and `domain/routing/` are
+unchanged since `b2c4951e` (counted from the diff). Paths below are relative to
+`third_party/brouter/src/main/java/btools/` for BRouter and to the app package for Forager.
+
+### What Forager actually uses (read)
+
+- **Seven BRouter classes**, imported by `routing/BRouterTrailRouter.kt` and `routing/RoutingDataFolder.kt`:
+  `RoutingEngine`, `RoutingContext`, `RoutingParamCollector`, `OsmTrack`, `OsmNodeNamed`, `PhysicalFile`
+  and `DataBuffers`.
+- **Not BRouter's thread.** `router/RoutingEngine.java:32` declares `extends Thread`, but
+  `BRouterTrailRouter.kt:170` calls `engine.doRun(maxRunningTimeMillis)` directly on a coroutine.
+  Cancellation goes through `engine.terminate()` (`:174`), which sets a `volatile` flag
+  (`RoutingEngine.java:69`) that the search loop reads.
+- **Only the track's points.** `BRouterTrailRouter.kt:105-114` reads `track.nodes` and each node's
+  `getILat()`/`getILon()`. It does not call BRouter's GPX, KML, JSON or CSV output.
+- **No reflection in practice.** `router/RoutingContext.java:91` loads a path model with
+  `Class.forName(className)`. The name comes from the profile (`expressions/BExpressionContext.java:979`),
+  and the pinned `app/src/main/assets/routing/profiles2/hiking-mountain.brf` has no model line, so it gets
+  the default `StdModel` (`RoutingContext.java:88`). Kotlin/Native has no `Class.forName`. The port would
+  keep the default and replace the lookup with a fixed list.
+
+### How much has to be ported (counted)
+
+- **Reachable from those seven classes: 76 of 101 classes, 16,296 of 19,327 lines.** This is a
+  class-level count (any reference pulls in a whole file) for the pinned profile, so it is an upper bound.
+- It includes output formatting (`router/Format*.java`, 1,562 lines) and voice hints
+  (`router/VoiceHint*.java`, 1,342 lines). Forager reads neither, so a Forager-only port is likely nearer
+  13,400 lines. That is not verified method by method.
+- Not reachable: the kinematic car model (`Kinematic*`), the rd5 diff tools (`Rd5Diff*`), and the
+  `DiffCoder`/`MixCoder` streams, among 25 classes.
+- **37 of the 76 reachable files import JDK APIs.** Collections (`List`, `Map`, `ArrayList`, `HashMap`)
+  map directly onto Kotlin. What needs real work:
+  - file I/O, including `RandomAccessFile` (2 files) for reading route data, which needs a multiplatform
+    random-access file API (Okio's `FileHandle` is one candidate, not checked against BRouter's access
+    pattern);
+  - `TreeMap`, `TreeSet`, `NavigableMap` and `SortedSet`, which have no Kotlin common equivalent;
+  - date and number formatting, mostly in the output code above.
+- Implicit `java.lang` use in reachable files: `System.` 18, `Math.` 17, `Integer.` 9, `Double.` 6,
+  `synchronized` 2, `Thread` 2, `String.format` 2.
+
+### Proving the port routes the same (read, and a gap)
+
+- **Today's check against BRouter is 2 routes on one tile.** `app/src/test/resources/routing/README.md`:
+  `brouter-cli/*.geojson` holds BRouter 1.7.10's command-line output for `inside-across-the-degree-line`
+  and `inside-long` on `segments/W75_N40.rd5` (152,665 bytes, part of Harriman and Bear Mountain State
+  Parks). That is enough to show the vendored engine is wired up correctly. It cannot vouch for a
+  rewrite of about 16,000 lines, because it never reaches most of the cases that could fail one (CLAUDE.md,
+  "A check that passes because it never saw the data that could fail it").
+- **The Java engine can be the oracle.** It can stay in the build as test-only code on the JVM. A
+  differential test then runs the Java and Kotlin engines on the same inputs and requires identical
+  output. The sample has to include the cases that could fail it: many route pairs, more than one tile, a
+  degree line crossed, no route found, the time limit, and a cancel mid-search.
+- **Not verified:** whether Kotlin/Native's floating-point maths matches the JVM's closely enough for
+  identical routes on iOS. BRouter's coordinates are integers, but some cost terms are doubles.
+
+### What the port costs beyond the code
+
+- The "Unmodified" check in `third_party/brouter/README.md` stops applying, and taking an upstream fix
+  becomes a hand port rather than replacing the tree from a new tag.
+- BRouter is MIT-licensed; the port must carry its copyright notice, and the credits entry in
+  `app/src/main/assets/credits/software.json` must stay accurate.
+
+### Decisions this ruling leaves open
+
+- **a. Sequencing.**
+  - *Recommended:* port into shared Kotlin, prove it identical to the Java engine on the JVM, then switch
+    Android to it, keeping the Java engine as a test-only oracle. Both platforms route with one engine.
+  - *Not recommended:* keep Java BRouter on Android and use the port only on iOS. That leaves two engines
+    that can drift apart.
+- **b. Scope.** Port only the path Forager reaches (dropping output formatting, voice hints, the
+  kinematic model and the diff tools), or the whole engine.
+- **c. Test data.** Where the larger rd5 sample for the differential tests comes from: more fixtures in
+  the repository, or tiles fetched in CI. Repository size and ODbL attribution both apply.
+
+Building any of it needs a dispatch from the planner, recorded as an intent in `RECORD.md`.
