@@ -238,7 +238,7 @@ class CellEdgeTest(EncodeCase):
         pts = [[-74.99, 40.01], [-74.60, 40.40], [-74.62, 40.02], [-74.30, 40.33]]
         e = self.encode([feature(pts, highway="path", name="Diagonal")])
         f = e.file("W75_N40")
-        self.assertGreater(len(f["records"]), 6)
+        self.assertGreater(len(f["records"]), 6, "each edge the line crosses should start a new piece")
         ends, starts = set(), set()
         for r in f["records"]:
             self.assertTrue(in_cell(f, r), f"a piece leaves its cell {r['row']},{r['col']}: {r['points']}")
@@ -253,8 +253,8 @@ class CellEdgeTest(EncodeCase):
         e = self.encode([feature([[-75.05, 42.01], [-74.95, 42.03]], highway="primary", name="Border Rd")],
                         squares=("W80_N40", "W75_N40"))
         west, east = e.file("W80_N40"), e.file("W75_N40")
-        self.assertEqual(len(west["records"]), 1)
-        self.assertEqual(len(east["records"]), 1)
+        self.assertEqual(len(west["records"]), 1, "W80_N40 should hold the line's piece west of lon -75")
+        self.assertEqual(len(east["records"]), 1, "W75_N40 should hold the line's piece east of lon -75")
         w, x = west["records"][0], east["records"][0]
         self.assertEqual((w["row"], w["col"]), (16, 39))
         self.assertEqual((x["row"], x["col"]), (16, 0))
