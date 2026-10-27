@@ -8,11 +8,15 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteLine
+import com.zynergylabs.forager.app.domain.RouteLinePartKind
 import com.zynergylabs.forager.app.domain.ageMillis
 import com.zynergylabs.forager.app.domain.fixFreshness
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.toTrackPoint
+import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeOffTrail
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePlace
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
 import com.zynergylabs.forager.app.domain.wayhome.placeOnWayHome
@@ -71,6 +75,12 @@ data class WaypointRouteShown(val hud: ReturnRoute?, val line: RouteLine?)
  *   rule and figures ([nextStraightLine], [millisUntilFreshnessChanges]; Amendment 2, item 1, RECORD -1670, the owner:
  *   "Fade and grey too (Recommended)", Sorrel's S-413-1). Between fixes the clock moves on at each moment the freshness
  *   changes, as [AvailabilityWaypointLine]'s does; that redraws the line and starts no search.
+ * - **Off the line, quietly** (step 6 PR 4, dispatch 2026-10-27-01; RECORD -1725): the way home's rule,
+ *   [WayHomeOffTrail], with its figures, judged against the whole line, the dashed legs included. Off for 15 s, the
+ *   trail part dims ([RouteLine.trailDimmed]) and the HUD reads the waypoint's notice ([ReturnRoute.Ahead.toWaypoint]);
+ *   back on for 10 s, "Back on trail" for 5 s. Each new line, a stray's re-route included, starts it afresh: the new
+ *   line starts at the walker, so the dim clears at once with no "Back on trail" (option A, Rowan's answer to the
+ *   coder's stop). Nothing here alerts, sounds or vibrates.
  *
  * Every write goes through [updateState]. Runs on the ViewModel's scope, one thread, so its fields need no lock; the
  * engine moves its own work off that thread (`TrailRouter.route`). [findWayToWaypoint] `null` (a ViewModel built without
@@ -131,6 +141,7 @@ internal class AvailabilityWaypointRoute(
         /** Set while a straight-line result stands: says when to search again. */
         private var retry: WayToRetry? = null
         private val stray = WayToStray()
+        private val offTrail = WayHomeOffTrail()
         private var loggedWhy: StrayVerdict? = null
 
         fun onFix(fix: LocationFix.Update?) {
@@ -148,6 +159,7 @@ internal class AvailabilityWaypointRoute(
                 if (search == null && retry?.judge(here, regions()) != false) startSearch(here)
                 return
             }
+            judgeOffTrail(shown, fix)
             show(shown, here)
             when (val verdict = stray.judge(shown.metersFrom(here), searching = search != null)) {
                 StrayVerdict.STAY -> loggedWhy = null
@@ -164,6 +176,15 @@ internal class AvailabilityWaypointRoute(
             }
         }
 
+        /**
+         * One fix to the off-trail rule, against [shown]'s whole line, dashed legs included (RECORD -1725: "on" is any
+         * part of it). Every fix here has passed the live-fix gate already (`AvailabilityLiveLocation.begin`), the gate
+         * the way home applies itself (`WayHomeWatch.onFix`); the rule skips network fixes itself.
+         */
+        private fun judgeOffTrail(shown: WayHomeLine, fix: LocationFix.Update) {
+            offTrail.next(fix.toTrackPoint(), fix.provider, listOf(shown.wayHome.line))
+        }
+
         /** The walker's place on [shown] from [here], as the way home's (L-395-4: the far band's hysteresis held across off the line). */
         private fun show(shown: WayHomeLine, here: LatLng) {
             val progress = placeOnWayHome(shown, here, lastPlace, band)
@@ -174,10 +195,13 @@ internal class AvailabilityWaypointRoute(
             } else {
                 band = HopBand.FAR
             }
+            val state = offTrail.state
             val next = ahead?.let {
+                // Only the trail part dims (RECORD -1676, "A: trail dims only"), so only a line ahead with one is marked.
+                val dim = state == OffTrailState.OFF && it.aheadParts.any { part -> part.kind == RouteLinePartKind.TRAIL }
                 WaypointRouteShown(
-                    hud = ReturnRoute.Ahead(it.lookahead, it.routeMeters),
-                    line = RouteLine(atReturn = emptyList(), ahead = it.routeAhead, aheadIsCurrent = true, aheadParts = it.aheadParts, atReturnGeneration = generation),
+                    hud = ReturnRoute.Ahead(it.lookahead, it.routeMeters, offTrail = state, toWaypoint = true),
+                    line = RouteLine(atReturn = emptyList(), ahead = it.routeAhead, aheadIsCurrent = true, aheadParts = it.aheadParts, atReturnGeneration = generation, trailDimmed = dim),
                 )
             } ?: WaypointRouteShown(hud = null, line = null)
             placed = next
@@ -207,6 +231,9 @@ internal class AvailabilityWaypointRoute(
                     WayToWaypointResult.StraightLine(WayToWaypointNote.NO_ROUTE_FOUND)
                 }
                 search = null
+                // A new line, or none: the off-trail state starts afresh (RECORD -1725, step 3: "The new route starts at
+                // you, so the dimmed state clears"), with no "Back on trail".
+                offTrail.reset()
                 generation++
                 lastPlace = null
                 band = HopBand.NONE

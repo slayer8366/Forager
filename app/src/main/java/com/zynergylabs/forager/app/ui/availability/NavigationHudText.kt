@@ -80,6 +80,14 @@ internal fun wayHomeNoteShortText(note: WayHomeNote): String =
 internal const val OFF_TRAIL_TEXT = "Off trail · Return to Route along your track"
 internal const val OFF_TRAIL_SHORT_TEXT = "Return to Route"
 
+/**
+ * The same quiet notice on the way to a waypoint (step 6 PR 4, dispatch 2026-10-27-01; RECORD -1725, the owner:
+ * "Off trail · Head back to the line" (Recommended), short form "Off trail"). The waypoint's line has no track to
+ * return along, so the way home's words would not fit it.
+ */
+internal const val WAYPOINT_OFF_TRAIL_TEXT = "Off trail · Head back to the line"
+internal const val WAYPOINT_OFF_TRAIL_SHORT_TEXT = "Off trail"
+
 /** Back on the trail line, shown for `BACK_ON_TRAIL_SHOW_MILLIS` (RECORD -445's words, -1631). */
 internal const val BACK_ON_TRAIL_TEXT = "Back on trail"
 
