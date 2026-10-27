@@ -121,7 +121,7 @@ class PatternRelayoutTest {
     private val restored = listOf("landuse_forest_glyphs=\"tree_dark_irregular\"", "landuse_wetland_tufts=\"tufts\"")
 
     @Test
-    fun `no clear before the deferral: nothing is set until the style's transition plus 100 ms after the callback and sprite`() {
+    fun `no clear before the deferral, nothing is set until the style's transition plus 100 ms after the callback and sprite`() {
         val style = FakeStyle()
         val relayout = relayoutOver(mapOf("night" to style))
 
@@ -147,7 +147,7 @@ class PatternRelayoutTest {
     }
 
     @Test
-    fun `no restore before the gap: only the first full frame at least 100 ms after the clear restores`() {
+    fun `no restore before the gap, only the first full frame at least 100 ms after the clear restores`() {
         val style = FakeStyle()
         val relayout = relayoutOver(mapOf("s" to style))
         relayout.onStyleRequested()
