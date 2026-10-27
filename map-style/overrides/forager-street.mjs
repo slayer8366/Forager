@@ -405,3 +405,39 @@ export function applyStreetDesign(layers) {
   }
   return layers;
 }
+
+// --- Buildings solid, with an outline (dispatch 2026-10-27-02, RECORD -1730) ------------------------------------------
+// The owner, on the S22: "The buildings and houses are soft against the background, and the forest also overlaps them.
+// Can we have a border around the buildings and houses to separate them from the rest of the map?" Protomaps' light
+// layer draws buildings #cccccc at half opacity, so the forest and its tree glyphs below show through them.
+//
+// The structure is the OpenStreetMap Carto style's buildings (openstreetmap-carto, style/buildings.mss; that project
+// is released under CC0 1.0, its LICENSE.txt): an opaque fill, 4% darker at the lowest zoom it draws, and from z15 a
+// 0.75 line 15% darker than the fill (Carto's @building-low-zoom and @building-line, both darkened from @building-fill).
+// Forager keeps Protomaps' grey rather than Carto's tan: #cccccc darkened 4% is #c2c2c2 and 15% is #a6a6a6. Night is the
+// app's V1 inversion with no exception (#3d3d3d, #333333, #595959; BuildingsNightTest in the app).
+//
+// A function of its own, called by generate-street.mjs for v3 only, and not part of applyStreetDesign: v2 and v1 are
+// frozen for the regions downloaded against them.
+
+/** The buildings' day colours and the outline's zoom and width. */
+export const BUILDINGS = { lowZoomFill: "#c2c2c2", fill: "#cccccc", outline: "#a6a6a6", outlineMinZoom: 15, outlineWidth: 0.75 };
+
+/** Makes Protomaps' buildings layer opaque, with Carto's low-zoom step, and adds buildings_outline directly above it. */
+export function withBuildingOutline(layers) {
+  const buildings = byId(layers, "buildings");
+  buildings.paint = {
+    "fill-color": ["step", ["zoom"], BUILDINGS.lowZoomFill, BUILDINGS.outlineMinZoom, BUILDINGS.fill],
+    "fill-opacity": 1,
+  };
+  insertAfter(layers, "buildings", {
+    id: "buildings_outline",
+    type: "line",
+    source: buildings.source,
+    "source-layer": buildings["source-layer"],
+    filter: buildings.filter,
+    minzoom: BUILDINGS.outlineMinZoom,
+    paint: { "line-color": BUILDINGS.outline, "line-width": BUILDINGS.outlineWidth },
+  });
+  return layers;
+}
