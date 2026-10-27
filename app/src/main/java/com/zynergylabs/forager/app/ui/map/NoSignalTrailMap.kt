@@ -126,7 +126,6 @@ internal fun noSignalState(
                     "Validated network (${SIGNAL_RETURN_SWITCH_DELAY_MS / 1000} s, or at start): maps draw the chosen map type."
                 },
             )
-            if (!noSignal) fallback.onSignalReturned()
         }
         .stateIn(scope, SharingStarted.Eagerly, false)
 
