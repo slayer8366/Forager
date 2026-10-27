@@ -29090,3 +29090,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** deploy helper (Opus; dispatch 2026-10-27-10): one wrangler deploy of f42fd5ef8 at 2026-10-27T19:06:05Z, version 803ff477-d657-4b67-901e-2d555efd3ec3 at 100%, rollback target 5bc6bc3a-d5c4-4e2c-9527-1e8f4561ffc6; eleven other routes byte-identical before and after (the routing check keyless); /style/street-v3.json now sha256 0dd89cfe…9399, deep-equal to src/street-style-v3.json, with buildings_outline and the 0.5/1 opacity step. No rollback. The helper ran no wrangler command before the planner's STOP; the bad draft of the dispatch was d8bcb8819, replaced by c0d00dbcc.
 **Decision:** none new; the deploy ran under -1741. A phone sees the new style at its first load after its own copy (up to a day old) expires.
 **Notes:** Written by the planner by hand. The planner's first commit of the dispatch was an unchecked machine edit of the previous dispatch; it was caught after launch, before any deploy step. Next free ID -1744.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1744
+**Timestamp:** 2026-10-27T19:28:53Z
+**Continues:** 2026-09-28-1739, 2026-09-28-1741
+**Title:** #427 merged into pre-main: the Trail Map retry once the connection holds (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr427.md, branch sorrel-pr427, 478278d1a) on 3822107a1: no blocking finding; no flip-flopping (the no-signal hysteresis emits once per return, and a failed retry has no path back to a retry); production wiring through MainActivity.kt:104 to the shared OWN_STREET_FALLBACK; every step logged; a clean trial merge with pre-main; R1 and R2 failure messages read from XML. S1: the readers test's name claims more than it samples (MapNavigationView follows through the loaded style; the Official trails row reads the style-load report, not the flag); S2: the S22 steps were not on the PR. N1: the "for the process" comments at MapListeners.kt:50 and MapStyleReload.kt:70 wait for the glyph work.
+**Decision:** the owner: "Merge now (Recommended)"; the planner added Sorrel's S22 steps to the PR body, then merged at 3822107a1; pre-main effbef21b. S1's rename and N1 go to the tidy list.
+**Notes:** Written by the planner by hand. Next free ID -1745.
