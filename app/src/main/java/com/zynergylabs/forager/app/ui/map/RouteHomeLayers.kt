@@ -297,7 +297,8 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
  * passed route"). The lower of the two wins, so the withheld fade (0.4) is never multiplied into near nothing ("having
  * your tracks disappear is a scary thing"). Only the solid layers: the dotted track is left as it is (RECORD -1676, "A:
  * trail dims only"). The solid layers draw only the trail part of a way home along trails; the line is dimmed only when
- * it has one (`TrackRecordingUiState.routeLineShown`).
+ * it has one (`TrackRecordingUiState.routeLineShown`; for the way to a waypoint, `AvailabilityWaypointRoute`, step 6 PR 4,
+ * where the dashed straight legs are left as they are too).
  */
 internal fun routeTrailOpacity(route: RouteOnMap?): Float {
     val opacity = routeAheadOpacity(route)

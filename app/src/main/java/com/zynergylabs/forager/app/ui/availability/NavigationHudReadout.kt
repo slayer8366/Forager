@@ -94,13 +94,16 @@ sealed interface ReturnRoute {
     /**
      * The needle aims at [lookahead]; the large figure is [routeMeters]. [note] says why the way home is the walker's
      * track, shown in the status line (dispatch 2026-10-24-10; RECORD -1586, -1589, -1613), or `null`. [offTrail] is the
-     * way home's quiet off-trail state (plan step 7 PR 3; RECORD -1631), read by the status line.
+     * way home's quiet off-trail state (plan step 7 PR 3; RECORD -1631), read by the status line, or the way to a
+     * waypoint's when [toWaypoint] (step 6 PR 4; RECORD -1725), which picks the waypoint's words for it.
      */
     data class Ahead(
         val lookahead: LatLng,
         val routeMeters: Double,
         val note: WayHomeNote? = null,
         val offTrail: OffTrailState = OffTrailState.ON,
+        /** Set only by the way to a waypoint along trails (`AvailabilityWaypointRoute`): its off-trail words, not the way home's. */
+        val toWaypoint: Boolean = false,
     ) : ReturnRoute
 
     /**
