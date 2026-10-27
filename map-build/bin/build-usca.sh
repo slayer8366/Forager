@@ -871,7 +871,9 @@ for k in "${!bands[@]}"; do
     nodes55 unodes55 bordernids.dat bordernodes.dat "$USCA_BEF_DIR")
   # Every square of this band read its heights, or the run stops here (S1).
   hr="$(heights_read_ok "$br/unodes55" "$USCA_BEF_NONE")" || die "routing band $band: $hr"
-  none_here="$(cd "$br/unodes55" && ls -- *.u5d 2>/dev/null | sed 's/\.u5d$//' | tr '\n' ' ')"
+  # find, not ls: a band with no unsuffixed tile is the normal one, and ls's exit 2 there would
+  # end the run under pipefail with nothing logged (Sorrel's quick look, B1).
+  none_here="$(find "$br/unodes55" -maxdepth 1 -name '*.u5d' -printf '%f\n' | sed 's/\.u5d$//' | sort | tr '\n' ' ')"
   [[ -z "$none_here" ]] || log "routing band $band: no heights, as pinned in USCA_BEF_NONE, for $none_here"
   (cd "$br" && "${TIMED[@]}" "brouter-link-$band" -- "${bjava[@]}" -DskipEncodingCheck=true btools.mapcreator.WayLinker \
     unodes55 waytiles55 bordernodes.dat restrictions.dat "$profiles/lookups.dat" "$profiles/all.brf" segments rd5)

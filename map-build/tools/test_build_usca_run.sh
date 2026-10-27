@@ -179,7 +179,8 @@ case " $* " in
     # W80_N25 is one of the pinned squares without a .bef.
     dir="${*: -1}"
     if compgen -G "$dir/*.bef" >/dev/null; then : > unodes55/W125_N45.u5d_3; else : > unodes55/W125_N45.u5d; fi
-    : > unodes55/W80_N25.u5d ;;
+    # STUB_ALL_HEIGHTS=1 writes no unsuffixed tile at all, as most bands are (B1).
+    [[ "${STUB_ALL_HEIGHTS:-}" == 1 ]] || : > unodes55/W80_N25.u5d ;;
   *" btools.mapcreator.WayLinker "*)
     echo "linked" > "$STUB_T/link.rec"; exit 1 ;;
   *) echo "java stub: unexpected $*" >&2; exit 1 ;;
@@ -405,6 +406,11 @@ show "R10 heights read"
 check "R10: with the store there, the run passes PosUnifier's check and reaches WayLinker" \
   '[[ -f "$T/link.rec" ]] && ! grep -q "read no heights" "$L"'
 check "R10: the pinned squares without heights are logged" 'grep -q "no heights, as pinned in USCA_BEF_NONE, for W80_N25" "$L"'
+new_srv r10-all local; rm -f "$T/link.rec"
+STUB_BROUTER=go STUB_ALL_HEIGHTS=1 STUB_BEF_DIR="$T/bef-r10" build --local 261017
+show "R10 every tile with heights"
+check "R10: a band whose tiles all have heights (the usual one) reaches WayLinker, logging no pinned squares (B1)" \
+  '[[ -f "$T/link.rec" ]] && ! grep -q "no heights, as pinned" "$L" && ! grep -q "run failed with exit 2" "$L"'
 new_srv r10-drop local; rm -f "$T/link.rec"
 STUB_BROUTER=go STUB_BEF_DIR="$T/bef-r10" STUB_DROP_STORE="$T/bef-r10" build --local 261017
 show "R10 store gone after the cutter"
@@ -416,7 +422,8 @@ mv "$T/bef-r10.gone" "$T/bef-r10" 2>/dev/null || true
 new_srv r11
 STUB_BEF_DIR="$T/no-such-bef" build --fetch-only
 show "R11 --fetch-only, no store"
-check "R11: a --fetch-only run without the store isn't stopped by it" '! grep -q "no elevation store" "$L"'
+check "R11: a --fetch-only run without the store finishes, ok at fetch-only (N6)" \
+  '[[ $rc -eq 0 && "$(status_field "$S/status-usca.json" state)" == ok && "$(status_field "$S/status-usca.json" stage)" == fetch-only ]] && ! grep -q "no elevation store" "$L"'
 
 if [[ $fails -gt 0 ]]; then echo "FAILED: $fails checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"
