@@ -52,7 +52,7 @@ const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${SPRI
 
 // v3's buildings, solid with an outline (dispatch 2026-10-27-02), are applied here and not in applyStreetDesign, which
 // v2 was generated with.
-const allLayers = withReferenceLayers(withBuildingOutline(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
+const allLayers = withReferenceLayers(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" }))));
 
 const style = (assetsBase) => ({
   version: 8,

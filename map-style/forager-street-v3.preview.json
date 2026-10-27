@@ -1186,33 +1186,8 @@
         "building_part"
       ],
       "paint": {
-        "fill-color": [
-          "step",
-          [
-            "zoom"
-          ],
-          "#c1c1c1",
-          15,
-          "#cccccc"
-        ],
-        "fill-opacity": 1
-      }
-    },
-    {
-      "id": "buildings_outline",
-      "type": "line",
-      "source": "protomaps",
-      "source-layer": "buildings",
-      "filter": [
-        "in",
-        "kind",
-        "building",
-        "building_part"
-      ],
-      "minzoom": 15,
-      "paint": {
-        "line-color": "#a6a6a6",
-        "line-width": 0.75
+        "fill-color": "#cccccc",
+        "fill-opacity": 0.5
       }
     },
     {
