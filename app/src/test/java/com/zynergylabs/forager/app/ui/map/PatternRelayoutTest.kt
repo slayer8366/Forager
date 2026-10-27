@@ -253,8 +253,8 @@ class PatternRelayoutTest {
         relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onStyleLoaded("second")
         relayout.onSpriteLoaded()
-        clock.advanceTo(2_400)
-        frames.frameAt(2_500)
+        clock.advanceTo(2_500) // the wait runs from the last frame, at 2 100
+        frames.frameAt(2_600)
         assertEquals("a reload is relaid out", cleared + restored, second.sets)
         assertEquals(2, log.size)
     }
