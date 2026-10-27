@@ -28628,3 +28628,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message; Forager-cartography 8418735, docs/audits/2026-10-26-three-builds-work.md): reference-trails.pmtiles 219,923,563 bytes, sha256 240423f61966e046513f0aa2495651f0104e17243a7a51fa70d3f73c4e5ad096, mvt gzip, z10-15, 447,047 tiles, largest 32.8 KB; vector_layers fs_trails (admin_org, attributesubset, objectid, trail_class, trail_name, trail_no, trail_type) and blm_trails (ADMIN_ST, FAMS_ID, OBJECTID, ROUTE_PRMRY_NM, gtlf_layer); FS 86,422 and BLM 17,616 features matching the services; trail_no text ("060"); trail_type TERRA 78,169, SNOW 8,177, WATER 76; dates in the archive metadata forager_reference and reference-trails-manifest.json; coverage of 112 forests: 102 attributed, 7 mostly Centerline, 2 Centerline only, 1 none. R2 held no reference-trails object.
 **Decision:** the owner: "Go (Recommended)": Aspen uploads both files to r2:forager-maps, reads them back by sha256, then fetches one z10 and one z15 tile through the Worker, cache-busted. The app is unchanged until the switch PR.
 **Notes:** Written by the planner by hand. WATER trail_type (76) is not filtered by the band (only SNOW is); a question for the switch PR. Next free ID -1701.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1701
+**Timestamp:** 2026-10-27T02:52:59Z
+**Continues:** 2026-09-28-1700
+**Title:** The official-trails archive is live on R2 and served by the Worker
+**Observed:** Aspen (message): on the owner's "Go" given in Aspen's own window (about 19:55 PDT 2026-10-26; the relayed go of -1700 was refused by Aspen's permission check as a production deploy); before the upload R2 held no reference-trails objects. Read back from R2: reference-trails.pmtiles 219,923,563 bytes, sha256 240423f6…5ad096, matches; reference-trails-manifest.json 2,814 bytes, sha256 6cb68e27…e70db9, matches. Through the Worker (first requests ever): z10 192/393 HTTP 200, 14,157 bytes, fs_trails 133 features; z15 6144/12597 HTTP 200, 677 bytes, the archive's own tile, trail_no "060".
+**Decision:** none new; the upload ran under -1700 as approved in Aspen's window. The app is unchanged until the switch PR.
+**Notes:** Written by the planner by hand. The squares-and-names upload still waits for the names. Next free ID -1702.
