@@ -29165,3 +29165,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** A "Crowded icons" setting: zoom in then fan, or a list for every group (owner)
 **Decision:** the owner: "Have an option to show the new set up or just a list in the settings menu for simplicity"; asked which groups the list covers, "Every group": in List mode any stack of two or more icons opens the list at once, with no zoom and no fan; the default, "Zoom in, then fan (Recommended)"; "Next PR after #430 (Recommended)". On the Maps tab only, as -1749. Dispatch 2026-10-27-14, to start after #430 merges.
 **Notes:** Written by the planner by hand. Next free ID -1751.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1751
+**Timestamp:** 2026-10-27T20:49:10Z
+**Continues:** 2026-09-28-1750
+**Title:** The Tools drawer's Sundown section goes; the map's quick settings keep its rows (owner)
+**Observed:** ToolsSundownSection (AvailabilitySundownSettings.kt:58, drawn at AvailabilitySettingsUi.kt:281) holds Sundown alerts, Dark under trees and the Off-track reminder; the map's quick settings (MapQuickSettings.kt) hold all three plus Back by.
+**Decision:** the owner: "Next PR should also remove the Sundown and Dark Under Trees portion from the tools menu since it's redundant"; the step path confirmed; for the explanation line "Woods get dark before sunset. Alerts allow this much extra.", "Drop it". In the same PR as the Crowded icons setting: dispatch 2026-10-27-14 Amendment 1.
+**Notes:** Written by the planner by hand. This reverses the placement of -707's "Section in the Tools drawer"; the quick settings already carried the rows. Next free ID -1752.

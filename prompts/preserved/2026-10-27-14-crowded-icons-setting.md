@@ -39,3 +39,20 @@ Before building, report:
 - **The Restricted Object:** never read, name or quote it.
 - **Long conversation:** past about 200k tokens, push and hand off.
 - **Ambiguity:** stop and report.
+
+## Amendment 1 (2026-10-27): also remove the Tools drawer's Sundown section (RECORD -1751)
+The owner, verbatim: "Next PR should also remove the Sundown and Dark Under Trees portion from the tools menu since it's redundant". Planner's reading, from pre-main 9a…/fed445489:
+- `ToolsSundownSection` (AvailabilitySundownSettings.kt:58, drawn at AvailabilitySettingsUi.kt:281) holds Sundown alerts, Dark under trees and the Off-track reminder.
+- The map's ⋮ quick settings (MapQuickSettings.kt) already hold all three, plus Back by.
+
+The owner confirmed the step path, and answered "Drop it" for the explanation line:
+- Tools > no Sundown section; the Trip Planner and the rest move up.
+- Maps > ⋮ > Back by, Sundown alerts, Dark under trees, Off-track reminder, as today > Back closes the menu.
+- The stored values are unchanged. DARK_UNDER_TREES_EXPLANATION goes if nothing else uses it.
+
+Remove the section and anything only it used. Keep the shared rows and labels the ⋮ menu uses. Update the comments that point at the Tools section (MapQuickSettings.kt:71, :26-ish). Tests:
+- the Tools drawer no longer shows the section;
+- the ⋮ menu's rows still change the same stored values;
+- each fails first, then a revert check.
+
+Do a verify-first `git grep` for every reference to the section, its tag and its title. Name each one, and say whether it stays or goes.
