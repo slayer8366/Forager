@@ -233,7 +233,7 @@ internal class AvailabilityWaypointRoute(
                 search = null
                 // A new line, or none: the off-trail state starts afresh (RECORD -1725, step 3: "The new route starts at
                 // you, so the dimmed state clears"), with no "Back on trail".
-                offTrail.reset()
+                Unit
                 generation++
                 lastPlace = null
                 band = HopBand.NONE
