@@ -28864,3 +28864,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message; Forager-cartography e183c8f): G8 on branch pi-32-elevation at 6b991fac5 (on pi-build 20f75d063), the .bef read from the card (USCA_BEF_DIR pinned, every file hashed at the state stage before any download); Sunday's NVMe headroom about 3.5 GB (inferred), 1.7 GB less than last week; about 1.2 GB of Aspen's scratch on the NVMe and 2.2 GB of a helper's on the card.
 **Decision:** the owner: "Move them to the 256 GB drive (Recommended)": ~/reference-trails-build, ~/pi31-scratch, ~/names-measure and forager-build/work/pi31-willow go to /mnt/storage, checked by sha256, then the originals are removed. G8 goes to Sorrel, then its install waits for the owner's word in Aspen's window.
 **Notes:** Written by the planner by hand. Next free ID -1723.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1723
+**Timestamp:** 2026-10-27T13:48:55Z
+**Continues:** 2026-09-28-1719, 2026-09-28-1721
+**Title:** #424 merged into pre-main: the official-trails card (8d)
+**Observed:** Sorrel's quick look (Fable; docs/reviews/2026-10-27-sorrel-pr424.md on sorrel-pr424, bbdba9c85) at 2cbbdc4de: merge; S1 correct and its test bites; the no-body skip holds against OkHttp 4.12.0's own source; all five revert runs fail on exactly their own test with 0 compile errors; head run 40507450521 green, 5,812 tests. By design, a first opening online with no kept copy shows the dateless line and hint until the fetch answers (an S22 observation).
+**Decision:** merged at 2cbbdc4de under -1719's "Fix both, then merge"; pre-main f2cbbbf20. The card's steps join the S22 check.
+**Notes:** Written by the planner by hand. Next free ID -1724.
