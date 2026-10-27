@@ -30,5 +30,5 @@ object FindLinkedPhotos {
      * owner removed. The caller has the read failure and logs it.
      */
     fun isHidden(photo: GalleryPhoto, hidingFindIds: Set<String>?): Boolean =
-        if (hidingFindIds == null) photo.referencingEntryIds.isNotEmpty() else photo.referencingEntryIds.any { it in hidingFindIds }
+        if (hidingFindIds == null) photo.referencingEntryIds.isNotEmpty() else photo.referencingEntryIds.isNotEmpty()
 }
