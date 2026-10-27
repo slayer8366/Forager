@@ -23,7 +23,7 @@
 //   forager-street-v3.preview.json    fonts and icons from serve.py, for the preview and tools/check-style.mjs.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
-import { applyStreetDesign, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
+import { applyStreetDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
 
@@ -50,7 +50,9 @@ const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${SPRI
   .filter((name) => !(name in NIGHT_PATTERN_COLOURS))
   .sort();
 
-const allLayers = withReferenceLayers(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" }))));
+// v3's buildings, solid with an outline (dispatch 2026-10-27-02), are applied here and not in applyStreetDesign, which
+// v2 was generated with.
+const allLayers = withReferenceLayers(withBuildingOutline(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
 
 const style = (assetsBase) => ({
   version: 8,

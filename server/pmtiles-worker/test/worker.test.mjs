@@ -432,16 +432,55 @@ test("v2 is frozen: all three copies byte for byte what pre-main c91f34c49 held"
   );
 });
 
-test("v3 is v2 plus the reference source and its layers, and nothing else", () => {
+// Since dispatch 2026-10-27-02 (RECORD -1730) v3 also differs from v2 in its buildings: the buildings layer's paint, and
+// one new layer, buildings_outline. Everything else is v2's, which this test holds by comparing the rest whole.
+const BUILDINGS_EDIT = new Set(["buildings", "buildings_outline"]);
+
+test("v3 is v2 plus the reference source and its layers and the buildings edit, and nothing else", () => {
   const v3 = v3Style();
   const v2 = JSON.parse(STREET_V2_STYLE_SOURCE);
   const { [reference.REFERENCE_SOURCE_ID]: added, ...sources } = v3.sources;
   assert.ok(added, "v3 has no reference source");
   assert.deepEqual(sources, v2.sources);
-  assert.deepEqual(v3.layers.filter((l) => l.source !== reference.REFERENCE_SOURCE_ID), v2.layers);
+  const own = v3.layers.filter((l) => l.source !== reference.REFERENCE_SOURCE_ID);
+  assert.deepEqual(own.filter((l) => !BUILDINGS_EDIT.has(l.id)), v2.layers.filter((l) => !BUILDINGS_EDIT.has(l.id)));
+  assert.deepEqual(own.map((l) => l.id), v2.layers.flatMap((l) => (l.id === "buildings" ? ["buildings", "buildings_outline"] : [l.id])));
+  // The buildings layer keeps all but its paint: the same source, source-layer, filter and zooms as v2's.
+  const buildings = (style) => style.layers.find((l) => l.id === "buildings");
+  assert.deepEqual({ ...buildings(v3), paint: undefined }, { ...buildings(v2), paint: undefined });
   assert.deepEqual({ ...v3, name: v2.name, sources: v2.sources, layers: v2.layers, metadata: undefined }, { ...v2, metadata: undefined });
   // The same app tiles, glyphs and sprite: a v3 region draws v2's tiles and fonts.
   assert.equal(v3.sources.protomaps.url, v2.sources.protomaps.url);
+});
+
+test("buildings below z14 are v2's, solid from z14, a step darker at z14 only, with a 0.75 outline from z15 directly above them (dispatch 2026-10-27-02)", () => {
+  // After the OpenStreetMap Carto style's buildings (style/buildings.mss): an opaque fill from z14, darker at z14, and
+  // from z15 a line 15% darker. The owner: "Can we have a border around the buildings and houses to separate them
+  // from the rest of the map?" (RECORD -1730). Protomaps' tiles carry buildings from z11; below z14 they stay v2's
+  // half-opaque #cccccc, the owner: "Change only from zoom 14 (Recommended)" (Amendment 2, RECORD -1737).
+  const layers = v3Style().layers;
+  const at = (id) => layers.findIndex((l) => l.id === id);
+  const buildings = layers[at("buildings")];
+  assert.deepEqual(buildings.paint, {
+    "fill-color": ["step", ["zoom"], "#cccccc", 14, "#c1c1c1", 15, "#cccccc"],
+    "fill-opacity": ["step", ["zoom"], 0.5, 14, 1],
+  });
+  // Below z14 each step's first output is v2's own paint, so z11 to z13 draw as before.
+  const v2Buildings = JSON.parse(STREET_V2_STYLE_SOURCE).layers.find((l) => l.id === "buildings");
+  assert.equal(buildings.paint["fill-color"][2], v2Buildings.paint["fill-color"], "below z14 the fill is not v2's");
+  assert.equal(buildings.paint["fill-opacity"][2], v2Buildings.paint["fill-opacity"], "below z14 the opacity is not v2's");
+  assert.equal(at("buildings_outline"), at("buildings") + 1, "the outline is not directly above the buildings");
+  assert.deepEqual(layers[at("buildings_outline")], {
+    id: "buildings_outline",
+    type: "line",
+    source: "protomaps",
+    "source-layer": "buildings",
+    filter: buildings.filter,
+    minzoom: 15,
+    paint: { "line-color": "#a6a6a6", "line-width": 0.75 },
+  });
+  // The forest and its tree glyphs draw below, so a building covers them.
+  for (const id of ["landuse_park", "landuse_forest_glyphs"]) assert.ok(at(id) >= 0 && at(id) < at("buildings"), id);
 });
 
 test("the reference source carries its tile address on this Worker, zooms 10 to 15, and no TileJSON URL", () => {
