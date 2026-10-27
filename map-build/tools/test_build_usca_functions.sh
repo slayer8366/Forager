@@ -17,8 +17,8 @@ ln -s 20261017T202051Z "$OUT/current"
 echo "log line" > "$log_file"
 log() { echo "LOG $*"; }
 
-eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^default_route_iface() {/,/^}/p; /^download_floor() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p; /^names_nodes_ok() {/,/^}/p' "$script")"
-declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge names_nodes_ok >/dev/null \
+eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^default_route_iface() {/,/^}/p; /^download_floor() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p; /^names_nodes_ok() {/,/^}/p; /^bef_store_ok() {/,/^}/p' "$script")"
+declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge names_nodes_ok bef_store_ok >/dev/null \
   || { echo "FAIL: functions not loaded"; exit 1; }
 
 pass=0
@@ -83,6 +83,26 @@ weekly_names_check() {
     | grep -qF 'names_ok="$(names_nodes_ok "$names_nodes" "$USCA_NAMES_MAX_INPUT_NODES")" || die "$names_ok"'
 }
 check "the weekly path checks the names input with it, before BRouter" 'weekly_names_check'
+
+# --- bef_store_ok: BRouter's elevation store, pinned (G8) -----------------------------------------
+B="$T/bef"; mkdir -p "$B"; echo one > "$B/srtm_12_03.bef"; echo two > "$B/srtm_17_04.bef"
+(cd "$B" && sha256sum *.bef > SHA256SUMS); BS="$(sha256sum < "$B/SHA256SUMS" | cut -d' ' -f1)"
+bef_says() { local out rc=0; out="$( (bef_store_ok "$@") 2>&1)" || rc=$?; [[ $rc -ne 0 ]] && echo "$out"; }
+check "the pinned store passes, quickly and in full" 'bef_store_ok "$B" "$BS" 2 >/dev/null && bef_store_ok "$B" "$BS" 2 full >/dev/null'
+check "a missing store fails, naming it" '[[ "$(bef_says "$T/nope" "$BS" 2)" == "no elevation store at $T/nope" ]]'
+check "a store of another SHA256SUMS fails, naming both" '[[ "$(bef_says "$B" 0000 2)" == *"not the pinned USCA_BEF_SUMS_SHA256 0000"* ]]'
+check "a count other than the pin fails" '[[ "$(bef_says "$B" "$BS" 3)" == *"lists 2 files, not the pinned USCA_BEF_FILES 3"* ]]'
+mv "$B/srtm_17_04.bef" "$T/held.bef"
+check "a listed .bef gone fails the quick check" '[[ "$(bef_says "$B" "$BS" 2)" == *"holds 1 non-empty .bef files, not 2"* ]]'
+mv "$T/held.bef" "$B/srtm_17_04.bef"; echo changed > "$B/srtm_17_04.bef"
+check "a changed .bef passes the quick check but fails the full one" \
+  'bef_store_ok "$B" "$BS" 2 >/dev/null && [[ "$(bef_says "$B" "$BS" 2 full)" == *"does not match its SHA256SUMS"* ]]'
+rm -f "$B/SHA256SUMS"
+check "a store without SHA256SUMS fails" '[[ "$(bef_says "$B" "$BS" 2)" == *"has no SHA256SUMS"* ]]'
+check "PosUnifier reads the pinned store, and nothing builds into an empty no-elevation folder" \
+  'grep -qF '"'"'bordernids.dat bordernodes.dat "$USCA_BEF_DIR")'"'"' "$script" && ! grep -q "no-elevation" "$script"'
+check "the store is checked in full at the state stage and quickly before BRouter" \
+  '[[ "$(grep -c "bef_store_ok \"\$USCA_BEF_DIR\" \"\$USCA_BEF_SUMS_SHA256\" \"\$USCA_BEF_FILES\"" "$script")" == 2 ]] && grep -q "USCA_BEF_FILES\" full)\" || die" "$script"'
 
 # --- basemap_matches: a reused basemap must name the extracts' snapshot ---------------------------
 # The metadata keys are the ones the 2026-10-19 archive carries (planetiler 0.10.2).

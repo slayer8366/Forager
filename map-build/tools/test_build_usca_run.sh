@@ -26,6 +26,8 @@ ME="$(id -un)"
 command -v osmium >/dev/null || { echo "FAIL: osmium is needed"; exit 1; }
 
 # --- The tree: the script under test, its tools, and pins.env with this test's paths -----------
+mkdir -p "$T/bef"; echo one > "$T/bef/srtm_12_03.bef"; echo two > "$T/bef/srtm_17_04.bef"
+(cd "$T/bef" && sha256sum *.bef > SHA256SUMS)
 mkdir -p "$T/tree/map-build/bin" "$T/tree/map-build/tools"
 cp "$here/bin/build-usca.sh" "$T/tree/map-build/bin/"
 cp "$here/tools/"*.py "$T/tree/map-build/tools/"
@@ -42,6 +44,10 @@ cmp -s "$here/bin/build-usca.sh" "$T/tree/map-build/bin/build-usca.sh" || { echo
   echo "USCA_ROUTE_FILE=$T/route"
   echo 'FB_SRV=$STUB_FB_SRV'
   echo '[[ -z "${STUB_USCA_REGIONS:-}" ]] || USCA_REGIONS="$STUB_USCA_REGIONS"'
+  # A two-file elevation store (G8), pinned as the real one is; STUB_BEF_DIR points a run elsewhere.
+  echo "USCA_BEF_DIR=\${STUB_BEF_DIR:-$T/bef}"
+  echo "USCA_BEF_SUMS_SHA256=$(cd "$T/bef" && sha256sum < SHA256SUMS | cut -d' ' -f1)"
+  echo "USCA_BEF_FILES=2"
 } > "$T/tree/map-build/pins.env"
 source "$here/pins.env"   # for the jar names
 mkdir -p "$T/opt/jdk/bin" "$T/opt/basemap" "$T/opt/brouter/profiles2"
@@ -209,6 +215,7 @@ show() { echo "  $1: exit $rc, status $(status_field "$S/status-usca.json" state
 new_srv r1 local
 build --local 261017
 show "R1 --local"
+S_R1_LOG="$L"
 check "R1: the run reached BRouter's first step (it fails there on purpose)" '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]'
 check "C: Planetiler read the merged extract from the card's work directory for this run" \
   'grep -qx "merged=$CARD_DIR/work/$run_id/forager-usca.osm.pbf" "$T/planetiler.rec"'
@@ -364,6 +371,20 @@ for v in none two four; do
             '[[ -f "$T/cut.rec" && "$(status_field "$S/status-usca.json" stage)" == brouter ]]' ;;
   esac
 done
+
+# --- R9. The elevation store (G8): missing, or not the pinned one, stops the run before any download --
+new_srv r9-missing local
+STUB_BEF_DIR="$T/no-such-bef" build --local 261017
+show "R9 elevation store missing"
+check "R9: a missing elevation store fails the run at the state stage, naming it, before BRouter" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state && ! -f "$T/cut.rec" ]] && grep -q "FAILED: no elevation store at $T/no-such-bef" "$L"'
+mkdir -p "$T/bef-changed"; cp "$T/bef/"* "$T/bef-changed/"; echo tampered > "$T/bef-changed/srtm_17_04.bef"
+new_srv r9-changed local
+STUB_BEF_DIR="$T/bef-changed" build --local 261017
+show "R9 elevation store changed"
+check "R9: a .bef that no longer matches SHA256SUMS fails the run at the state stage" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]] && grep -q "FAILED: a .bef in $T/bef-changed does not match its SHA256SUMS" "$L"'
+check "R9: a good store is logged at the start of a run (R1)" 'grep -q "elevation store: $T/bef, 2 .bef files matching SHA256SUMS" "$S_R1_LOG"'
 
 if [[ $fails -gt 0 ]]; then echo "FAILED: $fails checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"

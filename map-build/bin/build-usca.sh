@@ -396,6 +396,25 @@ card_ready() { # is the card mounted, with its extracts directory writable? (B a
   if ! mkdir -p -- "$CARD_OSM" 2>/dev/null || [[ ! -w "$CARD_OSM" ]]; then echo "cannot write $CARD_OSM"; return 1; fi
 }
 
+bef_store_ok() { # dir sums-sha256 files [full]: is BRouter's elevation store there and the one pinned? (G8)
+  # Never build without heights silently: PosUnifier reads whatever .bef it finds and gives a
+  # node no height where there is none, so a missing or swapped store would still make squares.
+  # The store is pinned by its SHA256SUMS (that file's own sha256) and its file count; with
+  # "full", every file is hashed against it too (about 1.9 GB read from the card).
+  local dir=$1 want=$2 n=$3 sums="$1/SHA256SUMS" have
+  [[ -d "$dir" ]] || { echo "no elevation store at $dir"; return 1; }
+  [[ -s "$sums" ]] || { echo "the elevation store $dir has no SHA256SUMS"; return 1; }
+  have="$(sha256sum < "$sums" | cut -d' ' -f1)"
+  [[ "$have" == "$want" ]] || { echo "$sums is $have, not the pinned USCA_BEF_SUMS_SHA256 $want"; return 1; }
+  have="$(wc -l < "$sums")"
+  [[ "$have" -eq "$n" ]] || { echo "$sums lists $have files, not the pinned USCA_BEF_FILES $n"; return 1; }
+  have="$(find "$dir" -maxdepth 1 -name '*.bef' -size +0 | wc -l)"
+  [[ "$have" -eq "$n" ]] || { echo "$dir holds $have non-empty .bef files, not $n"; return 1; }
+  if [[ "${4:-}" == full ]]; then
+    (cd "$dir" && sha256sum -c --quiet SHA256SUMS >/dev/null 2>&1) || { echo "a .bef in $dir does not match its SHA256SUMS"; return 1; }
+  fi
+}
+
 fetch_extract() { # url name bytes: download onto the card, and link it from $SRC/osm under the same name (B)
   local link="$SRC/osm/$2"
   if [[ -e "$link" && ! -L "$link" ]]; then
@@ -614,6 +633,10 @@ for s in $USCA_REGIONS; do
 done
 log "inputs: $in_bytes bytes, $dl_bytes of them still to download"
 run_disk_check "$in_bytes" "$dl_bytes"
+# The elevation store (G8), in full before the downloads, so a missing or changed store stops
+# the run in a minute rather than after Planetiler's hours.
+bef="$(bef_store_ok "$USCA_BEF_DIR" "$USCA_BEF_SUMS_SHA256" "$USCA_BEF_FILES" full)" || die "$bef"
+log "elevation store: $USCA_BEF_DIR, $USCA_BEF_FILES .bef files matching SHA256SUMS ($USCA_BEF_SUMS_SHA256)"
 
 # --- 2. Extracts: download (resuming), check MD5, check the header timestamp -------------------
 set_stage fetch-extracts
@@ -800,6 +823,8 @@ names_ok="$(names_nodes_ok "$names_nodes" "$USCA_NAMES_MAX_INPUT_NODES")" || die
 rm -f -- "$routing_in"
 
 set_stage brouter
+# Again, quickly, before BRouter reads it (the card could have gone since the start).
+bef="$(bef_store_ok "$USCA_BEF_DIR" "$USCA_BEF_SUMS_SHA256" "$USCA_BEF_FILES")" || die "$bef"
 br="$run/brouter"
 profiles="$BROUTER_HOME/profiles2"
 bjava=("$JAVA" "-Xmx$USCA_BROUTER_XMX" -cp "$BROUTER_HOME/brouter-$BROUTER_VERSION-all.jar")
@@ -809,14 +834,15 @@ for k in "${!bands[@]}"; do
   band="${bands[$k]}"; band_in="${band_files[$k]}"
   IFS=: read -r bw be <<<"$band"
   rm -rf -- "$br"
-  mkdir -p "$br"/{nodetiles,waytiles,waytiles55,nodes55,unodes55,segments,no-elevation}
+  mkdir -p "$br"/{nodetiles,waytiles,waytiles55,nodes55,unodes55,segments}
   # The three steps of BRouter's process_pbf_planet.sh at v1.7.10, as in build-orwa.sh: no
-  # database pseudo-tags and no elevation data (RECORD -476).
+  # database pseudo-tags (RECORD -476). Heights come from the pinned 3" .bef store (G8, from
+  # 2026-11-01): PosUnifier's last argument, an empty folder until then.
   (cd "$br" && "${TIMED[@]}" "brouter-cut-$band" -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.OsmFastCutter \
     "$profiles/lookups.dat" nodetiles waytiles nodes55 waytiles55 bordernids.dat relations.dat restrictions.dat \
     "$profiles/all.brf" "$profiles/trekking.brf" "$profiles/softaccess.brf" "$band_in")
   (cd "$br" && "${TIMED[@]}" "brouter-unify-$band" -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.PosUnifier \
-    nodes55 unodes55 bordernids.dat bordernodes.dat no-elevation)
+    nodes55 unodes55 bordernids.dat bordernodes.dat "$USCA_BEF_DIR")
   (cd "$br" && "${TIMED[@]}" "brouter-link-$band" -- "${bjava[@]}" -DskipEncodingCheck=true btools.mapcreator.WayLinker \
     unodes55 waytiles55 bordernodes.dat restrictions.dat "$profiles/lookups.dat" "$profiles/all.brf" segments rd5)
   kept=0
