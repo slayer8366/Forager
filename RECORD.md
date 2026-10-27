@@ -28639,3 +28639,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message): on the owner's "Go" given in Aspen's own window (about 19:55 PDT 2026-10-26; the relayed go of -1700 was refused by Aspen's permission check as a production deploy); before the upload R2 held no reference-trails objects. Read back from R2: reference-trails.pmtiles 219,923,563 bytes, sha256 240423f6…5ad096, matches; reference-trails-manifest.json 2,814 bytes, sha256 6cb68e27…e70db9, matches. Through the Worker (first requests ever): z10 192/393 HTTP 200, 14,157 bytes, fs_trails 133 features; z15 6144/12597 HTTP 200, 677 bytes, the archive's own tile, trail_no "060".
 **Decision:** none new; the upload ran under -1700 as approved in Aspen's window. The app is unchanged until the switch PR.
 **Notes:** Written by the planner by hand. The squares-and-names upload still waits for the names. Next free ID -1702.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1702
+**Timestamp:** 2026-10-27T02:53:45Z
+**Continues:** 2026-09-28-1701, 2026-09-28-1678, 2026-09-28-1679
+**Title:** The switch to street-v3 starts with a report (owner)
+**Decision:** the owner: "Start, report first (Recommended)": dispatch 2026-10-26-21, Phase 1 read-only report on the tile budget, water trails, #418's and #416's should-fixes, night, the 8d card's dates and the device checks.
+**Notes:** Written by the planner by hand. Next free ID -1703.
