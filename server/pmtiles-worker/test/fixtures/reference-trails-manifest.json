@@ -1,0 +1,11 @@
+{
+  "_fixture": "A stand-in for R2's reference-trails-manifest.json in the Worker's tests (dispatch 2026-10-26-22). Invented values in the real file's shape; the Worker serves the object's bytes as they are and reads none of it.",
+  "run_id": "fixture-run",
+  "built_at": "2000-01-01T00:00:00Z",
+  "file": { "name": "reference-trails.pmtiles", "bytes": 368, "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "minzoom": 10, "maxzoom": 15 },
+  "sources": [
+    { "agency": "Forest Service", "licence": "CC BY 4.0", "fetched": "2000-01-01" },
+    { "agency": "BLM", "licence": "public domain", "fetched": "2000-01-01" }
+  ],
+  "coverage": { "forests": 2, "attributed": 1, "not_fully_attributed": ["Fixture National Forest"] }
+}
