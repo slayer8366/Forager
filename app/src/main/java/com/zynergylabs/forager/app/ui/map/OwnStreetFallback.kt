@@ -66,7 +66,6 @@ internal class OwnStreetFallback(private val log: (String) -> Unit = { Log.w(OWN
     fun onSignalReturned() {
         if (!fellBack) return
         fellBackState.value = false
-        log("Connection back: trying Forager Trail Map again.")
     }
 
     /**
