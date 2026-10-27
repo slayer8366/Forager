@@ -13,6 +13,14 @@ first pass was measured on `main` at `1772151` and then re-run here, because `pr
 in the measured areas (see "Premises that were wrong"). Nothing in `app/` was changed. All builds ran in a
 scratch project outside the repository, with the domain sources copied in unchanged.
 
+**Filing note, 2026-10-27:** by the time this was filed, `pre-main` was at `a9c37eb3`, 36 commits past
+`b2c4951e`. Those commits change 17 files in the measured areas, all under `domain/`: 4 new
+(`ClimbAllowance.kt`, `referencetrails/ReferenceTrailRecord.kt`, `wayhome/WayHomeHeights.kt`,
+`wayhome/WayHomeOffTrail.kt`) and 13 edited. They change no build or version file and add no `java`,
+`javax` or `android` import (counted from the diff). The compiler figures in Findings 1 and 2 were not
+re-run on `a9c37eb3`. Finding 1 shows that imports miss JVM APIs such as `Math` and `String.format`, so
+the 66-file and 100-file counts are true of `b2c4951e`, not necessarily of the filing commit.
+
 Paths are under `app/src/main/java/com/zynergylabs/forager/app/` unless stated. Each claim is marked
 **read** (file and line), **built** (compiler output, checked as described), **counted** (a script over
 the tree), **external** (a cited page or Maven metadata read on 2026-10-26), or **not verified**.
