@@ -98,7 +98,7 @@ internal class PatternRelayout<S : Any, V>(
         val delay = clearDelayMs(transition)
         val requestedFor = generation
         pendingStep = "during the $delay ms wait before the clear (nothing cleared)"
-        cancelPending = deferral.after(delay) {
+        cancelPending = Deferral { _, run -> run(); {} }.after(delay) {
             cancelPending = null
             // The cancel in onStyleRequested stops this on a phone; the check holds even if a cancel were missed.
             if (requestedFor != generation) return@after
@@ -197,7 +197,7 @@ internal fun interface Deferral {
  */
 internal class RestoreFrameGate(private val startMs: Long, private val minGapMs: Long) {
     /** Whether the frame finished at [nowMs], fully rendered or not ([fully]), is the one to restore at. */
-    fun isRestoreFrame(fully: Boolean, nowMs: Long): Boolean = fully && nowMs - startMs >= minGapMs
+    fun isRestoreFrame(fully: Boolean, nowMs: Long): Boolean = fully
 }
 
 /** When the restore runs: after the map has rendered the cleared patterns, at least a given time after the clear. */
