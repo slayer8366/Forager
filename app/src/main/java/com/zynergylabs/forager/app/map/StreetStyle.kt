@@ -36,7 +36,7 @@ internal const val STREET_STYLE_V2_URL = "https://forager-pmtiles.brandonlee1-89
 internal const val STREET_STYLE_V1_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v1.json"
 
 /** Every Trail Map style the app may load: the current one first, then the older, newest first. All take the Street night. */
-internal val STREET_STYLE_URLS: List<String> = listOf(STREET_STYLE_URL, STREET_STYLE_V2_URL, STREET_STYLE_V1_URL)
+internal val STREET_STYLE_URLS: List<String> = listOf(STREET_STYLE_URL, STREET_STYLE_V1_URL)
 
 /**
  * The always-visible credit over the own Street map: the same Protomaps tiles as the offline style, so the
