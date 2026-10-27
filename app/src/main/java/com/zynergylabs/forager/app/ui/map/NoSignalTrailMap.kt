@@ -116,7 +116,7 @@ internal fun noSignalState(
     scope: CoroutineScope,
     fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
 ): StateFlow<Boolean> =
-    noSignalWithHysteresis(signal.validated)
+    noSignalWithHysteresis(signal.validated.onEach { if (it) fallback.onSignalReturned() })
         .onEach { noSignal ->
             Log.i(
                 NO_SIGNAL_LOG_TAG,
