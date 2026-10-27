@@ -187,6 +187,21 @@ class GetMapRecordsUseCaseTest {
         }
     }
 
+    /**
+     * Dispatch 2026-10-27-05: when the finds cannot be read, which finds are saved and located is unknown, so a photo
+     * linked to any entry is left out; a standalone one still draws, and the finds failure is the one reported. The four
+     * rulings themselves are held through the real screen, in `FindPhotosOffMapTest`.
+     */
+    @Test
+    fun `when the finds cannot be read, a photo linked to an entry is left out and a standalone one still draws`() = runTest {
+        val error = IOException("finds unreadable")
+        val linked = photo("linked", 45.4, -122.4).copy(referencingEntryIds = listOf("find-1"))
+        val records = useCase(entries = Result.failure(error), photos = Result.success(listOf(linked, photo("standalone", 45.5, -122.5))))()
+
+        assertEquals(listOf("standalone"), records.photoMarkers.map { it.recordId })
+        assertEquals(listOf(MapRecordReadFailure(MapRecordKind.FINDS, error)), records.failures)
+    }
+
     private class FakeLogRepository(
         private val entries: Result<List<MushroomLogEntry>>,
         private val photos: Result<List<GalleryPhoto>>,

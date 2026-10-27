@@ -15,6 +15,7 @@ import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
 import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
@@ -267,7 +268,7 @@ class NetworkFixExclusionPerConsumerTest {
         val entry = CartographyEntry.draft(id = "e1", date = LocalDate.of(1970, 1, 1), updatedAtEpochMillis = 0L).copy(
             trackDecisions = listOf(TrackDecision(trackId = "t1", name = null, distanceMeters = 0.0, durationMillis = 0L, pointCount = 0, kept = true)),
         )
-        val mapData = GetCartographyEntryMapDataUseCase(trackRepository, logRepository, InMemoryKeptTrackPaths())(entry, emptyList())
+        val mapData = GetCartographyEntryMapDataUseCase(trackRepository, logRepository, InMemoryKeptTrackPaths(), ErrorLog { _, _, _ -> })(entry, emptyList())
         assertEquals(survivors.map { it.lat }, mapData.trackPolylines.single().points.map { it.lat })
 
         // A region whose footprint holds only the two excluded points: coverage must not count them.

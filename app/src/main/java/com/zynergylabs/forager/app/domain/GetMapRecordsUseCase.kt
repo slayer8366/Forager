@@ -56,6 +56,9 @@ data class MapRecords(
  * "saved" means: [GetMushroomLogEntriesUseCase] (drafts excluded), [GetTracksUseCase],
  * [GetGalleryPhotosUseCase] and [OfflineMapRepository.listRegions].
  *
+ * **A photo a saved, located find links to is left out** (dispatch 2026-10-27-05, RECORDs -1734 and -1735): the find's
+ * icon stands for it. See [FindLinkedPhotos] for the rule and the owner's four rulings.
+ *
  * The rules the entry map already applies ([GetCartographyEntryMapDataUseCase]) apply here too: a track
  * that resolves to zero points gives no polyline, and a photo with no coordinate gives nothing. A find
  * with no location gives nothing, as it does there.
@@ -91,10 +94,16 @@ class GetMapRecordsUseCase(
                 emptyList()
             }
 
-        val findMarkers = getFinds().orFailure(MapRecordKind.FINDS).mapNotNull { entry ->
+        val findsRead = getFinds()
+        val finds = findsRead.orFailure(MapRecordKind.FINDS)
+        val findMarkers = finds.mapNotNull { entry ->
             entry.foundAt?.let { RecordPoint(entry.id, it) }
         }
+        // Dispatch 2026-10-27-05: a photo a saved, located find links to has no icon of its own (FindLinkedPhotos).
+        // A failed finds read is already in failures, which the caller logs.
+        val hidingFindIds = if (findsRead.isSuccess) FindLinkedPhotos.hidingFindIds(finds) else null
         val photoMarkers = getPhotos().orFailure(MapRecordKind.PHOTOS).mapNotNull { gallery ->
+            if (FindLinkedPhotos.isHidden(gallery, hidingFindIds)) return@mapNotNull null
             val lat = gallery.photo.latitude ?: return@mapNotNull null
             val lng = gallery.photo.longitude ?: return@mapNotNull null
             RecordPoint(gallery.photo.id, LatLng(lat, lng))

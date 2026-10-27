@@ -59,7 +59,7 @@ class GetCartographyEntryMapDataUseCaseTest {
         ).build()
         trackRepository = RoomTrackRepository(database.trackDao())
         mushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
-        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()))
+        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()), ErrorLog { _, _, _ -> })
     }
 
     @After
@@ -211,7 +211,7 @@ class GetCartographyEntryMapDataUseCaseTest {
             ),
         )
 
-        val result = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, failing)(entry, galleryPhotos = emptyList())
+        val result = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, failing, ErrorLog { _, _, _ -> })(entry, galleryPhotos = emptyList())
 
         assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), result.trackPolylines)
     }
