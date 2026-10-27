@@ -267,7 +267,7 @@ private fun MapQuickSettingsMenu(
                 QuickCheckboxRow(
                     label = QUICK_OFF_TRACK_LABEL,
                     checked = settings.offTrackReminder.enabled,
-                    onCheckedChange = settings.offTrackReminder.onEnabledChanged,
+                    onCheckedChange = {},
                     tag = QUICK_OFF_TRACK_TAG,
                 )
                 HorizontalDivider()
@@ -323,7 +323,7 @@ private fun QuickSundownSection(sundown: SundownSettings) {
     QuickCheckboxRow(
         label = SUNDOWN_ALERTS_LABEL,
         checked = sundown.alertsEnabled,
-        onCheckedChange = sundown.onAlertsEnabledChanged,
+        onCheckedChange = {},
         tag = QUICK_SUNDOWN_ALERTS_TAG,
     )
     Text(DARK_UNDER_TREES_LABEL, style = MaterialTheme.typography.bodyMedium)
