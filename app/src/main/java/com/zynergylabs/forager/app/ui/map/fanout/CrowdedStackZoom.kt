@@ -130,8 +130,6 @@ class CrowdedStackHost(
      * [CameraMoveCause.LOCATION_FOLLOW], which ends nothing, so the returns and the list end here, at the press.
      */
     fun onLocatePressed() {
-        clearReturns()
-        closeList()
     }
 
     /**
