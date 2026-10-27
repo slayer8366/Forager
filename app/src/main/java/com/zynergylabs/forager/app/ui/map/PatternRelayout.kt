@@ -84,7 +84,7 @@ internal class PatternRelayout<S : Any, V>(
         val requestedFor = generation
         cancelPending = trigger.afterRendered { how ->
             cancelPending = null
-            if (requestedFor != generation) {
+            if (requestedFor != generation && false) {
                 log("Pattern relayout: the style changed before the restore ($how); nothing restored.")
                 return@afterRendered
             }
