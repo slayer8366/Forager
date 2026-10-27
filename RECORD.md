@@ -28907,3 +28907,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the step 6 PR 4 coder (Opus; dispatch 2026-10-27-01, verify-first, no code): WayHomeOffTrail leaves OFF only by 10 s back on the line or reset() (WayHomeOffTrail.kt:56-107), and the way home keeps the state across a re-route on purpose (WayHomeWatch.kt:73-75); the off state starts beyond 40 m plus the fix's accuracy held 15 s (OffTrackJudge.kt:8) and the stray re-route is at 50 m (WayHomeWatch.kt:281), so the dim can show only between about 40 and 50 m, and never at 10 m accuracy or worse; the way home has the same geometry. Aspen (message): the scratch folders removed on the owner's "Go" in Aspen's window about 07:25 PDT, after a second sha256 check of the copies; NVMe +1.21 GB (about 4.8 GB in hand against last week's start need), card +2.30 GB. G8's fixes at ea67332db go to Sorrel's quick look.
 **Decision:** the planner, under -1725's confirmed step 3: a stray re-route calls the existing reset(), so the new line shows at full strength with no "Back on trail". The owner: "Build it, judge on a walk (Recommended)": the way home's figures unchanged, provisional; the next woods walk shows whether the dim ever appears before the re-route, and the figures for both routes are decided then.
 **Notes:** Written by the planner by hand. Next free ID -1727.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1727
+**Timestamp:** 2026-10-27T16:26:41Z
+**Continues:** 2026-09-28-1724
+**Title:** G8 held: a blocker in the heights check (owner's conditional go lapses)
+**Observed:** Aspen (message): the owner, in Aspen's window, "Wait for Sorrel, then install (Recommended)"; a change asked by Sorrel is not covered. Sorrel's quick look (Fable; sorrel-pi32-elevation 25ecfe7cd) at ea67332db: B1 blocking, build-usca.sh:874 lists *.u5d with ls under pipefail, so a band with no unsuffixed tile (the normal band) ends the run with exit 2 and no message, reproduced by running the script's own lines; the tests' stub always writes W80_N25.u5d. S1's check itself is right and bites. N6 R11 is a negative grep only; N7 the name comparison makes the real SHA256SUMS load-bearing, to be run on the Pi before merging.
+**Decision:** none new; G8 is not merged or installed. Aspen fixes B1 with a normal-band test, N6 and N7; Sorrel takes another quick look; the install needs the owner's word again in Aspen's window.
+**Notes:** Written by the planner by hand. Next free ID -1728.
