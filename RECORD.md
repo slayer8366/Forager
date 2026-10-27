@@ -28831,3 +28831,25 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** PR #424 (step8d-card, 87d851dfa), CI green (40499721232, 5,806 tests); five revert checks each failing for its own edit. Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr424.md, branch sorrel-pr424, 205af450b): no blocking finding; S1 while the stored copy loads, the card shows the Sources line without dates or hint, a fourth state -1717 does not list; S2 the manifest fetch's 256 KB cap and error paths are untested; the text matches -1717 in all three ruled states; Back closes only the card.
 **Decision:** the owner: "Past the switch (Recommended)": the (i) stays a 48 dp target after the row's switch; "Fine as is (Recommended)": with the card open, swipe down or a tap outside closes the whole sheet, and Back closes only the card; "Fix both, then merge (Recommended)": dispatch 2026-10-26-24 Amendment 1 (S1, S2, N1), then a Sorrel quick look, then the merge.
 **Notes:** Written by the planner by hand. Next free ID -1720.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1720
+**Timestamp:** 2026-10-27T13:41:10Z
+**Continues:** 2026-09-28-1708, 2026-09-28-1716
+**Title:** G7 is done; G8 builds heights into the weekly squares from Sunday; the app side later (owner)
+**Observed:** Aspen (message; Forager-cartography baeeb05): all 4,403 cells (3,631 with heights, 772 sea); 5 transient failures, each retried OK; 182 .bef, 1,926,598,934 bytes; 3-second .hgt 10.47 GB; the 5 squares without .bef have no US or Canadian land; BRouter's own lookups read slightly low (Rainier 4,375 m against 4,392, Denali 6,134 against 6,190); backup on /mnt/storage/elevation/ (hgt3/ 3,631, bef3/ 182) verified by sha256 with the file cache dropped; 295 US 1-second files, 7.65 GB, kept; 1,146 US cells have none.
+**Decision:** the owner: "G8 from Sunday, app later": the weekly build from 2026-11-01 builds the .rd5 with the 3-second heights, area downloads growing about 10-14%; the app keeps ignoring them until its own report and go. Aspen prepares G8 on a pi-build branch for Sorrel's review and an install before Sunday, failing loudly if its heights source is missing.
+**Notes:** Written by the planner by hand. Next free ID -1721.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1721
+**Timestamp:** 2026-10-27T13:41:10Z
+**Continues:** 2026-09-28-1719
+**Title:** 8d's fixes are in #424
+**Observed:** coder (Opus; dispatch 2026-10-26-24 Amendment 1, 675f3eab9): S1 at 2cbbdc4de, loading shows no Sources line or hint (ReferenceLayerCard.kt:102), with a suspending-store test; S2 and N1 at fc97019f6; head run 40507450521 green, 5,812 tests; five revert checks each failing for its own edit (40504965629, 40504968971, 40504973759, 40504982469, 40507453916). The no-body path is untested: OkHttp 4.12 refuses a bodyless response.
+**Decision:** none new; Sorrel's quick look, then the merge under -1719.
+**Notes:** Written by the planner by hand. The amendment's first append was lost (52a5b8a2d carries only RECORD.md) and the planner launched the coder without checking; the coder stopped on S1 rather than choosing, and the amendment was committed at 675f3eab9. Next free ID -1722.
