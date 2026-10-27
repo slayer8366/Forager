@@ -1563,7 +1563,7 @@
       "source-layer": "fs_trails",
       "minzoom": 12,
       "filter": [
-        "!=",
+        "match",
         [
           "coalesce",
           [
@@ -1572,7 +1572,12 @@
           ],
           ""
         ],
-        "SNOW"
+        [
+          "SNOW",
+          "WATER"
+        ],
+        false,
+        true
       ],
       "layout": {
         "line-cap": "round",
@@ -3624,7 +3629,7 @@
       "filter": [
         "all",
         [
-          "!=",
+          "match",
           [
             "coalesce",
             [
@@ -3633,7 +3638,12 @@
             ],
             ""
           ],
-          "SNOW"
+          [
+            "SNOW",
+            "WATER"
+          ],
+          false,
+          true
         ],
         [
           "has",

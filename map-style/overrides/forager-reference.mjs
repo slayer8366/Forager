@@ -35,6 +35,11 @@ export const SOURCE_LAYERS = { forestService: "fs_trails", blm: "blm_trails" };
 /** The Forest Service field and value that mark a snow (nordic) trail, left out (-1633, the owner: "Hide them"). */
 export const FS_TRAIL_TYPE_FIELD = "trail_type";
 export const FS_SNOW_TRAIL_TYPE = "SNOW";
+/**
+ * The value that marks a water (paddle) trail, left out like snow (-1703, the owner: "Hide them (Recommended)"). On a
+ * lake no footpath runs beside it, so its band would stand alone and read as an official trail the map lacks.
+ */
+export const FS_WATER_TRAIL_TYPE = "WATER";
 
 /** The Forest Service trail number, the label along the band. BLM's numbering field is not settled, so no BLM label. */
 export const FS_TRAIL_NUMBER_FIELD = "trail_no";
@@ -67,7 +72,8 @@ export function referenceSource(worker) {
   };
 }
 
-const notSnow = ["!=", ["coalesce", ["get", FS_TRAIL_TYPE_FIELD], ""], FS_SNOW_TRAIL_TYPE];
+/** Neither snow nor water: the Forest Service trails the band draws. A missing type is kept. */
+const notSnowOrWater = ["match", ["coalesce", ["get", FS_TRAIL_TYPE_FIELD], ""], [FS_SNOW_TRAIL_TYPE, FS_WATER_TRAIL_TYPE], false, true];
 
 const band = (id, sourceLayer, filter) => ({
   id,
@@ -84,15 +90,15 @@ const band = (id, sourceLayer, filter) => ({
   },
 });
 
-/** The two bands, bottom to top. Snow trails are Forest Service only; BLM's layer has no snow type. */
+/** The two bands, bottom to top. Snow and water trails are Forest Service types; BLM's layer has neither. */
 export function bandLayers() {
   return [
-    band("reference_fs_band", SOURCE_LAYERS.forestService, notSnow),
+    band("reference_fs_band", SOURCE_LAYERS.forestService, notSnowOrWater),
     band("reference_blm_band", SOURCE_LAYERS.blm, null),
   ];
 }
 
-/** The Forest Service trail number along its band, from zoom 14, snow trails left out like their band. */
+/** The Forest Service trail number along its band, from zoom 14, snow and water trails left out like their band. */
 export function labelLayers() {
   return [
     {
@@ -101,7 +107,7 @@ export function labelLayers() {
       source: REFERENCE_SOURCE_ID,
       "source-layer": SOURCE_LAYERS.forestService,
       minzoom: BAND.labelMinzoom,
-      filter: ["all", notSnow, ["has", FS_TRAIL_NUMBER_FIELD]],
+      filter: ["all", notSnowOrWater, ["has", FS_TRAIL_NUMBER_FIELD]],
       layout: {
         "symbol-placement": "line",
         "text-field": ["get", FS_TRAIL_NUMBER_FIELD],
