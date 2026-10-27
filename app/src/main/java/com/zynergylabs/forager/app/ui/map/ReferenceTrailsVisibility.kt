@@ -75,7 +75,7 @@ internal fun applyReferenceTrailsOnStyleLoad(
     if (!complete) {
         Log.w(REFERENCE_TRAILS_LOG_TAG, "The style has ${present.map { it.id }} but not ${(specs - present.toSet()).map { it.id }}; the band is hidden and not offered.")
     }
-    val drawn = complete && drawnOnThisMap
+    val drawn = drawnOnThisMap
     present.forEach { spec -> layers.setVisible(spec.id, drawn && layerPaintFor(spec, chosen, registry).visible) }
     Log.i(REFERENCE_TRAILS_LOG_TAG, "Style loaded with the band's layers: drawn=$drawn (complete=$complete, drawnOnThisMap=$drawnOnThisMap).")
     return drawn
