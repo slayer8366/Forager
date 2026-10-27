@@ -29046,3 +29046,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the fallback report (Opus; docs/audits/2026-10-27-offline-fallback-stuck-report.md, branch offline-fallback-stuck-report, 2bb9f6954): the fallback flag is never cleared (OwnStreetFallback.kt:48, :85) by a planner verify-first ruling at :21-22, not an owner ruling (-1513's words set no retry time); it fires offline because fallsBack checks only useOfflineTiles (:74-79) and the signal monitor never reaches it; both fallback lines are logged.
 **Decision:** the owner: "Yes, retry after 30 s (Recommended)": when the no-signal state ends (the existing 30 s held connection), the fallback is cleared and Trail Map reloads by itself; if it still cannot load, it falls back quietly again and logs it. Any fallback, not only ones taken offline. Dispatch 2026-10-27-09 Amendment 1. This replaces the planner's "next cold start" ruling.
 **Notes:** Written by the planner by hand. Next free ID -1740.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1740
+**Timestamp:** 2026-10-27T18:59:12Z
+**Continues:** 2026-09-28-1737
+**Title:** #426 merged into pre-main: buildings solid with an outline from zoom 14
+**Observed:** Sorrel's quick look (Fable; sorrel-pr426 569a94d8d) at f5d2433b0: mergeable; below zoom 14 the paint equals v2's (#cccccc at 0.5, taken from the live layer); z14 #c1c1c1 opaque, z15+ #cccccc with the outline; fail-first 40560267668 and the opacity revert 40560272191 each fail only their own test; green 40560260243, 5,828 tests; the PR body's Night Maps path was wrong (no Settings tab) and the map shows no zoom figure. The planner corrected the body's steps 5 and 6 before the merge. Since the last deploy (a4264e26a), server/pmtiles-worker/ differs only in street-style-v3.json (the buildings change), worker.test.mjs and README.md.
+**Decision:** merged at f5d2433b0 under -1737; pre-main f42fd5ef8. The manual Worker deploy waits for the owner's final look at its contents.
+**Notes:** Written by the planner by hand. Next free ID -1741.
