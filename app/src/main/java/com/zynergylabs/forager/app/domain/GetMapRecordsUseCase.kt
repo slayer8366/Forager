@@ -103,6 +103,7 @@ class GetMapRecordsUseCase(
         // A failed finds read is already in failures, which the caller logs.
         val hidingFindIds = if (findsRead.isSuccess) FindLinkedPhotos.hidingFindIds(finds) else null
         val photoMarkers = getPhotos().orFailure(MapRecordKind.PHOTOS).mapNotNull { gallery ->
+            if (FindLinkedPhotos.isHidden(gallery, hidingFindIds)) return@mapNotNull null
             val lat = gallery.photo.latitude ?: return@mapNotNull null
             val lng = gallery.photo.longitude ?: return@mapNotNull null
             RecordPoint(gallery.photo.id, LatLng(lat, lng))

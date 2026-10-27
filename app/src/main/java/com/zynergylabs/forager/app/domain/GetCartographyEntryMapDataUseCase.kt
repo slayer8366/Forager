@@ -108,6 +108,7 @@ class GetCartographyEntryMapDataUseCase(
         val hidingFindIds = hidingFindIds(entry.photos.mapNotNull { photosById[it.photoId] })
         val photoMarkers = entry.photos.mapNotNull { attachment ->
             val gallery = photosById[attachment.photoId] ?: return@mapNotNull null
+            if (FindLinkedPhotos.isHidden(gallery, hidingFindIds)) return@mapNotNull null
             val photo = gallery.photo
             val lat = photo.latitude ?: return@mapNotNull null
             val lng = photo.longitude ?: return@mapNotNull null
