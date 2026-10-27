@@ -28755,3 +28755,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-26-sorrel-pr423.md, branch sorrel-pr423, 6ac92e18f): no blocking finding; all six budget readers use the estimate; every stored area holds zooms 10/15, so the fixed zooms match; S1 map-style's check:street, check-street-night.mjs and check-street-trails.mjs still read v2; S2 the PR body lacked run numbers (added by the planner before the merge); nits N1-N6, among them N3: an area downloaded before 2026-09-06 now counts about 3.7 times its old stored figure. JournalPendingDeleteTest's fail-first is the forward run 40450409239 (N6).
 **Decision:** the owner: "Merge now (Recommended)"; merged at e5b5acee0, pre-main 7457bcc11. S1 and N1 join the tidy list. Next: the S22 check, with Sorrel's corrections (a v2 area downloaded with a pre-switch build first; step 12) and the first route-area download from the 261024 squares.
 **Notes:** Written by the planner by hand. Next free ID -1713.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1713
+**Timestamp:** 2026-10-27T10:16:06Z
+**Continues:** 2026-09-28-1710, 2026-09-28-1711
+**Title:** The 256 GB drive to USB 3 for US 1-second heights from now; the Lexar back for the backup; pi-31 cleared to merge (owner)
+**Observed:** Aspen (message, read only): the drive is the old storage drive (/dev/sda1, ext4 forager-storage, the fstab /mnt/storage UUID), 207.4 GB free, unmounted, on USB 2; the Lexar is unplugged. 1-second heights are about 26 MB per cell; US 1-second for the 1,077 US cells G7 had not reached at 23:31 PDT is about 28 GB with no extra download (from the 3DEP COGs G7 fetches), by swapping cell.sh for cells not yet started; Canada 1-second about +9 h (inferred). Sorrel's quick look at 0d2ebc955 (sorrel-pi31-names 11b38b2e8): S5, N8, N9 fixed, each revert failing with its own message; mergeable; nits N10-N12.
+**Decision:** the owner: "Move it; Lexar back for backup": the owner moves the 256 GB drive to USB 3 and plugs the Lexar back in; the heights backup goes on the Lexar (-1710), and the 256 GB drive holds 1-second copies only. "US only, from now (Recommended)": US 1-second keep-copies for the cells not yet started, once the drive is moved and mounted; no Canada 1-second; re-pulling cells already done still needs the owner's word. pi-31 merges into pi-build under -1711.
+**Notes:** Written by the planner by hand. Next free ID -1714.
