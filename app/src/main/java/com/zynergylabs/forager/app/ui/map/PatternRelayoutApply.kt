@@ -116,7 +116,32 @@ internal fun rememberPatternRelayout(mapView: MapView): PatternRelayout<Style, P
         val failed = MapView.OnSpriteErrorListener { _, url -> relayout.onSpriteFailed(url) }
         mapView.addOnSpriteLoadedListener(loaded)
         mapView.addOnSpriteErrorListener(failed)
+        // SCRATCH (never merged): files/pattern-clear-after holds ms to defer the clear; files/pattern-relayout-now
+        // runs one relayout on the loaded style; tile parses logged (onTileAction(op, x, y, z, wrap, oz, source)).
+        val files = mapView.context.filesDir
+        relayout.scratchDefer = { run ->
+            val ms = try { java.io.File(files, "pattern-clear-after").readText().trim().toLong() } catch (e: Exception) { 0L }
+            Log.i(PATTERN_RELAYOUT_LOG_TAG, "SCRATCH clear deferred $ms ms")
+            mapView.postDelayed({ run() }, ms)
+        }
+        val poll = object : Runnable {
+            override fun run() {
+                val f = java.io.File(files, "pattern-relayout-now")
+                if (f.exists()) {
+                    f.delete()
+                    mapView.getMapAsync { m -> m.style?.let { relayout.scratchRunNow(it) } }
+                }
+                mapView.postDelayed(this, 500)
+            }
+        }
+        mapView.postDelayed(poll, 500)
+        val tiles = MapView.OnTileActionListener { op, x, y, z, _, oz, src ->
+            if (op.name.contains("Parse")) Log.i(PATTERN_RELAYOUT_LOG_TAG, "SCRATCH tile $op $src $x/$y/$z oz=$oz")
+        }
+        mapView.addOnTileActionListener(tiles)
         onDispose {
+            mapView.removeCallbacks(poll)
+            mapView.removeOnTileActionListener(tiles)
             mapView.removeOnSpriteLoadedListener(loaded)
             mapView.removeOnSpriteErrorListener(failed)
         }

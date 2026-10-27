@@ -63,10 +63,29 @@ internal class PatternRelayout<S : Any, V>(
         log("Pattern relayout: the sprite failed to load ($url); no relayout for this style.")
     }
 
+    /** SCRATCH (never merged): defers the clear. */
+    var scratchDefer: ((() -> Unit) -> Unit)? = null
+
+    /** SCRATCH (never merged): a relayout now on [style], as the probe did. */
+    fun scratchRunNow(style: S) {
+        log("SCRATCH manual relayout")
+        relayoutOn(style)
+    }
+
     private fun runIfReady() {
         val style = loadedStyle ?: return
         if (!spriteLoaded || relaidOut) return
         relaidOut = true
+        val defer = scratchDefer
+        if (defer != null) {
+            val g = generation
+            defer { if (g == generation) relayoutOn(style) else log("SCRATCH deferred clear dropped") }
+        } else {
+            relayoutOn(style)
+        }
+    }
+
+    private fun relayoutOn(style: S) {
         val target = targetFor(style)
         val layers = try {
             target.patternLayers()
