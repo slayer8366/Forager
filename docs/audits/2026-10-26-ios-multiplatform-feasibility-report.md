@@ -4,8 +4,9 @@
 development that bridges the two together into a unifying code?"
 
 **Owner ruling, 2026-10-26, verbatim:** "Option B, file the report on pre-main". Option B is Kotlin
-Multiplatform with Compose Multiplatform (below). Decisions 2 to 4 under "Options for the owner" are
-still open.
+Multiplatform with Compose Multiplatform (below). Confirmed on 2026-10-27, after the owner asked what
+Option C offers, verbatim: "Option B stands". Decisions 2 to 4 under "Options for the owner" are still
+open.
 
 **Base:** `pre-main` at `b2c4951e` (merge of PR #416). Every figure below was measured on that commit. A
 first pass was measured on `main` at `1772151` and then re-run here, because `pre-main` had moved 29 files
