@@ -28799,3 +28799,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message): the 256 GB drive moved to USB 3 at 03:32:39 PDT; /mnt/storage mounted as /dev/sda1 at 03:38; cell-1in.sh swapped in at 03:39:05 with 3,540 of 4,403 cells done, so 296 US cells get a 1-second copy and 1,145 do not; the first 1-second files landed at 03:43:28. Both drives are Lexar; forecast-data/ on the 256 GB drive is an empty folder.
 **Decision:** the owner, in Aspen's window about 03:45 PDT: "The 64GB isn't returning, this is your maps storage now". This replaces -1713's "Lexar back for backup" and the 256 GB drive holding 1-second copies only: the heights backup (3-second .hgt and .bef, about 17 GB) goes to /mnt/storage/elevation/ after G7, verified by sha256.
 **Notes:** Written by the planner by hand; Aspen records it in Forager-cartography. Next free ID -1717.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1717
+**Timestamp:** 2026-10-27T11:16:29Z
+**Continues:** 2026-09-28-1677, 2026-09-28-1712
+**Title:** 8d, the official-trails card, as a shorter card (owner)
+**Decision:** the owner: "Start 8d"; for the card the planner drafted (from the step 8 report §5, docs/audits/2026-10-25-05-reference-layer-report.md:124), "Shorter card": no limits line and no "Where it's thin" list; then "Keep the middle line (Recommended)". The step path: Maps > Layers > an (i) beside "Official trails" > a card at 80%: "Official trails" / "Forest Service and BLM trail records, drawn as a faint violet band under the trail map's lines." / "Where the agency and the trail map agree, the trail sits inside the band. A band with no trail is an official trail the trail map lacks." / "Routes follow the trail map, not this band." / "Sources: Forest Service data from <date> · CC BY 4.0. BLM data from <date> · public domain." > Back closes the card, back on the Layers sheet. The dates come from /reference-trails-manifest.json; the app keeps the last copy seen, so the card works offline; before any copy, the dates line reads "Dates show once you've been online."
+**Notes:** Written by the planner by hand. Dispatch 2026-10-26-24 waits for the real manifest's text from Aspen. Next free ID -1718.
