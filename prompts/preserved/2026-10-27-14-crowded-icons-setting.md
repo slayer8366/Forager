@@ -63,3 +63,16 @@ PR #430 merged. Sorrel's quick look is on branch sorrel-pr430, 8467c581a, "Quick
 - **Q2.** Starting navigation clears the returns where the view request arrives, before the early returns (MapNavigationView.kt:38). Step path: tap crowded > zoom > Navigate (the camera doesn't move) > Back > navigation's own Back, with no restore over the navigation view.
 
 Each gets a test that fails first and a revert check. Sorrel's N7-N9 are record only.
+
+## Amendment 3 (2026-10-27): placement and navigation, from the verify-first (RECORD -1758)
+The owner:
+- **"New \"Map\" section (Recommended)":** Settings reads Units > Night Mode (with Night Maps, unchanged) > **Map** ("Crowded icons", with radio rows "Zoom in, then fan" and "List") > Backup > Sources & credits.
+- **"Yes, list while navigating (Recommended)":** in List mode a crowded tap opens the list while navigating too. Whether the list clears the navigation HUD is a device item: put it in the S22 steps.
+
+The coder's proposed seam is accepted:
+- CrowdedStackHost.mode, set by the tab;
+- a public CrowdedStackZoom.listNow;
+- one early branch in MapTapHandler.openStackAround;
+- a CrowdedIconsPreferenceRepository implemented by DataStoreMapPreferencesRepository under `map.crowded_icons`, with an unknown value read as "Zoom in, then fan" and logged.
+
+Amendment 1's test moves onto the ⋮ rows are accepted. For Q2, clear at the effect's top, guarded by navigationView != null, covering all three early returns. MapQuickSettings.kt:320 is the only comment there pointing at Tools; the line numbers in Amendment 1 were stale.

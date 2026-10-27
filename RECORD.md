@@ -29242,3 +29242,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #430 Amendment 1 at db05798c7: S1 built by marking the user's asks (Locate, the search frame, the region and locate-me pan, the navigation view, north-up) as APP_USER_ASKED, treated as a pan, so the plain restore stays harmless; S2 the host in MapCameraMemory with the live camera attached and detached by the map; S3 the list takes the bubble's minY (the landscape test bites only in a 340 dp window, inferred); full run 40595529874 green, 5,870 tests; reverts RA1-RN1 each failing for their own edit. Sorrel's quick look (sorrel-pr430 8467c581a): mergeable; Q1 Locate before a GPS fix leaves the returns for the follower's later move; Q2 navigation starting with no camera move leaves them, so Back could restore over the navigation view.
 **Decision:** the owner: "Merge now; fix both next PR (Recommended)"; merged at db05798c7; pre-main updated. Q1 and Q2 as press rules: dispatch 2026-10-27-14 Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -1758.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1758
+**Timestamp:** 2026-10-27T23:16:49Z
+**Continues:** 2026-09-28-1750, 2026-09-28-1751, 2026-09-28-1757, 2026-09-28-1755
+**Title:** "Crowded icons" gets a new Map section in Settings, and the list opens while navigating (owner); #429 is cleared to merge once the S22 recheck passes
+**Observed:** the setting coder's verify-first (Opus; no code): Settings has Units, Night Mode with Night Maps under it, Backup and Sources & credits, and no map section; the seam is one early branch in MapTapHandler.openStackAround to a new CrowdedStackZoom.listNow, with the mode on CrowdedStackHost; the Sundown section's references are listed, and the existing Sundown and Off-track persistence tests move onto the ⋮ rows. Sorrel's quick look at #429 5d56ee9d9 (sorrel-pr429 76be2f4c7): S1-S3 closed, each failing first and with a revert failing for its own edit; the floor is the right choice; the upstream draft is fit to file; merge once the S22 recheck passes.
+**Decision:** the owner: "New \"Map\" section (Recommended)"; "Yes, list while navigating (Recommended)". Dispatch 2026-10-27-14 Amendment 3.
+**Notes:** Written by the planner by hand. #429's revert branches were cut from 70a2619aa, not 90850dbda as the PR body says (Sorrel's Q1). Next free ID -1759.
