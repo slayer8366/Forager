@@ -70,6 +70,8 @@ class AvailabilityScreenCrowdedStackLandscapeTest {
             assertTrue("positive control: $tag is on the screen", composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
             tag to bounds(tag)
         }
+        val win = composeRule.onAllNodes(androidx.compose.ui.test.isRoot()).fetchSemanticsNodes().first().boundsInRoot
+        println("DIAG density=${composeRule.density.density} window=$win list=$list " + top.joinToString { "${it.first}=${it.second}" } + " cluster=${bounds(MAP_ICON_CLUSTER_TAG)} map=${bounds(CROWDED_STUB_MAP_TAG)}")
         for ((tag, chrome) in top) {
             assertFalse("the list $list is clear of $tag $chrome", list.overlaps(chrome))
         }
