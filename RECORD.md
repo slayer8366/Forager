@@ -28992,3 +28992,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the owner's S26 screenshots (kept off GitHub): camera icons for photos attached to finds draw at the photos' own positions, apart from their finds; at country zoom a fan of many icons runs far past the screen edges.
 **Decision:** the owner: "some of the photo glyphs on the map are misplaced and are apart from their find location. Can we remove the photos attached to Finds from the map so it can reduce clutter?"; the step path, "Option 1 but the photo icon disappears when the photos switch is off. I had it on for those screen shots.": a find with photos draws only its own icon, and standalone photos follow the Photos switch as today; "Start now (Recommended)": dispatch 2026-10-27-05. The owner: "with so many icons on the map, it goes off the edge. Can we find a way to reduce the chaos when there are more icons than the spiral can fit?"; "Report first": dispatch 2026-10-27-06.
 **Notes:** Written by the planner by hand. Next free ID -1735.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1735
+**Timestamp:** 2026-10-27T17:48:59Z
+**Continues:** 2026-09-28-1734, 2026-09-28-1733
+**Title:** Find photos: the edge cases ruled (owner); buildings PR #426 ready; the spiral report in
+**Observed:** the find photos coder (Opus; verify-first, no code): the find link is in Room (GalleryPhoto.referencingEntryIds); the Maps tab and the entry map draw photos; the fan groups only what is drawn. #426 (buildings-outline a06f6a1c4): CI 40551870555 green, 5,828 tests; revert check 40551856919 failing for its own edit; Carto LICENSE.txt read: CC0 1.0. The spiral report (Opus; docs/audits/2026-10-27-spiral-overflow-report.md, branch spiral-overflow-report, 6226d7deb): a stack is decided at the tap (26 dp each way, MarkerFanOut.kt:71-78) with no cap; a fan bigger than the screen is centred and its allOnScreen=false flag is read by nothing (FanPlacement.kt:99-100), an unlogged fallback; about 30-39 icons fit; journal entries are rings, not members; B (a list) and C (clustering) were turned down by the owner on 2026-09-29 for the fan.
+**Decision:** the owner: "No icon anywhere (Recommended)", "Show its photos (Recommended)", "Hide only after Save (Recommended)", "Fine, they reappear (Recommended)": a photo leaves every map while a saved, located find links to it. Dispatch 2026-10-27-05 Amendment 1.
+**Notes:** Written by the planner by hand. Next free ID -1736.

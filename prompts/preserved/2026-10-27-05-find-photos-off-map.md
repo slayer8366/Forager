@@ -36,3 +36,12 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 - the four disclosure sections;
 - the PR number and CI runs;
 - S22 steps as tap > shows > Back.
+
+## Amendment 1 (2026-10-27): the edge cases (RECORD -1735)
+The coder's verify-first: a photo belongs to a find by a Room link (GalleryPhoto.referencingEntryIds, RoomMushroomLogRepository.kt:74-89). Two maps draw photos: the Maps tab (GetMapRecordsUseCase.kt:97-101) and the entry map (GetCartographyEntryMapDataUseCase.kt:102-107). The fan works from what is drawn, so it needs no change. The owner's rulings:
+- **"No icon anywhere (Recommended)":** a photo attached to a find and also to a journal entry has no icon of its own, on the Maps tab or on the entry's map.
+- **"Show its photos (Recommended)":** while a find has no location, its located photos show as standalone photos, following the Photos switch.
+- **"Hide only after Save (Recommended)":** only saved finds hide their photos; a draft's photos keep their icons until Save.
+- **"Fine, they reappear (Recommended)":** after a find is deleted and its Undo window ends, its photos are standalone again.
+
+So the rule is: a photo is hidden from every map when at least one saved find that has a location links to it. Filter it in GetMapRecordsUseCase and in GetCartographyEntryMapDataUseCase, with no schema change. Add a test for each ruling, each with a revert check, then build as the dispatch says.
