@@ -101,7 +101,11 @@ class FindPhotosOffMapTest {
             MapLayersTestScreen(viewModel = availability, mapSlot = map.slot, store = AbsentForecastCellStore, cartographyUiState = cartography)
         }
         composeRule.waitForIdle()
-        reload()
+        // The screen asks for the records itself as the Maps tab comes into view (AvailabilityScreen's onMapShown). A
+        // second ask here put two reads in flight, and the older one could land last over a later reload's: revert check
+        // r4 (run 40567562398) failed the deleted-find test on a snapshot whose finds and photos were read either side of
+        // the delete, a failure that revert could not cause.
+        awaitLoaded()
     }
 
     /**
@@ -110,8 +114,12 @@ class FindPhotosOffMapTest {
      * the path), hence 30 s. A wait that
      * runs out says what the map, the ViewModel and the database held, so a stall is not read as a wrong answer.
      */
-    private fun reload(loaded: (MapOverlayContent) -> Boolean = { it.findMarkers.isNotEmpty() || it.photoMarkers.isNotEmpty() }) {
+    private fun reload(loaded: (MapOverlayContent) -> Boolean) {
         availability.onMapShown()
+        awaitLoaded(loaded)
+    }
+
+    private fun awaitLoaded(loaded: (MapOverlayContent) -> Boolean = { it.findMarkers.isNotEmpty() || it.photoMarkers.isNotEmpty() }) {
         // The read resumes on the main looper, which is this test's thread under Robolectric. Run 40560135774's thread dump
         // showed no thread blocked and the read never landing under composeRule.waitUntil alone, so the looper is idled
         // here by hand between checks, as MushroomLogViewModelWiringTest's wait does.
