@@ -18,6 +18,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.crowdedListRowTag
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.TAP_BOX_DP
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -163,9 +164,18 @@ class AvailabilityScreenCrowdedListModeTest {
 
         val list = composeRule.onNodeWithTag(CROWDED_LIST_TAG).fetchSemanticsNode().boundsInRoot
         val mapBounds = composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).fetchSemanticsNode().boundsInRoot
-        val above = Offset(list.center.x, list.top - 120f * density)
+        // Empty map: the stack's column, 60 dp from the map's top. Not "120 dp above the list", which on this stub lands
+        // 18 dp right of and 17 dp above the stack, inside its 48 dp tap box: a tap on the stack, which List mode answers
+        // with the list (diagnostic run 40603921496, branch crowded-icons-diag-171).
+        val inMap = Offset(SPOT_X * density, 60f * density)
+        val above = inMap + mapBounds.topLeft
         assertFalse("positive control: the point is outside the list", list.contains(above))
-        composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).performTouchInput { click(above - mapBounds.topLeft) }
+        val s = checkNotNull(map.scene)
+        assertTrue(
+            "positive control: no marker within the tap box there",
+            s.hitsInBox(inMap.x, inMap.y, TAP_BOX_DP / 2f * density, listOf(MapLayerIds.FINDS)).isEmpty(),
+        )
+        composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).performTouchInput { click(inMap) }
         settle()
 
         composeRule.onNodeWithTag(CROWDED_LIST_TAG).assertDoesNotExist()
