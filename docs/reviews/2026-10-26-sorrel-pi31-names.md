@@ -304,3 +304,127 @@ the switch happened; the switch is the early-density test above. Harmless to the
 **Decided beyond scope:** I ran seven reverts beyond the dispatch's one, chose their edits myself, and
 ranked S3 as a should-fix decision rather than a defect. I did not run anything on the Pi, did not read
 R2, and did not install osmium here.
+
+## Re-check at `932c0a0ee`
+
+Sorrel (Fable 5.1), 2026-10-27T05:16Z (2026-10-26, 22:16 PDT). Read in the worktree
+`~/.cache/forager-wt/sorrel-pi31-recheck` at `932c0a0ee`, one commit past `6cdfaef15`; only
+`git diff 6cdfaef15 932c0a0ee` reviewed (five files, +41 −7, all under `map-build/`). Nothing changed
+in the branch, nothing merged, nothing run on the Pi. Network: GitHub only.
+
+**Verdict: mergeable into `pi-build`.** S1, S2, N2 and N3 are fixed as reported; S3 is left for the
+owner, as the commit says; N4 is disclosed and the new commit's trailer carries no model name. One new
+should-fix on test coverage (S5), two nits (N8, N9), none blocking.
+
+### 1. Is the limit where it runs before BRouter, and does it die?
+
+Yes to both. `bin/build-usca.sh:787` is `set_stage names-input`; the cut runs at `:789`, the count is
+read at `:790`, the check is `:793-794`, and `set_stage brouter` is `:797`. The check is `|| die`, and
+`die` (`:117`) logs `FAILED:` and `exit 1`, which runs `on_exit` (status `failed` naming the stage,
+previous output and `current` untouched, as section 2 above describes). So an input over the limit
+stops the run at the cut, before BRouter's hours, and the `die` message names the count, the limit and
+where to look (`pins.env`). The one-off script has the same two lines at `bin/build-names.sh:82-83`,
+after its merge and before `names_encode`. `pins.env:255` carries `USCA_NAMES_MAX_INPUT_NODES=260000000`;
+both scripts `source "$here/pins.env"` (`build-usca.sh:71`, `build-names.sh:23`) under `set -euo
+pipefail`, so a missing pin would itself fail loudly as an unbound variable.
+
+### 2. Is 260 M the right side of the doubling, and does the peak fit the Pi?
+
+**The right side.** The vector's capacity is 2^28 = 268,435,456 entries from the 134,217,729th node on;
+the 268,435,457th node doubles it to 2^29 (8.59 GB). 260,000,000 is 3.14 % under the cliff and the
+check is `-le`, so exactly 260 M passes and 260,000,001 dies. Arithmetic re-done here, not quoted.
+
+**The Pi.** Raspberry Pi 5, 8 GB (`docs/plans/2026-10-03-own-tiles-survey.md:64`; `pins.env:180`;
+`docs/plans/2026-10-04-pi-origin-part1-report.md:39`: `free -h` 7.9 GiB total, 6.7 GiB available idle,
+swap 199 MiB). The names stage runs after Planetiler and BRouter have both finished (`:835`), so nothing
+else from the build is live beside it.
+
+**The 5.6 GB figure is a bound at today's input, not the peak at the limit.** Two readings of the pin
+comment (`pins.env:245-249`), both inferred from the growth rule and Aspen's numbers, not measured:
+(a) osmium's 4.2 GB is the doubling moment at node 134 M (old 2.15 GB and the copied 2.15 GB both
+live), which comes while the nodes are still being read, before any way reaches the encoder; the
+encoder's 1.2 GB peaks at the end of the ways. So "4.2 + 1.2 + workers" adds two maxima that do not
+coincide, which is the safe direction. (b) At the limit the picture changes: 260 M × 16 bytes is 4.16 GB
+of touched index, about the doubling peak, and it *is* live while the encoder reaches its own peak, which
+grows with the input (it holds every square's output: ~0.6 GB of `.fnm` at 199.6 M, so roughly 1.5 GB of
+RSS at 260 M if it scales). Pipeline peak at the limit: about 4.3 + 1.5 + 0.14 ≈ 6 GB against 7.9 GiB,
+with 199 MiB of swap — fits, with about 1.5-2 GB for the OS and page cache. Not a concern for the
+current 199.6 M input (34 % under the limit, headroom ~2.4 GB); worth one clause in the pin comment so
+nobody reads 5.6 GB as the figure at 260 M (N9). If the input ever sits near the limit, the
+`sparse_file_array` switch the comment names is the right move, and the comment already says not to
+raise the limit.
+
+### 3. Do the new tests bite?
+
+**Run here** (laptop, no osmium): `test_fnam_build.py` 21 OK; `test_build_usca_functions.sh` 61 OK;
+`test_build_usca_disk.sh` 95 OK; `test_build_functions.sh` 14 OK; `bash -n` on both scripts clean; the
+`sed` extraction `build-names.sh:67` relies on still yields `names_cut` and `names_encode`, with the
+new `echo` inside `names_cut` (confirmed by `declare -f`). `test_build_names.sh` exits "osmium is
+needed", so its 23 checks and Aspen's revert are **not reproduced here**; what follows is a reading of
+the test text.
+
+**The node-limit check (`test_build_names.sh:176-182`) is sound for what it tests.** It edits the
+*copied* `pins.env` (`$T/tree/map-build/pins.env`, the one `$NAMES` sources), sets the limit to 3,
+restores from a copy it saved first (not from git — the rule in CLAUDE.md), and asserts a non-zero exit,
+no `names1/` written, and the message with the count and `(3)`. The fixture's named cut has far more
+than 3 nodes (`w1` alone has three, `:70-75`), so the limit bites. Aspen's revert — the `build-names.sh`
+check removed, the test failing with its own message — is the right revert for *this* check and I have
+no reason to doubt it; I could not run it.
+
+**S5 (should-fix, not blocking). The weekly path's copy of the check has no test.** The check S1 asked
+for is the one at `build-usca.sh:793-794`, in the script's main body; `test_build_names.sh` can only
+reach `build-names.sh`'s separate copy (`:82-83`), and `test_build_usca_functions.sh` extracts named
+functions only (`:20`). The two copies are the same text today, read side by side; a later edit to one
+(a renamed variable, a changed message) would not be caught, and Aspen's revert says nothing about the
+weekly copy. *Suggested:* hoist the two lines into a function in `build-usca.sh` (say
+`names_input_ok() { # count }`), call it from both scripts, and add it to the `sed` pattern at
+`build-names.sh:67` and `test_build_names.sh:144` — then the one copy is the tested one. Small.
+
+**N8. N2 is untested.** `keep_failed_run`'s test (`test_build_usca_functions.sh:59-67`) writes no
+`names-summary.json` into `$run`, so the new entry in the list at `build-usca.sh:145` is exercised by
+nothing; the suite's 61 checks are the same 61 as at `6cdfaef15`. One `: > "$run/names-summary.json"`
+and one `-f` check would cover it.
+
+**N9. The `-le` test passes an empty or non-numeric count.** Probed here: `[[ "" -le 5 ]]` and
+`[[ "abc" -le 5 ]]` are both true (bash evaluates the string as a variable name, giving 0). Under
+`set -e` a failing `osmium fileinfo` at `:790` exits the script before the check, so the case needs
+`fileinfo` to exit 0 with no number, which I have not seen it do; a guard such as `[[ "$names_nodes" =~
+^[0-9]+$ ]] || die ...` closes it for one line. Together with the pin-comment clause from section 2.
+
+**The highway-cut check (`:154-155`)** greps for the string only the new `echo` prints, in both the
+one-off log and the stage's output; it is true by construction once the echo exists, which is what it
+claims. The `echo` goes to stdout, which `build-usca.sh:111` tees into the log without `log`'s prefix —
+the same shape as `basemap_matches`'s messages (`:259`), and the stage subshell in the test defines no
+`log`, so `echo` is the right call there.
+
+### 4. Anything else in the diff?
+
+No. The five files: the README sentence for N3 (`README.md:191-192`, one long line); the kept-files
+list (`build-usca.sh:145`); the `echo` in `names_cut` (`:232-234`); the `names-input` block
+(`:790-794`), whose log line also gains the input's byte size; the matching block in `build-names.sh`
+(`:80-83`); `pins.env`'s disk note (`:224-228`), the corrected flex_mem reason (`:245-249`, now the
+early-density switch, as section 3 above has it), and the new pin with its comment (`:250-255`); and the
+two test checks. No ratio, filter, stage order, or `.rd5` path changes. The commit message ends
+`Co-Authored-By: Claude <noreply@anthropic.com>` with no model name.
+
+### Disclosure
+
+**Confirmed (read or run):** every file:line above, in the worktree at `932c0a0ee`; the stage order
+and `die`'s path; both scripts' syntax and the `sed` extraction; the four suites that ran here; the
+`-le` probe; the cliff arithmetic; the Pi's memory from the three documents cited; the commit trailer.
+
+**Inferred:** that osmium's 4.2 GB peak and the encoder's 1.2 GB do not coincide at 199.6 M, and that
+they roughly do at 260 M (from the vector's growth rule, the PBF's node-then-way order and where the
+encoder's output accumulates — not measured); the encoder's RSS scaling with the input; the ~6 GB peak
+at the limit.
+
+**Could not determine:** whether `test_build_names.sh`'s 23 checks pass and whether Aspen's revert
+produced the message claimed (no osmium here); the encoder's RSS on an input near the limit; whether
+Debian's libosmium 1.15 grows the sparse array exactly as master does (section 3 above, same caveat).
+
+**Premises that were wrong:** none in Rowan's brief. In Aspen's report, "the measured pipeline peak is
+about 5.6 GB" is a sum of two maxima measured separately, not one measurement of the pipeline; the
+direction is safe, and the comment says "about", so a wording point (N9), not an error.
+
+**Decided beyond scope:** I ranked S5 as should-fix rather than a nit, because the untested copy is the
+one S1 was about; and I did not install osmium here to run the shell suite.
