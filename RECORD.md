@@ -28940,3 +28940,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr425.md, branch sorrel-pr425, bf327ad9f) on d087465f1: no blocking or should-fix finding; the way home unchanged (toWaypoint set only at AvailabilityWaypointRoute.kt:203; WayHomeWatch not in the diff); the one reset() (:236) clears an OFF state only on a stray re-route, every other search runs while no line is shown; only the solid trail layers dim; ten revert branches single edits, five read from XML and logs; CI 40540542677 green, 5,826 tests. Nits N1-N4 (a comment's claim about alert APIs, two reverts editing the shared rule, a line count, a test that cannot fail). The HUD shows no accuracy figure.
 **Decision:** the owner: "Merge now (Recommended)"; merged at d087465f1, pre-main 6064fef86; nits to the tidy list; the S22 steps with Sorrel's corrections (stand 47-48 m off). "No, read the log (Recommended)": after the walk a helper compares the recorded fix accuracy with when the dim showed; nothing new on screen.
 **Notes:** Written by the planner by hand. Next free ID -1730.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1730
+**Timestamp:** 2026-10-27T17:14:36Z
+**Title:** Buildings solid with an outline; the night glyph gap diagnosed from code first (owner)
+**Observed:** the owner on the S22 (relayed by Aspen; Forager-cartography 51d6358, docs/handoffs/2026-10-27-buildings-outline-and-night-glyphs.md): "The buildings and houses are soft against the background, and the forest also overlaps them. Can we have a border around the buildings and houses to separate them from the rest of the map?" and "Also, in night mode, the tree glyphs disappear when all the way zoomed in, but reappear when full zoom is broken." Aspen's reading of street-v3: buildings #cccccc at fill-opacity 0.5 with no outline; landuse_forest_glyphs minzoom 12, no maxzoom.
+**Decision:** the owner: "Build it (Recommended)": buildings opaque, #c2c2c2 at z14 and #cccccc from z15, a new buildings_outline #a6a6a6 at 0.75 from z15, night by the V1 rule with no exception, after the OpenStreetMap Carto style's structure (dispatch 2026-10-27-02). "Diagnose from code first (Recommended)": a report on the night pattern path, with the S22 reproduction for the next session (dispatch 2026-10-27-03).
+**Notes:** Written by the planner by hand. A v3 change reaches phones only with a Worker deploy. Next free ID -1731.
