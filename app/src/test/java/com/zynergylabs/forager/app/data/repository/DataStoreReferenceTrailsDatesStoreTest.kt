@@ -41,7 +41,7 @@ class DataStoreReferenceTrailsDatesStoreTest {
     }
 
     @Test
-    fun `a copy round-trips to a file on disk; a later copy with a date missing drops that date but stays a copy`() = runTest {
+    fun `a copy round-trips to a file on disk, and a later copy with a date missing drops that date but stays a copy`() = runTest {
         val store = DataStoreReferenceTrailsDatesStore(context())
         val both = ReferenceTrailsSourceDates(LocalDate.of(2026, 10, 24), LocalDate.of(2026, 10, 25))
         assertTrue(store.write(both).isSuccess)
