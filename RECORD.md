@@ -28896,3 +28896,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Step 6 PR 4: the quiet off-trail state on a waypoint route (owner)
 **Decision:** the owner: "Start step 6 PR 4"; the step paths, "Yes, as sketched (Recommended)": on means any part of the waypoint line, dashed legs included; off for about 15 s dims the trail line to 60% quietly; more than 50 m off re-routes from the walker, clearing it; back on for about 10 s shows "Back on trail" for about 5 s; a straight-line route never reads off trail; Back and the X unchanged. The words: "\"Off trail · Head back to the line\" (Recommended)", short form "Off trail". Dispatch 2026-10-27-01.
 **Notes:** Written by the planner by hand. Timings as step 7 PR 3's, provisional under -1631. Next free ID -1726.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1726
+**Timestamp:** 2026-10-27T16:17:16Z
+**Continues:** 2026-09-28-1725, 2026-09-28-1722, 2026-09-28-1724
+**Title:** Step 6 PR 4: a re-route clears the off state; the 40-50 m band is judged on a walk (owner); scratch moved
+**Observed:** the step 6 PR 4 coder (Opus; dispatch 2026-10-27-01, verify-first, no code): WayHomeOffTrail leaves OFF only by 10 s back on the line or reset() (WayHomeOffTrail.kt:56-107), and the way home keeps the state across a re-route on purpose (WayHomeWatch.kt:73-75); the off state starts beyond 40 m plus the fix's accuracy held 15 s (OffTrackJudge.kt:8) and the stray re-route is at 50 m (WayHomeWatch.kt:281), so the dim can show only between about 40 and 50 m, and never at 10 m accuracy or worse; the way home has the same geometry. Aspen (message): the scratch folders removed on the owner's "Go" in Aspen's window about 07:25 PDT, after a second sha256 check of the copies; NVMe +1.21 GB (about 4.8 GB in hand against last week's start need), card +2.30 GB. G8's fixes at ea67332db go to Sorrel's quick look.
+**Decision:** the planner, under -1725's confirmed step 3: a stray re-route calls the existing reset(), so the new line shows at full strength with no "Back on trail". The owner: "Build it, judge on a walk (Recommended)": the way home's figures unchanged, provisional; the next woods walk shows whether the dim ever appears before the re-route, and the figures for both routes are decided then.
+**Notes:** Written by the planner by hand. Next free ID -1727.
