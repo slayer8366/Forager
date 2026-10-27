@@ -202,7 +202,10 @@ internal class AvailabilitySettingsPrefs(
      */
     private fun loadCrowdedIconsMode() {
         scope().launch {
-            crowdedIconsRepository.getCrowdedIconsMode(unknown = { v -> errorLog.w(TAG, "Crowded icons: stored value \"$v\" names no mode; using ${CrowdedIconsMode.DEFAULT}.") }).fold(
+            val unknown: (String) -> Unit = { v ->
+                errorLog.w(TAG, "Crowded icons: stored value \"$v\" names no mode; using ${CrowdedIconsMode.DEFAULT}.", IllegalStateException("unknown crowded-icons value \"$v\""))
+            }
+            crowdedIconsRepository.getCrowdedIconsMode(unknown).fold(
                 onSuccess = { mode -> if (mode != null) updateState { it.copy(crowdedIconsMode = mode) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the crowded-icons preference; using ${CrowdedIconsMode.DEFAULT}.", error) },
             )
