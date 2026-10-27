@@ -252,6 +252,13 @@ names_encode() { # named-input names-dir rd5-dir osm-timestamp summary-file: one
   touch -d "$4" -- "$2/"*.fnm
 }
 
+names_nodes_ok() { # count limit: is the names input's node count a whole number no larger than the limit?
+  # Prints the reason when it isn't; the caller dies with it (Sorrel's review S1, S5, N9). Checked
+  # right after the cut, before BRouter's hours, not by an OOM kill in the export after them.
+  [[ "$1" =~ ^[0-9]+$ ]] || { echo "names input node count is not a whole number: '$1'"; return 1; }
+  (( $1 <= $2 )) || { echo "names input has $1 nodes, over USCA_NAMES_MAX_INPUT_NODES ($2); see pins.env for the file-backed index"; return 1; }
+}
+
 basemap_matches() { # file timestamp sequence: does the archive's metadata name this snapshot?
   # Planetiler records the merged extract's header in the archive's metadata, and the merge stamps
   # that header with the extracts' timestamp and the first region's sequence (section 4), so these
@@ -789,9 +796,7 @@ names_in="$run/$USCA_EXTRACT_NAME-names.osm.pbf"
 names_cut "$routing_in" "$names_in" || die "could not cut the names input from $routing_in"
 names_nodes="$(osmium fileinfo -e -g data.count.nodes "$names_in")"
 log "names input: $names_nodes nodes, $(osmium fileinfo -e -g data.count.ways "$names_in") ways, $(stat -c %s "$names_in") bytes"
-# Checked here, before BRouter's hours, not by an OOM kill in the export after them (pins.env).
-[[ "$names_nodes" -le "$USCA_NAMES_MAX_INPUT_NODES" ]] \
-  || die "names input has $names_nodes nodes, over USCA_NAMES_MAX_INPUT_NODES ($USCA_NAMES_MAX_INPUT_NODES); see pins.env for the file-backed index"
+names_ok="$(names_nodes_ok "$names_nodes" "$USCA_NAMES_MAX_INPUT_NODES")" || die "$names_ok"
 rm -f -- "$routing_in"
 
 set_stage brouter

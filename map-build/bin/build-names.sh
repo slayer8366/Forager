@@ -64,8 +64,8 @@ log "build-names.sh: $osm_ts; $(ls "$squares"/*.rd5 | wc -l) .rd5 squares in $sq
 log "disk before: $(free_line)"
 
 # names_cut and names_encode, as build-usca.sh has them (test_build_names.sh compares the two).
-eval "$(sed -n '/^names_cut() {/,/^}/p; /^names_encode() {/,/^}/p' "$here/bin/build-usca.sh")"
-declare -F names_cut names_encode >/dev/null || die "cannot read names_cut and names_encode from build-usca.sh"
+eval "$(sed -n '/^names_cut() {/,/^}/p; /^names_encode() {/,/^}/p; /^names_nodes_ok() {/,/^}/p' "$here/bin/build-usca.sh")"
+declare -F names_cut names_encode names_nodes_ok >/dev/null || die "cannot read names_cut, names_encode and names_nodes_ok from build-usca.sh"
 
 parts=()
 for i in "${inputs[@]}"; do
@@ -79,8 +79,7 @@ named="$tmp/names.osm.pbf"
 rm -f -- "${parts[@]}"
 named_nodes="$(osmium fileinfo -e -g data.count.nodes "$named")"
 log "names input: $named_nodes nodes, $(osmium fileinfo -e -g data.count.ways "$named") ways, $(stat -c %s "$named") bytes"
-[[ "$named_nodes" -le "$USCA_NAMES_MAX_INPUT_NODES" ]] \
-  || die "names input has $named_nodes nodes, over USCA_NAMES_MAX_INPUT_NODES ($USCA_NAMES_MAX_INPUT_NODES); see pins.env for the file-backed index"
+names_ok="$(names_nodes_ok "$named_nodes" "$USCA_NAMES_MAX_INPUT_NODES")" || die "$names_ok"
 log "disk with the names input: $(free_line)"
 
 names_encode "$named" "$out/names1" "$squares" "$osm_ts" "$out/names-summary.json" || die "the names encode failed"

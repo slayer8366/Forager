@@ -17,8 +17,8 @@ ln -s 20261017T202051Z "$OUT/current"
 echo "log line" > "$log_file"
 log() { echo "LOG $*"; }
 
-eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^default_route_iface() {/,/^}/p; /^download_floor() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p' "$script")"
-declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge >/dev/null \
+eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^default_route_iface() {/,/^}/p; /^download_floor() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p; /^names_nodes_ok() {/,/^}/p' "$script")"
+declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge names_nodes_ok >/dev/null \
   || { echo "FAIL: functions not loaded"; exit 1; }
 
 pass=0
@@ -58,13 +58,31 @@ unset -f curl
 # --- keep_failed_run ------------------------------------------------------------------------------
 echo "archive" > "$run/out/forager-usca.pmtiles"
 printf 'seattle\t15/5249/11442\n' > "$run/coverage.txt"
+: > "$run/names-summary.json"
 keep_failed_run 1
 K="$FB_SRV/failed-usca/latest"
 check "kept in failed-usca, outside out-usca" '[[ "$K" != "$OUT"* && -d "$K" ]]'
 check "the run's outputs, coverage and log are kept" '[[ "$(cat "$K/out/forager-usca.pmtiles")" == archive && -f "$K/coverage.txt" && -f "$K/usca-r2.log" ]]'
+check "the names summary is kept (Sorrel's review N2, N8)" '[[ -f "$K/names-summary.json" ]]'
 check "FAILED.txt names the run, stage and exit" 'grep -q "run usca-r2 failed at stage validate with exit 1" "$K/FAILED.txt"'
 check "current is untouched" '[[ "$(readlink "$OUT/current")" == 20261017T202051Z ]]'
 check "build-orwa.sh's kept failure is not touched" '[[ ! -e "$FB_SRV/failed/latest" ]]'
+
+# --- names_nodes_ok: the names input's node limit (Sorrel's review S1, S5, N9) -------------------
+check "a count at the limit passes" 'names_nodes_ok 260000000 260000000 >/dev/null'
+check "a count over the limit fails, naming the count and the limit" \
+  '! names_nodes_ok 260000001 260000000 >/dev/null && [[ "$(names_nodes_ok 260000001 260000000)" == *"260000001 nodes, over USCA_NAMES_MAX_INPUT_NODES (260000000)"* ]]'
+# In a subshell, so a count that reaches bash arithmetic can't abort this test (set -u).
+not_whole() { local out rc=0; out="$( (names_nodes_ok "$1" 260000000) 2>/dev/null)" || rc=$?; [[ $rc -ne 0 && "$out" == *"not a whole number"* ]]; }
+check "an empty count fails as not a whole number" 'not_whole ""'
+check "a non-numeric or negative count fails as not a whole number" 'not_whole "12 nodes" && not_whole -5'
+# The weekly path's call, between the names cut and BRouter (S5): the same function, so the checks
+# above are its checks.
+weekly_names_check() {
+  sed -n '/^set_stage names-input/,/^set_stage brouter/p' "$script" \
+    | grep -qF 'names_ok="$(names_nodes_ok "$names_nodes" "$USCA_NAMES_MAX_INPUT_NODES")" || die "$names_ok"'
+}
+check "the weekly path checks the names input with it, before BRouter" 'weekly_names_check'
 
 # --- basemap_matches: a reused basemap must name the extracts' snapshot ---------------------------
 # The metadata keys are the ones the 2026-10-19 archive carries (planetiler 0.10.2).

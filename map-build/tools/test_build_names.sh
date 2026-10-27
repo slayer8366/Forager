@@ -141,7 +141,7 @@ check "a square with nothing in it still has a file" '[[ "$(names_of "$T/out/nam
   # shellcheck source=/dev/null
   source "$T/tree/map-build/pins.env"
   here="$T/tree/map-build"; TIMED=(python3 "$here/tools/peak_rss.py"); export FB_METRICS="$T/stage-metrics.jsonl"
-  eval "$(sed -n '/^names_cut() {/,/^}/p; /^names_encode() {/,/^}/p' "$here/bin/build-usca.sh")"
+  eval "$(sed -n '/^names_cut() {/,/^}/p; /^names_encode() {/,/^}/p; /^names_nodes_ok() {/,/^}/p' "$here/bin/build-usca.sh")"
   read -r -a rf <<<"$USCA_ROUTING_FILTER"
   mkdir -p "$T/stage"
   for s in us canada; do osmium tags-filter "$T/src/$s-261017.osm.pbf" "${rf[@]}" -o "$T/stage/routing-$s.osm.pbf"; done
