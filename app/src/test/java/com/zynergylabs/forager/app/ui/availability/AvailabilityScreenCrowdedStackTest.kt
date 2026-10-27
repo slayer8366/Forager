@@ -245,6 +245,11 @@ class AvailabilityScreenCrowdedStackTest {
         assertFalse("no fan past the edge", fan.isOpen)
         composeRule.onNodeWithTag(CROWDED_LIST_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("30 records at this spot").assertIsDisplayed()
+        // The icon cluster is composed over the list: the list keeps clear of its column, or the cluster takes the touches
+        // on the rows' end under it (CI run 40580543726: touches at 90% across rows 0 and 1 reached the cluster).
+        val listBounds = composeRule.onNodeWithTag(CROWDED_LIST_TAG).fetchSemanticsNode().boundsInRoot
+        val clusterBounds = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).fetchSemanticsNode().boundsInRoot
+        assertFalse("the list $listBounds is clear of the icon cluster $clusterBounds", listBounds.overlaps(clusterBounds))
 
         // The first three rows by name: a real touch at five places across each opens that record's bubble, and Back
         // brings the list back. Every touch is tried and each one that opens no bubble is named, so a failure says which

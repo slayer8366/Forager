@@ -534,6 +534,7 @@ internal fun CompactMapTab(
                     renderMode = renderMode,
                     onFeatureTap = onFeatureTap,
                     controlsPadding = controlsPadding,
+                    cluster = cluster,
                     backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                 )
                 // The icon cluster (RECORD -741: CompactMapIconCluster, moved out unchanged; its comments are there).
