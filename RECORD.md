@@ -28692,3 +28692,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** deploy helper (Opus; dispatch 2026-10-26-23): one wrangler deploy of a4264e26a at 2026-10-27T04:13:26Z, version 5bc6bc3a-d5c4-4e2c-9527-1e8f4561ffc6 at 100%; rollback target a5c79d5c-b6e4-4d83-9d88-e652755329f6. Eleven existing routes identical before and after (status, type, cache-control, sha256), the routing check keyless (403, secret and limiters bound; route data itself not exercised). /style/street-v3.json 200, deep-equal to src/street-style-v3.json (served compact, sha256 3b02838b…77fc; the dispatch's file hash could not match); /reference-trails-manifest.json 200, max-age=86400, sha256 6cb68e27…e70db9 as -1701. No rollback.
 **Decision:** none new; the deploy ran under -1705. Next: the switch PR (dispatch 2026-10-26-21 Phase 2), brought to the owner first.
 **Notes:** Written by the planner by hand. Built with Node 24.21.0 locally; CI pins 24.22.1. Next free ID -1707.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1707
+**Timestamp:** 2026-10-27T04:15:23Z
+**Continues:** 2026-09-28-1703, 2026-09-28-1706
+**Title:** The switch PR is built (owner)
+**Decision:** the owner: "Start now (Recommended)": dispatch 2026-10-26-21 Phase 2 (Amendments 1-2): the app's Street map and new downloads to street-v3, areas counted by their estimate, the Data sources rows, tests to v3, #418's S2-S4; then Sorrel, the owner's merge, the S22 check.
+**Notes:** Written by the planner by hand. Next free ID -1708.
