@@ -92,7 +92,7 @@ internal fun ReferenceTrailsInfoButton(onClick: () -> Unit, modifier: Modifier =
  */
 @Composable
 internal fun ReferenceLayerCard(title: String, onClose: () -> Unit) {
-    BackHandler(onBack = onClose)
+    // revert 1: no BackHandler
     val sources = LocalReferenceTrailsSources.current
     LaunchedEffect(sources) { sources?.refresh() }
     val copy = sources?.copy?.collectAsState()?.value ?: ReferenceTrailsCopy.None
