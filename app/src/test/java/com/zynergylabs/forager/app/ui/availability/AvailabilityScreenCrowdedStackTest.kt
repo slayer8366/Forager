@@ -187,7 +187,7 @@ class AvailabilityScreenCrowdedStackTest {
     }
 
     @Test
-    fun `a crowded stack zooms in and fans by itself; Back folds the fan, then returns the camera, then is the Maps tab's own`() {
+    fun `a crowded stack zooms in and fans by itself, and Back folds the fan, then returns the camera, then is the Maps tab's own`() {
         show()
         val s = checkNotNull(scene)
         val spot = s.centre
@@ -215,7 +215,7 @@ class AvailabilityScreenCrowdedStackTest {
     }
 
     @Test
-    fun `one spot at the closest zoom lists the stack; every part of a row opens its bubble; Back retraces the list, then the camera`() {
+    fun `one spot at the closest zoom lists the stack, every part of a row opens its bubble, and Back retraces the list, then the camera`() {
         show()
         val s = checkNotNull(scene)
         val spot = s.centre
