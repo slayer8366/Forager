@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
 import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
 import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
 import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
+import com.zynergylabs.forager.app.ui.availability.onCrowdedIconsModeChanged
 import com.zynergylabs.forager.app.ui.availability.onOffTrackReminderChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapLatChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapLngChanged
@@ -508,6 +509,7 @@ class MainActivity : ComponentActivity() {
                     settings = AvailabilityScreenSettings(
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                         onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                        onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
                         onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                         onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
                         onDarknessMarginChanged = viewModel::onDarknessMarginChanged,

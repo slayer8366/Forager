@@ -29,6 +29,10 @@ internal fun MapNavigationView(
     // tracking API, not a camera move: an API camera move ends MapLibre's tracking. What MapLibre
     // then draws is device-only: a real MapView cannot run under Robolectric.
     LaunchedEffect(state.mapLibreMap, state.loadedStyle, navigationView != null, navigationView?.following, navigationView?.facing, navigationView?.restoreRequestId, navigationView?.zoomOnStart, state.navigationMapHeightPx) {
+        // Navigating is the user's ask whether or not the camera moves (dispatch 2026-10-27-14 Amendment 2, Q2; RECORD -1757,
+        // -1758): a crowded stack's camera returns end here, before every early return below, so Back never restores the
+        // pre-zoom camera over the navigation view. While navigating no return can be pushed, so a re-run clears nothing new.
+        if (navigationView != null) state.tapHandlerRef.crowdedHost?.clearReturns()
         val map = state.mapLibreMap ?: return@LaunchedEffect
         // Dispatch 2026-10-25-02 (RECORD -1634): not on a style being replaced (skipped, logged); the new style's load runs
         // this again (loadedStyle is a key).

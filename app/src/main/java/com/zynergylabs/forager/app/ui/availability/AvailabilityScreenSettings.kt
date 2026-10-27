@@ -25,6 +25,8 @@ data class AvailabilityScreenSettings(
     val onOffTrackReminderChanged: (Boolean) -> Unit = {},
     /** The quick menu's "Battery saver" (dispatch 2026-09-28-767) — see [AvailabilityUiState.batterySaverEnabled]. */
     val onBatterySaverChanged: (Boolean) -> Unit = {},
+    /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14) — see [AvailabilityUiState.crowdedIconsMode]. */
+    val onCrowdedIconsModeChanged: (com.zynergylabs.forager.app.domain.CrowdedIconsMode) -> Unit = {},
     /**
      * RECORD -660/-661: a settings file was found corrupt and reset, and the one-time message is owed.
      * Shown as a snackbar that stays until dismissed, with a "Settings" action that opens Settings;

@@ -167,6 +167,7 @@ class AvailabilityViewModel(
     private val basemapPreferenceRepository: BasemapPreferenceRepository = NoStoredBasemap,
     /** RECORD -711: where the Maps tab's icon cluster's side and height persist across restarts. */
     private val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = NoStoredMapIconClusterPlacement,
+    private val crowdedIconsRepository: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
     /** The maps' "no signal" state (NoSignalTrailMap.kt), read when Offline maps opens; defaulted to "no signal", so nothing fetches. */
     internal val noSignal: () -> Boolean = { true },
     /**
@@ -233,6 +234,7 @@ class AvailabilityViewModel(
         getBatterySaverEnabled = getBatterySaverEnabled,
         setBatterySaverEnabled = setBatterySaverEnabled,
         errorLog = errorLog,
+        crowdedIconsRepository = crowdedIconsRepository,
     )
 
     /**

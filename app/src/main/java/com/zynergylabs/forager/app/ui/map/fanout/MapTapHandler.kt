@@ -223,6 +223,8 @@ class MapTapHandler(
         val stack = stackOf(self, nearby, density)
         if (stack.size < 2) return false
 
+        // Settings > Map > "Crowded icons" = List (dispatch 2026-10-27-14): every stack opens the list, fits or not.
+        if (crowded?.listNow(stack, self.key) == true) return true
         val plan = fanPlan(stack, order)
         if (plan.fits) {
             fan.open(plan.members)

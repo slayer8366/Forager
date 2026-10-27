@@ -81,6 +81,12 @@ internal fun MapLocationDot(
         // The user pressed locate: the move that follows is theirs, so it is marked before the mode changes and closes an open fan as before.
         // Marked as the user's ask, so a crowded stack's way back ends here too (dispatch 2026-10-27-07 Amendment 1, S1).
         state.cameraMoveClassifier.markUserAskedMove()
+        // The press itself is the user's pan, whether or not the camera moves (dispatch 2026-10-27-14 Amendment 2, Q1; RECORD
+        // -1757): with no fix yet nothing moves, and the follow that comes later is LOCATION_FOLLOW, which clears nothing.
+        state.tapHandlerRef.crowdedHost?.let { host ->
+            host.clearReturns()
+            host.closeList()
+        }
         if (map.locationComponent.isLocationComponentActivated) {
             // Dispatch 2026-10-19-37: a give left on screen by a spring cut short is cleared before following resumes (plain map only).
             state.plainNudge.beforeLocate()

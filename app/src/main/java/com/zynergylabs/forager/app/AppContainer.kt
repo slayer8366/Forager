@@ -316,6 +316,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val mapLayerPreferencesRepository: MapLayerPreferencesRepository = dataStoreMapPreferencesRepository
     val basemapPreferenceRepository: BasemapPreferenceRepository = dataStoreMapPreferencesRepository
     val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = dataStoreMapPreferencesRepository
+    val crowdedIconsRepository: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = dataStoreMapPreferencesRepository
 
     /**
      * Step 8d (dispatch 2026-10-26-24): the official-trails card's source dates, from the Worker's manifest, with the

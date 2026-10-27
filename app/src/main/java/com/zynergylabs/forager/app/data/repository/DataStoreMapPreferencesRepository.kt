@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
+import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
@@ -46,7 +48,7 @@ class DataStoreMapPreferencesRepository(
     /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
     settingsReset: SettingsResetListener = SettingsResetListener.None,
 ) : MapPreferencesRepository, MapLayerPreferencesRepository, BasemapPreferenceRepository,
-    MapIconClusterPlacementRepository {
+    MapIconClusterPlacementRepository, CrowdedIconsPreferenceRepository {
 
     private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
 
@@ -150,6 +152,19 @@ class DataStoreMapPreferencesRepository(
         dataStore.edit { prefs -> prefs[KEY_BASEMAP] = key }
     }
 
+    /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14), under `map.crowded_icons`; a value naming no mode is reported and read as `null`. */
+    override suspend fun getCrowdedIconsMode(unknown: (String) -> Unit): Result<CrowdedIconsMode?> = runCatchingCancellable {
+        val stored = dataStore.data.first()[KEY_CROWDED_ICONS] ?: return@runCatchingCancellable null
+        CrowdedIconsMode.fromStored(stored) ?: run {
+            unknown(stored)
+            null
+        }
+    }
+
+    override suspend fun setCrowdedIconsMode(mode: CrowdedIconsMode): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_CROWDED_ICONS] = mode.stored }
+    }
+
     /**
      * RECORD -711: the icon cluster's side and height, four keys under `map.icon_cluster` in this same file
      * and [dataStore]. `null` when none of the four is stored; a key missing beside others (which no write
@@ -192,6 +207,7 @@ class DataStoreMapPreferencesRepository(
         val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
         val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
         val KEY_BASEMAP = stringPreferencesKey("map.basemap")
+        val KEY_CROWDED_ICONS = stringPreferencesKey("map.crowded_icons")
         val KEY_CLUSTER_PORTRAIT_LEFT = booleanPreferencesKey("map.icon_cluster.portrait_left")
         val KEY_CLUSTER_PORTRAIT_OFFSET_DP = floatPreferencesKey("map.icon_cluster.portrait_offset_dp")
         val KEY_CLUSTER_LANDSCAPE_PORT_SIDE = booleanPreferencesKey("map.icon_cluster.landscape_port_side")

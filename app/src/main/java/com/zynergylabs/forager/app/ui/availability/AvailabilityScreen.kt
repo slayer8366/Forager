@@ -706,6 +706,7 @@ fun AvailabilityScreen(
         onDeletePlannedTrip = onDeletePlannedTrip,
         isNightMode = isNightMode,
         onNightModeMapsChanged = onNightModeMapsChanged,
+        crowdedIcons = CrowdedIconsControls(uiState.crowdedIconsMode, settings.onCrowdedIconsModeChanged),
         onThemeModeChanged = onThemeModeChanged,
         backup = backup,
         openBackupRequest = openBackupRequest,
