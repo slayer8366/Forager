@@ -191,8 +191,8 @@ internal fun AvailabilityScreenFrameCall(
             isNavigating = isNavigating,
             isArrivalHeld = isArrivalHeld,
             isOffTrack = isOffTrack,
-            // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
-            // the Tools drawer's own values and callbacks (the same two classes its Sundown section is given below).
+            // Dispatch 2026-09-28-645: the map's quick settings, which since dispatch 2026-10-27-14 Amendment 1 (RECORD -1751)
+            // are the only place the sundown and off-track rows are drawn.
             quickSettings = mapQuickSettingsFor(uiState, recording, settings, currentTime),
             compassProvider = compassProvider,
             computeTrueHeading = computeTrueHeading,

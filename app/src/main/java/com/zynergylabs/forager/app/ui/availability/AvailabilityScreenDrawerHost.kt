@@ -59,9 +59,6 @@ internal fun AvailabilityScreenDrawerHost(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     backup: BackupControls,
     openBackupRequest: Int,
-    onSundownAlertsEnabledChanged: (Boolean) -> Unit,
-    onDarknessMarginChanged: (Int) -> Unit,
-    onOffTrackReminderChanged: (Boolean) -> Unit,
     openOfflineMapsFromTools: () -> Unit,
     compactMainScaffold: @Composable () -> Unit,
 ) {
@@ -116,16 +113,6 @@ internal fun AvailabilityScreenDrawerHost(
                     backup = backup,
                     openSettingsRequest = openBackupRequest,
                     openSettingsOnlyRequest = state.openSettingsOnlyRequest(),
-                    sundown = SundownSettings(
-                        alertsEnabled = uiState.sundownAlertsEnabled,
-                        darknessMarginMinutes = uiState.darknessMarginMinutes,
-                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
-                        onDarknessMarginChanged = onDarknessMarginChanged,
-                    ),
-                    offTrackReminder = OffTrackReminderSettings(
-                        enabled = uiState.offTrackReminderEnabled,
-                        onEnabledChanged = onOffTrackReminderChanged,
-                    ),
                     onOpenOfflineMaps = openOfflineMapsFromTools,
                 )
                 }

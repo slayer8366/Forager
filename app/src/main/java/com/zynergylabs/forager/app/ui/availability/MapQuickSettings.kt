@@ -74,8 +74,8 @@ import java.time.ZoneId
  * (Recommended)", and "Not because it's on the far right on the screen, but because it's far right in
  * the strip"): in landscape, with the strip in a top corner, it is at the strip's own right end.
  *
- * Its sundown and off-track rows are Settings' own [SundownSettings] and [OffTrackReminderSettings],
- * the same values and the same callbacks, so the two places can never disagree; Settings is unchanged.
+ * Its sundown and off-track rows are drawn from [SundownSettings] and [OffTrackReminderSettings]; since
+ * dispatch 2026-10-27-14 Amendment 1 (RECORD -1751) this menu is the only place they are drawn.
  */
 internal data class MapQuickSettings(
     /** Back by exists only while recording (the owner: "During a recording only (Recommended)"). */
@@ -317,7 +317,7 @@ private fun BackBySection(settings: MapQuickSettings, clock: SundownClock, onPic
     }
 }
 
-/** The "Sundown" section in short: its checkbox, and its four margins in one row. The Tools drawer's section (`ToolsSundownSection`, Settings' until dispatch 2026-09-28-707) keeps the explanation line. */
+/** The "Sundown" section in short: its checkbox, and its four margins in one row. The only place they are drawn since the Tools drawer's section went (dispatch 2026-10-27-14 Amendment 1, RECORD -1751), with its explanation line ("Drop it"). */
 @Composable
 private fun QuickSundownSection(sundown: SundownSettings) {
     QuickCheckboxRow(

@@ -135,8 +135,9 @@ internal const val SETTINGS_SOURCES_ROW_TAG = "settings-sources-and-credits-row"
  * **No longer has the Sundown section, the Off-track reminder, or the two camera settings**
  * (dispatch 2026-09-28-707; the owner: "move the Sundown area to the Tools so that it's one button
  * away instead of two. Move the two camera options at the bottom to a settings menu inside the
- * camera itself"). Sundown and Off-track are drawn by [ToolsSundownSection] at the top of the Tools
- * drawer; "Automatically Save Location to Photos" and "Lock camera to portrait" by the camera's
+ * camera itself"). Sundown and Off-track went to the Tools drawer, and since dispatch 2026-10-27-14
+ * Amendment 1 (RECORD -1751) are only in the map's ⋮ quick settings ([MapQuickSettings]);
+ * "Automatically Save Location to Photos" and "Lock camera to portrait" by the camera's
  * gear panel (`ui/log/CameraSettingsPanel.kt`). Only where the controls are drawn moved: the
  * values, their DataStore keys and the ViewModel functions they call are unchanged. Dispatch
  * 2026-10-13-03 then removed both rows from that panel (RECORD -968, -972): the lock is gone, and

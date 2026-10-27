@@ -86,11 +86,23 @@ class CrowdedStackHost(
     var list by mutableStateOf<CrowdedList?>(null)
         private set
 
+    private var modeShown by mutableStateOf(CrowdedIconsMode.DEFAULT)
+
     /**
      * Settings > Map > "Crowded icons" (dispatch 2026-10-27-14), written by the Maps tab from the stored setting. In
      * [CrowdedIconsMode.LIST] a tapped stack of two or more opens the list at once ([CrowdedStackZoom.listNow]), fits or not.
+     *
+     * **A change of mode drops the camera returns** (decided beyond the dispatch's scope, reported): returns kept by a zoom in
+     * "Zoom in, then fan" would otherwise wait under a List-mode map, where nothing is zoomed, and a later Back would jump the
+     * camera back to before a tap the user has since moved on from. The map stays where it is; an open list stays open.
      */
-    var mode by mutableStateOf(CrowdedIconsMode.DEFAULT)
+    var mode: CrowdedIconsMode
+        get() = modeShown
+        set(value) {
+            if (value == modeShown) return
+            returns.clear()
+            modeShown = value
+        }
 
     /** The map's fan, so the tab's Back steps wait while it is open (the fan's own Back folds it first). */
     var fan by mutableStateOf<MarkerFanOutState?>(null)
@@ -111,6 +123,23 @@ class CrowdedStackHost(
 
     /** The user moved the map: what they see is theirs now, and Back no longer moves the camera (see [CrowdedStackZoom.onUserGesture]). */
     fun clearReturns() = returns.clear()
+
+    /**
+     * Locate was pressed (dispatch 2026-10-27-14 Amendment 2, Q1; RECORD -1757): the press is the user's own pan, whether or
+     * not the camera moves. With no fix yet nothing moves, and the follow that comes when the fix does is
+     * [CameraMoveCause.LOCATION_FOLLOW], which ends nothing, so the returns and the list end here, at the press.
+     */
+    fun onLocatePressed() {
+        clearReturns()
+        closeList()
+    }
+
+    /**
+     * A navigation view was asked for (dispatch 2026-10-27-14 Amendment 2, Q2; RECORD -1757, -1758): starting navigation is the
+     * user's ask whether or not the camera moves, so Back never restores the pre-zoom camera over the navigation view. The
+     * list stays: List mode lists while navigating, and the view's effect also re-runs on a style or layout change.
+     */
+    fun onNavigationViewRequested() = clearReturns()
 
     /** Back's camera step: the latest return, restored. `false` when there was none. */
     fun stepBack(): Boolean {

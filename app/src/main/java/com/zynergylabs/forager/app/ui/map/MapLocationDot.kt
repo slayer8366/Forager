@@ -83,10 +83,7 @@ internal fun MapLocationDot(
         state.cameraMoveClassifier.markUserAskedMove()
         // The press itself is the user's pan, whether or not the camera moves (dispatch 2026-10-27-14 Amendment 2, Q1; RECORD
         // -1757): with no fix yet nothing moves, and the follow that comes later is LOCATION_FOLLOW, which clears nothing.
-        state.tapHandlerRef.crowdedHost?.let { host ->
-            host.clearReturns()
-            host.closeList()
-        }
+        state.tapHandlerRef.crowdedHost?.onLocatePressed()
         if (map.locationComponent.isLocationComponentActivated) {
             // Dispatch 2026-10-19-37: a give left on screen by a spring cut short is cleared before following resumes (plain map only).
             state.plainNudge.beforeLocate()

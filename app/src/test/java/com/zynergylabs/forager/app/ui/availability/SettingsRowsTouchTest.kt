@@ -42,7 +42,8 @@ import org.robolectric.annotation.Config
  * Dispatch 2026-09-28-658 (F6): Settings' checkbox and radio rows are now one shared row each, and
  * a touch anywhere across a row still reaches its setting. The tagged rows (Sundown alerts, Dark
  * under trees, Off-track reminder) keep their own coordinate-touch tests in `SundownSettingsTest`
- * and `OffTrackReminderSettingsTest`, in the Tools drawer since dispatch 2026-09-28-707; this covers
+ * and `OffTrackReminderSettingsTest`, on the map's ⋮ quick settings since dispatch 2026-10-27-14
+ * Amendment 1 (in the Tools drawer from dispatch 2026-09-28-707 until then); this covers
  * the untagged ones Settings still has: Night Mode's three choices, Night Maps, and Units' choices.
  * The photo-location and camera-lock checkboxes were here until -707 moved them into the camera's
  * gear panel; their touches across the row are `InAppCameraSettingsPanelTest`'s now.

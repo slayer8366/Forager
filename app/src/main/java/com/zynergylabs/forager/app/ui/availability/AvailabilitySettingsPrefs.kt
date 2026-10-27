@@ -93,7 +93,7 @@ internal class AvailabilitySettingsPrefs(
         }
     }
 
-    /** Restores the Sundown section's two settings; a failed read is logged and leaves the default (on, one hour) showing. */
+    /** Restores the two Sundown settings (the map's ⋮ quick settings' rows); a failed read is logged and leaves the default (on, one hour) showing. */
     fun loadSundownPreferences() {
         scope().launch {
             getSundownAlertsEnabled().fold(
