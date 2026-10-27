@@ -59,6 +59,10 @@ import com.zynergylabs.forager.app.domain.model.Region
  * forgotten. Withheld items must be unreachable by construction, not by convention: anything that
  * draws an entry on a map takes a [CartographyEntryMapData], and only this method builds one.
  *
+ * **A photo a saved, located find links to is not drawn** (dispatch 2026-10-27-05, RECORDs -1734 and -1735), even
+ * though the entry attaches it: the owner's "No icon anywhere (Recommended)". See [FindLinkedPhotos]. Unlike a dangling
+ * reference, a failed read of the finds for this is logged ([errorLog]); the map still draws.
+ *
  * **Every drawn item keeps its record's id** (map layers L0a, owner's ruling 2 on
  * `prompts/preserved/2026-09-27-30.md`): each one is a [RecordPoint], [RecordPolyline] or
  * [RecordRegion] carrying the kept decision's own id, so a tap on the map can name the record.
@@ -68,6 +72,8 @@ class GetCartographyEntryMapDataUseCase(
     private val trackRepository: TrackRepository,
     private val mushroomLogRepository: MushroomLogRepository,
     private val keptTrackPaths: KeptTrackPathRepository,
+    /** Where a failed finds read for [FindLinkedPhotos] is logged; it is not a failure of the map (see the class comment). */
+    private val errorLog: ErrorLog,
 ) {
     suspend operator fun invoke(entry: CartographyEntry, galleryPhotos: List<GalleryPhoto>): CartographyEntryMapData {
         // The live track, else the path saved when it was deleted (F3). Read at most once per entry, and only
@@ -99,8 +105,10 @@ class GetCartographyEntryMapDataUseCase(
         val waypointMarkers = entry.waypointDecisions.filter { it.kept }.map { RecordPoint(it.waypointId, LatLng(it.lat, it.lng)) }
 
         val photosById = galleryPhotos.associateBy { it.photo.id }
+        val hidingFindIds = hidingFindIds(entry.photos.mapNotNull { photosById[it.photoId] })
         val photoMarkers = entry.photos.mapNotNull { attachment ->
-            val photo = photosById[attachment.photoId]?.photo ?: return@mapNotNull null
+            val gallery = photosById[attachment.photoId] ?: return@mapNotNull null
+            val photo = gallery.photo
             val lat = photo.latitude ?: return@mapNotNull null
             val lng = photo.longitude ?: return@mapNotNull null
             RecordPoint(attachment.photoId, LatLng(lat, lng))
@@ -117,6 +125,26 @@ class GetCartographyEntryMapDataUseCase(
             photoMarkers = photoMarkers,
             offlineRegionCircles = offlineRegionCircles,
         )
+    }
+
+    /**
+     * The finds that hide an attached photo ([FindLinkedPhotos], dispatch 2026-10-27-05; the owner's "No icon anywhere
+     * (Recommended)"): read only when one of [photos] links to an entry at all, so an entry of standalone photos never
+     * touches the finds. `null` when that read fails: logged here, and every linked photo is then left out.
+     */
+    private suspend fun hidingFindIds(photos: List<GalleryPhoto>): Set<String>? {
+        if (photos.none { it.referencingEntryIds.isNotEmpty() }) return emptySet()
+        return mushroomLogRepository.getAll().fold(
+            onSuccess = { FindLinkedPhotos.hidingFindIds(it) },
+            onFailure = { error ->
+                errorLog.w(TAG, "Couldn't read the finds for an entry's map; its photos linked to a find are left out.", error)
+                null
+            },
+        )
+    }
+
+    private companion object {
+        const val TAG = "EntryMapData"
     }
 }
 

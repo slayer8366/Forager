@@ -518,7 +518,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // Journal Stage 2d: CartographyEntryReportScreen's own map, resolving kept references
     // (tracks/finds live-fetched, waypoints/photos/offline-regions already in the entry's own
     // snapshot) — see GetCartographyEntryMapDataUseCase's own doc comment.
-    val getCartographyEntryMapDataUseCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, keptTrackPathRepository)
+    val getCartographyEntryMapDataUseCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, keptTrackPathRepository, errorLog)
 
     // Journal Stage 2e-i: the same screen's manual offline-map toggle — see
     // GetCartographyEntryOfflineRegionUseCase's own doc comment.
