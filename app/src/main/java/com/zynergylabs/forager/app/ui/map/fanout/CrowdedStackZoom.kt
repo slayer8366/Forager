@@ -100,7 +100,6 @@ class CrowdedStackHost(
         get() = modeShown
         set(value) {
             if (value == modeShown) return
-            returns.clear()
             modeShown = value
         }
 
