@@ -233,7 +233,7 @@ class PatternRelayoutTest {
     }
 
     @Test
-    fun `the MapView's first style is not relaid out, and says so; the next style is`() {
+    fun `the MapView's first style is not relaid out and says so, while the next style is`() {
         val first = FakeStyle()
         val second = FakeStyle()
         val relayout = relayoutOver(mapOf("first" to first, "second" to second))
