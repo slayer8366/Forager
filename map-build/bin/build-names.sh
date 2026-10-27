@@ -77,7 +77,10 @@ done
 named="$tmp/names.osm.pbf"
 "${TIMED[@]}" names-merge -- osmium merge "${parts[@]}" -o "$named" || die "could not merge the names cuts"
 rm -f -- "${parts[@]}"
-log "names input: $(osmium fileinfo -e -g data.count.nodes "$named") nodes, $(osmium fileinfo -e -g data.count.ways "$named") ways, $(stat -c %s "$named") bytes"
+named_nodes="$(osmium fileinfo -e -g data.count.nodes "$named")"
+log "names input: $named_nodes nodes, $(osmium fileinfo -e -g data.count.ways "$named") ways, $(stat -c %s "$named") bytes"
+[[ "$named_nodes" -le "$USCA_NAMES_MAX_INPUT_NODES" ]] \
+  || die "names input has $named_nodes nodes, over USCA_NAMES_MAX_INPUT_NODES ($USCA_NAMES_MAX_INPUT_NODES); see pins.env for the file-backed index"
 log "disk with the names input: $(free_line)"
 
 names_encode "$named" "$out/names1" "$squares" "$osm_ts" "$out/names-summary.json" || die "the names encode failed"

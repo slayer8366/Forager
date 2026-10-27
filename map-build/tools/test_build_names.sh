@@ -151,6 +151,8 @@ check "a square with nothing in it still has a file" '[[ "$(names_of "$T/out/nam
 ) > "$T/stage.txt" 2>&1 || { cat "$T/stage.txt"; echo "FAIL: the stage's functions failed"; exit 1; }
 check "the stage's cut keeps the six named highway ways and not the route relation's member (no highway tag)" \
   '[[ "$(osmium fileinfo -e -g data.count.ways "$T/stage/names.osm.pbf")" == 6 ]]'
+check "the highway cut's size is logged, per region and in the stage (Sorrel's review S2)" \
+  'grep -qE "names highway cut-us-261017: [0-9]+ bytes" "$L" && grep -qE "^names highway cut: [0-9]+ bytes" "$T/stage.txt"'
 check "the stage's highway cut is removed" '[[ ! -e "$T/stage/names.osm.pbf.highway.osm.pbf" ]]'
 check "the stage and the one-off script write the same bytes" 'diff -r "$T/stage/names1" "$T/out/names1" >/dev/null'
 check "the stage's metrics name its steps without a region" \
@@ -171,5 +173,12 @@ rc=0; "$NAMES" "$T/src" "$TS" "$T/rd5" "$T/out5" > "$T/run5.txt" 2>&1 || rc=$?
 check "a failed encode fails the run and leaves no temporary directory" \
   '[[ $rc -ne 0 && -z "$(ls -A "$T/card/forager-build/work")" ]] && grep -q "FAILED: the names encode failed" "$T/run5.txt"'
 rm -f "$T/rd5/bogus.rd5"
+# The node limit (Sorrel's review S1): an input over it stops after the cut, before the encode.
+cp "$T/tree/map-build/pins.env" "$T/pins.env.saved"
+sed -i 's/^USCA_NAMES_MAX_INPUT_NODES=.*/USCA_NAMES_MAX_INPUT_NODES=3/' "$T/tree/map-build/pins.env"
+rc=0; "$NAMES" "$T/src" "$TS" "$T/rd5" "$T/out6" > "$T/run6.txt" 2>&1 || rc=$?
+cp "$T/pins.env.saved" "$T/tree/map-build/pins.env"
+check "an input over USCA_NAMES_MAX_INPUT_NODES fails before the encode, naming the count and the limit" \
+  '[[ $rc -ne 0 && ! -e "$T/out6/names1" ]] && grep -qE "names input has [0-9]+ nodes, over USCA_NAMES_MAX_INPUT_NODES \(3\)" "$T/run6.txt"'
 
 echo "test_build_names.sh: $pass checks passed"

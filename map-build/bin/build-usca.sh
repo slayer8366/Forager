@@ -142,7 +142,7 @@ keep_failed_run() { # exit-code
   mkdir -p "$FAILED_KEEP"
   if [[ -d "$run/out" ]]; then mv "$run/out" "$FAILED_KEEP/out"; fi
   local f
-  for f in metrics.jsonl versions.txt bounds.txt coverage.txt; do
+  for f in metrics.jsonl versions.txt bounds.txt coverage.txt names-summary.json; do
     if [[ -f "$run/$f" ]]; then cp "$run/$f" "$FAILED_KEEP/"; fi
   done
   printf 'run %s failed at stage %s with exit %s at %s; not published, and never publishable from here\n' \
@@ -229,6 +229,9 @@ names_cut() { # in out [label-suffix]: in's highway ways with a name or a ref, a
   # Two filters, since tags-filter has no "and" of two keys; the first one's output is removed.
   local hw="$2.highway.osm.pbf" rc=0
   "${TIMED[@]}" "names-filter-highway${3:-}" -- osmium tags-filter "$1" w/highway --overwrite -o "$hw" || rc=$?
+  # Measured so the disk check can count it (Sorrel's review S2): the whole highway network, named
+  # or not, beside the routing input and its bands.
+  (( rc != 0 )) || echo "names highway cut${3:-}: $(stat -c %s "$hw") bytes"
   (( rc != 0 )) || "${TIMED[@]}" "names-filter-named${3:-}" -- osmium tags-filter "$hw" w/name w/ref --overwrite -o "$2" || rc=$?
   rm -f -- "$hw"
   return $rc
@@ -784,7 +787,11 @@ done
 set_stage names-input
 names_in="$run/$USCA_EXTRACT_NAME-names.osm.pbf"
 names_cut "$routing_in" "$names_in" || die "could not cut the names input from $routing_in"
-log "names input: $(osmium fileinfo -e -g data.count.nodes "$names_in") nodes, $(osmium fileinfo -e -g data.count.ways "$names_in") ways"
+names_nodes="$(osmium fileinfo -e -g data.count.nodes "$names_in")"
+log "names input: $names_nodes nodes, $(osmium fileinfo -e -g data.count.ways "$names_in") ways, $(stat -c %s "$names_in") bytes"
+# Checked here, before BRouter's hours, not by an OOM kill in the export after them (pins.env).
+[[ "$names_nodes" -le "$USCA_NAMES_MAX_INPUT_NODES" ]] \
+  || die "names input has $names_nodes nodes, over USCA_NAMES_MAX_INPUT_NODES ($USCA_NAMES_MAX_INPUT_NODES); see pins.env for the file-backed index"
 rm -f -- "$routing_in"
 
 set_stage brouter

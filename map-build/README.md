@@ -189,7 +189,7 @@ What it does differently from `build-orwa.sh`, and why:
   simplifies each line (Douglas-Peucker, 2 m), splits it exactly at the 1/8-degree cell edges and
   writes `names1/<NAME>.fnm` beside `segments/<NAME>.rd5`, one per square, even an empty one. The
   format is in `fnam_build.py`'s docstring. Validation checks every `.rd5` has its `.fnm` and each
-  file's header, tables, directory and cells; the manifest lists the `.fnm` files. No
+  file's header, tables, directory and cells, as structure only (it doesn't parse record bodies); the manifest lists the `.fnm` files. No
   `complete_ways` cut per square. `bin/build-names.sh` runs the same steps on raw extracts, with
   its temporary files on the card.
 - **`--basemap FILE` reuses a finished basemap.** The first run's 7h44m basemap finished and the
