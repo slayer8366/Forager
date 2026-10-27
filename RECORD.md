@@ -28681,3 +28681,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The manual Worker deploy from pre-main goes ahead (owner)
 **Decision:** the owner: "Go (Recommended)": one wrangler deploy of pre-main a4264e26a's Worker (8a plus #422 only), with the live version recorded first, before/after checks of every existing route, and an immediate rollback if any of them breaks. Dispatch 2026-10-26-23.
 **Notes:** Written by the planner by hand. The next automatic build from main would redeploy main's Worker without v3; main only changes by promotion from pre-main, which carries these. Next free ID -1706.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1706
+**Timestamp:** 2026-10-27T04:14:38Z
+**Continues:** 2026-09-28-1705
+**Title:** pre-main's Worker is live: street-v3 and the manifest route served
+**Observed:** deploy helper (Opus; dispatch 2026-10-26-23): one wrangler deploy of a4264e26a at 2026-10-27T04:13:26Z, version 5bc6bc3a-d5c4-4e2c-9527-1e8f4561ffc6 at 100%; rollback target a5c79d5c-b6e4-4d83-9d88-e652755329f6. Eleven existing routes identical before and after (status, type, cache-control, sha256), the routing check keyless (403, secret and limiters bound; route data itself not exercised). /style/street-v3.json 200, deep-equal to src/street-style-v3.json (served compact, sha256 3b02838b…77fc; the dispatch's file hash could not match); /reference-trails-manifest.json 200, max-age=86400, sha256 6cb68e27…e70db9 as -1701. No rollback.
+**Decision:** none new; the deploy ran under -1705. Next: the switch PR (dispatch 2026-10-26-21 Phase 2), brought to the owner first.
+**Notes:** Written by the planner by hand. Built with Node 24.21.0 locally; CI pins 24.22.1. Next free ID -1707.
