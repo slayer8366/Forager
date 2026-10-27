@@ -29155,3 +29155,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** draft PR #430 (spiral-zoom-then-fan 1544a5fd6, dispatch 2026-10-27-07): built on the compact Maps tab only, the one host that knows whether a bubble shows and has the row data; the entry map and the tablet map keep today's overflowing fan, now logged; zoom limits Trail 18, OpenStreetMap 19, Topographical 17, so zoom 17 is always reachable; filtered run 40579018994, 200 tests, one new screen test failing at a list-row touch, cause not yet found; no revert checks yet. A fresh coder continues.
 **Decision:** the owner: "Maps tab only for now (Recommended)": the entry map and tablet follow in a later PR. "All fine (Recommended)": the zoom is a jump; the user's own pan or zoom after it drops the camera-return step; while navigating, a crowded tap fans as before; a map tap closes the list; the list reads "N records at this spot", newest first.
 **Notes:** Written by the planner by hand. Next free ID -1750.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1750
+**Timestamp:** 2026-10-27T20:45:28Z
+**Continues:** 2026-09-28-1749, 2026-09-28-1736
+**Title:** A "Crowded icons" setting: zoom in then fan, or a list for every group (owner)
+**Decision:** the owner: "Have an option to show the new set up or just a list in the settings menu for simplicity"; asked which groups the list covers, "Every group": in List mode any stack of two or more icons opens the list at once, with no zoom and no fan; the default, "Zoom in, then fan (Recommended)"; "Next PR after #430 (Recommended)". On the Maps tab only, as -1749. Dispatch 2026-10-27-14, to start after #430 merges.
+**Notes:** Written by the planner by hand. Next free ID -1751.
