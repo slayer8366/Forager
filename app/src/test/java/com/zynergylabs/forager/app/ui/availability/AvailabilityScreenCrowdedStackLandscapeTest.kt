@@ -27,13 +27,19 @@ import org.robolectric.annotation.Config
 
 /**
  * Dispatch 2026-10-27-07 Amendment 1, S3 (Sorrel's #430 review): in a short landscape window the crowded stack's list keeps
- * clear of the search bar and the strip at the top, as the bubble does (its minY). The list is at most 300 dp tall and the
- * window 384 dp, so without that clearance its top would reach about 68 dp from the window's top. The real screen in the
- * landscape window the other landscape tests use, the real Maps tab and [CrowdedStackStubMap]; real insets are zero here, so
- * what this does not show is the phone's status-bar inset, which the S22 step does.
+ * clear of the search bar and the strip at the top, as the bubble does (its minY). The real screen, the real Maps tab and
+ * [CrowdedStackStubMap].
+ *
+ * **Why the window is 340 dp tall, not the 384 dp the other landscape tests use.** Robolectric reports zero insets (CLAUDE.md),
+ * and at 384 dp with none the list (300 dp tall, 16 dp off the bottom) tops out at 68 dp, below the 36 dp bar: measured on CI
+ * (diagnostic runs 40594170042 and 40594178069, list y 204 to 1104 px at density 3, bar and strip 0 to 108 px), with and
+ * without the clearance alike, so a 384 dp test could not fail. On the phone the status bar pushes the bar down and the
+ * navigation bar lifts the list, so the room under the bar is smaller; 340 dp stands for that room here (an inference from
+ * typical inset sizes, not a measurement; the S22 landscape step is the real check). At 340 dp without the clearance the list's
+ * top is at 24 dp, under the bar.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w823dp-h384dp-xxhdpi")
+@Config(sdk = [36], qualifiers = "w823dp-h340dp-xxhdpi")
 class AvailabilityScreenCrowdedStackLandscapeTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
