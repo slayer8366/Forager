@@ -28820,3 +28820,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Aspen (message): reference-trails-manifest.json on R2 (2,814 bytes, sha256 6cb68e27…e70db9): sources[].fetched 2026-10-26 for both, the day the data was downloaded from each service; the agency dates differ in kind (Forest Service: metadata publication 2025-05-14, metadata revision 2024-07-24, catalog 2022-08-25, no edit date; BLM: catalog modified 2026-10-13); built_at is the archive build time.
 **Decision:** the planner, inside -1717's "data from <date>": each source's fetched date, matched by layer; the agency dates are not shown. Dispatch 2026-10-26-24.
 **Notes:** Written by the planner by hand. Next free ID -1719.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1719
+**Timestamp:** 
+**Continues:** 2026-09-28-1717, 2026-09-28-1718
+**Title:** 8d: the (i) past the switch, swipe closes the sheet, two fixes before the merge (owner)
+**Observed:** PR #424 (step8d-card, 87d851dfa), CI green (40499721232, 5,806 tests); five revert checks each failing for its own edit. Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr424.md, branch sorrel-pr424, 205af450b): no blocking finding; S1 while the stored copy loads, the card shows the Sources line without dates or hint, a fourth state -1717 does not list; S2 the manifest fetch's 256 KB cap and error paths are untested; the text matches -1717 in all three ruled states; Back closes only the card.
+**Decision:** the owner: "Past the switch (Recommended)": the (i) stays a 48 dp target after the row's switch; "Fine as is (Recommended)": with the card open, swipe down or a tap outside closes the whole sheet, and Back closes only the card; "Fix both, then merge (Recommended)": dispatch 2026-10-26-24 Amendment 1 (S1, S2, N1), then a Sorrel quick look, then the merge.
+**Notes:** Written by the planner by hand. Next free ID -1720.
