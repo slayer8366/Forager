@@ -10,10 +10,17 @@ internal const val PATTERN_FADE_LOG_TAG = "ForagerPatternFade"
 
 /** The live style's fill layers as [PatternFadeTarget]. Device-only: a `Style` cannot be built under Robolectric. */
 private class StylePatternFade(private val style: Style) : PatternFadeTarget {
-    override fun patternLayerIds(): List<String> = style.layers.filterIsInstance<FillLayer>().filter { layer ->
+    override fun fillLayers(): List<FillLayerPattern> = style.layers.filterIsInstance<FillLayer>().map { layer ->
         val pattern = layer.fillPattern
-        !pattern.isNull && (pattern.isExpression || !pattern.value.isNullOrEmpty())
-    }.map { it.id }
+        FillLayerPattern(
+            layer.id,
+            when {
+                pattern.isNull -> null
+                pattern.isExpression -> pattern.expression.toString()
+                else -> pattern.value
+            },
+        )
+    }
 
     override fun setPatternTransitionOff(layerId: String): Boolean {
         val layer = style.getLayer(layerId) as? FillLayer ?: return false

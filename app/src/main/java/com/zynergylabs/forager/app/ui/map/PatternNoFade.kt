@@ -26,7 +26,7 @@ package com.zynergylabs.forager.app.ui.map
  */
 internal fun turnOffPatternFade(target: PatternFadeTarget, log: (String) -> Unit) {
     val layers = try {
-        target.patternLayerIds()
+        target.fillLayers().filter { it.pattern != null && it.pattern.isNotEmpty() }.map { it.layerId }
     } catch (e: RuntimeException) {
         log("Pattern fade: the style's layers could not be read (${e.javaClass.simpleName}: ${e.message}); the fade is left on.")
         return
@@ -50,10 +50,13 @@ internal fun turnOffPatternFade(target: PatternFadeTarget, log: (String) -> Unit
     log("Pattern fade: fill-pattern-transition 0/0 on ${done.size} of ${layers.size} pattern layers $done$failedText.")
 }
 
+/** A fill layer as the style holds it: its fill-pattern as text (a name, or an expression's JSON), `null` when unset. */
+internal data class FillLayerPattern(val layerId: String, val pattern: String?)
+
 /** The loaded style as [turnOffPatternFade] sees it: the live style on a phone, a fake in the tests. */
 internal interface PatternFadeTarget {
-    /** Every fill layer in the style whose fill-pattern is set (a non-empty name or an expression), in layer order. */
-    fun patternLayerIds(): List<String>
+    /** Every fill layer in the style, in layer order, with its fill-pattern; [turnOffPatternFade] picks the ones that draw one. */
+    fun fillLayers(): List<FillLayerPattern>
 
     /** Sets [layerId]'s fill-pattern-transition to duration 0, delay 0; `false` when there is no such fill layer. */
     fun setPatternTransitionOff(layerId: String): Boolean
