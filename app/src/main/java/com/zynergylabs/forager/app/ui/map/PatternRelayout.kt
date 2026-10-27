@@ -81,7 +81,6 @@ internal class PatternRelayout<S : Any, V>(
         loadedStyle = null
         spriteLoaded = false
         relaidOut = false
-        firstStyle = firstStyleOnThisMapView
         cancelPending?.let {
             it()
             cancelPending = null
