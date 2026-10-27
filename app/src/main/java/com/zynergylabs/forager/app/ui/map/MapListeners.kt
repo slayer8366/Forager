@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveCause
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackZoom
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapSinks
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
@@ -95,6 +96,13 @@ internal fun MapListeners(
                 // A record on a layer switched off is not drawn, so it is not a fan member.
                 warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
                 layerDrawn = { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, state.layersState).visible } ?: false },
+                // Dispatch 2026-10-27-07 (RECORD -1736): a stack whose fan does not fit zooms in, then fans; only on a map whose host
+                // shows the list and walks Back (the Maps tab). Elsewhere it fans past the edge as before, logged.
+                crowded = CrowdedStackZoom(
+                    camera = MapStackCamera(map, state, resources.displayMetrics.density),
+                    host = { state.tapHandlerRef.crowdedHost },
+                    warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
+                ),
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = state.onTap()
 

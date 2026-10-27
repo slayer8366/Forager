@@ -147,6 +147,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
             trueHeading = renderMode.trueHeading,
             nudgeSpringBack = renderMode.nudgeSpringBack,
             onReferenceTrailsShown = renderMode.onReferenceTrailsShown,
+            crowdedStacks = renderMode.crowdedStacks,
             modifier = modifier,
         )
     }

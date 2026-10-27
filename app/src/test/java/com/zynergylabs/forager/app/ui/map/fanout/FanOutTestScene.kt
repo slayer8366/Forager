@@ -16,15 +16,17 @@ import kotlin.math.tan
  * for a point hit is [ICON_HALF_DP] each way from the anchor. Hidden features (the originals of a
  * fanned stack) are not returned, as the real map does not draw them.
  */
-internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
+internal class FanOutTestScene(
+    override val density: Float = 2f,
+    /** Where [centre] is drawn, px of the map view. */
+    private val viewportCentre: Pair<Float, Float> = 500f to 1000f,
+) : MapProbe {
     data class Placed(val layerId: String, val featureId: String, val lat: Double, val lng: Double, val screenXPx: Float? = null, val screenYPx: Float? = null)
 
     var zoom = 10.0
-    val centre = LatLng(45.0, -122.0)
+    var centre = LatLng(45.0, -122.0)
     val markers = mutableListOf<Placed>()
     var hidden: () -> Set<FanKey> = { emptySet() }
-
-    private val viewportCentre = 500f to 1000f
 
     private fun worldPx(): Double = 512.0 * density * 2.0.pow(zoom)
 

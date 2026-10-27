@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.derivedStateOf
@@ -40,6 +41,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutBackHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutHost
@@ -241,6 +243,8 @@ fun SightingsMap(
     nudgeSpringBack: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onReferenceTrailsShown]'s own doc comment. */
     onReferenceTrailsShown: (Boolean) -> Unit = {},
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.crowdedStacks]'s own doc comment. */
+    crowdedStacks: CrowdedStackHost? = null,
 ) {
     val context = LocalContext.current
     // Resources through LocalResources, which Compose re-reads on a configuration change, rather than
@@ -708,6 +712,11 @@ fun SightingsMap(
         map.easeCamera(CameraUpdateFactory.bearingTo(0.0))
     }
 
+    // Dispatch 2026-10-27-07: the tab's crowded-stack host, read by the tap handler at each tap, and told of this map's fan.
+    SideEffect {
+        tapHandlerRef.crowdedHost = crowdedStacks
+        crowdedStacks?.fan = fanOut
+    }
     // The fan's clock, and Back closing it before anything else Back would close.
     MarkerFanOutHost(fanOut)
     MarkerFanOutBackHandler(fanOut, bubbleOpen = focusedObservationId != null || focusedFeature != null, backEnabled = backEnabled)

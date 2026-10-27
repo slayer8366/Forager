@@ -11,6 +11,13 @@ enum class CameraMoveCause {
     /** The map re-centring itself while it follows the location. The user did not mean it. The fan stays open. */
     LOCATION_FOLLOW,
 
+    /**
+     * The app zoomed in on a crowded stack to open its fan (dispatch 2026-10-27-07, RECORD -1736): the fan this move is for
+     * opens as the camera arrives, and the move must not fold it (the dispatch's step 5: "The app's own zoom must not fold the
+     * fan it is about to open"). Marked by [CameraMoveClassifier.markAppMove] with `keepsFan`.
+     */
+    APP_STACK_ZOOM,
+
     /** Not a touch, not marked as the app's, and not following the location. Nothing in the app is known to make one; it closes the fan, as before, and is logged. */
     UNKNOWN,
 }
@@ -44,24 +51,40 @@ class CameraMoveClassifier(
 
     private var mark = Mark.NONE
 
+    /** Whether the current mark is the crowded-stack zoom's, whose move keeps the fan ([CameraMoveCause.APP_STACK_ZOOM]). */
+    private var keepsFan = false
+
     /** Which mark is current, so a settle step queued by an earlier mark, running late, cannot drop a newer one (seen on the S22 at launch, main thread busy). */
     private var generation = 0
 
-    /** The app is about to move the camera itself (a control the user pressed, a search result, a style change). Call just before the move. */
-    fun markAppMove() {
-        if (mark == Mark.NONE) mark = Mark.ARMED
+    /**
+     * The app is about to move the camera itself (a control the user pressed, a search result, a style change). Call just before the move.
+     * [keepsFan] is the crowded-stack zoom's: its move is classed [CameraMoveCause.APP_STACK_ZOOM]. A mark that joins another
+     * keeps the fan only if both do, so another move of the app's in the same flight still folds it, as before.
+     */
+    fun markAppMove(keepsFan: Boolean = false) {
+        if (mark == Mark.NONE) {
+            mark = Mark.ARMED
+            this.keepsFan = keepsFan
+        } else {
+            this.keepsFan = this.keepsFan && keepsFan
+        }
         val thisMark = ++generation
         afterQueuedMessages { afterQueuedMessages { settle(thisMark) } }
     }
 
     /** Two looper turns after a mark: a mark no move has started under was for a move that did not happen. Only the latest mark's own step may drop it. */
     private fun settle(forMark: Int) {
-        if (forMark == generation && mark == Mark.ARMED) mark = Mark.NONE
+        if (forMark == generation && mark == Mark.ARMED) {
+            mark = Mark.NONE
+            keepsFan = false
+        }
     }
 
     /** The camera is idle: the marked move, if any, is over. */
     fun onCameraIdle() {
         mark = Mark.NONE
+        keepsFan = false
     }
 
     /** What started a camera move that has just begun. [isGesture] is the SDK's gesture reason; [followingLocation] is whether the location component is tracking. */
@@ -69,7 +92,7 @@ class CameraMoveClassifier(
         if (isGesture) return CameraMoveCause.USER_GESTURE
         if (mark != Mark.NONE) {
             mark = Mark.IN_FLIGHT
-            return CameraMoveCause.APP_REQUESTED
+            return if (keepsFan) CameraMoveCause.APP_STACK_ZOOM else CameraMoveCause.APP_REQUESTED
         }
         return if (followingLocation) CameraMoveCause.LOCATION_FOLLOW else CameraMoveCause.UNKNOWN
     }

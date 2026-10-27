@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutState
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
@@ -238,6 +239,9 @@ internal class SightingsMapState(
  */
 internal class TapHandlerRef {
     var handler: MapTapHandler? = null
+
+    /** Dispatch 2026-10-27-07: the host's crowded-stack state, given by the Maps tab ([MapRenderMode.crowdedStacks]); `null` on a map with none. */
+    var crowdedHost: CrowdedStackHost? = null
 }
 
 /**

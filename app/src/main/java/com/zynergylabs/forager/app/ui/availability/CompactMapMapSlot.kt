@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from AvailabilityCompactMapUi.kt (dispatch 2026-10-19-14, UI split Phase 1, PR 9a).
 
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.NavigationFacing
@@ -58,6 +59,8 @@ internal fun CompactMapMapSlot(
     isFullscreen: Boolean,
     onToggleFullscreen: () -> Unit,
     onCameraIdle: (LatLng) -> Unit,
+    /** Dispatch 2026-10-27-07: the tab's crowded-stack host, handed to the map ([MapRenderMode.crowdedStacks]). */
+    crowdedStacks: CrowdedStackHost? = null,
 ) {
     val breadcrumbPoints = recording.breadcrumbPoints
     val waypoints = recording.waypoints
@@ -124,6 +127,7 @@ internal fun CompactMapMapSlot(
             },
             // RECORD -954: in a short landscape window the "i" sits beside the map credit strip (SightingsMap).
             attributionBesideCredit = landscapeCluster,
+            crowdedStacks = crowdedStacks,
         ),
         focusOverride,
         {},
