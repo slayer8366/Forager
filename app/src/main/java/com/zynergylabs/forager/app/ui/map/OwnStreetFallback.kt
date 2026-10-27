@@ -18,8 +18,16 @@ import com.zynergylabs.forager.app.map.STREET_STYLE_URL
  *   Trail Map, and at Topographical night the raster style with OpenStreetMap below. The caption, the zoom limit and
  *   the navigation zoom read the same flag, so the credit is OpenStreetMap's and the limit its 19. Since dispatch
  *   2026-10-22-01 Trail Map is one of three map types and the compile-time switch is gone; these rules are unchanged.
- * - **When our Street is tried again:** at the next cold start. The flag lives for the process, so the map never flips
- *   back and forth within a session, and the user is never left on a blank map by it.
+ * - **When our Street is tried again:** when the connection returns ([onSignalReturned]), and at the next cold start.
+ *   Until dispatch 2026-10-27-09 Amendment 1 (RECORD -1739) it was the cold start alone, a planner's ruling written for
+ *   a Worker that is down. The case it missed: with no signal and no cached style, Trail Map's load fails too, and the
+ *   map stayed on OpenStreetMap after the connection came back (the S22, card step 1 of
+ *   docs/audits/2026-10-27-s22-check-v3-8d.md). The owner: "Yes, retry after 30 s (Recommended)". The retry waits for
+ *   the map's own "no signal" state to end, a validated network held 30 s (`noSignalState`), so the map changes at
+ *   most once per return of the signal and never flips back and forth faster than the no-signal switch already does.
+ *   Any fallback is retried, whatever caused it; if Trail Map still cannot load, [onStyleLoadFailed] falls back again
+ *   and logs it. Rejected: retrying at once on the raw signal (it reloads at the edge of coverage), and retrying only
+ *   a fallback taken with no signal (it races the first network reading at a cold start, the very S22 case).
  * - **Offline mode:** never falls back. Downloaded regions are drawn from MapLibre's offline store.
  * - The Sources and open-source pages stay as they are.
  */
@@ -46,8 +54,19 @@ internal class OwnStreetFallback(private val log: (String) -> Unit = { Log.w(OWN
     fun onStyleLoadFailed(request: MapStyleRequest?, message: String?): Boolean {
         if (request == null || !fallsBack(request.source, request.useOfflineTiles) || fellBack) return false
         fellBackState.value = true
-        log("Own Street style failed to load ($message); drawing OpenStreetMap's Street until the app restarts.")
+        log("Own Street style failed to load ($message); drawing OpenStreetMap's Street until the connection returns or the app restarts.")
         return true
+    }
+
+    /**
+     * The map's "no signal" state has ended (`noSignalState`: a validated network held 30 s). If the own Street has
+     * fallen back, the flag clears and Trail Map is tried again, with one log line; every reader follows, since the flag
+     * is Compose state. Otherwise nothing changes and nothing is logged. The tile-error count is not reset.
+     */
+    fun onSignalReturned() {
+        if (!fellBack) return
+        fellBackState.value = false
+        log("Connection back: trying Forager Trail Map again.")
     }
 
     /**
@@ -81,7 +100,7 @@ internal fun fallsBack(source: MapStyleSource, useOfflineTiles: Boolean): Boolea
 /** The switch as the map uses it: on only while [switch] is on and the own Street has not [fellBack]. */
 internal fun effectiveOwnStreet(switch: Boolean, fellBack: Boolean): Boolean = switch && !fellBack
 
-/** The process's one fallback: every map reads it, and it resets only with the process (the next cold start). */
+/** The process's one fallback: every map reads it; it clears when the signal returns ([onSignalReturned]) or with the process. */
 internal val OWN_STREET_FALLBACK = OwnStreetFallback()
 
 internal const val OWN_STREET_FALLBACK_LOG_TAG = "OwnStreetFallback"
