@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
@@ -26,6 +27,7 @@ import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.REFERENCE_LAYER_CARD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -111,7 +113,7 @@ class ReferenceTrailsSwitchTest {
     }
 
     @Test
-    fun `a real touch anywhere across the row switches the band off and on, in the state the map is handed and in the store`() {
+    fun `a real touch anywhere across the row switches the band off and on, in the state the map is handed and in the store, and opens no card`() {
         setScreen(drawsBand = true)
         row().performScrollTo()
         val expected = mutableListOf<String>()
@@ -119,6 +121,9 @@ class ReferenceTrailsSwitchTest {
         listOf(0.05f, 0.5f, 0.95f).forEachIndexed { i, fraction ->
             row().performTouchInput { click(Offset(width * fraction, centerY)) }
             composeRule.waitForIdle()
+            // The converse of the (i)'s own test (Sorrel's N1 on PR #424): a touch on the row, its switch included,
+            // toggles and never opens the official-trails card.
+            assertEquals("touch at $fraction opened the card", 0, composeRule.onAllNodesWithTag(REFERENCE_LAYER_CARD_TAG).fetchSemanticsNodes().size)
             val on = i % 2 == 1
             expected += "visible ${MapLayerIds.REFERENCE_FS_BAND} $on"
             assertEquals("touch at $fraction", if (on) ToggleableState.On else ToggleableState.Off, rowState())
