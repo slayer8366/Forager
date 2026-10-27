@@ -28982,3 +28982,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the buildings coder (Opus; dispatch 2026-10-27-02, buildings-outline 68ce84dd6): the spec's z14 #c2c2c2 goes to night #3d3d3d under V1, 1.047:1 against night water #163f4b, below NightWaterTest's 1.05 floor (CI run 40550018434 fails exactly that test); every day grey from #c2 to #c8 fails; the z15 #cccccc gives 1.11:1; the structural diff of v3 holds only the buildings change and the new outline layer.
 **Decision:** the owner: "A shade darker: #c1c1c1 (Recommended)": z14 fill #c1c1c1 (night #3e3e3e, 1.063:1); the rest of -1730 unchanged; the floor and its test unchanged. Dispatch 2026-10-27-02 Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -1734.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1734
+**Timestamp:** 2026-10-27T17:40:03Z
+**Title:** Photos attached to a find leave the map; the crowded spiral gets a report first (owner)
+**Observed:** the owner's S26 screenshots (kept off GitHub): camera icons for photos attached to finds draw at the photos' own positions, apart from their finds; at country zoom a fan of many icons runs far past the screen edges.
+**Decision:** the owner: "some of the photo glyphs on the map are misplaced and are apart from their find location. Can we remove the photos attached to Finds from the map so it can reduce clutter?"; the step path, "Option 1 but the photo icon disappears when the photos switch is off. I had it on for those screen shots.": a find with photos draws only its own icon, and standalone photos follow the Photos switch as today; "Start now (Recommended)": dispatch 2026-10-27-05. The owner: "with so many icons on the map, it goes off the edge. Can we find a way to reduce the chaos when there are more icons than the spiral can fit?"; "Report first": dispatch 2026-10-27-06.
+**Notes:** Written by the planner by hand. Next free ID -1735.
