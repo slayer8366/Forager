@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Where the manifest's text comes from: the Worker's `/reference-trails-manifest.json` in the app
@@ -28,7 +29,7 @@ interface ReferenceTrailsDatesStore {
     suspend fun write(dates: ReferenceTrailsSourceDates): Result<Unit>
 }
 
-/** What the card knows. [Loading] lasts only until the kept copy is read, at start. */
+/** What the card knows. [Loading] lasts only until the kept copy is read, at the card's first opening. */
 sealed interface ReferenceTrailsCopy {
     data object Loading : ReferenceTrailsCopy
 
@@ -39,8 +40,8 @@ sealed interface ReferenceTrailsCopy {
 }
 
 /**
- * The card's dates, for the app's life (`AppContainer` holds one). The kept copy is read once at construction;
- * [refresh], which the card calls each time it opens, fetches the manifest and, when it parses, keeps it and shows it.
+ * The card's dates, for the app's life (`AppContainer` holds one). [refresh], which the card calls each time it opens,
+ * reads the kept copy the first time, then fetches the manifest and, when it parses, keeps it and shows it.
  *
  * A failed fetch or an unreadable file keeps the copy there was and is logged; good dates are never blanked
  * (the dispatch, "A failed fetch"). A refresh asked for while one runs is dropped, since the one running answers it.
@@ -55,22 +56,19 @@ class ReferenceTrailsSources(
     val copy: StateFlow<ReferenceTrailsCopy> = _copy.asStateFlow()
 
     private val refreshing = Mutex()
+    private val loading = Mutex()
 
-    init {
-        scope.launch {
-            val kept = store.read().getOrElse { error ->
-                if (error is CancellationException) throw error
-                log("The kept official-trails dates could not be read; the card shows none until a fetch.", error)
-                null
-            }
-            // A fetch that finished first has already put a newer copy in place; the kept one does not replace it.
-            _copy.compareAndSet(ReferenceTrailsCopy.Loading, if (kept == null) ReferenceTrailsCopy.None else ReferenceTrailsCopy.Known(kept))
-        }
-    }
-
-    /** Fetches the manifest once, unless a fetch is already running. Returns at once; the result arrives on [copy]. */
+    /**
+     * Reads the kept copy, then fetches the manifest once unless a fetch is already running. Returns at once; the
+     * results arrive on [copy]: the kept copy first, then the fetched one if it parses.
+     *
+     * The kept copy is read here, at the first opening, not at construction: `AppContainer` builds this in every
+     * process, and a read at construction would open the DataStore file in each one, which also leaves no test able to
+     * open that file itself.
+     */
     fun refresh() {
         scope.launch {
+            loadKept()
             if (!refreshing.tryLock()) return@launch
             try {
                 fetchOnce()
@@ -78,6 +76,16 @@ class ReferenceTrailsSources(
                 refreshing.unlock()
             }
         }
+    }
+
+    private suspend fun loadKept() = loading.withLock {
+        if (_copy.value != ReferenceTrailsCopy.Loading) return@withLock
+        val kept = store.read().getOrElse { error ->
+            if (error is CancellationException) throw error
+            log("The kept official-trails dates could not be read; the card shows none until a fetch.", error)
+            null
+        }
+        _copy.value = if (kept == null) ReferenceTrailsCopy.None else ReferenceTrailsCopy.Known(kept)
     }
 
     private suspend fun fetchOnce() {

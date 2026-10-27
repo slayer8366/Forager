@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Step 8d (dispatch 2026-10-26-24): the card's dates across fetches. The kept copy shows at start; a good fetch
+ * Step 8d (dispatch 2026-10-26-24): the card's dates across fetches. The kept copy shows at the first refresh; a good fetch
  * replaces and keeps it; a failed or unreadable fetch keeps the copy there was and is logged ("never blank good dates").
  * The scope is unconfined and the fakes never suspend, so each call has finished when it returns.
  */
@@ -50,9 +50,14 @@ class ReferenceTrailsSourcesTest {
     private val fetched = ReferenceTrailsSourceDates(LocalDate.of(2026, 10, 24), LocalDate.of(2026, 10, 25))
 
     @Test
-    fun `before any refresh the kept copy shows, or none when nothing was ever kept`() {
-        assertEquals(ReferenceTrailsCopy.Known(kept), sources(FakeStore(kept)) { error("not fetched") }.first.copy.value)
-        assertEquals(ReferenceTrailsCopy.None, sources(FakeStore(null)) { error("not fetched") }.first.copy.value)
+    fun `nothing is read until the first refresh, which shows the kept copy, or none when nothing was ever kept`() {
+        val (withKept, _) = sources(FakeStore(kept)) { Result.failure(IOException("offline")) }
+        assertEquals("the file is not opened at construction", ReferenceTrailsCopy.Loading, withKept.copy.value)
+        withKept.refresh()
+        assertEquals(ReferenceTrailsCopy.Known(kept), withKept.copy.value)
+        val (withNone, _) = sources(FakeStore(null)) { Result.failure(IOException("offline")) }
+        withNone.refresh()
+        assertEquals(ReferenceTrailsCopy.None, withNone.copy.value)
     }
 
     @Test
@@ -94,9 +99,10 @@ class ReferenceTrailsSourcesTest {
 
     @Test
     fun `a kept copy that cannot be read is logged and shows as none`() {
-        val (sources, _) = sources(FakeStore(kept, readFails = true)) { error("not fetched") }
+        val (sources, _) = sources(FakeStore(kept, readFails = true)) { Result.failure(IOException("offline")) }
+        sources.refresh()
         assertEquals(ReferenceTrailsCopy.None, sources.copy.value)
-        assertTrue(logs.single().startsWith("The kept official-trails dates could not be read"))
+        assertTrue(logs.first().startsWith("The kept official-trails dates could not be read"))
     }
 
     @Test
