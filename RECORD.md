@@ -28584,3 +28584,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #421 (climb-allowance @ b5d464483, dispatch 2026-10-26-19 Amendment 1): green 5,723; on the 10-24 walk's far points start-back-by moves 48 s and 4 min 7 s earlier. Sorrel's review (Fable; prompts/preserved/2026-10-26-sorrel-421-review.md, branch sorrel-421, 3cab5cc63): mergeable; figures reproduced exactly; the one-sided test bound sound; phone tick cost inferred 200-400 ms; S1 no cost figure in the doc, S2 the reverts' record, S3 a once-only log can fire wrongly on the first tick; N5 the self-joined route home was 459 m where the walker walked 1,121 m back (8 min 45 s pace-only against 14 min 51 s moving), against Juniper's earlier finding that the figure ran 19% and 44% long.
 **Decision:** the owner: "Merge now (Recommended)": #421 merged by the planner (pre-main cfef2f4cb); S1 to S3 to a later tidy. "Investigate (Recommended)": Juniper reconciles the two findings on the walk, read-only, with options.
 **Notes:** Written by the planner by hand. Next free ID -1697.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1697
+**Timestamp:** 2026-10-27T00:20:52Z
+**Continues:** 2026-09-28-1694
+**Title:** 8c (#419) merges after pre-main's run on #421 (owner)
+**Observed:** #419 Amendment 3 (05cf7db52): a band stopped by the way home or the recording trail resolves again without the band ids (MapTapHandler.kt:117-118, :260-267), so a kept track or cell wins as before 8c; the known list, US before a number, AT as the first word, Mc and letter-apostrophe prefixes, lower-case ordinal suffixes (ReferenceTrailRecord.kt:82-176); green 5,760; seven reverts each biting on their own edit.
+**Decision:** the owner: "Merge now (Recommended)": #419 merges once pre-main's push run on #421 is green. The planner accepted the coder's calls: "US-26" kept, the list over the full-stop rule ("FS."), ordinal suffixes unchecked against the number, "AT" only as the first word.
+**Notes:** Written by the planner by hand. Remaining odd edges ("Us Hwy 2", "MT Hood" without a stop) wait for real names from Aspen's archive. Next free ID -1698.
