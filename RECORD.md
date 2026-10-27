@@ -28960,3 +28960,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The S22 check of the v3 switch and the 8d card runs, with the night glyph reproduction (owner)
 **Decision:** the owner: "S22 is plugged in"; asked what to run, "The S22 check (Recommended)" and "Night glyph reproduction": dispatch 2026-10-27-04. The night tree glyphs are reproduced on the current build. Then an older-style area is downloaded with the pre-switch build (a4264e26a), the current pre-main is installed over it with the schema compared first, and the v3 switch's 12 steps and the card's 7 run. The walking steps (step 6 PR 4) wait for a woods walk.
 **Notes:** Written by the planner by hand. Screenshots stay off GitHub. Next free ID -1732.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1732
+**Timestamp:** 2026-10-27T17:30:18Z
+**Continues:** 2026-09-28-1730, 2026-09-28-1731
+**Title:** The work drive is cleared of finished worktrees and old review scratch (owner); the night glyph report finds none of the three hypotheses
+**Observed:** the night glyph report (Opus; docs/audits/2026-10-27-night-glyph-zoom-report.md, branch night-glyph-zoom-report, ec698da06): after the night switch the forest pattern is one fixed name at every zoom (NightImageSwitch.kt:99-102, NightImageApply.kt:77), the night image matches the day image's size and ratio, and nothing re-applies on zoom; inferred, MapLibre resolves a pattern per tile, so the zoom-18 tiles may lack the night pattern (candidates: image removed as unused, tiles built before the image was added, or lower-level); no fix justified yet; Part A S22 steps on the current build, Part B needs a logging build. The coder found /mnt/work at 100% (40 MB free).
+**Decision:** the owner: "Merged PR worktrees (Recommended)" and "Old review scratch": the planner removed 42 clean worktrees under /mnt/work/forager-wt whose heads are on the remote (git worktree remove, no force), and the scratch folders sorrel-412-recheck, sorrel-413-recheck and street-trails; /mnt/work at 7.4 GB free. Kept: active worktrees, step8a-reference-style-v3 and reference-water-manifest (their node_modules are linked by others), the five revert-8d-a1 worktrees (uncommitted changes), three wiring-snapwait worktrees (heads not on the remote), the old S22 session files, the heap dumps, rw-records (phone screenshots) and t4-rebuild (forecast). The S22 check's files go to /home/zynergy-labs/s22-2026-10-27/.
+**Notes:** Written by the planner by hand. Next free ID -1733.
