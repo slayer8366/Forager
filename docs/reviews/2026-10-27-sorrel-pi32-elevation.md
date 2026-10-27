@@ -122,7 +122,7 @@ Every path, read from the script:
 | A resume from a later stage | there is none: the script has four flags (`:76-85`) and every run starts at `state` | n/a |
 | `--basemap` | same checks; now needs the card (Aspen reports this) | no |
 | `--fetch-only`, `--local` | same checks, unreported (N1) | no |
-| The five squares with no `.bef` | PosUnifier gives their nodes no height, silently, by design; documented at `pins.env:263-264`; the check expects 182 files, which is 187 − 5 | by design, documented |
+| The five squares with no `.bef` | PosUnifier gives their nodes no height, silently, by design; documented at `pins.env:265-266`; the check expects 182 files, which is 187 − 5 | by design, documented |
 
 On the five squares: PosUnifier's block lookup is `srtm_<lon>_<lat>` from the node's own position
 (`PosUnifier.java:196-198`, `:249-253`), so a square with no file simply gets `Short.MIN_VALUE` for every
