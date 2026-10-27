@@ -548,14 +548,16 @@ class JournalPendingDeleteTest {
     @Test
     fun `swiping a region row hides it, warns of its references, and runs no tile delete yet`() {
         setScreen(chip = RecordsSubTab.OFFLINE_MAPS)
-        composeRule.onNodeWithText("Tile budget: 150", substring = true).assertExists()
+        // Since T1 (dispatch 2026-10-26-21, RECORD -1703) each area counts by its estimate, not its stored count (100 and
+        // 50 here): Ridge 243 and Saddle 238, 5 km each, zooms 10 to 15.
+        composeRule.onNodeWithText("Tile budget: 481", substring = true).assertExists()
 
         // Two row positions: the first region, then (after Undo) the second.
         swipeRowLeft(RecordType.OFFLINE_MAPS, "7")
         composeRule.onNodeWithText("Offline map deleted · used in 2 journal entries").assertIsDisplayed()
         composeRule.onNodeWithText("Ridge").assertDoesNotExist()
         // Its tiles are still on disk, so the budget still counts them until the delete runs.
-        composeRule.onNodeWithText("Tile budget: 150", substring = true).assertExists()
+        composeRule.onNodeWithText("Tile budget: 481", substring = true).assertExists()
         assertEquals(emptyList<Long>(), offlineMapRepository.deletedIds)
         touchUndo()
         composeRule.onNodeWithText("Ridge").assertExists()
