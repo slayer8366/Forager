@@ -55,7 +55,8 @@ internal class PatternRelayout<S : Any, V>(
     private var pendingStep = ""
 
     /** A new style has been asked for (just before `setStyle`): the previous style's sprite and pending step no longer count. */
-    fun onStyleRequested() {
+    @Suppress("UNUSED_PARAMETER")
+    fun onStyleRequested(firstStyleOnThisMapView: Boolean) {
         generation++
         loadedStyle = null
         spriteLoaded = false

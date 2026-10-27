@@ -127,7 +127,7 @@ internal fun MapStyleReload(
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
             is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
-        patternRelayout.onStyleRequested()
+        patternRelayout.onStyleRequested(firstStyleOnThisMapView = state.appliedStyle == null)
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)

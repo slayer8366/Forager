@@ -21,9 +21,11 @@ class PatternRelayoutTest {
 
     /**
      * The served Trail Map v3 style as the live style holds it: every layer's fill-pattern (null for none), as an ordered
-     * map, its transition as Android reads it, and every set the relayout makes, in order.
+     * map, its transition as Android reads it (300/0 by default: MapLibre's parser gives a style with no `transition` 300 ms
+     * as a set value, `parser.hpp:40`, and PlacementTransitions.kt keeps it; the S22 logs 300), and every set the relayout
+     * makes, in order.
      */
-    private class FakeStyle(version: Int = 3, val transition: Long = 0L) : PatternLayerTarget<String> {
+    private class FakeStyle(version: Int = 3, val transition: Long = 300L) : PatternLayerTarget<String> {
         val patterns: LinkedHashMap<String, String?> = LinkedHashMap<String, String?>().apply {
             val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v$version.json").readText()).jsonObject
             for (layer in style.getValue("layers").jsonArray) {
@@ -125,10 +127,10 @@ class PatternRelayoutTest {
         val style = FakeStyle()
         val relayout = relayoutOver(mapOf("night" to style))
 
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onStyleLoaded("night")
         relayout.onSpriteLoaded()
-        assertEquals("one wait, of 300 ms (an unset transition reads 0) plus 100", listOf(400L), clock.asked)
+        assertEquals("one wait, of the style's 300 ms transition plus 100", listOf(400L), clock.asked)
         clock.advanceTo(399)
         assertEquals("nothing cleared before the deferral ends", emptyList<String>(), style.sets)
         clock.advanceTo(400)
@@ -139,18 +141,29 @@ class PatternRelayoutTest {
     fun `a transition the style sets is waited out instead of the default`() {
         val style = FakeStyle(transition = 650)
         val relayout = relayoutOver(mapOf("s" to style))
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onSpriteLoaded()
         relayout.onStyleLoaded("s")
         assertEquals(listOf(750L), clock.asked)
-        assertEquals(400L, clearDelayMs(0))
+    }
+
+    @Test
+    fun `a style that sets a shorter transition than 300 ms still waits 300 plus 100`() {
+        val style = FakeStyle(transition = 150)
+        val relayout = relayoutOver(mapOf("s" to style))
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
+        relayout.onStyleLoaded("s")
+        relayout.onSpriteLoaded()
+        assertEquals("the floor: nothing was measured below the S22's 300 ms", listOf(400L), clock.asked)
+        assertEquals("an explicit 0 is not read as unset, and still waits the floor", 400L, clearDelayMs(0))
+        assertEquals(400L, clearDelayMs(300))
     }
 
     @Test
     fun `no restore before the gap, only the first full frame at least 100 ms after the clear restores`() {
         val style = FakeStyle()
         val relayout = relayoutOver(mapOf("s" to style))
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onStyleLoaded("s")
         relayout.onSpriteLoaded()
         clock.advanceTo(400)
@@ -164,7 +177,7 @@ class PatternRelayoutTest {
         assertEquals(cleared + restored, style.sets)
         assertEquals("the style ends as it started", style.dayPatterns, style.patterns)
         assertEquals("one log line for the load", 1, log.size)
-        assertTrue(log.single(), log.single().contains("clear deferred 400 ms (style transition 0 ms); cleared 2 of 2"))
+        assertTrue(log.single(), log.single().contains("clear deferred 400 ms (style transition 300 ms); cleared 2 of 2"))
         assertTrue(log.single(), log.single().contains("restored 2 [landuse_forest_glyphs=tree_dark_irregular, landuse_wetland_tufts=tufts] (test frame at 512)"))
         frames.frameAt(600)
         assertEquals("restored once", 4, style.sets.size)
@@ -176,12 +189,12 @@ class PatternRelayoutTest {
         val second = FakeStyle()
         val relayout = relayoutOver(mapOf("first" to first, "second" to second))
 
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onStyleLoaded("first")
         relayout.onSpriteLoaded()
         val firstWait = clock.pendingRuns()
         clock.advanceTo(200)
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         assertEquals("the pending clear was cancelled", 1, clock.cancelled)
         clock.advanceTo(1_000)
         clock.runEvenCancelled(firstWait) // as a missed cancel would
@@ -192,29 +205,65 @@ class PatternRelayoutTest {
     }
 
     @Test
-    fun `nothing is restored when the style changed between the clear and the restore`() {
+    fun `a style requested between the clear and the restore restores the old style first`() {
         val first = FakeStyle()
         val second = FakeStyle()
         val relayout = relayoutOver(mapOf("first" to first, "second" to second))
 
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onStyleLoaded("first")
         relayout.onSpriteLoaded()
         clock.advanceTo(400)
-        relayout.onStyleRequested()
+        assertEquals(cleared, first.sets)
+        frames.frameAt(450) // 50 ms after the clear: not yet the restore frame
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
+        assertEquals(
+            "restored in onStyleRequested, before setStyle, while the old style can still be written",
+            cleared + restored,
+            first.sets,
+        )
+        assertEquals("the old style ends as it started, should the new style fail to load", first.dayPatterns, first.patterns)
+        assertEquals("the frame wait was cancelled", 1, frames.cancelled)
         frames.frameAt(600)
-
-        assertEquals("the first style was cleared and never restored", cleared, first.sets)
-        assertEquals(1, frames.cancelled)
+        clock.advanceTo(3_000)
+        assertEquals("restored once", 4, first.sets.size)
         assertEquals(emptyList<String>(), second.sets)
-        assertTrue(log.toString(), log.single().contains("before the restore"))
+        assertEquals(1, log.size)
+        assertTrue(log.single(), log.single().contains("cleared 2 of 2 [landuse_forest_glyphs, landuse_wetland_tufts]; a new style was requested before the restore; restored 2 before the new style [landuse_forest_glyphs=tree_dark_irregular, landuse_wetland_tufts=tufts]."))
+    }
+
+    @Test
+    fun `the MapView's first style is not relaid out, and says so; the next style is`() {
+        val first = FakeStyle()
+        val second = FakeStyle()
+        val relayout = relayoutOver(mapOf("first" to first, "second" to second))
+
+        relayout.onStyleRequested(firstStyleOnThisMapView = true)
+        relayout.onStyleLoaded("first")
+        relayout.onSpriteLoaded()
+        clock.advanceTo(2_000)
+        frames.frameAt(2_100)
+        assertEquals("no wait asked for the first style", emptyList<Long>(), clock.asked)
+        assertEquals("a first style's patterns are never cleared", emptyList<String>(), first.sets)
+        assertEquals(
+            listOf("Pattern relayout: the MapView's first style; no tiles kept from an earlier style, so no relayout."),
+            log,
+        )
+
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
+        relayout.onStyleLoaded("second")
+        relayout.onSpriteLoaded()
+        clock.advanceTo(2_400)
+        frames.frameAt(2_500)
+        assertEquals("a reload is relaid out", cleared + restored, second.sets)
+        assertEquals(2, log.size)
     }
 
     @Test
     fun `layers without a pattern are never touched`() {
         val style = FakeStyle()
         val relayout = relayoutOver(mapOf("s" to style))
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onSpriteLoaded()
         relayout.onStyleLoaded("s")
         clock.advanceTo(400)
@@ -228,7 +277,7 @@ class PatternRelayoutTest {
     fun `the sprite loading before the style callback still relays out, once`() {
         val style = FakeStyle()
         val relayout = relayoutOver(mapOf("s" to style))
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onSpriteLoaded()
         relayout.onStyleLoaded("s")
         clock.advanceTo(400)
@@ -246,9 +295,9 @@ class PatternRelayoutTest {
         val first = FakeStyle()
         val second = FakeStyle()
         val relayout = relayoutOver(mapOf("first" to first, "second" to second))
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onSpriteLoaded()
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onStyleLoaded("second")
         clock.advanceTo(1_000)
         assertEquals(emptyList<Long>(), clock.asked)
@@ -263,14 +312,14 @@ class PatternRelayoutTest {
     fun `a style with no pattern layers sets nothing and says so`() {
         val style = FakeStyle().apply { patterns.replaceAll { _, _ -> null } }
         val relayout = relayoutOver(mapOf("s" to style))
-        relayout.onStyleRequested()
+        relayout.onStyleRequested(firstStyleOnThisMapView = false)
         relayout.onStyleLoaded("s")
         relayout.onSpriteLoaded()
         clock.advanceTo(400)
         assertEquals(emptyList<String>(), style.sets)
         assertEquals(false, frames.isWaiting())
         assertEquals(
-            listOf("Pattern relayout: clear deferred 400 ms (style transition 0 ms); the style has no pattern layers; nothing to relay out."),
+            listOf("Pattern relayout: clear deferred 400 ms (style transition 300 ms); the style has no pattern layers; nothing to relay out."),
             log,
         )
     }
