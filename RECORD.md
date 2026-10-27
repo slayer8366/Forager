@@ -29013,3 +29013,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** A crowded group zooms in, then fans (owner)
 **Decision:** the owner, on the spiral report's options: "Zoom in, then fan (Recommended)": a tapped group whose fan would not fit zooms the map to it until it splits or fits; "Open by itself (Recommended)"; "Back folds, then zooms out (Recommended)": Back folds the fan, then returns the camera to where it was; "Icon, name, date (Recommended)" for the list rows when everything is on one spot at the closest zoom; "Zoom 17, like the entry map (Recommended)"; "Start after find photos (Recommended)". This keeps the 2026-09-29 ruling for the fan and adds the list only for one exact spot. Dispatch 2026-10-27-07, to start after dispatch -05 merges.
 **Notes:** Written by the planner by hand. Next free ID -1737.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1737
+**Timestamp:** 2026-10-27T18:22:50Z
+**Continues:** 2026-09-28-1733, 2026-09-28-1703
+**Title:** Buildings change only from zoom 14; one manual Worker deploy after #426 merges (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr426.md, branch sorrel-pr426, a52cf2d99) on #426 a06f6a1c4: no blocking finding; S1 buildings draw from zoom 11, so the opaque #c1c1c1 also applied at zooms 11-13; S2 the coder's phone notes and S22 steps existed only in the coder's conversation; v1 and v2 byte-identical; the outline sits below trails, the band, labels and POIs; a deploy is needed (v3 is bundled in the Worker, cached a day), and MapLibre overwrites a stored v3 style at the first online load after expiry, so downloaded v3 areas refresh without a re-download. Aspen (message): the owner plans an early weekly run once the buildings and night glyph fixes are verified on the S22, started by Sat 2026-10-31 10:00 PST.
+**Decision:** the owner: "Change only from zoom 14 (Recommended)": below zoom 14 buildings stay #cccccc at 0.5; from 14 opaque, #c1c1c1 at 14 and #cccccc from 15 with the outline (dispatch 2026-10-27-02 Amendment 2). "Yes, after the merge (Recommended)": one manual Worker deploy of pre-main after #426 merges, its contents brought to the owner first, an exception to -1609 as in -1703.
+**Notes:** Written by the planner by hand. Next free ID -1738.

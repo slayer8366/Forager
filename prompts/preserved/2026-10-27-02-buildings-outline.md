@@ -50,3 +50,19 @@ Then finish the dispatch on the same branch:
 - the S22 steps.
 
 Check the OpenStreetMap Carto licence from its repository on GitHub (LICENSE.txt) rather than from memory, and fix the credit if it differs.
+
+## Amendment 2 (2026-10-27): the change starts at zoom 14; notes into the PR (RECORD -1737)
+Sorrel's review is docs/reviews/2026-10-27-sorrel-pr426.md on branch sorrel-pr426 (a52cf2d99). It finds nothing blocking. S1: buildings draw from zoom 11, so `["step",["zoom"],"#c1c1c1",15,"#cccccc"]` with opacity 1 also changes zooms 11-13. The owner: "Change only from zoom 14 (Recommended)".
+
+In street-v3 only, and paint only:
+- `fill-color`: `["step",["zoom"],"#cccccc",14,"#c1c1c1",15,"#cccccc"]`
+- `fill-opacity`: `["step",["zoom"],0.5,14,1]`
+
+Below zoom 14, buildings are exactly as today. The outline stays as built, from zoom 15. NightWaterTest stays untouched; say whether it samples each step.
+
+Also:
+- **S2:** put the "what a phone needs" notes and the S22 steps into the PR body. Use Sorrel's review §6-7 (MapLibre refreshes a stored v3 style at the first load after its copy expires; the Worker caches for a day). Add a zoom 13 step showing today's look.
+- **N1:** in BuildingsNightTest, give the type check a message before the cast.
+- **Names and comments:** update the test names, comments and the credit comment to say the zoom range correctly.
+
+Then add a revert check for the new opacity step, run full CI, and push to PR #426. No merge and no deploy.
