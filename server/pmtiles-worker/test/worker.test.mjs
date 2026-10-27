@@ -453,14 +453,22 @@ test("v3 is v2 plus the reference source and its layers and the buildings edit, 
   assert.equal(v3.sources.protomaps.url, v2.sources.protomaps.url);
 });
 
-test("buildings are solid, a step darker at z14, with a 0.75 outline from z15 directly above them (dispatch 2026-10-27-02)", () => {
-  // After the OpenStreetMap Carto style's buildings (style/buildings.mss): an opaque fill, darker at its lowest zoom,
-  // and from z15 a line 15% darker. The owner: "Can we have a border around the buildings and houses to separate them
-  // from the rest of the map?" (RECORD -1730).
+test("buildings below z14 are v2's, solid from z14, a step darker at z14 only, with a 0.75 outline from z15 directly above them (dispatch 2026-10-27-02)", () => {
+  // After the OpenStreetMap Carto style's buildings (style/buildings.mss): an opaque fill from z14, darker at z14, and
+  // from z15 a line 15% darker. The owner: "Can we have a border around the buildings and houses to separate them
+  // from the rest of the map?" (RECORD -1730). Protomaps' tiles carry buildings from z11; below z14 they stay v2's
+  // half-opaque #cccccc, the owner: "Change only from zoom 14 (Recommended)" (Amendment 2, RECORD -1737).
   const layers = v3Style().layers;
   const at = (id) => layers.findIndex((l) => l.id === id);
   const buildings = layers[at("buildings")];
-  assert.deepEqual(buildings.paint, { "fill-color": ["step", ["zoom"], "#c1c1c1", 15, "#cccccc"], "fill-opacity": 1 });
+  assert.deepEqual(buildings.paint, {
+    "fill-color": ["step", ["zoom"], "#cccccc", 14, "#c1c1c1", 15, "#cccccc"],
+    "fill-opacity": ["step", ["zoom"], 0.5, 14, 1],
+  });
+  // Below z14 each step's first output is v2's own paint, so z11 to z13 draw as before.
+  const v2Buildings = JSON.parse(STREET_V2_STYLE_SOURCE).layers.find((l) => l.id === "buildings");
+  assert.equal(buildings.paint["fill-color"][2], v2Buildings.paint["fill-color"], "below z14 the fill is not v2's");
+  assert.equal(buildings.paint["fill-opacity"][2], v2Buildings.paint["fill-opacity"], "below z14 the opacity is not v2's");
   assert.equal(at("buildings_outline"), at("buildings") + 1, "the outline is not directly above the buildings");
   assert.deepEqual(layers[at("buildings_outline")], {
     id: "buildings_outline",
