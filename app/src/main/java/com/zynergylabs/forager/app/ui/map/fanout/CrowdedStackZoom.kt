@@ -199,7 +199,7 @@ class CrowdedStackZoom(
 
     private fun list(host: CrowdedStackHost, stack: List<ProbedMarker>, tapped: FanKey): CrowdedOutcome {
         val anchor = stack.firstOrNull { it.key == tapped } ?: stack.first()
-        host.showList(
+        if (false) host.showList(
             CrowdedList(
                 keys = stack.map { it.key },
                 anchorXPx = anchor.xPx,
