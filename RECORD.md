@@ -29101,3 +29101,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr427.md, branch sorrel-pr427, 478278d1a) on 3822107a1: no blocking finding; no flip-flopping (the no-signal hysteresis emits once per return, and a failed retry has no path back to a retry); production wiring through MainActivity.kt:104 to the shared OWN_STREET_FALLBACK; every step logged; a clean trial merge with pre-main; R1 and R2 failure messages read from XML. S1: the readers test's name claims more than it samples (MapNavigationView follows through the loaded style; the Official trails row reads the style-load report, not the flag); S2: the S22 steps were not on the PR. N1: the "for the process" comments at MapListeners.kt:50 and MapStyleReload.kt:70 wait for the glyph work.
 **Decision:** the owner: "Merge now (Recommended)"; the planner added Sorrel's S22 steps to the PR body, then merged at 3822107a1; pre-main effbef21b. S1's rename and N1 go to the tidy list.
 **Notes:** Written by the planner by hand. Next free ID -1745.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1745
+**Timestamp:** 2026-10-27T19:41:31Z
+**Continues:** 2026-09-28-1609, 2026-09-28-1741
+**Title:** A staging copy of the tile Worker gets a report first (owner)
+**Decision:** the owner, on the planner's recommendation of a staging Worker deployed from pre-main and used by test builds, with the live Worker back to main only and the same R2 data read-only: "Write the dispatch for that and I'll have a coder get on it". Dispatch 2026-10-27-12, report only; building, deploying or any Cloudflare change needs the owner's word later.
+**Notes:** Written by the planner by hand. Next free ID -1746.
