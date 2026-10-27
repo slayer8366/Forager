@@ -401,18 +401,41 @@ bef_store_ok() { # dir sums-sha256 files [full]: is BRouter's elevation store th
   # node no height where there is none, so a missing or swapped store would still make squares.
   # The store is pinned by its SHA256SUMS (that file's own sha256) and its file count; with
   # "full", every file is hashed against it too (about 1.9 GB read from the card).
-  local dir=$1 want=$2 n=$3 sums="$1/SHA256SUMS" have
-  [[ -d "$dir" ]] || { echo "no elevation store at $dir"; return 1; }
+  local dir=$1 want=$2 n=$3 sums="$1/SHA256SUMS" have listed held
+  if [[ ! -d "$dir" ]]; then
+    # For a run card_ready never checked (--local, --basemap), say what to look at first (N5).
+    mountpoint -q -- "$USCA_CARD_MOUNT" 2>/dev/null || { echo "no elevation store at $dir ($USCA_CARD_MOUNT is not mounted)"; return 1; }
+    echo "no elevation store at $dir"; return 1
+  fi
   [[ -s "$sums" ]] || { echo "the elevation store $dir has no SHA256SUMS"; return 1; }
   have="$(sha256sum < "$sums" | cut -d' ' -f1)"
   [[ "$have" == "$want" ]] || { echo "$sums is $have, not the pinned USCA_BEF_SUMS_SHA256 $want"; return 1; }
   have="$(wc -l < "$sums")"
   [[ "$have" -eq "$n" ]] || { echo "$sums lists $have files, not the pinned USCA_BEF_FILES $n"; return 1; }
-  have="$(find "$dir" -maxdepth 1 -name '*.bef' -size +0 | wc -l)"
-  [[ "$have" -eq "$n" ]] || { echo "$dir holds $have non-empty .bef files, not $n"; return 1; }
+  # The names, not only the count (Sorrel's review N4): every listed .bef there and non-empty, and
+  # no other.
+  listed="$(sed -E 's/^[0-9a-f]{64} [ *]//' "$sums" | sort | tr '\n' ' ')"
+  held="$(find "$dir" -maxdepth 1 -name '*.bef' -size +0 -printf '%f\n' | sort | tr '\n' ' ')"
+  [[ "$held" == "$listed" ]] || { echo "$dir's non-empty .bef files are not the ones SHA256SUMS lists: $(comm -3 <(tr ' ' '\n' <<<"$listed") <(tr ' ' '\n' <<<"$held") | tr -d '\t' | grep . | head -5 | tr '\n' ' ')"; return 1; }
   if [[ "${4:-}" == full ]]; then
-    (cd "$dir" && sha256sum -c --quiet SHA256SUMS >/dev/null 2>&1) || { echo "a .bef in $dir does not match its SHA256SUMS"; return 1; }
+    # The failing files by name (N3).
+    have="$(cd "$dir" && sha256sum -c --quiet SHA256SUMS 2>/dev/null)" \
+      || { echo "a .bef in $dir does not match its SHA256SUMS: $(head -3 <<<"$have" | tr '\n' ' ')"; return 1; }
   fi
+}
+
+heights_read_ok() { # unodes-dir allowed-squares: did PosUnifier read heights for every square but the allowed? (G8, S1)
+  # BRouter 1.7.10's PosUnifier renames a node tile <SQUARE>.u5d_3 when it read a 3" raster for
+  # it and leaves <SQUARE>.u5d when it found no .bef, saying nothing (PosUnifier.java:128-146),
+  # and WayLinker marks the square the same either way. So a store gone mid-stage shows only
+  # here: an unsuffixed tile whose square isn't one of the pinned blocks without land data.
+  local f sq bad=() allowed=" $2 "
+  for f in "$1"/*.u5d; do
+    [[ -e "$f" ]] || continue
+    sq="$(basename "$f" .u5d)"
+    [[ "$allowed" == *" $sq "* ]] || bad+=("$sq")
+  done
+  [[ ${#bad[@]} -eq 0 ]] || { echo "PosUnifier read no heights for ${bad[*]}: is $USCA_BEF_DIR still there?"; return 1; }
 }
 
 fetch_extract() { # url name bytes: download onto the card, and link it from $SRC/osm under the same name (B)
@@ -635,8 +658,11 @@ log "inputs: $in_bytes bytes, $dl_bytes of them still to download"
 run_disk_check "$in_bytes" "$dl_bytes"
 # The elevation store (G8), in full before the downloads, so a missing or changed store stops
 # the run in a minute rather than after Planetiler's hours.
-bef="$(bef_store_ok "$USCA_BEF_DIR" "$USCA_BEF_SUMS_SHA256" "$USCA_BEF_FILES" full)" || die "$bef"
-log "elevation store: $USCA_BEF_DIR, $USCA_BEF_FILES .bef files matching SHA256SUMS ($USCA_BEF_SUMS_SHA256)"
+# A --fetch-only run builds nothing, so it doesn't need the store (Sorrel's review N1).
+if [[ $fetch_only -eq 0 ]]; then
+  bef="$(bef_store_ok "$USCA_BEF_DIR" "$USCA_BEF_SUMS_SHA256" "$USCA_BEF_FILES" full)" || die "$bef"
+  log "elevation store: $USCA_BEF_DIR, $USCA_BEF_FILES .bef files matching SHA256SUMS ($USCA_BEF_SUMS_SHA256)"
+fi
 
 # --- 2. Extracts: download (resuming), check MD5, check the header timestamp -------------------
 set_stage fetch-extracts
@@ -843,6 +869,10 @@ for k in "${!bands[@]}"; do
     "$profiles/all.brf" "$profiles/trekking.brf" "$profiles/softaccess.brf" "$band_in")
   (cd "$br" && "${TIMED[@]}" "brouter-unify-$band" -- "${bjava[@]}" -Ddeletetmpfiles=true btools.mapcreator.PosUnifier \
     nodes55 unodes55 bordernids.dat bordernodes.dat "$USCA_BEF_DIR")
+  # Every square of this band read its heights, or the run stops here (S1).
+  hr="$(heights_read_ok "$br/unodes55" "$USCA_BEF_NONE")" || die "routing band $band: $hr"
+  none_here="$(cd "$br/unodes55" && ls -- *.u5d 2>/dev/null | sed 's/\.u5d$//' | tr '\n' ' ')"
+  [[ -z "$none_here" ]] || log "routing band $band: no heights, as pinned in USCA_BEF_NONE, for $none_here"
   (cd "$br" && "${TIMED[@]}" "brouter-link-$band" -- "${bjava[@]}" -DskipEncodingCheck=true btools.mapcreator.WayLinker \
     unodes55 waytiles55 bordernodes.dat restrictions.dat "$profiles/lookups.dat" "$profiles/all.brf" segments rd5)
   kept=0

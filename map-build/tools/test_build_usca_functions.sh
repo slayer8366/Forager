@@ -17,8 +17,8 @@ ln -s 20261017T202051Z "$OUT/current"
 echo "log line" > "$log_file"
 log() { echo "LOG $*"; }
 
-eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^default_route_iface() {/,/^}/p; /^download_floor() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p; /^names_nodes_ok() {/,/^}/p; /^bef_store_ok() {/,/^}/p' "$script")"
-declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge names_nodes_ok bef_store_ok >/dev/null \
+eval "$(sed -n '/^cleanup_scratch() {/,/^}/p; /^FAILED_KEEP=/p; /^keep_failed_run() {/,/^}/p; /^rd5_square() {/,/^}/p; /^z15_tile() {/,/^}/p; /^curl_resume() {/,/^}/p; /^default_route_iface() {/,/^}/p; /^download_floor() {/,/^}/p; /^basemap_matches() {/,/^}/p; /^routing_bands_ok() {/,/^}/p; /^rd5_west_edge() {/,/^}/p; /^names_nodes_ok() {/,/^}/p; /^bef_store_ok() {/,/^}/p; /^heights_read_ok() {/,/^}/p' "$script")"
+declare -F rd5_square z15_tile curl_resume keep_failed_run cleanup_scratch basemap_matches routing_bands_ok rd5_west_edge names_nodes_ok bef_store_ok heights_read_ok >/dev/null \
   || { echo "FAIL: functions not loaded"; exit 1; }
 
 pass=0
@@ -89,16 +89,37 @@ B="$T/bef"; mkdir -p "$B"; echo one > "$B/srtm_12_03.bef"; echo two > "$B/srtm_1
 (cd "$B" && sha256sum *.bef > SHA256SUMS); BS="$(sha256sum < "$B/SHA256SUMS" | cut -d' ' -f1)"
 bef_says() { local out rc=0; out="$( (bef_store_ok "$@") 2>&1)" || rc=$?; [[ $rc -ne 0 ]] && echo "$out"; }
 check "the pinned store passes, quickly and in full" 'bef_store_ok "$B" "$BS" 2 >/dev/null && bef_store_ok "$B" "$BS" 2 full >/dev/null'
+USCA_CARD_MOUNT=/
 check "a missing store fails, naming it" '[[ "$(bef_says "$T/nope" "$BS" 2)" == "no elevation store at $T/nope" ]]'
+USCA_CARD_MOUNT="$T/not-a-mount"
+check "a missing store with the card not mounted says so (N5)" \
+  '[[ "$(bef_says "$T/nope" "$BS" 2)" == "no elevation store at $T/nope ($T/not-a-mount is not mounted)" ]]'
 check "a store of another SHA256SUMS fails, naming both" '[[ "$(bef_says "$B" 0000 2)" == *"not the pinned USCA_BEF_SUMS_SHA256 0000"* ]]'
 check "a count other than the pin fails" '[[ "$(bef_says "$B" "$BS" 3)" == *"lists 2 files, not the pinned USCA_BEF_FILES 3"* ]]'
 mv "$B/srtm_17_04.bef" "$T/held.bef"
-check "a listed .bef gone fails the quick check" '[[ "$(bef_says "$B" "$BS" 2)" == *"holds 1 non-empty .bef files, not 2"* ]]'
-mv "$T/held.bef" "$B/srtm_17_04.bef"; echo changed > "$B/srtm_17_04.bef"
-check "a changed .bef passes the quick check but fails the full one" \
-  'bef_store_ok "$B" "$BS" 2 >/dev/null && [[ "$(bef_says "$B" "$BS" 2 full)" == *"does not match its SHA256SUMS"* ]]'
+check "a listed .bef gone fails the quick check, naming it" '[[ "$(bef_says "$B" "$BS" 2)" == *"not the ones SHA256SUMS lists: srtm_17_04.bef"* ]]'
+echo other > "$B/srtm_99_99.bef"
+check "a listed .bef gone and an unlisted one there, the same count, fails the quick check (N4)" \
+  '[[ "$(bef_says "$B" "$BS" 2)" == *"srtm_17_04.bef srtm_99_99.bef"* ]]'
+rm -f "$B/srtm_99_99.bef"; mv "$T/held.bef" "$B/srtm_17_04.bef"; echo changed > "$B/srtm_17_04.bef"
+check "a changed .bef passes the quick check but fails the full one, naming the file (N3)" \
+  'bef_store_ok "$B" "$BS" 2 >/dev/null && [[ "$(bef_says "$B" "$BS" 2 full)" == *"does not match its SHA256SUMS: srtm_17_04.bef: FAILED"* ]]'
 rm -f "$B/SHA256SUMS"
 check "a store without SHA256SUMS fails" '[[ "$(bef_says "$B" "$BS" 2)" == *"has no SHA256SUMS"* ]]'
+# --- heights_read_ok: PosUnifier names a tile <SQUARE>.u5d_3 when it read heights (S1) -----------
+# Read on the Pi with BRouter 1.7.10 on the 261024 USVI extract: with the store, W65_N15.u5d_3 and
+# W70_N15.u5d_3; with an empty folder, W65_N15.u5d and W70_N15.u5d.
+U5="$T/unodes55"; mkdir -p "$U5"; USCA_BEF_DIR=/the/store
+check "an empty tile folder passes" 'heights_read_ok "$U5" "W80_N25" >/dev/null'
+: > "$U5/W125_N45.u5d_3"; : > "$U5/W80_N25.u5d"
+check "tiles with heights and an allowed one without pass" 'heights_read_ok "$U5" "W170_N20 W80_N25" >/dev/null'
+: > "$U5/W100_N40.u5d"
+check "a tile without heights that isn't allowed fails, naming the square" \
+  '! heights_read_ok "$U5" "W170_N20 W80_N25" >/dev/null && [[ "$(heights_read_ok "$U5" "W170_N20 W80_N25")" == "PosUnifier read no heights for W100_N40: "* ]]'
+check "a square is matched whole, not by a prefix" '! heights_read_ok "$U5" "W100_N4 W80_N25" >/dev/null'
+check "the weekly path runs it after each band's PosUnifier, with the pin, and dies" \
+  'grep -qF '"'"'hr="$(heights_read_ok "$br/unodes55" "$USCA_BEF_NONE")" || die'"'"' "$script" && [[ "$(grep -n "btools.mapcreator.PosUnifier" "$script" | cut -d: -f1)" -lt "$(grep -n "heights_read_ok \"\$br" "$script" | cut -d: -f1)" ]]'
+
 check "PosUnifier reads the pinned store, and nothing builds into an empty no-elevation folder" \
   'grep -qF '"'"'bordernids.dat bordernodes.dat "$USCA_BEF_DIR")'"'"' "$script" && ! grep -q "no-elevation" "$script"'
 check "the store is checked in full at the state stage and quickly before BRouter" \

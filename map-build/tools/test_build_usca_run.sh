@@ -170,7 +170,18 @@ case " $* " in
   *" btools.mapcreator.OsmFastCutter "*)
     { if [[ -e "$C" ]]; then echo "card_work_exists=yes"; echo "card_work=$(find "$C" -mindepth 1 | tr '\n' ' ')"
       else echo "card_work_exists=no"; fi; } > "$STUB_T/cut.rec"
-    exit 1 ;;
+    # STUB_BROUTER=go goes on to PosUnifier; STUB_DROP_STORE moves the store away here, after
+    # the brouter stage's check, as a card dropping out mid-stage would (R10).
+    [[ "${STUB_BROUTER:-}" == go ]] || exit 1
+    if [[ -n "${STUB_DROP_STORE:-}" ]]; then mv "$STUB_DROP_STORE" "$STUB_DROP_STORE.gone"; fi ;;
+  *" btools.mapcreator.PosUnifier "*)
+    # As BRouter 1.7.10 does: <SQUARE>.u5d_3 when it read a .bef, <SQUARE>.u5d when it found none.
+    # W80_N25 is one of the pinned squares without a .bef.
+    dir="${*: -1}"
+    if compgen -G "$dir/*.bef" >/dev/null; then : > unodes55/W125_N45.u5d_3; else : > unodes55/W125_N45.u5d; fi
+    : > unodes55/W80_N25.u5d ;;
+  *" btools.mapcreator.WayLinker "*)
+    echo "linked" > "$STUB_T/link.rec"; exit 1 ;;
   *) echo "java stub: unexpected $*" >&2; exit 1 ;;
 esac
 EOF
@@ -385,6 +396,27 @@ show "R9 elevation store changed"
 check "R9: a .bef that no longer matches SHA256SUMS fails the run at the state stage" \
   '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == state ]] && grep -q "FAILED: a .bef in $T/bef-changed does not match its SHA256SUMS" "$L"'
 check "R9: a good store is logged at the start of a run (R1)" 'grep -q "elevation store: $T/bef, 2 .bef files matching SHA256SUMS" "$S_R1_LOG"'
+
+# --- R10. Heights read for every square, or the run stops after PosUnifier (S1) ------------------
+mkdir -p "$T/bef-r10"; cp "$T/bef/"* "$T/bef-r10/"
+new_srv r10-ok local; rm -f "$T/link.rec"
+STUB_BROUTER=go STUB_BEF_DIR="$T/bef-r10" build --local 261017
+show "R10 heights read"
+check "R10: with the store there, the run passes PosUnifier's check and reaches WayLinker" \
+  '[[ -f "$T/link.rec" ]] && ! grep -q "read no heights" "$L"'
+check "R10: the pinned squares without heights are logged" 'grep -q "no heights, as pinned in USCA_BEF_NONE, for W80_N25" "$L"'
+new_srv r10-drop local; rm -f "$T/link.rec"
+STUB_BROUTER=go STUB_BEF_DIR="$T/bef-r10" STUB_DROP_STORE="$T/bef-r10" build --local 261017
+show "R10 store gone after the cutter"
+check "R10: a store gone mid-stage fails the run at brouter, naming the square, before WayLinker" \
+  '[[ $rc -ne 0 && "$(status_field "$S/status-usca.json" stage)" == brouter && ! -f "$T/link.rec" ]] && grep -q "FAILED: routing band .*: PosUnifier read no heights for W125_N45" "$L"'
+mv "$T/bef-r10.gone" "$T/bef-r10" 2>/dev/null || true
+
+# --- R11. --fetch-only doesn't need the store (N1) ------------------------------------------------
+new_srv r11
+STUB_BEF_DIR="$T/no-such-bef" build --fetch-only
+show "R11 --fetch-only, no store"
+check "R11: a --fetch-only run without the store isn't stopped by it" '! grep -q "no elevation store" "$L"'
 
 if [[ $fails -gt 0 ]]; then echo "FAILED: $fails checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"
