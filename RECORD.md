@@ -29111,3 +29111,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** A staging copy of the tile Worker gets a report first (owner)
 **Decision:** the owner, on the planner's recommendation of a staging Worker deployed from pre-main and used by test builds, with the live Worker back to main only and the same R2 data read-only: "Write the dispatch for that and I'll have a coder get on it". Dispatch 2026-10-27-12, report only; building, deploying or any Cloudflare change needs the owner's word later.
 **Notes:** Written by the planner by hand. Next free ID -1746.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1746
+**Timestamp:** 2026-10-27T19:55:06Z
+**Continues:** 2026-09-28-1742, 2026-09-28-1735
+**Title:** The pattern workaround fails on the S22 as built; #428, find photos, is up
+**Observed:** the pattern-relayout coder (Opus; PR #429, pattern-relayout-fix 6379dddfe, 703ce7d94; CI 40567060530 green, 5,834 tests; F0, R1 and R2 each failing for their own edit): on the S22, clearing and restoring the fill-pattern layers right after the sprite loads leaves glyphs at 0 with the restore at 31 ms, 600 ms or 2000 ms (day control 2.81%); the working probe ran seconds after the reload. Two failed attempts on one symptom, so data next: scratch v2 (scratch-prf-gap-probe 6005f1cdf, run 40572130840) adds a delay before the clear, an on-demand relayout and parse logging. The buildings check was not started. #428 (find-photos-off-map a2bfb4848, dispatch 2026-10-27-05 Amendment 1): CI 40570103019 green, 5,845 tests; revert checks r1-r5 each failing for their own edit; if the finds cannot be read, every find-linked photo is hidden and the failure logged.
+**Decision:** none new. #429 does not merge as it stands. A fresh coder runs the buildings check first, then the glyph data; any change to #429 waits for the owner. #428 goes to Sorrel.
+**Notes:** Written by the planner by hand. The upstream draft's workaround paragraph describes the failed form and is corrected before the owner files it. Next free ID -1747.
