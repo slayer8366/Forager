@@ -28875,3 +28875,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's quick look (Fable; docs/reviews/2026-10-27-sorrel-pr424.md on sorrel-pr424, bbdba9c85) at 2cbbdc4de: merge; S1 correct and its test bites; the no-body skip holds against OkHttp 4.12.0's own source; all five revert runs fail on exactly their own test with 0 compile errors; head run 40507450521 green, 5,812 tests. By design, a first opening online with no kept copy shows the dateless line and hint until the fetch answers (an S22 observation).
 **Decision:** merged at 2cbbdc4de under -1719's "Fix both, then merge"; pre-main f2cbbbf20. The card's steps join the S22 check.
 **Notes:** Written by the planner by hand. Next free ID -1724.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1724
+**Timestamp:** 2026-10-27T14:00:33Z
+**Continues:** 2026-09-28-1720, 2026-09-28-1722
+**Title:** G8 closes its mid-run gap before the install (owner)
+**Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pi32-elevation.md, branch sorrel-pi32-elevation, c3c914b70) on pi-32-elevation 6b991fac5: mergeable, no blocking finding; a run cannot start or reach BRouter with the store missing, swapped or altered; five revert checks each fail on their own check. S1: a store lost during the routing stage builds the remaining squares without heights silently (BRouter 1.7.10's PosUnifier logs nothing for a missing .bef; WayLinker marks elevationType 3 either way); PosUnifier's .u5d_3 rename tells the two apart. N1: --fetch-only now needs the store. Aspen (message): the scratch folders are copied to /mnt/storage/moved-20261027/ and verified by sha256; removing the originals was refused by Aspen's permission check and waits for the owner's word in Aspen's window.
+**Decision:** the owner: "Fix the gap, then install (Recommended)": Aspen adds a check after each band's PosUnifier against a pinned list of the five squares without heights, plus N1, N3 and N4; Sorrel takes a quick look; then the merge, and the install on the owner's word in Aspen's window before Saturday evening.
+**Notes:** Written by the planner by hand. Next free ID -1725.
