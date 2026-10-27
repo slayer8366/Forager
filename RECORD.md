@@ -29220,3 +29220,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; docs/reviews/2026-10-27-sorrel-pr429.md, branch sorrel-pr429, 00b4d0525) on d25afd054: no blocking finding; S1 a second style request within the restore window whose load fails can leave the old style's patterns at ""; S2 the 300 ms is MapLibre's parser default (parser.hpp:40), so the app's transition is 300/0. This corrects -1752's "the app already writes an explicit 0/0" and -1754's "unexplained"; the code's 0 to 300 branch is dead and the upstream draft's lines 52-55 are wrong. S3 every cold start over forest clears and restores patterns that were drawing (unmeasured).
 **Decision:** the owner: "Fix all three, then merge (Recommended)": dispatch 2026-10-27-13 Amendment 1 (restore before a new style, the corrected explanation and draft, skip on the first style), then a recheck on the S22, Sorrel's quick look and the merge. "Tell Aspen now (Recommended)": the buildings and the glyph fix are verified on the S22, so Aspen is told the early run's cue is met; the run starts only on the owner's word in Aspen's window, by 2026-10-31 10:00 PST.
 **Notes:** Written by the planner by hand. Next free ID -1756.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1756
+**Timestamp:** 2026-10-27T22:29:07Z
+**Continues:** 2026-09-28-1748, 2026-09-28-1755
+**Title:** The owner approves the buildings on the phone; the early weekly run is under way
+**Observed:** Aspen (message): the early run usca-20261027T221400Z started 15:14 PDT on the owner's "Go ahead and begin the run" in Aspen's window, on the 261026 extracts; start checks passed (NVMe 177.9 GB free against 157.2 GB, card 79.8 against 42.7, all 182 .bef verified); the Pi had restarted at 15:11 (the owner: "The power was unplugged, but it's fixed now"); Sunday's run now 02:29:45 PST; on slow Wi-Fi the end is estimated 10-11 AM PDT 2026-10-28 (inferred).
+**Decision:** the owner, in Aspen's window about 15:25 PDT: "Map buildings look much better now. I approve". Any R2 upload of the early run's set needs the owner's word.
+**Notes:** Written by the planner by hand. Next free ID -1757.
