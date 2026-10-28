@@ -29411,3 +29411,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus) built Amendment 4 at 5bd69cd4c (code 66c0457c0): light selected chip secondary #A2612C, white label, 1 dp onSurface outline; 4.27:1 against the opaque panel (was 1.12:1), 2.67:1 at 80% over black; run 40772168805 green, 5,889 tests, 0 failures, 24 skipped; fail-first run 40766732067 had 5 predicted failures; reverts r18, r19b and r20 hold. S22 round 2 (s22-pr432-r2 edb91b582): steps 16-18 pass. Step 13's TalkBack half passed on the owner's own re-run ('Said "disabled"'), superseding an earlier answer given when TalkBack was already off ("nothing was said", then "That's why"). TalkBack's READ_PHONE_STATE was revoked again on the owner's "Yes, deny it again".
 **Decision:** the owner: "Give the grey chip an outline too"; "Light theme only (Recommended)". Dispatch 2026-10-28-02 Amendment 5.
 **Notes:** Written by the planner by hand. Next free ID -1774.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1774
+**Timestamp:** 2026-10-28T21:52:46Z
+**Continues:** 2026-09-28-1773
+**Title:** #432: the chip outline in both themes, uniform; replaces -1773's "Light theme only"
+**Decision:** the owner: "Both themes. Make it uniform". Both the selected and the grey chip carry a 1 dp onSurface outline in light and dark, with fills unchanged. Dispatch 2026-10-28-02 Amendment 6.
+**Notes:** Written by the planner by hand. Next free ID -1775.

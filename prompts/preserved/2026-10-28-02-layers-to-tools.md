@@ -90,3 +90,10 @@ Amendment 4 is built: 5bd69cd4c, code 66c0457c0, run 40772168805 green, 5,889 te
 - **Dark theme:** unchanged for both chips.
 - Test it through the real entry points (the no-signal case and the style fallback, as MapTypePanelOfflineChipTest does). Write it so it fails first, then a revert check. Report the outline's contrast against the grey fill and against the panel.
 - Add an S22 step to the PR body. CI only; push to #432.
+
+## Amendment 6 (2026-10-28): the outline in both themes, uniform (RECORD -1774)
+The owner, after Amendment 5: "Both themes. Make it uniform". This replaces Amendment 5's "Light theme only".
+- **Both themes:** the selected chip and the grey "chosen, but Trail is showing" chip each carry the same 1 dp onSurface outline, using that theme's onSurface. Their fills are unchanged (Amendment 4's light fill stays; dark fills as today).
+- The unselected chips keep their own outline as today.
+- Tests: through the real entry points, in both themes and for both chip states. Write them so they fail first, then revert checks. Amendment 4's "dark unchanged" assertions change to the new outline. Report the contrast of each outline against its fill and against the panel, in each theme.
+- Update the PR body's S22 steps 19 and 20 and add the grey chip's step. CI only; push to #432.
