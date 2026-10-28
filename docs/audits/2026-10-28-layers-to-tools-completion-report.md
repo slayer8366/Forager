@@ -202,9 +202,10 @@ Give it an outline."
 | `d4f300387` | Test first: `MapTypePanelSelectedChipTest` (new, 4 tests). `MapTypePanelOfflineChipTest` and `OwnStreetFallbackRetryTest` expect the light theme's new normal selected fill. `MapModeChips.kt` gains only the `MapModeChipSelectedOutline` semantics key, recording the state at the time (no outline), so the test compiles |
 | `64aacd969` | The fix, in `MapModeChips.kt`: in the light theme the normal selected chip is filled `secondary` with an `onSecondary` label and a 1 dp `onSurface` outline |
 | `61bfe5335` | The outline assertion reworded after r19, below. The check is unchanged; only which message fires changed |
+| `e2a4e0bfe`, `66c0457c0` | The label named as `PureWhite` rather than read as the scheme's `onSecondary`, and its comment reworded (below) |
 
 **What it looks like now.**
-- **Light theme.** The selected chip is filled `secondary` (#A2612C, the deepened Mushroom), with a white (`onSecondary`)
+- **Light theme.** The selected chip is filled `secondary` (#A2612C, the deepened Mushroom), with a white (`PureWhite`, the value of `onSecondary`)
   label and a 1 dp `onSurface` (Bark, #3B2E24) outline. The unselected chips are unchanged (no fill, with Material's default
   thin outline).
 - **Dark theme.** Unchanged: `secondaryContainer` (#6B421A), no selected outline. The shared chip did not get in the way.
@@ -283,7 +284,17 @@ at 0 and leaves the outline check to fail, and r19b reran the revert against tha
 After each check, the forward branch still held the change: `git diff 8c3097207 -- MapModeChips.kt` showed the
 `lightSelectedChipColors`/`lightSelectedChipBorder` lines.
 
-**CI on the PR, head `61bfe5335`:** PRRUN.
+**Caught by an existing test, and fixed without touching it.** CI run 40769534726, on `61bfe5335`, ran 5889 tests and
+failed one: `ThemeCompletenessTest`, with "LightColors.onSecondary is Material's baseline default". That test scans `ui/`
+for `colorScheme.<role>` reads, comments included, and fails any role that is read and whose value equals Material's
+baseline. My label was the first read of `onSecondary` in `ui/`. Its value, `PureWhite`, is the baseline's white, and the
+test's own doc names `onSecondary` as the case of a correct white it cannot tell from an unset role. So `e2a4e0bfe` names
+`PureWhite`, the token the role holds, and the pixels are the same. `66c0457c0` then reworded my explanatory comment, which
+had spelled out the scanned pattern and would have tripped the test again. The test is untouched. Run 40769534726 is the
+fail state for this one: it is the build that read the role. r18, r19b and r20 ran before the label change. They assert
+fills and outlines, not the label, so the change cannot alter their results.
+
+**CI on the PR, head `66c0457c0`:** run 40772168805, all five jobs success, 0 compile errors in the log. From the XML: 805 files, 5889 tests (4 more than Amendment 3's 5885, which are `MapTypePanelSelectedChipTest`'s four), 0 failures, 0 errors, 24 skipped. `MapTypePanelSelectedChipTest` 4/0, `MapTypePanelOfflineChipTest` 10/0, `OwnStreetFallbackRetryTest` 3/0, `ThemeCompletenessTest` 1/0.
 
 **Not tested, or only on a device.**
 - How the new chip reads at arm's length, indoors and outside, over a busy map. The figures above are computed, not seen. An
