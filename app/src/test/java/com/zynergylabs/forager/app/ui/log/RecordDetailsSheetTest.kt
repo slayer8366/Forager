@@ -345,14 +345,17 @@ class RecordDetailsSheetTest {
     }
 
     @Test
-    fun `a waypoint with no track and no count shows neither line, one with a missing track says Not loaded`() {
+    // Edited by dispatch 2026-10-28-08, Amendment 1 (RECORD -1781): "RecordDetailsContent.kt:75 reads a missing id as 0".
+    // The counts are live and hold only ids some committed entry keeps, so a missing id is a real zero now, not an
+    // uncounted one. Was: "a waypoint with no count given has no Used in line, rather than a made-up zero".
+    fun `a waypoint with no track and no count says no journal entries, one with a missing track says Not loaded`() {
         setScreen()
         openRecords()
         touch(waypointRow("W2"), Offset(0.4f, 0.5f))
         composeRule.onNodeWithTag(TITLE).assertTextEquals("Oak pin")
         field("coordinates").assertTextEquals("Coordinates", "45.4000, -122.7000")
         assertTrue("a waypoint dropped with no recording has no Track line", !exists("record-details-field-track"))
-        assertTrue("a waypoint with no count given has no Used in line, rather than a made-up zero", !exists("record-details-field-used-in"))
+        field("used-in").assertTextEquals("Used in", "no journal entries")
         pressBackOnSheet()
 
         touch(waypointRow("W3"), Offset(0.4f, 0.5f))

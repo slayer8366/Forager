@@ -53,7 +53,7 @@ data class TrackRecordingUiState(
      * list says nothing, so a waypoint being navigated to that is not in it is not yet "deleted".
      */
     val waypointsLoaded: Boolean = false,
-    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [waypoints]; a waypoint missing from this map has never been counted, treated as zero the same as an explicit zero. */
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning. Live since dispatch 2026-10-28-08 (`EntryReferenceCountSource`), not loaded with [waypoints]; a waypoint missing from this map has no committed entry keeping it, and reads as zero. */
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /**
      * Whether the walker has said they're now heading back, distinct from [isRecording] — outbound
@@ -176,7 +176,7 @@ data class TrackRecordingUiState(
     val pendingWaypointDelete: PendingDelete<Waypoint>? = null,
     /** The track whose delete was asked for (swipe or the details' Delete) and has not run yet: the Undo snackbar is still up. Part 2 follow-ups F1 item 5. */
     val pendingTrackDelete: PendingDelete<Track>? = null,
-    /** How many journal entries keep each track (loaded with [tracks]); a track missing here has no count and the snackbar says nothing about entries. */
+    /** How many journal entries keep each track (live since dispatch 2026-10-28-08, `EntryReferenceCountSource`); a track missing here has no committed entry keeping it, and the snackbar says nothing about entries. */
     val trackEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** Set when a committed track delete failed (the track is back in [tracks]); cleared by the next successful load. */
     val tracksErrorMessage: String? = null,

@@ -72,7 +72,8 @@ internal fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceC
         val parent = tracks.firstOrNull { it.id == trackId }
         DetailField(FIELD_TRACK, "Track", parent?.let { trackTitle(it, is24Hour) } ?: "Not loaded")
     }
-    referenceCounts[waypoint.id]?.let { count -> DetailField(FIELD_USED_IN, "Used in", journalEntryCountLabel(count)) }
+    // A missing id is no committed entry keeping it: the counts are live and hold only ids with one (dispatch 2026-10-28-08).
+    DetailField(FIELD_USED_IN, "Used in", journalEntryCountLabel(referenceCounts[waypoint.id] ?: 0))
     DetailsActions {
         // Dispatch -502: the app's own navigation first, then the hand-off to a maps app.
         onNavigate?.let { navigate ->

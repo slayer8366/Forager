@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app
 
 import android.content.Context
+import com.zynergylabs.forager.app.data.repository.RoomEntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import java.io.File
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.JournalBackup
@@ -113,7 +115,6 @@ import com.zynergylabs.forager.app.domain.GetConditionsUseCase
 import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
 import com.zynergylabs.forager.app.domain.ImportGpxUseCase
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
-import com.zynergylabs.forager.app.domain.GetEntryReferenceCountUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetPlannedTripsUseCase
@@ -363,7 +364,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val deleteCartographyEntryUseCase = DeleteCartographyEntryUseCase(cartographyEntryRepository)
     // J8: the report menu's "Show on map" and the Maps-tab chip's "Hide" write shownOnMap through this.
     val setCartographyEntryShownOnMapUseCase = SetCartographyEntryShownOnMapUseCase(cartographyEntryRepository)
-    val getEntryReferenceCountUseCase = GetEntryReferenceCountUseCase(cartographyEntryRepository)
+    // Dispatch 2026-10-28-08: how many journal entries keep each waypoint, track, offline region and photo, live.
+    // Replaced the one-shot GetEntryReferenceCountUseCase, whose four ViewModel callers were its only ones.
+    val entryReferenceCountSource: EntryReferenceCountSource = RoomEntryReferenceCountSource(database.cartographyEntryDao())
 
     // Phase 1a of the Forager Navigator plan (docs/navigation/forager-navigator-plan.md) — track
     // recording and waypoints. TrackRecordingService (com.zynergylabs.forager.app.service) reaches these

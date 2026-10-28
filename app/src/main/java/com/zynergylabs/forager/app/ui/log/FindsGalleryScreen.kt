@@ -169,6 +169,16 @@ internal fun FindsGalleryScreen(
                 modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
         }
+        // Dispatch 2026-10-28-08 (RECORD -1780), the owner's words: an empty, loaded tab says what to do. A failed load
+        // keeps its own text above instead. Until then an empty tab drew a blank grid (RECORD -751 took away the "+" tile
+        // that had been Log's cue; docs/audits/2026-10-28-records-follow-ups-look.md, section 2).
+        if (visibleEntries.isEmpty() && loadErrorMessage == null && !isLoading) {
+            Text(
+                if (shownTab == FindsGalleryTab.DRAFTS) "No drafts. A find you leave before saving waits here." else "No finds yet. Use New find to log one.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+            )
+        }
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.weight(1f).testTag(FINDS_GRID_TAG),

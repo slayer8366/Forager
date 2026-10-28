@@ -173,7 +173,7 @@ abstract class OfflineMapsPanelTextTests(private val landscape: Boolean) {
     fun `the continental-US note is the last line, under the downloaded-maps section`() {
         setScreen()
         val note = textBounds(US_NOTE)
-        val emptyState = textBounds("No regions downloaded yet.")
+        val emptyState = textBounds("No maps downloaded yet. Pan the map to an area and tap Download Maps.")
         val budget = composeRule.onNode(hasText("Tile budget:", substring = true), useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue("the note $note is under the downloaded-maps section's last line $emptyState", note.top >= emptyState.bottom - 0.5.dp)
         assertTrue("and under the budget line $budget", note.top >= budget.bottom - 0.5.dp)

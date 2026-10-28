@@ -562,6 +562,69 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         }
     }
+
+    // ── Dispatch 2026-10-28-08 (RECORD -1780, -1781): each empty list says what the user can do, in the owner's words ──
+    //
+    // Each asserted as exact text through the real Records screen. A failed load keeps its own text.
+
+    private fun emptyScreen(initial: MushroomLogUiState = MushroomLogUiState()) =
+        setScreen(initial = initial, waypoints = emptyList(), tracks = emptyList(), regions = emptyList())
+
+    @Test
+    fun `an empty All says how records are made`() {
+        emptyScreen()
+        touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+        composeRule.onNodeWithText("No records yet. Record a track, drop a waypoint or download a map, and it shows here.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an empty Tracks says to tap the record button on the map`() {
+        emptyScreen()
+        touchChip(TRACKS_CHIP, Offset(0.5f, 0.5f))
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an empty Offline maps says to pan the map and tap Download Maps`() {
+        emptyScreen()
+        touchChip(OFFLINE_MAPS_CHIP, Offset(0.5f, 0.5f))
+        composeRule.onNodeWithText("No maps downloaded yet. Pan the map to an area and tap Download Maps.").assertExists()
+    }
+
+    @Test
+    fun `an empty, loaded Finds Log says to use New find, and its Drafts says where an unsaved find waits`() {
+        emptyScreen()
+        chip(FINDS_CHIP).assertIsSelected()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertIsDisplayed()
+        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Drafts").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a failed Finds load keeps its own text on both tabs, and neither empty line shows`() {
+        emptyScreen(MushroomLogUiState(loadErrorMessage = "Log entries unavailable."))
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Drafts").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a Finds Log still loading says nothing yet, while its drafts already show`() {
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = null, date = LocalDate.of(2026, 9, 21))
+        emptyScreen(MushroomLogUiState(isLoadingEntries = true, draftEntries = listOf(draft)))
+        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
+    }
 }
 
 private const val ALL_CHIP = "records-chip-all"

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
 import com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
@@ -127,14 +129,10 @@ class TrackRecordingViewModel(
     /** The clock the auto-created waypoints' names read. The off-track cooldown's clock is [ReturnWatch]'s own. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /**
-     * How many Cartography entries currently keep a reference to a waypoint — Journal Stage 2b's
-     * 4b deletion warning. A plain suspend function rather than threading the whole
-     * `CartographyEntryRepository`/`GetEntryReferenceCountUseCase` in: this ViewModel needs exactly
-     * one query from that surface, and a function type keeps this constructor (and every existing
-     * test's fixture) from having to stand up a Cartography repository just to construct it. Defaults
-     * to always reporting zero, matching every other optional dependency here.
+     * How many journal entries keep each waypoint and each track, live (dispatch 2026-10-28-08): the waypoint's
+     * "Used in" and both Undo snackbars' warnings. Defaults to no counts, every one reading 0, as before.
      */
-    private val getWaypointReferenceCount: suspend (String) -> Int = { 0 },
+    private val entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
     /** The zone the auto-created origin/end waypoints' default names are written in — injected so a test can pin the wall-clock text. */
     private val zone: ZoneId = ZoneId.systemDefault(),
     /**
@@ -162,11 +160,6 @@ class TrackRecordingViewModel(
      * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
     private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
-    /**
-     * How many journal entries keep a track, for the Undo snackbar's warning, read the way
-     * [getWaypointReferenceCount] is. Part 2 follow-ups F1 item 5.
-     */
-    private val getTrackReferenceCount: suspend (String) -> Int = { 0 },
     /** The real delete of a track, run only when its Undo window closes. Part 2 follow-ups F1 item 5. */
     private val deleteTrack: DeleteTrackUseCase,
     /**
@@ -267,8 +260,7 @@ class TrackRecordingViewModel(
         getTracks = getTracks,
         createWaypoint = createWaypoint,
         deleteWaypoint = deleteWaypoint,
-        getWaypointReferenceCount = getWaypointReferenceCount,
-        getTrackReferenceCount = getTrackReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         abandonedTrackSweepOnce = abandonedTrackSweepOnce,
         errorLog = errorLog,
     )
@@ -356,6 +348,7 @@ class TrackRecordingViewModel(
     private val rowReads = TrackRecordingRowReads(uiState = { _uiState.value }, trackRepository = trackRepository, errorLog = errorLog)
 
     init {
+        lists.watchReferenceCounts()
         loadWaypoints()
         loadTracks()
         viewModelScope.launch { takeUpRunningRecording() }

@@ -9,11 +9,13 @@ import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
 import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
@@ -200,14 +202,14 @@ class MushroomLogViewModel(
     /** Photo-geodata dispatch: the fire-and-forget GPS fix for a freshly captured camera photo — see this class's own doc comment, "Camera-capture location." */
     private val locationProvider: LocationProvider,
     private val updatePhotoLocation: UpdatePhotoLocationUseCase,
-    /** How many Cartography entries currently keep a photo attached — Journal Stage 2b's 4b deletion warning, extended to photos. Plain suspend function rather than the whole Cartography repository — see `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why. */
-    private val getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
+    /** How many journal entries keep each photo, live, for its delete message, album badge and map bubble (dispatch 2026-10-28-08). Defaults to no counts, every one reading 0. */
+    private val entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
     /**
      * The device fix currently in hand, if any — find-location-at-creation dispatch, Fix 1. In
      * production this reads `AvailabilityViewModel`'s held `liveFix` (`MainActivity` wires the
      * lambda), the one live collection of fixes that runs whenever the app is foregrounded and is
      * not gated on a recording. A plain function rather than the other ViewModel or its state
-     * flow, the same shape as [getPhotoEntryReferenceCount]: this class needs one value at one
+     * flow, the same shape the photo counts had until dispatch 2026-10-28-08: this class needs one value at one
      * moment, never a subscription. Never awaited — see [MushroomLogCaptureLocation.freshDeviceLocation].
      */
     private val currentFix: () -> LocationFix.Update? = { null },
@@ -218,7 +220,7 @@ class MushroomLogViewModel(
      * to matter rather than held — see
      * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what it gates and
      * why the owner's ruling makes that wider than the label. Borrowed as a plain suspend function,
-     * the same shape as [getPhotoEntryReferenceCount], and defaulted to `true` so every existing
+     * the same plain-function shape as [currentFix], and defaulted to `true` so every existing
      * test keeps the behaviour it was written against.
      *
      * **Re-read per capture, never cached.** A user who unchecks this in Settings and immediately
@@ -283,7 +285,7 @@ class MushroomLogViewModel(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         getGalleryPhotos = getGalleryPhotos,
-        getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         addPhotoToGallery = addPhotoToGallery,
         deleteGalleryPhoto = deleteGalleryPhoto,
         onPhotoDeleted = onPhotoDeleted,
@@ -333,6 +335,7 @@ class MushroomLogViewModel(
     )
 
     init {
+        gallery.watchReferenceCounts()
         loadEntries()
         loadGalleryPhotos()
     }

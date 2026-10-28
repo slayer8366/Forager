@@ -139,7 +139,8 @@ internal fun RecordsLogbookList(
             )
         }
         if (sectionRows.isEmpty()) {
-            Text("No records yet.", style = MaterialTheme.typography.bodyMedium)
+            // Dispatch 2026-10-28-08, Amendment 1 (RECORD -1781), the owner's words; was "No records yet.".
+            Text("No records yet. Record a track, drop a waypoint or download a map, and it shows here.", style = MaterialTheme.typography.bodyMedium)
         }
         sectionRows.forEach { sectionRow -> key(sectionRow.key) { ListRowMotion(sectionRow) { section ->
           // One column per section, with the list's own spacing, so a leaving section shrinks as one block.
