@@ -70,6 +70,9 @@ internal fun MapStyleReload(
     // RECORD -1513: the switch as the map uses it, off for the rest of the process once the own Street has failed to load
     // (OwnStreetFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
     val ownStreet = OWN_STREET_FALLBACK.ownStreet()
+    // Dispatches 2026-10-27-11 and -13 (RECORD -1742, -1748): patterns lost on the tiles a reload keeps, a MapLibre 13.5.0
+    // fault worked around in PatternRelayout.kt. Told of each request below and each callback; it listens for the sprite itself.
+    val patternRelayout = rememberPatternRelayout(state.mapView)
     LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded, ownStreet) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
@@ -124,6 +127,9 @@ internal fun MapStyleReload(
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
             is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
         }
+        // Before setStyle, while the current style can still be written (a pending restore runs here). The MapView's first
+        // style is told apart so it is not relaid out: it keeps no tiles from an earlier style (PatternRelayout.kt).
+        patternRelayout.onStyleRequested(firstStyleOnThisMapView = state.appliedStyle == null)
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)
@@ -186,6 +192,10 @@ internal fun MapStyleReload(
                 state.navigationModeChange.listenTo(map) { state.navigationView }
                 state.navigationModeChange.gestureProtection = false
             }
+            // Last, once the style holds every layer and image reference it will (the night step's included): on a reload, once
+            // the sprite has also loaded, the pattern layers are cleared after the style's transition (at least 300 ms) plus
+            // 100 ms and restored at least 100 ms later (PatternRelayout.kt).
+            patternRelayout.onStyleLoaded(style)
         }
     }
 }
