@@ -29296,3 +29296,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The S22 session: #429's recheck, then the PRs merged today
 **Decision:** the owner: "S22 plugged in". Dispatch 2026-10-28-01: #429's recheck on its own build 4120 (night on and off 3 of 3 at 1 s and 30 s; a recorded cold start showing no dip, with 4116 as the positive control if it is still on the phone); then the latest pre-main build and the S22 steps of #431, #430, #428 and #427, the cleared-storage steps last.
 **Notes:** Written by the planner by hand, under -1755's merge gate. Next free ID -1763.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1763
+**Timestamp:** 2026-10-28T03:21:02Z
+**Continues:** 2026-09-28-1755, 2026-09-28-1762
+**Title:** The S22 session passes; #429, the map-pattern workaround, merged into pre-main
+**Observed:** Hazel (Opus; docs/audits/2026-10-28-s22-session.md, branch s22-session-2026-10-28, 307cb7ac0; laptop-only evidence in /home/zynergy-labs/s22-2026-10-28/): #429 on its own build 4120: night on 3 of 3 (2.95-3.06%), night off 3 of 3 (2.69-3.19%) at 1 s and 30 s; recorded cold starts flat at 1.32 from 0 to 1.5 s with the first-style skip logged, against 4116's dip (1.32 to 0.68 at 350-400 ms). Pre-main 4123 (4113c0780): #431 14 of 15 (step 12 not run: no cold GPS); in List mode while navigating the list clears the navigation card; #430 steps 1-8 and 10-14 pass, 9 and 15 observed; #428 9 of 9; #427 steps 1-4 pass (the retry 40 s after aeroplane mode off), 5 observed. One unexplained Back while navigating, outside every step's path: navigation started from a bubble an earlier Back left open; Back re-showed the bubble and two more Backs did nothing visible; a second run behaved normally. A trial merge of #429 with pre-main 4113c0780 was clean, with no file in common.
+**Decision:** merged at 5d56ee9d9 under -1755's "Fix all three, then merge" and its S22 gate; pre-main updated. The upstream draft is ready for the owner to file.
+**Notes:** Written by the planner by hand. Next free ID -1764.
