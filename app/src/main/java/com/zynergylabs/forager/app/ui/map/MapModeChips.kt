@@ -15,6 +15,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /** One map type chip ([MapModeChipRow]), by mode, for tests. */
@@ -79,6 +81,11 @@ private fun rememberNoSignal(): Boolean {
  * highlighted while Trail Map stands in. The contrast figures this comment gave were measured against the Layers sheet's
  * colour, which the panel does not use; the panel's are recorded in
  * `docs/audits/2026-10-28-layers-to-tools-completion-report.md`.
+ *
+ * In the light theme the normal selected chip is [lightSelectedChipColors] with [lightSelectedChipBorder] (dispatch
+ * 2026-10-28-02 Amendment 4, RECORD -1771): `secondaryContainer` sat at about 1.04:1 against the panel on the S22, so the
+ * chosen type read as "slightly warmer, not clearly on". The owner: "Option 1, but Give it an outline." The dark theme keeps
+ * Material's defaults, which already stood out there. The grey stand-aside chip is unchanged in both.
  */
 @Composable
 internal fun MapModeChipRow(
@@ -92,30 +99,54 @@ internal fun MapModeChipRow(
     val hasDownloadedArea = LocalHasDownloadedArea.current
     // RECORD -1513: false once Trail Map's style has failed to load in this process; Compose state, so the chip follows it.
     val trailMapDraws = fallback.ownStreet()
+    val isDarkTheme = LocalForagerDarkTheme.current
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         MapMode.entries.forEach { mode ->
             val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal, hasDownloadedArea, offlineTiles, trailMapDraws)
-            val colors = if (standsAside) {
-                FilterChipDefaults.filterChipColors(
+            val selected = mode == mapMode
+            val strongLight = !isDarkTheme && !standsAside
+            val colors = when {
+                standsAside -> FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.outlineVariant,
                     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
                 )
-            } else {
-                FilterChipDefaults.filterChipColors()
+                strongLight -> lightSelectedChipColors()
+                else -> FilterChipDefaults.filterChipColors()
             }
+            val selectedOutline = if (strongLight) MaterialTheme.colorScheme.onSurface else Color.Unspecified
             FilterChip(
-                selected = mode == mapMode,
+                selected = selected,
                 onClick = { onMapModeSelected(mode) },
                 label = { Text(mode.label) },
                 colors = colors,
+                border = if (strongLight) lightSelectedChipBorder(selected) else FilterChipDefaults.filterChipBorder(enabled = true, selected = selected),
                 modifier = Modifier.testTag(mapModeChipTag(mode)).semantics {
                     mapModeChipSelectedFill = colors.selectedContainerColor
-                    mapModeChipSelectedOutline = Color.Unspecified
+                    mapModeChipSelectedOutline = selectedOutline
                 },
             )
         }
     }
 }
+
+/**
+ * The light theme's normal selected fill (Amendment 4): `secondary` (#A2612C) with `onSecondary` (white) for the label, the
+ * scheme's own pairing, which ThemeContrastTest already holds to AA. Unselected chips keep Material's defaults.
+ */
+@Composable
+private fun lightSelectedChipColors() = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = MaterialTheme.colorScheme.secondary,
+    selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+)
+
+/** The light theme's selected outline (Amendment 4): `onSurface` (#3B2E24), 1 dp, the width of the unselected chips' outline. */
+@Composable
+private fun lightSelectedChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
+    enabled = true,
+    selected = selected,
+    selectedBorderColor = MaterialTheme.colorScheme.onSurface,
+    selectedBorderWidth = 1.dp,
+)
