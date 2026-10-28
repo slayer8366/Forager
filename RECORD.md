@@ -29379,3 +29379,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; sorrel-pr432 ddd0b1c4a, docs/reviews/2026-10-28-sorrel-pr432.md) at e3221a9db: no S, nine N. N1: in landscape, Back closes the panel behind an open Tools drawer before the drawer (MapTypePanel.kt:80). N2: the Worker still serves /reference-trails-manifest.json, now with no client. N3: Trip Planner's fold resets on Settings and rotation, while Map Layers' does not. Two revert checks were spot-checked against their CI logs and hold.
 **Decision:** the owner: N1 "Opening Tools closes panel (Recommended)"; N3 "Yes, same as Map Layers (Recommended)". N4 settled: "Option 2" was "Title Case everywhere" in the question as asked. N5 and N7 ride along; N2 and N6 stay out. Dispatch 2026-10-28-02 Amendment 3.
 **Notes:** Written by the planner by hand. Next free ID -1771.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1771
+**Timestamp:** 2026-10-28T20:45:59Z
+**Continues:** 2026-09-28-1769, 2026-09-28-1770
+**Title:** #432's S22 session; the light selected chip gets a stronger fill and an outline; Amendment 3 built
+**Observed:** the S22 helper (Opus; s22-pr432 8e8165e11, docs/audits/2026-10-28-s22-pr432.md; evidence in /home/zynergy-labs/s22-2026-10-28/pr432/) on 1.0.4141+gf34e706d (run 40749401858, c217480eb merged onto e2969abe4, digest matched; schema 22 to 22): steps 1-6, 8-10, 12 and 14 pass; step 7 passes on the log; step 11 was run with Waypoints for lack of finds; step 13 passes but its TalkBack half was not run; step 15 passes except a walk's Details (no tracks). Observed: the grey Trails switch is faint over Topo; the open Month menu is see-through; the entry map's Topo goes back to Trail after a trip to the Maps tab. Hazel (Opus) built Amendment 3: head 8c3097207 (code c76d1df9b); fail-first run 40763051392 had 3 predicted failures; green run 40763054488, 5,885 tests, 0 failures, 24 skipped; reverts r15-r17 hold; branches deleted.
+**Decision:** the owner: the chip "Option 1, but Give it an outline." (Amendment 4); the drawer and Settings opening during step 2 "Yes, that was me"; "Delete the test waypoint and entry" (the next S22 session; Night Mode left as it is).
+**Notes:** Written by the planner by hand. Next free ID -1772.

@@ -77,3 +77,9 @@ Sorrel's review (Fable) is `docs/reviews/2026-10-28-sorrel-pr432.md` on branch s
 - **Also in this push:** N5 (a test for Back on the Maps tab with fullscreen on and the panel open) and N7 (point the ten comments at MapChrome.kt:103-109, not the deleted sheet).
 - **Not in this PR:** N2 (the Worker's unused /reference-trails-manifest.json route) and N6 (the fold headers' height).
 CI only. Push to #432 and report.
+
+## Amendment 4 (2026-10-28): the selected map type chip in the light theme (RECORD -1771)
+The S22 session (docs/audits/2026-10-28-s22-pr432.md on branch s22-pr432, 8e8165e11) described it this way: in the light theme the selected chip is a pale peach fill with no outline, about 1.04:1 against the panel, so it reads as "slightly warmer, not clearly on". In the dark theme it stands out clearly. The owner, to "Make it stand out (Recommended)": "Option 1, but Give it an outline."
+- **Light theme, selected chip:** a clearly stronger fill than the panel, plus an outline, so it reads as "on" at a glance. Report the contrast you chose, against the panel and against the unselected chips, computed from the theme colours. The chips are shared with any other screen that uses them (MapModeChips.kt), so name every place the change shows.
+- **Dark theme:** unchanged, unless the shared chip makes that impossible. If so, stop and report.
+- **Tests:** assert the new fill and outline through the panel's real entry point. Write the test so it fails first, then a revert check. CI only; push to #432.
