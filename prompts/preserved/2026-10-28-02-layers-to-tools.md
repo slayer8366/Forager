@@ -83,3 +83,10 @@ The S22 session (docs/audits/2026-10-28-s22-pr432.md on branch s22-pr432, 8e8165
 - **Light theme, selected chip:** a clearly stronger fill than the panel, plus an outline, so it reads as "on" at a glance. Report the contrast you chose, against the panel and against the unselected chips, computed from the theme colours. The chips are shared with any other screen that uses them (MapModeChips.kt), so name every place the change shows.
 - **Dark theme:** unchanged, unless the shared chip makes that impossible. If so, stop and report.
 - **Tests:** assert the new fill and outline through the panel's real entry point. Write the test so it fails first, then a revert check. CI only; push to #432.
+
+## Amendment 5 (2026-10-28): the grey chip gets the outline too (RECORD -1773)
+Amendment 4 is built: 5bd69cd4c, code 66c0457c0, run 40772168805 green, 5,889 tests. The owner: "Give the grey chip an outline too", then "Light theme only (Recommended)".
+- **Light theme:** the grey "chosen, but Trail is showing" chip gets the same 1 dp onSurface outline as the selected chip. Its fill is unchanged.
+- **Dark theme:** unchanged for both chips.
+- Test it through the real entry points (the no-signal case and the style fallback, as MapTypePanelOfflineChipTest does). Write it so it fails first, then a revert check. Report the outline's contrast against the grey fill and against the panel.
+- Add an S22 step to the PR body. CI only; push to #432.
