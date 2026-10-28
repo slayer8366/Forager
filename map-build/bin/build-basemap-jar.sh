@@ -14,6 +14,10 @@
 # (r14965119 near Seaside, OR, 2026-10-22); Forager prefers the landuse forest/wood kind. Owner's
 # ruling, relayed by Rowan and confirmed in the cartography planner session. landuse=wood is not an
 # upstream landuse kind, so wood + bare_rock is left as bare_rock.
+#
+# 0003 (dispatch 2026-10-28, the owner's go of 10-28) adds a barriers layer (fence, wall, hedge, retaining_wall
+# lines at zoom 15), keeps addr_street on zoom-15 address points, and sets tunnel on water lines, for the app's
+# way to a waypoint: its street drop-off and the gates on its straight legs.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -75,6 +79,17 @@ lran="$(grep -c '<testcase name="foragerForestOverBareRock' "$lreport" || true)"
 lfailed="$(grep -c '<failure\|<error' "$lreport" || true)"
 [[ "$lran" -eq 4 && "$lfailed" -eq 0 ]] || die "foragerForestOverBareRock cases in the LanduseTest report: $lran (expected 4), failures: $lfailed"
 log "Forager landuse tests ran: $lran cases, 0 failures"
+
+# 0003's cases: BarriersTest 5, BuildingsTest 3, WaterTest 3, each named forager*.
+for pair in BarriersTest:5 BuildingsTest:3 WaterTest:3; do
+  cls=${pair%%:*}; want=${pair##*:}
+  r="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.$cls.xml"
+  [[ -r "$r" ]] || die "no $cls report at $r"
+  n="$(grep -c '<testcase name="forager' "$r" || true)"
+  f="$(grep -c '<failure\|<error' "$r" || true)"
+  [[ "$n" -eq "$want" && "$f" -eq 0 ]] || die "forager cases in the $cls report: $n (expected $want), failures: $f"
+  log "Forager $cls cases ran: $n, 0 failures"
+done
 
 jar="$src/tiles/target/$BASEMAPS_JAR_NAME"
 [[ -s "$jar" ]] || die "no jar at $jar"

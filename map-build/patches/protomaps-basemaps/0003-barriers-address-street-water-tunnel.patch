@@ -1,0 +1,278 @@
+Forager patch 0003: a barriers layer, the address street at zoom 15, and tunnel on water lines (dispatch
+2026-10-28, way-to route ends across houses; the owner's go of 10-28 ~15:10 PDT).
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2), with 0001 and 0002
+already applied. Applied after them with `git apply` by map-build/bin/build-basemap-jar.sh.
+
+The app's way to a waypoint drops the walker off on the street in front of the pin and refuses a straight leg
+that crosses a building, a fence or a river. Offline, the phone reads those from the basemap tiles, so:
+- barriers (new layer): barrier=fence, wall, hedge, retaining_wall ways as lines, zoom 15 only, field kind.
+  Fences stand in for property lines (the owner's ruling).
+- buildings: addr_street is kept on zoom-15 address points; upstream's postProcess removed it.
+- water: tunnel on lines from zoom 14, as upstream already sets it on polygons, so a culvert passes and an
+  open stream does not.
+
+Pinned by the forager* cases: BarriersTest (5), BuildingsTest (3), WaterTest (3).
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/Basemap.java b/tiles/src/main/java/com/protomaps/basemap/Basemap.java
+index 470bc3a..d9d3bf7 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/Basemap.java
++++ b/tiles/src/main/java/com/protomaps/basemap/Basemap.java
+@@ -9,6 +9,7 @@ import com.onthegomap.planetiler.util.Downloader;
+ import com.onthegomap.planetiler.util.Glob;
+ import com.protomaps.basemap.feature.CountryCoder;
+ import com.protomaps.basemap.feature.QrankDb;
++import com.protomaps.basemap.layers.Barriers;
+ import com.protomaps.basemap.layers.Boundaries;
+ import com.protomaps.basemap.layers.Buildings;
+ import com.protomaps.basemap.layers.Earth;
+@@ -50,6 +51,13 @@ public class Basemap extends ForwardingProfile {
+       registerSourceHandler("ne", admin::processNe);
+     }
+ 
++    // Forager: fences, walls, hedges and retaining walls, at zoom 15 only (dispatch 2026-10-28, the owner's go).
++    if (layer.isEmpty() || layer.equals(Barriers.LAYER_NAME)) {
++      var barriers = new Barriers();
++      registerHandler(barriers);
++      registerSourceHandler("osm", barriers::processOsm);
++    }
++
+     if (layer.isEmpty() || layer.equals(Buildings.LAYER_NAME)) {
+       var buildings = new Buildings();
+       registerHandler(buildings);
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java b/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
+new file mode 100644
+index 0000000..c61b84a
+--- /dev/null
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
+@@ -0,0 +1,46 @@
++package com.protomaps.basemap.layers;
++
++import com.onthegomap.planetiler.FeatureCollector;
++import com.onthegomap.planetiler.FeatureMerge;
++import com.onthegomap.planetiler.ForwardingProfile;
++import com.onthegomap.planetiler.VectorTile;
++import com.onthegomap.planetiler.geo.GeometryException;
++import com.onthegomap.planetiler.reader.SourceFeature;
++import java.util.List;
++import java.util.Set;
++
++/**
++ * Forager's own layer, not upstream's: OpenStreetMap's fences, walls, hedges and retaining walls, as lines at zoom 15
++ * only (dispatch 2026-10-28; the owner's go of 10-28 ~15:10 PDT). The app's way to a waypoint refuses a straight leg
++ * that crosses one: they stand in for property lines, which OpenStreetMap rarely maps. A closed way (a hedge round a
++ * garden) is its outline, so a leg into it crosses it. No style draws this layer.
++ */
++public class Barriers implements ForwardingProfile.LayerPostProcessor {
++
++  public static final String LAYER_NAME = "barriers";
++
++  /** The barrier=* values kept, each its own kind. */
++  static final Set<String> KINDS = Set.of("fence", "wall", "hedge", "retaining_wall");
++
++  @Override
++  public String name() {
++    return LAYER_NAME;
++  }
++
++  public void processOsm(SourceFeature sf, FeatureCollector features) {
++    String kind = sf.getString("barrier");
++    if (kind == null || !KINDS.contains(kind) || !sf.canBeLine()) {
++      return;
++    }
++    features.line(LAYER_NAME)
++      .setAttr("kind", kind)
++      .setMinPixelSize(0)
++      .setPixelTolerance(0)
++      .setMinZoom(15);
++  }
++
++  @Override
++  public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
++    return FeatureMerge.mergeLineStrings(items, 0, 0, 4);
++  }
++}
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java b/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java
+index fc5a0e0..ca7f477 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java
+@@ -177,7 +177,8 @@ public class Buildings implements ForwardingProfile.LayerPostProcessor {
+ 
+       for (var address : groupedAddresses.values()) {
+         var feature = address.get(0);
+-        feature.tags().remove("addr_street");
++        // Forager: addr_street is kept. The app's way to a waypoint drops the walker off on the street a house's
++        // address names (dispatch 2026-10-28, the owner's go), and offline it has only this tile to read it from.
+         buildings.add(feature);
+       }
+ 
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Water.java b/tiles/src/main/java/com/protomaps/basemap/layers/Water.java
+index 1278848..7ce492a 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Water.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Water.java
+@@ -374,6 +374,9 @@ public class Water implements ForwardingProfile.LayerPostProcessor {
+         .setAttr("kind", kind)
+         .setAttr("min_zoom", minZoom + 1)
+         .setAttrWithMinzoom("layer", Parse.parseIntOrNull(sf.getString("layer")), extraAttrMinzoom)
++        // Forager: tunnel on lines too, as upstream sets it on polygons, so a stream in a culvert can be told from an
++        // open one (the way to a waypoint lets a straight leg cross a culvert, not a stream; dispatch 2026-10-28).
++        .setAttrWithMinzoom("tunnel", sf.getString("tunnel"), extraAttrMinzoom)
+         .setAttr("sort_rank", 200)
+         .setSortKey(minZoom)
+         .setMinPixelSize(0)
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
+new file mode 100644
+index 0000000..443d88d
+--- /dev/null
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
+@@ -0,0 +1,49 @@
++package com.protomaps.basemap.layers;
++
++import static com.onthegomap.planetiler.TestUtils.newLineString;
++import static com.onthegomap.planetiler.TestUtils.newPoint;
++
++import com.onthegomap.planetiler.reader.SimpleFeature;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import org.junit.jupiter.api.Test;
++
++/** Forager's barriers layer (dispatch 2026-10-28): fences, walls, hedges and retaining walls as lines, zoom 15 only. */
++class BarriersTest extends LayerTest {
++
++  private Iterable<com.onthegomap.planetiler.FeatureCollector.Feature> way(String barrier) {
++    return process(SimpleFeature.create(newLineString(0, 0, 1, 1), new HashMap<>(Map.of("barrier", barrier)), "osm", null, 0));
++  }
++
++  @Test
++  void foragerFenceIsALineAtZoom15() {
++    assertFeatures(15, List.of(Map.of("kind", "fence", "_layer", "barriers", "_type", "line")), way("fence"));
++  }
++
++  @Test
++  void foragerWallHedgeRetainingWall() {
++    assertFeatures(15, List.of(Map.of("kind", "wall")), way("wall"));
++    assertFeatures(15, List.of(Map.of("kind", "hedge")), way("hedge"));
++    assertFeatures(15, List.of(Map.of("kind", "retaining_wall")), way("retaining_wall"));
++  }
++
++  @Test
++  void foragerClosedHedgeIsItsOutline() {
++    assertFeatures(15, List.of(Map.of("kind", "hedge", "_type", "line")),
++      process(SimpleFeature.create(newLineString(0, 0, 1, 0, 1, 1, 0, 1, 0, 0), new HashMap<>(Map.of("barrier", "hedge")), "osm", null, 0)));
++  }
++
++  @Test
++  void foragerOtherBarriersAndPointsAreLeftOut() {
++    assertFeatures(15, List.of(), way("gate"));
++    assertFeatures(15, List.of(), way("kerb"));
++    assertFeatures(15, List.of(),
++      process(SimpleFeature.create(newPoint(0, 0), new HashMap<>(Map.of("barrier", "fence")), "osm", null, 0)));
++  }
++
++  @Test
++  void foragerZoom15Only() {
++    assertFeatures(15, List.of(Map.of("kind", "fence", "_minzoom", 15)), way("fence"));
++  }
++}
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/BuildingsTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/BuildingsTest.java
+index 7404cb4..c1591d5 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/BuildingsTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/BuildingsTest.java
+@@ -157,4 +157,45 @@ class BuildingsTest extends LayerTest {
+     var deduplicated = b.postProcess(15, total);
+     assertEquals(1, deduplicated.size());
+   }
++
++  // Forager (dispatch 2026-10-28): the street name stays on the address point at zoom 15; upstream removed it.
++  @Test
++  void foragerAddrStreetKeptAtZoom15() throws GeometryException {
++    List<VectorTile.Feature> total = new ArrayList<>();
++    total.add(new VectorTile.Feature("layer", 1,
++      VectorTile.encodeGeometry(newPoint(0, 0)),
++      new HashMap<>(Map.of("addr_housenumber", "12", "addr_street", "Front Road"))
++    ));
++    var kept = new Buildings().postProcess(15, total);
++    assertEquals(1, kept.size());
++    assertEquals("Front Road", kept.get(0).tags().get("addr_street"));
++    assertEquals("12", kept.get(0).tags().get("addr_housenumber"));
++  }
++
++  @Test
++  void foragerSameNumberOnTwoStreetsIsTwoAddresses() throws GeometryException {
++    List<VectorTile.Feature> total = new ArrayList<>();
++    total.add(new VectorTile.Feature("layer", 1,
++      VectorTile.encodeGeometry(newPoint(0, 0)),
++      new HashMap<>(Map.of("addr_housenumber", "12", "addr_street", "Front Road"))
++    ));
++    total.add(new VectorTile.Feature("layer", 2,
++      VectorTile.encodeGeometry(newPoint(1, 0)),
++      new HashMap<>(Map.of("addr_housenumber", "12", "addr_street", "Back Lane"))
++    ));
++    assertEquals(2, new Buildings().postProcess(15, total).size());
++  }
++
++  @Test
++  void foragerAddressPointCarriesStreet() {
++    assertFeatures(15,
++      List.of(Map.of("kind", "building"), Map.of("kind", "address", "addr_street", "Main Street", "addr_housenumber", "12")),
++      process(SimpleFeature.create(
++        newPolygon(0, 0, 1, 1, 0, 1, 0, 0),
++        new HashMap<>(Map.of("building", "yes", "addr:housenumber", "12", "addr:street", "Main Street")),
++        "osm",
++        null,
++        0
++      )));
++  }
+ }
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java
+index 0caec4b..d279528 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java
+@@ -78,6 +78,46 @@ class WaterTest extends LayerTest {
+       )));
+   }
+ 
++  // Forager (dispatch 2026-10-28): tunnel on water lines, from zoom 14, so a culvert can be told from an open stream.
++  @Test
++  void foragerTunnelOnStreamLine() {
++    assertFeatures(15,
++      List.of(Map.of("kind", "stream", "tunnel", "culvert")),
++      process(SimpleFeature.create(
++        newLineString(0, 0, 1, 1),
++        new HashMap<>(Map.of("waterway", "stream", "tunnel", "culvert")),
++        "osm",
++        null,
++        0
++      )));
++  }
++
++  @Test
++  void foragerNoTunnelOnOpenStream() {
++    assertFeatures(15,
++      List.of(Map.of("kind", "stream", "tunnel", "<null>")),
++      process(SimpleFeature.create(
++        newLineString(0, 0, 1, 1),
++        new HashMap<>(Map.of("waterway", "stream")),
++        "osm",
++        null,
++        0
++      )));
++  }
++
++  @Test
++  void foragerTunnelOnLineNotBelowZoom14() {
++    assertFeatures(13,
++      List.of(Map.of("kind", "stream", "tunnel", "<null>")),
++      process(SimpleFeature.create(
++        newLineString(0, 0, 1, 1),
++        new HashMap<>(Map.of("waterway", "stream", "tunnel", "culvert")),
++        "osm",
++        null,
++        0
++      )));
++  }
++
+   @Test
+   void oceanLabel() {
+     assertFeatures(12,
