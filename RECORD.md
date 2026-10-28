@@ -29473,3 +29473,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** -1775's two Records follow-ups: look-only first
 **Decision:** the owner: "Yes, look-only first (Recommended)". Dispatch 2026-10-28-07 from pre-main 9f2df1abb: the cause of the stale "used in 1 journal entry", and the Finds filter's missing empty state; no app code until the owner answers.
 **Notes:** Written by the planner by hand. Next free ID -1780.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1780
+**Timestamp:** 2026-10-28T22:51:18Z
+**Continues:** 2026-09-28-1779
+**Title:** Records follow-ups: live "Used in" counts and empty states with a next step
+**Observed:** Hazel's look-only pass (Opus; records-follow-ups 3086c231c, docs/audits/2026-10-28-records-follow-ups-look.md) at 9f2df1abb. (1) The stale count is held on screen: a one-time read (TrackRecordingLists.kt:51-68) that is not refreshed when an entry is saved or deleted. The database delete is sound (CartographyEntryDao.kt:134-143, one transaction), and a leftover row would count as 0 through the join at :168. Tracks and offline maps have the same gap. (2) Finds never had an empty state (FindsGalleryScreen.kt:165-172); before -751 the "+" tile filled it.
+**Decision:** the owner: "Yes, update straight away (Recommended)"; Finds "No finds yet. Use New find to log one. (Recommended)"; Drafts "\"No drafts. A find you leave before saving waits here.\" (Recommended)"; All, Tracks and Offline maps "Yes, in the same change (Recommended)", with the wording to the owner before it is built; "Start a coder now". Dispatch 2026-10-28-08.
+**Notes:** Written by the planner by hand. Next free ID -1781.
