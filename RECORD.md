@@ -29348,3 +29348,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus; branch layers-to-tools, head e3221a9db, docs only; code c217480eb; completion report docs/audits/2026-10-28-layers-to-tools-completion-report.md): CI run 40749401858 green, 5,881 tests, 0 failures, 24 skipped (from the XML; base 5,899, minus 18 removed with the sheet, the card and its fetch). Fourteen revert checks (runs 40752676936 to 40752886231), each failing for its own edit with no compile errors. S22 steps 1-15 in the PR body. Flagged: the light-theme selected chip is about 1.01:1 against the panel (computed); "Offline Maps" reads twice in Tools, as ruled. 14 revert branches left on origin.
 **What the planner checked itself:** git diff origin/pre-main...origin/layers-to-tools: 79 files, no @Ignore or @Disabled added; no ExpandMore, ExpandLess or dropdown TrailingIcon left in app/src/main.
 **Notes:** Written by the planner by hand. Next free ID -1768.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1768
+**Timestamp:** 2026-10-28T20:03:54Z
+**Continues:** 2026-09-28-1767
+**Title:** PR #432: Sorrel's review, then the S22; the selected chip judged on the phone
+**Decision:** the owner: "Sorrel review, then S22 (Recommended)"; the light-theme selected chip "Judge it on the S22 (Recommended)". Dispatch 2026-10-28-03 (Sorrel, Fable). Merge into pre-main after both.
+**Notes:** Written by the planner by hand. Next free ID -1769.
