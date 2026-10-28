@@ -136,7 +136,7 @@ internal fun MapModeChipRow(
 /**
  * The light theme's normal selected fill (Amendment 4): `secondary` (#A2612C) with [PureWhite] for the label, which is what
  * the light scheme's `onSecondary` holds (4.90:1, AA). [PureWhite] is named here rather than read as
- * `colorScheme.onSecondary`: that role's value equals Material's baseline, so reading it trips ThemeCompletenessTest, whose
+ * the scheme's `onSecondary` role: that role's value equals Material's baseline, so reading it trips ThemeCompletenessTest, whose
  * own doc gives `onSecondary` as the example of a correct white it cannot tell from an unset one (CI run 40769534726). The
  * pixels are the same either way. Unselected chips keep Material's defaults.
  */
