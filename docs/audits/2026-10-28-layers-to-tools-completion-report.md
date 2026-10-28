@@ -148,3 +148,45 @@ used the same default chips on the same fill. Nothing was changed for it. Whethe
   `AvailabilityCompactScaffold.kt`; nothing was added to that 1441-line file.
 - Beyond scope, and flagged: the header rows of the folds are as tall as their text (about 24 dp), as before. Removing the
   arrow did not change that, and no 48 dp minimum was added, because that would move the layouts the existing tests measure.
+
+## Amendment 3 (RECORD -1770): Sorrel's review, N1, N3, N5 and N7
+
+Review: `docs/reviews/2026-10-28-sorrel-pr432.md` on branch `sorrel-pr432` (`ddd0b1c4a`). It has no S findings. The owner's
+answers are in the dispatch's Amendment 3. N2 and N6 are not in this PR, and N4 needs no change.
+
+| Commit | What |
+|---|---|
+| `c67ea7052` | Tests first: N1, N3 (including a rotation, saved and restored with `StateRestorationTester`) and N5 |
+| `c76d1df9b` | The fixes: N1, opening Tools closes the panel (`AvailabilityCompactMapUi.kt`, a `LaunchedEffect` on `isDrawerOpen`). N3, Trip Planner's fold held in `AvailabilityScreen` as Map Layers' is (`tripPlannerFoldOpen`, through the drawer host and `CompactToolsDrawerContent` to `SearchControls`), with `CollapsibleSection`'s doc comment corrected. N7, the comments repointed |
+
+- **N7, in eleven places, not ten.** Seven comments now cite "`mapChromeFill`'s doc, MapChrome.kt:103-109" for the
+  `contentColorFor` reasoning. The two in `MapChrome.kt` itself drop the reference: one is inside that very doc, and the other
+  needed none. The two in `Basemap.kt` and `MapMode.kt` are about where the map type is picked, not about colour, so they point
+  at `MapTypePanel`.
+
+**Fail-first.** Run 40763051392 ran on `c67ea7052`, which has the tests and none of the fixes, filtered to the three classes.
+The log has 0 compile errors. The XML: 12 tests, 3 failures, each the one predicted:
+- N1: "and the panel closed";
+- N3: "still open after a trip into Settings";
+- N3: "Trip Planner still open after the restore".
+
+N5 passed there, as expected. Back already closed the panel first; the test closes Sorrel's coverage gap, and r17 below shows
+it bites.
+
+**CI on the PR, code head `c76d1df9b`:** run 40763054488, all five jobs success. From the XML: 804 files, 5885 tests (4 more
+than before, which are the new tests), 0 failures, 0 errors, 24 skipped.
+
+**Revert checks**, each a one-line edit on a branch cut from `c76d1df9b`. Each log has 0 compile errors, and each failure is
+one its own revert can cause:
+
+| Check | Revert | Run | Failed with |
+|---|---|---|---|
+| r15 Tools closes the panel | the `LaunchedEffect` line removed | 40763119068 | "and the panel closed" |
+| r16 Trip Planner's fold held | `CollapsibleSection(title = "Trip Planner")`, its own state | 40763131110 | "still open after a trip into Settings", and "Trip Planner still open after the restore" |
+| r17 fullscreen Back | the panel's `BackHandler` removed | 40763143613 | "Back closed the panel" (fullscreen on) |
+
+**Branches.**
+- Once their results were read, I deleted the fail-first branch and the r15 to r17 branches from origin.
+- The r01 to r14 branches were already gone from origin when I went to delete them. I did not delete them and did not find
+  out who did. Their runs and results are recorded above.
+- The forward head was still `c76d1df9b` afterwards.
