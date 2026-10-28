@@ -63,7 +63,7 @@ private var SemanticsPropertyReceiver.journalMenuContentColor by JournalMenuCont
  * A J8 menu over the map, the chip's list and a bubble's list of keeping entries: Material3's own
  * default menu container role (`MenuDefaults.containerColor`) at [MAP_CHROME_OVER_MAP_ALPHA] (the
  * owner's edge-case ruling 1 for menus over a map, "80% over the map"; planner, continuation
- * `2026-09-28-64`), as the Layers sheet puts its own sheet role at that alpha (`MapLayersSheet`).
+ * `2026-09-28-64`), as the Layers sheet puts its own sheet role at that alpha (`MapLayersSheet` (removed 2026-10-28, RECORD -1764)).
  */
 @Composable
 internal fun journalMenuContainerColor(): Color = navigationBarContainerColor().copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)

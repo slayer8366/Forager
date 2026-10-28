@@ -93,7 +93,6 @@ import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.availability.OfflineRouteActions
 import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
-import com.zynergylabs.forager.app.ui.map.layers.ProvideReferenceTrailsSources
 import com.zynergylabs.forager.app.ui.map.noSignalState
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
 
@@ -386,8 +385,7 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            // Step 8d: the official-trails card's dates, provided with the theme to every Layers sheet below.
-            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions) { ProvideReferenceTrailsSources(container.referenceTrailsSources) {
+            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()
@@ -736,7 +734,7 @@ class MainActivity : ComponentActivity() {
                 )
                 // The restore's loading page, over everything (dispatch 2026-09-28-137, item 6); nothing when there is none.
                 BackupRestoreOverlay(backupViewModel.controls(backupUiState))
-            } }
+            }
         }
     }
 }

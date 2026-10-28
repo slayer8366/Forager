@@ -108,9 +108,10 @@ internal fun withReferenceTrailsHiddenUnlessLoaded(
 }
 
 /**
- * What a map's host holds for its Layers sheet: whether the map last reported that its loaded style draws the band.
- * [onShown] is one lambda for the holder's life, so a [MapRenderMode] carrying it still compares equal between
- * compositions. Remembered by each host (the Maps tab's screen, the Cartography entry map).
+ * What the Maps tab's screen holds for Tools > Map Layers' Trails switch: whether its map last reported that its loaded
+ * style draws the band (the switch is grey otherwise; dispatch 2026-10-28-02, RECORD -1766). [onShown] is one lambda for
+ * the holder's life, so a [MapRenderMode] carrying it still compares equal between compositions. Until that dispatch the
+ * Cartography entry map held one too, for its Layers sheet.
  */
 @Stable
 internal class ReferenceTrailsShown {

@@ -319,7 +319,7 @@ fun SightingsMap(
     val drawnLayersState = remember(layersState, forecast?.groupsByLayer, referenceTrailsLoaded.value) {
         withReferenceTrailsHiddenUnlessLoaded(withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty()), referenceTrailsLoaded.value)
     }
-    // ...and the host is told, for its Layers sheet's row (MapRenderMode.onReferenceTrailsShown).
+    // ...and the host is told, for Tools > Map Layers' Trails row (MapRenderMode.onReferenceTrailsShown).
     val currentOnReferenceTrailsShown by rememberUpdatedState(onReferenceTrailsShown)
     LaunchedEffect(referenceTrailsLoaded.value) { currentOnReferenceTrailsShown(referenceTrailsLoaded.value) }
     val currentLayersStateState = rememberUpdatedState(drawnLayersState)

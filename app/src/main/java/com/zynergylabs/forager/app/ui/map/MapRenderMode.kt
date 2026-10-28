@@ -285,7 +285,7 @@ data class MapRenderMode(
     /**
      * Step 8b (dispatch 2026-10-26-15 Amendment 2): told whether this map's loaded style draws the official-trails band
      * (Trail Map's street-v3 with its reference layers, and not under Topographical), after each style load, so the
-     * host's Layers sheet shows the "Official trails" row only when the switch would do something. `{}` by default, a
+     * Maps tab's host can grey Tools > Map Layers' "Trails" switch when it would do nothing (dispatch 2026-10-28-02). `{}` by default, a
      * non-capturing lambda, so every existing caller's [MapRenderMode] still compares equal. Here rather than on
      * [MapSlot] for the parameter-count reason [layers] gives.
      */

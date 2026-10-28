@@ -143,7 +143,7 @@ internal fun TripDatePickerDialog(
     // dialog's; it is left clear, so the dialog's one fill is what the map shows through (CLAUDE.md,
     // UX defaults: layered fills composite to the map chrome's value, they do not each carry it). The
     // dialog gives its surface `contentColorFor` of its container, which matches a colour-scheme role
-    // exactly (see `MapLayersSheet`), so the content colour is pinned to the default container's own.
+    // exactly (see `MapLayersSheet` (removed 2026-10-28, RECORD -1764)), so the content colour is pinned to the default container's own.
     val dialogColors = DatePickerDefaults.colors(
         containerColor = mapChromeFill(navigationBarContainerColor(), overMap = true),
     )
@@ -215,7 +215,7 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     // through this exact same scaffold, is fine). The one structural difference from
     // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
     // Raised only after a centre-pin pick on a map (compact and wide): always over a map. The fill at the
-    // map chrome's alpha, and its content colour pinned to the fill's own role (see `MapLayersSheet`).
+    // map chrome's alpha, and its content colour pinned to the fill's own role (see `MapLayersSheet` (removed 2026-10-28, RECORD -1764)).
     val dialogColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val dialogContentColor = contentColorFor(navigationBarContainerColor())
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {

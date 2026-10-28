@@ -1262,7 +1262,6 @@ internal fun CompactMainScaffold(
                                 basemap = basemap,
                                 night = isNightMode,
                                 mapLayers = mapLayers.stored,
-                                onMapLayerVisibilityChanged = mapLayers.onVisibilityChanged,
                                 onOpenEntry = onOpenLogEntry,
                                 // Item 8: the find open when the report closes, read before the close lands; Back and the report's own arrow
                                 // both come through here, and the screen says whether the find came from the map.

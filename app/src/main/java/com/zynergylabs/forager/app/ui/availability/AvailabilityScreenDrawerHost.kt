@@ -27,6 +27,7 @@ import com.zynergylabs.forager.app.ui.map.LocalMapCompass
 import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
 import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.MapCompass
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.map.MapPosition
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
@@ -49,6 +50,9 @@ internal fun AvailabilityScreenDrawerHost(
     mapCompass: MapCompass,
     mapPosition: MapPosition,
     trackDetailsFoldOpen: MutableState<Boolean>,
+    /** Dispatch 2026-10-28-02: Tools > Map Layers' fold, held by the body, and what its switches show and change. */
+    mapLayersFoldOpen: MutableState<Boolean>,
+    mapLayers: MapLayersControls,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
@@ -87,7 +91,7 @@ internal fun AvailabilityScreenDrawerHost(
             // Only what is inside it goes back to the ambient direction.
             // Material3's own default container role for a modal drawer, passed explicitly, and
             // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
-            // role exactly; see `MapLayersSheet`).
+            // role exactly).
             // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
             // (Recommended)"; planner message -77, Q4); solid over the other tabs.
             val drawerColor = mapChromeFill(navigationBarContainerColor(), state.compactTab() == CompactTab.MAP)
@@ -114,6 +118,9 @@ internal fun AvailabilityScreenDrawerHost(
                     openSettingsRequest = openBackupRequest,
                     openSettingsOnlyRequest = state.openSettingsOnlyRequest(),
                     onOpenOfflineMaps = openOfflineMapsFromTools,
+                    mapLayers = mapLayers,
+                    mapLayersOpen = mapLayersFoldOpen.value,
+                    onMapLayersOpenChange = { mapLayersFoldOpen.value = it },
                 )
                 }
                 }

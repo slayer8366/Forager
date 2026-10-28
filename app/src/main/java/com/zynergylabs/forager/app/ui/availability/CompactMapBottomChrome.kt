@@ -35,7 +35,6 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
-import com.zynergylabs.forager.app.ui.map.MapLayersSheet
 import com.zynergylabs.forager.app.ui.map.MapLegendChip
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
@@ -146,7 +145,7 @@ internal fun BoxScope.CompactMapBottomChrome(
     // Fullscreen-fixes dispatch, Item 1 (third design). Composed here — after the
     // ambient chrome above (MapIconBar/CompassElevationStrip/TrailheadControls/
     // TaxonMapFilterChip, none of which reach this bar's own bottom band) but *before*
-    // the modal overlays below (AddActionTile/MapLayersSheet/CentrePinLocationPickerOverlay)
+    // the modal overlays below (AddActionTile/MapTypePanel/CentrePinLocationPickerOverlay)
     // — deliberately, not composed last: this Box now extends the full screen height in
     // both fullscreen states (CompactMapTab's own doc comment), so those modals'
     // fillMaxSize() content now reaches all the way down into this bar's own screen

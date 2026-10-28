@@ -22,19 +22,19 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.MAPS_TAB_OVERLAYS
-import com.zynergylabs.forager.app.ui.map.MapLayersControls
-import com.zynergylabs.forager.app.ui.map.MapLayersSheet
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_ANCHOR_OFFSET
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_ANCHOR_OFFSET_LANDSCAPE
+import com.zynergylabs.forager.app.ui.map.MapTypePanel
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerPopUp
 
 /**
- * The add-action menu, the Layers sheet and the centre-pin picker, moved out of [CompactMapTab] unchanged (RECORD -741).
+ * The add-action menu, the map type panel (until 2026-10-28 the Layers sheet) and the centre-pin picker, moved out of [CompactMapTab] unchanged (RECORD -741).
  * Their state is the tab's, handed in; [currentCameraCenter] reads the map's centre when a choice is confirmed, as before.
  */
 @Composable
 internal fun BoxScope.CompactMapPickers(
     showActionMenuState: MutableState<Boolean>,
-    showLayersSheetState: MutableState<Boolean>,
+    showMapTypePanelState: MutableState<Boolean>,
     pendingActionState: MutableState<PendingMapAction?>,
     pendingTripLocationState: MutableState<LatLng?>,
     pendingWaypointLocationState: MutableState<LatLng?>,
@@ -43,7 +43,6 @@ internal fun BoxScope.CompactMapPickers(
     onLogFindHere: (LatLng) -> Unit,
     mapMode: MapMode,
     onMapModeSelected: (MapMode) -> Unit,
-    mapLayers: MapLayersControls,
     landscape: CompactMapLandscape,
     cluster: MapIconClusterState,
     controlsPadding: PaddingValues,
@@ -51,7 +50,7 @@ internal fun BoxScope.CompactMapPickers(
     night: Boolean,
 ) {
     var showActionMenu by showActionMenuState
-    var showLayersSheet by showLayersSheetState
+    var showMapTypePanel by showMapTypePanelState
     var pendingAction by pendingActionState
     var pendingTripLocation by pendingTripLocationState
     var pendingWaypointLocation by pendingWaypointLocationState
@@ -92,23 +91,20 @@ internal fun BoxScope.CompactMapPickers(
         growsFrom = if (isMapIconBarOnLeftSide) Alignment.BottomStart else Alignment.BottomEnd,
     )
 
-    // Map layers L0b, B1: the Layers sheet, in place of the basemap-only popover this row
-    // used to open. A modal bottom sheet in its own window, so it needs no anchor to the
-    // cluster and no padding for the rail.
-    if (showLayersSheet) {
-        MapLayersSheet(
-            mapMode = mapMode,
-            onMapModeSelected = onMapModeSelected,
-            overlays = MAPS_TAB_OVERLAYS,
-            colourFields = mapLayers.listedColourFields,
-            state = mapLayers.stored,
-            onVisibilityChanged = mapLayers.onVisibilityChanged,
-            onOpacityChanged = mapLayers.onOpacityChanged,
-            onColourFieldMoved = mapLayers.onColourFieldMoved,
-            onDismiss = { showLayersSheet = false },
-            referenceTrails = mapLayers.referenceTrailsShown,
-        )
-    }
+    // Dispatch 2026-10-28-02 (RECORD -1764): the map type panel, back in place of the Layers sheet. Anchored as the add
+    // tile above is, to the bar's live side and drag, plus the Layers row's own offset (row 4); it grows from the bar's side.
+    MapTypePanel(
+        visible = showMapTypePanel,
+        mapMode = mapMode,
+        onModeSelected = onMapModeSelected,
+        onDismiss = { showMapTypePanel = false },
+        modifier = Modifier.fillMaxSize().padding(controlsPadding),
+        anchor = cluster.sideAlignment,
+        anchorOffset = cluster.panelAnchorOffset(LocalDensity.current).let { anchor ->
+            DpOffset(x = anchor.x, y = anchor.y + (if (landscapeCluster) MAP_TYPE_PANEL_ANCHOR_OFFSET_LANDSCAPE else MAP_TYPE_PANEL_ANCHOR_OFFSET))
+        },
+        growsFrom = cluster.sideAlignment,
+    )
 
     // Owner finding on device: the OK/Cancel row sat under the app's nav (and under
     // Android's own navigation bar in fullscreen), because this Box spans the full
