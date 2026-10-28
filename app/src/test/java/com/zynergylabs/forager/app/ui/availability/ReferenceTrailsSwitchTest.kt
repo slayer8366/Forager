@@ -131,7 +131,7 @@ class ReferenceTrailsSwitchTest {
     }
 
     @Test
-    fun `on Topo the row is still listed, grey, disabled to TalkBack, shows its stored state, and real touches do nothing; back on Trail it works`() {
+    fun `on Topo the row is still listed, grey, disabled to TalkBack, shows its stored state, and real touches do nothing, and back on Trail it works`() {
         setScreen(stored = MapLayerPreferences.NONE.copy(visibility = mapOf(MapLayerIds.REFERENCE_FS_BAND to false)))
         chooseMapType(MapMode.TOPOGRAPHIC)
         assertEquals(Basemap.OPEN_TOPO_MAP, renderMode?.basemap)
