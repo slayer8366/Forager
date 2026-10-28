@@ -256,7 +256,7 @@ class MapTypePanelEntryMapTest {
         val panel = bounds(MAP_TYPE_PANEL_TAG)
         val rowMid = (row.top + row.bottom) / 2
         val panelMid = (panel.top + panel.bottom) / 2
-        assertTrue("level with the row ($panelMid vs $rowMid)", abs((panelMid - rowMid).value) <= 4f)
+        assertTrue("level with the row ($panelMid vs $rowMid)", abs((panelMid - rowMid).value) <= 2f)
         assertTrue("overlaps the row ($panel, $row)", panel.left < row.right && panel.right > row.left)
         assertTrue("grows leftward ($panel, $row)", panel.left < row.left)
     }

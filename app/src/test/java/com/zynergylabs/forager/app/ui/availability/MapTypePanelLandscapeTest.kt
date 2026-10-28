@@ -95,7 +95,7 @@ class MapTypePanelLandscapeTest {
             val panel = composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
             val rowMid = (row.top + row.bottom) / 2
             val panelMid = (panel.top + panel.bottom) / 2
-            assertTrue("level with the Layers row ($panelMid vs $rowMid)", abs((panelMid - rowMid).value) <= 4f)
+            assertTrue("level with the Layers row ($panelMid vs $rowMid)", abs((panelMid - rowMid).value) <= 2f)
             assertTrue("overlaps the Layers row ($panel, $row)", panel.left < row.right && panel.right > row.left)
             if (left) assertTrue("grows rightward ($panel, $row)", panel.right > row.right) else assertTrue("grows leftward ($panel, $row)", panel.left < row.left)
 

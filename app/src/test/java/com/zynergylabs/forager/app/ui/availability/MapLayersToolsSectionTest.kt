@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
@@ -79,6 +80,11 @@ class MapLayersToolsSectionTest {
         setScreen()
         composeRule.openTools()
         assertTrue("folded the first time", !mapLayersOpen())
+        // Amendment 2 (RECORD -1766, "Match: Offline Maps"): the row that opens the downloaded areas matches the switch.
+        assertEquals(
+            listOf("Offline Maps"),
+            composeRule.onNodeWithTag(TOOLS_OFFLINE_MAPS_ROW_TAG).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text },
+        )
 
         composeRule.toggleMapLayersFold()
         assertTrue("opened", mapLayersOpen())

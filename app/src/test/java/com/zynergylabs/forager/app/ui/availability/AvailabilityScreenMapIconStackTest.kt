@@ -2601,7 +2601,7 @@ class AvailabilityScreenMapIconStackTest {
     /**
      * Dispatch 2026-10-28-02 (RECORD -1764): the map type panel is back, anchored to the Layers row wherever the bar has
      * been dragged, on either edge, as `MapModePicker` was before L0b. With real touches: the Layers row opens it; its
-     * vertical centre is level with the row's (within 4 dp: the anchor is computed from the bar's rows, not measured,
+     * vertical centre is level with the row's (within 2 dp: the anchor is computed from the bar's rows, not measured,
      * `MapIconBarSizes.kt`), it overlaps the row, and it extends toward the map's middle from the bar's side; a real
      * touch on its Topo chip, at screen coordinates, applies Topo and closes it.
      */
@@ -2613,7 +2613,7 @@ class AvailabilityScreenMapIconStackTest {
         val panel = composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
         val rowMid = (row.top + row.bottom) / 2
         val panelMid = (panel.top + panel.bottom) / 2
-        assertTrue("the panel's middle ($panelMid) is level with the Layers row's ($rowMid)", abs((panelMid - rowMid).value) <= 4f)
+        assertTrue("the panel's middle ($panelMid) is level with the Layers row's ($rowMid)", abs((panelMid - rowMid).value) <= 2f)
         assertTrue("the panel ($panel) overlaps the Layers row ($row)", panel.left < row.right && panel.right > row.left)
         if (onLeft) {
             assertTrue("on the left it grows rightward from the bar ($panel, $row)", panel.right > row.right && panel.left <= row.left + 1.dp)
