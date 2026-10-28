@@ -29316,3 +29316,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Map Layers move into Tools; the Layers button opens the map type panel again; Trails and Recording Tracks renamed; chevrons banned
 **Decision:** the owner, verbatim: "This pull up tab is getting too big. So let's move the map layers into the Tools drawer beneath Trip Planner as Map Layers. Keep the Trail, Topo, OSM options in the map icon bar for ease of access. ... Have the mapiconbar layers tab return to the original animated state it was prior to the map layers addition. Remive the i from the Trails selector as it forces the switch to sit awkwardly. Remove all Chevrons from the drop down lists, those are banned from the app." Steps 1-9 confirmed ("Yes, but 6) is called Trails not Official trails."); the (i) card "Drop the card"; the entry map "Same as Maps tab (Recommended)"; the fold "Folded, remembers (Recommended)"; "Just 'Trails', and rename to 'Recording Tracks'"; "Start a coder now". Dispatch 2026-10-28-02, cut from pre-main e2969abe4. The photo viewer's arrows are not drop-downs and stay (the step path the owner confirmed).
 **Notes:** Written by the planner by hand. Next free ID -1765.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1765
+**Timestamp:** 2026-10-28T17:51:49Z
+**Continues:** 2026-09-28-1764
+**Title:** Map Layers' switch labels in Title Case
+**Decision:** the owner, verbatim: "And just have it labeled Trails and not Official trails. Capitalize the titles also. Planned trips should be Planned Trips, Offline maps should be Offline Maps, Journal entries should be Journal Entries." Dispatch 2026-10-28-02 Amendment 1: Finds, Photos, Waypoints, Planned Trips, Recording Tracks, Tracks, Offline Maps, Journal Entries, Trails; switch labels only.
+**Notes:** Written by the planner by hand. Next free ID -1766.

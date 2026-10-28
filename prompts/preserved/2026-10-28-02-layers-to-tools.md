@@ -53,3 +53,10 @@ The Layers sheet (`MapLayersSheet`) goes once nothing calls it. The Layers butto
 - **Long conversation:** past about 200k tokens, push and hand off.
 - **Ambiguity:** stop and report.
 - **Words on screen** are exactly the owner's: "Map Layers", "Trails", "Recording Tracks", "Trail", "Topo", "OSM". Any other new words are a stop.
+
+## Amendment 1 (2026-10-28): the switch labels in Title Case (RECORD -1765)
+The owner, verbatim: "And just have it labeled Trails and not Official trails. Capitalize the titles also. Planned trips should be Planned Trips, Offline maps should be Offline Maps, Journal entries should be Journal Entries."
+- Trails: as already dispatched, "Trails", one line.
+- The Map Layers switch labels read, in order: Finds, Photos, Waypoints, Planned Trips, Recording Tracks, Tracks, Offline Maps, Journal Entries, Trails. Forecast colour-field names follow the same Title Case. List each one in the report.
+- Verify first: where else each label constant is shown (for example `JOURNAL_ENTRIES_OVERLAY_LABEL` outside the switch list). Change only the switch labels. If a constant is shared with another screen, split it rather than changing that screen, and name it in the report.
+- Tests assert the exact new strings.
