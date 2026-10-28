@@ -29337,3 +29337,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus; layers-to-tools cdf9bfe7f, docs/audits/2026-10-28-layers-to-tools-verify.md): pre-main still e2969abe4; credits do not depend on the card (MapLayers.kt:358, :366; DataSourceCredits.kt:58-66); the card was the only place the agencies' data dates show; Trip Planner's fold resets only on Settings and rotation, not as the dispatch said.
 **Decision:** the owner: Q1 "Option 1. But when selecting a map type that doesn't use Trails, just have it greyed out instead of removing it from the list", with the step path confirmed ("Yes, build it": grey, a tap does nothing, it keeps its setting); Q2 "Option 2. But keep taxonomy proper (e.g. Cordyceps militaris not Cordyceps Militaris, but Lion's Mane and not Lion's mane))"; Q3 "Match: Offline Maps (Recommended)"; Q4 "…Choose the map type. (Recommended)". Dispatch 2026-10-28-02 Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -1767.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1767
+**Timestamp:** 2026-10-28T19:37:09Z
+**Continues:** 2026-09-28-1766
+**Title:** Map Layers move built: PR #432 into pre-main, green, not merged
+**Observed:** Hazel (Opus; branch layers-to-tools, head e3221a9db, docs only; code c217480eb; completion report docs/audits/2026-10-28-layers-to-tools-completion-report.md): CI run 40749401858 green, 5,881 tests, 0 failures, 24 skipped (from the XML; base 5,899, minus 18 removed with the sheet, the card and its fetch). Fourteen revert checks (runs 40752676936 to 40752886231), each failing for its own edit with no compile errors. S22 steps 1-15 in the PR body. Flagged: the light-theme selected chip is about 1.01:1 against the panel (computed); "Offline Maps" reads twice in Tools, as ruled. 14 revert branches left on origin.
+**What the planner checked itself:** git diff origin/pre-main...origin/layers-to-tools: 79 files, no @Ignore or @Disabled added; no ExpandMore, ExpandLess or dropdown TrailingIcon left in app/src/main.
+**Notes:** Written by the planner by hand. Next free ID -1768.
