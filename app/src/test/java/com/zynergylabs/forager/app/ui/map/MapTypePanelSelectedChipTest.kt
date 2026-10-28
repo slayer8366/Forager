@@ -152,7 +152,8 @@ class MapTypePanelSelectedChipTest {
         assertEquals("$where: its recorded outline", LightColors.onSurface, recorded(MapMode.TRAIL)[MapModeChipSelectedOutline])
         val row = middleRow(MapMode.TRAIL)
         val firstFill = row.indexOf(LightColors.secondary)
-        assertTrue("$where: the fill is drawn on the middle row", firstFill > 0)
+        assertTrue("$where: the fill is drawn on the middle row", firstFill >= 0)
+        // With no outline the fill starts at the node's own left edge (revert r19 showed it), so nothing is left of it.
         assertTrue("$where: an onSurface outline is drawn left of the fill", row.subList(0, firstFill).contains(LightColors.onSurface))
     }
 
