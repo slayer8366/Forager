@@ -306,3 +306,68 @@ fills and outlines, not the label, so the change cannot alter their results.
 **Files.** `MapModeChips.kt` is now 152 lines, and `MapTypePanelSelectedChipTest.kt` is 196. Both are under 400.
 
 **Branches.** I deleted the r18, r19, r19b and r20 branches, both on origin and as local worktrees, once their results were read.
+
+## Amendments 5 and 6 (RECORD -1773, -1774): one outline on every selected chip, in both themes
+
+The owner, after Amendment 4: "Give the grey chip an outline too", then "Light theme only (Recommended)" (Amendment 5).
+Then "Both themes. Make it uniform" (Amendment 6), which replaces the light-only rule. Amendment 5 was never built on its
+own. Its test draft was rewritten for Amendment 6 before anything was pushed.
+
+What changed: every selected chip carries a 1 dp outline in that theme's `onSurface`, whether it is the normal selected
+chip or the grey "chosen, but something else is shown" one. That is Bark #3B2E24 in the light theme and Cream #EDE3D0 in
+the dark. The fills are unchanged:
+- light selected: `secondary` #A2612C, from Amendment 4;
+- dark selected: `secondaryContainer` #6B421A;
+- grey: `outlineVariant`, #D5CEBF in the light theme and #444444 in the dark.
+
+The unselected chips keep Material's own outline. This supersedes Amendment 4's "dark theme unchanged" and "grey chip
+unchanged" above, and that section's open question about the grey chip, which the owner has now answered.
+
+| Commit | What |
+|---|---|
+| `f13e264d9` | Tests first. `MapTypePanelOfflineChipTest` gains two tests for the grey chip, both themes: one reached through no signal, one through the Trail Map style fallback (`fallback.onStyleLoadFailed`), as the class's other tests do. `MapTypePanelSelectedChipTest`'s two dark guards now expect the dark fill unchanged, plus a dark `onSurface` outline |
+| `b25806b4b` | The fix in `MapModeChips.kt`. `lightSelectedChipBorder` becomes `selectedChipBorder`, used for every chip, and the recorded outline is always `onSurface` |
+
+**Contrast of the outline**, WCAG 2.x, computed from the theme's hex values. The panel is `surfaceContainer` at 80%.
+
+| Outline against | Light, Bark #3B2E24 | Dark, Cream #EDE3D0 |
+|---|---|---|
+| Panel, opaque (#F4EFE2 / #202020) | 11.42:1 | 12.80:1 |
+| Panel at 80% over a white map (#F6F2E8 / #4D4D4D) | 11.72:1 | 6.64:1 |
+| Panel at 80% over a black map (#C3BFB5 / #1A1A1A) | 7.14:1 | 13.67:1 |
+| Selected fill (#A2612C / #6B421A) | 2.67:1 | 6.82:1 |
+| Grey fill (#D5CEBF / #444444) | 8.37:1 | 7.65:1 |
+
+Every outline clears WCAG 1.4.11's 3:1 non-text bar against the panel, in every case shown. The one figure below 3:1 is
+the light outline against the light selected fill it surrounds, 2.67:1. There the outline is not what tells the chip from
+the panel: the fill does that, at 4.27:1, from Amendment 4.
+
+**Fail-first.** Run 40775654527, on `f13e264d9`, was filtered to the two classes. The log has 0 compile errors. The XML: 2
+files, 16 tests, 4 failures. Each was the predicted "recorded outline" failure, expecting `onSurface` and finding
+`Unspecified`:
+- the two dark selected tests, expecting Cream;
+- the two grey tests, expecting Bark, in their light pass, which runs first.
+
+**Revert checks.** Each one edits the single `border =` line on its own branch, cut from `b25806b4b`. The forward tree was
+not edited, and `git diff b25806b4b` was empty afterwards. Each log has 0 compile errors.
+
+| Check | Revert (one line) | Run | Failed with |
+|---|---|---|---|
+| r21 grey outline | `border = if (standsAside) FilterChipDefaults.filterChipBorder(…) else selectedChipBorder(selected)` | 40776559295 | 16 tests, 2 failures: "light, no signal / light, fallen back: an onSurface outline is drawn left of the grey fill". The selected-chip tests pass |
+| r22 dark outline | `border = if (isDarkTheme) FilterChipDefaults.filterChipBorder(…) else selectedChipBorder(selected)` | 40776563536 | 16 tests, 4 failures: both dark selected tests ("an onSurface outline is drawn left of the fill"), and both grey tests on their dark pass ("dark, no signal / dark, fallen back: …") |
+
+In both reverts the recorded outline still said `onSurface`, since only the drawn border was reverted. So these failures
+come from the drawn-pixel checks, which shows those checks bite independently of the record. r21 stops each grey test at its
+light pass, so the grey chip's dark drawn outline is shown to bite by r22.
+
+**CI on the PR, head `b25806b4b`:** run 40776527059, all five jobs success, 0 compile errors in the log. From the XML: 805
+files, 5891 tests (5889 plus the two new grey tests), 0 failures, 0 errors, 24 skipped.
+
+**Where it shows.** The same two places as Amendment 4: the Maps tab's icon bar Layers panel and a journal entry's
+fullscreen map Layers panel. On the entry map the grey chip stays unreachable on a phone, because its Layers button is
+hidden while "Use offline tiles" is on. On the Maps tab it appears with no signal over a downloaded area, or after the
+Trail Map style has failed to load.
+
+**Branches.** I deleted the r21 and r22 branches, on origin and as local worktrees, once their results were read.
+
+**Not tested.** How the outlines look on the phone. The S22 steps 19 to 21 in the PR body cover it.
