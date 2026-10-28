@@ -29358,3 +29358,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** PR #432: Sorrel's review, then the S22; the selected chip judged on the phone
 **Decision:** the owner: "Sorrel review, then S22 (Recommended)"; the light-theme selected chip "Judge it on the S22 (Recommended)". Dispatch 2026-10-28-03 (Sorrel, Fable). Merge into pre-main after both.
 **Notes:** Written by the planner by hand. Next free ID -1769.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1769
+**Timestamp:** 2026-10-28T20:12:22Z
+**Continues:** 2026-09-28-1768
+**Title:** PR #432's S22 steps now, ahead of Sorrel's review
+**Decision:** the owner: "S22 plugged in"; "Run S22 now (Recommended)" (the other option: wait for Sorrel). Dispatch 2026-10-28-04 on CI build c217480eb (run 40749401858); steps changed by the review are re-run afterwards. The selected chip is described for the owner, not ruled.
+**Notes:** Written by the planner by hand. Next free ID -1770.
