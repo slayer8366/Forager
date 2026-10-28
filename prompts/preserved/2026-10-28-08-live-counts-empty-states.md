@@ -32,3 +32,18 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 - Long conversation: past about 200k tokens, push and hand off.
 - Ambiguity: stop and report.
 - New words on screen are the owner's only.
+
+## Amendment 1 (2026-10-28): answers to the first stop, and the go (RECORD -1781)
+Hazel's first stop is docs/audits/2026-10-28-live-counts-empty-states-first-stop.md (1cc952719). Accepted as proposed:
+- photos included (MushroomLogGallery.kt:52 and its three displays);
+- no new "Used in" field on track or offline-map details;
+- a failed read logs and keeps the last good counts;
+- RecordDetailsContent.kt:75 reads a missing id as 0.
+
+The owner's answers:
+- **Mechanism: "Live count (Recommended)".** One self-updating Room query per record type behind EntryReferenceCountSource, replacing the one-time count loops.
+- **TrackRecordingViewModel.kt (868 lines): "Allow the 3 lines (Recommended)".** Add the 3 lines without splitting first; the split is a later task.
+- **Tracks: "No recorded tracks yet. Tap the record button on the map to record one."**
+- **Offline maps: "No maps downloaded yet. Pan the map to an area and tap Download Maps."**
+- **All: "No records yet. Record a track, drop a waypoint or download a map, and it shows here."**
+- Finds and Drafts as already approved. **The go: build.** CI only; PR into pre-main, no merge; S22 steps in the PR body.

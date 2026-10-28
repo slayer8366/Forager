@@ -29484,3 +29484,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's look-only pass (Opus; records-follow-ups 3086c231c, docs/audits/2026-10-28-records-follow-ups-look.md) at 9f2df1abb. (1) The stale count is held on screen: a one-time read (TrackRecordingLists.kt:51-68) that is not refreshed when an entry is saved or deleted. The database delete is sound (CartographyEntryDao.kt:134-143, one transaction), and a leftover row would count as 0 through the join at :168. Tracks and offline maps have the same gap. (2) Finds never had an empty state (FindsGalleryScreen.kt:165-172); before -751 the "+" tile filled it.
 **Decision:** the owner: "Yes, update straight away (Recommended)"; Finds "No finds yet. Use New find to log one. (Recommended)"; Drafts "\"No drafts. A find you leave before saving waits here.\" (Recommended)"; All, Tracks and Offline maps "Yes, in the same change (Recommended)", with the wording to the owner before it is built; "Start a coder now". Dispatch 2026-10-28-08.
 **Notes:** Written by the planner by hand. Next free ID -1781.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1781
+**Timestamp:** 2026-10-28T22:56:02Z
+**Continues:** 2026-09-28-1780
+**Title:** Live counts by a self-updating query (photos included); three empty-state lines chosen; go to build
+**Observed:** Hazel's first stop (Opus; live-counts-empty-states 1cc952719): a self-updating Room query per record type behind a new EntryReferenceCountSource, replacing the one-time loops (TrackRecordingLists.kt:60, :85; AvailabilityOfflineMaps.kt:127; MushroomLogGallery.kt:52). Photos carry the count too. Only waypoint details show "Used in"; for tracks and offline maps it appears only in the delete message (the dispatch's premise was wrong there).
+**Decision:** the owner: "Live count (Recommended)"; "Allow the 3 lines (Recommended)" for TrackRecordingViewModel.kt at 868 lines; Tracks "Record button only (Recommended)"; Offline maps "No maps downloaded (Recommended)"; All "Names what shows here (Recommended)". Dispatch 2026-10-28-08 Amendment 1, with the go to build.
+**Notes:** Written by the planner by hand. Next free ID -1782.
