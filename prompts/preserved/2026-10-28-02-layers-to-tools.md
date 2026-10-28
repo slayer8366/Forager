@@ -68,3 +68,12 @@ Hazel's verify-first is on branch layers-to-tools, cdf9bfe7f (`docs/audits/2026-
 - **Q3:** "Match: Offline Maps (Recommended)". The Tools row that opens downloaded areas reads "Offline Maps".
 - **Q4:** "…Choose the map type. (Recommended)". It reads "Layers: Trail map. Choose the map type."
 - **The go:** build. CI only, then a PR into pre-main, no merge, with the S22 steps in its body. Add the audit index row with the completion report.
+
+## Amendment 3 (2026-10-28): Sorrel's review of #432 (RECORD -1770)
+Sorrel's review (Fable) is `docs/reviews/2026-10-28-sorrel-pr432.md` on branch sorrel-pr432, ddd0b1c4a, at e3221a9db. It has no S findings and nine N. The owner's answers:
+- **N1, "Opening Tools closes panel (Recommended)":** landscape, panel open > tap Tools on the rail > the panel closes and the drawer opens > Back > the drawer closes > the map. Write a test that fails first, then a revert check.
+- **N3, "Yes, same as Map Layers (Recommended)":** Trip Planner's fold is held the same way as Map Layers'. It survives a drawer close, a tab change, a trip into Settings and a rotation, but not a restart. Correct its doc comment at SearchControls.kt:63-65. Write a test that fails first, then a revert check.
+- **N4** is settled: the owner's "Option 2" was "Title Case everywhere" in the question as asked. No change.
+- **Also in this push:** N5 (a test for Back on the Maps tab with fullscreen on and the panel open) and N7 (point the ten comments at MapChrome.kt:103-109, not the deleted sheet).
+- **Not in this PR:** N2 (the Worker's unused /reference-trails-manifest.json route) and N6 (the fold headers' height).
+CI only. Push to #432 and report.

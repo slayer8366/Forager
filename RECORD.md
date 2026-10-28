@@ -29368,3 +29368,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** PR #432's S22 steps now, ahead of Sorrel's review
 **Decision:** the owner: "S22 plugged in"; "Run S22 now (Recommended)" (the other option: wait for Sorrel). Dispatch 2026-10-28-04 on CI build c217480eb (run 40749401858); steps changed by the review are re-run afterwards. The selected chip is described for the owner, not ruled.
 **Notes:** Written by the planner by hand. Next free ID -1770.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1770
+**Timestamp:** 2026-10-28T20:22:28Z
+**Continues:** 2026-09-28-1768
+**Title:** Sorrel's review of #432: no blockers; Tools closes the panel, Trip Planner's fold remembers
+**Observed:** Sorrel (Fable; sorrel-pr432 ddd0b1c4a, docs/reviews/2026-10-28-sorrel-pr432.md) at e3221a9db: no S, nine N. N1: in landscape, Back closes the panel behind an open Tools drawer before the drawer (MapTypePanel.kt:80). N2: the Worker still serves /reference-trails-manifest.json, now with no client. N3: Trip Planner's fold resets on Settings and rotation, while Map Layers' does not. Two revert checks were spot-checked against their CI logs and hold.
+**Decision:** the owner: N1 "Opening Tools closes panel (Recommended)"; N3 "Yes, same as Map Layers (Recommended)". N4 settled: "Option 2" was "Title Case everywhere" in the question as asked. N5 and N7 ride along; N2 and N6 stay out. Dispatch 2026-10-28-02 Amendment 3.
+**Notes:** Written by the planner by hand. Next free ID -1771.
