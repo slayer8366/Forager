@@ -150,6 +150,11 @@ class MapTypePanelMapsTabTest {
     @Test
     fun `with the panel closed, a long-press on the map where the panel and its scrim were reaches the map`() {
         setScreen()
+        // Closed before it was ever opened: nothing of the panel takes a touch (CLAUDE.md, the Surface pitfall).
+        val neverOpened = mapLongPresses
+        touchAt(40.dp, 400.dp, long = true)
+        touchAt(192.dp, 300.dp, long = true)
+        assertEquals("never opened: both long-presses reached the map", neverOpened + 2, mapLongPresses)
         openPanel()
         val panel = bounds(MAP_TYPE_PANEL_TAG)
         touchAt(40.dp, 400.dp)
