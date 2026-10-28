@@ -29442,3 +29442,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** #432: the uniform chip outline built
 **Observed:** Hazel (Opus) built Amendment 6 directly, without building 5 on its own: head 217200006, code b25806b4b. Every selected and grey map type chip carries a 1 dp onSurface outline in both themes (Bark in light, Cream in dark), with fills unchanged. Fail-first run 40775654527 had 4 predicted failures; green run 40776527059, 5,891 tests, 0 failures, 24 skipped; reverts r21 and r22 hold on drawn pixels, and their branches are deleted. The only figure under 3:1 is the light outline against the orange fill (2.67:1). S22 steps 19-21 are in the PR body; step 21 (the grey chip) needs a downloaded offline area.
 **Notes:** Written by the planner by hand. Next free ID -1777.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1777
+**Timestamp:** 2026-10-28T22:19:19Z
+**Continues:** 2026-09-28-1776
+**Title:** #432 S22 round 3: the uniform outline, with a small offline area for the grey chip
+**Decision:** the owner: "Download a small area (Recommended)" (the other options: skip the grey chip step, or not now). Dispatch 2026-10-28-06 on run 40776527059 (b25806b4b): steps 19-21. The area and a test entry are deleted afterwards.
+**Notes:** Written by the planner by hand. Next free ID -1778.
