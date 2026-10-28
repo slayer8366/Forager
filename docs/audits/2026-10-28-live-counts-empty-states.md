@@ -1,7 +1,7 @@
 # Live counts and empty states: completion (dispatch 2026-10-28-08)
 
 Hazel, 2026-10-28. Dispatch `prompts/preserved/2026-10-28-08-live-counts-empty-states.md` with Amendment 1, on
-`records-after-173`, RECORD -1780 and -1781. First stop: `2026-10-28-live-counts-empty-states-first-stop.md`.
+`records-after-173`, RECORD -1780 and -1781. PR #434 into pre-main, not merged. First stop: `2026-10-28-live-counts-empty-states-first-stop.md`.
 Branch `live-counts-empty-states`, cut from pre-main `9f2df1abb`, which was the remote head when the work started.
 
 ## What landed
