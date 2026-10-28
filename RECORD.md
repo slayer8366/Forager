@@ -29286,3 +29286,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel's quick look (Fable; sorrel-pr431 76c3387ad) at 43312fe8b: mergeable; the S3 correction confirmed from the call chain (one CompactMapTab caller, no window-size branch); the commit non-behavioural, so no revert checks; CI 40608553967 green, 5,888 tests (tallied from the XML). The planner removed the PR's WIP title and "Do not merge" line and corrected its S3 line before the merge.
 **Decision:** merged at 43312fe8b under -1760's "Quick look, then merge (Recommended)"; pre-main updated. The S22 steps 1-15 join the next S22 session.
 **Notes:** Written by the planner by hand. Next free ID -1762.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1762
+**Timestamp:** 2026-10-28T01:50:40Z
+**Continues:** 2026-09-28-1755, 2026-09-28-1761
+**Title:** The S22 session: #429's recheck, then the PRs merged today
+**Decision:** the owner: "S22 plugged in". Dispatch 2026-10-28-01: #429's recheck on its own build 4120 (night on and off 3 of 3 at 1 s and 30 s; a recorded cold start showing no dip, with 4116 as the positive control if it is still on the phone); then the latest pre-main build and the S22 steps of #431, #430, #428 and #427, the cleared-storage steps last.
+**Notes:** Written by the planner by hand, under -1755's merge gate. Next free ID -1763.
