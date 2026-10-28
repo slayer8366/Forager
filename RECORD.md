@@ -29264,3 +29264,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #431 (crowded-icons-setting 52da40ada): full CI 40604864922 green, 5,888 tests; RV1-RV8 each failing for their own edit; the line-171 failure was the test tapping inside a stack's tap box (the app was right), fixed with a positive control. Sorrel (Fable; docs/reviews/2026-10-28-sorrel-pr431.md, branch sorrel-pr431, 01f1ae1ff): no blocking finding; S1 the mode setter dropping pending returns was the coder's ruling; S2 S22 step 3 expects Back by rows that show only while recording; S3 the Map section shows on layouts whose map has no CrowdedStackHost, such as the tablet (inferred), where it does nothing. Removed Sundown symbols: none left in app/. Q1 and Q2 sit before every early return at their call sites.
 **Decision:** the owner: "No, switching clears it (Recommended)"; "Hide it on tablets for now (Recommended)"; "Fix, quick look, merge (Recommended)": dispatch 2026-10-27-14 Amendment 4, then Sorrel's quick look, then the merge.
 **Notes:** Written by the planner by hand. The planner's brief for the line-171 fix said a bubble had shown; the list had stayed open, and the coder found it from data. Next free ID -1760.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1760
+**Timestamp:** 2026-10-28T00:49:07Z
+**Continues:** 2026-09-28-1759, 2026-09-28-1749
+**Title:** The Map section shows everywhere: tablets use the same Maps tab (owner); corrects -1759 and -1749
+**Observed:** the #431 coder (Opus; head 43312fe8b, CI 40608553967 green, 5,888 tests): every window size draws the one compact Maps tab, with its CrowdedStackHost (AvailabilityCompactMapUi.kt:85-86; dispatch 2026-09-28-245, "a tablet is a big phone"; AvailabilityScreenTabletAsPhoneTest); the only maps without a host are the journal entry-report map and the centre-pin picker. So -1749's "the entry map and the tablet map keep today's overflowing fan" and the premise of -1759's tablet question were wrong for the tablet; the planner put Sorrel's inferred S3 to the owner without checking it. S2, N1, N5 (except AvailabilityViewModel.kt:170), N7 and N8 are done; N6 is left so as to add no line to AvailabilityViewModel.kt.
+**Decision:** the owner: "Show it everywhere (Recommended)": no gate; this replaces -1759's "Hide it on tablets for now". "Quick look, then merge (Recommended)".
+**Notes:** Written by the planner by hand. Next free ID -1761.
