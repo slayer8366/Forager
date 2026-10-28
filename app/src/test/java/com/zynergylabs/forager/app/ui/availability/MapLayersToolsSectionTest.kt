@@ -99,7 +99,8 @@ class MapLayersToolsSectionTest {
         composeRule.openTools()
         assertTrue("still open after a tab change", mapLayersOpen())
 
-        touchCentre("Settings")
+        inDrawer("Settings").performTouchInput { click(center) }
+        composeRule.waitForIdle()
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
         assertTrue("still open after a trip into Settings", mapLayersOpen())

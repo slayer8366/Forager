@@ -150,7 +150,11 @@ class AvailabilityScreenMapLayersToolsTest {
 
         composeRule.toggleMapLayersFold()
 
-        val tops = MAP_LAYERS_SWITCH_LABELS.map { inDrawer(it).performScrollTo().assertIsDisplayed().getUnclippedBoundsInRoot().top }
+        // Each label read from its own switch row: the drawer's "Offline Maps" row, below the fold, has the same words
+        // since Amendment 2 ("Match: Offline Maps").
+        val rows = MAP_LAYER_OVERLAYS.map { it.layerId } + MapLayerIds.REFERENCE_FS_BAND
+        assertEquals(MAP_LAYERS_SWITCH_LABELS, rows.map { switchTexts(it).single() })
+        val tops = rows.map { composeRule.onNodeWithTag(mapLayerSwitchTag(it)).performScrollTo().assertIsDisplayed().getUnclippedBoundsInRoot().top }
         assertEquals("in the owner's order: $MAP_LAYERS_SWITCH_LABELS at $tops", tops.sorted(), tops)
         MapMode.entries.forEach { assertEquals("no ${it.label} chip in Tools", 0, composeRule.onAllNodesWithTag(mapModeChipTag(it)).fetchSemanticsNodes().size) }
     }
@@ -385,8 +389,8 @@ class AvailabilityScreenMapLayersToolsTest {
         composeRule.waitForIdle()
         composeRule.closeTools()
 
-        composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText(CHANTERELLES_LABEL).assertIsDisplayed()
+        // On the chip itself: the closed drawer stays composed, so its switch row carries the same name.
+        composeRule.onNode(hasTestTag(MAP_LEGEND_CHIP_TAG) and androidx.compose.ui.test.hasText(CHANTERELLES_LABEL)).assertIsDisplayed()
     }
 
     @Test
