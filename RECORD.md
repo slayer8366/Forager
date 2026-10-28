@@ -29275,3 +29275,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the #431 coder (Opus; head 43312fe8b, CI 40608553967 green, 5,888 tests): every window size draws the one compact Maps tab, with its CrowdedStackHost (AvailabilityCompactMapUi.kt:85-86; dispatch 2026-09-28-245, "a tablet is a big phone"; AvailabilityScreenTabletAsPhoneTest); the only maps without a host are the journal entry-report map and the centre-pin picker. So -1749's "the entry map and the tablet map keep today's overflowing fan" and the premise of -1759's tablet question were wrong for the tablet; the planner put Sorrel's inferred S3 to the owner without checking it. S2, N1, N5 (except AvailabilityViewModel.kt:170), N7 and N8 are done; N6 is left so as to add no line to AvailabilityViewModel.kt.
 **Decision:** the owner: "Show it everywhere (Recommended)": no gate; this replaces -1759's "Hide it on tablets for now". "Quick look, then merge (Recommended)".
 **Notes:** Written by the planner by hand. Next free ID -1761.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1761
+**Timestamp:** 2026-10-28T00:56:45Z
+**Continues:** 2026-09-28-1760, 2026-09-28-1750, 2026-09-28-1751
+**Title:** #431 merged into pre-main: the Crowded icons setting, the Tools Sundown section removed, the Locate and Navigate press rules
+**Observed:** Sorrel's quick look (Fable; sorrel-pr431 76c3387ad) at 43312fe8b: mergeable; the S3 correction confirmed from the call chain (one CompactMapTab caller, no window-size branch); the commit non-behavioural, so no revert checks; CI 40608553967 green, 5,888 tests (tallied from the XML). The planner removed the PR's WIP title and "Do not merge" line and corrected its S3 line before the merge.
+**Decision:** merged at 43312fe8b under -1760's "Quick look, then merge (Recommended)"; pre-main updated. The S22 steps 1-15 join the next S22 session.
+**Notes:** Written by the planner by hand. Next free ID -1762.
