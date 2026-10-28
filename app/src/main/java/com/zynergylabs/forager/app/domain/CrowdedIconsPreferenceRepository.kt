@@ -28,7 +28,7 @@ enum class CrowdedIconsMode(val label: String, internal val stored: String) {
  */
 interface CrowdedIconsPreferenceRepository {
     /** `null` when nothing is stored, or the stored value names no mode (reported through [unknown]). */
-    suspend fun getCrowdedIconsMode(unknown: (String) -> Unit = {}): Result<CrowdedIconsMode?>
+    suspend fun getCrowdedIconsMode(unknown: (String) -> Unit): Result<CrowdedIconsMode?>
 
     suspend fun setCrowdedIconsMode(mode: CrowdedIconsMode): Result<Unit>
 }

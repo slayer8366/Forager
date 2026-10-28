@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app
 import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.onAutoSaveLocationToPhotosChanged
 import com.zynergylabs.forager.app.ui.availability.onBatterySaverChanged
+import com.zynergylabs.forager.app.ui.availability.onCrowdedIconsModeChanged
 import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
 import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
 import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
@@ -10,7 +11,6 @@ import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
 import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
 import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
 import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
-import com.zynergylabs.forager.app.ui.availability.onCrowdedIconsModeChanged
 import com.zynergylabs.forager.app.ui.availability.onOffTrackReminderChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapLatChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapLngChanged

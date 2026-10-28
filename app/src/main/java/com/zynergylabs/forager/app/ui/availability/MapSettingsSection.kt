@@ -9,7 +9,7 @@ import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /** Settings > Map > "Crowded icons": the stored choice and its change (dispatch 2026-10-27-14). */
-data class CrowdedIconsControls(
+internal data class CrowdedIconsControls(
     val mode: CrowdedIconsMode = CrowdedIconsMode.DEFAULT,
     val onModeChanged: (CrowdedIconsMode) -> Unit = {},
 )

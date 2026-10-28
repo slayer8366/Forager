@@ -16,6 +16,7 @@ import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
 import com.zynergylabs.forager.app.domain.BackupFiles
 import com.zynergylabs.forager.app.domain.BackupNotifier
 import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
+import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreBackupSchedulePreferences
 import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
 import com.zynergylabs.forager.app.data.backup.WorkManagerBackupScheduler
@@ -316,7 +317,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val mapLayerPreferencesRepository: MapLayerPreferencesRepository = dataStoreMapPreferencesRepository
     val basemapPreferenceRepository: BasemapPreferenceRepository = dataStoreMapPreferencesRepository
     val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = dataStoreMapPreferencesRepository
-    val crowdedIconsRepository: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = dataStoreMapPreferencesRepository
+    val crowdedIconsRepository: CrowdedIconsPreferenceRepository = dataStoreMapPreferencesRepository
 
     /**
      * Step 8d (dispatch 2026-10-26-24): the official-trails card's source dates, from the Worker's manifest, with the

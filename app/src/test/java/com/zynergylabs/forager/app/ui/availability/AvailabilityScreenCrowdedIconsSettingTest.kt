@@ -164,7 +164,7 @@ class AvailabilityScreenCrowdedIconsSettingTest {
             assertEquals("a touch at $fraction across the $mode row picks it", CrowdedIconsMode.entries.map { it == mode }, CrowdedIconsMode.entries.map(::selected))
             assertEquals(mode, viewModel.uiState.value.crowdedIconsMode)
         }
-        awaitIdle("List stored") { runBlocking { repository.getCrowdedIconsMode().getOrNull() } == CrowdedIconsMode.LIST }
+        awaitIdle("List stored") { runBlocking { repository.getCrowdedIconsMode { v -> throw AssertionError("the stored List read as an unknown value: \"$v\"") }.getOrNull() } == CrowdedIconsMode.LIST }
         release(scope)
 
         assertEquals("the file holds it under map.crowded_icons", "list", rawStored())

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -50,4 +51,4 @@ fun AvailabilityViewModel.onUnitSystemSelected(system: UnitSystem) = settingsPre
 fun AvailabilityViewModel.onDistanceUnitSelected(unit: DistanceUnit) = onUnitSystemSelected(UnitSystem.forDistanceUnit(unit))
 
 /** See [AvailabilitySettingsPrefs.onCrowdedIconsModeChanged]. */
-fun AvailabilityViewModel.onCrowdedIconsModeChanged(mode: com.zynergylabs.forager.app.domain.CrowdedIconsMode) = settingsPrefs.onCrowdedIconsModeChanged(mode)
+fun AvailabilityViewModel.onCrowdedIconsModeChanged(mode: CrowdedIconsMode) = settingsPrefs.onCrowdedIconsModeChanged(mode)

@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -298,7 +299,7 @@ internal fun CompactMapTab(
     // with the camera above the tab switch, so they survive a tab change (Amendment 1, S2).
     val crowdedStacks = cameraMemory.crowdedStacks
     // Settings > Map > "Crowded icons" (dispatch 2026-10-27-14): the map reads the mode from the host at each tap.
-    androidx.compose.runtime.SideEffect { crowdedStacks.mode = uiState.crowdedIconsMode }
+    SideEffect { crowdedStacks.mode = uiState.crowdedIconsMode }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.

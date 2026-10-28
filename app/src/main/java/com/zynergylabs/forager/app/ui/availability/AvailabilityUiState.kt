@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.ForagingSelection
@@ -230,7 +231,7 @@ data class AvailabilityUiState(
      */
     val nightModeMapsLoaded: Boolean = false,
     /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14); the Maps tab writes it into its crowded-stack host. */
-    val crowdedIconsMode: com.zynergylabs.forager.app.domain.CrowdedIconsMode = com.zynergylabs.forager.app.domain.CrowdedIconsMode.DEFAULT,
+    val crowdedIconsMode: CrowdedIconsMode = CrowdedIconsMode.DEFAULT,
     /**
      * The Maps tab's basemap (dispatch 2026-09-28-708): restored at start from
      * [com.zynergylabs.forager.app.domain.BasemapPreferenceRepository] and kept in step with every pick
