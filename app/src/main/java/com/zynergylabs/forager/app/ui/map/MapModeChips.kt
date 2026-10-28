@@ -83,10 +83,14 @@ private fun rememberNoSignal(): Boolean {
  * colour, which the panel does not use; the panel's are recorded in
  * `docs/audits/2026-10-28-layers-to-tools-completion-report.md`.
  *
- * In the light theme the normal selected chip is [lightSelectedChipColors] with [lightSelectedChipBorder] (dispatch
- * 2026-10-28-02 Amendment 4, RECORD -1771): `secondaryContainer` sat at about 1.04:1 against the panel on the S22, so the
- * chosen type read as "slightly warmer, not clearly on". The owner: "Option 1, but Give it an outline." The dark theme keeps
- * Material's defaults, which already stood out there. The grey stand-aside chip is unchanged in both.
+ * In the light theme the normal selected chip is filled [lightSelectedChipColors] (dispatch 2026-10-28-02 Amendment 4, RECORD
+ * -1771): `secondaryContainer` sat at about 1.04:1 against the panel on the S22, so the chosen type read as "slightly
+ * warmer, not clearly on". The owner: "Option 1, but Give it an outline." The dark theme keeps Material's fill, which already
+ * stood out there.
+ *
+ * Every selected chip, normal or grey, in both themes, carries [selectedChipBorder], a 1 dp outline in the theme's
+ * `onSurface` (Amendments 5 and 6, RECORD -1773 and -1774; the owner: "Give the grey chip an outline too", then "Both themes.
+ * Make it uniform"). The unselected chips keep Material's own outline.
  */
 @Composable
 internal fun MapModeChipRow(
@@ -117,13 +121,13 @@ internal fun MapModeChipRow(
                 strongLight -> lightSelectedChipColors()
                 else -> FilterChipDefaults.filterChipColors()
             }
-            val selectedOutline = if (strongLight) MaterialTheme.colorScheme.onSurface else Color.Unspecified
+            val selectedOutline = MaterialTheme.colorScheme.onSurface
             FilterChip(
                 selected = selected,
                 onClick = { onMapModeSelected(mode) },
                 label = { Text(mode.label) },
                 colors = colors,
-                border = if (strongLight) lightSelectedChipBorder(selected) else FilterChipDefaults.filterChipBorder(enabled = true, selected = selected),
+                border = selectedChipBorder(selected),
                 modifier = Modifier.testTag(mapModeChipTag(mode)).semantics {
                     mapModeChipSelectedFill = colors.selectedContainerColor
                     mapModeChipSelectedOutline = selectedOutline
@@ -146,9 +150,12 @@ private fun lightSelectedChipColors() = FilterChipDefaults.filterChipColors(
     selectedLabelColor = PureWhite,
 )
 
-/** The light theme's selected outline (Amendment 4): `onSurface` (#3B2E24), 1 dp, the width of the unselected chips' outline. */
+/**
+ * The selected outline, normal or grey, both themes (Amendments 4 to 6): the theme's `onSurface` (#3B2E24 light, #EDE3D0
+ * dark), 1 dp, the width of the unselected chips' outline.
+ */
 @Composable
-private fun lightSelectedChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
+private fun selectedChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
     enabled = true,
     selected = selected,
     selectedBorderColor = MaterialTheme.colorScheme.onSurface,
