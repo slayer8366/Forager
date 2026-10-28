@@ -29326,3 +29326,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Map Layers' switch labels in Title Case
 **Decision:** the owner, verbatim: "And just have it labeled Trails and not Official trails. Capitalize the titles also. Planned trips should be Planned Trips, Offline maps should be Offline Maps, Journal entries should be Journal Entries." Dispatch 2026-10-28-02 Amendment 1: Finds, Photos, Waypoints, Planned Trips, Recording Tracks, Tracks, Offline Maps, Journal Entries, Trails; switch labels only.
 **Notes:** Written by the planner by hand. Next free ID -1766.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1766
+**Timestamp:** 2026-10-28T18:06:43Z
+**Continues:** 2026-09-28-1764, 2026-09-28-1765
+**Title:** Map Layers move: verify-first answers (Trails greyed, not hidden; Title Case with proper taxonomy) and the go to build
+**Observed:** Hazel (Opus; layers-to-tools cdf9bfe7f, docs/audits/2026-10-28-layers-to-tools-verify.md): pre-main still e2969abe4; credits do not depend on the card (MapLayers.kt:358, :366; DataSourceCredits.kt:58-66); the card was the only place the agencies' data dates show; Trip Planner's fold resets only on Settings and rotation, not as the dispatch said.
+**Decision:** the owner: Q1 "Option 1. But when selecting a map type that doesn't use Trails, just have it greyed out instead of removing it from the list", with the step path confirmed ("Yes, build it": grey, a tap does nothing, it keeps its setting); Q2 "Option 2. But keep taxonomy proper (e.g. Cordyceps militaris not Cordyceps Militaris, but Lion's Mane and not Lion's mane))"; Q3 "Match: Offline Maps (Recommended)"; Q4 "…Choose the map type. (Recommended)". Dispatch 2026-10-28-02 Amendment 2.
+**Notes:** Written by the planner by hand. Next free ID -1767.
