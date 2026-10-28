@@ -29307,3 +29307,12 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus; docs/audits/2026-10-28-s22-session.md, branch s22-session-2026-10-28, 307cb7ac0; laptop-only evidence in /home/zynergy-labs/s22-2026-10-28/): #429 on its own build 4120: night on 3 of 3 (2.95-3.06%), night off 3 of 3 (2.69-3.19%) at 1 s and 30 s; recorded cold starts flat at 1.32 from 0 to 1.5 s with the first-style skip logged, against 4116's dip (1.32 to 0.68 at 350-400 ms). Pre-main 4123 (4113c0780): #431 14 of 15 (step 12 not run: no cold GPS); in List mode while navigating the list clears the navigation card; #430 steps 1-8 and 10-14 pass, 9 and 15 observed; #428 9 of 9; #427 steps 1-4 pass (the retry 40 s after aeroplane mode off), 5 observed. One unexplained Back while navigating, outside every step's path: navigation started from a bubble an earlier Back left open; Back re-showed the bubble and two more Backs did nothing visible; a second run behaved normally. A trial merge of #429 with pre-main 4113c0780 was clean, with no file in common.
 **Decision:** merged at 5d56ee9d9 under -1755's "Fix all three, then merge" and its S22 gate; pre-main updated. The upstream draft is ready for the owner to file.
 **Notes:** Written by the planner by hand. Next free ID -1764.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1764
+**Timestamp:** 2026-10-28T17:51:08Z
+**Title:** Map Layers move into Tools; the Layers button opens the map type panel again; Trails and Recording Tracks renamed; chevrons banned
+**Decision:** the owner, verbatim: "This pull up tab is getting too big. So let's move the map layers into the Tools drawer beneath Trip Planner as Map Layers. Keep the Trail, Topo, OSM options in the map icon bar for ease of access. ... Have the mapiconbar layers tab return to the original animated state it was prior to the map layers addition. Remive the i from the Trails selector as it forces the switch to sit awkwardly. Remove all Chevrons from the drop down lists, those are banned from the app." Steps 1-9 confirmed ("Yes, but 6) is called Trails not Official trails."); the (i) card "Drop the card"; the entry map "Same as Maps tab (Recommended)"; the fold "Folded, remembers (Recommended)"; "Just 'Trails', and rename to 'Recording Tracks'"; "Start a coder now". Dispatch 2026-10-28-02, cut from pre-main e2969abe4. The photo viewer's arrows are not drop-downs and stay (the step path the owner confirmed).
+**Notes:** Written by the planner by hand. Next free ID -1765.
