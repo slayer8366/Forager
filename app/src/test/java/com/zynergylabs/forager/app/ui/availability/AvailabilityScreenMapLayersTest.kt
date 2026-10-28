@@ -20,6 +20,7 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -35,12 +36,10 @@ import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.ui.map.Basemap
-import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.map.LEGEND_MAX_HEIGHT
 import com.zynergylabs.forager.app.ui.map.MAP_LEGEND_CHIP_TAG
-import com.zynergylabs.forager.app.ui.map.mapLayerOpacityTag
-import com.zynergylabs.forager.app.ui.map.mapLayerReorderTag
-import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
+import com.zynergylabs.forager.app.ui.map.mapModeChipTag
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_NO_FORECAST_HERE
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_REFERENCE_CLASS
@@ -63,11 +62,14 @@ import org.robolectric.annotation.Config
 
 private typealias MapLayersRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
 
-private val CHANTERELLES_LABEL = "Test forecast: chanterelles (synthetic data)"
-private val CHICKEN_LABEL = "Test forecast: chicken of the woods (synthetic data)"
+private val CHANTERELLES_LABEL = "Test Forecast: Chanterelles (Synthetic Data)"
+private val CHICKEN_LABEL = "Test Forecast: Chicken of the Woods (Synthetic Data)"
 
-/** The Maps tab's overlay switches, in the sheet's order (the dispatch, B1): seven, and J8's "Journal entries" last. */
-private val MAPS_TAB_OVERLAY_LABELS = listOf("Finds", "Photos", "Waypoints", "Planned trips", "Recording trail", "Tracks", "Offline maps", "Journal entries")
+/**
+ * Tools > Map Layers' switches, in order, as the owner wrote them (dispatch 2026-10-28-02, step 6 and Amendment 1, RECORD
+ * -1764 and -1765): the eight record overlays, then Trails. Exact strings, not the constants, so a changed label fails here.
+ */
+private val MAP_LAYERS_SWITCH_LABELS = listOf("Finds", "Photos", "Waypoints", "Planned Trips", "Recording Tracks", "Tracks", "Offline Maps", "Journal Entries", "Trails")
 
 private val DATES = mapOf(
     MapLayerIds.FORECAST_CHANTERELLES to ForecastCellsShown(week = MAP_LAYERS_TEST_WEEK, weatherThrough = LocalDate.of(2026, 9, 26)),
@@ -86,18 +88,10 @@ private fun MapLayersRule.centreOf(node: SemanticsNodeInteraction): Offset {
     return with(density) { Offset(((bounds.left + bounds.right) / 2).toPx(), ((bounds.top + bounds.bottom) / 2).toPx()) }
 }
 
-/** A real touch at [atDp] on the app's own window (the sheet, when open, is a window of its own). */
+/** A real touch at [atDp] on the app's own window. */
 private fun MapLayersRule.touchMapAt(xDp: Dp, yDp: Dp) {
     val at = with(density) { Offset(xDp.toPx(), yDp.toPx()) }
     onRoot().performTouchInput { click(at) }
-    waitForIdle()
-}
-
-/** The sheet's own window, found by the sheet inside it, for a tap on its scrim. */
-private fun MapLayersRule.sheetWindow() = onNode(isRoot() and hasAnyDescendant(hasTestTag(MAP_LAYERS_SHEET_TAG)))
-
-private fun MapLayersRule.closeSheetByTappingOutside() {
-    sheetWindow().performTouchInput { click(Offset(centerX, 4f)) }
     waitForIdle()
 }
 
@@ -110,14 +104,15 @@ private fun MapLayersRule.customAction(tag: String, label: String) {
 }
 
 /**
- * The Layers sheet and the legend chip on the compact Maps tab, portrait (map layers L0b, B1 and B4),
+ * Tools > Map Layers (dispatch 2026-10-28-02; until then the Layers sheet) and the legend chip on the compact Maps tab,
+ * portrait (map layers L0b, B1 and B4),
  * at the S22 Ultra's portrait size: the dispatch's short landscape window is `w823dp-h384dp`. Every
  * touch is a real one at screen coordinates (CLAUDE.md, Testing), and every change goes through the
  * real [AvailabilityViewModel] to the state the map slot is handed.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
-class AvailabilityScreenMapLayersSheetTest {
+class AvailabilityScreenMapLayersToolsTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -138,30 +133,45 @@ class AvailabilityScreenMapLayersSheetTest {
         composeRule.waitForIdle()
     }
 
-    private fun openSheet() {
-        composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION).touch()
-        composeRule.waitForIdle()
+    private fun openSheet() = composeRule.openToolsMapLayers()
+
+    private fun inDrawer(text: String) =
+        composeRule.onNode(androidx.compose.ui.test.hasText(text) and androidx.compose.ui.test.hasAnyAncestor(hasTestTag(TOOLS_DRAWER_SHEET_TAG)))
+
+    @Test
+    fun `Tools lists Map Layers under Trip Planner, folded, and a real touch on it shows the nine switches in order and no map type`() {
+        setScreen()
+        composeRule.openTools()
+
+        val tripPlanner = inDrawer("Trip Planner").getUnclippedBoundsInRoot()
+        val mapLayers = inDrawer("Map Layers").getUnclippedBoundsInRoot()
+        assertTrue("Map Layers is under Trip Planner (${tripPlanner.bottom} <= ${mapLayers.top})", tripPlanner.bottom <= mapLayers.top)
+        assertEquals("folded the first time", 0, composeRule.onAllNodesWithTag(mapLayerSwitchTag(MapLayerIds.FINDS)).fetchSemanticsNodes().size)
+
+        composeRule.toggleMapLayersFold()
+
+        val tops = MAP_LAYERS_SWITCH_LABELS.map { inDrawer(it).performScrollTo().assertIsDisplayed().getUnclippedBoundsInRoot().top }
+        assertEquals("in the owner's order: $MAP_LAYERS_SWITCH_LABELS at $tops", tops.sorted(), tops)
+        MapMode.entries.forEach { assertEquals("no ${it.label} chip in Tools", 0, composeRule.onAllNodesWithTag(mapModeChipTag(it)).fetchSemanticsNodes().size) }
     }
 
     @Test
-    fun `a real touch on the Layers row opens the Layers sheet, with Map type and the Maps tab's eight overlays`() {
+    fun `Recording Tracks and Trails read as written, Trails on one line with no info button`() {
         setScreen()
-
         openSheet()
 
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Layers").assertIsDisplayed()
-        composeRule.onNodeWithText("Map type").assertIsDisplayed()
-        composeRule.onNodeWithText("Overlays").assertIsDisplayed()
-        // Looked up inside the sheet: since RECORD -868 the Tools drawer, composed while closed, has an "Offline maps" row too.
-        MAPS_TAB_OVERLAY_LABELS.forEach {
-            composeRule.onNode(androidx.compose.ui.test.hasText(it) and androidx.compose.ui.test.hasAnyAncestor(hasTestTag(MAP_LAYERS_SHEET_TAG)))
-                .performScrollTo().assertIsDisplayed()
-        }
+        assertEquals(listOf("Recording Tracks"), switchTexts(MapLayerIds.BREADCRUMB))
+        assertEquals("one line, no second line", listOf("Trails"), switchTexts(MapLayerIds.REFERENCE_FS_BAND))
+        assertEquals("no (i)", 0, composeRule.onAllNodesWithContentDescription("About Official trails").fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithText("Official trails").fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithText("Forest Service and BLM").fetchSemanticsNodes().size)
     }
 
+    private fun switchTexts(layerId: String): List<String> =
+        composeRule.onNodeWithTag(mapLayerSwitchTag(layerId)).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text }
+
     @Test
-    fun `switching Finds off in the sheet hides finds in the state the map is handed, and stores the choice`() {
+    fun `switching Finds off in Tools hides finds in the state the map is handed, and stores the choice`() {
         setScreen()
         assertEquals(true, map.renderMode?.layers?.stateOf(MapLayerIds.FINDS)?.visible)
         openSheet()
@@ -171,19 +181,6 @@ class AvailabilityScreenMapLayersSheetTest {
 
         assertEquals(false, map.renderMode?.layers?.stateOf(MapLayerIds.FINDS)?.visible)
         assertEquals(listOf("visible ${MapLayerIds.FINDS} false"), preferences.writes)
-    }
-
-    @Test
-    fun `choosing a map type in the sheet applies it and the sheet stays open`() {
-        setScreen()
-        openSheet()
-
-        // Topo, away from the opening Trail (dispatch 2026-10-22-01); this picked Street before -1297.
-        composeRule.onNodeWithText("Topo").touch()
-        composeRule.waitForIdle()
-
-        assertEquals(Basemap.OPEN_TOPO_MAP, map.renderMode?.basemap)
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
     }
 
     @Test
@@ -249,13 +246,13 @@ class AvailabilityScreenMapLayersSheetTest {
     }
 
     @Test
-    fun `with the release build's store the sheet lists no colour field, no legend shows, and no credit is added`() {
+    fun `with the release build's store Map Layers lists no colour field, no legend shows, and no credit is added`() {
         setScreen(store = AbsentForecastCellStore)
         openSheet()
 
         composeRule.onAllNodesWithText(CHANTERELLES_LABEL).assertCountEqualsZero()
         composeRule.onAllNodesWithText(CHICKEN_LABEL).assertCountEqualsZero()
-        composeRule.closeSheetByTappingOutside()
+        composeRule.closeTools()
         composeRule.onAllNodesWithTag(MAP_LEGEND_CHIP_TAG).assertCountEqualsZero()
         // Step 8b: as SightingsMap draws the state it is handed: this stand-in map reports no official-trails band.
         assertEquals(emptyList<String>(), activeLayerCredits(MAP_LAYER_REGISTRY, withReferenceTrailsHiddenUnlessLoaded(map.renderMode?.layers ?: error("no layer state"), loaded = false)))
@@ -263,14 +260,13 @@ class AvailabilityScreenMapLayersSheetTest {
     }
 
     @Test
-    fun `once the sheet is closed, touches where it was and around the Layers row reach the map`() {
+    fun `once Tools is closed, touches where it was and around the Layers row reach the map`() {
         setScreen()
         openSheet()
-        composeRule.closeSheetByTappingOutside()
-        composeRule.onAllNodesWithTag(MAP_LAYERS_SHEET_TAG).assertCountEqualsZero()
+        composeRule.closeTools()
         val before = map.taps
 
-        // Where the sheet's lower half lay, clear of the nav; and left of the cluster, level with its
+        // Where the drawer lay, clear of the nav; and left of the cluster, level with its
         // Layers row (the cluster's container is as wide as its widest child, so left of that).
         listOf(40.dp to 600.dp, 192.dp to 640.dp, 150.dp to 500.dp).forEach { (x, y) -> composeRule.touchMapAt(x, y) }
         val row = composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION).getUnclippedBoundsInRoot()
@@ -372,7 +368,7 @@ class AvailabilityScreenMapLayersSheetTest {
      * first, and the revert check on the visible-only rule is what shows the first half bites.
      */
     @Test
-    fun `with no colour field visible there is no legend chip, and switching one on in the sheet shows it`() {
+    fun `with no colour field visible there is no legend chip, and switching one on in Tools shows it`() {
         setScreen(
             store = FixedForecastStore(BOTH_FORECAST_GROUPS),
             stored = MapLayerPreferences(
@@ -387,7 +383,7 @@ class AvailabilityScreenMapLayersSheetTest {
         openSheet()
         composeRule.onNodeWithTag(mapLayerSwitchTag(MapLayerIds.FORECAST_CHANTERELLES)).performScrollTo().touch()
         composeRule.waitForIdle()
-        composeRule.closeSheetByTappingOutside()
+        composeRule.closeTools()
 
         composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).assertIsDisplayed()
         composeRule.onNodeWithText(CHANTERELLES_LABEL).assertIsDisplayed()
@@ -451,8 +447,8 @@ class AvailabilityScreenMapLayersSheetTest {
 }
 
 /**
- * The sheet and the legend in a short landscape window (the dispatch's `w823dp-h384dp-land`), where
- * the sheet's content scrolls and the chip must stay clear of the rail and the cluster.
+ * Tools > Map Layers and the legend in a short landscape window (the dispatch's `w823dp-h384dp-land`), where
+ * the drawer's content scrolls and the chip must stay clear of the rail and the cluster.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
@@ -472,16 +468,14 @@ class AvailabilityScreenMapLayersShortLandscapeTest {
     }
 
     @Test
-    fun `a real touch on the Layers row opens the sheet, and its content scrolls to the last overlay`() {
+    fun `Tools then Map Layers by real touches, and the drawer scrolls to the last colour field`() {
         setScreen(FixedForecastStore(BOTH_FORECAST_GROUPS))
 
-        composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION).touch()
-        composeRule.waitForIdle()
+        composeRule.openToolsMapLayers()
 
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Journal Entries").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Trails").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(CHICKEN_LABEL).performScrollTo().assertIsDisplayed()
-        // J8: "Journal entries" is the last overlay now.
-        composeRule.onNodeWithText("Journal entries").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -501,7 +495,6 @@ class AvailabilityScreenMapLayersShortLandscapeTest {
     }
 }
 
-/** The sheet and the legend in the wide layout (`w840dp-h1024dp`), from its own Layers control. */
 private fun androidx.compose.ui.test.SemanticsNodeInteractionCollection.assertCountEqualsZero() {
     assertEquals(0, fetchSemanticsNodes().size)
 }

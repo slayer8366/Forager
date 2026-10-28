@@ -43,7 +43,7 @@ internal fun availabilityMapLayersControls(
     records = mapRecordsDrawn,
     journalHighlights = journalHighlights,
     // J8-3: the chip's list. Hiding writes shownOnMap for each entry, one write each; the Layers
-    // sheet's "Journal entries" switch is a separate, display-only choice and is never touched here.
+    // sheet's "Journal Entries" switch is a separate, display-only choice and is never touched here.
     onHideJournalEntry = { id -> onSetCartographyEntryShownOnMap(id, false) },
     onHideAllJournalEntries = { journalHighlights.shownEntries.forEach { onSetCartographyEntryShownOnMap(it.entryId, false) } },
     legendExpanded = state.mapLegendExpanded(),

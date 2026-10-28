@@ -20,7 +20,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.STREET_STYLE_URL
-import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -35,7 +36,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Dispatch 2026-10-22-06 Amendment 3 (the owner: "Have the toggle color be grey to reflect it's chosen, but offline."),
- * through the Layers sheet as the app composes it: inside `MainActivity`'s root, [ForagerThemeWithNoSignal], with the
+ * through the map type panel (the Layers sheet until dispatch 2026-10-28-02) as the app composes it: inside `MainActivity`'s root, [ForagerThemeWithNoSignal], with the
  * no-signal state the map reads. The steps the owner confirmed:
  *
  * ```
@@ -51,7 +52,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class MapLayersSheetOfflineChipTest {
+class MapTypePanelOfflineChipTest {
 
     private val composeRule = createComposeRule()
 
@@ -82,16 +83,12 @@ class MapLayersSheetOfflineChipTest {
             ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
                 normalSelected = MaterialTheme.colorScheme.secondaryContainer
                 grey = MaterialTheme.colorScheme.outlineVariant
-                MapLayersSheet(
+                MapTypePanel(
+                    visible = true,
                     mapMode = chosen,
-                    onMapModeSelected = { choices += it },
-                    overlays = MAPS_TAB_OVERLAYS,
-                    colourFields = emptyList(),
-                    state = MapLayersState.DEFAULT,
-                    onVisibilityChanged = { _, _ -> },
-                    onOpacityChanged = { _, _ -> },
-                    onColourFieldMoved = { _, _ -> },
+                    onModeSelected = { choices += it },
                     onDismiss = {},
+                    modifier = Modifier.fillMaxSize(),
                     offlineTiles = offlineTiles,
                     fallback = fallback,
                 )

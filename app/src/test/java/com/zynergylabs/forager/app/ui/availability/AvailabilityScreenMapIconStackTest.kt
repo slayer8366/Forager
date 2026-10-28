@@ -103,7 +103,7 @@ import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
-import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.centrePinFillPixel
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -1134,7 +1134,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Layers: Trail map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Trail map. Choose the map type.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -2459,7 +2459,7 @@ class AvailabilityScreenMapIconStackTest {
     // ── popover did too, until map layers L0b replaced it with the Layers sheet)             ──
 
     /** [MapIconBar]'s layers row, as it reads at this file's default basemap: Trail since dispatch 2026-10-22-01 (RECORD -1554); Street before that (RECORD -1297), and Topographical before that. */
-    private val layersRowDescription = "Layers: Trail map. Choose the map type and overlays."
+    private val layersRowDescription = "Layers: Trail map. Choose the map type."
 
     /** [MapIconBar]'s add row. */
     private val addRowDescription = "Plan a trip or log a find here"
@@ -2599,32 +2599,51 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Map layers L0b (planner's ruling on F3): the popover these two tests used to anchor-check is
-     * gone, replaced by the Layers sheet, which is a modal bottom sheet with no anchor to the bar. What
-     * still holds, and what these check with real touches, is that the layers row opens it from
-     * wherever the bar has been dragged, on either edge, and that the sheet's map-type chips work: a
-     * touch on "Topographical" (on "Street" until Street became the opening map) changes the row's description. The sheet is its own window, so the touch on
-     * the chip is through the chip's own node rather than the app's root.
+     * Dispatch 2026-10-28-02 (RECORD -1764): the map type panel is back, anchored to the Layers row wherever the bar has
+     * been dragged, on either edge, as `MapModePicker` was before L0b. With real touches: the Layers row opens it; its
+     * vertical centre is level with the row's (within 4 dp: the anchor is computed from the bar's rows, not measured,
+     * `MapIconBarSizes.kt`), it overlaps the row, and it extends toward the map's middle from the bar's side; a real
+     * touch on its Topo chip, at screen coordinates, applies Topo and closes it.
      */
-    @Test
-    fun `with the bar dragged to the bottom on the right, a real touch on the layers row opens the Layers sheet and its map types work`() {
-        setScreen()
-
-        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+    private fun assertPanelAnchoredToLayersRow(onLeft: Boolean) {
+        val row = composeRule.onNodeWithContentDescription(layersRowDescription).getUnclippedBoundsInRoot()
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        // Topo, away from the opening Trail (dispatch 2026-10-22-01), so the description has to change.
-        composeRule.onNodeWithText("Topo").performTouchInput { click() }
+        val panel = composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+        val rowMid = (row.top + row.bottom) / 2
+        val panelMid = (panel.top + panel.bottom) / 2
+        assertTrue("the panel's middle ($panelMid) is level with the Layers row's ($rowMid)", abs((panelMid - rowMid).value) <= 4f)
+        assertTrue("the panel ($panel) overlaps the Layers row ($row)", panel.left < row.right && panel.right > row.left)
+        if (onLeft) {
+            assertTrue("on the left it grows rightward from the bar ($panel, $row)", panel.right > row.right && panel.left <= row.left + 1.dp)
+        } else {
+            assertTrue("on the right it grows leftward from the bar ($panel, $row)", panel.left < row.left && panel.right >= row.right - 1.dp)
+        }
+
+        composeRule.onRoot().performTouchInput { click(centerOfText("Topo")) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type.").assertIsDisplayed()
+        assertEquals("one tap closes it", 0, composeRule.onAllNodesWithTag(MAP_TYPE_PANEL_TAG).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `with the bar at rest on the right, the Layers row opens the map type panel beside it and a real touch on Topo applies it`() {
+        setScreen()
+        assertPanelAnchoredToLayersRow(onLeft = false)
+    }
+
+    @Test
+    fun `with the bar dragged to the bottom on the right, the map type panel opens beside the Layers row and its map types work`() {
+        setScreen()
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        assertPanelAnchoredToLayersRow(onLeft = false)
     }
 
     /** The same on the left edge: one drag snaps the bar left and drops it to the bottom of its range. */
     @Test
-    fun `with the bar dragged to the bottom on the left, a real touch on the layers row opens the Layers sheet and its map types work`() {
+    fun `with the bar dragged to the bottom on the left, the map type panel opens beside the Layers row and its map types work`() {
         setScreen()
         val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
 
@@ -2635,16 +2654,7 @@ class AvailabilityScreenMapIconStackTest {
             "expected the bar to have snapped to the left edge (left=$fullscreenLeftAfter, was $fullscreenLeftBefore)",
             fullscreenLeftAfter.value < fullscreenLeftBefore.value,
         )
-
-        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        // Topo, away from the opening Trail (dispatch 2026-10-22-01), so the description has to change.
-        composeRule.onNodeWithText("Topo").performTouchInput { click() }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type and overlays.").assertIsDisplayed()
+        assertPanelAnchoredToLayersRow(onLeft = true)
     }
 
     /**

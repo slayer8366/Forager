@@ -482,7 +482,7 @@ class AvailabilityScreenMapBubblesTest {
         tapGlyph("45.5,-122.6")
 
         composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Test forecast: chanterelles (synthetic data)", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Test Forecast: Chanterelles (Synthetic Data)", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag(MAP_BUBBLE_CHANCE_TAG, useUnmergedTree = true).assertTextIs("37%")
         composeRule.onNodeWithText("Uncertainty 21% to 58%", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("rain, last 14 days: 62 mm", useUnmergedTree = true).assertIsDisplayed()

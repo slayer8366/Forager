@@ -187,7 +187,7 @@ data class MapRecordSources(
     val openFindLabel: String = OPEN_IN_JOURNAL_LABEL,
     /**
      * J8: for each record highlighted on this map, the shown entries that keep it
-     * (`JournalEntryHighlights.keptIn`), while the "Journal entries" switch shows the highlights;
+     * (`JournalEntryHighlights.keptIn`), while the "Journal Entries" switch shows the highlights;
      * empty on a map with no highlights (the entry map) and while the switch is off. A bubble names
      * these entries and opens one through [onOpenEntry].
      */

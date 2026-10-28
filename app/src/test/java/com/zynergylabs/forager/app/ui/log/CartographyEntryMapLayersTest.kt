@@ -23,10 +23,12 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
-import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
+import com.zynergylabs.forager.app.ui.map.MapMode
+import com.zynergylabs.forager.app.ui.map.mapModeChipTag
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
-import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import com.zynergylabs.forager.app.ui.map.layers.LayerState
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
@@ -43,10 +45,9 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * The Cartography entry map and the Layers sheet (map layers L0b, B1 and B3; owner's ruling 4, "Same
- * sheet"): one set of stored choices shared with the Maps tab, and a sheet that lists only the record
- * overlays this map draws. No colour field here (the planner's ruling on Q5): the entry map passes no
- * forecast store.
+ * The Cartography entry map's layers (map layers L0b, B1 and B3; owner's ruling 4): one set of stored choices shared
+ * with the Maps tab, switched in Tools > Map Layers since dispatch 2026-10-28-02, and a Layers button that opens only the
+ * map type panel. No colour field here (the planner's ruling on Q5): the entry map passes no forecast store.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -83,7 +84,6 @@ class CartographyEntryMapLayersTest {
     }
 
     private var shared by mutableStateOf(MapLayersState.DEFAULT)
-    private val switches = mutableListOf<Pair<String, Boolean>>()
 
     private fun setScreen() {
         composeRule.setContent {
@@ -100,10 +100,6 @@ class CartographyEntryMapLayersTest {
                 onDeleteEntry = {},
                 onBack = {},
                 layersState = shared,
-                onLayerVisibilityChanged = { id, visible ->
-                    switches += id to visible
-                    shared = shared.copy(layers = shared.layers + (id to shared.stateOf(id).copy(visible = visible)))
-                },
             )
         }
         composeRule.waitForIdle()
@@ -124,21 +120,31 @@ class CartographyEntryMapLayersTest {
     }
 
     @Test
-    fun `its sheet lists only the five record overlays this map draws, and a switch there goes to the shared choices`() {
+    fun `its Layers button opens the map type panel and no switches, and a choice there changes this map's type`() {
         setScreen()
         enterFullscreen()
 
-        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type and overlays.")).performTouchInput { click() }
+        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type.")).performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        listOf("Finds", "Photos", "Waypoints", "Tracks", "Offline maps").forEach { composeRule.onNodeWithText(it).performScrollTo().assertIsDisplayed() }
-        listOf("Planned trips", "Recording trail").forEach { assertEquals(it, 0, composeRule.onAllNodesWithText(it).fetchSemanticsNodes().size) }
+        composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed()
+        listOf("Finds", "Photos", "Waypoints", "Tracks", "Offline Maps", "Trails").forEach { assertEquals(it, 0, composeRule.onAllNodesWithText(it).fetchSemanticsNodes().size) }
 
-        composeRule.onNodeWithTag(mapLayerSwitchTag(MapLayerIds.WAYPOINTS)).performScrollTo().performTouchInput { click() }
+        composeRule.onNodeWithTag(mapModeChipTag(MapMode.TOPOGRAPHIC)).performTouchInput { click() }
         composeRule.waitForIdle()
 
-        assertEquals(listOf(MapLayerIds.WAYPOINTS to false), switches)
+        assertEquals(MapMode.TOPOGRAPHIC.basemap, renderMode?.basemap)
+        assertEquals("one tap closes it", 0, composeRule.onAllNodesWithTag(MAP_TYPE_PANEL_TAG).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `a change to the shared choices, as Tools makes it, changes what this map draws`() {
+        setScreen()
+        assertEquals(true, renderMode?.layers?.stateOf(MapLayerIds.WAYPOINTS)?.visible)
+
+        shared = shared.copy(layers = shared.layers + (MapLayerIds.WAYPOINTS to shared.stateOf(MapLayerIds.WAYPOINTS).copy(visible = false)))
+        composeRule.waitForIdle()
+
         assertEquals(false, renderMode?.layers?.stateOf(MapLayerIds.WAYPOINTS)?.visible)
     }
 }

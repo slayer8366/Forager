@@ -92,7 +92,7 @@ data class MapLayersControls(
     /**
      * J8: the saved entries shown on the map and the records they keep (`GetJournalEntryHighlightsUseCase`),
      * which each host hands its map (`MapOverlayContent.journalHighlights`) and whose
-     * [JournalEntryHighlights.shownEntries] its chip lists. The halos follow the "Journal entries"
+     * [JournalEntryHighlights.shownEntries] its chip lists. The halos follow the "Journal Entries"
      * switch through the registry; the chip does not.
      */
     val journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,

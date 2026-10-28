@@ -34,7 +34,7 @@ import com.zynergylabs.forager.app.ui.format.displayDate
 /**
  * J8's headless half on the UI side (`prompts/preserved/2026-09-28-52.md`, J8-3 and J8-4, with the
  * owner's Q2 ruling and the planner's Q3 in `2026-09-28-53`): the chip's text, a highlighted record's
- * bubble lines naming the entries that keep it, and the Layers sheet's "Journal entries" switch. The
+ * bubble lines naming the entries that keep it, and Tools > Map Layers' "Journal Entries" switch. The
  * composables that show these are exercised through the real screens in `JournalEntriesOnMapScreenTest`.
  */
 class JournalEntriesOnMapTest {
@@ -139,10 +139,13 @@ class JournalEntriesOnMapTest {
     // ── The Layers switch ──
 
     @Test
-    fun `the Maps tab's Layers sheet lists Journal entries last, and the entry map's does not`() {
-        assertEquals(MapOverlayOption(JOURNAL_ENTRIES_SWITCH_LAYER_ID, "Journal entries"), MAPS_TAB_OVERLAYS.last())
-        assertEquals(8, MAPS_TAB_OVERLAYS.size)
-        assertEquals(emptyList<MapOverlayOption>(), ENTRY_MAP_OVERLAYS.filter { it.layerId == JOURNAL_ENTRIES_SWITCH_LAYER_ID })
+    fun `Tools Map Layers lists Journal Entries last of the record overlays, in Title Case`() {
+        // Dispatch 2026-10-28-02 Amendment 1 (RECORD -1765): "Journal entries should be Journal Entries". Trails follows it.
+        assertEquals(
+            com.zynergylabs.forager.app.ui.availability.MapOverlayOption(JOURNAL_ENTRIES_SWITCH_LAYER_ID, "Journal Entries"),
+            com.zynergylabs.forager.app.ui.availability.MAP_LAYER_OVERLAYS.last(),
+        )
+        assertEquals(8, com.zynergylabs.forager.app.ui.availability.MAP_LAYER_OVERLAYS.size)
     }
 
     @Test

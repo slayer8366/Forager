@@ -159,7 +159,7 @@ private object EntriesOnMapNoOfflineMaps : OfflineMapRepository {
 /**
  * J8, Journal entries on the main map, through the real [AvailabilityScreen] (`prompts/preserved/2026-09-28-52.md`
  * J8-3 and J8-4, with the owner's rulings in `2026-09-28-53` and the planner's in `-64` and `-65`): the
- * report menu's toggle, the Maps-tab chip and its list, the Layers sheet's "Journal entries" switch,
+ * report menu's toggle, the Maps-tab chip and its list, Tools > Map Layers' "Journal Entries" switch,
  * a highlighted record's bubble lines and "Open entry" with the owner's prompt-first rule.
  *
  * The day entries go through the real [CartographyViewModel] over an in-memory [ForagerDatabase], and
@@ -582,8 +582,8 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         assertEquals("and the kept waypoint", listOf(WAYPOINT.id), highlights.waypointMarkers.map { it.recordId })
         halos.forEach { assertTrue("$it drawn by default", haloVisible(it)) }
 
-        touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
-        touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
+        composeRule.openToolsMapLayers()
+        touchCentreOf(composeRule.onNodeWithText("Journal Entries").performScrollTo())
 
         halos.forEach { assertEquals("$it hidden", false, haloVisible(it)) }
         assertTrue("the find itself is still drawn", layerPaintFor(MAP_LAYER_REGISTRY.single { it.id == MapLayerIds.FINDS }, map.renderMode!!.layers).visible)
@@ -854,7 +854,7 @@ private fun entryKeepingPhoto(id: String, date: LocalDate, text: String, shown: 
  * S22 Ultra's size:
  * - item 1 (`-70`; the owner, "Option B"): while a photo's bubble shows J8's keeping-entry lines, its
  *   attachment line leaves out its "Kept in" part, and is left out when nothing else is left; with no
- *   highlight, or the "Journal entries" switch off, the line is as it was;
+ *   highlight, or the "Journal Entries" switch off, the line is as it was;
  * - item 2 (`-87`): the rings are computed from the waypoints the map draws, so an ORIGIN or END
  *   waypoint the map does not draw gets none.
  *
@@ -984,7 +984,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
     /**
      * "Switch off: exactly as today", pinned on the way to the switch being turned on, for the reason the
      * test above gives. The switch starts off as a stored choice, restored as every overlay switch is,
-     * and is turned on in the Layers sheet with the bubble open, which re-reads its lines.
+     * and is turned on in Tools > Map Layers with the bubble open, which re-reads its lines.
      */
     @Test
     fun `with the Journal entries switch off the photo keeps its whole line, and turned on the line drops its Kept in`() {
@@ -997,8 +997,8 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         openPhotoBubble()
         assertEquals("switch off: as it was", listOf(photoDate, "Golden chanterelle · 2 journal entries", "View photo"), bubbleTexts())
 
-        touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
-        touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
+        composeRule.openToolsMapLayers()
+        touchCentreOf(composeRule.onNodeWithText("Journal Entries").performScrollTo())
 
         assertTrue("the switch is on", "visible $JOURNAL_ENTRIES_SWITCH_LAYER_ID true" in layerPreferences.writes)
         assertEquals("switch on", listOf(photoDate, "In Golden chanterelle", "Sep 12, 2026", "View photo"), bubbleTexts())

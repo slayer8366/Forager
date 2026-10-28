@@ -88,7 +88,7 @@ internal fun Modifier.journalMenuColours(container: Color, content: Color): Modi
  * shown on the map ([journalEntriesChipLabel]), composed only while at least one is. A tap lists them by
  * the report header's date ([journalEntryDateLabel]), one row each, whose tap hides that entry ("Hide"),
  * with "Hide all" last; hiding writes `shownOnMap` through the host's callbacks and never touches the
- * Layers sheet's "Journal entries" switch.
+ * Layers sheet's "Journal Entries" switch.
  *
  * Its fill is the taxon chip's own colour source, [MapIconStackButtonColorDark] and
  * [MapIconStackButtonColorLight] at [MAP_CHROME_OVER_MAP_ALPHA], with the taxon chip's content colours
