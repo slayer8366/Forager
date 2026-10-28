@@ -24,6 +24,10 @@ internal fun mapModeChipTag(mode: MapMode) = "map-mode-chip:${mode.name}"
 internal val MapModeChipSelectedFill = SemanticsPropertyKey<Color>("MapModeChipSelectedFill")
 private var SemanticsPropertyReceiver.mapModeChipSelectedFill by MapModeChipSelectedFill
 
+/** The outline a "Map type" chip is given when selected, on its node, for tests; [Color.Unspecified] when it has none. */
+internal val MapModeChipSelectedOutline = SemanticsPropertyKey<Color>("MapModeChipSelectedOutline")
+private var SemanticsPropertyReceiver.mapModeChipSelectedOutline by MapModeChipSelectedOutline
+
 /**
  * Whether [mode], the chosen map type, is standing aside for Trail Map (dispatch 2026-10-22-06 Amendment 3; the
  * owner: "Have the toggle color be grey to reflect it's chosen, but offline.", then "Same meaning everywhere: grey =
@@ -107,7 +111,10 @@ internal fun MapModeChipRow(
                 onClick = { onMapModeSelected(mode) },
                 label = { Text(mode.label) },
                 colors = colors,
-                modifier = Modifier.testTag(mapModeChipTag(mode)).semantics { mapModeChipSelectedFill = colors.selectedContainerColor },
+                modifier = Modifier.testTag(mapModeChipTag(mode)).semantics {
+                    mapModeChipSelectedFill = colors.selectedContainerColor
+                    mapModeChipSelectedOutline = Color.Unspecified
+                },
             )
         }
     }

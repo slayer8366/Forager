@@ -138,7 +138,8 @@ class OwnStreetFallbackRetryTest {
             var navigationZoom = 0.0
             composeRule.setContent {
                 ForagerThemeWithNoSignal(darkTheme = false, noSignal = noSignal, offlineRegions = emptyList()) {
-                    normalSelected = MaterialTheme.colorScheme.secondaryContainer
+                    // Amendment 4 (RECORD -1771): the light theme's normal selected fill is `secondary`.
+                    normalSelected = MaterialTheme.colorScheme.secondary
                     grey = MaterialTheme.colorScheme.outlineVariant
                     // Read in composition, as MapStyleReload, SightingsMapLayout and MapNavigationView read it.
                     val ownStreet = fallback.ownStreet()

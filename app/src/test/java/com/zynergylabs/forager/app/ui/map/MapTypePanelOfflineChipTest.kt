@@ -81,7 +81,8 @@ class MapTypePanelOfflineChipTest {
     private fun setSheet() {
         composeRule.setContent {
             ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
-                normalSelected = MaterialTheme.colorScheme.secondaryContainer
+                // Amendment 4 (RECORD -1771): the light theme's normal selected fill is `secondary`; the dark theme's is unchanged.
+                normalSelected = if (darkTheme) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.secondary
                 grey = MaterialTheme.colorScheme.outlineVariant
                 MapTypePanel(
                     visible = true,
