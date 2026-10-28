@@ -29432,3 +29432,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the S22 helper (Opus; s22-pr432-r2 eb7338789) on 1.0.4150+g03ea86d4 (run 40772168805, 66c0457c0 merged onto e2969abe4; digest matched; schema 22 to 22): step 19, the light selected chip reads as "on" at a glance, about 3.1:1 against the unselected chips and 3.4:1 against the panel, and still stands apart over a busy Topo street grid (no dark map in light theme was possible); step 20, dark unchanged (before Amendment 6). Cleanup done on the owner's word: the test entry and Waypoint 1 deleted, and the database shows 0 waypoints and 0 entries. Phone settings restored. Seen: (a) after the entry was deleted, Waypoint 1's sheet and snackbar still said "used in 1 journal entry" (stale on screen or a lingering reference row, undetermined; CartographyEntryDao.kt:138 deletes the refs); (b) Records on the Finds filter shows a blank list with no empty-state line.
 **Decision:** the owner: "Yes, look into both after #432". (a) and (b) are queued as investigations to dispatch once #432 has merged.
 **Notes:** Written by the planner by hand. Next free ID -1776.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1776
+**Timestamp:** 2026-10-28T22:17:57Z
+**Continues:** 2026-09-28-1774
+**Title:** #432: the uniform chip outline built
+**Observed:** Hazel (Opus) built Amendment 6 directly, without building 5 on its own: head 217200006, code b25806b4b. Every selected and grey map type chip carries a 1 dp onSurface outline in both themes (Bark in light, Cream in dark), with fills unchanged. Fail-first run 40775654527 had 4 predicted failures; green run 40776527059, 5,891 tests, 0 failures, 24 skipped; reverts r21 and r22 hold on drawn pixels, and their branches are deleted. The only figure under 3:1 is the light outline against the orange fill (2.67:1). S22 steps 19-21 are in the PR body; step 21 (the grey chip) needs a downloaded offline area.
+**Notes:** Written by the planner by hand. Next free ID -1777.
