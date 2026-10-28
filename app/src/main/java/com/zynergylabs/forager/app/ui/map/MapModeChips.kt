@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
+import com.zynergylabs.forager.app.ui.theme.PureWhite
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /** One map type chip ([MapModeChipRow]), by mode, for tests. */
@@ -133,13 +134,16 @@ internal fun MapModeChipRow(
 }
 
 /**
- * The light theme's normal selected fill (Amendment 4): `secondary` (#A2612C) with `onSecondary` (white) for the label, the
- * scheme's own pairing, which ThemeContrastTest already holds to AA. Unselected chips keep Material's defaults.
+ * The light theme's normal selected fill (Amendment 4): `secondary` (#A2612C) with [PureWhite] for the label, which is what
+ * the light scheme's `onSecondary` holds (4.90:1, AA). [PureWhite] is named here rather than read as
+ * `colorScheme.onSecondary`: that role's value equals Material's baseline, so reading it trips ThemeCompletenessTest, whose
+ * own doc gives `onSecondary` as the example of a correct white it cannot tell from an unset one (CI run 40769534726). The
+ * pixels are the same either way. Unselected chips keep Material's defaults.
  */
 @Composable
 private fun lightSelectedChipColors() = FilterChipDefaults.filterChipColors(
     selectedContainerColor = MaterialTheme.colorScheme.secondary,
-    selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+    selectedLabelColor = PureWhite,
 )
 
 /** The light theme's selected outline (Amendment 4): `onSurface` (#3B2E24), 1 dp, the width of the unselected chips' outline. */

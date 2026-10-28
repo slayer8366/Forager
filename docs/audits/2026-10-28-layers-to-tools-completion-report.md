@@ -190,3 +190,108 @@ one its own revert can cause:
 - The r01 to r14 branches were already gone from origin when I went to delete them. I did not delete them and did not find
   out who did. Their runs and results are recorded above.
 - The forward head was still `c76d1df9b` afterwards.
+
+## Amendment 4 (RECORD -1771): the selected map type chip in the light theme
+
+The S22 session (`docs/audits/2026-10-28-s22-pr432.md` on `s22-pr432`, `8e8165e11`) found the light theme's selected chip a
+pale peach with no outline, about 1.04:1 against the panel. The owner, to "Make it stand out (Recommended)": "Option 1, but
+Give it an outline."
+
+| Commit | What |
+|---|---|
+| `d4f300387` | Test first: `MapTypePanelSelectedChipTest` (new, 4 tests). `MapTypePanelOfflineChipTest` and `OwnStreetFallbackRetryTest` expect the light theme's new normal selected fill. `MapModeChips.kt` gains only the `MapModeChipSelectedOutline` semantics key, recording the state at the time (no outline), so the test compiles |
+| `64aacd969` | The fix, in `MapModeChips.kt`: in the light theme the normal selected chip is filled `secondary` with an `onSecondary` label and a 1 dp `onSurface` outline |
+| `61bfe5335` | The outline assertion reworded after r19, below. The check is unchanged; only which message fires changed |
+
+**What it looks like now.**
+- **Light theme.** The selected chip is filled `secondary` (#A2612C, the deepened Mushroom), with a white (`onSecondary`)
+  label and a 1 dp `onSurface` (Bark, #3B2E24) outline. The unselected chips are unchanged (no fill, with Material's default
+  thin outline).
+- **Dark theme.** Unchanged: `secondaryContainer` (#6B421A), no selected outline. The shared chip did not get in the way.
+  The new colours sit behind `!LocalForagerDarkTheme.current`.
+- **The grey "chosen, but something else is shown" chip** (`outlineVariant`) is unchanged in both themes. It gets no outline.
+  That leaves the outline marking the normal "on" state only. **For the owner:** whether the grey chip should carry the
+  outline too, so that "chosen" reads the same way in both states, is a choice nobody has made. I did not make it.
+
+**Contrast, computed from the theme's hex values (WCAG 2.x).** The panel's fill is `surfaceContainer` (#F4EFE2 light,
+#202020 dark) at 80% (`MapIconStackButtonColorLight/Dark`, `MapChrome.kt:54-66`). Three backgrounds are shown: the fill taken
+opaque, and the fill composited at 80% over a white map and over a black map. Those are the bounds of what the terrain can do
+to it. An unselected chip has no fill of its own, so it shows the panel. "Against the unselected chips" is therefore the same
+column.
+
+| Light theme | Opaque #F4EFE2 | 80% over white (#F6F2E8) | 80% over black (#C3BFB5) |
+|---|---|---|---|
+| New selected fill, `secondary` #A2612C | **4.27:1** | 4.39:1 | 2.67:1 |
+| New selected outline, `onSurface` #3B2E24 | **11.42:1** | 11.72:1 | 7.14:1 |
+| Old selected fill, `secondaryContainer` #F6DFC8 | 1.12:1 | 1.15:1 | 1.43:1 |
+| Grey stand-aside fill, `outlineVariant` #D5CEBF (unchanged) | 1.36:1 | 1.40:1 | 1.17:1 |
+
+- The label on the new fill: white on #A2612C, 4.90:1, which passes AA for text. It is the scheme's own `secondary`/
+  `onSecondary` pairing, which `ThemeContrastTest` already holds.
+- The outline against the fill it surrounds: 2.67:1.
+- The new outline against an unselected chip's outline (if that is `outlineVariant` #D5CEBF): 8.37:1. I am inferring
+  Material's default unselected border colour from the S22's description ("a thin light grey-brown line"). I did not confirm
+  it from the library source, which is not on this laptop.
+- The S22's 1.04:1 was measured from sampled pixels over a real map: 246,223,200 against 226,222,211. The 1.12:1 above is
+  the same pair computed from the theme's colours. They differ because the 80% panel takes on the map's tint.
+- Dark theme, unchanged, for comparison: `secondaryContainer` #6B421A against #202020 is 1.88:1 opaque, 2.01:1 over black
+  and 1.03:1 over white. It reads clearly there by hue and lightness, as the S22 reported.
+
+**A correction to "Figures restated: the grey chip on the panel" above.** That section took the panel's fill to be Cream
+#EDE3D0 (light) and Bark #3B2E24 (dark). Since colour build C1 (dispatch 2026-09-28-210), the panel's fill has been
+`surfaceContainer` (#F4EFE2 light, #202020 dark), as `MapChrome.kt:56-66` records. So the 1.01:1 and 1.23:1 (light) and the
+1.51:1 and 1.35:1 (dark) given there were computed against the wrong colour. The figures in the table above supersede them.
+The earlier section is left as written. Its conclusion, that the light selected fill was close to the panel's own colour,
+holds either way, and the S22 confirmed it.
+
+**Where the chip shows.** `MapModeChipRow` has one caller in main code, `MapTypePanel` (`MapTypePanel.kt:117`), and
+`MapTypePanel` has two:
+- The Maps tab's icon bar Layers button (`CompactMapPickers.kt:96`, from `CompactMapTab` via `ScaffoldMapTabCall.kt:125`).
+  This covers portrait with the bar on either side, the landscape L, and fullscreen.
+- A journal entry's fullscreen map, its Layers button (`CartographyEntryReportScreen.kt:648`, from `CartographyScreen.kt:455`).
+  That button is hidden while "Use offline tiles" is on.
+
+No other screen draws these chips. Other `FilterChip`s in the app do not use `MapModeChipRow`, so they are untouched.
+
+**Fail-first.** Run 40766732067, on `d4f300387` (the tests, and no fix), filtered to the three classes. The log has 0
+compile errors. The XML: 3 files, 17 tests, 5 failures, each the predicted one. Each expected `secondary` and was drawn as
+`secondaryContainer`:
+- `MapTypePanelSelectedChipTest`, the Maps tab, light: "the selected chip's drawn fill is secondary".
+- `MapTypePanelSelectedChipTest`, the entry map, light: the same message.
+- `MapTypePanelOfflineChipTest`, the light passes of two tests: "light, signal: Topo drawn in the normal selected fill" and
+  "light, offline tiles off: Topo in the normal selected fill".
+- `OwnStreetFallbackRetryTest`: "the Trail chip in its normal selected fill".
+
+The two dark tests passed there, as they should. They guard "unchanged", and r20 shows that they bite.
+
+**Revert checks.** Each one is a one-line edit to `MapModeChips.kt` on its own branch, run through `workflow_dispatch` with a
+test filter. The forward worktree was never edited, so nothing was restored. In each log I checked for compile errors before
+reading the XML, and found 0 every time.
+
+| Check | Revert (one line) | Cut from | Run | Failed with |
+|---|---|---|---|---|
+| r18 light fill | `strongLight -> FilterChipDefaults.filterChipColors()` | `64aacd969` | 40767856923 | 17 tests, 5 failures: the same five as fail-first, expected `secondary`, drawn as `secondaryContainer` |
+| r19 light outline | `border = FilterChipDefaults.filterChipBorder(enabled = true, selected = selected)` | `64aacd969` | 40767861123 | 17 tests, 2 failures: "the fill is drawn on the middle row", on both light tests. The cause was the right one, but the message was wrong (below) |
+| r19b light outline, reworded test | the same line | `61bfe5335` | 40769538142 | 4 tests, 2 failures: "an onSurface outline is drawn left of the fill", on both light tests |
+| r20 dark unchanged | `val strongLight = !standsAside` (the dark check dropped) | `64aacd969` | 40767866067 | 17 tests, 10 failures, every dark-theme fill assertion: expected #6B421A, drawn as the dark `secondary` #E5A76B. The two dark guards fail, and so do the dark passes in `MapTypePanelOfflineChipTest` |
+
+**r19, read against the edit.** With the outline removed, the fill starts at the chip node's own pixel 0. The test had
+required at least one pixel to the left of the fill, and that requirement fired first. The failure was one this revert could
+cause, and the edit could cause no other. But the message named the fill, not the outline. So `61bfe5335` lets the fill start
+at 0 and leaves the outline check to fail, and r19b reran the revert against that test.
+
+After each check, the forward branch still held the change: `git diff 8c3097207 -- MapModeChips.kt` showed the
+`lightSelectedChipColors`/`lightSelectedChipBorder` lines.
+
+**CI on the PR, head `61bfe5335`:** PRRUN.
+
+**Not tested, or only on a device.**
+- How the new chip reads at arm's length, indoors and outside, over a busy map. The figures above are computed, not seen. An
+  S22 step is added to the PR body.
+- The 80%-over-black figure, 2.67:1, is the worst case for the fill against the panel. Over dark imagery the fill separates
+  from the panel less than it does indoors. The outline (7.14:1 even there) is what still sets it apart.
+- TalkBack is unchanged: the chip's selected state is what it reads, and this edit does not touch it.
+
+**Files.** `MapModeChips.kt` is now 152 lines, and `MapTypePanelSelectedChipTest.kt` is 196. Both are under 400.
+
+**Branches.** I deleted the r18, r19, r19b and r20 branches, both on origin and as local worktrees, once their results were read.
