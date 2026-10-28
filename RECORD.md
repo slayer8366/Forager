@@ -29421,3 +29421,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** #432: the chip outline in both themes, uniform; replaces -1773's "Light theme only"
 **Decision:** the owner: "Both themes. Make it uniform". Both the selected and the grey chip carry a 1 dp onSurface outline in light and dark, with fills unchanged. Dispatch 2026-10-28-02 Amendment 6.
 **Notes:** Written by the planner by hand. Next free ID -1775.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1775
+**Timestamp:** 2026-10-28T22:08:13Z
+**Continues:** 2026-09-28-1772
+**Title:** #432 S22 round 2 finished; two follow-ups queued after #432
+**Observed:** the S22 helper (Opus; s22-pr432-r2 eb7338789) on 1.0.4150+g03ea86d4 (run 40772168805, 66c0457c0 merged onto e2969abe4; digest matched; schema 22 to 22): step 19, the light selected chip reads as "on" at a glance, about 3.1:1 against the unselected chips and 3.4:1 against the panel, and still stands apart over a busy Topo street grid (no dark map in light theme was possible); step 20, dark unchanged (before Amendment 6). Cleanup done on the owner's word: the test entry and Waypoint 1 deleted, and the database shows 0 waypoints and 0 entries. Phone settings restored. Seen: (a) after the entry was deleted, Waypoint 1's sheet and snackbar still said "used in 1 journal entry" (stale on screen or a lingering reference row, undetermined; CartographyEntryDao.kt:138 deletes the refs); (b) Records on the Finds filter shows a blank list with no empty-state line.
+**Decision:** the owner: "Yes, look into both after #432". (a) and (b) are queued as investigations to dispatch once #432 has merged.
+**Notes:** Written by the planner by hand. Next free ID -1776.
