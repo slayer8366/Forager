@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
+import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
@@ -39,6 +41,7 @@ internal class AvailabilitySettingsPrefs(
     private val getBatterySaverEnabled: suspend () -> Result<Boolean>,
     private val setBatterySaverEnabled: suspend (Boolean) -> Result<Unit>,
     private val errorLog: ErrorLog,
+    private val crowdedIconsRepository: CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
 ) {
 
     /**
@@ -48,6 +51,7 @@ internal class AvailabilitySettingsPrefs(
      * loads its first style knowing the answer. A failed read falls back to day, logged.
      */
     fun loadNightModePreferences() {
+        loadCrowdedIconsMode()
         scope().launch {
             mapPreferencesRepository.getNightModeMaps().fold(
                 onSuccess = { night -> updateState { it.copy(nightModeMaps = night, nightModeMapsLoaded = true) } },
@@ -89,7 +93,7 @@ internal class AvailabilitySettingsPrefs(
         }
     }
 
-    /** Restores the Sundown section's two settings; a failed read is logged and leaves the default (on, one hour) showing. */
+    /** Restores the two Sundown settings (the map's ⋮ quick settings' rows); a failed read is logged and leaves the default (on, one hour) showing. */
     fun loadSundownPreferences() {
         scope().launch {
             getSundownAlertsEnabled().fold(
@@ -188,6 +192,33 @@ internal class AvailabilitySettingsPrefs(
             mapPreferencesRepository.setNightModeMaps(night).fold(
                 onSuccess = {},
                 onFailure = { error -> errorLog.w(TAG, "Couldn't persist the night-maps preference.", error) },
+            )
+        }
+    }
+
+    /**
+     * Restores Settings > Map > "Crowded icons" (dispatch 2026-10-27-14). Nothing stored is the default, "Zoom in, then fan";
+     * a stored value naming no mode, and a failed read, are logged and leave the default.
+     */
+    private fun loadCrowdedIconsMode() {
+        scope().launch {
+            val unknown: (String) -> Unit = { v ->
+                errorLog.w(TAG, "Crowded icons: stored value \"$v\" names no mode; using ${CrowdedIconsMode.DEFAULT}.", IllegalStateException("unknown crowded-icons value \"$v\""))
+            }
+            crowdedIconsRepository.getCrowdedIconsMode(unknown).fold(
+                onSuccess = { mode -> if (mode != null) updateState { it.copy(crowdedIconsMode = mode) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the crowded-icons preference; using ${CrowdedIconsMode.DEFAULT}.", error) },
+            )
+        }
+    }
+
+    /** Settings > Map > "Crowded icons": shown at once, then stored; a failed write is logged, as [onNightModeMapsChanged]'s is. */
+    fun onCrowdedIconsModeChanged(mode: CrowdedIconsMode) {
+        updateState { it.copy(crowdedIconsMode = mode) }
+        scope().launch {
+            crowdedIconsRepository.setCrowdedIconsMode(mode).fold(
+                onSuccess = {},
+                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the crowded-icons preference.", error) },
             )
         }
     }
@@ -293,4 +324,10 @@ internal class AvailabilitySettingsPrefs(
             )
         }
     }
+}
+
+/** The default for suites that never touch "Crowded icons": nothing stored, every write accepted. */
+internal object NoStoredCrowdedIcons : CrowdedIconsPreferenceRepository {
+    override suspend fun getCrowdedIconsMode(unknown: (String) -> Unit): Result<CrowdedIconsMode?> = Result.success(null)
+    override suspend fun setCrowdedIconsMode(mode: CrowdedIconsMode): Result<Unit> = Result.success(Unit)
 }

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -48,3 +49,6 @@ fun AvailabilityViewModel.onUnitSystemSelected(system: UnitSystem) = settingsPre
  * split's job, not this dispatch's — recorded in the return-estimate completion report.
  */
 fun AvailabilityViewModel.onDistanceUnitSelected(unit: DistanceUnit) = onUnitSystemSelected(UnitSystem.forDistanceUnit(unit))
+
+/** See [AvailabilitySettingsPrefs.onCrowdedIconsModeChanged]. */
+fun AvailabilityViewModel.onCrowdedIconsModeChanged(mode: CrowdedIconsMode) = settingsPrefs.onCrowdedIconsModeChanged(mode)

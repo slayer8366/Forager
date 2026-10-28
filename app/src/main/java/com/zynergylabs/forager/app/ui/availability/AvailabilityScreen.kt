@@ -194,9 +194,6 @@ fun AvailabilityScreen(
     val backgroundRunPrompt = recording.backgroundRunPrompt
     // Phase 2.1 (dispatch 2026-10-19-28): the settings bundle, unpacked under the parameter names it replaced.
     val onNightModeMapsChanged = settings.onNightModeMapsChanged
-    val onSundownAlertsEnabledChanged = settings.onSundownAlertsEnabledChanged
-    val onDarknessMarginChanged = settings.onDarknessMarginChanged
-    val onOffTrackReminderChanged = settings.onOffTrackReminderChanged
     val settingsResetNoticePending = settings.settingsResetNoticePending
     val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
     val onThemeModeChanged = settings.onThemeModeChanged
@@ -706,12 +703,10 @@ fun AvailabilityScreen(
         onDeletePlannedTrip = onDeletePlannedTrip,
         isNightMode = isNightMode,
         onNightModeMapsChanged = onNightModeMapsChanged,
+        crowdedIcons = CrowdedIconsControls(uiState.crowdedIconsMode, settings.onCrowdedIconsModeChanged),
         onThemeModeChanged = onThemeModeChanged,
         backup = backup,
         openBackupRequest = openBackupRequest,
-        onSundownAlertsEnabledChanged = onSundownAlertsEnabledChanged,
-        onDarknessMarginChanged = onDarknessMarginChanged,
-        onOffTrackReminderChanged = onOffTrackReminderChanged,
         openOfflineMapsFromTools = openOfflineMapsFromTools,
         compactMainScaffold = compactMainScaffold,
     )

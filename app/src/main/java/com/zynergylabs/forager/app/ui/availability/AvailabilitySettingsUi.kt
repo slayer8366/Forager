@@ -191,9 +191,10 @@ internal const val TOOLS_OFFLINE_MAPS_ROW_TAG = "tools-offline-maps-row"
  * things live here now, none of them search:
  *
  * 1. **[SearchControls]** — Trip Planner only. Waypoints moved
- *    out (Journal restructure Stage 1) into the Journal's own Records tab. Since dispatch
- *    2026-09-28-707 the **Sundown** section ([ToolsSundownSection]) sits under it, in the same
- *    scroll, moved here from Settings so it is one tap away instead of two.
+ *    out (Journal restructure Stage 1) into the Journal's own Records tab. The **Sundown** section
+ *    that sat under it from dispatch 2026-09-28-707 is gone (dispatch 2026-10-27-14 Amendment 1,
+ *    RECORD -1751; the owner: "remove the Sundown and Dark Under Trees portion from the tools menu
+ *    since it's redundant"): its rows are in the map's ⋮ quick settings ([MapQuickSettings]).
  * 1a. **Offline maps** ([OfflineMapsEntryRow], RECORD -868), a fixed row above Settings: the one
  *    entry here that leaves the drawer, a shortcut to Journal > Records on the Offline maps chip.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
@@ -213,6 +214,7 @@ internal fun CompactToolsDrawerContent(
     onDeletePlannedTrip: (String) -> Unit,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     backup: BackupControls = BackupControls(),
@@ -220,10 +222,6 @@ internal fun CompactToolsDrawerContent(
     openSettingsRequest: Int = 0,
     /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): open Settings, at the top. */
     openSettingsOnlyRequest: Int = 0,
-    /** The Tools page's Sundown section (dispatch 2026-09-28-707), drawn by [ToolsSundownSection]. */
-    sundown: SundownSettings = SundownSettings(),
-    /** The "Off-track reminder", the last row of that section. */
-    offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
     /**
      * RECORD -868: the "Offline maps" row's tap, which opens Journal > Records on the Offline maps chip. `null` (the
      * default) draws no row, for a caller with nowhere to send it.
@@ -262,6 +260,7 @@ internal fun CompactToolsDrawerContent(
             onDistanceUnitSelected = onDistanceUnitSelected,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
+            crowdedIcons = crowdedIcons,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
             backup = backup,
@@ -276,10 +275,6 @@ internal fun CompactToolsDrawerContent(
             modifier = Modifier.weight(1f),
             uiState = uiState,
             onDeletePlannedTrip = onDeletePlannedTrip,
-            following = {
-                HorizontalDivider()
-                ToolsSundownSection(sundown = sundown, offTrackReminder = offTrackReminder)
-            },
         )
         onOpenOfflineMaps?.let { open -> OfflineMapsEntryRow(onClick = open) }
         SettingsEntryRow(onClick = { showSettings = true })

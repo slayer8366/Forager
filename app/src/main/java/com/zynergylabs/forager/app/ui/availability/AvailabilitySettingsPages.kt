@@ -63,6 +63,7 @@ internal fun CompactSettingsTab(
     /** Night mode for the map, and Settings' own checkbox value. */
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
@@ -101,6 +102,7 @@ internal fun CompactSettingsTab(
                     onDistanceUnitSelected = onDistanceUnitSelected,
                     nightModeMaps = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
+                    crowdedIcons = crowdedIcons,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     backup = backup,
@@ -128,13 +130,14 @@ private enum class SettingsDrawerPage { SETTINGS, SOURCES, SOFTWARE }
 internal const val SETTINGS_SOURCES_ROW_TAG = "settings-sources-and-credits-row"
 
 /**
- * The Settings panel's body: [DistanceUnitSection], theme, night maps, Backup, and the "Sources & credits" row.
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, Map ([MapSettingsSection]), Backup, and the "Sources & credits" row.
  *
  * **No longer has the Sundown section, the Off-track reminder, or the two camera settings**
  * (dispatch 2026-09-28-707; the owner: "move the Sundown area to the Tools so that it's one button
  * away instead of two. Move the two camera options at the bottom to a settings menu inside the
- * camera itself"). Sundown and Off-track are drawn by [ToolsSundownSection] at the top of the Tools
- * drawer; "Automatically Save Location to Photos" and "Lock camera to portrait" by the camera's
+ * camera itself"). Sundown and Off-track went to the Tools drawer, and since dispatch 2026-10-27-14
+ * Amendment 1 (RECORD -1751) are only in the map's ⋮ quick settings ([MapQuickSettings]);
+ * "Automatically Save Location to Photos" and "Lock camera to portrait" by the camera's
  * gear panel (`ui/log/CameraSettingsPanel.kt`). Only where the controls are drawn moved: the
  * values, their DataStore keys and the ViewModel functions they call are unchanged. Dispatch
  * 2026-10-13-03 then removed both rows from that panel (RECORD -968, -972): the lock is gone, and
@@ -164,6 +167,8 @@ internal fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
+    /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14). */
+    crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
     /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
@@ -193,6 +198,10 @@ internal fun SettingsContent(
         HorizontalDivider()
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
+        HorizontalDivider()
+        // The Map section (dispatch 2026-10-27-14 Amendment 3, RECORD -1758; the owner: "New \"Map\" section (Recommended)"),
+        // after Night Mode and before Backup. Night Maps stays under Night Mode.
+        MapSettingsSection(crowdedIcons)
         HorizontalDivider()
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
         // Settings ends at Sources & credits, the very bottom (dispatch 2026-10-13-05; the owner: "Bottom of settings page

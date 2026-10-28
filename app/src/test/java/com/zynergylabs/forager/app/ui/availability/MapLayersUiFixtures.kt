@@ -217,6 +217,8 @@ internal fun mapLayersViewModel(
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails. Defaulted to none, today's straight line.
     findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
+    // Dispatch 2026-10-27-14: Settings > Map > "Crowded icons". Defaulted to nothing stored, which is "Zoom in, then fan".
+    crowdedIcons: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -264,6 +266,7 @@ internal fun mapLayersViewModel(
         readWaypoint = readWaypoint,
         currentTime = currentTime,
         findWayToWaypoint = findWayToWaypoint,
+        crowdedIconsRepository = crowdedIcons,
     )
 }
 
@@ -322,6 +325,7 @@ internal fun MapLayersTestScreen(
         settings = AvailabilityScreenSettings(
             onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
             onThemeModeChanged = viewModel::onThemeModeChanged,
+            onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
         ),
         mapSlot = mapSlot,
         mapControls = AvailabilityScreenMapControls(
