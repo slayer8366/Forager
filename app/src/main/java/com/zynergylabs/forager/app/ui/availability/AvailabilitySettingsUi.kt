@@ -233,6 +233,9 @@ internal fun CompactToolsDrawerContent(
     mapLayers: MapLayersControls = MapLayersControls(),
     mapLayersOpen: Boolean = false,
     onMapLayersOpenChange: (Boolean) -> Unit = {},
+    /** Amendment 3 (RECORD -1770): Trip Planner's fold, held above the drawer as Map Layers' is. */
+    tripPlannerOpen: Boolean = false,
+    onTripPlannerOpenChange: (Boolean) -> Unit = {},
 ) {
     // Own drill-in step — see this composable's own doc comment, item 2. Composed inside this drawer sheet (which the
     // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
@@ -284,6 +287,8 @@ internal fun CompactToolsDrawerContent(
             mapLayers = mapLayers,
             mapLayersOpen = mapLayersOpen,
             onMapLayersOpenChange = onMapLayersOpenChange,
+            tripPlannerOpen = tripPlannerOpen,
+            onTripPlannerOpenChange = onTripPlannerOpenChange,
         )
         onOpenOfflineMaps?.let { open -> OfflineMapsEntryRow(onClick = open) }
         SettingsEntryRow(onClick = { showSettings = true })

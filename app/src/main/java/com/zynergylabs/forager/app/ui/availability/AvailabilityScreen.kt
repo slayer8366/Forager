@@ -319,6 +319,8 @@ fun AvailabilityScreen(
     // across closing the drawer, changing tab and a trip into Settings (CLAUDE.md, UX defaults). Folded the first time; the
     // dispatch: "It is not persisted across restarts."
     val mapLayersFoldOpen = rememberSaveable { mutableStateOf(false) }
+    // Amendment 3 (RECORD -1770, N3; the owner: "Yes, same as Map Layers (Recommended)"): Trip Planner's fold, held the same way.
+    val tripPlannerFoldOpen = rememberSaveable { mutableStateOf(false) }
     // The navigation view's follow and zoom requests, held above the tab (T22, -440): see rememberNavigationViewRequests
     // (ScreenNavigationViewRequests.kt).
     val navigationViewRequests = rememberNavigationViewRequests(isNavigating)
@@ -702,6 +704,7 @@ fun AvailabilityScreen(
         mapPosition = mapLocals.mapPosition,
         trackDetailsFoldOpen = trackDetailsFoldOpen,
         mapLayersFoldOpen = mapLayersFoldOpen,
+        tripPlannerFoldOpen = tripPlannerFoldOpen,
         mapLayers = mapLayersControls,
         uiState = uiState,
         distanceUnit = distanceUnit,

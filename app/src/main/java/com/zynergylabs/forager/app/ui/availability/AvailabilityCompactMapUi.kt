@@ -263,6 +263,10 @@ internal fun CompactMapTab(
     var showActionMenu by showActionMenuState
     val showMapTypePanelState = remember { mutableStateOf(false) }
     var showMapTypePanel by showMapTypePanelState
+    // Dispatch 2026-10-28-02 Amendment 3 (RECORD -1770, N1; the owner: "Opening Tools closes panel (Recommended)"): in a
+    // landscape window the rail's Tools sits outside the panel's scrim, so the drawer can open over an open panel. It closes
+    // the panel, so the next Back closes the drawer and lands on the map, rather than closing the panel behind the drawer.
+    LaunchedEffect(isDrawerOpen) { if (isDrawerOpen) showMapTypePanel = false }
     val pendingActionState = remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingAction by pendingActionState
     val pendingTripLocationState = remember { mutableStateOf<LatLng?>(null) }

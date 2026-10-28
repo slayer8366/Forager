@@ -39,10 +39,10 @@ internal fun collapsibleSectionHeaderTag(title: String) = "collapsible-section-h
  * through [includeAdvancedSearch] and [includeRecentSearches] flags, defaulted on for it; with the
  * tablet tree removed both flags, and the parameters that only they read, are gone.
  *
- * Map Layers' fold is [mapLayersOpen], held by `AvailabilityScreen` so it stays open across closing the drawer, changing tab
- * and a trip into Settings, within a session (CLAUDE.md, UX defaults); the dispatch: "It is not persisted across restarts."
- * Trip Planner's fold is left as it was, its own (out of scope; reported in
- * `docs/audits/2026-10-28-layers-to-tools-verify.md`, section 4).
+ * Both folds are held by `AvailabilityScreen` ([tripPlannerOpen], [mapLayersOpen]), so each stays open across closing the
+ * drawer, changing tab, a trip into Settings and a rotation, within a session (CLAUDE.md, UX defaults), and neither across a
+ * restart (the dispatch: "It is not persisted across restarts."). Trip Planner's joined Map Layers' in Amendment 3 (RECORD
+ * -1770; the owner: "Yes, same as Map Layers (Recommended)"); until then it was its own and reset on a trip into Settings.
  *
  * The scroll modifier on the outer [Column] is not optional: a drawer sheet is a fixed-height
  * container, so without it the section would be unreachable on a short screen or at a large font
@@ -56,6 +56,8 @@ internal fun SearchControls(
     mapLayers: MapLayersControls = MapLayersControls(),
     mapLayersOpen: Boolean = false,
     onMapLayersOpenChange: (Boolean) -> Unit = {},
+    tripPlannerOpen: Boolean = false,
+    onTripPlannerOpenChange: (Boolean) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -63,7 +65,7 @@ internal fun SearchControls(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        CollapsibleSection(title = "Trip Planner") {
+        CollapsibleSection(title = "Trip Planner", expanded = tripPlannerOpen, onExpandedChange = onTripPlannerOpenChange) {
             TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip)
         }
         MapLayersToolsSection(controls = mapLayers, open = mapLayersOpen, onOpenChange = onMapLayersOpenChange)
@@ -72,12 +74,11 @@ internal fun SearchControls(
 
 /**
  * A single tappable header row that expands on tap to reveal [content], collapsing back on a
- * second tap. Collapsed by default: both drawer sections start as one line, per the user's
- * request, rather than remembering whichever state they were last left in.
- *
- * Lives in this file rather than becoming a generic shared component, because both call sites
- * (see [SearchControls]) are this drawer's two sections and nothing else in the app has asked for
- * this pattern yet — CLAUDE.md: no speculative generality ahead of a second real caller.
+ * second tap. Collapsed the first time. This form holds its own open state, so it lasts as long as
+ * the fold is composed; the Tools drawer's two folds use the hoisted form below instead, held
+ * above the drawer, so they are remembered within a session (CLAUDE.md, UX defaults; Amendment 3,
+ * RECORD -1770, corrected this comment, which said they reset "per the user's request"). Its one
+ * remaining caller is Recent searches over the map (`SearchDropdown`).
  */
 @Composable
 // internal rather than private: com.zynergylabs.forager.app.ui.log's own drawer panel reuses this exact

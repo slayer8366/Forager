@@ -52,6 +52,8 @@ internal fun AvailabilityScreenDrawerHost(
     trackDetailsFoldOpen: MutableState<Boolean>,
     /** Dispatch 2026-10-28-02: Tools > Map Layers' fold, held by the body, and what its switches show and change. */
     mapLayersFoldOpen: MutableState<Boolean>,
+    /** Amendment 3 (RECORD -1770): Tools > Trip Planner's fold, held by the body as Map Layers' is. */
+    tripPlannerFoldOpen: MutableState<Boolean>,
     mapLayers: MapLayersControls,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -121,6 +123,8 @@ internal fun AvailabilityScreenDrawerHost(
                     mapLayers = mapLayers,
                     mapLayersOpen = mapLayersFoldOpen.value,
                     onMapLayersOpenChange = { mapLayersFoldOpen.value = it },
+                    tripPlannerOpen = tripPlannerFoldOpen.value,
+                    onTripPlannerOpenChange = { tripPlannerFoldOpen.value = it },
                 )
                 }
                 }

@@ -36,7 +36,7 @@ package com.zynergylabs.forager.app.ui.map
  * ## How a basemap actually gets chosen
  *
  * Not from this enum directly. [MapMode] names three since dispatch 2026-10-22-01 (RECORD -1554, -1556): Trail
- * ([FORAGER_TRAIL], the app's own vector map), Topo and OSM, picked from the Layers sheet's "Map type" row (`MapLayersSheet` (removed 2026-10-28, RECORD -1764)) or the
+ * ([FORAGER_TRAIL], the app's own vector map), Topo and OSM, picked from the map type panel the Layers button opens (`MapTypePanel`; the Layers sheet's "Map type" row until 2026-10-28) or the
  * map's own quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392). See [MapMode]'s own doc comment for the full picture,
  * including what this superseded (a two-tier service/mode split, and PR #13's original USGS Topo
  * default), and for how the choice persists across restarts.
