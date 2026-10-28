@@ -113,3 +113,48 @@ class MapTypePanelLandscapeTest {
 
     @Test fun `at ROTATION_270 with the L on the right`() = assertAnchoredAndChipsClose(Surface.ROTATION_270, left = false)
 }
+
+/**
+ * Amendment 3 (RECORD -1770, N1; the owner: "Opening Tools closes panel (Recommended)"), in a short landscape window, where
+ * the rail's Tools sits outside the panel's scrim: panel open > a real touch on Tools > the panel closes and the drawer
+ * opens > Back > the drawer closes > the map, the panel still closed.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+class MapTypePanelToolsTest {
+
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
+
+    private val map = LayersRecordingMapSlot()
+
+    private fun panelShown() = composeRule.onAllNodesWithTag(MAP_TYPE_PANEL_TAG).fetchSemanticsNodes().isNotEmpty()
+
+    private fun drawerShown() = runCatching {
+        composeRule.onNode(androidx.compose.ui.test.hasText("Trip Planner") and androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag(TOOLS_DRAWER_SHEET_TAG))).assertIsDisplayed()
+    }.isSuccess
+
+    @Test
+    fun `with the panel open, a real touch on the rail's Tools closes the panel and opens the drawer, and Back then closes the drawer`() {
+        val viewModel = mapLayersViewModel()
+        composeRule.setContent { MapLayersTestScreen(viewModel, map.slot, com.zynergylabs.forager.app.domain.AbsentForecastCellStore) }
+        composeRule.waitForIdle()
+        composeRule.onNode(hasContentDescription("Layers:", substring = true)).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertTrue("the panel opened", panelShown())
+
+        composeRule.openTools()
+
+        assertTrue("the drawer opened", drawerShown())
+        assertTrue("and the panel closed", !panelShown())
+
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+
+        assertTrue("Back closed the drawer", !drawerShown())
+        assertTrue("the panel is still closed", !panelShown())
+        composeRule.onNode(hasContentDescription("Layers:", substring = true)).assertIsDisplayed()
+    }
+}

@@ -147,6 +147,22 @@ class MapTypePanelMapsTabTest {
         composeRule.onNodeWithContentDescription("Layers:", substring = true).assertIsDisplayed()
     }
 
+    /** Amendment 3 (RECORD -1770, N5): with fullscreen on, Back closes the panel first and fullscreen stays. */
+    @Test
+    fun `in fullscreen, Back closes the panel and fullscreen stays`() {
+        setScreen()
+        touchCentre(composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot())
+        composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
+        openPanel()
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        assertTrue("Back closed the panel", !panelShown())
+        composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
+    }
+
     @Test
     fun `with the panel closed, a long-press on the map where the panel and its scrim were reaches the map`() {
         setScreen()

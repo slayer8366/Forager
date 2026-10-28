@@ -109,6 +109,52 @@ class MapLayersToolsSectionTest {
         assertTrue("a second touch on its header folds it", !mapLayersOpen())
     }
 
+    private fun tripPlannerOpen() = clickLabel("Trip Planner") == "Collapse Trip Planner"
+
+    /** Amendment 3 (RECORD -1770, N3; the owner: "Yes, same as Map Layers (Recommended)"). */
+    @Test
+    fun `Trip Planner is folded the first time, and once opened stays open across closing the drawer, a tab change and Settings`() {
+        setScreen()
+        composeRule.openTools()
+        assertTrue("folded the first time", !tripPlannerOpen())
+        composeRule.onNodeWithTag(collapsibleSectionHeaderTag("Trip Planner")).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertTrue("opened", tripPlannerOpen())
+
+        composeRule.closeTools()
+        composeRule.onNode(hasText("Journal") and !hasAnyAncestor(hasTestTag(TOOLS_DRAWER_SHEET_TAG))).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.openTools()
+        assertTrue("still open after closing the drawer and a tab change", tripPlannerOpen())
+
+        inDrawer("Settings").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        assertTrue("still open after a trip into Settings", tripPlannerOpen())
+    }
+
+    /** Amendment 3 (RECORD -1770): "a rotation", as the activity's saved state is written and read back. */
+    @Test
+    fun `both folds survive a rotation, saved and restored as the activity's state is`() {
+        preferences = InMemoryLayerPreferences()
+        val viewModel = mapLayersViewModel(layerPreferences = preferences)
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(composeRule)
+        restoration.setContent { MapLayersTestScreen(viewModel, map.slot, com.zynergylabs.forager.app.domain.AbsentForecastCellStore) }
+        composeRule.waitForIdle()
+        composeRule.openTools()
+        composeRule.onNodeWithTag(collapsibleSectionHeaderTag("Trip Planner")).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.toggleMapLayersFold()
+        assertTrue(tripPlannerOpen() && mapLayersOpen())
+
+        restoration.emulateSavedInstanceStateRestore()
+        composeRule.waitForIdle()
+
+        assertTrue("Trip Planner still open after the restore", tripPlannerOpen())
+        assertTrue("Map Layers still open after the restore", mapLayersOpen())
+    }
+
     @Test
     fun `each switch, by a real touch on its row, changes the stored choice and the state the map is handed`() {
         setScreen()
