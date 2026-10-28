@@ -76,3 +76,19 @@ The coder's proposed seam is accepted:
 - a CrowdedIconsPreferenceRepository implemented by DataStoreMapPreferencesRepository under `map.crowded_icons`, with an unknown value read as "Zoom in, then fan" and logged.
 
 Amendment 1's test moves onto the ⋮ rows are accepted. For Q2, clear at the effect's top, guarded by navigationView != null, covering all three early returns. MapQuickSettings.kt:320 is the only comment there pointing at Tools; the line numbers in Amendment 1 were stale.
+
+## Amendment 4 (2026-10-28): Sorrel's review of #431 (RECORD -1759)
+Sorrel's review is docs/reviews/2026-10-28-sorrel-pr431.md on branch sorrel-pr431 (01f1ae1ff), at 52da40ada. The owner's rulings:
+- **S1, "No, switching clears it (Recommended)":** keep the mode setter's clearing of pending camera returns (CrowdedStackZoom.kt:101-105), as built. S22 step 11 stays as written.
+- **S3, "Hide it on tablets for now (Recommended)":** draw the Settings Map section only where the setting works, on the layout whose map has a CrowdedStackHost (the compact Maps tab). Read how SettingsContent learns the layout, and say how you gate it, with a test that the tablet layout has no Map section.
+- **"Fix, quick look, merge (Recommended)".**
+
+Also on #431:
+- **S2:** fix S22 step 3. "Back by" in the ⋮ menu shows only its title and "Start a recording to set a Back by time." unless recording.
+- **N7:** add the two missing S22 steps. (a) List mode with a list open > tap another pile > its list replaces it. (b) A list open in either mode > Locate > the list closes at the press.
+- **N1:** drop the silent default of getCrowdedIconsMode(unknown = {}).
+- **N5:** use imports, not fully-qualified names, at the lines Sorrel lists; fix the MainActivity import order.
+- **N6:** move loadCrowdedIconsMode() beside loadSundownPreferences() in the ViewModel's start-up list, if that adds no lines to AvailabilityViewModel.kt (795). Otherwise leave it and say so.
+- **N8:** make CrowdedIconsControls internal.
+
+N2-N4 are record only. Each code change gets a test that fails first and a revert check. Then full CI, and push to #431. Don't merge.

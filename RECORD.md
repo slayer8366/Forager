@@ -29253,3 +29253,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the setting coder's verify-first (Opus; no code): Settings has Units, Night Mode with Night Maps under it, Backup and Sources & credits, and no map section; the seam is one early branch in MapTapHandler.openStackAround to a new CrowdedStackZoom.listNow, with the mode on CrowdedStackHost; the Sundown section's references are listed, and the existing Sundown and Off-track persistence tests move onto the ⋮ rows. Sorrel's quick look at #429 5d56ee9d9 (sorrel-pr429 76be2f4c7): S1-S3 closed, each failing first and with a revert failing for its own edit; the floor is the right choice; the upstream draft is fit to file; merge once the S22 recheck passes.
 **Decision:** the owner: "New \"Map\" section (Recommended)"; "Yes, list while navigating (Recommended)". Dispatch 2026-10-27-14 Amendment 3.
 **Notes:** Written by the planner by hand. #429's revert branches were cut from 70a2619aa, not 90850dbda as the PR body says (Sorrel's Q1). Next free ID -1759.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1759
+**Timestamp:** 2026-10-28T00:20:49Z
+**Continues:** 2026-09-28-1758, 2026-09-28-1750
+**Title:** #431: a mode switch clears the zoom's return; the Map section is hidden on tablets for now; fixes before the merge (owner)
+**Observed:** #431 (crowded-icons-setting 52da40ada): full CI 40604864922 green, 5,888 tests; RV1-RV8 each failing for their own edit; the line-171 failure was the test tapping inside a stack's tap box (the app was right), fixed with a positive control. Sorrel (Fable; docs/reviews/2026-10-28-sorrel-pr431.md, branch sorrel-pr431, 01f1ae1ff): no blocking finding; S1 the mode setter dropping pending returns was the coder's ruling; S2 S22 step 3 expects Back by rows that show only while recording; S3 the Map section shows on layouts whose map has no CrowdedStackHost, such as the tablet (inferred), where it does nothing. Removed Sundown symbols: none left in app/. Q1 and Q2 sit before every early return at their call sites.
+**Decision:** the owner: "No, switching clears it (Recommended)"; "Hide it on tablets for now (Recommended)"; "Fix, quick look, merge (Recommended)": dispatch 2026-10-27-14 Amendment 4, then Sorrel's quick look, then the merge.
+**Notes:** Written by the planner by hand. The planner's brief for the line-171 fix said a bubble had shown; the list had stayed open, and the coder found it from data. Next free ID -1760.
