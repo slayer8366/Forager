@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -77,6 +78,7 @@ class MapTypePanelOfflineChipTest {
     private val choices = mutableListOf<MapMode>()
     private var normalSelected = Color.Unspecified
     private var grey = Color.Unspecified
+    private var onSurface = Color.Unspecified
 
     private fun setSheet() {
         composeRule.setContent {
@@ -84,6 +86,7 @@ class MapTypePanelOfflineChipTest {
                 // Amendment 4 (RECORD -1771): the light theme's normal selected fill is `secondary`; the dark theme's is unchanged.
                 normalSelected = if (darkTheme) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.secondary
                 grey = MaterialTheme.colorScheme.outlineVariant
+                onSurface = MaterialTheme.colorScheme.onSurface
                 MapTypePanel(
                     visible = true,
                     mapMode = chosen,
@@ -108,6 +111,48 @@ class MapTypePanelOfflineChipTest {
 
     private fun recordedFill(mode: MapMode): Color =
         composeRule.onNodeWithTag(mapModeChipTag(mode)).fetchSemanticsNode().config[MapModeChipSelectedFill]
+
+    /**
+     * Amendments 5 and 6 (RECORD -1773, -1774; the owner: "Give the grey chip an outline too", then "Both themes. Make it
+     * uniform"): the grey [mode] chip carries a 1 dp outline in the theme's `onSurface`, drawn left of its grey fill on the
+     * middle row, and the chip's record of it. Its fill is unchanged.
+     */
+    private fun assertGreyChipOutline(mode: MapMode, where: String) {
+        val pixels = composeRule.onNodeWithTag(mapModeChipTag(mode)).captureToImage().toPixelMap()
+        val row = (0 until pixels.width).map { pixels[it, pixels.height / 2] }
+        val firstGrey = row.indexOf(grey)
+        assertTrue("$where: the grey fill is drawn on the middle row", firstGrey >= 0)
+        val outline = composeRule.onNodeWithTag(mapModeChipTag(mode)).fetchSemanticsNode().config[MapModeChipSelectedOutline]
+        assertEquals("$where: the grey chip's recorded outline is onSurface", onSurface, outline)
+        assertTrue("$where: an onSurface outline is drawn left of the grey fill", row.subList(0, firstGrey).contains(onSurface))
+    }
+
+    @Test
+    fun `with no signal the grey Topo chip has an onSurface outline, in both themes`() {
+        noSignal.value = true
+        setSheet()
+        for (dark in listOf(false, true)) {
+            settle { darkTheme = dark }
+            val theme = if (dark) "dark" else "light"
+            composeRule.onNodeWithTag(mapModeChipTag(MapMode.TOPOGRAPHIC)).assertIsSelected()
+            assertEquals("$theme, no signal: Topo drawn grey", grey, drawnFill(MapMode.TOPOGRAPHIC))
+            assertGreyChipOutline(MapMode.TOPOGRAPHIC, "$theme, no signal")
+        }
+    }
+
+    @Test
+    fun `fallen back, the grey Trail chip has an onSurface outline, in both themes`() {
+        chosen = MapMode.TRAIL
+        setSheet()
+        failTrailMapStyle()
+        for (dark in listOf(false, true)) {
+            settle { darkTheme = dark }
+            val theme = if (dark) "dark" else "light"
+            composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
+            assertEquals("$theme, fallen back: Trail drawn grey", grey, drawnFill(MapMode.TRAIL))
+            assertGreyChipOutline(MapMode.TRAIL, "$theme, fallen back")
+        }
+    }
 
     private fun settle(update: () -> Unit) {
         update()
