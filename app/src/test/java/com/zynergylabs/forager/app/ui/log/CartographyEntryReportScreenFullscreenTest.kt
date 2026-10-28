@@ -1,6 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
-import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
 import com.zynergylabs.forager.app.domain.model.RecordPoint
@@ -160,21 +160,21 @@ class CartographyEntryReportScreenFullscreenTest {
 
     // Map layers L0b (planner's ruling on F3): this used to check that the entry map's basemap
     // popover opened anchored to the layers row rather than the fullscreen row (fullscreen-fixes
-    // dispatch, Item 2). The popover is gone; the layers row now opens the Layers sheet, a modal
-    // bottom sheet with no anchor. What is checked instead, with a real touch, is that this row
-    // opens it, with its map types.
+    // dispatch, Item 2). Since dispatch 2026-10-28-02 the popover is back as the map type panel; its
+    // anchor on this bar is measured in MapTypePanelTest. Here, with a real touch, this row opens it,
+    // with its map types.
     @Test
-    fun `a real touch on the layers row opens the Layers sheet with its map types`() {
+    fun `a real touch on the layers row opens the map type panel with its map types`() {
         setScreen()
         enterFullscreen()
 
-        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type and overlays."))
+        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type."))
             .performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed()
         listOf("Trail", "Topo", "OSM").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
-        // Satellite was removed by dispatch 2026-09-28-708; the entry map's sheet offers it nowhere.
+        // Satellite was removed by dispatch 2026-09-28-708; the entry map's panel offers it nowhere.
         composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
     }
 
@@ -203,12 +203,12 @@ class CartographyEntryReportScreenFullscreenTest {
         setScreen()
         enterFullscreen()
         composeRule.onNodeWithContentDescription("Offline maps off").assertIsDisplayed()
-        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type and overlays."))
+        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type."))
             .assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Offline maps off").performClick()
 
-        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type and overlays."))
+        composeRule.onNode(hasContentDescription("Layers: Trail map. Choose the map type."))
             .assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Offline maps use one fixed style.").assertDoesNotExist()
     }

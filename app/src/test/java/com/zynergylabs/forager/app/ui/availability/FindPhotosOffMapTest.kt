@@ -28,7 +28,6 @@ import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -177,8 +176,7 @@ class FindPhotosOffMapTest {
         assertEquals("only the standalone photo is handed to the map", listOf("standalone"), photos())
         assertEquals("Photos is on", true, map.renderMode?.layers?.stateOf(MapLayerIds.PHOTOS)?.visible)
 
-        composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION).performTouchInput { click() }
-        composeRule.waitForIdle()
+        composeRule.openToolsMapLayers()
         composeRule.onNodeWithTag(mapLayerSwitchTag(MapLayerIds.PHOTOS)).performScrollTo().performTouchInput { click() }
         composeRule.waitForIdle()
 

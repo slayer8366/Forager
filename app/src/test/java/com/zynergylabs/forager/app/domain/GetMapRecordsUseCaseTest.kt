@@ -99,7 +99,7 @@ class GetMapRecordsUseCaseTest {
 
     /**
      * The owner's ruling on Q6 (planner message 3 on dispatch 2026-09-28-03): "Leave it out". A track
-     * with no end time is being recorded; the Recording trail layer draws it, and it joins Tracks once
+     * with no end time is being recorded; the Recording Tracks layer draws it, and it joins Tracks once
      * it has ended.
      */
     @Test

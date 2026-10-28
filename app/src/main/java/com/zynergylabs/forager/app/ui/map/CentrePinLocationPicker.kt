@@ -374,7 +374,7 @@ internal fun CentrePinLocationPickerPopUp(
 /**
  * The OK/Cancel row's surface, at the map chrome's alpha: this sits only inside a map's own Box, so it is always over a map.
  * Its content colour is pinned to the fill's own role (`contentColorFor` matches a colour-scheme role exactly; see
- * `MapLayersSheet`). [modifier] places it.
+ * `mapChromeFill`'s doc, MapChrome.kt:103-109). [modifier] places it.
  */
 @Composable
 private fun CentrePinConfirmSurface(onConfirm: () -> Unit, onCancel: () -> Unit, modifier: Modifier) {

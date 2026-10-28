@@ -73,6 +73,13 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -98,7 +105,31 @@ import com.zynergylabs.forager.app.ui.log.CartographyUiState
  */
 
 /** The Layers row's description at the default basemap (the dispatch, B1): Street since it became the opening map (dispatch 2026-10-18-04, Amendment 2; RECORD -1297); was Topographical. */
-internal const val LAYERS_ROW_DESCRIPTION = "Layers: Trail map. Choose the map type and overlays."
+internal const val LAYERS_ROW_DESCRIPTION = "Layers: Trail map. Choose the map type."
+
+/** Dispatch 2026-10-28-02: opens the Tools drawer with a real touch on the bottom nav's (or the rail's) "Tools". */
+internal fun ComposeTestRule.openTools() {
+    onNodeWithText("Tools").performTouchInput { click(center) }
+    waitForIdle()
+}
+
+/** A real touch on Tools > Map Layers' header, which opens or closes the fold. The drawer must be open. */
+internal fun ComposeTestRule.toggleMapLayersFold() {
+    onNodeWithTag(collapsibleSectionHeaderTag(MAP_LAYERS_SECTION_TITLE)).performScrollTo().performTouchInput { click(center) }
+    waitForIdle()
+}
+
+/** Tools, then Map Layers, each by a real touch, on a screen where Map Layers is still folded (its first opening). */
+internal fun ComposeTestRule.openToolsMapLayers() {
+    openTools()
+    toggleMapLayersFold()
+}
+
+/** Closes the Tools drawer by a real touch on its header's close button. */
+internal fun ComposeTestRule.closeTools() {
+    onNodeWithContentDescription("Close search options").performTouchInput { click(center) }
+    waitForIdle()
+}
 
 /** Both synthetic groups, as the debug store reports them with the switch on. */
 internal val BOTH_FORECAST_GROUPS: Set<String> = COLOUR_FIELDS.map { it.group }.toSet()

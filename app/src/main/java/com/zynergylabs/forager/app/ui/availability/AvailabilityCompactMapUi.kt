@@ -261,8 +261,12 @@ internal fun CompactMapTab(
     // RECORD -741: these five are handed to CompactMapPickers as State objects, so each is held as one and read through it here.
     val showActionMenuState = remember { mutableStateOf(false) }
     var showActionMenu by showActionMenuState
-    val showLayersSheetState = remember { mutableStateOf(false) }
-    var showLayersSheet by showLayersSheetState
+    val showMapTypePanelState = remember { mutableStateOf(false) }
+    var showMapTypePanel by showMapTypePanelState
+    // Dispatch 2026-10-28-02 Amendment 3 (RECORD -1770, N1; the owner: "Opening Tools closes panel (Recommended)"): in a
+    // landscape window the rail's Tools sits outside the panel's scrim, so the drawer can open over an open panel. It closes
+    // the panel, so the next Back closes the drawer and lands on the map, rather than closing the panel behind the drawer.
+    LaunchedEffect(isDrawerOpen) { if (isDrawerOpen) showMapTypePanel = false }
     val pendingActionState = remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingAction by pendingActionState
     val pendingTripLocationState = remember { mutableStateOf<LatLng?>(null) }
@@ -553,7 +557,7 @@ internal fun CompactMapTab(
                     onResumeTracking = { resumeTrackingRequestId++ },
                     onResetOrientation = { resetOrientationRequestId++ },
                     mapMode = mapMode,
-                    onOpenLayers = { showLayersSheet = true },
+                    onOpenLayers = { showMapTypePanel = true },
                     onOpenActionMenu = { showActionMenu = true },
                     topLimitPx = layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
@@ -642,11 +646,11 @@ internal fun CompactMapTab(
                     onBottomNavHeightMeasured = onBottomNavHeightMeasured,
                 )
 
-                // The add-action menu, the Layers sheet and the centre-pin picker (RECORD -741: CompactMapPickers, moved out
+                // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out
                 // unchanged; its comments are there). Composed after the bottom bar and the rail, on purpose (see there).
                 CompactMapPickers(
                     showActionMenuState = showActionMenuState,
-                    showLayersSheetState = showLayersSheetState,
+                    showMapTypePanelState = showMapTypePanelState,
                     pendingActionState = pendingActionState,
                     pendingTripLocationState = pendingTripLocationState,
                     pendingWaypointLocationState = pendingWaypointLocationState,
@@ -655,7 +659,6 @@ internal fun CompactMapTab(
                     onLogFindHere = onLogFindHere,
                     mapMode = mapMode,
                     onMapModeSelected = onMapModeSelected,
-                    mapLayers = mapLayers,
                     landscape = landscape,
                     cluster = cluster,
                     controlsPadding = controlsPadding,

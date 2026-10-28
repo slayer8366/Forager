@@ -47,7 +47,7 @@ import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_TAG
-import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION
@@ -555,7 +555,7 @@ abstract class HudLandscapeT11Fixes {
             Control("Locate", {
                 described("Center on my location").let { r -> if (onLeft) DpRect(r.left + 14.dp, r.top, r.right, r.bottom) else DpRect(r.left, r.top, r.right - 14.dp, r.bottom) }.also { locateBefore = locates }
             }) { locates == locateBefore + 1 },
-            Control("Layers", { described("Layers:", substring = true) }) { nodes(MAP_LAYERS_SHEET_TAG).isNotEmpty() },
+            Control("Layers", { described("Layers:", substring = true) }) { nodes(MAP_TYPE_PANEL_TAG).isNotEmpty() },
             Control("Add", { add() }) { nodes(ADD_ACTION_TILE_TAG).isNotEmpty() },
             Control("Record", { record().also { recordBefore = recordToggles } }) { recordToggles == recordBefore + 1 },
             Control("Return", { returnButton().also { returnBefore = returnToggles } }) { returnToggles == returnBefore + 1 },

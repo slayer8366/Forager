@@ -29,7 +29,7 @@ import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.ui.map.Basemap
-import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.io.File
@@ -159,7 +159,7 @@ class AvailabilityScreenBasemapPersistenceTest {
 
     @Test
     // Was "…offers only Street and Topographical"; three map types since dispatch 2026-10-22-01 (RECORD -1554, -1556).
-    fun `the Layers sheet offers only Trail, Topo and OSM`() {
+    fun `the map type panel offers only Trail, Topo and OSM`() {
         val (repository, _) = launchRepository()
         val viewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = repository)
         composeRule.setContent { MapLayersTestScreen(viewModel, slot, AbsentForecastCellStore) }
@@ -167,7 +167,7 @@ class AvailabilityScreenBasemapPersistenceTest {
 
         touchLayersRow()
 
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Trail").assertIsDisplayed()
         composeRule.onNodeWithText("Topo").assertIsDisplayed()
         composeRule.onNodeWithText("OSM").assertIsDisplayed()

@@ -1,9 +1,9 @@
 package com.zynergylabs.forager.app.ui.map
 
 /**
- * The basemap looks a user picks between, left to right on the Layers sheet's "Map type" row: Trail (Forager Trail
+ * The basemap looks a user picks between, left to right in the map type panel the Layers button opens ([MapTypePanel]): Trail (Forager Trail
  * Map), Topo and OSM (dispatch 2026-10-22-01, RECORD -1554, -1556: the chips read exactly "Trail", "Topo" and "OSM").
- * Before that, two: Street and Topographical. Picked from the Layers sheet's "Map type" row (`MapLayersSheet`) or the quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392).
+ * Before that, two: Street and Topographical. Picked from the Layers sheet's "Map type" row (L0b to 2026-10-28, now [MapTypePanel]) or the quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392).
  * Replaced the deleted `MapService` entirely, per the project owner's own request.
  *
  * `MapService` used to split this choice into two decisions with two different lifetimes — which

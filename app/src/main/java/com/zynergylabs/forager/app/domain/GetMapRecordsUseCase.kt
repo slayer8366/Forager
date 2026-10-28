@@ -64,7 +64,7 @@ data class MapRecords(
  * with no location gives nothing, as it does there.
  *
  * **The track being recorded is left out** (owner's ruling on Q6, "Leave it out (Recommended)"): a
- * track with no end time is being recorded, and the "Recording trail" layer already draws it; it joins
+ * track with no end time is being recorded, and the "Recording Tracks" layer already draws it; it joins
  * Tracks once it has ended. Drawing it here too would lay a solid copy, as of the last reload, over the
  * dashed trail, since kept tracks draw above the breadcrumb in the registry.
  *

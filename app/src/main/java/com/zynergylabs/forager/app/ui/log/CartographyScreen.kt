@@ -102,11 +102,10 @@ internal fun CartographyScreen(
     initialMapMode: MapMode = MapMode.DEFAULT,
     /**
      * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices the Maps tab and the entry map
-     * share, and the entry map's Layers-sheet switch. Threaded through to [CartographyEntryReportScreen]
+     * share (its switches are in Tools > Map Layers since dispatch 2026-10-28-02). Threaded through to [CartographyEntryReportScreen]
      * only; nothing here reads them. Defaulted so other callers and tests are unchanged.
      */
     mapLayers: MapLayersState = MapLayersState.DEFAULT,
-    onMapLayerVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     getCoveringOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     /** See [CartographyEntryReportScreen]'s own doc comment, "Fullscreen." */
@@ -464,7 +463,6 @@ internal fun CartographyScreen(
                     getCoveringOfflineRegion = getCoveringOfflineRegion,
                     getCurrentLocation = getCurrentLocation,
                     layersState = mapLayers,
-                    onLayerVisibilityChanged = onMapLayerVisibilityChanged,
                     mapBubbleSources = mapBubbleSources,
                     onSetShownOnMap = onSetShownOnMap?.let { set -> { shown: Boolean -> set(editingEntry.id, shown) } },
                     candidates = uiState.candidatesForEditingEntry,

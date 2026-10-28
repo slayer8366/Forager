@@ -94,7 +94,7 @@ internal fun MapIconBar(
     onLocateMe: () -> Unit,
     onResetOrientation: () -> Unit,
     mapMode: MapMode,
-    /** Opens the Layers sheet (map layers L0b, B1), which replaced the basemap-only `MapModePicker`. */
+    /** Opens the map type panel ([MapTypePanel], dispatch 2026-10-28-02), which replaced the Layers sheet (L0b) as that sheet had replaced `MapModePicker`. */
     onOpenLayers: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
@@ -189,9 +189,9 @@ internal fun MapIconBar(
                 onClick = onLocateMe,
             )
             if (mapModePickerEnabled) {
-                // Map layers L0b, B1: the Layers sheet. The old description's night clause ("Night
-                // mode on/off") went with it: the picker never had a night control, and Night Maps
-                // is Settings' checkbox.
+                // The map type panel (dispatch 2026-10-28-02; the Layers sheet from L0b until then). The old
+                // description's night clause ("Night mode on/off") went at L0b: the picker never had a night
+                // control, and Night Maps is Settings' checkbox.
                 MapBarIconButton(
                     icon = Icons.Filled.Layers,
                     contentDescription = layersButtonDescription(mapMode),

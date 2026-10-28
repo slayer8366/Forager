@@ -88,7 +88,7 @@ internal val MapPillColorDark = SurfaceContainerHighestDark.copy(alpha = MAP_CHR
 /**
  * Map chrome at 80% where it covers a map (dispatch 2026-09-28-56 as amended by -58; planner message
  * -77): the container colour a sheet, dialog, menu, drawer, snackbar or surface was given, exposed to
- * tests the way the Layers sheet exposes its own (`MapLayersSheet`). Set on the node that is given the
+ * tests. Set on the node that is given the
  * colour, beside its test tag.
  */
 internal val MapChromeContainerColor = SemanticsPropertyKey<Color>("MapChromeContainerColor")
@@ -106,7 +106,7 @@ internal val MapChromeContentColor = SemanticsPropertyKey<Color>("MapChromeConte
  * 2026-09-28-77, Q2), and the role itself, solid, where none is (owner: "In the places that aren't
  * covering a map, they can stay solid"). Only the fill: each caller pins its content colour to the
  * unaltered role's own, because `contentColorFor` matches a colour-scheme role exactly and a
- * translucent fill matches none (`MapLayersSheet`).
+ * translucent fill matches none.
  */
 internal fun mapChromeFill(role: Color, overMap: Boolean): Color =
     if (overMap) role.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA) else role

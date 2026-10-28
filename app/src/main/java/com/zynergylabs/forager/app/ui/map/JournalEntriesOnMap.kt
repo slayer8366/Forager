@@ -11,8 +11,8 @@ const val SHOW_ON_MAP_LABEL = "Show on map"
 /** The report menu's item for an entry shown on the map (J8, the dispatch's copy). */
 const val HIDE_FROM_MAP_LABEL = "Hide from map"
 
-/** The Layers sheet's switch for every highlight at once (J8, the dispatch's copy). */
-const val JOURNAL_ENTRIES_OVERLAY_LABEL = "Journal entries"
+/** Tools > Map Layers' switch for every highlight at once (J8; Title Case by dispatch 2026-10-28-02 Amendment 1, RECORD -1765). */
+const val JOURNAL_ENTRIES_OVERLAY_LABEL = "Journal Entries"
 
 /** The chip list's action for one entry (J8, the dispatch's copy). */
 const val HIDE_JOURNAL_ENTRY_LABEL = "Hide"

@@ -170,7 +170,7 @@ internal fun SpeciesSearchControls(
             // is the fix, not new behavior invented on top of the component.
             // The menu's default container role, passed explicitly, and its content colour pinned to
             // the role's own (`contentColorFor` matches a colour-scheme role exactly; see
-            // `MapLayersSheet`), as J8's menus do (`journalMenuContentColor`).
+            // `mapChromeFill`'s doc, MapChrome.kt:103-109), as J8's menus do (`journalMenuContentColor`).
             // Owner, verbatim "1 A" (planner message 2026-09-28-77, Q3): at the map chrome's alpha on its
             // own over the Maps tab, stacking over the 0.8 search panel; solid where no map is drawn.
             val suggestionsColor = mapChromeFill(navigationBarContainerColor(), suggestionsOverMap)

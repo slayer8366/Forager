@@ -45,7 +45,7 @@ internal fun SearchNotice(
     val message = searchNoticeMessage(uiState) ?: return
 
     // The fill and its content colour, pinned to the fill's own role (`contentColorFor` matches a
-    // colour-scheme role exactly; see `MapLayersSheet`). The text keeps its own explicit colour.
+    // colour-scheme role exactly; see `mapChromeFill`'s doc, MapChrome.kt:103-109). The text keeps its own explicit colour.
     val noticeColor = mapChromeFill(MaterialTheme.colorScheme.errorContainer, overMap)
     val noticeContentColor = contentColorFor(MaterialTheme.colorScheme.errorContainer)
     Surface(

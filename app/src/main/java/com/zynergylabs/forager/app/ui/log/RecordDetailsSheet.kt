@@ -120,7 +120,7 @@ private fun RecordDetailsSheetFor(
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`), at the
-    // map chrome's alpha over a map, as the Layers sheet is (`MapLayersSheet`). The content colour is
+    // map chrome's alpha over a map, as the Layers sheet is (`mapChromeFill`'s doc, MapChrome.kt:103-109). The content colour is
     // pinned to the role's own for the reason given there: `contentColorFor` matches a colour-scheme
     // role exactly. The scrim stays Material3's default.
     // C1: the navigation bar's colour (was surfaceContainerLow); alpha as it was, 0.8 over a map and solid elsewhere.

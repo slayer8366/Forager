@@ -14,7 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -140,7 +139,8 @@ internal fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, o
             onValueChange = {},
             readOnly = true,
             label = { Text("Month") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            // No trailing arrow (dispatch 2026-10-28-02; the owner: "Remove all Chevrons from the drop down lists, those are
+            // banned from the app."). A tap on the field still opens the menu (menuAnchor below).
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),

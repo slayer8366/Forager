@@ -360,14 +360,14 @@ class MapBubblesTest {
         val cell = cellAt(45.5, -122.6, 0.37)
         assertEquals(
             MapBubbleContent.Cell(
-                layerName = "Test forecast: chanterelles (synthetic data)",
+                layerName = "Test Forecast: Chanterelles (Synthetic Data)",
                 chance = "37%",
                 range = "Uncertainty 21% to 58%",
                 drivers = listOf("rain, last 14 days: 62 mm", "soil temperature: 11"),
                 dates = "Week of Sep 28, 2026, weather to Sep 26, 2026",
                 referenceClass = LEGEND_REFERENCE_CLASS,
             ),
-            forecastCellBubble("Test forecast: chanterelles (synthetic data)", cell),
+            forecastCellBubble("Test Forecast: Chanterelles (Synthetic Data)", cell),
         )
     }
 

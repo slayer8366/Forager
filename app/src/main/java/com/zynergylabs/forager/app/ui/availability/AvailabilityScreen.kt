@@ -315,6 +315,12 @@ fun AvailabilityScreen(
     // that sheet opens (Records, a map bubble's Details, an entry report's track row), so it survives within a session
     // (CLAUDE.md, UX defaults). One flag for every track's sheet. Not across a restart (not asked for).
     val trackDetailsFoldOpen = rememberSaveable { mutableStateOf(false) }
+    // Dispatch 2026-10-28-02: whether Tools > Map Layers is open, held here as the Details fold above is, so it stays open
+    // across closing the drawer, changing tab and a trip into Settings (CLAUDE.md, UX defaults). Folded the first time; the
+    // dispatch: "It is not persisted across restarts."
+    val mapLayersFoldOpen = rememberSaveable { mutableStateOf(false) }
+    // Amendment 3 (RECORD -1770, N3; the owner: "Yes, same as Map Layers (Recommended)"): Trip Planner's fold, held the same way.
+    val tripPlannerFoldOpen = rememberSaveable { mutableStateOf(false) }
     // The navigation view's follow and zoom requests, held above the tab (T22, -440): see rememberNavigationViewRequests
     // (ScreenNavigationViewRequests.kt).
     val navigationViewRequests = rememberNavigationViewRequests(isNavigating)
@@ -697,6 +703,9 @@ fun AvailabilityScreen(
         mapCompass = mapLocals.mapCompass,
         mapPosition = mapLocals.mapPosition,
         trackDetailsFoldOpen = trackDetailsFoldOpen,
+        mapLayersFoldOpen = mapLayersFoldOpen,
+        tripPlannerFoldOpen = tripPlannerFoldOpen,
+        mapLayers = mapLayersControls,
         uiState = uiState,
         distanceUnit = distanceUnit,
         onDistanceUnitSelected = onDistanceUnitSelected,

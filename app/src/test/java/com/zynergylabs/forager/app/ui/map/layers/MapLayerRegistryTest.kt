@@ -23,7 +23,7 @@ import org.junit.Test
  *
  * J8 (`prompts/preserved/2026-09-28-52.md`, J8-2): five journal-entry halos, each directly below the
  * record layer it decorates (below its casing, for a line with one), in the new `JOURNAL_ENTRY` role,
- * taking no taps, all following the one "Journal entries" switch. No other layer moved; the assertions
+ * taking no taps, all following the one "Journal Entries" switch. No other layer moved; the assertions
  * that pinned the registry's contents are re-pinned with the five added, and the halos' own rules are
  * new tests below.
  *
@@ -327,7 +327,7 @@ class MapLayerRegistryTest {
             MAP_LAYER_REGISTRY.filter { it.credit != null }.associate { it.id to it.credit },
         )
         assertEquals(
-            "toggleable: L0a's seven, plus the two colour fields, plus J8's Journal entries switch, plus 8b's Official trails",
+            "toggleable: L0a's seven, plus the two colour fields, plus J8's Journal Entries switch, plus 8b's Trails",
             colourFields + listOf(
                 MapLayerIds.OFFLINE_REGION_FILL,
                 MapLayerIds.REFERENCE_FS_BAND,

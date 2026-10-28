@@ -72,8 +72,7 @@ import com.zynergylabs.forager.app.ui.map.HIDE_FROM_MAP_LABEL
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.ENTRY_MAP_OVERLAYS
-import com.zynergylabs.forager.app.ui.map.MapLayersSheet
+import com.zynergylabs.forager.app.ui.map.MapTypePanel
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -270,14 +269,13 @@ internal fun CartographyEntryReportScreen(
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     /**
-     * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices this map shares with the Maps
-     * tab, and its Layers sheet's overlay switch. The sheet lists only what this map draws
-     * ([ENTRY_MAP_OVERLAYS]) and no colour field: this map passes no forecast feed (planner's ruling
-     * on Q5), so `SightingsMap` hides every colour field here whatever the stored choice. Its geometry
+     * Map layers L0b (owner's ruling 4): the layer choices this map shares with the Maps tab, switched in
+     * Tools > Map Layers since dispatch 2026-10-28-02 (this map has no switches of its own). This map
+     * passes no forecast feed (planner's ruling on Q5), so `SightingsMap` hides every colour field here
+     * whatever the stored choice. Its geometry
      * still comes only from [getMapData] (`GetCartographyEntryMapDataUseCase`).
      */
     layersState: MapLayersState = MapLayersState.DEFAULT,
-    onLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
     /**
@@ -316,8 +314,7 @@ internal fun CartographyEntryReportScreen(
     // AvailabilityScreen's own mapMode.
     var entryMapMode by remember(entry.id) { mutableStateOf(initialMapMode) }
     var isMapFullscreen by remember(entry.id) { mutableStateOf(false) }
-    var showLayersSheet by remember(entry.id) { mutableStateOf(false) }
-    val referenceTrails = remember { com.zynergylabs.forager.app.ui.map.ReferenceTrailsShown() } // Step 8b: the map's report, for the sheet's row.
+    var showMapTypePanel by remember(entry.id) { mutableStateOf(false) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
     var resetOrientationRequestId by remember(entry.id) { mutableIntStateOf(0) }
     // The one-shot camera pan a locate-me tap resolves to — see this file's own doc comment,
@@ -469,7 +466,7 @@ internal fun CartographyEntryReportScreen(
                         Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
                     }
                     // The menu's default container role, passed explicitly, and its content colour
-                    // pinned to the role's own (see `MapLayersSheet`), as J8's menus do.
+                    // pinned to the role's own (`contentColorFor` matches a colour-scheme role exactly), as J8's menus do.
                     // The menu drops from the header onto the entry's map, when it has one.
                     val entryMenuColor = mapChromeFill(navigationBarContainerColor(), entryMapShown)
                     val entryMenuContentColor = contentColorFor(navigationBarContainerColor())
@@ -574,7 +571,6 @@ internal fun CartographyEntryReportScreen(
                         // too while this map is fullscreen, so Back leaves fullscreen first and the next Back folds
                         // the fan (dispatch 2026-09-28-298, the same rule as the Maps tab's fullscreen).
                         backEnabled = backEnabled && !isMapFullscreen,
-                        onReferenceTrailsShown = referenceTrails.onShown,
                     ),
                     focusOverrideTarget,
                     {},
@@ -618,7 +614,7 @@ internal fun CartographyEntryReportScreen(
                     ),
                     forecast = null,
                     onViewSightingOnINaturalist = { tapped = null },
-                    backEnabled = backEnabled && !showLayersSheet,
+                    backEnabled = backEnabled && !showMapTypePanel,
                 )
 
                 if (isMapFullscreen) {
@@ -628,7 +624,7 @@ internal fun CartographyEntryReportScreen(
                         onLocateMe = onLocateMe,
                         onResetOrientation = { resetOrientationRequestId++ },
                         mapMode = entryMapMode,
-                        onOpenLayers = { showLayersSheet = true },
+                        onOpenLayers = { showMapTypePanel = true },
                         onAdd = {}, // Unused — fifthRow below replaces this row entirely.
                         mapModePickerEnabled = !useOfflineTiles,
                         // A toggle, not a momentary action like the default add row this replaces —
@@ -647,21 +643,16 @@ internal fun CartographyEntryReportScreen(
                         },
                         modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.sm),
                     )
-                    if (showLayersSheet) {
-                        MapLayersSheet(
-                            mapMode = entryMapMode,
-                            onMapModeSelected = { entryMapMode = it },
-                            overlays = ENTRY_MAP_OVERLAYS,
-                            colourFields = emptyList(),
-                            state = layersState,
-                            onVisibilityChanged = onLayerVisibilityChanged,
-                            onOpacityChanged = { _, _ -> },
-                            onColourFieldMoved = { _, _ -> },
-                            onDismiss = { showLayersSheet = false },
-                            offlineTiles = useOfflineTiles,
-                            referenceTrails = referenceTrails.shown,
-                        )
-                    }
+                    // Dispatch 2026-10-28-02: the map type panel, anchored to this bar's Layers row (row 4, at the bar's fixed
+                    // right side), as MapModePicker was here before the Layers sheet. The overlay switches are in Tools > Map Layers.
+                    MapTypePanel(
+                        visible = showMapTypePanel,
+                        mapMode = entryMapMode,
+                        onModeSelected = { entryMapMode = it },
+                        onDismiss = { showMapTypePanel = false },
+                        modifier = Modifier.fillMaxSize(),
+                        offlineTiles = useOfflineTiles,
+                    )
                 }
             }
 

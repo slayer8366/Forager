@@ -386,7 +386,7 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
-    private val mapModeContentDescription = "Layers: Trail map. Choose the map type and overlays."
+    private val mapModeContentDescription = "Layers: Trail map. Choose the map type."
 
     /**
      * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
@@ -436,28 +436,24 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `tapping the quick-fire icon opens the Layers sheet, and a chip there changes the basemap while the sheet stays open`() {
-        // The map opens on Trail (dispatch 2026-10-22-01), so Topo is taken first, then OSM, then back to Trail. Before
-        // that it opened on Street and went Topographical, then back to Street.
+    fun `tapping the quick-fire icon opens the map type panel, and each chip there changes the basemap and closes it`() {
+        // The map opens on Trail (dispatch 2026-10-22-01), so Topo is taken first, then OSM, then back to Trail. Since dispatch
+        // 2026-10-28-02 the button opens the map type panel again, which a chip tap closes (as the picker did before L0b), so
+        // the button is tapped before each chip. No Satellite chip is offered (dispatch 2026-09-28-708).
         setScreen()
         assertEquals(Basemap.FORAGER_TRAIL, capturedBasemap)
 
-        composeRule.onNodeWithContentDescription(mapModeContentDescription).performClick()
-        composeRule.onNodeWithText("Topo").assertIsDisplayed().performClick()
+        for ((label, basemap) in listOf("Topo" to Basemap.OPEN_TOPO_MAP, "OSM" to Basemap.OSM_STANDARD)) {
+            composeRule.onNodeWithContentDescription("Layers:", substring = true).performClick()
+            composeRule.waitForIdle()
+            composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
+            composeRule.onNodeWithText(label).assertIsDisplayed().performClick()
+            composeRule.waitForIdle()
+            assertEquals(basemap, capturedBasemap)
+            composeRule.onAllNodesWithText(label).assertCountEquals(0)
+        }
+        composeRule.onNodeWithContentDescription("Layers:", substring = true).performClick()
         composeRule.waitForIdle()
-
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
-        // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
-        // tap, so the other chip is still on screen. Before L0b the picker closed itself here and
-        // this asserted Satellite's count was 0; until dispatch 2026-09-28-708 it then went on to
-        // Satellite, which that dispatch removed, so it now goes back to Topographical and checks
-        // that no Satellite chip is offered.
-        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
-        composeRule.onNodeWithText("OSM").assertIsDisplayed().performClick()
-        composeRule.waitForIdle()
-
-        assertNotEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
-        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
         composeRule.onNodeWithText("Trail").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
