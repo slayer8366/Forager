@@ -29452,3 +29452,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** #432 S22 round 3: the uniform outline, with a small offline area for the grey chip
 **Decision:** the owner: "Download a small area (Recommended)" (the other options: skip the grey chip step, or not now). Dispatch 2026-10-28-06 on run 40776527059 (b25806b4b): steps 19-21. The area and a test entry are deleted afterwards.
 **Notes:** Written by the planner by hand. Next free ID -1778.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1778
+**Timestamp:** 2026-10-28T22:40:27Z
+**Continues:** 2026-09-28-1777, 2026-09-28-1764
+**Title:** #432 merged into pre-main: Map Layers in Tools, the map type panel, no chevrons, the chip outlines
+**Observed:** S22 round 3 (Opus; s22-pr432-r3 e35b78633) on 1.0.4153+g86c99060 (run 40776527059, b25806b4b merged onto e2969abe4; digest matched; schema 22 to 22): steps 19-21 ran. The selected chip reads as "on" in both themes (cream outline in dark, dark outline in light); the grey chip reads as "chosen, but dimmed", marked by its outline alone. Topo took 25-60 s to return after aeroplane mode was turned off (observed, no limit set). Cleanup was confirmed in a database copy. PR head 217200006 differs from b25806b4b only in two docs files; mergeable, CLEAN.
+**Decision:** the owner: "Merge now (Recommended)". Merged as 9f2df1abb at 2026-10-28T22:40:12Z, with --match-head-commit 217200006; pre-main updated. -1775's two follow-ups are next.
+**Notes:** Written by the planner by hand. Next free ID -1779.
