@@ -29463,3 +29463,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** S22 round 3 (Opus; s22-pr432-r3 e35b78633) on 1.0.4153+g86c99060 (run 40776527059, b25806b4b merged onto e2969abe4; digest matched; schema 22 to 22): steps 19-21 ran. The selected chip reads as "on" in both themes (cream outline in dark, dark outline in light); the grey chip reads as "chosen, but dimmed", marked by its outline alone. Topo took 25-60 s to return after aeroplane mode was turned off (observed, no limit set). Cleanup was confirmed in a database copy. PR head 217200006 differs from b25806b4b only in two docs files; mergeable, CLEAN.
 **Decision:** the owner: "Merge now (Recommended)". Merged as 9f2df1abb at 2026-10-28T22:40:12Z, with --match-head-commit 217200006; pre-main updated. -1775's two follow-ups are next.
 **Notes:** Written by the planner by hand. Next free ID -1779.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1779
+**Timestamp:** 2026-10-28T22:43:21Z
+**Continues:** 2026-09-28-1775, 2026-09-28-1778
+**Title:** -1775's two Records follow-ups: look-only first
+**Decision:** the owner: "Yes, look-only first (Recommended)". Dispatch 2026-10-28-07 from pre-main 9f2df1abb: the cause of the stale "used in 1 journal entry", and the Finds filter's missing empty state; no app code until the owner answers.
+**Notes:** Written by the planner by hand. Next free ID -1780.
