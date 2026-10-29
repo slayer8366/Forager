@@ -29731,3 +29731,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** #440's battery comparison (step 8) now; the walk still deferred
 **Decision:** the owner: "S22 plugged in"; "Walk not done yet"; "Battery test (Recommended)". Dispatch 2026-10-29-03: A (pre-main d100a4776) then B (#440), 30 minutes each with the Maps tab showing, indoors. #440 and Region 1 are kept on the phone for the walk.
 **Notes:** Written by the planner by hand. A fresh helper; the earlier one was past about 180k tokens. Next free ID -1803.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1803
+**Timestamp:** 2026-10-29T20:36:23Z
+**Continues:** 2026-09-28-1801
+**Title:** Every PR into pre-main gets a second CI build with the dev tools, for phone checks before merge
+**Observed:** the owner's 10-29 walk with the S22 on #440 (4175) and the S26 on 4153. The eye-level-to-ground test "didn't make a difference". No raw fix or barometer stream could be read, because the walk logger is on dev only (-930) and dev is main plus experiments (-1086, -1087), so a PR into pre-main can't be phone-checked with it.
+**Decision:** the owner: "We need to start doing pre-dev tools alongside pre-main so we can test it before the merge". Asked, "A tools build of every PR (Recommended)": each PR into pre-main also gets a CI build of the PR plus the dev tools, and phone checks use it. "Test phones and my S26 (Recommended)": the S26 always gets a database-version check first. The tools builds never go to Play. The eye-level result is to be read from the phone's data, not guessed.
+**Notes:** Written by the planner by hand. No build started; the CI change needs its own go. Next free ID -1804.
