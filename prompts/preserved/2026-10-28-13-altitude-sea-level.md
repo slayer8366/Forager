@@ -53,3 +53,6 @@ Hazel's proposal (message to the planner) for item 6, and the owner's answers:
 - **"Keep it raw (Recommended)"**: the forager:point `ele=` (GpxCodec.kt:136) stays the literal stored value. Only the standard `<trkpt>` and `<wpt>` `<ele>` are converted.
 - **The ViewModel split** Hazel announced (locateMe and onLocateMePermissionDenied into AvailabilityLocateMe.kt, a pure move, its own commit) is accepted. AvailabilityCompactScaffold.kt is not touched.
 Each rule gets a test that fails first, then a revert check.
+
+## Amendment 2 (2026-10-28): the height chart on phones that can't convert (RECORD -1794)
+The owner: "Chart with no numbers (Recommended)". Below Android 14 the journal entry's and the Records track sheet's height chart (EntryReportSummary.kt:126-127) still draws its shape and length, with no height labels and no new words. Write a test that fails first, then a revert check.

@@ -29621,3 +29621,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus; dispatch 2026-10-28-13): import copies `<ele>` into the raw column (ImportGpxUseCase.kt:96, :127); imported tracks carry importedAtEpochMillis (:84), and their waypoints carry the imported trackId (:100). AvailabilityViewModel.kt (797) must change, so it is split first (a pure move to AvailabilityLocateMe.kt).
 **Decision:** the owner: "Show as the file gave them (Recommended)" (P1; the re-imported pre-fix Forager export reading about 21 m low is accepted); "Leave heights out (Recommended)" below Android 14; "Keep it raw (Recommended)" for forager:point ele. Dispatch 2026-10-28-13 Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -1794.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1794
+**Timestamp:** 2026-10-29T04:46:45Z
+**Continues:** 2026-09-28-1793
+**Title:** Altitude: below Android 14 the height chart draws with no height labels
+**Decision:** the owner: "Chart with no numbers (Recommended)" (rejected: "Alt unavailable" in each label, which the narrow column cuts short; no chart at all). Dispatch 2026-10-28-13 Amendment 2.
+**Notes:** Written by the planner by hand. Next free ID -1795.
