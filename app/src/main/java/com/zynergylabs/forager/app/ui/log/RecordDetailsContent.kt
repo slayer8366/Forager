@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.log
 
 // Moved unchanged from RecordDetailsSheet.kt (dispatch 2026-10-19-07, UI split Phase 1, PR 4).
 
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -107,6 +108,7 @@ internal fun TrackDetails(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val seaLevelConverter = LocalSeaLevelConverter.current
     // The same derivation the entry editor's candidate rows use for a live track
     // (CartographyEntryEditScreen's TracksSection), from the points already in memory.
     val stats = ComputeTrackStatisticsUseCase()(track.points)
@@ -151,7 +153,7 @@ internal fun TrackDetails(
     }
     DetailsActions {
         OutlinedButton(
-            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
+            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord, seaLevelConverter) } },
             modifier = Modifier.testTag(RECORD_DETAILS_SHARE_TAG),
         ) {
             Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
