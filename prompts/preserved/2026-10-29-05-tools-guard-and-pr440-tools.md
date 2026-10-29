@@ -43,3 +43,13 @@ Part 2 stopped because the walk logger's switch is implemented by SyntheticForec
 - Leave the synthetic forecast out entirely.
 - Each moved test must still fail when the switch is broken: run one revert check on the new store.
 - Then continue Part 2 as written. Rebuild on #440's newest head once Hazel's Amendment 4 push to altitude-sea-level lands. If it hasn't landed when you're ready, use d1770d5b5 and say so.
+
+## Amendment 2 (2026-10-29): dev's lint setting comes along (RECORD -1813)
+tools/pr-440 at 5dd087f4e (run 40958910795) is green except Android lint: 18 errors in the tools' own code, the first NewApi at AndroidWalkLogPlatform.kt:104. The owner: "Bring dev's lint setting along (Recommended)".
+- Add to tools/pr-440, as a new commit and with no history rewrite, the lint change dev carries for its guarded API calls, 82b55f06a ("CI's lint check accepts dev's guarded API calls").
+  - Name exactly what it changes: a baseline, a lint.xml, or a Gradle lint option.
+  - Confirm it applies only to this branch, and that pre-main and main stay unchanged.
+- Run "Run this branch" and read every job.
+  - Lint should go green. If any of the 18 is not covered by dev's setting, list it and stop.
+  - Report the new APK's version name.
+- Record only, no change: WalkLoggerSwitchMidRecordingTest passed with the store broken (run 40956265183). The tools copy does not pin the store through that test.

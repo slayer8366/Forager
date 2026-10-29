@@ -29871,3 +29871,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
   - The switch revert (run 40956265183, 0 compile errors) failed 7 of 15. WalkLoggerSwitchMidRecordingTest passed with the store broken, so it does not test the store.
 **Decision:** the owner: "Yes, require them (Recommended)": the CI checks become required for merges into pre-main and main, set by the owner in the repository's branch settings from the planner's steps.
 **Notes:** Written by the planner by hand. The lint ruling and the tools build's S22 install go to the owner. Next free ID -1813.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1813
+**Timestamp:** 2026-10-29T21:52:48Z
+**Continues:** 2026-09-28-1812
+**Title:** Tools builds carry dev's lint setting; the #440 tools build goes on the S22 when it is next plugged in
+**Observed:** tools/pr-440 final (Hazel, Opus): 5dd087f4e, run 40958910795; build and tests green, 6,029 tests, 0 failures; APK 1.0.4179+g5dd087f4 (artifact 12936275785). Lint is red with 18 errors in the tools' own code.
+**Decision:** the owner: "Bring dev's lint setting along (Recommended)" (dispatch 2026-10-29-05 Amendment 2); "Yes, next time it's plugged in (Recommended)": install it over #440 on the S22, keeping Region 1, grant ACTIVITY_RECOGNITION and READ_BASIC_PHONE_STATE by adb, and switch the logger on.
+**Notes:** Written by the planner by hand. A fresh coder, since the last was past about 230k tokens. Next free ID -1814.
