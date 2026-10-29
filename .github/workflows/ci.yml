@@ -57,6 +57,33 @@ env:
   BUILD_TOOLS_VERSION: "37.0.0"
 
 jobs:
+  no-debug-sources:
+    name: No debug-only sources on pre-main or main
+    # pre-main and main build the shipped app; development builds are made on throwaway branches
+    # that are never merged (dispatch 2026-10-29-05). scripts/verify-no-debug-sources.sh says what
+    # it checks. A separate job rather than a step in build, so it answers in seconds and its
+    # result reads on its own.
+    #
+    # Which runs it guards, and how it tells them apart: a push to main or pre-main, a PR whose base
+    # is main or pre-main, and "Run this branch" only when the branch run is main or pre-main
+    # itself. A development-build branch run with `gh workflow run ci.yml --ref <branch>` is a
+    # workflow_dispatch whose ref is that branch, not main or pre-main, so the job is skipped there
+    # and the rest of the workflow builds it as usual. A push to dev is skipped for the same reason.
+    # If such a branch is ever opened as a PR into pre-main or main, its base_ref matches and the
+    # job fails, which is the point.
+    if: >-
+      (github.event_name == 'pull_request' &&
+        (github.base_ref == 'pre-main' || github.base_ref == 'main')) ||
+      (github.event_name != 'pull_request' &&
+        (github.ref == 'refs/heads/pre-main' || github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check for debug-only sources
+        run: ./scripts/verify-no-debug-sources.sh
+
   build:
     name: Build, test, publish APK
     # Pinned rather than ubuntu-latest: `latest` silently moves to the next image, which is a
