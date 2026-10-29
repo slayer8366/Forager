@@ -8,8 +8,12 @@ import kotlin.math.pow
  * Heights from the barometer, re-anchored to GPS height (RECORD -864, the owner: "Use the barometer (Recommended)";
  * RECORD -867, the planner's calls). One per point, `null` where the point has none to give. Pure: no Android, no clock.
  *
- * The barometer gives height *change* to well under a metre; GPS gives height above sea level, wandering by tens of
- * metres. So the shape of the walk comes from pressure, and its level from GPS, slowly:
+ * The barometer gives height *change* to well under a metre; GPS gives height above the WGS 84 ellipsoid, wandering by
+ * tens of metres. So the shape of the walk comes from pressure, and its level from GPS, slowly. The level is therefore
+ * the ellipsoid's, about 21 m below sea level in western Oregon, which a stored point's height also is (corrected by
+ * dispatch 2026-10-28-13: this said "above sea level", a wrong premise the altitude report found; height changes, all
+ * this function's other readers use, are unaffected). [LiveHeight] runs the same anchoring forward on sea-level
+ * heights for the live reading:
  *
  * 1. **Pressure to height** ([pressureAltitudeMeters]): the standard-atmosphere formula. Only differences are used, so
  *    the sea-level reference does not matter.

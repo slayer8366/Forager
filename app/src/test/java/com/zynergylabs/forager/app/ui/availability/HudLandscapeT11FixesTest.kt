@@ -167,7 +167,7 @@ abstract class HudLandscapeT11Fixes {
                 liveFix = LocationFix.Update(lat = here.lat, lng = here.lng, altitude = 3_000.0, accuracyMeters = 12.5f, timestampEpochMillis = fixAt, provider = FixProvider.GPS),
                 unitSystem = UnitSystem.IMPERIAL,
                 mapIconClusterPlacement = if (railSide) MapIconClusterPlacement.DEFAULT.copy(landscapeOnPortSide = true) else MapIconClusterPlacement.DEFAULT,
-            )
+            ).withFixHeight()
             CompositionLocalProvider(LocalSundownClock provides clock) {
                 // A fresh screen per generation: a touch that opens a popup (the Layers sheet) cannot be dismissed under
                 // Robolectric (NavigationHudButtonPlacementTest), so each sampled touch gets a screen of its own.

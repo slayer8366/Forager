@@ -2,7 +2,11 @@ package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.LiveHeight
 import com.zynergylabs.forager.app.domain.LocationTracker
+import com.zynergylabs.forager.app.domain.PressureProvider
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
+import com.zynergylabs.forager.app.domain.ShownHeight
 import com.zynergylabs.forager.app.domain.acceptLiveFix
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -19,12 +23,20 @@ import kotlinx.coroutines.launch
  * planner to this series). `onEnteredForeground`, `onLeftForeground` and `onLocationPermissionGranted` keep
  * the foreground flag and every condition, in their order, and call [begin], [isCollecting] and [cancel]
  * where they used the job before. Each is synchronous.
+ *
+ * **The live height** (dispatch 2026-10-28-13, RECORD -1792): each accepted fix's height is converted to sea level by
+ * [seaLevelConverter] and, with the barometer's readings from [pressureProvider], steadied by [LiveHeight] into
+ * [AvailabilityUiState.shownHeight]. The barometer is read for exactly as long as the live fix is (the owner: "Yes,
+ * and measure it (Recommended)"), so with the map open as well as while recording; the recording service still reads
+ * its own. A refused fix is not used for height, as it is not used for anything that acts.
  */
 internal class AvailabilityLiveLocation(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
     private val scope: () -> CoroutineScope,
     private val locationTracker: LocationTracker,
     private val lastKnownLocation: LastKnownLocationSource,
+    private val pressureProvider: PressureProvider,
+    private val seaLevelConverter: SeaLevelConverter,
 ) {
 
     /**
@@ -61,7 +73,17 @@ internal class AvailabilityLiveLocation(
      * the strip's own "unavailable" text covers that honestly, unchanged.
      */
     fun begin() {
+        // A fresh steadying each start: the anchor is not carried across a time in the background.
+        val height = LiveHeight()
         liveFixJob = scope().launch {
+            // The barometer, a child of this collection: cancelled with it, and stopped when the fixes end (a
+            // missing permission), so it is never read with no fixes to steady.
+            val barometer = launch {
+                pressureProvider.readings.collect { reading ->
+                    val shown = if (reading == null) height.onNoBarometer() else height.onPressure(reading)
+                    if (shown != null) showHeight(shown)
+                }
+            }
             readLastKnownLocation()
             locationTracker.fixes.collect { fix ->
                 // Location-accuracy dispatch, item 1: the one place the live fix is gated. A fix
@@ -72,11 +94,17 @@ internal class AvailabilityLiveLocation(
                     // The whole fix, accuracy and timestamp included — see
                     // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
                     updateState { it.copy(liveFix = fix) }
+                    showHeight(height.onFix(seaLevelConverter.seaLevel(fix.lat, fix.lng, fix.altitude), fix.timestampEpochMillis))
                 } else if (fix is LocationFix.Update) {
                     onRefusedFix(fix)
                 }
             }
+            barometer.cancel()
         }
+    }
+
+    private fun showHeight(shown: ShownHeight) {
+        updateState { if (it.shownHeight == shown) it else it.copy(shownHeight = shown) }
     }
 
     /**

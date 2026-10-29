@@ -85,6 +85,12 @@ internal class RealSearchScreenRig(
     private val composeRule: AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>,
     /** The offline maps the ViewModel is handed: none, unless a test drives a download (DownloadPausedShownTest). */
     private val offlineMapRepository: OfflineMapRepository = RigNoOfflineMaps,
+    /** Dispatch 2026-10-28-13: the live fixes, the barometer and the sea-level converter (AvailabilityScreenSeaLevelHeightTest); none by default. */
+    private val locationTracker: LocationTracker = object : LocationTracker {
+        override val fixes: Flow<LocationFix> = emptyFlow()
+    },
+    private val pressureProvider: com.zynergylabs.forager.app.domain.PressureProvider = com.zynergylabs.forager.app.domain.NoBarometer,
+    private val seaLevelConverter: com.zynergylabs.forager.app.domain.SeaLevelConverter = com.zynergylabs.forager.app.domain.NoSeaLevelConverter,
 ) {
 
     /** Every sightings fetch the ViewModel made: region, month and filter. */
@@ -178,9 +184,7 @@ internal class RealSearchScreenRig(
                     return location
                 }
             },
-            locationTracker = object : LocationTracker {
-                override val fixes: Flow<LocationFix> = emptyFlow()
-            },
+            locationTracker = locationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(repository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(repository),
@@ -197,6 +201,8 @@ internal class RealSearchScreenRig(
             appThemePreferenceRepository = RigLightTheme,
             getTodaysForecast = GetTodaysForecastUseCase(RigNoWeather),
             entryReferenceCounts = NoEntryReferenceCounts,
+            pressureProvider = pressureProvider,
+            seaLevelConverter = seaLevelConverter,
         )
         val vm = viewModel
         val mapSlot: MapSlot = { region, content, renderMode, focusOverride, _, _, onSightingTap, _, modifier ->
@@ -268,6 +274,12 @@ internal class RealSearchScreenRig(
         composeRule.mainClock.advanceTimeBy(2_000)
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1_000))
         composeRule.waitForIdle()
+    }
+
+    /** The hosting Activity's ON_START, as MainActivity reports it: the live fix and the barometer start (dispatch 2026-10-28-13). */
+    fun enterForeground() {
+        viewModel.onEnteredForeground()
+        settle()
     }
 
     fun dropdownShown() = composeRule.onAllNodes(hasTestTag(SEARCH_DROPDOWN_TAG)).fetchSemanticsNodes().isNotEmpty()

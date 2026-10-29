@@ -49,6 +49,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.zynergylabs.forager.app.domain.model.withLiveHeight
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -664,7 +665,8 @@ class MainActivity : ComponentActivity() {
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigation = AvailabilityScreenNavigation(
-                        returnToStart = trackUiState.returnToStart,
+                        // Dispatch 2026-10-28-13: the height difference from the strip's live height, not the raw fixes'.
+                        returnToStart = trackUiState.returnToStart?.withLiveHeight(uiState.shownHeight),
                         isReturning = trackUiState.isReturning,
                         isArrivalHeld = trackUiState.isArrivalHeld,
                         isOffTrack = trackUiState.isOffTrack,

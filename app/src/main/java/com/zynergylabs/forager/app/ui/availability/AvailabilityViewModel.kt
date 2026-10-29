@@ -22,6 +22,10 @@ import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.NoLastKnownLocation
+import com.zynergylabs.forager.app.domain.NoBarometer
+import com.zynergylabs.forager.app.domain.NoSeaLevelConverter
+import com.zynergylabs.forager.app.domain.PressureProvider
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
@@ -183,6 +187,9 @@ class AvailabilityViewModel(
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /** Step 6 PR 3: the way to a waypoint along trails (AppContainer.findWayToWaypoint); `null`, none (tests), is today's straight line. */
     private val findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
+    /** Dispatch 2026-10-28-13: the barometer and the sea-level converter behind the live height ([AvailabilityLiveLocation]). Defaulted to none: "Alt unavailable". */
+    private val pressureProvider: PressureProvider = NoBarometer,
+    private val seaLevelConverter: SeaLevelConverter = NoSeaLevelConverter,
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -360,6 +367,8 @@ class AvailabilityViewModel(
         scope = { viewModelScope },
         locationTracker = locationTracker,
         lastKnownLocation = lastKnownLocation,
+        pressureProvider = pressureProvider,
+        seaLevelConverter = seaLevelConverter,
     )
 
     /** The locate-me button, moved to its own class by dispatch 2026-10-28-13 (the modular rule): see the class. */
