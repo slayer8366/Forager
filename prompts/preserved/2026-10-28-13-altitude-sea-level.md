@@ -44,3 +44,12 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 - Long conversation: past about 200k tokens, push and hand off.
 - Ambiguity: stop and report.
 - New words on screen are the owner's only.
+
+## Amendment 1 (2026-10-28): GPX import and export answered (RECORD -1793)
+Hazel's proposal (message to the planner) for item 6, and the owner's answers:
+- **"Show as the file gave them (Recommended)"**, Hazel's P1. Import stores the file's `<ele>` unchanged. Every reader that converts to sea level (the journal's highest and lowest labels, and GPX export) skips the conversion for an imported track (Track.importedAtEpochMillis set) and for its waypoints. No migration.
+  - Known gap, accepted: a file Forager exported before this change holds raw heights, and re-imported it reads about 21 m low. No detection is built.
+- **"Leave heights out (Recommended)"**: on a phone that can't convert, a recorded track's GPX export omits `<ele>`.
+- **"Keep it raw (Recommended)"**: the forager:point `ele=` (GpxCodec.kt:136) stays the literal stored value. Only the standard `<trkpt>` and `<wpt>` `<ele>` are converted.
+- **The ViewModel split** Hazel announced (locateMe and onLocateMePermissionDenied into AvailabilityLocateMe.kt, a pure move, its own commit) is accepted. AvailabilityCompactScaffold.kt is not touched.
+Each rule gets a test that fails first, then a revert check.

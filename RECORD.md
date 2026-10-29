@@ -29610,3 +29610,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's altitude report (Opus; altitude-report 893c57a8c, docs/audits/2026-10-28-altitude-report.md) at d100a4776. AltitudeConverter is API 34+, with its geoid model inside the platform (-21.6 m at the 10-28 walk, decoded from the emulator image). On the 10-28 walk the mean error would be -24.1 m today, -2.5 m with sea level, and -2.9 m with sea level plus barometer, with the spread falling from 3.3 to 1.4 m. The 10-24 walk was steadier but has no trusted ground. The barometer is read only while recording (AppContainer.kt:225). The navigation card reads altitude on its own (NavigationReadout.kt:65). GPX export and the journal's highest and lowest labels read low.
 **Decision:** the owner: "Keep raw, show sea level (Recommended)"; "One: \"Alt unavailable\" (Recommended)"; "Follow the barometer (Recommended)"; "Yes, and measure it (Recommended)"; the spoken height difference "Yes, same as the strip (Recommended)"; "Start a coder now". GPX import's double conversion is a stop back to the owner. Dispatch 2026-10-28-13.
 **Notes:** Written by the planner by hand. Next free ID -1793.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1793
+**Timestamp:** 2026-10-29T04:41:45Z
+**Continues:** 2026-09-28-1792
+**Title:** Altitude: imported GPX heights shown as given; exports omit heights where the phone can't convert; the full record stays raw
+**Observed:** Hazel (Opus; dispatch 2026-10-28-13): import copies `<ele>` into the raw column (ImportGpxUseCase.kt:96, :127); imported tracks carry importedAtEpochMillis (:84), and their waypoints carry the imported trackId (:100). AvailabilityViewModel.kt (797) must change, so it is split first (a pure move to AvailabilityLocateMe.kt).
+**Decision:** the owner: "Show as the file gave them (Recommended)" (P1; the re-imported pre-fix Forager export reading about 21 m low is accepted); "Leave heights out (Recommended)" below Android 14; "Keep it raw (Recommended)" for forager:point ele. Dispatch 2026-10-28-13 Amendment 1.
+**Notes:** Written by the planner by hand. Next free ID -1794.
