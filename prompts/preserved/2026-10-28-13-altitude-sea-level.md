@@ -72,3 +72,19 @@ Sorrel's review (Fable) is docs/reviews/2026-10-29-sorrel-pr440.md on branch sor
 - **Not in this PR:** N4, N5, N9 and N10 are recorded only. The S22 step 3 watches N4.
 
 Each rule gets a test that fails first, then a revert check. CI only; push to #440 and report.
+
+## Amendment 4 (2026-10-29): the steadying survives a short absence (RECORD -1808)
+The S22 read of the owner's 10-29 walk (docs/audits/2026-10-29-s22-pr440.md on s22-pr440, 0bb50972e) found that the barometer stops on every screen-off, pause or tab change, and the height then restarts with a minute of plain GPS. After 13:13:50, every map-barometer window but one ran under 75 s, so the strip was almost always in plain-GPS mode.
+
+The owner: "Keep the steadying for 10 min (Recommended)". If the map is back within 10 minutes of the barometer stopping, the height carries on from the kept anchor, steadied at once, with no first minute and no blend. After 10 minutes it starts fresh, as now. Amendment 3's "nothing from before the tab was left is reused" is superseded for gaps under 10 minutes.
+- **Propose:**
+  - what is kept: the anchor and its time;
+  - how a pressure gap of up to 10 minutes is handled (the barometer is off for that time);
+  - what happens if the kept anchor disagrees with the first new GPS heights. Use the existing pull; nothing new tuned (CLAUDE.md).
+- **Test,** through the real ViewModel path:
+  - gone 9 minutes and back: steadied at once;
+  - gone 11 minutes and back: the first minute again;
+  - screen off and on: the same as leaving the tab.
+  - Each fails first, then a revert check.
+- The battery cost doesn't change: the barometer still reads only while the Maps tab shows.
+- CI only. Push to #440, then update the PR body's S22 steps and the completion report.

@@ -29791,3 +29791,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Steps 3-6 weren't run; step 8 is still deferred.
 - The eye-level test can't be placed. After 13:13:50 every map-barometer window but one ran under 75 s, because the barometer restarts on each screen-off or pause, so the strip was mostly in its first-minute plain-GPS mode. Display rounding is ruled out; a fault is neither shown nor excluded.
 **Notes:** Written by the planner by hand. Next free ID -1808.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1808
+**Timestamp:** 2026-10-29T21:04:40Z
+**Continues:** 2026-09-28-1807, 2026-09-28-1797
+**Title:** #440: the height's steadying survives a return within 10 minutes
+**Decision:** the owner: "Keep the steadying for 10 min (Recommended)". Rejected: keeping the barometer running with the screen off (battery), and leaving it as built. Dispatch 2026-10-28-13 Amendment 4. The tools build for #440 (dispatch 2026-10-29-05) will need rebuilding on the new head.
+**Notes:** Written by the planner by hand. Next free ID -1809.
