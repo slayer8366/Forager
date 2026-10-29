@@ -29695,3 +29695,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** #440: the 30 s blend kept; the S22 steps when the owner plugs it in
 **Decision:** the owner: "30 seconds (Recommended)" for LIVE_HEIGHT_BLEND_MILLIS; "Yes, when I plug it in (Recommended)" for #440's 8 S22 steps and the 30-minute battery comparison (pre-main against #440, Maps tab showing, -1796).
 **Notes:** Written by the planner by hand. Next free ID -1800.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1800
+**Timestamp:** 2026-10-29T10:41:13Z
+**Continues:** 2026-09-28-1799
+**Title:** #440's S22 session
+**Decision:** the S22 was found plugged in, under -1799's "Yes, when I plug it in (Recommended)". Dispatch 2026-10-29-02: steps 1-8 on run 40856123923 (6ce00d7cd); step 8 compares pre-main against #440.
+**Notes:** Written by the planner by hand. Next free ID -1801.
