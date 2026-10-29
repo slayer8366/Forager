@@ -292,3 +292,76 @@ These steps use CI's debug APKs only, never a release build on the owner's phone
 - **The battery comparison still can't isolate the barometer** without a dev-only switch. Is the build-against-build comparison in step 8 enough?
 - **The 10 m threshold in step 2 is mine.**
 - **The known gap from Amendment 1 stands:** a file Forager exported before this change, imported again, reads about 21 m low.
+
+## Amendment 4 (RECORD -1808, -1809): the steadying survives a short absence
+
+Written by Hazel (Opus), 2026-10-29 21:43 UTC, in a fresh session. The dispatch's Amendment 4 is on `records-after-173`. The walk read that prompted it is `docs/audits/2026-10-29-s22-pr440.md` on `s22-pr440`. Rowan accepted my proposal and relayed one owner change, a **10 s** hold rather than a minute: "10 seconds (Recommended)" (RECORD -1809).
+
+### Verification before anything else
+- **The worktree** was at `d1770d5b5`, equal to `origin/altitude-sea-level`, with a clean tree.
+- **Pre-main has moved since the branch was cut:** `d100a4776` → `21d846b9e`, by PR #441. That PR is a CI guard only (`6ae3350cf`), and none of its files is a file this branch changes. GitHub reports the PR `MERGEABLE`, `CLEAN`, and the PR run below, on GitHub's merge commit, ran and passed the new job. The branch was not merged with pre-main.
+- **Who calls what.** The barometer stops only in `AvailabilityLiveLocation.stopBarometer`, which is called from `cancel()` (the app leaving the foreground), `syncBarometer` (the tab left) and the fix collection ending. Before this change, `begin()` also replaced the steadying at every foreground start. So the tab, the pause and screen-off all go through the one stop, and "screen off" is the same as "tab left" by construction. The new screen-off test pins that.
+- **Every reader of the live height is on the map.** `shownHeight` is read by the strip (`CompactMapTopStrip.kt:100`), the two navigation cards (`CompactMapPortraitNavigationCard.kt:134`, `CompactMapLandscapeNavigationCard.kt:178`) and the Return control (`MainActivity.kt:670`, through `AvailabilityScreenNavigation`). This is grep, not a test. It is why holding the height while the barometer is off shows nothing stale on another tab.
+
+### What landed
+- `462833f70`: test-first. A `KeptLiveHeight` seam that still started fresh at every stop and start, wired in, plus the tests. AvailabilityViewModel.kt gained one argument line, `errorLog = errorLog,`, announced to the planner before it was made, so that the hold's fallback is logged.
+- `2b299ee22`: the change.
+  - **`KeptLiveHeight`** (new, `domain/KeptLiveHeight.kt`). It keeps a settled anchor at each stop (`LiveHeight.keep`). When the first reading back is within `LIVE_HEIGHT_KEEP_MILLIS` (10 min) of the last reading before the stop, on the sensor's own clock, it carries on from that anchor (`LiveHeight.resumedFrom`), steadied at once with no blend. Over 10 minutes, a clock that ran backwards, or an anchor still in its first minute, it starts fresh as before.
+  - **The hold.** Back on the map with a kept anchor, a fix that arrives before the first reading does not change the shown height. The hold lasts at most `LIVE_HEIGHT_RETURN_HOLD_MILLIS` (10 s) from the first fix back. With no reading by then, the steadying starts fresh, shows plain GPS and logs (tag `ForagerLiveHeight`). The constant's comment gives the reason.
+  - **The pull is unchanged.** Its dt counts from the anchor's last pull, so across the gap. After 9 minutes away, the first fix moves the anchor at most 15% of its disagreement.
+  - **The pressure gap.** The old readings are dropped, so the 60 s median restarts on new readings. The anchor is an offset, so a climb made while away is picked up by the new readings. Only weather drift during the absence is missed; that this is about 1 m or less in 10 minutes is inferred, not measured.
+  - `AvailabilityLiveLocation` no longer starts afresh in `begin()`. A stop hands the steadying to `KeptLiveHeight`.
+- **One test superseded.** "back on the Maps tab the strip shows each fix's sea-level height until the barometer has re-anchored" was a 5-minute absence. Amendment 4 supersedes its rule for gaps under 10 minutes, so it is now the 11-minute case. Its comment says so.
+- **Not kept across a process restart.** The anchor lives in memory, so a relaunched app (as at 13:13:55 on the 10-29 walk) starts fresh.
+
+### Evidence
+**Fail-first: PR run 40955650929 on `462833f70`.**
+- Build log: 0 `e: file:` lines against 1,469 `w: file:` lines.
+- XML: 814 files, **5,942 tests, 5 failures**, exactly the five predicted:
+  - gone 9 minutes and back, and screen off 9 minutes and on: "expected 73 m but was 80 m";
+  - the hold, and the 10 s cap: "held at the first fix back expected null, but was Known(80.0)";
+  - the stop during the blend: "expected 72.0 but was 80.0".
+- Two cases passed, as predicted, because the code before this change already behaved that way: gone 11 minutes, and the anchor stopped inside its first minute. Their proof is their reverts (r24 and r29).
+- **A stale-input slip, caught before citing.** My first download of this run's XML went into a scratchpad folder that another session was also writing to. It showed failures in `EntryReferenceCountWatchTest` and `RecordsFilterChipsTest` that this run does not have. I re-read the artifact zip in a private folder (814 `TEST-` entries, no duplicate paths): those two classes pass there, and the five above are the only failures. Every figure in this section is from private folders.
+
+**Full PR run 40957645167 on `2b299ee22`:** all six jobs passed. XML: 814 files, **5,942 tests, 0 failures, 0 errors, 24 skipped**. That is the 5,936 before plus 6 net new cases (4 `KeptLiveHeightTest`, plus 3 ViewModel-path cases less the one they replaced).
+
+**Revert checks r24 to r30.**
+- Each is a one-line edit on its own branch from `2b299ee22`, made in a private scratch worktree by a script.
+- The script saved a copy of the file, made an exact single-occurrence replacement, and checked that the branch's diff was exactly that one file. It then restored the file from the saved copy and checked it against both the copy and `2b299ee22`'s version.
+- Each ran as `gh workflow run ci.yml --ref revert/asl-rNN` with the three classes `KeptLiveHeightTest`, `LiveHeightTest` and `AvailabilityScreenSeaLevelHeightTest`.
+- Each build log names its own sha 20 times, and runs `compileDebugKotlin` and `compileDebugUnitTestKotlin`. Each shows 0 compile errors against 1,469 warnings in the same format.
+- Each XML holds only the 3 filtered classes, 23 tests.
+- All seven branches are deleted. `git ls-remote` lists none. The head is `2b299ee22` locally and on origin, and the forward lines are present.
+
+| Check | Run | Revert | Failed, as its own edit can cause |
+|---|---|---|---|
+| r24 | 40957687044 | no 10-minute expiry | 1: gone 11 minutes "expected 80 m but was 73 m" |
+| r25 | 40957701138 | nothing kept at a stop | 5: the five fail-first cases, with the same messages |
+| r26 | 40957716210 | a fresh steadying at every foreground start | 1: screen off "expected 73 m but was 80 m" (the tab case passes) |
+| r27 | 40957730215 | no hold | 2: the hold and the cap, "held at the first fix back expected null" |
+| r28 | 40957743485 | no 10 s cap | 1: the cap, "11 s on ... expected Known(80.0) but was null" |
+| r29 | 40957756160 | an anchor kept inside its first minute | 1: "expected 80.0 but was 72.34" |
+| r30 | 40957771270 | a resumed anchor blends again | 1: "expected 72.0 but was 74.41" (74.4 predicted in the test's comment) |
+
+No failure belongs to a different rule. No `LiveHeightTest` case failed under any of the seven, and no other case in the three classes failed.
+
+### Not tested, said plainly
+- **On a phone.** Nothing here ran on hardware: the sensor's real first-reading delay after registering, whether 10 s is ever reached, and how the return looks.
+- **Weather drift across a kept gap** is inferred, not measured.
+- **The rail (landscape and tablet)** tab switches: not tested, as for Amendment 3.
+- **What the Return control speaks while held** is inferred from the readers listed above, not tested.
+
+### Device steps, replacing steps 3 and 4 above (the others stand)
+3. **The first minute, the blend, and steadiness (N1, N4).** Unchanged, except that it must start with the app **freshly launched** (swipe it away first), or more than 10 minutes after the map was last open. Otherwise the kept anchor skips the first minute, by design.
+4. **Back on the map within 10 minutes (Amendment 4).** After step 3, with the strip steady:
+   - **a.** Tap Journal for about a minute, then tap Maps. **Observation:** the strip shows a steady value at once. There is no minute of GPS-like movement and no ease-in. At most there is one change within the first seconds, as the barometer's first reading lands.
+   - **b.** Turn the screen off for about a minute, then back on. **Observation:** the same as a.
+   - **c.** Leave the map for more than 10 minutes (another tab or screen off), then come back. **Observation:** the first minute's GPS movement and the ease-in again, as in step 3.
+   - **Evidence:** a screen recording of each return, and `adb logcat -s ForagerLiveHeight` over the session.
+   - **Pass for the log:** no "no barometer reading within 10 s" line. A line means the barometer's first reading took over 10 s.
+   - Read `dumpsys sensorservice` for the window times, as on the 10-29 walk.
+
+### For the owner
+- **The pull across the gap is the existing rule**, as asked. It can move the reading by up to 15% of the GPS disagreement at the first fix after 9 minutes away. That is about 0.6 m for a typical miss, and up to 4.5 m at the 30 m skip limit. Rowan accepted it. The other option was to restart the pull's clock on return.
+- **Unchanged:** the blend window (30 s), step 2's 10 m threshold, the battery question, and Amendment 1's known gap.
