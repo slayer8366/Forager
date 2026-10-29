@@ -81,6 +81,10 @@ Branch `live-counts-empty-states`, cut from pre-main `9f2df1abb`, which was the 
   `visibleEntries.isEmpty()`, which drops both `loadErrorMessage == null` and `!isLoading`. No compile errors. 50
   tests ran and exactly the two predicted tests failed: the failed-load test and the still-loading test, each finding
   "No finds yet. Use New find to log one." where it must not be.
+  - **Correction (Amendment 2, Sorrel's N8).** The XML messages do not name the text. Both are `Failed:
+    assertDoesNotExist.`, at `RecordsFilterChipsTest.kt:612` and `:626` (line numbers at `b677cdbab`). Those two lines
+    are the two `assertDoesNotExist` calls on "No finds yet. Use New find to log one.", so the reading above is right,
+    but the specificity comes from the line numbers, not from the message.
 - **Each revert ran on its own branch.** The forward branch was never edited by a revert. After reading the runs it
   is still `0d6f969f3`, and its diff from pre-main is 47 files.
 - The three check branches were deleted after their results were read.
@@ -111,6 +115,146 @@ Branch `live-counts-empty-states`, cut from pre-main `9f2df1abb`, which was the 
   checked that it reads the new text.
 - **Inferred, not traced:** that every journal-entry write path goes through Room and so updates the counts. I found
   no raw SQLite writer, but I did not read every writer.
+
+## Amendment 2 (Sorrel's review, RECORD -1784)
+
+Hazel, 2026-10-29. Sorrel's review is `docs/reviews/2026-10-28-sorrel-pr434.md` (branch `sorrel-pr434`, `7ce136825`). The
+owner's answers are in Amendment 2 of the dispatch on `records-after-173`. Worktree head at the start was `b677cdbab`,
+matching origin. Pre-main was still `9f2df1abb`, the branch's merge base.
+
+### What landed
+
+- **`0b557868d`: the fail-first tests, with no app change.**
+  - `EntryReferenceCountWatchTest` is rewritten as four tests. The old single test ran the watch with `advanceUntilIdle`;
+    with a retry, it would have spun forever.
+  - `RecordsFilterChipsTest` gains one test, with its own store fake at the bottom of the file.
+- **`544a095b2`: N4, the retry (the owner: "Retry by itself (Recommended)").**
+  - `watchEntryReferenceCounts` (`domain/EntryReferenceCountSource.kt:58-76`) logs each failed read and collects again
+    after `entryReferenceCountRetryDelay` (`:88-89`).
+  - A good read resets the wait (`.onEach`, `:67`).
+  - Cancellation is not retried, and nor is an exception thrown by the writer: `retryWhen` passes both through. So
+    clearing the ViewModel still ends the watch, waits included.
+- **`5ecb7bd40`: N5, Drafts says it couldn't load (the owner: "Say it couldn't load (Recommended)").**
+  - `MushroomLogViewModel.loadEntries` sets the new `draftsLoadErrorMessage` when the entries read but the drafts did
+    not. The text is the Log tab's own failed-load text, now one constant, `LOG_UNAVAILABLE` ("Log entries unavailable.").
+  - `FindsGalleryScreen.kt:171` picks the error for the tab being shown. On Drafts it shows the drafts error in the
+    failed-load slot, and the empty line stays hidden.
+  - `JournalTab.kt` gains one line to pass the field on. That file is 919 lines. The modular rule lets a fix of a few
+    lines into a big file go in without a split first, so it was not split.
+  - Drafts already on screen stay, as before. The error shows only when the tab has nothing to show.
+- **`46cc439d7`: N1, no default for the count source.**
+  - The `= NoEntryReferenceCounts` default is gone from `TrackRecordingViewModel`, `AvailabilityViewModel` and
+    `MushroomLogViewModel`, along with their now-unused imports.
+  - A factory that leaves out its wiring line no longer compiles. The three production factories already pass
+    `container.entryReferenceCountSource`.
+  - 36 test call sites in 30 files now pass `NoEntryReferenceCounts` by name. Sorrel counted 13 for
+    `AvailabilityViewModel`; there were 19.
+  - Main-code size change: −1 line in each ViewModel. `TrackRecordingViewModel.kt` is 860 lines.
+  - **Slip in the commit message.** That commit message says 858 lines for `TrackRecordingViewModel.kt`. The real
+    figure is 860 (`wc -l`). It is pushed, so it is corrected here rather than amended.
+- **N8:** corrected in place above, under revert run B, as a marked correction.
+- **Not done, as Amendment 2 says:** N6, removing the dead one-shot queries, is a later task. N3, N7 and N9 are record
+  only.
+
+### The retry timing chosen
+
+- **The wait:** 1 s after the first failure, doubling each failure in a row (1, 2, 4, 8, 16 s), with a ceiling of 30 s.
+  After that it is 30 s for as long as the failure lasts.
+  - The figures are `ENTRY_REFERENCE_COUNT_FIRST_RETRY` and `ENTRY_REFERENCE_COUNT_RETRY_CEILING`.
+- **Every failure is logged** as "Couldn't count journal entries keeping each <type>; trying again in <wait>."
+- **Why these numbers:**
+  - The database is on the phone, so a failed read is most likely a moment's contention, and 1 s brings the counts
+    back before a user acts on them.
+  - A fault that lasts is retried every 30 s. A count is then wrong for at most half a minute after the fault clears,
+    and the log gets two lines a minute rather than a stream.
+  - No field data shows either kind of failure. The ceiling is the one number to revisit if data appears.
+
+### How the tests stop the retry (CLAUDE.md's poll-loop entry)
+
+- **The risk.** A watch over a source that keeps failing never completes. The old test's `advanceUntilIdle` and
+  `runTest`'s closing idle-advance would spin through its waits forever.
+- **What every test does:**
+  - Each test starts the watch through `watching` (`EntryReferenceCountWatchTest.kt:40-47`). That helper cancels the
+    job in a `finally`, so an assertion that throws still stops it.
+  - Each test moves time only by a bounded `advanceTimeBy`, and never calls `advanceUntilIdle`.
+  - The sources that are meant to stay open end in `awaitCancellation()`, which schedules nothing.
+- **`cancelling the watch ends its retries`** holds the cancellation rule:
+  - It checks a positive control first: three tries in 5 s.
+  - It then cancels, advances ten minutes, and asserts the job is complete, with no further try and no further log line.
+- **Evidence that nothing hung:** the full run below finished its tests in the usual time.
+- **The ViewModels.** Their production collectors run in `viewModelScope`, and no ViewModel test uses a source that
+  throws. `FakeEntryReferenceCountSource` is `MutableStateFlow`s and `NoEntryReferenceCounts` is `emptyFlow()`, so no
+  ViewModel test can enter the retry.
+
+### Fail first
+
+Run 40796636308 is a filtered `workflow_dispatch` run of `EntryReferenceCountWatchTest` and `RecordsFilterChipsTest` on
+`0b557868d`.
+
+- **The build was checked before the results.** The log has zero `e: file://` lines and the test task ran. The log
+  names `0b557868d`.
+- **Totals:** 25 tests and 5 failures, all predicted, read from the JUnit XML.
+- **The four watch tests**, each stopped at the first failure:
+  - "a failed read is tried again, and the counts read after it reach the screen expected:<[{wp-1=1}, {wp-1=2}]> but
+    was:<[{wp-1=1}]>"
+  - "waits of 1, 2, 4, 8 and 16 s, then 30 s each time after expected:<[0, 1000, 3000, 7000, 15000, 31000, 61000,
+    91000]> but was:<[0]>"
+  - "every read's counts reach the screen expected:<[{wp-1=1}, {wp-1=2}, {wp-1=3}]> but was:<[{wp-1=1}]>"
+  - "positive control: before the cancel it was retrying (tries at 0, 1 and 3 s) expected:<3> but was:<1>"
+- **The N5 test:**
+  - It passed both of its positive controls: two reads ran, so the store's every-second-read failure did hit the
+    drafts read, and the load had finished.
+  - It then failed on Drafts with "The component with Text ... contains 'Log entries unavailable.' ... is not displayed!".
+    "No drafts" was there instead.
+- **The other 20** `RecordsFilterChipsTest` tests passed.
+
+### Revert checks
+
+- **How they ran.** Each was a one-line edit on its own branch, cut from `46cc439d7`, in its own throwaway worktree. The
+  forward worktree was never edited. Each ran the same filter: `EntryReferenceCountWatchTest`, `RecordsFilterChipsTest`,
+  `FindsGalleryScreenTest`, `LiveWaypointTrackCountsTest` and `LiveRegionPhotoCountsTest`.
+- **Checked before reading any results.** Every log has zero `e: file://` lines and no compile failure. Each log names
+  its own revert commit. Each run had 42 tests.
+
+| Revert | Edit | Run | Result (XML) |
+|---|---|---|---|
+| a (`3d6bab836`) | `retryWhen`'s predicate returns `false`: no retry | 40797449489 | 4 failed: the 4 watch tests, each with the `IOException("disk read failed")` escaping the watch |
+| b (`afbafda2c`) | `.coerceAtMost(ENTRY_REFERENCE_COUNT_RETRY_CEILING)` dropped | 40797458493 | 1 failed: "waits of 1, 2, 4, 8 and 16 s, then 30 s ..." expected `[..., 31000, 61000, 91000]` but was `[..., 31000, 63000, 95000]` |
+| c (`c85893ecb`) | `.onEach { failuresInARow = 0 }` dropped | 40797468684 | 1 failed: "a good read in between means the next failure waits 1 s again, not 2 s expected:<[0, 1000, 2000]> but was:<[0, 1000, 3000]>" |
+| d (`6445f29c7`) | `val shownLoadError = loadErrorMessage` (Drafts ignores the drafts error) | 40797480319 | 1 failed: the N5 test, "'Log entries unavailable.' ... is not displayed!" |
+
+- **Every failure is one its own edit can cause, and nothing else failed.** Reverts b and c each failed only the one test
+  that holds their rule.
+- **Revert a needs both runs to read, like N3 in Sorrel's review.** With the predicate returning `false`, the exception
+  escapes the watch, so the tests fail on that exception before they reach their assertion messages. That run shows the
+  tests notice a watch that does not retry. The fail-first run is the one that shows each assertion catching it.
+- **Afterwards:**
+  - The forward branch was still `46cc439d7`, matching origin.
+  - The three forward lines and the `FindsGalleryScreen` line were still present (grep).
+  - The diff from pre-main is 79 files.
+- The four revert branches and their worktrees were deleted after the results were read. `ls-remote` finds none.
+
+### CI on the head
+
+Run 40797376100 is the pull_request run on `46cc439d7`.
+
+- **Every job passed:** build and test, lint, release compile, the Worker and the cutter.
+- **The log has zero `e: file://` lines.**
+- **JUnit XML:** 807 suites, 5905 tests, 0 failures, 0 errors, 24 skipped.
+- **The count adds up:** 5901 − 1 (the old watch test) + 4 (the new watch tests) + 1 (the N5 test) = 5905.
+
+### Not verified
+
+- **Nothing on a phone.** S22 steps 7 and 8 below are new for this amendment.
+- **A retry is unit-tested only, on a fake flow.**
+  - Whether Room's `Flow` hands a query exception to the collector, so that `retryWhen` sees it, is still inferred.
+    Sorrel recorded the same gap; Room's source was not read.
+  - A real database failure cannot be forced on the phone without a debug hook, so S22 step 8 is an observation, not a
+    gate.
+- **The N5 fake's read order.** The store fails every second `getAll`. The test asserts exactly two reads, so it holds
+  only while `loadEntries` reads the entries first and the drafts second. If that order changes, the positive control
+  fails first, and the test cannot pass silently.
+- **The N5 test's ViewModel is never cleared**, as with N7. Its collector is `emptyFlow()` and completes at once.
 
 ## S22 steps (SM-S908U; not run)
 
@@ -157,5 +301,16 @@ Steps are in order, cheapest first. Keep screenshots off GitHub and describe the
      - Finds > Log: "No finds yet. Use New find to log one."
      - Finds > Drafts: "No drafts. A find you leave before saving waits here."
    - Also check that each line's next step names a control that is on screen.
+
+7. **Drafts that could not be read (Amendment 2, N5).** Not something a phone can be made to do without a debug hook.
+   - **Pass:** skip, and say so. The rule is held by `RecordsFilterChipsTest` and revert d.
+   - **Instead, as a gate:** with no drafts, Finds > Drafts still reads "No drafts. A find you leave before saving
+     waits here.", word for word.
+   - **And:** with one draft, Drafts shows it, labelled "Drafts (1)", and no failed-load text.
+8. **Counts after a long session (Amendment 2, N4).** Leave the app open on Records for a few minutes with the screen on.
+   Then finish an entry that includes a waypoint and check its "Used in".
+   - **Pass:** the count is right without a restart.
+   - Note in words any `EntryReferenceCounts` line in logcat, if a log is taken. None is expected. An observation, not
+     a gate.
 
 **Observations, not gates.** Note whether any count flickers as it changes, and whether a list's scroll position stays where it was when a count changes.
