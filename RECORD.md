@@ -29705,3 +29705,19 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** #440's S22 session
 **Decision:** the S22 was found plugged in, under -1799's "Yes, when I plug it in (Recommended)". Dispatch 2026-10-29-02: steps 1-8 on run 40856123923 (6ce00d7cd); step 8 compares pre-main against #440.
 **Notes:** Written by the planner by hand. Next free ID -1801.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1801
+**Timestamp:** 2026-10-29T11:03:26Z
+**Continues:** 2026-09-28-1800
+**Title:** #440's S22 walk deferred by the owner; the phone left ready
+**Observed:** the S22 helper (Opus; s22-pr440 cea7bd0bd, interim docs/audits/2026-10-29-s22-pr440.md; evidence in /home/zynergy-labs/s22-2026-10-29/pr440/):
+- #440 is installed as 1.0.4175+g7289aeef from run 40856123923; step 8's baseline is 1.0.4165+gd100a477 from run 40803348550. Both have the same signing key; both schemas are 22.
+- Step 1 can't be judged indoors (only 100 m network fixes, gated out before the converter).
+- With no recording, the barometer stops off the Maps tab and starts on it (observed at 03:47 PDT).
+- A 1 mi offline area around home (Region 1) was downloaded; its trail file has heights (run usca-20261027T221400Z, every routed node).
+- Steps 5 and 6 are re-planned for stairs and a one-way recording, because the laptop is on the door's floor.
+**Decision:** the owner: "Near home (Recommended)"; "No, same floor"; battery "Another day"; then "The walk will be deferred until later." #440 stays unmerged until the walk. The S22 keeps #440 and Region 1 for it. The walk's exact words are in the interim report.
+**Notes:** Written by the planner by hand. The helper is past about 180k tokens, so the walk will be run by a fresh session from the interim report. Next free ID -1802.
