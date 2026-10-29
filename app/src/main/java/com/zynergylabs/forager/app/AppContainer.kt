@@ -41,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import com.zynergylabs.forager.app.data.remote.ApiClients
 import com.zynergylabs.forager.app.data.routedata.LocalRegionRouteFolders
+import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.zynergylabs.forager.app.data.repository.DataStoreAppThemePreferenceRepository
@@ -241,6 +242,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // ComputeTrueHeadingUseCase's own doc comment for the strip/HUD consequence recorded there.
     val declinationProvider: DeclinationProvider = AndroidDeclinationProvider()
     val computeTrueHeadingUseCase = ComputeTrueHeadingUseCase(declinationProvider)
+
+    val crashFileStore = CrashFileStore.forContext(context.applicationContext)
 
     /**
      * The one clock the app reads. Injected rather than called inline so the search cache's LRU

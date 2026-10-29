@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
@@ -48,6 +49,7 @@ import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.domain.GpxImportOutcome
@@ -147,6 +149,11 @@ fun AvailabilityScreen(
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
+    /**
+     * The Settings tab's crash-log diagnostic surface — see [CrashLogPanel]. Defaults to the real
+     * on-device store, same [mapSlot]/[cameraCaptureFiles]/[compassProvider] pattern above.
+     */
+    crashFileStore: CrashFileStore = CrashFileStore.forContext(LocalContext.current),
 ) {
     // Phase 2.6 B (dispatch 2026-10-19-40): the unpacks below are the fields this body still reads; the frame unpacks the rest of
     // findsLog, journalEntries, records, recording and searchInputs, and all of entryReportData and offlineMaps, itself.
@@ -722,6 +729,7 @@ fun AvailabilityScreen(
         onNightModeMapsChanged = onNightModeMapsChanged,
         crowdedIcons = CrowdedIconsControls(uiState.crowdedIconsMode, settings.onCrowdedIconsModeChanged),
         onThemeModeChanged = onThemeModeChanged,
+        crashFileStore = crashFileStore,
         backup = backup,
         openBackupRequest = openBackupRequest,
         openOfflineMapsFromTools = openOfflineMapsFromTools,

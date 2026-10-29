@@ -51,7 +51,7 @@ class LiveRegionPhotoCountsTest {
 
     private fun seedPhoto() = runBlocking { container.mushroomLogRepository.addPhotoToGallery(photo).getOrThrow() }
 
-    private fun photoScreen(): MushroomLogViewModel = createMushroomLogViewModel(container, mapLayersViewModel(), silentLog)
+    private fun photoScreen(): MushroomLogViewModel = createMushroomLogViewModel(container, mapLayersViewModel(), silentLog) { _, _ -> }
 
     @Test
     fun `deleting the one entry that keeps an offline map takes its delete message's count to 0`() {
