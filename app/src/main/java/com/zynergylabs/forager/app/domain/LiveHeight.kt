@@ -74,6 +74,41 @@ class LiveHeight {
     private var anchor: Double? = null
     private var anchorAt = 0L
 
+    /** Resumed from a [Kept] anchor (Amendment 4): the anchor is shown in full, with no blend. */
+    private var resumed = false
+
+    /**
+     * What a settled steadying keeps through a stop of the barometer (Amendment 4, RECORD -1808): the anchor and the
+     * time of its last pull, the latest fix, and [lastReadingNanos], the last barometer reading on the sensor's clock,
+     * which [KeptLiveHeight] measures the absence from. The readings themselves are not kept: the 60 s median starts
+     * again on new readings only.
+     */
+    class Kept internal constructor(
+        internal val anchor: Double,
+        internal val anchorAt: Long,
+        internal val firstDifferenceAt: Long,
+        internal val aboveRaw: Double,
+        internal val latestSeaLevel: SeaLevelHeight,
+        internal val latestFixAt: Long,
+        val lastReadingNanos: Long,
+    )
+
+    /**
+     * The anchor to keep through a stop, or `null` when there is none worth keeping: no barometer, no fix, or an anchor
+     * whose first minute was not over (a part-formed anchor is not one; the planner accepted this, RECORD -1809).
+     */
+    fun keep(): Kept? {
+        if (hasNoBarometer) return null
+        val kept = anchor ?: return null
+        val first = firstDifferenceAt ?: return null
+        val fixAt = latestFixAt ?: return null
+        if (fixAt - first <= BARO_INITIAL_ANCHOR_MILLIS) return null
+        val offset = aboveRaw ?: return null
+        val seaLevel = latestSeaLevel ?: return null
+        val lastReading = readings.lastOrNull() ?: return null
+        return Kept(kept, anchorAt, first, offset, seaLevel, fixAt, lastReading.elapsedRealtimeNanos)
+    }
+
     /** The barometer said there is none. Fixes are then shown as they come. */
     fun onNoBarometer(): ShownHeight? {
         hasNoBarometer = true
@@ -137,6 +172,7 @@ class LiveHeight {
 
     /** The anchor's share of the shown height: 0 through the first minute, rising to 1 over [LIVE_HEIGHT_BLEND_MILLIS]. */
     private fun anchorShare(): Double {
+        if (resumed) return 1.0
         val first = firstDifferenceAt ?: return 0.0
         val at = latestFixAt ?: return 0.0
         val since = at - (first + BARO_INITIAL_ANCHOR_MILLIS)
@@ -152,8 +188,22 @@ class LiveHeight {
         return pressureAltitudeMeters(median)
     }
 
-    private companion object {
-        const val NANOS_PER_MILLI = 1_000_000L
+    companion object {
+        private const val NANOS_PER_MILLI = 1_000_000L
+
+        /**
+         * A steadying carried on from [kept] (Amendment 4): steadied at once, with no first minute and no blend. The
+         * anchor's existing pull carries on unchanged, its dt counted from the anchor's last pull, so across the gap.
+         */
+        fun resumedFrom(kept: Kept): LiveHeight = LiveHeight().apply {
+            anchor = kept.anchor
+            anchorAt = kept.anchorAt
+            firstDifferenceAt = kept.firstDifferenceAt
+            aboveRaw = kept.aboveRaw
+            latestSeaLevel = kept.latestSeaLevel
+            latestFixAt = kept.latestFixAt
+            resumed = true
+        }
     }
 }
 

@@ -1,8 +1,9 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.KeptLiveHeight
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
-import com.zynergylabs.forager.app.domain.LiveHeight
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.PressureProvider
 import com.zynergylabs.forager.app.domain.SeaLevelConverter
@@ -30,10 +31,13 @@ import kotlinx.coroutines.launch
  *
  * **When the barometer is read** (Amendment 3, RECORD -1797; the owner: "Map tab only (Recommended)"): here, only while
  * the Maps tab is showing ([onMapsTabShownChanged]) and the live fix is collected (the app in the foreground, the
- * permission held). The recording service reads its own while recording, on any tab, unchanged. Each time this
- * collection stops, the steadying starts afresh ([LiveHeight] has no barometer, so fixes are shown as they come): back
- * on the map, the first minute shows each fix's converted GPS height and then blends into the steadied one (N1's
- * rule), never an anchor or readings from before the tab was left.
+ * permission held). The recording service reads its own while recording, on any tab, unchanged.
+ *
+ * **Back on the map** (Amendment 4, RECORD -1808, superseding Amendment 3's "nothing from before the tab was left is
+ * reused" for gaps under 10 minutes): within 10 minutes of the barometer stopping, the steadying carries on from the
+ * kept anchor, steadied at once; later, it starts afresh with N1's first minute and blend. A tab change, a pause and the
+ * screen going off all stop the barometer the same way ([stopBarometer]), so all three are kept alike. See
+ * [KeptLiveHeight].
  */
 internal class AvailabilityLiveLocation(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
@@ -42,6 +46,7 @@ internal class AvailabilityLiveLocation(
     private val lastKnownLocation: LastKnownLocationSource,
     private val pressureProvider: PressureProvider,
     private val seaLevelConverter: SeaLevelConverter,
+    private val errorLog: ErrorLog,
 ) {
 
     /**
@@ -51,8 +56,8 @@ internal class AvailabilityLiveLocation(
      */
     private var liveFixJob: Job? = null
 
-    /** The live steadying, replaced by a fresh one whenever the barometer stops (see the class comment). */
-    private var height = LiveHeight()
+    /** The live steadying, kept across the barometer's stops ([KeptLiveHeight]). */
+    private val height = KeptLiveHeight(errorLog)
 
     /** The barometer's collection, a child of [liveFixJob], running only while [mapsTabShown]. */
     private var barometerJob: Job? = null
@@ -83,6 +88,7 @@ internal class AvailabilityLiveLocation(
         val parent = liveFixJob
         val wanted = mapsTabShown && parent != null && parent.isActive && !fixesEnded
         if (wanted && barometerJob == null) {
+            height.onBarometerStarted()
             // A child of the live-fix job: cancelled with it, as before.
             barometerJob = scope().launch(parent!!) {
                 pressureProvider.readings.collect { reading ->
@@ -98,7 +104,7 @@ internal class AvailabilityLiveLocation(
     private fun stopBarometer() {
         barometerJob?.cancel()
         barometerJob = null
-        height = LiveHeight()
+        height.onBarometerStopped()
     }
 
     /**
@@ -118,8 +124,7 @@ internal class AvailabilityLiveLocation(
      * the strip's own "unavailable" text covers that honestly, unchanged.
      */
     fun begin() {
-        // A fresh steadying each start: the anchor is not carried across a time in the background.
-        height = LiveHeight()
+        // Amendment 4: no fresh steadying here. The anchor kept at the stop ([cancel]) decides on the first reading back.
         fixesEnded = false
         liveFixJob = scope().launch {
             readLastKnownLocation()
@@ -135,7 +140,7 @@ internal class AvailabilityLiveLocation(
                     // Converted first, then handed to the steadying current at that moment ([height] may have been
                     // replaced while the conversion ran).
                     val seaLevel = seaLevelConverter.seaLevel(fix.lat, fix.lng, fix.altitude)
-                    showHeight(height.onFix(seaLevel, fix.timestampEpochMillis))
+                    height.onFix(seaLevel, fix.timestampEpochMillis)?.let(::showHeight)
                 } else if (fix is LocationFix.Update) {
                     onRefusedFix(fix)
                 }
