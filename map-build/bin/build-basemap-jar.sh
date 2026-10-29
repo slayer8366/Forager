@@ -17,7 +17,9 @@
 #
 # 0003 (dispatch 2026-10-28, the owner's go of 10-28) adds a barriers layer (fence, wall, hedge, retaining_wall
 # lines at zoom 15), keeps addr_street on zoom-15 address points, and sets tunnel on water lines, for the app's
-# way to a waypoint: its street drop-off and the gates on its straight legs.
+# way to a waypoint: its street drop-off and the gates on its straight legs. 0004 (the owner's choice (b), 10-28) puts a
+# mark, one point with no fields, in the barriers layer of every zoom-15 tile, so the app can tell "no fence here"
+# from "built before fences".
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -80,8 +82,8 @@ lfailed="$(grep -c '<failure\|<error' "$lreport" || true)"
 [[ "$lran" -eq 4 && "$lfailed" -eq 0 ]] || die "foragerForestOverBareRock cases in the LanduseTest report: $lran (expected 4), failures: $lfailed"
 log "Forager landuse tests ran: $lran cases, 0 failures"
 
-# 0003's cases: BarriersTest 5, BuildingsTest 3, WaterTest 3, each named forager*.
-for pair in BarriersTest:5 BuildingsTest:3 WaterTest:3; do
+# 0003's and 0004's cases: BarriersTest 8 (5 + the mark's 3), BuildingsTest 3, WaterTest 3, each named forager*.
+for pair in BarriersTest:8 BuildingsTest:3 WaterTest:3; do
   cls=${pair%%:*}; want=${pair##*:}
   r="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.$cls.xml"
   [[ -r "$r" ]] || die "no $cls report at $r"
