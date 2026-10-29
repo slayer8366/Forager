@@ -68,4 +68,20 @@ enum class WayToWaypointNote(val text: String) {
 
     /** The walker and the waypoint are not both inside one downloaded area with routes. */
     WAYPOINT_IN_ANOTHER_AREA("The waypoint is in another area · straight line"),
+
+    /**
+     * No way in to the waypoint passes the gates (way-to dispatch 2026-10-28, rule 4 of the owner's ruling: "say so
+     * plainly"). For a pin at a building: no drop-off on a street whose straight leg crosses no other building, fence or
+     * river. For a pin off a trail: the leg from the trail crosses one.
+     */
+    WAY_IN_BLOCKED("No clear way in to the waypoint · straight line"),
+
+    /** The lead-in from the walker to the route crosses a building, fence or river. Walking on can change it. */
+    LEAD_IN_BLOCKED("No clear way from you to the route · straight line"),
+
+    /**
+     * The map round an end could not vouch for the gates: a tile not stored, or a tile set from before fences were
+     * carried. Never a pass (the planner, 10-28).
+     */
+    MAP_NOT_CHECKED("Couldn't check the map for houses, fences or water · straight line"),
 }

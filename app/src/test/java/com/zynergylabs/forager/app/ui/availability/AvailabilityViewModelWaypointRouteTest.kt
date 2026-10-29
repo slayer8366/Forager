@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GeoDistance
@@ -64,7 +65,7 @@ class AvailabilityViewModelWaypointRouteTest {
         regions: List<OfflineRegionSummary> = listOf(Ground.region()),
         gate: CompletableDeferred<Unit>? = null,
     ): AvailabilityViewModel {
-        val find = FindWayToWaypointUseCase(FakeRegions(*regions.toTypedArray()), FakeEngines(router), ErrorLog { _, _, _ -> })
+        val find = FindWayToWaypointUseCase(FakeRegions(*regions.toTypedArray()), FakeEngines(router), ErrorLog { _, _, _ -> }, AcceptEnds)
         return mapLayersViewModel(
             waypointNavigationRepository = store,
             locationTracker = tracker,

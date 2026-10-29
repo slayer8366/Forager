@@ -32,6 +32,10 @@ import com.zynergylabs.forager.app.routing.RoutingProfile
 import com.zynergylabs.forager.app.routing.TrailRoutingEngine
 import com.zynergylabs.forager.app.routing.WayHomeRouting
 import com.zynergylabs.forager.app.domain.wayto.FindWayToWaypointUseCase
+import com.zynergylabs.forager.app.domain.wayto.StreetDropOffEnds
+import com.zynergylabs.forager.app.domain.mapdata.ReadNearbyMapData
+import com.zynergylabs.forager.app.map.MapLibreOfflineBasemap
+import com.zynergylabs.forager.app.routing.BRouterRouteWays
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -447,7 +451,20 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
      * PR 3 (#413) from the waypoint navigation, in the foreground only (RECORD -1652 Q5): `AvailabilityViewModelFactory`
      * hands it to the ViewModel, whose `AvailabilityWaypointRoute` asks it at the first fix.
      */
-    val findWayToWaypoint = FindWayToWaypointUseCase(offlineMapRepository = offlineMapRepository, engines = trailRoutingEngine, errorLog = errorLog)
+    val findWayToWaypoint = FindWayToWaypointUseCase(
+        offlineMapRepository = offlineMapRepository,
+        engines = trailRoutingEngine,
+        errorLog = errorLog,
+        // Way-to dispatch 2026-10-28, PR 5: the street drop-off and the gates, on the offline map MapLibre keeps
+        // (files/mbgl-offline.db, MapLibreStorage.kt) and on the stored route squares' own ways.
+        ends = StreetDropOffEnds(
+            mapData = ReadNearbyMapData(MapLibreOfflineBasemap(File(context.filesDir, "mbgl-offline.db"))),
+            routeWays = BRouterRouteWays(profileDir = { routeWaysProfileDir }),
+        ),
+    )
+
+    /** The profile folder the route-square reader takes lookups.dat from: installed once, on its first read, off the main thread. */
+    private val routeWaysProfileDir: File by lazy { RoutingProfile.install(context) }
     // Dispatch 2026-10-26-05 (RECORD -1651): the recording's newest kept points, written or not, held here so they outlive
     // the Activity, as the watches are. The service adds each kept point and ends it; the recording screen draws its line
     // from the stored track and these (TrackRecordingUiState.recordingLine).
