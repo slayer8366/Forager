@@ -29752,3 +29752,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The PR tools build: look-only report first
 **Decision:** the owner: "Yes, report first (Recommended)". Dispatch 2026-10-29-04 from pre-main d100a4776: where the tools live, how CI adds them, how the builds are told apart, cost, and #440 as first use.
 **Notes:** Written by the planner by hand. Next free ID -1805.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1805
+**Timestamp:** 2026-10-29T20:44:46Z
+**Continues:** 2026-09-28-1804
+**Title:** PR tools builds as throwaway copies, one app, logger and diagnostics only, on request; a no-tools guard on pre-main; the first for #440
+**Observed:** the tools report (Opus; pr-tools-build-report 7a3f2f9a1). The tools are one commit (7c9cdb0d1 on dev; efa52f57d on the parked rebase, -1615), 110 files, 31 of them in main. Cherry-picking onto pre-main and onto #440 clashes in 4 files. dev sits on main 381515c61, not current main (a premise of -1087 that no longer holds). "Run this branch" (ci.yml:24) builds any branch without a workflow change.
+**Decision:** the owner: "Throwaway copy per PR (Recommended)" (keeping -930's "Absolutely zero trace"); "One app (Recommended)"; "Logger, Diagnostics, Crash Logs (Recommended)"; "Only before a phone check (Recommended)"; "Yes, add the check (Recommended)"; "Start a coder now". The planner chose efa52f57d as the source. Dispatch 2026-10-29-05.
+**Notes:** Written by the planner by hand. Next free ID -1806.
