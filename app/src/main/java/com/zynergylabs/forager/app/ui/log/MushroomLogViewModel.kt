@@ -342,7 +342,7 @@ class MushroomLogViewModel(
 
     fun loadEntries(): Job {
         return viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
+            _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null, draftsLoadErrorMessage = null) }
             // Workstream L4c: the read and the editingEntry merge it feeds are one critical section
             // — see this class's own "Serialized editing-entry mutations" doc comment. Acquired here
             // (not just around the final _uiState.update) so a write that's already mid-flight when
@@ -351,7 +351,8 @@ class MushroomLogViewModel(
             editingEntryMutex.withLock {
                 getEntries().fold(
                     onSuccess = { entries ->
-                        val drafts = getDraftEntries().getOrElse { error ->
+                        val draftsRead = getDraftEntries()
+                        val drafts = draftsRead.getOrElse { error ->
                             Log.w(TAG, "Couldn't load drafts.", error)
                             _uiState.value.draftEntries
                         }
@@ -366,6 +367,7 @@ class MushroomLogViewModel(
                             state.copy(
                                 entries = entries,
                                 draftEntries = drafts,
+                                draftsLoadErrorMessage = if (draftsRead.isFailure) LOG_UNAVAILABLE else null,
                                 editingEntry = if (freshPhotos != null) editing.copy(photos = freshPhotos) else editing,
                                 isLoadingEntries = false,
                             )
@@ -377,7 +379,7 @@ class MushroomLogViewModel(
                             // Not belief-changing — the entries are on disk; only the read failed. See
                             // docs/error-presentation-spec.md's per-field table: neutral "unavailable"
                             // wording that doesn't imply anything was lost, not "Couldn't load...".
-                            it.copy(isLoadingEntries = false, loadErrorMessage = "Log entries unavailable.")
+                            it.copy(isLoadingEntries = false, loadErrorMessage = LOG_UNAVAILABLE)
                         }
                     },
                 )
@@ -766,5 +768,7 @@ class MushroomLogViewModel(
 
     internal companion object {
         const val TAG = "MushroomLog"
+        /** A failed read of the log, on Log and, since Amendment 2 of dispatch 2026-10-28-08 (Sorrel's N5), on Drafts. */
+        const val LOG_UNAVAILABLE = "Log entries unavailable."
     }
 }

@@ -44,6 +44,8 @@ data class MushroomLogUiState(
     val draftEntries: List<MushroomLogEntry> = emptyList(),
     val isLoadingEntries: Boolean = false,
     val loadErrorMessage: String? = null,
+    /** Set when the last load read the entries but not the drafts; the Drafts tab shows it as Log shows [loadErrorMessage] (Amendment 2 of dispatch 2026-10-28-08, Sorrel's N5). */
+    val draftsLoadErrorMessage: String? = null,
     val editingEntry: MushroomLogEntry? = null,
     val isSavingPhoto: Boolean = false,
     val saveErrorMessage: String? = null,

@@ -91,6 +91,12 @@ internal fun FindsGalleryScreen(
      */
     loadErrorMessage: String? = null,
     /**
+     * Set when the last load read the finds but not the drafts. The Drafts tab shows it as Log shows [loadErrorMessage],
+     * rather than "No drafts. …", which would tell a user whose draft is on disk that there is none (Amendment 2 of dispatch
+     * 2026-10-28-08, RECORD -1784, Sorrel's N5; the owner: "Say it couldn't load (Recommended)").
+     */
+    draftsLoadErrorMessage: String? = null,
+    /**
      * `null` (the default) omits the "New find" button entirely (RECORD -751; until then the grid's first "+" tile) —
      * [LogPanel] passes no lambda here, matching [LogEntryListScreen]'s own former shape: the expanded window starts a new
      * find via the map's "Log a find" flow, not a control inside this list. [JournalTab] passes one.
@@ -162,9 +168,10 @@ internal fun FindsGalleryScreen(
         // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"): a deleted find's tile fades and shrinks, the grid
         // closes up after it with a glide, and Undo brings it back the way it went (motion/ListMotion.kt).
         val rows = rememberListRows(visibleEntries, key = { it.id })
-        if (visibleEntries.isEmpty() && loadErrorMessage != null) {
+        val shownLoadError = if (shownTab == FindsGalleryTab.DRAFTS) draftsLoadErrorMessage ?: loadErrorMessage else loadErrorMessage
+        if (visibleEntries.isEmpty() && shownLoadError != null) {
             Text(
-                loadErrorMessage,
+                shownLoadError,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
@@ -172,7 +179,7 @@ internal fun FindsGalleryScreen(
         // Dispatch 2026-10-28-08 (RECORD -1780), the owner's words: an empty, loaded tab says what to do. A failed load
         // keeps its own text above instead. Until then an empty tab drew a blank grid (RECORD -751 took away the "+" tile
         // that had been Log's cue; docs/audits/2026-10-28-records-follow-ups-look.md, section 2).
-        if (visibleEntries.isEmpty() && loadErrorMessage == null && !isLoading) {
+        if (visibleEntries.isEmpty() && shownLoadError == null && !isLoading) {
             Text(
                 if (shownTab == FindsGalleryTab.DRAFTS) "No drafts. A find you leave before saving waits here." else "No finds yet. Use New find to log one.",
                 style = MaterialTheme.typography.bodyMedium,
