@@ -29569,3 +29569,12 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The owner's 10-28 test walk: pull it from the S26, read the route line and the altitude
 **Decision:** the owner: "I did some test walking. S26 plugged in"; then "Pull the walk data (Recommended)", "The straight-cut route line", "The altitude jumps". Dispatch 2026-10-28-11: read-only on the S26 (the owner's daily driver), data kept off GitHub, findings only.
 **Notes:** Written by the planner by hand. The owner's six screenshots are described in the dispatch in words, not committed. Next free ID -1789.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1789
+**Timestamp:** 2026-10-29T03:52:22Z
+**Title:** The owner is porting BRouter to Kotlin for an iOS release; the app's routing work carries on behind its interface
+**Decision:** the owner: "I am actively porting BRouter to Kotlin to prepare for an iOS release of this app". Asked, "Carry on, behind the interface (Recommended)": the app-side elevation and the wrong-turn alert proceed on today's BRouter, with every routing change behind the app's own routing interface so the port can replace the engine. "I'll tell you the repo": the port joins the plan once its repository is named.
+**Notes:** Written by the planner by hand. Next free ID -1790.
