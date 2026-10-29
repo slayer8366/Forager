@@ -56,3 +56,19 @@ Each rule gets a test that fails first, then a revert check.
 
 ## Amendment 2 (2026-10-28): the height chart on phones that can't convert (RECORD -1794)
 The owner: "Chart with no numbers (Recommended)". Below Android 14 the journal entry's and the Records track sheet's height chart (EntryReportSummary.kt:126-127) still draws its shape and length, with no height labels and no new words. Write a test that fails first, then a revert check.
+
+## Amendment 3 (2026-10-29): Sorrel's review of #440 (RECORD -1797)
+Sorrel's review (Fable) is docs/reviews/2026-10-29-sorrel-pr440.md on branch sorrel-pr440, c49f637ca. It found no S findings and ten N. The owner's answers:
+- **N1, "Show plain GPS until settled (Recommended)".** For the first minute the strip shows the converted GPS height as it comes. After that it shows the steadied height.
+  - The planner's option text told the owner there would be "no single big step at the switch". GPS's own error can still differ from the steadied value at the minute, so the switch must not step: blend from the GPS height to the steadied height over a short window.
+  - Propose the window. Show, on the 10-28 walk's stored data (laptop only), the largest step at the switch and in the first minute. Report it.
+- **N2, "Map tab only (Recommended)".** The barometer is read only while the Maps tab is showing, as well as while recording, and not on the other tabs.
+  - Say what the strip shows on returning to the map before the barometer has re-anchored. That falls under N1's rule.
+- **Also in this push:**
+  - N3: a test pinning the anchor's slow pull. It must fail with the pull frozen.
+  - N6: catch and log any exception from the converter call as Unsupported, not only the two named.
+  - N7: log once per reason, not once per process.
+  - N8: a drawn track with no GPS height reads Unsupported for its labels, not a zero offset.
+- **Not in this PR:** N4, N5, N9 and N10 are recorded only. The S22 step 3 watches N4.
+
+Each rule gets a test that fails first, then a revert check. CI only; push to #440 and report.

@@ -29657,3 +29657,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** PR #440: Sorrel's review, then the S22; the battery is compared build against build; the pass mark is within 10 m
 **Decision:** the owner: "Sorrel review, then S22 (Recommended)"; "Compare the two builds (Recommended)": pre-main against #440, 30 minutes with the map open on each, and isolate the barometer only if the cost looks high; "Within 10 m (Recommended)" of the known ground height. Dispatch 2026-10-29-01 (Sorrel, Fable).
 **Notes:** Written by the planner by hand. Next free ID -1797.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1797
+**Timestamp:** 2026-10-29T09:59:50Z
+**Continues:** 2026-09-28-1796
+**Title:** Sorrel's review of #440: no blockers; plain GPS until the height settles; the barometer on the Maps tab only
+**Observed:** Sorrel (Fable; sorrel-pr440 c49f637ca, docs/reviews/2026-10-29-sorrel-pr440.md) at 0eff2e0d2: no S, ten N. N1: replaying the shipped rule on the 10-28 walk steps the shown height 7.0 m at 13 s. N2: the barometer is read on every foregrounded tab (AvailabilityLiveLocation.kt:81-86), wider than "whenever the map is open". N3: no test pins the anchor's slow pull. The zero-offset fixtures were confirmed to only restore what they measured (from run 40819762947's XML). The ViewModel split was confirmed a pure move.
+**Decision:** the owner: N1 "Show plain GPS until settled (Recommended)"; N2 "Map tab only (Recommended)". N3, N6, N7 and N8 ride along. The planner's option text promised "no single big step at the switch", which a plain handover cannot guarantee, so the switch blends; dispatch 2026-10-28-13 Amendment 3.
+**Notes:** Written by the planner by hand. Next free ID -1798.
