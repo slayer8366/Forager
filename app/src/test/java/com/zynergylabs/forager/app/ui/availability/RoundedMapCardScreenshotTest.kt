@@ -95,7 +95,7 @@ class RoundedMapCardScreenshotTest {
         composeRule.setContent {
             ForagerTheme(darkTheme = dark) {
                 AvailabilityScreen(
-                    uiState = AvailabilityUiState(liveFix = fix),
+                    uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                     recording = AvailabilityScreenRecording(
                         isRecording = true,
                     ),

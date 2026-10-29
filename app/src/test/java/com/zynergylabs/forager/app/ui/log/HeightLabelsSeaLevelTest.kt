@@ -1,6 +1,12 @@
 package com.zynergylabs.forager.app.ui.log
 
+import android.app.Application
+import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.test.core.app.ApplicationProvider
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
+import org.robolectric.Shadows
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -34,8 +40,18 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class HeightLabelsSeaLevelTest {
 
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    /** The host activity Robolectric launches, declared as TrackExportPartialTest does. */
+    private val declareHostActivity = object : ExternalResource() {
+        override fun before() {
+            val app = ApplicationProvider.getApplicationContext<Application>()
+            Shadows.shadowOf(app.packageManager).addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
+        }
+    }
+
     @get:Rule
-    val composeRule = createAndroidComposeRule<ComponentActivity>()
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private fun walk(importedAt: Long? = null) = Track(
         id = "T1",
