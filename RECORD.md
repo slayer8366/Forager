@@ -29578,3 +29578,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The owner is porting BRouter to Kotlin for an iOS release; the app's routing work carries on behind its interface
 **Decision:** the owner: "I am actively porting BRouter to Kotlin to prepare for an iOS release of this app". Asked, "Carry on, behind the interface (Recommended)": the app-side elevation and the wrong-turn alert proceed on today's BRouter, with every routing change behind the app's own routing interface so the port can replace the engine. "I'll tell you the repo": the port joins the plan once its repository is named.
 **Notes:** Written by the planner by hand. Next free ID -1790.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1790
+**Timestamp:** 2026-10-29T03:52:52Z
+**Continues:** 2026-09-28-1789
+**Title:** The BRouter Kotlin port lives in forager-ios, worked by another agent
+**Decision:** the owner: "forager-ios in my github. I have another agent working on it for the opening project". The port is the owner's own track with its own agent, not dispatched from here. This planner tracks it as a dependency of the app's routing interface and does not direct it.
+**Notes:** Written by the planner by hand. The repository was not read. Next free ID -1791.
