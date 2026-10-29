@@ -50,6 +50,12 @@ sealed interface HeightProfile {
         val lowestMeters: Double,
         val highestMeters: Double,
         val lengthMeters: Double,
+        /**
+         * One per [segments] entry, in the same order: what the labels need to read above sea level (dispatch
+         * 2026-10-28-13; [seaLevelLabels]). The heights above are the stored ones, the ellipsoid's, and stay so: the
+         * shape is unchanged by a level.
+         */
+        val tracks: List<ProfileTrack>,
     ) : HeightProfile
 }
 
@@ -154,6 +160,7 @@ fun heightProfileOf(tracks: List<Track>): HeightProfile {
         return HeightProfile.TooFewHeights(pointsWithHeight = withHeight, totalPoints = totalPoints)
     }
     var walked = 0.0
+    val drawnTracks = mutableListOf<ProfileTrack>()
     val segments = tracks
         .sortedBy { it.points.firstOrNull()?.timestampEpochMillis ?: it.startedAtEpochMillis }
         .map { track ->
@@ -167,6 +174,7 @@ fun heightProfileOf(tracks: List<Track>): HeightProfile {
                 }
                 heights[index]?.let { samples += HeightSample(distanceMeters = walked, altitudeMeters = it) }
             }
+            if (samples.isNotEmpty()) drawnTracks += profileTrackOf(track, samples)
             samples.toList()
         }
         .filter { it.isNotEmpty() }
@@ -176,6 +184,7 @@ fun heightProfileOf(tracks: List<Track>): HeightProfile {
         lowestMeters = heights.min(),
         highestMeters = heights.max(),
         lengthMeters = walked,
+        tracks = drawnTracks,
     )
 }
 

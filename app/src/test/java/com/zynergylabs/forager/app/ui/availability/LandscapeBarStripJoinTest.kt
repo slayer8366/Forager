@@ -90,7 +90,7 @@ abstract class LandscapeBarStripJoinTests {
     private var compass: CompassProvider by mutableStateOf(FixedCompass(315f))
     private var rotationSeen: Int? = null
 
-    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = AvailabilityUiState(liveFix = fix)) {
+    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = AvailabilityUiState(liveFix = fix).withFixHeight()) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             rotationSeen = LocalView.current.display?.rotation
@@ -319,10 +319,10 @@ abstract class LandscapeBarStripJoinTests {
         assertAllThree("with the bar's floor")
     }
 
-    @Test fun `at ROTATION_90 the bar's resting text is whole beside the whole strip`() = assertBarFloor(Surface.ROTATION_90, AvailabilityUiState(liveFix = fix), withClear = false)
+    @Test fun `at ROTATION_90 the bar's resting text is whole beside the whole strip`() = assertBarFloor(Surface.ROTATION_90, AvailabilityUiState(liveFix = fix).withFixHeight(), withClear = false)
 
     @Test fun `at ROTATION_270 with a search showing, the bar's summary and Clear are whole beside the whole strip`() =
-        assertBarFloor(Surface.ROTATION_270, AvailabilityUiState(liveFix = fix, region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.52, lng = -122.68, radiusKm = 15)), withClear = true)
+        assertBarFloor(Surface.ROTATION_270, AvailabilityUiState(liveFix = fix, region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.52, lng = -122.68, radiusKm = 15)).withFixHeight(), withClear = true)
 
     /**
      * RECORD -732: where the bar's floor and the whole strip cannot both fit, the bar keeps its floor and the strip gives way,
@@ -334,7 +334,7 @@ abstract class LandscapeBarStripJoinTests {
             liveFix = fix,
             region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.52, lng = -122.68, radiusKm = 15),
             taxonFilter = com.zynergylabs.forager.app.domain.model.TaxonFilter.SpecificTaxon(48473L, "Hericium erinaceus"),
-        )
+        ).withFixHeight()
         assertBarFloorKept(Surface.ROTATION_90, state)
     }
 

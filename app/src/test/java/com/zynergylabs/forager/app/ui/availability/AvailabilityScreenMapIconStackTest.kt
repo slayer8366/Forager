@@ -221,6 +221,9 @@ class AvailabilityScreenMapIconStackTest {
             appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(IconStackStubTripPlanningWeatherProvider),
             entryReferenceCounts = NoEntryReferenceCounts,
+            // Dispatch 2026-10-28-13: the strip shows the height above sea level. A zero offset keeps this class's
+            // heights (feet against metres, the strip's rows) the fixes' own; the conversion is AvailabilityScreenSeaLevelHeightTest's.
+            seaLevelConverter = FixedOffsetSeaLevelConverter(0.0),
         )
         // Live-fix collection is acquired on the hosting Activity's ON_START and released on
         // ON_STOP, not from the ViewModel's init. Composing this screen at all implies a STARTED
@@ -1555,7 +1558,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(1)
         composeRule.onAllNodesWithText("Compass unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
-        composeRule.onAllNodesWithText("Elevation unavailable").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Alt unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithText("Coordinates unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
     }
