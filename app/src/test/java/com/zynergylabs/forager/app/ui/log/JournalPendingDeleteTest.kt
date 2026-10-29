@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
 import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
@@ -234,7 +235,7 @@ class JournalPendingDeleteTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = PendingDeleteUnusedLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
-            getPhotoEntryReferenceCount = { id -> photoJournalCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(photos = photoJournalCounts),
         )
         availabilityViewModel = AvailabilityViewModel(
             locationProvider = PendingDeleteUnusedLocationProvider,
@@ -258,7 +259,7 @@ class JournalPendingDeleteTest {
             unitSystemPreferenceRepository = PendingDeleteUnitSystem,
             appThemePreferenceRepository = PendingDeleteTheme,
             getTodaysForecast = GetTodaysForecastUseCase(PendingDeleteWeather),
-            getOfflineRegionReferenceCount = { id -> regionReferenceCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(offlineRegions = regionReferenceCounts),
         )
         trackViewModel = TrackRecordingViewModel(
             trackRepository = trackRepository,
@@ -275,7 +276,7 @@ class JournalPendingDeleteTest {
             getTracks = GetTracksUseCase(trackRepository),
             returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), { _: Alert -> }),
             alertAudibility = PendingDeleteAudible,
-            getWaypointReferenceCount = { id -> waypointReferenceCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(waypoints = waypointReferenceCounts),
         )
         cartographyRepository = PendingDeleteCartographyRepository(cartographyEntries)
         cartographyViewModel = CartographyViewModel(

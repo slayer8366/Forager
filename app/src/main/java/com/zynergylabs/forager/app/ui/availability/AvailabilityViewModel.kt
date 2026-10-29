@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
@@ -100,14 +101,14 @@ class AvailabilityViewModel(
     private val unitSystemPreferenceRepository: UnitSystemPreferenceRepository,
     private val appThemePreferenceRepository: AppThemePreferenceRepository,
     private val getTodaysForecast: GetTodaysForecastUseCase,
-    /** How many Cartography entries currently keep a reference to an offline region — Journal Stage 2b's 4b deletion warning. See `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why this is a plain suspend function rather than the whole Cartography repository. */
-    private val getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
+    /** How many journal entries keep each offline region, live, for its delete message (dispatch 2026-10-28-08). No default, so a factory that leaves it out does not compile (Sorrel's N1). */
+    private val entryReferenceCounts: EntryReferenceCountSource,
     /**
      * Settings' "Automatically Save Location to Photos" preference, read and written as two plain
      * functions rather than by taking
      * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] itself — the same
-     * "borrow the one capability, not the whole collaborator" shape [getOfflineRegionReferenceCount]
-     * already uses here, and `MushroomLogViewModel`'s `getPhotoEntryReferenceCount`. Defaulted so
+     * "borrow the one capability, not the whole collaborator" shape the offline region counts
+     * used here until dispatch 2026-10-28-08. Defaulted so
      * the thirteen existing suites that construct this ViewModel and never touch this setting need
      * no stub apiece; `MainActivity` wires both to the real repository. `Result`-returning, so the
      * read and write fold exactly the way [AvailabilitySettingsPrefs.loadNightModePreferences] does.
@@ -266,7 +267,7 @@ class AvailabilityViewModel(
         offlineMapRepository = offlineMapRepository,
         mapPreferencesRepository = mapPreferencesRepository,
         locationProvider = locationProvider,
-        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         errorLog = errorLog,
         onDownloaded = { region -> offlineRoutes.noteDownloaded(region) },
     )
@@ -369,6 +370,7 @@ class AvailabilityViewModel(
         // connection gets back to a result at all, so it has to be populated before the first
         // search rather than as a side effect of one.
         loadRecentSearches()
+        offlineMaps.watchReferenceCounts()
         offlineMaps.loadOfflineRegions()
         offlineMaps.loadOfflineMapPreferences()
         settingsPrefs.loadUnitSystemPreference()

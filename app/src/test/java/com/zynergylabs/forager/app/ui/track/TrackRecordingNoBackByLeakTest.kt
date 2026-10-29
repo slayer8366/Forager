@@ -18,6 +18,7 @@ import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.RingerMode
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
@@ -155,6 +156,7 @@ class TrackRecordingNoBackByLeakTest {
             returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), AlertDelivery { }),
             alertAudibility = audibility(),
             currentTime = clock,
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
 
         fun build(control: BackByControl): TrackRecordingViewModel = TrackRecordingViewModel(
@@ -174,6 +176,7 @@ class TrackRecordingNoBackByLeakTest {
             alertAudibility = audibility(),
             currentTime = clock,
             backBy = control,
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
 
         private fun sweep() =

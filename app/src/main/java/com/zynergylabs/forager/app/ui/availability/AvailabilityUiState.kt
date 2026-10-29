@@ -186,7 +186,7 @@ data class AvailabilityUiState(
      * [offlineDownloadStatus]'s in-flight/last-attempt state.
      */
     val offlineRegions: List<OfflineRegionSummary> = emptyList(),
-    /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [offlineRegions]; a region missing from this map has never been counted, treated as zero the same as an explicit zero. */
+    /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Live since dispatch 2026-10-28-08 (`EntryReferenceCountSource`), not loaded with [offlineRegions]; a region missing from this map has no committed entry keeping it, and reads as zero. */
     val offlineRegionEntryReferenceCounts: Map<Long, Int> = emptyMap(),
     /**
      * The offline region whose delete was asked for (a swipe on its Records row, journal redesign J4)

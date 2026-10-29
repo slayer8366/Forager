@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PlannedTripRepository
@@ -195,6 +196,7 @@ internal class RealSearchScreenRig(
             unitSystemPreferenceRepository = RigMetricUnits,
             appThemePreferenceRepository = RigLightTheme,
             getTodaysForecast = GetTodaysForecastUseCase(RigNoWeather),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         val vm = viewModel
         val mapSlot: MapSlot = { region, content, renderMode, focusOverride, _, _, onSightingTap, _, modifier ->

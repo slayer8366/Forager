@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.FixProvider
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -219,6 +220,7 @@ class AvailabilityScreenMapIconStackTest {
             unitSystemPreferenceRepository = unitSystemPreferenceRepository,
             appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(IconStackStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         // Live-fix collection is acquired on the hosting Activity's ON_START and released on
         // ON_STOP, not from the ViewModel's init. Composing this screen at all implies a STARTED

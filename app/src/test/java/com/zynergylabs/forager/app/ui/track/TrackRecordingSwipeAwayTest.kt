@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
 import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import androidx.lifecycle.ViewModelProvider
@@ -168,6 +169,7 @@ class TrackRecordingSwipeAwayTest {
         getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(tracks, waypoints),
         alreadyRecordingMessage = ALREADY_RECORDING,
         abandonedTrackSweepOnce = sweepOnce,
+        entryReferenceCounts = NoEntryReferenceCounts,
     ).also(createdViewModels::add)
 
     /** A ViewModel held the way an Activity holds one, so [ViewModelStore.clear] reaches its `onCleared`. */

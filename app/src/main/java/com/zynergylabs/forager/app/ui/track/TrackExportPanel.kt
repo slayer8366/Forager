@@ -98,7 +98,8 @@ internal fun TrackExportList(
     val rows = rememberListRows(tracks, key = { it.id })
     if (rows.isEmpty()) {
         Text(
-            "No recorded tracks yet.",
+            // Dispatch 2026-10-28-08, Amendment 1 (RECORD -1781), the owner's words; was "No recorded tracks yet.".
+            "No recorded tracks yet. Tap the record button on the map to record one.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )

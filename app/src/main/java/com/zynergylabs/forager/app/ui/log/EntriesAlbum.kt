@@ -303,8 +303,8 @@ private fun AlbumPhotoTile(
  *
  * Where each fact comes from, both already on the album's inputs, no new read:
  * - **Journal entry:** `cartographyEntryReferenceCounts` (`MushroomLogUiState.cartographyEntryPhotoReferenceCounts`,
- *   loaded in `MushroomLogViewModel.loadGalleryPhotos` through `GetEntryReferenceCountUseCase.forPhoto`
- *   and `CartographyEntryDao.countEntriesReferencingPhoto`, which counts committed entries only,
+ *   kept live by `MushroomLogGallery.watchReferenceCounts` through `EntryReferenceCountSource.photoCounts`
+ *   and `CartographyEntryDao.observePhotoReferenceCounts` (dispatch 2026-10-28-08), which counts committed entries only,
  *   `isDraft = 0`).
  * - **Find:** [GalleryPhoto.referencingEntryIds], the join over `log_entry_photos` in
  *   `RoomMushroomLogRepository.getAllPhotos`. That table holds draft finds' rows too (a draft find is

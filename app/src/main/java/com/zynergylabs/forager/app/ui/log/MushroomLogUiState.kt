@@ -44,18 +44,20 @@ data class MushroomLogUiState(
     val draftEntries: List<MushroomLogEntry> = emptyList(),
     val isLoadingEntries: Boolean = false,
     val loadErrorMessage: String? = null,
+    /** Set when the last load read the entries but not the drafts; the Drafts tab shows it as Log shows [loadErrorMessage] (Amendment 2 of dispatch 2026-10-28-08, Sorrel's N5). */
+    val draftsLoadErrorMessage: String? = null,
     val editingEntry: MushroomLogEntry? = null,
     val isSavingPhoto: Boolean = false,
     val saveErrorMessage: String? = null,
     val galleryPhotos: List<GalleryPhoto> = emptyList(),
     val isLoadingGalleryPhotos: Boolean = false,
     val galleryLoadErrorMessage: String? = null,
-    /** How many Cartography entries currently keep each photo (by id) attached — Journal Stage 2b's 4b deletion warning, extended to photos per the owner's own reasoning (a wordless entry can consist mostly of attached photos). Loaded alongside [galleryPhotos]. */
+    /** How many Cartography entries currently keep each photo (by id) attached — Journal Stage 2b's 4b deletion warning, extended to photos per the owner's own reasoning (a wordless entry can consist mostly of attached photos). Live since dispatch 2026-10-28-08 (`EntryReferenceCountSource`), not loaded with [galleryPhotos]; a photo missing from this map has no committed entry keeping it, and reads as zero. */
     val cartographyEntryPhotoReferenceCounts: Map<String, Int> = emptyMap(),
     /**
      * The find whose delete was asked for from its report or edit form (journal redesign J4) and has
      * not run yet: the Undo snackbar is still up. Finds carry no Cartography reference count
-     * ([com.zynergylabs.forager.app.domain.GetEntryReferenceCountUseCase] has none for finds), so its
+     * ([com.zynergylabs.forager.app.domain.EntryReferenceCountSource] has none for finds), so its
      * [PendingDelete.entryReferenceCount] is always `null`. See [MushroomLogViewModel.requestDeleteEntry].
      */
     val pendingDelete: PendingDelete<MushroomLogEntry>? = null,

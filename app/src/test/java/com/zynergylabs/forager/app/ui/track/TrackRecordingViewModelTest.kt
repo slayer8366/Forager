@@ -8,9 +8,12 @@ import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.KeptTail
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.RecordingKeptTail
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
@@ -139,7 +142,7 @@ class TrackRecordingViewModelTest {
         locationTracker: LocationTracker = NoOpLocationTracker(),
         offTrackAlertClock: CurrentTimeProvider = fixedTime,
         alertAudibility: AlertAudibility = FakeAlertAudibility(AUDIBLE),
-        getWaypointReferenceCount: suspend (String) -> Int = { 0 },
+        entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
         pendingDeleteCommitScope: CoroutineScope? = null,
         findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
         shouldPromptBackgroundRun: suspend () -> Boolean = { false },
@@ -165,7 +168,7 @@ class TrackRecordingViewModelTest {
         returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), alertDelivery),
         alertAudibility = alertAudibility,
         currentTime = offTrackAlertClock,
-        getWaypointReferenceCount = getWaypointReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         zone = ZoneOffset.UTC,
         is24HourClock = is24HourClock,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
@@ -750,7 +753,7 @@ class TrackRecordingViewModelTest {
     @Test
     fun `a requested waypoint delete is pending, hidden from visibleWaypoints, and deletes nothing`() = runRecordingTest {
         val repository = pendingDeleteWaypoints()
-        val vm = viewModel(waypointRepository = repository, getWaypointReferenceCount = { id -> if (id == "wp-creek") 2 else 0 })
+        val vm = viewModel(waypointRepository = repository, entryReferenceCounts = FakeEntryReferenceCountSource(waypoints = mapOf("wp-creek" to 2)))
         advanceUntilIdle()
 
         vm.requestRemoveWaypoint("wp-creek")

@@ -35,7 +35,7 @@ internal fun createAvailabilityViewModel(
         container.unitSystemPreferenceRepository,
         container.appThemePreferenceRepository,
         container.getTodaysForecastUseCase,
-        getOfflineRegionReferenceCount = { id -> offlineRegionEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forOfflineRegion, androidErrorLog) },
+        entryReferenceCounts = container.entryReferenceCountSource,
         getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
         setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
         getSundownAlertsEnabled = container.sundownPreferencesRepository::getAlertsEnabled,

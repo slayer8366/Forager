@@ -131,7 +131,8 @@ internal fun OfflineRegionsSection(
         }
 
         if (rows.isEmpty()) {
-            Text("No regions downloaded yet.", style = MaterialTheme.typography.bodySmall)
+            // Dispatch 2026-10-28-08, Amendment 1 (RECORD -1781), the owner's words; was "No regions downloaded yet.".
+            Text("No maps downloaded yet. Pan the map to an area and tap Download Maps.", style = MaterialTheme.typography.bodySmall)
         } else {
             rows.forEach { row ->
                 key(row.key) { ListRowMotion(row) { region ->

@@ -488,7 +488,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordedTracksSubTab()
 
-        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
     }
 
     /**
@@ -654,7 +654,7 @@ class AvailabilityScreenSettingsPanelTest {
             .assertCountEquals(0)
 
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
-        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }
 
@@ -672,7 +672,7 @@ class AvailabilityScreenSettingsPanelTest {
         openOfflineMapsSubTab()
 
         composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsEnabled()
-        composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("No maps downloaded yet. Pan the map to an area and tap Download Maps.").performScrollTo().assertIsDisplayed()
     }
 
     /**
