@@ -6,7 +6,6 @@ import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
 import com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
@@ -130,9 +129,9 @@ class TrackRecordingViewModel(
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /**
      * How many journal entries keep each waypoint and each track, live (dispatch 2026-10-28-08): the waypoint's
-     * "Used in" and both Undo snackbars' warnings. Defaults to no counts, every one reading 0, as before.
+     * "Used in" and both Undo snackbars' warnings. No default, so a factory that leaves it out does not compile (Sorrel's N1).
      */
-    private val entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
+    private val entryReferenceCounts: EntryReferenceCountSource,
     /** The zone the auto-created origin/end waypoints' default names are written in — injected so a test can pin the wall-clock text. */
     private val zone: ZoneId = ZoneId.systemDefault(),
     /**

@@ -84,6 +84,7 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PlannedTripRepository
@@ -251,6 +252,7 @@ class LeavingTheJournalFixesTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = LeaveFixUnavailableLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         cartographyViewModel = CartographyViewModel(
             getEntries = GetCartographyEntriesUseCase(cartographyRepository),
@@ -294,6 +296,7 @@ class LeavingTheJournalFixesTest {
             unitSystemPreferenceRepository = LeaveFixStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LeaveFixStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LeaveFixStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by availabilityViewModel.uiState.collectAsState()

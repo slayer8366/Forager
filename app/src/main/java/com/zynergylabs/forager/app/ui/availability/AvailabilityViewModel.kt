@@ -21,7 +21,6 @@ import com.zynergylabs.forager.app.domain.GetSightingsUseCase
 import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.NoLastKnownLocation
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
@@ -102,8 +101,8 @@ class AvailabilityViewModel(
     private val unitSystemPreferenceRepository: UnitSystemPreferenceRepository,
     private val appThemePreferenceRepository: AppThemePreferenceRepository,
     private val getTodaysForecast: GetTodaysForecastUseCase,
-    /** How many journal entries keep each offline region, live, for its delete message (dispatch 2026-10-28-08). Defaults to no counts, every one reading 0. */
-    private val entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
+    /** How many journal entries keep each offline region, live, for its delete message (dispatch 2026-10-28-08). No default, so a factory that leaves it out does not compile (Sorrel's N1). */
+    private val entryReferenceCounts: EntryReferenceCountSource,
     /**
      * Settings' "Automatically Save Location to Photos" preference, read and written as two plain
      * functions rather than by taking

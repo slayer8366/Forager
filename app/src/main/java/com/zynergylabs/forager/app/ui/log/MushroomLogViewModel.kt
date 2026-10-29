@@ -15,7 +15,6 @@ import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
@@ -202,8 +201,8 @@ class MushroomLogViewModel(
     /** Photo-geodata dispatch: the fire-and-forget GPS fix for a freshly captured camera photo — see this class's own doc comment, "Camera-capture location." */
     private val locationProvider: LocationProvider,
     private val updatePhotoLocation: UpdatePhotoLocationUseCase,
-    /** How many journal entries keep each photo, live, for its delete message, album badge and map bubble (dispatch 2026-10-28-08). Defaults to no counts, every one reading 0. */
-    private val entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
+    /** How many journal entries keep each photo, live, for its delete message, album badge and map bubble (dispatch 2026-10-28-08). No default, so a factory that leaves it out does not compile (Sorrel's N1). */
+    private val entryReferenceCounts: EntryReferenceCountSource,
     /**
      * The device fix currently in hand, if any — find-location-at-creation dispatch, Fix 1. In
      * production this reads `AvailabilityViewModel`'s held `liveFix` (`MainActivity` wires the

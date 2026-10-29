@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.FixProvider
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -107,6 +108,7 @@ class AvailabilityViewModelLiveFixTest {
             unitSystemPreferenceRepository = LiveFixStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LiveFixStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LiveFixStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         ).also {
             // Live-fix collection is no longer started from the ViewModel's init -- it is acquired
             // on the hosting Activity's ON_START and released on ON_STOP, so the OS listener does
