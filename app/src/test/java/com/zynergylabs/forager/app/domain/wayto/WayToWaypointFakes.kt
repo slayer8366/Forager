@@ -67,3 +67,17 @@ internal class FakeEngines(private val router: TrailRouter, var failWith: Except
         return Result.success(TrailEngine(router, FakeSnapper(emptyList())))
     }
 }
+
+/**
+ * Ends that keep every route as the engine found it (way-to dispatch 2026-10-28, PR 5): for the tests of the use case's
+ * steps before the ends, on ground with no map data. The ends' own tests use the real [StreetDropOffEnds].
+ */
+internal object AcceptEnds : WayToEnds {
+    override suspend fun settle(
+        walker: LatLng,
+        waypoint: LatLng,
+        route: TrailRoute,
+        routeData: File,
+        reroute: suspend (LatLng) -> TrailRouteResult,
+    ): WayToEnds.Settled = WayToEnds.Settled.Route(route)
+}
