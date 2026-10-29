@@ -29763,3 +29763,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the tools report (Opus; pr-tools-build-report 7a3f2f9a1). The tools are one commit (7c9cdb0d1 on dev; efa52f57d on the parked rebase, -1615), 110 files, 31 of them in main. Cherry-picking onto pre-main and onto #440 clashes in 4 files. dev sits on main 381515c61, not current main (a premise of -1087 that no longer holds). "Run this branch" (ci.yml:24) builds any branch without a workflow change.
 **Decision:** the owner: "Throwaway copy per PR (Recommended)" (keeping -930's "Absolutely zero trace"); "One app (Recommended)"; "Logger, Diagnostics, Crash Logs (Recommended)"; "Only before a phone check (Recommended)"; "Yes, add the check (Recommended)"; "Start a coder now". The planner chose efa52f57d as the source. Dispatch 2026-10-29-05.
 **Notes:** Written by the planner by hand. Next free ID -1806.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1806
+**Timestamp:** 2026-10-29T20:51:37Z
+**Continues:** 2026-09-28-1801, 2026-09-28-1803
+**Title:** The owner's 10-29 walk is read from the S22 for #440
+**Observed:** the owner, during the walk: about 8 miles from home on flat land, "There is no height within a mile from me. It's all flat land.", "No stairs either"; an eye-level-to-ground test "didn't make a difference"; S26 on 4153, S22 on 4175.
+**Decision:** the owner: "Back. S22 plugged in". Dispatch 2026-10-29-06: steps 1-4 and 7 from the phone's data, a small area downloaded over the walk for the ground heights, the eye-level result explained from data or marked undetermined, steps 5 and 6 not run (no height change available), step 8 still deferred.
+**Notes:** Written by the planner by hand. Next free ID -1807.
