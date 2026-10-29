@@ -66,7 +66,7 @@ class KeptLiveHeightTest {
         assertEquals("nothing logged while the hold lasts", emptyList<String>(), logged)
 
         val after = h.onFix(known(80.0), T0 + 432_000L)
-        assertEquals("11 s on, no reading: fresh, and the fix shown as it comes", 80.0, meters(after), 0.001)
+        assertEquals("11 s on, no reading: fresh, and the fix shown as it comes", ShownHeight.Known(80.0, aboveRawMeters = 21.6), after)
         assertEquals("the fallback is logged once", 1, logged.size)
     }
 

@@ -31,10 +31,13 @@ import kotlinx.coroutines.launch
  *
  * **When the barometer is read** (Amendment 3, RECORD -1797; the owner: "Map tab only (Recommended)"): here, only while
  * the Maps tab is showing ([onMapsTabShownChanged]) and the live fix is collected (the app in the foreground, the
- * permission held). The recording service reads its own while recording, on any tab, unchanged. Each time this
- * collection stops, the steadying starts afresh ([LiveHeight] has no barometer, so fixes are shown as they come): back
- * on the map, the first minute shows each fix's converted GPS height and then blends into the steadied one (N1's
- * rule), never an anchor or readings from before the tab was left.
+ * permission held). The recording service reads its own while recording, on any tab, unchanged.
+ *
+ * **Back on the map** (Amendment 4, RECORD -1808, superseding Amendment 3's "nothing from before the tab was left is
+ * reused" for gaps under 10 minutes): within 10 minutes of the barometer stopping, the steadying carries on from the
+ * kept anchor, steadied at once; later, it starts afresh with N1's first minute and blend. A tab change, a pause and the
+ * screen going off all stop the barometer the same way ([stopBarometer]), so all three are kept alike. See
+ * [KeptLiveHeight].
  */
 internal class AvailabilityLiveLocation(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
@@ -121,8 +124,7 @@ internal class AvailabilityLiveLocation(
      * the strip's own "unavailable" text covers that honestly, unchanged.
      */
     fun begin() {
-        // A fresh steadying each start: the anchor is not carried across a time in the background.
-        height.startAfresh()
+        // Amendment 4: no fresh steadying here. The anchor kept at the stop ([cancel]) decides on the first reading back.
         fixesEnded = false
         liveFixJob = scope().launch {
             readLastKnownLocation()
