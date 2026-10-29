@@ -29538,3 +29538,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** CI run 40797376100 succeeded on 46cc439d7 (Amendment 2's three fixes). The head 1da6b9fd7 changes only two documents (the completion report and the index row); its CI run 40799023030 was in progress.
 **Decision:** the owner: "S22 plugged in"; "Run S22 now (Recommended)", before Hazel's Amendment 2 report. Dispatch 2026-10-28-10.
 **Notes:** Written by the planner by hand. Next free ID -1786.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1786
+**Timestamp:** 2026-10-29T01:33:07Z
+**Continues:** 2026-09-28-1784, 2026-09-28-1785
+**Title:** #434 Amendment 2 built; the count retry timing approved
+**Observed:** Hazel (Opus; fresh session) built Amendment 2 at 1da6b9fd7 (code 46cc439d7). Fail-first run 40796636308: 5 of 25 failed, each as predicted. Green runs 40797376100 and 40799023030: 5,905 tests, 0 failures, 24 skipped. Reverts a-d (3d6bab836, afbafda2c, c85893ecb, 6445f29c7) each failed only their own tests; for a, the exception escapes before the test messages, the same split as Sorrel's N3. Branches deleted. JournalTab.kt is now 919 lines (+1). The 46cc439d7 commit message misstates TrackRecordingViewModel.kt's lines (858; it is 860), corrected in the report, not amended. The earlier #434 session was stopped with TaskStop after reporting nothing unpushed.
+**Decision:** the owner: "Yes, keep it (Recommended)" for the retry timing: 1 s doubling to a 30 s ceiling, reset after a good read, each failure logged.
+**Notes:** Written by the planner by hand. Next free ID -1787.
