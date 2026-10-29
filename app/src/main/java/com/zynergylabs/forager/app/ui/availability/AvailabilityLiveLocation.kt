@@ -1,8 +1,9 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.KeptLiveHeight
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
-import com.zynergylabs.forager.app.domain.LiveHeight
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.PressureProvider
 import com.zynergylabs.forager.app.domain.SeaLevelConverter
@@ -42,6 +43,7 @@ internal class AvailabilityLiveLocation(
     private val lastKnownLocation: LastKnownLocationSource,
     private val pressureProvider: PressureProvider,
     private val seaLevelConverter: SeaLevelConverter,
+    private val errorLog: ErrorLog,
 ) {
 
     /**
@@ -51,8 +53,8 @@ internal class AvailabilityLiveLocation(
      */
     private var liveFixJob: Job? = null
 
-    /** The live steadying, replaced by a fresh one whenever the barometer stops (see the class comment). */
-    private var height = LiveHeight()
+    /** The live steadying, kept across the barometer's stops ([KeptLiveHeight]). */
+    private val height = KeptLiveHeight(errorLog)
 
     /** The barometer's collection, a child of [liveFixJob], running only while [mapsTabShown]. */
     private var barometerJob: Job? = null
@@ -83,6 +85,7 @@ internal class AvailabilityLiveLocation(
         val parent = liveFixJob
         val wanted = mapsTabShown && parent != null && parent.isActive && !fixesEnded
         if (wanted && barometerJob == null) {
+            height.onBarometerStarted()
             // A child of the live-fix job: cancelled with it, as before.
             barometerJob = scope().launch(parent!!) {
                 pressureProvider.readings.collect { reading ->
@@ -98,7 +101,7 @@ internal class AvailabilityLiveLocation(
     private fun stopBarometer() {
         barometerJob?.cancel()
         barometerJob = null
-        height = LiveHeight()
+        height.onBarometerStopped()
     }
 
     /**
@@ -119,7 +122,7 @@ internal class AvailabilityLiveLocation(
      */
     fun begin() {
         // A fresh steadying each start: the anchor is not carried across a time in the background.
-        height = LiveHeight()
+        height.startAfresh()
         fixesEnded = false
         liveFixJob = scope().launch {
             readLastKnownLocation()
@@ -135,7 +138,7 @@ internal class AvailabilityLiveLocation(
                     // Converted first, then handed to the steadying current at that moment ([height] may have been
                     // replaced while the conversion ran).
                     val seaLevel = seaLevelConverter.seaLevel(fix.lat, fix.lng, fix.altitude)
-                    showHeight(height.onFix(seaLevel, fix.timestampEpochMillis))
+                    height.onFix(seaLevel, fix.timestampEpochMillis)?.let(::showHeight)
                 } else if (fix is LocationFix.Update) {
                     onRefusedFix(fix)
                 }

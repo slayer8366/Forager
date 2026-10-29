@@ -175,28 +175,79 @@ class AvailabilityScreenSeaLevelHeightTest {
     }
 
     /**
-     * Amendment 3, N2 under N1's rule: back on the map the steadying starts afresh, so for its first minute the strip
-     * shows each fix's converted GPS height as it comes, not an anchor from before the tab was left.
+     * A walk steadied on the map: one reading at 0 s from [before] and fixes to 96 s, the last one 8 m above the rest.
+     * Steadied, the strip holds 72 m where that fix alone reads 80 m.
      */
-    @Test
-    fun `back on the Maps tab the strip shows each fix's sea-level height until the barometer has re-anchored`() {
-        val before = MutableSharedFlow<PressureReading?>(replay = 8).also { it.tryEmit(readingAt(0, 1000.0f)) }
-        val after = MutableSharedFlow<PressureReading?>(replay = 8).also { it.tryEmit(readingAt(300, 1000.0f)) }
-        val r = rig(FakeBarometer(pressure, sources = listOf(before, after)))
+    private fun steadiedWalk(barometer: FakeBarometer): RealSearchScreenRig {
+        val r = rig(barometer)
         listOf(0L, 30L, 60L, 95L).forEach { fixes.tryEmit(fixAt(it, raw = 50.0)) }
         r.settle()
         fixes.tryEmit(fixAt(96, raw = 58.0))
         r.settle()
         assertEquals("positive control: steadied, the strip holds 72 m where this fix alone reads 80 m", "72 m", stripHeight())
+        return r
+    }
+
+    /** One reading at [second] on the sensor's clock, for the barometer's next collection. */
+    private fun source(second: Long) = MutableSharedFlow<PressureReading?>(replay = 8).also { it.tryEmit(readingAt(second, 1000.0f)) }
+
+    /**
+     * Amendment 4 (RECORD -1808; the owner: "Keep the steadying for 10 min (Recommended)"): back on the map within 10
+     * minutes of the barometer stopping, the height carries on from the kept anchor, steadied at once. Away 9 minutes on
+     * the sensor's clock (the last reading at 0 s, the first back at 540 s). The fix back reads 80 m alone; the strip shows
+     * the barometer plus the kept anchor, which the existing pull has moved 504 s / 60 min of the 8 m (about 1.1 m).
+     */
+    @Test
+    fun `gone from the Maps tab 9 minutes and back, the strip is steadied at once`() {
+        val r = steadiedWalk(FakeBarometer(pressure, sources = listOf(source(0), source(540))))
 
         touchNav(CompactTab.LIST.label)
         r.settle()
         touchNav(CompactTab.MAP.label)
         r.settle()
-        fixes.tryEmit(fixAt(200, raw = 58.0))
+        fixes.tryEmit(fixAt(600, raw = 58.0))
+        r.settle()
+
+        assertEquals("steadied at once: 71.6 + about 1.1 of pull, not the fix's own 80 m", "73 m", stripHeight())
+    }
+
+    /**
+     * Amendment 4: after 10 minutes the steadying starts fresh, as Amendment 3 had it for every return. Until Amendment 4
+     * this case was a 5-minute absence ("back on the Maps tab the strip shows each fix's sea-level height until the
+     * barometer has re-anchored"); Amendment 4 supersedes that rule for gaps under 10 minutes, so it is 11 minutes now.
+     */
+    @Test
+    fun `gone from the Maps tab 11 minutes and back, the strip shows the first minute again`() {
+        val r = steadiedWalk(FakeBarometer(pressure, sources = listOf(source(0), source(660))))
+
+        touchNav(CompactTab.LIST.label)
+        r.settle()
+        touchNav(CompactTab.MAP.label)
+        r.settle()
+        fixes.tryEmit(fixAt(700, raw = 58.0))
         r.settle()
 
         assertEquals("a fresh first minute: the fix's own height above sea level (58 + 21.6)", "80 m", stripHeight())
+    }
+
+    /**
+     * Amendment 4: the screen off and on (the app leaving and re-entering the foreground, as MainActivity's lifecycle
+     * calls it) is the same as leaving the tab. 9 minutes, as above. A real tracker registered again gives only new
+     * fixes, so the fake's replay is cleared before the return.
+     */
+    @Test
+    fun `screen off 9 minutes and on, the strip is steadied at once`() {
+        val r = steadiedWalk(FakeBarometer(pressure, sources = listOf(source(0), source(540))))
+
+        r.viewModel.onLeftForeground()
+        r.settle()
+        fixes.resetReplayCache()
+        r.enterForeground()
+        r.settle()
+        fixes.tryEmit(fixAt(600, raw = 58.0))
+        r.settle()
+
+        assertEquals("steadied at once, as for the tab", "73 m", stripHeight())
     }
 
     private companion object {

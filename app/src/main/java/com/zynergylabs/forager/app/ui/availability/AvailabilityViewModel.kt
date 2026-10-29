@@ -369,6 +369,7 @@ class AvailabilityViewModel(
         lastKnownLocation = lastKnownLocation,
         pressureProvider = pressureProvider,
         seaLevelConverter = seaLevelConverter,
+        errorLog = errorLog,
     )
 
     /** The locate-me button, moved to its own class by dispatch 2026-10-28-13 (the modular rule): see the class. */
