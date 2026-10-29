@@ -29647,3 +29647,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Nothing on screen draws the navigation card's height (a wrong premise of the dispatch).
 **What the planner checked itself:** git diff origin/pre-main...origin/altitude-sea-level: 74 files, no @Ignore or @Disabled added; run 40821535871 success; run 40824270994 on the docs head still in progress.
 **Notes:** Written by the planner by hand. Next free ID -1796.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1796
+**Timestamp:** 2026-10-29T07:25:25Z
+**Continues:** 2026-09-28-1795
+**Title:** PR #440: Sorrel's review, then the S22; the battery is compared build against build; the pass mark is within 10 m
+**Decision:** the owner: "Sorrel review, then S22 (Recommended)"; "Compare the two builds (Recommended)": pre-main against #440, 30 minutes with the map open on each, and isolate the barometer only if the cost looks high; "Within 10 m (Recommended)" of the known ground height. Dispatch 2026-10-29-01 (Sorrel, Fable).
+**Notes:** Written by the planner by hand. Next free ID -1797.
