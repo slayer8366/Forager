@@ -29599,3 +29599,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the S26 walk read (Opus; s26-walk-2026-10-28 b3877b0c, docs/audits/2026-10-28-s26-walk-read.md; data in /home/zynergy-labs/s26-2026-10-28/, the database's hashes equal three ways; build 1.0.4153+g86c99060). At 5:40 the way-home line was the trail route, 425.7 m plus 6 m of joints; all 22 of its points are nodes of the mapped trail (24 nodes over 507 m), so it has no cut bends, agreeing with -1636. The walked track runs about 3.8 m off it. The 5:42 line was not the way home (Stop ends it, TrackRecordingService.kt:391); most likely a waypoint navigation, unverified. Altitude: the strip shows raw ellipsoid height (AvailabilityUiState.kt:415), a mean 23.8 m below the trail data's ground, with about ±10 m of noise; the barometer correlates 0.82 with the ground, GPS 0.23. Dispatch 2026-10-28-11 named the wrong method file; the helper used the l0a run record's method.
 **Decision:** the owner: "Sea level + barometer (Recommended)" ("Alt unavailable" where the phone has no converter); "Yes, report first (Recommended)". Dispatch 2026-10-28-12.
 **Notes:** Written by the planner by hand. Next free ID -1792.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1792
+**Timestamp:** 2026-10-29T04:28:53Z
+**Continues:** 2026-09-28-1791
+**Title:** Altitude: sea level through the platform converter, steadied by the barometer, raw kept in storage; go to build
+**Observed:** Hazel's altitude report (Opus; altitude-report 893c57a8c, docs/audits/2026-10-28-altitude-report.md) at d100a4776. AltitudeConverter is API 34+, with its geoid model inside the platform (-21.6 m at the 10-28 walk, decoded from the emulator image). On the 10-28 walk the mean error would be -24.1 m today, -2.5 m with sea level, and -2.9 m with sea level plus barometer, with the spread falling from 3.3 to 1.4 m. The 10-24 walk was steadier but has no trusted ground. The barometer is read only while recording (AppContainer.kt:225). The navigation card reads altitude on its own (NavigationReadout.kt:65). GPX export and the journal's highest and lowest labels read low.
+**Decision:** the owner: "Keep raw, show sea level (Recommended)"; "One: \"Alt unavailable\" (Recommended)"; "Follow the barometer (Recommended)"; "Yes, and measure it (Recommended)"; the spoken height difference "Yes, same as the strip (Recommended)"; "Start a coder now". GPX import's double conversion is a stop back to the owner. Dispatch 2026-10-28-13.
+**Notes:** Written by the planner by hand. Next free ID -1793.
