@@ -26,9 +26,14 @@ import kotlinx.coroutines.launch
  *
  * **The live height** (dispatch 2026-10-28-13, RECORD -1792): each accepted fix's height is converted to sea level by
  * [seaLevelConverter] and, with the barometer's readings from [pressureProvider], steadied by [LiveHeight] into
- * [AvailabilityUiState.shownHeight]. The barometer is read for exactly as long as the live fix is (the owner: "Yes,
- * and measure it (Recommended)"), so with the map open as well as while recording; the recording service still reads
- * its own. A refused fix is not used for height, as it is not used for anything that acts.
+ * [AvailabilityUiState.shownHeight]. A refused fix is not used for height, as it is not used for anything that acts.
+ *
+ * **When the barometer is read** (Amendment 3, RECORD -1797; the owner: "Map tab only (Recommended)"): here, only while
+ * the Maps tab is showing ([onMapsTabShownChanged]) and the live fix is collected (the app in the foreground, the
+ * permission held). The recording service reads its own while recording, on any tab, unchanged. Each time this
+ * collection stops, the steadying starts afresh ([LiveHeight] has no barometer, so fixes are shown as they come): back
+ * on the map, the first minute shows each fix's converted GPS height and then blends into the steadied one (N1's
+ * rule), never an anchor or readings from before the tab was left.
  */
 internal class AvailabilityLiveLocation(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
@@ -46,6 +51,14 @@ internal class AvailabilityLiveLocation(
      */
     private var liveFixJob: Job? = null
 
+    /** The live steadying, replaced by a fresh one whenever the barometer stops (see the class comment). */
+    private var height = LiveHeight()
+
+    /** The barometer's collection, a child of [liveFixJob], running only while [mapsTabShown]. */
+    private var barometerJob: Job? = null
+    private var mapsTabShown = false
+    private var fixesEnded = false
+
     /** Whether the live collection is running: the ViewModel's former `liveFixJob?.isActive == true`. */
     val isCollecting: Boolean
         get() = liveFixJob?.isActive == true
@@ -54,6 +67,38 @@ internal class AvailabilityLiveLocation(
     fun cancel() {
         liveFixJob?.cancel()
         liveFixJob = null
+        stopBarometer()
+    }
+
+    /**
+     * Whether the Maps tab is showing, from the screen ([AvailabilityScreenMapControls.onMapsTabShownChanged]). Starts or
+     * stops the barometer to match (Amendment 3).
+     */
+    fun onMapsTabShownChanged(shown: Boolean) {
+        mapsTabShown = shown
+        syncBarometer()
+    }
+
+    private fun syncBarometer() {
+        val parent = liveFixJob
+        val wanted = mapsTabShown && parent != null && parent.isActive && !fixesEnded
+        if (wanted && barometerJob == null) {
+            // A child of the live-fix job: cancelled with it, as before.
+            barometerJob = scope().launch(parent!!) {
+                pressureProvider.readings.collect { reading ->
+                    val shown = if (reading == null) height.onNoBarometer() else height.onPressure(reading)
+                    if (shown != null) showHeight(shown)
+                }
+            }
+        } else if (!wanted && barometerJob != null) {
+            stopBarometer()
+        }
+    }
+
+    private fun stopBarometer() {
+        barometerJob?.cancel()
+        barometerJob = null
+        height = LiveHeight()
     }
 
     /**
@@ -74,16 +119,9 @@ internal class AvailabilityLiveLocation(
      */
     fun begin() {
         // A fresh steadying each start: the anchor is not carried across a time in the background.
-        val height = LiveHeight()
+        height = LiveHeight()
+        fixesEnded = false
         liveFixJob = scope().launch {
-            // The barometer, a child of this collection: cancelled with it, and stopped when the fixes end (a
-            // missing permission), so it is never read with no fixes to steady.
-            val barometer = launch {
-                pressureProvider.readings.collect { reading ->
-                    val shown = if (reading == null) height.onNoBarometer() else height.onPressure(reading)
-                    if (shown != null) showHeight(shown)
-                }
-            }
             readLastKnownLocation()
             locationTracker.fixes.collect { fix ->
                 // Location-accuracy dispatch, item 1: the one place the live fix is gated. A fix
@@ -94,17 +132,21 @@ internal class AvailabilityLiveLocation(
                     // The whole fix, accuracy and timestamp included — see
                     // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
                     updateState { it.copy(liveFix = fix) }
-                    showHeight(height.onFix(seaLevelConverter.seaLevel(fix.lat, fix.lng, fix.altitude), fix.timestampEpochMillis))
+                    // Converted first, then handed to the steadying current at that moment ([height] may have been
+                    // replaced while the conversion ran).
+                    val seaLevel = seaLevelConverter.seaLevel(fix.lat, fix.lng, fix.altitude)
+                    showHeight(height.onFix(seaLevel, fix.timestampEpochMillis))
                 } else if (fix is LocationFix.Update) {
                     onRefusedFix(fix)
                 }
             }
-            barometer.cancel()
+            // The fixes ended (a missing permission): the barometer stops too, so it is never read with no fixes to steady.
+            fixesEnded = true
+            stopBarometer()
         }
+        // The barometer, if the Maps tab is showing ([syncBarometer]).
+        syncBarometer()
     }
-
-    /** Whether the Maps tab is showing (dispatch 2026-10-28-13, Amendment 3). Test-first seam: not used yet. */
-    fun onMapsTabShownChanged(@Suppress("UNUSED_PARAMETER") shown: Boolean) {}
 
     private fun showHeight(shown: ShownHeight) {
         updateState { if (it.shownHeight == shown) it else it.copy(shownHeight = shown) }

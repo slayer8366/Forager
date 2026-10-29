@@ -40,8 +40,18 @@ object NoBarometer : PressureProvider {
  * 2. **The anchor** (sea-level GPS height minus the barometer's) is the median of the differences over the first
  *    [BARO_INITIAL_ANCHOR_MILLIS] of fixes that have both. After that each fix's sea-level height moves it a fraction
  *    dt / [BARO_ANCHOR_TIME_CONSTANT_MILLIS] toward itself, skipping one more than [BARO_ANCHOR_MAX_DISAGREEMENT_METERS]
- *    off. While the first minute's anchor forms it is the median so far, so the reading can step in that minute.
- * 3. **Shown** = the barometer's height + the anchor.
+ *    off. While the first minute's anchor forms it is the median so far; it is not shown until that minute is over (below).
+ * 3. **Shown** = the barometer's height + the anchor, once the first minute and the blend after it are over.
+ *
+ * **The first minute** (Amendment 3, RECORD -1797; the owner: "Show plain GPS until settled (Recommended)"): while the
+ * anchor forms, each fix's converted GPS height is shown as it comes, so the forming anchor never steps the reading
+ * (Sorrel's review measured 7.0 m at 13 s on the 2026-10-28 walk's stored points). In that minute the reading is the
+ * latest GPS height carried on by the barometer since that fix, so a GPS gap still follows the barometer.
+ *
+ * **The blend** (Amendment 3): GPS's own error can still differ from the steadied height at the minute, so the anchor's
+ * share goes from none to all over [LIVE_HEIGHT_BLEND_MILLIS] after it, on the fixes' own clock, rather than stepping.
+ * Shown = barometer + (GPS over barometer at the latest fix) × (1 − w) + anchor × w. With fixes coming, that is the GPS
+ * height blended into the steadied one; in a GPS gap the blend waits for fixes and the barometer is still followed.
  *
  * Not carried over from [barometricHeights]: its step limit and its mean pass, which look both ways in time. The
  * report's simulation of this rule (docs/audits/2026-10-28-altitude-report.md, section 3) left them out too.
@@ -56,6 +66,8 @@ class LiveHeight {
     private var hasNoBarometer = false
     private var latestSeaLevel: SeaLevelHeight? = null
     private var aboveRaw: Double? = null
+    private var latestFixAt: Long? = null
+    private var gpsOverBarometer: Double? = null
 
     private val initialDifferences = mutableListOf<Double>()
     private var firstDifferenceAt: Long? = null
@@ -81,9 +93,13 @@ class LiveHeight {
     /** A fix's sea-level height, at the fix's own time. Returns the height to show now. */
     fun onFix(seaLevel: SeaLevelHeight, atEpochMillis: Long): ShownHeight {
         latestSeaLevel = seaLevel
+        latestFixAt = atEpochMillis
         if (seaLevel is SeaLevelHeight.Known) {
             aboveRaw = seaLevel.aboveRawMeters
-            barometerMeters()?.let { baro -> moveAnchor(seaLevel.meters, baro, atEpochMillis) }
+            barometerMeters()?.let { baro ->
+                moveAnchor(seaLevel.meters, baro, atEpochMillis)
+                gpsOverBarometer = seaLevel.meters - baro
+            }
         }
         return shown() ?: ShownHeight.Unavailable
     }
@@ -111,8 +127,21 @@ class LiveHeight {
         val offset = aboveRaw ?: return ShownHeight.Unavailable
         val baro = barometerMeters()
         val anchored = anchor
-        if (!hasNoBarometer && baro != null && anchored != null) return ShownHeight.Known(baro + anchored, offset)
+        if (!hasNoBarometer && baro != null && anchored != null) {
+            val gps = gpsOverBarometer ?: anchored
+            val w = anchorShare()
+            return ShownHeight.Known(baro + if (w >= 1.0) anchored else gps + (anchored - gps) * w, offset)
+        }
         return (seaLevel as? SeaLevelHeight.Known)?.let { ShownHeight.Known(it.meters, it.aboveRawMeters) } ?: ShownHeight.Unavailable
+    }
+
+    /** The anchor's share of the shown height: 0 through the first minute, rising to 1 over [LIVE_HEIGHT_BLEND_MILLIS]. */
+    private fun anchorShare(): Double {
+        val first = firstDifferenceAt ?: return 0.0
+        val at = latestFixAt ?: return 0.0
+        val since = at - (first + BARO_INITIAL_ANCHOR_MILLIS)
+        if (since <= 0) return 0.0
+        return (since.toDouble() / LIVE_HEIGHT_BLEND_MILLIS).coerceAtMost(1.0)
     }
 
     private fun barometerMeters(): Double? {
@@ -127,3 +156,13 @@ class LiveHeight {
         const val NANOS_PER_MILLI = 1_000_000L
     }
 }
+
+/**
+ * How long the live height takes to go from the GPS height to the steadied one after the first minute (Amendment 3,
+ * RECORD -1797). Proposed by the coder, for the owner to confirm: 30 s. At fixes once a second a gap of g metres
+ * moves the reading g / 30 a second, so a gap up to 9 m moves it under 1 ft a fix and the strip ticks one unit at a
+ * time. Stored walks put the gap at the minute at 0.4 m (2026-10-28), 3.6 m and 4.0 m (2026-10-24); a GPS error of the
+ * first fixes' size, 8 m, would take the full 30 s at about 0.27 m a second. Shorter steps more per fix; longer keeps
+ * GPS's error on screen longer.
+ */
+const val LIVE_HEIGHT_BLEND_MILLIS: Long = 30_000L

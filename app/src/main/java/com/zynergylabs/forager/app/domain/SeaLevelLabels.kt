@@ -39,8 +39,8 @@ sealed interface ProfileLabels {
 /**
  * The chart's highest and lowest heights above sea level: each recorded track's own put on sea level by the offset the
  * converter gives at its [ProfileTrack.reference] (the geoid changes by about 0.01 m across a walk, the altitude
- * report row 8), an imported track's as the file gave them. One track the phone cannot convert makes the labels
- * [ProfileLabels.Unsupported].
+ * report row 8), an imported track's as the file gave them. One track the phone cannot convert, or one recorded track
+ * with no GPS height at all (Amendment 3, N8), makes the labels [ProfileLabels.Unsupported].
  */
 suspend fun HeightProfile.Drawn.seaLevelLabels(converter: SeaLevelConverter): ProfileLabels {
     var highest = Double.NEGATIVE_INFINITY
@@ -48,7 +48,9 @@ suspend fun HeightProfile.Drawn.seaLevelLabels(converter: SeaLevelConverter): Pr
     for (track in tracks) {
         val offset = when {
             track.imported -> 0.0
-            track.reference == null -> 0.0
+            // Amendment 3, N8 (RECORD -1797): no GPS height, so its heights are the barometer's standard atmosphere,
+            // with nothing to put them on sea level by. No numbers, rather than labelling them as sea level.
+            track.reference == null -> return ProfileLabels.Unsupported
             else -> when (val sea = converter.seaLevel(track.reference.lat, track.reference.lng, track.reference.rawMeters)) {
                 is SeaLevelHeight.Known -> sea.aboveRawMeters
                 SeaLevelHeight.Unsupported, SeaLevelHeight.NoHeight -> return ProfileLabels.Unsupported
