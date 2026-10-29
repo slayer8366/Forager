@@ -29495,3 +29495,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel's first stop (Opus; live-counts-empty-states 1cc952719): a self-updating Room query per record type behind a new EntryReferenceCountSource, replacing the one-time loops (TrackRecordingLists.kt:60, :85; AvailabilityOfflineMaps.kt:127; MushroomLogGallery.kt:52). Photos carry the count too. Only waypoint details show "Used in"; for tracks and offline maps it appears only in the delete message (the dispatch's premise was wrong there).
 **Decision:** the owner: "Live count (Recommended)"; "Allow the 3 lines (Recommended)" for TrackRecordingViewModel.kt at 868 lines; Tracks "Record button only (Recommended)"; Offline maps "No maps downloaded (Recommended)"; All "Names what shows here (Recommended)". Dispatch 2026-10-28-08 Amendment 1, with the go to build.
 **Notes:** Written by the planner by hand. Next free ID -1782.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1782
+**Timestamp:** 2026-10-29T00:24:29Z
+**Continues:** 2026-09-28-1781
+**Title:** Live counts and empty states built: PR #434 into pre-main, green, not merged
+**Observed:** Hazel (Opus; branch live-counts-empty-states, head b677cdbab; completion report docs/audits/2026-10-28-live-counts-empty-states.md). Self-updating count queries (CartographyEntryDao.kt:208-252) behind EntryReferenceCountSource, started once in three ViewModels; photos included; the one-time loops removed; no schema change; the five empty lines in the owner's words. Fail-first run 40785584591: 13 predicted failures of 55. Revert runs 40787678089 (39 of 350, each its own) and 40787680709 (2, as predicted). Green run 40789923689 on b677cdbab: 5,901 tests, 0 failures, 24 skipped. That was a rerun of two jobs whose first attempt failed on a corrupt Platform-Tools download (lint never ran) and on AvailabilityScreenCrowdedIconsSettingTest (reads a setting before its write lands; untouched, and noted for the flake hunt). Disclosed gaps: removing the count wiring in createAvailabilityViewModel would go unnoticed (default parameter); OfflineMapsPanelTextTest was not in a revert filter.
+**What the planner checked itself:** git diff origin/pre-main...origin/live-counts-empty-states: 49 files, no @Ignore or @Disabled added; run 40789923689 success at b677cdbab; PR #434 open and mergeable.
+**Notes:** Written by the planner by hand. Next free ID -1783.
