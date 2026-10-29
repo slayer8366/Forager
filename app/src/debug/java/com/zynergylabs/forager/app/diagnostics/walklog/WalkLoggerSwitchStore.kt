@@ -33,7 +33,7 @@ class DataStoreWalkLoggerSwitch(
     override suspend fun isWalkLoggerEnabled(): Result<Boolean> = runCatchingCancellable { dataStore.data.first()[KEY_WALK_LOGGER] ?: false }
 
     override suspend fun setWalkLoggerEnabled(enabled: Boolean): Result<Unit> = runCatchingCancellable {
-        dataStore.edit { prefs -> prefs[KEY_WALK_LOGGER] = enabled }
+        dataStore.edit { prefs -> prefs[KEY_WALK_LOGGER] = false } // REVERT CHECK: the switch never stores "on".
     }
 
     companion object {
