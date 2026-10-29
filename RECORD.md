@@ -29801,3 +29801,25 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** #440: the height's steadying survives a return within 10 minutes
 **Decision:** the owner: "Keep the steadying for 10 min (Recommended)". Rejected: keeping the barometer running with the screen off (battery), and leaving it as built. Dispatch 2026-10-28-13 Amendment 4. The tools build for #440 (dispatch 2026-10-29-05) will need rebuilding on the new head.
 **Notes:** Written by the planner by hand. Next free ID -1809.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1809
+**Timestamp:** 2026-10-29T21:08:47Z
+**Continues:** 2026-09-28-1808, 2026-09-28-1805
+**Title:** #440's kept steadying: Hazel's proposal accepted, the hold before the first barometer reading capped at 10 s; the guard PR #441 is up; the #440 tools build stopped on a coupling
+**Observed:**
+- Hazel's Amendment 4 proposal (Opus):
+  - a settled anchor, kept in memory, on the sensor clock;
+  - a climb while away is picked up, and only a weather change is missed;
+  - the existing pull runs across the gap, at most 15% after 9 minutes;
+  - the strip holds its last value until the first reading.
+- Dispatch 2026-10-29-05:
+  - Part 1, PR #441 (no-tools-guard 6ae3350cf): a no-debug-sources CI job, with the 55 tool file names stored as hashes.
+    - It failed on an empty app/src/debug/ (run 40952544209, draft #442, now closed).
+    - It is skipped on "Run this branch" off main or pre-main (run 40952555406).
+    - It passes on #441 (run 40952537060, 5,905 tests, 0 failures).
+  - Part 2 stopped under the dispatch's own rule. The walk logger's switch is implemented by SyntheticForecastCellStore and read through AppContainer.forecastCellStore, so the logger can't be separated from the synthetic forecast.
+**Decision:** the owner: "10 seconds (Recommended)" for the hold (rejected: a minute, which would show a stale height for up to a minute on a dead sensor).
+**Notes:** Written by the planner by hand. Part 2's options go to the owner. Next free ID -1810.
