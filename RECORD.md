@@ -29631,3 +29631,19 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Altitude: below Android 14 the height chart draws with no height labels
 **Decision:** the owner: "Chart with no numbers (Recommended)" (rejected: "Alt unavailable" in each label, which the narrow column cuts short; no chart at all). Dispatch 2026-10-28-13 Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -1795.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1795
+**Timestamp:** 2026-10-29T05:36:48Z
+**Continues:** 2026-09-28-1792, 2026-09-28-1793, 2026-09-28-1794
+**Title:** Altitude above sea level built: PR #440 into pre-main, green, not merged
+**Observed:** The first Hazel session (Opus) built items 1-7 and handed off past 200k tokens (docs/audits/2026-10-28-altitude-sea-level-handoff.md). A fresh session (Opus) finished it at head 0eff2e0d2 (completion report docs/audits/2026-10-28-altitude-sea-level-completion-report.md).
+- Run 40819762947 at b292e8d19 had 9 failures: three from a harness launch problem in the new labels test, and six layout tests whose fixtures carried a fix with no shown height, so the strip read "Alt unavailable". 1aa2a91bb gives those fixtures the fix's own height at a zero offset. That restores what they measured; it does not change it.
+- Green run 40821535871 at c61ee0933: 5,928 tests, 0 failures, 24 skipped.
+- The tests went in after the fix. Fifteen one-line revert checks (runs 40821993732-40822037723) each failed for their own rule, with zero compile errors; branches deleted.
+- No revert covers three LiveHeightTest cases or forager:point ele staying raw.
+- Nothing on screen draws the navigation card's height (a wrong premise of the dispatch).
+**What the planner checked itself:** git diff origin/pre-main...origin/altitude-sea-level: 74 files, no @Ignore or @Disabled added; run 40821535871 success; run 40824270994 on the docs head still in progress.
+**Notes:** Written by the planner by hand. Next free ID -1796.
