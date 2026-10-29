@@ -29833,3 +29833,20 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The tools build gets a walk-logger switch of its own; #441 gets a quick look, then merges
 **Decision:** the owner: "A small switch of its own (Recommended)" (rejected: carrying the synthetic forecast code hidden); "Quick Sorrel look, then merge (Recommended)" for #441. Dispatch 2026-10-29-05 Amendment 1, and dispatch 2026-10-29-07 (Sorrel).
 **Notes:** Written by the planner by hand. Hazel's #440 Amendment 4 adds one line to AvailabilityViewModel.kt (786 to 787, so the fallback's log reaches the ErrorLog); accepted. Next free ID -1811.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1811
+**Timestamp:** 2026-10-29T21:22:22Z
+**Continues:** 2026-09-28-1810
+**Title:** #441, the no-tools guard, merged into pre-main
+**Observed:** Sorrel's quick look (Fable; sorrel-pr441 f218edf45, docs/reviews/2026-10-29-sorrel-pr441.md): no S, five N.
+- The hash list was reproduced exactly: 55 of 55 names, none extra, none missing.
+- Positive control: 63 matches on origin/dev; 0 collisions on pre-main or main.
+- The fail and skip runs were read from their logs.
+- N2: a list of blank lines passes the empty-list refusal.
+- N3: no branch protection or required checks on pre-main or main, so a red guard does not block a merge.
+- N4: debug files dev added later are covered by check 1 only.
+**Decision:** under the owner's "Quick Sorrel look, then merge (Recommended)": merged as 21d846b9e with --match-head-commit 6ae3350cf, on green run 40952537060. N3 is the owner's call and goes to the owner; N2 and N5 go to a later tidy.
+**Notes:** Written by the planner by hand. The guard's first run on a real pre-main push is this merge's push run. Next free ID -1812.
