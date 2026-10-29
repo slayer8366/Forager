@@ -29668,3 +29668,20 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; sorrel-pr440 c49f637ca, docs/reviews/2026-10-29-sorrel-pr440.md) at 0eff2e0d2: no S, ten N. N1: replaying the shipped rule on the 10-28 walk steps the shown height 7.0 m at 13 s. N2: the barometer is read on every foregrounded tab (AvailabilityLiveLocation.kt:81-86), wider than "whenever the map is open". N3: no test pins the anchor's slow pull. The zero-offset fixtures were confirmed to only restore what they measured (from run 40819762947's XML). The ViewModel split was confirmed a pure move.
 **Decision:** the owner: N1 "Show plain GPS until settled (Recommended)"; N2 "Map tab only (Recommended)". N3, N6, N7 and N8 ride along. The planner's option text promised "no single big step at the switch", which a plain handover cannot guarantee, so the switch blends; dispatch 2026-10-28-13 Amendment 3.
 **Notes:** Written by the planner by hand. Next free ID -1798.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1798
+**Timestamp:** 2026-10-29T10:37:50Z
+**Continues:** 2026-09-28-1797
+**Title:** #440 Amendment 3 built: plain GPS for the first minute then a 30 s blend; barometer on the Maps tab only
+**Observed:** Hazel (Opus) at head d1770d5b5 (docs; code 6ce00d7cd).
+- Fail-first run 40855188610 had the 7 predicted failures; N3 pins behaviour that already held, proven by r18.
+- Green run 40856123923 at 6ce00d7cd: 5,936 tests, 0 failures, 24 skipped.
+- Reverts r16-r23 (runs 40856214877-40856245975) each failed for their own rule with zero compile errors; branches deleted.
+- On the 10-28 walk: the largest first-minute step is GPS's own 8.1 m at 7 s (as built before, 7.0 m at 13 s); the step at the switch is 0.4 m with the blend, 0.2 m without; after that, 0.8 m.
+- One existing assertion moved: LiveHeightTest's flat walk now measures from 91 s, with the reason given in a comment.
+- Earlier device-step claims ("whenever the map is open"; "the first minute can step") are withdrawn in the report and PR body.
+**What the planner checked itself:** no @Ignore or @Disabled added against pre-main; run 40856123923 success at 6ce00d7cd.
+**Notes:** Written by the planner by hand. The blend window (30 s, LIVE_HEIGHT_BLEND_MILLIS) is a coder's proposal awaiting the owner. Hazel's items 2-4 were already ruled (-1796, -1793). Next free ID -1799.
