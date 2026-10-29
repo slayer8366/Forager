@@ -29850,3 +29850,24 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - N4: debug files dev added later are covered by check 1 only.
 **Decision:** under the owner's "Quick Sorrel look, then merge (Recommended)": merged as 21d846b9e with --match-head-commit 6ae3350cf, on green run 40952537060. N3 is the owner's call and goes to the owner; N2 and N5 go to a later tidy.
 **Notes:** Written by the planner by hand. The guard's first run on a real pre-main push is this merge's push run. Next free ID -1812.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1812
+**Timestamp:** 2026-10-29T21:50:17Z
+**Continues:** 2026-09-28-1811, 2026-09-28-1809, 2026-09-28-1810
+**Title:** Required checks on pre-main and main (owner); #440 Amendment 4 built; the #440 tools build is green except lint
+**Observed:**
+- **#440 Amendment 4** (Hazel, Opus; head bb25405c0, code 2b299ee22): KeptLiveHeight keeps a settled anchor across a stop. It resumes within 10 min on the sensor clock and holds at most 10 s before the first reading.
+  - Fail-first run 40955650929: the 5 predicted failures.
+  - Green run 40957645167: 5,942 tests, 0 failures.
+  - Reverts r24-r30 each failed for their own rule.
+  - Run 40960264968 on bb25405c0 was in progress with five jobs green.
+- **tools/pr-440** (Hazel, Opus):
+  - 0997641ec, on d1770d5b5, run 40956254798: build and tests green, 6,023 tests, 0 failures; APK 1.0.4176+g0997641e.
+  - Merged with Amendment 4 as 5dd087f4e, run 40958910795: build, tests and release compile green.
+  - Lint is red on both runs: 18 errors in the tools' own code, first NewApi at AndroidWalkLogPlatform.kt:104, unchanged from efa52f57d. Dev carried a lint change for its guarded API calls (82b55f06a).
+  - The switch revert (run 40956265183, 0 compile errors) failed 7 of 15. WalkLoggerSwitchMidRecordingTest passed with the store broken, so it does not test the store.
+**Decision:** the owner: "Yes, require them (Recommended)": the CI checks become required for merges into pre-main and main, set by the owner in the repository's branch settings from the planner's steps.
+**Notes:** Written by the planner by hand. The lint ruling and the tools build's S22 install go to the owner. Next free ID -1813.
