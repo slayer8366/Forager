@@ -29774,3 +29774,20 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the owner, during the walk: about 8 miles from home on flat land, "There is no height within a mile from me. It's all flat land.", "No stairs either"; an eye-level-to-ground test "didn't make a difference"; S26 on 4153, S22 on 4175.
 **Decision:** the owner: "Back. S22 plugged in". Dispatch 2026-10-29-06: steps 1-4 and 7 from the phone's data, a small area downloaded over the walk for the ground heights, the eye-level result explained from data or marked undetermined, steps 5 and 6 not run (no height change available), step 8 still deferred.
 **Notes:** Written by the planner by hand. Next free ID -1807.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1807
+**Timestamp:** 2026-10-29T21:02:34Z
+**Continues:** 2026-09-28-1806
+**Title:** The 10-29 walk on the S22: height within 0.2 m of the ground; labels and export converted; the eye-level test can't be placed
+**Observed:** the S22 helper (Opus; s22-pr440 0bb50972e; evidence in /home/zynergy-labs/s22-2026-10-29/pr440/walk/):
+- One recording on the S22, 13:40-13:47 PDT, 0.3 mi, inside Region 1 (stored as 1 km; "1 mi" is a rounding, DistanceUnit.kt:60). The relayed "about 8 miles" isn't in the S22's data.
+- No screen recording; the Journal/Maps switch wasn't done.
+- Step 1 passes by behaviour: no "Alt unavailable"; the export sits 21.53 m above raw, the platform's own conversion, on Android 16.
+- Step 2 passes: 448 ft against 136.75 m of ground at 13:45:51, 0.2 m low, read while walking rather than standing still. Replaying the stored points gives +0.2 m mean, 2.1 m worst. Raw GPS was 22.1 m low.
+- Step 7 passes: labels at 450/444 ft against ground at 448-450 ft; export heights all +21.53 m.
+- Steps 3-6 weren't run; step 8 is still deferred.
+- The eye-level test can't be placed. After 13:13:50 every map-barometer window but one ran under 75 s, because the barometer restarts on each screen-off or pause, so the strip was mostly in its first-minute plain-GPS mode. Display rounding is ruled out; a fault is neither shown nor excluded.
+**Notes:** Written by the planner by hand. Next free ID -1808.
