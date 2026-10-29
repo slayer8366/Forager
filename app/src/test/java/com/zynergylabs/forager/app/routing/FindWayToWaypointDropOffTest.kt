@@ -46,14 +46,15 @@ class FindWayToWaypointDropOffTest {
 
     private fun tileJson(name: String) = File(checkNotNull(javaClass.classLoader?.getResource("mapdata/$name")).toURI()).readText()
     private val tile = DropOffTestData.resource(DropOffTestData.TILE).readBytes()
-    private fun basemap(json: String) = object : OfflineBasemap {
+    private val tileBefore0003 = DropOffTestData.resource(DropOffTestData.TILE_BEFORE_0003).readBytes()
+    private fun basemap(json: String, stored: ByteArray) = object : OfflineBasemap {
         override suspend fun tileJson() = Result.success<String?>(json)
-        override suspend fun tile(id: TileId) = Result.success(if (id == TileId(15, 9875, 12393)) tile else null)
+        override suspend fun tile(id: TileId) = Result.success(if (id == TileId(15, 9875, 12393)) stored else null)
     }
 
-    private fun find(pin: String, json: String = tileJson("tilejson-with-0003.json")) = runBlocking {
+    private fun find(pin: String, json: String = tileJson("tilejson-with-0003.json"), stored: ByteArray = tile) = runBlocking {
         val region = Ground.region(id = 7, centre = DropOffTestData.point("pin_a"), radiusKm = 2, routeData = RegionRouteData.Stored("run", "t", 10L, data))
-        val ends = StreetDropOffEnds(ReadNearbyMapData(basemap(json)), BRouterRouteWays(profile))
+        val ends = StreetDropOffEnds(ReadNearbyMapData(basemap(json, stored)), BRouterRouteWays(profile))
         FindWayToWaypointUseCase(FakeRegions(region), engines, errorLog, ends)(DropOffTestData.point("walker"), DropOffTestData.point(pin))
     }
 
@@ -98,8 +99,9 @@ class FindWayToWaypointDropOffTest {
     }
 
     @Test
-    fun `a tile set from before fences were carried is the straight line, not a route it cannot vouch for`() {
-        assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.MAP_NOT_CHECKED), find("pin_a", tileJson("tilejson-before-0003.json")))
-        assertTrue(logged.any { "MAP_NOT_CHECKED" in it && "barriers layer" in it })
+    fun `a tile from before fences were carried is the straight line, not a route it cannot vouch for`() {
+        // A tile downloaded before the 11-01 build has no barrier mark, whatever the stored TileJSON says.
+        assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.MAP_NOT_CHECKED), find("pin_a", tileJson("tilejson-with-0003.json"), tileBefore0003))
+        assertTrue(logged.any { "MAP_NOT_CHECKED" in it && "no barrier mark" in it })
     }
 }
