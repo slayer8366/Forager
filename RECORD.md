@@ -29588,3 +29588,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The BRouter Kotlin port lives in forager-ios, worked by another agent
 **Decision:** the owner: "forager-ios in my github. I have another agent working on it for the opening project". The port is the owner's own track with its own agent, not dispatched from here. This planner tracks it as a dependency of the app's routing interface and does not direct it.
 **Notes:** Written by the planner by hand. The repository was not read. Next free ID -1791.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1791
+**Timestamp:** 2026-10-29T04:05:42Z
+**Continues:** 2026-09-28-1788
+**Title:** The 10-28 walk read: the trail route follows the mapped trail; altitude is ellipsoid height shown as true; sea level plus barometer, report first
+**Observed:** the S26 walk read (Opus; s26-walk-2026-10-28 b3877b0c, docs/audits/2026-10-28-s26-walk-read.md; data in /home/zynergy-labs/s26-2026-10-28/, the database's hashes equal three ways; build 1.0.4153+g86c99060). At 5:40 the way-home line was the trail route, 425.7 m plus 6 m of joints; all 22 of its points are nodes of the mapped trail (24 nodes over 507 m), so it has no cut bends, agreeing with -1636. The walked track runs about 3.8 m off it. The 5:42 line was not the way home (Stop ends it, TrackRecordingService.kt:391); most likely a waypoint navigation, unverified. Altitude: the strip shows raw ellipsoid height (AvailabilityUiState.kt:415), a mean 23.8 m below the trail data's ground, with about ±10 m of noise; the barometer correlates 0.82 with the ground, GPS 0.23. Dispatch 2026-10-28-11 named the wrong method file; the helper used the l0a run record's method.
+**Decision:** the owner: "Sea level + barometer (Recommended)" ("Alt unavailable" where the phone has no converter); "Yes, report first (Recommended)". Dispatch 2026-10-28-12.
+**Notes:** Written by the planner by hand. Next free ID -1792.
