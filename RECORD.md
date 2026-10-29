@@ -29685,3 +29685,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Earlier device-step claims ("whenever the map is open"; "the first minute can step") are withdrawn in the report and PR body.
 **What the planner checked itself:** no @Ignore or @Disabled added against pre-main; run 40856123923 success at 6ce00d7cd.
 **Notes:** Written by the planner by hand. The blend window (30 s, LIVE_HEIGHT_BLEND_MILLIS) is a coder's proposal awaiting the owner. Hazel's items 2-4 were already ruled (-1796, -1793). Next free ID -1799.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1799
+**Timestamp:** 2026-10-29T10:40:45Z
+**Continues:** 2026-09-28-1798
+**Title:** #440: the 30 s blend kept; the S22 steps when the owner plugs it in
+**Decision:** the owner: "30 seconds (Recommended)" for LIVE_HEIGHT_BLEND_MILLIS; "Yes, when I plug it in (Recommended)" for #440's 8 S22 steps and the 30-minute battery comparison (pre-main against #440, Maps tab showing, -1796).
+**Notes:** Written by the planner by hand. Next free ID -1800.
