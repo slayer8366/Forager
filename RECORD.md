@@ -29549,3 +29549,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus; fresh session) built Amendment 2 at 1da6b9fd7 (code 46cc439d7). Fail-first run 40796636308: 5 of 25 failed, each as predicted. Green runs 40797376100 and 40799023030: 5,905 tests, 0 failures, 24 skipped. Reverts a-d (3d6bab836, afbafda2c, c85893ecb, 6445f29c7) each failed only their own tests; for a, the exception escapes before the test messages, the same split as Sorrel's N3. Branches deleted. JournalTab.kt is now 919 lines (+1). The 46cc439d7 commit message misstates TrackRecordingViewModel.kt's lines (858; it is 860), corrected in the report, not amended. The earlier #434 session was stopped with TaskStop after reporting nothing unpushed.
 **Decision:** the owner: "Yes, keep it (Recommended)" for the retry timing: 1 s doubling to a 30 s ceiling, reset after a good read, each failure logged.
 **Notes:** Written by the planner by hand. Next free ID -1787.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1787
+**Timestamp:** 2026-10-29T01:56:07Z
+**Continues:** 2026-09-28-1785, 2026-09-28-1786
+**Title:** #434 merged into pre-main: live "Used in" counts and empty states with a next step
+**Observed:** the S22 helper (Opus; s22-pr434 dfa673a9e, docs/audits/2026-10-28-s22-pr434.md; evidence in /home/zynergy-labs/s22-2026-10-28/pr434/) on 1.0.4164+g59072a8e (run 40797376100, 46cc439d7 merged onto 9f2df1abb; digest matched; schema 22 to 22). Steps 1-8 pass: counts change at once for waypoints, tracks, photos and offline maps, with no restart, including after 5 minutes. The five lines match word for word. Step 7's failed-read case was not run (it cannot be forced on a phone). Seen: the Tracks and All lines name controls on the map, not on Records; Download Maps sits below the fold. No permission was granted; cleanup was confirmed in a database copy. PR head 1da6b9fd7 green (run 40799023030), CLEAN.
+**Decision:** the owner: "Merge now (Recommended)". Merged as d100a4776 at 2026-10-29T01:55:54Z with --match-head-commit 1da6b9fd7; pre-main updated. N6, removing the dead one-shot queries, is a later task; so is splitting TrackRecordingViewModel.kt (860) and JournalTab.kt (919).
+**Notes:** Written by the planner by hand. Next free ID -1788.
