@@ -29506,3 +29506,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus; branch live-counts-empty-states, head b677cdbab; completion report docs/audits/2026-10-28-live-counts-empty-states.md). Self-updating count queries (CartographyEntryDao.kt:208-252) behind EntryReferenceCountSource, started once in three ViewModels; photos included; the one-time loops removed; no schema change; the five empty lines in the owner's words. Fail-first run 40785584591: 13 predicted failures of 55. Revert runs 40787678089 (39 of 350, each its own) and 40787680709 (2, as predicted). Green run 40789923689 on b677cdbab: 5,901 tests, 0 failures, 24 skipped. That was a rerun of two jobs whose first attempt failed on a corrupt Platform-Tools download (lint never ran) and on AvailabilityScreenCrowdedIconsSettingTest (reads a setting before its write lands; untouched, and noted for the flake hunt). Disclosed gaps: removing the count wiring in createAvailabilityViewModel would go unnoticed (default parameter); OfflineMapsPanelTextTest was not in a revert filter.
 **What the planner checked itself:** git diff origin/pre-main...origin/live-counts-empty-states: 49 files, no @Ignore or @Disabled added; run 40789923689 success at b677cdbab; PR #434 open and mergeable.
 **Notes:** Written by the planner by hand. Next free ID -1783.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1783
+**Timestamp:** 2026-10-29T00:25:07Z
+**Continues:** 2026-09-28-1782
+**Title:** PR #434: Sorrel's review, then the S22
+**Decision:** the owner: "Sorrel review, then S22 (Recommended)". Dispatch 2026-10-28-09 (Sorrel, Fable). Merge into pre-main after both.
+**Notes:** Written by the planner by hand. Next free ID -1784.
