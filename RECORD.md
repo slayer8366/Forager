@@ -29882,3 +29882,17 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** tools/pr-440 final (Hazel, Opus): 5dd087f4e, run 40958910795; build and tests green, 6,029 tests, 0 failures; APK 1.0.4179+g5dd087f4 (artifact 12936275785). Lint is red with 18 errors in the tools' own code.
 **Decision:** the owner: "Bring dev's lint setting along (Recommended)" (dispatch 2026-10-29-05 Amendment 2); "Yes, next time it's plugged in (Recommended)": install it over #440 on the S22, keeping Region 1, grant ACTIVITY_RECOGNITION and READ_BASIC_PHONE_STATE by adb, and switch the logger on.
 **Notes:** Written by the planner by hand. A fresh coder, since the last was past about 230k tokens. Next free ID -1814.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1814
+**Timestamp:** 2026-10-29T22:29:41Z
+**Continues:** 2026-09-28-1813
+**Title:** The #440 tools build is green with dev's lint annotations; APK 1.0.4180+gb18bd56d; the crowded-icons test flakes a second time
+**Observed:** Hazel (Opus) on tools/pr-440, b18bd56d3 on 5dd087f4e (only origin/tools/pr-440 contains it).
+- Dev's setting (82b55f06a) is two code annotations, not a lint config. They are `@SuppressLint("NewApi")` on readGnssCapabilities, which covers 17 errors, and `@RequiresApi(P)` on recordViolation, which covers the 18th. Both calls are guarded by SDK_INT, as checked in this copy.
+- Run 40961642397, attempt 1: lint green, with 0 errors and 15 warnings. The unit tests had 1 failure in 6,029: AvailabilityScreenCrowdedIconsSettingTest:170, "expected:<[list]> but was:<[zoom_then_fan]>", the same as -1784's sighting.
+- Attempt 2 (a re-run of the failed job, nothing changed): all five jobs green, 6,029 tests, 0 failures.
+- APK 1.0.4180+gb18bd56d (versionCode 4180), artifact 12937313982.
+**Notes:** Written by the planner by hand. Two sightings of the crowded-icons test racing its DataStore read (-1784, here), for the deferred flake hunt. The install waits for the S22 to be plugged in (-1813). Next free ID -1815.
