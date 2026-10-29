@@ -29527,3 +29527,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable; sorrel-pr434 7ce136825, docs/reviews/2026-10-28-sorrel-pr434.md) at b677cdbab: no S, nine N. The live queries match the one-shot rules; tests run through real entry points; revert evidence checked from the XML. The rerun's first attempt: lint died on an SDK download, and AvailabilityScreenCrowdedIconsSettingTest:170 races a raw-file read against DataStore. That test was added by dispatch 2026-10-27-14 and is unrelated to this diff. It is logged here for the deferred flake hunt. N4: one failed read freezes counts until restart. N5: a failed drafts read shows "No drafts. …", which is untrue.
 **Decision:** the owner: N5 "Say it couldn't load (Recommended)"; N4 "Retry by itself (Recommended)", chosen knowing no data shows it happens (CLAUDE.md's speculative-correction line; the owner's call). N1 and N8 ride along; N6 is a later task. Dispatch 2026-10-28-08 Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -1785.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1785
+**Timestamp:** 2026-10-29T01:21:13Z
+**Continues:** 2026-09-28-1784
+**Title:** PR #434's S22 steps on 46cc439d7
+**Observed:** CI run 40797376100 succeeded on 46cc439d7 (Amendment 2's three fixes). The head 1da6b9fd7 changes only two documents (the completion report and the index row); its CI run 40799023030 was in progress.
+**Decision:** the owner: "S22 plugged in"; "Run S22 now (Recommended)", before Hazel's Amendment 2 report. Dispatch 2026-10-28-10.
+**Notes:** Written by the planner by hand. Next free ID -1786.
