@@ -29560,3 +29560,12 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the S22 helper (Opus; s22-pr434 dfa673a9e, docs/audits/2026-10-28-s22-pr434.md; evidence in /home/zynergy-labs/s22-2026-10-28/pr434/) on 1.0.4164+g59072a8e (run 40797376100, 46cc439d7 merged onto 9f2df1abb; digest matched; schema 22 to 22). Steps 1-8 pass: counts change at once for waypoints, tracks, photos and offline maps, with no restart, including after 5 minutes. The five lines match word for word. Step 7's failed-read case was not run (it cannot be forced on a phone). Seen: the Tracks and All lines name controls on the map, not on Records; Download Maps sits below the fold. No permission was granted; cleanup was confirmed in a database copy. PR head 1da6b9fd7 green (run 40799023030), CLEAN.
 **Decision:** the owner: "Merge now (Recommended)". Merged as d100a4776 at 2026-10-29T01:55:54Z with --match-head-commit 1da6b9fd7; pre-main updated. N6, removing the dead one-shot queries, is a later task; so is splitting TrackRecordingViewModel.kt (860) and JournalTab.kt (919).
 **Notes:** Written by the planner by hand. Next free ID -1788.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1788
+**Timestamp:** 2026-10-29T03:35:07Z
+**Title:** The owner's 10-28 test walk: pull it from the S26, read the route line and the altitude
+**Decision:** the owner: "I did some test walking. S26 plugged in"; then "Pull the walk data (Recommended)", "The straight-cut route line", "The altitude jumps". Dispatch 2026-10-28-11: read-only on the S26 (the owner's daily driver), data kept off GitHub, findings only.
+**Notes:** Written by the planner by hand. The owner's six screenshots are described in the dispatch in words, not committed. Next free ID -1789.
