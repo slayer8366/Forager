@@ -29721,3 +29721,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Steps 5 and 6 are re-planned for stairs and a one-way recording, because the laptop is on the door's floor.
 **Decision:** the owner: "Near home (Recommended)"; "No, same floor"; battery "Another day"; then "The walk will be deferred until later." #440 stays unmerged until the walk. The S22 keeps #440 and Region 1 for it. The walk's exact words are in the interim report.
 **Notes:** Written by the planner by hand. The helper is past about 180k tokens, so the walk will be run by a fresh session from the interim report. Next free ID -1802.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1802
+**Timestamp:** 2026-10-29T17:09:30Z
+**Continues:** 2026-09-28-1801, 2026-09-28-1796
+**Title:** #440's battery comparison (step 8) now; the walk still deferred
+**Decision:** the owner: "S22 plugged in"; "Walk not done yet"; "Battery test (Recommended)". Dispatch 2026-10-29-03: A (pre-main d100a4776) then B (#440), 30 minutes each with the Maps tab showing, indoors. #440 and Region 1 are kept on the phone for the walk.
+**Notes:** Written by the planner by hand. A fresh helper; the earlier one was past about 180k tokens. Next free ID -1803.
