@@ -34,3 +34,12 @@ CI fails if `app/src/debug/` or `app/src/release/` exists, or if a file the tool
 - The Restricted Object: never read, name or quote it.
 - Ambiguity: stop and report.
 - If you pass about 200k tokens, push and hand off.
+
+## Amendment 1 (2026-10-29): the walk logger's own switch (RECORD -1810)
+Part 2 stopped because the walk logger's switch is implemented by SyntheticForecastCellStore. The owner: "A small switch of its own (Recommended)".
+- In tools/pr-440 only (debug source set), write a debug-only switch store on the same diagnostics DataStore file and the `diagnostics.walk_logger` key, held once per process.
+- WalkLogger and DiagnosticsPanel read that store. AppContainer keeps pre-main's AbsentForecastCellStore.
+- The four logger tests move onto the new store.
+- Leave the synthetic forecast out entirely.
+- Each moved test must still fail when the switch is broken: run one revert check on the new store.
+- Then continue Part 2 as written. Rebuild on #440's newest head once Hazel's Amendment 4 push to altitude-sea-level lands. If it hasn't landed when you're ready, use d1770d5b5 and say so.

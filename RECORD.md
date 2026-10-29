@@ -29823,3 +29823,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
   - Part 2 stopped under the dispatch's own rule. The walk logger's switch is implemented by SyntheticForecastCellStore and read through AppContainer.forecastCellStore, so the logger can't be separated from the synthetic forecast.
 **Decision:** the owner: "10 seconds (Recommended)" for the hold (rejected: a minute, which would show a stale height for up to a minute on a dead sensor).
 **Notes:** Written by the planner by hand. Part 2's options go to the owner. Next free ID -1810.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1810
+**Timestamp:** 2026-10-29T21:11:05Z
+**Continues:** 2026-09-28-1809
+**Title:** The tools build gets a walk-logger switch of its own; #441 gets a quick look, then merges
+**Decision:** the owner: "A small switch of its own (Recommended)" (rejected: carrying the synthetic forecast code hidden); "Quick Sorrel look, then merge (Recommended)" for #441. Dispatch 2026-10-29-05 Amendment 1, and dispatch 2026-10-29-07 (Sorrel).
+**Notes:** Written by the planner by hand. Hazel's #440 Amendment 4 adds one line to AvailabilityViewModel.kt (786 to 787, so the fallback's log reaches the ErrorLog); accepted. Next free ID -1811.
