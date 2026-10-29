@@ -110,6 +110,8 @@ Some cases are not named in any failure above: of the 7 `LiveHeightTest` cases, 
 
 ## Device steps (S22 Ultra; the S26 Ultra only if the owner allows)
 
+**Superseded 2026-10-29** by the device steps in the Amendment 3 section below. This list is kept as written.
+
 These steps use CI's debug APKs only, never a release build on the owner's phones. Swapping between the pre-main build and this branch's build does not change the database schema. That the two debug APKs share a signing key, so they install over each other, is unverified.
 
 1. **The converter is supported.** With this branch's APK installed, open the Maps tab outdoors with a fix, and read `adb logcat -s ForagerSeaLevel`.
@@ -139,6 +141,154 @@ These steps use CI's debug APKs only, never a release build on the owner's phone
 
 ## For the owner
 
+**Superseded 2026-10-29** by the owner list in the Amendment 3 section below.
+
 - **The battery comparison can't isolate the barometer** without a dev-only switch, which this dispatch did not ask for. Is the build-against-build comparison in step 7 enough, or should a switch be built on `dev`?
 - **The 10 m pass threshold in step 2 is mine.** It needs the owner's figure, or their acceptance.
+- **The known gap from Amendment 1 stands:** a file Forager exported before this change, imported again, reads about 21 m low.
+
+## Amendment 3 (2026-10-29): Sorrel's review, N1, N2, N3, N6, N7, N8
+
+Added 2026-10-29 10:34 UTC by Hazel (Opus), in the same session. Amendment 3 (RECORD -1797) is at the end of the dispatch on `records-after-173`. It answers Sorrel's review, `docs/reviews/2026-10-29-sorrel-pr440.md` on `sorrel-pr440` (`c49f637ca`), which found no S findings and ten N. Here N1, N2, N3, N6, N7 and N8 are built. N4, N5, N9 and N10 are recorded only, as the amendment says. Base pre-main `d100a4776`, still the remote head.
+
+### What landed
+
+| Commit | What |
+|---|---|
+| `ae647521f` | Test-first. The new tests, plus the two seams they need to compile, with no behaviour change. The seams are the platform's sea-level call as a parameter (`MslConversion`), and the Maps tab's shown state reported from the screen to the ViewModel (`AvailabilityScreenMapControls.onMapsTabShownChanged`, wired in `MainActivity` and in the test rig) into a no-op. |
+| `6ce00d7cd` | The fixes. |
+
+Both commits are pushed to `altitude-sea-level`. The tree is clean.
+
+### What was built
+
+- **N1, the first minute and the blend** (the owner: "Show plain GPS until settled (Recommended)"). `LiveHeight` now shows each fix's converted GPS height as it comes for the first minute. It then gives the anchor its share over `LIVE_HEIGHT_BLEND_MILLIS` (`domain/LiveHeight.kt`).
+  - Shown = barometer + (GPS over barometer at the latest fix) × (1 − w) + anchor × w. The weight w is 0 through the minute and rises to 1 over the window, on the fixes' own clock.
+  - With fixes arriving, this is the GPS height blended into the steadied one.
+  - In a GPS gap, the blend waits for fixes, but the barometer's change is still followed in full, so "Follow the barometer" still holds in the first minute and during the blend.
+  - The fixes' clock is used because fixes carry only an epoch time and readings only the sensor's elapsed time. The anchor already runs on the fixes' clock.
+- **N2, the barometer only on the Maps tab** (the owner: "Map tab only (Recommended)"). `AvailabilityLiveLocation` reads the barometer only while the Maps tab is showing and the live fix is collected. The screen reports the tab both ways from the effect that already ran `onMapShown`, inside that effect so no composition slot after it moves (`AvailabilityScreen.kt`). The recording service's own reading, while recording on any tab, is unchanged.
+  - Each time the map's barometer stops (leaving the tab, leaving the foreground, fixes ending), the steadying starts afresh.
+- **What the strip shows back on the map** (N2 under N1's rule). While on another tab, fixes keep arriving with no barometer, so the shown height is each fix's converted GPS height as it comes. Back on the Maps tab, the strip shows that height straight away; until the next fix it is the last one taken while away.
+  - The barometer starts again, and for the first minute after its first reading the strip still shows each fix's converted GPS height. Over the next 30 s it blends into the steadied height.
+  - No anchor or reading from before the tab was left is used.
+- **N3.** A test pins the anchor's slow pull.
+- **N6.** Any non-cancellation exception from the platform's call is "unsupported" and logged, not thrown into the fix collection.
+- **N7.** Logged once per reason. The reasons are: below 34, no sea-level height set, the model, a refused location, and any other exception by its class.
+- **N8.** A recorded track with no GPS height makes the chart's labels Unsupported (no numbers). It no longer takes a zero offset.
+- **Not touched:** N4 (the batched pressure readings); N5 (a barometer failure ending the fixes); the export's per-point conversion (N9).
+- **Found and fixed in my own edit before it ran:** the fix collector had read the steadying object before the suspending conversion, so a tab change during the conversion would have landed that fix on the discarded one. It now converts first.
+
+### The proposed blend window: 30 s, for the owner to confirm
+
+**On the 2026-10-28 walk's stored points** (84 points, 5 to 7 s apart):
+- The largest step in the first minute is GPS's own, **8.1 m at 7 s**. That is what "plain GPS until settled" shows. As built before this amendment, the forming anchor stepped **7.0 m at 13 s** instead.
+- At the minute, GPS and the steadied height differed by only **0.4 m**. So the step at the switch is **0.2 m with no blend at all, and 0.4 m with a 30 s blend**. This walk does not exercise the blend.
+- The largest step after the blend is 0.8 m.
+
+**On the two 2026-10-24 walks**, read only to size the window, the gap at the minute was 3.6 m and 4.0 m. On stored points, a 30 s blend took their largest steps around the switch from 1.9 to 1.4 m on one walk, and on the other from a 5.4 m step 73 s in (with a 10 s blend) to 3.1 m.
+
+**Why 30 s:**
+- Live, at a fix a second, a gap of g metres moves the reading g / 30 m a second.
+- A gap up to 9 m therefore moves it by under 1 ft a fix, and the strip ticks one unit at a time. The first fixes' GPS error on 10-28 was 8 m.
+- A shorter window steps more per fix. A longer one keeps GPS's error on screen longer.
+- It is one constant, `LIVE_HEIGHT_BLEND_MILLIS`.
+
+**How this was measured.**
+- I replayed `LiveHeight`'s rule causally on the stored points. The script is in my session scratchpad and is not committed.
+- It keeps only height, pressure and time from each row; coordinates are dropped as it loads.
+- The geoid is a constant 21.64 m: it ranges 21.63 to 21.64 m across the walk, and it cancels out of every step.
+- **Positive control:** the shipped rule replayed on the same points gives 7.0 m at 13 s, as Sorrel measured.
+- **Limits:**
+  - Stored points are 5 to 13 s apart and include walking, so per-point steps on the hilly 10-24 walks are upper bounds on the blend's own steps.
+  - The live 1 Hz cadence cannot be replayed from stored points.
+
+### Evidence
+
+**Fail-first: run 40855188610 on `ae647521f`.**
+- The build log names the sha 20 times, with 0 `e: file:` lines against 1,462 `w: file:` lines, and both compile tasks ran.
+- The XML has 4 files, 25 tests, **7 failures**, exactly the seven predicted:
+  - N1: "at 2 s expected 68.0 but was 72.0", and "at the minute, still the GPS height expected 80.0 but was 72.0".
+  - N2: "off the Maps tab the barometer is not read expected false but was true", and "a fresh first minute ... expected 80 m but was 72 m".
+  - N6: the made-up `IllegalStateException` thrown out of the converter.
+  - N7: "one line per reason expected 2 but was 1".
+  - N8: "no highest label ... expected 0 but was 1".
+- N3 passed, as predicted: it pins behaviour that already existed, so its revert is its proof. Every earlier case in the four classes passed.
+
+**Full run 40856123923 on `6ce00d7cd`.** Its XML (813 files) gives **5,936 tests, 0 failures, 0 errors, 24 skipped**: the 5,928 before plus 8 new cases.
+
+**Revert checks r16 to r23.**
+- Each is a one-line edit on its own branch from `6ce00d7cd`, restored from a saved copy and checked equal to the base, as for r01 to r15.
+- Each build log names its own sha 20 times, with 0 compile errors against 1,468 warnings, and both compile tasks ran.
+- Each XML holds only its filtered class.
+- All eight branches and the fail-first branch are deleted. The head is still `6ce00d7cd` locally and on origin.
+
+| Check | Run | Revert | Failed, as its own edit can cause |
+|---|---|---|---|
+| r16 | 40856214877 | the anchor's share is 1 in the first minute | 2 of 10, the two N1 cases: 68.0 shown as 72.0; 80.0 shown as 72.0 |
+| r17 | 40856219268 | no blend (share 1 at once after the minute) | 1 of 10: "no step over 0.3 m (largest 7.86)" |
+| r18 | 40856224153 | the pull frozen (`fraction = 0.0`) | 1 of 10, N3: "expected 78.32 but was 72.0" |
+| r19 | 40856228280 | the tab never reported as left | 2 of 7: "off the Maps tab ... expected false but was true"; back on the map "expected 80 m but was 72 m" |
+| r20 | 40856232854 | the steadying not restarted when the barometer stops | 1 of 7: back on the map "expected 80 m but was 72 m" |
+| r21 | 40856236931 | the general catch narrowed to one class | 1 of 4: the made-up `IllegalStateException` thrown |
+| r22 | 40856241999 | one log key for every reason | 1 of 4: "one line per reason ... expected 2 but was 1" |
+| r23 | 40856245975 | a track with no GPS height offset by 0.0 | 1 of 4: "no highest label ... expected 0 but was 1" |
+
+No failure belongs to a different rule, and no other case in its class failed. The flat-walk case passed under r18 (frozen pull), which is Sorrel's point in N3: only the new case pins the pull.
+
+**One existing assertion moved.** `LiveHeightTest`'s flat-walk case now measures its steps from 91 s, after the first minute and the blend, rather than from 61 s. Under the owner's N1 ruling the first 90 s show GPS and then blend, by design. The case's own comment records the change.
+
+### Withdrawn from the record above
+
+- **Device step 7's "reads it whenever the map is open"** (in the superseded list) was wrong at `0eff2e0d2`. That build read the barometer on every tab while the app was in the foreground (Sorrel's N2 and N10). The earlier "What was built" line, "whenever the map's live collection runs", was exact. From `6ce00d7cd`, the build does read it only on the Maps tab.
+- **"In the first minute the anchor is the median so far, so the reading can step then"** (under "Not tested") described `0eff2e0d2`. From `6ce00d7cd` the first minute shows GPS as it comes, and the forming anchor is not shown.
+
+### Not tested, said plainly
+
+- **The blend on a phone.** It is tested on made-up walks and replayed on stored points. Its live feel at 1 Hz, and whether 30 s looks right, is device step 3.
+- **The tab edge through `MainActivity`.** The screen's report of the tab is tested through the real screen and a real bottom-nav touch, with the rig wired as `MainActivity` is. `MainActivity`'s own wiring line is unverified by any test, like the rest of its wiring.
+- **The rail (landscape and tablet).** `isMapsTabShown` is computed from the same `compactTab` the rail sets, but no test switches tabs by the rail.
+- **The batched pressure readings (N4)** are not addressed. Step 3 watches them.
+
+### Device steps (S22 Ultra; the S26 Ultra only if the owner allows), replacing the list above
+
+These steps use CI's debug APKs only, never a release build on the owner's phones. Neither build changes the database schema. That the two debug APKs install over each other is unverified.
+
+1. **The converter is supported.** With this branch's APK installed, open the Maps tab outdoors with a fix, and read `adb logcat -s ForagerSeaLevel`.
+   - **Pass:** no "Sea-level height unsupported" line.
+   - **Evidence:** the logcat output, and the Android version.
+   - **If a line appears:** the strip reads "Alt unavailable"; report the line's reason. Each reason now logs its own line.
+2. **The strip reads near the known ground height.** At a spot whose height above sea level is known (a survey benchmark, or a topo spot height), wait two minutes on the Maps tab.
+   - **Evidence:** the strip's value, the known height and its source.
+   - **Pass (my proposed threshold, not the owner's):** within 10 m, and not about 20 m low.
+   - The pre-main build should read about 21 m lower at the same spot.
+3. **The first minute, the blend, and steadiness (N1, N4).** Open the app outdoors on the Maps tab, and keep the phone still for two minutes. Note the strip's value every few seconds. A screen recording is best.
+   - **Observation, not a gate:**
+     - For about the first minute, the value moves as GPS does.
+     - Over the next half minute it eases to a steadier value, by no more than about one unit at a time.
+     - After that it holds within a narrow range. Note the range: a range wider than the walk's chart would be N4.
+4. **Back on the map (N2).** After step 3, tap Journal for a minute, then tap Maps.
+   - **Observation:** the strip shows a height straight away, moves as GPS does for about a minute, then eases into the steady value again.
+5. **A GPS gap follows the barometer.** Walk into a building until the fix goes stale, then climb or descend a floor or two, on the Maps tab.
+   - **Pass:** the strip changes by about 3 m a floor, and never shows "Alt unavailable" while the barometer is present.
+   - **Evidence:** before and after values, and the floors.
+6. **The Return control.** Record a short out-and-back with a climb, then open Return.
+   - **Pass:** the shown and spoken height difference has the right sign and is roughly the climb.
+7. **Labels and export.** Open that walk's journal entry or Records sheet.
+   - **Pass:** the highest and lowest labels read about 21 m above the pre-main build's for the same walk. Exported GPX `<trkpt><ele>` reads about 21 m above the same point's `forager:point ele=`.
+   - **Evidence:** the two label pairs, and one point's two values.
+8. **Battery, 30 minutes with the map open, with and without the barometer.**
+   - **There is no in-app switch.** "Without" is the pre-main build `d100a4776`, which reads the barometer only while recording. "With" is this branch's build, which reads it on the Maps tab.
+   - The difference measures the barometer **plus** the sea-level conversion.
+   - Same phone, same spot, same brightness, screen timeout set to never, no recording, the Maps tab showing and left still.
+   - Start each run unplugged between 80 and 90%. Run A then B, and A again if time allows.
+   - **Evidence:** the battery percentage at the start and at 30 minutes per run, and `dumpsys batterystats` for the app if available.
+   - A measurement for the owner, not a pass or fail.
+   - Off the Maps tab this build no longer reads the barometer, so a 30-minute run on another tab would show only the conversion's cost.
+
+### For the owner, replacing the list above
+
+- **The blend window is my proposal: 30 s.** On the 10-28 walk the switch step is 0.4 m with it, and 0.2 m without, because GPS and the steadied height agreed there. On the 10-24 walks the gap was 3.6 to 4.0 m. One constant changes it.
+- **The battery comparison still can't isolate the barometer** without a dev-only switch. Is the build-against-build comparison in step 8 enough?
+- **The 10 m threshold in step 2 is mine.**
 - **The known gap from Amendment 1 stands:** a file Forager exported before this change, imported again, reads about 21 m low.
