@@ -62,10 +62,12 @@ class HeightLabelsSeaLevelTest {
         importedAtEpochMillis = importedAt,
     )
 
-    private fun show(track: Track, converter: SeaLevelConverter) {
+    private fun show(track: Track, converter: SeaLevelConverter) = show(listOf(track), converter)
+
+    private fun show(tracks: List<Track>, converter: SeaLevelConverter) {
         composeRule.setContent {
             CompositionLocalProvider(LocalSeaLevelConverter provides converter) {
-                ForagerTheme { EntryHeightProfile(profile = heightProfileOf(listOf(track)), distanceUnit = DistanceUnit.KILOMETERS) }
+                ForagerTheme { EntryHeightProfile(profile = heightProfileOf(tracks), distanceUnit = DistanceUnit.KILOMETERS) }
             }
         }
         composeRule.waitForIdle()
@@ -100,6 +102,28 @@ class HeightLabelsSeaLevelTest {
         assertEquals("no raw height as a label", 0, labelShown("155 m") + labelShown("100 m"))
         val described = composeRule.onAllNodesWithContentDescription("Height profile: over", substring = true).fetchSemanticsNodes()
         assertEquals(1, described.size)
+        assertEquals(0, composeRule.onAllNodesWithContentDescription("highest", substring = true).fetchSemanticsNodes().size)
+    }
+
+    /**
+     * Amendment 3, N8 (RECORD -1797): a drawn track with no GPS height has the barometer's standard-atmosphere heights
+     * (BarometricHeight's anchor of 0), not sea level, and nothing to convert them by, so the chart shows no height
+     * numbers rather than labelling them as sea level. Reachable when another track of the entry carries the GPS
+     * heights: here the made-up walk, then a later track with pressure and no GPS height.
+     */
+    @Test
+    fun `a drawn track with no GPS height gives the chart no height numbers`() {
+        val barometerOnly = Track(
+            id = "T2",
+            name = null,
+            startedAtEpochMillis = T0 + 60_000L,
+            endedAtEpochMillis = T0 + 71_000L,
+            points = (0 until 12).map { i -> TrackPoint(45.53 + i * 0.0005, -122.68, null, 5f, T0 + 60_000L + i * 1_000L, pressureHpa = 1000f - i * 0.1f) },
+        )
+        show(listOf(walk(), barometerOnly), FixedOffsetSeaLevelConverter(21.6))
+
+        assertEquals("the chart is still there", 1, composeRule.onAllNodes(hasTestTag(ENTRY_HEIGHT_PROFILE_TAG)).fetchSemanticsNodes().size)
+        assertEquals("no highest label from the recorded walk's 155 + 21.6", 0, labelShown("177 m"))
         assertEquals(0, composeRule.onAllNodesWithContentDescription("highest", substring = true).fetchSemanticsNodes().size)
     }
 

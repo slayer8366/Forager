@@ -259,6 +259,8 @@ internal class RealSearchScreenRig(
                     onNightModeMapsChanged = vm::onNightModeMapsChanged,
                     onThemeModeChanged = vm::onThemeModeChanged,
                 ),
+                // Dispatch 2026-10-28-13, Amendment 3: as MainActivity wires it, so the barometer follows the Maps tab here too.
+                mapControls = AvailabilityScreenMapControls(onMapsTabShownChanged = vm::onMapsTabShownChanged),
                 mapSlot = mapSlot,
             )
         }

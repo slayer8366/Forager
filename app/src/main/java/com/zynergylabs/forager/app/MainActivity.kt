@@ -530,6 +530,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                         onMapShown = viewModel::onMapShown,
+                        onMapsTabShownChanged = viewModel::onMapsTabShownChanged,
                         onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
                         onMapModeSelected = viewModel::onMapModeSelected,
                         onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,

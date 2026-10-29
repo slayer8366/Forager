@@ -103,6 +103,9 @@ internal class AvailabilityLiveLocation(
         }
     }
 
+    /** Whether the Maps tab is showing (dispatch 2026-10-28-13, Amendment 3). Test-first seam: not used yet. */
+    fun onMapsTabShownChanged(@Suppress("UNUSED_PARAMETER") shown: Boolean) {}
+
     private fun showHeight(shown: ShownHeight) {
         updateState { if (it.shownHeight == shown) it else it.copy(shownHeight = shown) }
     }

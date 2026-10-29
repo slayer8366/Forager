@@ -25,29 +25,32 @@ import kotlinx.coroutines.withContext
  *   [SeaLevelHeight.Unsupported], logged once. Never the raw height passed off as sea level.
  * - The conversion may read the model from disk, so it runs on [io], never on the main thread.
  *
- * [sdkInt] is the phone's API level, a parameter so a test can be a phone below 14.
+ * [sdkInt] is the phone's API level, a parameter so a test can be a phone below 14. [conversion] is the platform's call,
+ * a parameter so a test can stand in for it (dispatch 2026-10-28-13, Amendment 3); `null`, the default, is the platform's.
  */
 class AndroidSeaLevelConverter(
     private val context: Context,
     private val errorLog: ErrorLog,
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
+    private val conversion: MslConversion? = null,
 ) : SeaLevelConverter {
 
     private val logged = AtomicBoolean(false)
-    private val converter: Any? by lazy { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) Api34.create() else null }
+    private val platform: MslConversion? by lazy {
+        conversion ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) Api34.conversion(context) else null
+    }
 
     override suspend fun seaLevel(lat: Double, lng: Double, rawMeters: Double?): SeaLevelHeight {
         if (rawMeters == null) return SeaLevelHeight.NoHeight
-        val platform = converter
-        if (sdkInt < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || platform == null) {
+        val convert = platform
+        if (sdkInt < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || convert == null) {
             logOnce("Sea-level height unsupported: Android API $sdkInt is below 34; heights read \"Alt unavailable\".", UnsupportedOperationException("AltitudeConverter needs API 34"))
             return SeaLevelHeight.Unsupported
         }
         return withContext(io) {
             try {
-                val known = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) Api34.convert(platform, context, lat, lng, rawMeters) else null
-                known ?: SeaLevelHeight.Unsupported.also { logOnce("Sea-level height unsupported: the converter gave no sea-level height.", IllegalStateException("hasMslAltitude() false after conversion")) }
+                convert.convert(lat, lng, rawMeters) ?: SeaLevelHeight.Unsupported.also { logOnce("Sea-level height unsupported: the converter gave no sea-level height.", IllegalStateException("hasMslAltitude() false after conversion")) }
             } catch (e: IOException) {
                 logOnce("Sea-level height unsupported: the platform's geoid model did not load.", e)
                 SeaLevelHeight.Unsupported
@@ -64,16 +67,20 @@ class AndroidSeaLevelConverter(
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private object Api34 {
-        fun create(): Any = AltitudeConverter()
+        /** One platform converter, held for every call: it loads the geoid model once. */
+        fun conversion(context: Context): MslConversion {
+            val converter = AltitudeConverter()
+            return MslConversion { lat, lng, rawMeters -> convert(converter, context, lat, lng, rawMeters) }
+        }
 
         /** The sea-level height for [rawMeters] here, or `null` if the platform set none. */
-        fun convert(converter: Any, context: Context, lat: Double, lng: Double, rawMeters: Double): SeaLevelHeight.Known? {
+        fun convert(converter: AltitudeConverter, context: Context, lat: Double, lng: Double, rawMeters: Double): SeaLevelHeight.Known? {
             val location = Location(LocationManager.GPS_PROVIDER).apply {
                 latitude = lat
                 longitude = lng
                 altitude = rawMeters
             }
-            (converter as AltitudeConverter).addMslAltitudeToLocation(context, location)
+            converter.addMslAltitudeToLocation(context, location)
             if (!location.hasMslAltitude()) return null
             val seaLevel = location.mslAltitudeMeters
             return SeaLevelHeight.Known(meters = seaLevel, aboveRawMeters = seaLevel - rawMeters)
@@ -84,4 +91,9 @@ class AndroidSeaLevelConverter(
         /** `adb logcat -s ForagerSeaLevel`. */
         internal const val TAG = "ForagerSeaLevel"
     }
+}
+
+/** The platform's sea-level call for one height: the sea-level height, or `null` when the platform set none. May throw. */
+fun interface MslConversion {
+    fun convert(lat: Double, lng: Double, rawMeters: Double): SeaLevelHeight.Known?
 }

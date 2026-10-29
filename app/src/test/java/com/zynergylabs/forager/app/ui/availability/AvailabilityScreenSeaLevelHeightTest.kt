@@ -1,7 +1,15 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import com.zynergylabs.forager.app.domain.FixProvider
@@ -46,14 +54,17 @@ class AvailabilityScreenSeaLevelHeightTest {
         override val fixes: Flow<LocationFix> = this@AvailabilityScreenSeaLevelHeightTest.fixes
     }
 
-    /** A barometer that counts its collections, and whether one is running, as the platform's registration would. */
-    private class FakeBarometer(private val source: Flow<PressureReading?>) : PressureProvider {
+    /**
+     * A barometer that counts its collections, and whether one is running, as the platform's registration would. With
+     * [sources], each new collection reads the next one, as a new sensor registration gives only new readings.
+     */
+    private class FakeBarometer(private val source: Flow<PressureReading?>, private val sources: List<Flow<PressureReading?>> = emptyList()) : PressureProvider {
         var collectionsStarted = 0
         var collecting = false
         override val readings: Flow<PressureReading?> = flow {
             collectionsStarted++
             collecting = true
-            emitAll(source)
+            emitAll(sources.getOrNull(collectionsStarted - 1) ?: source)
         }.onCompletion { collecting = false }
     }
 
@@ -71,6 +82,14 @@ class AvailabilityScreenSeaLevelHeightTest {
             it.searchCoordinates("45.52", "-122.68")
             it.enterForeground()
         }
+
+    /** A real touch at the centre of a bottom-nav destination, as HeadingKeptAcrossTabsTest does. */
+    private fun touchNav(label: String) {
+        val b = composeRule.onAllNodes(hasText(label) and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG)), useUnmergedTree = true)
+            .onFirst().fetchSemanticsNode().boundsInRoot
+        composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { click(Offset(b.center.x, b.center.y)) }
+        composeRule.waitForIdle()
+    }
 
     private fun stripHeight(): String {
         val nodes = composeRule.onAllNodesWithTag(COMPASS_STRIP_ELEVATION_TAG).fetchSemanticsNodes()
@@ -136,6 +155,48 @@ class AvailabilityScreenSeaLevelHeightTest {
         r.settle()
 
         assertEquals("the height follows the barometer with GPS gone (71.6 + 8.4)", "80 m", stripHeight())
+    }
+
+    /** Amendment 3, N2 (RECORD -1797; the owner: "Map tab only (Recommended)"): not read on the other tabs. */
+    @Test
+    fun `the barometer is read only while the Maps tab is showing`() {
+        val barometer = FakeBarometer(pressure)
+        val r = rig(barometer)
+        assertEquals("on the Maps tab", true, barometer.collecting)
+
+        touchNav(CompactTab.LIST.label)
+        r.settle()
+        assertEquals("off the Maps tab the barometer is not read", false, barometer.collecting)
+
+        touchNav(CompactTab.MAP.label)
+        r.settle()
+        assertEquals("back on the Maps tab it is read again", true, barometer.collecting)
+        assertEquals(2, barometer.collectionsStarted)
+    }
+
+    /**
+     * Amendment 3, N2 under N1's rule: back on the map the steadying starts afresh, so for its first minute the strip
+     * shows each fix's converted GPS height as it comes, not an anchor from before the tab was left.
+     */
+    @Test
+    fun `back on the Maps tab the strip shows each fix's sea-level height until the barometer has re-anchored`() {
+        val before = MutableSharedFlow<PressureReading?>(replay = 8).also { it.tryEmit(readingAt(0, 1000.0f)) }
+        val after = MutableSharedFlow<PressureReading?>(replay = 8).also { it.tryEmit(readingAt(300, 1000.0f)) }
+        val r = rig(FakeBarometer(pressure, sources = listOf(before, after)))
+        listOf(0L, 30L, 60L, 95L).forEach { fixes.tryEmit(fixAt(it, raw = 50.0)) }
+        r.settle()
+        fixes.tryEmit(fixAt(96, raw = 58.0))
+        r.settle()
+        assertEquals("positive control: steadied, the strip holds 72 m where this fix alone reads 80 m", "72 m", stripHeight())
+
+        touchNav(CompactTab.LIST.label)
+        r.settle()
+        touchNav(CompactTab.MAP.label)
+        r.settle()
+        fixes.tryEmit(fixAt(200, raw = 58.0))
+        r.settle()
+
+        assertEquals("a fresh first minute: the fix's own height above sea level (58 + 21.6)", "80 m", stripHeight())
     }
 
     private companion object {

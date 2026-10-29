@@ -612,6 +612,9 @@ class AvailabilityViewModel(
     /** See [AvailabilityMapDisplay.onMapShown]. */
     fun onMapShown() = mapDisplay.onMapShown()
 
+    /** See [AvailabilityLiveLocation.onMapsTabShownChanged]. */
+    fun onMapsTabShownChanged(shown: Boolean) = liveLocation.onMapsTabShownChanged(shown)
+
     /** See [AvailabilityMapDisplay.onFindDeleted]. */
     fun onFindDeleted(id: String) = mapDisplay.onFindDeleted(id)
 
