@@ -62,6 +62,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.BuildConfig
+import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.backup.BackupControls
@@ -202,7 +203,8 @@ internal const val TOOLS_OFFLINE_MAPS_ROW_TAG = "tools-offline-maps-row"
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
  *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
- *    the "drill in, own back step" shape.
+ *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
+ *    CrashLogs submenu.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
  * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
@@ -219,6 +221,7 @@ internal fun CompactToolsDrawerContent(
     crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
+    crashFileStore: CrashFileStore,
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
     openSettingsRequest: Int = 0,
@@ -237,7 +240,8 @@ internal fun CompactToolsDrawerContent(
     tripPlannerOpen: Boolean = false,
     onTripPlannerOpenChange: (Boolean) -> Unit = {},
 ) {
-    // Own drill-in step — see this composable's own doc comment, item 2. Composed inside this drawer sheet (which the
+    // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
+    // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
     // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
     // own expand state), so its own BackHandler below takes priority over the top-level
     // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
@@ -272,6 +276,7 @@ internal fun CompactToolsDrawerContent(
             crowdedIcons = crowdedIcons,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
+            crashFileStore = crashFileStore,
             backup = backup,
             showBackupRequest = openSettingsRequest,
             showSettingsOnlyRequest = openSettingsOnlyRequest,

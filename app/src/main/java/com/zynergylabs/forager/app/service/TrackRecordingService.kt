@@ -20,6 +20,7 @@ import com.zynergylabs.forager.app.MainActivity
 import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
 import com.zynergylabs.forager.app.alert.cancelRecordingAlerts
+import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.RecordingHalt
@@ -164,6 +165,7 @@ class TrackRecordingService : Service() {
         (application as ForagerApplication).container.recordingKeptTail.end(null)
         // A recording that ends without a Stop leaves no alert behind either (RECORD -800).
         cancelRecordingAlerts(this)
+        WalkLogger.of(this).onRecordingStopped()
         recordingJob?.cancel()
         scope.cancel()
         super.onDestroy()
@@ -185,6 +187,7 @@ class TrackRecordingService : Service() {
         container.returnWatch.begin(trackId, mode)
         container.sundownWatch.begin(trackId)
         container.backByWatch.begin(trackId)
+        WalkLogger.of(this).onRecordingStarted(trackId)
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
 
@@ -393,6 +396,7 @@ class TrackRecordingService : Service() {
             // The reminder ends with the recording (the owner: "Cancel automatically"), so an alert
             // still in the shade has nothing left to answer; the sundown alert goes with it (RECORD -800).
             cancelRecordingAlerts(this)
+            WalkLogger.of(this).onRecordingStopped()
             scope.launch {
                 flushPendingPoints(trackId, container)
                 // The end is reported only once it is stored, so the screen's reload never reads the track

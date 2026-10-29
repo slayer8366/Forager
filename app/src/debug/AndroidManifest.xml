@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The DEBUG build's manifest additions, merged over src/main/AndroidManifest.xml in debug builds
+  only. Release builds never see these (dispatch 2026-09-28-532; checked against the merged
+  release manifest).
+
+  For the walk logger (diagnostics/WalkLogger.kt), which runs only while the Diagnostics screen's
+  "Walk logger" switch is on:
+  - ACTIVITY_RECOGNITION: the step detector and step counter (API 29 and up). A runtime permission
+    the app never asks for; granted over USB with
+    adb shell pm grant com.zynergylabs.forager.app android.permission.ACTIVITY_RECOGNITION
+    Without it the log says the step sensors are unsupported for that reason.
+  - READ_BASIC_PHONE_STATE: the data network type (LTE, 5G) in the log's header, so each file says
+    whether its phone had mobile data (Amendment 1). Granted the same way; without it the header
+    says so.
+  - ACCESS_NETWORK_STATE: whether the phone was on Wi-Fi or mobile data at the start. A normal
+    permission, granted at install.
+  - WAKE_LOCK: the logger holds a partial wake lock while it logs (RECORD -559, choice 3). A normal
+    permission.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.READ_BASIC_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+</manifest>
