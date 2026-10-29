@@ -180,8 +180,14 @@ def tile_xy(p):
     return int(round(tx)), int(round(ty))
 
 
+MARK = "mark"
+
+
 def geometry(points, kind):
-    """MVT commands for a point (1), line (2) or polygon ring (3, closed by ClosePath, not by a repeated point)."""
+    """MVT commands for a point (1), line (2) or polygon ring (3, closed by ClosePath, not by a repeated point).
+    MARK is basemap patch 0004's barrier mark: one point at the tile's corner (0, 0)."""
+    if points == MARK:
+        return [(1 << 3) | 1, 0, 0]
     pts = [tile_xy(p) for p in points]
     if kind == 3:
         pts = pts[:-1]
@@ -217,7 +223,7 @@ def layer(name, features):
             if v not in values:
                 values.append(v)
             tags += [keys.index(k), values.index(v)]
-        feature = field(1, 0, i + 1) + field(2, 2, b"".join(varint(t) for t in tags)) + field(3, 0, kind)
+        feature = (field(1, 0, i + 1) if points != MARK else b"") + (field(2, 2, b"".join(varint(t) for t in tags)) if tags else b"") + field(3, 0, kind)
         feature += field(4, 2, b"".join(varint(c) for c in geometry(points, kind)))
         body += field(2, 2, feature)
     out = field(15, 0, 2) + field(1, 2, name.encode()) + body
@@ -231,7 +237,9 @@ def centroid(outline):
     return (sum(x for x, _ in pts) / len(pts), sum(y for _, y in pts) / len(pts))
 
 
-def write_tile(path):
+def write_tile(path, before_0003=False):
+    """The tile as the 11-01 build writes it (patches 0003 and 0004), or, with before_0003, as every build before it did:
+    no barriers layer, no addr_street, no tunnel on water lines."""
     buildings = [(3, outline, {"kind": "building", "sort_rank": 400}) for _, outline, _, _ in HOUSES]
     buildings += [
         (1, [centroid(outline)], {"kind": "address", "addr_housenumber": number, "addr_street": street})
@@ -240,13 +248,16 @@ def write_tile(path):
     water = [(2, pts, {"kind": tags["waterway"], "min_zoom": 13, "sort_rank": 200, **({"tunnel": tags["tunnel"]} if "tunnel" in tags else {})})
              for _, pts, tags in STREAMS]
     landuse = [(3, outline, {"kind": tags["landuse"], "sort_rank": 150}) for _, outline, tags in AREAS]
-    barriers = [(2, pts, {"kind": tags["barrier"]}) for _, pts, tags in FENCES]
+    barriers = [(2, pts, {"kind": tags["barrier"]}) for _, pts, tags in FENCES] + [(1, MARK, {})]
+    if before_0003:
+        buildings = [(k, pts, {f: v for f, v in props.items() if f != "addr_street"}) for k, pts, props in buildings]
+        water = [(k, pts, {f: v for f, v in props.items() if f != "tunnel"}) for k, pts, props in water]
     roads = [(2, pts, {"kind": "minor_road", "kind_detail": tags["highway"], **({"name": tags["name"]} if "name" in tags else {}),
                        **({"access": tags["access"]} if "access" in tags else {})})
              for _, pts, tags in WAYS if tags["highway"] != "path"]
     roads += [(2, TRAIL, {"kind": "path", "kind_detail": "path"})]
-    tile = b"".join(field(3, 2, layer(name, feats)) for name, feats in
-                    [("landuse", landuse), ("water", water), ("roads", roads), ("buildings", buildings), ("barriers", barriers)])
+    layers = [("landuse", landuse), ("water", water), ("roads", roads), ("buildings", buildings)] + ([] if before_0003 else [("barriers", barriers)])
+    tile = b"".join(field(3, 2, layer(name, feats)) for name, feats in layers)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
         f.write(tile)
@@ -264,6 +275,7 @@ def main():
     write_osm(os.path.join(out, "dropoff.osm"))
     write_points(os.path.join(out, "points.json"))
     write_tile(os.path.join(out, str(ZOOM), str(TILE_X), f"{TILE_Y}.mvt"))
+    write_tile(os.path.join(out, str(ZOOM), str(TILE_X), f"{TILE_Y}.before-0003.mvt"), before_0003=True)
     print(f"origin {ORIGIN_LAT:.7f},{ORIGIN_LON:.7f}; tile {ZOOM}/{TILE_X}/{TILE_Y}")
     for label, outline, _, _ in HOUSES:
         lat, lon = latlon(centroid(outline))
