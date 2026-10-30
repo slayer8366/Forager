@@ -18,5 +18,10 @@ class SavePlottedRouteUseCase(
     private val today: () -> LocalDate = LocalDate::now,
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
-    suspend operator fun invoke(route: PlottedRoute, name: String, date: LocalDate?): Result<PlannedTrip> = Result.failure(NotImplementedError("STUB"))
+    suspend operator fun invoke(route: PlottedRoute, name: String, date: LocalDate?): Result<PlannedTrip> {
+        if (name.isBlank()) return Result.failure(IllegalArgumentException("A route's name must not be blank."))
+        if (date != null && date.isBefore(today())) return Result.failure(IllegalArgumentException("Cannot plan a route in the past: $date is before ${today()}."))
+        val trip = PlannedTrip(id = idGenerator(), name = name, location = route.stops.first().position, date = date, route = route)
+        return repository.save(trip).map { trip }
+    }
 }

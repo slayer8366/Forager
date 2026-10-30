@@ -135,6 +135,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
             cameraRequest = renderMode.cameraRequest,
             journalHighlights = content.journalHighlights,
             route = content.route,
+            plottedRoute = content.plottedRoute,
             cameraMemory = renderMode.cameraMemory,
             leavingTab = renderMode.leavingTab,
             attributionEndInset = renderMode.attributionEndInset,

@@ -253,9 +253,9 @@ class RoutePlottingViewModelTest {
         vm.onSetExpanded(true)
         val trip = savedTrip()
 
-        vm.onOpenSavedRoute(trip)
+        vm.onOpenSavedRoute(trip, fromTripPlanner = false)
 
-        assertEquals(RoutePlotMode.Showing(trip), vm.uiState.value.mode)
+        assertEquals(RoutePlotMode.Showing(trip, serial = 1), vm.uiState.value.mode)
         assertFalse(vm.uiState.value.expanded)
 
         vm.onCloseSavedRoute()
@@ -270,7 +270,7 @@ class RoutePlottingViewModelTest {
         advanceUntilIdle()
         val trip = savedTrip()
 
-        vm.onOpenSavedRoute(trip)
+        vm.onOpenSavedRoute(trip, fromTripPlanner = false)
         assertEquals(trip, vm.uiState.value.pendingDiscard)
         assertEquals(listOf(creek, ridge), vm.draft().stops)
 
@@ -278,11 +278,11 @@ class RoutePlottingViewModelTest {
         assertNull(vm.uiState.value.pendingDiscard)
         assertEquals(listOf(creek, ridge), vm.draft().stops)
 
-        vm.onOpenSavedRoute(trip)
+        vm.onOpenSavedRoute(trip, fromTripPlanner = false)
         vm.onConfirmDiscard()
         advanceUntilIdle()
         assertNull(vm.uiState.value.pendingDiscard)
-        assertEquals(RoutePlotMode.Showing(trip), vm.uiState.value.mode)
+        assertEquals(RoutePlotMode.Showing(trip, serial = 1), vm.uiState.value.mode)
         assertEquals(1, legs.cancelled)
     }
 

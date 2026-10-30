@@ -104,12 +104,17 @@ internal fun MapDataRefresh(
             Log.i(SEARCH_FRAME_LOG_TAG, "search frame $searchFrameRequestId applied ($searchFrame) at ${region.lat}, ${region.lng}")
             return@LaunchedEffect
         }
-        val isGpsTracking = isGpsTrackingBefore
+        // Dispatch 2026-10-30-08: a request the user asked for (a saved route opened) ends following first, as a search's frame does.
+        val stopFollowing = cameraRequestStopsFollowing(isGpsTrackingBefore, cameraRequest, state.lastAppliedCameraRequestId)
+        if (stopFollowing) map.locationComponent.cameraMode = CameraMode.NONE
+        val isGpsTracking = isGpsTrackingBefore && !stopFollowing
         // A one-shot frame (the entry map's opening frame) stands in for this target's move: the
         // target is recorded as applied too, so the region move below does not follow it and undo it.
         // A later target change (a locate-me pan) still moves the camera, as before.
         val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, state.lastAppliedCameraRequestId)
-        if (frameWanted) state.cameraMoveClassifier.markAppMove()
+        if (frameWanted) {
+            if (cameraRequest.stopsFollowing) state.cameraMoveClassifier.markUserAskedMove() else state.cameraMoveClassifier.markAppMove()
+        }
         val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest.frame, resources.displayMetrics.density)
         if (frameApplied) {
             state.lastAppliedCameraRequestId = cameraRequest.id

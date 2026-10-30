@@ -11,26 +11,36 @@ package com.zynergylabs.forager.app.domain.route
 data class RoutePlotDraft(val stops: List<RouteStop> = emptyList(), val legs: List<RouteLeg> = emptyList()) {
 
     /** [stop] added at the end, or `null` when it is at the last stop's position (the owner: "Ignore the second tap"). */
-    fun withStop(stop: RouteStop): RoutePlotDraft? = this // STUB
+    fun withStop(stop: RouteStop): RoutePlotDraft? =
+        if (stops.lastOrNull()?.position == stop.position) null else copy(stops = stops + stop)
 
     /** The two stops of the leg to route next, or `null` when every leg is in. */
-    val nextLeg: Pair<RouteStop, RouteStop>? get() = null // STUB
+    val nextLeg: Pair<RouteStop, RouteStop>? get() = if (legs.size < stops.size - 1) stops[legs.size] to stops[legs.size + 1] else null
 
     /** [leg] added as [nextLeg]. Refused when there is no leg to add or [leg] does not run between its two stops. */
-    fun withLeg(leg: RouteLeg): RoutePlotDraft = this // STUB
+    fun withLeg(leg: RouteLeg): RoutePlotDraft {
+        val (from, to) = requireNotNull(nextLeg) { "every leg of the draft is in" }
+        require(leg.line.first() == from.position && leg.line.last() == to.position) { "the leg does not run from stop ${legs.size} to stop ${legs.size + 1}" }
+        return copy(legs = legs + leg)
+    }
 
     /** The last stop removed, with its leg (Undo). The draft unchanged when it has no stops. */
-    fun undo(): RoutePlotDraft = this // STUB
+    fun undo(): RoutePlotDraft =
+        if (stops.isEmpty()) this else RoutePlotDraft(stops.dropLast(1), legs.take((stops.size - 2).coerceAtLeast(0)))
 
     /** The route, once there are two stops or more and every leg is in; `null` before. */
-    fun toRoute(): PlottedRoute? = null // STUB
+    fun toRoute(): PlottedRoute? = if (stops.size >= 2 && nextLeg == null) PlottedRoute(stops, legs) else null
 
     /** The length of the legs routed so far. A leg still being routed is not counted. */
-    val routedMeters: Double get() = 0.0 // STUB
+    val routedMeters: Double get() = legs.sumOf { it.meters }
 }
 
 /**
  * The name a saved route is offered (RECORD -1845): "<first> and back" when the last stop is at the first stop's position
  * (the planner's ruling on Q10: by position, not by name), else "<first> to <last>".
  */
-fun defaultRouteName(stops: List<RouteStop>): String = "" // STUB
+fun defaultRouteName(stops: List<RouteStop>): String {
+    val first = stops.first()
+    val last = stops.last()
+    return if (stops.size > 1 && last.position == first.position) "${first.name} and back" else "${first.name} to ${last.name}"
+}

@@ -25,6 +25,7 @@ package com.zynergylabs.forager.app.ui.availability
 // PHOTO_LOCATION_SETTING_EXPLANATION were removed with the gear panel's two rows, and ExplainedSettingsCheckbox, which drew
 // only those rows, with them (docs/archive/camera-portrait-lock.md).
 
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.PageSlide
 import com.zynergylabs.forager.app.ui.motion.PageSlideStyle
@@ -236,6 +237,8 @@ internal fun CompactToolsDrawerContent(
     /** Amendment 3 (RECORD -1770): Trip Planner's fold, held above the drawer as Map Layers' is. */
     tripPlannerOpen: Boolean = false,
     onTripPlannerOpenChange: (Boolean) -> Unit = {},
+    /** Dispatch 2026-10-30-08: a Trip Planner route row's tap. */
+    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
 ) {
     // Own drill-in step — see this composable's own doc comment, item 2. Composed inside this drawer sheet (which the
     // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
@@ -289,6 +292,7 @@ internal fun CompactToolsDrawerContent(
             onMapLayersOpenChange = onMapLayersOpenChange,
             tripPlannerOpen = tripPlannerOpen,
             onTripPlannerOpenChange = onTripPlannerOpenChange,
+            onOpenPlannedRoute = onOpenPlannedRoute,
         )
         onOpenOfflineMaps?.let { open -> OfflineMapsEntryRow(onClick = open) }
         SettingsEntryRow(onClick = { showSettings = true })
