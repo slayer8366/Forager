@@ -30136,3 +30136,25 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - **Noticed, not checked:** a track delete keeps its Start and End waypoints (as in -1816); on the waypoint details sheet, the map attribution and bottom-bar labels show through behind Navigate.
 - **The account-recovery prompt** seen at the first baseline was gone at the re-check. It was never tapped.
 **Notes:** Written by the planner by hand. Next free ID -1835.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1835
+**Timestamp:** 2026-10-30T14:32:54Z
+**Continues:** 2026-09-28-1833
+**Title:** Aspen confirms the live route squares carry 3″ heights since 10-28; step 4a can start
+**Observed:** Aspen's note, Forager-cartography main 9d72724, docs/handoffs/2026-10-30-elevation-in-trail-data.md (read through the GitHub API at the owner's pointer).
+- **Live:** run usca-20261027T221400Z built all 187 .rd5 from the pinned 3″ store. It has been live on R2 since 2026-10-28 10:09 (routing/manifest.json names that run).
+- **No heights** in 5 pinned squares: W170_N20, W180_N25, W80_N25, W95_N15, W95_N20.
+- **Checked on the Pi:** BRouter 1.7.10 with the stock hiking-mountain.brf returned a height on every point of four test routes. The R2 squares hash equal to the files tested.
+- **Not checked:** a download through the Worker, and a route on a phone.
+- **Aspen's points:**
+  - Step 4a needs nothing more from the Pi.
+  - Missing heights must read as missing, never as zero.
+  - Route data downloaded before 10-28 has no heights.
+  - consider_elevation stays off, and turning it on needs its own report and go.
+  - WayHomeHeights.kt's header ("route files carry no elevation") is stale.
+  - It suggests Open-Meteo for straight legs and the pinned squares, but the owner's ruling at -1833 stands: trail data only.
+- **Corrections:** -1822's Observed line "the downloaded trail files carry no elevation" was false from 10-28 on, and -1833's "whether today's downloads carry heights" is answered: they do.
+**Notes:** Written by the planner by hand. Aspen answered in Forager-cartography, not prompts/aspen/. Next free ID -1836.
