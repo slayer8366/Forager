@@ -48,3 +48,11 @@ Run 41006039562 on 38c5f1075 failed 1 of 5910 tests: AvailabilityScreenSettingsP
 - Match the TwoStageSwipe.kt:162 comment to it.
 - Show the new assertion failing with a second delete control added (a revert check, with the build log checked), and that it passes forward.
 - Run the full suite on the new head. Report the diff of the test lines in the completion report.
+
+## Amendment 3 (2026-10-30): Sorrel's review (RECORD -1828)
+Sorrel's review (Fable), docs/reviews/2026-10-30-sorrel-pr443-pr444.md (sorrel-pr443-pr444, 43b89516e), has no S findings. The owner's answers:
+- **N1, swiped-open row:** "Hide trash while open (Recommended)". While a row is swiped open, only the red Delete shows; the trash button comes back when the row closes. Fail first through the real swipe, then a revert check. Coordinate touches.
+- **N2:** rename the test title at AvailabilityScreenSettingsPanelTest.kt:688 so it matches "exactly one, the trash button". Wording only.
+- **N6:** add one landscape glance to the PR body's S22 step 1.
+- **Order:** "Merge both, then S22 (Recommended)". When #443 is green on its new code head, the planner merges it and #444 into pre-main. The S22 checks the combined build.
+CI only. Push to #443 and report.

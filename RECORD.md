@@ -30045,3 +30045,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus), first stop at route-plot-data e9f4daa39. Schema 22→23 rebuilds planned_trips with a nullable date, and adds a stops table and a legs table. Version 23 is unclaimed on all 1137 remote refs. Premises corrected: routeDataForPoints is a function with a NotUsable outcome, and the trip date also shows in three more places.
 **Decision:** the owner: "Dashed link to trail (Recommended)"; "At the first stop (Recommended)"; "\"Delete trip <name>\" (Recommended)"; "Ignore the second tap (Recommended)". The planner ruled the mechanics: tables land in step 1; heights come by their own migration 23→24 in step 4b; sort by name, then id; the use case stays unwired until step 3. Dispatch 2026-10-30-02 Amendment 1: build.
 **Notes:** Written by the planner by hand. Next free ID -1828.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1828
+**Timestamp:** 2026-10-30T12:32:53Z
+**Continues:** 2026-09-28-1825
+**Title:** Sorrel finds no S on #443 or #444; the trash hides while a row is swiped open; both merge into pre-main, then the S22
+**Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr443-pr444.md at sorrel-pr443-pr444 43b89516e: no S, notes N1 to N9. Merge-tree of the two heads is clean, and their file sets are disjoint.
+**Decision:** the owner: "Hide trash while open (Recommended)" (N1); "Merge both, then S22 (Recommended)". Dispatch 2026-10-29-10 Amendment 3 also takes N2 (title wording) and N6 (a landscape glance). N4, N5, N7 and N9 are record only. N8: index rows are added with the merge entries.
+**Notes:** Written by the planner by hand. Next free ID -1829.
