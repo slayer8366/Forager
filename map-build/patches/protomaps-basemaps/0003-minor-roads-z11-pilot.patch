@@ -1,0 +1,86 @@
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+index bbb6ce1..53cf2f2 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+@@ -30,6 +30,10 @@ import org.locationtech.jts.geom.LineString;
+ @SuppressWarnings("java:S1192")
+ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingProfile.OsmRelationPreprocessor {
+ 
++  /** Forager street-grid pilot: the first zoom of residential, unclassified and road streets (upstream: 12). */
++  static final int FORAGER_STREETS_MIN_ZOOM = 11;
++
++
+   private final CountryCoder countryCoder;
+ 
+   public Roads(CountryCoder countryCoder) {
+@@ -407,6 +411,13 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+         foragerMinZoom = Math.min(minZoom, 12);
+       }
+     }
++    // Forager street-grid pilot (dispatch 2026-10-30-coder-02): residential, unclassified and road streets from
++    // FORAGER_STREETS_MIN_ZOOM, before upstream's 12, so the street grid shows at glance level like OSM's. Service
++    // roads (the owner: "Streets only (Recommended)") and raceways keep upstream's zoom; the same rules as above apply.
++    if (kind.equals("minor_road") && !sf.hasTag("access", "private", "no") &&
++      (kindDetail.equals("residential") || kindDetail.equals("unclassified") || kindDetail.equals("road"))) {
++      foragerMinZoom = Math.min(minZoom, FORAGER_STREETS_MIN_ZOOM);
++    }
+ 
+     var feat = features.line("roads")
+       .setId(FeatureId.create(sf))
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+index bb9486b..c4d97d1 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+@@ -282,11 +282,11 @@ class RoadsTest extends LayerTest {
+     "secondary_link, major_road, secondary_link, 9, 9",
+     "tertiary, major_road, tertiary, 9, 9",
+     "tertiary_link, major_road, tertiary_link, 9, 9",
+-    "residential, minor_road, residential, 12, 12",
++    "residential, minor_road, residential, 11, 11",
+     "service, minor_road, service, 13, 13",
+-    "residential, minor_road, residential, 12, 12",
+-    "unclassified, minor_road, unclassified, 12, 12",
+-    "road, minor_road, road, 12, 12",
++    "residential, minor_road, residential, 11, 11",
++    "unclassified, minor_road, unclassified, 11, 11",
++    "road, minor_road, road, 11, 11",
+     "raceway, minor_road, raceway, 12, 12",
+     "pedestrian, path, pedestrian, 12, 12",
+     "track, path, track, 11, 11",
+@@ -732,6 +732,30 @@ class RoadsTest extends LayerTest {
+     );
+   }
+ 
++
++  // Forager street-grid pilot (dispatch 2026-10-30-coder-02): residential, unclassified and road streets from z11, a zoom
++  // before upstream, so the street grid shows at glance level like OSM's. Service roads (the owner: "Streets only"),
++  // raceways, and private or no-access streets keep upstream's zoom. Only the first zoom moves.
++  @ParameterizedTest
++  @CsvSource({"residential", "unclassified", "road"})
++  void foragerStreetsFromPilotZoom(String highway) {
++    var feature = processWith("highway", highway).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(11, feature.getMinZoom(), "first zoom");
++    org.junit.jupiter.api.Assertions.assertEquals(13, feature.getAttrsAtZoom(15).get("min_zoom"), "min_zoom attribute");
++    org.junit.jupiter.api.Assertions.assertEquals(12, feature.getSortKey(), "sort key");
++  }
++
++  @ParameterizedTest
++  @CsvSource({
++    "highway, service, , , 13",
++    "highway, raceway, , , 12",
++    "highway, residential, access, private, 15",
++    "highway, unclassified, access, no, 15",
++  })
++  void foragerStreetsOthersUnchanged(String k1, String v1, String k2, String v2, int minZoom) {
++    var feature = (k2 == null ? processWith(k1, v1) : processWith(k1, v1, k2, v2)).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
++  }
+ }
+ 
+ 
+@@ -1402,4 +1426,5 @@ class RoadsOvertureTest extends LayerTest {
+       )
+     ), results);
+   }
++
+ }
