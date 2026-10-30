@@ -97,11 +97,12 @@ class GetPlannedTripsUseCaseTest {
         val repository = FakePlannedTripRepository(
             Result.success(
                 listOf(
-                    undated("u3", "ridge run"),
+                    undated("u1", "ridge run"),
                     trip("later", referenceDay.plusDays(5)),
-                    undated("u2", "Creek loop"),
+                    undated("u3", "Creek loop"),
                     trip("today", referenceDay),
-                    undated("u1", "Creek loop"),
+                    undated("u2", "Creek loop"),
+                    undated("u4", "apple orchard"),
                     trip("soonest", referenceDay.plusDays(1)),
                 ),
             ),
@@ -110,6 +111,8 @@ class GetPlannedTripsUseCaseTest {
 
         val result = useCase().getOrThrow()
 
-        assertEquals(listOf("today", "soonest", "later", "u1", "u2", "u3"), result.map { it.id })
+        // The ids run against the names (u1 is last by name), so an order by id alone fails this; "apple" before "Creek"
+        // is the case-insensitive order, which a plain string order would reverse.
+        assertEquals(listOf("today", "soonest", "later", "u4", "u2", "u3", "u1"), result.map { it.id })
     }
 }
