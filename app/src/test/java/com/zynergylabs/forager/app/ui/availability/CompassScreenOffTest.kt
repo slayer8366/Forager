@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -92,8 +93,12 @@ class CompassScreenOffTest {
     private fun setHost() {
         shadow.addSensor(Sensor.TYPE_ROTATION_VECTOR, ShadowSensor.newInstance(Sensor.TYPE_ROTATION_VECTOR))
         composeRule.setContent {
+            // Remembered, as production hands down the one AppContainer instance: made inline, the host's recomposition on a
+            // fix flip (hasFix is read in this scope) would hand rememberTrueHeading a new provider each time, and a new
+            // provider rightly gets a new trust judge (CI run 41138741272).
+            val compass = remember { AndroidCompassProvider(context) }
             ForagerTheme {
-                heading = rememberTrueHeading(AndroidCompassProvider(context), ComputeTrueHeadingUseCase(NoDeclination), liveFix, null, { now })
+                heading = rememberTrueHeading(compass, ComputeTrueHeadingUseCase(NoDeclination), liveFix, null, { now })
                 CompassElevationStrip(
                     heading = heading,
                     elevationMeters = 100.0,
