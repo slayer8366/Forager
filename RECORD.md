@@ -29896,3 +29896,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Attempt 2 (a re-run of the failed job, nothing changed): all five jobs green, 6,029 tests, 0 failures.
 - APK 1.0.4180+gb18bd56d (versionCode 4180), artifact 12937313982.
 **Notes:** Written by the planner by hand. Two sightings of the crowded-icons test racing its DataStore read (-1784, here), for the deferred flake hunt. The install waits for the S22 to be plugged in (-1813). Next free ID -1815.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1815
+**Timestamp:** 2026-10-30T02:46:53Z
+**Continues:** 2026-09-28-1813, 2026-09-28-1814
+**Title:** The #440 tools build goes on the S22
+**Decision:** the owner: "S22 plugged in", under -1813. Dispatch 2026-10-29-08: install 1.0.4180+gb18bd56d over #440 with Region 1 and the walk track kept, grant ACTIVITY_RECOGNITION and READ_BASIC_PHONE_STATE, switch the logger on, and run a 60 s indoor recording to show it writes a log.
+**Notes:** Written by the planner by hand. Next free ID -1816.
