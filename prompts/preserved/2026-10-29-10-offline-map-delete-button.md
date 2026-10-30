@@ -41,3 +41,10 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 - **Label:** the owner: "\"Delete <map name>\" (Recommended)". Approved.
 - **Stale text:** the owner: "Fix wording only (Recommended)". Rename JournalPendingDeleteTest.kt:573's title and correct the TwoStageSwipe.kt comment so both say the row has no *text* Delete control at rest. The assertion stays byte-identical; show this in the diff.
 - **Tools:** `gh` is installed and logged in on this laptop. The earlier "no gh" was the planner's error.
+
+## Amendment 2 (2026-10-30): the old no-Delete guard (RECORD -1823)
+Run 41006039562 on 38c5f1075 failed 1 of 5910 tests: AvailabilityScreenSettingsPanelTest.kt:686, at lines 699-700, which assert there are zero clickable "Delete" nodes on a row at rest. It found the new trash button. This is J4b L5's guard, written for the old design. The owner: "Exactly one: the trash (Recommended)".
+- Change lines 699-700 to assert exactly one clickable node whose description contains "Delete": the trash button, with its tag and the label "Delete <map name>". The text and swipe checks in that test stay unchanged.
+- Match the TwoStageSwipe.kt:162 comment to it.
+- Show the new assertion failing with a second delete control added (a revert check, with the build log checked), and that it passes forward.
+- Run the full suite on the new head. Report the diff of the test lines in the completion report.

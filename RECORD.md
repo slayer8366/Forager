@@ -29989,3 +29989,16 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** the downloaded trail files carry no elevation, and the routing adapter drops the engine's heights (WayHomeHeights.kt:14-19). Elevation for routing was sized at -1501 as Pi work and was never ruled.
 **Decision:** the owner: "No navigation. Just display the trail, and the route info, including trail data such as elevation climbs, distance, etc. Make that info glanceable In a card that slides up from the bottom". Then: "Wait for trail-data elevation"; "Elevation graph, High and low point, Per-leg breakdown" (no estimated time); "Yes, live while plotting" (the card grows as each leg is added, with Undo last, Save and Cancel on it); "Release waits for elevation (Recommended)". Plan addendum in docs/plans/2026-10-29-waypoint-route-plotting-plan.md.
 **Notes:** Written by the planner by hand. The release now waits on trail-navigation steps 6-11, route plotting, and elevation in the trail data. The Pi work is not handed to Aspen without the owner's go. Next free ID -1823.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1823
+**Timestamp:** 2026-10-30T10:26:27Z
+**Continues:** 2026-09-28-1820
+**Title:** The old "no Delete control at rest" guard becomes "exactly one: the trash button"; #444 is green
+**Observed:**
+- **#443** (Hazel, Opus; report b8628e07c; code 38c5f1075): run 41006039562, 1 failure in 5910, at AvailabilityScreenSettingsPanelTest.kt:699-700 (J4b L5's zero-Delete guard). The failing-first run and four revert runs bite, each with 0 compile errors.
+- **#444** (Hazel, Opus; report bf77157f6; code 6f0406ccd): run 41006092790 green, 5906 tests, 0 failures. Tests-first gave 16 failures; four revert runs bite, each with 0 compile errors.
+**Decision:** the owner: "Exactly one: the trash (Recommended)". Dispatch 2026-10-29-10 Amendment 2.
+**Notes:** Written by the planner by hand. Next free ID -1824.
