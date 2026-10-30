@@ -30240,3 +30240,23 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr447.md at sorrel-pr447 639169f81: no S, N1 to N11. All five revert runs were read against their logs and each bites. N2: under full heights, J1 also drops the climb inside the two joints (up to 25 m each) plus two banking resets, so "start back by" can read up to about 18 s earlier than it should. Partial or missing heights are never shorter than today. N7 (unverified): BRouter's -12345 hollow-node marker would read as about -3,086 m if it reached a route.
 **Decision:** the owner: "Count the joint climb". The climb inside each joint comes from the track's barometric heights, and only the step between the sources stays uncounted. Dispatch 2026-10-30-06 Amendment 2 also takes N1 and N10 now, plans N4 and N7 for the fixture commit, and adds N3 to the S22 steps.
 **Notes:** Written by the planner by hand. A fresh coder takes it, since the trail-heights coder was past 250k tokens. Next free ID -1843.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1843
+**Timestamp:** 2026-10-30T17:03:07Z
+**Continues:** 2026-09-28-1842
+**Title:** #447 counts the climb inside each joint, green; up to about 17.6 s of shortfall is left, from the two banking resets
+**Observed:** Hazel (Opus), trail-heights 1cc689166.
+- **CI:** run 41093068384, 5,966 tests, 0 failures.
+- **Mechanism:** each joint carries the walker's stored points' barometric heights as walked, with one height-less sample still between each joint and the route's heights (J1). The first version, built on the stand-in, read 9.23 m and 9.19 m for 10 m because its self-join cut the corner. It was superseded, and the revision is recorded in the PR body. The planner accepts using the stored points as walked.
+- **Fail first:** run 41088493244, 3 of 13 failed, 0 compile errors.
+- **Reverts:**
+  - the step (41093104986): 6 failed;
+  - the entry joint (41093112424): 2 failed;
+  - the leave joint (41093099470): only the structure test failed, because the test walk has a stored point exactly at the joint's end. Disclosed.
+- **N1 and N10 fixed.** The plan for N4 and N7 is in the PR body, including that FindWayHomeOnBRouterTest's walk needs pressure to read heights.
+- **Shortfall against today:** with full heights it is now only the two banking resets, under 8 m and under 17.6 s. Partial or no heights are the same as today.
+- **Not verified:** real heighted data, a phone, and a real walk's barometer.
+**Notes:** Written by the planner by hand. Aspen's heighted fixture has not arrived; nothing in prompts/aspen/ or Aspen's handoffs folder. Next free ID -1844.
