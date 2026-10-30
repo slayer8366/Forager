@@ -95,3 +95,11 @@ The owner: "Have the elevation use the online info for now also. Until we get el
 - **Later:** when Aspen's trail data carries heights, new routes take them from the trail data (Addendum 1's step 4a). Not yet handed to Aspen.
 - **The release** ships route plotting with online elevation. It no longer waits on Aspen's elevation build. This supersedes Addendum 1's "release waits".
 - **New step 4b:** the elevation lookup (interface, Open-Meteo client, saved heights, fill-in-later), after step 2 and before the card's climb rows.
+
+## Addendum 3, 2026-10-30: elevation from the trail data only (RECORD -1833)
+The owner: "Good news, elevation is already built in", then "Drop it, use trail data (Recommended)". The Pi build already writes 3″ heights into the route squares (origin/pi-build 532f70fd6, G8, "from the 2026-11-01 run"). This supersedes Addendum 2:
+- No online lookup, and no "Elevation when online". Step 4b is dropped.
+- Step 4a (the routing adapter keeps the engine's per-point heights, and TrailRoute carries them) comes before the card's climb rows.
+- A route over an area downloaded before heights were added shows "—" for climb until that area is downloaded again.
+- Whether today's downloads carry heights or first get them with the 2026-11-01 run is unverified. It is asked of Aspen in prompts/aspen/2026-10-30-02.
+- The schema question from Amendment 1 (H3, heights by their own migration) still stands, now for step 4a.

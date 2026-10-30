@@ -30107,3 +30107,15 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Rowan and Aspen talk through the repo: prompts/aspen/ on records-after-173
 **Decision:** the owner: "Use the repo to communicate with Aspen and back and forth. Dispatches are filed this way anyway." Messages go one per file in prompts/aspen/, never edited after push, named by date, sender and receiver, under an index in its README. The elevation handoff moves there as 2026-10-30-01-rowan-to-aspen-elevation.md (content unchanged).
 **Notes:** Written by the planner by hand. The planner checks prompts/aspen/ for Aspen's files at each fetch. Next free ID -1833.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1833
+**Timestamp:** 2026-10-30T14:19:31Z
+**Continues:** 2026-09-28-1824
+**Supersedes:** -1824's online elevation lookup and its "Fill in later"
+**Title:** Route elevation comes from the trail data only: the Pi build already writes heights (G8); no online lookup
+**Observed:** origin/pi-build 532f70fd6 (2026-10-27), "Merge pi-32-elevation (G8): route squares with 3-inch heights from the pinned .bef store, from the 2026-11-01 run". build-usca.sh:399-423 refuses a store that is missing or unpinned, and a square with no heights. The app's routing adapter still drops per-point heights (routing/BRouterTrailRouter.kt). The planner's note 2026-10-30-01 to Aspen had missed G8; corrected by 2026-10-30-02.
+**Decision:** the owner: "Good news, elevation is already built in"; "Drop it, use trail data (Recommended)". Plan Addendum 3: step 4b is dropped and step 4a comes first. An area downloaded before heights shows "—" until it is downloaded again.
+**Notes:** Written by the planner by hand. Unverified: whether today's downloads carry heights; asked of Aspen. Next free ID -1834.

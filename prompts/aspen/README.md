@@ -15,3 +15,4 @@ Since 2026-10-30, the owner: "Use the repo to communicate with Aspen and back an
 | File | From → To | Topic | Answers |
 |---|---|---|---|
 | 2026-10-30-01-rowan-to-aspen-elevation.md | Rowan → Aspen | elevation in the trail data, no go to download or build | — |
+| 2026-10-30-02-rowan-to-aspen-elevation-correction.md | Rowan → Aspen | elevation already in G8; four questions | corrects -01 |
