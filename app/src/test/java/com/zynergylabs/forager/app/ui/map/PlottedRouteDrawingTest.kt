@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.domain.route.StraightReason
 import com.zynergylabs.forager.app.domain.route.routeFrame
+import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -72,4 +73,30 @@ class PlottedRouteDrawingTest {
         assertFalse("not following", cameraRequestStopsFollowing(false, asked, null))
         assertFalse("an entry map's frame", cameraRequestStopsFollowing(true, MapCameraRequest("r2", frame), null))
     }
+
+    @Test
+    fun `the joins and straight legs carry the trail's casing, white by day and black by night, outlining each dash`() {
+        // Dispatch 2026-10-30-08, Amendment 3 (RECORD -1861), the owner: "Add a thin outline (Recommended)".
+        for ((palette, casing) in listOf(MapPalette.DAY to 0xFFFFFFFF.toInt(), MapPalette.NIGHT to 0xFF000000.toInt())) {
+            val specs = plottedRouteLineSpecs(palette)
+            fun one(part: String, colour: Int) = specs.singleOrNull { it.part == part && it.colour == colour }
+                ?: throw AssertionError("${palette.name()}: no single $part line in ${colourOf(colour)}: $specs")
+            val routeColour = if (palette == MapPalette.NIGHT) PLOTTED_ROUTE_COLOUR_NIGHT else PLOTTED_ROUTE_COLOUR_DAY
+            val trail = one(PlottedRouteIds.PART_TRAIL, routeColour)
+            val trailCasing = one(PlottedRouteIds.PART_TRAIL, casing)
+            val straight = one(PlottedRouteIds.PART_STRAIGHT, routeColour)
+            val straightCasing = one(PlottedRouteIds.PART_STRAIGHT, casing)
+            val name = palette.name()
+
+            assertEquals("$name: the same casing width each side", trailCasing.widthDp - trail.widthDp, straightCasing.widthDp - straight.widthDp, 0.001f)
+            assertEquals("$name: both casings are under both lines", setOf(0, 1), setOf(specs.indexOf(trailCasing), specs.indexOf(straightCasing)))
+            // lineDasharray is in line widths, so the casing's dashes are as long in dp as the line's own: each dash outlined.
+            assertEquals("$name: dashes in dp", straight.dashes!!.map { it * straight.widthDp }, straightCasing.dashes!!.map { it * straightCasing.widthDp })
+            assertFalse("$name: butt caps, as the dashes", straightCasing.roundCaps)
+        }
+    }
+
+    private fun MapPalette.name() = if (this == MapPalette.NIGHT) "night" else "day"
+    private fun colourOf(colour: Int) = "#%08X".format(colour)
+
 }

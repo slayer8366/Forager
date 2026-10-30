@@ -77,43 +77,65 @@ internal const val PLOTTED_ROUTE_COLOUR_NIGHT = 0xFFFF40FF.toInt()
 private const val TRAIL_WIDTH_DP = 5f
 private const val CASING_DP = 1.5f
 private const val STRAIGHT_WIDTH_DP = 3f
-private val STRAIGHT_DASHES = arrayOf(2f, 2f)
+private val STRAIGHT_DASHES = listOf(2f, 2f)
 private const val STOP_DOT_RADIUS_DP = 4f
 
-/** Adds the route's sources and layers to [style], below [belowLayerId] (the way home's lowest line). */
+/**
+ * One of the route's line layers, as data, so a headless test reads what MapLibre is given: its [part] (trail or straight),
+ * [colour], [widthDp], [dashes] (in line widths, as `lineDasharray` takes them; `null` for solid) and whether its caps and joins
+ * are round.
+ */
+internal data class PlottedRouteLineSpec(
+    val layerId: String,
+    val part: String,
+    val colour: Int,
+    val widthDp: Float,
+    val dashes: List<Float>?,
+    val roundCaps: Boolean,
+)
+
+/** The route's line layers in [palette]'s colours, bottom to top. */
+internal fun plottedRouteLineSpecs(palette: MapPalette): List<PlottedRouteLineSpec> {
+    val colour = if (palette == MapPalette.NIGHT) PLOTTED_ROUTE_COLOUR_NIGHT else PLOTTED_ROUTE_COLOUR_DAY
+    return listOf(
+        PlottedRouteLineSpec(PlottedRouteIds.CASING_LAYER, PlottedRouteIds.PART_TRAIL, palette.casing, TRAIL_WIDTH_DP + 2 * CASING_DP, null, roundCaps = true),
+        PlottedRouteLineSpec(PlottedRouteIds.TRAIL_LAYER, PlottedRouteIds.PART_TRAIL, colour, TRAIL_WIDTH_DP, null, roundCaps = true),
+        PlottedRouteLineSpec(PlottedRouteIds.STRAIGHT_LAYER, PlottedRouteIds.PART_STRAIGHT, colour, STRAIGHT_WIDTH_DP, STRAIGHT_DASHES, roundCaps = false),
+    )
+}
+
+private fun plottedRouteLineLayer(spec: PlottedRouteLineSpec): LineLayer {
+    val onlyPart = Expression.eq(Expression.get(PlottedRouteIds.PART_PROPERTY), Expression.literal(spec.part))
+    val properties = buildList {
+        add(PropertyFactory.lineColor(spec.colour))
+        add(PropertyFactory.lineWidth(spec.widthDp))
+        if (spec.roundCaps) {
+            add(PropertyFactory.lineCap(Property.LINE_CAP_ROUND))
+            add(PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
+        }
+        spec.dashes?.let { add(PropertyFactory.lineDasharray(it.toTypedArray())) }
+    }
+    return LineLayer(spec.layerId, PlottedRouteIds.SOURCE).withFilter(onlyPart).withProperties(*properties.toTypedArray())
+}
+
+/** Adds the route's sources and layers to [style], below [belowLayerId] (the way home's lowest line), in [plottedRouteLineSpecs]' order. */
 internal fun addPlottedRouteLayers(style: Style, palette: MapPalette, belowLayerId: String) {
     val colour = if (palette == MapPalette.NIGHT) PLOTTED_ROUTE_COLOUR_NIGHT else PLOTTED_ROUTE_COLOUR_DAY
     style.addSource(GeoJsonSource(PlottedRouteIds.SOURCE, FeatureCollection.fromFeatures(emptyList())))
     style.addSource(GeoJsonSource(PlottedRouteIds.STOPS_SOURCE, FeatureCollection.fromFeatures(emptyList())))
-    val trailOnly = Expression.eq(Expression.get(PlottedRouteIds.PART_PROPERTY), Expression.literal(PlottedRouteIds.PART_TRAIL))
-    val straightOnly = Expression.eq(Expression.get(PlottedRouteIds.PART_PROPERTY), Expression.literal(PlottedRouteIds.PART_STRAIGHT))
-    val casing = LineLayer(PlottedRouteIds.CASING_LAYER, PlottedRouteIds.SOURCE).withFilter(trailOnly).withProperties(
-        PropertyFactory.lineColor(palette.casing),
-        PropertyFactory.lineWidth(TRAIL_WIDTH_DP + 2 * CASING_DP),
-        PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-        PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-    )
-    val trail = LineLayer(PlottedRouteIds.TRAIL_LAYER, PlottedRouteIds.SOURCE).withFilter(trailOnly).withProperties(
-        PropertyFactory.lineColor(colour),
-        PropertyFactory.lineWidth(TRAIL_WIDTH_DP),
-        PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-        PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-    )
-    val straight = LineLayer(PlottedRouteIds.STRAIGHT_LAYER, PlottedRouteIds.SOURCE).withFilter(straightOnly).withProperties(
-        PropertyFactory.lineColor(colour),
-        PropertyFactory.lineWidth(STRAIGHT_WIDTH_DP),
-        PropertyFactory.lineDasharray(STRAIGHT_DASHES),
-    )
+    var below = belowLayerId
+    // Added top first, each below the one before, so they stack bottom to top as listed, all under the way home.
+    plottedRouteLineSpecs(palette).asReversed().forEach { spec ->
+        style.addLayerBelow(plottedRouteLineLayer(spec), below)
+        below = spec.layerId
+    }
     val stops = CircleLayer(PlottedRouteIds.STOPS_LAYER, PlottedRouteIds.STOPS_SOURCE).withProperties(
         PropertyFactory.circleColor(colour),
         PropertyFactory.circleRadius(STOP_DOT_RADIUS_DP),
         PropertyFactory.circleStrokeColor(palette.casing),
         PropertyFactory.circleStrokeWidth(CASING_DP),
     )
-    style.addLayerBelow(casing, belowLayerId)
-    style.addLayerAbove(trail, PlottedRouteIds.CASING_LAYER)
-    style.addLayerAbove(straight, PlottedRouteIds.TRAIL_LAYER)
-    style.addLayerAbove(stops, PlottedRouteIds.STRAIGHT_LAYER)
+    style.addLayerBelow(stops, belowLayerId)
 }
 
 /** What each of the route's sources receives for [route]; both empty for none, so a closed route clears the map. */
