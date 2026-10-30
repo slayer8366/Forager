@@ -159,9 +159,9 @@ internal fun Modifier.swipeRevealTouchWatcher(group: SwipeRevealGroup): Modifier
  *   a swipe back closes it; opening another row of the same [group] closes this one; a touch
  *   elsewhere on the list closes it ([swipeRevealTouchWatcher]).
  * - **The actions are composed only while the row is off zero**, so a row at rest carries no text
- *   Edit or Delete control (what J4b L5's test pins for the region row). An offline-map row does show
- *   a trash icon at rest since dispatch 2026-10-29-10 (`OfflineRegionRowWithDelete`), beside the row
- *   rather than one of these actions.
+ *   Edit or Delete control. An offline-map row does show a trash icon at rest since dispatch
+ *   2026-10-29-10 (`OfflineRegionRowWithDelete`), beside the row rather than one of these actions:
+ *   J4b L5's test pins no "Delete" text and exactly one clickable delete, that trash button.
  * - **Accessibility.** The row carries custom accessibility actions, "Edit" (when [onEdit] is set)
  *   and "Delete", making the same calls as the buttons, so TalkBack reaches both without the gesture
  *   (J4's "Delete" action, kept, with "Edit" beside it).

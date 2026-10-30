@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import android.app.Application
@@ -677,10 +678,11 @@ class AvailabilityScreenSettingsPanelTest {
 
     /**
      * J4b L5: what the old "no delete buttons" line was guarding, asserted where it can fail. A
-     * downloaded region's row, at rest, carries **no** delete control of its own (no "Delete" text,
-     * no clickable node described as a delete), and **does** carry J4's swipe (its tag) and the
-     * "Delete" accessibility action that stands in for the button (J4 D3). The row's name showing is
-     * the positive control: the row is really there to be looked at.
+     * downloaded region's row, at rest, carries no "Delete" text, and **does** carry J4's swipe (its
+     * tag) and the "Delete" accessibility action (J4 D3). Since dispatch 2026-10-29-10 Amendment 2
+     * (RECORD -1823) it carries exactly one clickable node described as a delete: the visible trash
+     * button, by its tag and its label "Delete <map name>". The row's name showing is the positive
+     * control: the row is really there to be looked at.
      */
     @Test
     fun `a downloaded region's row has no Delete control at rest, and carries the swipe and its Delete action`() {
@@ -696,8 +698,12 @@ class AvailabilityScreenSettingsPanelTest {
                 },
             )
         composeRule.onAllNodesWithText("Delete", ignoreCase = true).assertCountEquals(0)
-        composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
-            .assertCountEquals(0)
+        // Dispatch 2026-10-29-10 Amendment 2 (RECORD -1823), the owner: "Exactly one: the trash (Recommended)".
+        val clickableDeletes = composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
+        clickableDeletes.assertCountEquals(1)
+        clickableDeletes[0]
+            .assert(hasTestTag(offlineRegionDeleteButtonTag(L5_REGION.id)))
+            .assert(hasContentDescription("Delete ${L5_REGION.name}"))
     }
 
     // Dispatch 2026-10-18-03 (Forager RECORD -1269): this screen has no OK; Download Maps picks the pin's point and asks first. Was
