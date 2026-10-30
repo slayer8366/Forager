@@ -30489,3 +30489,17 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
   - everything device-only.
 - **Calls beyond the dispatch:** Save ends plotting; a leg that throws drops its stop and later ones, logged; a plain drag on the handle; expanded rows capped at half the map; the card above the attribution; no Directions on route rows (it is on the card); the date picker confirms with "Add date"; the bubble row wraps.
 **Notes:** Written by the planner by hand. Not merged. Next free ID -1860.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1860
+**Timestamp:** 2026-10-30T21:22:27Z
+**Continues:** 2026-09-28-1857
+**Title:** Region 2 redone on the S22 (now id 8) with heighted trail data; it reads about 10 m lower than the laptop's 10-03 file
+**Observed:** Hazel (Opus), the "Region 2 redone" section of docs/audits/2026-10-30-s22-ci-build-and-redraws.md, s22-ci-build-redraws 18f5edec3.
+- **Delete:** id 7 had no journal references. Only the regions table changed; tracks, points, waypoints and Region 1 hash unchanged.
+- **Download again:** id 8, 10 km radius, zoom 10-15, 1630 tiles. The centre is within 5.4 m of the old one; the screen shows only 4 decimals.
+- **Trail data:** stored, run usca-20261027T221400Z, W125_N45.rd5. 132 of 132 walk-route points carry heights, and 703 of 703 on six more routes.
+- **Height difference:** on the 10-30 walk's 91 matched points this file reads 9.8 m lower (sd 3.1) than the laptop's 10-03 full file, which dispatch -11 used as ground. Near home the two were 2.0 m apart. Which is nearer true ground is not checked. A datum or source difference is inferred, not read.
+**Notes:** Written by the planner by hand. The planner asks Aspen which vertical datum the 3″ store uses. Next free ID -1861.
