@@ -30633,3 +30633,26 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Title:** #450 takes N-1, N-2 and N-4 before the phone; then a combined S22 build
 **Decision:** the owner chose "Add the dialog/split-screen test (N-1)", "Fix the PR's report link (N-2)" and "Close the GPS-loss gap too (N-4)". Then "New combined build after the fixes (Recommended)": #447 + #440 + #450 + tools, built on CI with the routing key, installed with data kept, and Sorrel's nine phone checks run. Dispatch 2026-10-30-14 Amendment 2.
 **Notes:** Written by the planner by hand. A fresh coder takes it. Next free ID -1871.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1871
+**Timestamp:** 2026-10-30T22:29:43Z
+**Continues:** 2026-09-28-1861
+**Title:** #449's three rules are built and bite; CI is red on seven touch-sampling tests; handed off again
+**Observed:** Hazel (Opus), route-plot-ui 213a38ebf, handoff docs/audits/2026-10-30-route-plotting-step-3-amendment-3-handoff.md.
+- **Fail first:** run 41131896487, 3 of 67 failed, one per rule.
+- **The handoff's open tests** landed (54a222b65).
+- **Revert checks:** 10 of 12 bite (runs 41135345702 to 41135416658).
+  - The font-scale revert passed both of its tests, so that test is not shown to bite.
+  - The fullscreen Back revert can't be read, because its test fails forward too.
+- **Red on cf0d160b9:** run 41134064727, 7 of 102. All seven are touch samples:
+  - one is a 10% corner sample on the round Fullscreen button, which never takes a touch;
+  - six are tablet windows with no density qualifier (mdpi), where Undo, Cancel and Save take only centre touches. They pass at xhdpi.
+  - Both fixes are proposed, not applied.
+- **Calls beyond the dispatch:** the cluster's raised floor applies in every window, including wide tablets; the dashes are outlined along their sides only.
+- **Inferred:** the legend chip draws over the portrait card.
+- **Slip, disclosed:** one force-push, of the coder's own scratch diagnostic branch, since deleted.
+- The shared Claude temp directory is at its quota.
+**Notes:** Written by the planner by hand. Not merged. Next free ID -1872.
