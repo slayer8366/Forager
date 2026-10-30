@@ -30219,3 +30219,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - **Not verified:** real heighted route data, a phone, and a download through the Worker.
 - **Calls beyond the dispatch,** accepted by the planner: no fallback log without a barometer; standInHeights refuses TrailData; LineHeights.Barometric keeps its name.
 **Notes:** Written by the planner by hand. Next free ID -1841.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1841
+**Timestamp:** 2026-10-30T15:52:48Z
+**Continues:** 2026-09-28-1840
+**Title:** Sorrel reviews #447 now; its 10 scratch branches deleted
+**Decision:** the owner: "Sorrel review now (Recommended)", with Aspen's heighted-fixture test to come as its own commit and the merge brought back to the owner after it; "Yes, delete (Recommended)" for the 10 revert/trail-heights-* branches, which are now deleted. Dispatch 2026-10-30-07.
+**Notes:** Written by the planner by hand. Next free ID -1842.
