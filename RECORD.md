@@ -30357,3 +30357,30 @@ Dispatch 2026-10-30-08 opens with a look-only first stop.
 **Title:** The 10-30 walk is read on the S22 for altitude (#440) only
 **Decision:** the owner: "Walk done, S22 plugged in"; asked what to look into: "Altitude (#440)". Dispatch 2026-10-30-11 measures the shown height against trail-data heights (pass mark within 10 m, -1796), checks the first-minute blend and the Amendment 4 carry-over, and may download one small area for ground truth and delete it after.
 **Notes:** Written by the planner by hand. Next free ID -1852.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1852
+**Timestamp:** 2026-10-30T20:08:17Z
+**Continues:** 2026-09-28-1845
+**Title:** Route plotting step 3's first stop answered; build it
+**Observed:** Hazel (Opus), first stop at route-plot-ui 9d9393a8f.
+- No modal sheet can be reused, so a new non-modal card with an 80% fill is proposed.
+- The map ignores camera moves while following GPS, and has only an even-padding fit.
+- Saving needs a new use case and dialog, because the date is required today.
+- A trip bubble has no route action today.
+- Prior art read: OsmAnd and Footpath in full; Gaia GPS and AllTrails from snippets only.
+**Decision:** the owner:
+- "Yes, \"Tap the next waypoint\" (Recommended)"
+- "Yes (Recommended)" (plot while navigating or recording)
+- "Ask: \"Discard this route?\" (Recommended)"
+- "Opens the route straight away (Recommended)" (the pin)
+- "Yes, small dots (Recommended)"
+- "Orange (Recommended)"
+- "No, keep it clean (Recommended)" (route rows)
+- "Yes, cancel first (Recommended)" (fullscreen Back)
+- "\"Save route\" (Recommended)", "\"Route name\" (Recommended)", "\"Add date\" / \"Remove date\" (Recommended)", "\"Couldn't save the route. Try again.\" (Recommended)"
+
+The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amendment 1: build, on the go given at -1845.
+**Notes:** Written by the planner by hand. A fresh coder builds it, since the first-stop coder was past 240k tokens. Next free ID -1853.

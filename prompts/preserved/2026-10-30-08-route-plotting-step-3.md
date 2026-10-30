@@ -61,3 +61,40 @@ Push it, and wait for the planner's amendment.
 - The Restricted Object: never read, name or quote it.
 - Past about 200k tokens: push and hand off.
 - Ambiguity: stop and report.
+
+## Amendment 1 (2026-10-30): answers to the first stop, and the go (RECORD -1852)
+The first stop is docs/audits/2026-10-30-route-plotting-step-3-first-stop.md (route-plot-ui, 9d9393a8f). It is accepted as proposed, including its corrected premises, with these answers.
+
+**The owner's answers:**
+- **Q1, start hint:** "Yes, \"Tap the next waypoint\" (Recommended)". The card peeks at once with that line until the first leg exists.
+- **Q4, plotting while busy:** "Yes (Recommended)". Plotting is allowed while navigating or recording, and neither is touched.
+- **Q5, a saved route tapped mid-plot:** "Ask: \"Discard this route?\" (Recommended)". The buttons are "Discard", which opens the saved route, and "Keep plotting".
+- **Q7, the pin:** "Opens the route straight away (Recommended)". A route trip's pin opens it exactly as its row does: fit, line, card peek. Directions (to the first stop) sits on the card. There is no bubble for route trips.
+- **Q8, stops:** "Yes, small dots (Recommended)" at each stop on a saved route.
+- **Q9, colour:** "Orange (Recommended)". Check orange isn't already used by another line or layer (sundown line, tracks, forecast); if it is, stop and report.
+- **Q12, route rows:** "No, keep it clean (Recommended)": name, distance, climb (step 3b) and date; no MGRS or coordinates.
+- **Q3, fullscreen:** "Yes, cancel first (Recommended)". Back cancels plotting before leaving fullscreen.
+- **The Save dialog:**
+  - title "Save route";
+  - label "Route name";
+  - "Add date" / "Remove date";
+  - on failure, "Couldn't save the route. Try again.", with the dialog kept open and the name kept.
+
+**The planner's rulings:**
+- **Q6:** Back on an expanded card cancels in one tap, as already ruled (-1817).
+- **Q5, second half:** Back retraces the way in. A route opened from the Trip Planner in the Tools drawer closes its card and line on Back, and the drawer reopens.
+- **Q10:** "and back" is judged by position. The last stop is at the first stop's position.
+- **Q11:** the plotting controls ride on MapRecordSources. AvailabilityCompactScaffold.kt is not changed.
+- **Also accepted:**
+  - the one `private` → `internal`;
+  - a new fit frame with separate side padding;
+  - leaving GPS-follow when a route opens;
+  - N8 now, N9 noted, N10 measured in step 5.
+- **Approved words:** "Tap the next waypoint", "Discard this route?", "Discard", "Keep plotting", "Save route", "Route name", "Add date", "Remove date", "Couldn't save the route. Try again.". Anything else goes back to the planner.
+
+**The go: build step 3** (the owner's "Yes, split around #447 (Recommended)", -1845).
+- Tests fail first, then revert checks per rule, with build logs checked and restores from saved copies.
+- Coordinate touches per the first stop's (h).
+- New files stay under 400 lines.
+- CI only. A PR into pre-main, with no merge. Merge pre-main in if it moves.
+- No phone without the planner's word.
