@@ -30467,3 +30467,25 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Observed:** Hazel (Opus), first stop at compass-screen-off be03807ff. No background code reads the heading: the recording service, the off-track alert and the walk-back work from positions. SightingsMap.kt:281 also makes its own heading for pickers and other maps.
 **Decision:** the owner: "Same rule as tab returns (Recommended)"; "Yes, re-check (Recommended)". Dispatch 2026-10-30-14 Amendment 1: build.
 **Notes:** Written by the planner by hand. Next free ID -1859.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1859
+**Timestamp:** 2026-10-30T21:22:07Z
+**Continues:** 2026-09-28-1853
+**Title:** Route plotting step 3 is PR #449, green but unfinished; handed off at the coder's context limit
+**Observed:** Hazel (Opus), route-plot-ui 044552862, with a handoff at docs/audits/2026-10-30-route-plotting-step-3-handoff.md.
+- **CI:** run 41128288933, 5995 tests, 0 failures.
+- **Fail first:** run 41121293946, 21 of 47 failed over the stubs. "Taps while not plotting do nothing" is not shown to bite.
+- **Revert checks:** 12 of 12 bite, each with 0 compile errors and forward files compared byte for byte.
+- **Magenta:** day #FF00FF, night #FF40FF. Oklab distances are 0.13 or more from everything by day; by night the nearest is the planned-trip pin at 0.061, which is the route's own pin. Contrast against the map backgrounds: day 1.05-3.05:1 (median 1.86), night 1.09-7.31:1. The dashed parts have no casing.
+- **Left to do:**
+  - touch tests for the Trip Planner row and its drawer Back, the Discard dialog, the date controls and failure line, landscape and tablet, and the Back order over a bubble, fan, drawer or fullscreen;
+  - the icon cluster can sit under the card in portrait;
+  - the Return to Route pill likely draws over the card;
+  - MapChromeAlphaTest doesn't cover the card or dialogs;
+  - the bubble's wrapped row is untested at font scale 2.0;
+  - everything device-only.
+- **Calls beyond the dispatch:** Save ends plotting; a leg that throws drops its stop and later ones, logged; a plain drag on the handle; expanded rows capped at half the map; the card above the attribution; no Directions on route rows (it is on the card); the date picker confirms with "Add date"; the bubble row wraps.
+**Notes:** Written by the planner by hand. Not merged. Next free ID -1860.
