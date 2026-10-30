@@ -731,6 +731,7 @@ class JournalBackupTest {
         assertEquals("a value from the old snapshot survived the migration", "name-1", b.scalar("SELECT name FROM waypoints"))
         for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths" - ROUTE_TABLE_NAMES) assertEquals("one seeded row in $t", 1L, b.count(t))
         assertEquals("no path was invented for the old backup's track ref", 0L, b.count("cartography_entry_track_paths"))
+        for (t in ROUTE_TABLE_NAMES) assertEquals("no route was invented for the old backup's trips: $t", 0L, b.count(t))
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
 
@@ -779,6 +780,8 @@ class JournalBackupTest {
         // A v15 file has no path table: it arrives through MIGRATION_16_17, present and empty (F3).
         for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths" - ROUTE_TABLE_NAMES) assertEquals("one seeded row in $t", 1L, b.count(t))
         assertEquals("the path table the migration created is there and empty", 0L, b.count("cartography_entry_track_paths"))
+        // A v15 file has no route tables either: they arrive through MIGRATION_22_23, present and empty.
+        for (t in ROUTE_TABLE_NAMES) assertEquals("the route table the migration created is there and empty: $t", 0L, b.count(t))
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
 
