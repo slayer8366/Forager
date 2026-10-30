@@ -30557,3 +30557,13 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
   - So the 9.8 m gap on the wooded walk (-1860) is expected, and the new heights are the better ground.
   - The -1854 altitude replay was scored against the SRTM file, so its 10 m verdict may shift by about that much.
 **Notes:** Written by the planner by hand. Next free ID -1865.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1865
+**Timestamp:** 2026-10-30T21:57:27Z
+**Continues:** 2026-09-28-1864
+**Title:** The 10-30 altitude replay is rescored on the new 3DEP heights; Juniper finds the NRCan credit wording
+**Decision:** the owner: "Yes, rescore (Recommended)" (dispatch 2026-10-30-16, against Region 2's new W125_N45.rd5, no phone); "Juniper finds the wording, then a coder adds it (Recommended)" (dispatch 2026-10-30-17, research only; the owner approves the wording before any code).
+**Notes:** Written by the planner by hand. Next free ID -1866.
