@@ -30585,3 +30585,13 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 - **Not separated:** GPS under trees versus the ground model.
 - **-1796's mark,** "within 10 m of the known ground height", does not say every point or a share.
 **Notes:** Written by the planner by hand. The map was off all walk, so this is a replay, not a height seen on screen. Next free ID -1867.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1867
+**Timestamp:** 2026-10-30T22:02:26Z
+**Continues:** 2026-09-28-1866
+**Title:** #440's altitude verdict waits for a walk with the screen on
+**Decision:** the owner: "Not yet: walk again, screen on (Recommended)". The steps are in prompts/preserved/2026-10-30-18-owner-altitude-walk.md: 2 minutes on screen at the start on open ground, then 5-6 stops of 90 s with screenshots (open, under trees, lowest, highest), inside Region 1 or 2. Each stop is scored against the trail data's heights, within 10 m.
+**Notes:** Written by the planner by hand. Next free ID -1868.
