@@ -30203,3 +30203,19 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - **#446** (088b182aa): run 41073426824, 5953 tests, 0 failures. The N2 revert fails exactly the new test on the new head, "not asserted: [ROUTES_FETCHING]" (41073445284), and nothing on the old head (41073458489).
 - **Merged by the planner:** #445 to pre-main 6ee40daee, then #446 to b493cffeb. The pre-main push run is pending.
 **Notes:** Written by the planner by hand, on the owner's "Tighten 2 tests, then merge (Recommended)" (-1837). Pre-main now carries schema 23. No phone gets it before step 3, and none without the planner's word. Index rows for the first stop and both PRs are still to add. Next free ID -1840.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1840
+**Timestamp:** 2026-10-30T15:51:57Z
+**Continues:** 2026-09-28-1838
+**Title:** Trail heights built as PR #447, green; heights proven on a fake router only until Aspen's fixture lands
+**Observed:** Hazel (Opus), trail-heights 44cec6baa, merged with pre-main b493cffeb.
+- **CI:** run 41081591702, 5,963 tests, 0 failures.
+- **Fail first:** run 41077095050, 5 of 28 failed. The first stub run, 41076370188, did not compile and is not cited.
+- **The coder's own test prediction** was wrong once ("expected 250.0 but was 261.76", the leave joint left out). The test was fixed in 44cec6baa; the code was unchanged.
+- **Revert checks r1 to r5** (revert/trail-heights-b-*, runs 41081656592 to 41081680383): each bites, with 0 compile errors and restore checked with cmp. r5 shows the trail part's state, not the allowance, which the line-level rule also holds off.
+- **Not verified:** real heighted route data, a phone, and a download through the Worker.
+- **Calls beyond the dispatch,** accepted by the planner: no fallback log without a barometer; standInHeights refuses TrailData; LineHeights.Barometric keeps its name.
+**Notes:** Written by the planner by hand. Next free ID -1841.
