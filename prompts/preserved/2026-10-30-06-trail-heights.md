@@ -72,3 +72,24 @@ The first stop is docs/audits/2026-10-30-trail-heights-first-stop.md (trail-heig
 - Your scratch-folder slip is recorded. Use your own subfolder from now on.
 
 **The go: build.** Tests fail first, then revert checks per rule, CI only, and a PR into pre-main with no merge. If pre-main moves (#445 and #446 are about to merge), merge it in.
+
+## Amendment 2 (2026-10-30): Sorrel's review of #447 (RECORD -1842)
+Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr447.md (sorrel-pr447, 639169f81). It has no S findings.
+
+**The owner, on N2:** "Count the joint climb", whose option read: "Have the coder count climb within each joint from your track's heights, while still skipping the step between the two height sources."
+- Climb inside each joint (up to 25 m horizontal, WayHome.kt:134) is counted from the track's own barometric heights. Only the offset *between* the two sources stays uncounted (J1 still holds for the step).
+- Propose the mechanism in the PR body before writing it, in a few lines. If it needs more than a small change to WayHomeHeights or ClimbAllowance's banking, stop and report.
+- Fail first: a way home whose joint climbs 10 m must count that 10 m, and a 20 m datum offset must still count 0. Then a revert check.
+- Report how much the worst case is now under today's (Sorrel's ≈18 s figure), and whether any shortfall is left.
+
+**Also in this round:**
+- **N1:** WayHomeHeights.kt:17 should say three arc-seconds (about 90 m posts), not "3-inch". Correct it wherever else it appears.
+- **N10:** the two make-fixture.sh lines that still say the square carries no elevation.
+- **N4 and N7, for the heighted-fixture commit when Aspen's file lands, planned now in the PR body:**
+  - a second data folder, so the no-heights test keeps its own fixture;
+  - FindWayHomeOnBRouterTest on heighted data;
+  - one assertion that no route height is below −500 m;
+  - the credit line once Aspen answers.
+- **N3:** add to the PR's S22 steps reading "start back by" on one way home under old (pre-10-28) and fresh route data.
+- N5, N6, N8, N9 and N11 are record only.
+- Merge pre-main in if it has moved. CI green; no merge.

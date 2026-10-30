@@ -30229,3 +30229,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Sorrel reviews #447 now; its 10 scratch branches deleted
 **Decision:** the owner: "Sorrel review now (Recommended)", with Aspen's heighted-fixture test to come as its own commit and the merge brought back to the owner after it; "Yes, delete (Recommended)" for the 10 revert/trail-heights-* branches, which are now deleted. Dispatch 2026-10-30-07.
 **Notes:** Written by the planner by hand. Next free ID -1842.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1842
+**Timestamp:** 2026-10-30T16:11:21Z
+**Continues:** 2026-09-28-1841
+**Title:** Sorrel finds no S on #447; the owner has the climb inside each joint counted, so "start back by" is not read early
+**Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr447.md at sorrel-pr447 639169f81: no S, N1 to N11. All five revert runs were read against their logs and each bites. N2: under full heights, J1 also drops the climb inside the two joints (up to 25 m each) plus two banking resets, so "start back by" can read up to about 18 s earlier than it should. Partial or missing heights are never shorter than today. N7 (unverified): BRouter's -12345 hollow-node marker would read as about -3,086 m if it reached a route.
+**Decision:** the owner: "Count the joint climb". The climb inside each joint comes from the track's barometric heights, and only the step between the sources stays uncounted. Dispatch 2026-10-30-06 Amendment 2 also takes N1 and N10 now, plans N4 and N7 for the fixture commit, and adds N3 to the S22 steps.
+**Notes:** Written by the planner by hand. A fresh coder takes it, since the trail-heights coder was past 250k tokens. Next free ID -1843.
