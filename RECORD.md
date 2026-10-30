@@ -30291,3 +30291,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 
 Dispatch 2026-10-30-08 opens with a look-only first stop.
 **Notes:** Written by the planner by hand. Next free ID -1846.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1846
+**Timestamp:** 2026-10-30T18:27:16Z
+**Continues:** 2026-09-28-1843
+**Title:** The S22 gets a tools build of #447 + #440, and its data moves to schema 23
+**Decision:** the owner: "Load the S22 with the dev build for the elevation fix". Then "New tools build on #447 (Recommended)" and "#447 + #440 + tools (Recommended)", approved knowing the S22's data upgrades from 22 to 23 and the schema-22 tools build cannot return without a wipe. Dispatch 2026-10-30-09: branch tools/s22-447-440 (never merged) = trail-heights 1cc689166 + #440 + the tools commits 0997641ec and b18bd56d3. CI, then install with data kept and a database backup taken first.
+**Notes:** Written by the planner by hand. Next free ID -1847.
