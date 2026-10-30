@@ -30747,3 +30747,23 @@ Dispatch 2026-10-30-08 Amendment 4.
 - **The coder's own test errors, corrected and disclosed:** a paused-activity strip read; and a test host building a new provider per recomposition, which hid the N-4 fix until 93e5e1a6c. The superseded r6-r8 runs are marked not evidence.
 - **Not verified:** a phone, a real system dialog or split screen, and a fix flip while the screen is off.
 **Notes:** Written by the planner by hand. Next: the combined S22 build after Sorrel's #449 review. Next free ID -1878.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1878
+**Timestamp:** 2026-10-30T23:35:57Z
+**Continues:** 2026-09-28-1876
+**Title:** Sorrel on #449: one S, a saved route's fit re-applies on every return to the Maps tab
+**Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr449.md at sorrel-pr449 8d83e7b77.
+- **S-1:** the open route's camera request id is constant (CompactMapRoutePlotting.kt:91-100), and the applied-id memory dies with the MapView (SightingsMap.kt:522). So each return to the Maps tab re-fits the route over the user's camera and ends following again. The precedent fix is -750's appliedSearchFrameId in MapCameraMemory. This was found by reading, not observed.
+- **Notes:**
+  - N-3: no test asserts the approved words as text.
+  - N-9: the card handle is a 32 dp target.
+  - N-10: withLeg's require sits outside the try.
+  - N-11: deleting a showing route leaves its card up.
+  - N-2: "Keep plotting" leaves the drawer closed.
+  - N-8: unused imports.
+  - N-1, N-4 to N-7 are record only; N-7 confirms both a3 verdicts from the jobs/logs API.
+- **Every owner ruling** holds at its line. Three reverts spot-checked; each bites. 14 phone checks are listed.
+**Notes:** Written by the planner by hand. Next free ID -1879.
