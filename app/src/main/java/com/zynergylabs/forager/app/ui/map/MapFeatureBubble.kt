@@ -50,8 +50,8 @@ internal fun MapFeatureBubble(
      */
     onOpenEntry: ((String) -> Unit)? = null,
     /**
-     * Dispatch 2026-09-28-502: a waypoint's "Navigate", given its id, first among its actions, beside
-     * Directions (T9). `null` offers none: an entry map's bubble keeps Directions only (Amendment 1).
+     * Dispatch 2026-09-28-502: a waypoint's "Navigate", given its id, first among its actions (T9). The Maps tab
+     * and, since RECORD -890, a journal entry's map pass one; `null` (tests only) offers none.
      */
     onNavigate: ((String) -> Unit)? = null,
 ) {
@@ -89,7 +89,11 @@ internal fun MapFeatureBubble(
                 BubbleActions {
                     // Only for a waypoint still in Records: one an entry knows only from its snapshot has nothing to navigate by.
                     onNavigate?.takeIf { content.hasDetails }?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.waypoint.id) } }
-                    BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.waypoint.name, LatLng(content.waypoint.lat, content.waypoint.lng)) }
+                    // Dispatch 2026-10-29-09 (RECORD -1819): Directions only where Navigate cannot reach, that snapshot-only
+                    // waypoint (the owner: "Keep Directions (Recommended)"). A waypoint in Records has Navigate in its place.
+                    if (!content.hasDetails) {
+                        BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.waypoint.name, LatLng(content.waypoint.lat, content.waypoint.lng)) }
+                    }
                     if (content.hasDetails) {
                         BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.WaypointDetails(content.waypoint.id)) }
                     }
