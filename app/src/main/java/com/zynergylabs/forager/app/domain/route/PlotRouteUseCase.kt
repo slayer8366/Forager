@@ -48,7 +48,6 @@ class PlotRouteUseCase(
      * Throws [IllegalArgumentException] for fewer than two stops or two consecutive stops at one position.
      */
     suspend operator fun invoke(stops: List<RouteStop>): PlottedRoute {
-        if (STUB) return PlottedRoute(stops, stops.zipWithNext().map { (x, y) -> RouteLeg.Straight(listOf(x.position, y.position), 0.0, StraightReason.NO_ROUTE_FOUND) }) // STUB (tests first)
         require(stops.size >= 2) { "a route has at least two stops; got ${stops.size}" }
         stops.zipWithNext().forEachIndexed { i, (a, b) -> requireDistinct(a.position, b.position, i) }
         val regions = listRegions()
@@ -61,7 +60,6 @@ class PlotRouteUseCase(
      * regions itself. Throws [IllegalArgumentException] when the two are at the same position.
      */
     suspend fun leg(from: LatLng, to: LatLng): RouteLeg {
-        if (STUB) return RouteLeg.Straight(listOf(from, to), 0.0, StraightReason.NO_ROUTE_FOUND) // STUB (tests first)
         requireDistinct(from, to, 0)
         return legOn(listRegions(), from, to, 0)
     }
@@ -145,7 +143,6 @@ class PlotRouteUseCase(
     class PlottedLegFallback(reason: String, cause: Throwable?) : Exception(reason, cause)
 
     private companion object {
-        const val STUB = true
         const val TAG = "PlotRoute"
     }
 }
