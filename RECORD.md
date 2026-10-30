@@ -30097,3 +30097,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - **Disclosed:** merge commit 6be6e9936 has no Co-Authored-By line (pushed, not amended). JournalBackupTest needed five in-place edits. A separate PlannedTripRouteDao was added.
 **Decision:** the owner: "Sorrel review, then merge (Recommended)" (no phone until step 3); "Yes, once recorded (Recommended)" for the 29 route-plot scratch branches; "File in the repo (Recommended)" for the Aspen note, prompts/preserved/2026-10-30-04-aspen-elevation-handoff.md, with no go to download or build.
 **Notes:** Written by the planner by hand. Next free ID -1832.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1832
+**Timestamp:** 2026-10-30T14:17:04Z
+**Continues:** 2026-09-28-1831
+**Title:** Rowan and Aspen talk through the repo: prompts/aspen/ on records-after-173
+**Decision:** the owner: "Use the repo to communicate with Aspen and back and forth. Dispatches are filed this way anyway." Messages go one per file in prompts/aspen/, never edited after push, named by date, sender and receiver, under an index in its README. The elevation handoff moves there as 2026-10-30-01-rowan-to-aspen-elevation.md (content unchanged).
+**Notes:** Written by the planner by hand. The planner checks prompts/aspen/ for Aspen's files at each fetch. Next free ID -1833.
