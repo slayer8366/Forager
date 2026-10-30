@@ -30270,3 +30270,24 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The up-to-17.6 s left from the two banking resets is accepted; #447 merges after Aspen's heighted-fixture test
 **Decision:** the owner: "Accept it (Recommended)". The shared banking stays as it is.
 **Notes:** Written by the planner by hand. The planner's earlier summary to the owner gave about 18 s as the whole of N2's shortfall. That figure was only the banking resets; the climb inside the joints was a separate, larger shortfall, now closed. Corrected to the owner in the same message that asked this. Next free ID -1845.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1845
+**Timestamp:** 2026-10-30T18:25:47Z
+**Continues:** 2026-09-28-1827
+**Title:** Route plotting step 3's words and behaviour settled; step 3 starts now, with climb as step 3b after #447
+**Decision:** the owner:
+- **Bubble action:** "\"Plot route\" (Recommended)".
+- **Card buttons:** "Undo · Cancel · Save (Recommended)".
+- **Straight-leg note:** "\"No trail data, straight line\" (Recommended)".
+- **Default name:** "\"Creek to Falls\" (Recommended)", meaning first to last stop, or "<first> and back".
+- **Directions on a route trip:** "To the first stop (Recommended)".
+- **Trip Planner row:** "Name, distance, climb (Recommended)".
+- **Opening a route:** "Map shows it, card peeks (Recommended)".
+- **No heights:** "\"—\" + \"Re-download map for climb\" (Recommended)".
+- **Order:** "Yes, split around #447 (Recommended)".
+
+Dispatch 2026-10-30-08 opens with a look-only first stop.
+**Notes:** Written by the planner by hand. Next free ID -1846.
