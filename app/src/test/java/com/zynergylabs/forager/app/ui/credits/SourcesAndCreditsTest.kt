@@ -90,8 +90,9 @@ class SourcesAndCreditsTest {
         openSources()
         val page = composeRule.onNodeWithTag(SOURCES_PAGE_TAG).fetchSemanticsNode()
         // Every text on the page, top to bottom. A row with a link is one merged node (its credit, then its label); a
-        // plain row is one node too; a section heading and a line underneath are each their own.
-        val drawn = descendantsOf(page).filter { it.texts().isNotEmpty() }.sortedBy { it.boundsInRoot.top }.map { it.texts() }
+        // plain row is one node too; a section heading and a line underneath are each their own. Sorted by positionInRoot,
+        // which is unclipped: boundsInRoot is clipped to what is on screen, so the rows below the fold would sort wrongly.
+        val drawn = descendantsOf(page).filter { it.texts().isNotEmpty() }.sortedBy { it.positionInRoot.y }.map { it.texts() }
         val headings = drawn.filter { it.size == 1 && it.single() in SECTIONS }.map { it.single() }
         assertEquals("the section headings, top to bottom", SECTIONS, headings)
 
