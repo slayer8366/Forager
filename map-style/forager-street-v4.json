@@ -99,18 +99,15 @@
         "majorOther": "#f6d68f",
         "tertiaryCasing": "#a39b8d",
         "majorCasing": "#b4924c",
-        "rail": "#8e979a"
+        "rail": "#8e979a",
+        "motorway": "#e892a2",
+        "motorwayCasing": "#dc2a67"
       }
     },
     "forager:night-layers": {
       "roads_minor_casing": "#c4bcae",
       "roads_bridges_minor_casing": "#c4bcae",
       "roads_minor_service_casing": "#b3ab9d",
-      "roads_link": "#e0ad4f",
-      "roads_bridges_link": "#e0ad4f",
-      "roads_highway": "#f0c060",
-      "roads_bridges_highway": "#f0c060",
-      "roads_rail": "#a3acae",
       "boundaries": "#bdbdbd",
       "boundaries_country": "#bdbdbd",
       "roads_path_informal_z13": "#bb8a6f",
@@ -162,7 +159,14 @@
     "forager:night-patterns": {
       "tree_dark_irregular": "#5d804f"
     },
-    "forager:night-line-colours": {}
+    "forager:night-line-colours": {
+      "roads_major": {
+        "#ffffff": "#333333"
+      },
+      "roads_bridges_major": {
+        "#ffffff": "#333333"
+      }
+    }
   },
   "sources": {
     "protomaps": {
@@ -1484,7 +1488,7 @@
         "is_link"
       ],
       "paint": {
-        "line-color": "#b4924c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -1618,7 +1622,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#a8782c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -3825,7 +3829,7 @@
         "is_link"
       ],
       "paint": {
-        "line-color": "#f6d68f",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [
@@ -4112,7 +4116,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#a8782c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -4171,7 +4175,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#f0b95c",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [
@@ -4356,7 +4360,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#b4924c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -4612,7 +4616,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#f6d68f",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [
@@ -4725,7 +4729,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#a8782c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -4782,7 +4786,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#f0b95c",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [

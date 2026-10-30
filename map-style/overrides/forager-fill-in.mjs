@@ -8,6 +8,9 @@
 //   The night colours: sage-09's "OSM-like" set (the owner, 2026-10-30: "Keep it osm-like", then "Yes, ship it"):
 //   the app's OpenStreetMap night is the plain inversion of OSM's day colours, so the major roads here take the plain
 //   inversion too, and the settled fills a quieter night than their inversion.
+//   Then, in the same record: ramps with their roads ("Approve the fix"); motorways in OSM Carto's pink by day ("A: OSM
+//   pink") and inverted at night ("Invert like OSM"); the night tertiary dark grey #333333 and the rail inverted ("Dark
+//   grey #333333", "Plain inversion": the black tertiary and the brighter rail outranked the trails in forest at night).
 //
 // Night is the app's (-1288: inversion, with named exceptions). The night tables below are v4's own: v3's roads_major
 // keeps its amber night and its rail #b4bec0, so v4 cannot share v3's tables without changing how v3 regions draw at
@@ -30,7 +33,14 @@ export const FILL_IN_COLOURS = {
   tertiaryCasing: "#a39b8d",
   majorCasing: "#b4924c",
   rail: "#8e979a",
+  // OSM Carto's motorway fill and casing: openstreetmap-carto style/road-colors-generated.mss at 9295745d, lines 11 and 7.
+  motorway: "#e892a2",
+  motorwayCasing: "#dc2a67",
 };
+
+/** The motorway layers, centres and casings, that take OSM Carto's colours; the tunnels keep their grey. */
+const MOTORWAY_CENTRES = ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"];
+const MOTORWAY_CASINGS = ["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing"];
 
 /** The landuse kinds each new fill draws. */
 const SETTLED_KINDS = ["residential", "commercial", "railway", "farmland"];
@@ -43,14 +53,15 @@ const MAJOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 6, 0, 8, 0.8
 /** Minor-road width by zoom, and its casing's gap. */
 const MINOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 11, 0.3, 12, 0.7, 15, 2, 18, 11];
 
+/** The lines v3 gives a night colour that v4 inverts instead, as the app's OpenStreetMap night does. */
+const INVERTED_AT_NIGHT = ["roads_major", "roads_bridges_major", ...MOTORWAY_CENTRES, "roads_rail"];
+
 /**
- * v4's night line colours by layer: v3's, except that the major-road centres take the plain inversion (no entry, as
- * on the app's OpenStreetMap night) and the rail, now drawn darker and at 0.85 by day, a dimmer grey that keeps it
- * below the night footpath on every ground.
+ * v4's night line colours by layer: v3's, except the major roads, the motorways and their ramps, and the rail, which take
+ * the plain inversion (motorway #7f2939, its casing #e83673, rail #636c6f). The tertiary's night is in
+ * NIGHT_LINE_COLOURS_V4.
  */
-export const NIGHT_LAYER_COLOURS_V4 = Object.fromEntries([
-  ...Object.entries(NIGHT_LAYER_COLOURS).filter(([id]) => id !== "roads_major" && id !== "roads_bridges_major"),
-].map(([id, colour]) => [id, id === "roads_rail" ? "#a3acae" : colour]));
+export const NIGHT_LAYER_COLOURS_V4 = Object.fromEntries(Object.entries(NIGHT_LAYER_COLOURS).filter(([id]) => !INVERTED_AT_NIGHT.includes(id)));
 
 /**
  * v4's night fill colours by day colour: v3's, and the five new fills. Parks need theirs: the inversion (#2b431d) is
@@ -71,7 +82,12 @@ export const NIGHT_FILL_COLOURS_V4 = {
  * literal or inside an expression, night draws its colour instead of the inversion; every other colour in the same
  * expression inverts. Recorded in the style as `forager:night-line-colours` (v4 only).
  */
-export const NIGHT_LINE_COLOURS_V4 = {};
+export const NIGHT_LINE_COLOURS_V4 = {
+  // The tertiary's day white: dark grey at night, under the night footpath in forest (1.97:1 against its 2.58), where the
+  // black inversion (3.28:1) outranked it (Sorrel's review). The other classes in the same match invert.
+  roads_major: { [FILL_IN_COLOURS.tertiary]: "#333333" },
+  roads_bridges_major: { [FILL_IN_COLOURS.tertiary]: "#333333" },
+};
 
 function byId(layers, id) {
   const layer = layers.find((l) => l.id === id);
@@ -129,6 +145,10 @@ export function applyFillIn(layers) {
   const minorCasing = byId(layers, "roads_minor_casing");
   minorCasing.paint["line-gap-width"] = MINOR_WIDTH;
   minorCasing.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 11, 0, 12, 0.6];
+
+  // --- Motorways and their ramps in OSM Carto's pink, with its casing ----------------------------------------
+  for (const id of MOTORWAY_CENTRES) byId(layers, id).paint["line-color"] = C.motorway;
+  for (const id of MOTORWAY_CASINGS) byId(layers, id).paint["line-color"] = C.motorwayCasing;
 
   // --- Rail, darker and stronger ---------------------------------------------------------------------
   const rail = byId(layers, "roads_rail");
