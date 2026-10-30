@@ -253,22 +253,22 @@ internal fun WaypointsSection(
 }
 
 /**
- * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text, the same
- * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, and a "Directions" action
- * ([launchDirections]) reusing the exact same `geo:` intent machinery. No delete control of its
- * own since journal redesign J4: its callers wrap it in a [TwoStageSwipeRow] (J4b L6).
+ * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text and the same
+ * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses. No delete control of its own
+ * since journal redesign J4: its callers wrap it in a [TwoStageSwipeRow] (J4b L6). Its "Directions"
+ * action ([launchDirections]) was removed by dispatch 2026-10-29-09 (RECORD -1819, the owner:
+ * "Everywhere Navigate exists"): every host offers [onNavigate] in its place.
  *
  * [onClick] (journal redesign J5c) is what a tap on the card opens, the waypoint's details sheet, or
  * `null` for no card tap. The All logbook passes `null` and puts the tap on its badged row instead,
- * so the type badge takes it too. Directions keeps its own tap either way.
+ * so the type badge takes it too. Navigate keeps its own tap either way.
  *
  * [onNavigate] (dispatch 2026-09-28-502, plan task T9) is the app's own navigation to this waypoint, an
- * icon button before Directions; `null` leaves the row with Directions only. Like Directions it takes
- * its own tap, not the card's.
+ * icon button that takes its own tap, not the card's; `null` (tests only: every production host passes
+ * one) leaves the row with no button.
  */
 @Composable
 internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNavigate: (() -> Unit)? = null) {
-    val context = LocalContext.current
     val location = LatLng(waypoint.lat, waypoint.lng)
     Card(
         modifier = Modifier
@@ -296,9 +296,6 @@ internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNa
                 BouncingIconButton(onClick = navigate, modifier = Modifier.testTag(waypointRowNavigateTag(waypoint.id))) {
                     Icon(Icons.Filled.Navigation, contentDescription = "Navigate to ${waypoint.name}")
                 }
-            }
-            BouncingIconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
-                Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")
             }
         }
     }

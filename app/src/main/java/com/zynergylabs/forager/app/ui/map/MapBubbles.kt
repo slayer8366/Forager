@@ -196,8 +196,8 @@ data class MapRecordSources(
     val onOpenEntry: ((String) -> Unit)? = null,
     /**
      * Dispatch 2026-09-28-502: a waypoint's "Navigate", in its bubble and its details sheet, given where it
-     * was tapped. Only the Maps tab passes one (the owner: "only Maps, the sheet and Records"); `null`, an
-     * entry map's, offers Directions only.
+     * was tapped. The Maps tab passes one, and since RECORD -890 a journal entry's map does too; `null`
+     * (tests only) offers none. Directions is offered only where Navigate cannot reach (RECORD -1819).
      */
     val onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
 )
@@ -229,7 +229,7 @@ sealed interface MapBubbleContent {
      */
     data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
+    /** A waypoint: its name and MGRS; Navigate and details while its record exists ([hasDetails]), Directions otherwise (RECORD -1819). */
     data class WaypointContent(
         val waypoint: Waypoint,
         val mgrs: String?,
