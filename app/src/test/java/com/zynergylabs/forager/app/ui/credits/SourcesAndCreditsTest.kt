@@ -75,7 +75,42 @@ class SourcesAndCreditsTest {
     @Test
     fun `the page lists exactly these sources`() {
         assertEquals(EXPECTED.map { it.key }, DATA_SOURCE_SECTIONS.flatMap { section -> section.credits.map { it.key } })
-        assertEquals(listOf("Maps", "Weather", "Sightings and species names"), DATA_SOURCE_SECTIONS.map { it.title })
+        assertEquals(SECTIONS, DATA_SOURCE_SECTIONS.map { it.title })
+    }
+
+    /**
+     * The Heights section (dispatch 2026-10-30-19; the owner: "New \"Heights\" section (Recommended)", "Approve as written
+     * (Recommended)"), read off the real page in the order it is drawn: its heading after Maps' last row and before
+     * Weather, then each row's exact text with its link label, and its line underneath. The wording is Juniper's
+     * proposal (docs/research/2026-10-30-nrcan-attribution.md), word for word: the en dash in "Licence – Canada" and the
+     * © signs are the licences' own.
+     */
+    @Test
+    fun `the Heights section sits between Maps and Weather, each row word for word with its line underneath`() {
+        openSources()
+        val page = composeRule.onNodeWithTag(SOURCES_PAGE_TAG).fetchSemanticsNode()
+        // Every text on the page, top to bottom. A row with a link is one merged node (its credit, then its label); a
+        // plain row is one node too; a section heading and a line underneath are each their own. Sorted by positionInRoot,
+        // which is unclipped: boundsInRoot is clipped to what is on screen, so the rows below the fold would sort wrongly.
+        val drawn = descendantsOf(page).filter { it.texts().isNotEmpty() }.sortedBy { it.positionInRoot.y }.map { it.texts() }
+        val headings = drawn.filter { it.size == 1 && it.single() in SECTIONS }.map { it.single() }
+        assertEquals("the section headings, top to bottom", SECTIONS, headings)
+
+        val heights = drawn.indexOf(listOf("Heights"))
+        val weather = drawn.indexOf(listOf("Weather"))
+        assertEquals("the row just above Heights is Maps' last", listOf("Trails: Bureau of Land Management, public domain"), drawn[heights - 1])
+        assertEquals(
+            "the Heights section, top to bottom",
+            listOf(
+                listOf(NRCAN_TEXT, "licence ›"),
+                listOf(HEIGHTS_AVERAGED),
+                listOf(COPERNICUS_TEXT),
+                listOf(COPERNICUS_LIABILITY),
+                listOf(USGS_TEXT),
+                listOf(HEIGHTS_AVERAGED),
+            ),
+            drawn.subList(heights + 1, weather),
+        )
     }
 
     @Test
@@ -83,10 +118,17 @@ class SourcesAndCreditsTest {
         openSources()
         registerBrowser()
         onPage("Sources & credits").assertIsDisplayed()
-        listOf("Maps", "Weather", "Sightings and species names").forEach { onPage(it).performScrollTo().assertIsDisplayed() }
+        SECTIONS.forEach { onPage(it).performScrollTo().assertIsDisplayed() }
         onPage("Rain and soil figures in Forager are summaries calculated from this data.").performScrollTo().assertIsDisplayed()
         // CC BY 4.0's change note for the Forest Service's trails (dispatch 2026-10-26-21, RECORD -1703: "Approve as drafted").
         onPage("Trail lines in Forager are simplified from this data.").performScrollTo().assertIsDisplayed()
+        // The Heights rows' lines underneath (dispatch 2026-10-30-19). The "averaged" line is under two rows.
+        onPage(COPERNICUS_LIABILITY).performScrollTo().assertIsDisplayed()
+        assertEquals(
+            "the \"averaged\" line, under the NRCan and USGS rows",
+            2,
+            composeRule.onAllNodes(hasText(HEIGHTS_AVERAGED) and hasAnyAncestor(hasTestTag(SOURCES_PAGE_TAG))).fetchSemanticsNodes().size,
+        )
 
         EXPECTED.filter { it.link == null }.forEach { source ->
             // Public domain asks for no credit and names no licence to link to: the row is the credit alone, and a touch on
@@ -226,6 +268,20 @@ class SourcesAndCreditsTest {
     private companion object {
         val FRACTIONS = listOf(0.05f, 0.5f, 0.95f)
 
+        val SECTIONS = listOf("Maps", "Heights", "Weather", "Sightings and species names")
+
+        // The Heights rows, word for word as the owner approved them (dispatch 2026-10-30-19).
+        const val NRCAN_TEXT =
+            "Heights in Canada: Natural Resources Canada. Contains information licensed under the Open Government Licence – Canada."
+        const val COPERNICUS_TEXT =
+            "Heights in Canada: produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH " +
+                "2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved."
+        const val USGS_TEXT = "Heights in the United States: 3DEP elevation data courtesy of the U.S. Geological Survey, public domain"
+        const val HEIGHTS_AVERAGED = "Route heights in Forager are averaged from this data."
+        const val COPERNICUS_LIABILITY =
+            "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any " +
+                "use of the Copernicus WorldDEM-30."
+
         val EXPECTED = listOf(
             ExpectedSource("openstreetmap", "© OpenStreetMap contributors", "licence ›", "https://www.openstreetmap.org/copyright"),
             ExpectedSource(
@@ -248,6 +304,9 @@ class SourcesAndCreditsTest {
                 "https://creativecommons.org/licenses/by/4.0/",
             ),
             ExpectedSource("blm-trails", "Trails: Bureau of Land Management, public domain", null, null),
+            ExpectedSource("nrcan-heights", NRCAN_TEXT, "licence ›", "https://open.canada.ca/en/open-government-licence-canada"),
+            ExpectedSource("copernicus-heights", COPERNICUS_TEXT, null, null),
+            ExpectedSource("usgs-3dep-heights", USGS_TEXT, null, null),
             ExpectedSource("open-meteo", "Weather data by Open-Meteo.com", "CC BY 4.0 ›", "https://open-meteo.com/en/licence"),
             ExpectedSource("inaturalist", "iNaturalist and its observers", "site ›", "https://www.inaturalist.org/"),
         )
