@@ -30333,3 +30333,17 @@ Dispatch 2026-10-30-08 opens with a look-only first stop.
 **Observed:** the helper stopped at step 1 of dispatch 2026-10-30-10, with nothing installed and nothing written. The S26 is on 1.0.4204+ge4e25e87, schema 23. That is a NEVER MERGE debug build on origin/street-v4-s22-debug (Street v4 map style), not installed by this session. It contains #445, but not #447 or #440. Its data copy had 0 tracks, waypoints, regions and entries, with integrity ok. The download had failed on a full /tmp (80% of the 5.6 GB tmpfs).
 **Decision:** the owner: "Yes", to keeping the S26's current build as the comparison phone. It shows the old way-home climb and altitude beside the S22's #447 + #440 build.
 **Notes:** Written by the planner by hand. The S26 has no Region 1 or track, so its way-home figures need a track recorded on the walk. A /tmp cleanup is pending. Next free ID -1850.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1850
+**Timestamp:** 2026-10-30T18:48:37Z
+**Continues:** 2026-09-28-1848
+**Title:** The S22's #447 + #440 tools build is green on CI after the install; Region 1's route data likely has no heights
+**Observed:** Hazel (Opus), docs/audits/2026-10-30-s22-tools-447-440.md on tools/s22-447-440 05b19342a.
+- **Branch:** trail-heights 1cc689166, plus #440 merged as 19911e908, plus the tools commits cherry-picked as 5b926c667 and c4a57389f (range-diff identical to 0997641ec and b18bd56d3).
+- **CI:** run 41107156444 on c4a57389f green. testDebugUnitTest 6066 tests, 0 failures; OlderSdks 24 tests, 0 failures; lint, release compile, Worker 56/56 and cutter 35/35 all pass.
+- **Phone:** on 1.0.4224+gc4a57389, schema 23. Region 1, the walk track and the waypoints hash identical to the backup. ACTIVITY_RECOGNITION granted, logger on.
+- **Region 1's route data** is from run usca-20261027T221400Z, cut 2026-10-27. By date it is before heights went live on 10-28, so it most likely has none; the file itself was not read. On the walk, the way home will use the track stand-in (P1).
+**Notes:** Written by the planner by hand. Next free ID -1851.
