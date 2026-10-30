@@ -116,12 +116,14 @@ fun rememberTrueHeading(
     // fresh (HeadingMemory.fresh), rather than "—" until the compass reports again (seen on the S22: about 200 ms of "—").
     val initial: TrueHeadingReading = remember { (if (liveFix.value != null) memory?.fresh(nowMillis()) else null) ?: TrueHeadingReading.NeedsFix }
     val lifecycleOwner = LocalLifecycleOwner.current
+    // Kept across the producer's restarts (Sorrel's review of #450, N-4; dispatch 2026-10-30-14 Amendment 2). A fix appearing or
+    // going restarts the producer; a judge made afresh there would forget a compass that was untrusted and trust its first
+    // reading. Kept instead, and the restart counts as a stop, so the owner's "Yes, re-check (Recommended)" applies to it too.
+    val trust = remember(compassProvider) { CompassTrustJudge() }
+    val stops = remember(compassProvider) { CompassStops() }
     return produceState<TrueHeadingReading>(initialValue = initial, compassProvider, computeTrueHeading, hasFix, lifecycleOwner) {
-        val trust = CompassTrustJudge()
-        // When the compass was last stopped by the lifecycle; null until the first stop.
-        var stoppedAtMillis: Long? = null
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            stoppedAtMillis?.let { stoppedAt ->
+            stops.stoppedAtMillis?.let { stoppedAt ->
                 trust.restartClearHold()
                 if (value is TrueHeadingReading.Available && nowMillis() - stoppedAt !in 0..HEADING_KEPT_FOR_MS) {
                     value = TrueHeadingReading.NeedsFix
@@ -164,13 +166,18 @@ fun rememberTrueHeading(
                     memory?.record(value, nowMillis())
                 }
             } catch (stopped: CancellationException) {
-                // Cancelled: the lifecycle fell below STARTED (or the producer itself is going). A flow that ends on its own
-                // (no sensor) is not a stop, and does not land here.
-                stoppedAtMillis = nowMillis()
+                // Cancelled: the lifecycle fell below STARTED, or the producer is restarting (a fix appeared or went) or going. A
+                // flow that ends on its own (no sensor) is not a stop, and does not land here.
+                stops.stoppedAtMillis = nowMillis()
                 throw stopped
             }
         }
     }
+}
+
+/** When the compass was last stopped, by the lifecycle or a restart of the producer; null until the first stop. */
+private class CompassStops {
+    var stoppedAtMillis: Long? = null
 }
 
 /**
