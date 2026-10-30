@@ -286,7 +286,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val runScheduledBackupUseCase = RunScheduledBackupUseCase(journalBackup, backupSchedulePreferences, backupFiles)
     val backupNotifier: BackupNotifier = AndroidBackupNotifier(context.applicationContext)
     val scheduledBackupReporter = ScheduledBackupReporter(backupNotifier, backupSchedulePreferences, errorLog)
-    val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())
+    val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripRouteDao(), errorLog)
     val getPlannedTripsUseCase = GetPlannedTripsUseCase(plannedTripRepository)
     val savePlannedTripUseCase = SavePlannedTripUseCase(plannedTripRepository)
     val deletePlannedTripUseCase = DeletePlannedTripUseCase(plannedTripRepository)

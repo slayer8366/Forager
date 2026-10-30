@@ -84,4 +84,17 @@ class CrowdedListRowsTest {
         assertEquals(listOf("find-1"), rows.map { it.key.featureId })
         assertTrue(warnings.single(), warnings.single().contains("/gone"))
     }
+
+    // Schema 23 (dispatch 2026-10-30-02): an undated trip's row has no date and sorts with the undated, last.
+    @Test
+    fun `an undated trip's row has no date and sorts last`() {
+        val undatedTrip = trip.copy(id = "trip-2", name = "Ridge run", date = null)
+        val keys = listOf(FanKey(MapLayerIds.PLANNED_TRIPS, "trip-2"), FanKey(MapLayerIds.WAYPOINTS, "wp-1"))
+        val rows = crowdedListRows(keys, sources.copy(plannedTrips = listOf(trip, undatedTrip)), is24HourClock = false, zone = zone)
+
+        assertEquals(
+            listOf(Triple(MarkerIcon.WAYPOINT, "Creek pin", "Oct 1, 2026"), Triple(MarkerIcon.PLANNED_TRIP, "Ridge run", null)),
+            rows.map { Triple(it.icon, it.name, it.date) },
+        )
+    }
 }

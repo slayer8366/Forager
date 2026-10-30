@@ -158,7 +158,8 @@ internal fun plannedTripsFeatureCollection(plannedTrips: List<PlannedTrip>): Fea
         Feature.fromGeometry(Point.fromLngLat(trip.location.lng, trip.location.lat)).apply {
             addStringProperty(FEATURE_ID_PROPERTY, trip.id)
             addStringProperty("title", "Planned trip")
-            addStringProperty("snippet", trip.date.toString())
+            // An undated trip (schema 23) has no snippet.
+            trip.date?.let { addStringProperty("snippet", it.toString()) }
         }
     }
     return FeatureCollection.fromFeatures(features)
