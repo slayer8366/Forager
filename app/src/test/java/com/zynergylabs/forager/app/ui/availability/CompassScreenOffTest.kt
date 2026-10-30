@@ -6,7 +6,9 @@ import android.hardware.SensorManager
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -83,12 +85,15 @@ class CompassScreenOffTest {
 
     private lateinit var heading: State<TrueHeadingReading>
 
+    /** The fix the host hands `rememberTrueHeading`; a test that loses and regains the fix sets it. */
+    private val liveFix: MutableState<LocationFix.Update?> = mutableStateOf(fix)
+
     /** The real provider feeding the real `rememberTrueHeading`, and the real strip reading it. */
     private fun setHost() {
         shadow.addSensor(Sensor.TYPE_ROTATION_VECTOR, ShadowSensor.newInstance(Sensor.TYPE_ROTATION_VECTOR))
         composeRule.setContent {
             ForagerTheme {
-                heading = rememberTrueHeading(AndroidCompassProvider(context), ComputeTrueHeadingUseCase(NoDeclination), fix, null, { now })
+                heading = rememberTrueHeading(AndroidCompassProvider(context), ComputeTrueHeadingUseCase(NoDeclination), liveFix, null, { now })
                 CompassElevationStrip(
                     heading = heading,
                     elevationMeters = 100.0,
@@ -230,6 +235,54 @@ class CompassScreenOffTest {
         assertEquals("1 999 ms held since the gap", TrueHeadingReading.Unreliable, heading.value)
         send(30f, atMillis = 63_000L, accuracyDegrees = 3f)
         assertHeading("2 000 ms held since the gap", 30f)
+    }
+
+    /**
+     * Sorrel's review of #450, N-1 (dispatch 2026-10-30-14 Amendment 2): paused is not stopped. Under a system dialog or in
+     * split-screen the activity is STARTED but not RESUMED and still on screen, so the compass must keep turning there.
+     */
+    @Test
+    fun `paused under a dialog or in split-screen, the compass keeps reading and the heading keeps turning`() {
+        setHost()
+
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+        composeRule.waitForIdle()
+        assertEquals("the compass listener was dropped while the app is paused but still on screen", 1, shadow.listeners.size)
+
+        send(90f)
+        assertHeading("a reading while paused did not reach the heading", 90f)
+        assertEquals("90° E", stripText())
+    }
+
+    /**
+     * Sorrel's review of #450, N-4 (dispatch 2026-10-30-14 Amendment 2): losing and regaining the fix restarts the producer, and
+     * the owner's "Yes, re-check (Recommended)" applies there too. A compass that was untrusted must hold good afresh after the
+     * fix comes back, not be trusted on its first reading because a new judge was made with the restart.
+     */
+    @Test
+    fun `a compass untrusted when the fix was lost must hold good afresh after the fix comes back`() {
+        setHost()
+        send(30f, atMillis = 0L, accuracyDegrees = 20f)
+        assertEquals("untrusted at 20°", TrueHeadingReading.Unreliable, heading.value)
+        send(30f, atMillis = 1_000L, accuracyDegrees = 3f)
+        assertEquals("1 000 ms into the hold", TrueHeadingReading.Unreliable, heading.value)
+
+        composeRule.runOnIdle { liveFix.value = null }
+        composeRule.waitForIdle()
+        send(30f, atMillis = 1_500L, accuracyDegrees = 3f)
+        assertEquals("no fix, no true heading", TrueHeadingReading.NeedsFix, heading.value)
+
+        composeRule.runOnIdle { liveFix.value = fix }
+        composeRule.waitForIdle()
+        assertEquals("one compass listener once the fix is back", 1, shadow.listeners.size)
+
+        // 60 s later on the sensor's clock: counted from 1 000 ms, the hold would clear at once.
+        send(30f, atMillis = 61_000L, accuracyDegrees = 3f)
+        assertEquals("the first good reading after the fix came back was trusted without a fresh hold", TrueHeadingReading.Unreliable, heading.value)
+        send(30f, atMillis = 62_999L, accuracyDegrees = 3f)
+        assertEquals("1 999 ms held since the fix came back", TrueHeadingReading.Unreliable, heading.value)
+        send(30f, atMillis = 63_000L, accuracyDegrees = 3f)
+        assertHeading("2 000 ms held since the fix came back", 30f)
     }
 
     /** A compass whose collectors can be counted, and which reports only when told to. */
