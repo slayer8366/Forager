@@ -9,7 +9,7 @@ import com.zynergylabs.forager.app.domain.WayBackClimb
 import com.zynergylabs.forager.app.domain.wayhome.Ground.at
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -59,19 +59,26 @@ class WayHomeTrailHeightsTest {
     }
 
     @Test
-    fun `with a height at every route point the trail part carries the trail data's, and the joints none`() {
+    fun `with a height at every route point the trail part carries the trail data's, the joints the track's, and a step between`() {
         val wayHome = wayHome(Heights.BAROMETER, hump)
         val trail = wayHome.trail.heights
         assertTrue("the trail part's heights are the trail data's, not $trail", trail is PartHeights.TrailData)
         trail as PartHeights.TrailData
-        assertEquals("one sample per trail part point: the leave point, the route, the entry point", wayHome.trail.points.size, trail.samples.size)
-        assertEquals("the route's heights, in walking order", hump, trail.samples.drop(1).dropLast(1).map { it.height })
-        assertNull("the leave joint has no height", trail.samples.first().height)
-        assertNull("nor the entry joint", trail.samples.last().height)
-        assertEquals("the entry point at the trail part's own metres", wayHome.trail.meters, trail.samples.last().alongMeters, 0.01)
+        // Amendment 2 (RECORD -1842): the joints carry the walker's track's heights; one sample with none sits between
+        // each joint and the route's heights, so the step between the two kinds of height is never counted (J1).
+        val trackBack = wayHome.trackBack.heights as PartHeights.Barometric
+        assertEquals("the leave joint starts at the track's own height, with no reset where they meet", trackBack.samples.last().height, trail.samples.first().height)
+        val steps = trail.samples.withIndex().filter { it.value.height == null }
+        assertEquals("two samples with no height, the two steps: ${trail.samples}", 2, steps.size)
+        val route = trail.samples.subList(steps[0].index + 1, steps[1].index)
+        assertEquals("the route's heights, in walking order, between the two steps", hump, route.map { it.height })
         val leaveJoint = GeoDistance.metersBetween(wayHome.trail.points[0], wayHome.trail.points[1])
-        assertEquals("the route's first point at the end of the leave joint", leaveJoint, trail.samples[1].alongMeters, 0.01)
-        assertEquals("the route's middle point halfway along the engine's 500 m", leaveJoint + 250.0, trail.samples[3].alongMeters, 0.01)
+        assertEquals("the first step at the end of the leave joint", leaveJoint, steps[0].value.alongMeters, 0.01)
+        assertEquals("the route's first point at the end of the leave joint", leaveJoint, route[0].alongMeters, 0.01)
+        assertEquals("the route's middle point halfway along the engine's 500 m", leaveJoint + 250.0, route[2].alongMeters, 0.01)
+        assertEquals("the second step at the route's last point", route.last().alongMeters, steps[1].value.alongMeters, 0.01)
+        assertEquals("the entry joint ends at the trail part's own metres", wayHome.trail.meters, trail.samples.last().alongMeters, 0.01)
+        assertNotNull("with the track's height there", trail.samples.last().height)
         assertEquals("nothing fell back, nothing logged", emptyList<String>(), logs)
     }
 
