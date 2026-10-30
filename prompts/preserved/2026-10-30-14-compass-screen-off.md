@@ -29,3 +29,15 @@ Push it and wait for the planner's amendment.
 - The Restricted Object: never read, name or quote it.
 - Commits end with `Co-Authored-By: Claude <noreply@anthropic.com>` and no model name.
 - Ambiguity: stop and report.
+
+## Amendment 1 (2026-10-30): answers to the first stop, and the go (RECORD -1858)
+The first stop is docs/audits/2026-10-30-compass-screen-off-first-stop.md (compass-screen-off, be03807ff). It is accepted as proposed: repeatOnLifecycle(STARTED) inside rememberTrueHeading, covering both production callers, and a fresh smoother on each start. Its corrected premises are accepted: SightingsMap.kt:281's own heading, and the HUD, card and facing-judge readers.
+
+**The owner's answers:**
+- **Screen back on:** "Same rule as tab returns (Recommended)". This is option C, -761's rule: keep the last heading if the screen was off under 10 s, otherwise "—" until the first reading.
+- **The trust hold:** "Yes, re-check (Recommended)". Restart the trust hold after the screen comes back, through a new function on CompassTrustJudge, so a compass that was calibrating is not shown as trusted on its first reading.
+
+**The go: build.**
+- Tests fail first, then revert checks per rule. Build logs must have no compile errors, and restores come from saved copies.
+- CI only. A PR into pre-main, with no merge.
+- The device check comes later, on the planner's word: confirm the screen-off redraws stop while recording with the app in front, and re-measure the CPU against the 10-30 figure.
