@@ -2,7 +2,7 @@
 
 Hazel Cairnwright, 2026-10-30 UTC. Dispatch `prompts/preserved/2026-10-29-10-offline-map-delete-button.md` with Amendment 1 (read at `origin/records-after-173`), RECORD -1817, -1818, -1820. PR #443 into pre-main, **not merged**. This session picked the task up from an earlier coder session that was stopped mid-task; the build commits and the scratch runs are that session's, and the reading of them below is this session's.
 
-**Status (2026-10-30 10:41 UTC): CI green on `14ce937fb`.** The first full run was red on one pre-existing test that pinned the old behaviour (see "CI on the PR head" and "The stop"). The owner chose option 1 (Amendment 2, RECORD -1823), and the section "Amendment 2" at the end records the change and its checks. The earlier sections are kept as written.
+**Status (2026-10-30): CI green on `242705cef` after Amendment 3 (see the section at the end); before that, green on `14ce937fb` after Amendment 2 (10:41 UTC).** The first full run was red on one pre-existing test that pinned the old behaviour (see "CI on the PR head" and "The stop"). The owner chose option 1 (Amendment 2, RECORD -1823), and the section "Amendment 2" at the end records the change and its checks. The earlier sections are kept as written.
 
 ## Base
 
@@ -124,3 +124,54 @@ The label is matched as the literal `"Delete ${L5_REGION.name}"`, not through `o
 - `AvailabilityScreenSettingsPanelTest.kt` was 931 lines and is now 937. The modular rule says to split a file over 800 lines before adding to it, or to stop. I added the six lines without splitting, because the amendment names this exact edit. Flagged for the planner to accept or reject.
 
 **Still not verified:** the phone steps, and the other items under "Not verified" above.
+
+## Amendment 3 (2026-10-30): Sorrel's review (RECORD -1828)
+
+Sorrel's review had no S findings. The owner's answers are in Amendment 3 (`origin/records-after-173`).
+
+| Commit | What |
+|---|---|
+| `7b73fec0d` | Tests only (N1). `OfflineMapDeleteButtonTest` gains two tests, one per screen (Offline maps chip, All), each run on both rows, twice per row. A real short swipe opens the row (`swipe` from near its end edge, 64 dp, 600 ms). The red Delete must show and the trash must be gone. A real touch on the row body at 20% of its width closes it; then the red Delete must be gone, the trash displayed again and the row's name present. At the end, no snackbar and no delete. The file is 283 lines. |
+| `242705cef` | N1 build, plus N2. |
+| (this report) | Docs only, `[skip ci]`. |
+
+**The N1 build in `242705cef`:**
+- `TwoStageSwipe.kt` adds `LocalTwoStageSwipeRowOpen`, a `compositionLocalOf { false }`. `TwoStageSwipeRow` provides `offset < 0f` to its content, which is the same condition under which it draws the revealed actions.
+- `OfflineRegionDeleteButton.kt` puts the trash in a `Box(Modifier.minimumInteractiveComponentSize())` and composes the `IconButton` only while that local is false. The space stays, so the row text does not reflow when a swipe starts.
+
+**N2:** the test at `AvailabilityScreenSettingsPanelTest.kt:688` is renamed to `a downloaded region's row at rest has no Delete text and exactly one clickable delete, the trash button, and carries the swipe and its Delete action`. One-line diff, the name only.
+
+**N6:** S22 step 1 in the PR body has one landscape glance. Step 6 now carries the hide-while-open pass condition. The old observation line is removed, since the behaviour it described is gone.
+
+**Failing first** (run 41056385518 on `omdb-a3-failing-first` = `7b73fec0d`, filter `*OfflineMapDeleteButtonTest*`):
+- Build log: both Kotlin compile tasks ran, with zero `e:` lines.
+- JUnit: 7 tests, 2 failed. These are the two new tests, both with `the Ridge row's trash is hidden while it is open (attempt 0) expected:<false> but was:<true>`. This is the predicted reason.
+- The red Delete check just before it passed, so the swipe really opened the row. The swipe starts near the row's end edge, which lies on the trash button.
+- The PR run started by the same push (41056392515) was cancelled, to save a full suite on a commit expected to fail.
+- What this cannot show: the "trash comes back on close" half passes trivially over the unchanged row. It is held by the revert below only in the sense that the forward build passes it.
+
+**Revert check** (branch `omdb-revert-a3-hide` = `6849abd34`, which is `242705cef` plus one line):
+- The edit: `TwoStageSwipeRow` provides `false` instead of `offset < 0f`. Made in a separate worktree, with the file saved to scratch first.
+- Run 41057163395, filter `*OfflineMapDeleteButtonTest*;*AvailabilityScreenSettingsPanelTest*;*JournalPendingDeleteTest*`.
+- Build log: zero `e:` lines, and both compile tasks ran.
+- JUnit: 85 tests, 2 failed, which matches the log's "85 tests completed, 2 failed". The failures are the two N1 tests with the message above, which is what a row that never reports open produces.
+- All other tests in those classes passed, including the J4b L5 guard and the swipe tests.
+- Prediction: exactly these two. **Confirmed.**
+- Forward change: `origin/offline-map-delete-button` is `242705cef` and contains `provides (offset < 0f)` (read from origin).
+
+**Full suite on the new code head** (run 41057164708, pull_request on `242705cef`): **all jobs green**, including the debug-only-sources guard.
+- Zero `e:` lines.
+- JUnit: `testDebugUnitTest` 802 files, 5889 tests, 0 failed, 24 skipped. `testDebugUnitTestOlderSdks` 6 files, 24 tests, 0 failed.
+- Total 5913. That is 5910 at Amendment 2, plus my 2, plus 1 net new `@Test` from #444 (`git diff 21d846b9e 8a0036405`: one added, none removed).
+- This run tests merge ref `7fe62c024`, whose parents are pre-main `8a0036405` (with #444 merged) and `242705cef`. So it is the combined build in CI. It is not the combined build on a phone.
+
+**Calls beyond the amendment:**
+- **The trash hides whenever the row is off zero, including mid-drag.** That is the same moment the red Delete starts drawing, not only once the row has settled open.
+- **The trash's 48 dp space is kept while it is hidden.** The alternative, letting the text widen into it, would make the row's text jump as a swipe starts.
+- **Where the signal lives.** It is a `CompositionLocal`, not a new `content` parameter, so no other `TwoStageSwipeRow` caller changes.
+
+**Not verified:**
+- The phone steps.
+- How the hide looks mid-drag on a real screen. Robolectric shows the node gone, not the frames.
+- RTL layouts.
+- The other items under "Not verified" above still stand. The trash-while-open note listed there is now superseded by N1.
