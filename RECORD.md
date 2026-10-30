@@ -30179,3 +30179,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr445-pr446.md at 9eb44c501: no S, N1 to N10. The migration copies with explicit column lists, and its DDL matches 23.json. Backup covers the two new tables. Schema 23 is unclaimed on 1140 refs. Five revert runs spot-checked, each with 0 compile errors.
 **Decision:** the owner: "Tighten 2 tests, then merge (Recommended)". Dispatch 2026-10-30-02 Amendment 2: N1 and N2 now; N8 to N10 with step 3; then the planner merges #445, then #446.
 **Notes:** Written by the planner by hand. A fresh coder takes it, since the step 1-2 coder was past 350k tokens. Next free ID -1838.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1838
+**Timestamp:** 2026-10-30T14:54:10Z
+**Continues:** 2026-09-28-1836
+**Title:** Trail heights: the track-to-trail step is not counted, a partly heighted trail falls back to the track, no barometer still means no allowance; a heighted fixture asked of Aspen
+**Observed:** Hazel (Opus), first stop at trail-heights 5e72b1485. The engine marks a missing height as Short.MIN_VALUE, never 0. Barometric track heights and terrain trail heights have different zero points, so a direct swap would count the offset as climb (about 88 s on the walk back for 20 m). No heighted fixture exists in the repo. The coder disclosed writing a scratch file at the shared scratch root.
+**Decision:** the owner: "Don't count the step (Recommended)"; "Use your track instead (Recommended)"; "Keep it off (Recommended)"; "Yes, ask Aspen (Recommended)". Dispatch 2026-10-30-06 Amendment 1 gives the go to build. The fixture request is prompts/aspen/2026-10-30-03-rowan-to-aspen-heighted-fixture.md.
+**Notes:** Written by the planner by hand. Next free ID -1839.

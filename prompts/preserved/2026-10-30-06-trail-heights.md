@@ -54,3 +54,21 @@ Push it, and wait for the planner's amendment.
 - The Restricted Object: never read, name or quote it.
 - Past about 200k tokens: push and hand off.
 - Ambiguity: stop and report.
+
+## Amendment 1 (2026-10-30): answers to the first stop, and the go (RECORD -1838)
+The first stop is docs/audits/2026-10-30-trail-heights-first-stop.md (trail-heights, 5e72b1485). It is accepted, including the datum finding the dispatch missed.
+
+**The owner's answers:**
+- **Where the track meets the trail:** "Don't count the step (Recommended)". This is J1: the two joint points carry no height, so the existing counting restarts there and the offset between barometric and terrain heights is never counted.
+- **Partly heighted trail:** "Use your track instead (Recommended)". This is P1: fall back to the stand-in, logged with the counts.
+- **No barometer:** "Keep it off (Recommended)". With no barometer there is still no allowance, even where the trail part has heights. This confirms WayHomeHeights.kt:81.
+- **Fixture with heights:** "Yes, ask Aspen (Recommended)". The planner files the request in prompts/aspen/. Until it arrives, prove the with-heights path at unit level through the real entry points, using a fake router with heights. The router-level test on a real heighted fixture is added when Aspen's file lands. Keep that as its own commit, and say in the PR that it is pending.
+
+**The planner's rulings on mechanics:**
+- `TrailRoute.heightsMetres: List<Double?>`, defaulting to all missing and the same length as `points`, as proposed. Read `Short.MIN_VALUE` as missing, never 0.
+- A new `PartHeights.TrailData` case.
+- Log the fallback once per call.
+- Fix every stale "no elevation" or "until the routes carry elevation" text listed, including docs/navigation/2026-10-26-climbing-allowance.md and server/pmtiles-worker/test/fixtures/rd5/README.md (comment and doc only). Also correct the two stale "nothing calls this in production" comments (TrailRouter.kt:12, FindWayHomeUseCase.kt:29).
+- Your scratch-folder slip is recorded. Use your own subfolder from now on.
+
+**The go: build.** Tests fail first, then revert checks per rule, CI only, and a PR into pre-main with no merge. If pre-main moves (#445 and #446 are about to merge), merge it in.
