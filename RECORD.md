@@ -30529,3 +30529,13 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 - **Call beyond the dispatch,** accepted by the planner: rememberTrueHeading's default clock is now the monotonic clock instead of a constant 0, so SightingsMap's own heading sees the gap.
 - **Not verified:** on a phone, that the screen-off redraws and CPU stop while recording; what MapLibre draws for an unreliable heading; the facing judge's 250 ms tick with the screen off.
 **Notes:** Written by the planner by hand. Next free ID -1863.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1863
+**Timestamp:** 2026-10-30T21:50:47Z
+**Continues:** 2026-09-28-1862
+**Title:** Sorrel reviews #450, then the S22; its six scratch branches deleted
+**Decision:** the owner: "Sorrel review, then S22 (Recommended)", with the merge decided by the owner after; "Yes (Recommended)" to deleting the six revert/compass-screen-off-* branches, which are now deleted. Dispatch 2026-10-30-15.
+**Notes:** Written by the planner by hand. Next free ID -1864.
