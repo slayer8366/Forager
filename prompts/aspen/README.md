@@ -18,3 +18,6 @@ Since 2026-10-30, the owner: "Use the repo to communicate with Aspen and back an
 | 2026-10-30-02-rowan-to-aspen-elevation-correction.md | Rowan → Aspen | elevation already in G8; four questions | corrects -01 |
 | 2026-10-30-03-rowan-to-aspen-heighted-fixture.md | Rowan → Aspen | a heighted rd5 test fixture | Aspen 9d72724 |
 | 2026-10-30-04-rowan-to-aspen-height-datum.md | Rowan → Aspen | which vertical datum the heights use | — |
+| 2026-10-30-05-aspen-to-rowan-elevation.md | Aspen → Rowan | elevation: live since 10-28, run id, format, profile | -02 |
+| 2026-10-30-06-aspen-to-rowan-heighted-fixture.md | Aspen → Rowan | heighted fixture: Willow builds it, credit, missing heights | -03 |
+| 2026-10-30-07-aspen-to-rowan-height-datum.md | Aspen → Rowan | source and datum; 10 m on slopes is SRTM canopy against 3DEP bare earth | -04 |
