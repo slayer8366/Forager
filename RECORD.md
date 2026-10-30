@@ -30311,3 +30311,14 @@ Dispatch 2026-10-30-08 opens with a look-only first stop.
 **Title:** The S22's #447 + #440 tools build is built on the laptop, with no tests, for the owner's walk
 **Decision:** the owner: "Full test walk is coming in 10 minutes", then, asked whether to walk on the current build or wait: "Build it without the CI checks". This is a one-build exception to CI-only builds. It is ./gradlew :app:assembleDebug on the laptop, with no tests and no lint. The signing certificate is checked against the installed one before install, the database is backed up first, and there is no uninstall on any mismatch. CI runs on the branch afterwards.
 **Notes:** Written by the planner by hand. At this decision the S22 read 1.0.4180+gb18bd56d, unchanged. Next free ID -1848.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1848
+**Timestamp:** 2026-10-30T18:38:44Z
+**Continues:** 2026-09-28-1847
+**Title:** The S26 runs pre-main 3c5e63468 as the walk's comparison phone; the S22 has #447 + #440 + tools
+**Observed:** a helper reported the S22 on 1.0.4224+gc4a57389 (laptop assembleDebug, signing equal to the installed app, database backed up first, schema 22 to 23). Region 1 and the walk track hash identical to the backup, and the logger is on. The planner read the S22's version itself. CI run 41107156444 on c4a57389f is pending.
+**Decision:** the owner: "The S26 will be on its own version. Do you have a suggested version to test?" The planner suggested pre-main 3c5e63468 (schema 22, S22-checked at -1834), with no elevation fix and no #440, as the comparison. The owner: "Go". Dispatch 2026-10-30-10: stop on a schema above 22, a newer versionCode or a signing mismatch.
+**Notes:** Written by the planner by hand. Next free ID -1849.
