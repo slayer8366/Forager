@@ -4,11 +4,45 @@ package com.zynergylabs.forager.app.ui.map
  * The Street night's two tables for one Trail Map style version: line colours by layer, and fill colours by day colour
  * (see [streetNightRecolourOf]). Each version's design copy is in its style's metadata, `forager:night-layers` and
  * `forager:night-fills`, and a test holds the app's copy equal to it.
+ *
+ * Why per version: Street v4 (the fill-in) changes night colours v3 has, the major roads' and the rail's, so one table
+ * shared by every version would change how regions downloaded on v3 draw at night. Each style is a URL that never
+ * changes meaning, so the URL it was loaded from says which tables it takes.
  */
 internal data class StreetNightTables(val layerColours: Map<String, String>, val fillColours: Map<Int, Int>)
 
 /** Trail Map v1 to v3's night tables, and Street under Topographical's: the ones every version had before v4. */
 internal val STREET_NIGHT_TABLES = StreetNightTables(STREET_NIGHT_LAYER_COLOURS, STREET_NIGHT_FILL_COLOURS)
 
-/** The night tables for the Trail Map style loaded from [styleUri]; `null` (not loaded by URI) is v1 to v3's. */
-internal fun streetNightTablesFor(styleUri: String?): StreetNightTables = STREET_NIGHT_TABLES
+/**
+ * Street v4's night (Forager-cartography `docs/design/2026-10-30-fill-in-rulings.md`; the owner: "Keep it osm-like",
+ * "Yes, ship it"; ramps: "Invert them too (Recommended)"). The design's copy is `NIGHT_LAYER_COLOURS_V4` and
+ * `NIGHT_FILL_COLOURS_V4` in `map-style/overrides/forager-fill-in.mjs`; `NightExceptionsV4Test` holds the two equal.
+ * - Lines: v3's, except the major-road centres take the plain inversion, as the app's OpenStreetMap night does (trunk
+ *   `#845104` to tertiary `#000000`, each ramp with its road), and rail is `#a3acae`. Motorways and their ramps
+ *   (`roads_link`) keep v3's amber.
+ * - Fills: v3's, and the five new fills: residential, commercial, railway land, farmland and parks.
+ */
+internal val STREET_V4_NIGHT_TABLES = StreetNightTables(
+    layerColours = STREET_NIGHT_LAYER_COLOURS - setOf("roads_major", "roads_bridges_major") + ("roads_rail" to "#a3acae"),
+    fillColours = STREET_NIGHT_FILL_COLOURS + mapOf(
+        0xD5D1CB to 0x2D2A25, // residential
+        0xE3CFCA to 0x362824, // commercial
+        0xD6D1D4 to 0x2B2829, // railway land
+        0xE8EACD to 0x2E2A10, // farmland
+        0xCDE5BF to 0x2C461E, // parks: the inversion #2b431d is 1.04:1 on the night water, under the ruled 1.05
+    ),
+)
+
+/**
+ * The style file names that are Street v4: the Worker's route (`/style/street-v4.json`, not yet served) and the
+ * repository's file (`map-style/forager-street-v4.json`), so a test build loading the file draws the same night.
+ */
+private val STREET_V4_STYLE_FILES = setOf("street-v4.json", "forager-street-v4.json")
+
+/**
+ * The night tables for the Trail Map style loaded from [styleUri]: v4's for a v4 style file, else v1 to v3's (`null`,
+ * a style not loaded by URI, included). Only a style the app treats as Trail Map takes these at all (`usesStreetSprite`).
+ */
+internal fun streetNightTablesFor(styleUri: String?): StreetNightTables =
+    if (styleUri?.substringAfterLast('/') in STREET_V4_STYLE_FILES) STREET_V4_NIGHT_TABLES else STREET_NIGHT_TABLES
