@@ -188,6 +188,31 @@ for (const [what, colour, against] of [
   ["night bare rock on night ground", CHARACTER_COLOURS.nightBareRock, night(GROUND)],
 ]) console.log(`${what}: ${colour} on ${against} ${contrast(colour, against).toFixed(2)}:1 (recorded, not gated)`);
 
+// 5. v4's ramps (the fill-in rulings, "Ramps", the owner: "Approve the fix (Recommended)"): roads_major draws the trunk to
+//    tertiary ramps, and each takes its road's day colour, so at night it takes the same inversion ("Invert them too").
+//    roads_link and roads_bridges_link draw only motorway ramps and keep v3's amber night exception.
+if (V4) {
+  for (const id of ["roads_major", "roads_bridges_major"]) {
+    const match = style2.layers.find((l) => l.id === id)?.paint?.["line-color"];
+    if (!Array.isArray(match) || match[0] !== "match" || JSON.stringify(match[1]) !== '["get","kind_detail"]') {
+      problems.push(`${id}'s line-color is not a match on kind_detail`);
+      continue;
+    }
+    const colourOf = (kind) => {
+      for (let i = 2; i < match.length - 1; i += 2) if ([match[i]].flat().includes(kind)) return match[i + 1];
+      return match[match.length - 1];
+    };
+    for (const road of ["trunk", "primary", "secondary", "tertiary"]) {
+      const line = `${id}: ${road}_link draws ${colourOf(`${road}_link`)}, its road ${road} ${colourOf(road)}`;
+      console.log(line);
+      if (colourOf(`${road}_link`) !== colourOf(road)) problems.push(line);
+    }
+  }
+  for (const id of ["roads_link", "roads_bridges_link"]) {
+    if (NIGHT_LAYER_COLOURS[id] !== NIGHT_LAYER_COLOURS_V2[id]) problems.push(`${id}'s night ${NIGHT_LAYER_COLOURS[id]} is not v3's ${NIGHT_LAYER_COLOURS_V2[id]}`);
+  }
+}
+
 for (const [what, colour, against, min] of exceptions) {
   const ratio = contrast(colour, against);
   const line = `${what}: ${colour} on ${against} ${ratio.toFixed(2)}:1 (minimum ${min})`;
