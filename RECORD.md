@@ -30034,3 +30034,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Route plotting steps 1 and 2 go to a coder, opening with a look-only first stop on the model and schema
 **Decision:** the owner: "Go", to the planner's "a go for route steps 1–2, the stored route and the plotting logic". Dispatch 2026-10-30-02: one coder, a first stop (model, schema 22→23, heights, undated trips), then two PRs into pre-main. Schema version 23 was unclaimed on every remote branch at dispatch.
 **Notes:** Written by the planner by hand. Next free ID -1827.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1827
+**Timestamp:** 2026-10-30T12:31:31Z
+**Continues:** 2026-09-28-1826
+**Title:** Route plotting model and schema accepted: off-trail stops joined by dashed links, the pin at the first stop, "Delete trip <name>", repeated taps ignored
+**Observed:** Hazel (Opus), first stop at route-plot-data e9f4daa39. Schema 22→23 rebuilds planned_trips with a nullable date, and adds a stops table and a legs table. Version 23 is unclaimed on all 1137 remote refs. Premises corrected: routeDataForPoints is a function with a NotUsable outcome, and the trip date also shows in three more places.
+**Decision:** the owner: "Dashed link to trail (Recommended)"; "At the first stop (Recommended)"; "\"Delete trip <name>\" (Recommended)"; "Ignore the second tap (Recommended)". The planner ruled the mechanics: tables land in step 1; heights come by their own migration 23→24 in step 4b; sort by name, then id; the use case stays unwired until step 3. Dispatch 2026-10-30-02 Amendment 1: build.
+**Notes:** Written by the planner by hand. Next free ID -1828.

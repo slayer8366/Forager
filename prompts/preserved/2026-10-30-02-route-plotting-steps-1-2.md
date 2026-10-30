@@ -45,3 +45,24 @@ Push it, and wait for the planner's amendment.
 - The Restricted Object: never read, name or quote it.
 - Past about 200k tokens: push and hand off.
 - Ambiguity: stop and report.
+
+## Amendment 1 (2026-10-30): answers to the first stop, and the go (RECORD -1827)
+The first stop is docs/audits/2026-10-30-route-plotting-first-stop.md (route-plot-data, e9f4daa39). Accepted as proposed, including its corrected premises, with these answers.
+
+**The owner's answers:**
+- **A waypoint off the trail:** "Dashed link to trail (Recommended)". A leg runs stop → trail → stop. The two joins are drawn thin and dashed, and they count in the distance. Store them so the drawing can tell them apart from the trail part.
+- **A route trip's pin:** "At the first stop (Recommended)". The trip's `location` is the first stop.
+- **The delete label with no date:** "\"Delete trip <name>\" (Recommended)". Dated trips keep their present label.
+- **The same waypoint tapped twice in a row:** "Ignore the second tap (Recommended)". The domain refuses consecutive identical stops (step 3 ignores the tap). A→B→A is allowed.
+
+**The planner's rulings on mechanics:**
+- **Q1:** the route tables land in step 1. The repository and backup/restore read every column, which satisfies the reader rule.
+- **Q3, heights:** H3. Step 4b brings its own migration, 23→24.
+- **Q5:** both a whole-route method and a single-leg method.
+- **Q7:** undated trips sort by name, then id.
+- **Q8:** `PlotRouteUseCase` stays unwired in AppContainer until step 3.
+- **Leg kind:** derived from which nullable field is set, as proposed. Add a test that a row with both set, or neither, is rejected on read and logged.
+- **JournalBackupTest split:** a move-only commit first, green by itself, as proposed.
+- Re-check schema version 23 against every remote ref before opening the step 1 PR.
+
+**The go: build step 1, then step 2.** These are separate PRs into pre-main, with no merge. CI only. No phone.
