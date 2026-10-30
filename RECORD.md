@@ -30260,3 +30260,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - **Shortfall against today:** with full heights it is now only the two banking resets, under 8 m and under 17.6 s. Partial or no heights are the same as today.
 - **Not verified:** real heighted data, a phone, and a real walk's barometer.
 **Notes:** Written by the planner by hand. Aspen's heighted fixture has not arrived; nothing in prompts/aspen/ or Aspen's handoffs folder. Next free ID -1844.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1844
+**Timestamp:** 2026-10-30T17:03:48Z
+**Continues:** 2026-09-28-1843
+**Title:** The up-to-17.6 s left from the two banking resets is accepted; #447 merges after Aspen's heighted-fixture test
+**Decision:** the owner: "Accept it (Recommended)". The shared banking stays as it is.
+**Notes:** Written by the planner by hand. The planner's earlier summary to the owner gave about 18 s as the whole of N2's shortfall. That figure was only the banking resets; the climb inside the joints was a separate, larger shortfall, now closed. Corrected to the owner in the same message that asked this. Next free ID -1845.
