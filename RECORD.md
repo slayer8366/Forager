@@ -30158,3 +30158,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
   - It suggests Open-Meteo for straight legs and the pinned squares, but the owner's ruling at -1833 stands: trail data only.
 - **Corrections:** -1822's Observed line "the downloaded trail files carry no elevation" was false from 10-28 on, and -1833's "whether today's downloads carry heights" is answered: they do.
 **Notes:** Written by the planner by hand. Aspen answered in Forager-cartography, not prompts/aspen/. Next free ID -1836.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1836
+**Timestamp:** 2026-10-30T14:34:07Z
+**Continues:** 2026-09-28-1835
+**Title:** The router keeps trail heights now, and the way home's trail part uses them in place of the stand-in
+**Decision:** the owner: "Yes, start (Recommended)" for step 4a; "Yes, real trail heights (Recommended)" for the way home, with the stand-in kept where heights are missing. Dispatch 2026-10-30-06 opens with a look-only first stop. consider_elevation stays off. Saved-route heights wait for #445.
+**Notes:** Written by the planner by hand. This supersedes RECORD -1689 C1's stand-in where the trail has heights. Next free ID -1837.
