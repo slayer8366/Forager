@@ -25,6 +25,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -215,6 +217,48 @@ class OfflineMapDeleteButtonTest {
             rowTag = logbookRowTag(RecordType.OFFLINE_MAPS, "8"),
         )
         assertEquals(true, exists(logbookRowTag(RecordType.OFFLINE_MAPS, "7")))
+    }
+
+    // ── A swiped-open row (Amendment 3, RECORD -1828; the owner: "Hide trash while open (Recommended)") ──
+
+    /**
+     * A real short swipe opens region [regionId]'s row: its red Delete shows and its trash button is gone. A real touch on the
+     * row's body closes it: the trash comes back, the red Delete goes, and nothing is pending or deleted.
+     */
+    private fun assertTrashHiddenWhileOpen(regionId: Long, name: String) {
+        val rowTag = swipeToDeleteTag(RecordType.OFFLINE_MAPS, regionId.toString())
+        repeat(2) { attempt ->
+            composeRule.onNodeWithTag(rowTag).performScrollTo().performTouchInput {
+                val startX = right - 8f
+                swipe(start = Offset(startX, centerY), end = Offset(startX - 64.dp.toPx(), centerY), durationMillis = 600)
+            }
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(twoStageSwipeDeleteTag(rowTag)).assertIsDisplayed()
+            assertEquals("the $name row's trash is hidden while it is open (attempt $attempt)", false, exists(offlineRegionDeleteButtonTag(regionId)))
+
+            composeRule.onNodeWithTag(rowTag).performTouchInput { click(Offset(width * 0.2f, centerY)) }
+            composeRule.waitForIdle()
+            assertEquals("the red Delete goes when the $name row closes", false, exists(twoStageSwipeDeleteTag(rowTag)))
+            button(regionId).assertIsDisplayed()
+            composeRule.onNodeWithText(name).assertExists()
+        }
+        composeRule.onNodeWithText("Offline map deleted", substring = true).assertDoesNotExist()
+        letSnackbarTimeOut()
+        assertEquals("opening and closing a row deletes nothing", emptyList<Long>(), offlineMapRepository.deletedIds)
+    }
+
+    @Test
+    fun `on the Offline maps chip, a swiped-open row shows only the red Delete, and its trash comes back when it closes`() {
+        setScreen(RecordsSubTab.OFFLINE_MAPS)
+        assertTrashHiddenWhileOpen(regionId = 7L, name = "Ridge")
+        assertTrashHiddenWhileOpen(regionId = 8L, name = "Saddle")
+    }
+
+    @Test
+    fun `in All, a swiped-open offline map row shows only the red Delete, and its trash comes back when it closes`() {
+        setScreen(RecordsSubTab.ALL)
+        assertTrashHiddenWhileOpen(regionId = 7L, name = "Ridge")
+        assertTrashHiddenWhileOpen(regionId = 8L, name = "Saddle")
     }
 
     // ── The screen-reader label (proposed; the owner approves the wording before merge) ──
