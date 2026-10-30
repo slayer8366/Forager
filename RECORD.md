@@ -29945,3 +29945,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Directions-to-Navigate and the offline-map Delete button go to coders; waypoint route plotting joins this release
 **Decision:** the owner: "Small two now, route plan next (Recommended)". Dispatch 2026-10-29-09, Navigate takes Directions' place, opens with a look-only first stop on every Directions site, and where Navigate cannot be offered the owner decides. Dispatch 2026-10-29-10 adds a visible Delete button on offline-map rows. The planner writes the route-plotting plan for the owner's review, with no code. The owner on its place: "In this release". The release now waits on trail-navigation steps 6-11 and route plotting (amends -1628's scope).
 **Notes:** Written by the planner by hand. Hazel (Opus) on each, in separate worktrees, CI only. Next free ID -1819.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1819
+**Timestamp:** 2026-10-30T04:48:16Z
+**Continues:** 2026-09-28-1818
+**Title:** Directions stays only where Navigate cannot reach: a deleted waypoint on an entry map, and planned trips
+**Observed:** Hazel (Opus), first stop at directions-to-navigate 6f65412ec (docs/audits/2026-10-29-directions-to-navigate-first-stop.md). Directions is offered in 8 places. Navigate is already in 5 of them, an entry map included since -890. It cannot reach a waypoint deleted from Records (MapFeatureBubble.kt:91) or a planned trip.
+**Decision:** the owner: "Keep Directions (Recommended)" for the deleted-waypoint bubble; "Keep Directions for now (Recommended)" for the trip bubble and the Trip Planner row, where Navigate for trips comes with route plotting. Dispatch 2026-10-29-09 Amendment 1 gives the go to build. The planner's "no gh" in dispatches -09 and -10 was wrong: gh is logged in on the laptop, and it is corrected in both.
+**Notes:** Written by the planner by hand. Next free ID -1820.

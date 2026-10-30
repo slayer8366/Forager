@@ -43,3 +43,14 @@ List the places where Navigate cannot be offered, such as an entry map, or a tri
 - Past about 200k tokens: push and hand off.
 - Ambiguity: stop and report.
 - New words on screen are the owner's only. "Navigate" already exists.
+
+## Amendment 1 (2026-10-29): answers to the first stop, and the go (RECORD -1819)
+Hazel's first stop is docs/audits/2026-10-29-directions-to-navigate-first-stop.md (directions-to-navigate, 6f65412ec). It is accepted, including its corrected premises: entry maps have had Navigate since -890.
+- **Directions goes** from rows 1, 2, 4, 5 and 6: the Maps-tab waypoint bubble, the entry-map bubble for a waypoint still in Records, the details sheet, Records > Waypoints and Records > All. Navigate is already in each.
+- **Row 3**, the entry-map bubble for a waypoint deleted from Records. The owner: "Keep Directions (Recommended)".
+- **Rows 7 and 8**, the planned-trip bubble and the Trip Planner row. The owner: "Keep Directions for now (Recommended)". Navigate for trips comes with route plotting.
+- `launchDirections` and its tests stay, since rows 3, 7 and 8 still call it.
+- Fix the three stale doc comments named in the stop (MapBubbles.kt:198-201, MapFeatureBubble.kt:53-55, RecordDetailsSheet.kt:51-52).
+- In the nine test classes that refer to Directions, change only the assertions about rows 1, 2, 4, 5 and 6, so they assert Directions is absent. Weaken nothing, and list every edited assertion in the completion report.
+- **Tools:** `gh` is installed and logged in on this laptop. Use it for the PR, the runs and the logs. The dispatch's earlier "no gh" was the planner's error.
+- **The go: build.** CI only. Open a PR into pre-main, with no merge, and put the S22 steps in its body.
