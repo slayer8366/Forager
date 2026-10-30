@@ -45,6 +45,4 @@ class BRouterTrailHeightsTest {
     /** A track node at [at] with BRouter's stored height [selev]; positions are micro-degrees offset by 90 and 180. */
     private fun node(at: LatLng, selev: Short): OsmPathElement =
         OsmPathElement.create(Math.round(at.lng * 1e6).toInt() + 180_000_000, Math.round(at.lat * 1e6).toInt() + 90_000_000, selev, null)
-
-    private fun node(at: LatLng, selev: Int): OsmPathElement = node(at, selev.toShort())
 }

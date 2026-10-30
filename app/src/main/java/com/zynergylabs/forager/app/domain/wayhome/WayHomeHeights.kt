@@ -75,6 +75,8 @@ internal fun trackPartHeights(stored: List<TrackPoint>, indices: List<Int>, heig
 internal fun standInHeights(track: PartHeights?, trackMeters: Double, trailMeters: Double): PartHeights? = when (track) {
     null -> null
     PartHeights.NoBarometer -> PartHeights.NoBarometer
+    // A track part's heights are the barometer's ([trackPartHeights]); only the trail part's are ever the trail data's.
+    is PartHeights.TrailData -> error("the walker's track never carries trail-data heights")
     is PartHeights.Barometric -> {
         val scale = if (trackMeters > 0.0) trailMeters / trackMeters else 0.0
         PartHeights.Barometric(track.samples.map { it.copy(alongMeters = it.alongMeters * scale) }, standIn = true)
