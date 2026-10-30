@@ -162,3 +162,48 @@ Hazel (Opus), 2026-10-30. RECORD -1851. Branch `s22-walk-altitude`, cut from `or
 
 ## Not done
 - No `docs/audits/README.md` row, because I don't know whether this branch merges. The planner can add one.
+
+## Rescored on 3DEP (dispatch 2026-10-30-16, RECORD -1865)
+
+Hazel (Opus), 2026-10-30. Laptop only: no phone, no adb, no Gradle. Scratch and scripts are in `/home/zynergy-labs/s22-2026-10-30/walk/scratch/rescore/`, never in git. No coordinates here. Times are PDT.
+
+**What changed, and only that.** The ground is now the Region 2 route file (id 8) from dispatch 13: `W125_N45.rd5`, 739,591 bytes, sha256 `fe488da0…680e30`, matching its `routes.properties`. Everything else is dispatch 11's method unchanged: the same `ground_tags.py` and `compare.py` (copied, not edited), BRouter 1.7.10, the same `hiking-mountain.brf` and `lookups.dat` (byte-identical to the phone's copies in Region 2's backup), a via every 100 m, a match within 10 m, the same stored track, the same logger fixes and barometer (`scratch/log.json`), and the same 21.715 m sea-level offset.
+
+**The matched points did not change.** 132 route nodes, 91 of 193 points matched, the **same 91 points**, each at the same distance to its node (largest change 0.0 m). Only the node heights changed: the new file is 9.8 m below the 10-03 file on average (sd 3.1, from 2.3 to 15.8 m below), as dispatch 13 found.
+
+**On the matched points** (`rescore/o/cmp-out.txt`, `rescore/o/misses-out.txt`):
+
+| Height | Within 10 m | Mean against the ground | sd | Worst | (on the 10-03 file: within 10 m, mean) |
+|---|---|---|---|---|---|
+| **The strip's rule replayed on the logger's 1 Hz fixes and barometer** | **75 of 91** | **+6.4 m** | **4.7 m** | **+17.0 m** (12:19:56) | 84 of 91, −3.4 m |
+| Plain sea-level GPS | 61 of 91 | +8.5 m | 6.5 m | +25.0 m (12:19:56) | 84 of 91, −1.2 m |
+| Raw GPS (ellipsoid) | 26 of 91 | −13.2 m | 6.5 m | −27.2 m (12:33, on the trail) | 3 of 91, −22.9 m |
+
+- The replay on the stored 5 s points gives the same picture: 75 of 91, +6.2 m, sd 4.6, worst +16.9 m. From 90 s on (after the first minute and the blend), the 1 Hz replay is 70 of 86.
+- **The sign flipped.** Against the 10-03 file the heights read a few metres low; against this file they read high. That is the 9.8 m shift in the ground, not anything in the phone's data.
+
+**Verdict against 10 m (-1796): not met at every point.** The replayed strip is within 10 m at 75 of 91 matched points (82%) and misses at 16, all of them high, worst +17.0 m. -1796's wording, "within 10 m of the known ground height", does not say whether every point must pass or a share of them; on an every-point reading this is a fail, and which reading applies is the owner's. It is still a replay, not the strip on screen, because the map was off for the whole walk (above).
+
+**Where it misses, by the kind of way the matched node is on** (BRouter's way tags for each route node, `rescore/scripts/kinds.py`):
+
+| Way kind | Part of the walk | Points | Replayed strip within 10 m | Mean | Plain GPS mean |
+|---|---|---|---|---|---|
+| Footway, surface ground (a trail) | 12:18 to about 12:33:45, the whole descent, low ground and climb | 76 | 60 of 76 | +7.1 m | +9.3 m |
+| Service road, gravel | the first 95 s, and about 12:33:45 to 12:37:40 | 12 | 12 of 12 | +5.0 m | +5.5 m |
+| Residential street | the last 10 s, in the vehicle | 3 | 3 of 3 | −5.5 m | +1.8 m |
+
+- **All 16 misses are on the trail**, at 12:18:21; 12:19:29 to 12:20:19 (seven points, on the descent, including the worst, +17.0 m); 12:22:02 to 12:22:30 (three points, lower descent); 12:24:54 and 12:24:59 (two, low ground); and 12:27:59 to 12:28:09 (three, the lowest ground of the walk, 170 to 172 m, +14.8 to +16.3 m).
+- **The four misses dispatch 11 blamed on the reference are gone.** At 12:23:48-53 the 10-03 file's node read 203.5 m between neighbours of 185 to 189 m; the new file reads 190.25 m at that node, and the replay is within 10 m there (−5.7 m at 12:23:48-53, +1.9 and +2.4 m at 12:23:58 and 12:24:03).
+- **Why the strip is high on this walk, as far as the data shows.** The replayed strip takes its level from GPS (the median over the first minute, then a pull of dt/60 min), so it inherits GPS's offset where it settled. It settled in the first minute, on the gravel road, where GPS reads +5.5 m against this ground; the strip then carries about +5 m through the walk, and its shape error on the trail (sd 4.7 m) pushes the low-ground points past 10 m. That reading is from the numbers; whether GPS itself is high under trees, or the ground model is low under the trail, the data cannot separate.
+
+**Against Aspen's expectation** (prompts/aspen/2026-10-30-07, inferred there: about 1 to 2 m against GPS on open ground, more under trees):
+- On this walk even the open parts read +5.0 to +5.5 m (gravel road, 12 points), and the trail +7.1 to +9.3 m. So the 1-2 m was not seen here, on the open parts either; but 12 points on one road is a small sample.
+- **Near home, on open flat roads,** the 10-29 report found sea-level GPS −0.6 m and the replay +0.2 m against Region 1's file from the same server run (`docs/audits/2026-10-29-s22-pr440.md`, step 2, on `s22-pr440`; quoted, not re-derived here). That fits Aspen's 1-2 m.
+- The walk was wooded and sloped; that it was wooded is the owner's account through the planner, not something the logs show. The trail tag (footway, ground surface) is consistent with it.
+
+**Disclosure.**
+- **Confirmed:** the file used is the one dispatch 13 pulled (sha256 equal to its properties line); the matched set is identical to dispatch 11's, point for point; every figure in the tables, by the scripts named, on the saved evidence.
+- **Inferred:** that this file's heights are 3DEP (Aspen's account of the `bef3-20261027` store; I did not open the file's height source). That the strip's high bias comes from where GPS settled in the first minute (from the replay's rule and the per-kind means, not separately tested).
+- **Could not determine:** whether the trail's +7 m is GPS under canopy or the ground model under the trail. Woods against open ground from the data itself; the way kind is the only proxy.
+- **Premises that did not hold:** "Aspen expects about 1-2 m against GPS on open ground" held near home on 10-29, not on this walk's open stretches (+5 m, 12 points).
+- **Beyond scope:** the way-kind split (`kinds.py`) is new; the dispatch asked for "kind of place", and this is the only kind of place the data carries.
