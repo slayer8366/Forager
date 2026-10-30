@@ -84,3 +84,14 @@ The owner chose "Elevation graph", "High and low point" and "Per-leg breakdown".
 - The climb follows the journal's banking (4 m hysteresis). A straight leg with no trail data has no heights, and the card says so for that leg.
 
 **Order, revised.** Steps 1 to 3 stand. The card is built in step 3, since plotting uses it, and step 4 opens it for saved routes. A new step 4a adds elevation through the adapter, after the Pi's elevation build is live. Step 5's device check needs route data with heights.
+
+## Addendum 2, 2026-10-30: online elevation until the trail data has it (RECORD -1824)
+The owner: "Have the elevation use the online info for now also. Until we get elevation done by Aspen". Then: "No, ship with online (Recommended)" and "Fill in later (Recommended)".
+- **Source for now:** an online elevation lookup along the route's line when it is plotted, saved with the route so it works offline afterwards.
+  - The planned service is Open-Meteo's elevation endpoint. The app already uses Open-Meteo for weather (data/remote/OpenMeteoClient.kt) and carries its credit (ui/credits/OpenMeteoCredit.kt:24).
+  - Its grid (said to be about 90 m), its batch limit, its terms for this use and the credit it requires are **unverified**. The step's dispatch confirms them from the publisher's pages before building, and stops if the terms don't fit.
+  - It sits behind an interface Forager owns (CLAUDE.md, Architecture), so the trail data's heights can replace it.
+- **Plotted with no connection:** climb shows "—" with "Elevation when online". The heights are fetched by themselves at the next connection and saved, and every failure is logged.
+- **Later:** when Aspen's trail data carries heights, new routes take them from the trail data (Addendum 1's step 4a). Not yet handed to Aspen.
+- **The release** ships route plotting with online elevation. It no longer waits on Aspen's elevation build. This supersedes Addendum 1's "release waits".
+- **New step 4b:** the elevation lookup (interface, Open-Meteo client, saved heights, fill-in-later), after step 2 and before the card's climb rows.

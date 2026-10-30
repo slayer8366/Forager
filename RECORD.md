@@ -30002,3 +30002,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - **#444** (Hazel, Opus; report bf77157f6; code 6f0406ccd): run 41006092790 green, 5906 tests, 0 failures. Tests-first gave 16 failures; four revert runs bite, each with 0 compile errors.
 **Decision:** the owner: "Exactly one: the trash (Recommended)". Dispatch 2026-10-29-10 Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -1824.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1824
+**Timestamp:** 2026-10-30T10:29:07Z
+**Continues:** 2026-09-28-1822
+**Supersedes:** -1822's "Wait for trail-data elevation" and "Release waits for elevation (Recommended)"
+**Title:** Route elevation comes from an online lookup until the trail data carries heights; the release no longer waits on Aspen's elevation build
+**Decision:** the owner: "Have the elevation use the online info for now also. Until we get elevation done by Aspen". Then: "No, ship with online (Recommended)"; "Fill in later (Recommended)", meaning a route plotted offline shows "—" with "Elevation when online" and fills in at the next connection. The planned service is Open-Meteo's elevation endpoint; its terms and grid are unverified and are confirmed before building. Plan Addendum 2.
+**Notes:** Written by the planner by hand. The release waits on trail-navigation steps 6-11 and route plotting. Next free ID -1825.
