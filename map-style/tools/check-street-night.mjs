@@ -1,4 +1,4 @@
-// Checks forager-street-v2.json (dispatch 2026-10-18-05 Part 2; v2 since dispatch 2026-10-22-03, RECORD -1561): it
+// Checks forager-street-v2.json (or, with the argument v4, forager-street-v4.json: the fill-in) (dispatch 2026-10-18-05 Part 2; v2 since dispatch 2026-10-22-03, RECORD -1561): it
 // is valid style-spec JSON, it is the same file the Worker bundles, v1 is still byte for byte what phones with older
 // apps and older downloads load, and the day colours the owner's night ruling depends on (-1288: "the day palette is
 // chosen so roads and paths still stand out after inversion") hold their contrast after the app's V1 inversion, with
@@ -11,15 +11,28 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
-import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "../overrides/forager-street.mjs";
-import { CHARACTER_COLOURS, NIGHT_FILL_COLOURS, NIGHT_LIMITS, NIGHT_PATTERN_COLOURS } from "../overrides/forager-character.mjs";
+import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS as NIGHT_LAYER_COLOURS_V2 } from "../overrides/forager-street.mjs";
+import { CHARACTER_COLOURS, NIGHT_FILL_COLOURS as NIGHT_FILL_COLOURS_V2, NIGHT_LIMITS, NIGHT_PATTERN_COLOURS } from "../overrides/forager-character.mjs";
+import { NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4 } from "../overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
 
-const text = fs.readFileSync(here("forager-street-v2.json"), "utf8");
-const bundled = fs.readFileSync(here("../server/pmtiles-worker/src/street-style-v2.json"), "utf8");
-if (text !== bundled) problems.push("server/pmtiles-worker/src/street-style-v2.json differs from forager-street-v2.json: run npm run generate:street");
+// `node tools/check-street-night.mjs v4` checks forager-street-v4.json (the fill-in) against v4's own night tables; v4
+// is not on the Worker yet, so there is no bundled copy to compare. With no argument it checks v2, as before.
+const V4 = process.argv[2] === "v4";
+const STYLE = V4 ? "v4" : "v2";
+const NIGHT_LAYER_COLOURS = V4 ? NIGHT_LAYER_COLOURS_V4 : NIGHT_LAYER_COLOURS_V2;
+const NIGHT_FILL_COLOURS = V4 ? NIGHT_FILL_COLOURS_V4 : NIGHT_FILL_COLOURS_V2;
+const text = fs.readFileSync(here(`forager-street-${STYLE}.json`), "utf8");
+if (!V4) {
+  const bundled = fs.readFileSync(here("../server/pmtiles-worker/src/street-style-v2.json"), "utf8");
+  if (text !== bundled) problems.push("server/pmtiles-worker/src/street-style-v2.json differs from forager-street-v2.json: run npm run generate:street");
+}
+// The style's own metadata must carry the tables checked here: the app reads its copy against it.
+const meta = JSON.parse(text).metadata;
+if (JSON.stringify(meta["forager:night-layers"]) !== JSON.stringify(NIGHT_LAYER_COLOURS)) problems.push(`forager-street-${STYLE}.json's forager:night-layers differs from its design table: run npm run generate:street`);
+if (JSON.stringify(meta["forager:night-fills"]) !== JSON.stringify(NIGHT_FILL_COLOURS)) problems.push(`forager-street-${STYLE}.json's forager:night-fills differs from its design table: run npm run generate:street`);
 const errors = validateStyleMin(JSON.parse(text));
 for (const e of errors) problems.push(`style spec: ${e.message}`);
 
@@ -186,4 +199,4 @@ if (problems.length) {
   console.log("PROBLEMS:\n  " + problems.join("\n  "));
   process.exit(1);
 }
-console.log("street style v2 valid, bundled copy identical, v1 unchanged, day and night contrast and the night limits held");
+console.log(`street style ${STYLE} valid${V4 ? "" : ", bundled copy identical"}, v1 unchanged, day and night contrast and the night limits held`);

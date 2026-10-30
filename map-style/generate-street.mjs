@@ -21,11 +21,17 @@
 //   ../server/pmtiles-worker/src/street-style-v3.json   the same file, bundled into the Worker and served
 //                                     at /style/street-v3.json.
 //   forager-street-v3.preview.json    fonts and icons from serve.py, for the preview and tools/check-style.mjs.
+//
+// Since the fill-in (sage-09, docs/design/2026-10-30-fill-in-rulings.md in Forager-cartography) it also writes v4: v3 with
+// overrides/forager-fill-in.mjs applied last and its own night tables, beside v3, which is written exactly as before. v4 is
+// written to map-style only (forager-street-v4.json and its preview copy): the Worker's copy, and the app's switch to it,
+// are each their own step.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 import { applyStreetDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
+import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -38,8 +44,7 @@ export const WORKER = "https://forager-pmtiles.brandonlee1-894.workers.dev";
  */
 const ARCHIVE = "us";
 const LOCAL = "http://localhost:8765";
-/** The style version this script writes, and the sprite it uses (tools/build-sprite-v5.mjs). */
-const VERSION = "v3";
+/** The sprite both versions use (tools/build-sprite-v5.mjs). */
 const SPRITE = "sprites/v5/light";
 
 // The sprite's images the app's night rules invert (its bundled night set since dispatch 2026-10-22-06), recorded in the style's
@@ -52,23 +57,43 @@ const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${SPRI
 
 // v3's buildings, solid with an outline (dispatch 2026-10-27-02), are applied here and not in applyStreetDesign, which
 // v2 was generated with.
-const allLayers = withReferenceLayers(withBuildingOutline(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
+const v3Layers = () => withReferenceLayers(withBuildingOutline(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
 
-const style = (assetsBase) => ({
+/** What differs between the versions this script writes: v4 is v3's layers with the fill-in and v4's night tables. */
+const VERSIONS = {
+  v3: {
+    layers: v3Layers(),
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs and overrides/forager-reference.mjs",
+    palette: COLOURS,
+    nightLayers: NIGHT_LAYER_COLOURS,
+    nightFills: NIGHT_FILL_COLOURS,
+    toWorker: true,
+  },
+  v4: {
+    layers: applyFillIn(v3Layers()),
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs and overrides/forager-fill-in.mjs",
+    palette: { ...COLOURS, fillIn: FILL_IN_COLOURS },
+    nightLayers: NIGHT_LAYER_COLOURS_V4,
+    nightFills: NIGHT_FILL_COLOURS_V4,
+    toWorker: false,
+  },
+};
+
+const style = (version, assetsBase) => ({
   version: 8,
-  name: `Forager Street ${VERSION}`,
+  name: `Forager Street ${version}`,
   metadata: {
-    "forager:generated-from": "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs and overrides/forager-reference.mjs",
+    "forager:generated-from": VERSIONS[version].generatedFrom,
     "forager:sprite-icons": spriteIcons,
     // The design's colours, day and the night exceptions (-1343), for the app's tests to read.
-    "forager:palette": COLOURS,
+    "forager:palette": VERSIONS[version].palette,
     // Night exceptions (-1345): by layer, and for icon rings.
-    "forager:night-layers": NIGHT_LAYER_COLOURS,
+    "forager:night-layers": VERSIONS[version].nightLayers,
     "forager:night-icon-rings": NIGHT_ICON_RINGS,
     // Per-layer contrast bands that replace the night floor for one layer on one ground (dispatch 2026-10-19-41).
     "forager:night-bands": NIGHT_LAYER_BANDS,
     // Night fill colours by day colour, and pattern images painted one colour (dispatch 2026-10-22-03).
-    "forager:night-fills": NIGHT_FILL_COLOURS,
+    "forager:night-fills": VERSIONS[version].nightFills,
     "forager:night-patterns": NIGHT_PATTERN_COLOURS,
   },
   sources: {
@@ -82,11 +107,14 @@ const style = (assetsBase) => ({
   },
   glyphs: `${assetsBase}/fonts/{fontstack}/{range}.pbf`,
   sprite: `${assetsBase}/${SPRITE}`,
-  layers: allLayers,
+  layers: VERSIONS[version].layers,
 });
 
-const forWorker = JSON.stringify(style(WORKER), null, 2) + "\n";
-fs.writeFileSync(here(`./forager-street-${VERSION}.json`), forWorker);
-fs.writeFileSync(here(`../server/pmtiles-worker/src/street-style-${VERSION}.json`), forWorker);
-fs.writeFileSync(here(`./forager-street-${VERSION}.preview.json`), JSON.stringify(style(`${LOCAL}/assets`), null, 2) + "\n");
-console.log(`forager-street-${VERSION}.json: ${allLayers.length} layers; copied to server/pmtiles-worker/src/street-style-${VERSION}.json`);
+for (const version of Object.keys(VERSIONS)) {
+  const forWorker = JSON.stringify(style(version, WORKER), null, 2) + "\n";
+  fs.writeFileSync(here(`./forager-street-${version}.json`), forWorker);
+  if (VERSIONS[version].toWorker) fs.writeFileSync(here(`../server/pmtiles-worker/src/street-style-${version}.json`), forWorker);
+  fs.writeFileSync(here(`./forager-street-${version}.preview.json`), JSON.stringify(style(version, `${LOCAL}/assets`), null, 2) + "\n");
+  const where = VERSIONS[version].toWorker ? `; copied to server/pmtiles-worker/src/street-style-${version}.json` : "; map-style only";
+  console.log(`forager-street-${version}.json: ${VERSIONS[version].layers.length} layers${where}`);
+}
