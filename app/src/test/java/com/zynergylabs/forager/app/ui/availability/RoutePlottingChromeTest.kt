@@ -155,15 +155,22 @@ class RoutePlottingChromeTest {
         val card = bounds(ROUTE_CARD_TAG)
         assertTrue("the pill's bottom ${pill.bottom} is at or above the card's top ${card.top}", pill.bottom <= card.top + 0.5.dp)
 
-        // The pill: one real touch at one of the five points; each tap brings the view back, so it is moved away again first.
-        ACROSS.forEach { (fx, fy) ->
+        // The pill: one real touch at each of five points; each tap brings the view back, so it is moved away again first. The
+        // pill is a stadium whose Surface clips its touches to that shape, so the corner points sit 12 dp in from the ends and 6 dp
+        // from the edges, inside the rounded ends (MapPopUpMotionTest's samples); 10% corners fall outside the shape.
+        listOf(0.5f to 0.5f, -1f to -1f, 1f to -1f, -1f to 1f, 1f to 1f).forEach { (sx, sy) ->
             val viewNow = map.renderMode!!.navigationView!!
             composeRule.runOnUiThread { viewNow.onLeftView() }
             settle()
             val before = map.renderMode!!.navigationView!!.restoreRequestId
-            composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).performTouchInput { click(Offset(width * fx, height * fy)) }
+            composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).performTouchInput {
+                val inX = 12.dp.toPx()
+                val inY = 6.dp.toPx()
+                fun along(s: Float, size: Float, inset: Float) = when { s < 0f -> inset; s > 0.75f -> size - inset; else -> size * s }
+                click(Offset(along(sx, width.toFloat(), inX), along(sy, height.toFloat(), inY)))
+            }
             settle()
-            assertEquals("a touch at ($fx, $fy) on the pill was its own", before + 1, map.renderMode!!.navigationView!!.restoreRequestId)
+            assertEquals("a touch at ($sx, $sy) on the pill was its own", before + 1, map.renderMode!!.navigationView!!.restoreRequestId)
             assertTrue("and plotting went on", plotting.uiState.value.mode is RoutePlotMode.Plotting)
         }
 
