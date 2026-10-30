@@ -685,7 +685,7 @@ class AvailabilityScreenSettingsPanelTest {
      * control: the row is really there to be looked at.
      */
     @Test
-    fun `a downloaded region's row has no Delete control at rest, and carries the swipe and its Delete action`() {
+    fun `a downloaded region's row at rest has no Delete text and exactly one clickable delete, the trash button, and carries the swipe and its Delete action`() {
         setScreen(uiState = SEARCHED_STATE.copy(offlineRegions = listOf(L5_REGION)))
         openOfflineMapsSubTab()
 

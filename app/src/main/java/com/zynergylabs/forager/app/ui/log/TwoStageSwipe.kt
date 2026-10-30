@@ -29,7 +29,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -306,7 +308,7 @@ internal fun TwoStageSwipeRow(
                 .offset { IntOffset(offset.roundToInt(), 0) }
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            content()
+            CompositionLocalProvider(LocalTwoStageSwipeRowOpen provides (offset < 0f)) { content() }
             if (state.settledValue == SwipeRevealValue.Open || state.targetValue == SwipeRevealValue.Open) {
                 // A tap on the revealed row's own body closes it and goes no further. Its press is drawn in the row's own
                 // shape ([highlightShape]); the tap box is the whole row, as before.
@@ -344,6 +346,13 @@ private fun SwipeActionButton(
         }
     }
 }
+
+/**
+ * True while the [TwoStageSwipeRow] around this content is off zero, so its revealed actions are showing. Content that has
+ * a control of its own for one of those actions hides it then, so only the revealed one shows (dispatch 2026-10-29-10
+ * Amendment 3, RECORD -1828; the owner: "Hide trash while open (Recommended)"). False outside any swipe row.
+ */
+internal val LocalTwoStageSwipeRowOpen = compositionLocalOf { false }
 
 /** One revealed action's width; two of them (Edit and Delete) are how far a short swipe opens a row. */
 private val SWIPE_ACTION_WIDTH = 72.dp

@@ -8,11 +8,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.ui.log.LocalTwoStageSwipeRowOpen
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -43,8 +45,14 @@ internal fun OfflineRegionRowWithDelete(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(modifier = Modifier.weight(1f)) { row() }
-        IconButton(onClick = onDelete, modifier = Modifier.testTag(offlineRegionDeleteButtonTag(region.id))) {
-            Icon(Icons.Filled.Delete, contentDescription = offlineRegionDeleteLabel(region.name))
+        // Amendment 3 (RECORD -1828): while the row is swiped open only its red Delete shows. The button's space is kept so
+        // the row's text does not reflow as the swipe starts.
+        Box(modifier = Modifier.minimumInteractiveComponentSize(), contentAlignment = Alignment.Center) {
+            if (!LocalTwoStageSwipeRowOpen.current) {
+                IconButton(onClick = onDelete, modifier = Modifier.testTag(offlineRegionDeleteButtonTag(region.id))) {
+                    Icon(Icons.Filled.Delete, contentDescription = offlineRegionDeleteLabel(region.name))
+                }
+            }
         }
     }
 }
