@@ -161,7 +161,8 @@
     },
     "forager:night-patterns": {
       "tree_dark_irregular": "#5d804f"
-    }
+    },
+    "forager:night-line-colours": {}
   },
   "sources": {
     "protomaps": {

@@ -17,10 +17,11 @@ import org.junit.Test
 
 /**
  * [NightExceptionsTest]'s twin for Street v4, the fill-in (Forager-cartography `docs/design/2026-10-30-fill-in-rulings.md`;
- * the owner: "Keep it osm-like", "Yes, ship it", and for ramps "Invert them too (Recommended)"). v4 has its own night
- * tables, chosen by the style's URI ([streetNightTablesFor]): the major-road centres take the plain inversion (no layer
- * exception), rail is `#a3acae`, and the five new fills (residential, commercial, railway land, farmland, parks) take
- * their ruled night colours. v1 to v3, and Street under Topographical, keep [STREET_NIGHT_TABLES], which
+ * the owner: "Keep it osm-like", "Yes, ship it", and for ramps "Invert them too (Recommended)"; then motorways "A: OSM
+ * pink" and "Invert like OSM", tertiary "Dark grey #333333" and rail "Plain inversion"). v4 has its own night tables,
+ * chosen by the style's URI ([streetNightTablesFor]): the major roads, motorways, ramps and rail take the plain inversion
+ * (no layer exception) except the tertiary's day white, which is `#333333`, and the five new fills (residential,
+ * commercial, railway land, farmland, parks) take their ruled night colours. v1 to v3, and Street under Topographical, keep [STREET_NIGHT_TABLES], which
  * [NightExceptionsTest] holds.
  *
  * Read from `map-style/forager-street-v4.json`: v4 is not on the Worker yet.
@@ -56,6 +57,9 @@ class NightExceptionsV4Test {
         )
     }
 
+    /** The lines v4 inverts that v3 gives a night exception (the rulings' table, "Motorways", "Night tertiary and rail"). */
+    private val INVERTED_LINES = setOf("roads_major", "roads_bridges_major", "roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link", "roads_rail")
+
     private val INFORMAL_NIGHT_FOREST_BAND = 1.9..2.3
     private val INFORMAL_LAYERS = setOf("roads_path_informal_z13", "roads_path_informal")
 
@@ -78,6 +82,14 @@ class NightExceptionsV4Test {
     }
 
     @Test
+    fun `v4's line colours by day colour are the design's`() {
+        val design = metadata.getValue("forager:night-line-colours").jsonObject.mapValues { (_, colours) ->
+            colours.jsonObject.entries.associate { (day, night) -> rgb(day) to rgb(night.jsonPrimitive.content) }
+        }
+        assertEquals(design, tables.lineColours)
+    }
+
+    @Test
     fun `v4's night is the ruled table`() {
         // The rulings' table, by hand, so a design and app that drifted together still fail here.
         assertEquals(
@@ -85,13 +97,37 @@ class NightExceptionsV4Test {
             tables.fillColours - STREET_NIGHT_FILL_COLOURS.keys,
         )
         assertEquals(STREET_NIGHT_FILL_COLOURS, tables.fillColours.filterKeys { it in STREET_NIGHT_FILL_COLOURS })
-        assertEquals("#a3acae", tables.layerColours["roads_rail"])
-        assertTrue("roads_major" !in tables.layerColours && "roads_bridges_major" !in tables.layerColours)
-        // Motorways and their ramps keep v3's amber.
-        for (id in listOf("roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link")) {
-            assertEquals(id, STREET_NIGHT_LAYER_COLOURS.getValue(id), tables.layerColours[id])
+        // The major roads, the motorways and their ramps ("Invert like OSM"), and the rail ("Plain inversion") take the
+        // inversion: no layer exception. The rest are v3's.
+        assertEquals(STREET_NIGHT_LAYER_COLOURS - INVERTED_LINES, tables.layerColours)
+        // The night tertiary ("Dark grey #333333 (Recommended)"): day white on the major-road layers.
+        assertEquals(mapOf("roads_major" to mapOf(0xFFFFFF to 0x333333), "roads_bridges_major" to mapOf(0xFFFFFF to 0x333333)), tables.lineColours)
+    }
+
+    @Test
+    fun `the motorways, their ramps and casings, and the rail take the plain inversion`() {
+        val casings = listOf("roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing")
+        for (id in (INVERTED_LINES - setOf("roads_major", "roads_bridges_major")) + casings) {
+            val value = layers.getValue(id).jsonObject.getValue("paint").jsonObject.getValue("line-color")
+            val property = LayerColourProperty(id, "line-color", StyleColourValue.Literal(value.jsonPrimitive.content))
+            assertEquals(id, offlineNightRecolourOf(property), nightOf(id, "line-color"))
         }
-        assertEquals(STREET_NIGHT_LAYER_COLOURS - setOf("roads_major", "roads_bridges_major", "roads_rail"), tables.layerColours - "roads_rail")
+        // OSM Carto's motorway fill and casing by day (the rulings' "Motorways"), so the inversion is #7f2939 and #e83673.
+        assertEquals(StyleColourValue.Literal("rgba(127, 41, 57, 1)"), (nightOf("roads_highway", "line-color") as NightRecolour.Recoloured).night)
+        assertEquals(StyleColourValue.Literal("rgba(232, 54, 115, 1)"), (nightOf("roads_highway_casing_late", "line-color") as NightRecolour.Recoloured).night)
+        assertEquals(StyleColourValue.Literal("rgba(99, 108, 111, 1)"), (nightOf("roads_rail", "line-color") as NightRecolour.Recoloured).night)
+    }
+
+    @Test
+    fun `the night tertiary sits under the trails on the night forest, grass and ground`() {
+        val tertiary = 0x333333
+        val footpath = nightColorOf((0xFF shl 24) or rgb(palette.getValue("footpath").jsonPrimitive.content)) and 0xFFFFFF
+        nightGrounds.forEach { (name, ground) ->
+            val ratio = contrast(tertiary, ground)
+            val ceiling = contrast(footpath, ground)
+            assertTrue("night tertiary on night $name is $ratio:1, the night footpath $ceiling:1", ratio < ceiling)
+            if (name == "forest") assertTrue("night tertiary on night forest is $ratio:1, outside 1.7 to 2.3", ratio in 1.7..2.3)
+        }
     }
 
     @Test
@@ -138,24 +174,28 @@ class NightExceptionsV4Test {
     }
 
     @Test
-    fun `the major roads and their ramps take the plain inversion, so each ramp matches its road`() {
+    fun `the major roads and their ramps invert, but the tertiary is dark grey, so each ramp matches its road`() {
         for (id in listOf("roads_major", "roads_bridges_major")) {
-            val value = layers.getValue(id).jsonObject.getValue("paint").jsonObject.getValue("line-color")
-            val property = LayerColourProperty(id, "line-color", StyleColourValue.Expression(value.toString()))
-            assertEquals(id, offlineNightRecolourOf(property), nightOf(id, "line-color"))
-            // The ruled night: trunk #845104, primary #674400, secondary #463100, tertiary #000000, each with its ramp.
+            // The ruled night: trunk #845104, primary #674400, secondary #463100 (the inversion), tertiary #333333.
             val night = ((nightOf(id, "line-color") as NightRecolour.Recoloured).night as StyleColourValue.Expression).json
             val match = Json.parseToJsonElement(night).jsonArray
             val byKind = (2 until match.size - 1 step 2).flatMap { i ->
                 val kinds = match[i].let { k -> if (k is JsonPrimitive) listOf(k.content) else k.jsonArray.map { it.jsonPrimitive.content } }
                 kinds.map { it to match[i + 1].jsonPrimitive.content }
             }.toMap()
-            val expected = mapOf("trunk" to "rgba(132, 81, 4, 1)", "primary" to "rgba(103, 68, 0, 1)", "secondary" to "rgba(70, 49, 0, 1)", "tertiary" to "rgba(0, 0, 0, 1)")
+            val expected = mapOf("trunk" to "rgba(132, 81, 4, 1)", "primary" to "rgba(103, 68, 0, 1)", "secondary" to "rgba(70, 49, 0, 1)", "tertiary" to "rgba(51, 51, 51, 1)")
             expected.forEach { (road, colour) ->
                 assertEquals("$id $road", colour, byKind[road])
                 assertEquals("$id ${road}_link", colour, byKind["${road}_link"])
             }
+            // Any other kind_detail keeps v3's major colour, inverted.
+            assertEquals(id, nightOfDay(0xF6D68F), match.last().jsonPrimitive.content)
         }
+    }
+
+    private fun nightOfDay(day: Int): String {
+        val n = nightColorOf((0xFF shl 24) or day)
+        return "rgba(${(n shr 16) and 0xFF}, ${(n shr 8) and 0xFF}, ${n and 0xFF}, 1)"
     }
 
     @Test

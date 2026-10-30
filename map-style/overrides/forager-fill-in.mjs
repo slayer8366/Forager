@@ -66,6 +66,13 @@ export const NIGHT_FILL_COLOURS_V4 = {
   [FILL_IN_COLOURS.parks]: "#2c461e",
 };
 
+/**
+ * v4's night line colours by day colour, per layer: where one of these layers' `line-color` draws a named day colour, as a
+ * literal or inside an expression, night draws its colour instead of the inversion; every other colour in the same
+ * expression inverts. Recorded in the style as `forager:night-line-colours` (v4 only).
+ */
+export const NIGHT_LINE_COLOURS_V4 = {};
+
 function byId(layers, id) {
   const layer = layers.find((l) => l.id === id);
   if (!layer) throw new Error(`forager-fill-in: there is no layer "${id}" to edit; the pinned style changed`);

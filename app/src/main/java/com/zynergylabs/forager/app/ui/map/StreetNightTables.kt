@@ -9,7 +9,12 @@ package com.zynergylabs.forager.app.ui.map
  * shared by every version would change how regions downloaded on v3 draw at night. Each style is a URL that never
  * changes meaning, so the URL it was loaded from says which tables it takes.
  */
-internal data class StreetNightTables(val layerColours: Map<String, String>, val fillColours: Map<Int, Int>)
+internal data class StreetNightTables(
+    val layerColours: Map<String, String>,
+    val fillColours: Map<Int, Int>,
+    /** Per layer, night line colours by day colour (`forager:night-line-colours`, v4 only): one road class's night. */
+    val lineColours: Map<String, Map<Int, Int>> = emptyMap(),
+)
 
 /** Trail Map v1 to v3's night tables, and Street under Topographical's: the ones every version had before v4. */
 internal val STREET_NIGHT_TABLES = StreetNightTables(STREET_NIGHT_LAYER_COLOURS, STREET_NIGHT_FILL_COLOURS)
