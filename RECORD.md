@@ -30190,3 +30190,16 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus), first stop at trail-heights 5e72b1485. The engine marks a missing height as Short.MIN_VALUE, never 0. Barometric track heights and terrain trail heights have different zero points, so a direct swap would count the offset as climb (about 88 s on the walk back for 20 m). No heighted fixture exists in the repo. The coder disclosed writing a scratch file at the shared scratch root.
 **Decision:** the owner: "Don't count the step (Recommended)"; "Use your track instead (Recommended)"; "Keep it off (Recommended)"; "Yes, ask Aspen (Recommended)". Dispatch 2026-10-30-06 Amendment 1 gives the go to build. The fixture request is prompts/aspen/2026-10-30-03-rowan-to-aspen-heighted-fixture.md.
 **Notes:** Written by the planner by hand. Next free ID -1839.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1839
+**Timestamp:** 2026-10-30T14:59:17Z
+**Continues:** 2026-09-28-1837
+**Title:** #445 and #446 merged into pre-main (schema 23); N1 and N2 tightened and biting
+**Observed:** Hazel (Opus), Amendment 2.
+- **#445** (4b53ac7b4): run 41073181129, 5937 tests, 0 failures. The N1 revert, which seeds an orphan route stop, fails the two older-backup tests on the new head (run 41073295906) and passes them on the old head (41073310802). The prediction of 2 failures was missed: 5 failed, the 3 extra at the orphan-row checks (:392, :469, :568) on both heads, caused by the same edit. Disclosed.
+- **#446** (088b182aa): run 41073426824, 5953 tests, 0 failures. The N2 revert fails exactly the new test on the new head, "not asserted: [ROUTES_FETCHING]" (41073445284), and nothing on the old head (41073458489).
+- **Merged by the planner:** #445 to pre-main 6ee40daee, then #446 to b493cffeb. The pre-main push run is pending.
+**Notes:** Written by the planner by hand, on the owner's "Tighten 2 tests, then merge (Recommended)" (-1837). Pre-main now carries schema 23. No phone gets it before step 3, and none without the planner's word. Index rows for the first stop and both PRs are still to add. Next free ID -1840.
