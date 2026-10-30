@@ -98,3 +98,9 @@ The first stop is docs/audits/2026-10-30-route-plotting-step-3-first-stop.md (ro
 - New files stay under 400 lines.
 - CI only. A PR into pre-main, with no merge. Merge pre-main in if it moves.
 - No phone without the planner's word.
+
+## Amendment 2 (2026-10-30): the route colour is magenta (RECORD -1853)
+Hazel found orange taken: the forecast ramp (ColourFields.kt:60-75), and Street v3/v4's highways and major roads by day and night (#f0b95c, #f2bf72; NightColour.kt:117-121). The owner: "Magenta (Recommended)".
+- Set PLOTTED_ROUTE_COLOUR_DAY and _NIGHT to a magenta.
+- Check it against the track purples (MapPalette.kt), Street v3 and v4, the topo style and the forecast ramps, by day and night. If it sits too close to a track purple, stop and report with the colours.
+- Report the chosen values and contrast against the main map backgrounds.

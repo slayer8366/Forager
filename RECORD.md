@@ -30384,3 +30384,15 @@ Dispatch 2026-10-30-08 opens with a look-only first stop.
 
 The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amendment 1: build, on the go given at -1845.
 **Notes:** Written by the planner by hand. A fresh coder builds it, since the first-stop coder was past 240k tokens. Next free ID -1853.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1853
+**Timestamp:** 2026-10-30T20:14:23Z
+**Continues:** 2026-09-28-1852
+**Supersedes:** -1852's "Orange (Recommended)" for the route line
+**Title:** The plotted route line is magenta, because orange is taken by highways and the forecast layer
+**Observed:** Hazel (Opus) on route-plot-ui. Orange is used by the synthetic forecast ramp (ColourFields.kt:60-75) and by Street v3 and v4's highways and major roads (#f0b95c, #f2bf72; night NightColour.kt:117-121). Tracks are purple and navigation is azure.
+**Decision:** the owner: "Magenta (Recommended)". Dispatch 2026-10-30-08 Amendment 2: magenta, checked against the track purples.
+**Notes:** Written by the planner by hand. Next free ID -1854.
