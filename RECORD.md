@@ -30056,3 +30056,19 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr443-pr444.md at sorrel-pr443-pr444 43b89516e: no S, notes N1 to N9. Merge-tree of the two heads is clean, and their file sets are disjoint.
 **Decision:** the owner: "Hide trash while open (Recommended)" (N1); "Merge both, then S22 (Recommended)". Dispatch 2026-10-29-10 Amendment 3 also takes N2 (title wording) and N6 (a landscape glance). N4, N5, N7 and N9 are record only. N8: index rows are added with the merge entries.
 **Notes:** Written by the planner by hand. Next free ID -1829.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1829
+**Timestamp:** 2026-10-30T13:00:37Z
+**Continues:** 2026-09-28-1828
+**Title:** #444 and #443 merged into pre-main; the combined build is green on its PR run, and the pre-main run is under way
+**Observed:**
+- **#444** merged by the planner, at head bf77157f6: pre-main 8a0036405; push run 41056224185 green.
+- **#443** Amendment 3 (Hazel, Opus): code 242705cef. The trash hides while a row is swiped open.
+  - Failing first: run 41056385518, 2 of 7 failed, 0 compile errors.
+  - Revert check: run 41057163395, the same 2 failed, 0 compile errors.
+  - PR run 41057164708 on the merge with 8a0036405: green, 5913 tests, 0 failures.
+- #443 merged by the planner, at head 6e432a6cb: pre-main 3c5e63468. Push run 41059608216 is pending.
+**Notes:** Written by the planner by hand, on the owner's "Merge both, then S22 (Recommended)" (-1828). Next: the S22 checks the combined build when it is plugged in. The docs/audits/README.md index rows for #443 and #444 (Sorrel's N8) are still to add. Next free ID -1830.
