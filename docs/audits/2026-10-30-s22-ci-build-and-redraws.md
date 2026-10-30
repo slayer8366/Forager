@@ -160,3 +160,39 @@ isolate two minutes, which was not done; the phone was also on USB power, at 100
   `no_app_key` region it offers neither (above).
 - **Beyond scope:** none. No fix proposed in code; the observation that a lifecycle-aware collection would stop this is the
   obvious reading of the cause and is left to the planner.
+
+## Region 2 redone (dispatch 2026-10-30-13, RECORD -1857)
+
+Hazel, 2026-10-30, S22 (R5CT321008R) only, build 1.0.4224+gc4a57389 (the CI build with the routing key), schema 23. Raw
+evidence (data copies, table hashes, screenshots, BRouter output, scripts) is at `/home/zynergy-labs/s22-2026-10-30/region-2/`
+(`before/`, `after-delete/`, `after-download/`, `scratch/`), never in git. No coordinates here. No Gradle, no uninstall,
+no `-d`, no clear data.
+
+| Step | Result | How checked |
+|---|---|---|
+| 1 Read | Region 2 was id 7, name "Region 2", radius 10 km, zoom 10 to 15, made 12:15:58 PDT today, route state `missing`, `no_app_key`. **No journal entry references it:** `cartography_entries`, `cartography_entry_offline_region_refs` and `mushroom_log_entries` are all empty. | `offline_regions` row and `routes.properties` from the backup; row counts of every entry table |
+| 2 Back up | `before/app-data.tar` (databases with WAL, datastore, `offline_routes`, `routing`, `mbgl-offline.db`). Every table's count and hash equals dispatch 12's final state. | `run-as` tar; the same per-table hash script; `diff` empty |
+| 3 Delete | Trash button on Region 2's row, "Offline map deleted" snackbar left to run out (Undo not touched). After: `offline_regions` 2 → 1, Region 1's row byte-identical; **every other table's hash unchanged** (tracks 5, track points 273, waypoints 11). `offline_routes/7` gone, `offline_routes/3` files unchanged by sha256. MapLibre: region 7 and its 1630 region-tile links gone, region 3 kept. | backup `after-delete/`; table hash `diff` shows only `offline_regions` |
+| 4 Download | Through Offline Maps on Wi-Fi: picker pin panned to the old centre until "Pin at" read it to 4 decimals, name typed "Region 2", radius left at the remembered 10 km ("6 mi"; the confirmation read "Region 2 · 6 mi around the pin · about 815 tiles", the same 815 Region 2 took from the budget before). Download, then "Getting trail routes", then the row "downloaded just now" with no "Map only" line. | screen dumps; screenshots |
+| 5a Tiles | New region **id 8**, "Region 2", 10 km, zoom 10 to 15. MapLibre region 8 holds 1630 tiles, the same count region 7 held. Centre 5.4 m north and 0.8 m east of the old one (the pin can be read only to 4 decimals). | `offline_regions`; `mbgl-offline.db` `region_tiles` |
+| 5b Trail data | `offline_routes/8/routes.properties`: `state=stored`, **run id `usca-20261027T221400Z`**, one file `W125_N45.rd5`, 739 591 bytes, no missing squares; the file's sha256 equals the recorded one. | the properties file; `sha256sum` |
+| 5c Heights | **Every routed node carries a height.** The owner's 10-30 walk (inside Region 2), routed through the new file the way dispatch 11 did (BRouter 1.7.10, the app's own `hiking-mountain` profile copied from the phone, via every 100 m): 132 of 132 nodes have `<ele>`, 169 to 232 m; the route runs on footway (10 segments), service (4) and residential (1). Six more routes out from the centre (1.2 to 14 km): 703 of 703 nodes with heights. | `scratch/route.py`, `scratch/walkkinds.py`, `ground.py` from dispatch 11; GeoJSON way tags |
+| 6 Leave | Walk logger on (`diagnostics.walk_logger` true), ACTIVITY_RECOGNITION granted, app in front on the Maps tab, not recording. | datastore file; `dumpsys package`; screen dump |
+
+After the redo, against step 2: the only table that changed is `offline_regions` (id 7 replaced by id 8); in the datastore
+only `offline_map.last_picked_lat`/`_lng` changed, which the download writes on success (`AvailabilityOfflineMaps.kt:245` at
+c4a57389). Region 1, all tracks and all waypoints hash unchanged.
+
+**An observation, not a gate:** on the walk's 91 matched points, the new file's heights read 9.8 m below the laptop's full
+2026-10-03 file that dispatch 11 had to use as ground (sd 3.1 m, range 2.3 to 15.8 m below). Dispatch 11 found that full
+file 2.0 m below Region 1's file near home. So the two dated files disagree more here than near home. Which one is nearer
+the true ground was not checked; scoring the walk against this file was not in this dispatch.
+
+**Disclosure.**
+- **Confirmed:** everything in the table, by the means named.
+- **Inferred:** that the run id `usca-20261027T221400Z` is the current server run (it is the same one Region 1 has; the
+  dispatch 11 brief expected 10-28+ data, but this file carries heights regardless).
+- **Could not determine:** the old centre to better than the "Pin at" line's 4 decimals, so the new centre is a few metres
+  off it. The snackbar's exact duration (it was gone at the first check, 3 s after starting the wait).
+- **Premise that was wrong:** none found.
+- **Beyond scope:** the height comparison above, reported only.
