@@ -30396,3 +30396,24 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Observed:** Hazel (Opus) on route-plot-ui. Orange is used by the synthetic forecast ramp (ColourFields.kt:60-75) and by Street v3 and v4's highways and major roads (#f0b95c, #f2bf72; night NightColour.kt:117-121). Tracks are purple and navigation is azure.
 **Decision:** the owner: "Magenta (Recommended)". Dispatch 2026-10-30-08 Amendment 2: magenta, checked against the track purples.
 **Notes:** Written by the planner by hand. Next free ID -1854.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1854
+**Timestamp:** 2026-10-30T20:19:12Z
+**Continues:** 2026-09-28-1851
+**Title:** The 10-30 walk could not be scored for #440 on the strip: the screen stayed off, and the laptop build has no routing key
+**Observed:** Hazel (Opus), docs/audits/2026-10-30-s22-walk-altitude.md on s22-walk-altitude 2afa09e58. Evidence is in /home/zynergy-labs/s22-2026-10-30/walk/.
+- **The strip never showed a height:** the screen was off from 12:16:36 to 12:37:56, and there is no screenshot or recording.
+- **Region 2 has no trail data:** it was made at 12:15:58 and reads state=missing, reason=no_app_key. Inferred cause: the laptop build of c4a57389 (-1847) was made without the routing key.
+- **The replay instead:** the app's LiveHeight rule replayed on the logger's 1 Hz GPS and barometer, against the laptop's 10-03 full trail file (2.04 m low near home). Of 91 matched points:
+  - replayed strip: 84 within 10 m, mean -3.4 m, sd 5.3 m, worst -19.0 m (where the reference itself is the likely fault);
+  - plain sea-level GPS: 84 within 10 m;
+  - raw GPS: 3 within 10 m.
+- **Behaviour (replay only):** no jump at the 60 s switch, 0.82 m per fix at most while walking. The 10-minute carry-over never triggered. No converter errors.
+- **The walk:** 1.44 km on slopes, about 40 m down and back up.
+- **Possible battery drain, not investigated:** about 30 redraw log lines per second with the screen off, the whole walk and again at 13:00 with no recording, with memory freed every ~25 s.
+- **Corrections:** -1850's "Region 1's route data most likely has none" was wrong. The 10-27 run is the heighted run, and the read found heights on every routed point.
+- **The laptop root disk** had about 300 MB free.
+**Notes:** Written by the planner by hand. The planner's -1847 build choice caused the missing key; the planner did not foresee it. Next free ID -1855.
