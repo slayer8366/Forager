@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.routing
 
 import btools.router.OsmNodeNamed
+import btools.router.OsmPathElement
 import btools.router.OsmTrack
 import btools.router.RoutingContext
 import btools.router.RoutingEngine
@@ -43,6 +44,7 @@ import java.util.concurrent.Executors
  * - The data folder is checked first ([RoutingDataFolder]), and the engine's messages are named
  *   ([BRouterFailures]).
  * - A time limit, an explicit operating limit (CLAUDE.md, Architecture).
+ * - Each point keeps the trail data's height, or `null` where the data has none ([trailRouteOf]; dispatch 2026-10-30-06).
  *
  * **Threading.** Routing runs on [dispatcher], never the caller's thread, and one route at a time in the whole
  * process: BRouter's `ProfileCache` is static and shared, and one route's memory at a time is the bound the
@@ -109,12 +111,7 @@ class BRouterTrailRouter internal constructor(
             errorLog.w(TAG, "BRouter failed", BRouterFailure(detail))
             return TrailRouteResult.Failed(TrailRouteFailure.EngineFailed(detail))
         }
-        return TrailRouteResult.Found(
-            TrailRoute(
-                points = track.nodes.map { latLngOf(it.getILat(), it.getILon()) },
-                lengthMetres = track.distance,
-            ),
-        )
+        return TrailRouteResult.Found(trailRouteOf(track.nodes, track.distance))
     }
 
     /** One engine run, start to end, under the one-route lock: what both [route] and [firstRoutePoint] read. */
@@ -211,6 +208,24 @@ class BRouterTrailRouter internal constructor(
 
         private fun routingEngine(routeData: File, waypoints: List<OsmNodeNamed>, context: RoutingContext): RoutingEngine =
             RoutingEngine(null, null, routeData, waypoints, context, RoutingEngine.BROUTER_ENGINEMODE_ROUTING)
+
+        /**
+         * The route along [nodes], the engine's found track, with its [lengthMetres]: each node's position and its height
+         * ([heightMetresOf]). Its own function so the tests can hand it built nodes, for mixes no fixture has.
+         */
+        internal fun trailRouteOf(nodes: List<OsmPathElement>, lengthMetres: Int): TrailRoute = TrailRoute(
+            points = nodes.map { latLngOf(it.getILat(), it.getILon()) },
+            lengthMetres = lengthMetres,
+            heightsMetres = nodes.map { heightMetresOf(it.getSElev()) },
+        )
+
+        /**
+         * A node's height in metres from BRouter's stored value, in quarter metres (`OsmPathElement.getElev`); `null` for
+         * [Short.MIN_VALUE], BRouter's "no height" (its GeoJSON and GPX writers leave the height out for it, and a square
+         * built without heights gives it at every node: the test fixture's command-line output reads Elevation -8192,
+         * which is -32768 / 4). Never 0 for missing. 0 and below are real heights (sea level, below it).
+         */
+        internal fun heightMetresOf(selev: Short): Double? = null // STUB
 
         /** BRouter positions are integer micro-degrees offset by 90 and 180 (RoutingParamCollector.readPosition). */
         private fun latLngOf(iLat: Int, iLon: Int): LatLng = LatLng(lat = (iLat - 90_000_000) / 1e6, lng = (iLon - 180_000_000) / 1e6)
