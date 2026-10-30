@@ -30417,3 +30417,15 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 - **Corrections:** -1850's "Region 1's route data most likely has none" was wrong. The 10-27 run is the heighted run, and the read found heights on every routed point.
 - **The laptop root disk** had about 300 MB free.
 **Notes:** Written by the planner by hand. The planner's -1847 build choice caused the missing key; the planner did not foresee it. Next free ID -1855.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1855
+**Timestamp:** 2026-10-30T20:26:24Z
+**Continues:** 2026-09-28-1854
+**Title:** The S22 gets the CI build with the routing key; the screen-off redraws are read look-only; 71 clean worktrees removed to free the laptop's disk
+**Decision:** the owner:
+- "Yes, then re-fetch Region 2 trails (Recommended)", and "Look-only investigation (Recommended)". Dispatch 2026-10-30-12.
+- "List what's big, ask first (Recommended)", then "Yes, remove the 72 (Recommended)". 71 worktrees under ~/.cache/forager-wt were removed with git worktree remove, each clean, fully pushed and untouched for 2 h. topo-plan-report was refused by git and kept. The root disk went from 313 MB to 8.1 GB free. ~/from-flash, the phone-data folders and 28 unpushed, dirty or non-git folders were kept.
+**Notes:** Written by the planner by hand. Next free ID -1856.
