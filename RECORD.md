@@ -30656,3 +30656,18 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 - **Slip, disclosed:** one force-push, of the coder's own scratch diagnostic branch, since deleted.
 - The shared Claude temp directory is at its quota.
 **Notes:** Written by the planner by hand. Not merged. Next free ID -1872.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1872
+**Timestamp:** 2026-10-30T22:30:53Z
+**Continues:** 2026-09-28-1871
+**Title:** #449's two test fixes applied, the legend chip rises above the card; four old installer copies cleared from the temp space
+**Decision:** the owner:
+- "Apply both (Recommended)": the Fullscreen samples at 0.2/0.8, and the tablet windows at xhdpi.
+- "Chip rises above the card (Recommended)".
+- "Yes, clear old installers (Recommended)": /tmp/claude-1000/{sw,probe,pb}-apk and s22-raw2 deleted, all re-fetchable CI artifacts. Temp went from 1.2 GB to 1.6 GB free. The other session's folder was left.
+
+Dispatch 2026-10-30-08 Amendment 4.
+**Notes:** Written by the planner by hand. A fresh coder takes it. Next free ID -1873.

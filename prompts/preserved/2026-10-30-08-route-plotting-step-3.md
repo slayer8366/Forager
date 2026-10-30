@@ -120,3 +120,17 @@ PR #449 is at route-plot-ui 044552862, green (run 41128288933). Read the handoff
 - a revert check for "taps while not plotting do nothing".
 
 Each rule gets a test that fails first, then a revert check. Merge pre-main in if it moves. CI green. No merge.
+
+## Amendment 4 (2026-10-30): the two test fixes and the legend chip (RECORD -1872)
+Read the Amendment 3 handoff, docs/audits/2026-10-30-route-plotting-step-3-amendment-3-handoff.md on route-plot-ui (213a38ebf). The owner:
+- **"Apply both (Recommended)":**
+  - the Fullscreen button's touch samples move to 0.2/0.8 of its bounds, as LandscapeLClusterTest's do;
+  - the two tablet window qualifiers gain `-xhdpi`.
+  Say in the PR body that the tablet windows now run at xhdpi, and what was seen at mdpi (centre-only touches).
+- **"Chip rises above the card (Recommended)":** the legend chip's bottom clears the card's top while the card shows, as the cluster and pill do. Fail first, then a revert check.
+- **Then:**
+  - re-run the fullscreen-Back revert, which is now readable;
+  - find why the font-scale revert didn't bite, and make that test bite or say why it can't;
+  - get full CI green on the final head.
+- The calls beyond the dispatch in the Amendment 3 handoff are accepted: the cluster's floor applies in every window, and the dashes are outlined on their sides only.
+- Never force-push.
