@@ -30729,3 +30729,21 @@ Dispatch 2026-10-30-08 Amendment 4.
 **Title:** Sorrel reviews #449; one combined S22 build then carries #447, #440, #449 and #450
 **Decision:** the owner: "Sorrel review, then into the S22 build (Recommended)". Dispatch 2026-10-30-20. The S22 build (never merged, built on CI with the routing key) waits for #450's fixes and Sorrel's #449 review.
 **Notes:** Written by the planner by hand. Next free ID -1877.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1877
+**Timestamp:** 2026-10-30T23:22:37Z
+**Continues:** 2026-09-28-1870
+**Title:** #450's N-1, N-2 and N-4 are done; green on pre-main 1ac67f12b
+**Observed:** Hazel (Opus), compass-screen-off 331c88214.
+- **CI:** run 41142139782, 5,965 tests, 0 failures.
+- **N-1:** a STARTED test. Revert a6 (STARTED → RESUMED, run 41140807137) fails only it.
+- **N-4:** TrueHeading.kt +14 -7. The trust judge and stop time survive producer restarts, and a fix flip restarts the hold.
+  - Fail first on the old code: run 41140804474.
+  - Reverts a7 (41140809626) and a8 (41140813155) bite.
+- **N-2:** docs/audits/2026-10-30-compass-screen-off-completion-report.md, with all revert runs re-read.
+- **The coder's own test errors, corrected and disclosed:** a paused-activity strip read; and a test host building a new provider per recomposition, which hid the N-4 fix until 93e5e1a6c. The superseded r6-r8 runs are marked not evidence.
+- **Not verified:** a phone, a real system dialog or split screen, and a fix flip while the screen is off.
+**Notes:** Written by the planner by hand. Next: the combined S22 build after Sorrel's #449 review. Next free ID -1878.
