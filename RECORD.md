@@ -30567,3 +30567,21 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Title:** The 10-30 altitude replay is rescored on the new 3DEP heights; Juniper finds the NRCan credit wording
 **Decision:** the owner: "Yes, rescore (Recommended)" (dispatch 2026-10-30-16, against Region 2's new W125_N45.rd5, no phone); "Juniper finds the wording, then a coder adds it (Recommended)" (dispatch 2026-10-30-17, research only; the owner approves the wording before any code).
 **Notes:** Written by the planner by hand. Next free ID -1866.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1866
+**Timestamp:** 2026-10-30T22:01:05Z
+**Continues:** 2026-09-28-1865
+**Title:** Rescored on the new bare-earth heights, the 10-30 replay of #440's strip is within 10 m at 75 of 91 points, all misses high
+**Observed:** Hazel (Opus), the "Rescored on 3DEP" section of docs/audits/2026-10-30-s22-walk-altitude.md, s22-walk-altitude 6cff4fceb. Ground: Region 2's W125_N45.rd5 (sha256 fe488da0…). Same 91 matched points.
+- **Replayed strip:** 75/91 within 10 m, mean +6.4, sd 4.7, worst +17.0.
+- **Plain sea-level GPS:** 61/91, mean +8.5.
+- **Raw GPS:** 26/91, mean -13.2.
+- **The 16 misses** are all on the footway trail, mostly on the descent and the lowest ground. The gravel road is 12/12 at +5.0 m.
+- **Inferred:** the strip takes its level from GPS in its first minute (about +5 m here) and carries it.
+- **Near home on 10-29** the replay was +0.2 m (quoted, not recomputed).
+- **Not separated:** GPS under trees versus the ground model.
+- **-1796's mark,** "within 10 m of the known ground height", does not say every point or a share.
+**Notes:** Written by the planner by hand. The map was off all walk, so this is a replay, not a height seen on screen. Next free ID -1867.
