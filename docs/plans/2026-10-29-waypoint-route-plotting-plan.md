@@ -58,3 +58,29 @@ Each step: Hazel (Opus) builds; Sorrel (Fable) reviews; CI only; a PR into pre-m
 - **Wording:** "Plot route from here", the bar's labels, the no-trail-data note, and how an undated route reads in the Trip Planner. New words on screen are the owner's.
 - **A route trip's bubble:** what it shows (name, distance, number of stops), and whether Directions stays on it, and if so to which stop.
 - **Later, not in this plan:** GPX export of a plotted route. The app exports none today; GpxDocument holds one track only (domain/model/GpxDocument.kt:4-5).
+
+## Addendum, 2026-10-29: the route card and elevation (RECORD -1822)
+The owner: "No navigation. Just display the trail, and the route info, including trail data such as elevation climbs, distance, etc. Make that info glanceable In a card that slides up from the bottom".
+
+**The card.** It shows live while plotting, growing as each leg is added, with Undo last, Save and Cancel on it, and it opens for a saved route from the Trip Planner (owner: "Yes, live while plotting").
+```
+Trip Planner > tap a route ─> its line on the map, the card's peek slides up
+┌─────────────────────────────┐  drag up / down
+│ Ridge loop       6.2 mi     │  peek: name, distance
+│ ↑ 1,240 ft   ↓ 980 ft       │        climb, descent
+├─────────────────────────────┤
+│  ▁▂▄▆█▆▄▃▂▃▅▆▄▂             │  expanded: elevation graph
+│ High 4,820 ft · Low 3,580 ft│            high and low point
+│ Leg 1 A→B  2.9 mi ↑640      │            per-leg breakdown
+│ Leg 2 B→C  3.3 mi ↑600      │
+└─────────────────────────────┘
+```
+The owner chose "Elevation graph", "High and low point" and "Per-leg breakdown". There is no estimated time. The card sits over the map, so it uses the 80% chrome rule. Units follow the Units setting.
+
+**Elevation.** The owner: "Wait for trail-data elevation", and "Release waits for elevation (Recommended)". No online lookup is used.
+- The heights come from the downloaded trail data. Today it carries none (domain/wayhome/WayHomeHeights.kt:14-19).
+- Pi side (Aspen): add elevation to the route-file build, per Juniper's sizing (docs/navigation/2026-10-21-elevation-sizing.md, RECORD -1501; 3″ first recommended, with store size and download volume still unmeasured).
+- App side: keep the engine's per-point heights in the routing adapter (routing/BRouterTrailRouter.kt) and add them to `TrailRoute`, as the climbing-allowance doc already notes (docs/navigation/2026-10-26-climbing-allowance.md, "For the elevation work").
+- The climb follows the journal's banking (4 m hysteresis). A straight leg with no trail data has no heights, and the card says so for that leg.
+
+**Order, revised.** Steps 1 to 3 stand. The card is built in step 3, since plotting uses it, and step 4 opens it for saved routes. A new step 4a adds elevation through the adapter, after the Pi's elevation build is live. Step 5's device check needs route data with heights.
