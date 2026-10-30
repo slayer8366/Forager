@@ -386,17 +386,14 @@ class AvailabilityScreenMapBubblesTest {
         composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
     }
 
+    // Dispatch 2026-10-29-09 (RECORD -1819): was `a waypoint's Directions hands the waypoint to a navigation app`; Navigate replaces it.
     @Test
-    fun `a waypoint's Directions hands the waypoint to a navigation app`() {
+    fun `a waypoint's bubble offers no Directions`() {
         setScreen()
-        composeRule.registerGeoHandler()
         tapGlyph("wp-1")
 
-        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
-
-        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
-        assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertDoesNotExist()
     }
 
     @Test
@@ -651,7 +648,10 @@ class CartographyEntryMapBubblesTest {
             useUnmergedTree = true,
         ).assertIsDisplayed()
         composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
-        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
+        // Dispatch 2026-10-29-09: Navigate cannot reach it, so it keeps Directions (the owner, RECORD -1819), which still hands it on.
+        composeRule.registerGeoHandler()
+        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
+        assertEquals("geo:0,0?q=45.4,-122.5(Old%20gate)", Shadows.shadowOf(composeRule.activity).nextStartedActivity?.data.toString())
     }
 
     // F3 (dispatch 2026-09-28-195, item 5): the bubble for a tapped track line, mirroring the waypoint case
