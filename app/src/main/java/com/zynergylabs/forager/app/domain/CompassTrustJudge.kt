@@ -71,7 +71,7 @@ class CompassTrustJudge(
      * state outright, the false all-clear this class exists to prevent.
      */
     fun restartClearHold() {
-        // STUB: tests first.
+        goodSinceMillis = null
     }
 
     companion object {
