@@ -130,12 +130,16 @@ class PlotRouteUseCaseTest {
     private val a = at(0.0, 40.0)
     private val b = at(500.0, -60.0)
 
+    /** Every reason [assertStraight] has asserted on this instance, read by `every reason is asserted by a test above`. */
+    private val asserted = mutableSetOf<StraightReason>()
+
     /** The straight leg between [from] and [to] with [reason], one log line naming it, and its straight-line length. */
     private fun assertStraight(reason: StraightReason, leg: RouteLeg, from: LatLng = a, to: LatLng = b) {
         assertEquals(RouteLeg.Straight(listOf(from, to), GeoDistance.metersBetween(from, to), reason), leg)
         assertEquals("logged once: $logs", 1, logs.size)
         assertTrue("the log names the reason: ${logs.single()}", reason.name in logs.single())
         logs.clear()
+        asserted += reason
     }
 
     @Test
@@ -209,10 +213,21 @@ class PlotRouteUseCaseTest {
         assertStraight(StraightReason.LEAVES_AREA, leg(a, b, CountingRegions(Ground.region(radiusKm = 1))))
     }
 
+    /**
+     * Reads which reasons the class's tests actually assert, rather than counting the enum (Sorrel N2,
+     * docs/reviews/2026-10-30-sorrel-pr445-pr446.md): every other test in this class is run on a fresh instance, the way
+     * JUnit runs it, and the reasons each passed through [assertStraight] are collected. A reason added later without a
+     * case, or a case whose [assertStraight] line is deleted, fails this by name.
+     */
     @Test
-    fun `every reason has a test above`() {
-        // A count read against the enum, so a reason added later without a case here fails this, not silently.
-        assertEquals(11, StraightReason.entries.size)
+    fun `every reason is asserted by a test above`() {
+        val self = "every reason is asserted by a test above"
+        val reasons = PlotRouteUseCaseTest::class.java.declaredMethods
+            .filter { it.isAnnotationPresent(Test::class.java) && it.name != self }
+            .flatMap { method -> PlotRouteUseCaseTest().also { method.invoke(it) }.asserted }
+            .toSet()
+
+        assertEquals("not asserted: ${StraightReason.entries - reasons}", StraightReason.entries.toSet(), reasons)
     }
 
     @Test
