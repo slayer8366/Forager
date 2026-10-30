@@ -4043,11 +4043,20 @@
             "trunk_link"
           ],
           "#f2bf72",
-          "primary",
+          [
+            "primary",
+            "primary_link"
+          ],
           "#f5d28c",
-          "secondary",
+          [
+            "secondary",
+            "secondary_link"
+          ],
           "#f8e3ae",
-          "tertiary",
+          [
+            "tertiary",
+            "tertiary_link"
+          ],
           "#ffffff",
           "#f6d68f"
         ],
@@ -4651,11 +4660,20 @@
             "trunk_link"
           ],
           "#f2bf72",
-          "primary",
+          [
+            "primary",
+            "primary_link"
+          ],
           "#f5d28c",
-          "secondary",
+          [
+            "secondary",
+            "secondary_link"
+          ],
           "#f8e3ae",
-          "tertiary",
+          [
+            "tertiary",
+            "tertiary_link"
+          ],
           "#ffffff",
           "#f6d68f"
         ],

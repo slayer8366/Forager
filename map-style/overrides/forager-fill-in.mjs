@@ -102,7 +102,9 @@ export function applyFillIn(layers) {
   });
 
   // --- Major roads by class, wider from z8 ---------------------------------------------------------
-  const byClass = ["match", ["get", "kind_detail"], ["trunk", "trunk_link"], C.trunk, "primary", C.primary, "secondary", C.secondary, "tertiary", C.tertiary, C.majorOther];
+  // Each ramp takes its road's colour (the rulings' "Ramps": the owner, "Approve the fix (Recommended)"), so at night it
+  // takes the same inversion. The draft matched trunk_link only; the other ramps fell to v3's amber.
+  const byClass = ["match", ["get", "kind_detail"], ["trunk", "trunk_link"], C.trunk, ["primary", "primary_link"], C.primary, ["secondary", "secondary_link"], C.secondary, ["tertiary", "tertiary_link"], C.tertiary, C.majorOther];
   for (const id of ["roads_major", "roads_bridges_major"]) {
     const layer = byId(layers, id);
     layer.paint["line-width"] = MAJOR_WIDTH;
