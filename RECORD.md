@@ -30687,3 +30687,13 @@ Dispatch 2026-10-30-08 Amendment 4.
 - **Only the dash** was reverted; the section's position and the link URL are asserted but not shown to bite.
 - **Not verified:** on a phone; the word "averaged" (Aspen's account).
 **Notes:** Written by the planner by hand. Not merged. Next free ID -1874.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1874
+**Timestamp:** 2026-10-30T22:51:50Z
+**Continues:** 2026-09-28-1873
+**Title:** #451, the Heights credits, merged into pre-main
+**Decision:** the owner: "Merge it (Recommended)", with the phone glance to come with the next S22 build. Merged by the planner at head 4e797d04f: pre-main 1ac67f12b.
+**Notes:** Written by the planner by hand. Pre-main moved from b493cffeb. #447, #449 and #450 merge it in before their next CI. Next free ID -1875.
