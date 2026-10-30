@@ -570,7 +570,7 @@ class JournalPendingDeleteTest {
     }
 
     @Test
-    fun `the region row has no Delete button any more`() {
+    fun `the region row has no text Delete control at rest`() {
         setScreen(chip = RecordsSubTab.OFFLINE_MAPS)
         composeRule.onNodeWithText("Ridge").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).assertExists()
