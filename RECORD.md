@@ -30606,3 +30606,20 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Observed:** Juniper (Opus), docs/research/2026-10-30-nrcan-attribution.md on juniper-nrcan-credit 355933b4d. The OGL-Canada 2.0 sentence is required verbatim, with a link. MRDEM-30 outside lidar is built from Copernicus WorldDEM-30, whose licence (Art. 6(b), (c)) requires its notice and liability sentence for adapted data. That this binds Forager through NRCan is inferred. USGS is courtesy only.
 **Decision:** the owner: "Approve as written (Recommended)"; "New \"Heights\" section (Recommended)", between Maps and Weather; "Yes to both (Recommended)". Dispatch 2026-10-30-19, and prompts/aspen/2026-10-30-08.
 **Notes:** Written by the planner by hand. Next free ID -1869.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1869
+**Timestamp:** 2026-10-30T22:03:53Z
+**Continues:** 2026-09-28-1863
+**Title:** Sorrel finds no S on #450; STARTED is unpinned by a test; a pre-existing second path around the trust re-check
+**Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr450.md at sorrel-pr450 745a5797a. No background reader of the heading (Sorrel's own greps). r3 and r5b spot-checked against their logs.
+- **N-1:** no test pins STARTED over RESUMED.
+- **N-2:** the PR body points to a completion report that was never pushed.
+- **N-3:** the HUD, facing judge and puck are untested across a stop, though correct by reading.
+- **N-4, pre-existing:** the trust judge is rebuilt on every hasFix flip (TrueHeading.kt:119-120), so a calibrating compass is trusted at once after a fix is lost and regained.
+- **N-5:** the default-clock note.
+- **N-6:** the 10 s figure is not found by name in -761 to -769.
+- Nine phone-only checks are listed for the S22 step.
+**Notes:** Written by the planner by hand. Next free ID -1870.
