@@ -114,11 +114,13 @@ class FindWayHomeUseCase(
         }
 
         val toStart = trackPart(stored, from = entry.index, to = 0, kind = WayHomePartKind.TRACK_TO_START, heights = heights)
+        // The stored points from the leave point to the entry point as walked, not joined: the joints' heights (-1842).
+        val walked = trackPartHeights(stored, (leave.index downTo entry.index).toList(), heights)
         val originLeg = origin?.let { LatLng(it.lat, it.lng) }
         return WayHomeResult.AlongTrails(
             WayHome(
                 trackBack = trackPart(stored, from = points.lastIndex, to = leave.index, kind = WayHomePartKind.TRACK_BACK, heights = heights),
-                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters, trailHeights(route, trailPoints, trailMeters, standIn)),
+                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters, trailHeights(route, trailPoints, trailMeters, standIn, walked)),
                 trackToStart = if (originLeg == null) {
                     toStart
                 } else {
@@ -193,16 +195,16 @@ class FindWayHomeUseCase(
     /**
      * The trail part's heights (`WayHomeHeights.kt`): none to choose without a barometer, since there is no allowance
      * (RECORD -1838, "Keep it off"); the trail data's when every route point has a height; otherwise the stand-in from
-     * [standIn], the walker's track between the two trail points, logged once per call with the counts (P1).
+     * [standIn], the walker's track between the two trail points, logged once per call with the counts (P1). [walked] is
+     * the stored points from the leave point to the entry point, one after another, for the joints' heights.
      */
-    private fun trailHeights(route: TrailRoute, trailPoints: List<LatLng>, trailMeters: Double, standIn: WayHomePart): PartHeights? {
+    private fun trailHeights(route: TrailRoute, trailPoints: List<LatLng>, trailMeters: Double, standIn: WayHomePart, walked: PartHeights): PartHeights? {
         if (standIn.heights == PartHeights.NoBarometer) return PartHeights.NoBarometer
-        val laidOut = standInHeights(standIn.heights, standIn.meters, trailMeters)
-        // The joints carry the walker's track's heights either way (Amendment 2, RECORD -1842).
-        if (laidOut is PartHeights.Barometric) trailDataHeights(trailPoints, route, trailMeters, laidOut)?.let { return it }
+        // The joints carry the walker's stored points' heights, as walked (Amendment 2, RECORD -1842).
+        if (walked is PartHeights.Barometric) trailDataHeights(trailPoints, route, trailMeters, walked)?.let { return it }
         val reason = "${route.heightsMetres.count { it != null }} of ${route.heightsMetres.size} trail route points have heights"
         errorLog.w(TAG, "The trail part's climb is the walker's track between the trail points: $reason.", TrailHeightsFallback(reason))
-        return laidOut
+        return standInHeights(standIn.heights, standIn.meters, trailMeters)
     }
 
     /** What [errorLog] is handed when the trail part's heights are the stand-in. */
