@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointResult
 import androidx.compose.foundation.clickable
@@ -325,6 +326,8 @@ internal fun MapLayersTestScreen(
     // Applied to the ViewModel's state before the screen reads it, for a state the ViewModel cannot reach (sightings
     // held with no region); identity by default.
     uiStateTransform: (AvailabilityUiState) -> AvailabilityUiState = { it },
+    // Dispatch 2026-10-30-08: route plotting's state and actions; none by default, as before.
+    routePlotting: RoutePlottingControls? = null,
 ) {
     val viewModelState by viewModel.uiState.collectAsState()
     val uiState = uiStateTransform(viewModelState)
@@ -371,6 +374,7 @@ internal fun MapLayersTestScreen(
             onMapModeSelected = viewModel::onMapModeSelected,
             onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
             forecastCellStore = store,
+            routePlotting = routePlotting,
         ),
         records = AvailabilityScreenRecords(
             waypoints = waypoints,

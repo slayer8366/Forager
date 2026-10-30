@@ -21,7 +21,7 @@ import com.zynergylabs.forager.app.domain.route.routeFrame
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MapCameraRequest
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
-import com.zynergylabs.forager.app.ui.map.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.PlottedRouteOnMap
 import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog

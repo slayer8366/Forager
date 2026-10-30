@@ -296,6 +296,19 @@ class RoutePlottingViewModelTest {
         assertTrue(vm.uiState.value.expanded)
     }
 
+    @Test
+    fun `each open of a saved route is counted, and a route opened from the Trip Planner says so`() = runTest(dispatcher) {
+        val vm = viewModel()
+        val trip = savedTrip()
+
+        vm.onOpenSavedRoute(trip, fromTripPlanner = true)
+        assertEquals(RoutePlotMode.Showing(trip, serial = 1, fromTripPlanner = true), vm.uiState.value.mode)
+
+        vm.onCloseSavedRoute()
+        vm.onOpenSavedRoute(trip, fromTripPlanner = false)
+        assertEquals(RoutePlotMode.Showing(trip, serial = 2, fromTripPlanner = false), vm.uiState.value.mode)
+    }
+
     private fun savedTrip(): PlannedTrip {
         val route = PlottedRoute(listOf(ridge, falls), listOf(straight(ridge.position, falls.position)))
         return PlannedTrip("saved", "Ridge to Falls", ridge.position, null, route)
