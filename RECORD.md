@@ -30595,3 +30595,14 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Title:** #440's altitude verdict waits for a walk with the screen on
 **Decision:** the owner: "Not yet: walk again, screen on (Recommended)". The steps are in prompts/preserved/2026-10-30-18-owner-altitude-walk.md: 2 minutes on screen at the start on open ground, then 5-6 stops of 90 s with screenshots (open, under trees, lowest, highest), inside Region 1 or 2. Each stop is scored against the trail data's heights, within 10 m.
 **Notes:** Written by the planner by hand. Next free ID -1868.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1868
+**Timestamp:** 2026-10-30T22:03:32Z
+**Continues:** 2026-09-28-1865
+**Title:** A "Heights" credits section: the OGL-Canada sentence, the Copernicus notice and a USGS courtesy row; Aspen told of the Copernicus notice
+**Observed:** Juniper (Opus), docs/research/2026-10-30-nrcan-attribution.md on juniper-nrcan-credit 355933b4d. The OGL-Canada 2.0 sentence is required verbatim, with a link. MRDEM-30 outside lidar is built from Copernicus WorldDEM-30, whose licence (Art. 6(b), (c)) requires its notice and liability sentence for adapted data. That this binds Forager through NRCan is inferred. USGS is courtesy only.
+**Decision:** the owner: "Approve as written (Recommended)"; "New \"Heights\" section (Recommended)", between Maps and Weather; "Yes to both (Recommended)". Dispatch 2026-10-30-19, and prompts/aspen/2026-10-30-08.
+**Notes:** Written by the planner by hand. Next free ID -1869.
