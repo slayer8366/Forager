@@ -51,7 +51,6 @@ class RoomPlannedTripRepository(
     /** The route these rows hold, or null: none stored, or refused (logged). */
     private fun routeOf(trip: PlannedTripEntity, stops: List<PlannedTripRouteStopEntity>, legs: List<PlannedTripRouteLegEntity>): PlottedRoute? {
         if (stops.isEmpty() && legs.isEmpty()) return null
-        if (STUB) return null // STUB (tests first): routes are not read yet.
         return try {
             require(stops.map { it.stopIndex } == stops.indices.toList()) { "stop indexes are ${stops.map { it.stopIndex }}" }
             require(legs.map { it.legIndex } == legs.indices.toList()) { "leg indexes are ${legs.map { it.legIndex }}" }
@@ -70,7 +69,6 @@ class RoomPlannedTripRepository(
     class StoredRouteRefused(reason: String, cause: Throwable) : Exception(reason, cause)
 
     private companion object {
-        const val STUB = true
         const val TAG = "RoomPlannedTripRepository"
     }
 }

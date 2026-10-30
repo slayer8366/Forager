@@ -317,4 +317,4 @@ internal fun decimalDegreesLabel(lat: Double, lng: Double): String = "${"%.4f".f
  * (dispatch 2026-10-30-02 Amendment 1: "\"Delete trip <name>\" (Recommended)").
  */
 internal fun plannedTripDeleteLabel(trip: PlannedTrip): String =
-    "Remove planned trip for ${trip.date?.let(::displayDate)}" // STUB (tests first)
+    trip.date?.let { "Remove planned trip for ${displayDate(it)}" } ?: "Delete trip ${trip.name}"

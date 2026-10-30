@@ -31,7 +31,6 @@ data class PlannedTrip(
     val route: PlottedRoute? = null,
 ) {
     init {
-        if (false) require(route == null || // STUB (tests first)
-             location == route.stops.first().position) { "a route trip's location is its first stop" }
+        require(route == null || location == route.stops.first().position) { "a route trip's location is its first stop" }
     }
 }

@@ -24,7 +24,9 @@ class GetPlannedTripsUseCase(
         // every dated one, by name and then id (Amendment 1, Q7): the store returns them in no particular order, so
         // without a key of their own they would move about between loads.
         trips.sortedWith(
-            compareBy<PlannedTrip>({ it.date != referenceDay }, { it.date }), // STUB (tests first)
+            compareBy<PlannedTrip>({ it.date != referenceDay }, { it.date == null }, { it.date })
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { if (it.date == null) it.name else "" }
+                .thenBy { if (it.date == null) it.id else "" },
         )
     }
 }

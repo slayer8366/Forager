@@ -53,7 +53,7 @@ internal fun crowdedListRows(
                 CrowdedListRow(key, MarkerIcon.WAYPOINT, waypoint.name.ifBlank { CROWDED_ROW_WAYPOINT_FALLBACK }, day?.let(::displayDate), day)
             }
             MapLayerIds.PLANNED_TRIPS -> sources.plannedTrips.firstOrNull { it.id == id }?.let { trip ->
-                CrowdedListRow(key, MarkerIcon.PLANNED_TRIP, trip.name, trip.date?.let(::displayDate) ?: "", trip.date) // STUB (tests first)
+                CrowdedListRow(key, MarkerIcon.PLANNED_TRIP, trip.name, trip.date?.let(::displayDate), trip.date)
             }
             else -> null
         }

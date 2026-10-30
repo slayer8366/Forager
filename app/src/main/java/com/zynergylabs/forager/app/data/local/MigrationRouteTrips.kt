@@ -20,7 +20,25 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 val MIGRATION_22_23: Migration = object : Migration(22, 23) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // STUB (tests first): no planned_trips rebuild yet.
+        db.execSQL(
+            """
+            CREATE TABLE `planned_trips_new` (
+            `id` TEXT NOT NULL,
+            `name` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `date` TEXT,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `planned_trips_new` (`id`, `name`, `lat`, `lng`, `date`)
+            SELECT `id`, `name`, `lat`, `lng`, `date` FROM `planned_trips`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `planned_trips`")
+        db.execSQL("ALTER TABLE `planned_trips_new` RENAME TO `planned_trips`")
         db.execSQL(
             """
             CREATE TABLE `planned_trip_route_stops` (

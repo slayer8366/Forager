@@ -159,7 +159,7 @@ internal fun plannedTripsFeatureCollection(plannedTrips: List<PlannedTrip>): Fea
             addStringProperty(FEATURE_ID_PROPERTY, trip.id)
             addStringProperty("title", "Planned trip")
             // An undated trip (schema 23) has no snippet.
-            addStringProperty("snippet", trip.date.toString()) // STUB (tests first)
+            trip.date?.let { addStringProperty("snippet", it.toString()) }
         }
     }
     return FeatureCollection.fromFeatures(features)

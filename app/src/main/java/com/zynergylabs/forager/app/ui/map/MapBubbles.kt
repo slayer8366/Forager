@@ -318,7 +318,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             // date, MGRS when there is one, decimal degrees.
             MapBubbleContent.Trip(
                 trip = trip,
-                date = trip.date?.let(::displayDate) ?: "", // STUB (tests first)
+                date = trip.date?.let(::displayDate),
                 mgrs = mgrsOf(trip.location),
                 coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )

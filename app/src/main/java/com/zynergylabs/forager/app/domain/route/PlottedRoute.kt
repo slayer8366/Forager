@@ -17,13 +17,13 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  */
 data class PlottedRoute(val stops: List<RouteStop>, val legs: List<RouteLeg>) {
     init {
-        stubRequire(stops.size >= 2) { "a route has at least two stops; got ${stops.size}" }
-        stubRequire(legs.size == stops.size - 1) { "a route of ${stops.size} stops has ${stops.size - 1} legs; got ${legs.size}" }
+        require(stops.size >= 2) { "a route has at least two stops; got ${stops.size}" }
+        require(legs.size == stops.size - 1) { "a route of ${stops.size} stops has ${stops.size - 1} legs; got ${legs.size}" }
         stops.zipWithNext().forEachIndexed { i, (a, b) ->
-            stubRequire(a.position != b.position) { "stops $i and ${i + 1} are at the same position" }
+            require(a.position != b.position) { "stops $i and ${i + 1} are at the same position" }
         }
         legs.forEachIndexed { i, leg ->
-            stubRequire(leg.line.first() == stops[i].position && leg.line.last() == stops[i + 1].position) {
+            require(leg.line.first() == stops[i].position && leg.line.last() == stops[i + 1].position) {
                 "leg $i does not run from stop $i to stop ${i + 1}"
             }
         }
@@ -52,8 +52,8 @@ sealed interface RouteLeg {
      */
     data class Trail(override val line: List<LatLng>, override val meters: Double, val trailFrom: Int, val trailTo: Int) : RouteLeg {
         init {
-            stubRequire(line.size >= 2) { "a leg has at least two points; got ${line.size}" }
-            stubRequire(trailFrom in 0 until trailTo && trailTo <= line.lastIndex) {
+            require(line.size >= 2) { "a leg has at least two points; got ${line.size}" }
+            require(trailFrom in 0 until trailTo && trailTo <= line.lastIndex) {
                 "the trail part $trailFrom..$trailTo is not inside a line of ${line.size} points"
             }
         }
@@ -62,7 +62,7 @@ sealed interface RouteLeg {
     /** The straight line between the two stops, and [reason], why there is no trail route for it. */
     data class Straight(override val line: List<LatLng>, override val meters: Double, val reason: StraightReason) : RouteLeg {
         init {
-            stubRequire(line.size >= 2) { "a leg has at least two points; got ${line.size}" }
+            require(line.size >= 2) { "a leg has at least two points; got ${line.size}" }
         }
     }
 }
@@ -107,8 +107,3 @@ enum class StraightReason {
     /** The trail route runs outside the downloaded area. */
     LEAVES_AREA,
 }
-
-
-/** STUB (tests first): refuses nothing yet. */
-@Suppress("UNUSED_PARAMETER")
-internal inline fun stubRequire(value: Boolean, lazyMessage: () -> Any) = Unit
