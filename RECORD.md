@@ -30671,3 +30671,19 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 
 Dispatch 2026-10-30-08 Amendment 4.
 **Notes:** Written by the planner by hand. A fresh coder takes it. Next free ID -1873.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1873
+**Timestamp:** 2026-10-30T22:49:38Z
+**Continues:** 2026-09-28-1868
+**Title:** The Heights credits are PR #451, green
+**Observed:** Hazel (Opus), height-credits 4e797d04f.
+- **CI:** run 41139144232, 5954 tests, 0 failures.
+- **Fail first:** run 41135678080, 3 of 7 failed for the missing section.
+- **The coder's own order test** sorted by clipped bounds and failed forward (41136931263). It was fixed in 4e797d04f; the revert run on the broken test (41136982903) is not counted.
+- **Revert check:** en dash to hyphen (41138090481), 2 of 7 failed on the dash, 0 compile errors.
+- **Only the dash** was reverted; the section's position and the link URL are asserted but not shown to bite.
+- **Not verified:** on a phone; the word "averaged" (Aspen's account).
+**Notes:** Written by the planner by hand. Not merged. Next free ID -1874.
