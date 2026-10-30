@@ -30024,3 +30024,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** #443 (Hazel, Opus): code 14ce937fb, run 41040930086 green, 5910 tests, 0 failures. The new guard bites: run 41040950352, 0 compile errors, "Expected exactly '1' node but found '2'". #444 green at 6f0406ccd (-1823). The two old commits removed from the record are pruned on the laptop, and git fsck --connectivity-only is clean.
 **Decision:** the owner: "Wait for #443, do both together". Dispatch 2026-10-30-01: Sorrel (Fable) reviews both, then the S22 check covers both. The owner decides the merge.
 **Notes:** Written by the planner by hand. Next free ID -1826.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1826
+**Timestamp:** 2026-10-30T10:54:14Z
+**Continues:** 2026-09-28-1824
+**Title:** Route plotting steps 1 and 2 go to a coder, opening with a look-only first stop on the model and schema
+**Decision:** the owner: "Go", to the planner's "a go for route steps 1–2, the stored route and the plotting logic". Dispatch 2026-10-30-02: one coder, a first stop (model, schema 22→23, heights, undated trips), then two PRs into pre-main. Schema version 23 was unclaimed on every remote branch at dispatch.
+**Notes:** Written by the planner by hand. Next free ID -1827.
