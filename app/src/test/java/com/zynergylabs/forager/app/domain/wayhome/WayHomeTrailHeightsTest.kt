@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.ClimbWalks
 import com.zynergylabs.forager.app.domain.ClimbWalks.Heights
 import com.zynergylabs.forager.app.domain.ClimbWalks.Stop
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.WayBackClimb
 import com.zynergylabs.forager.app.domain.wayhome.Ground.at
 import kotlinx.coroutines.runBlocking
@@ -68,7 +69,9 @@ class WayHomeTrailHeightsTest {
         assertNull("the leave joint has no height", trail.samples.first().height)
         assertNull("nor the entry joint", trail.samples.last().height)
         assertEquals("the entry point at the trail part's own metres", wayHome.trail.meters, trail.samples.last().alongMeters, 0.01)
-        assertEquals("the route's middle point halfway along it", 250.0, trail.samples[3].alongMeters, 0.5)
+        val leaveJoint = GeoDistance.metersBetween(wayHome.trail.points[0], wayHome.trail.points[1])
+        assertEquals("the route's first point at the end of the leave joint", leaveJoint, trail.samples[1].alongMeters, 0.01)
+        assertEquals("the route's middle point halfway along the engine's 500 m", leaveJoint + 250.0, trail.samples[3].alongMeters, 0.01)
         assertEquals("nothing fell back, nothing logged", emptyList<String>(), logs)
     }
 
