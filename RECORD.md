@@ -29921,3 +29921,17 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - **Test:** a 77 s indoor recording wrote walklog-20261030T025128Z.txt (1.2 MB): 159 fixes, 383 barometer readings, and about 2,700 satellite records. The phone lay still, so there were no step records.
 - **Noticed:** the log's header reads "sim=UNKNOWN dataNetworkType=LTE" on a phone with no SIM (not checked). Deleting the test track left its Start and End waypoints unlinked; the helper deleted them too (beyond dispatch -08's words, disclosed).
 **Notes:** Written by the planner by hand. Whether a track's delete should take its auto Start and End waypoints with it is a question for later, not a ruling. Next free ID -1817.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1817
+**Timestamp:** 2026-10-30T04:29:43Z
+**Title:** Three map asks scoped: Directions gives way to Navigate, a visible Delete for offline maps, and waypoint routes saved to the Trip Planner
+**Observed:** read at pre-main 21d846b9e. Directions (the phone's maps app) is on the waypoint and trip bubbles (MapBubbleLayer.kt:144), the waypoint and trip rows (AvailabilityTripsWaypointsUi.kt:160, :300) and the details sheet (RecordDetailsContent.kt:89). Navigate exists for waypoints on the Maps tab only (MapBubbles.kt:198-202). Offline maps already delete by swiping a row, with Undo, and nothing shows it (OfflineRegionsList.kt:67). TrailRouter.route takes any start and end (TrailRouter.kt:27). A planned trip is one point and one date (PlannedTrip.kt:19).
+**Decision:** the owner asked: "Waypoint to waypoint path plotting should be a thing also. In case people want to plot paths for possible trail runs." "Now that we have in-app navigation, we should remove the Google directions option from the waypoints bubble in the maps." "Also have a way to delete downloaded offline maps." Their answers:
+- Directions: "Everywhere Navigate exists". Remove it wherever in-app Navigate is offered, and put Navigate where Directions is today (the lists and the details sheet). Points with no Navigate keep Directions.
+- Offline maps: "Visible Delete button (Recommended)". Each row gets a trash button. The swipe and Undo stay.
+- Route plotting: "Chain of waypoints (Recommended)", confirmed as a step path with "Yes, but Back cancels". Tap waypoint > Plan route from here > tap the next waypoints in turn, each leg along trails with a running total > Undo last, Save to Trip Planner or Cancel. Back leaves planning in one tap.
+- Saved routes: "It goes in the Trip Planner"; "Show and navigate (Recommended)", meaning the route is drawn and Start follows it leg by leg; "Date optional (Recommended)".
+**Notes:** Written by the planner by hand. No build go yet. A trip carrying a route needs a schema change. Next free ID -1818.
