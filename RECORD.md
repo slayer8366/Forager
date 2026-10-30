@@ -30429,3 +30429,20 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 - "Yes, then re-fetch Region 2 trails (Recommended)", and "Look-only investigation (Recommended)". Dispatch 2026-10-30-12.
 - "List what's big, ask first (Recommended)", then "Yes, remove the 72 (Recommended)". 71 worktrees under ~/.cache/forager-wt were removed with git worktree remove, each clean, fully pushed and untouched for 2 h. topo-plan-report was refused by git and kept. The root disk went from 313 MB to 8.1 GB free. ~/from-flash, the phone-data folders and 28 unpushed, dirty or non-git folders were kept.
 **Notes:** Written by the planner by hand. Next free ID -1856.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1856
+**Timestamp:** 2026-10-30T20:49:14Z
+**Continues:** 2026-09-28-1855
+**Title:** The S22 is on the CI build with the routing key; Region 2 stays stuck as no_app_key; the screen-off redraws are the compass, old code
+**Observed:** Hazel (Opus), docs/audits/2026-10-30-s22-ci-build-and-redraws.md on s22-ci-build-redraws 8527a76fd. Evidence is in /home/zynergy-labs/s22-2026-10-30/ci-build/.
+- **Part 1:** CI run 41107156444's APK went on with  (same versionCode 4224, same certificate, 40-character key present; the laptop APK's was empty). Schema 23 and every table hash are unchanged.
+- **Region 2 cannot fetch trails:** no_app_key is marked non-retryable (RegionRouteData.kt:155-161) and is skipped by the auto-fetch (OfflineRegionRouteLine.kt:30-38, AvailabilityOfflineRoutes.kt:29-30). It stays stuck after a keyed build; the only path is to delete and re-download.
+- **New data from Part 2's trials:** one 2-point track with its Start and End waypoints, 13:40-13:46 PDT.
+- **Part 2, the redraws:** the compass is collected at SENSOR_DELAY_UI (15 Hz, AndroidCompassProvider.kt:151) through produceState in rememberTrueHeading (TrueHeading.kt:97-100, AvailabilityCompactMapUi.kt:417), with nothing stopping it when the screen is off. Each heading asks for a frame on a surface that isn't there.
+  - **Cost with the screen off:** while recording with the app in front, about 11% of a core for the whole recording. Not recording, about 21% for the first minute, until Android cuts sensor access.
+  - **Age:** present since the first commit (7957025fa); not caused by #440, #447 or the tools.
+  - Battery itself was not measured.
+**Notes:** Written by the planner by hand. Next free ID -1857.
