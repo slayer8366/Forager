@@ -66,3 +66,10 @@ The first stop is docs/audits/2026-10-30-route-plotting-first-stop.md (route-plo
 - Re-check schema version 23 against every remote ref before opening the step 1 PR.
 
 **The go: build step 1, then step 2.** These are separate PRs into pre-main, with no merge. CI only. No phone.
+
+## Amendment 2 (2026-10-30): Sorrel's review of #445 and #446 (RECORD -1837)
+Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr445-pr446.md (sorrel-pr445-pr446, 9eb44c501). It has no S findings. The owner: "Tighten 2 tests, then merge (Recommended)".
+- **N1, on #445:** the older-backup tests at JournalBackupTest.kt:732 and :780 also assert that the route tables are empty after restoring a pre-23 backup, following the path-table precedent beside them. Do a revert check that seeds a route row on restore.
+- **N2, on #446:** PlotRouteUseCaseTest.kt:212-216 collects the reasons actually asserted above it into a set and compares that with StraightReason.entries. Do a revert check that deletes one assertStraight line.
+- Merge pre-main into each branch if it has moved, then get both green on CI. The planner merges #445, then #446.
+- **N8**, a test pinning the stored reason names, goes with step 3, as do N9 and N10. N3 to N7 are record only.

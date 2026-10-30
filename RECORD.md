@@ -30168,3 +30168,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The router keeps trail heights now, and the way home's trail part uses them in place of the stand-in
 **Decision:** the owner: "Yes, start (Recommended)" for step 4a; "Yes, real trail heights (Recommended)" for the way home, with the stand-in kept where heights are missing. Dispatch 2026-10-30-06 opens with a look-only first stop. consider_elevation stays off. Saved-route heights wait for #445.
 **Notes:** Written by the planner by hand. This supersedes RECORD -1689 C1's stand-in where the trail has heights. Next free ID -1837.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1837
+**Timestamp:** 2026-10-30T14:35:42Z
+**Continues:** 2026-09-28-1831
+**Title:** Sorrel finds no S on #445 or #446; two tests tightened, then both merge
+**Observed:** Sorrel (Fable), docs/reviews/2026-10-30-sorrel-pr445-pr446.md at 9eb44c501: no S, N1 to N10. The migration copies with explicit column lists, and its DDL matches 23.json. Backup covers the two new tables. Schema 23 is unclaimed on 1140 refs. Five revert runs spot-checked, each with 0 compile errors.
+**Decision:** the owner: "Tighten 2 tests, then merge (Recommended)". Dispatch 2026-10-30-02 Amendment 2: N1 and N2 now; N8 to N10 with step 3; then the planner merges #445, then #446.
+**Notes:** Written by the planner by hand. A fresh coder takes it, since the step 1-2 coder was past 350k tokens. Next free ID -1838.
