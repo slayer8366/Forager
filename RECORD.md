@@ -30513,3 +30513,19 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Title:** Finishing #449: the cluster stays above the card, the dashes get a casing, the Return to Route pill sits above the card
 **Decision:** the owner: "Cluster stays above card (Recommended)"; "Add a thin outline (Recommended)"; "Pill sits above the card (Recommended)". Dispatch 2026-10-30-08 Amendment 3: these plus the handoff's open tests. The first coder's calls beyond the dispatch are accepted by the planner.
 **Notes:** Written by the planner by hand. A fresh coder takes it. Next free ID -1862.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1862
+**Timestamp:** 2026-10-30T21:49:57Z
+**Continues:** 2026-09-28-1858
+**Title:** The compass screen-off fix is PR #450, green
+**Observed:** Hazel (Opus), compass-screen-off 37ea85576.
+- **CI:** run 41132051834, 5,962 tests, 0 failures; 9 new tests.
+- **Fail first:** run 41130603801, 7 of 9 failed, each for its own reason. The other two bite only through r5b and r3.
+- **Revert checks r1 to r5b** (runs 41132190530 to 41132206429): each bites, with 0 compile errors and each tree one edit from 37ea855.
+- **The change:** TrueHeading.kt collects only while STARTED. On return there is a fresh smoother, the -761 10 s rule, and the trust hold restarts through CompassTrustJudge.restartClearHold().
+- **Call beyond the dispatch,** accepted by the planner: rememberTrueHeading's default clock is now the monotonic clock instead of a constant 0, so SightingsMap's own heading sees the gap.
+- **Not verified:** on a phone, that the screen-off redraws and CPU stop while recording; what MapLibre draws for an unreliable heading; the facing judge's 250 ms tick with the screen off.
+**Notes:** Written by the planner by hand. Next free ID -1863.
