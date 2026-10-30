@@ -30083,3 +30083,17 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** pre-main push run 41059608216 on 3c5e63468 is green in all six jobs (APK artifact 12979272649).
 **Decision:** the owner: "S22 plugged in"; "Install, check, put tools back (Recommended)". Dispatch 2026-10-30-03: install with data kept, run both PRs' S22 steps, touch Region 1 only through Undo, then reinstall 1.0.4180+gb18bd56d with the logger on.
 **Notes:** Written by the planner by hand. The owner says Aspen runs on a separate account for the map work. Next free ID -1831.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1831
+**Timestamp:** 2026-10-30T14:15:31Z
+**Continues:** 2026-09-28-1827
+**Title:** Route plotting steps 1 and 2 are green as #445 and #446; Sorrel reviews them before merge; scratch branches go; an elevation handoff note filed for Aspen
+**Observed:** Hazel (Opus).
+- **#445** (route-plot-data e581d35ae; schema 23): run 41061917686, 5937 tests, 0 failures. 16 revert checks bite with 0 compile errors. r4 did not bite at first (the test's ids sorted like its names); the test was fixed in e98c819c0 and r4v2 bites. 23.json is Room's own export. Version 23 re-checked unclaimed on 1138 refs.
+- **#446** (route-plot-logic 0e03238f2, stacked on #445): run 41066897795, 5953 tests, 0 failures. 12 revert checks bite. Tested on a fake router only.
+- **Disclosed:** merge commit 6be6e9936 has no Co-Authored-By line (pushed, not amended). JournalBackupTest needed five in-place edits. A separate PlannedTripRouteDao was added.
+**Decision:** the owner: "Sorrel review, then merge (Recommended)" (no phone until step 3); "Yes, once recorded (Recommended)" for the 29 route-plot scratch branches; "File in the repo (Recommended)" for the Aspen note, prompts/preserved/2026-10-30-04-aspen-elevation-handoff.md, with no go to download or build.
+**Notes:** Written by the planner by hand. Next free ID -1832.
