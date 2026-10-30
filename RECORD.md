@@ -30719,3 +30719,13 @@ Dispatch 2026-10-30-08 Amendment 4.
 - **Calls accepted by the planner:** the chip rises in every window; the pill and chip share one lift.
 - **Not verified:** real map drawing, real insets, and a phone.
 **Notes:** Written by the planner by hand. Not merged. Next free ID -1876.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1876
+**Timestamp:** 2026-10-30T23:17:19Z
+**Continues:** 2026-09-28-1875
+**Title:** Sorrel reviews #449; one combined S22 build then carries #447, #440, #449 and #450
+**Decision:** the owner: "Sorrel review, then into the S22 build (Recommended)". Dispatch 2026-10-30-20. The S22 build (never merged, built on CI with the routing key) waits for #450's fixes and Sorrel's #449 review.
+**Notes:** Written by the planner by hand. Next free ID -1877.
