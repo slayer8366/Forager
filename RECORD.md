@@ -30697,3 +30697,25 @@ Dispatch 2026-10-30-08 Amendment 4.
 **Title:** #451, the Heights credits, merged into pre-main
 **Decision:** the owner: "Merge it (Recommended)", with the phone glance to come with the next S22 build. Merged by the planner at head 4e797d04f: pre-main 1ac67f12b.
 **Notes:** Written by the planner by hand. Pre-main moved from b493cffeb. #447, #449 and #450 merge it in before their next CI. Next free ID -1875.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1875
+**Timestamp:** 2026-10-30T23:13:39Z
+**Continues:** 2026-09-28-1872
+**Title:** #449, route plotting step 3, is complete and green
+**Observed:** Hazel (Opus), route-plot-ui c175c1e32, with pre-main 1ac67f12b merged in.
+- **CI:** run 41140965777, 6035 tests, 0 failures.
+- **Fail first:** run 41139089870, only the chip test failed (711 > 607 dp).
+- **Revert checks,** each biting with 0 compile errors:
+  - chip lift (41139993579);
+  - pill lift, now the shared routeCardLift (41139996823);
+  - card Back in fullscreen (41139999548), now readable;
+  - FlowRow maxLines=1 (41140002707).
+- **The font-scale test** had not bitten because legacy Robolectric graphics measure text too narrow. It now runs on native graphics.
+- **Tablet windows** run at xhdpi; at mdpi only centre touches took (cause not explained).
+- **The coder hardened the result reader:** the a3 reader had counted 0 compile errors on two logs that failed to download (flowrow, card-alpha). Both verdicts still hold, on other evidence.
+- **Calls accepted by the planner:** the chip rises in every window; the pill and chip share one lift.
+- **Not verified:** real map drawing, real insets, and a phone.
+**Notes:** Written by the planner by hand. Not merged. Next free ID -1876.
