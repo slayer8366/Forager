@@ -290,6 +290,15 @@ class MapBubblesTest {
         )
     }
 
+    // Schema 23 (dispatch 2026-10-30-02): an undated trip's bubble has no date line.
+    @Test
+    fun `an undated planned trip's bubble has no date`() {
+        val undated = trip.copy(id = "trip-2", date = null)
+        val content = mapBubbleContentFor(target(MapBubbleKind.PLANNED_TRIP, MapLayerIds.PLANNED_TRIPS, "trip-2"), sources.copy(plannedTrips = listOf(undated)), is24HourClock = false)
+
+        assertEquals(null, (content as MapBubbleContent.Trip).date)
+    }
+
     @Test
     fun `an offline region shows its name, radius and size, and says Stale only when stale`() {
         assertEquals(

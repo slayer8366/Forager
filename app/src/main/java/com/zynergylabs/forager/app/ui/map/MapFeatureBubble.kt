@@ -110,7 +110,7 @@ internal fun MapFeatureBubble(
             }
             is MapBubbleContent.Trip -> {
                 BubbleTitle(content.trip.name)
-                BubbleLine(content.date)
+                content.date?.let { BubbleLine(it) }
                 content.mgrs?.let { BubbleLine(it) }
                 BubbleLine(content.coordinates)
                 // No further target: a planned trip has no sheet (planner's M1 ruling).

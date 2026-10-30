@@ -243,7 +243,8 @@ sealed interface MapBubbleContent {
     data class TrackContent(val trackId: String, val title: String, val date: String?, val distance: String, val duration: String, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A planned trip: what its Trip Planner row shows; Directions. */
-    data class Trip(val trip: PlannedTrip, val date: String, val mgrs: String?, val coordinates: String) : MapBubbleContent
+    /** [date] is null for an undated trip (schema 23), which shows no date line. */
+    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val coordinates: String) : MapBubbleContent
 
     /** An offline region: its name, radius, size, and whether it is stale; details. */
     data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
@@ -317,7 +318,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             // date, MGRS when there is one, decimal degrees.
             MapBubbleContent.Trip(
                 trip = trip,
-                date = displayDate(trip.date),
+                date = trip.date?.let(::displayDate) ?: "", // STUB (tests first)
                 mgrs = mgrsOf(trip.location),
                 coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )

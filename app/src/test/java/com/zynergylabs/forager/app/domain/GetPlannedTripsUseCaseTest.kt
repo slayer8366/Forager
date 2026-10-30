@@ -89,4 +89,27 @@ class GetPlannedTripsUseCaseTest {
         assertTrue(result.isFailure)
         assertEquals(failure, result.exceptionOrNull())
     }
+
+    // Schema 23 (dispatch 2026-10-30-02, Amendment 1 Q7): undated trips after every dated one, by name, then id.
+    @Test
+    fun `undated trips come after every dated one, by name and then id`() = runTest {
+        fun undated(id: String, name: String) = PlannedTrip(id = id, name = name, location = LatLng(45.0, -122.0), date = null)
+        val repository = FakePlannedTripRepository(
+            Result.success(
+                listOf(
+                    undated("u3", "ridge run"),
+                    trip("later", referenceDay.plusDays(5)),
+                    undated("u2", "Creek loop"),
+                    trip("today", referenceDay),
+                    undated("u1", "Creek loop"),
+                    trip("soonest", referenceDay.plusDays(1)),
+                ),
+            ),
+        )
+        val useCase = GetPlannedTripsUseCase(repository, today = { referenceDay })
+
+        val result = useCase().getOrThrow()
+
+        assertEquals(listOf("today", "soonest", "later", "u1", "u2", "u3"), result.map { it.id })
+    }
 }

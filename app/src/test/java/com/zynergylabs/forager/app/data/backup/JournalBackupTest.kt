@@ -77,7 +77,7 @@ class JournalBackupTest {
         val manifest = JSONObject(String(zip.getValue("manifest.json")))
         assertEquals(1, manifest.getInt("formatVersion"))
         assertEquals(42L, manifest.getLong("appVersionCode"))
-        assertEquals(22, manifest.getInt("schemaVersion"))
+        assertEquals(23, manifest.getInt("schemaVersion"))
         assertTrue("created time is stamped", manifest.getLong("createdAtEpochMillis") > 0)
         val files = manifest.getJSONArray("files")
         assertEquals(5, files.length())
@@ -96,7 +96,7 @@ class JournalBackupTest {
         val db = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY)
         db.use {
             assertEquals("ok", it.rawQuery("PRAGMA integrity_check", null).use { c -> c.moveToFirst(); c.getString(0) })
-            assertEquals(22, it.version)
+            assertEquals(23, it.version)
             assertEquals(a.count("track_points"), it.rawQuery("SELECT COUNT(*) FROM track_points", null).use { c -> c.moveToFirst(); c.getLong(0) })
         }
     }
@@ -729,7 +729,7 @@ class JournalBackupTest {
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
         assertEquals("a value from the old snapshot survived the migration", "name-1", b.scalar("SELECT name FROM waypoints"))
-        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths") assertEquals("one seeded row in $t", 1L, b.count(t))
+        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths" - ROUTE_TABLE_NAMES) assertEquals("one seeded row in $t", 1L, b.count(t))
         assertEquals("no path was invented for the old backup's track ref", 0L, b.count("cartography_entry_track_paths"))
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
@@ -777,7 +777,7 @@ class JournalBackupTest {
         assertEquals("a value from the old snapshot survived the migration", "name-1", b.scalar("SELECT name FROM waypoints"))
         assertEquals("text-1", b.scalar("SELECT text FROM cartography_entries"))
         // A v15 file has no path table: it arrives through MIGRATION_16_17, present and empty (F3).
-        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths") assertEquals("one seeded row in $t", 1L, b.count(t))
+        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths" - ROUTE_TABLE_NAMES) assertEquals("one seeded row in $t", 1L, b.count(t))
         assertEquals("the path table the migration created is there and empty", 0L, b.count("cartography_entry_track_paths"))
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
@@ -792,7 +792,7 @@ class JournalBackupTest {
 
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals("the live database stayed at the app's own version throughout", 22, liveVersionDuringRestore)
+        assertEquals("the live database stayed at the app's own version throughout", 23, liveVersionDuringRestore)
     }
 
     // ---- recent searches are left out (F5, dispatch 2026-09-28-216; owner, "2 A") ------------------

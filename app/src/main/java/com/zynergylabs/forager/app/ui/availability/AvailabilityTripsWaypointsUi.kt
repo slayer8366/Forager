@@ -145,7 +145,8 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                     )
                 }
                 Text(trip.name, style = MaterialTheme.typography.titleSmall)
-                Text(displayDate(trip.date), style = MaterialTheme.typography.bodyMedium)
+                // An undated trip (schema 23, dispatch 2026-10-30-02) shows no date line.
+                trip.date?.let { Text(displayDate(it), style = MaterialTheme.typography.bodyMedium) }
                 when (val mgrs = MgrsConverter.convert(trip.location)) {
                     is MgrsCoordinate.Grid -> Text(mgrs.value, style = MaterialTheme.typography.bodySmall)
                     // No line at all rather than a wrong or truncated one — see MgrsCoordinate's
@@ -161,7 +162,7 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${trip.name}")
             }
             BouncingIconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Remove planned trip for ${displayDate(trip.date)}")
+                Icon(Icons.Filled.Delete, contentDescription = plannedTripDeleteLabel(trip))
             }
         }
     }
@@ -310,3 +311,10 @@ internal fun waypointRowNavigateTag(waypointId: String): String = "waypoint-row-
  * sheet shows the coordinates exactly as the row does.
  */
 internal fun decimalDegreesLabel(lat: Double, lng: Double): String = "${"%.4f".format(lat)}, ${"%.4f".format(lng)}"
+
+/**
+ * The trip row's delete button label. A dated trip keeps its label; an undated one is named instead, in the owner's words
+ * (dispatch 2026-10-30-02 Amendment 1: "\"Delete trip <name>\" (Recommended)").
+ */
+internal fun plannedTripDeleteLabel(trip: PlannedTrip): String =
+    "Remove planned trip for ${trip.date?.let(::displayDate)}" // STUB (tests first)

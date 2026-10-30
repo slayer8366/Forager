@@ -340,6 +340,14 @@ class SightingsMapOverlayDataTest {
         assertEquals(plannedTrips[0].date.toString(), feature.getStringProperty("snippet"))
     }
 
+    // Schema 23 (dispatch 2026-10-30-02): an undated trip's feature carries no snippet rather than the word "null".
+    @Test
+    fun `an undated planned trip's feature has no snippet`() {
+        val feature = plannedTripsFeatureCollection(listOf(plannedTrips[0].copy(date = null))).features()!!.single()
+
+        assertEquals(false, feature.hasProperty("snippet"))
+    }
+
     /**
      * The data-shaping functions above take no [Basemap] parameter at all — the structural half of
      * "a basemap swap leaves overlays untouched" this test can actually establish. See this class's

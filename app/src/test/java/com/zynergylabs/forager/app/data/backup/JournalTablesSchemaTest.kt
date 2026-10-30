@@ -40,7 +40,7 @@ class JournalTablesSchemaTest {
         assertEquals(emptyList<String>(), journal.intersect(JournalTables.excluded.keys).toList())
         val pk = schemaPrimaryKeys(Phone.SCHEMA)
         for (spec in JournalTables.journal) assertEquals("${spec.name}'s key columns", pk.getValue(spec.name), spec.keyColumns)
-        assertEquals("the schema version this build restores up to is the one the database declares", 22, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
+        assertEquals("the schema version this build restores up to is the one the database declares", 23, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
         assertEquals(com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION, phone.database.openHelper.readableDatabase.version)
     }
 }
@@ -49,4 +49,8 @@ internal val JOURNAL_TABLE_NAMES = listOf(
     "mushroom_log_entries", "log_photos", "log_entry_photos", "tracks", "track_points", "waypoints", "offline_regions",
     "planned_trips", "cartography_entries", "cartography_entry_track_refs", "cartography_entry_waypoint_refs",
     "cartography_entry_offline_region_refs", "cartography_entry_find_refs", "cartography_entry_photo_refs", "cartography_entry_track_paths",
+    "planned_trip_route_stops", "planned_trip_route_legs",
 )
+
+/** The route tables (schema 23, dispatch 2026-10-30-02): empty after restoring a backup older than 23, which had none. */
+internal val ROUTE_TABLE_NAMES = setOf("planned_trip_route_stops", "planned_trip_route_legs")
