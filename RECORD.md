@@ -30446,3 +30446,13 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
   - **Age:** present since the first commit (7957025fa); not caused by #440, #447 or the tools.
   - Battery itself was not measured.
 **Notes:** Written by the planner by hand. Next free ID -1857.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1857
+**Timestamp:** 2026-10-30T21:01:16Z
+**Continues:** 2026-09-28-1856
+**Title:** Region 2 is deleted and downloaded again on the S22; the compass stops while the screen is off (first stop)
+**Decision:** the owner: "Delete and re-download it (Recommended)" (dispatch 2026-10-30-13, Region 2 only, stopping if a journal entry references it); "Yes, dispatch a fix (Recommended)" (dispatch 2026-10-30-14, look-only first stop; a background heading reader, if any, must keep working).
+**Notes:** Written by the planner by hand. A mechanical slip in -1856: its Part 1 line lost the words "install -r" after "went on with", because a shell ran the backquoted text while the entry was being written. Read it as "went on with install -r". Next free ID -1858.
