@@ -52,6 +52,11 @@ internal object JournalTables {
         // Backed up and restored (owner, "4 A"). Its id is a UUID (SavePlannedTripUseCase), not a per-phone counter, so the
         // ordinary id rule holds: on a Merge an id already present is skipped and the phone's copy wins.
         TableSpec("planned_trips", Kind.RECORD, listOf("id")),
+        // A planned trip's route (schema 23, dispatch 2026-10-30-02): owned by its trip, with no `needs`. The route keeps its
+        // own copy of its stops, so it depends on no waypoint (the plan, "A waypoint deleted later"), and a Merge that skips
+        // a trip the phone already has skips its route rows with it, so a route is never half-merged.
+        TableSpec("planned_trip_route_stops", Kind.OWNED, listOf("tripId", "stopIndex"), owner = Reference("tripId", "planned_trips")),
+        TableSpec("planned_trip_route_legs", Kind.OWNED, listOf("tripId", "legIndex"), owner = Reference("tripId", "planned_trips")),
         TableSpec("track_points", Kind.OWNED, listOf("id"), autoKey = true, owner = Reference("trackId", "tracks")),
         TableSpec(
             "log_entry_photos", Kind.OWNED, listOf("entryId", "photoId"),

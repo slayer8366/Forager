@@ -917,7 +917,7 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithContentDescription("Directions to ${trip.name}")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Remove planned trip for ${displayDate(trip.date)}")
+        composeRule.onNodeWithContentDescription("Remove planned trip for ${displayDate(trip.date!!)}")
             .performScrollTo()
             .assertIsDisplayed()
     }
