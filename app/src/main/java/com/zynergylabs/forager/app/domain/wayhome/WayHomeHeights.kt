@@ -89,7 +89,18 @@ internal fun standInHeights(track: PartHeights?, trackMeters: Double, trailMeter
  * The joints carry no height (J1). A route point sits at the leave joint's length plus its distance along the route,
  * scaled so the route's own stretch is the engine's [TrailRoute.lengthMetres]; the entry point sits at [trailMeters].
  */
-internal fun trailDataHeights(trailPoints: List<LatLng>, route: TrailRoute, trailMeters: Double): PartHeights.TrailData? = null // STUB
+internal fun trailDataHeights(trailPoints: List<LatLng>, route: TrailRoute, trailMeters: Double): PartHeights.TrailData? {
+    if (route.points.isEmpty() || route.heightsMetres.any { it == null }) return null
+    val leaveJoint = GeoDistance.metersBetween(trailPoints.first(), route.points.first())
+    val along = DoubleArray(route.points.size)
+    for (k in 1 until route.points.size) along[k] = along[k - 1] + GeoDistance.metersBetween(route.points[k - 1], route.points[k])
+    val scale = if (along.last() > 0.0) route.lengthMetres / along.last() else 0.0
+    val samples = ArrayList<PartHeight>(route.points.size + 2)
+    samples += PartHeight(0.0, null)
+    route.heightsMetres.forEachIndexed { k, height -> samples += PartHeight(leaveJoint + along[k] * scale, height) }
+    samples += PartHeight(trailMeters, null)
+    return PartHeights.TrailData(samples)
+}
 
 /** The way home's heights in line metres ([WayHomeLine.alongMeters]), or why there are none. */
 sealed interface LineHeights {

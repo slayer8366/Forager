@@ -225,7 +225,7 @@ class BRouterTrailRouter internal constructor(
          * built without heights gives it at every node: the test fixture's command-line output reads Elevation -8192,
          * which is -32768 / 4). Never 0 for missing. 0 and below are real heights (sea level, below it).
          */
-        internal fun heightMetresOf(selev: Short): Double? = null // STUB
+        internal fun heightMetresOf(selev: Short): Double? = if (selev == Short.MIN_VALUE) null else selev / 4.0
 
         /** BRouter positions are integer micro-degrees offset by 90 and 180 (RoutingParamCollector.readPosition). */
         private fun latLngOf(iLat: Int, iLon: Int): LatLng = LatLng(lat = (iLat - 90_000_000) / 1e6, lng = (iLon - 180_000_000) / 1e6)
