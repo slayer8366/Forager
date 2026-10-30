@@ -21,7 +21,7 @@ The heights are the ones the journal's Climb reads, banked through the same 4 m 
 
 ## Trail-data heights (built, dispatch 2026-10-30-06)
 
-This section used to say what the elevation work would need: the routing adapter keeping the engine's per-point elevation and `TrailRoute` a field for it, with the trail part's heights then taken from those instead of the stand-in. The route squares carry 3″ heights since the route build of 2026-10-28 (RECORD -1835), and that work is now built (RECORD -1836, -1838):
+This section used to say what the elevation work would need: the routing adapter keeping the engine's per-point elevation and `TrailRoute` a field for it, with the trail part's heights then taken from those instead of the stand-in. The route squares carry 3″ heights (three arc-seconds, posts about 90 m apart) since the route build of 2026-10-28 (RECORD -1835), and that work is now built (RECORD -1836, -1838):
 
 - The adapter keeps each route point's height, `null` where the data has none, never 0 (`routing/BRouterTrailRouter.kt`, `heightMetresOf`; `TrailRoute.heightsMetres`).
 - Where every route point has a height, the trail part's heights are the trail data's (`PartHeights.TrailData`, `domain/wayhome/WayHomeHeights.kt`). One sample with no height sits between each straight joint and the route's heights, so the offset between the barometer's heights and the terrain model's is never counted as climb (the owner: "Don't count the step (Recommended)"). The climb inside each joint is counted from the walker's own barometric heights over the joint's length (RECORD -1842, the owner: "Count the joint climb").
