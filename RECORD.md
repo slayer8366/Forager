@@ -30119,3 +30119,20 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** origin/pi-build 532f70fd6 (2026-10-27), "Merge pi-32-elevation (G8): route squares with 3-inch heights from the pinned .bef store, from the 2026-11-01 run". build-usca.sh:399-423 refuses a store that is missing or unpinned, and a square with no heights. The app's routing adapter still drops per-point heights (routing/BRouterTrailRouter.kt). The planner's note 2026-10-30-01 to Aspen had missed G8; corrected by 2026-10-30-02.
 **Decision:** the owner: "Good news, elevation is already built in"; "Drop it, use trail data (Recommended)". Plan Addendum 3: step 4b is dropped and step 4a comes first. An area downloaded before heights shows "—" until it is downloaded again.
 **Notes:** Written by the planner by hand. Unverified: whether today's downloads carry heights; asked of Aspen. Next free ID -1834.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1834
+**Timestamp:** 2026-10-30T14:28:31Z
+**Continues:** 2026-09-28-1830
+**Title:** The S22 passes #443 and #444 on pre-main 3c5e63468; the tools build is back with the logger on
+**Observed:** Hazel (Opus), docs/audits/2026-10-30-s22-pr443-pr444-check.md, branch s22-pr443-pr444 394becbed. Evidence in /home/zynergy-labs/s22-2026-10-30/.
+- **Install:** 1.0.4182+g3c5e6346 went on over 4180, schema 22, with Region 1 and the walk track unchanged.
+- **#444:** all 8 PR steps pass. Steps 6-8 ran on throwaway data, which was deleted afterwards, with the deletion confirmed in the database.
+- **#443:** steps 1-6 pass on three throwaway maps; Region 1's trash was never touched. Undo comes back within the snackbar. With a row swiped open the trash is hidden, and it returns when the row closes. Region 1's tiles are unchanged and it draws offline.
+  - Not confirmed: a deleted map's outline leaving the map (seen only in the database), and TalkBack speaking the label (only read from the accessibility tree).
+- **Back on the tools build:** 1.0.4180+gb18bd56d, logger on. ACTIVITY_RECOGNITION was dropped by the pre-main install and re-granted with pm grant. Data hashes match the baseline, except the download form's remembered pin.
+- **Noticed, not checked:** a track delete keeps its Start and End waypoints (as in -1816); on the waypoint details sheet, the map attribution and bottom-bar labels show through behind Navigate.
+- **The account-recovery prompt** seen at the first baseline was gone at the re-check. It was never tapped.
+**Notes:** Written by the planner by hand. Next free ID -1835.
