@@ -199,6 +199,18 @@ class NightExceptionsV4Test {
     }
 
     @Test
+    fun `the area edges invert, and the water edges take the night water`() {
+        // The rulings' "Borders, industrial and buildings": "No edge at night (Recommended)" means no exception; the water
+        // night rule paints the water edges the water's colour, so they vanish at night (accepted).
+        val edges = layers.getValue("landuse_edges").jsonObject.getValue("paint").jsonObject.getValue("line-color")
+        val property = LayerColourProperty("landuse_edges", "line-color", StyleColourValue.Expression(edges.toString()))
+        assertEquals(offlineNightRecolourOf(property), nightOf("landuse_edges", "line-color"))
+        assertEquals(StyleColourValue.Literal(STREET_NIGHT_WATER), (nightOf("water_edges", "line-color") as NightRecolour.Recoloured).night)
+        // Industrial in OSM Carto's lilac (style/landcover.mss:22) inverts to #21111e.
+        assertEquals(StyleColourValue.Literal("rgba(33, 17, 30, 1)"), (nightOf("landuse_industrial", "fill-color") as NightRecolour.Recoloured).night)
+    }
+
+    @Test
     fun `v4 is chosen by its style's name, and every other style keeps v1 to v3's tables`() {
         assertNotEquals(STREET_NIGHT_TABLES, tables)
         assertEquals(tables, streetNightTablesFor("https://raw.githubusercontent.com/slayer8366/Forager/street-v4/map-style/forager-street-v4.json"))

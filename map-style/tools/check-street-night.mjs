@@ -267,6 +267,61 @@ if (V4) {
   }
 }
 
+// 8. v4's borders, industrial and buildings (the fill-in rulings, "Borders, industrial and buildings": "Faint", "No edge
+//    at night", "Lilac, like OSM", "Tan, like OSM", then "OSM's #b9a99c", "Keep OSM's steps", "One step darker #ccc0b7",
+//    "OSM's #c6b3c3"). By hand, from the rulings. Night is the plain inversion (no exception); the night water floor on the
+//    new fills is held above with every land fill.
+if (V4) {
+  const layerOf = (id) => style2.layers.find((l) => l.id === id);
+  const order = style2.layers.map((l) => l.id);
+  const at = order.indexOf("landuse_pier");
+  if (order[at + 1] !== "landuse_edges" || order[at + 2] !== "water_edges") problems.push(`landuse_edges and water_edges are not right after landuse_pier: ${order.slice(at, at + 3)}`);
+  const RULED_EDGES = {
+    "#94b988": ["forest", "wood"],
+    "#c2cdaa": ["scrub", "grassland", "grass", "meadow", "heath", "cemetery", "golf_course"],
+    "#b4caa8": ["park", "recreation_ground", "garden", "dog_park", "pitch"],
+    "#88b99d": ["allotments", "village_green", "playground"],
+    "#adc8bc": ["wetland"],
+    "#b0aba4": ["bare_rock"],
+    "#c3bfba": ["residential"],
+    "#d0bdb9": ["commercial"],
+    "#c4bfc2": ["railway"],
+    "#ccceb4": ["farmland"],
+    "#c9c3bd": ["school", "university", "college"],
+    "#c9c0bf": ["hospital"],
+    "#c6b3c3": ["industrial"],
+  };
+  const WIDTH = '["interpolate",["linear"],["zoom"],13,0.5,15,0.75,17,1]';
+  const edges = layerOf("landuse_edges");
+  const water = layerOf("water_edges");
+  if (!edges || !water) problems.push("v4 has no landuse_edges or water_edges");
+  else {
+    const color = edges.paint["line-color"];
+    const edgeOf = (kind) => {
+      for (let i = 2; i < color.length - 1; i += 2) if ([color[i]].flat().includes(kind)) return color[i + 1];
+      return null;
+    };
+    const kinds = Object.values(RULED_EDGES).flat();
+    if (JSON.stringify(edges.filter) !== JSON.stringify(["in", ["get", "kind"], ["literal", kinds]])) problems.push(`landuse_edges' filter is ${JSON.stringify(edges.filter)}`);
+    for (const [colour, ks] of Object.entries(RULED_EDGES)) for (const k of ks) if (edgeOf(k) !== colour) problems.push(`landuse_edges: ${k} edge ${edgeOf(k)}, ruled ${colour}`);
+    for (const l of [edges, water]) {
+      if (l.minzoom !== 13 || JSON.stringify(l.paint["line-width"]) !== WIDTH) problems.push(`${l.id}: minzoom ${l.minzoom}, width ${JSON.stringify(l.paint["line-width"])}; ruled 13 and ${WIDTH}`);
+      if (l.id in NIGHT_LAYER_COLOURS || l.id in NIGHT_LINE_COLOURS_V4) problems.push(`${l.id} has a night exception; ruled: none`);
+    }
+    const opacity = '["step",["zoom"],["match",["get","kind"],["residential","commercial","railway"],0,1],14,1]';
+    if (JSON.stringify(edges.paint["line-opacity"]) !== opacity) problems.push(`landuse_edges' opacity ${JSON.stringify(edges.paint["line-opacity"])}: residential, commercial and railway land start at z14`);
+    if (water["source-layer"] !== "water" || water.paint["line-color"] !== "#71c3ce" || JSON.stringify(water.filter) !== '["==",["geometry-type"],"Polygon"]') problems.push(`water_edges: ${water["source-layer"]} ${water.paint["line-color"]} ${JSON.stringify(water.filter)}; ruled: water polygons, #71c3ce`);
+    if (edges["source-layer"] !== "landuse") problems.push(`landuse_edges reads ${edges["source-layer"]}`);
+  }
+  const industrial = layerOf("landuse_industrial")?.paint?.["fill-color"];
+  if (industrial !== "#ebdbe8") problems.push(`landuse_industrial is ${industrial}, ruled #ebdbe8 (Carto style/landcover.mss:22)`);
+  const fill = JSON.stringify(layerOf("buildings")?.paint?.["fill-color"]);
+  if (fill !== '["step",["zoom"],"#d9d0c9",14,"#ccc0b7",15,"#d9d0c9"]') problems.push(`buildings fill ${fill}; ruled tan #d9d0c9, #ccc0b7 at z14`);
+  const outline = layerOf("buildings_outline")?.paint?.["line-color"];
+  if (outline !== "#b9a99c") problems.push(`buildings_outline ${outline}, ruled #b9a99c`);
+  if (!JSON.stringify(layerOf("landuse_park_outline")).includes('"#3e7a3a"')) problems.push("landuse_park_outline changed; ruled: unchanged");
+}
+
 for (const [what, colour, against, min] of exceptions) {
   const ratio = contrast(colour, against);
   const line = `${what}: ${colour} on ${against} ${ratio.toFixed(2)}:1 (minimum ${min})`;
