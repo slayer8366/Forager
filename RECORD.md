@@ -29967,3 +29967,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus), offline-map-delete-button 9ca77f70c, not yet run on CI. The button is on Records > Offline maps and Records > All. The entry editor's "In this entry" panel also lists offline maps, with an include switch and no delete.
 **Decision:** the owner: "No, Records only (Recommended)"; "\"Delete <map name>\" (Recommended)"; "Fix wording only (Recommended)", meaning JournalPendingDeleteTest.kt:573's title and the TwoStageSwipe.kt comment are reworded with the assertion unchanged. Dispatch 2026-10-29-10 Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -1821.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1821
+**Timestamp:** 2026-10-30T04:56:02Z
+**Continues:** 2026-09-28-1817, 2026-09-28-1819
+**Supersedes:** the "Show and navigate (Recommended)" part of 2026-09-28-1817, and -1819's "Navigate for trips comes with route plotting"
+**Title:** Route plotting is plotting only, not navigation: a chain of waypoints, saved to the Trip Planner
+**Decision:** the owner: "This isn't navigation, it's just plotting a route between two waypoints"; then "A chain (A→B→C…)" and "Yes, save to Trip Planner". A saved route is drawn with its distance and has no Start. Trips keep Directions with no replacement planned. On a leg with no trail data and on a waypoint deleted later, the owner had no preference. The planner's defaults are a straight dashed leg with a note, and a route that keeps its own copy of its points. Plan: docs/plans/2026-10-29-waypoint-route-plotting-plan.md.
+**Notes:** Written by the planner by hand. -1817's misreading came from an option the planner wrote ("Save it and navigate it"). No build go for the plan yet. Next free ID -1822.
