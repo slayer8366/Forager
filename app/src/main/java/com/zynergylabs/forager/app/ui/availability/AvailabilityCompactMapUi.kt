@@ -651,6 +651,8 @@ internal fun CompactMapTab(
                     bottomInset = renderMode.bottomInset,
                     expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
                     onCardHeightDp = { routeCardHeightDp = it },
+                    // Amendment 3: the card's top, in the map box, is the icon cluster's lowest edge while it shows.
+                    onCardTopInRootPx = { top -> cluster.routeCardTopPx = top?.let { it - cluster.mapContentBoxTopInRootPx } },
                 )
 
                 // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;
@@ -667,6 +669,8 @@ internal fun CompactMapTab(
                     isDrawerOpen = isDrawerOpen,
                     onBottomNavTabSelected = onBottomNavTabSelected,
                     onBottomNavHeightMeasured = onBottomNavHeightMeasured,
+                    // Dispatch 2026-10-30-08, Amendment 3: "Return to Route" rises above the route card while it shows.
+                    routeCardHeight = routeCardHeightDp.dp,
                 )
 
                 // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out

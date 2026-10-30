@@ -10,6 +10,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -110,6 +112,8 @@ internal fun BoxScope.CompactMapRouteCard(
     bottomInset: Dp,
     expandedMaxHeight: Dp,
     onCardHeightDp: (Int) -> Unit,
+    /** The card's top in the root whenever it moves, null when there is none (Amendment 3: the icon cluster stays above it). */
+    onCardTopInRootPx: (Float?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
@@ -122,10 +126,14 @@ internal fun BoxScope.CompactMapRouteCard(
         RoutePlotMode.Off, null -> null
     }
     if (content == null || state == null || actions == null) {
-        LaunchedEffect(Unit) { onCardHeightDp(0) }
+        LaunchedEffect(Unit) {
+            onCardHeightDp(0)
+            onCardTopInRootPx(null)
+        }
         return
     }
     val showing = state.mode as? RoutePlotMode.Showing
+    DisposableEffect(Unit) { onDispose { onCardTopInRootPx(null) } }
     RouteCard(
         content = content,
         expanded = state.expanded,
@@ -142,7 +150,10 @@ internal fun BoxScope.CompactMapRouteCard(
             .align(Alignment.BottomCenter)
             .padding(controlsPadding)
             .padding(bottom = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
-            .onGloballyPositioned { onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() }) },
+            .onGloballyPositioned {
+                onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() })
+                onCardTopInRootPx(it.positionInRoot().y)
+            },
     )
     val plotting = state.mode as? RoutePlotMode.Plotting
     if (plotting != null && state.saveDialogOpen) {

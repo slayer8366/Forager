@@ -19,7 +19,7 @@ import org.maplibre.geojson.Point
 /*
  * A plotted route on the Maps tab (dispatch 2026-10-30-08, step 3; the first stop, (c)): the route being plotted, or a saved
  * one opened from the Trip Planner or its pin. Its trail parts solid, with a casing; its joins to the trail and its straight
- * legs thin and dashed (the owner: "Dashed link to trail (Recommended)"); and, on a saved route, a small dot at each stop
+ * legs thin and dashed (the owner: "Dashed link to trail (Recommended)"), with the same casing (Amendment 3); and, on a saved route, a small dot at each stop
  * (Amendment 1, Q8: "Yes, small dots (Recommended)"), since a route keeps copies of its stops and a waypoint deleted later
  * leaves no marker there.
  *
@@ -35,6 +35,7 @@ internal object PlottedRouteIds {
     const val SOURCE = "plotted-route"
     const val STOPS_SOURCE = "plotted-route-stops"
     const val CASING_LAYER = "plotted-route-casing-layer"
+    const val STRAIGHT_CASING_LAYER = "plotted-route-straight-casing-layer"
     const val TRAIL_LAYER = "plotted-route-trail-layer"
     const val STRAIGHT_LAYER = "plotted-route-straight-layer"
     const val STOPS_LAYER = "plotted-route-stops-layer"
@@ -78,6 +79,7 @@ private const val TRAIL_WIDTH_DP = 5f
 private const val CASING_DP = 1.5f
 private const val STRAIGHT_WIDTH_DP = 3f
 private val STRAIGHT_DASHES = listOf(2f, 2f)
+private const val STRAIGHT_CASING_WIDTH_DP = STRAIGHT_WIDTH_DP + 2 * CASING_DP
 private const val STOP_DOT_RADIUS_DP = 4f
 
 /**
@@ -99,6 +101,10 @@ internal fun plottedRouteLineSpecs(palette: MapPalette): List<PlottedRouteLineSp
     val colour = if (palette == MapPalette.NIGHT) PLOTTED_ROUTE_COLOUR_NIGHT else PLOTTED_ROUTE_COLOUR_DAY
     return listOf(
         PlottedRouteLineSpec(PlottedRouteIds.CASING_LAYER, PlottedRouteIds.PART_TRAIL, palette.casing, TRAIL_WIDTH_DP + 2 * CASING_DP, null, roundCaps = true),
+        // Amendment 3 (RECORD -1861), the owner: "Add a thin outline (Recommended)": the dashed parts carry the same casing as
+        // the trail part, white by day and black by night. Dashed as they are, with the dash and gap scaled to the wider line
+        // (lineDasharray is in line widths), so each dash is outlined along its sides and the gaps stay open.
+        PlottedRouteLineSpec(PlottedRouteIds.STRAIGHT_CASING_LAYER, PlottedRouteIds.PART_STRAIGHT, palette.casing, STRAIGHT_CASING_WIDTH_DP, STRAIGHT_DASHES.map { it * STRAIGHT_WIDTH_DP / STRAIGHT_CASING_WIDTH_DP }, roundCaps = false),
         PlottedRouteLineSpec(PlottedRouteIds.TRAIL_LAYER, PlottedRouteIds.PART_TRAIL, colour, TRAIL_WIDTH_DP, null, roundCaps = true),
         PlottedRouteLineSpec(PlottedRouteIds.STRAIGHT_LAYER, PlottedRouteIds.PART_STRAIGHT, colour, STRAIGHT_WIDTH_DP, STRAIGHT_DASHES, roundCaps = false),
     )

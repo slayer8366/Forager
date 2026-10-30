@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -60,6 +62,8 @@ internal fun BoxScope.CompactMapBottomChrome(
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
+    /** Dispatch 2026-10-30-08, Amendment 3: the route card's height while it shows, 0 dp otherwise; "Return to Route" sits above it. */
+    routeCardHeight: Dp = 0.dp,
 ) {
     val isNavigating = navigation.isNavigating
     val navigationFollowing = navigation.navigationFollowing
@@ -87,7 +91,9 @@ internal fun BoxScope.CompactMapBottomChrome(
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .padding(controlsPadding)
-            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+            // Amendment 3 (the owner: "Pill sits above the card (Recommended)"): the card sits on the same bottom, so the pill
+            // rises by the card's height and a gap, and the two never overlap.
+            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + (if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp)),
     ) {
         ReturnToRoutePill(
             onClick = onReturnToRoute,
