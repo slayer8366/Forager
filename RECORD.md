@@ -29956,3 +29956,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Observed:** Hazel (Opus), first stop at directions-to-navigate 6f65412ec (docs/audits/2026-10-29-directions-to-navigate-first-stop.md). Directions is offered in 8 places. Navigate is already in 5 of them, an entry map included since -890. It cannot reach a waypoint deleted from Records (MapFeatureBubble.kt:91) or a planned trip.
 **Decision:** the owner: "Keep Directions (Recommended)" for the deleted-waypoint bubble; "Keep Directions for now (Recommended)" for the trip bubble and the Trip Planner row, where Navigate for trips comes with route plotting. Dispatch 2026-10-29-09 Amendment 1 gives the go to build. The planner's "no gh" in dispatches -09 and -10 was wrong: gh is logged in on the laptop, and it is corrected in both.
 **Notes:** Written by the planner by hand. Next free ID -1820.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1820
+**Timestamp:** 2026-10-30T04:53:41Z
+**Continues:** 2026-09-28-1818
+**Title:** Offline-map Delete button: Records only, labelled "Delete <map name>"; the stale swipe-test wording fixed
+**Observed:** Hazel (Opus), offline-map-delete-button 9ca77f70c, not yet run on CI. The button is on Records > Offline maps and Records > All. The entry editor's "In this entry" panel also lists offline maps, with an include switch and no delete.
+**Decision:** the owner: "No, Records only (Recommended)"; "\"Delete <map name>\" (Recommended)"; "Fix wording only (Recommended)", meaning JournalPendingDeleteTest.kt:573's title and the TwoStageSwipe.kt comment are reworded with the assertion unchanged. Dispatch 2026-10-29-10 Amendment 1.
+**Notes:** Written by the planner by hand. Next free ID -1821.

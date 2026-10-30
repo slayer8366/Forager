@@ -35,3 +35,9 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 - Past about 200k tokens: push and hand off.
 - Ambiguity: stop and report.
 - New words on screen are the owner's only.
+
+## Amendment 1 (2026-10-29): answers to Hazel's findings (RECORD -1820)
+- **Entry editor's "In this entry" panel:** the owner: "No, Records only (Recommended)". No button there.
+- **Label:** the owner: "\"Delete <map name>\" (Recommended)". Approved.
+- **Stale text:** the owner: "Fix wording only (Recommended)". Rename JournalPendingDeleteTest.kt:573's title and correct the TwoStageSwipe.kt comment so both say the row has no *text* Delete control at rest. The assertion stays byte-identical; show this in the diff.
+- **Tools:** `gh` is installed and logged in on this laptop. The earlier "no gh" was the planner's error.
