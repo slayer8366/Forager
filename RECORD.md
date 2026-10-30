@@ -30503,3 +30503,13 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 - **Trail data:** stored, run usca-20261027T221400Z, W125_N45.rd5. 132 of 132 walk-route points carry heights, and 703 of 703 on six more routes.
 - **Height difference:** on the 10-30 walk's 91 matched points this file reads 9.8 m lower (sd 3.1) than the laptop's 10-03 full file, which dispatch -11 used as ground. Near home the two were 2.0 m apart. Which is nearer true ground is not checked. A datum or source difference is inferred, not read.
 **Notes:** Written by the planner by hand. The planner asks Aspen which vertical datum the 3″ store uses. Next free ID -1861.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1861
+**Timestamp:** 2026-10-30T21:24:33Z
+**Continues:** 2026-09-28-1859
+**Title:** Finishing #449: the cluster stays above the card, the dashes get a casing, the Return to Route pill sits above the card
+**Decision:** the owner: "Cluster stays above card (Recommended)"; "Add a thin outline (Recommended)"; "Pill sits above the card (Recommended)". Dispatch 2026-10-30-08 Amendment 3: these plus the handoff's open tests. The first coder's calls beyond the dispatch are accepted by the planner.
+**Notes:** Written by the planner by hand. A fresh coder takes it. Next free ID -1862.

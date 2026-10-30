@@ -104,3 +104,19 @@ Hazel found orange taken: the forecast ramp (ColourFields.kt:60-75), and Street 
 - Set PLOTTED_ROUTE_COLOUR_DAY and _NIGHT to a magenta.
 - Check it against the track purples (MapPalette.kt), Street v3 and v4, the topo style and the forecast ramps, by day and night. If it sits too close to a track purple, stop and report with the colours.
 - Report the chosen values and contrast against the main map backgrounds.
+
+## Amendment 3 (2026-10-30): finishing PR #449 (RECORD -1861)
+PR #449 is at route-plot-ui 044552862, green (run 41128288933). Read the handoff docs/audits/2026-10-30-route-plotting-step-3-handoff.md first. The first coder's calls beyond the dispatch (RECORD -1859) are accepted.
+
+**The owner's answers:**
+- **Icon cluster:** "Cluster stays above card (Recommended)". While the card shows, the cluster's lowest position is the card's top. When the card closes, it goes back. The user's chosen side and height stay remembered (CLAUDE.md, UX defaults).
+- **The dashes:** "Add a thin outline (Recommended)". The joins and straight legs get the same casing as the solid line: white by day, black by night.
+- **Return to Route pill:** "Pill sits above the card (Recommended)". It moves up to clear the card, and both stay visible and tappable.
+
+**Also finish, from the handoff's list:**
+- touch tests for the Trip Planner row (with Back reopening the drawer), the Discard dialog, Add date / Remove date and the failure line, landscape and tablet windows, and the Back order over a bubble, fan, drawer and fullscreen;
+- MapChromeAlphaTest covering the card and dialogs;
+- the bubble's wrapped row at font scale 2.0;
+- a revert check for "taps while not plotting do nothing".
+
+Each rule gets a test that fails first, then a revert check. Merge pre-main in if it moves. CI green. No merge.
