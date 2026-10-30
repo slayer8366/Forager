@@ -2,7 +2,7 @@
 
 Hazel Cairnwright, 2026-10-30 UTC. Dispatch `prompts/preserved/2026-10-29-10-offline-map-delete-button.md` with Amendment 1 (read at `origin/records-after-173`), RECORD -1817, -1818, -1820. PR #443 into pre-main, **not merged**. This session picked the task up from an earlier coder session that was stopped mid-task; the build commits and the scratch runs are that session's, and the reading of them below is this session's.
 
-**Status: STOPPED, CI red on one pre-existing test that pins the old behaviour.** The fix needs an assertion changed, which is the planner's and the owner's call, not mine. See "CI on the PR head" and "The stop".
+**Status (2026-10-30 10:41 UTC): CI green on `14ce937fb`.** The first full run was red on one pre-existing test that pinned the old behaviour (see "CI on the PR head" and "The stop"). The owner chose option 1 (Amendment 2, RECORD -1823), and the section "Amendment 2" at the end records the change and its checks. The earlier sections are kept as written.
 
 ## Base
 
@@ -80,3 +80,47 @@ Making CI green needs `:699-700` changed. Amendment 1's ruling for the sibling t
 - The PR body's observation that a swiped-open row's trash icon slides left and a tap on it only closes the row: written by the earlier session; not checked by a test or by me.
 - TalkBack's spoken output: the test checks the content description and the click action, not what TalkBack says.
 - The rest of the suite beyond the one failure: green in 41006039562, but the fix for `:699-700` will need a fresh full run.
+
+## Amendment 2 (2026-10-30): the J4b L5 guard, exactly one clickable delete
+
+The owner: "Exactly one: the trash (Recommended)" (Amendment 2, `6ada2dbbd` on `origin/records-after-173`, RECORD -1823). The planner accepted the calls listed above.
+
+Commit `14ce937fb`. The test lines' diff (`AvailabilityScreenSettingsPanelTest.kt`). The text check at `:700` and the swipe checks at `:693-699` are unchanged:
+
+```diff
+         composeRule.onAllNodesWithText("Delete", ignoreCase = true).assertCountEquals(0)
+-        composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
+-            .assertCountEquals(0)
++        // Dispatch 2026-10-29-10 Amendment 2 (RECORD -1823), the owner: "Exactly one: the trash (Recommended)".
++        val clickableDeletes = composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
++        clickableDeletes.assertCountEquals(1)
++        clickableDeletes[0]
++            .assert(hasTestTag(offlineRegionDeleteButtonTag(L5_REGION.id)))
++            .assert(hasContentDescription("Delete ${L5_REGION.name}"))
+     }
+```
+
+Also in that commit:
+- the `hasTestTag` import;
+- the test's KDoc, which no longer says the row has no clickable delete;
+- the `TwoStageSwipe.kt:161-164` comment, which now reads "J4b L5's test pins no "Delete" text and exactly one clickable delete, that trash button".
+
+The label is matched as the literal `"Delete ${L5_REGION.name}"`, not through `offlineRegionDeleteLabel`, so this test pins the approved wording on its own.
+
+**Revert check.** The scratch branch `omdb-revert-a2-second-delete` is commit `afb1d70d2`, which is `14ce937fb` plus one line. That line adds a second `IconButton` beside the trash in `OfflineRegionDeleteButton.kt`, tagged `revert-second-delete` with the description "Delete again". I made the edit in a separate worktree, so the PR branch's files were never touched; the edited file's original was also saved to scratch before editing.
+- Run 41040950352, filtered to `*AvailabilityScreenSettingsPanelTest*`.
+- Build log first: `compileDebugKotlin` and `compileDebugUnitTestKotlin` ran, with zero Kotlin `e:` lines.
+- JUnit XML: 26 tests, 1 failed, which matches the log's "26 tests completed, 1 failed".
+- The failure is the L5 test: `Expected exactly '1' node but found '2' nodes`. It lists `offline-region-delete-5` "[Delete Molalla Ridge]" and `revert-second-delete` "[Delete again]".
+- Prediction: only this test fails, at the new count. **Confirmed.** The second node in the message is this edit's own tag.
+- Afterwards, the forward change is still on `origin/offline-map-delete-button` at `14ce937fb`: the new assertion is present and `revert-second-delete` is absent (read from origin).
+
+**Full suite on the new head.** Run 41040930086 (pull_request on `14ce937fb`): **all jobs green**, including the debug-only-sources guard.
+- Build log: zero Kotlin `e:` lines.
+- JUnit XML: `testDebugUnitTest` has 802 files, 5886 tests, 0 failed and 24 skipped. `testDebugUnitTestOlderSdks` has 6 files, 24 tests and 0 failed. 5910 in all, the same total as run 41006039562.
+
+**Calls beyond the amendment:**
+- The test's title still reads "has no Delete control at rest". The amendment changed only lines 699-700, so I left the title. It is now true only for text Delete controls. Renaming it, as Amendment 1 did for the sibling, is the planner's call.
+- `AvailabilityScreenSettingsPanelTest.kt` was 931 lines and is now 937. The modular rule says to split a file over 800 lines before adding to it, or to stop. I added the six lines without splitting, because the amendment names this exact edit. Flagged for the planner to accept or reject.
+
+**Still not verified:** the phone steps, and the other items under "Not verified" above.
