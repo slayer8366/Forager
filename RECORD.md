@@ -30072,3 +30072,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
   - PR run 41057164708 on the merge with 8a0036405: green, 5913 tests, 0 failures.
 - #443 merged by the planner, at head 6e432a6cb: pre-main 3c5e63468. Push run 41059608216 is pending.
 **Notes:** Written by the planner by hand, on the owner's "Merge both, then S22 (Recommended)" (-1828). Next: the S22 checks the combined build when it is plugged in. The docs/audits/README.md index rows for #443 and #444 (Sorrel's N8) are still to add. Next free ID -1830.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1830
+**Timestamp:** 2026-10-30T13:47:35Z
+**Continues:** 2026-09-28-1829
+**Title:** The S22 checks pre-main 3c5e63468 (#443 and #444), then the tools build goes back on
+**Observed:** pre-main push run 41059608216 on 3c5e63468 is green in all six jobs (APK artifact 12979272649).
+**Decision:** the owner: "S22 plugged in"; "Install, check, put tools back (Recommended)". Dispatch 2026-10-30-03: install with data kept, run both PRs' S22 steps, touch Region 1 only through Undo, then reinstall 1.0.4180+gb18bd56d with the logger on.
+**Notes:** Written by the planner by hand. The owner says Aspen runs on a separate account for the map work. Next free ID -1831.
