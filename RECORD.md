@@ -29935,3 +29935,13 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 - Route plotting: "Chain of waypoints (Recommended)", confirmed as a step path with "Yes, but Back cancels". Tap waypoint > Plan route from here > tap the next waypoints in turn, each leg along trails with a running total > Undo last, Save to Trip Planner or Cancel. Back leaves planning in one tap.
 - Saved routes: "It goes in the Trip Planner"; "Show and navigate (Recommended)", meaning the route is drawn and Start follows it leg by leg; "Date optional (Recommended)".
 **Notes:** Written by the planner by hand. No build go yet. A trip carrying a route needs a schema change. Next free ID -1818.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1818
+**Timestamp:** 2026-10-30T04:34:28Z
+**Continues:** 2026-09-28-1817
+**Title:** Directions-to-Navigate and the offline-map Delete button go to coders; waypoint route plotting joins this release
+**Decision:** the owner: "Small two now, route plan next (Recommended)". Dispatch 2026-10-29-09, Navigate takes Directions' place, opens with a look-only first stop on every Directions site, and where Navigate cannot be offered the owner decides. Dispatch 2026-10-29-10 adds a visible Delete button on offline-map rows. The planner writes the route-plotting plan for the owner's review, with no code. The owner on its place: "In this release". The release now waits on trail-navigation steps 6-11 and route plotting (amends -1628's scope).
+**Notes:** Written by the planner by hand. Hazel (Opus) on each, in separate worktrees, CI only. Next free ID -1819.
