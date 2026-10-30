@@ -30322,3 +30322,14 @@ Dispatch 2026-10-30-08 opens with a look-only first stop.
 **Observed:** a helper reported the S22 on 1.0.4224+gc4a57389 (laptop assembleDebug, signing equal to the installed app, database backed up first, schema 22 to 23). Region 1 and the walk track hash identical to the backup, and the logger is on. The planner read the S22's version itself. CI run 41107156444 on c4a57389f is pending.
 **Decision:** the owner: "The S26 will be on its own version. Do you have a suggested version to test?" The planner suggested pre-main 3c5e63468 (schema 22, S22-checked at -1834), with no elevation fix and no #440, as the comparison. The owner: "Go". Dispatch 2026-10-30-10: stop on a schema above 22, a newer versionCode or a signing mismatch.
 **Notes:** Written by the planner by hand. Next free ID -1849.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1849
+**Timestamp:** 2026-10-30T18:48:06Z
+**Continues:** 2026-09-28-1848
+**Title:** The S26 keeps its own build as the walk's comparison phone; the 4182 install was blocked by its stop rules
+**Observed:** the helper stopped at step 1 of dispatch 2026-10-30-10, with nothing installed and nothing written. The S26 is on 1.0.4204+ge4e25e87, schema 23. That is a NEVER MERGE debug build on origin/street-v4-s22-debug (Street v4 map style), not installed by this session. It contains #445, but not #447 or #440. Its data copy had 0 tracks, waypoints, regions and entries, with integrity ok. The download had failed on a full /tmp (80% of the 5.6 GB tmpfs).
+**Decision:** the owner: "Yes", to keeping the S26's current build as the comparison phone. It shows the old way-home climb and altitude beside the S22's #447 + #440 build.
+**Notes:** Written by the planner by hand. The S26 has no Region 1 or track, so its way-home figures need a track recorded on the walk. A /tmp cleanup is pending. Next free ID -1850.
