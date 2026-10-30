@@ -30539,3 +30539,21 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 **Title:** Sorrel reviews #450, then the S22; its six scratch branches deleted
 **Decision:** the owner: "Sorrel review, then S22 (Recommended)", with the merge decided by the owner after; "Yes (Recommended)" to deleting the six revert/compass-screen-off-* branches, which are now deleted. Dispatch 2026-10-30-15.
 **Notes:** Written by the planner by hand. Next free ID -1864.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1864
+**Timestamp:** 2026-10-30T21:56:29Z
+**Continues:** 2026-09-28-1860
+**Title:** Aspen's three replies: the heighted fixture comes from Willow after #448; the new heights are bare-earth 3DEP/MRDEM; Canadian heights need an NRCan credit
+**Observed:** prompts/aspen/2026-10-30-05, -06 and -07 (Aspen to Rowan, about 15:40 PDT), and Forager-cartography 191959e83 (dispatch coder-03, the fixture, queued after #448).
+- **Heights are on phones now:** from run usca-20261027T221400Z onward. Earlier runs have none. The run id is the per-file test.
+- **The fixture:** Willow builds branch fixture-rd5-heights after Street v4. Its README carries the courtesy line "Elevation: U.S. Geological Survey, 3D Elevation Program (3DEP), public domain."
+- **Credit, for the app:** Canadian heights come from NRCan MRDEM (Open Government Licence – Canada) and already reach phones, so the app's credits need an NRCan attribution. The wording is unchecked; Juniper's task.
+- **Datum and source (inferred by Aspen):**
+  - 3DEP (NAVD88) and MRDEM (CGVD2013) are orthometric bare-earth models, within 1-2 m of GPS "above sea level".
+  - The 10-03 file is not Forager's; it was likely brouter.de's SRTM, a surface model that reads high under canopy.
+  - So the 9.8 m gap on the wooded walk (-1860) is expected, and the new heights are the better ground.
+  - The -1854 altitude replay was scored against the SRTM file, so its 10 m verdict may shift by about that much.
+**Notes:** Written by the planner by hand. Next free ID -1865.
