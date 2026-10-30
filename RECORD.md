@@ -30623,3 +30623,13 @@ The planner ruled Q6, the Back retrace, Q10 and Q11. Dispatch 2026-10-30-08 Amen
 - **N-6:** the 10 s figure is not found by name in -761 to -769.
 - Nine phone-only checks are listed for the S22 step.
 **Notes:** Written by the planner by hand. Next free ID -1870.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1870
+**Timestamp:** 2026-10-30T22:04:54Z
+**Continues:** 2026-09-28-1869
+**Title:** #450 takes N-1, N-2 and N-4 before the phone; then a combined S22 build
+**Decision:** the owner chose "Add the dialog/split-screen test (N-1)", "Fix the PR's report link (N-2)" and "Close the GPS-loss gap too (N-4)". Then "New combined build after the fixes (Recommended)": #447 + #440 + #450 + tools, built on CI with the routing key, installed with data kept, and Sorrel's nine phone checks run. Dispatch 2026-10-30-14 Amendment 2.
+**Notes:** Written by the planner by hand. A fresh coder takes it. Next free ID -1871.

@@ -41,3 +41,12 @@ The first stop is docs/audits/2026-10-30-compass-screen-off-first-stop.md (compa
 - Tests fail first, then revert checks per rule. Build logs must have no compile errors, and restores come from saved copies.
 - CI only. A PR into pre-main, with no merge.
 - The device check comes later, on the planner's word: confirm the screen-off redraws stop while recording with the app in front, and re-measure the CPU against the 10-30 figure.
+
+## Amendment 2 (2026-10-30): Sorrel's review of #450 (RECORD -1870)
+Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr450.md (sorrel-pr450, 745a5797a). It has no S findings. The owner chose all three:
+- **N-1:** a test that moves the activity to STARTED, not RESUMED (a dialog or split-screen), and asserts the compass listener stays registered and the heading keeps updating. Then a revert check: STARTED → RESUMED must fail it.
+- **N-2:** push the completion report under docs/audits/, with the six revert run ids from RECORD -1862, and point the PR body at it.
+- **N-4, pre-existing:** the trust judge is rebuilt on every hasFix flip (TrueHeading.kt:119-120), so a calibrating compass is trusted at once after GPS is lost and regained. Apply the owner's re-check there too: a fix flip must not clear an untrusted state without the hold. Fail first, then a revert check. If it needs more than a small change, stop and report.
+- Merge pre-main in if it has moved. Get CI green. No merge.
+
+After this, the planner dispatches a combined S22 build (#447 + #440 + #450 + tools, on CI) for Sorrel's nine phone checks.
