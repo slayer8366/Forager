@@ -29906,3 +29906,18 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** The #440 tools build goes on the S22
 **Decision:** the owner: "S22 plugged in", under -1813. Dispatch 2026-10-29-08: install 1.0.4180+gb18bd56d over #440 with Region 1 and the walk track kept, grant ACTIVITY_RECOGNITION and READ_BASIC_PHONE_STATE, switch the logger on, and run a 60 s indoor recording to show it writes a log.
 **Notes:** Written by the planner by hand. Next free ID -1816.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1816
+**Timestamp:** 2026-10-30T03:00:39Z
+**Continues:** 2026-09-28-1815
+**Title:** The #440 tools build is on the S22, the walk logger on and writing
+**Observed:** Hazel (Opus; s22-tools-install a5586a251, docs/audits/2026-10-29-s22-tools-install.md; evidence in /home/zynergy-labs/s22-2026-10-29/tools/).
+- **Install:** 1.0.4180+gb18bd56d (run 40961642397, attempt 2; digest matched; same signing certificate) went on with `install -r` over 4175. The schema stayed at 22, and Region 1 and the walk track (76 points, 3 waypoints) were kept.
+- **Permissions:** ACTIVITY_RECOGNITION was granted by adb. READ_BASIC_PHONE_STATE is install-time on Android 16 and already read granted.
+- **The logger:** switched on through the app.
+- **Test:** a 77 s indoor recording wrote walklog-20261030T025128Z.txt (1.2 MB): 159 fixes, 383 barometer readings, and about 2,700 satellite records. The phone lay still, so there were no step records.
+- **Noticed:** the log's header reads "sim=UNKNOWN dataNetworkType=LTE" on a phone with no SIM (not checked). Deleting the test track left its Start and End waypoints unlinked; the helper deleted them too (beyond dispatch -08's words, disclosed).
+**Notes:** Written by the planner by hand. Whether a track's delete should take its auto Start and End waypoints with it is a question for later, not a ruling. Next free ID -1817.
