@@ -249,9 +249,10 @@ class CompassScreenOffTest {
         composeRule.waitForIdle()
         assertEquals("the compass listener was dropped while the app is paused but still on screen", 1, shadow.listeners.size)
 
+        // The heading State is what the strip and the HUD read. The strip's text is not read here: the Compose test harness
+        // finds no hierarchy in a paused activity (CI run 41135927202, "No compose hierarchies found", at the stripText call).
         send(90f)
         assertHeading("a reading while paused did not reach the heading", 90f)
-        assertEquals("90° E", stripText())
     }
 
     /**
