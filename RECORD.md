@@ -30013,3 +30013,14 @@ Also: "Merge when ready", scoped to "#386 only (Recommended)", once Sorrel's rev
 **Title:** Route elevation comes from an online lookup until the trail data carries heights; the release no longer waits on Aspen's elevation build
 **Decision:** the owner: "Have the elevation use the online info for now also. Until we get elevation done by Aspen". Then: "No, ship with online (Recommended)"; "Fill in later (Recommended)", meaning a route plotted offline shows "—" with "Elevation when online" and fills in at the next connection. The planned service is Open-Meteo's elevation endpoint; its terms and grid are unverified and are confirmed before building. Plan Addendum 2.
 **Notes:** Written by the planner by hand. The release waits on trail-navigation steps 6-11 and route plotting. Next free ID -1825.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1825
+**Timestamp:** 2026-10-30T10:43:45Z
+**Continues:** 2026-09-28-1823
+**Title:** #443 green; Sorrel reviews #443 and #444 together, then the S22 checks both
+**Observed:** #443 (Hazel, Opus): code 14ce937fb, run 41040930086 green, 5910 tests, 0 failures. The new guard bites: run 41040950352, 0 compile errors, "Expected exactly '1' node but found '2'". #444 green at 6f0406ccd (-1823). The two old commits removed from the record are pruned on the laptop, and git fsck --connectivity-only is clean.
+**Decision:** the owner: "Wait for #443, do both together". Dispatch 2026-10-30-01: Sorrel (Fable) reviews both, then the S22 check covers both. The owner decides the merge.
+**Notes:** Written by the planner by hand. Next free ID -1826.
