@@ -295,7 +295,7 @@ class RoutePlottingScreenTest {
     }
 
     @Test
-    fun `a route trip's pin opens the route at once: no bubble, the card under its name, and a fit that ends following`() {
+    fun `a route trip's pin opens the route at once, with no bubble, the card under its name, and a fit that ends following`() {
         setScreen()
         ACROSS.forEach { (fx, fy) ->
             composeRule.runOnUiThread { plotting.onCloseSavedRoute() }
