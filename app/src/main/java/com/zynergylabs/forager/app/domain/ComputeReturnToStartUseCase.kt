@@ -19,6 +19,7 @@ class ComputeReturnToStartUseCase {
             bearingDegrees = GeoDistance.initialBearingDegrees(currentLatLng, startLatLng),
             distanceMeters = GeoDistance.metersBetween(currentLatLng, startLatLng),
             elevationDifferenceMeters = elevationDifferenceMeters,
+            startAltitudeMeters = startAltitude,
         )
     }
 }

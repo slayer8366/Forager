@@ -22,6 +22,10 @@ import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.NoLastKnownLocation
+import com.zynergylabs.forager.app.domain.NoBarometer
+import com.zynergylabs.forager.app.domain.NoSeaLevelConverter
+import com.zynergylabs.forager.app.domain.PressureProvider
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
@@ -183,6 +187,9 @@ class AvailabilityViewModel(
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /** Step 6 PR 3: the way to a waypoint along trails (AppContainer.findWayToWaypoint); `null`, none (tests), is today's straight line. */
     private val findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
+    /** Dispatch 2026-10-28-13: the barometer and the sea-level converter behind the live height ([AvailabilityLiveLocation]). Defaulted to none: "Alt unavailable". */
+    private val pressureProvider: PressureProvider = NoBarometer,
+    private val seaLevelConverter: SeaLevelConverter = NoSeaLevelConverter,
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -360,7 +367,13 @@ class AvailabilityViewModel(
         scope = { viewModelScope },
         locationTracker = locationTracker,
         lastKnownLocation = lastKnownLocation,
+        pressureProvider = pressureProvider,
+        seaLevelConverter = seaLevelConverter,
+        errorLog = errorLog,
     )
+
+    /** The locate-me button, moved to its own class by dispatch 2026-10-28-13 (the modular rule): see the class. */
+    private val locateMeButton = AvailabilityLocateMe({ _uiState.value }, { transform -> _uiState.update(transform) }, { viewModelScope }, locationProvider)
 
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
@@ -591,40 +604,17 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(locationPermissionDenied = true) }
     }
 
-    /**
-     * The map icon stack's GPS/locate-me button: recenters the map on the device's live location.
-     * Deliberately independent of [useCurrentLocation] above — that one sets the *search region*
-     * and re-runs the search; this one only reports a point for the map to pan to, touching
-     * neither [AvailabilityUiState.region] nor any search state. [LocateMeStatus] carries its own
-     * denied/unavailable states rather than reusing [AvailabilityUiState.locationPermissionDenied],
-     * which belongs to the other control.
-     */
-    fun locateMe() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(locateMeStatus = LocateMeStatus.Loading) }
-            val status = when (val result = locationProvider.getCurrentLocation()) {
-                // RECORD -1525: tagged with the search it arrived under, read now (see LocateMeStatus.Located).
-                is LocationResult.Success ->
-                    LocateMeStatus.Located(LatLng(result.lat, result.lng), result.altitude, _uiState.value.searchFrameSerial)
-                LocationResult.PermissionDenied -> LocateMeStatus.PermissionDenied
-                LocationResult.LocationUnavailable -> LocateMeStatus.Unavailable
-            }
-            _uiState.update { it.copy(locateMeStatus = status) }
-        }
-    }
+    /** The map icon stack's locate-me button: see [AvailabilityLocateMe.locateMe]. */
+    fun locateMe() = locateMeButton.locateMe()
 
-    /**
-     * The Activity denied the OS permission dialog before [locationProvider] was ever asked — see
-     * [onPermissionDenied] for why that gate is the Activity's job, not this class's. Mirrors it
-     * for [LocateMeStatus] rather than [AvailabilityUiState.locationPermissionDenied], which is the
-     * other control's field.
-     */
-    fun onLocateMePermissionDenied() {
-        _uiState.update { it.copy(locateMeStatus = LocateMeStatus.PermissionDenied) }
-    }
+    /** See [AvailabilityLocateMe.onLocateMePermissionDenied]. */
+    fun onLocateMePermissionDenied() = locateMeButton.onLocateMePermissionDenied()
 
     /** See [AvailabilityMapDisplay.onMapShown]. */
     fun onMapShown() = mapDisplay.onMapShown()
+
+    /** See [AvailabilityLiveLocation.onMapsTabShownChanged]. */
+    fun onMapsTabShownChanged(shown: Boolean) = liveLocation.onMapsTabShownChanged(shown)
 
     /** See [AvailabilityMapDisplay.onFindDeleted]. */
     fun onFindDeleted(id: String) = mapDisplay.onFindDeleted(id)

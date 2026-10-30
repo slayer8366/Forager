@@ -88,7 +88,7 @@ abstract class LandscapeStripButtonTests {
         composeRule.setContent {
             key(generation) {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = navigating,
                 ),

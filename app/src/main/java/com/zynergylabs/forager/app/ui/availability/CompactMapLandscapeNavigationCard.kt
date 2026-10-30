@@ -174,6 +174,8 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             onExit = navigation.onToggleReturning,
             // RECORD -845: "Arrived", held, after a return ended on arrival.
             arrivalHeld = navigation.isArrivalHeld,
+            // Dispatch 2026-10-28-13: the strip's own height, so the card cannot read another.
+            heightMeters = uiState.liveAltitudeMeters,
             sundownLine = sundownLine,
             backByLine = backByLine,
             // RECORD -955, C ("C yes", extending -770): the evening lines leave the card where they would take its top over Reset

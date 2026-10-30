@@ -80,6 +80,8 @@ internal fun NavigationInfo(
     eveningLineBottomLimitInRootPx: Float? = null,
     eveningLineTopLimitInRootPx: Float? = null,
     arrivalHeld: Boolean = false,
+    /** The strip's live height above sea level (dispatch 2026-10-28-13), so the card's cannot differ from it. */
+    heightMeters: Double? = null,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -91,7 +93,7 @@ internal fun NavigationInfo(
             value = currentTime.nowEpochMillis()
         }
     }
-    val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
+    val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing, heightMeters)
     val readout = if (arrivalHeld) heldArrivalReadout(liveReadout) else liveReadout
     // RECORD -955: the info's own bottom in the root, for a card anchored to the bottom edge (RECORD -953), whose top is its bottom
     // less its height. The height the decision uses is built from parts the evening stack does not change (the top padding, the left

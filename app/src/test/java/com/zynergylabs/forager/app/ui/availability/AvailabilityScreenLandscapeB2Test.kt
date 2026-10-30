@@ -978,7 +978,7 @@ private fun b2FixStateAt(now: Long) = B2_SEARCHED_STATE.copy(
         timestampEpochMillis = now,
         provider = FixProvider.GPS,
     ),
-)
+).withFixHeight()
 
 private val B2_FIX_STATE = b2FixStateAt(B2_DAY_NOW)
 
