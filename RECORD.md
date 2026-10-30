@@ -30347,3 +30347,13 @@ Dispatch 2026-10-30-08 opens with a look-only first stop.
 - **Phone:** on 1.0.4224+gc4a57389, schema 23. Region 1, the walk track and the waypoints hash identical to the backup. ACTIVITY_RECOGNITION granted, logger on.
 - **Region 1's route data** is from run usca-20261027T221400Z, cut 2026-10-27. By date it is before heights went live on 10-28, so it most likely has none; the file itself was not read. On the walk, the way home will use the track stand-in (P1).
 **Notes:** Written by the planner by hand. Next free ID -1851.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1851
+**Timestamp:** 2026-10-30T20:01:23Z
+**Continues:** 2026-09-28-1850
+**Title:** The 10-30 walk is read on the S22 for altitude (#440) only
+**Decision:** the owner: "Walk done, S22 plugged in"; asked what to look into: "Altitude (#440)". Dispatch 2026-10-30-11 measures the shown height against trail-data heights (pass mark within 10 m, -1796), checks the first-minute blend and the Amendment 4 carry-over, and may download one small area for ground truth and delete it after.
+**Notes:** Written by the planner by hand. Next free ID -1852.
