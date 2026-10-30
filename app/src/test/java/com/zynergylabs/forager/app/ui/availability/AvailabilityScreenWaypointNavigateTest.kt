@@ -20,6 +20,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -50,6 +51,7 @@ import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_DIRECTIONS_TAG
 import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_NAVIGATE_TAG
 import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_TITLE_TAG
@@ -272,6 +274,19 @@ class AvailabilityScreenWaypointNavigateTest {
 
     private fun openBubble() = touchCentreOf(glyphTag("wp-1"))
 
+    /** Dispatch 2026-10-29-09 (RECORD -1819): where Navigate is offered, labelled "Navigate", Directions is not. */
+    private fun assertNavigateNotDirections(navigateTag: String, directionsTag: String) {
+        assertEquals("Navigate", text(navigateTag))
+        composeRule.onNodeWithTag(directionsTag).assertDoesNotExist()
+    }
+
+    /** The same for a waypoint row, whose buttons are icons named for the waypoint. */
+    private fun assertRowNavigateNotDirections() {
+        composeRule.onNodeWithTag(waypointRowNavigateTag("wp-1")).performScrollTo()
+        composeRule.onNodeWithContentDescription("Navigate to Creek pin").assertExists()
+        composeRule.onNodeWithContentDescription("Directions to Creek pin").assertDoesNotExist()
+    }
+
     private fun openRecords() {
         composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
         composeRule.waitForIdle()
@@ -310,6 +325,7 @@ class AvailabilityScreenWaypointNavigateTest {
     fun `from a waypoint's bubble on the Maps tab, Navigate targets that waypoint, with no recording`() {
         setScreen()
         openBubble()
+        assertNavigateNotDirections(MAP_BUBBLE_NAVIGATE_TAG, MAP_BUBBLE_DIRECTIONS_TAG)
 
         touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
 
@@ -331,6 +347,7 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithTag(RECORD_DETAILS_NAVIGATE_TAG).performScrollTo()
+        assertNavigateNotDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
         touchCentreOf(RECORD_DETAILS_NAVIGATE_TAG)
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
@@ -342,12 +359,28 @@ class AvailabilityScreenWaypointNavigateTest {
     fun `from a Records row, Navigate targets that waypoint on the Maps tab`() {
         setScreen()
         openRecords()
+        assertRowNavigateNotDirections()
 
         touchRowNavigate()
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
         assertHudAimsAtCreek()
         assertTrue("on the Maps tab", map.content != null && shown(NAVIGATION_HUD_TAG))
+    }
+
+    /** Dispatch 2026-10-29-09: the All logbook's waypoint row is the same row, with the same Navigate and no Directions. */
+    @Test
+    fun `from a Records All row, Navigate targets that waypoint on the Maps tab`() {
+        setScreen()
+        openRecords()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).performScrollTo().performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertRowNavigateNotDirections()
+
+        touchRowNavigate()
+
+        assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
+        assertHudAimsAtCreek()
     }
 
     @Test
@@ -359,6 +392,7 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithTag(RECORD_DETAILS_NAVIGATE_TAG).performScrollTo()
+        assertNavigateNotDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
         touchCentreOf(RECORD_DETAILS_NAVIGATE_TAG)
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
@@ -638,7 +672,7 @@ class AvailabilityScreenWaypointNavigateTest {
         assertHudAimsAtCreek()
     }
 
-    // ── Entry maps offer Navigate too (RECORD -890; until then Directions only, Amendment 1) ──
+    // ── Entry maps offer Navigate too (RECORD -890; until then Directions only, Amendment 1; Directions gone, -1819) ──
 
     /** Sets the screen with a saved entry holding the creek pin, open on the Journal with its map drawn, and opens the pin's bubble by a real touch. */
     private fun openEntryBubble() {
@@ -659,14 +693,15 @@ class AvailabilityScreenWaypointNavigateTest {
 
     /**
      * RECORD -890 (the owner: "Waypoints only, as described (Recommended)"): a waypoint's bubble on a journal entry's map
-     * offers Navigate beside Directions and Details, and a real touch on it opens the Maps tab navigating to that
-     * waypoint, as from Records. Until 2026-10-11 this test was `a waypoint's bubble on a journal entry's map offers
-     * Directions, not Navigate` (dispatch -502, Amendment 1); its "no Navigate" assertion is inverted here, as -890 rules.
+     * offers Navigate and Details, and a real touch on it opens the Maps tab navigating to that waypoint, as from
+     * Records. Until 2026-10-11 this test was `a waypoint's bubble on a journal entry's map offers Directions, not
+     * Navigate` (dispatch -502, Amendment 1); its "no Navigate" assertion is inverted here, as -890 rules. Its Directions
+     * assertion was inverted by dispatch 2026-10-29-09 (RECORD -1819): where Navigate is offered, Directions is not.
      */
     @Test
     fun `from a waypoint's bubble on a journal entry's map, Navigate targets that waypoint on the Maps tab`() {
         openEntryBubble()
-        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
+        assertNavigateNotDirections(MAP_BUBBLE_NAVIGATE_TAG, MAP_BUBBLE_DIRECTIONS_TAG)
         composeRule.onNodeWithTag(MAP_BUBBLE_DETAILS_TAG).assertExists()
 
         touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
