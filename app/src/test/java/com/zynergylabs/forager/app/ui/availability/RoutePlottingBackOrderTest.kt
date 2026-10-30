@@ -81,6 +81,9 @@ class RoutePlottingBackOrderTest {
         composeRule.waitForIdle()
     }
 
+    /** Five real touches inside a round control's circle: 0.2 and 0.8 of each side, and the centre (LandscapeLClusterTest). */
+    private val ROUND_ACROSS = listOf(0.2f to 0.2f, 0.8f to 0.2f, 0.5f to 0.5f, 0.2f to 0.8f, 0.8f to 0.8f)
+
     private fun touchAcross(node: SemanticsNodeInteraction, fx: Float, fy: Float) {
         node.performTouchInput { click(Offset(width * fx, height * fy)) }
         composeRule.waitForIdle()
@@ -151,7 +154,10 @@ class RoutePlottingBackOrderTest {
     @Test
     fun `in fullscreen, the first Back cancels plotting and fullscreen stays, and the next Back leaves fullscreen`() {
         setScreen()
-        ACROSS.forEach { (fx, fy) ->
+        // The Fullscreen control is a round icon button whose touches are clipped to its circle, so its samples sit at 0.2 and
+        // 0.8 of its bounds, as LandscapeLClusterTest.fractions() samples the same control; a 0.1 corner falls outside the circle
+        // (Amendment 4, the owner: "Apply both (Recommended)").
+        ROUND_ACROSS.forEach { (fx, fy) ->
             val where = "fullscreen entered by a touch at ($fx, $fy)"
             // Fullscreen first, so the card is not yet over the map when its control is touched.
             touchAcross(composeRule.onNodeWithContentDescription("Fullscreen"), fx, fy)

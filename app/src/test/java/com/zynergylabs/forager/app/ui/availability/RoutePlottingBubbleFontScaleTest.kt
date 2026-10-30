@@ -34,15 +34,21 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * A waypoint bubble's three actions, Navigate, Plot route and Details, at font scale 2.0 on a narrow phone (dispatch
  * 2026-10-30-08, Amendment 3): since that dispatch they sit in a FlowRow, which wraps rather than squeezing a third action
  * out. Each is displayed, inside the bubble and the window, clear of the others, and "Plot route" answers real touches across
  * it. Navigate is offered because the screen is handed a waypoint navigation entry point, as MainActivity hands it one.
+ *
+ * Native graphics (Amendment 4), as LandscapeLargeFontTest: without it Robolectric measures text at a few dp wide, the three
+ * actions fit on one line at any font scale, and the FlowRow never wraps, which is why a `maxLines = 1` revert passed both tests
+ * (run 41135424879). The first test now also checks the row did wrap, so it is about wrapping and not only about fitting.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class RoutePlottingBubbleFontScaleTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
@@ -113,6 +119,10 @@ class RoutePlottingBubbleFontScaleTest {
             assertTrue("$label $at is inside the window $window", window.contains(at))
             label to at
         }
+        assertTrue(
+            "at font scale 2.0 the three do not fit on one line, so the row wrapped: ${placed.map { (l, at) -> "$l top ${at.top}" }}",
+            placed.map { it.second.top.value.toInt() }.distinct().size > 1,
+        )
         placed.forEachIndexed { i, (a, aAt) ->
             placed.drop(i + 1).forEach { (b, bAt) -> assertTrue("$a $aAt and $b $bAt do not overlap", !aAt.overlaps(bAt)) }
         }

@@ -184,12 +184,17 @@ abstract class RoutePlottingWindowTests(private val hasRail: Boolean, private va
 @Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi")
 class RoutePlottingShortLandscapeTest : RoutePlottingWindowTests(hasRail = true, besideRoom = false)
 
-/** A landscape tablet: the phone's landscape layout with the rail (AvailabilityScreenTabletAsPhoneTest). */
+/**
+ * A landscape tablet: the phone's landscape layout with the rail (AvailabilityScreenTabletAsPhoneTest). At xhdpi (Amendment 4,
+ * the owner: "Apply both (Recommended)"): at mdpi, with no density qualifier, only the centre of Undo, Cancel and Save took a
+ * touch, and their touch bounds were their own bounds; at xhdpi the five samples all take. Why mdpi differs was not
+ * determined; no real tablet runs at mdpi.
+ */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w1318dp-h824dp-land")
+@Config(sdk = [36], qualifiers = "w1318dp-h824dp-land-xhdpi")
 class RoutePlottingTabletLandscapeTest : RoutePlottingWindowTests(hasRail = true, besideRoom = true)
 
-/** A portrait tablet: the bottom nav, no rail; the card at its 640 dp cap leaves room beside it. */
+/** A portrait tablet: the bottom nav, no rail; the card at its 640 dp cap leaves room beside it. At xhdpi, as the landscape tablet. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w824dp-h1318dp")
+@Config(sdk = [36], qualifiers = "w824dp-h1318dp-xhdpi")
 class RoutePlottingTabletPortraitTest : RoutePlottingWindowTests(hasRail = false, besideRoom = true)

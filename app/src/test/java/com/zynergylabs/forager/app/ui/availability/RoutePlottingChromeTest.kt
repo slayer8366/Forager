@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.FixProvider
@@ -19,6 +20,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.ui.map.MAP_LEGEND_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
@@ -42,6 +44,8 @@ import org.robolectric.annotation.Config
  * - the owner: "Cluster stays above card (Recommended)". While the card shows, the cluster's lowest position is the card's top;
  *   when the card closes it goes back, and the height the user chose stays remembered (CLAUDE.md, UX defaults).
  * - the owner: "Pill sits above the card (Recommended)". "Return to Route" moves up to clear the card, and both stay tappable.
+ * - the owner: "Chip rises above the card (Recommended)" (Amendment 4, RECORD -1872). The legend chip's bottom clears the card's
+ *   top while the card shows, as the cluster and the pill do.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -69,14 +73,16 @@ class RoutePlottingChromeTest {
         errorLog = { _, _, _ -> },
     )
 
-    private fun setScreen(navigating: Boolean = false) {
-        val viewModel = mapLayersViewModel()
+    private fun setScreen(navigating: Boolean = false, withLegend: Boolean = false) {
+        // With a forecast store that has both groups, the forecast colour fields show and so does the legend chip.
+        val store = OneCellStore()
+        val viewModel = if (withLegend) mapLayersViewModel(store = store) else mapLayersViewModel()
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
             MapLayersTestScreen(
                 viewModel = viewModel,
                 mapSlot = map.slot,
-                store = OneCellStore(),
+                store = store,
                 waypoints = listOf(CREEK, RIDGE),
                 routePlotting = RoutePlottingControls(state, plotting),
                 uiStateTransform = { if (navigating) it.copy(liveFix = fix) else it },
@@ -185,5 +191,46 @@ class RoutePlottingChromeTest {
             composeRule.onNodeWithTag(SAVE_ROUTE_CANCEL_TAG).performTouchInput { click(center) }
             settle()
         }
+    }
+
+    private fun legendLabel(): String? =
+        composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).fetchSemanticsNode().config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label
+
+    @Test
+    fun `while the card shows, the legend chip's bottom clears the card's top, it goes back when the card closes, and real touches across it reach it`() {
+        setScreen(withLegend = true)
+        assertTrue("precondition: a colour field is showing, so the legend chip is", shown(MAP_LEGEND_CHIP_TAG))
+        val alone = bounds(MAP_LEGEND_CHIP_TAG)
+
+        startPlotting()
+        val card = bounds(ROUTE_CARD_TAG)
+        assertTrue("precondition: the legend chip in its corner (bottom ${alone.bottom}) reaches below the card's top (${card.top})", alone.bottom > card.top)
+        val withCard = bounds(MAP_LEGEND_CHIP_TAG)
+        assertTrue("the legend chip's bottom ${withCard.bottom} is at or above the card's top ${card.top}", withCard.bottom <= card.top + 0.5.dp)
+
+        composeRule.runOnUiThread { plotting.onSetExpanded(true) }
+        settle()
+        val expanded = bounds(ROUTE_CARD_TAG)
+        val withExpanded = bounds(MAP_LEGEND_CHIP_TAG)
+        assertTrue("expanded: the legend chip's bottom ${withExpanded.bottom} is at or above the card's top ${expanded.top}", withExpanded.bottom <= expanded.top + 0.5.dp)
+        composeRule.runOnUiThread { plotting.onSetExpanded(false) }
+        settle()
+
+        // Real touches across the chip, above the card: each one opens or closes the legend, and plotting goes on.
+        ACROSS.forEach { (fx, fy) ->
+            val before = legendLabel()
+            composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).performTouchInput { click(Offset(width * fx, height * fy)) }
+            settle()
+            assertTrue("a touch at ($fx, $fy) on the legend chip toggled it (was $before, now ${legendLabel()})", before != null && legendLabel() != before)
+            assertTrue("and plotting went on", plotting.uiState.value.mode is RoutePlotMode.Plotting)
+            val chip = bounds(MAP_LEGEND_CHIP_TAG)
+            val cardNow = bounds(ROUTE_CARD_TAG)
+            assertTrue("after the touch at ($fx, $fy), the chip's bottom ${chip.bottom} is at or above the card's top ${cardNow.top}", chip.bottom <= cardNow.top + 0.5.dp)
+        }
+
+        composeRule.runOnUiThread { plotting.onCancel() }
+        settle()
+        assertEquals(RoutePlotMode.Off, plotting.uiState.value.mode)
+        assertEquals("the card closed, the legend chip is back in its corner", alone.bottom.value, bounds(MAP_LEGEND_CHIP_TAG).bottom.value, 1f)
     }
 }
