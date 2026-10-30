@@ -16,11 +16,14 @@ import com.zynergylabs.forager.app.domain.routing.TrailRoute
  * - **The trail part carries the trail data's heights** ([PartHeights.TrailData], [trailDataHeights]) when every point of
  *   the engine's route has one. The route squares carry 3-inch heights since the route build of 2026-10-28 (RECORD
  *   -1835); the routing adapter keeps them ([com.zynergylabs.forager.app.domain.routing.TrailRoute.heightsMetres]).
- *   - **The two joints carry no height** (Amendment 1, J1, the owner: "Don't count the step (Recommended)"). The trail
- *     data's heights are the terrain model's and the track's are the barometer's, anchored to GPS; the two can sit metres
- *     apart, and the line is banked as one run ([climbFrom]), so a height at each joint would count that offset as a
- *     climb at one end and a descent at the other. A missing height resets the banking ([bankedClimb]), so the step is
- *     never counted, and the short straight joints count flat.
+ *   - **The step between the two kinds of height is never counted** (Amendment 1, J1, the owner: "Don't count the step
+ *     (Recommended)"). The trail data's heights are the terrain model's and the track's are the barometer's, anchored to
+ *     GPS; the two can sit metres apart, and the line is banked as one run ([climbFrom]), so joining them would count
+ *     that offset as a climb at one end and a descent at the other. One sample with no height sits between each joint
+ *     and the route's heights; a missing height resets the banking ([bankedClimb]), so the step is never counted.
+ *   - **The climb inside each joint is counted** from the walker's track's barometric heights, the stand-in's over the
+ *     joint's own metres (Amendment 2, RECORD -1842, the owner: "Count the joint climb"). Before that the joints counted
+ *     flat. What a reset still drops is the pending change short of the 4 m hysteresis, at each of the two steps.
  * - **Otherwise the trail part's heights are a stand-in** ([standInHeights]): the walker's own track between the same
  *   two trail points, the stretch the length check already measures, laid along the trail part in proportion to length
  *   (RECORD -1689, C1: "(b) Your track as a stand-in (Recommended)"). Its net rise is the same; it can read short where
@@ -41,8 +44,9 @@ sealed interface PartHeights {
     data class Barometric(val samples: List<PartHeight>, val standIn: Boolean = false) : PartHeights
 
     /**
-     * The trail data's heights at [samples], in walking order: the trail part's when every route point has one, with no
-     * height at the two joints (see the file header).
+     * The trail data's heights at [samples], in walking order: the trail part's when every route point has one, with the
+     * walker's track's on the two joints and one sample with no height between each joint and the route (see the file
+     * header).
      */
     data class TrailData(val samples: List<PartHeight>) : PartHeights
 
@@ -86,20 +90,48 @@ internal fun standInHeights(track: PartHeights?, trackMeters: Double, trailMeter
 /**
  * The trail part's heights from the trail data: [trailPoints] are the leave point, [route]'s points, then the entry
  * point, and the part is [trailMeters] long. `null` unless every one of [route]'s points has a height (Amendment 1, P1).
- * The joints carry no height (J1). A route point sits at the leave joint's length plus its distance along the route,
- * scaled so the route's own stretch is the engine's [TrailRoute.lengthMetres]; the entry point sits at [trailMeters].
+ * A route point sits at the leave joint's length plus its distance along the route, scaled so the route's own stretch
+ * is the engine's [TrailRoute.lengthMetres].
+ *
+ * The two joints carry [track]'s heights, the walker's track laid along the trail part ([standInHeights]), over the
+ * joint's own metres: its samples to the end of the joint and one interpolated there (Amendment 2, RECORD -1842, the
+ * owner: "Count the joint climb"). Between each joint and the route's heights sits one sample with no height, so the
+ * step between the barometer's heights and the trail data's is never counted (J1).
  */
-internal fun trailDataHeights(trailPoints: List<LatLng>, route: TrailRoute, trailMeters: Double): PartHeights.TrailData? {
+internal fun trailDataHeights(trailPoints: List<LatLng>, route: TrailRoute, trailMeters: Double, track: PartHeights.Barometric): PartHeights.TrailData? {
     if (route.points.isEmpty() || route.heightsMetres.any { it == null }) return null
     val leaveJoint = GeoDistance.metersBetween(trailPoints.first(), route.points.first())
     val along = DoubleArray(route.points.size)
     for (k in 1 until route.points.size) along[k] = along[k - 1] + GeoDistance.metersBetween(route.points[k - 1], route.points[k])
     val scale = if (along.last() > 0.0) route.lengthMetres / along.last() else 0.0
-    val samples = ArrayList<PartHeight>(route.points.size + 2)
-    samples += PartHeight(0.0, null)
+    val samples = ArrayList<PartHeight>(route.points.size + track.samples.size + 6)
+    // The leave joint: the track's heights, then the step.
+    track.samples.filterTo(samples) { it.alongMeters < leaveJoint }
+    samples += PartHeight(leaveJoint, track.heightAt(leaveJoint))
+    samples += PartHeight(leaveJoint, null)
     route.heightsMetres.forEachIndexed { k, height -> samples += PartHeight(leaveJoint + along[k] * scale, height) }
-    samples += PartHeight(trailMeters, null)
+    // The step, then the entry joint: the track's heights from the route's last point to the entry point.
+    val routeEnd = samples.last().alongMeters
+    samples += PartHeight(routeEnd, null)
+    samples += PartHeight(routeEnd, track.heightAt(routeEnd))
+    track.samples.filterTo(samples) { it.alongMeters > routeEnd }
+    if (samples.last().alongMeters < trailMeters) samples += PartHeight(trailMeters, track.heightAt(trailMeters))
     return PartHeights.TrailData(samples)
+}
+
+/**
+ * The height at [alongMeters], straight between the samples either side; `null` when either has none, or there are no
+ * samples. Past the last sample, the last one's.
+ */
+private fun PartHeights.Barometric.heightAt(alongMeters: Double): Double? {
+    if (samples.isEmpty()) return null
+    val i = samples.indexOfLast { it.alongMeters <= alongMeters }.coerceAtLeast(0)
+    val before = samples[i]
+    val after = samples.getOrNull(i + 1) ?: return before.height
+    if (before.height == null || after.height == null) return null
+    val span = after.alongMeters - before.alongMeters
+    if (span <= 0.0) return before.height
+    return before.height + (after.height - before.height) * ((alongMeters - before.alongMeters) / span).coerceIn(0.0, 1.0)
 }
 
 /** The way home's heights in line metres ([WayHomeLine.alongMeters]), or why there are none. */

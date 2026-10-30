@@ -197,10 +197,12 @@ class FindWayHomeUseCase(
      */
     private fun trailHeights(route: TrailRoute, trailPoints: List<LatLng>, trailMeters: Double, standIn: WayHomePart): PartHeights? {
         if (standIn.heights == PartHeights.NoBarometer) return PartHeights.NoBarometer
-        trailDataHeights(trailPoints, route, trailMeters)?.let { return it }
+        val laidOut = standInHeights(standIn.heights, standIn.meters, trailMeters)
+        // The joints carry the walker's track's heights either way (Amendment 2, RECORD -1842).
+        if (laidOut is PartHeights.Barometric) trailDataHeights(trailPoints, route, trailMeters, laidOut)?.let { return it }
         val reason = "${route.heightsMetres.count { it != null }} of ${route.heightsMetres.size} trail route points have heights"
         errorLog.w(TAG, "The trail part's climb is the walker's track between the trail points: $reason.", TrailHeightsFallback(reason))
-        return standInHeights(standIn.heights, standIn.meters, trailMeters)
+        return laidOut
     }
 
     /** What [errorLog] is handed when the trail part's heights are the stand-in. */
