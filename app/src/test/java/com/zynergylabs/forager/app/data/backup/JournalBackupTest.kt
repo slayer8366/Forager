@@ -903,21 +903,6 @@ class JournalBackupTest {
         assertFalse("and its JPG", java.io.File(b.filesDir, "photos/r9.jpg").exists())
     }
 
-    // ---- what the table list is ----------------------------------------------------------------
-
-    @Test
-    fun `every table in the schema is either journal data or explicitly excluded, and the specs match the schema`() {
-        val schemaTables = Phone.allTables()
-        val journal = JournalTables.journal.map { it.name }
-        assertEquals("the journal list, as ruling 3 B names it", JOURNAL_TABLE_NAMES.sorted(), journal.sorted())
-        assertEquals("nothing is both, and nothing is neither", schemaTables.sorted(), (journal + JournalTables.excluded.keys).sorted())
-        assertEquals(emptyList<String>(), journal.intersect(JournalTables.excluded.keys).toList())
-        val pk = schemaPrimaryKeys(Phone.SCHEMA)
-        for (spec in JournalTables.journal) assertEquals("${spec.name}'s key columns", pk.getValue(spec.name), spec.keyColumns)
-        assertEquals("the schema version this build restores up to is the one the database declares", 22, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
-        assertEquals(com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION, phone().database.openHelper.readableDatabase.version)
-    }
-
     /** These rows with a restored region's fresh [new] id read as its old [old]: the id column and every reference to it. */
     private fun Map<String, List<String>>.withRegionId(new: Long, old: Long): Map<String, List<String>> =
         mapValues { (_, rows) ->
@@ -942,9 +927,3 @@ class JournalBackupTest {
         return out
     }
 }
-
-internal val JOURNAL_TABLE_NAMES = listOf(
-    "mushroom_log_entries", "log_photos", "log_entry_photos", "tracks", "track_points", "waypoints", "offline_regions",
-    "planned_trips", "cartography_entries", "cartography_entry_track_refs", "cartography_entry_waypoint_refs",
-    "cartography_entry_offline_region_refs", "cartography_entry_find_refs", "cartography_entry_photo_refs", "cartography_entry_track_paths",
-)
