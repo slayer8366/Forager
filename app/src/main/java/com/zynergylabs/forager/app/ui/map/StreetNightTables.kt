@@ -42,8 +42,19 @@ internal val STREET_V4_NIGHT_TABLES = StreetNightTables(
         0xE8EACD to 0x2E2A10, // farmland
         0xCDE5BF to 0x2C461E, // parks: the inversion #2b431d is 1.04:1 on the night water, under the ruled 1.05
     ),
-    // The tertiary's day white, dark grey at night: under the night footpath in forest, where the black inversion outranked it.
-    lineColours = mapOf("roads_major" to mapOf(0xFFFFFF to 0x333333), "roads_bridges_major" to mapOf(0xFFFFFF to 0x333333)),
+    lineColours = mapOf(
+        // The tertiary's day white, dark grey at night: under the night footpath in forest, where the black inversion outranked
+        // it; the minor roads' white with it ("Low-zoom roads").
+        "roads_major" to mapOf(0xFFFFFF to 0x333333),
+        "roads_bridges_major" to mapOf(0xFFFFFF to 0x333333),
+        "roads_minor" to mapOf(0xFFFFFF to 0x333333),
+        // Darker night rims on the area edges ("Darker rims (Recommended)", Sage's REC table), by each edge's day colour.
+        "landuse_edges" to mapOf(
+            0x94B988 to 0x38552B, 0xC2CDAA to 0x1D240B, 0xB4CAA8 to 0x203216, 0x88B99D to 0x255239, 0xADC8BC to 0x203C36,
+            0xB0ABA4 to 0x5D636C, 0xC3BFBA to 0x1D1B18, 0xD0BDB9 to 0x241A18, 0xC4BFC2 to 0x1A1919, 0xCCCEB4 to 0x131207,
+            0xC9C3BD to 0x3B352E, 0xC9C0BF to 0x3C3231, 0xC6B3C3 to 0x382735,
+        ),
+    ),
 )
 
 /**

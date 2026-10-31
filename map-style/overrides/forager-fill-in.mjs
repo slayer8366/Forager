@@ -80,10 +80,26 @@ const PARK_FILL_KINDS = ["park", "recreation_ground", "garden", "dog_park", "pit
 /** The earth fill: the settled fill's default, which no kind in its filter reaches. */
 const EARTH = "#e2dfda";
 
-/** Major-road width by zoom, and the casings' gap to match it. */
-const MAJOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 6, 0, 8, 0.8, 10, 1.3, 12, 1.9, 15, 3, 18, 13];
-/** Minor-road width by zoom, and its casing's gap. */
-const MINOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 11, 0.3, 12, 0.7, 15, 2, 18, 11];
+// The low zooms, after OSM Carto (the fill-in rulings, "Low-zoom roads, night borders, notices route": "A: OSM's treatment
+// (Recommended)", Sage's sage-11 spec): no casings below z11, the majors thinner by class, Carto's motorway widths and
+// low-zoom colours fading into the ruled ones from z10.5 to z11.5, and the minor roads a faint texture from z10.
+
+/** A value per major-road class: trunk, primary, secondary, tertiary (each with its ramps), and any other. */
+const byClass = (trunk, primary, secondary, tertiary, other) => ["match", ["get", "kind_detail"], ["trunk", "trunk_link"], trunk, ["primary", "primary_link"], primary, ["secondary", "secondary_link"], secondary, ["tertiary", "tertiary_link"], tertiary, other];
+/** Major-road width by zoom and class, and the casings' gap to match it; one width for all classes from z15. */
+const MAJOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"],
+  8, byClass(0.9, 0.9, 0.5, 0, 0.5), 9, byClass(1.1, 1.1, 0.7, 0.4, 0.7), 10, byClass(1.3, 1.3, 0.9, 0.6, 0.9),
+  11, byClass(1.6, 1.6, 1.2, 0.9, 1.2), 12, byClass(1.9, 1.9, 1.7, 1.5, 1.7), 15, 3, 18, 13];
+/** Motorway width by zoom, and its casings' gap. */
+const MOTORWAY_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 6, 0.8, 8, 1.0, 9, 1.3, 10, 1.7, 11, 2.0, 12, 2.4, 15, 5, 18, 15];
+/** The early casings (to z12): none below z11. */
+const EARLY_CASING_WIDTH = ["interpolate", ["linear"], ["zoom"], 10.9, 0, 11, 0.3, 12, 0.5];
+/** Minor-road width by zoom from z10, and its casing's gap. */
+const MINOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 10, 0.4, 11, 0.6, 12, 0.8, 15, 2, 18, 11];
+/** Carto's low-zoom road colours (style/road-colors-generated.mss, motorway-low-zoom; the others Sage's, after Carto). */
+const LOW_ZOOM = { motorway: "#e66e89", motorwayCasing: "#c24e6b", trunk: "#eeab4f", primary: "#efc46c", secondary: "#ecd58c", tertiary: "#bdb7ad", other: "#efc46c", minor: "#c4beb4" };
+/** A colour fading from its low-zoom value at z10.5 to its ruled value at z11.5. */
+const lowZoomFade = (low, ruled, from = 10.5, to = 11.5) => ["interpolate", ["linear"], ["zoom"], from, low, to, ruled];
 
 /** The lines v3 gives a night colour that v4 inverts instead, as the app's OpenStreetMap night does. */
 const INVERTED_AT_NIGHT = ["roads_major", "roads_bridges_major", ...MOTORWAY_CENTRES, "roads_rail"];
@@ -119,6 +135,15 @@ export const NIGHT_LINE_COLOURS_V4 = {
   // black inversion (3.28:1) outranked it (Sorrel's review). The other classes in the same match invert.
   roads_major: { [FILL_IN_COLOURS.tertiary]: "#333333" },
   roads_bridges_major: { [FILL_IN_COLOURS.tertiary]: "#333333" },
+  // The minor roads' white takes the tertiary's night and its band ("Low-zoom roads"); their low-zoom grey inverts.
+  roads_minor: { "#ffffff": "#333333" },
+  // Darker night rims ("Darker rims (Recommended)", Sage's REC table): each edge a shade darker than its fill's night,
+  // as by day; recorded by check-street-night, not gated. The water edges take the night water, so they stay off.
+  landuse_edges: {
+    "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
+    "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
+    "#c9c3bd": "#3b352e", "#c9c0bf": "#3c3231", "#c6b3c3": "#382735",
+  },
 };
 
 function byId(layers, id) {
@@ -159,28 +184,49 @@ export function applyFillIn(layers) {
   // --- Major roads by class, wider from z8 ---------------------------------------------------------
   // Each ramp takes its road's colour (the rulings' "Ramps": the owner, "Approve the fix (Recommended)"), so at night it
   // takes the same inversion. The draft matched trunk_link only; the other ramps fell to v3's amber.
-  const byClass = ["match", ["get", "kind_detail"], ["trunk", "trunk_link"], C.trunk, ["primary", "primary_link"], C.primary, ["secondary", "secondary_link"], C.secondary, ["tertiary", "tertiary_link"], C.tertiary, C.majorOther];
+  const classColour = lowZoomFade(
+    byClass(LOW_ZOOM.trunk, LOW_ZOOM.primary, LOW_ZOOM.secondary, LOW_ZOOM.tertiary, LOW_ZOOM.other),
+    byClass(C.trunk, C.primary, C.secondary, C.tertiary, C.majorOther),
+  );
   for (const id of ["roads_major", "roads_bridges_major"]) {
     const layer = byId(layers, id);
     layer.paint["line-width"] = MAJOR_WIDTH;
-    layer.paint["line-color"] = byClass;
+    layer.paint["line-color"] = classColour;
   }
   for (const id of ["roads_major_casing_early", "roads_major_casing_late", "roads_bridges_major_casing"]) {
     const layer = byId(layers, id);
     layer.paint["line-gap-width"] = MAJOR_WIDTH;
-    if (id === "roads_major_casing_early") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 7.5, 0, 8.5, 0.6, 12, 1];
+    if (id === "roads_major_casing_early") layer.paint["line-width"] = EARLY_CASING_WIDTH;
+    if (id === "roads_major_casing_late") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 12, 0.5, 13, 0.75, 15, 1];
+    if (id === "roads_bridges_major_casing") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 12, 0.6, 13, 1, 15, 1.5];
     layer.paint["line-color"] = ["match", ["get", "kind_detail"], ["tertiary", "tertiary_link"], C.tertiaryCasing, C.majorCasing];
   }
 
   // --- Minor roads from z11, their casing from z12 ---------------------------------------------------
-  byId(layers, "roads_minor").paint["line-width"] = MINOR_WIDTH;
+  const minor = byId(layers, "roads_minor");
+  minor.paint["line-width"] = MINOR_WIDTH;
+  minor.paint["line-color"] = lowZoomFade(LOW_ZOOM.minor, "#ffffff", 11.5, 12);
+  minor.paint["line-opacity"] = ["interpolate", ["linear"], ["zoom"], 10, 0.7, 11, 1];
   const minorCasing = byId(layers, "roads_minor_casing");
   minorCasing.paint["line-gap-width"] = MINOR_WIDTH;
-  minorCasing.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 11, 0, 12, 0.6];
+  minorCasing.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 11.5, 0, 12, 0.5];
 
   // --- Motorways and their ramps in OSM Carto's pink, with its casing ----------------------------------------
-  for (const id of MOTORWAY_CENTRES) byId(layers, id).paint["line-color"] = C.motorway;
-  for (const id of MOTORWAY_CASINGS) byId(layers, id).paint["line-color"] = C.motorwayCasing;
+  // The ramps (roads_link) keep their own widths; the motorways take Carto's, with its low-zoom pink to z11.5 and casing
+  // to z12.5, and no casing below z11.
+  for (const id of MOTORWAY_CENTRES) {
+    const layer = byId(layers, id);
+    layer.paint["line-color"] = id.includes("highway") ? lowZoomFade(LOW_ZOOM.motorway, C.motorway) : C.motorway;
+    if (id.includes("highway")) layer.paint["line-width"] = MOTORWAY_WIDTH;
+  }
+  for (const id of MOTORWAY_CASINGS) {
+    const layer = byId(layers, id);
+    if (!id.includes("highway")) { layer.paint["line-color"] = C.motorwayCasing; continue; }
+    layer.paint["line-color"] = lowZoomFade(LOW_ZOOM.motorwayCasing, C.motorwayCasing, 11.5, 12.5);
+    layer.paint["line-gap-width"] = MOTORWAY_WIDTH;
+    if (id === "roads_highway_casing_early") layer.paint["line-width"] = EARLY_CASING_WIDTH;
+    if (id === "roads_highway_casing_late") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 12, 0.5, 13, 0.75, 15, 1, 20, 15];
+  }
 
   // --- Faint area edges, after the area fills, and the water's (night: the water rule paints them the water) ------
   insertAfter(layers, "landuse_pier", {
