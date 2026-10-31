@@ -30837,3 +30837,18 @@ Dispatch 2026-10-30-08 Amendment 4.
 - Nothing installed; the S22 is still on 4224.
 **Decision:** the owner: "Find the cause, fix it, then build (Recommended)"; "Accept them as expected (Recommended)" for the three v4 failures, in this phone-only build only. Dispatch 2026-10-30-22 bisects with one PR at a time and reports the cause before any fix.
 **Notes:** Written by the planner by hand. Next free ID -1885.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1885
+**Timestamp:** 2026-10-31T04:42:25Z
+**Continues:** 2026-09-28-1884
+**Title:** The #450 test clash is #440, test-only; #450 merges first and #440 carries the one-line fix; the combined build is rebuilt on Street v4 307d3c2ac
+**Observed:** Hazel (Opus), docs/audits/2026-10-30-compass-clash.md at compass-clash-report 7e17baee2.
+- **The bisect** (#450 plus one PR each, CompassScreenOffTest only, 0 compile errors): #449, #448 and #447 pass; #440 fails (41168173103).
+- **Cause:** #440's strip reads a shown height (AvailabilityUiState.kt:426) that #450's test leaves empty (CompassScreenOffTest.kt:309). "Alt unavailable" then pushes the heading out under -713's fit rule (CompassStripMeasurement.kt:109), shown by probe run 41168825528. A control with withFixHeight() passes 9/9 (41168858919).
+- **Possible #440 effect, not confirmed:** between the first fix and its conversion, an empty height may hide the heading on a narrow screen.
+- **The coder's own slip:** one control run built on a self-undoing commit was cancelled and not cited.
+**Decision:** the owner: "In #440, merge #450 first (Recommended)"; "Yes, newest Street v4 (Recommended)". Dispatch 2026-10-30-21 Amendment 1: rebuild with street-v4 307d3c2ac (green, CLEAN) plus the test line; only the three v4 failures are allowed.
+**Notes:** Written by the planner by hand. #440 takes pre-main and the line when it is next updated. Next free ID -1886.

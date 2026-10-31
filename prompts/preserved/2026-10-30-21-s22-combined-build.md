@@ -37,3 +37,15 @@ Written by Rowan Waymark, 2026-10-30. RECORD -1883. The owner's words:
 
 ## Output
 Write docs/audits/2026-10-30-s22-combined-build.md on the tools branch and push it. Your final message: the merges, the CI run and totals, the version installed, and the data checks. The phone checks themselves (Sorrel's 14 for #449 and 9 for #450, and the credits glance) are a separate dispatch, after the owner has had the phone.
+
+## Amendment 1 (2026-10-30): the rebuild (RECORD -1885)
+The first build (285476e69, run 41165385746) was red on four tests. The clash was found by dispatch 2026-10-30-22: docs/audits/2026-10-30-compass-clash.md on compass-clash-report (7e17baee2). It is #440 meeting #450's test, which builds a fix with no shown height, a test-only break. The owner:
+- "In #440, merge #450 first (Recommended)"
+- "Yes, newest Street v4 (Recommended)"
+- "Accept them as expected (Recommended)", for the three v4 failures, in this phone-only build only.
+
+**Rebuild:**
+1. On tools/s22-combined (merge, never rebase or force-push), merge street-v4 at **307d3c2ac**. It was green and CLEAN at the time of writing; check it is still the head.
+2. Add the one-line test fix at CompassScreenOffTest.kt:309 on this branch: `AvailabilityUiState(liveFix = fix)` → `AvailabilityUiState(liveFix = fix).withFixHeight()`. It lands in #440 itself later.
+3. Run CI with workflow_dispatch. **Allowed failures are exactly these three:** StreetStyleTest.kt:77, OwnStreetStyleSourceTest.kt:78 and NightExceptionsV4Test.kt (the "every other style keeps v1 to v3" case). Any other failure, or any change in which three fail: STOP.
+4. Then Part 2 as written: a raw backup, an in-app backup, the APK checks (versionCode above 4224, signing, routing key), `install -r`, the data checks, the logger, and leaving the app on the Maps tab.
