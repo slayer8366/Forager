@@ -36,7 +36,39 @@ export const FILL_IN_COLOURS = {
   // OSM Carto's motorway fill and casing: openstreetmap-carto style/road-colors-generated.mss at 9295745d, lines 11 and 7.
   motorway: "#e892a2",
   motorwayCasing: "#dc2a67",
+  // OSM Carto's industrial lilac (style/landcover.mss:22) and buildings tan (style/buildings.mss:1), in place of RECORD
+  // -1733's greys; the outline is Carto's darken(fill, 15%) and the z14 step one shade darker than its darken(fill, 4%)
+  // #d1c6bd, whose night is 1.001:1 on the night water (the owner: "One step darker #ccc0b7").
+  industrial: "#ebdbe8",
+  building: "#d9d0c9",
+  buildingZ14: "#ccc0b7",
+  buildingOutline: "#b9a99c",
+  waterEdge: "#71c3ce",
 };
+
+/**
+ * The faint area edges by landuse kind (Sage's FAINT; the owner: "Faint (Recommended)"), a shade darker than each fill,
+ * after OSM Carto. The industrial edge is Carto's @industrial-line (style/landcover.mss:23; "OSM's #c6b3c3").
+ */
+const EDGE_COLOURS = [
+  [["forest", "wood"], "#94b988"],
+  [["scrub", "grassland", "grass", "meadow", "heath", "cemetery", "golf_course"], "#c2cdaa"],
+  [["park", "recreation_ground", "garden", "dog_park", "pitch"], "#b4caa8"],
+  [["allotments", "village_green", "playground"], "#88b99d"],
+  [["wetland"], "#adc8bc"],
+  [["bare_rock"], "#b0aba4"],
+  [["residential"], "#c3bfba"],
+  [["commercial"], "#d0bdb9"],
+  [["railway"], "#c4bfc2"],
+  [["farmland"], "#ccceb4"],
+  [["school", "university", "college"], "#c9c3bd"],
+  [["hospital"], "#c9c0bf"],
+  [["industrial"], "#c6b3c3"],
+];
+/** Settled land's edges start a zoom later, at z14, where the street grid would otherwise be crowded. */
+const EDGES_FROM_Z14 = ["residential", "commercial", "railway"];
+/** The edges' width: faint, 0.5 at z13 to 1 at z17. */
+const EDGE_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 0.5, 15, 0.75, 17, 1];
 
 /** The motorway layers, centres and casings, that take OSM Carto's colours; the tunnels keep their grey. */
 const MOTORWAY_CENTRES = ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"];
@@ -149,6 +181,35 @@ export function applyFillIn(layers) {
   // --- Motorways and their ramps in OSM Carto's pink, with its casing ----------------------------------------
   for (const id of MOTORWAY_CENTRES) byId(layers, id).paint["line-color"] = C.motorway;
   for (const id of MOTORWAY_CASINGS) byId(layers, id).paint["line-color"] = C.motorwayCasing;
+
+  // --- Faint area edges, after the area fills, and the water's (night: the water rule paints them the water) ------
+  insertAfter(layers, "landuse_pier", {
+    id: "landuse_edges",
+    type: "line",
+    source: "protomaps",
+    "source-layer": "landuse",
+    minzoom: 13,
+    filter: ["in", ["get", "kind"], ["literal", EDGE_COLOURS.flatMap(([kinds]) => kinds)]],
+    paint: {
+      "line-color": ["match", ["get", "kind"], ...EDGE_COLOURS.flatMap(([kinds, colour]) => [kinds.length === 1 ? kinds[0] : kinds, colour]), "#000000"],
+      "line-width": EDGE_WIDTH,
+      "line-opacity": ["step", ["zoom"], ["match", ["get", "kind"], EDGES_FROM_Z14, 0, 1], 14, 1],
+    },
+  });
+  insertAfter(layers, "landuse_edges", {
+    id: "water_edges",
+    type: "line",
+    source: "protomaps",
+    "source-layer": "water",
+    minzoom: 13,
+    filter: ["==", ["geometry-type"], "Polygon"],
+    paint: { "line-color": C.waterEdge, "line-width": EDGE_WIDTH },
+  });
+
+  // --- Industrial in Carto's lilac; buildings in Carto's tan, with its z14 step and outline ----------------------
+  byId(layers, "landuse_industrial").paint["fill-color"] = C.industrial;
+  byId(layers, "buildings").paint["fill-color"] = ["step", ["zoom"], C.building, 14, C.buildingZ14, 15, C.building];
+  byId(layers, "buildings_outline").paint["line-color"] = C.buildingOutline;
 
   // --- Rail, darker and stronger ---------------------------------------------------------------------
   const rail = byId(layers, "roads_rail");

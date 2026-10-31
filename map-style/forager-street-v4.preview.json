@@ -101,7 +101,12 @@
         "majorCasing": "#b4924c",
         "rail": "#8e979a",
         "motorway": "#e892a2",
-        "motorwayCasing": "#dc2a67"
+        "motorwayCasing": "#dc2a67",
+        "industrial": "#ebdbe8",
+        "building": "#d9d0c9",
+        "buildingZ14": "#ccc0b7",
+        "buildingOutline": "#b9a99c",
+        "waterEdge": "#71c3ce"
       }
     },
     "forager:night-layers": {
@@ -554,7 +559,7 @@
         "industrial"
       ],
       "paint": {
-        "fill-color": "#d1dde1"
+        "fill-color": "#ebdbe8"
       }
     },
     {
@@ -798,6 +803,183 @@
       ],
       "paint": {
         "fill-color": "#e0e0e0"
+      }
+    },
+    {
+      "id": "landuse_edges",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "minzoom": 13,
+      "filter": [
+        "in",
+        [
+          "get",
+          "kind"
+        ],
+        [
+          "literal",
+          [
+            "forest",
+            "wood",
+            "scrub",
+            "grassland",
+            "grass",
+            "meadow",
+            "heath",
+            "cemetery",
+            "golf_course",
+            "park",
+            "recreation_ground",
+            "garden",
+            "dog_park",
+            "pitch",
+            "allotments",
+            "village_green",
+            "playground",
+            "wetland",
+            "bare_rock",
+            "residential",
+            "commercial",
+            "railway",
+            "farmland",
+            "school",
+            "university",
+            "college",
+            "hospital",
+            "industrial"
+          ]
+        ]
+      ],
+      "paint": {
+        "line-color": [
+          "match",
+          [
+            "get",
+            "kind"
+          ],
+          [
+            "forest",
+            "wood"
+          ],
+          "#94b988",
+          [
+            "scrub",
+            "grassland",
+            "grass",
+            "meadow",
+            "heath",
+            "cemetery",
+            "golf_course"
+          ],
+          "#c2cdaa",
+          [
+            "park",
+            "recreation_ground",
+            "garden",
+            "dog_park",
+            "pitch"
+          ],
+          "#b4caa8",
+          [
+            "allotments",
+            "village_green",
+            "playground"
+          ],
+          "#88b99d",
+          "wetland",
+          "#adc8bc",
+          "bare_rock",
+          "#b0aba4",
+          "residential",
+          "#c3bfba",
+          "commercial",
+          "#d0bdb9",
+          "railway",
+          "#c4bfc2",
+          "farmland",
+          "#ccceb4",
+          [
+            "school",
+            "university",
+            "college"
+          ],
+          "#c9c3bd",
+          "hospital",
+          "#c9c0bf",
+          "industrial",
+          "#c6b3c3",
+          "#000000"
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          0.5,
+          15,
+          0.75,
+          17,
+          1
+        ],
+        "line-opacity": [
+          "step",
+          [
+            "zoom"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "kind"
+            ],
+            [
+              "residential",
+              "commercial",
+              "railway"
+            ],
+            0,
+            1
+          ],
+          14,
+          1
+        ]
+      }
+    },
+    {
+      "id": "water_edges",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "water",
+      "minzoom": 13,
+      "filter": [
+        "==",
+        [
+          "geometry-type"
+        ],
+        "Polygon"
+      ],
+      "paint": {
+        "line-color": "#71c3ce",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          0.5,
+          15,
+          0.75,
+          17,
+          1
+        ]
       }
     },
     {
@@ -1293,11 +1475,11 @@
           [
             "zoom"
           ],
-          "#cccccc",
+          "#d9d0c9",
           14,
-          "#c1c1c1",
+          "#ccc0b7",
           15,
-          "#cccccc"
+          "#d9d0c9"
         ],
         "fill-opacity": [
           "step",
@@ -1323,7 +1505,7 @@
       ],
       "minzoom": 15,
       "paint": {
-        "line-color": "#a6a6a6",
+        "line-color": "#b9a99c",
         "line-width": 0.75
       }
     },
