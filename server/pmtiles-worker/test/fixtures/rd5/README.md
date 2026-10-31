@@ -18,7 +18,7 @@ The fixture covers part of **Harriman and Bear Mountain State Parks, New York**:
 
 ## Files
 
-- `W75_N40.rd5`: 152,665 bytes, SHA-256 `ff6d9d8e…5990`. A sparse square: data only in tiles 1 and 6, the rest empty, as BRouter's format allows. Built from one Overpass query by BRouter 1.7.10's three map-creator steps, the same steps the Pi runs. It carries no elevation, like the Pi's squares. The cutter never made it.
+- `W75_N40.rd5`: 152,665 bytes, SHA-256 `ff6d9d8e…5990`. A sparse square: data only in tiles 1 and 6, the rest empty, as BRouter's format allows. Built from one Overpass query by BRouter 1.7.10's three map-creator steps, the same steps the Pi runs. It carries no elevation. The Pi's squares did not either until the route build of 2026-10-28 (run `usca-20261027T221400Z`), which added 3″ heights (three arc-seconds, posts about 90 m apart) to all but five pinned squares (Forager RECORD -1835); this fixture predates that and is kept as the no-heights case. The cutter never made it.
 - `make-fixture.sh`: the recipe, with the query, the pinned jar and profiles, and the hashes of every input. A rerun will not match byte for byte, because OpenStreetMap changes and BRouter stamps its build time. The committed file is the fixture of record. The 2026-10-22 run converted XML to PBF with the same pyosmium calls given as `python -c`; the script feeds them to `python -` instead.
 - `routes.json`: the rectangle the tests cut to, and seven routes, each given by two OpenStreetMap node ids and positions.
 

@@ -33,8 +33,8 @@ class WayHomeLine(val wayHome: WayHome, val trailAllowanceMeters: Double = WAY_H
 
     /**
      * The parts' heights in line metres, for the walk back's climbing allowance (`WayHomeHeights.kt`; RECORD -1689): the
-     * trail part's are a stand-in from the walker's own track until the routes carry elevation. `null` when a part
-     * carries none (the way to a waypoint).
+     * trail part's are the trail data's, or a stand-in from the walker's own track where the trail data has none for
+     * every route point (RECORD -1838). `null` when a part carries none (the way to a waypoint).
      */
     val heights: LineHeights?
 

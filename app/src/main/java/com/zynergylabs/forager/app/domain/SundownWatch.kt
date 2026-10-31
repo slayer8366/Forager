@@ -64,8 +64,9 @@ import kotlinx.coroutines.sync.withLock
  *   of its age, so a GPS fix older than five minutes withholds the estimate. The hop band is
  *   carried between ticks, as [returnWalkingTime] asks. It includes the climbing allowance
  *   ([CLIMB_ALLOWANCE_SECONDS_PER_METER], RECORD -1689) along whichever path it is measured on: the track's route home,
- *   or the way home shown, whose trail part's climb is the walker's own track's between the same two trail points, a
- *   stand-in until the routes carry elevation (`WayHomeLine`). No barometer, no allowance, logged once per recording.
+ *   or the way home shown, whose trail part's climb is the trail data's, or the walker's own track's between the same
+ *   two trail points where any route point lacks a height in the trail data (`WayHomeHeights.kt`, RECORD -1838). No
+ *   barometer, no allowance, logged once per recording.
  * - **The decision**, [DecideSundownAlertUseCase], with what has already fired.
  *
  * **Failure direction** (recorded in -516's report against RECORD -519, and still the direction): a
