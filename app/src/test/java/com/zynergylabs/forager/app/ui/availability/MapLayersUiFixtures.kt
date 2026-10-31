@@ -253,6 +253,8 @@ internal fun mapLayersViewModel(
     crowdedIcons: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
     // Dispatch 2026-10-28-08: the live journal-entry counts. Defaulted to none, every count reading 0, as before.
     entryReferenceCounts: com.zynergylabs.forager.app.domain.EntryReferenceCountSource = com.zynergylabs.forager.app.domain.NoEntryReferenceCounts,
+    // Dispatch 2026-10-30-08 Amendment 8: the Units setting. Defaulted to metric, as before.
+    unitSystemPreferences: UnitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -276,7 +278,7 @@ internal fun mapLayersViewModel(
         offlineMapRepository = offlineMapRepository,
         errorLog = errorLog,
         mapPreferencesRepository = MapLayersUiMapPreferencesRepository,
-        unitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
+        unitSystemPreferenceRepository = unitSystemPreferences,
         appThemePreferenceRepository = MapLayersUiAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(MapLayersUiTripPlanningWeatherProvider),
         getMapRecords = getMapRecords,
