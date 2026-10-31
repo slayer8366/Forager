@@ -8,7 +8,6 @@ import org.maplibre.android.location.LocationComponent
 import org.maplibre.android.location.LocationComponentOptions
 import org.maplibre.android.location.OnCameraTrackingChangedListener
 import org.maplibre.android.location.modes.CameraMode
-import sun.misc.Unsafe
 
 /**
  * A real [MapLibreMap] with a recording native map, for a test that runs the app's own camera code (`MapDataRefresh`) on it
@@ -41,11 +40,14 @@ object CameraMapFixture {
         fun setModeDirectly(mode: Int) = field(cameraController, "cameraMode").setInt(cameraController, mode)
     }
 
-    private val unsafe: Unsafe = Unsafe::class.java.getDeclaredField("theUnsafe").apply { isAccessible = true }.get(null) as Unsafe
+    // The JVM's own allocator, reached by reflection: the Android compile classpath does not carry sun.misc, the test JVM does.
+    private val unsafeType: Class<*> = Class.forName("sun.misc.Unsafe")
+    private val unsafe: Any = unsafeType.getDeclaredField("theUnsafe").apply { isAccessible = true }.get(null)!!
+    private val allocateInstance = unsafeType.getMethod("allocateInstance", Class::class.java)
 
     /** An object of [type] with no constructor run: for the parts of the SDK this map holds but the camera code never calls. */
     @Suppress("UNCHECKED_CAST")
-    fun <T> inert(type: Class<T>): T = unsafe.allocateInstance(type) as T
+    fun <T> inert(type: Class<T>): T = allocateInstance.invoke(unsafe, type) as T
 
     private fun field(owner: Any, name: String): java.lang.reflect.Field {
         var type: Class<*>? = owner.javaClass
