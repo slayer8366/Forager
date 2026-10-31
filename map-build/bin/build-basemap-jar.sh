@@ -23,6 +23,9 @@
 #
 # 0005 (dispatch 2026-10-30-coder-05; the owner: "From Sunday's run (Recommended)") brings residential, unclassified and
 # road streets into the tiles from zoom 10 instead of 12, so the street grid shows at glance level as OpenStreetMap's does.
+#
+# 0006 (dispatch 2026-10-31-coder-06; the owner: "Orchards, Plant nurseries, Vineyards") writes orchards, plant nurseries and
+# vineyards as kind farmland with kind_detail orchard, plant_nursery or vineyard, so a style can tell each apart.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -90,6 +93,12 @@ lran="$(grep -c '<testcase name="foragerForestOverBareRock' "$lreport" || true)"
 lfailed="$(grep -c '<failure\|<error' "$lreport" || true)"
 [[ "$lran" -eq 4 && "$lfailed" -eq 0 ]] || die "foragerForestOverBareRock cases in the LanduseTest report: $lran (expected 4), failures: $lfailed"
 log "Forager landuse tests ran: $lran cases, 0 failures"
+
+# Orchards, plant nurseries and vineyards (patch 0006, dispatch 2026-10-31-coder-06): foragerOrchardKindDetail 3 +
+# foragerNoKindDetail 3 = 6 cases, in the same LanduseTest report. A jar built without 0006 has none, and stops here.
+oran="$(grep -c '<testcase name="foragerOrchardKindDetail\|<testcase name="foragerNoKindDetail' "$lreport" || true)"
+[[ "$oran" -eq 6 && "$lfailed" -eq 0 ]] || die "foragerOrchardKindDetail and foragerNoKindDetail cases in the LanduseTest report: $oran (expected 6), failures: $lfailed"
+log "Forager orchard-kind tests ran: $oran cases, 0 failures"
 
 # 0003's and 0004's cases: BarriersTest 8 (5 + the mark's 3), BuildingsTest 3, WaterTest 3, each named forager*.
 for pair in BarriersTest:8 BuildingsTest:3 WaterTest:3; do

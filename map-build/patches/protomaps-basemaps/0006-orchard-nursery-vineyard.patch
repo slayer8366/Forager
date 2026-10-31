@@ -1,0 +1,112 @@
+Forager patch 0006: orchards, plant nurseries and vineyards in the landuse layer, each told apart by kind_detail
+(dispatch 2026-10-31-coder-06; the owner: "Orchards, Plant nurseries, Vineyards").
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2), with 0001 to 0005 already
+applied. Applied after them with `git apply` by map-build/bin/build-basemap-jar.sh.
+
+Upstream writes landuse=orchard (and farmyard) as kind farmland, and writes nothing for plant_nursery or vineyard.
+With this patch all three are kind farmland, and carry kind_detail = orchard, plant_nursery or vineyard, so a style
+that draws farmland draws them as before and a style can tell each apart. kind_detail is set only where the kind
+stayed farmland: an orchard whose kind a later rule takes over (a national park) gets none. Farmyards and farmland
+are unchanged, with no kind_detail.
+
+Landuse.postProcess merges neighbouring polygons with the same attributes only at zooms 6 and below, so there an
+orchard, nursery or vineyard no longer merges with plain farmland beside it. At 7 to 15 nothing is merged, before or
+after.
+
+Pinned by 6 forager* cases in LanduseTest (foragerOrchardKindDetail 3, foragerNoKindDetail 3).
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
+index c16085a..0a2c3c7 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
+@@ -18,6 +18,7 @@ import com.protomaps.basemap.feature.FeatureId;
+ import com.protomaps.basemap.postprocess.Area;
+ import java.util.List;
+ import java.util.Map;
++import java.util.Set;
+ 
+ 
+ @SuppressWarnings("java:S1192")
+@@ -170,8 +171,10 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+       with("landuse", "brownfield"),
+       use("kind", "industrial")
+     ),
++    // Forager patch 0006: plant nurseries and vineyards are farmland too (upstream writes nothing for them), and
++    // orchards, nurseries and vineyards carry kind_detail (processOsm), so a style can tell each apart.
+     rule(
+-      with("landuse", "farmyard", "orchard"),
++      with("landuse", "farmyard", "orchard", "plant_nursery", "vineyard"),
+       use("kind", "farmland")
+     ),
+     rule(
+@@ -249,11 +252,15 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+       }
+ 
+       String kind = getString(sf, matches, "kind", "other");
++      // Forager patch 0006: only where the kind stayed farmland, so it never sits on a kind a later rule took over.
++      String landuse = sf.getString("landuse");
++      String kindDetail = "farmland".equals(kind) && FORAGER_FARMLAND_DETAILS.contains(landuse) ? landuse : null;
+ 
+       features.polygon(this.name())
+         .setId(FeatureId.create(sf))
+         // Core Tilezen schema properties
+         .setAttr("kind", kind)
++        .setAttr("kind_detail", kindDetail)
+         .setAttr("sort_rank", 189)
+         // NOTE: (nvkelso 20230622) Consider zoom 5 instead...
+         //       But to match Protomaps v2 we do earlier
+@@ -312,6 +319,10 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+ 
+   public static final String LAYER_NAME = "landuse";
+ 
++  /** Forager patch 0006: the landuse values written as kind farmland with kind_detail. */
++  private static final Set<String> FORAGER_FARMLAND_DETAILS = Set.of("orchard", "plant_nursery",
++    "vineyard");
++
+   @Override
+   public String name() {
+     return LAYER_NAME;
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
+index 7c15ceb..f90ebd3 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
+@@ -605,6 +605,38 @@ class LanduseTest extends LayerTest {
+     );
+   }
+ 
++  // Forager patch 0006 (dispatch 2026-10-31-coder-06): orchards, plant nurseries and vineyards keep kind farmland, so
++  // styles that draw farmland draw them as before, and carry kind_detail so a style can tell each apart.
++  @ParameterizedTest
++  @CsvSource({
++    "orchard",
++    "plant_nursery",
++    "vineyard"
++  })
++  void foragerOrchardKindDetail(String landuse) {
++    assertFeatures(15,
++      List.of(Map.of("kind", "farmland", "kind_detail", landuse)),
++      processWith("landuse", landuse)
++    );
++  }
++
++  // Farmyards and farmland stay as they were: kind farmland, no kind_detail. So does an orchard whose kind a later
++  // rule takes over (a national park), so kind_detail is never left on a kind that is not farmland.
++  @ParameterizedTest
++  @CsvSource({
++    "farmyard, '', farmland",
++    "farmland, '', farmland",
++    "orchard, national_park, park"
++  })
++  void foragerNoKindDetail(String landuse, String boundary, String kind) {
++    var features = boundary.isEmpty() ?
++      processWith("landuse", landuse) :
++      processWith("landuse", landuse, "boundary", boundary);
++    assertFeatures(15, List.of(Map.of("kind", kind)), features);
++    var attrs = com.onthegomap.planetiler.TestUtils.toMap(features.iterator().next(), 15);
++    org.junit.jupiter.api.Assertions.assertFalse(attrs.containsKey("kind_detail"), () -> "attrs: " + attrs);
++  }
++
+   @Test
+   void postProcessFiltersSmallPolygonsBelowZoom15() throws GeometryException {
+     var small = new VectorTile.Feature("landuse", 1,
