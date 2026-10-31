@@ -30963,3 +30963,29 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 - **Not verified:** the -500 m guard bites only on a contrived edit. The S22 likely holds no pre-10-28 route data (Region 1 is from run usca-20261027, heighted), so N3's old-versus-fresh "start back by" reading probably can't be done there.
 - **Left over:** about 90 MB of scratch in /mnt/work/scratch/trail-heights/hazel-a3/.
 **Notes:** Written by the planner by hand. Not merged. Next free ID -1894.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1894
+**Timestamp:** 2026-10-31T10:02:57Z
+**Continues:** 2026-09-28-1893
+**Title:** #447, trail heights, merged into pre-main
+**Decision:** the owner: "Merge now (Recommended)". The planner merged #447 at 7606ac338: pre-main 206464058.
+**Notes:** Written by the planner by hand. #440 carries the one-line CompassScreenOffTest fix (-1885) when next updated. The elevation lines on the route card can now be dispatched, since heights reach TrailRoute. Next free ID -1895.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1895
+**Timestamp:** 2026-10-31T10:02:57Z
+**Continues:** 2026-09-28-1890
+**Title:** #449's Amendment 7 is green: the saved peek shows "N Waypoints routed", and the leg stall is fixed
+**Observed:** Hazel (Opus), route-plot-ui 1458c236d, with pre-main 53d3f7a2c merged.
+- **CI:** run 41183396324, 6055 tests, 0 failures.
+- **Fail first:** run 41181723059, 2 of 6 failed, each for its own reason.
+- **The stall fix:** routeNextLeg starts the leg job lazily after assigning legJob. Revert 41182176130 bites.
+- **The saved peek:** name and total, then "N Waypoints routed". Revert 41182177951 bites.
+- **Calls accepted by the planner:** a lazy start rather than an isActive check; the count shows twice on an expanded saved route.
+- **Not verified:** a phone, and the total's position, which is asserted but not reverted on its own.
+**Notes:** Written by the planner by hand. Not merged. Pre-main has since moved to 206464058 (#447). Next free ID -1896.
