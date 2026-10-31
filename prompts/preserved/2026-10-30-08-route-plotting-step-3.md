@@ -148,3 +148,23 @@ Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr449.md (sorrel-pr449
 - **N-8:** remove the unused imports in RoutePlottingTestFixtures.kt and RoutePlottingScreenTest.kt.
 
 N-1 and N-4 to N-7 are record only. Each rule gets fail-first, then a revert check. Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
+
+## Amendment 6 (2026-10-31): the card's layout, from the owner's first use on the S22 (RECORD -1887)
+The owner tried 1.0.4275 on the S22: "The waypoint to waypoint line at the top is useful for the total, but seems out of place being at the top, and messy with the text." Then the owner's layout, confirmed as sketched ("Yes, as sketched (Recommended)"):
+
+**Peek (while plotting):**
+- one stop: "1 Waypoint selected, tap another to route" (replaces "Tap the next waypoint");
+- two or more: "N Waypoints selected", with the total distance at the right, e.g. "3 Waypoints selected    1.9 mi". The arrow chain of names leaves the peek.
+
+**Expanded list:**
+- per leg, "<from name> to <to name>" with its distance at the right; under it, the leg's elevation;
+- last row: "N Waypoints routed" with the total distance; under it, the whole route's elevation (owner: "Yes, same form as the legs (Recommended)");
+- the elevation form (owner: "Both"): "Elevation: +240 ft (↑ 320 ↓ 80)", meaning net change, then climb and descent, in the Units setting;
+- the "No trail data, straight line" note stays on its leg.
+
+**When elevation shows** (owner: "Show them while plotting (Recommended)"): while plotting, from the trail data's heights. A saved route's elevation lines come with step 3b. Heights reach the app only through #447 (TrailRoute.heightsMetres), which isn't merged.
+- So **#449 builds the layout and words now**, and shows no elevation lines.
+- The elevation lines while plotting are a follow-up on top of #447 and #449, dispatched when #447 merges.
+- Leave a clear seam, an optional elevation per leg and for the total, so no layout change is needed then.
+
+Words, all the owner's: "1 Waypoint selected, tap another to route", "Waypoints selected", "to", "Waypoints routed", "Elevation:". Use singular "Waypoint" only for 1. Fail first, then revert checks; text asserted literally. CI green; no merge.

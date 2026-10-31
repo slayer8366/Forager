@@ -30867,3 +30867,20 @@ Dispatch 2026-10-30-08 Amendment 4.
 - **After install:** every database table hashes identical, the offline regions and tiles are unchanged, settings are byte-identical, the logger is on and ACTIVITY_RECOGNITION granted. The app is on the Maps tab.
 - **Not done:** the phone checks, and a test that the in-app backup restores.
 **Notes:** Written by the planner by hand; the planner read 4275 off the phone. Next free ID -1887.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1887
+**Timestamp:** 2026-10-31T06:42:12Z
+**Continues:** 2026-09-28-1886
+**Title:** The route card's layout redone from the owner's first use: a count and total on the peek, per-leg rows with elevation, a "routed" total
+**Observed:** the owner's S22 screenshots of 1.0.4275, 11:25 and 11:27. The peek's arrow chain of names is truncated ("Way…nt 2"). The same three waypoints reversed give 1.7 mi against 1.8 mi, with the last leg on a different trail. That is likely the hiking profile's uphill and downhill costs; not checked.
+**Decision:** the owner: "The waypoint to waypoint line at the top is useful for the total, but seems out of place being at the top, and messy with the text", with a layout of "N Waypoints selected" plus the total, legs "<A> to <B>" with distance and elevation, and "N Waypoints routed" plus the total. Then:
+- "Yes, as sketched (Recommended)";
+- "Both" (elevation as net change, then climb and descent);
+- "Yes, same form as the legs (Recommended)";
+- "Show them while plotting (Recommended)".
+
+Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The elevation lines follow on #447's merge.
+**Notes:** Written by the planner by hand. Next free ID -1888.
