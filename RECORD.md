@@ -31033,3 +31033,17 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The S22 build takes #449 eb3c92e49 and pre-main 206464058, with the stop rules stated plainly
 **Decision:** on the owner's "Elevation lines into #449, then S22 (Recommended)": dispatch 2026-10-30-21 Amendment 3. The planner, as told to the owner at -1892: any non-allowed CI failure in any job stops the install, with no re-run without the planner's word; and nothing on the phone is cleared unless named.
 **Notes:** Written by the planner by hand. Next free ID -1899.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1899
+**Timestamp:** 2026-10-31T11:13:50Z
+**Continues:** 2026-09-28-1898
+**Title:** The S22 has 1.0.4294+g8e70a28b with all of #449's rounds, and no stop rule was triggered
+**Observed:** Hazel (Opus), tools/s22-combined 8e70a28ba (route-plot-ui eb3c92e49; pre-main 206464058 already contained), report section at 9d298219f.
+- **CI:** run 41194453469, 0 compile errors, 6210 + 24 tests, exactly the three allowed v4 failures; the release build passed on its first attempt.
+- **Install:** versionCode 4294, signing equal, key present, , every table and file identical after install, the logger on.
+- **In-app backup:** forager-backup-2026-10-31-a3.zip (manifest 4280, schema 23). cached_searches is empty in all three backups.
+- **The crash buffer** was read, not cleared (empty both times). Nothing was reset.
+**Notes:** Written by the planner by hand; the planner read 4294 off the phone. Next: the formal phone checks for #449 and #450, and the credits glance. Next free ID -1900.
