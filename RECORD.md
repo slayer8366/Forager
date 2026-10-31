@@ -31057,3 +31057,30 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The S22 phone checks for #449, #450, the elevation lines and the credits
 **Decision:** the owner: "Go ahead and run the phone check". Dispatch 2026-10-31-01: Sorrel's 14 (#449) and 9 (#450), the owner's card layout, the elevation lines in both units, and the Heights credits. Throwaway data only, deleted after; nothing cleared or reset; checks that need a thumb, a system dialog or the tablet are left for the owner.
 **Notes:** Written by the planner by hand. A mechanical slip in -1899, the same as in -1856: its Install line lost the words "install -r" because a shell ran the backquoted text while the entry was written. Read it as "install -r". This entry is written with quoting that cannot run text. Next free ID -1901.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1901
+**Timestamp:** 2026-10-31T23:38:20Z
+**Continues:** 2026-09-28-1900
+**Title:** S22 phone checks, part 1: the card layout, elevation lines, S-1 and the credits pass; #450's recording trials not yet run
+**Observed:** Hazel (Opus), docs/audits/2026-10-31-s22-phone-checks.md on s22-phone-checks 2de1cced5. Evidence is in /home/zynergy-labs/s22-2026-10-31/checks/. The phone was indoors with no GPS fix.
+- **Pass:**
+  - the Heights credits (placement, link, readability);
+  - the owner's card layout, all five forms;
+  - the elevation lines in both units, none on a straight leg;
+  - 449-1 the line (day and night), 449-3 S-1 (twice), 449-9 Save (Directions 0.0 m off the first stop), 449-11 the font scale, 449-13 touches in portrait;
+  - 450-3 not recording with the screen off: 4 redraw lines, 0.4% of a core, the listener off;
+  - 450-4 return within 10 s.
+- **Partial:** 449-4, 449-6, 449-7, 449-10, 449-12.
+- **Not run:** 450-1/-2/-9 (the recording trials), 450-6/-7, 449-2/-5/-8, check 5.
+- **For the owner:** 450-5, 450-8, 449-12 (thumb), 449-14 (tablet).
+- **Findings:**
+  - F-1: the total's climb ↑13 is not the legs' sum ↑14 (banked over the whole route; inferred, code not read).
+  - F-2, unconfirmed: the bottom map button may sit over the expanded card's first row.
+  - F-3: no "—" seen after a 15-20 s screen-off; adb can't tell why.
+  - In fullscreen, the map's attribution "i" is drawn over the card's Save.
+- **Clean-up:** all TEST data deleted; every table hash matches the backup; settings restored. One new DataStore file (distance_unit_preferences) was left, holding the default.
+- **Disclosed slips:** a read-only mis-tap on an owner waypoint, and one extra Back.
+**Notes:** Written by the planner by hand. Next free ID -1902.
