@@ -168,3 +168,12 @@ The owner tried 1.0.4275 on the S22: "The waypoint to waypoint line at the top i
 - Leave a clear seam, an optional elevation per leg and for the total, so no layout change is needed then.
 
 Words, all the owner's: "1 Waypoint selected, tap another to route", "Waypoints selected", "to", "Waypoints routed", "Elevation:". Use singular "Waypoint" only for 1. Fail first, then revert checks; text asserted literally. CI green; no merge.
+
+## Amendment 7 (2026-10-31): the saved route's peek, and the leg stall (RECORD -1890)
+Amendment 6 is green at route-plot-ui bce9c2de0 (run 41179955025); its report is RECORD -1889.
+- **The saved route's peek.** The owner: "Name + total, \"N Waypoints routed\" (Recommended)". A saved route's peek shows its name with the total distance at the right, and "N Waypoints routed" under it. The arrow chain of stops goes. Fail first, then a revert check, with the text asserted literally.
+- **The leg stall** (found in Amendment 6, a defect in this PR's own code). In RoutePlottingViewModel.routeNextLeg, assign legJob before the launched body can finish (or check isActive/completion rather than non-null), so a router that answers without suspending never stalls later legs.
+  - Fail first with a test router that does **not** suspend, through the real entry points: three stops, every leg lands.
+  - Then a revert check.
+  - Keep the yield() routers' tests as they are.
+- Merge pre-main in if it moves. Full CI green. No merge, and never force-push.

@@ -30910,3 +30910,13 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 - **Found, not fixed:** in RoutePlottingViewModel.routeNextLeg, a router that answers without suspending completes the launched body on Main.immediate before legJob is assigned, so every later leg returns early. Read from the code, matching run 41178537126; not instrumented. On the phone PlotRouteUseCase.leg reads the database first and is expected to suspend (inferred). The tests' router now yields.
 - **Calls beyond the dispatch:** a saved route's peek is unchanged; the expanded form also applies to saved routes; the routed count is legs+1; the elevation sign is ASCII "-".
 **Notes:** Written by the planner by hand. The planner treats the stall as a defect in this PR's own code and has it fixed in #449 (a one-line ordering fix, with a test whose router doesn't suspend). Next free ID -1890.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1890
+**Timestamp:** 2026-10-31T07:40:12Z
+**Continues:** 2026-09-28-1889
+**Title:** A saved route's peek shows its name, the total and "N Waypoints routed"; the leg stall is fixed in #449
+**Decision:** the owner: "Name + total, \"N Waypoints routed\" (Recommended)". The planner had the leg stall fixed as a defect in #449's own code. Dispatch 2026-10-30-08 Amendment 7.
+**Notes:** Written by the planner by hand. The S22 build in progress takes bce9c2de0, which has the stall latent but is expected not to hit it on the phone. Next free ID -1891.
