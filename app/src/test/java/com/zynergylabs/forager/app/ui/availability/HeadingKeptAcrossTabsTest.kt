@@ -68,7 +68,7 @@ class HeadingKeptAcrossTabsTest {
     private fun setScreen() {
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 compassProvider = object : CompassProvider { override val heading: Flow<CompassReading?> = compass },
                 computeTrueHeading = ComputeTrueHeadingUseCase(object : DeclinationProvider {
                     override fun declinationDegrees(latitude: Double, longitude: Double, altitudeMeters: Double?, epochMillis: Long): Float = 0f

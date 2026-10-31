@@ -30,7 +30,7 @@ class NavigationHudFitTest {
         LocationFix.Update(lat = lat, lng = here.lng, altitude = 3_000.0, accuracyMeters = accuracy, timestampEpochMillis = at, provider = FixProvider.GPS)
 
     private fun readout(now: Long = t, route: ReturnRoute? = ReturnRoute.Ahead(LatLng(here.lat, here.lng + 0.001), 390.0), liveFix: LocationFix.Update? = fix(), target: Waypoint? = start) =
-        navigationReadout(TrueHeadingReading.Available(281f), liveFix, target, DistanceUnit.MILES, now, route = route)
+        navigationReadout(TrueHeadingReading.Available(281f), liveFix, target, DistanceUnit.MILES, now, route = route, heightMeters = liveFix?.altitude)
 
     // ── The short forms ──
 

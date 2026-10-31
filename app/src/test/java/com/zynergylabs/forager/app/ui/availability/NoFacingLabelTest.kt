@@ -81,7 +81,7 @@ class NoFacingLabelTest {
     private fun setScreen(navigating: Boolean) {
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = navigating,
                 ),
