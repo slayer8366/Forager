@@ -30777,3 +30777,13 @@ Dispatch 2026-10-30-08 Amendment 4.
 **Title:** #449 fixes S-1 (keep the user's view on return) and takes N-2, N-3, N-8, N-9, N-10 and N-11
 **Decision:** the owner: "Fix: keep my view (Recommended)"; and all four note groups: "Test the approved words (N-3)", "Bigger handle target (N-9)", "Crash guard (N-10) + delete closes card (N-11)", "Keep plotting reopens drawer (N-2) + imports (N-8)". Dispatch 2026-10-30-08 Amendment 5. The combined S22 build follows when it is green.
 **Notes:** Written by the planner by hand. Next free ID -1880.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1880
+**Timestamp:** 2026-10-31T02:44:12Z
+**Continues:** 2026-09-28-1868
+**Title:** Aspen: the weekly route build will publish a NOTICE file and a manifest licence field, from the first run after install
+**Observed:** prompts/aspen/2026-10-30-09 (Aspen, about 16:10 PDT). The owner, in Aspen's window: "Build writes them, from next run (Recommended)". Willow adds a NOTICE file and a licence field in routing/manifest.json, worded as in Juniper's report. It goes live with the first weekly run after install, on the owner's go, likely after 11-01. Nothing is uploaded by hand meanwhile. The app's reader of the route-area list ignores unknown keys (RouteAreaClient.kt:206 at pre-main 1ac67f12b), so the added field is safe.
+**Notes:** Written by the planner by hand. Next free ID -1881.
