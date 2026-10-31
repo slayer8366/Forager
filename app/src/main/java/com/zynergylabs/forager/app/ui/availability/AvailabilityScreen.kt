@@ -601,6 +601,10 @@ fun AvailabilityScreen(
     val mapReturn = mapReturnCallbacks(state = screenState, mapReturnMemory = mapReturnMemory)
     // Declared after leaveLogEntryEditingOfferingDiscard, which its onOpenFind calls (F3).
     // Phase 2.6, PR 2: the Maps tab's bubbles' sources, built in AvailabilityScreenMapInputs.kt (its doc comment carries M1's notes).
+    // Dispatch 2026-10-30-08: route plotting, with the way back to the Trip Planner a route was opened from (RoutePlottingTrips.kt).
+    val routeLinks = rememberRoutePlottingLinks(mapControls.routePlotting, screenState)
+    val routePlotting = routeLinks.controls
+    CloseDeletedRoute(routePlotting, uiState.plannedTrips)
     val mapBubbleSources = availabilityMapBubbleSources(
         state = screenState,
         uiState = uiState,
@@ -616,7 +620,7 @@ fun AvailabilityScreen(
         onOpenLogEntry = onOpenLogEntry,
         onNavigateToWaypoint = onNavigateToWaypoint,
         startWaypointNavigation = startWaypointNavigation,
-    )
+    ).copy(routePlotting = routePlotting)
 
     // J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a failed
     // Show or Hide on map, from the Journal's report or the Maps tab's chip, told on whichever tab is up,
@@ -721,6 +725,7 @@ fun AvailabilityScreen(
         backup = backup,
         openBackupRequest = openBackupRequest,
         openOfflineMapsFromTools = openOfflineMapsFromTools,
+        onOpenPlannedRoute = routeLinks.onOpenFromTools,
         compactMainScaffold = compactMainScaffold,
     )
     // The in-app camera, once, after the tree above, which is what puts it on top: see AvailabilityScreenInAppCamera.kt.

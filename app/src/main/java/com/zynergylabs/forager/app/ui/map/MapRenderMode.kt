@@ -301,7 +301,12 @@ data class MapRenderMode(
  * A camera frame to apply once: [id] names the request, so a map that has applied it does not
  * apply it again, and [frame] is where the camera goes.
  */
-data class MapCameraRequest(val id: String, val frame: EntryMapFrame)
+data class MapCameraRequest(
+    val id: String,
+    val frame: EntryMapFrame,
+    /** The user asked for it (a saved route opened, dispatch 2026-10-30-08): it ends GPS following first ([cameraRequestStopsFollowing]). */
+    val stopsFollowing: Boolean = false,
+)
 
 /**
  * What a map needs to draw its colour fields from stored cells (map layers L0b, B5): the store, the

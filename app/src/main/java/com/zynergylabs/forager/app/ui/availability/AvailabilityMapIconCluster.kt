@@ -268,7 +268,10 @@ internal fun BoxScope.MapIconCluster(
     // (it sits at the bottom-end corner), less a gap, as a further lowest edge for the
     // cluster. Display-only, like the nav's: the remembered position is never changed.
     val legendClusterGapPx = with(compassStripDensity) { Spacing.sm.toPx() }
-    val legendBoundPx = state.legendChipTopPx?.takeIf { !state.isOnLeftSide && !state.landscape }?.let { it - legendClusterGapPx }
+    val legendChipBoundPx = state.legendChipTopPx?.takeIf { !state.isOnLeftSide && !state.landscape }?.let { it - legendClusterGapPx }
+    // Dispatch 2026-10-30-08, Amendment 3 (the owner: "Cluster stays above card (Recommended)"): the route card's top, less the
+    // same gap, joins the legend's as the lowest edge, so the clamps and the lift below treat it as they treat the legend.
+    val legendBoundPx = listOfNotNull(legendChipBoundPx, state.routeCardTopPx?.let { it - legendClusterGapPx }).minOrNull()
     val currentLegendBoundPx by rememberUpdatedState(legendBoundPx)
     // See the comment on the LaunchedEffect below for both bounds' derivations.
     fun clampBelowChromeVerticalOffset(offsetPx: Float): Float {

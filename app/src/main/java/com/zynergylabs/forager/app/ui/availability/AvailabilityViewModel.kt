@@ -211,7 +211,7 @@ class AvailabilityViewModel(
      * The planned trips, moved to their own class by UI split Phase 2.4 PR 1. It writes this screen's state
      * through the setter here and launches in this ViewModel's own scope.
      */
-    private val plannedTrips = AvailabilityPlannedTrips(
+    internal val plannedTrips = AvailabilityPlannedTrips(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         getPlannedTrips = getPlannedTrips,

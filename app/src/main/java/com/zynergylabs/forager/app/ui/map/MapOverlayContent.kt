@@ -146,4 +146,6 @@ data class MapOverlayContent(
      * `null` on every map but the Maps tab while navigating.
      */
     val route: RouteOnMap? = null,
+    /** A plotted route (dispatch 2026-10-30-08, step 3; PlottedRouteLayers.kt): `null` on every map but the Maps tab while one shows. */
+    val plottedRoute: PlottedRouteOnMap? = null,
 )

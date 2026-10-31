@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from AvailabilityCompactMapUi.kt (dispatch 2026-10-19-14, UI split Phase 1, PR 9a).
 
+import com.zynergylabs.forager.app.ui.map.PlottedRouteOnMap
 import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
@@ -61,6 +62,8 @@ internal fun CompactMapMapSlot(
     onCameraIdle: (LatLng) -> Unit,
     /** Dispatch 2026-10-27-07: the tab's crowded-stack host, handed to the map ([MapRenderMode.crowdedStacks]). */
     crowdedStacks: CrowdedStackHost? = null,
+    /** Dispatch 2026-10-30-08: a plotted route's line ([MapOverlayContent.plottedRoute]); `null` for none. */
+    plottedRoute: PlottedRouteOnMap? = null,
 ) {
     val breadcrumbPoints = recording.breadcrumbPoints
     val waypoints = recording.waypoints
@@ -88,6 +91,7 @@ internal fun CompactMapMapSlot(
             // draw meanwhile: the return the waypoint overrules is paused, and pausing it clears its line
             // (TrackRecordingViewModel.stopReturn), so nothing here has to hide it.
             route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true, waypointStraightLine?.isOffline ?: false) else null,
+            plottedRoute = plottedRoute,
             resumeTrackingRequestId = resumeTrackingRequestId,
             // RECORD -750, item 5: each location search frames its region, following or not.
             searchFrameRequestId = uiState.searchFrameSerial,

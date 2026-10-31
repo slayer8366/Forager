@@ -112,6 +112,14 @@ internal fun shouldApplyCameraRequest(
 ): Boolean = !isGpsTracking && request != null && request.id != lastAppliedRequestId
 
 /**
+ * Dispatch 2026-10-30-08 (the planner accepted "leaving GPS-follow when a route opens"): a request that [MapCameraRequest.stopsFollowing]
+ * ends GPS following before it is applied, once per id, as a search's frame does; [shouldApplyCameraRequest] would otherwise refuse
+ * it while following, and the route the user opened would silently not be shown.
+ */
+internal fun cameraRequestStopsFollowing(isGpsTracking: Boolean, request: MapCameraRequest?, lastAppliedRequestId: String?): Boolean =
+    isGpsTracking && request != null && request.stopsFollowing && request.id != lastAppliedRequestId
+
+/**
  * What a map restores from a [MapCameraSnapshot] (Part 1 layout fixes, item 4): the camera, the region
  * target taken as already applied, and the location component's camera mode.
  */
@@ -180,6 +188,21 @@ internal fun applyCameraFrame(map: MapLibreMap, frame: EntryMapFrame, density: F
             }
             val paddingPx = (frame.paddingDp * density).roundToInt()
             val fitted = map.getCameraForLatLngBounds(bounds, intArrayOf(paddingPx, paddingPx, paddingPx, paddingPx))
+            if (fitted == null) {
+                Log.w(SIGHTINGS_MAP_TAG, "No camera for bounds ${frame.bounds}; falling back to the region move.")
+                return false
+            }
+            CameraPosition.Builder(fitted).zoom(cappedFrameZoom(fitted.zoom, frame.maxZoom)).build()
+        }
+        is EntryMapFrame.FitInsets -> {
+            val bounds = try {
+                LatLngBounds.from(frame.bounds.north, frame.bounds.east, frame.bounds.south, frame.bounds.west)
+            } catch (e: IllegalArgumentException) {
+                Log.w(SIGHTINGS_MAP_TAG, "Camera frame bounds ${frame.bounds} rejected; falling back to the region move.", e)
+                return false
+            }
+            fun px(dp: Int) = (dp * density).roundToInt()
+            val fitted = map.getCameraForLatLngBounds(bounds, intArrayOf(px(frame.leftDp), px(frame.topDp), px(frame.rightDp), px(frame.bottomDp)))
             if (fitted == null) {
                 Log.w(SIGHTINGS_MAP_TAG, "No camera for bounds ${frame.bounds}; falling back to the region move.")
                 return false

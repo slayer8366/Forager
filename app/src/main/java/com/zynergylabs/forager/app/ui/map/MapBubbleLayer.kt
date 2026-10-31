@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ForecastCell
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.availability.ObservationBubble
@@ -149,6 +151,18 @@ internal fun MapBubbleLayer(
                                 { id: String ->
                                     onDismiss()
                                     navigate(WaypointNavigationOrigin.MapBubble(id, bubble.tapped.anchorPx, bubble.tapped.bearingDeg))
+                                }
+                            },
+                            // Dispatch 2026-10-30-08: plotting starts from this waypoint, and the bubble closes.
+                            onPlotRoute = sources.routePlotting?.let { plotting ->
+                                { id: String ->
+                                    val waypoint = sources.waypoints.firstOrNull { it.id == id }
+                                    onDismiss()
+                                    if (waypoint != null) {
+                                        plotting.actions.onStartPlotting(RouteStop(waypoint.name, LatLng(waypoint.lat, waypoint.lng)))
+                                    } else {
+                                        Log.w(MAP_BUBBLE_LOG_TAG, "Waypoint $id is gone; plotting did not start.")
+                                    }
                                 }
                             },
                         )
