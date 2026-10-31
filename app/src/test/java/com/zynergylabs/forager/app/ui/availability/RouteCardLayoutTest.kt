@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.ui.route.routeCardLegDistanceTag
 import com.zynergylabs.forager.app.ui.route.routeCardLegElevationTag
 import com.zynergylabs.forager.app.ui.route.routeCardLegNameTag
 import com.zynergylabs.forager.app.ui.route.routeCardLegTag
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -79,7 +80,11 @@ class RouteCardLayoutTest {
         ),
     )
     private val plotting = RoutePlottingViewModel(
-        routeLeg = { a, b -> straight(a, b) },
+        // The router suspends once before it answers, as the app's does (PlotRouteUseCase reads the downloaded areas from the
+        // database). A router that answers without suspending stalls every leg after the first in RoutePlottingViewModel
+        // (routeNextLeg assigns legJob after an immediate launch has already finished), which is reported, not fixed, in
+        // Amendment 6's PR notes; this test is about the card, not that.
+        routeLeg = { a, b -> yield(); straight(a, b) },
         saveRoute = { _, _, _ -> Result.failure(IllegalStateException("not saved in this test")) },
         onSaved = {},
         errorLog = { _, _, _ -> },
