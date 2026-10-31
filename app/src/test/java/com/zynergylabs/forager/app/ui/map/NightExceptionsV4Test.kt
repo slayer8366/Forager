@@ -120,7 +120,8 @@ class NightExceptionsV4Test {
 
     @Test
     fun `the night tertiary sits under the trails on the night forest, grass and ground`() {
-        val tertiary = 0x333333
+        // The app's own night tertiary, as STREET_V4_NIGHT_TABLES draws it (Sorrel's re-look: not a copy of the value).
+        val tertiary = tables.lineColours.getValue("roads_major").getValue(0xFFFFFF)
         val footpath = nightColorOf((0xFF shl 24) or rgb(palette.getValue("footpath").jsonPrimitive.content)) and 0xFFFFFF
         nightGrounds.forEach { (name, ground) ->
             val ratio = contrast(tertiary, ground)
