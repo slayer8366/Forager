@@ -60,3 +60,19 @@ The owner: "Go ahead and add the change to the S22 test build".
    - the APK checks: versionCode above 4275, signing, and the routing key;
    - `install -r`, with every table hash unchanged;
    - the logger on, and the app left on the Maps tab.
+
+## Amendment 3 (2026-10-31): bring in #449's last three rounds (RECORD -1898)
+The owner: "Elevation lines into #449, then S22 (Recommended)". #449 is green at route-plot-ui eb3c92e49 (run 41193185545). It adds:
+- the saved peek;
+- the leg-stall fix;
+- the elevation lines while plotting;
+- pre-main 206464058, which has #447 and #452.
+
+**Do:**
+1. Merge origin/route-plot-ui eb3c92e49 into tools/s22-combined (merge, never rebase or force-push). Then merge origin/pre-main 206464058.
+2. Run CI with workflow_dispatch. Allowed failures: exactly the three v4 tests (StreetStyleTest, OwnStreetStyleSourceTest, NightExceptionsV4Test's v1-v3 case).
+3. Part 2 as before: a raw backup and an in-app backup; versionCode above 4280, signing and the routing key; `install -r`; every table unchanged; the logger on; the app left on the Maps tab.
+
+**Stop rules, stated plainly** (Amendment 2's helper went past two of them; RECORD -1892):
+- **Any CI failure that is not one of the three named tests, in any job, including the release build or a memory error: STOP before installing, and report.** Do not re-run a job and carry on without the planner's word.
+- **Never clear, wipe or reset anything on the phone** that the dispatch does not name. That includes logcat and crash buffers, caches, settings and permissions. Reading is fine.

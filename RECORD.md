@@ -31005,3 +31005,31 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 
 Then an S22 update with #449's head, then the formal phone checks for #449 and #450.
 **Notes:** Written by the planner by hand. Next free ID -1897.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1897
+**Timestamp:** 2026-10-31T10:50:45Z
+**Continues:** 2026-09-28-1896
+**Title:** #449's elevation lines while plotting are green
+**Observed:** Hazel (Opus), route-plot-ui eb3c92e49, with pre-main 206464058 merged.
+- **CI:** run 41193185545, 6083 tests, 0 failures.
+- **Fail first:** run 41192617844, 8 of 16 failed.
+- **Revert checks:** seven, runs 41193220257 to 41193231421, each biting.
+- **The rule:** a partly heighted leg shows no line, following #447's P1 precedent; the coder judged it obvious. Straight and unheighted legs show no line; the total only when every leg has heights.
+- **The joins carry no heights,** so elevation comes from the trail part only.
+- **On the real fixture,** one route reads "Elevation: +20 m (↑ 169 ↓ 146)", checked against an independent script.
+- **Calls accepted by the planner:** the heights live on RouteLeg.Trail, unsaved until step 3b; the total covers routed legs only; no reset between legs.
+- **Not verified:** a phone, and a partly heighted route from the real engine.
+**Notes:** Written by the planner by hand. Next free ID -1898.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1898
+**Timestamp:** 2026-10-31T10:50:45Z
+**Continues:** 2026-09-28-1897
+**Title:** The S22 build takes #449 eb3c92e49 and pre-main 206464058, with the stop rules stated plainly
+**Decision:** on the owner's "Elevation lines into #449, then S22 (Recommended)": dispatch 2026-10-30-21 Amendment 3. The planner, as told to the owner at -1892: any non-allowed CI failure in any job stops the install, with no re-run without the planner's word; and nothing on the phone is cleared unless named.
+**Notes:** Written by the planner by hand. Next free ID -1899.
