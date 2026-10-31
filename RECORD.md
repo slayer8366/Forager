@@ -30797,3 +30797,28 @@ Dispatch 2026-10-30-08 Amendment 4.
 **Title:** The combined S22 build also carries #448 (Street v4), loading v4 the way street-v4-s22-debug does
 **Decision:** the owner: "Yes let's do 448 also". The combined, never-merged S22 build is #447 + #440 + #448 + #449 + #450, plus the tools commits, plus the one-line StreetStyle.kt change from e4e25e87b (street-v4-s22-debug, which loads v4 from the street-v4 branch's raw style). It is built on CI with the routing key, after #449's Amendment 5 is green. #448 is taken at its head at build time; it is e9be0bcdd now, and GitHub reports it UNSTABLE.
 **Notes:** Written by the planner by hand. #448 stays the owner's and Aspen's to merge. Next free ID -1882.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1882
+**Timestamp:** 2026-10-31T03:39:11Z
+**Continues:** 2026-09-28-1879
+**Title:** #449's Amendment 5 is done, green; S-1 and six notes each bite
+**Observed:** Hazel (Opus), route-plot-ui bcb123bc7.
+- **CI:** run 41163885818, 6044 tests, 0 failures.
+- **S-1:** the applied camera-request id is kept in MapCameraMemory (the -750 pattern). It is tested through a real Journal → Maps tab change on a reflection fixture of MapLibre's map object. Revert run 41163906385 bites.
+- **The notes:** N-3 (14 words as text), N-9 (a 48 dp touch area at a 32 dp layout), N-10 (joinLeg guard), N-11 (delete closes card), N-2 (Keep plotting reopens the drawer) and N-8 (imports). Each bites on its own revert, except N-8, whose evidence is the compile.
+- **Calls beyond the dispatch,** accepted by the planner: the handle's top 16 dp of the summary toggles the card; the guard catches RuntimeException; tapping outside the prompt counts as Keep plotting; the fixture depends on MapLibre 13.5.0 internals; the reader no longer counts "Build Date:" lines as errors.
+- **Not verified:** a phone, the real map, and the copied steps inside the S-1 test.
+**Notes:** Written by the planner by hand. Not merged. Next free ID -1883.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1883
+**Timestamp:** 2026-10-31T03:39:11Z
+**Continues:** 2026-09-28-1881
+**Title:** The combined S22 build is dispatched
+**Decision:** on -1870, -1876 and -1881: dispatch 2026-10-30-21. Branch tools/s22-combined = pre-main 1ac67f12b + #447 1cc689166 + #440 bb25405c0 + #450 331c88214 + #449 bcb123bc7 + #448 e9be0bcdd + the tools + the Street v4 load line. It is built on CI and installed with data kept, after a raw backup and an in-app backup. #448 was green (CLEAN) at dispatch.
+**Notes:** Written by the planner by hand. Next free ID -1884.
