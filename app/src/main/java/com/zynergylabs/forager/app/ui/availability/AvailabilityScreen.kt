@@ -600,6 +600,7 @@ fun AvailabilityScreen(
     // Dispatch 2026-10-30-08: route plotting, with the way back to the Trip Planner a route was opened from (RoutePlottingTrips.kt).
     val routeLinks = rememberRoutePlottingLinks(mapControls.routePlotting, screenState)
     val routePlotting = routeLinks.controls
+    CloseDeletedRoute(routePlotting, uiState.plannedTrips)
     val mapBubbleSources = availabilityMapBubbleSources(
         state = screenState,
         uiState = uiState,

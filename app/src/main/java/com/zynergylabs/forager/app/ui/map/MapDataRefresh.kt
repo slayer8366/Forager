@@ -104,20 +104,24 @@ internal fun MapDataRefresh(
             Log.i(SEARCH_FRAME_LOG_TAG, "search frame $searchFrameRequestId applied ($searchFrame) at ${region.lat}, ${region.lng}")
             return@LaunchedEffect
         }
+        // Dispatch 2026-10-30-08, Amendment 5, S-1: the last request applied is kept above the tab when there is a camera memory,
+        // as the search frame's is, so a returning map does not apply the same request again (MapCameraMemory.appliedCameraRequestId).
+        val appliedRequestId = state.cameraMemory?.appliedCameraRequestId ?: state.lastAppliedCameraRequestId
         // Dispatch 2026-10-30-08: a request the user asked for (a saved route opened) ends following first, as a search's frame does.
-        val stopFollowing = cameraRequestStopsFollowing(isGpsTrackingBefore, cameraRequest, state.lastAppliedCameraRequestId)
+        val stopFollowing = cameraRequestStopsFollowing(isGpsTrackingBefore, cameraRequest, appliedRequestId)
         if (stopFollowing) map.locationComponent.cameraMode = CameraMode.NONE
         val isGpsTracking = isGpsTrackingBefore && !stopFollowing
         // A one-shot frame (the entry map's opening frame) stands in for this target's move: the
         // target is recorded as applied too, so the region move below does not follow it and undo it.
         // A later target change (a locate-me pan) still moves the camera, as before.
-        val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, state.lastAppliedCameraRequestId)
+        val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, appliedRequestId)
         if (frameWanted) {
             if (cameraRequest.stopsFollowing) state.cameraMoveClassifier.markUserAskedMove() else state.cameraMoveClassifier.markAppMove()
         }
         val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest.frame, resources.displayMetrics.density)
         if (frameApplied) {
             state.lastAppliedCameraRequestId = cameraRequest.id
+            state.cameraMemory?.appliedCameraRequestId = cameraRequest.id
             state.lastAppliedCameraTarget = target
         } else if (shouldMoveCameraToTarget(isGpsTracking, target, state.lastAppliedCameraTarget)) {
             val center = MapLibreLatLng(region.lat, region.lng)

@@ -235,9 +235,23 @@ class RoutePlottingViewModel(
             legFor = null
             val draft = plottingDraft() ?: return@launch
             if (draft.nextLeg != leg) return@launch
-            setDraft(if (routed != null) draft.withLeg(routed) else RoutePlotDraft(draft.stops.take(draft.legs.size + 1), draft.legs))
+            val joined = routed?.let { joinLeg(draft, it) }
+            setDraft(joined ?: RoutePlotDraft(draft.stops.take(draft.legs.size + 1), draft.legs))
             routeNextLeg()
         }
+    }
+
+    /**
+     * [draft] with [routed] as its next leg, or `null` when the leg does not join its two stops (Amendment 5, N-10): the draft
+     * refuses it, and that is a failed leg, logged and handled as a routing throw is, never a crash. `PlotRouteUseCase.leg`
+     * always joins them today, so this is a guard for a router that might not.
+     */
+    private fun joinLeg(draft: RoutePlotDraft, routed: RouteLeg): RoutePlotDraft? = try {
+        draft.withLeg(routed)
+    } catch (e: RuntimeException) {
+        // A refused leg (require) or one with no points (first() on an empty line); withLeg does not suspend, so no cancellation.
+        errorLog.w(TAG, "A routed leg did not join its two stops; its stop and any after it were removed.", e)
+        null
     }
 
     private companion object {

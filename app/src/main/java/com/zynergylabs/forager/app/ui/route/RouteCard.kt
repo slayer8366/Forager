@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +69,15 @@ val ROUTE_CARD_MAX_WIDTH: Dp = 640.dp
 
 /** How far a drag on the handle must go to move the card between peek and expanded. */
 private val HANDLE_DRAG_THRESHOLD = 24.dp
+
+/** The room the handle takes in the card's layout, as it always has: the bar sits in the middle of it. */
+private val HANDLE_LAYOUT_HEIGHT = 32.dp
+
+/**
+ * The handle's touch target (Amendment 5, N-9: "a 48 dp touch target, with the same look"), Material's minimum. The extra
+ * 16 dp reach down over the top of the summary line, which takes no touch of its own, so the card and the bar do not move.
+ */
+private val HANDLE_TOUCH_HEIGHT = 48.dp
 
 /** The card's content: the route being plotted or the saved route opened. */
 sealed interface RouteCardContent {
@@ -129,7 +139,10 @@ fun RouteCard(
     }
 }
 
-/** The handle: a tap toggles the card, and a drag up or down past [HANDLE_DRAG_THRESHOLD] expands or collapses it. */
+/**
+ * The handle: a tap toggles the card, and a drag up or down past [HANDLE_DRAG_THRESHOLD] expands or collapses it. It is laid
+ * out [HANDLE_LAYOUT_HEIGHT] tall and takes touches over [HANDLE_TOUCH_HEIGHT] from its top (Amendment 5, N-9).
+ */
 @Composable
 private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Unit) {
     val currentExpanded by rememberUpdatedState(expanded)
@@ -139,7 +152,11 @@ private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Un
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 32.dp)
+            .layout { measurable, constraints ->
+                val touch = HANDLE_TOUCH_HEIGHT.roundToPx()
+                val placeable = measurable.measure(constraints.copy(minHeight = touch, maxHeight = touch))
+                layout(placeable.width, HANDLE_LAYOUT_HEIGHT.roundToPx()) { placeable.place(0, 0) }
+            }
             .testTag(ROUTE_CARD_HANDLE_TAG)
             .clickable(role = Role.Button) { currentToggle(!currentExpanded) }
             .draggable(
@@ -153,10 +170,11 @@ private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Un
                     }
                 },
             ),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.TopCenter,
     ) {
         Box(
             Modifier
+                .padding(top = (HANDLE_LAYOUT_HEIGHT - 4.dp) / 2)
                 .size(width = 32.dp, height = 4.dp)
                 .background(LocalContentColor.current.copy(alpha = 0.4f), RoundedCornerShape(2.dp)),
         )

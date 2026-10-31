@@ -167,7 +167,16 @@ internal fun BoxScope.CompactMapRouteCard(
         )
     }
     if (state.pendingDiscard != null) {
-        DiscardRouteDialog(onDiscard = actions::onConfirmDiscard, onKeepPlotting = actions::onKeepPlotting)
+        // Amendment 5, N-2: Keep plotting after a Trip Planner row's tap puts the user back where they were, the tab the
+        // drawer was over and the drawer open, as Back does from a route opened there (RoutePlottingTrips.kt).
+        val fromTripPlanner = state.pendingDiscardFromTripPlanner
+        DiscardRouteDialog(
+            onDiscard = actions::onConfirmDiscard,
+            onKeepPlotting = {
+                actions.onKeepPlotting()
+                if (fromTripPlanner) controls.onReturnToTripPlanner()
+            },
+        )
     }
 }
 
