@@ -1,27 +1,14 @@
 package com.zynergylabs.forager.app.ui.availability
 
-import android.app.Application
-import android.content.ComponentName
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -29,26 +16,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.rules.ActivityScenarioRule
-import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
-import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.domain.route.PlottedRoute
-import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RoutePlotDraft
-import com.zynergylabs.forager.app.domain.route.RouteStop
-import com.zynergylabs.forager.app.domain.route.StraightReason
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
-import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.map.MapOverlayContent
-import com.zynergylabs.forager.app.ui.map.MapRenderMode
-import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_CANCEL_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HINT_TAG
@@ -69,11 +43,9 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
