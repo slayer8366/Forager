@@ -193,19 +193,23 @@ for (const [what, colour, against] of [
 //    roads_link and roads_bridges_link draw only motorway ramps, which take the motorways' colours (6).
 if (V4) {
   for (const id of ["roads_major", "roads_bridges_major"]) {
-    const match = style2.layers.find((l) => l.id === id)?.paint?.["line-color"];
-    if (!Array.isArray(match) || match[0] !== "match" || JSON.stringify(match[1]) !== '["get","kind_detail"]') {
-      problems.push(`${id}'s line-color is not a match on kind_detail`);
-      continue;
-    }
-    const colourOf = (kind) => {
-      for (let i = 2; i < match.length - 1; i += 2) if ([match[i]].flat().includes(kind)) return match[i + 1];
-      return match[match.length - 1];
-    };
-    for (const road of ["trunk", "primary", "secondary", "tertiary"]) {
-      const line = `${id}: ${road}_link draws ${colourOf(`${road}_link`)}, its road ${road} ${colourOf(road)}`;
-      console.log(line);
-      if (colourOf(`${road}_link`) !== colourOf(road)) problems.push(line);
+    const value = style2.layers.find((l) => l.id === id)?.paint?.["line-color"];
+    // Since the low-zoom roads, a zoom cross-fade between two matches on kind_detail: each ramp matches its road in both.
+    const matches = Array.isArray(value) && value[0] === "interpolate" ? value.slice(3).filter((_, i) => i % 2 === 1) : [value];
+    for (const match of matches) {
+      if (!Array.isArray(match) || match[0] !== "match" || JSON.stringify(match[1]) !== '["get","kind_detail"]') {
+        problems.push(`${id}'s line-color is not a match on kind_detail`);
+        continue;
+      }
+      const colourOf = (kind) => {
+        for (let i = 2; i < match.length - 1; i += 2) if ([match[i]].flat().includes(kind)) return match[i + 1];
+        return match[match.length - 1];
+      };
+      for (const road of ["trunk", "primary", "secondary", "tertiary"]) {
+        const line = `${id}: ${road}_link draws ${colourOf(`${road}_link`)}, its road ${road} ${colourOf(road)}`;
+        console.log(line);
+        if (colourOf(`${road}_link`) !== colourOf(road)) problems.push(line);
+      }
     }
   }
 }
@@ -214,7 +218,11 @@ if (V4) {
 //    (Recommended)" at night): OSM Carto's fill and casing (style/road-colors-generated.mss at 9295745d, lines 11 and 7),
 //    on the motorways and their ramps; tunnels keep their grey. No night exception, so each takes the plain inversion.
 if (V4) {
-  const dayOf = (id) => style2.layers.find((l) => l.id === id)?.paint?.["line-color"];
+  // The ruled colour is the day colour from z12.5 up: since the low-zoom roads, the last stop of a zoom cross-fade (9).
+  const dayOf = (id) => {
+    const v = style2.layers.find((l) => l.id === id)?.paint?.["line-color"];
+    return Array.isArray(v) && v[0] === "interpolate" ? v[v.length - 1] : v;
+  };
   const ruled = {
     "#e892a2": ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"],
     "#dc2a67": ["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing"],
@@ -245,7 +253,20 @@ if (V4) {
   for (const id of inverted) if (id in NIGHT_LAYER_COLOURS) problems.push(`${id} has a night exception ${NIGHT_LAYER_COLOURS[id]}; ruled: the inversion`);
   const lines = JSON.parse(text).metadata["forager:night-line-colours"];
   if (JSON.stringify(lines) !== JSON.stringify(NIGHT_LINE_COLOURS_V4)) problems.push(`forager-street-v4.json's forager:night-line-colours differs from its design table: run npm run generate:street`);
-  const RULED_LINES = { roads_major: { "#ffffff": "#333333" }, roads_bridges_major: { "#ffffff": "#333333" } };
+  // Night line colours by day colour (the rulings' "Night tertiary and rail", then "Low-zoom roads, night borders": the
+  // minor roads' white takes the tertiary's #333333 and its band; landuse_edges take Sage's REC darker rims, recorded
+  // in the output, not gated).
+  const NIGHT_RIMS = {
+    "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
+    "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
+    "#c9c3bd": "#3b352e", "#c9c0bf": "#3c3231", "#c6b3c3": "#382735",
+  };
+  const RULED_LINES = {
+    roads_major: { "#ffffff": "#333333" },
+    roads_bridges_major: { "#ffffff": "#333333" },
+    roads_minor: { "#ffffff": "#333333" },
+    landuse_edges: NIGHT_RIMS,
+  };
   if (JSON.stringify(NIGHT_LINE_COLOURS_V4) !== JSON.stringify(RULED_LINES)) problems.push(`v4's night line colours are ${JSON.stringify(NIGHT_LINE_COLOURS_V4)}, ruled ${JSON.stringify(RULED_LINES)}`);
   // Each named day colour is one its layer draws, so none is dead.
   for (const [id, colours] of Object.entries(NIGHT_LINE_COLOURS_V4)) {
@@ -306,7 +327,7 @@ if (V4) {
     for (const [colour, ks] of Object.entries(RULED_EDGES)) for (const k of ks) if (edgeOf(k) !== colour) problems.push(`landuse_edges: ${k} edge ${edgeOf(k)}, ruled ${colour}`);
     for (const l of [edges, water]) {
       if (l.minzoom !== 13 || JSON.stringify(l.paint["line-width"]) !== WIDTH) problems.push(`${l.id}: minzoom ${l.minzoom}, width ${JSON.stringify(l.paint["line-width"])}; ruled 13 and ${WIDTH}`);
-      if (l.id in NIGHT_LAYER_COLOURS || l.id in NIGHT_LINE_COLOURS_V4) problems.push(`${l.id} has a night exception; ruled: none`);
+      if (l.id in NIGHT_LAYER_COLOURS || (l.id === "water_edges" && l.id in NIGHT_LINE_COLOURS_V4)) problems.push(`${l.id} has a night exception; ruled: none (landuse_edges' darker rims are in the line table, 7)`);
     }
     const opacity = '["step",["zoom"],["match",["get","kind"],["residential","commercial","railway"],0,1],14,1]';
     if (JSON.stringify(edges.paint["line-opacity"]) !== opacity) problems.push(`landuse_edges' opacity ${JSON.stringify(edges.paint["line-opacity"])}: residential, commercial and railway land start at z14`);
@@ -320,6 +341,53 @@ if (V4) {
   const outline = layerOf("buildings_outline")?.paint?.["line-color"];
   if (outline !== "#b9a99c") problems.push(`buildings_outline ${outline}, ruled #b9a99c`);
   if (!JSON.stringify(layerOf("landuse_park_outline")).includes('"#3e7a3a"')) problems.push("landuse_park_outline changed; ruled: unchanged");
+}
+
+// 9. v4's low-zoom roads (the fill-in rulings, "Low-zoom roads, night borders, notices route": "A: OSM's treatment
+//    (Recommended)"), by hand from the rulings: casings off below z11, the majors thinner by class, the motorway
+//    widths, Carto's low-zoom colours cross-fading 10.5 to 11.5, and the minor roads a faint texture from z10.
+if (V4) {
+  const layerOf = (id) => style2.layers.find((l) => l.id === id);
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const byClass = (t, p, s2, te, o) => ["match", ["get", "kind_detail"], ["trunk", "trunk_link"], t, ["primary", "primary_link"], p, ["secondary", "secondary_link"], s2, ["tertiary", "tertiary_link"], te, o];
+  const MAJOR = ["interpolate", ["exponential", 1.6], ["zoom"],
+    8, byClass(0.9, 0.9, 0.5, 0, 0.5), 9, byClass(1.1, 1.1, 0.7, 0.4, 0.7), 10, byClass(1.3, 1.3, 0.9, 0.6, 0.9),
+    11, byClass(1.6, 1.6, 1.2, 0.9, 1.2), 12, byClass(1.9, 1.9, 1.7, 1.5, 1.7), 15, 3, 18, 13];
+  const MOTORWAY = ["interpolate", ["exponential", 1.6], ["zoom"], 6, 0.8, 8, 1.0, 9, 1.3, 10, 1.7, 11, 2.0, 12, 2.4, 15, 5, 18, 15];
+  const EARLY_CASING = ["interpolate", ["linear"], ["zoom"], 10.9, 0, 11, 0.3, 12, 0.5];
+  const MAJOR_COLOUR = ["interpolate", ["linear"], ["zoom"],
+    10.5, byClass("#eeab4f", "#efc46c", "#ecd58c", "#bdb7ad", "#efc46c"),
+    11.5, byClass("#f2bf72", "#f5d28c", "#f8e3ae", "#ffffff", "#f6d68f")];
+  const MOTORWAY_CASING_COLOUR = ["interpolate", ["linear"], ["zoom"], 11.5, "#c24e6b", 12.5, "#dc2a67"];
+  const MINOR = ["interpolate", ["exponential", 1.6], ["zoom"], 10, 0.4, 11, 0.6, 12, 0.8, 15, 2, 18, 11];
+  const ruled = [
+    ...["roads_major", "roads_bridges_major"].flatMap((id) => [[id, "line-width", MAJOR], [id, "line-color", MAJOR_COLOUR]]),
+    ...["roads_major_casing_early", "roads_major_casing_late", "roads_bridges_major_casing"].map((id) => [id, "line-gap-width", MAJOR]),
+    ["roads_major_casing_early", "line-width", EARLY_CASING],
+    ["roads_major_casing_late", "line-width", ["interpolate", ["linear"], ["zoom"], 12, 0.5, 13, 0.75, 15, 1]],
+    ["roads_bridges_major_casing", "line-width", ["interpolate", ["linear"], ["zoom"], 12, 0.6, 13, 1, 15, 1.5]],
+    ...["roads_highway", "roads_bridges_highway"].flatMap((id) => [[id, "line-width", MOTORWAY], [id, "line-color", ["interpolate", ["linear"], ["zoom"], 10.5, "#e66e89", 11.5, "#e892a2"]]]),
+    ...["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing"].flatMap((id) => [[id, "line-gap-width", MOTORWAY], [id, "line-color", MOTORWAY_CASING_COLOUR]]),
+    ["roads_highway_casing_early", "line-width", EARLY_CASING],
+    ["roads_highway_casing_late", "line-width", ["interpolate", ["linear"], ["zoom"], 12, 0.5, 13, 0.75, 15, 1, 20, 15]],
+    ["roads_minor", "line-width", MINOR],
+    ["roads_minor", "line-color", ["interpolate", ["linear"], ["zoom"], 11.5, "#c4beb4", 12, "#ffffff"]],
+    ["roads_minor", "line-opacity", ["interpolate", ["linear"], ["zoom"], 10, 0.7, 11, 1]],
+    ["roads_minor_casing", "line-gap-width", MINOR],
+    ["roads_minor_casing", "line-width", ["interpolate", ["linear"], ["zoom"], 11.5, 0, 12, 0.5]],
+  ];
+  for (const [id, prop, want] of ruled) {
+    const have = layerOf(id)?.paint?.[prop];
+    if (!same(have, want)) problems.push(`${id} ${prop} is ${JSON.stringify(have)}; ruled ${JSON.stringify(want)}`);
+  }
+  // The late casings stay from z12 and the early ones below it, so no casing draws below z11.
+  for (const [id, key, z] of [["roads_major_casing_late", "minzoom", 12], ["roads_highway_casing_late", "minzoom", 12], ["roads_major_casing_early", "maxzoom", 12], ["roads_highway_casing_early", "maxzoom", 12]]) {
+    if (layerOf(id)?.[key] !== z) problems.push(`${id} ${key} is ${layerOf(id)?.[key]}, expected ${z}`);
+  }
+  // The night rims, printed against the night grounds they sit on: recorded, not gated.
+  for (const [day, rim] of Object.entries(NIGHT_LINE_COLOURS_V4.landuse_edges ?? {})) {
+    console.log(`night rim for day edge ${day}: ${rim}, on night ground ${contrast(rim, night(GROUND)).toFixed(2)}:1 (recorded, not gated)`);
+  }
 }
 
 for (const [what, colour, against, min] of exceptions) {
