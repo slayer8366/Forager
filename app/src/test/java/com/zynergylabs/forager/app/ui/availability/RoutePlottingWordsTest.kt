@@ -11,6 +11,7 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
@@ -24,8 +25,9 @@ import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_DIALOG_TAG
 import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_KEEP_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_CANCEL_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HINT_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_LEGS_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_UNDO_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
@@ -37,6 +39,8 @@ import com.zynergylabs.forager.app.ui.route.SAVE_ROUTE_DIALOG_TAG
 import com.zynergylabs.forager.app.ui.route.SAVE_ROUTE_FAILED_TAG
 import com.zynergylabs.forager.app.ui.route.SAVE_ROUTE_NAME_TAG
 import com.zynergylabs.forager.app.ui.route.SAVE_ROUTE_REMOVE_DATE_TAG
+import com.zynergylabs.forager.app.ui.route.routeCardLegNameTag
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -48,7 +52,10 @@ import org.robolectric.annotation.Config
 /**
  * Dispatch 2026-10-30-08, Amendment 5, N-3 (Sorrel's review of #449): every word the owner approved for route plotting is
  * asserted as text, written out here as the owner approved it rather than read from the constant the screen uses, so a changed
- * word fails a test. The words are the dispatch's "Words on screen" and Amendment 1's approved list.
+ * word fails a test. The words are the dispatch's "Words on screen" and Amendment 1's approved list, with Amendment 6's card
+ * words (RECORD -1887) in place of "Tap the next waypoint", which is gone: "1 Waypoint selected, tap another to route",
+ * "N Waypoints selected", "<from> to <to>" and "N Waypoints routed", singular "Waypoint" only for 1. "Elevation:" is not on
+ * screen until the follow-up on #447; `RouteCardLayoutTest` asserts it at the card's seam.
  *
  * One walk through the real screen with real touches: the waypoint's bubble, the card while plotting, the expanded rows, the
  * save dialog with its date and its failure line, then the prompt a saved route's pin raises mid-plot. Each word is read from
@@ -71,7 +78,11 @@ class RoutePlottingWordsTest {
         ),
     )
     private val plotting = RoutePlottingViewModel(
-        routeLeg = { a, b -> straight(a, b) },
+        // The router suspends once before it answers, as the app's does (PlotRouteUseCase reads the downloaded areas from the
+        // database). A router that answers without suspending stalls every leg after the first in RoutePlottingViewModel
+        // (routeNextLeg assigns legJob after an immediate launch has already finished), which is reported, not fixed, in
+        // Amendment 6's PR notes; this test is about the card, not that.
+        routeLeg = { a, b -> yield(); straight(a, b) },
         saveRoute = { _, _, _ -> Result.failure(IllegalStateException("the store refused the write")) },
         onSaved = {},
         errorLog = { _, _, _ -> },
@@ -125,14 +136,25 @@ class RoutePlottingWordsTest {
         assertWord("Plot route", shown(MAP_BUBBLE_PLOT_ROUTE_TAG), "the waypoint's bubble")
 
         touchCentreOf(MAP_BUBBLE_PLOT_ROUTE_TAG)
-        assertWord("Tap the next waypoint", shown(ROUTE_CARD_HINT_TAG), "the card at one stop")
+        assertWord("1 Waypoint selected, tap another to route", shown(ROUTE_CARD_COUNT_TAG), "the card at one stop")
+        assertEquals("the old hint is gone", 0, composeRule.onAllNodes(hasText("Tap the next waypoint", substring = true), useUnmergedTree = true).fetchSemanticsNodes().size)
         assertWord("Undo", shown(ROUTE_CARD_UNDO_TAG), "the card")
         assertWord("Cancel", shown(ROUTE_CARD_CANCEL_TAG), "the card")
         assertWord("Save", shown(ROUTE_CARD_SAVE_TAG), "the card")
 
         touchCentreOf(glyphTag(RIDGE.id))
+        assertWord("2 Waypoints selected", shown(ROUTE_CARD_COUNT_TAG), "the card at two stops")
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
         assertWordIn("No trail data, straight line", ROUTE_CARD_LEGS_TAG, "a leg with no trail data, in the expanded rows")
+        assertWord("Creek to Ridge", shown(routeCardLegNameTag(0)), "the first leg's row")
+        assertWord("2 Waypoints routed", shown(ROUTE_CARD_ROUTED_COUNT_TAG), "the expanded list's last row, two stops")
+        touchCentreOf(ROUTE_CARD_HANDLE_TAG)
+
+        touchCentreOf(glyphTag(CREEK.id))
+        assertWord("3 Waypoints selected", shown(ROUTE_CARD_COUNT_TAG), "the card at three stops, A to B to A")
+        touchCentreOf(ROUTE_CARD_HANDLE_TAG)
+        assertWord("Ridge to Creek", shown(routeCardLegNameTag(1)), "the second leg's row")
+        assertWord("3 Waypoints routed", shown(ROUTE_CARD_ROUTED_COUNT_TAG), "the expanded list's last row, three stops")
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
 
         touchCentreOf(ROUTE_CARD_SAVE_TAG)
@@ -141,7 +163,7 @@ class RoutePlottingWordsTest {
         assertWord("Add date", shown(SAVE_ROUTE_ADD_DATE_TAG), "the save dialog")
         touchCentreOf(SAVE_ROUTE_ADD_DATE_TAG)
         assertWordIn("Add date", SAVE_ROUTE_DATE_PICKER_TAG, "the date picker's confirm")
-        touchCentre(composeRule.onNode(androidx.compose.ui.test.hasText("Add date") and hasAnyAncestor(hasTestTag(SAVE_ROUTE_DATE_PICKER_TAG))))
+        touchCentre(composeRule.onNode(hasText("Add date") and hasAnyAncestor(hasTestTag(SAVE_ROUTE_DATE_PICKER_TAG))))
         assertWord("Remove date", shown(SAVE_ROUTE_REMOVE_DATE_TAG), "the save dialog with a date")
         touchCentreOf(SAVE_ROUTE_CONFIRM_TAG)
         assertWord("Couldn't save the route. Try again.", shown(SAVE_ROUTE_FAILED_TAG), "a save that failed")

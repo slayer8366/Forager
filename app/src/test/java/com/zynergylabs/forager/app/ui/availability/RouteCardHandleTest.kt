@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_STOPS_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
@@ -108,7 +108,7 @@ class RouteCardHandleTest {
         listOf(false, true).forEach { open ->
             composeRule.runOnUiThread { plotting.onSetExpanded(open) }
             composeRule.waitForIdle()
-            val gap = bounds(ROUTE_CARD_STOPS_TAG).top - bounds(ROUTE_CARD_TAG).top
+            val gap = bounds(ROUTE_CARD_COUNT_TAG).top - bounds(ROUTE_CARD_TAG).top
             assertEquals("expanded=$open: the summary line's offset from the card's top, in dp", 32f, gap.value, 0.5f)
         }
     }
