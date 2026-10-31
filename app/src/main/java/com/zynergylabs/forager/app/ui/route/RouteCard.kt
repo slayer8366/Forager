@@ -211,13 +211,11 @@ private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Un
 
 /**
  * While plotting, "3 Waypoints selected   1.9 mi", or at one stop "1 Waypoint selected, tap another to route" (Amendment 6).
- * A saved route keeps its name over "Creek → Ridge   1.4 mi": Amendment 6's peek is the plotting one.
+ * A saved route: its name with the total at its right, and "2 Waypoints routed" under it (Amendment 7, the owner: "Name +
+ * total, "N Waypoints routed" (Recommended)"). Neither has the arrow chain of stops.
  */
 @Composable
 private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUnit) {
-    if (content is RouteCardContent.Saved) {
-        Text(content.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))
-    }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         when (content) {
             is RouteCardContent.Plotting -> Text(
@@ -228,11 +226,11 @@ private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUn
                 modifier = Modifier.weight(1f).testTag(ROUTE_CARD_COUNT_TAG),
             )
             is RouteCardContent.Saved -> Text(
-                content.stops.joinToString(" → ") { it.name },
-                style = MaterialTheme.typography.bodyLarge,
+                content.name,
+                style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
-                overflow = TextOverflow.MiddleEllipsis,
-                modifier = Modifier.weight(1f).testTag(ROUTE_CARD_STOPS_TAG),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).testTag(ROUTE_CARD_NAME_TAG),
             )
         }
         if (content.legs.isNotEmpty()) {
@@ -243,6 +241,9 @@ private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUn
             )
         }
         if (content.legInFlight) CircularProgressIndicator(Modifier.size(16.dp).testTag(ROUTE_CARD_PROGRESS_TAG), strokeWidth = 2.dp)
+    }
+    if (content is RouteCardContent.Saved) {
+        Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag(ROUTE_CARD_SAVED_COUNT_TAG))
     }
 }
 
@@ -314,7 +315,6 @@ const val NO_TRAIL_DATA_NOTE = "No trail data, straight line"
 const val ROUTE_CARD_TAG = "route-card"
 const val ROUTE_CARD_HANDLE_TAG = "route-card-handle"
 const val ROUTE_CARD_NAME_TAG = "route-card-name"
-const val ROUTE_CARD_STOPS_TAG = "route-card-stops"
 const val ROUTE_CARD_TOTAL_TAG = "route-card-total"
 const val ROUTE_CARD_PROGRESS_TAG = "route-card-progress"
 const val ROUTE_CARD_LEGS_TAG = "route-card-legs"

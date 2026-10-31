@@ -11,6 +11,7 @@ import com.zynergylabs.forager.app.domain.route.RouteStop
 import java.time.LocalDate
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -215,12 +216,19 @@ class RoutePlottingViewModel(
         legFor = null
     }
 
-    /** Routes the draft's next leg unless one is being routed; when it is in, routes the one after. */
+    /**
+     * Routes the draft's next leg unless one is being routed; when it is in, routes the one after.
+     *
+     * The job is made lazy and stored in [legJob] before it starts (Amendment 7, RECORD -1890). On `Main.immediate` a router
+     * that answers without suspending runs the whole body inside `launch`, clearing [legJob] and routing the next leg there;
+     * assigning `launch`'s result afterwards stored that finished job as the leg in flight, and every later leg was never asked
+     * for.
+     */
     private fun routeNextLeg() {
         if (legJob != null) return
         val leg = plottingDraft()?.nextLeg ?: return
         legFor = leg
-        legJob = viewModelScope.launch {
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             val routed = try {
                 routeLeg(leg.first.position, leg.second.position)
             } catch (e: CancellationException) {
@@ -239,6 +247,8 @@ class RoutePlottingViewModel(
             setDraft(joined ?: RoutePlotDraft(draft.stops.take(draft.legs.size + 1), draft.legs))
             routeNextLeg()
         }
+        legJob = job
+        job.start()
     }
 
     /**
