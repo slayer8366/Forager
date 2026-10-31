@@ -226,7 +226,7 @@ What it does differently from `build-orwa.sh`, and why:
   `names_encode` on tiny extracts, which must write the same bytes.
 - `bash map-build/tools/test_build_functions.sh`: `build-orwa.sh`'s square-dropping and
   failed-run keeping, loaded from the script itself.
-- The patch's own tests (`foragerTrail…`, `foragerAccess…` in upstream's `RoadsTest`) run inside
+- The patch's own tests (`foragerTrail…`, `foragerAccess…`, `foragerStreets…` in upstream's `RoadsTest`) run inside
   `build-basemap-jar.sh`. It refuses the jar unless all 13 of their cases appear in the test report
   with no failures.
 

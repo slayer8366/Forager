@@ -20,6 +20,9 @@
 # way to a waypoint: its street drop-off and the gates on its straight legs. 0004 (the owner's choice (b), 10-28) puts a
 # mark, one point with no fields, in the barriers layer of every zoom-15 tile, so the app can tell "no fence here"
 # from "built before fences".
+#
+# 0005 (dispatch 2026-10-30-coder-05; the owner: "From Sunday's run (Recommended)") brings residential, unclassified and
+# road streets into the tiles from zoom 10 instead of 12, so the street grid shows at glance level as OpenStreetMap's does.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -73,6 +76,12 @@ failed="$(grep -c '<failure\|<error' "$report" || true)"
 # 2026-10-21-pi-23): 2 single tests + 2 + 10 + 2 parameterized cases = 16. 29 test cases with these names.
 [[ "$ran" -eq 29 && "$failed" -eq 0 ]] || die "Forager test cases in the report: $ran (expected 29), failures: $failed"
 log "Forager tests ran: $ran cases, 0 failures"
+
+# Streets from zoom 10 (patch 0005, dispatch 2026-10-30-coder-05): foragerStreetsFromZoom10 3 + foragerStreetsOthersUnchanged
+# 4 = 7 cases, in the same RoadsTest report. A jar built without 0005 has none, and stops here.
+sran="$(grep -c '<testcase name="foragerStreets' "$report" || true)"
+[[ "$sran" -eq 7 && "$failed" -eq 0 ]] || die "foragerStreets cases in the RoadsTest report: $sran (expected 7), failures: $failed"
+log "Forager street-zoom tests ran: $sran cases, 0 failures"
 
 # Forest over bare rock (patch 0002, dispatch 2026-10-22-pi-30): 1 parameterized test, 4 cases.
 lreport="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.LanduseTest.xml"
