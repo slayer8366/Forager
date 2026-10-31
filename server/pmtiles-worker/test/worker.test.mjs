@@ -136,6 +136,8 @@ beforeEach(() => {
     ["sprites/v4/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47])],
     ["sprites/v5/light.json", Buffer.from('{"townspot":{},"trailhead_b":{}}')],
     ["sprites/v5/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x35])],
+    ["sprites/v6/light.json", Buffer.from('{"townspot":{},"trailhead_b":{},"orchard_dots":{}}')],
+    ["sprites/v6/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x36])],
     ["reference-trails-manifest.json", MANIFEST],
   ]);
 });
@@ -247,6 +249,23 @@ test("sprite v5 files are read from R2 under sprites/v5/, with a week's cache, a
   assert.deepEqual(bucketReads, ["sprites/v5/light.json", "sprites/v5/light@2x.png", "sprites/v4/light.json"]);
 });
 
+// Sprite v6 (dispatch 2026-10-31-coder-07 Part 3; the owner: "New icon set v6 (Recommended)"): v5 unchanged plus the
+// orchard, vineyard and nursery patterns, named by Street v4 only. v4 and v5 stay where they were.
+test("sprite v6 files are read from R2 under sprites/v6/, with a week's cache, and v4 and v5 stay where they were", async () => {
+  const json = await call("/sprites/v6/light.json");
+  assert.equal(json.status, 200);
+  assert.equal(json.headers.get("Content-Type"), "application/json");
+  assert.equal(json.headers.get("Cache-Control"), "public, max-age=604800");
+  assert.equal(await json.text(), '{"townspot":{},"trailhead_b":{},"orchard_dots":{}}');
+  const png = await call("/sprites/v6/light@2x.png");
+  assert.equal(png.status, 200);
+  assert.equal(png.headers.get("Content-Type"), "image/png");
+  assert.deepEqual([...Buffer.from(await png.arrayBuffer())], [0x89, 0x50, 0x4e, 0x47, 0x36]);
+  assert.equal(await (await call("/sprites/v5/light.json")).text(), '{"townspot":{},"trailhead_b":{}}');
+  assert.equal(await (await call("/sprites/v4/light.json")).text(), '{"townspot":{}}');
+  assert.deepEqual(bucketReads, ["sprites/v6/light.json", "sprites/v6/light@2x.png", "sprites/v5/light.json", "sprites/v4/light.json"]);
+});
+
 test("a missing font range is a 404 and is not cached", async () => {
   const response = await call("/fonts/Noto%20Sans%20Regular/256-511.pbf");
   assert.equal(response.status, 404);
@@ -258,7 +277,7 @@ test("a missing font range is a 404 and is not cached", async () => {
 test("other paths under /fonts/ and /sprites/ never read R2", async () => {
   for (const path of [
     "/fonts/../us.pmtiles", "/fonts/Noto%20Sans%20Regular/x.pbf", "/sprites/v4/dark.json", "/sprites/us.pmtiles",
-    "/sprites/v6/light.json", "/sprites/v5/dark.png",
+    "/sprites/v7/light.json", "/sprites/v5/dark.png", "/sprites/v6/dark.json",
   ]) {
     const response = await call(path);
     assert.equal(response.status, 404, path);
