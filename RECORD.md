@@ -30894,3 +30894,19 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 **Title:** The S22 test build takes #449's new card layout once it is green
 **Decision:** the owner: "Go ahead and add the change to the S22 test build". Dispatch 2026-10-30-21 Amendment 2: merge the green Amendment 6 head of route-plot-ui into tools/s22-combined, CI with only the three v4 failures allowed, then back up and install over 4275 with data kept.
 **Notes:** Written by the planner by hand. At this decision, route-plot-ui was at bce9c2de0 with run 41179955025 in progress; the layout commit e52227af2's run 41178537126 had failed. Next free ID -1889.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1889
+**Timestamp:** 2026-10-31T07:37:22Z
+**Continues:** 2026-09-28-1887
+**Title:** #449's Amendment 6 card layout is green; a latent stall in routeNextLeg was found
+**Observed:** Hazel (Opus), route-plot-ui bce9c2de0.
+- **CI:** run 41179955025, 6053 tests, 0 failures.
+- **Fail first:** run 41178023099, 12 of 23 failed.
+- **Revert checks:** 7 of 7 bite (runs 41179979028 to 41180012831).
+- **The seam:** RouteCardContent.legElevations and totalElevation, unfilled in production.
+- **Found, not fixed:** in RoutePlottingViewModel.routeNextLeg, a router that answers without suspending completes the launched body on Main.immediate before legJob is assigned, so every later leg returns early. Read from the code, matching run 41178537126; not instrumented. On the phone PlotRouteUseCase.leg reads the database first and is expected to suspend (inferred). The tests' router now yields.
+- **Calls beyond the dispatch:** a saved route's peek is unchanged; the expanded form also applies to saved routes; the routed count is legs+1; the elevation sign is ASCII "-".
+**Notes:** Written by the planner by hand. The planner treats the stall as a defect in this PR's own code and has it fixed in #449 (a one-line ordering fix, with a test whose router doesn't suspend). Next free ID -1890.
