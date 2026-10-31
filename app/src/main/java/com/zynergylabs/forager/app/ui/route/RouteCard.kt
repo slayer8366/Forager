@@ -69,8 +69,8 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  *
  * The layout is the owner's, from the first use on the S22 (Amendment 6): the peek while plotting is the count with the
  * total at its right, the arrow chain of names gone; the expanded list is a row per leg with its distance at the right, then
- * "N Waypoints routed" with the total. Under each, an elevation line when the content carries one (the seam for #447);
- * nothing carries one yet.
+ * "N Waypoints routed" with the total. Under each, an elevation line when the content carries one (the seam for #447),
+ * filled while plotting since Amendment 8 (RECORD -1896, `RouteLegElevation.kt`); a saved route carries none until step 3b.
  */
 
 /** M3's sheet width cap (`BottomSheetDefaults.SheetMaxWidth`), so the card stays a readable column on a tablet. */
@@ -95,7 +95,7 @@ sealed interface RouteCardContent {
 
     /**
      * Amendment 6's seam (RECORD -1887): an optional elevation for each leg, by the leg's index, and one for the whole route.
-     * Nothing fills them yet, so the card shows no elevation line; the follow-up on #447's heights fills them in.
+     * Filled while plotting from the trail data's heights (Amendment 8, RECORD -1896); empty for a saved route until step 3b.
      */
     val legElevations: List<RouteElevation?>
     val totalElevation: RouteElevation?
