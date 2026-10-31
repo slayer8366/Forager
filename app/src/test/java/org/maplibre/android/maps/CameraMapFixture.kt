@@ -118,6 +118,11 @@ object CameraMapFixture {
         val component = LocationComponent::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance()
         set(component, "isComponentInitialized", true)
         set(component, "locationCameraController", controller)
+        // What a mode change's finishing callback reads (LocationComponent.CameraTransitionListener.reset): the map's camera and
+        // the animator coordinator, real but with no animators, so it resets nothing.
+        set(component, "maplibreMap", map)
+        val coordinatorType = Class.forName("org.maplibre.android.location.LocationAnimatorCoordinator")
+        set(component, "locationAnimatorCoordinator", coordinatorType.declaredConstructors.single { it.parameterCount == 3 }.apply { isAccessible = true }.newInstance(null, null, null))
         set(map, "locationComponent", component)
         return map to recording
     }
