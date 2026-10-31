@@ -30787,3 +30787,13 @@ Dispatch 2026-10-30-08 Amendment 4.
 **Title:** Aspen: the weekly route build will publish a NOTICE file and a manifest licence field, from the first run after install
 **Observed:** prompts/aspen/2026-10-30-09 (Aspen, about 16:10 PDT). The owner, in Aspen's window: "Build writes them, from next run (Recommended)". Willow adds a NOTICE file and a licence field in routing/manifest.json, worded as in Juniper's report. It goes live with the first weekly run after install, on the owner's go, likely after 11-01. Nothing is uploaded by hand meanwhile. The app's reader of the route-area list ignores unknown keys (RouteAreaClient.kt:206 at pre-main 1ac67f12b), so the added field is safe.
 **Notes:** Written by the planner by hand. Next free ID -1881.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1881
+**Timestamp:** 2026-10-31T03:03:08Z
+**Continues:** 2026-09-28-1876
+**Title:** The combined S22 build also carries #448 (Street v4), loading v4 the way street-v4-s22-debug does
+**Decision:** the owner: "Yes let's do 448 also". The combined, never-merged S22 build is #447 + #440 + #448 + #449 + #450, plus the tools commits, plus the one-line StreetStyle.kt change from e4e25e87b (street-v4-s22-debug, which loads v4 from the street-v4 branch's raw style). It is built on CI with the routing key, after #449's Amendment 5 is green. #448 is taken at its head at build time; it is e9be0bcdd now, and GitHub reports it UNSTABLE.
+**Notes:** Written by the planner by hand. #448 stays the owner's and Aspen's to merge. Next free ID -1882.
