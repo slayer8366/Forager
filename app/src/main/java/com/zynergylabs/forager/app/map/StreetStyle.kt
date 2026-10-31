@@ -20,7 +20,8 @@ package com.zynergylabs.forager.app.map
  * Like [OFFLINE_STYLE_URL] it is a URL that never changes meaning: MapLibre's offline store keys a downloaded region by
  * the style URL, so a later design ships as `street-v4.json` beside it.
  */
-internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v3.json"
+// NEVER MERGE: the S22 check of Street v4 (dispatch 2026-10-30-coder-01), loaded from the street-v4 branch's file.
+internal const val STREET_STYLE_URL = "https://raw.githubusercontent.com/slayer8366/Forager/street-v4/map-style/forager-street-v4.json"
 
 /**
  * Trail Map with its character, before the band (dispatch 2026-10-22-03, RECORD -1561, the owner: "Yes, v2"): what the
