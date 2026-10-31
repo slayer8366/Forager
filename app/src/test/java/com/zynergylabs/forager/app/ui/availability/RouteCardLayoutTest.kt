@@ -28,10 +28,12 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_LEGS_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAME_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_ELEVATION_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TOTAL_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVED_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TOTAL_TAG
 import com.zynergylabs.forager.app.ui.route.RouteCard
@@ -81,9 +83,8 @@ class RouteCardLayoutTest {
     )
     private val plotting = RoutePlottingViewModel(
         // The router suspends once before it answers, as the app's does (PlotRouteUseCase reads the downloaded areas from the
-        // database). A router that answers without suspending stalls every leg after the first in RoutePlottingViewModel
-        // (routeNextLeg assigns legJob after an immediate launch has already finished), which is reported, not fixed, in
-        // Amendment 6's PR notes; this test is about the card, not that.
+        // database). A router that answers without suspending is RoutePlottingImmediateRouterTest's (Amendment 7); this test is
+        // about the card, so its router stays as it was.
         routeLeg = { a, b -> yield(); straight(a, b) },
         saveRoute = { _, _, _ -> Result.failure(IllegalStateException("not saved in this test")) },
         onSaved = {},
@@ -176,6 +177,22 @@ class RouteCardLayoutTest {
         assertTrue("no elevation for the total yet", !exists(ROUTE_CARD_ROUTED_ELEVATION_TAG))
         assertTrue("no elevation text anywhere on the card: ${cardTexts()}", cardTexts().none { it.startsWith("Elevation") })
         assertTrue("no arrow on the card: ${cardTexts()}", cardTexts().none { "→" in it })
+    }
+
+    @Test
+    fun `a saved route's peek shows its name with the total at its right and N Waypoints routed under it, opened by a real touch on its pin`() {
+        setScreen()
+        touchCentreOf(glyphTag(ROUTE_TRIP.id))
+        val unit = viewModel.uiState.value.distanceUnit
+
+        assertTrue("the card peeks", !plotting.uiState.value.expanded)
+        assertEquals("Creek to Ridge", text(ROUTE_CARD_NAME_TAG))
+        assertEquals(formatDistanceMeters(legMeters(0), unit), text(ROUTE_CARD_TOTAL_TAG))
+        assertAtRightOf("the total", bounds(ROUTE_CARD_NAME_TAG), bounds(ROUTE_CARD_TOTAL_TAG))
+        assertEquals("2 Waypoints routed", text(ROUTE_CARD_SAVED_COUNT_TAG))
+        assertTrue("the routed count is under the name", bounds(ROUTE_CARD_SAVED_COUNT_TAG).top >= bounds(ROUTE_CARD_NAME_TAG).bottom)
+        assertTrue("no arrow on the card: ${cardTexts()}", cardTexts().none { "→" in it })
+        assertEquals("the peek's texts", listOf("Creek to Ridge", formatDistanceMeters(legMeters(0), unit), "2 Waypoints routed", "Directions"), cardTexts())
     }
 
     @Test

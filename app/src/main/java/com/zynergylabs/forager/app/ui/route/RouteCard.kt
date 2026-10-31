@@ -329,6 +329,9 @@ const val ROUTE_CARD_ROUTED_COUNT_TAG = "route-card-routed-count"
 const val ROUTE_CARD_ROUTED_TOTAL_TAG = "route-card-routed-total"
 const val ROUTE_CARD_ROUTED_ELEVATION_TAG = "route-card-routed-elevation"
 
+/** A saved route's peek: "N Waypoints routed", under its name (Amendment 7, RECORD -1890). */
+const val ROUTE_CARD_SAVED_COUNT_TAG = "route-card-saved-count"
+
 fun routeCardLegTag(index: Int) = "route-card-leg-$index"
 fun routeCardLegNameTag(index: Int) = "route-card-leg-name-$index"
 fun routeCardLegDistanceTag(index: Int) = "route-card-leg-distance-$index"
