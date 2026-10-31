@@ -39,7 +39,7 @@ internal fun nightSpriteAssetDirFor(styleJson: String): String {
     } catch (e: RuntimeException) {
         null
     }
-    return if (sprite != null && SPRITE_V6.containsMatchIn(sprite)) NIGHT_SPRITE_V6_ASSET_DIR else NIGHT_SPRITE_ASSET_DIR
+    return NIGHT_SPRITE_ASSET_DIR // revert check: v5 for every style
 }
 
 /**
