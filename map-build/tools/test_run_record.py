@@ -3,6 +3,7 @@
 
 Run: python3 -m unittest map-build/tools/test_run_record.py
 """
+import hashlib
 import json
 import os
 import subprocess
@@ -138,6 +139,77 @@ class ManifestSequenceTest(unittest.TestCase):
             r, seq = self.manifest(bad)
             self.assertEqual(r.returncode, 2, bad)
             self.assertIn("--osm-sequence", r.stderr)
+
+
+
+# The route-file notice (dispatch 2026-10-30-coder-04): Juniper's wording, verbatim, as in the app's Heights credits
+# (Forager juniper-nrcan-credit 355933b4d, docs/research/2026-10-30-nrcan-attribution.md, rows 1 to 3). Pinned here so
+# an edit to the one notice file has to be an edit to this test too.
+NOTICE_LINES = [
+    "Heights in Canada: Natural Resources Canada. Contains information licensed under the Open Government Licence \u2013 Canada. https://open.canada.ca/en/open-government-licence-canada",
+    "Heights in Canada: produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.",
+    "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+    "Heights in the United States: 3DEP elevation data courtesy of the U.S. Geological Survey, public domain",
+]
+NOTICE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "notices", "routing-NOTICE.txt")
+
+
+class RoutingManifestTest(unittest.TestCase):
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.out = os.path.join(self.dir.name, "out")
+        os.makedirs(os.path.join(self.out, "segments"))
+        os.makedirs(os.path.join(self.out, "names1"))
+        for name, body in [("W125_N45.rd5", b"square one"), ("E170_N50.rd5", b"square two!")]:
+            with open(os.path.join(self.out, "segments", name), "wb") as f:
+                f.write(body)
+        with open(os.path.join(self.out, "names1", "W125_N45.fnm"), "wb") as f:
+            f.write(b"names")
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def stage(self, notice=NOTICE_FILE, run_id="usca-20261101T102042Z"):
+        return run("routing-manifest", self.out, "--run-id", run_id, "--osm-timestamp", "2026-10-31T20:20:51Z",
+                   "--osm-sequence", "us:2429,canada:4959", "--notice", notice)
+
+    def test_the_notice_file_holds_the_ruled_wording_verbatim(self):
+        with open(NOTICE_FILE, encoding="utf-8") as f:
+            self.assertEqual([line for line in f.read().split("\n") if line], NOTICE_LINES)
+
+    def test_notice_is_copied_beside_the_manifest_byte_for_byte(self):
+        r = self.stage()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(NOTICE_FILE, "rb") as a, open(os.path.join(self.out, "NOTICE"), "rb") as b:
+            self.assertEqual(a.read(), b.read())
+
+    def test_the_routing_manifest_is_in_the_r2_shape_with_the_notices(self):
+        self.assertEqual(self.stage().returncode, 0)
+        with open(os.path.join(self.out, "routing-manifest.json"), encoding="utf-8") as f:
+            m = json.load(f)
+        run_id = "usca-20261101T102042Z"
+        self.assertEqual(m["run_id"], run_id)
+        self.assertEqual(m["osm_timestamp"], "2026-10-31T20:20:51Z")
+        self.assertEqual(m["osm_sequence"], "us:2429,canada:4959")
+        # The Worker's parseManifest (server/pmtiles-worker/src/routing/manifest.ts) reads files under
+        # <run_id>/segments4/, sorted here by path so the file is reproducible.
+        self.assertEqual([f["path"] for f in m["files"]], [f"{run_id}/segments4/E170_N50.rd5", f"{run_id}/segments4/W125_N45.rd5"])
+        self.assertEqual([f["size"] for f in m["files"]], [11, 10])
+        self.assertEqual(m["files"][1]["sha256"], hashlib.sha256(b"square one").hexdigest())
+        self.assertEqual([f["path"] for f in m["names"]], [f"{run_id}/names1/W125_N45.fnm"])
+        self.assertEqual(m["notice"], f"{run_id}/NOTICE")
+        self.assertEqual(m["notices"], NOTICE_LINES)
+
+    def test_a_missing_notice_file_is_refused_and_nothing_is_staged(self):
+        r = self.stage(notice=os.path.join(self.dir.name, "absent.txt"))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertFalse(os.path.exists(os.path.join(self.out, "routing-manifest.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "NOTICE")))
+
+    def test_a_malformed_run_id_is_refused(self):
+        # The Worker refuses a run_id outside [A-Za-z0-9][A-Za-z0-9._-]{0,63} (manifest.ts RUN_ID).
+        self.assertNotEqual(self.stage(run_id="../usca").returncode, 0)
 
 
 if __name__ == "__main__":

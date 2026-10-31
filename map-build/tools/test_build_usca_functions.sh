@@ -223,5 +223,21 @@ last="${pb##* }"; lw="${last%%:*}"; le="${last##*:}"
 check_on "both squares' west edges are in the last band, $last" \
   'for q in W70_N15 W65_N15; do x="$(rd5_west_edge $q.rd5)"; (( lw <= x && x < le )) || exit 1; done'
 
+# --- stage_routing_set (dispatch 2026-10-30-coder-04): NOTICE and the R2 manifest beside the run's manifest --------
+# The function is taken from the script, and RECORD and here are the script's own, so run_record.py is the real one.
+eval "$(sed -n '/^RECORD=/p; /^stage_routing_set() {/,/^}/p' "$script")"
+if declare -F stage_routing_set >/dev/null; then
+  so="$T/stage/out"; mkdir -p "$so/segments" "$so/names1"
+  printf 'one' > "$so/segments/W125_N45.rd5"; printf 'n' > "$so/names1/W125_N45.fnm"
+  check_on "stage_routing_set stages the set" 'stage_routing_set "$so" usca-20261101T102042Z 2026-10-31T20:20:51Z "us:2429,canada:4959" >/dev/null'
+  check_on "its NOTICE is the committed notice file, byte for byte" 'cmp -s "$so/NOTICE" "$here/notices/routing-NOTICE.txt"'
+  check_on "its routing-manifest.json names the run, the square under segments4, and the notice" \
+    'python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m[\"run_id\"]==\"usca-20261101T102042Z\" and m[\"files\"][0][\"path\"]==\"usca-20261101T102042Z/segments4/W125_N45.rd5\" and m[\"notice\"]==\"usca-20261101T102042Z/NOTICE\" and len(m[\"notices\"])==4" "$so/routing-manifest.json"'
+  check_on "the publish stage calls it on the run's output before it moves into place" \
+    '[[ "$(grep -n "stage_routing_set \"\$run/out\"" "$script" | cut -d: -f1)" -lt "$(grep -n "^mv \"\$run/out\" \"\$OUT/\$name\"" "$script" | cut -d: -f1)" ]]'
+else
+  echo "FAIL: stage_routing_set is not in build-usca.sh"; nfail=$((nfail + 1))
+fi
+
 if [[ $nfail -gt 0 ]]; then echo "FAILED: $nfail checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"
