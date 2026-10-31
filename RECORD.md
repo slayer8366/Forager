@@ -31084,3 +31084,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Clean-up:** all TEST data deleted; every table hash matches the backup; settings restored. One new DataStore file (distance_unit_preferences) was left, holding the default.
 - **Disclosed slips:** a read-only mis-tap on an owner waypoint, and one extra Back.
 **Notes:** Written by the planner by hand. Next free ID -1902.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1902
+**Timestamp:** 2026-10-31T23:42:46Z
+**Continues:** 2026-09-28-1901
+**Title:** The route total becomes the sum of its legs; the fullscreen "i" rises above the card; phone checks part 2 run now
+**Decision:** the owner: "Total = sum of the legs (Recommended)"; "\"i\" moves above the card (Recommended)"; "Yes, fresh helper now (Recommended)". Dispatch 2026-10-30-08 Amendment 9 (F-1, the "i", and a test check of F-2), and dispatch 2026-10-31-02 (phone checks part 2).
+**Notes:** Written by the planner by hand. This supersedes -1896 and -1897's banking of the total across legs. Next free ID -1903.

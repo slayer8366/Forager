@@ -202,3 +202,12 @@ The owner: "Elevation lines into #449, then S22 (Recommended)". #447 (trail heig
 - Fail first, then revert checks.
 
 Full CI green. Update the PR body. No merge.
+
+## Amendment 9 (2026-10-31): from the S22 phone checks (RECORD -1902)
+Read docs/audits/2026-10-31-s22-phone-checks.md on origin/s22-phone-checks (2de1cced5). The owner:
+- **F-1, "Total = sum of the legs (Recommended)".** The total's net change, climb and descent are the sums of the legs' own figures, so the total always matches the rows above it. This replaces Amendment 8's one-run banking across legs.
+  - The total still shows only when every leg has heights.
+  - Fail first with the phone's case: legs ↑0, ↑0, ↑14 give a total of ↑14. Then a revert check.
+- **Fullscreen, "\"i\" moves above the card (Recommended)".** The map's attribution "i" rises above the card while the card shows, as the cluster, pill and chip do (routeCardLift). Fail first with a coordinate touch on Save at the "i"'s old place, then a revert check.
+- **F-2 (unconfirmed on the phone):** check in a test whether the cluster's bottom button overlaps the expanded card's first row, at the S22's size (portrait, xxhdpi). If it does, the cluster's floor must follow the card's expanded top, not only its peek. Fail first, then fix. If it doesn't, say so with the measured numbers.
+- Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
