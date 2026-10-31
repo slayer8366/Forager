@@ -49,3 +49,14 @@ The first build (285476e69, run 41165385746) was red on four tests. The clash wa
 2. Add the one-line test fix at CompassScreenOffTest.kt:309 on this branch: `AvailabilityUiState(liveFix = fix)` → `AvailabilityUiState(liveFix = fix).withFixHeight()`. It lands in #440 itself later.
 3. Run CI with workflow_dispatch. **Allowed failures are exactly these three:** StreetStyleTest.kt:77, OwnStreetStyleSourceTest.kt:78 and NightExceptionsV4Test.kt (the "every other style keeps v1 to v3" case). Any other failure, or any change in which three fail: STOP.
 4. Then Part 2 as written: a raw backup, an in-app backup, the APK checks (versionCode above 4224, signing, routing key), `install -r`, the data checks, the logger, and leaving the app on the Maps tab.
+
+## Amendment 2 (2026-10-31): bring in #449's new card layout (RECORD -1888)
+The owner: "Go ahead and add the change to the S22 test build".
+1. **Wait** until route-plot-ui's Amendment 6 head has a green full CI run on the PR. It was bce9c2de0, with run 41179955025 in progress at the time of writing; use whatever head the #449 coder reports green. If it goes red, wait for the coder's fix; don't take a red head.
+2. **Merge** that route-plot-ui head into tools/s22-combined (merge, never rebase or force-push).
+3. **Run CI** with workflow_dispatch. The allowed failures are exactly the same three v4 tests as Amendment 1. Anything else: STOP.
+4. **Part 2 again:**
+   - a raw backup, and a new in-app backup through the app;
+   - the APK checks: versionCode above 4275, signing, and the routing key;
+   - `install -r`, with every table hash unchanged;
+   - the logger on, and the app left on the Maps tab.

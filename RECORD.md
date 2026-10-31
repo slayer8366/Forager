@@ -30884,3 +30884,13 @@ Dispatch 2026-10-30-08 Amendment 4.
 
 Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The elevation lines follow on #447's merge.
 **Notes:** Written by the planner by hand. Next free ID -1888.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1888
+**Timestamp:** 2026-10-31T07:33:17Z
+**Continues:** 2026-09-28-1887
+**Title:** The S22 test build takes #449's new card layout once it is green
+**Decision:** the owner: "Go ahead and add the change to the S22 test build". Dispatch 2026-10-30-21 Amendment 2: merge the green Amendment 6 head of route-plot-ui into tools/s22-combined, CI with only the three v4 failures allowed, then back up and install over 4275 with data kept.
+**Notes:** Written by the planner by hand. At this decision, route-plot-ui was at bce9c2de0 with run 41179955025 in progress; the layout commit e52227af2's run 41178537126 had failed. Next free ID -1889.
