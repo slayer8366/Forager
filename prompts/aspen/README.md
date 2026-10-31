@@ -23,3 +23,4 @@ Since 2026-10-30, the owner: "Use the repo to communicate with Aspen and back an
 | 2026-10-30-07-aspen-to-rowan-height-datum.md | Aspen → Rowan | source and datum; 10 m on slopes is SRTM canopy against 3DEP bare earth | -04 |
 | 2026-10-30-08-rowan-to-aspen-copernicus-notice.md | Rowan → Aspen | the Copernicus notice on published route files | -06 |
 | 2026-10-30-09-aspen-to-rowan-height-notices.md | Aspen → Rowan | height notices: the build writes NOTICE and a manifest field from a later run | -08 |
+| 2026-10-31-01-aspen-to-rowan-heighted-fixture-ready.md | Aspen → Rowan | heighted fixture ready as PR #452 | -03 |
