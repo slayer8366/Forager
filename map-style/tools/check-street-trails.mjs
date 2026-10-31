@@ -117,8 +117,9 @@ const IDS = [
   "roads_path_rough_clear", "roads_path_rough_faint", "roads_path_hard_clear", "roads_path_hard_faint",
 ];
 // 93: Street v1's 74, one footpath layer become 17, and v2's tree glyphs, wetland tufts and area names (dispatch 2026-10-22-03).
-// v4: v3's 97 (v2's 93, the official-trails band's three and the building outline) and the fill-in's two.
-const LAYER_COUNT = { v2: 93, v4: 99 }[STYLE];
+// v4: v3's 97 (v2's 93, the official-trails band's three and the building outline) and the fill-in's two fills,
+// v4 since the borders: and landuse_edges and water_edges.
+const LAYER_COUNT = { v2: 93, v4: 101 }[STYLE];
 if (style.layers.length !== LAYER_COUNT) problems.push(`the style has ${style.layers.length} layers, expected ${LAYER_COUNT}`);
 const ids = pathLayers.map((p) => p.layer.id);
 if (!same(ids, IDS)) problems.push(`footpath layers, in order, are ${JSON.stringify(ids)}; expected ${JSON.stringify(IDS)}`);

@@ -99,18 +99,20 @@
         "majorOther": "#f6d68f",
         "tertiaryCasing": "#a39b8d",
         "majorCasing": "#b4924c",
-        "rail": "#8e979a"
+        "rail": "#8e979a",
+        "motorway": "#e892a2",
+        "motorwayCasing": "#dc2a67",
+        "industrial": "#ebdbe8",
+        "building": "#d9d0c9",
+        "buildingZ14": "#ccc0b7",
+        "buildingOutline": "#b9a99c",
+        "waterEdge": "#71c3ce"
       }
     },
     "forager:night-layers": {
       "roads_minor_casing": "#c4bcae",
       "roads_bridges_minor_casing": "#c4bcae",
       "roads_minor_service_casing": "#b3ab9d",
-      "roads_link": "#e0ad4f",
-      "roads_bridges_link": "#e0ad4f",
-      "roads_highway": "#f0c060",
-      "roads_bridges_highway": "#f0c060",
-      "roads_rail": "#a3acae",
       "boundaries": "#bdbdbd",
       "boundaries_country": "#bdbdbd",
       "roads_path_informal_z13": "#bb8a6f",
@@ -161,6 +163,14 @@
     },
     "forager:night-patterns": {
       "tree_dark_irregular": "#5d804f"
+    },
+    "forager:night-line-colours": {
+      "roads_major": {
+        "#ffffff": "#333333"
+      },
+      "roads_bridges_major": {
+        "#ffffff": "#333333"
+      }
     }
   },
   "sources": {
@@ -549,7 +559,7 @@
         "industrial"
       ],
       "paint": {
-        "fill-color": "#d1dde1"
+        "fill-color": "#ebdbe8"
       }
     },
     {
@@ -793,6 +803,183 @@
       ],
       "paint": {
         "fill-color": "#e0e0e0"
+      }
+    },
+    {
+      "id": "landuse_edges",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "minzoom": 13,
+      "filter": [
+        "in",
+        [
+          "get",
+          "kind"
+        ],
+        [
+          "literal",
+          [
+            "forest",
+            "wood",
+            "scrub",
+            "grassland",
+            "grass",
+            "meadow",
+            "heath",
+            "cemetery",
+            "golf_course",
+            "park",
+            "recreation_ground",
+            "garden",
+            "dog_park",
+            "pitch",
+            "allotments",
+            "village_green",
+            "playground",
+            "wetland",
+            "bare_rock",
+            "residential",
+            "commercial",
+            "railway",
+            "farmland",
+            "school",
+            "university",
+            "college",
+            "hospital",
+            "industrial"
+          ]
+        ]
+      ],
+      "paint": {
+        "line-color": [
+          "match",
+          [
+            "get",
+            "kind"
+          ],
+          [
+            "forest",
+            "wood"
+          ],
+          "#94b988",
+          [
+            "scrub",
+            "grassland",
+            "grass",
+            "meadow",
+            "heath",
+            "cemetery",
+            "golf_course"
+          ],
+          "#c2cdaa",
+          [
+            "park",
+            "recreation_ground",
+            "garden",
+            "dog_park",
+            "pitch"
+          ],
+          "#b4caa8",
+          [
+            "allotments",
+            "village_green",
+            "playground"
+          ],
+          "#88b99d",
+          "wetland",
+          "#adc8bc",
+          "bare_rock",
+          "#b0aba4",
+          "residential",
+          "#c3bfba",
+          "commercial",
+          "#d0bdb9",
+          "railway",
+          "#c4bfc2",
+          "farmland",
+          "#ccceb4",
+          [
+            "school",
+            "university",
+            "college"
+          ],
+          "#c9c3bd",
+          "hospital",
+          "#c9c0bf",
+          "industrial",
+          "#c6b3c3",
+          "#000000"
+        ],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          0.5,
+          15,
+          0.75,
+          17,
+          1
+        ],
+        "line-opacity": [
+          "step",
+          [
+            "zoom"
+          ],
+          [
+            "match",
+            [
+              "get",
+              "kind"
+            ],
+            [
+              "residential",
+              "commercial",
+              "railway"
+            ],
+            0,
+            1
+          ],
+          14,
+          1
+        ]
+      }
+    },
+    {
+      "id": "water_edges",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "water",
+      "minzoom": 13,
+      "filter": [
+        "==",
+        [
+          "geometry-type"
+        ],
+        "Polygon"
+      ],
+      "paint": {
+        "line-color": "#71c3ce",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          0.5,
+          15,
+          0.75,
+          17,
+          1
+        ]
       }
     },
     {
@@ -1288,11 +1475,11 @@
           [
             "zoom"
           ],
-          "#cccccc",
+          "#d9d0c9",
           14,
-          "#c1c1c1",
+          "#ccc0b7",
           15,
-          "#cccccc"
+          "#d9d0c9"
         ],
         "fill-opacity": [
           "step",
@@ -1318,7 +1505,7 @@
       ],
       "minzoom": 15,
       "paint": {
-        "line-color": "#a6a6a6",
+        "line-color": "#b9a99c",
         "line-width": 0.75
       }
     },
@@ -1483,7 +1670,7 @@
         "is_link"
       ],
       "paint": {
-        "line-color": "#b4924c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -1617,7 +1804,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#a8782c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -3824,7 +4011,7 @@
         "is_link"
       ],
       "paint": {
-        "line-color": "#f6d68f",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [
@@ -4111,7 +4298,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#a8782c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -4170,7 +4357,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#f0b95c",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [
@@ -4355,7 +4542,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#b4924c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -4611,7 +4798,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#f6d68f",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [
@@ -4724,7 +4911,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#a8782c",
+        "line-color": "#dc2a67",
         "line-gap-width": [
           "interpolate",
           [
@@ -4781,7 +4968,7 @@
         ]
       ],
       "paint": {
-        "line-color": "#f0b95c",
+        "line-color": "#e892a2",
         "line-width": [
           "interpolate",
           [

@@ -13,7 +13,7 @@ import fs from "node:fs";
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS as NIGHT_LAYER_COLOURS_V2 } from "../overrides/forager-street.mjs";
 import { CHARACTER_COLOURS, NIGHT_FILL_COLOURS as NIGHT_FILL_COLOURS_V2, NIGHT_LIMITS, NIGHT_PATTERN_COLOURS } from "../overrides/forager-character.mjs";
-import { NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4 } from "../overrides/forager-fill-in.mjs";
+import { FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "../overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
@@ -190,7 +190,7 @@ for (const [what, colour, against] of [
 
 // 5. v4's ramps (the fill-in rulings, "Ramps", the owner: "Approve the fix (Recommended)"): roads_major draws the trunk to
 //    tertiary ramps, and each takes its road's day colour, so at night it takes the same inversion ("Invert them too").
-//    roads_link and roads_bridges_link draw only motorway ramps and keep v3's amber night exception.
+//    roads_link and roads_bridges_link draw only motorway ramps, which take the motorways' colours (6).
 if (V4) {
   for (const id of ["roads_major", "roads_bridges_major"]) {
     const match = style2.layers.find((l) => l.id === id)?.paint?.["line-color"];
@@ -208,9 +208,118 @@ if (V4) {
       if (colourOf(`${road}_link`) !== colourOf(road)) problems.push(line);
     }
   }
-  for (const id of ["roads_link", "roads_bridges_link"]) {
-    if (NIGHT_LAYER_COLOURS[id] !== NIGHT_LAYER_COLOURS_V2[id]) problems.push(`${id}'s night ${NIGHT_LAYER_COLOURS[id]} is not v3's ${NIGHT_LAYER_COLOURS_V2[id]}`);
+}
+
+// 6. v4's motorways (the fill-in rulings, "Motorways": the owner, "A: OSM pink (Recommended)" by day and "Invert like OSM
+//    (Recommended)" at night): OSM Carto's fill and casing (style/road-colors-generated.mss at 9295745d, lines 11 and 7),
+//    on the motorways and their ramps; tunnels keep their grey. No night exception, so each takes the plain inversion.
+if (V4) {
+  const dayOf = (id) => style2.layers.find((l) => l.id === id)?.paint?.["line-color"];
+  const ruled = {
+    "#e892a2": ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"],
+    "#dc2a67": ["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing"],
+  };
+  for (const [colour, ids] of Object.entries(ruled)) {
+    for (const id of ids) {
+      const line = `${id}: day ${dayOf(id)}, ruled ${colour}; night ${NIGHT_LAYER_COLOURS[id] ?? `the inversion ${night(colour)}`}`;
+      console.log(line);
+      if (dayOf(id) !== colour || id in NIGHT_LAYER_COLOURS) problems.push(line);
+    }
   }
+  for (const id of ["roads_tunnels_highway", "roads_tunnels_link"]) {
+    if (dayOf(id) !== "#d5d5d5") problems.push(`${id}: day ${dayOf(id)}, tunnels keep #d5d5d5`);
+  }
+}
+
+// 7. v4's night tables are the ruled ones (the fill-in rulings' table, "Motorways" and "Night tertiary and rail"), by hand,
+//    so a design table that drifts with its metadata still fails here (Sorrel's should-fix 2: before this, dropping any
+//    settled fill's night colour passed). Every fill-in day colour needs its night fill; the major roads, the motorways
+//    and their ramps, and the rail take the inversion (no layer exception), and the tertiary's day white is #333333.
+if (V4) {
+  const RULED_FILLS = { residential: "#2d2a25", commercial: "#362824", railway: "#2b2829", farmland: "#2e2a10", parks: "#2c461e" };
+  for (const [kind, colour] of Object.entries(RULED_FILLS)) {
+    const day = FILL_IN_COLOURS[kind];
+    if (NIGHT_FILL_COLOURS[day] !== colour) problems.push(`night fill for ${kind} ${day} is ${NIGHT_FILL_COLOURS[day]}, ruled ${colour}`);
+  }
+  const inverted = ["roads_major", "roads_bridges_major", "roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link", "roads_rail"];
+  for (const id of inverted) if (id in NIGHT_LAYER_COLOURS) problems.push(`${id} has a night exception ${NIGHT_LAYER_COLOURS[id]}; ruled: the inversion`);
+  const lines = JSON.parse(text).metadata["forager:night-line-colours"];
+  if (JSON.stringify(lines) !== JSON.stringify(NIGHT_LINE_COLOURS_V4)) problems.push(`forager-street-v4.json's forager:night-line-colours differs from its design table: run npm run generate:street`);
+  const RULED_LINES = { roads_major: { "#ffffff": "#333333" }, roads_bridges_major: { "#ffffff": "#333333" } };
+  if (JSON.stringify(NIGHT_LINE_COLOURS_V4) !== JSON.stringify(RULED_LINES)) problems.push(`v4's night line colours are ${JSON.stringify(NIGHT_LINE_COLOURS_V4)}, ruled ${JSON.stringify(RULED_LINES)}`);
+  // Each named day colour is one its layer draws, so none is dead.
+  for (const [id, colours] of Object.entries(NIGHT_LINE_COLOURS_V4)) {
+    const drawn = colourLiterals(style2.layers.find((l) => l.id === id)?.paint?.["line-color"]);
+    for (const day of Object.keys(colours)) if (!drawn.includes(day)) problems.push(`night line colour for ${id} ${day}, a colour it does not draw`);
+  }
+  // The night tertiary's band (Aspen's call, the rulings' "Night tertiary and rail"): on the night forest 1.7 to 2.3:1 and
+  // below the night footpath; on the night grass and ground at most the night footpath's figure. Trails stay the
+  // strongest line.
+  const tertiary = RULED_LINES.roads_major["#ffffff"];
+  const footpath = night(COLOURS.footpath);
+  for (const [name, ground] of Object.entries(nightGrounds)) {
+    const ratio = contrast(tertiary, ground);
+    const ceiling = contrast(footpath, ground);
+    const inBand = name === "forest" ? ratio >= 1.7 && ratio <= 2.3 && ratio < ceiling : ratio <= ceiling;
+    const line = `night tertiary ${tertiary} on night ${name} ${ground}: ${ratio.toFixed(2)}:1 (${name === "forest" ? "band 1.7 to 2.3, " : ""}night footpath ${footpath} ${ceiling.toFixed(2)})`;
+    console.log(line);
+    if (!inBand) problems.push(line);
+  }
+}
+
+// 8. v4's borders, industrial and buildings (the fill-in rulings, "Borders, industrial and buildings": "Faint", "No edge
+//    at night", "Lilac, like OSM", "Tan, like OSM", then "OSM's #b9a99c", "Keep OSM's steps", "One step darker #ccc0b7",
+//    "OSM's #c6b3c3"). By hand, from the rulings. Night is the plain inversion (no exception); the night water floor on the
+//    new fills is held above with every land fill.
+if (V4) {
+  const layerOf = (id) => style2.layers.find((l) => l.id === id);
+  const order = style2.layers.map((l) => l.id);
+  const at = order.indexOf("landuse_pier");
+  if (order[at + 1] !== "landuse_edges" || order[at + 2] !== "water_edges") problems.push(`landuse_edges and water_edges are not right after landuse_pier: ${order.slice(at, at + 3)}`);
+  const RULED_EDGES = {
+    "#94b988": ["forest", "wood"],
+    "#c2cdaa": ["scrub", "grassland", "grass", "meadow", "heath", "cemetery", "golf_course"],
+    "#b4caa8": ["park", "recreation_ground", "garden", "dog_park", "pitch"],
+    "#88b99d": ["allotments", "village_green", "playground"],
+    "#adc8bc": ["wetland"],
+    "#b0aba4": ["bare_rock"],
+    "#c3bfba": ["residential"],
+    "#d0bdb9": ["commercial"],
+    "#c4bfc2": ["railway"],
+    "#ccceb4": ["farmland"],
+    "#c9c3bd": ["school", "university", "college"],
+    "#c9c0bf": ["hospital"],
+    "#c6b3c3": ["industrial"],
+  };
+  const WIDTH = '["interpolate",["linear"],["zoom"],13,0.5,15,0.75,17,1]';
+  const edges = layerOf("landuse_edges");
+  const water = layerOf("water_edges");
+  if (!edges || !water) problems.push("v4 has no landuse_edges or water_edges");
+  else {
+    const color = edges.paint["line-color"];
+    const edgeOf = (kind) => {
+      for (let i = 2; i < color.length - 1; i += 2) if ([color[i]].flat().includes(kind)) return color[i + 1];
+      return null;
+    };
+    const kinds = Object.values(RULED_EDGES).flat();
+    if (JSON.stringify(edges.filter) !== JSON.stringify(["in", ["get", "kind"], ["literal", kinds]])) problems.push(`landuse_edges' filter is ${JSON.stringify(edges.filter)}`);
+    for (const [colour, ks] of Object.entries(RULED_EDGES)) for (const k of ks) if (edgeOf(k) !== colour) problems.push(`landuse_edges: ${k} edge ${edgeOf(k)}, ruled ${colour}`);
+    for (const l of [edges, water]) {
+      if (l.minzoom !== 13 || JSON.stringify(l.paint["line-width"]) !== WIDTH) problems.push(`${l.id}: minzoom ${l.minzoom}, width ${JSON.stringify(l.paint["line-width"])}; ruled 13 and ${WIDTH}`);
+      if (l.id in NIGHT_LAYER_COLOURS || l.id in NIGHT_LINE_COLOURS_V4) problems.push(`${l.id} has a night exception; ruled: none`);
+    }
+    const opacity = '["step",["zoom"],["match",["get","kind"],["residential","commercial","railway"],0,1],14,1]';
+    if (JSON.stringify(edges.paint["line-opacity"]) !== opacity) problems.push(`landuse_edges' opacity ${JSON.stringify(edges.paint["line-opacity"])}: residential, commercial and railway land start at z14`);
+    if (water["source-layer"] !== "water" || water.paint["line-color"] !== "#71c3ce" || JSON.stringify(water.filter) !== '["==",["geometry-type"],"Polygon"]') problems.push(`water_edges: ${water["source-layer"]} ${water.paint["line-color"]} ${JSON.stringify(water.filter)}; ruled: water polygons, #71c3ce`);
+    if (edges["source-layer"] !== "landuse") problems.push(`landuse_edges reads ${edges["source-layer"]}`);
+  }
+  const industrial = layerOf("landuse_industrial")?.paint?.["fill-color"];
+  if (industrial !== "#ebdbe8") problems.push(`landuse_industrial is ${industrial}, ruled #ebdbe8 (Carto style/landcover.mss:22)`);
+  const fill = JSON.stringify(layerOf("buildings")?.paint?.["fill-color"]);
+  if (fill !== '["step",["zoom"],"#d9d0c9",14,"#ccc0b7",15,"#d9d0c9"]') problems.push(`buildings fill ${fill}; ruled tan #d9d0c9, #ccc0b7 at z14`);
+  const outline = layerOf("buildings_outline")?.paint?.["line-color"];
+  if (outline !== "#b9a99c") problems.push(`buildings_outline ${outline}, ruled #b9a99c`);
+  if (!JSON.stringify(layerOf("landuse_park_outline")).includes('"#3e7a3a"')) problems.push("landuse_park_outline changed; ruled: unchanged");
 }
 
 for (const [what, colour, against, min] of exceptions) {

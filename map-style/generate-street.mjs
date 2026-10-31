@@ -31,7 +31,7 @@ import { layers, namedFlavor } from "@protomaps/basemaps";
 import { applyStreetDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
-import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
+import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -75,6 +75,7 @@ const VERSIONS = {
     palette: { ...COLOURS, fillIn: FILL_IN_COLOURS },
     nightLayers: NIGHT_LAYER_COLOURS_V4,
     nightFills: NIGHT_FILL_COLOURS_V4,
+    nightLines: NIGHT_LINE_COLOURS_V4,
     toWorker: false,
   },
 };
@@ -95,6 +96,8 @@ const style = (version, assetsBase) => ({
     // Night fill colours by day colour, and pattern images painted one colour (dispatch 2026-10-22-03).
     "forager:night-fills": VERSIONS[version].nightFills,
     "forager:night-patterns": NIGHT_PATTERN_COLOURS,
+    // v4 only: night line colours by day colour, per layer (the night tertiary). Absent from v3, which stays byte for byte.
+    ...(VERSIONS[version].nightLines ? { "forager:night-line-colours": VERSIONS[version].nightLines } : {}),
   },
   sources: {
     protomaps: {
