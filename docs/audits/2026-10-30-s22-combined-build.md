@@ -158,3 +158,61 @@ Table hashes in this section come from a new script: the sqlite3 CLI output of e
 - The cause of the release-packaging out-of-memory failure was not looked into beyond the re-run.
 - The phone checks themselves, such as Sorrel's lists for #449 and #450 and the credits glance, are a separate dispatch.
 - No `docs/audits/README.md` row, because this branch is never merged.
+
+---
+
+# Amendment 3: #449's last three rounds, installed (2026-10-31 11:12 UTC)
+
+Hazel. The sections above are kept as written. This one installs 4294 on top of the Amendment 2 install.
+
+## The merges
+- Worktree clean, at origin/tools/s22-combined `f0cac3bd5`, before starting.
+- origin/route-plot-ui was `eb3c92e49`, the same as `gh pr view 449` (open). Its PR run 41193185545 (event `pull_request`, head `eb3c92e49`) completed **success**, with all six jobs passing.
+- Merged `eb3c92e49` as `8e70a28ba`, with no conflicts: 32 files, +5003 −80.
+- Then merged origin/pre-main `206464058`: "Already up to date". `git merge-base --is-ancestor 206464058 eb3c92e49` holds, so route-plot-ui already contains that pre-main (with #447 and #452). No second merge commit was made.
+- `ForagerDatabase.kt:214` still reads `version = 23,`.
+
+## CI run 41194453469 (workflow_dispatch, `8e70a28ba`, no test filter)
+- Build log: 0 `e: ` lines. Debug APK BUILD SUCCESSFUL in 3m 12s. Release compile and package BUILD SUCCESSFUL in 2m 53s, on the first attempt, with no out-of-memory error. Lint BUILD SUCCESSFUL in 5m 8s. Tile Worker and route cutter passed. "Run the unit tests" BUILD FAILED in 14m 14s. No job was re-run.
+- JUnit totals from the `unit-test-report` artifact (876 XML files):
+  - testDebugUnitTest: 6210 tests, 3 failures, 0 errors, 24 skipped. That is 17 more tests than Amendment 2's 6193.
+  - testDebugUnitTestOlderSdks: 24 tests, 0 failures.
+- The three failures are exactly the allowed ones, at the same lines and with the same messages as in Amendments 1 and 2:
+  1. `StreetStyleTest.kt:77`: expected the Worker's street-v3 URL, got the raw street-v4 URL.
+  2. `OwnStreetStyleSourceTest.kt:78`.
+  3. `NightExceptionsV4Test.kt:219`, the "every other style keeps v1 to v3's tables" case, with the message naming the street-v4 raw URL.
+
+## APK checks (`app-debug-apk` from run 41194453469)
+- sha256 `11a6d82134211ea33d39ed9c8ce11f09c8caa97b517f609726a64319724e6279`.
+- versionCode **4294**, versionName `1.0.4294+g8e70a28b`. That is above 4280.
+- V2 signer SHA-256 `cb2f6da5…94f1626`. It equals the installed 4280 base.apk, which was pulled from the phone.
+- Routing key present: `BuildConfig.ROUTING_APP_KEY` in the dex is a 40-character string, and the run log shows `FORAGER_ROUTING_APP_KEY` masked. The key was not printed.
+
+## The S22 (R5CT321008R)
+Everything is in `/home/zynergy-labs/s22-2026-10-30/combined/a3/` and `…/combined/ci-41194453469/`, off git. Table hashes in this section come from a fresh script of my own: each table's rows ordered by every column, then sha256. A second hash leaves out `accessed` where a table has it. The hashes are compared only within this amendment. Row counts agree with Amendment 2.
+
+**Baseline** (`a3/baseline/`): 1.0.4280+gaecf9cae, versionCode 4280. forager.db `user_version` 23, integrity ok. Region 1 is id 3 (34 tiles) and Region 2 is id 8 (1630 tiles). There are 5 tracks, all ended, with 273 points and 11 waypoints. The app was in front, with no Forager service running. `diagnostics.walk_logger` is true. The raw backup is a `run-as … tar` of `databases`, `files`, `shared_prefs` and `no_backup`, as `app-data-before.tar`, with its sha256 alongside, the per-table hashes and a per-file sha256 list. The installed 4280 base.apk is kept beside it.
+
+**In-app backup** (`a3/in-app-backup/`): made through Tools > Settings > Backup > "Back up now". The picker's default name, `forager-backup-2026-10-31.zip`, was already taken by Amendment 2's backup. So that the old file was not overwritten, I typed a new name, `Download/forager-backup-2026-10-31-a3.zip`. The 10-30 and 10-31 files are still there, with the same sizes and times. The new file was pulled off the phone.
+- sha256 `f551b9404b6299c2ed5d31d6b8503c95f32e34b88c09f6f67a7e796a308b4cbd`, 18877 bytes.
+- Its manifest says appVersionCode 4280 and schemaVersion 23. The sha256 of forager.db equals the manifest's.
+- Every table matches the raw baseline except `cached_searches`: 0 rows in the backup, 2 on the phone, the same as in Amendments 1 and 2.
+
+**Pre-install snapshot** (`a3/pre-install/`), taken right before the install. Against the baseline, only the map cache's `resources` table changed: the street-v4 style resource got a new `expires` and `accessed`, from the app being in use. All forager.db and fungi_index.db tables are identical. I read the crash buffer (`logcat -b crash -d`) without clearing it. It was empty. **Nothing was cleared on the phone in this amendment.**
+
+**Install:** at 11:12:09 UTC, `adb install -r` succeeded. The phone now reports versionCode 4294, `1.0.4294+g8e70a28b`. One launch. Afterwards the crash buffer was still empty.
+
+**Data checks after the launch** (`a3/after/`), against the pre-install snapshot:
+- forager.db: every table's row count and hash is identical, `user_version` 23, integrity ok.
+- fungi_index.db: identical.
+- mbgl-offline.db: `regions` and `region_tiles` are identical, so both offline regions are untouched. `tiles` and `resources` have the same row counts, and with `accessed` left out they are identical. Only access times changed, from the map drawing.
+- Files: every DataStore, shared_prefs, `offline_routes` and routing-profile file is byte-identical, and the file list is unchanged. Three files changed: `forager.db-shm`, `mbgl-offline.db` (the access times above) and `files/profileInstalled`.
+- ACTIVITY_RECOGNITION is granted for user 0. User 95, the dual-app profile, is still `granted=false`, and was left alone.
+- The walk logger is still on: `diagnostics.walk_logger` = true.
+
+**Screen:** the app is in front on the Maps tab. A uiautomator dump shows the selected bottom-bar item at x 588 to 852, which holds the "Maps" label. There is a screenshot in `a3/after/`, kept off git.
+
+## Not done or not verified
+- I did not check whether the in-app backup restores. It was only read on the laptop.
+- The phone checks themselves are a separate dispatch.
+- No `docs/audits/README.md` row, because this branch is never merged.
