@@ -24,13 +24,20 @@ internal object RoutingTestData {
 
     fun segments(tmp: TemporaryFolder): File = tmp.newFolder("segments").also { dir -> resource("segments/W75_N40.rd5").copyTo(File(dir, SQUARE)) }
 
+    /**
+     * The same square with 3″ heights, the route cutter's fixture since 2026-10-30 (dispatch 2026-10-30-06, Amendment 3),
+     * in a folder of its own so the square without heights keeps its tests.
+     */
+    fun heightedSegments(tmp: TemporaryFolder): File =
+        tmp.newFolder("segments-heighted").also { dir -> resource("segments-heighted/W75_N40.rd5").copyTo(File(dir, SQUARE)) }
+
     /** The points of a route BRouter's own command-line router returned on the fixture (`brouter-cli/<name>.geojson`). */
-    fun commandLineRoute(name: String): List<LatLng> =
-        Json.parseToJsonElement(resource("brouter-cli/$name.geojson").readText()).jsonObject["features"]!!.jsonArray[0]
+    fun commandLineRoute(name: String, folder: String = "brouter-cli"): List<LatLng> =
+        Json.parseToJsonElement(resource("$folder/$name.geojson").readText()).jsonObject["features"]!!.jsonArray[0]
             .jsonObject["geometry"]!!.jsonObject["coordinates"]!!.jsonArray
             .map { point -> point.jsonArray.let { LatLng(lat = it[1].jsonPrimitive.double, lng = it[0].jsonPrimitive.double) } }
 
-    private fun resource(path: String): File =
+    fun resource(path: String): File =
         File(checkNotNull(javaClass.classLoader?.getResource("routing/$path")) { "routing/$path missing" }.toURI())
 
     // Route ends from server/pmtiles-worker/test/fixtures/rd5/routes.json: OpenStreetMap trail nodes.

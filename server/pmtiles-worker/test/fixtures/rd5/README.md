@@ -27,7 +27,7 @@ The fixture covers part of **Harriman and Bear Mountain State Parks, New York**:
   - **Why not the live square, or the first fixture's Overpass query:** the live `W75_N40.rd5` holds whole one-degree tiles, far more ways than this box, which could change what each route in `routes.json` exercises; and Overpass's dated query for the first fixture's snapshot (2026-10-22T04:26:47Z) failed four times on 2026-10-30. The extract gives the same box and way selection a week later; every route keeps its category and observed outcome (the tests below, 35 of 35).
   - The first fixture (2026-10-22, no heights, 152,665 bytes, SHA-256 `ff6d9d8e…5990`) and its Overpass recipe are in git history.
 - `make-fixture.sh`: the recipe, with the pinned jar and profiles, and the hashes of every input. A rerun will not match byte for byte, because WayLinker stamps the time it ran. The committed file is the fixture of record.
-- `routes.json`: the rectangle the tests cut to, and seven routes, each given by two OpenStreetMap node ids and positions.
+- `routes.json`: the rectangle the tests cut to, and eight routes, each given by two OpenStreetMap node ids and positions.
 
 ## Route categories
 
