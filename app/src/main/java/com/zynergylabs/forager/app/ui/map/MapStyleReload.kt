@@ -141,7 +141,11 @@ internal fun MapStyleReload(
             // Since dispatch 2026-10-18-05 Part 2 the same recolour serves the own Street online (loaded by URI too),
             // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
             // The own Street takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
-            if (requested.night && source !is MapStyleSource.Json) applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source))
+            // Street v4 (the fill-in) has its own night tables, chosen by the style's URI (StreetNightTables.kt); every other
+            // Trail Map version, and Street under Topographical, keeps v1 to v3's.
+            if (requested.night && source !is MapStyleSource.Json) {
+                applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source), streetTables = streetNightTablesFor((source as? MapStyleSource.Uri)?.uri))
+            }
             // Trail Map's night icons and patterns: the bundled night copies, added under their own names and switched to
             // (NightImageSwitch.kt; dispatch 2026-10-22-06 Amendment 1). The sprite is not loaded yet at this point.
             if (requested.night && usesStreetSprite(source)) applyStreetNightImages(style, context)
