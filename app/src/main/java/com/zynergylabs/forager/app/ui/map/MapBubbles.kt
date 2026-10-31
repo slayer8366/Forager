@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.ForecastBlock
 import com.zynergylabs.forager.app.domain.ForecastCell
@@ -200,6 +201,11 @@ data class MapRecordSources(
      * (tests only) offers none. Directions is offered only where Navigate cannot reach (RECORD -1819).
      */
     val onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
+    /**
+     * Route plotting (dispatch 2026-10-30-08, step 3; the planner's ruling on Q11: carried here, so the scaffold is unchanged):
+     * a waypoint bubble's "Plot route", and what the Maps tab's taps, card and Back read. Only the Maps tab passes one.
+     */
+    val routePlotting: RoutePlottingControls? = null,
 )
 
 /** The Maps tab's find action (owner's M1 ruling 2). */

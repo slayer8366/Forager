@@ -120,6 +120,13 @@ internal class MapIconClusterState(
     var legendChipTopPx: Float? by mutableStateOf(null)
 
     /**
+     * The route card's top edge in the content box's coordinates while it shows, or null while none does (dispatch 2026-10-30-08,
+     * Amendment 3, the owner: "Cluster stays above card (Recommended)"): a further lowest edge for the cluster, on either side
+     * and in every window. Display-only, as the legend's: the height the user chose is never changed by it.
+     */
+    var routeCardTopPx: Float? by mutableStateOf(null)
+
+    /**
      * T11 fixes (RECORD -766, P4): the navigation display's bottom edge in the root while navigating, written by the display;
      * null while not navigating. What the landscape L slides down below ([navigationSlideApplies]).
      */

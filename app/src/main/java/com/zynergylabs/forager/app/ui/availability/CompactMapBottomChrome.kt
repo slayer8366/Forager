@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -60,6 +62,8 @@ internal fun BoxScope.CompactMapBottomChrome(
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
+    /** Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise; "Return to Route" (Amendment 3) and the legend chip (Amendment 4) sit above it. */
+    routeCardHeight: Dp = 0.dp,
 ) {
     val isNavigating = navigation.isNavigating
     val navigationFollowing = navigation.navigationFollowing
@@ -80,6 +84,9 @@ internal fun BoxScope.CompactMapBottomChrome(
     // nav keeps winning its own band.
     // Motion Part 2, item 4 (scout N3; "Fade and grow"): it grows up from its bottom centre and shrinks back down;
     // item 5: from the moment it starts to leave (a tap on it, which brings the view back) it takes no touch.
+    // Dispatch 2026-10-30-08: how far "Return to Route" (Amendment 3) and the legend chip (Amendment 4) rise while the route
+    // card shows, its height and a gap; nothing while it does not.
+    val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
     val returnToRouteShown = isNavigating && !navigationFollowing
     MapPopUp(
         visible = returnToRouteShown,
@@ -87,7 +94,9 @@ internal fun BoxScope.CompactMapBottomChrome(
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .padding(controlsPadding)
-            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+            // Amendment 3 (the owner: "Pill sits above the card (Recommended)"): the card sits on the same bottom, so the pill
+            // rises by the card's height and a gap, and the two never overlap.
+            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + routeCardLift),
     ) {
         ReturnToRoutePill(
             onClick = onReturnToRoute,
@@ -125,7 +134,9 @@ internal fun BoxScope.CompactMapBottomChrome(
         modifier = Modifier
             .align(Alignment.BottomEnd)
             .padding(controlsPadding)
-            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+            // Amendment 4 (the owner: "Chip rises above the card (Recommended)"): the card sits on the same bottom, so the chip
+            // rises by the card's height and a gap, as the pill above does.
+            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + routeCardLift),
     ) {
         legendShown?.let { legend ->
             DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
