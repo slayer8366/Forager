@@ -31047,3 +31047,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **In-app backup:** forager-backup-2026-10-31-a3.zip (manifest 4280, schema 23). cached_searches is empty in all three backups.
 - **The crash buffer** was read, not cleared (empty both times). Nothing was reset.
 **Notes:** Written by the planner by hand; the planner read 4294 off the phone. Next: the formal phone checks for #449 and #450, and the credits glance. Next free ID -1900.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1900
+**Timestamp:** 2026-10-31T22:47:40Z
+**Continues:** 2026-09-28-1899
+**Title:** The S22 phone checks for #449, #450, the elevation lines and the credits
+**Decision:** the owner: "Go ahead and run the phone check". Dispatch 2026-10-31-01: Sorrel's 14 (#449) and 9 (#450), the owner's card layout, the elevation lines in both units, and the Heights credits. Throwaway data only, deleted after; nothing cleared or reset; checks that need a thumb, a system dialog or the tablet are left for the owner.
+**Notes:** Written by the planner by hand. A mechanical slip in -1899, the same as in -1856: its Install line lost the words "install -r" because a shell ran the backquoted text while the entry was written. Read it as "install -r". This entry is written with quoting that cannot run text. Next free ID -1901.
