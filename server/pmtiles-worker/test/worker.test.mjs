@@ -19,6 +19,9 @@ const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
 // The world fill (dispatch 2026-10-22-01 Part A): R2's world-south.pmtiles, read where us.pmtiles has no tile.
 const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
+// The worldwide fallback (dispatch 2026-10-31-coder-08 Part A): R2's world.pmtiles, a Protomaps daily planet to z15,
+// read before world-south.pmtiles. Its tiles are listed in test/fixtures/make-world-pmtiles.py.
+const PLANET = fs.readFileSync(here("./fixtures/world.pmtiles"));
 // Protomaps' live build, which the z15 overflow reads: two z15 tiles, listed in test/fixtures/make-live-build-pmtiles.py
 // (dispatch 2026-10-22-02). Before it, tiny.pmtiles stood in, stopped at z14, and the overflow's R2 write was unreachable.
 const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
@@ -37,6 +40,7 @@ let fetchCalls;
 let bucketReads;
 let assets;
 let worldOnR2;
+let planetOnR2;
 let bucketHeads;
 let bucketPuts;
 let referenceOnR2;
@@ -67,6 +71,7 @@ const bucket = {
     // from it is missing from us too, and only the archive's name differs.
     if (key === "us.pmtiles" || key === "other.pmtiles") return rangeRead(ARCHIVE, options);
     if (key === "world-south.pmtiles" && worldOnR2) return rangeRead(WORLD, options);
+    if (key === "world.pmtiles" && planetOnR2) return rangeRead(PLANET, options);
     if (key === "reference-trails.pmtiles" && referenceOnR2) return rangeRead(REFERENCE, options);
     if (assets.has(key)) {
       const bytes = assets.get(key);
@@ -82,6 +87,7 @@ const bucket = {
     bucketHeads.push(key);
     if (key === "us.pmtiles" || key === "other.pmtiles") return { key };
     if (key === "world-south.pmtiles" && worldOnR2) return { key };
+    if (key === "world.pmtiles" && planetOnR2) return { key };
     if (key === "reference-trails.pmtiles" && referenceOnR2) return { key };
     return null;
   },
@@ -126,6 +132,8 @@ beforeEach(() => {
   bucketReads = [];
   pending = [];
   worldOnR2 = true;
+  // Off by default, so every test written before the planet reads as it did; the planet's own tests turn it on.
+  planetOnR2 = false;
   referenceOnR2 = true;
   bucketHeads = [];
   bucketPuts = [];
@@ -351,6 +359,72 @@ test("world fill: an archive other than the Street one never falls back to the w
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("X-Forager-Origin"), "r2");
   assert.deepEqual(bucketReads.filter((k) => k !== "other.pmtiles"), []);
+});
+
+// --- The worldwide fallback (dispatch 2026-10-31-coder-08 Part A; the owner: "Fast fill now, own build later"). Where
+// us.pmtiles has no tile, world.pmtiles (the Protomaps planet, z0-15) is read first, then world-south.pmtiles as before.
+// Above us.pmtiles's own maxzoom the planet is read before the live overflow. The fixture: make-world-pmtiles.py.
+
+test("planet: Doha at z12, which neither us.pmtiles nor world-south's z0-8 can serve, comes from world.pmtiles", async () => {
+  planetOnR2 = true;
+  const response = await call("/us/12/2634/1750.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "planet 12/2634/1750");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2-world");
+});
+
+test("planet: São Paulo at z13 comes from world.pmtiles", async () => {
+  planetOnR2 = true;
+  const response = await call("/us/13/3034/4647.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "planet 13/3034/4647");
+});
+
+test("planet: read before world-south.pmtiles where both hold the tile", async () => {
+  planetOnR2 = true;
+  const response = await call("/us/5/9/16.mvt");
+  assert.equal(await tileText(response), "planet 5/9/16");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2-world");
+  assert.ok(!bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("planet: a tile us.pmtiles holds is served from us.pmtiles, and neither world archive is read", async () => {
+  planetOnR2 = true;
+  const response = await call("/us/0/0/0.mvt");
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.ok(!bucketReads.includes("world.pmtiles") && !bucketReads.includes("world-south.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("planet: above us.pmtiles's maxzoom, Doha at z15 comes from world.pmtiles, never Protomaps' live build", async () => {
+  planetOnR2 = true;
+  const response = await call("/us/15/21074/14003.mvt");
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "planet 15/21074/14003");
+  assert.deepEqual(fetchCalls, []);
+  assert.deepEqual(bucketPuts, []);
+});
+
+test("planet: not on R2, the fill is world-south's as before, and Doha at z12 stays 204", async () => {
+  const fill = await call("/us/5/9/16.mvt");
+  assert.equal(await tileText(fill), "world 5/9/16");
+  assert.equal(fill.headers.get("X-Forager-Origin"), "r2-world-south");
+  const doha = await call("/us/12/2634/1750.mvt");
+  assert.equal(doha.status, 204);
+});
+
+test("planet: an archive other than the Street one never reads world.pmtiles", async () => {
+  planetOnR2 = true;
+  const response = await call("/other/12/2634/1750.mvt");
+  assert.equal(response.status, 204);
+  assert.ok(!bucketReads.includes("world.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("TileJSON: with world.pmtiles on R2, us.json's bounds are the planet's on every side", async () => {
+  planetOnR2 = true;
+  const tilejson = await (await call("/us.json")).json();
+  assertBounds(tilejson.bounds, [-180, -85.051129, 180, 85.051129], "us.json with the planet");
+  assert.equal(tilejson.maxzoom, 15);
+  assert.ok(bucketHeads.includes("world.pmtiles"), JSON.stringify(bucketHeads));
 });
 
 // --- The TileJSON's bounds (dispatch 2026-10-22-01 Amendment 3). MapLibre Native never requests a tile outside a
