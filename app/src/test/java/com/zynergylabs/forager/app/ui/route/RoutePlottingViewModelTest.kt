@@ -314,6 +314,25 @@ class RoutePlottingViewModelTest {
         return PlannedTrip("saved", "Ridge to Falls", ridge.position, null, route)
     }
 
+    /** Amendment 5, N-10 (Sorrel's review of #449): a leg whose ends are not its two stops is a failed leg, logged, never a crash. */
+    @Test
+    fun `a routed leg that does not join its two stops drops its stop, logged, rather than crashing`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.onStartPlotting(creek)
+        vm.onWaypointTapped(ridge)
+        advanceUntilIdle()
+
+        legs.pending[0].complete(straight(creek.position, falls.position))
+        advanceUntilIdle()
+
+        assertEquals(
+            "the stop whose leg failed is removed and the plot carries on from the stop before it",
+            RoutePlotMode.Plotting(RoutePlotDraft(listOf(creek), emptyList())),
+            vm.uiState.value.mode,
+        )
+        assertEquals("one line logged for the failed leg, was $logged", 1, logged.count { "removed" in it })
+    }
+
     private fun RoutePlottingViewModel.lastSavedRouteForTest(): PlottedRoute =
         PlottedRoute(listOf(creek, ridge), listOf(straight(creek.position, ridge.position)))
 }

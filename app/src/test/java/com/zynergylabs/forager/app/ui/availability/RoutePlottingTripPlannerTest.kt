@@ -16,6 +16,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_DIALOG_TAG
+import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_KEEP_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAME_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
@@ -174,6 +176,65 @@ class RoutePlottingTripPlannerTest {
             assertEquals("$where: no route opened", RoutePlotMode.Off, mode())
             assertEquals("$where: no card", 0, composeRule.onAllNodesWithTag(ROUTE_CARD_TAG).fetchSemanticsNodes().size)
             assertTrue("$where: the drawer stays open", drawerShown())
+        }
+    }
+
+    /**
+     * Amendment 5, N-11 (Sorrel's review of #449): a route trip deleted from the Trip Planner while its route shows takes its
+     * card and its line with it. The drawer is opened again over the route by a real touch, and Delete takes a real touch.
+     */
+    @Test
+    fun `deleting a route trip while its route shows closes its card and its line`() {
+        val trips = ACROSS.indices.map { i -> ROUTE_TRIP.copy(id = "route-shown-$i", name = "Route $i") }
+        setScreen(trips)
+        openTripPlanner()
+        ACROSS.forEachIndexed { i, (fx, fy) ->
+            val trip = trips[i]
+            val where = "a touch at ($fx, $fy) on ${trip.id}'s Delete while it shows"
+            if (i > 0) composeRule.openTools()
+            touchAcross(row(trip), 0.5f, 0.5f)
+            assertEquals("$where: the route opened first", trip.id, (mode() as? RoutePlotMode.Showing)?.trip?.id)
+            composeRule.openTools()
+            assertTrue("$where: the drawer is open over the route", drawerShown())
+
+            touchAcross(composeRule.onNodeWithTag(plannedRouteDeleteTag(trip.id)).performScrollTo(), fx, fy)
+
+            assertFalse("$where: the trip was deleted", trip.id in viewModel.uiState.value.plannedTrips.map { it.id })
+            assertEquals("$where: the route closed with its trip", RoutePlotMode.Off, mode())
+            assertEquals("$where: no card", 0, composeRule.onAllNodesWithTag(ROUTE_CARD_TAG).fetchSemanticsNodes().size)
+            assertNull("$where: no line", map.content?.plottedRoute)
+            back()
+        }
+    }
+
+    /**
+     * Amendment 5, N-2 (Sorrel's review of #449): a route row tapped mid-plot asks "Discard this route?"; Keep plotting puts the
+     * user back where they were, the tab the drawer was over and the drawer open on the Trip Planner, with the plot kept.
+     */
+    @Test
+    fun `Keep plotting after a route row tapped mid-plot brings back the tab and the drawer, with the plot kept`() {
+        setScreen()
+        composeRule.runOnUiThread {
+            plotting.onStartPlotting(CREEK.stop())
+            plotting.onWaypointTapped(RIDGE.stop())
+        }
+        composeRule.waitForIdle()
+        val plot = mode()
+        composeRule.onNodeWithText("List").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        openTripPlanner()
+        ACROSS.forEach { (fx, fy) ->
+            val where = "a touch at ($fx, $fy) on Keep plotting"
+            touchAcross(row(), 0.5f, 0.5f)
+            composeRule.onNodeWithTag(DISCARD_ROUTE_DIALOG_TAG).assertIsDisplayed()
+
+            touchAcross(composeRule.onNodeWithTag(DISCARD_ROUTE_KEEP_TAG), fx, fy)
+
+            assertEquals("$where: the plot is kept", plot, mode())
+            assertEquals("$where: the prompt closed", 0, composeRule.onAllNodesWithTag(DISCARD_ROUTE_DIALOG_TAG).fetchSemanticsNodes().size)
+            assertTrue("$where: the drawer is open again", drawerShown())
+            composeRule.onNodeWithText("List").assertIsSelected()
+            row().assertIsDisplayed()
         }
     }
 }
