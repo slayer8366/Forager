@@ -209,16 +209,35 @@ What it does differently from `build-orwa.sh`, and why:
   Canada"). Deleting that drop-in returns the timer to `forager-build.service`. See
   `docs/audits/2026-10-18-usca-build-switchover-report.md`.
 
+## The route-data upload, `bin/upload-routing.sh`
+
+Dispatch 2026-10-30-coder-04 (the owner: "Build writes them, from next run" and "A: commit an upload script").
+
+- **The notice.** The route squares carry heights from NRCan's MRDEM (Canada; Open Government Licence – Canada, and
+  the Copernicus WorldDEM-30 notice and liability sentence it passes on) and USGS 3DEP (United States). The wording is
+  in one file, `notices/routing-NOTICE.txt`, the same lines as the app's Heights credits (Juniper's report,
+  `juniper-nrcan-credit` 355933b4d). `test_run_record.py` pins it word for word.
+- **Staged by the build.** At publish, `build-usca.sh`'s `stage_routing_set` writes, beside the output's
+  `manifest.json`, `NOTICE` (a copy of that file) and `routing-manifest.json`: the shape the Worker reads as
+  `routing/manifest.json`, with `files` (the squares, as `<run_id>/segments4/`), `names` (`<run_id>/names1/`), and
+  `notice` and `notices`. The Worker and the app ignore fields they do not read.
+- **Uploaded by the script, on the owner's go each time.** `upload-routing.sh OUTPUT_DIR` checks every file
+  against the staged manifest, uploads the squares, names and `NOTICE` to `routing/<run_id>/`, reads each back,
+  and only then uploads `routing/manifest.json`, last, and reads it back. `--dry-run` checks and uploads nothing.
+  It replaces the hand-written upload scripts in Forager-cartography's `docs/audits/`.
+
 ## Tests and checks
 
 - `python3 -m unittest map-build/tools/test_mvt_decode.py`: the tile decoder, against tiles
   encoded by hand.
-- `python3 -m unittest map-build/tools/test_run_record.py`: the status rules and the manifest's
-  dropped squares.
+- `python3 -m unittest map-build/tools/test_run_record.py`: the status rules, the manifest's
+  dropped squares, the notice's wording and the staged routing manifest.
+- `bash map-build/tools/test_upload_routing.sh`: `upload-routing.sh` against a stand-in rclone: the order,
+  the manifest last, and the refusals before anything is uploaded.
 - `python3 -m unittest map-build/tools/test_merge_poly.py`: joining the outlines, two or four.
 - `bash map-build/tools/test_build_usca_functions.sh`: `build-usca.sh`'s square and tile
   arithmetic, download resuming, failed-run keeping, the `--basemap` snapshot check and the routing bands'
-  layout and square ownership, loaded from the script itself.
+  layout and square ownership, and `stage_routing_set`, loaded from the script itself.
 - `python3 -m unittest map-build/tools/test_fnam_build.py`: the names encoder, decoded by its own
   reader: round trip, cell and square edges, what is dropped, Douglas-Peucker within 2 m, the
   directory, and `check`.

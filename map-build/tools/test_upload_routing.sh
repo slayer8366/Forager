@@ -8,8 +8,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 script="$here/bin/upload-routing.sh"
-T="$(mktemp -d)"
-trap 'rm -rf -- "$T"' EXIT
+T="${KEEP_T:-$(mktemp -d)}"
+[[ -n "${KEEP_T:-}" ]] || trap 'rm -rf -- "$T"' EXIT
 [[ -x "$script" ]] || { echo "FAIL: $script is missing or not executable"; exit 1; }
 
 # --- The stand-in rclone: REMOTE:path maps to $STUB_REMOTE/path ------------------------------------------------------
@@ -59,10 +59,10 @@ line_of() { grep -n -- "$1" "$T/calls.log" | head -1 | cut -d: -f1; }
 # U1: a clean upload.
 fresh
 check "U1 the upload succeeds" 'bash "$script" "$T/out" > "$T/u1.out" 2>&1'
-check "U1 the squares are on the remote under segments4" 'cmp -s "$T/remote/routing/usca-r9/segments4/W125_N45.rd5" "$T/out/segments/W125_N45.rd5"'
-check "U1 the names are under names1" 'cmp -s "$T/remote/routing/usca-r9/names1/W120_N45.fnm" "$T/out/names1/W120_N45.fnm"'
-check "U1 NOTICE is beside them" 'cmp -s "$T/remote/routing/usca-r9/NOTICE" "$T/out/NOTICE"'
-check "U1 the live manifest is the staged one" 'cmp -s "$T/remote/routing/manifest.json" "$T/out/routing-manifest.json"'
+check "U1 the squares are on the remote under segments4" 'cmp -s "$T/remote/forager-maps/routing/usca-r9/segments4/W125_N45.rd5" "$T/out/segments/W125_N45.rd5"'
+check "U1 the names are under names1" 'cmp -s "$T/remote/forager-maps/routing/usca-r9/names1/W120_N45.fnm" "$T/out/names1/W120_N45.fnm"'
+check "U1 NOTICE is beside them" 'cmp -s "$T/remote/forager-maps/routing/usca-r9/NOTICE" "$T/out/NOTICE"'
+check "U1 the live manifest is the staged one" 'cmp -s "$T/remote/forager-maps/routing/manifest.json" "$T/out/routing-manifest.json"'
 check "U1 order: squares, names, NOTICE, then the manifest last" \
   '(( $(line_of "segments4") < $(line_of "names1") && $(line_of "names1") < $(line_of "NOTICE") && $(line_of "NOTICE") < $(line_of "routing/manifest.json") )) && [[ "$(grep -c "copyto.*routing/manifest.json" "$T/calls.log")" == 1 ]] && ! tail -n +$(( $(line_of "copyto.*routing/manifest.json") + 1 )) "$T/calls.log" | grep -q " copy"'
 check "U1 the manifest goes with Content-Type application/json" 'grep -q "copyto .*routing-manifest.json r2:forager-maps/routing/manifest.json --header-upload Content-Type: application/json" "$T/calls.log"'
@@ -70,7 +70,7 @@ check "U1 the manifest goes with Content-Type application/json" 'grep -q "copyto
 # U2: a failed read-back of the squares stops the run before the manifest.
 fresh
 check "U2 a failed squares read-back fails the run" '! STUB_FAIL_CHECK=segments bash "$script" "$T/out" > "$T/u2.out" 2>&1'
-check "U2 and the manifest was not uploaded" '[[ ! -e "$T/remote/routing/manifest.json" ]] && ! grep -q "routing/manifest.json" "$T/calls.log"'
+check "U2 and the manifest was not uploaded" '[[ ! -e "$T/remote/forager-maps/routing/manifest.json" ]] && ! grep -q "routing/manifest.json" "$T/calls.log"'
 
 # U3: no NOTICE: refused before anything is uploaded.
 fresh; rm "$T/out/NOTICE"
@@ -91,7 +91,7 @@ check "U5 and calls no rclone" '[[ ! -s "$T/calls.log" ]]'
 
 # U6: the manifest's notice field names the NOTICE key the script uploads.
 fresh; bash "$script" "$T/out" > /dev/null 2>&1
-check "U6 the manifest's notice is the uploaded key" '[[ "$(python3 -c "import json;print(json.load(open(\"$T/out/routing-manifest.json\"))[\"notice\"])")" == "usca-r9/NOTICE" && -s "$T/remote/routing/usca-r9/NOTICE" ]]'
+check "U6 the manifest's notice is the uploaded key" '[[ "$(python3 -c "import json;print(json.load(open(\"$T/out/routing-manifest.json\"))[\"notice\"])")" == "usca-r9/NOTICE" && -s "$T/remote/forager-maps/routing/usca-r9/NOTICE" ]]'
 
 if [[ $nfail -gt 0 ]]; then echo "FAILED: $nfail checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"

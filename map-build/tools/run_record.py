@@ -5,6 +5,7 @@
                                             [--output DIR] [--message M] [--warnings W1,W2]
     run_record.py manifest OUT.json --pins PINS_ENV --run-dir RUN --osm-timestamp T
                                     --osm-sequence N|REGION:N,... --inputs F... --sources F... --outputs F...
+    run_record.py routing-manifest OUT_DIR --run-id R --osm-timestamp T --osm-sequence N|REGION:N,... --notice FILE
 
 status: STATE is running, ok, ok_with_warnings, skipped or failed. ok_with_warnings means the
 output was published, but a step after publishing failed; --warnings names those steps. The file
@@ -23,12 +24,23 @@ manifest: records, for one output directory, everything needed to say what it wa
 - the tool versions (RUN/versions.txt);
 - the per-step metrics (RUN/metrics.jsonl, from peak_rss.py).
 A missing record file is reported as such in the manifest, never filled in with a guess.
+
+routing-manifest (dispatch 2026-10-30-coder-04): stages, in one output directory, what the route-data upload sends
+(bin/upload-routing.sh): NOTICE, a byte-for-byte copy of the committed notice file (map-build/notices/
+routing-NOTICE.txt: the height sources' attributions), and routing-manifest.json, the shape the Worker reads as
+routing/manifest.json (server/pmtiles-worker/src/routing/manifest.ts on pre-main): run_id, osm_timestamp,
+osm_sequence, files (OUT_DIR/segments/*.rd5 as <run_id>/segments4/...), names (OUT_DIR/names1/*.fnm as
+<run_id>/names1/...), each with size and SHA-256, sorted by path; and notice (the NOTICE key, <run_id>/NOTICE) and
+notices (its lines). The Worker reads run_id, osm_timestamp and files only, so the added fields are ignored there.
+Nothing is written unless the notice file exists and the run id is one the Worker accepts.
 """
 import argparse
 import datetime
 import hashlib
 import json
 import os
+import re
+import shutil
 import sys
 
 
@@ -182,6 +194,47 @@ def cmd_manifest(a):
     return 0
 
 
+RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")  # as the Worker's manifest.ts RUN_ID
+
+
+def staged_entries(run_id, folder, r2_folder, suffix):
+    names = sorted(n for n in os.listdir(folder) if n.endswith(suffix)) if os.path.isdir(folder) else []
+    return [{"path": f"{run_id}/{r2_folder}/{n}", "size": os.path.getsize(os.path.join(folder, n)),
+             "sha256": sha256(os.path.join(folder, n))} for n in names]
+
+
+def cmd_routing_manifest(a):
+    if not RUN_ID.match(a.run_id):
+        print(f"--run-id {a.run_id!r} is not a run id the Worker accepts", file=sys.stderr)
+        return 2
+    if not os.path.isfile(a.notice):
+        print(f"no notice file at {a.notice}", file=sys.stderr)
+        return 2
+    try:
+        sequence = osm_sequence(a.osm_sequence)
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
+    files = staged_entries(a.run_id, os.path.join(a.out_dir, "segments"), "segments4", ".rd5")
+    if not files:
+        print(f"no .rd5 squares in {a.out_dir}/segments", file=sys.stderr)
+        return 2
+    with open(a.notice, encoding="utf-8") as f:
+        notices = [line for line in f.read().split("\n") if line]
+    manifest = {
+        "run_id": a.run_id,
+        "osm_timestamp": a.osm_timestamp,
+        "osm_sequence": sequence,
+        "files": files,
+        "names": staged_entries(a.run_id, os.path.join(a.out_dir, "names1"), "names1", ".fnm"),
+        "notice": f"{a.run_id}/NOTICE",
+        "notices": notices,
+    }
+    shutil.copyfile(a.notice, os.path.join(a.out_dir, "NOTICE"))
+    write_atomic(os.path.join(a.out_dir, "routing-manifest.json"), manifest)
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -204,8 +257,14 @@ def main(argv=None):
     m.add_argument("--sources", nargs="+", required=True)
     m.add_argument("--outputs", nargs="+", required=True)
     m.add_argument("--dropped", help="build-orwa.sh's list of deleted .rd5 squares (name<TAB>size)")
+    r = sub.add_parser("routing-manifest")
+    r.add_argument("out_dir")
+    r.add_argument("--run-id", required=True)
+    r.add_argument("--osm-timestamp", required=True)
+    r.add_argument("--osm-sequence", required=True)
+    r.add_argument("--notice", required=True)
     a = p.parse_args(argv)
-    return cmd_status(a) if a.cmd == "status" else cmd_manifest(a)
+    return {"status": cmd_status, "manifest": cmd_manifest, "routing-manifest": cmd_routing_manifest}[a.cmd](a)
 
 
 if __name__ == "__main__":

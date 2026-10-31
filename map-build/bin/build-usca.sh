@@ -438,6 +438,14 @@ heights_read_ok() { # unodes-dir allowed-squares: did PosUnifier read heights fo
   [[ ${#bad[@]} -eq 0 ]] || { echo "PosUnifier read no heights for ${bad[*]}: is $USCA_BEF_DIR still there?"; return 1; }
 }
 
+stage_routing_set() { # out-dir run-id osm-timestamp osm-sequence: NOTICE and routing-manifest.json beside manifest.json
+  # Dispatch 2026-10-30-coder-04 (the owner: "Build writes them, from next run"): the route files carry their height
+  # sources' notice, from the one committed notice file, and the R2 manifest is staged here rather than by hand, for
+  # bin/upload-routing.sh. Uploading stays the owner's go for each run.
+  "${RECORD[@]}" routing-manifest "$1" --run-id "$2" --osm-timestamp "$3" --osm-sequence "$4" \
+    --notice "$here/notices/routing-NOTICE.txt"
+}
+
 fetch_extract() { # url name bytes: download onto the card, and link it from $SRC/osm under the same name (B)
   local link="$SRC/osm/$2"
   if [[ -e "$link" && ! -L "$link" ]]; then
@@ -964,6 +972,8 @@ cp "$run/bounds.txt" "$run/coverage.txt" "$run/out/"
 "${RECORD[@]}" manifest "$run/out/manifest.json" --pins "$here/pins.env" --run-dir "$run" \
   --osm-timestamp "$osm_ts" --osm-sequence "$osm_seq" --inputs "${inputs[@]}" --sources "${sources[@]}" \
   --outputs "$pmtiles_out" "$run/out/segments/"*.rd5 "$run/out/names1/"*.fnm
+stage_routing_set "$run/out" "$run_id" "$osm_ts" "$osm_seq" || die "could not stage the routing set's NOTICE and manifest"
+log "staged NOTICE and routing-manifest.json for the route-data upload"
 name="$(date -u -d "$osm_ts" +%Y%m%dT%H%M%SZ)"
 [[ -e "$OUT/$name" ]] && name="$name-$run_id"
 mv "$run/out" "$OUT/$name"
