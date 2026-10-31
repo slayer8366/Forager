@@ -15,7 +15,10 @@ import fs from "node:fs";
 import { featureFilter } from "@maplibre/maplibre-gl-style-spec";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
-const style = JSON.parse(fs.readFileSync(here("forager-street-v2.json"), "utf8")); // v2 since dispatch 2026-10-22-03
+// `node tools/check-street-trails.mjs v4` checks forager-street-v4.json (the fill-in), which adds two fill layers; with no
+// argument it checks v2, as before.
+const STYLE = process.argv[2] === "v4" ? "v4" : "v2";
+const style = JSON.parse(fs.readFileSync(here(`forager-street-${STYLE}.json`), "utf8")); // v2 since dispatch 2026-10-22-03
 const problems = [];
 
 // --- The spec, typed from the handover ----------------------------------------------------------------------------
@@ -114,7 +117,10 @@ const IDS = [
   "roads_path_rough_clear", "roads_path_rough_faint", "roads_path_hard_clear", "roads_path_hard_faint",
 ];
 // 93: Street v1's 74, one footpath layer become 17, and v2's tree glyphs, wetland tufts and area names (dispatch 2026-10-22-03).
-if (style.layers.length !== 93) problems.push(`the style has ${style.layers.length} layers, expected 93`);
+// v4: v3's 97 (v2's 93, the official-trails band's three and the building outline) and the fill-in's two fills,
+// v4 since the borders: and landuse_edges and water_edges.
+const LAYER_COUNT = { v2: 93, v4: 101 }[STYLE];
+if (style.layers.length !== LAYER_COUNT) problems.push(`the style has ${style.layers.length} layers, expected ${LAYER_COUNT}`);
 const ids = pathLayers.map((p) => p.layer.id);
 if (!same(ids, IDS)) problems.push(`footpath layers, in order, are ${JSON.stringify(ids)}; expected ${JSON.stringify(IDS)}`);
 // The order matters only between layers that draw at the same zoom; a z13-only layer never meets a z15 one.
