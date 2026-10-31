@@ -488,8 +488,10 @@ internal fun CompactMapTab(
                     tapped = tapped,
                     onTapped = { tapped = it },
                     mapLayers = mapLayers,
-                    // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest).
-                    renderMode = savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode,
+                    // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest). Amendment 9:
+                    // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
+                    renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
+                        .withAttributionAboveRouteCard(routeCardHeightDp),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onFeatureTap = onFeatureTap,
