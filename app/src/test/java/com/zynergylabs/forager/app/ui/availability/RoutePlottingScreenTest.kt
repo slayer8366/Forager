@@ -24,8 +24,8 @@ import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_CANCEL_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HINT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_LEGS_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAME_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVE_TAG
@@ -125,7 +125,7 @@ class RoutePlottingScreenTest {
 
             assertEquals("a touch at ($fx, $fy)", RoutePlotMode.Plotting(RoutePlotDraft(listOf(CREEK.stop()))), mode())
             assertEquals(0, composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).fetchSemanticsNodes().size)
-            composeRule.onNodeWithTag(ROUTE_CARD_HINT_TAG).assertIsDisplayed()
+            composeRule.onNodeWithTag(ROUTE_CARD_COUNT_TAG).assertIsDisplayed()
         }
     }
 

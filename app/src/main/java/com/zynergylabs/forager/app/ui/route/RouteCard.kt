@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
+import com.zynergylabs.forager.app.domain.route.RouteElevation
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
@@ -84,11 +85,30 @@ sealed interface RouteCardContent {
     val stops: List<RouteStop>
     val legs: List<RouteLeg>
 
+    /**
+     * Amendment 6's seam (RECORD -1887): an optional elevation for each leg, by the leg's index, and one for the whole route.
+     * Nothing fills them yet, so the card shows no elevation line; the follow-up on #447's heights fills them in.
+     */
+    val legElevations: List<RouteElevation?>
+    val totalElevation: RouteElevation?
+
     /** Plotting: [legInFlight] while the leg to the last stop is still being routed. */
-    data class Plotting(override val stops: List<RouteStop>, override val legs: List<RouteLeg>, val canSave: Boolean) : RouteCardContent
+    data class Plotting(
+        override val stops: List<RouteStop>,
+        override val legs: List<RouteLeg>,
+        val canSave: Boolean,
+        override val legElevations: List<RouteElevation?> = emptyList(),
+        override val totalElevation: RouteElevation? = null,
+    ) : RouteCardContent
 
     /** A saved route, under its [name]. */
-    data class Saved(val name: String, override val stops: List<RouteStop>, override val legs: List<RouteLeg>) : RouteCardContent
+    data class Saved(
+        val name: String,
+        override val stops: List<RouteStop>,
+        override val legs: List<RouteLeg>,
+        override val legElevations: List<RouteElevation?> = emptyList(),
+        override val totalElevation: RouteElevation? = null,
+    ) : RouteCardContent
 }
 
 /** What the card's buttons do. Each is a plain lambda; the host wires them to [RoutePlottingActions]. */
@@ -268,4 +288,13 @@ const val ROUTE_CARD_CANCEL_TAG = "route-card-cancel"
 const val ROUTE_CARD_SAVE_TAG = "route-card-save"
 const val ROUTE_CARD_DIRECTIONS_TAG = "route-card-directions"
 
+const val ROUTE_CARD_COUNT_TAG = "route-card-count"
+const val ROUTE_CARD_ROUTED_TAG = "route-card-routed"
+const val ROUTE_CARD_ROUTED_COUNT_TAG = "route-card-routed-count"
+const val ROUTE_CARD_ROUTED_TOTAL_TAG = "route-card-routed-total"
+const val ROUTE_CARD_ROUTED_ELEVATION_TAG = "route-card-routed-elevation"
+
 fun routeCardLegTag(index: Int) = "route-card-leg-$index"
+fun routeCardLegNameTag(index: Int) = "route-card-leg-name-$index"
+fun routeCardLegDistanceTag(index: Int) = "route-card-leg-distance-$index"
+fun routeCardLegElevationTag(index: Int) = "route-card-leg-elevation-$index"
