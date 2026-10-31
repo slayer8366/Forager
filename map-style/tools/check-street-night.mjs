@@ -390,6 +390,19 @@ if (V4) {
   }
 }
 
+// 10. v4's creeks under the water (the fill-in rulings, "Water fill to the creek colour", superseded: the owner, "Creeks
+//     under water (Recommended)"): water_stream and water_river draw just before the water fill, so a lake or river
+//     polygon covers the line inside it and the creek shows everywhere else. Nothing else moves.
+if (V4) {
+  const order = style2.layers.map((l) => l.id);
+  const at = order.indexOf("water");
+  const before = order.slice(at - 2, at);
+  if (JSON.stringify(before) !== JSON.stringify(["water_stream", "water_river"])) problems.push(`the two layers before the water fill are ${JSON.stringify(before)}; ruled ["water_stream","water_river"]`);
+  const v3order = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8")).layers.map((l) => l.id).filter((id) => id !== "water_stream" && id !== "water_river");
+  const v4rest = order.filter((id) => id !== "water_stream" && id !== "water_river" && v3order.includes(id));
+  if (JSON.stringify(v4rest) !== JSON.stringify(v3order)) problems.push("apart from the two creek layers, v4 moves a layer v3 has");
+}
+
 for (const [what, colour, against, min] of exceptions) {
   const ratio = contrast(colour, against);
   const line = `${what}: ${colour} on ${against} ${ratio.toFixed(2)}:1 (minimum ${min})`;
