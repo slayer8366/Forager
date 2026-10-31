@@ -30920,3 +30920,14 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 **Title:** A saved route's peek shows its name, the total and "N Waypoints routed"; the leg stall is fixed in #449
 **Decision:** the owner: "Name + total, \"N Waypoints routed\" (Recommended)". The planner had the leg stall fixed as a defect in #449's own code. Dispatch 2026-10-30-08 Amendment 7.
 **Notes:** Written by the planner by hand. The S22 build in progress takes bce9c2de0, which has the stall latent but is expected not to hit it on the phone. Next free ID -1891.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1891
+**Timestamp:** 2026-10-31T07:55:06Z
+**Continues:** 2026-09-28-1843
+**Title:** The heighted rd5 fixture (#452) merged into pre-main; #447 finishes on it
+**Observed:** Aspen's note prompts/aspen/2026-10-31-01 (25cbebea7). PR #452 (Willow) at f46e9d596: CI run 41175365318 green. W75_N40.rd5 is now heighted (178,867 B; 3,630 route points, 5.75-413.75 m; rd5 suite 35/35). The README carries the 3DEP courtesy line. It replaces the Worker's fixture in place; the app's no-heights copy in its test resources is separate.
+**Decision:** the owner: "Merge #452, then finish #447 (Recommended)". The planner merged #452 at f46e9d596: pre-main 53d3f7a2c. Dispatch 2026-10-30-06 Amendment 3: merge pre-main into #447 (take #452's README and script), add the heighted fixture as a second app resource, and add the real-data tests.
+**Notes:** Written by the planner by hand. Next free ID -1892.

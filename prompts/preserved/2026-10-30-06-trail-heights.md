@@ -93,3 +93,21 @@ Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr447.md (sorrel-pr447
 - **N3:** add to the PR's S22 steps reading "start back by" on one way home under old (pre-10-28) and fresh route data.
 - N5, N6, N8, N9 and N11 are record only.
 - Merge pre-main in if it has moved. CI green; no merge.
+
+## Amendment 3 (2026-10-31): the heighted fixture is in pre-main; finish #447 (RECORD -1891)
+Aspen's note is prompts/aspen/2026-10-31-01 (25cbebea7). The fixture is PR #452 (Willow), merged by the planner on the owner's "Merge #452, then finish #447 (Recommended)", at pre-main 53d3f7a2c.
+- It replaces server/pmtiles-worker/test/fixtures/rd5/W75_N40.rd5 with a heighted copy (178,867 B, sha256 14f595e8…).
+- It rewrites that folder's README.md and make-fixture.sh.
+
+**Do:**
+1. **Merge origin/pre-main into trail-heights** (merge, not rebase). The README.md and make-fixture.sh in that fixtures folder will conflict with #447's N10 edits: take #452's text.
+2. **Keep the app's no-heights fixture** (app test resources, segments/W75_N40.rd5) exactly as it is. Add the heighted file as a **second** resource folder beside it (e.g. segments-heights/W75_N40.rd5), copied byte for byte from pre-main's fixture, and check its sha256.
+3. **The plan's N4 and N7 tests:**
+   - BRouterTrailRouterTest on the heighted folder: every point of the eight routes carries a height, in the range Aspen gives (5.75 to 413.75 m), matching BRouter's command-line output for the same routes.
+   - FindWayHomeOnBRouterTest on heighted data, with a pressure-bearing walk so the heights are read.
+   - An assertion that no route height is below −500 m.
+   - The no-heights test stays on its own folder, still never 0.
+4. **The credit line** in the app's fixture README, as Aspen gave it: "Elevation: U.S. Geological Survey, 3D Elevation Program (3DEP), public domain."
+5. **The noted typo:** the fixture README says "seven routes" and routes.json holds eight. Fix it only if #452 didn't.
+
+Fail first where a test is new, then revert checks. Full CI green. Update the PR body. No merge, and never force-push.
