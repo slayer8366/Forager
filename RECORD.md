@@ -30822,3 +30822,18 @@ Dispatch 2026-10-30-08 Amendment 4.
 **Title:** The combined S22 build is dispatched
 **Decision:** on -1870, -1876 and -1881: dispatch 2026-10-30-21. Branch tools/s22-combined = pre-main 1ac67f12b + #447 1cc689166 + #440 bb25405c0 + #450 331c88214 + #449 bcb123bc7 + #448 e9be0bcdd + the tools + the Street v4 load line. It is built on CI and installed with data kept, after a raw backup and an in-app backup. #448 was green (CLEAN) at dispatch.
 **Notes:** Written by the planner by hand. Next free ID -1884.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1884
+**Timestamp:** 2026-10-31T04:19:39Z
+**Continues:** 2026-09-28-1883
+**Title:** The combined S22 build stopped at CI: three expected Street v4 test failures and one real clash with #450; find the clash first
+**Observed:** Hazel (Opus), tools/s22-combined 285476e69, report docs/audits/2026-10-30-s22-combined-build.md (9e52310f0). The five merges went clean; the tools range-diff is equal apart from one context line.
+- **CI run 41165385746:** 6184 + 24 tests, 4 failed, 0 compile errors.
+- **Expected, from the never-merge v4 load line:** StreetStyleTest.kt:77, OwnStreetStyleSourceTest.kt:78 and NightExceptionsV4Test.kt:218.
+- **Real:** CompassScreenOffTest.kt:350, strip "" where "30° NE" was expected. It reproduces alone (41166716655) and passes on #450 alone.
+- Nothing installed; the S22 is still on 4224.
+**Decision:** the owner: "Find the cause, fix it, then build (Recommended)"; "Accept them as expected (Recommended)" for the three v4 failures, in this phone-only build only. Dispatch 2026-10-30-22 bisects with one PR at a time and reports the cause before any fix.
+**Notes:** Written by the planner by hand. Next free ID -1885.
