@@ -2,15 +2,22 @@ package com.zynergylabs.forager.app.domain.route
 
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.ui.route.routeElevationText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
  * A plotted leg's elevation and the whole route's (dispatch 2026-10-30-08, Amendment 8, RECORD -1896): the net change is the
- * last height minus the first; the climb and descent are banked through the journal's 4 m hysteresis (`bankedClimb`); the
- * total is banked across the legs, not summed from them. No elevation for a straight leg, a leg with no heights, or a leg
- * with only some (the rule proposed in the PR body: show nothing). The total only when every leg has one.
+ * last height minus the first; the climb and descent are banked through the journal's 4 m hysteresis (`bankedClimb`). No
+ * elevation for a straight leg, a leg with no heights, or a leg with only some (the rule proposed in the PR body: show
+ * nothing). The total only when every leg has one.
+ *
+ * Amendment 9 (RECORD -1902, the owner: "Total = sum of the legs (Recommended)"): the total's net change, climb and descent
+ * are the sums of the legs' own figures, so the total matches the rows above it. This replaces Amendment 8's one run banked
+ * across the legs, which on the S22 showed legs of ↑ 0, ↑ 0 and ↑ 14 ft over a total of ↑ 13
+ * (docs/audits/2026-10-31-s22-phone-checks.md, F-1).
  */
 class RouteLegElevationTest {
 
@@ -41,12 +48,29 @@ class RouteLegElevationTest {
     }
 
     @Test
-    fun `the total is banked across the legs, so a change pending at one leg's end is counted in the next`() {
+    fun `the total is the sum of the legs' own figures, not one run banked across them`() {
         val first = trail(a, b, listOf(100.0, 110.0, 104.0, 107.0))
         val second = trail(b, c, listOf(107.0, 110.0, 112.0))
-        // Leg by leg: 10 up 6 down, then 5 up (107 to 112). Across both: 104 to 110 banks 6, then 112 is 2 short.
+        // Leg by leg: +7, 10 up 6 down; then +5, 5 up (107 to 112). Summed: +12, 15 up, 6 down. One run banked across both would
+        // bank 104 to 110 as 6, so 16 up: the figure Amendment 9 replaces.
         assertElevation(RouteElevation(5.0, 5.0, 0.0), legElevation(second))
-        assertElevation(RouteElevation(12.0, 16.0, 6.0), routeElevation(listOf(first, second)))
+        assertElevation(RouteElevation(12.0, 15.0, 6.0), routeElevation(listOf(first, second)))
+    }
+
+    @Test
+    fun `the phone's case - legs of up 0, up 0 and up 14 ft give a total of up 14`() {
+        // Shaped on the S22's four-waypoint plot (F-1): two nearly flat legs, then one that climbs 4.3 m. Per leg: 4 m down and
+        // 2 m pending; 1 m, short of 4; then 4.3 m up. One run across them would bank 96 to 100 as a climb of 4 and give 8.3 m up.
+        val first = trail(a, b, listOf(100.0, 96.0, 98.0))
+        val second = trail(b, c, listOf(99.0, 100.0))
+        val third = trail(c, a, listOf(100.0, 104.3))
+        val legs = listOf(first, second, third)
+        fun shown(e: RouteElevation?) = routeElevationText(requireNotNull(e) { "an elevation" }, UnitSystem.IMPERIAL)
+        assertEquals("Elevation: -7 ft (↑ 0 ↓ 13)", shown(legElevation(first)))
+        assertEquals("Elevation: +3 ft (↑ 0 ↓ 0)", shown(legElevation(second)))
+        assertEquals("Elevation: +14 ft (↑ 14 ↓ 0)", shown(legElevation(third)))
+        assertElevation(RouteElevation(-2.0 + 1.0 + 4.3, 4.3, 4.0), routeElevation(legs))
+        assertEquals("the total is the legs' sums", "Elevation: +11 ft (↑ 14 ↓ 13)", shown(routeElevation(legs)))
     }
 
     @Test

@@ -46,8 +46,9 @@ import org.robolectric.annotation.Config
  * touches. The router hands back trail legs with known heights, as `PlotRouteUseCase.leg` does from the trail data:
  * - Creek to Ridge: 100, 110, 104, 107. Net +7 m, 10 m up, 6 m down; the last 3 m are short of 4 and stay pending.
  * - Ridge to Falls: 107, 110, 112. Net +5 m, 5 m up.
- * - The whole route, banked across both legs: 104 to 110 banks 6 m, so 16 m up and 6 m down, net +12 m. Summing the legs
- *   would give 15 m up.
+ * - The whole route: the sums of the legs' own figures (Amendment 9, RECORD -1902, the owner: "Total = sum of the legs
+ *   (Recommended)"), so +12 m, 15 m up and 6 m down, matching the rows above it. Amendment 8's one run banked across both
+ *   legs gave 16 m up (104 to 110 banks 6 m), the figure this replaces.
  * - Falls to Ridge has no heights at all; Ridge to Creek has only some; Creek to Falls is a straight line. None shows a line.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -147,7 +148,7 @@ class RouteElevationLinesTest {
         assertEquals("Ridge to Falls", text(routeCardLegNameTag(1)))
         assertEquals("Elevation: +16 ft (↑ 16 ↓ 0)", text(routeCardLegElevationTag(1)))
         assertEquals("3 Waypoints routed", text(ROUTE_CARD_ROUTED_COUNT_TAG))
-        assertEquals("Elevation: +39 ft (↑ 52 ↓ 20)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        assertEquals("Elevation: +39 ft (↑ 49 ↓ 20)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
 
         touchCentreOf(glyphTag(CREEK.id)) // Falls to Creek: a straight line
 
@@ -165,7 +166,7 @@ class RouteElevationLinesTest {
 
         assertEquals("Elevation: +7 m (↑ 10 ↓ 6)", text(routeCardLegElevationTag(0)))
         assertEquals("Elevation: +5 m (↑ 5 ↓ 0)", text(routeCardLegElevationTag(1)))
-        assertEquals("Elevation: +12 m (↑ 16 ↓ 6)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        assertEquals("Elevation: +12 m (↑ 15 ↓ 6)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
     }
 
     @Test
