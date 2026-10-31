@@ -14,6 +14,15 @@
 # (r14965119 near Seaside, OR, 2026-10-22); Forager prefers the landuse forest/wood kind. Owner's
 # ruling, relayed by Rowan and confirmed in the cartography planner session. landuse=wood is not an
 # upstream landuse kind, so wood + bare_rock is left as bare_rock.
+#
+# 0003 (dispatch 2026-10-28, the owner's go of 10-28) adds a barriers layer (fence, wall, hedge, retaining_wall
+# lines at zoom 15), keeps addr_street on zoom-15 address points, and sets tunnel on water lines, for the app's
+# way to a waypoint: its street drop-off and the gates on its straight legs. 0004 (the owner's choice (b), 10-28) puts a
+# mark, one point with no fields, in the barriers layer of every zoom-15 tile, so the app can tell "no fence here"
+# from "built before fences".
+#
+# 0005 (dispatch 2026-10-30-coder-05; the owner: "From Sunday's run (Recommended)") brings residential, unclassified and
+# road streets into the tiles from zoom 10 instead of 12, so the street grid shows at glance level as OpenStreetMap's does.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -68,6 +77,12 @@ failed="$(grep -c '<failure\|<error' "$report" || true)"
 [[ "$ran" -eq 29 && "$failed" -eq 0 ]] || die "Forager test cases in the report: $ran (expected 29), failures: $failed"
 log "Forager tests ran: $ran cases, 0 failures"
 
+# Streets from zoom 10 (patch 0005, dispatch 2026-10-30-coder-05): foragerStreetsFromZoom10 3 + foragerStreetsOthersUnchanged
+# 4 = 7 cases, in the same RoadsTest report. A jar built without 0005 has none, and stops here.
+sran="$(grep -c '<testcase name="foragerStreets' "$report" || true)"
+[[ "$sran" -eq 7 && "$failed" -eq 0 ]] || die "foragerStreets cases in the RoadsTest report: $sran (expected 7), failures: $failed"
+log "Forager street-zoom tests ran: $sran cases, 0 failures"
+
 # Forest over bare rock (patch 0002, dispatch 2026-10-22-pi-30): 1 parameterized test, 4 cases.
 lreport="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.LanduseTest.xml"
 [[ -r "$lreport" ]] || die "no LanduseTest report at $lreport"
@@ -75,6 +90,17 @@ lran="$(grep -c '<testcase name="foragerForestOverBareRock' "$lreport" || true)"
 lfailed="$(grep -c '<failure\|<error' "$lreport" || true)"
 [[ "$lran" -eq 4 && "$lfailed" -eq 0 ]] || die "foragerForestOverBareRock cases in the LanduseTest report: $lran (expected 4), failures: $lfailed"
 log "Forager landuse tests ran: $lran cases, 0 failures"
+
+# 0003's and 0004's cases: BarriersTest 8 (5 + the mark's 3), BuildingsTest 3, WaterTest 3, each named forager*.
+for pair in BarriersTest:8 BuildingsTest:3 WaterTest:3; do
+  cls=${pair%%:*}; want=${pair##*:}
+  r="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.$cls.xml"
+  [[ -r "$r" ]] || die "no $cls report at $r"
+  n="$(grep -c '<testcase name="forager' "$r" || true)"
+  f="$(grep -c '<failure\|<error' "$r" || true)"
+  [[ "$n" -eq "$want" && "$f" -eq 0 ]] || die "forager cases in the $cls report: $n (expected $want), failures: $f"
+  log "Forager $cls cases ran: $n, 0 failures"
+done
 
 jar="$src/tiles/target/$BASEMAPS_JAR_NAME"
 [[ -s "$jar" ]] || die "no jar at $jar"

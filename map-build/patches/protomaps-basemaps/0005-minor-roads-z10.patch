@@ -1,0 +1,106 @@
+Forager patch 0005: residential, unclassified and road streets from zoom 10, so the street grid shows at glance level
+as OpenStreetMap's map does (dispatch 2026-10-30-coder-05, after the pilot dispatch 2026-10-30-coder-02).
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2), with 0001 to 0004 already
+applied. Applied after them with `git apply` by map-build/bin/build-basemap-jar.sh.
+
+The owner: "Streets only (Recommended)", "Z10 is good, whichever is the one OSM uses", and "From Sunday's run
+(Recommended)". OSM Carto draws residential and unclassified from its zoom 12; the app shows OSM's 256 px tiles at
+round(map zoom + 1), so from about map zoom 10.5, which only z10 vector tiles can match.
+
+Upstream's minor_road minzoom of 12 becomes FORAGER_STREETS_MIN_ZOOM (10) for residential, unclassified and road, the
+way 0001 moved tracks and paths: only the first zoom moves; min_zoom and the sort key keep upstream's values; service
+roads, raceways, and private or no-access ways keep upstream's zoom. Line merging and the 0.1 px simplification in
+Roads.postProcess are unchanged. Measured (Oregon and New York, the pilot): archives +0.68 % and +0.94 %; largest z10
+tile 228,641 bytes (New York), under the 500 KB limit.
+
+Pinned by 7 forager* cases in RoadsTest (foragerStreetsFromZoom10 3, foragerStreetsOthersUnchanged 4), and
+upstream's testHighways rows for residential, unclassified and road edited to 10.
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+index bbb6ce1..2ac0508 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+@@ -30,6 +30,10 @@ import org.locationtech.jts.geom.LineString;
+ @SuppressWarnings("java:S1192")
+ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingProfile.OsmRelationPreprocessor {
+ 
++  /** Forager: the first zoom of residential, unclassified and road streets (upstream: 12). */
++  static final int FORAGER_STREETS_MIN_ZOOM = 10;
++
++
+   private final CountryCoder countryCoder;
+ 
+   public Roads(CountryCoder countryCoder) {
+@@ -407,6 +411,14 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+         foragerMinZoom = Math.min(minZoom, 12);
+       }
+     }
++    // Forager: residential, unclassified and road streets from FORAGER_STREETS_MIN_ZOOM, before upstream's 12, so the
++    // street grid shows at glance level as OpenStreetMap's map does (dispatch 2026-10-30-coder-05, after the pilot
++    // coder-02; the owner: "Streets only (Recommended)", "Z10 is good", "From Sunday's run (Recommended)"). Service
++    // roads and raceways keep upstream's zoom; the same rules as above apply.
++    if (kind.equals("minor_road") && !sf.hasTag("access", "private", "no") &&
++      (kindDetail.equals("residential") || kindDetail.equals("unclassified") || kindDetail.equals("road"))) {
++      foragerMinZoom = Math.min(minZoom, FORAGER_STREETS_MIN_ZOOM);
++    }
+ 
+     var feat = features.line("roads")
+       .setId(FeatureId.create(sf))
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+index bb9486b..ad2c7d0 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+@@ -282,11 +282,11 @@ class RoadsTest extends LayerTest {
+     "secondary_link, major_road, secondary_link, 9, 9",
+     "tertiary, major_road, tertiary, 9, 9",
+     "tertiary_link, major_road, tertiary_link, 9, 9",
+-    "residential, minor_road, residential, 12, 12",
++    "residential, minor_road, residential, 10, 10",
+     "service, minor_road, service, 13, 13",
+-    "residential, minor_road, residential, 12, 12",
+-    "unclassified, minor_road, unclassified, 12, 12",
+-    "road, minor_road, road, 12, 12",
++    "residential, minor_road, residential, 10, 10",
++    "unclassified, minor_road, unclassified, 10, 10",
++    "road, minor_road, road, 10, 10",
+     "raceway, minor_road, raceway, 12, 12",
+     "pedestrian, path, pedestrian, 12, 12",
+     "track, path, track, 11, 11",
+@@ -732,6 +732,30 @@ class RoadsTest extends LayerTest {
+     );
+   }
+ 
++
++  // Forager (dispatch 2026-10-30-coder-05): residential, unclassified and road streets from z10, two zooms before
++  // upstream, so the street grid shows at glance level as OpenStreetMap's map does. Service roads (the owner: "Streets
++  // only"), raceways, and private or no-access streets keep upstream's zoom. Only the first zoom moves.
++  @ParameterizedTest
++  @CsvSource({"residential", "unclassified", "road"})
++  void foragerStreetsFromZoom10(String highway) {
++    var feature = processWith("highway", highway).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(10, feature.getMinZoom(), "first zoom");
++    org.junit.jupiter.api.Assertions.assertEquals(13, feature.getAttrsAtZoom(15).get("min_zoom"), "min_zoom attribute");
++    org.junit.jupiter.api.Assertions.assertEquals(12, feature.getSortKey(), "sort key");
++  }
++
++  @ParameterizedTest
++  @CsvSource({
++    "highway, service, , , 13",
++    "highway, raceway, , , 12",
++    "highway, residential, access, private, 15",
++    "highway, unclassified, access, no, 15",
++  })
++  void foragerStreetsOthersUnchanged(String k1, String v1, String k2, String v2, int minZoom) {
++    var feature = (k2 == null ? processWith(k1, v1) : processWith(k1, v1, k2, v2)).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
++  }
+ }
+ 
+ 
+@@ -1402,4 +1426,5 @@ class RoadsOvertureTest extends LayerTest {
+       )
+     ), results);
+   }
++
+ }

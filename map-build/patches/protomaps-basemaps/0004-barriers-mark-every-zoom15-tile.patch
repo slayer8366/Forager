@@ -1,0 +1,126 @@
+Forager patch 0004: a mark in the barriers layer of every zoom-15 tile (dispatch 2026-10-28, way-to route ends
+across houses; the owner's choice (b) of 10-28).
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2), with 0001, 0002 and 0003
+already applied. Applied after them with `git apply` by map-build/bin/build-basemap-jar.sh.
+
+The app reads fence coverage tile by tile. A zoom-15 tile with a barriers layer was built with barriers, so no
+fence line in it means no fence is mapped there. A tile without the layer was built before this, so fences were
+not checked. Without a mark, a tile with no fence has no barriers layer at all (MVT drops empty layers), and so
+looks the same as a tile from before 0003.
+
+The mark: one point at the tile's corner with no id and no fields, added by Barriers as a TilePostProcessor
+(ForwardingProfile.postProcessTileFeatures at planetiler 0.10.2) to every zoom-15 tile Planetiler writes, after
+the layers' own post-processing. A point with no fields is the smallest feature MVT can hold. The app's reader
+ignores points in this layer, since barriers are lines.
+
+Pinned by three more forager* cases in BarriersTest (8 in all).
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java b/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
+index c61b84a..9895638 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
+@@ -4,9 +4,13 @@ import com.onthegomap.planetiler.FeatureCollector;
+ import com.onthegomap.planetiler.FeatureMerge;
+ import com.onthegomap.planetiler.ForwardingProfile;
+ import com.onthegomap.planetiler.VectorTile;
++import com.onthegomap.planetiler.geo.GeoUtils;
+ import com.onthegomap.planetiler.geo.GeometryException;
++import com.onthegomap.planetiler.geo.TileCoord;
+ import com.onthegomap.planetiler.reader.SourceFeature;
++import java.util.ArrayList;
+ import java.util.List;
++import java.util.Map;
+ import java.util.Set;
+ 
+ /**
+@@ -14,8 +18,13 @@ import java.util.Set;
+  * only (dispatch 2026-10-28; the owner's go of 10-28 ~15:10 PDT). The app's way to a waypoint refuses a straight leg
+  * that crosses one: they stand in for property lines, which OpenStreetMap rarely maps. A closed way (a hedge round a
+  * garden) is its outline, so a leg into it crosses it. No style draws this layer.
++ *
++ * <p>Patch 0004: every zoom-15 tile carries the layer, with one point that has no fields (the mark), whether or not
++ * it has a barrier. The app reads fences tile by tile: a tile with the layer was built with barriers, so no line in it
++ * means no barrier is mapped there; a tile without it (any tile from before this build) means fences were not checked.
++ * The owner's choice (b), 10-28. A point with no fields is the smallest feature MVT can hold.
+  */
+-public class Barriers implements ForwardingProfile.LayerPostProcessor {
++public class Barriers implements ForwardingProfile.LayerPostProcessor, ForwardingProfile.TilePostProcessor {
+ 
+   public static final String LAYER_NAME = "barriers";
+ 
+@@ -43,4 +52,20 @@ public class Barriers implements ForwardingProfile.LayerPostProcessor {
+   public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
+     return FeatureMerge.mergeLineStrings(items, 0, 0, 4);
+   }
++
++  /** The mark: one point with no fields at the tile's corner, added to every zoom-15 tile after its layers are done. */
++  @Override
++  public Map<String, List<VectorTile.Feature>> postProcessTile(TileCoord tile, Map<String, List<VectorTile.Feature>> layers) {
++    if (tile.z() != 15) {
++      return layers;
++    }
++    List<VectorTile.Feature> barriers = new ArrayList<>(layers.getOrDefault(LAYER_NAME, List.of()));
++    barriers.add(MARK);
++    layers.put(LAYER_NAME, barriers);
++    return layers;
++  }
++
++  /** One point at (0, 0), no id, no fields. */
++  static final VectorTile.Feature MARK =
++    new VectorTile.Feature(LAYER_NAME, 0, VectorTile.encodeGeometry(GeoUtils.point(0, 0)), Map.of());
+ }
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
+index 443d88d..524c1b4 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
+@@ -3,7 +3,11 @@ package com.protomaps.basemap.layers;
+ import static com.onthegomap.planetiler.TestUtils.newLineString;
+ import static com.onthegomap.planetiler.TestUtils.newPoint;
+ 
++import com.onthegomap.planetiler.VectorTile;
++import com.onthegomap.planetiler.geo.GeometryException;
++import com.onthegomap.planetiler.geo.TileCoord;
+ import com.onthegomap.planetiler.reader.SimpleFeature;
++import java.util.ArrayList;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -46,4 +50,37 @@ class BarriersTest extends LayerTest {
+   void foragerZoom15Only() {
+     assertFeatures(15, List.of(Map.of("kind", "fence", "_minzoom", 15)), way("fence"));
+   }
++
++  // Patch 0004 (the owner's choice (b), 10-28): every zoom-15 tile carries the barriers layer and its mark.
++  private static Map<String, List<VectorTile.Feature>> tileWith(String layer, VectorTile.Feature... features) {
++    Map<String, List<VectorTile.Feature>> layers = new HashMap<>();
++    layers.put(layer, new ArrayList<>(List.of(features)));
++    return layers;
++  }
++
++  private static VectorTile.Feature line(String layer, Map<String, Object> attrs) {
++    return new VectorTile.Feature(layer, 1, VectorTile.encodeGeometry(newLineString(0, 0, 10, 10)), new HashMap<>(attrs));
++  }
++
++  @Test
++  void foragerMarkOnAZoom15TileWithNoBarrier() throws GeometryException {
++    var out = profile.postProcessTileFeatures(TileCoord.ofXYZ(5221, 11745, 15), tileWith("earth", line("earth", Map.of("kind", "earth"))));
++    var barriers = out.get("barriers");
++    org.junit.jupiter.api.Assertions.assertEquals(1, barriers.size(), () -> "barriers: " + barriers);
++    org.junit.jupiter.api.Assertions.assertEquals(com.onthegomap.planetiler.geo.GeometryType.POINT, barriers.get(0).geometry().geomType());
++    org.junit.jupiter.api.Assertions.assertEquals(Map.of(), barriers.get(0).tags());
++  }
++
++  @Test
++  void foragerMarkBesideTheFencesOfAZoom15Tile() throws GeometryException {
++    var out = profile.postProcessTileFeatures(TileCoord.ofXYZ(5221, 11745, 15), tileWith("barriers", line("barriers", Map.of("kind", "fence"))));
++    org.junit.jupiter.api.Assertions.assertEquals(List.of("fence", "<mark>"),
++      out.get("barriers").stream().map(f -> String.valueOf(f.tags().getOrDefault("kind", "<mark>"))).toList());
++  }
++
++  @Test
++  void foragerNoMarkBelowZoom15() throws GeometryException {
++    var out = profile.postProcessTileFeatures(TileCoord.ofXYZ(2610, 5872, 14), tileWith("earth", line("earth", Map.of("kind", "earth"))));
++    org.junit.jupiter.api.Assertions.assertNull(out.get("barriers"));
++  }
+ }
