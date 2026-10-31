@@ -241,6 +241,8 @@ class NightExceptionsV4Test {
             0x94B988 to 0x38552B, 0xC2CDAA to 0x1D240B, 0xB4CAA8 to 0x203216, 0x88B99D to 0x255239, 0xADC8BC to 0x203C36,
             0xB0ABA4 to 0x5D636C, 0xC3BFBA to 0x1D1B18, 0xD0BDB9 to 0x241A18, 0xC4BFC2 to 0x1A1919, 0xCCCEB4 to 0x131207,
             0xC9C3BD to 0x3B352E, 0xC9C0BF to 0x3C3231, 0xC6B3C3 to 0x382735,
+            // Orchards, plant nurseries and vineyards (sage-10, "Fill + pattern per kind").
+            0xB0C286 to 0x3A4B14,
         )
         assertEquals(rims, tables.lineColours.getValue("landuse_edges"))
         val night = ((nightOf("landuse_edges", "line-color") as NightRecolour.Recoloured).night as StyleColourValue.Expression).json
@@ -251,6 +253,16 @@ class NightExceptionsV4Test {
         assertEquals(StyleColourValue.Literal(STREET_NIGHT_WATER), (nightOf("water_edges", "line-color") as NightRecolour.Recoloured).night)
         // Industrial in OSM Carto's lilac (style/landcover.mss:22) inverts to #21111e.
         assertEquals(StyleColourValue.Literal("rgba(33, 17, 30, 1)"), (nightOf("landuse_industrial", "fill-color") as NightRecolour.Recoloured).night)
+    }
+
+    @Test
+    fun `orchards, nurseries and vineyards take the plain inversion, and their edge its darker rim`() {
+        // Sage's sage-10, ruled: fill #c8dd98 with "Standard night (Recommended)", the plain inversion #495e19 (no fill
+        // exception); edge #b0c286, night rim #3a4b14.
+        assertTrue(0xC8DD98 !in tables.fillColours)
+        assertEquals(StyleColourValue.Literal("rgba(73, 94, 25, 1)"), (nightOf("landuse_orchards", "fill-color") as NightRecolour.Recoloured).night)
+        val edges = ((nightOf("landuse_edges", "line-color") as NightRecolour.Recoloured).night as StyleColourValue.Expression).json
+        assertTrue("landuse_edges at night lacks the orchards' rim: $edges", edges.contains("rgba(58, 75, 20, 1)"))
     }
 
     @Test
