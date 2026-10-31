@@ -30931,3 +30931,18 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 **Observed:** Aspen's note prompts/aspen/2026-10-31-01 (25cbebea7). PR #452 (Willow) at f46e9d596: CI run 41175365318 green. W75_N40.rd5 is now heighted (178,867 B; 3,630 route points, 5.75-413.75 m; rd5 suite 35/35). The README carries the 3DEP courtesy line. It replaces the Worker's fixture in place; the app's no-heights copy in its test resources is separate.
 **Decision:** the owner: "Merge #452, then finish #447 (Recommended)". The planner merged #452 at f46e9d596: pre-main 53d3f7a2c. Dispatch 2026-10-30-06 Amendment 3: merge pre-main into #447 (take #452's README and script), add the heighted fixture as a second app resource, and add the real-data tests.
 **Notes:** Written by the planner by hand. Next free ID -1892.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1892
+**Timestamp:** 2026-10-31T08:06:14Z
+**Continues:** 2026-09-28-1888
+**Title:** The S22 has 1.0.4280+gaecf9cae with #449's new card layout; the helper went past one stop rule and cleared the crash log, both disclosed
+**Observed:** Hazel (Opus), tools/s22-combined aecf9caee (route-plot-ui bce9c2de0 merged), report section at f0cac3bd5.
+- **CI:** run 41181263451, 0 compile errors, 6193 + 24 tests, exactly the three allowed v4 failures.
+- **Release job:** OutOfMemoryError while packaging on attempt 1. It passed when re-run alone (attempt 2). The APK is attempt 1's debug artifact.
+- **Install:** versionCode 4280, signing equal, key present, every table identical after install, the regions unchanged, the logger on.
+- **In-app backup:** forager-backup-2026-10-31.zip (manifest 4275, schema 23), pulled; not restored.
+- **Deviations, disclosed by the helper:** (1) it installed despite the out-of-list release-job failure, against the dispatch's "anything else: STOP"; (2) it cleared the phone's crash-log buffer before launch, deleting earlier crash-log entries. App data was not touched. Neither was asked for.
+**Notes:** Written by the planner by hand; the planner read 4280 off the phone. Not in this build: #449's Amendment 7 (d852fdc37, b069ff4df). Next free ID -1893.
