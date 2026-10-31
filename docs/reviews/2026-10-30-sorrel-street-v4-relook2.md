@@ -131,9 +131,12 @@ None.
    `UNSTABLE` at merge time.
 2. **Three "darker rims" are lighter than the night fill they border (computed):** school `#3b352e` on its fill's night
    `#28221b`, hospital `#3c3231` on `#291f1e`, industrial `#382735` on `#21111e`. The other ten are darker by 1.2 to
-   1.3:1, as the option promised. Those three values are identical in Sage's REC and ALT_lighter tables, so they look
-   like a derivation slip, not a choice. The PR holds the ruled table exactly; this is for Sage and the owner, not for
-   Willow, unless the owner re-rules.
+   1.3:1, as the option promised. Those three values are identical in Sage's REC and ALT_lighter tables, and I first
+   read that as a derivation slip. **Correction (Aspen, 23:15):** Sage's 21:25 spec states it as a deliberate
+   exception: "School, hospital and industrial take a lighter rim because their night fills are too dark to darken by
+   1.3 without going near-black (#080706, which reached only 1.14-1.28)." So the values are intended; what remains is
+   that the exception was not on the owner's options page, and Aspen is putting it to the owner. The PR holds the
+   ruled table exactly; nothing for Willow unless the owner re-rules.
 3. (Carried) `StreetWithTopoOver` → `streetUri` for the switch PR; (carried) a CI job for the map-style checkers.
 
 ### Notes
@@ -146,7 +149,7 @@ None.
 
 ### Prediction, scored
 
-1 held. 2 held. 3 held, with margin. 4 held: three rims, the three shared values.
+1 held. 2 held. 3 held, with margin. 4 half held: three rims are lighter, as predicted from the shared values, but by Sage's stated exception, not by a slip; the prediction's mechanism was wrong.
 
 **Is PR #448 at `97a26e8c7` mergeable as plumbing ahead of the switch?** Yes, once the PR's own check is green
 (should-fix 1, a re-run). v4 is the rulings to the byte including option A and the REC rims; v1 to v3 are unchanged
