@@ -58,6 +58,7 @@ recording rather than hiding:
 | `/fonts/{stack}/{range}.pbf` | Noto Sans glyphs (SIL OFL; `fonts/OFL.txt` beside them) | R2 `fonts/` |
 | `/sprites/v4/light{,@2x}.{json,png}` | the icon set (MIT, from tangrams; `sprites/LICENSE-MIT.md` beside it) | R2 `sprites/v4/` |
 | `/sprites/v5/light{,@2x}.{json,png}` | v4 unchanged plus Trail Map's own icons and patterns (`map-style/tools/build-sprite-v5.mjs`) | R2 `sprites/v5/` |
+| `/sprites/v6/light{,@2x}.{json,png}` | v5 unchanged plus the orchard, vineyard and nursery patterns, for Street v4 (`map-style/tools/build-sprite-v5.mjs v6`) | R2 `sprites/v6/` |
 
 **Offline downloads south of 15.92°N** (the live `us.pmtiles` header's south bound) store only empty tiles. The live map there has world tiles to z8 and empty tiles from z9 up, z15 included: the overflow no longer runs south of the archive's own bounds, by the owner's "Stop it" (dispatch 2026-10-22-01 Amendment 4). Downloads ask for z10 to z15 only (`OfflineMapRepository.kt`, `MapLibreOfflineMapRepository.kt`), all above the world fill's z8, so nothing they store there has data (RECORD -1558; dispatch 2026-10-23-07). Listed in `docs/process/known-bugs.md`.
 
