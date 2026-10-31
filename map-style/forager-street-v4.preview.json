@@ -718,20 +718,6 @@
       }
     },
     {
-      "id": "water",
-      "type": "fill",
-      "filter": [
-        "==",
-        "$type",
-        "Polygon"
-      ],
-      "source": "protomaps",
-      "source-layer": "water",
-      "paint": {
-        "fill-color": "#80deea"
-      }
-    },
-    {
       "id": "water_stream",
       "type": "line",
       "source": "protomaps",
@@ -792,6 +778,20 @@
           18,
           12
         ]
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "filter": [
+        "==",
+        "$type",
+        "Polygon"
+      ],
+      "source": "protomaps",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#80deea"
       }
     },
     {

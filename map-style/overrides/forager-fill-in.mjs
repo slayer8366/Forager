@@ -257,6 +257,15 @@ export function applyFillIn(layers) {
   byId(layers, "buildings").paint["fill-color"] = ["step", ["zoom"], C.building, 14, C.buildingZ14, 15, C.building];
   byId(layers, "buildings_outline").paint["line-color"] = C.buildingOutline;
 
+  // --- Creeks under the water (the owner: "Creeks under water (Recommended)") -------------------------------------
+  // water_stream and water_river draw just before the water fill, so a lake or river polygon covers the line inside it
+  // and the creek shows everywhere else. Nothing else moves, and no colour changes.
+  const water = byId(layers, "water");
+  for (const id of ["water_stream", "water_river"]) {
+    const line = layers.splice(layers.indexOf(byId(layers, id)), 1)[0];
+    layers.splice(layers.indexOf(water), 0, line);
+  }
+
   // --- Rail, darker and stronger ---------------------------------------------------------------------
   const rail = byId(layers, "roads_rail");
   rail.paint["line-opacity"] = 0.85;
