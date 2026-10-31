@@ -121,8 +121,11 @@ object CameraMapFixture {
         // What a mode change's finishing callback reads (LocationComponent.CameraTransitionListener.reset): the map's camera and
         // the animator coordinator, real but with no animators, so it resets nothing.
         set(component, "maplibreMap", map)
+        fun provider(name: String): Any = Class.forName("org.maplibre.android.location.$name").getDeclaredMethod("getInstance").apply { isAccessible = true }.invoke(null)!!
         val coordinatorType = Class.forName("org.maplibre.android.location.LocationAnimatorCoordinator")
-        set(component, "locationAnimatorCoordinator", coordinatorType.declaredConstructors.single { it.parameterCount == 3 }.apply { isAccessible = true }.newInstance(null, null, null))
+        val coordinator = coordinatorType.declaredConstructors.single { it.parameterCount == 3 }.apply { isAccessible = true }
+            .newInstance(null, provider("MapLibreAnimatorSetProvider"), provider("MapLibreAnimatorProvider"))
+        set(component, "locationAnimatorCoordinator", coordinator)
         set(map, "locationComponent", component)
         return map to recording
     }
