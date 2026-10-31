@@ -9,22 +9,32 @@ package com.zynergylabs.forager.app.ui.map
  * shared by every version would change how regions downloaded on v3 draw at night. Each style is a URL that never
  * changes meaning, so the URL it was loaded from says which tables it takes.
  */
-internal data class StreetNightTables(val layerColours: Map<String, String>, val fillColours: Map<Int, Int>)
+internal data class StreetNightTables(
+    val layerColours: Map<String, String>,
+    val fillColours: Map<Int, Int>,
+    /** Per layer, night line colours by day colour (`forager:night-line-colours`, v4 only): one road class's night. */
+    val lineColours: Map<String, Map<Int, Int>> = emptyMap(),
+)
 
 /** Trail Map v1 to v3's night tables, and Street under Topographical's: the ones every version had before v4. */
 internal val STREET_NIGHT_TABLES = StreetNightTables(STREET_NIGHT_LAYER_COLOURS, STREET_NIGHT_FILL_COLOURS)
 
 /**
  * Street v4's night (Forager-cartography `docs/design/2026-10-30-fill-in-rulings.md`; the owner: "Keep it osm-like",
- * "Yes, ship it"; ramps: "Invert them too (Recommended)"). The design's copy is `NIGHT_LAYER_COLOURS_V4` and
- * `NIGHT_FILL_COLOURS_V4` in `map-style/overrides/forager-fill-in.mjs`; `NightExceptionsV4Test` holds the two equal.
- * - Lines: v3's, except the major-road centres take the plain inversion, as the app's OpenStreetMap night does (trunk
- *   `#845104` to tertiary `#000000`, each ramp with its road), and rail is `#a3acae`. Motorways and their ramps
- *   (`roads_link`) keep v3's amber.
+ * "Yes, ship it"; ramps: "Invert them too (Recommended)"; then "Motorways" and "Night tertiary and rail"). The design's
+ * copy is `NIGHT_LAYER_COLOURS_V4`, `NIGHT_FILL_COLOURS_V4` and `NIGHT_LINE_COLOURS_V4` in
+ * `map-style/overrides/forager-fill-in.mjs`; `NightExceptionsV4Test` holds them equal.
+ * - Lines: v3's, except the major roads, the motorways and their ramps ("Invert like OSM"), and the rail ("Plain
+ *   inversion") take the plain inversion, as the app's OpenStreetMap night does (trunk `#845104`, motorway `#7f2939`,
+ *   rail `#636c6f`; each ramp with its road), and the tertiary's day white is `#333333` ("Dark grey #333333").
  * - Fills: v3's, and the five new fills: residential, commercial, railway land, farmland and parks.
  */
 internal val STREET_V4_NIGHT_TABLES = StreetNightTables(
-    layerColours = STREET_NIGHT_LAYER_COLOURS - setOf("roads_major", "roads_bridges_major") + ("roads_rail" to "#a3acae"),
+    layerColours = STREET_NIGHT_LAYER_COLOURS - setOf(
+        "roads_major", "roads_bridges_major",
+        "roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link",
+        "roads_rail",
+    ),
     fillColours = STREET_NIGHT_FILL_COLOURS + mapOf(
         0xD5D1CB to 0x2D2A25, // residential
         0xE3CFCA to 0x362824, // commercial
@@ -32,6 +42,8 @@ internal val STREET_V4_NIGHT_TABLES = StreetNightTables(
         0xE8EACD to 0x2E2A10, // farmland
         0xCDE5BF to 0x2C461E, // parks: the inversion #2b431d is 1.04:1 on the night water, under the ruled 1.05
     ),
+    // The tertiary's day white, dark grey at night: under the night footpath in forest, where the black inversion outranked it.
+    lineColours = mapOf("roads_major" to mapOf(0xFFFFFF to 0x333333), "roads_bridges_major" to mapOf(0xFFFFFF to 0x333333)),
 )
 
 /**
