@@ -283,16 +283,29 @@ const ORIGIN_HEADER = "X-Forager-Origin";
 // If world-south.pmtiles is not on R2, the tile answers 204 exactly as before, and a warning is logged. Other
 // read errors are not caught here, as with the Street archive's own reads below: a 500 is not cached, a 204 is
 // cached for a day.
+//
+// The worldwide fallback (dispatch 2026-10-31-coder-08 Part A; the owner: "Fast fill now, own build later"): a
+// Protomaps daily planet, z0-15, as R2's world.pmtiles, read first, so a tile us.pmtiles lacks anywhere on Earth comes
+// from it at every zoom; world-south.pmtiles stays behind it, as before, for z0-8. With world.pmtiles not on R2,
+// everything answers as it did. us.pmtiles is always read first, so inside US + Canada nothing changes; at the seam a
+// tile us.pmtiles holds is served whole from it, including its side of the border.
 // -------------------------------------------------------------------------------------------------
 
-/** The R2 archive name (key `world-south.pmtiles`) the fill reads. To be confirmed against the uploaded object. */
-const WORLD_FILL_ARCHIVE = "world-south";
+/** One archive the fill reads, in order: its R2 name, the zooms it answers, and X-Forager-Origin on its tiles. */
+interface WorldFill {
+  name: string;
+  maxZoom: number;
+  origin: string;
+}
 
-/** The fill answers at this zoom and below only; the world archive is built to z8 (RECORD -1554). */
-const WORLD_FILL_MAX_ZOOM = 8;
-
-/** X-Forager-Origin on a tile the fill answered. */
-const WORLD_FILL_ORIGIN = "r2-world-south";
+/**
+ * The fill archives, read in this order where the Street archive has no tile. world.pmtiles is the planet (to z15, its
+ * header's own maxZoom bounding it further); world-south.pmtiles is built to z8 (RECORD -1554).
+ */
+const WORLD_FILLS: WorldFill[] = [
+  { name: "world", maxZoom: 15, origin: "r2-world" },
+  { name: "world-south", maxZoom: 8, origin: "r2-world-south" },
+];
 
 /** The archive name a bundled style's TileJSON URL names: `https://host/us.json` gives `us`. */
 export function archiveNameFromTileJsonUrl(url: string): string {
@@ -305,68 +318,81 @@ export function archiveNameFromTileJsonUrl(url: string): string {
  * The TileJSON [bounds] for the Street archive while the world fill can answer (dispatch 2026-10-22-01 Amendment 3).
  * MapLibre Native never requests a tile outside a source's TileJSON `bounds` (`tile_pyramid.cpp:178-188` at
  * android-v13.5.0, the app's pinned version), and us.pmtiles's header stops at about 15.92°N, so without this the app
- * never asks for a tile the fill could serve. The south bound becomes the world archive's own (its header's minLat,
- * -85.05 on the uploaded file); west, east and north stay as the Street archive's header gives them.
+ * never asks for a tile the fill could serve. world-south.pmtiles widens the south bound to its header's minLat
+ * (-85.05 on the uploaded file); world.pmtiles, the planet, widens every side to its header's (coder-08 Part A).
  *
- * Only while the world archive is on R2: presence is one R2 `head` of its key at TileJSON time (the TileJSON is then
- * cached at the edge for a day, so this is not per tile). Absent, or a tile type the fill would refuse, the bounds are
- * returned unchanged and a warning is logged.
+ * Only for a fill archive on R2: presence is one R2 `head` of each key at TileJSON time (the TileJSON is then cached at
+ * the edge for a day, so this is not per tile). An archive absent, or of a tile type the fill would refuse, leaves the
+ * bounds as they were, and a warning is logged.
  */
 async function worldFillBounds(env: Env, bounds: number[], streetTileType: TileType): Promise<number[]> {
-  const key = pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH);
-  try {
-    if (!(await env.BUCKET.head(key))) {
-      console.warn(`World fill bounds skipped: ${key} is not on R2; the TileJSON keeps the Street archive's bounds`);
-      return bounds;
+  let [west, south, east, north] = bounds;
+  for (const fill of WORLD_FILLS) {
+    const key = pmtilesPath(fill.name, env.PMTILES_PATH);
+    try {
+      if (!(await env.BUCKET.head(key))) {
+        console.warn(`World fill bounds skipped: ${key} is not on R2; the TileJSON keeps the bounds without it`);
+        continue;
+      }
+      const header = await new PMTiles(new R2Source(env, fill.name), CACHE, nativeDecompress).getHeader();
+      if (header.tileType !== streetTileType) {
+        console.warn(`World fill bounds skipped: ${fill.name} has tile type ${header.tileType}; the TileJSON keeps the bounds without it`);
+        continue;
+      }
+      south = Math.min(south, header.minLat);
+      // world-south covers only the south; the planet covers every side.
+      if (fill.name === "world") {
+        west = Math.min(west, header.minLon);
+        east = Math.max(east, header.maxLon);
+        north = Math.max(north, header.maxLat);
+      }
+    } catch (e) {
+      if (e instanceof KeyNotFoundError) {
+        console.warn(`World fill bounds skipped: ${key} vanished during the read; the TileJSON keeps the bounds without it`);
+        continue;
+      }
+      throw e;
     }
-    const header = await new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress).getHeader();
-    if (header.tileType !== streetTileType) {
-      console.warn(`World fill bounds skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}; the TileJSON keeps the Street archive's bounds`);
-      return bounds;
-    }
-    return [bounds[0], Math.min(bounds[1], header.minLat), bounds[2], bounds[3]];
-  } catch (e) {
-    if (e instanceof KeyNotFoundError) {
-      console.warn(`World fill bounds skipped: ${key} vanished during the read; the TileJSON keeps the Street archive's bounds`);
-      return bounds;
-    }
-    throw e;
   }
+  return [west, south, east, north];
 }
 
 /** The Street archive: the one the bundled Street style draws from. */
 export const STREET_ARCHIVE_NAME = archiveNameFromTileJsonUrl(streetStyle.sources.protomaps.url);
 
 /**
- * The world archive's tile at [tile], or undefined when the fill does not apply or has no tile: above
- * [WORLD_FILL_MAX_ZOOM], outside the archive's own zoom range, a tile type that differs from the Street archive's,
- * or the archive missing from R2. Each of the last two is logged, since each means the deploy is not as intended.
+ * The first fill archive's tile at [tile] ([WORLD_FILLS], in order), with that archive's origin label, or undefined
+ * when none has it. An archive is passed over above its [WorldFill.maxZoom], outside its own zoom range, when its tile
+ * type differs from the Street archive's, or when it is missing from R2; each of the last two is logged, since each
+ * means the deploy is not as intended.
  */
 async function worldFillTile(
   env: Env,
   tile: [number, number, number],
   streetTileType: TileType
-): Promise<ArrayBuffer | undefined> {
+): Promise<{ data: ArrayBuffer; origin: string } | undefined> {
   const [z, x, y] = tile;
-  if (z > WORLD_FILL_MAX_ZOOM) return undefined;
-  const world = new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress);
-  try {
-    const header = await world.getHeader();
-    if (header.tileType !== streetTileType) {
-      console.warn(
-        `World fill skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}, ${STREET_ARCHIVE_NAME} has ${streetTileType}; answering 204`
-      );
-      return undefined;
+  for (const fill of WORLD_FILLS) {
+    if (z > fill.maxZoom) continue;
+    const world = new PMTiles(new R2Source(env, fill.name), CACHE, nativeDecompress);
+    try {
+      const header = await world.getHeader();
+      if (header.tileType !== streetTileType) {
+        console.warn(`World fill skipped: ${fill.name} has tile type ${header.tileType}, ${STREET_ARCHIVE_NAME} has ${streetTileType}`);
+        continue;
+      }
+      if (z < header.minZoom || z > header.maxZoom) continue;
+      const tiledata = await world.getZxy(z, x, y);
+      if (tiledata) return { data: tiledata.data, origin: fill.origin };
+    } catch (e) {
+      if (e instanceof KeyNotFoundError) {
+        console.warn(`World fill skipped: ${pmtilesPath(fill.name, env.PMTILES_PATH)} is not on R2`);
+        continue;
+      }
+      throw e;
     }
-    const tiledata = await world.getZxy(z, x, y);
-    return tiledata?.data;
-  } catch (e) {
-    if (e instanceof KeyNotFoundError) {
-      console.warn(`World fill skipped: ${pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH)} is not on R2; answering 204`);
-      return undefined;
-    }
-    throw e;
   }
+  return undefined;
 }
 
 // --- The vector Street style, its fonts and its icons (dispatch 2026-10-18-05 Part 2).
@@ -574,6 +600,16 @@ export default {
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
         if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
+          // The planet on R2 answers before the live overflow (coder-08 Part A): R2's own copy, never a live read.
+          if (name === STREET_ARCHIVE_NAME) {
+            const filled = await worldFillTile(env, tile, pHeader.tileType);
+            if (filled) {
+              cacheableHeaders.set(ORIGIN_HEADER, filled.origin);
+              const fillType = TILE_CONTENT_TYPES[pHeader.tileType];
+              if (fillType) cacheableHeaders.set("Content-Type", fillType);
+              return cacheableResponse(filled.data, cacheableHeaders, 200);
+            }
+          }
           // Dispatch 2026-10-22-01 Amendment 4 (the owner: "Stop it"): never south of the archive's own bounds.
           if (tileNorthLat(tile[0], tile[2]) <= pHeader.minLat) {
             return cacheableResponse(undefined, cacheableHeaders, 204);
@@ -612,8 +648,8 @@ export default {
       if (name === STREET_ARCHIVE_NAME) {
         const filled = await worldFillTile(env, tile, pHeader.tileType);
         if (filled) {
-          cacheableHeaders.set(ORIGIN_HEADER, WORLD_FILL_ORIGIN);
-          return cacheableResponse(filled, cacheableHeaders, 200);
+          cacheableHeaders.set(ORIGIN_HEADER, filled.origin);
+          return cacheableResponse(filled.data, cacheableHeaders, 200);
         }
       }
       return cacheableResponse(undefined, cacheableHeaders, 204);

@@ -47,9 +47,11 @@ recording rather than hiding:
 | Path | What | From |
 |---|---|---|
 | `/{name}/{z}/{x}/{y}.mvt` | a vector tile | R2's `{name}.pmtiles`; z15 from Protomaps' live build through the overflow, cached into R2 |
+| `/us/{z}/{x}/{y}.mvt`, z0-15, tile not in `us.pmtiles` | the worldwide fallback (dispatch 2026-10-31-coder-08 Part A), read first | R2's `world.pmtiles` (a Protomaps daily planet), labelled `X-Forager-Origin: r2-world`; above `us.pmtiles`'s maxzoom it answers before the live overflow. Not on R2: as the next row |
 | `/us/{z}/{x}/{y}.mvt`, z0-8, tile not in `us.pmtiles` | the world fill (dispatch 2026-10-22-01 Part A) | R2's `world-south.pmtiles`, labelled `X-Forager-Origin: r2-world-south`; 204 if it has no tile or is not on R2 |
 | `/{name}.json` | TileJSON | R2's `{name}.pmtiles` header and metadata |
 | `/us.json` while `world-south.pmtiles` is on R2 | TileJSON with its south bound taken from the world archive (dispatch 2026-10-22-01 Amendment 3), so MapLibre requests the tiles the fill serves | R2 `head` of `world-south.pmtiles`, then its header |
+| `/us.json` while `world.pmtiles` is on R2 | TileJSON with every bound taken from the planet's header (coder-08 Part A) | R2 `head` of `world.pmtiles`, then its header |
 | `/style/offline.json` | the label-less offline style every pre-Street offline pack was downloaded against; never changed (RECORD -1294) | bundled |
 | `/style/street-v1.json` | Forager's Street style as it was before Trail Map's character; frozen, for older apps and regions downloaded against it | bundled |
 | `/style/street-v2.json` | Trail Map with its character (dispatch 2026-10-22-03); what the app loaded until it switched to v3 (dispatch 2026-10-26-21); frozen, for regions downloaded against it | bundled |
