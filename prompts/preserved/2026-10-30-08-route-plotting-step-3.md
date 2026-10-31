@@ -134,3 +134,17 @@ Read the Amendment 3 handoff, docs/audits/2026-10-30-route-plotting-step-3-amend
   - get full CI green on the final head.
 - The calls beyond the dispatch in the Amendment 3 handoff are accepted: the cluster's floor applies in every window, and the dashes are outlined on their sides only.
 - Never force-push.
+
+## Amendment 5 (2026-10-30): Sorrel's review of #449 (RECORD -1879)
+Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr449.md (sorrel-pr449, 8d83e7b77). The owner:
+- **S-1, "Fix: keep my view (Recommended)":** a saved route fits once when it is opened. After that, returning to the Maps tab keeps the user's camera and leaves GPS-follow as the user set it. Use -750's precedent: keep the applied id in MapCameraMemory, or consume the open's serial once applied.
+  - Fail first through a real tab change: open → pan → Journal → Maps, then the camera is unchanged and following is not ended again. The test must run MapDataRefresh.
+  - Then a revert check.
+- **N-3:** each approved word is asserted as text in the screen tests. This covers "Plot route", "Tap the next waypoint", Undo, Cancel, Save, "No trail data, straight line", "Discard this route?", "Discard", "Keep plotting", "Save route", "Route name", "Add date", "Remove date", and "Couldn't save the route. Try again.". Revert one word to show it bites.
+- **N-9:** the card handle gets a 48 dp touch target, with the same look. Do a coordinate-touch test at its edges.
+- **N-10:** draft.withLeg moves inside the try, so a failed require is logged as a failed leg, never a crash.
+- **N-11:** deleting a route trip while it shows closes its card and line.
+- **N-2:** "Keep plotting" after a Trip Planner row tap reopens the drawer, so the user is back where they were.
+- **N-8:** remove the unused imports in RoutePlottingTestFixtures.kt and RoutePlottingScreenTest.kt.
+
+N-1 and N-4 to N-7 are record only. Each rule gets fail-first, then a revert check. Merge pre-main in if it moves. Full CI green. No merge, and never force-push.

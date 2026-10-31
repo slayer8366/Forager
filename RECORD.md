@@ -30767,3 +30767,13 @@ Dispatch 2026-10-30-08 Amendment 4.
   - N-1, N-4 to N-7 are record only; N-7 confirms both a3 verdicts from the jobs/logs API.
 - **Every owner ruling** holds at its line. Three reverts spot-checked; each bites. 14 phone checks are listed.
 **Notes:** Written by the planner by hand. Next free ID -1879.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1879
+**Timestamp:** 2026-10-31T02:35:21Z
+**Continues:** 2026-09-28-1878
+**Title:** #449 fixes S-1 (keep the user's view on return) and takes N-2, N-3, N-8, N-9, N-10 and N-11
+**Decision:** the owner: "Fix: keep my view (Recommended)"; and all four note groups: "Test the approved words (N-3)", "Bigger handle target (N-9)", "Crash guard (N-10) + delete closes card (N-11)", "Keep plotting reopens drawer (N-2) + imports (N-8)". Dispatch 2026-10-30-08 Amendment 5. The combined S22 build follows when it is green.
+**Notes:** Written by the planner by hand. Next free ID -1880.
