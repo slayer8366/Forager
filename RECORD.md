@@ -30852,3 +30852,18 @@ Dispatch 2026-10-30-08 Amendment 4.
 - **The coder's own slip:** one control run built on a self-undoing commit was cancelled and not cited.
 **Decision:** the owner: "In #440, merge #450 first (Recommended)"; "Yes, newest Street v4 (Recommended)". Dispatch 2026-10-30-21 Amendment 1: rebuild with street-v4 307d3c2ac (green, CLEAN) plus the test line; only the three v4 failures are allowed.
 **Notes:** Written by the planner by hand. #440 takes pre-main and the line when it is next updated. Next free ID -1886.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1886
+**Timestamp:** 2026-10-31T05:08:40Z
+**Continues:** 2026-09-28-1885
+**Title:** The combined S22 build (1.0.4275+g64e2c413) is installed with the owner's data unchanged
+**Observed:** Hazel (Opus), tools/s22-combined 64e2c4138, report updated at 1e92dd2a7.
+- **CI:** run 41169699098, 0 compile errors, 6184 + 24 tests, exactly the three allowed Street v4 failures (StreetStyleTest:77, OwnStreetStyleSourceTest:78, NightExceptionsV4Test:219). CompassScreenOffTest 9/9.
+- **APK:** versionCode 4275, signing equal to the installed app, routing key present.
+- **Backups:** a raw backup, and an in-app backup (forager-backup-2026-10-30.zip, manifest schema 23). The in-app backup holds no saved searches; inferred by design, not checked.
+- **After install:** every database table hashes identical, the offline regions and tiles are unchanged, settings are byte-identical, the logger is on and ACTIVITY_RECOGNITION granted. The app is on the Maps tab.
+- **Not done:** the phone checks, and a test that the in-app backup restores.
+**Notes:** Written by the planner by hand; the planner read 4275 off the phone. Next free ID -1887.
