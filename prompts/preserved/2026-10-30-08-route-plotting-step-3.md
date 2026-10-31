@@ -177,3 +177,28 @@ Amendment 6 is green at route-plot-ui bce9c2de0 (run 41179955025); its report is
   - Then a revert check.
   - Keep the yield() routers' tests as they are.
 - Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
+
+## Amendment 8 (2026-10-31): the elevation lines while plotting (RECORD -1896)
+The owner: "Elevation lines into #449, then S22 (Recommended)". #447 (trail heights) is now on pre-main 206464058: TrailRoute.heightsMetres carries one height or null per point, and a missing height is never 0.
+
+**Do:**
+1. **Merge origin/pre-main 206464058 into route-plot-ui** (merge, never rebase or force-push).
+2. **Fill Amendment 6's seam** (RouteCardContent.legElevations, totalElevation) while plotting, from each leg's route heights:
+   - **net change:** the last height minus the first;
+   - **climb and descent:** banked through the same 4 m hysteresis the journal's Climb uses (ClimbAllowance / bankedClimb). Name what you reuse.
+   - **the total:** over the whole route, banked across legs.
+   - **the form:** "Elevation: +240 ft (↑ 320 ↓ 80)", in the Units setting.
+3. **Missing heights:**
+   - a leg whose route points are all missing, a straight leg, or one in a square with no heights shows **no** elevation line. Never "+0". Don't invent wording.
+   - a leg with only some heights: propose the rule in the PR body before building (show nothing, or show from the heighted points), and stop for the planner if it is not obvious.
+   - the total shows only when every leg has heights.
+4. **Joins:** do the stop → trail joins carry heights? Say what you find. If they don't, the leg's elevation uses the trail part only, and the PR says so.
+5. **Saved routes stay as they are:** no elevation until step 3b stores heights (the 23→24 migration). This amendment is plotting only.
+
+**Tests:**
+- Through the real screen.
+- A fake router with known heights: the exact text for one leg and for the total, in imperial and in metric, and no line for an unheighted leg.
+- The real heighted fixture (segments-heighted, from #447) through PlotRouteUseCase for one leg, checking the climb against the command-line heights.
+- Fail first, then revert checks.
+
+Full CI green. Update the PR body. No merge.

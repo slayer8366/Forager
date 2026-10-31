@@ -30989,3 +30989,19 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 - **Calls accepted by the planner:** a lazy start rather than an isActive check; the count shows twice on an expanded saved route.
 - **Not verified:** a phone, and the total's position, which is asserted but not reverted on its own.
 **Notes:** Written by the planner by hand. Not merged. Pre-main has since moved to 206464058 (#447). Next free ID -1896.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1896
+**Timestamp:** 2026-10-31T10:18:06Z
+**Continues:** 2026-09-28-1895
+**Title:** The route card's elevation lines while plotting go into #449, then the S22 is updated
+**Decision:** the owner: "Elevation lines into #449, then S22 (Recommended)". Dispatch 2026-10-30-08 Amendment 8:
+- merge pre-main 206464058 into #449;
+- fill the seam from TrailRoute heights, with net change and climb/descent banked by the journal's 4 m rule;
+- no line for an unheighted or straight leg, and a total only when every leg has heights;
+- saved routes wait for step 3b.
+
+Then an S22 update with #449's head, then the formal phone checks for #449 and #450.
+**Notes:** Written by the planner by hand. Next free ID -1897.
