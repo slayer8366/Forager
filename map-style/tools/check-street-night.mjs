@@ -260,6 +260,8 @@ if (V4) {
     "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
     "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
     "#c9c3bd": "#3b352e", "#c9c0bf": "#3c3231", "#c6b3c3": "#382735",
+    // Orchards, plant nurseries and vineyards (11).
+    "#b0c286": "#3a4b14",
   };
   const RULED_LINES = {
     roads_major: { "#ffffff": "#333333" },
@@ -317,7 +319,8 @@ if (V4) {
   const water = layerOf("water_edges");
   if (!edges || !water) problems.push("v4 has no landuse_edges or water_edges");
   else {
-    const color = edges.paint["line-color"];
+    // Since the orchards (11), the kind match is the fallback of a case on the three kinds' kind_detail.
+    const color = Array.isArray(edges.paint["line-color"]) && edges.paint["line-color"][0] === "case" ? edges.paint["line-color"].at(-1) : edges.paint["line-color"];
     const edgeOf = (kind) => {
       for (let i = 2; i < color.length - 1; i += 2) if ([color[i]].flat().includes(kind)) return color[i + 1];
       return null;
@@ -401,6 +404,34 @@ if (V4) {
   const v3order = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8")).layers.map((l) => l.id).filter((id) => id !== "water_stream" && id !== "water_river");
   const v4rest = order.filter((id) => id !== "water_stream" && id !== "water_river" && v3order.includes(id));
   if (JSON.stringify(v4rest) !== JSON.stringify(v3order)) problems.push("apart from the two creek layers, v4 moves a layer v3 has");
+}
+
+// 11. v4's orchards, plant nurseries and vineyards (the fill-in rulings, "Orchards, plant nurseries and vineyards filled":
+//     "Fill + pattern per kind (Recommended)", fill #c8dd98, "Standard night (Recommended)"), by hand from Sage's sage-10
+//     spec: one fill right after landuse_settled for kind farmland with kind_detail orchard, plant_nursery or vineyard
+//     (basemap patch 0006), opacity 0.6 at z6 to 1 at z9, no minzoom; night the plain inversion #495e19 (no fill
+//     exception); the three in landuse_edges at #b0c286, night rim #3a4b14. The patterns are a later step.
+if (V4) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const order = style2.layers.map((l) => l.id);
+  const fill = style2.layers.find((l) => l.id === "landuse_orchards");
+  const KINDS = ["orchard", "plant_nursery", "vineyard"];
+  const FILTER = ["all", ["==", ["get", "kind"], "farmland"], ["in", ["get", "kind_detail"], ["literal", KINDS]]];
+  if (!fill) problems.push("v4 has no landuse_orchards");
+  else {
+    if (order[order.indexOf("landuse_settled") + 1] !== "landuse_orchards") problems.push(`landuse_orchards is not right after landuse_settled: ${order.slice(order.indexOf("landuse_settled"), order.indexOf("landuse_settled") + 2)}`);
+    if (fill.type !== "fill" || fill["source-layer"] !== "landuse" || "minzoom" in fill || "maxzoom" in fill) problems.push(`landuse_orchards: ${fill.type} on ${fill["source-layer"]}, minzoom ${fill.minzoom}; ruled a fill on landuse, no minzoom`);
+    if (!same(fill.filter, FILTER)) problems.push(`landuse_orchards' filter is ${JSON.stringify(fill.filter)}; ruled ${JSON.stringify(FILTER)}`);
+    if (fill.paint["fill-color"] !== "#c8dd98") problems.push(`landuse_orchards is ${JSON.stringify(fill.paint["fill-color"])}, ruled #c8dd98`);
+    if (!same(fill.paint["fill-opacity"], ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1])) problems.push(`landuse_orchards' opacity is ${JSON.stringify(fill.paint["fill-opacity"])}; ruled 0.6 at z6 to 1 at z9`);
+  }
+  if ("#c8dd98" in NIGHT_FILL_COLOURS) problems.push(`#c8dd98 has a night fill exception ${NIGHT_FILL_COLOURS["#c8dd98"]}; ruled: the plain inversion`);
+  if (night("#c8dd98") !== "#495e19") problems.push(`the inversion of #c8dd98 is ${night("#c8dd98")}, the ruling's #495e19`);
+  const edgeColour = style2.layers.find((l) => l.id === "landuse_edges")?.paint?.["line-color"];
+  const EDGE_CASE = ["case", FILTER, "#b0c286"];
+  if (!Array.isArray(edgeColour) || !same(edgeColour.slice(0, 3), EDGE_CASE) || edgeColour.length !== 4) problems.push(`landuse_edges' line-color does not start ${JSON.stringify(EDGE_CASE)}: ${JSON.stringify(edgeColour)?.slice(0, 160)}`);
+  if (NIGHT_LINE_COLOURS_V4.landuse_edges?.["#b0c286"] !== "#3a4b14") problems.push(`the orchards' night rim is ${NIGHT_LINE_COLOURS_V4.landuse_edges?.["#b0c286"]}, ruled #3a4b14`);
+  console.log(`orchards: fill #c8dd98, night ${night("#c8dd98")} on night ground ${contrast(night("#c8dd98"), night(GROUND)).toFixed(2)}:1; edge #b0c286, night rim #3a4b14 on it ${contrast("#3a4b14", night("#c8dd98")).toFixed(2)}:1 (recorded, not gated)`);
 }
 
 for (const [what, colour, against, min] of exceptions) {

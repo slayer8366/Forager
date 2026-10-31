@@ -44,6 +44,10 @@ export const FILL_IN_COLOURS = {
   buildingZ14: "#ccc0b7",
   buildingOutline: "#b9a99c",
   waterEdge: "#71c3ce",
+  // Orchards, plant nurseries and vineyards (Sage's sage-10; the owner: "Fill + pattern per kind (Recommended)", "#c8dd98",
+  // "Standard night (Recommended)": the plain inversion #495e19, no fill exception), and their edge.
+  orchards: "#c8dd98",
+  orchardsEdge: "#b0c286",
 };
 
 /**
@@ -73,6 +77,10 @@ const EDGE_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 0.5, 15, 0.75, 17, 
 /** The motorway layers, centres and casings, that take OSM Carto's colours; the tunnels keep their grey. */
 const MOTORWAY_CENTRES = ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"];
 const MOTORWAY_CASINGS = ["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing"];
+
+/** Orchards, plant nurseries and vineyards: kind farmland with one of these kind_detail values (basemap patch 0006). */
+const ORCHARD_KINDS = ["orchard", "plant_nursery", "vineyard"];
+const IS_ORCHARD = ["all", ["==", ["get", "kind"], "farmland"], ["in", ["get", "kind_detail"], ["literal", ORCHARD_KINDS]]];
 
 /** The landuse kinds each new fill draws. */
 const SETTLED_KINDS = ["residential", "commercial", "railway", "farmland"];
@@ -143,6 +151,8 @@ export const NIGHT_LINE_COLOURS_V4 = {
     "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
     "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
     "#c9c3bd": "#3b352e", "#c9c0bf": "#3c3231", "#c6b3c3": "#382735",
+    // Orchards, plant nurseries and vineyards (sage-10).
+    [FILL_IN_COLOURS.orchardsEdge]: "#3a4b14",
   },
 };
 
@@ -172,7 +182,19 @@ export function applyFillIn(layers) {
       "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1],
     },
   });
+  // Orchards, plant nurseries and vineyards over the farmland fill (sage-10); each kind's pattern is a later step.
   insertAfter(layers, "landuse_settled", {
+    id: "landuse_orchards",
+    type: "fill",
+    source: "protomaps",
+    "source-layer": "landuse",
+    filter: IS_ORCHARD,
+    paint: {
+      "fill-color": C.orchards,
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1],
+    },
+  });
+  insertAfter(layers, "landuse_orchards", {
     id: "landuse_parks_fill",
     type: "fill",
     source: "protomaps",
@@ -237,7 +259,9 @@ export function applyFillIn(layers) {
     minzoom: 13,
     filter: ["in", ["get", "kind"], ["literal", EDGE_COLOURS.flatMap(([kinds]) => kinds)]],
     paint: {
-      "line-color": ["match", ["get", "kind"], ...EDGE_COLOURS.flatMap(([kinds, colour]) => [kinds.length === 1 ? kinds[0] : kinds, colour]), "#000000"],
+      // Orchards, plant nurseries and vineyards are kind farmland: their own edge first, then the edge by kind.
+      "line-color": ["case", IS_ORCHARD, C.orchardsEdge,
+        ["match", ["get", "kind"], ...EDGE_COLOURS.flatMap(([kinds, colour]) => [kinds.length === 1 ? kinds[0] : kinds, colour]), "#000000"]],
       "line-width": EDGE_WIDTH,
       "line-opacity": ["step", ["zoom"], ["match", ["get", "kind"], EDGES_FROM_Z14, 0, 1], 14, 1],
     },

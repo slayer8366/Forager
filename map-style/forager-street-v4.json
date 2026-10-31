@@ -106,7 +106,9 @@
         "building": "#d9d0c9",
         "buildingZ14": "#ccc0b7",
         "buildingOutline": "#b9a99c",
-        "waterEdge": "#71c3ce"
+        "waterEdge": "#71c3ce",
+        "orchards": "#c8dd98",
+        "orchardsEdge": "#b0c286"
       }
     },
     "forager:night-layers": {
@@ -187,7 +189,8 @@
         "#ccceb4": "#131207",
         "#c9c3bd": "#3b352e",
         "#c9c0bf": "#3c3231",
-        "#c6b3c3": "#382735"
+        "#c6b3c3": "#382735",
+        "#b0c286": "#3a4b14"
       }
     }
   },
@@ -298,6 +301,54 @@
           "#e8eacd",
           "#e2dfda"
         ],
+        "fill-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.6,
+          9,
+          1
+        ]
+      }
+    },
+    {
+      "id": "landuse_orchards",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "farmland"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "orchard",
+              "plant_nursery",
+              "vineyard"
+            ]
+          ]
+        ]
+      ],
+      "paint": {
+        "fill-color": "#c8dd98",
         "fill-opacity": [
           "interpolate",
           [
@@ -871,63 +922,93 @@
       ],
       "paint": {
         "line-color": [
-          "match",
+          "case",
           [
-            "get",
-            "kind"
+            "all",
+            [
+              "==",
+              [
+                "get",
+                "kind"
+              ],
+              "farmland"
+            ],
+            [
+              "in",
+              [
+                "get",
+                "kind_detail"
+              ],
+              [
+                "literal",
+                [
+                  "orchard",
+                  "plant_nursery",
+                  "vineyard"
+                ]
+              ]
+            ]
           ],
+          "#b0c286",
           [
-            "forest",
-            "wood"
-          ],
-          "#94b988",
-          [
-            "scrub",
-            "grassland",
-            "grass",
-            "meadow",
-            "heath",
-            "cemetery",
-            "golf_course"
-          ],
-          "#c2cdaa",
-          [
-            "park",
-            "recreation_ground",
-            "garden",
-            "dog_park",
-            "pitch"
-          ],
-          "#b4caa8",
-          [
-            "allotments",
-            "village_green",
-            "playground"
-          ],
-          "#88b99d",
-          "wetland",
-          "#adc8bc",
-          "bare_rock",
-          "#b0aba4",
-          "residential",
-          "#c3bfba",
-          "commercial",
-          "#d0bdb9",
-          "railway",
-          "#c4bfc2",
-          "farmland",
-          "#ccceb4",
-          [
-            "school",
-            "university",
-            "college"
-          ],
-          "#c9c3bd",
-          "hospital",
-          "#c9c0bf",
-          "industrial",
-          "#c6b3c3",
-          "#000000"
+            "match",
+            [
+              "get",
+              "kind"
+            ],
+            [
+              "forest",
+              "wood"
+            ],
+            "#94b988",
+            [
+              "scrub",
+              "grassland",
+              "grass",
+              "meadow",
+              "heath",
+              "cemetery",
+              "golf_course"
+            ],
+            "#c2cdaa",
+            [
+              "park",
+              "recreation_ground",
+              "garden",
+              "dog_park",
+              "pitch"
+            ],
+            "#b4caa8",
+            [
+              "allotments",
+              "village_green",
+              "playground"
+            ],
+            "#88b99d",
+            "wetland",
+            "#adc8bc",
+            "bare_rock",
+            "#b0aba4",
+            "residential",
+            "#c3bfba",
+            "commercial",
+            "#d0bdb9",
+            "railway",
+            "#c4bfc2",
+            "farmland",
+            "#ccceb4",
+            [
+              "school",
+              "university",
+              "college"
+            ],
+            "#c9c3bd",
+            "hospital",
+            "#c9c0bf",
+            "industrial",
+            "#c6b3c3",
+            "#000000"
+          ]
         ],
         "line-width": [
           "interpolate",
