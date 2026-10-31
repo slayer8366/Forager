@@ -3,6 +3,11 @@
 //   node tools/build-sprite-v5.mjs          writes assets/sprites/v5/light{,@2x}.{json,png} and prints their sha256
 //   node tools/build-sprite-v5.mjs --check  rebuilds in memory and compares with the files already in assets/sprites/v5
 //
+// With the argument v6 (dispatch 2026-10-31-coder-07 Part 3; the owner: "New icon set v6 (Recommended)") it builds
+// sprite v6 the same way: sprite v5 as built, unchanged, with the three orchard, vineyard and nursery patterns
+// (SPRITE_V6_ITEMS) in one row below it, into assets/sprites/v6. Every v5 image keeps its index entry and pixels.
+//   node tools/build-sprite-v5.mjs v6 [--check]
+//
 // Reproducible means pixels and the index, not bytes: a PNG's bytes depend on the zlib of the Node that wrote it, so
 // --check decodes both sides and compares RGBA and JSON. Every build also re-reads what it wrote and confirms that each
 // v4 icon is pixel for pixel v4's and each new image pixel for pixel its cut-out.
@@ -15,11 +20,19 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { PNG } from "pngjs";
 import { SPRITE_V5_ITEMS } from "../overrides/forager-character.mjs";
+import { SPRITE_V6_ITEMS } from "../overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
-const V4 = "assets/sprites/v4/light";
-const V5 = "assets/sprites/v5/light";
-const ITEMS = "assets/sprite-v5-items/day";
+/** Each sprite this builds: the sheet it starts from, unchanged, and the images it adds below it. */
+const BUILDS = {
+  v5: { base: "v4", items: SPRITE_V5_ITEMS, itemsDir: "assets/sprite-v5-items/day" },
+  v6: { base: "v5", items: SPRITE_V6_ITEMS, itemsDir: "assets/sprite-v6-items/day" },
+};
+const VERSION = process.argv.includes("v6") ? "v6" : "v5";
+const BUILD = BUILDS[VERSION];
+const V4 = `assets/sprites/${BUILD.base}/light`; // the base sheet: v4 for v5, v5 for v6
+const V5 = `assets/sprites/${VERSION}/light`; // the sheet built
+const ITEMS = BUILD.itemsDir;
 /** One empty pixel (at 1x) between the v4 sheet and the new row, and between the new images. */
 const GAP = 1;
 
@@ -45,11 +58,11 @@ function samePixels(a, ax, ay, b, bx, by, width, height) {
 export function buildDensity(suffix, scale) {
   const index = JSON.parse(fs.readFileSync(here(`${V4}${suffix}.json`), "utf8"));
   const base = readPng(`${V4}${suffix}.png`);
-  const items = SPRITE_V5_ITEMS.map(({ name, size }) => {
-    if (name in index) throw new Error(`sprite v5: ${name} is already a v4 icon`);
+  const items = BUILD.items.map(({ name, size }) => {
+    if (name in index) throw new Error(`sprite ${VERSION}: ${name} is already a ${BUILD.base} image`);
     const png = readPng(`${ITEMS}/${name}${suffix}.png`);
     if (png.width !== size * scale || png.height !== size * scale) {
-      throw new Error(`sprite v5: ${name}${suffix} is ${png.width}x${png.height}, expected ${size * scale}`);
+      throw new Error(`sprite ${VERSION}: ${name}${suffix} is ${png.width}x${png.height}, expected ${size * scale}`);
     }
     return { name, size, png };
   });
@@ -68,16 +81,16 @@ export function buildDensity(suffix, scale) {
   return { sheet, index, base, items };
 }
 
-/** Each v4 icon is v4's, and each new image is its cut-out, in [sheet] as decoded. */
+/** Each base image (v4's for v5, v5's for v6) is the base's, and each new image is its cut-out, in [sheet] as decoded. */
 function verify(sheet, index, base, items, suffix) {
   const v4 = JSON.parse(fs.readFileSync(here(`${V4}${suffix}.json`), "utf8"));
   for (const [name, e] of Object.entries(v4)) {
-    if (JSON.stringify(index[name]) !== JSON.stringify(e)) throw new Error(`sprite v5${suffix}: ${name}'s index entry changed`);
-    if (!samePixels(sheet, e.x, e.y, base, e.x, e.y, e.width, e.height)) throw new Error(`sprite v5${suffix}: ${name}'s pixels changed`);
+    if (JSON.stringify(index[name]) !== JSON.stringify(e)) throw new Error(`sprite ${VERSION}${suffix}: ${name}'s index entry changed`);
+    if (!samePixels(sheet, e.x, e.y, base, e.x, e.y, e.width, e.height)) throw new Error(`sprite ${VERSION}${suffix}: ${name}'s pixels changed`);
   }
   for (const { name, png } of items) {
     const e = index[name];
-    if (!samePixels(sheet, e.x, e.y, png, 0, 0, png.width, png.height)) throw new Error(`sprite v5${suffix}: ${name} differs from its cut-out`);
+    if (!samePixels(sheet, e.x, e.y, png, 0, 0, png.width, png.height)) throw new Error(`sprite ${VERSION}${suffix}: ${name} differs from its cut-out`);
   }
   return Object.keys(v4).length;
 }
@@ -96,19 +109,19 @@ for (const [suffix, scale] of [["", 1], ["@2x", 2]]) {
     verify(onDisk, onDiskIndex, base, items, suffix);
     continue;
   }
-  fs.mkdirSync(here("assets/sprites/v5"), { recursive: true });
+  fs.mkdirSync(here(`assets/sprites/${VERSION}`), { recursive: true });
   fs.writeFileSync(here(`${V5}${suffix}.png`), PNG.sync.write(sheet));
   fs.writeFileSync(here(`${V5}${suffix}.json`), JSON.stringify(index, null, 2) + "\n");
   const written = readPng(`${V5}${suffix}.png`);
   const kept = verify(written, JSON.parse(fs.readFileSync(here(`${V5}${suffix}.json`), "utf8")), base, items, suffix);
   for (const ext of ["json", "png"]) {
     const sum = crypto.createHash("sha256").update(fs.readFileSync(here(`${V5}${suffix}.${ext}`))).digest("hex");
-    console.log(`${sum}  sprites/v5/light${suffix}.${ext}`);
+    console.log(`${sum}  sprites/${VERSION}/light${suffix}.${ext}`);
   }
-  console.log(`light${suffix}: ${sheet.width}x${sheet.height}, ${kept} v4 icons unchanged + ${items.length} new = ${Object.keys(index).length}`);
+  console.log(`light${suffix}: ${sheet.width}x${sheet.height}, ${kept} ${BUILD.base} images unchanged + ${items.length} new = ${Object.keys(index).length}`);
 }
 if (problems.length) {
   console.log("PROBLEMS:\n  " + problems.join("\n  "));
   process.exit(1);
 }
-if (check) console.log("sprite v5 matches a fresh build, pixel for pixel, at both densities");
+if (check) console.log(`sprite ${VERSION} matches a fresh build, pixel for pixel, at both densities`);

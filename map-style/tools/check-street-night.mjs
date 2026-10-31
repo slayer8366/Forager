@@ -174,7 +174,9 @@ for (const [day, ids] of landFills) {
 for (const day of Object.keys(NIGHT_FILL_COLOURS)) {
   if (!landFills.has(day)) problems.push(`night fill exception for ${day}, a colour no fill layer draws`);
 }
-const patterns = new Set(style2.layers.map((l) => l.paint?.["fill-pattern"]).filter(Boolean));
+/** Every image name a fill-pattern value can draw: a name, or each output of a match on kind_detail (v4's orchards, 12). */
+const patternNames = (value) => (typeof value === "string" ? [value] : Array.isArray(value) && value[0] === "match" ? value.slice(3).filter((_, i) => i % 2 === 0 || i === value.length - 4) : []);
+const patterns = new Set(style2.layers.flatMap((l) => patternNames(l.paint?.["fill-pattern"])).filter(Boolean));
 const sprite = JSON.parse(fs.readFileSync(here(`${style2.sprite.replace(/^https?:\/\/[^/]+\//, "assets/").replace(/^assets\/assets\//, "assets/")}.json`), "utf8"));
 for (const name of patterns) if (!(name in sprite)) problems.push(`fill-pattern ${name} is not in the sprite`);
 for (const name of Object.keys(NIGHT_PATTERN_COLOURS)) if (!patterns.has(name)) problems.push(`night pattern ${name} is drawn by no layer`);
@@ -432,6 +434,37 @@ if (V4) {
   if (!Array.isArray(edgeColour) || !same(edgeColour.slice(0, 3), EDGE_CASE) || edgeColour.length !== 4) problems.push(`landuse_edges' line-color does not start ${JSON.stringify(EDGE_CASE)}: ${JSON.stringify(edgeColour)?.slice(0, 160)}`);
   if (NIGHT_LINE_COLOURS_V4.landuse_edges?.["#b0c286"] !== "#3a4b14") problems.push(`the orchards' night rim is ${NIGHT_LINE_COLOURS_V4.landuse_edges?.["#b0c286"]}, ruled #3a4b14`);
   console.log(`orchards: fill #c8dd98, night ${night("#c8dd98")} on night ground ${contrast(night("#c8dd98"), night(GROUND)).toFixed(2)}:1; edge #b0c286, night rim #3a4b14 on it ${contrast("#3a4b14", night("#c8dd98")).toFixed(2)}:1 (recorded, not gated)`);
+}
+
+// 12. v4's patterns on the orchards (the fill-in rulings: "Fill + pattern per kind (Recommended)", then "New icon set v6
+//     (Recommended)"), by hand from Sage's sage-10 spec: v4 names sprite v6 (v5 unchanged plus the three patterns) and
+//     v3 keeps v5; landuse_orchards_pattern right after landuse_orchards, minzoom 13, the same filter, fill-pattern by
+//     kind_detail; the three are images v6 has (3, above) and in forager:sprite-icons, which the app's night inverts
+//     (ink #8ea65c to #829a50, the plain inversion, as ruled), and none is a painted night pattern.
+if (V4) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const order = style2.layers.map((l) => l.id);
+  if (!/\/sprites\/v6\/light$/.test(style2.sprite)) problems.push(`v4's sprite is ${style2.sprite}; ruled sprite v6`);
+  const v3 = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8"));
+  if (!/\/sprites\/v5\/light$/.test(v3.sprite)) problems.push(`v3's sprite is ${v3.sprite}; it keeps sprite v5`);
+  const pattern = style2.layers.find((l) => l.id === "landuse_orchards_pattern");
+  const fill = style2.layers.find((l) => l.id === "landuse_orchards");
+  const PATTERN = ["match", ["get", "kind_detail"], "orchard", "orchard_dots", "vineyard", "vineyard_rows", "plant_nursery", "nursery_dots", ""];
+  if (!pattern) problems.push("v4 has no landuse_orchards_pattern");
+  else {
+    if (order[order.indexOf("landuse_orchards") + 1] !== "landuse_orchards_pattern") problems.push("landuse_orchards_pattern is not right after landuse_orchards");
+    if (pattern.type !== "fill" || pattern["source-layer"] !== "landuse" || pattern.minzoom !== 13) problems.push(`landuse_orchards_pattern: ${pattern.type} on ${pattern["source-layer"]}, minzoom ${pattern.minzoom}; ruled a fill on landuse from z13`);
+    if (!same(pattern.filter, fill?.filter)) problems.push(`landuse_orchards_pattern's filter ${JSON.stringify(pattern.filter)} is not landuse_orchards'`);
+    if (!same(pattern.paint, { "fill-pattern": PATTERN })) problems.push(`landuse_orchards_pattern's paint is ${JSON.stringify(pattern.paint)}; ruled {"fill-pattern": ${JSON.stringify(PATTERN)}}`);
+  }
+  const icons = JSON.parse(text).metadata["forager:sprite-icons"];
+  for (const name of ["orchard_dots", "vineyard_rows", "nursery_dots"]) {
+    if (!(name in sprite)) problems.push(`sprite v6 has no ${name}`);
+    if (!icons.includes(name)) problems.push(`${name} is not in v4's forager:sprite-icons, so the app's night would not invert it`);
+    if (name in NIGHT_PATTERN_COLOURS) problems.push(`${name} is a painted night pattern; ruled the plain inversion`);
+  }
+  console.log(`orchard patterns: v4 sprite ${style2.sprite}, ${Object.keys(sprite).length} images; ink #8ea65c, night ${night("#8ea65c")} (ruled #829a50)`);
+  if (night("#8ea65c") !== "#829a50") problems.push(`the inversion of the ink #8ea65c is ${night("#8ea65c")}, ruled #829a50`);
 }
 
 for (const [what, colour, against, min] of exceptions) {
