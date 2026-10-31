@@ -79,9 +79,8 @@ class RoutePlottingWordsTest {
     )
     private val plotting = RoutePlottingViewModel(
         // The router suspends once before it answers, as the app's does (PlotRouteUseCase reads the downloaded areas from the
-        // database). A router that answers without suspending stalls every leg after the first in RoutePlottingViewModel
-        // (routeNextLeg assigns legJob after an immediate launch has already finished), which is reported, not fixed, in
-        // Amendment 6's PR notes; this test is about the card, not that.
+        // database). A router that answers without suspending is RoutePlottingImmediateRouterTest's (Amendment 7); this test is
+        // about the words, so its router stays as it was.
         routeLeg = { a, b -> yield(); straight(a, b) },
         saveRoute = { _, _, _ -> Result.failure(IllegalStateException("the store refused the write")) },
         onSaved = {},

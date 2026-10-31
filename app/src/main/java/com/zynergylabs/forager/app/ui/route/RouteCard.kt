@@ -69,8 +69,8 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  *
  * The layout is the owner's, from the first use on the S22 (Amendment 6): the peek while plotting is the count with the
  * total at its right, the arrow chain of names gone; the expanded list is a row per leg with its distance at the right, then
- * "N Waypoints routed" with the total. Under each, an elevation line when the content carries one (the seam for #447);
- * nothing carries one yet.
+ * "N Waypoints routed" with the total. Under each, an elevation line when the content carries one (the seam for #447),
+ * filled while plotting since Amendment 8 (RECORD -1896, `RouteLegElevation.kt`); a saved route carries none until step 3b.
  */
 
 /** M3's sheet width cap (`BottomSheetDefaults.SheetMaxWidth`), so the card stays a readable column on a tablet. */
@@ -95,7 +95,7 @@ sealed interface RouteCardContent {
 
     /**
      * Amendment 6's seam (RECORD -1887): an optional elevation for each leg, by the leg's index, and one for the whole route.
-     * Nothing fills them yet, so the card shows no elevation line; the follow-up on #447's heights fills them in.
+     * Filled while plotting from the trail data's heights (Amendment 8, RECORD -1896); empty for a saved route until step 3b.
      */
     val legElevations: List<RouteElevation?>
     val totalElevation: RouteElevation?
@@ -211,13 +211,11 @@ private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Un
 
 /**
  * While plotting, "3 Waypoints selected   1.9 mi", or at one stop "1 Waypoint selected, tap another to route" (Amendment 6).
- * A saved route keeps its name over "Creek → Ridge   1.4 mi": Amendment 6's peek is the plotting one.
+ * A saved route: its name with the total at its right, and "2 Waypoints routed" under it (Amendment 7, the owner: "Name +
+ * total, "N Waypoints routed" (Recommended)"). Neither has the arrow chain of stops.
  */
 @Composable
 private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUnit) {
-    if (content is RouteCardContent.Saved) {
-        Text(content.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))
-    }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         when (content) {
             is RouteCardContent.Plotting -> Text(
@@ -228,11 +226,11 @@ private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUn
                 modifier = Modifier.weight(1f).testTag(ROUTE_CARD_COUNT_TAG),
             )
             is RouteCardContent.Saved -> Text(
-                content.stops.joinToString(" → ") { it.name },
-                style = MaterialTheme.typography.bodyLarge,
+                content.name,
+                style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
-                overflow = TextOverflow.MiddleEllipsis,
-                modifier = Modifier.weight(1f).testTag(ROUTE_CARD_STOPS_TAG),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).testTag(ROUTE_CARD_NAME_TAG),
             )
         }
         if (content.legs.isNotEmpty()) {
@@ -243,6 +241,9 @@ private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUn
             )
         }
         if (content.legInFlight) CircularProgressIndicator(Modifier.size(16.dp).testTag(ROUTE_CARD_PROGRESS_TAG), strokeWidth = 2.dp)
+    }
+    if (content is RouteCardContent.Saved) {
+        Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag(ROUTE_CARD_SAVED_COUNT_TAG))
     }
 }
 
@@ -314,7 +315,6 @@ const val NO_TRAIL_DATA_NOTE = "No trail data, straight line"
 const val ROUTE_CARD_TAG = "route-card"
 const val ROUTE_CARD_HANDLE_TAG = "route-card-handle"
 const val ROUTE_CARD_NAME_TAG = "route-card-name"
-const val ROUTE_CARD_STOPS_TAG = "route-card-stops"
 const val ROUTE_CARD_TOTAL_TAG = "route-card-total"
 const val ROUTE_CARD_PROGRESS_TAG = "route-card-progress"
 const val ROUTE_CARD_LEGS_TAG = "route-card-legs"
@@ -328,6 +328,9 @@ const val ROUTE_CARD_ROUTED_TAG = "route-card-routed"
 const val ROUTE_CARD_ROUTED_COUNT_TAG = "route-card-routed-count"
 const val ROUTE_CARD_ROUTED_TOTAL_TAG = "route-card-routed-total"
 const val ROUTE_CARD_ROUTED_ELEVATION_TAG = "route-card-routed-elevation"
+
+/** A saved route's peek: "N Waypoints routed", under its name (Amendment 7, RECORD -1890). */
+const val ROUTE_CARD_SAVED_COUNT_TAG = "route-card-saved-count"
 
 fun routeCardLegTag(index: Int) = "route-card-leg-$index"
 fun routeCardLegNameTag(index: Int) = "route-card-leg-name-$index"
