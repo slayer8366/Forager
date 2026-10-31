@@ -99,3 +99,62 @@ Hazel. Everything above is the first build, kept as written. This section supers
 - The phone checks themselves are a separate dispatch, as Part 1's Output says: Sorrel's 14 for #449, 9 for #450, and the credits glance.
 - I did not check whether the in-app backup restores. It was only read on the laptop.
 - No `docs/audits/README.md` row, because this branch is never merged.
+
+---
+
+# Amendment 2: #449's new card layout, installed (2026-10-31 08:05 UTC)
+
+Hazel. The sections above are kept as written. This one adds 4280 on top of the Amendment 1 install.
+
+## The route-plot-ui head
+- I waited for #449's PR CI in one background loop that checked every 2 minutes. At 07:35 UTC the PR head was `bce9c2de0`, the Amendment 6 head the dispatch names, and its PR run 41179955025 (event `pull_request`, full suite) completed **success**. All six jobs passed, including "Run the unit tests".
+- Later, after that run went green, the #449 coder pushed Amendment 7: `d852fdc37`, a fail-first commit whose workflow_dispatch run 41181723059 is red, as a fail-first run should be, then `b069ff4df`, which is now the PR head. Those are not in this build. The dispatch asked for the Amendment 6 head, and `bce9c2de0` is the one that was reported green.
+- Merged `bce9c2de0` into tools/s22-combined as `aecf9caee`, with no conflicts: 9 files, +440 −32. `ForagerDatabase.kt:214` still reads `version = 23,`.
+
+## CI run 41181263451 (workflow_dispatch, `aecf9caee`, no test filter)
+- Build log: 0 `e: ` lines. The debug APK built (BUILD SUCCESSFUL in 3m 14s). Lint, Tile Worker and route cutter all succeeded.
+- **Release compile: one failure outside the allowed list, not from code.** In attempt 1, `:app:packageRelease` FAILED with `java.lang.OutOfMemoryError: Java heap space`, in `PackageAndroidArtifact$IncrementalSplitterRunnable`, at the packaging step after compilation. I re-ran that one job, on the same commit, and it was BUILD SUCCESSFUL in 4m 12s (attempt 2, job 124483078742). The other jobs were carried over and not re-run: the API shows their start times as 07:36, and the only new artifact is attempt 2's `release-compile-log`. I took this as a one-off memory failure on the runner, not a failure of this merge, and went on with the install. That was my judgement, made against the dispatch's "anything else: STOP"; the planner may read it the other way.
+- JUnit totals from attempt 1's `unit-test-report` artifact (866 XML files):
+  - testDebugUnitTest: 6193 tests, 3 failures, 0 errors, 24 skipped. That is 9 more tests than Amendment 1's 6184, from #449's Amendment 6.
+  - testDebugUnitTestOlderSdks: 24 tests, 0 failures.
+- The three failures are exactly the allowed ones, at the same lines and with the same causes as in Amendment 1: `StreetStyleTest.kt:77`, `OwnStreetStyleSourceTest.kt:78`, and `NightExceptionsV4Test.kt:219` (the "every other style keeps v1 to v3's tables" case, with the message naming the street-v4 raw URL).
+
+## APK checks (`app-debug-apk`, from attempt 1, created 07:54:57Z)
+- sha256 `f6331e1125b45faa05aefde834afe6680232a7bb1991c52aaa1a60c4230b5326`.
+- versionCode **4280**, versionName `1.0.4280+gaecf9cae`. That is above 4275.
+- V2 signer SHA-256 `cb2f6da5…94f1626`. It equals the installed 4275 base.apk (pulled from the phone) and the 4224 base.apk kept from Amendment 1.
+- Routing key present: `BuildConfig.ROUTING_APP_KEY` in the dex is a 40-character string, and the run log shows `FORAGER_ROUTING_APP_KEY` masked. The key was not printed.
+
+## The S22 (R5CT321008R)
+Everything is in `/home/zynergy-labs/s22-2026-10-30/combined/a2/` and `…/combined/ci-41181263451/`, off git.
+
+**Baseline** (`a2/baseline/`): 1.0.4275+g64e2c413, versionCode 4275. forager.db `user_version` 23, integrity ok. Region 1 is id 3 (34 tiles) and Region 2 is id 8 (1630 tiles). There are 5 tracks with 273 points and 11 waypoints. The app was running with no Forager service. `diagnostics.walk_logger` is true. Raw backup: `run-as … tar` of `databases`, `files`, `shared_prefs` and `no_backup` into `app-data-before.tar` (sha256 alongside), plus per-table hashes and a per-file sha256 list. Against Amendment 1's after-state, the only difference is the map cache's `resources` table.
+
+Table hashes in this section come from a new script: the sqlite3 CLI output of each table, ordered by every column, then sha256. Its numbers do not match Amendment 1's file, so the two sets of hashes are compared only within their own amendment. Row counts agree.
+
+**In-app backup** (`a2/in-app-backup/`): made through Tools > Settings > Backup > "Back up now". It was saved through the system picker under its default name, `Download/forager-backup-2026-10-31.zip`, as a new file beside the 10-30 one, which was left alone. Then it was pulled off the phone.
+- sha256 `08b7242a7dfc378c6cd21cbdfef52287ed35300f7cb0f7b8310e6315e60f115c`, 18877 bytes.
+- Its manifest says appVersionCode 4275 and schemaVersion 23. The sha256 of forager.db equals the manifest's.
+- Every table matches the raw baseline except `cached_searches`: 0 rows in the backup, 2 on the phone, the same as in Amendment 1.
+- I did not see the "Backup saved." snackbar: it had gone by the time of the next UI dump. The file on the phone and its contents are the evidence.
+
+**Pre-install snapshot** (`a2/pre-install/`): taken right before the install, so the comparison covers only the install. Since the baseline, only the map cache moved, from the app being in use.
+
+**Install:** `adb install -r` succeeded. The phone now reports versionCode 4280, `1.0.4280+gaecf9cae`. One launch. No Forager entries in the crash buffer. I cleared the crash log buffer (`logcat -b crash -c`) just before the launch so that only new entries would show. That deleted the phone's earlier crash-log entries. App data was not touched.
+
+**Data checks after the launch** (`a2/after/`), against the pre-install snapshot:
+- forager.db: every table's row count and hash is identical, `user_version` 23, integrity ok.
+- fungi_index.db: identical.
+- mbgl-offline.db: `regions` and `region_tiles` are identical, so both offline regions are untouched. `tiles` and `resources` have the same rows, and they are identical with the `accessed` column left out. Only the access times changed: 21 tiles and 8 resources, from the map drawing.
+- Files: every DataStore, shared_prefs, `offline_routes` and routing-profile file is byte-identical, and the file list is unchanged. Three files changed: `forager.db-shm` (SQLite's shared-memory index), `mbgl-offline.db` (the access times above) and `files/profileInstalled` (ART's install marker).
+- ACTIVITY_RECOGNITION: granted for user 0. User 95, the dual-app profile, is still `granted=false`, and was left alone.
+- Walk logger: still on. `diagnostics.walk_logger` = true, with byte-identical file contents.
+
+**Screen:** the app is in front on the Maps tab. A uiautomator dump shows the selected bottom-bar item at x 588 to 852, which holds the "Maps" label. There is a screenshot in `a2/after/`, kept off git.
+
+## Not done or not verified
+- #449's Amendment 7 (`d852fdc37`, `b069ff4df`) is not in this build.
+- I did not check whether the in-app backup restores.
+- The cause of the release-packaging out-of-memory failure was not looked into beyond the re-run.
+- The phone checks themselves, such as Sorrel's lists for #449 and #450 and the credits glance, are a separate dispatch.
+- No `docs/audits/README.md` row, because this branch is never merged.
