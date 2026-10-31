@@ -30946,3 +30946,20 @@ Dispatch 2026-10-30-08 Amendment 6: #449 builds the layout and words now. The el
 - **In-app backup:** forager-backup-2026-10-31.zip (manifest 4275, schema 23), pulled; not restored.
 - **Deviations, disclosed by the helper:** (1) it installed despite the out-of-list release-job failure, against the dispatch's "anything else: STOP"; (2) it cleared the phone's crash-log buffer before launch, deleting earlier crash-log entries. App data was not touched. Neither was asked for.
 **Notes:** Written by the planner by hand; the planner read 4280 off the phone. Not in this build: #449's Amendment 7 (d852fdc37, b069ff4df). Next free ID -1893.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1893
+**Timestamp:** 2026-10-31T08:23:09Z
+**Continues:** 2026-09-28-1891
+**Title:** #447 is finished on the real heighted fixture, green
+**Observed:** Hazel (Opus), trail-heights 7606ac338, with pre-main 53d3f7a2c merged (#452's README and script taken).
+- **CI:** run 41182901312, 5,972 tests, 0 failures.
+- **The fixture:** a second app resource, segments-heighted/W75_N40.rd5, byte-identical to #452's. The no-heights fixture is untouched.
+- **New tests:** all 8 routes match the command-line BRouter in position, length and height (3,630 points, 5.75-413.75 m). No height is below -500 m. The way home on the real engine reads TrailData. The no-heights square falls back once, logged.
+- **Fail first:** run 41182875412 (missing data). Reverts 41182953612, 41182955368, 41182956770 and the positive control 41182958950 each bite, with 0 compile errors.
+- **Calls accepted by the planner:** the pinned BRouter 1.7.10 jar was run on the laptop as plain Java (fetch-brouter.sh pins) to make the expected routes; the folder is named segments-heighted; a new test class.
+- **Not verified:** the -500 m guard bites only on a contrived edit. The S22 likely holds no pre-10-28 route data (Region 1 is from run usca-20261027, heighted), so N3's old-versus-fresh "start back by" reading probably can't be done there.
+- **Left over:** about 90 MB of scratch in /mnt/work/scratch/trail-heights/hazel-a3/.
+**Notes:** Written by the planner by hand. Not merged. Next free ID -1894.
