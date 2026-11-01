@@ -1,0 +1,98 @@
+Forager patch 0007: the barriers layer's zoom-15 mark is a fill over the tile, not a point, so Planetiler still
+deduplicates tiles (dispatch 2026-11-01-coder-09, after run usca-20261031T193102Z ran out of heap).
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2), with 0001 to 0006 already
+applied. Applied after them with `git apply` by map-build/bin/build-basemap-jar.sh.
+
+Planetiler 0.10.2 hashes and deduplicates a tile only when every feature in it is a polygon fill or a tile edge
+(VectorTile.likelyToBeDuplicated). 0004's mark, a point at the tile's corner, made every zoom-15 tile fail that test, so
+tiles of open water or forest interior were each written and listed separately. On Oregon the archive's tile entries
+grew 46.8 % (418,172 to 613,976) and its contents 58.4 %; at US + Canada scale the writer's in-heap entry list grew by
+about 1.2 GB, and the 10-31 run ran out of its 4 GB heap at 48 % of the archive.
+
+The mark becomes one polygon over the whole tile and its 4 px buffer, with no id and no fields, still added to every
+zoom-15 tile by Barriers' TilePostProcessor. A tile of only fills plus the mark stays one Planetiler deduplicates. The
+app's reader takes only lines from this layer (MapFeatures, PR #439), so it ignores the mark either way; a tile with
+the layer still means fences were checked. On Oregon: 418,177 entries and 434.8 MB, against 613,979 and 458.5 MB.
+
+Pinned by BarriersTest: the mark is a fill (foragerMarkOnAZoom15TileWithNoBarrier), and a tile of only fills with the
+mark is still likelyToBeDuplicated (foragerMarkKeepsAFillOnlyTileDeduplicated, new; 9 forager cases in all).
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java b/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
+index 9895638..b736ee9 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Barriers.java
+@@ -12,6 +12,7 @@ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
++import org.locationtech.jts.geom.Coordinate;
+ 
+ /**
+  * Forager's own layer, not upstream's: OpenStreetMap's fences, walls, hedges and retaining walls, as lines at zoom 15
+@@ -53,7 +54,7 @@ public class Barriers implements ForwardingProfile.LayerPostProcessor, Forwardin
+     return FeatureMerge.mergeLineStrings(items, 0, 0, 4);
+   }
+ 
+-  /** The mark: one point with no fields at the tile's corner, added to every zoom-15 tile after its layers are done. */
++  /** The mark: one fill with no fields over the whole tile, added to every zoom-15 tile after its layers are done. */
+   @Override
+   public Map<String, List<VectorTile.Feature>> postProcessTile(TileCoord tile, Map<String, List<VectorTile.Feature>> layers) {
+     if (tile.z() != 15) {
+@@ -65,7 +66,13 @@ public class Barriers implements ForwardingProfile.LayerPostProcessor, Forwardin
+     return layers;
+   }
+ 
+-  /** One point at (0, 0), no id, no fields. */
+-  static final VectorTile.Feature MARK =
+-    new VectorTile.Feature(LAYER_NAME, 0, VectorTile.encodeGeometry(GeoUtils.point(0, 0)), Map.of());
++  /**
++   * One polygon over the whole tile and its 4 px buffer, no id, no fields (patch 0007, dispatch 2026-11-01-coder-09).
++   * A fill, not a point: Planetiler deduplicates only tiles whose features are all fills or edges, so a point made every
++   * zoom-15 tile unique and the US + Canada build ran out of heap. The app reads only lines from this layer.
++   */
++  static final VectorTile.Feature MARK = new VectorTile.Feature(LAYER_NAME, 0, VectorTile.encodeGeometry(
++    GeoUtils.JTS_FACTORY.createPolygon(new Coordinate[]{
++      new Coordinate(-4, -4), new Coordinate(260, -4), new Coordinate(260, 260), new Coordinate(-4, 260), new Coordinate(-4, -4)
++    })), Map.of());
+ }
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
+index 524c1b4..3f216b5 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/BarriersTest.java
+@@ -2,6 +2,7 @@ package com.protomaps.basemap.layers;
+ 
+ import static com.onthegomap.planetiler.TestUtils.newLineString;
+ import static com.onthegomap.planetiler.TestUtils.newPoint;
++import static com.onthegomap.planetiler.TestUtils.newPolygon;
+ 
+ import com.onthegomap.planetiler.VectorTile;
+ import com.onthegomap.planetiler.geo.GeometryException;
+@@ -67,10 +68,26 @@ class BarriersTest extends LayerTest {
+     var out = profile.postProcessTileFeatures(TileCoord.ofXYZ(5221, 11745, 15), tileWith("earth", line("earth", Map.of("kind", "earth"))));
+     var barriers = out.get("barriers");
+     org.junit.jupiter.api.Assertions.assertEquals(1, barriers.size(), () -> "barriers: " + barriers);
+-    org.junit.jupiter.api.Assertions.assertEquals(com.onthegomap.planetiler.geo.GeometryType.POINT, barriers.get(0).geometry().geomType());
++    // Patch 0007 (dispatch 2026-11-01-coder-09): the mark is a polygon filling the tile, not a point.
++    org.junit.jupiter.api.Assertions.assertEquals(com.onthegomap.planetiler.geo.GeometryType.POLYGON, barriers.get(0).geometry().geomType());
++    org.junit.jupiter.api.Assertions.assertTrue(barriers.get(0).geometry().isFill(), "the mark fills the tile");
+     org.junit.jupiter.api.Assertions.assertEquals(Map.of(), barriers.get(0).tags());
+   }
+ 
++  // Patch 0007: Planetiler hashes and deduplicates only tiles whose features are all fills or edges
++  // (VectorTile.likelyToBeDuplicated, at planetiler 0.10.2). A point mark made every zoom-15 tile unique, so the
++  // US + Canada archive's tile entries grew by about half and the build ran out of heap (run usca-20261031T193102Z).
++  // With the mark a fill, a zoom-15 tile of only fills (open water, a forest interior) stays one it deduplicates.
++  @Test
++  void foragerMarkKeepsAFillOnlyTileDeduplicated() throws GeometryException {
++    var fill = new VectorTile.Feature("water", 1, VectorTile.encodeGeometry(
++      newPolygon(-4, -4, 260, -4, 260, 260, -4, 260, -4, -4)), new HashMap<>(Map.of("kind", "ocean")));
++    var out = profile.postProcessTileFeatures(TileCoord.ofXYZ(5221, 11745, 15), tileWith("water", fill));
++    var tile = new VectorTile();
++    out.forEach(tile::addLayerFeatures);
++    org.junit.jupiter.api.Assertions.assertTrue(tile.likelyToBeDuplicated(), () -> "layers: " + out.keySet());
++  }
++
+   @Test
+   void foragerMarkBesideTheFencesOfAZoom15Tile() throws GeometryException {
+     var out = profile.postProcessTileFeatures(TileCoord.ofXYZ(5221, 11745, 15), tileWith("barriers", line("barriers", Map.of("kind", "fence"))));

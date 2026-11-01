@@ -230,7 +230,7 @@ What it does differently from `build-orwa.sh`, and why:
   `build-basemap-jar.sh`. It refuses the jar unless all of their cases appear in the test report with no failures:
   29 `foragerTrail…`, `foragerAccess…` and `foragerZoom…` cases and 7 `foragerStreets…` (0005), as well as 0002's
   and 0003/0004's own cases in their test classes, and 0006's 6 `foragerOrchardKindDetail…` and
-  `foragerNoKindDetail…` cases in `LanduseTest`.
+  `foragerNoKindDetail…` cases in `LanduseTest`, and `BarriersTest`'s 9 forager cases with 0007's.
 
 ## Licences
 
