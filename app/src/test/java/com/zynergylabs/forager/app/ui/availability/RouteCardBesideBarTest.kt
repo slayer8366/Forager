@@ -183,3 +183,40 @@ class RouteCardBesideBarTest {
         assertTrue("the new route is at its peek", !rig.plotting.uiState.value.expanded)
     }
 }
+
+/**
+ * Amendment 14's stop condition names the tablet. The card keeps its reading width (`ROUTE_CARD_MAX_WIDTH`, the first stop, (b)), so
+ * it sits at the far edge's margin and does not reach the bar. The numbers are printed for the report.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w824dp-h1318dp-xhdpi")
+class RouteCardBesideBarTabletTest {
+
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
+
+    private val rig = RouteCardBarRig(composeRule)
+
+    private fun walk(barOnLeft: Boolean) {
+        rig.setScreen()
+        if (barOnLeft) rig.dragBarAcross(rightward = false)
+        val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
+        rig.plotTo(3)
+        rig.assertBarUntouched("tablet, bar on left $barOnLeft", bar)
+        val card = rig.bounds(ROUTE_CARD_TAG)
+        assertEquals("the card's width stays its cap", 640f, (card.right - card.left).value, 0.5f)
+        if (barOnLeft) {
+            assertEquals("the card's right, at the far edge's margin", (rig.screen().right - 8.dp).value, card.right.value, 0.5f)
+        } else {
+            assertEquals("the card's left, at the far edge's margin", 8f, card.left.value, 0.5f)
+        }
+    }
+
+    @Test
+    fun `the bar on the right - the card sits at the left edge's margin`() = walk(barOnLeft = false)
+
+    @Test
+    fun `the bar on the left - the card sits at the right edge's margin`() = walk(barOnLeft = true)
+}

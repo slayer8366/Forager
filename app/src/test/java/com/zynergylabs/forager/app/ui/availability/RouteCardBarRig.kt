@@ -15,7 +15,9 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GeoDistance
+import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.route.RouteLeg
@@ -79,7 +81,11 @@ internal class RouteCardBarRig(private val composeRule: RouteRule) {
     private var returnTouches = 0
     private var plotted = 0
 
-    fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false) {
+    private val t = 1_700_000_000_000L
+    private val fix = LocationFix.Update(lat = 45.32, lng = -122.63, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val origin = Waypoint(id = "origin", lat = 45.33, lng = -122.63, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
+
+    fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false, navigating: Boolean = false) {
         val store = OneCellStore()
         val viewModel = if (withLegend) mapLayersViewModel(store = store) else mapLayersViewModel()
         composeRule.setContent {
@@ -91,7 +97,12 @@ internal class RouteCardBarRig(private val composeRule: RouteRule) {
                     store = store,
                     waypoints = stops,
                     routePlotting = RoutePlottingControls(state, plotting),
-                    navigation = AvailabilityScreenNavigation(onToggleReturning = { returnTouches++ }),
+                    uiStateTransform = { if (navigating) it.copy(liveFix = fix) else it },
+                    navigation = if (navigating) {
+                        AvailabilityScreenNavigation(isReturning = true, onToggleReturning = { returnTouches++ }, navigationTarget = origin)
+                    } else {
+                        AvailabilityScreenNavigation(onToggleReturning = { returnTouches++ })
+                    },
                     recording = AvailabilityScreenRecording(isRecording = true, onToggleRecording = { stopTouches++ }),
                 )
             }
