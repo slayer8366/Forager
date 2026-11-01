@@ -31164,3 +31164,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Not established:** the loop has not been run; what started run 1 is undetermined; three sibling uses of contentKey were not traced.
 - **Premises wrong:** the always-on display is not the cause; trial C was on a desk, not a walk with a fix.
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1907.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1907
+**Timestamp:** 2026-11-01T01:58:41Z
+**Continues:** 2026-09-28-1906
+**Title:** Build WordSwap's small fix for the screen-off drain, with a phone run after
+**Decision:** the owner: "Build the small fix (Recommended)". Dispatch 2026-10-31-04, fix A of the F-4 report; a phone run confirms it afterwards.
+**Notes:** Written by the planner by hand. Next free ID -1908.
