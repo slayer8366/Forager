@@ -53,17 +53,13 @@ fun WordSwap(
     val fade = MotionTokens.wordSwapSpec<Float>()
     val latest by rememberUpdatedState(text)
     AnimatedContent(
-        targetState = wordsOf(text),
+        targetState = text,
         modifier = modifier,
         transitionSpec = { (fadeIn(animationSpec = fade) togetherWith fadeOut(animationSpec = fade)).using(null) },
         contentAlignment = contentAlignment,
+        contentKey = { wordsOf(it) },
         label = "wordSwap",
-    ) { words ->
-        // A plain holder, not State: this scope reads it, so a State written here would invalidate the scope that wrote it.
-        val line = remember { Line(latest) }
-        if (wordsOf(latest) == words) line.text = latest
-        content(line.text)
-    }
+    ) { shown -> content(shown) }
 }
 
 /** The text a line last showed, which an outgoing line keeps while it fades out. */
