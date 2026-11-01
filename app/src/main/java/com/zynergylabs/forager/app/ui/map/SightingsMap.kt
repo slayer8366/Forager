@@ -219,6 +219,8 @@ fun SightingsMap(
     journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.route]'s own doc comment. */
     route: RouteOnMap? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.plottedRoute]'s own doc comment. */
+    plottedRoute: PlottedRouteOnMap? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraMemory]'s own doc comment. */
     cameraMemory: MapCameraMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.leavingTab]'s own doc comment. */
@@ -639,6 +641,9 @@ fun SightingsMap(
         searchFrameRequestId = searchFrameRequestId,
         resources = resources,
     )
+
+    // A plotted route (dispatch 2026-10-30-08): pushed whenever it or the style changes (a new style starts empty).
+    LaunchedEffect(sightingsMapState.loadedStyle, plottedRoute) { plottedRouteOnCurrentStyle(sightingsMapState.loadedStyle, plottedRoute) }
 
     // The marker fan's effects on the loaded style (dispatch 2026-09-28-197 and its follow-ups): MapFan.kt.
     MapFan(

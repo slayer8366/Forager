@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -31,7 +33,6 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
@@ -60,6 +61,8 @@ internal fun BoxScope.CompactMapBottomChrome(
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
+    /** Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise; "Return to Route" (Amendment 3) and the legend chip (Amendment 4) sit above it. */
+    routeCardHeight: Dp = 0.dp,
 ) {
     val isNavigating = navigation.isNavigating
     val navigationFollowing = navigation.navigationFollowing
@@ -80,6 +83,10 @@ internal fun BoxScope.CompactMapBottomChrome(
     // nav keeps winning its own band.
     // Motion Part 2, item 4 (scout N3; "Fade and grow"): it grows up from its bottom centre and shrinks back down;
     // item 5: from the moment it starts to leave (a tap on it, which brings the view back) it takes no touch.
+    // Dispatch 2026-10-30-08: how far "Return to Route" (Amendment 3) and the legend chip (Amendment 4) rise while the route
+    // card shows, its height and a gap; nothing while it does not.
+    val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
+    val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
     val returnToRouteShown = isNavigating && !navigationFollowing
     MapPopUp(
         visible = returnToRouteShown,
@@ -87,7 +94,9 @@ internal fun BoxScope.CompactMapBottomChrome(
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .padding(controlsPadding)
-            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+            // Amendment 3 (the owner: "Pill sits above the card (Recommended)"): the card sits on the same bottom, so the pill
+            // rises by the card's height and a gap, and the two never overlap.
+            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + routeCardLift),
     ) {
         ReturnToRoutePill(
             onClick = onReturnToRoute,
@@ -108,11 +117,11 @@ internal fun BoxScope.CompactMapBottomChrome(
     // cluster's column reaches the corner the legend sits in, so the legend moves just inboard of
     // it (the cluster's edge inset and measured width, plus the portrait gap), bottom-aligned as
     // before, collapsed or expanded. Otherwise it is in its corner as it always was.
-    val legendEndPadding = if (landscapeCluster && !isMapIconBarOnLeftSide) {
-        MAP_ICON_BAR_EDGE_INSET + with(LocalDensity.current) { mapIconClusterWidthPx.toDp() } + Spacing.sm
-    } else {
-        Spacing.sm
-    }
+    // Amendment 14 (RECORD -1928): in portrait the same while the route card shows, as the chip rises beside the bar then.
+    val legendEndPadding = routeCardLegendEndPadding(
+        barOnRight = !isMapIconBarOnLeftSide && (landscapeCluster || routeCardHeight > 0.dp),
+        barWidth = with(LocalDensity.current) { mapIconClusterWidthPx.toDp() },
+    )
     // Motion Part 2, item 4 (scout M2; "Fade and grow"): the legend grows out of its own bottom-end corner and shrinks
     // back into it; item 5: leaving, it takes no touch and gives up its keep-out at once. It keeps the cluster clear of
     // it (legendChipTopPx) until it has gone, so the cluster does not glide down over a legend still fading. Opening
@@ -125,7 +134,9 @@ internal fun BoxScope.CompactMapBottomChrome(
         modifier = Modifier
             .align(Alignment.BottomEnd)
             .padding(controlsPadding)
-            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+            // Amendment 4 (the owner: "Chip rises above the card (Recommended)"): the card sits on the same bottom, so the chip
+            // rises by the card's height and a gap, as the pill above does.
+            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + routeCardLift),
     ) {
         legendShown?.let { legend ->
             DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
@@ -135,8 +146,10 @@ internal fun BoxScope.CompactMapBottomChrome(
                 onExpandedChange = mapLayers.onLegendExpandedChange,
                 modifier = Modifier
                     .then(if (legendNow != null) Modifier.mapKeepOut(MapKeepOutIds.LEGEND) else Modifier)
+                    // Amendment 14 (RECORD -1928): the bar's lowest edge is where the chip sits with no card, so the card moves the
+                    // chip and not, through it, the bar.
                     .onGloballyPositioned { coordinates ->
-                        legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
+                        legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx + routeCardLiftPx
                     },
             )
         }

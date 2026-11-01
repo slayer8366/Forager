@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointResult
 import androidx.compose.foundation.clickable
@@ -252,6 +253,8 @@ internal fun mapLayersViewModel(
     crowdedIcons: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
     // Dispatch 2026-10-28-08: the live journal-entry counts. Defaulted to none, every count reading 0, as before.
     entryReferenceCounts: com.zynergylabs.forager.app.domain.EntryReferenceCountSource = com.zynergylabs.forager.app.domain.NoEntryReferenceCounts,
+    // Dispatch 2026-10-30-08 Amendment 8: the Units setting. Defaulted to metric, as before.
+    unitSystemPreferences: UnitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -275,7 +278,7 @@ internal fun mapLayersViewModel(
         offlineMapRepository = offlineMapRepository,
         errorLog = errorLog,
         mapPreferencesRepository = MapLayersUiMapPreferencesRepository,
-        unitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
+        unitSystemPreferenceRepository = unitSystemPreferences,
         appThemePreferenceRepository = MapLayersUiAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(MapLayersUiTripPlanningWeatherProvider),
         getMapRecords = getMapRecords,
@@ -325,11 +328,18 @@ internal fun MapLayersTestScreen(
     // Applied to the ViewModel's state before the screen reads it, for a state the ViewModel cannot reach (sightings
     // held with no region); identity by default.
     uiStateTransform: (AvailabilityUiState) -> AvailabilityUiState = { it },
+    // Dispatch 2026-10-30-08: route plotting's state and actions; none by default, as before.
+    routePlotting: RoutePlottingControls? = null,
+    // Dispatch 2026-10-30-08, Amendment 3: navigation and recording, for "Return to Route" over the route card; none by default.
+    navigation: AvailabilityScreenNavigation = AvailabilityScreenNavigation(),
+    recording: AvailabilityScreenRecording = AvailabilityScreenRecording(),
 ) {
     val viewModelState by viewModel.uiState.collectAsState()
     val uiState = uiStateTransform(viewModelState)
     AvailabilityScreen(
         uiState = uiState,
+        navigation = navigation,
+        recording = recording,
         searchInputs = AvailabilityScreenSearchInputs(
             onUseCurrentLocation = viewModel::useCurrentLocation,
             onManualLatChanged = viewModel::onManualLatChanged,
@@ -371,6 +381,7 @@ internal fun MapLayersTestScreen(
             onMapModeSelected = viewModel::onMapModeSelected,
             onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
             forecastCellStore = store,
+            routePlotting = routePlotting,
         ),
         records = AvailabilityScreenRecords(
             waypoints = waypoints,

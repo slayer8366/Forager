@@ -44,6 +44,14 @@ class MapCameraMemory {
     var appliedSearchFrameId: Int = 0
 
     /**
+     * Dispatch 2026-10-30-08, Amendment 5, S-1 (the owner: "Fix: keep my view (Recommended)"): the last
+     * [MapRenderMode.cameraRequest] id a map applied, kept here for the reason [appliedSearchFrameId] is. A saved route's fit
+     * keeps its id while the route shows, so the map that comes back after a tab change would otherwise fit it again over the
+     * camera the user has moved since, and end the following the user turned back on. `null` until a map applies one.
+     */
+    var appliedCameraRequestId: String? = null
+
+    /**
      * RECORD -761: the picture a leaving map took of itself, for the map that comes back to draw over its own first frames
      * ([MapReturnCover.kt]). One at a time: [keepCover] recycles the one it replaces; the returning map takes it with
      * [takeCover], which leaves none here.

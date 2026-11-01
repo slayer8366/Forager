@@ -1,0 +1,270 @@
+package com.zynergylabs.forager.app.ui.availability
+
+import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.defaultRouteName
+import com.zynergylabs.forager.app.domain.route.legElevation
+import com.zynergylabs.forager.app.domain.route.routeFrame
+import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
+import com.zynergylabs.forager.app.ui.map.MapCameraRequest
+import com.zynergylabs.forager.app.ui.map.MapFeatureTap
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.MapRenderMode
+import com.zynergylabs.forager.app.ui.map.PlottedRouteOnMap
+import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
+import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
+import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
+import com.zynergylabs.forager.app.ui.route.RouteCard
+import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
+import com.zynergylabs.forager.app.ui.route.RouteCardContent
+import com.zynergylabs.forager.app.ui.route.RouteCardContentFit
+import com.zynergylabs.forager.app.ui.route.rememberRouteCardNeededWidth
+import com.zynergylabs.forager.app.ui.route.RoutePlotMode
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
+import com.zynergylabs.forager.app.ui.route.RoutePlottingUiState
+import com.zynergylabs.forager.app.ui.route.SaveRouteDialog
+import com.zynergylabs.forager.app.ui.theme.Spacing
+import java.time.LocalDate
+
+/*
+ * Route plotting on the Maps tab (dispatch 2026-10-30-08, step 3): how a tap reaches the plotting, the card, its Back tier,
+ * its dialogs, the line the map draws and the fit when a saved route opens. Kept out of AvailabilityCompactMapUi.kt, which
+ * calls each at its place (the first stop, (g)). Every input arrives in MapRecordSources.routePlotting (the planner's ruling on
+ * Q11), so the scaffold is unchanged.
+ */
+
+/**
+ * Whether route plotting takes [tap] instead of a bubble opening:
+ * - a waypoint while plotting is added as the next stop (the first stop, (a));
+ * - a planned trip with a route opens the route at once, with no bubble (Amendment 1, Q7: "Opens the route straight away").
+ * Every other tap is the bubble's, as before.
+ */
+internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources): Boolean {
+    val plotting = sources.routePlotting ?: return false
+    return when (tap.layerId) {
+        MapLayerIds.WAYPOINTS -> {
+            if (plotting.state.mode !is RoutePlotMode.Plotting) return false
+            val waypoint = sources.waypoints.firstOrNull { it.id == tap.featureId }
+            if (waypoint == null) {
+                Log.w(ROUTE_PLOTTING_LOG_TAG, "Waypoint ${tap.featureId} is not in Records; it was not added to the route.")
+            } else {
+                plotting.actions.onWaypointTapped(RouteStop(waypoint.name, LatLng(waypoint.lat, waypoint.lng)))
+            }
+            true
+        }
+        MapLayerIds.PLANNED_TRIPS -> {
+            val trip = sources.plannedTrips.firstOrNull { it.id == tap.featureId && it.route != null } ?: return false
+            plotting.actions.onOpenSavedRoute(trip, fromTripPlanner = false)
+            true
+        }
+        else -> false
+    }
+}
+
+/** The line the map draws: the route being plotted, or a saved one with a dot at each stop (Amendment 1, Q8); `null` for none. */
+internal fun plottedRouteOnMap(controls: RoutePlottingControls?): PlottedRouteOnMap? = when (val mode = controls?.state?.mode) {
+    is RoutePlotMode.Plotting -> PlottedRouteOnMap(mode.draft.legs)
+    is RoutePlotMode.Showing -> mode.trip.route?.let { route -> PlottedRouteOnMap(route.legs, route.stops.map { it.position }) }
+    RoutePlotMode.Off, null -> null
+}
+
+/** The most of the map's height the expanded card's rows take before they scroll (the first stop, (b)). */
+internal const val ROUTE_CARD_EXPANDED_FRACTION = 0.5f
+
+/**
+ * Amendment 9 (RECORD -1902, the owner: "\"i\" moves above the card (Recommended)"): while the card shows ([cardHeightDp] above
+ * 0), MapLibre's attribution "i" keeps clear of it as the cluster, "Return to Route" and the legend chip do: its bottom inset is
+ * raised to the card's top plus the same gap ([CompactMapBottomChrome]'s routeCardLift: the card's height and Spacing.sm, over
+ * the card's own bottom, [bottomInset][MapRenderMode.bottomInset] and its clearance). Never lowered, and unchanged with no card,
+ * so it goes back when the card closes. Amendment 14 (RECORD -1928): only where the card is [overAttribution]; see
+ * [routeCardOverAttribution]. In the short landscape window the "i" sits beside the credit strip
+ * ([MapRenderMode.attributionBesideCredit]), below the card's bottom, and that placement does not read this inset.
+ */
+internal fun MapRenderMode.withAttributionAboveRouteCard(cardHeightDp: Int, overAttribution: Boolean): MapRenderMode {
+    if (cardHeightDp <= 0 || !overAttribution) return this
+    val current = attributionBottomInset ?: bottomInset
+    val aboveCard = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + cardHeightDp.dp + Spacing.sm
+    return if (aboveCard > current) copy(attributionBottomInset = aboveCard) else this
+}
+
+/** The side margin of a saved route's fit, and the gap kept between the route and the card's top. */
+internal const val ROUTE_FIT_MARGIN_DP = 48
+
+/**
+ * The fit for a saved route just opened (the dispatch: "moves the map to fit the whole route"), once the card's height
+ * ([cardHeightDp]) is known, so the route is fitted above it; `null` otherwise. Its id names the open, so each open fits once,
+ * and it ends GPS following (the planner accepted "leaving GPS-follow when a route opens").
+ */
+internal fun savedRouteCameraRequest(controls: RoutePlottingControls?, cardHeightDp: Int): MapCameraRequest? {
+    val showing = controls?.state?.mode as? RoutePlotMode.Showing ?: return null
+    val route = showing.trip.route ?: return null
+    if (cardHeightDp <= 0) return null
+    return MapCameraRequest(
+        id = "saved-route-${showing.trip.id}-${showing.serial}",
+        frame = routeFrame(route, sideDp = ROUTE_FIT_MARGIN_DP, bottomDp = cardHeightDp + ROUTE_FIT_MARGIN_DP),
+        stopsFollowing = true,
+    )
+}
+
+/** What the card shows for [state], `null` for no card. */
+private fun routeCardContent(state: RoutePlottingUiState?): RouteCardContent? = when (val mode = state?.mode) {
+    // Amendment 8 (RECORD -1896): the elevation lines while plotting, from each leg's trail heights. A saved route has none
+    // until step 3b stores them.
+    is RoutePlotMode.Plotting -> RouteCardContent.Plotting(
+        mode.draft.stops,
+        mode.draft.legs,
+        canSave = mode.draft.toRoute() != null,
+        legElevations = mode.draft.legs.map(::legElevation),
+    )
+    is RoutePlotMode.Showing -> mode.trip.route?.let { RouteCardContent.Saved(mode.trip.name, it.stops, it.legs) }
+    RoutePlotMode.Off, null -> null
+}
+
+/**
+ * The card, at the bottom of the map's Box, above the attribution as "Return to Route" is ([bottomInset] and its clearance), inside
+ * [controlsPadding] so it keeps clear of the landscape rail; and the dialogs. [onCardHeightDp] is told the card's height whenever it
+ * changes, 0 as soon as there is none, so what rises above the card comes back as it starts to leave.
+ *
+ * In portrait (Amendments 14, 15 and 16, RECORD -1928, -1929, -1932) the card is as wide as its lines need, within the room beside the
+ * bar, and slides in from the edge away from it (`RouteCardPlacement.kt`). A card still leaving draws what it last showed, and takes no touch.
+ */
+@Composable
+internal fun BoxScope.CompactMapRouteCard(
+    controls: RoutePlottingControls?,
+    cluster: MapIconClusterState,
+    /** The landscape card's place, null in portrait ([routeCardLandscapeRoom]). */
+    landscapeRoom: RouteCardLandscapeRoom?,
+    distanceUnit: DistanceUnit,
+    controlsPadding: PaddingValues,
+    bottomInset: Dp,
+    expandedMaxHeight: Dp,
+    onCardHeightDp: (Int) -> Unit,
+    today: () -> LocalDate = LocalDate::now,
+) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val state = controls?.state
+    val actions = controls?.actions
+    val content = routeCardContent(state)
+    val shownContent = rememberLastShown(content)
+    val shownActions = rememberLastShown(actions)
+    val leaving = content == null
+    LaunchedEffect(leaving) { if (leaving) onCardHeightDp(0) }
+    val showing = state?.mode as? RoutePlotMode.Showing
+    val barOnLeft = cluster.isOnLeftSide
+    val portrait = !cluster.landscape
+    val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
+    val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+    val size = if (landscapeRoom != null) Modifier.width(landscapeRoom.width).heightIn(max = landscapeRoom.maxHeight) else Modifier
+    NoTouchTargetExpansion(active = leaving) {
+        AnimatedVisibility(
+            visible = !leaving && (portrait || landscapeRoom != null),
+            enter = enter,
+            exit = exit,
+            modifier = Modifier
+                .align(routeCardAlignment(barOnLeft))
+                .padding(controlsPadding)
+                .padding(bottom = bottomPadding)
+                .leavingTakesNoTouches(leaving = leaving),
+        ) {
+            if (shownContent != null && shownActions != null) {
+                val card: @Composable (Modifier, RouteCardContentFit?) -> Unit = { sized, fit ->
+                    RouteCard(
+                        content = shownContent,
+                        expanded = state?.expanded == true,
+                        distanceUnit = distanceUnit,
+                        callbacks = RouteCardCallbacks(
+                            onToggleExpanded = shownActions::onSetExpanded,
+                            onUndo = shownActions::onUndo,
+                            onCancel = shownActions::onCancel,
+                            onSave = shownActions::onOpenSaveDialog,
+                            onDirections = { showing?.trip?.let { trip -> launchDirections(context, trip) } },
+                        ),
+                        expandedMaxHeight = expandedMaxHeight,
+                        contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
+                        contentFit = fit,
+                        modifier = sized
+                            // What rises above the card and the map's fit clear it wherever it sits, so a card resting on the navigation
+                            // card counts from the screen's bottom edge.
+                            .onGloballyPositioned { if (!leaving) onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) }) },
+                    )
+                }
+                if (portrait) {
+                    RouteCardPortraitWidth(rememberRouteCardNeededWidth(shownContent, distanceUnit), routeCardPortraitPadding(cluster), barOnLeft) { width, fit ->
+                        card(Modifier.width(width), fit)
+                    }
+                } else {
+                    card(size, null)
+                }
+            }
+        }
+    }
+    if (content == null || state == null || actions == null) return
+    val plotting = state.mode as? RoutePlotMode.Plotting
+    if (plotting != null && state.saveDialogOpen) {
+        SaveRouteDialog(
+            defaultName = defaultRouteName(plotting.draft.stops),
+            today = today(),
+            saving = state.saving,
+            saveFailed = state.saveFailed,
+            onSave = actions::onSave,
+            onDismiss = actions::onDismissSaveDialog,
+        )
+    }
+    if (state.pendingDiscard != null) {
+        // Amendment 5, N-2: Keep plotting after a Trip Planner row's tap puts the user back where they were, the tab the
+        // drawer was over and the drawer open, as Back does from a route opened there (RoutePlottingTrips.kt).
+        val fromTripPlanner = state.pendingDiscardFromTripPlanner
+        DiscardRouteDialog(
+            onDiscard = actions::onConfirmDiscard,
+            onKeepPlotting = {
+                actions.onKeepPlotting()
+                if (fromTripPlanner) controls.onReturnToTripPlanner()
+            },
+        )
+    }
+}
+
+/**
+ * The card's Back tier (the first stop, (a)): while plotting, Back cancels the route in one tap, expanded or not (RECORD -1817;
+ * the planner's ruling on Q6); on a saved route, Back closes the card and the line, and reopens the Tools drawer when the route
+ * was opened from its Trip Planner ([onReopenDrawer]; the planner's ruling on Q5). Composed before the bubble's, so a bubble,
+ * a fan or the crowded list drawn over the card closes first; [enabled] leaves out the drawer, the menu and the pickers, as
+ * their tiers are above it. It outranks fullscreen (Amendment 1, Q3: "cancel first").
+ */
+@Composable
+internal fun RoutePlottingBackHandler(controls: RoutePlottingControls?, enabled: Boolean, onReopenDrawer: () -> Unit) {
+    val mode = controls?.state?.mode
+    BackHandler(enabled = enabled && mode != null && mode != RoutePlotMode.Off) {
+        when (mode) {
+            is RoutePlotMode.Plotting -> controls.actions.onCancel()
+            is RoutePlotMode.Showing -> {
+                controls.actions.onCloseSavedRoute()
+                if (mode.fromTripPlanner) onReopenDrawer()
+            }
+            else -> Unit
+        }
+    }
+}
+
+private const val ROUTE_PLOTTING_LOG_TAG = "RoutePlotting"

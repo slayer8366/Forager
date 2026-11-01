@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from AvailabilitySearchUi.kt (dispatch 2026-10-19-17, UI split Phase 1, PR 10a).
 
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,8 @@ internal fun SearchControls(
     onMapLayersOpenChange: (Boolean) -> Unit = {},
     tripPlannerOpen: Boolean = false,
     onTripPlannerOpenChange: (Boolean) -> Unit = {},
+    /** Dispatch 2026-10-30-08: a Trip Planner route row's tap. */
+    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -66,7 +69,7 @@ internal fun SearchControls(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         CollapsibleSection(title = "Trip Planner", expanded = tripPlannerOpen, onExpandedChange = onTripPlannerOpenChange) {
-            TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip)
+            TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip, onOpenPlannedRoute = onOpenPlannedRoute)
         }
         MapLayersToolsSection(controls = mapLayers, open = mapLayersOpen, onOpenChange = onMapLayersOpenChange)
     }

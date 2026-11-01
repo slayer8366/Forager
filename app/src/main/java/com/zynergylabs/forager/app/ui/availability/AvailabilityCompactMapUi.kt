@@ -296,7 +296,11 @@ internal fun CompactMapTab(
         }
         onWaypointReopenConsumed()
     }
-    val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
+    // Dispatch 2026-10-30-08: route plotting takes a waypoint tap while plotting and a route trip's tap (CompactMapRoutePlotting.kt);
+    // every other tap opens its bubble, as before. The sources are read at the tap, so the lambda stays remembered.
+    val currentBubbleSources by rememberUpdatedState(bubbleSources)
+    val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> if (!routePlottingTakesTap(tap, currentBubbleSources)) tappedThingOf(tap)?.let { tapped = it } } }
+    var routeCardHeightDp by remember { mutableIntStateOf(0) }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
     val onCloseBubble: () -> Unit = remember { { tapped = null } }
     // Dispatch 2026-10-27-07 (RECORD -1736): a crowded stack's list and the cameras Back returns to (CrowdedStackHost), held
@@ -484,7 +488,11 @@ internal fun CompactMapTab(
                     tapped = tapped,
                     onTapped = { tapped = it },
                     mapLayers = mapLayers,
-                    renderMode = renderMode,
+                    // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest). Amendment 9:
+                    // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
+                    renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
+                        .withCreditAboveRouteCard(routeCardHeightDp, routeCardOverCredit(cluster))
+                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster)),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onFeatureTap = onFeatureTap,
@@ -501,6 +509,14 @@ internal fun CompactMapTab(
                     onToggleFullscreen = onToggleFullscreen,
                     onCameraIdle = { location -> cameraCenter = location },
                     crowdedStacks = crowdedStacks,
+                    plottedRoute = plottedRouteOnMap(bubbleSources.routePlotting),
+                )
+                // Dispatch 2026-10-30-08: the route card's Back, composed before the bubble's, the crowded list's and the fan's, so
+                // each of those, drawn over the card, closes first; off under the drawer, the menu and the pickers, as theirs are.
+                RoutePlottingBackHandler(
+                    controls = bubbleSources.routePlotting,
+                    enabled = !isDrawerOpen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
+                    onReopenDrawer = { bubbleSources.routePlotting?.onReturnToTripPlanner?.invoke() },
                 )
                 // Composed right after mapSlot — see searchBarSlot's own doc comment for why this
                 // exact nesting (a direct sibling of the map's own AndroidView content, inside
@@ -611,6 +627,24 @@ internal fun CompactMapTab(
                     },
                 )
 
+                // Dispatch 2026-10-30-08: the route card, before the bottom chrome, so "Return to Route" and the nav stay on top; Amendment 14
+                // (RECORD -1928): and before the landscape navigation card, so it comes up from behind it.
+                CompactMapRouteCard(
+                    controls = bubbleSources.routePlotting,
+                    cluster = cluster,
+                    landscapeRoom = routeCardLandscapeRoom(
+                        cluster,
+                        layout.landscapeStripWidthPx,
+                        layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
+                        navigation.isNavigating,
+                    ),
+                    distanceUnit = uiState.distanceUnit,
+                    controlsPadding = controlsPadding,
+                    bottomInset = renderMode.bottomInset,
+                    expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
+                    onCardHeightDp = { routeCardHeightDp = it },
+                )
+
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
                 // strip's card above). Its comments are there.
                 CompactMapNavigationDisplay(
@@ -644,6 +678,8 @@ internal fun CompactMapTab(
                     isDrawerOpen = isDrawerOpen,
                     onBottomNavTabSelected = onBottomNavTabSelected,
                     onBottomNavHeightMeasured = onBottomNavHeightMeasured,
+                    // Dispatch 2026-10-30-08, Amendment 3: "Return to Route" rises above the route card while it shows.
+                    routeCardHeight = routeCardHeightDp.dp,
                 )
 
                 // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out
