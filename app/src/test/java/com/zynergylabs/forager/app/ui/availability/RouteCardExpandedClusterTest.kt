@@ -272,7 +272,7 @@ class RouteCardExpandedClusterTest {
     }
 
     @Test
-    fun `a card still expanded from the last route folds the column only once a route shows`() {
+    fun `the anchor left expanded by a closed card folds nothing, and a new route opens at its peek with the column out`() {
         setScreen()
         plotFour()
         expandCard()
@@ -283,7 +283,24 @@ class RouteCardExpandedClusterTest {
 
         touchCentreOf(glyphTag(CREEK.id))
         touchCentreOf(MAP_BUBBLE_PLOT_ROUTE_TAG)
-        assertTrue("the card opens expanded, so the column folds", !clusterShows() && restoreHandleShows())
+        assertTrue("the new route is at its peek", !plotting.uiState.value.expanded)
+        assertTrue("so the column shows", clusterShows())
+    }
+
+    @Test
+    fun `a saved route's card folds the column while expanded too, and Back closing it brings the column back`() {
+        setScreen()
+        val open = bounds(MAP_ICON_CLUSTER_TAG)
+        composeRule.runOnUiThread { plotting.onOpenSavedRoute(ROUTE_TRIP, fromTripPlanner = false) }
+        settle()
+        assertTrue("the column shows at the saved route's peek", clusterShows())
+        expandCard()
+        assertTrue("folded", !clusterShows() && restoreHandleShows())
+
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        settle()
+        assertEquals(RoutePlotMode.Off, plotting.uiState.value.mode)
+        assertSamePlace("closed", open, bounds(MAP_ICON_CLUSTER_TAG))
     }
 
     @Test

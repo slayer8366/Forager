@@ -121,7 +121,8 @@ class RoutePlottingImmediateRouterTest {
         assertEquals("Ridge to Falls", text(routeCardLegNameTag(1)))
         assertEquals(formatDistanceMeters(metres(RIDGE, falls), unit), text(routeCardLegDistanceTag(1)))
         assertEquals("3 Waypoints routed", text(ROUTE_CARD_ROUTED_COUNT_TAG))
-        assertEquals(formatDistanceMeters(metres(CREEK, RIDGE) + metres(RIDGE, falls), unit), text(ROUTE_CARD_ROUTED_TOTAL_TAG))
+        // Amendment 10 (RECORD -1904): the sum of the rows as shown; the metres summed read 2.7.
+        assertEquals("2.8 km", text(ROUTE_CARD_ROUTED_TOTAL_TAG))
         assertTrue("no leg is still in flight", !exists(ROUTE_CARD_PROGRESS_TAG))
 
         touchCentreOf(glyphTag(CREEK.id))

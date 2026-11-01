@@ -148,7 +148,9 @@ class RouteCardLayoutTest {
         val unit = viewModel.uiState.value.distanceUnit
 
         assertEquals("3 Waypoints selected", text(ROUTE_CARD_COUNT_TAG))
-        assertEquals(formatDistanceMeters(legMeters(0) + legMeters(1), unit), text(ROUTE_CARD_TOTAL_TAG))
+        // Amendment 10 (RECORD -1904): the sum of the rows as shown, 1.4 + 1.4; the metres summed read 2.7.
+        assertEquals("1.4 km", formatDistanceMeters(legMeters(0), unit))
+        assertEquals("2.8 km", text(ROUTE_CARD_TOTAL_TAG))
         assertAtRightOf("the total", bounds(ROUTE_CARD_COUNT_TAG), bounds(ROUTE_CARD_TOTAL_TAG))
         assertTrue("no arrow on the card: ${cardTexts()}", cardTexts().none { "→" in it })
         assertTrue("no stop names on the peek: ${cardTexts()}", cardTexts().none { "Creek" in it || "Ridge" in it })
