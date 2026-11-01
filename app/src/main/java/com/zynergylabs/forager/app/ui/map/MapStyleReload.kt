@@ -149,6 +149,8 @@ internal fun MapStyleReload(
             // Trail Map's night icons and patterns: the bundled night copies, added under their own names and switched to
             // (NightImageSwitch.kt; dispatch 2026-10-22-06 Amendment 1). The sprite is not loaded yet at this point.
             if (requested.night && usesStreetSprite(source)) applyStreetNightImages(style, context)
+            // NEVER MERGE: the hill shading trial's night pair (HillshadeTrialNight.kt, dispatch 2026-11-01-coder-10).
+            if (requested.night) applyHillshadeTrialNight(style)
             if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
             // Step 8b (dispatch 2026-10-26-15): the official-trails band's visibility from the user's choice, after the night
             // recolour (which walks every layer, hidden or not, so the band is in its night colour whenever it shows) and

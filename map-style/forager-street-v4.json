@@ -208,7 +208,7 @@
       "minzoom": 10,
       "maxzoom": 15
     },
-    "relief": {
+    "dem": {
       "type": "raster-dem",
       "tiles": [
         "https://raw.githubusercontent.com/slayer8366/Forager/hillshade-trial-tiles/png256/{z}/{x}/{y}.png"
@@ -786,9 +786,36 @@
       }
     },
     {
-      "id": "hillshade_trial",
+      "id": "hillshade",
       "type": "hillshade",
-      "source": "relief"
+      "source": "dem",
+      "minzoom": 5,
+      "paint": {
+        "hillshade-exaggeration": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          9,
+          0.28,
+          11,
+          0.32,
+          13,
+          0.24,
+          15,
+          0.16,
+          17,
+          0.1
+        ],
+        "hillshade-illumination-direction": 335,
+        "hillshade-illumination-anchor": "map",
+        "hillshade-shadow-color": "#4a3f33",
+        "hillshade-highlight-color": "#ffffff",
+        "hillshade-accent-color": "rgba(74,63,51,0.5)"
+      }
     },
     {
       "id": "water_stream",
