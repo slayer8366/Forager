@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import android.graphics.Color
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.HillshadeLayer
 import org.maplibre.android.style.layers.PropertyFactory
@@ -13,8 +14,9 @@ import org.maplibre.android.style.layers.PropertyFactory
 internal fun applyHillshadeTrialNight(style: Style) {
     val layer = style.getLayer("hillshade") as? HillshadeLayer ?: return
     layer.setProperties(
-        PropertyFactory.hillshadeShadowColor("rgba(0, 0, 0, 0.7)"),
-        PropertyFactory.hillshadeHighlightColor("rgba(220, 228, 236, 0.2)"),
-        PropertyFactory.hillshadeAccentColor("rgba(0, 0, 0, 0.35)"),
+        // rgba(0,0,0,0.7), rgba(220,228,236,0.2), rgba(0,0,0,0.35): alpha 0.7 = 179/255, 0.2 = 51, 0.35 = 89.
+        PropertyFactory.hillshadeShadowColor(Color.argb(179, 0, 0, 0)),
+        PropertyFactory.hillshadeHighlightColor(Color.argb(51, 220, 228, 236)),
+        PropertyFactory.hillshadeAccentColor(Color.argb(89, 0, 0, 0)),
     )
 }
