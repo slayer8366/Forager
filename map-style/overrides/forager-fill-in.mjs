@@ -44,6 +44,10 @@ export const FILL_IN_COLOURS = {
   buildingZ14: "#ccc0b7",
   buildingOutline: "#b9a99c",
   waterEdge: "#71c3ce",
+  // Orchards, plant nurseries and vineyards (Sage's sage-10; the owner: "Fill + pattern per kind (Recommended)", "#c8dd98",
+  // "Standard night (Recommended)": the plain inversion #495e19, no fill exception), and their edge.
+  orchards: "#c8dd98",
+  orchardsEdge: "#b0c286",
 };
 
 /**
@@ -73,6 +77,21 @@ const EDGE_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 0.5, 15, 0.75, 17, 
 /** The motorway layers, centres and casings, that take OSM Carto's colours; the tunnels keep their grey. */
 const MOTORWAY_CENTRES = ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"];
 const MOTORWAY_CASINGS = ["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing"];
+
+/**
+ * Sprite v6's images (tools/build-sprite-v5.mjs v6): sprite v5, unchanged, plus these three patterns in one row below it,
+ * Sage's sage-10b art (Forager-cartography assets/sprite-drafts/2026-10-31). Square cells, in 1x px. v4 names sprite v6;
+ * v3 and older keep v5. Night is the app's plain inversion (ink #8ea65c to #829a50), as ruled: no night paint.
+ */
+export const SPRITE_V6_ITEMS = [
+  { name: "orchard_dots", size: 24 },
+  { name: "vineyard_rows", size: 16 },
+  { name: "nursery_dots", size: 12 },
+];
+
+/** Orchards, plant nurseries and vineyards: kind farmland with one of these kind_detail values (basemap patch 0006). */
+const ORCHARD_KINDS = ["orchard", "plant_nursery", "vineyard"];
+const IS_ORCHARD = ["all", ["==", ["get", "kind"], "farmland"], ["in", ["get", "kind_detail"], ["literal", ORCHARD_KINDS]]];
 
 /** The landuse kinds each new fill draws. */
 const SETTLED_KINDS = ["residential", "commercial", "railway", "farmland"];
@@ -143,8 +162,28 @@ export const NIGHT_LINE_COLOURS_V4 = {
     "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
     "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
     "#c9c3bd": "#3b352e", "#c9c0bf": "#3c3231", "#c6b3c3": "#382735",
+    // Orchards, plant nurseries and vineyards (sage-10).
+    [FILL_IN_COLOURS.orchardsEdge]: "#3a4b14",
   },
 };
+
+/**
+ * Hill shading (dispatch 2026-11-01-coder-11; the owner: "It's good. It actively defines the trail map from a street or topo
+ * map, which is ideal. Let's keep this"; Sage's sage-11 ALT, as on the S22 trial). Drawn from the style's `dem` source
+ * (generate-street.mjs: Terrarium PNG, z5-11, from the Worker's relief archive), above the land fills and below the creeks
+ * and water. The night recolour never touches a hillshade layer, so its night is its own table, `forager:night-hillshade`,
+ * which the app applies (StreetNightTables.kt, HillshadeNight).
+ */
+export const HILLSHADE_PAINT = {
+  "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 9, 0.28, 11, 0.32, 13, 0.24, 15, 0.16, 17, 0.1],
+  "hillshade-illumination-direction": 335,
+  "hillshade-illumination-anchor": "map",
+  "hillshade-shadow-color": "#4a3f33",
+  "hillshade-highlight-color": "#ffffff",
+  "hillshade-accent-color": "rgba(74,63,51,0.5)",
+};
+/** The hillshade's night (Sage's sage-11 ALT): darker shadows, a faint cool highlight, so the relief never glows. */
+export const NIGHT_HILLSHADE_V4 = { shadow: "rgba(0,0,0,0.7)", highlight: "rgba(220,228,236,0.2)", accent: "rgba(0,0,0,0.35)" };
 
 function byId(layers, id) {
   const layer = layers.find((l) => l.id === id);
@@ -172,7 +211,30 @@ export function applyFillIn(layers) {
       "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1],
     },
   });
+  // Orchards, plant nurseries and vineyards over the farmland fill (sage-10), and each kind's pattern from z13 (sprite v6).
   insertAfter(layers, "landuse_settled", {
+    id: "landuse_orchards",
+    type: "fill",
+    source: "protomaps",
+    "source-layer": "landuse",
+    filter: IS_ORCHARD,
+    paint: {
+      "fill-color": C.orchards,
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1],
+    },
+  });
+  insertAfter(layers, "landuse_orchards", {
+    id: "landuse_orchards_pattern",
+    type: "fill",
+    source: "protomaps",
+    "source-layer": "landuse",
+    minzoom: 13,
+    filter: IS_ORCHARD,
+    paint: {
+      "fill-pattern": ["match", ["get", "kind_detail"], "orchard", "orchard_dots", "vineyard", "vineyard_rows", "plant_nursery", "nursery_dots", ""],
+    },
+  });
+  insertAfter(layers, "landuse_orchards_pattern", {
     id: "landuse_parks_fill",
     type: "fill",
     source: "protomaps",
@@ -237,7 +299,9 @@ export function applyFillIn(layers) {
     minzoom: 13,
     filter: ["in", ["get", "kind"], ["literal", EDGE_COLOURS.flatMap(([kinds]) => kinds)]],
     paint: {
-      "line-color": ["match", ["get", "kind"], ...EDGE_COLOURS.flatMap(([kinds, colour]) => [kinds.length === 1 ? kinds[0] : kinds, colour]), "#000000"],
+      // Orchards, plant nurseries and vineyards are kind farmland: their own edge first, then the edge by kind.
+      "line-color": ["case", IS_ORCHARD, C.orchardsEdge,
+        ["match", ["get", "kind"], ...EDGE_COLOURS.flatMap(([kinds, colour]) => [kinds.length === 1 ? kinds[0] : kinds, colour]), "#000000"]],
       "line-width": EDGE_WIDTH,
       "line-opacity": ["step", ["zoom"], ["match", ["get", "kind"], EDGES_FROM_Z14, 0, 1], 14, 1],
     },
@@ -256,6 +320,18 @@ export function applyFillIn(layers) {
   byId(layers, "landuse_industrial").paint["fill-color"] = C.industrial;
   byId(layers, "buildings").paint["fill-color"] = ["step", ["zoom"], C.building, 14, C.buildingZ14, 15, C.building];
   byId(layers, "buildings_outline").paint["line-color"] = C.buildingOutline;
+
+  // --- Creeks under the water (the owner: "Creeks under water (Recommended)") -------------------------------------
+  // water_stream and water_river draw just before the water fill, so a lake or river polygon covers the line inside it
+  // and the creek shows everywhere else. Nothing else moves, and no colour changes.
+  const water = byId(layers, "water");
+  for (const id of ["water_stream", "water_river"]) {
+    const line = layers.splice(layers.indexOf(byId(layers, id)), 1)[0];
+    layers.splice(layers.indexOf(water), 0, line);
+  }
+
+  // --- Hill shading, right before the creeks (and so below them and the water) ------------------------------------
+  layers.splice(layers.indexOf(byId(layers, "water_stream")), 0, { id: "hillshade", type: "hillshade", source: "dem", minzoom: 5, paint: HILLSHADE_PAINT });
 
   // --- Rail, darker and stronger ---------------------------------------------------------------------
   const rail = byId(layers, "roads_rail");

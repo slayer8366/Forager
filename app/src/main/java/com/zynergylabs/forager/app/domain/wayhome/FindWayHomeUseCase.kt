@@ -17,6 +17,7 @@ import com.zynergylabs.forager.app.domain.routedata.contains
 import com.zynergylabs.forager.app.domain.routedata.needsAppUpdate
 import com.zynergylabs.forager.app.domain.routedata.routeAreaFor
 import com.zynergylabs.forager.app.domain.routedata.routeDataForPoint
+import com.zynergylabs.forager.app.domain.routing.TrailRoute
 import com.zynergylabs.forager.app.domain.routing.TrailRouteFailure
 import com.zynergylabs.forager.app.domain.routing.TrailRouteResult
 import com.zynergylabs.forager.app.domain.routing.TrailRouter
@@ -26,8 +27,8 @@ import java.io.File
 /**
  * The way home along trails, or why it is the walker's track (dispatch 2026-10-23-09, plan step 5; Amendment 1, part
  * 1; the rulings are RECORD -1589's). Pure domain: it reads the downloaded regions, tests track points through
- * [TrailSnapper] and routes through [TrailRouter], the interfaces Forager owns; no Android. Nothing calls it in
- * production yet (part 2 does, once at Return and again if the walker strays, RECORD -1589).
+ * [TrailSnapper] and routes through [TrailRouter], the interfaces Forager owns; no Android. Called in production by
+ * [WayHomeWatch], once at Return and again if the walker strays (RECORD -1589), through `routing/WayHomeRouting`.
  *
  * ## The steps
  *
@@ -94,7 +95,7 @@ class FindWayHomeUseCase(
         val joints = GeoDistance.metersBetween(leave.trackPoint, route.points.first()) + GeoDistance.metersBetween(route.points.last(), entry.trackPoint)
         val trailMeters = route.lengthMetres + joints
         // The walker's own track between the two trail points: the length check's yardstick, and the trail part's
-        // heights until the routes carry elevation (RECORD -1689, C1: "(b) Your track as a stand-in"; WayHomeHeights.kt).
+        // heights where the trail data has none for every route point (RECORD -1689, C1; -1838, P1; WayHomeHeights.kt).
         val standIn = trackPart(stored, from = leave.index, to = entry.index, kind = WayHomePartKind.TRACK_BACK, heights = heights)
         val trackBetween = standIn.meters
         // RECORD -1600, the owner: "Switch to (b)": the length check only runs when the walker went over
@@ -113,11 +114,13 @@ class FindWayHomeUseCase(
         }
 
         val toStart = trackPart(stored, from = entry.index, to = 0, kind = WayHomePartKind.TRACK_TO_START, heights = heights)
+        // The stored points from the leave point to the entry point as walked, not joined: the joints' heights (-1842).
+        val walked = trackPartHeights(stored, (leave.index downTo entry.index).toList(), heights)
         val originLeg = origin?.let { LatLng(it.lat, it.lng) }
         return WayHomeResult.AlongTrails(
             WayHome(
                 trackBack = trackPart(stored, from = points.lastIndex, to = leave.index, kind = WayHomePartKind.TRACK_BACK, heights = heights),
-                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters, standInHeights(standIn.heights, standIn.meters, trailMeters)),
+                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters, trailHeights(route, trailPoints, trailMeters, standIn, walked)),
                 trackToStart = if (originLeg == null) {
                     toStart
                 } else {
@@ -188,6 +191,24 @@ class FindWayHomeUseCase(
             trackPartHeights(stored, joined.route.map(storedIndex), heights),
         )
     }
+
+    /**
+     * The trail part's heights (`WayHomeHeights.kt`): none to choose without a barometer, since there is no allowance
+     * (RECORD -1838, "Keep it off"); the trail data's when every route point has a height; otherwise the stand-in from
+     * [standIn], the walker's track between the two trail points, logged once per call with the counts (P1). [walked] is
+     * the stored points from the leave point to the entry point, one after another, for the joints' heights.
+     */
+    private fun trailHeights(route: TrailRoute, trailPoints: List<LatLng>, trailMeters: Double, standIn: WayHomePart, walked: PartHeights): PartHeights? {
+        if (standIn.heights == PartHeights.NoBarometer) return PartHeights.NoBarometer
+        // The joints carry the walker's stored points' heights, as walked (Amendment 2, RECORD -1842).
+        if (walked is PartHeights.Barometric) trailDataHeights(trailPoints, route, trailMeters, walked)?.let { return it }
+        val reason = "${route.heightsMetres.count { it != null }} of ${route.heightsMetres.size} trail route points have heights"
+        errorLog.w(TAG, "The trail part's climb is the walker's track between the trail points: $reason.", TrailHeightsFallback(reason))
+        return standInHeights(standIn.heights, standIn.meters, trailMeters)
+    }
+
+    /** What [errorLog] is handed when the trail part's heights are the stand-in. */
+    class TrailHeightsFallback(reason: String) : Exception(reason)
 
     /** A failure from the snapper or the router, as its note: unreadable data, or no route found. */
     private fun failedOn(failure: TrailRouteFailure, step: String): WayHomeResult {

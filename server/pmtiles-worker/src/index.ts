@@ -387,8 +387,9 @@ async function worldFillTile(
 // answers 404, which MapLibre takes as an empty tile. v2 and v1 are served exactly as before.
 //
 // Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
-// sprites/{v4,v5}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
-// v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs). They are matched
+// sprites/{v4,v5,v6}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
+// v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs); v6 is v5 unchanged plus
+// the orchard, vineyard and nursery patterns, for Street v4 (dispatch 2026-10-31-coder-07 Part 3). They are matched
 // before tilePath, because tilePath's tileset pattern also matches /sprites/v4/light.json.
 // Only these exact shapes are read; anything else under /fonts/ or /sprites/ is a 404, never an R2 read of
 // an arbitrary key.
@@ -398,7 +399,7 @@ async function worldFillTile(
 const ASSET_CACHE_CONTROL = "public, max-age=604800";
 
 const FONT_PATH = /^\/fonts\/([A-Za-z0-9 ,-]+)\/(\d+-\d+)\.pbf$/;
-const SPRITE_PATH = /^\/sprites\/(v4|v5)\/(light(?:@2x)?)\.(json|png)$/;
+const SPRITE_PATH = /^\/sprites\/(v4|v5|v6)\/(light(?:@2x)?)\.(json|png)$/;
 
 /** The R2 key and content type for a font or sprite URL, or null when [pathname] is neither. */
 export function assetKeyFor(pathname: string): { key: string; contentType: string } | null {
@@ -561,9 +562,12 @@ export default {
           unknown
         >;
         // Advertise the overflow ceiling, not just the local archive's own maxzoom, so MapLibre's
-        // OfflineManager knows tiles are actually servable past 14 — see the overflow block above.
+        // OfflineManager knows tiles are actually servable past 14 — see the overflow block above. The Street archive
+        // only (dispatch 2026-11-01-coder-11): any other archive advertises its own maxzoom, since nothing serves it
+        // past that (a raster-dem relief archive must not be asked for tiles the overflow would answer with vector data).
         const declaredMaxZoom = typeof t.maxzoom === "number" ? t.maxzoom : pHeader.maxZoom;
-        const advertised: Record<string, unknown> = { ...t, maxzoom: Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) };
+        const advertisedMaxZoom = name === STREET_ARCHIVE_NAME ? Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) : declaredMaxZoom;
+        const advertised: Record<string, unknown> = { ...t, maxzoom: advertisedMaxZoom };
         // The world fill is only reachable if the bounds cover it (worldFillBounds, dispatch 2026-10-22-01 Amendment 3).
         if (name === STREET_ARCHIVE_NAME && Array.isArray(t.bounds) && t.bounds.length === 4) {
           advertised.bounds = await worldFillBounds(env, t.bounds as number[], pHeader.tileType);
@@ -572,6 +576,11 @@ export default {
       }
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
+        // Above any other archive's own maxzoom: 204, the empty tile, never the overflow (coder-11). Protomaps' live
+        // build is the Street archive's vector tiles; for another archive it would be the wrong data, written into R2.
+        if (tile[0] > pHeader.maxZoom && name !== STREET_ARCHIVE_NAME) {
+          return cacheableResponse(undefined, cacheableHeaders, 204);
+        }
         if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
           // Dispatch 2026-10-22-01 Amendment 4 (the owner: "Stop it"): never south of the archive's own bounds.
           if (tileNorthLat(tile[0], tile[2]) <= pHeader.minLat) {

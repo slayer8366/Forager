@@ -174,7 +174,9 @@ for (const [day, ids] of landFills) {
 for (const day of Object.keys(NIGHT_FILL_COLOURS)) {
   if (!landFills.has(day)) problems.push(`night fill exception for ${day}, a colour no fill layer draws`);
 }
-const patterns = new Set(style2.layers.map((l) => l.paint?.["fill-pattern"]).filter(Boolean));
+/** Every image name a fill-pattern value can draw: a name, or each output of a match on kind_detail (v4's orchards, 12). */
+const patternNames = (value) => (typeof value === "string" ? [value] : Array.isArray(value) && value[0] === "match" ? value.slice(3).filter((_, i) => i % 2 === 0 || i === value.length - 4) : []);
+const patterns = new Set(style2.layers.flatMap((l) => patternNames(l.paint?.["fill-pattern"])).filter(Boolean));
 const sprite = JSON.parse(fs.readFileSync(here(`${style2.sprite.replace(/^https?:\/\/[^/]+\//, "assets/").replace(/^assets\/assets\//, "assets/")}.json`), "utf8"));
 for (const name of patterns) if (!(name in sprite)) problems.push(`fill-pattern ${name} is not in the sprite`);
 for (const name of Object.keys(NIGHT_PATTERN_COLOURS)) if (!patterns.has(name)) problems.push(`night pattern ${name} is drawn by no layer`);
@@ -260,6 +262,8 @@ if (V4) {
     "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
     "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
     "#c9c3bd": "#3b352e", "#c9c0bf": "#3c3231", "#c6b3c3": "#382735",
+    // Orchards, plant nurseries and vineyards (11).
+    "#b0c286": "#3a4b14",
   };
   const RULED_LINES = {
     roads_major: { "#ffffff": "#333333" },
@@ -317,7 +321,8 @@ if (V4) {
   const water = layerOf("water_edges");
   if (!edges || !water) problems.push("v4 has no landuse_edges or water_edges");
   else {
-    const color = edges.paint["line-color"];
+    // Since the orchards (11), the kind match is the fallback of a case on the three kinds' kind_detail.
+    const color = Array.isArray(edges.paint["line-color"]) && edges.paint["line-color"][0] === "case" ? edges.paint["line-color"].at(-1) : edges.paint["line-color"];
     const edgeOf = (kind) => {
       for (let i = 2; i < color.length - 1; i += 2) if ([color[i]].flat().includes(kind)) return color[i + 1];
       return null;
@@ -388,6 +393,112 @@ if (V4) {
   for (const [day, rim] of Object.entries(NIGHT_LINE_COLOURS_V4.landuse_edges ?? {})) {
     console.log(`night rim for day edge ${day}: ${rim}, on night ground ${contrast(rim, night(GROUND)).toFixed(2)}:1 (recorded, not gated)`);
   }
+}
+
+// 10. v4's creeks under the water (the fill-in rulings, "Water fill to the creek colour", superseded: the owner, "Creeks
+//     under water (Recommended)"): water_stream and water_river draw just before the water fill, so a lake or river
+//     polygon covers the line inside it and the creek shows everywhere else. Nothing else moves.
+if (V4) {
+  const order = style2.layers.map((l) => l.id);
+  const at = order.indexOf("water");
+  const before = order.slice(at - 2, at);
+  if (JSON.stringify(before) !== JSON.stringify(["water_stream", "water_river"])) problems.push(`the two layers before the water fill are ${JSON.stringify(before)}; ruled ["water_stream","water_river"]`);
+  const v3order = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8")).layers.map((l) => l.id).filter((id) => id !== "water_stream" && id !== "water_river");
+  const v4rest = order.filter((id) => id !== "water_stream" && id !== "water_river" && v3order.includes(id));
+  if (JSON.stringify(v4rest) !== JSON.stringify(v3order)) problems.push("apart from the two creek layers, v4 moves a layer v3 has");
+}
+
+// 11. v4's orchards, plant nurseries and vineyards (the fill-in rulings, "Orchards, plant nurseries and vineyards filled":
+//     "Fill + pattern per kind (Recommended)", fill #c8dd98, "Standard night (Recommended)"), by hand from Sage's sage-10
+//     spec: one fill right after landuse_settled for kind farmland with kind_detail orchard, plant_nursery or vineyard
+//     (basemap patch 0006), opacity 0.6 at z6 to 1 at z9, no minzoom; night the plain inversion #495e19 (no fill
+//     exception); the three in landuse_edges at #b0c286, night rim #3a4b14. The patterns are a later step.
+if (V4) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const order = style2.layers.map((l) => l.id);
+  const fill = style2.layers.find((l) => l.id === "landuse_orchards");
+  const KINDS = ["orchard", "plant_nursery", "vineyard"];
+  const FILTER = ["all", ["==", ["get", "kind"], "farmland"], ["in", ["get", "kind_detail"], ["literal", KINDS]]];
+  if (!fill) problems.push("v4 has no landuse_orchards");
+  else {
+    if (order[order.indexOf("landuse_settled") + 1] !== "landuse_orchards") problems.push(`landuse_orchards is not right after landuse_settled: ${order.slice(order.indexOf("landuse_settled"), order.indexOf("landuse_settled") + 2)}`);
+    if (fill.type !== "fill" || fill["source-layer"] !== "landuse" || "minzoom" in fill || "maxzoom" in fill) problems.push(`landuse_orchards: ${fill.type} on ${fill["source-layer"]}, minzoom ${fill.minzoom}; ruled a fill on landuse, no minzoom`);
+    if (!same(fill.filter, FILTER)) problems.push(`landuse_orchards' filter is ${JSON.stringify(fill.filter)}; ruled ${JSON.stringify(FILTER)}`);
+    if (fill.paint["fill-color"] !== "#c8dd98") problems.push(`landuse_orchards is ${JSON.stringify(fill.paint["fill-color"])}, ruled #c8dd98`);
+    if (!same(fill.paint["fill-opacity"], ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1])) problems.push(`landuse_orchards' opacity is ${JSON.stringify(fill.paint["fill-opacity"])}; ruled 0.6 at z6 to 1 at z9`);
+  }
+  if ("#c8dd98" in NIGHT_FILL_COLOURS) problems.push(`#c8dd98 has a night fill exception ${NIGHT_FILL_COLOURS["#c8dd98"]}; ruled: the plain inversion`);
+  if (night("#c8dd98") !== "#495e19") problems.push(`the inversion of #c8dd98 is ${night("#c8dd98")}, the ruling's #495e19`);
+  const edgeColour = style2.layers.find((l) => l.id === "landuse_edges")?.paint?.["line-color"];
+  const EDGE_CASE = ["case", FILTER, "#b0c286"];
+  if (!Array.isArray(edgeColour) || !same(edgeColour.slice(0, 3), EDGE_CASE) || edgeColour.length !== 4) problems.push(`landuse_edges' line-color does not start ${JSON.stringify(EDGE_CASE)}: ${JSON.stringify(edgeColour)?.slice(0, 160)}`);
+  if (NIGHT_LINE_COLOURS_V4.landuse_edges?.["#b0c286"] !== "#3a4b14") problems.push(`the orchards' night rim is ${NIGHT_LINE_COLOURS_V4.landuse_edges?.["#b0c286"]}, ruled #3a4b14`);
+  console.log(`orchards: fill #c8dd98, night ${night("#c8dd98")} on night ground ${contrast(night("#c8dd98"), night(GROUND)).toFixed(2)}:1; edge #b0c286, night rim #3a4b14 on it ${contrast("#3a4b14", night("#c8dd98")).toFixed(2)}:1 (recorded, not gated)`);
+}
+
+// 12. v4's patterns on the orchards (the fill-in rulings: "Fill + pattern per kind (Recommended)", then "New icon set v6
+//     (Recommended)"), by hand from Sage's sage-10 spec: v4 names sprite v6 (v5 unchanged plus the three patterns) and
+//     v3 keeps v5; landuse_orchards_pattern right after landuse_orchards, minzoom 13, the same filter, fill-pattern by
+//     kind_detail; the three are images v6 has (3, above) and in forager:sprite-icons, which the app's night inverts
+//     (ink #8ea65c to #829a50, the plain inversion, as ruled), and none is a painted night pattern.
+if (V4) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const order = style2.layers.map((l) => l.id);
+  if (!/\/sprites\/v6\/light$/.test(style2.sprite)) problems.push(`v4's sprite is ${style2.sprite}; ruled sprite v6`);
+  const v3 = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8"));
+  if (!/\/sprites\/v5\/light$/.test(v3.sprite)) problems.push(`v3's sprite is ${v3.sprite}; it keeps sprite v5`);
+  const pattern = style2.layers.find((l) => l.id === "landuse_orchards_pattern");
+  const fill = style2.layers.find((l) => l.id === "landuse_orchards");
+  const PATTERN = ["match", ["get", "kind_detail"], "orchard", "orchard_dots", "vineyard", "vineyard_rows", "plant_nursery", "nursery_dots", ""];
+  if (!pattern) problems.push("v4 has no landuse_orchards_pattern");
+  else {
+    if (order[order.indexOf("landuse_orchards") + 1] !== "landuse_orchards_pattern") problems.push("landuse_orchards_pattern is not right after landuse_orchards");
+    if (pattern.type !== "fill" || pattern["source-layer"] !== "landuse" || pattern.minzoom !== 13) problems.push(`landuse_orchards_pattern: ${pattern.type} on ${pattern["source-layer"]}, minzoom ${pattern.minzoom}; ruled a fill on landuse from z13`);
+    if (!same(pattern.filter, fill?.filter)) problems.push(`landuse_orchards_pattern's filter ${JSON.stringify(pattern.filter)} is not landuse_orchards'`);
+    if (!same(pattern.paint, { "fill-pattern": PATTERN })) problems.push(`landuse_orchards_pattern's paint is ${JSON.stringify(pattern.paint)}; ruled {"fill-pattern": ${JSON.stringify(PATTERN)}}`);
+  }
+  const icons = JSON.parse(text).metadata["forager:sprite-icons"];
+  for (const name of ["orchard_dots", "vineyard_rows", "nursery_dots"]) {
+    if (!(name in sprite)) problems.push(`sprite v6 has no ${name}`);
+    if (!icons.includes(name)) problems.push(`${name} is not in v4's forager:sprite-icons, so the app's night would not invert it`);
+    if (name in NIGHT_PATTERN_COLOURS) problems.push(`${name} is a painted night pattern; ruled the plain inversion`);
+  }
+  console.log(`orchard patterns: v4 sprite ${style2.sprite}, ${Object.keys(sprite).length} images; ink #8ea65c, night ${night("#8ea65c")} (ruled #829a50)`);
+  if (night("#8ea65c") !== "#829a50") problems.push(`the inversion of the ink #8ea65c is ${night("#8ea65c")}, ruled #829a50`);
+}
+
+// 13. v4's hill shading (dispatch 2026-11-01-coder-11; the owner: "It's good... Let's keep this", then "Go for all four";
+//     Sage's sage-11 ALT, as on the trial), by hand from the spec: the dem source, Terrarium PNG from the Worker's relief
+//     archive (z5-11, inline tiles so MapLibre never asks past z11); the hillshade layer right before water_stream, from
+//     z5; its paint; and its night in forager:night-hillshade, which the app applies (the recolour never touches it).
+//     v3 has none of it.
+if (V4) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const DEM = {
+    type: "raster-dem", tiles: ["https://forager-pmtiles.brandonlee1-894.workers.dev/relief/{z}/{x}/{y}.png"], encoding: "terrarium",
+    tileSize: 256, minzoom: 5, maxzoom: 11, attribution: "Heights: USGS 3DEP; NRCan MRDEM",
+  };
+  if (!same(style2.sources.dem, DEM)) problems.push(`v4's dem source is ${JSON.stringify(style2.sources.dem)}; ruled ${JSON.stringify(DEM)}`);
+  const order = style2.layers.map((l) => l.id);
+  const hill = style2.layers.find((l) => l.id === "hillshade");
+  const PAINT = {
+    "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 9, 0.28, 11, 0.32, 13, 0.24, 15, 0.16, 17, 0.1],
+    "hillshade-illumination-direction": 335,
+    "hillshade-illumination-anchor": "map",
+    "hillshade-shadow-color": "#4a3f33",
+    "hillshade-highlight-color": "#ffffff",
+    "hillshade-accent-color": "rgba(74,63,51,0.5)",
+  };
+  if (!hill) problems.push("v4 has no hillshade layer");
+  else {
+    if (order[order.indexOf("water_stream") - 1] !== "hillshade") problems.push(`hillshade is not right before water_stream: ${order.slice(order.indexOf("water_stream") - 2, order.indexOf("water_stream") + 1)}`);
+    if (hill.type !== "hillshade" || hill.source !== "dem" || hill.minzoom !== 5 || "maxzoom" in hill) problems.push(`hillshade: ${hill.type} on ${hill.source}, minzoom ${hill.minzoom}; ruled a hillshade on dem from z5`);
+    if (!same(hill.paint, PAINT)) problems.push(`hillshade's paint is ${JSON.stringify(hill.paint)}; ruled ${JSON.stringify(PAINT)}`);
+  }
+  const NIGHT = { shadow: "rgba(0,0,0,0.7)", highlight: "rgba(220,228,236,0.2)", accent: "rgba(0,0,0,0.35)" };
+  if (!same(JSON.parse(text).metadata["forager:night-hillshade"], NIGHT)) problems.push(`forager:night-hillshade is ${JSON.stringify(JSON.parse(text).metadata["forager:night-hillshade"])}; ruled ${JSON.stringify(NIGHT)}`);
+  const v3 = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8"));
+  if (v3.sources.dem || v3.layers.some((l) => l.type === "hillshade") || "forager:night-hillshade" in v3.metadata) problems.push("v3 has hill shading; ruled v4 only");
 }
 
 for (const [what, colour, against, min] of exceptions) {

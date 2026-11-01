@@ -45,6 +45,8 @@
       "library",
       "marina",
       "museum",
+      "nursery_dots",
+      "orchard_dots",
       "park",
       "parking",
       "peak",
@@ -63,6 +65,7 @@
       "tufts",
       "university",
       "viewpoint_c",
+      "vineyard_rows",
       "zoo"
     ],
     "forager:palette": {
@@ -106,7 +109,9 @@
         "building": "#d9d0c9",
         "buildingZ14": "#ccc0b7",
         "buildingOutline": "#b9a99c",
-        "waterEdge": "#71c3ce"
+        "waterEdge": "#71c3ce",
+        "orchards": "#c8dd98",
+        "orchardsEdge": "#b0c286"
       }
     },
     "forager:night-layers": {
@@ -187,8 +192,14 @@
         "#ccceb4": "#131207",
         "#c9c3bd": "#3b352e",
         "#c9c0bf": "#3c3231",
-        "#c6b3c3": "#382735"
+        "#c6b3c3": "#382735",
+        "#b0c286": "#3a4b14"
       }
+    },
+    "forager:night-hillshade": {
+      "shadow": "rgba(0,0,0,0.7)",
+      "highlight": "rgba(220,228,236,0.2)",
+      "accent": "rgba(0,0,0,0.35)"
     }
   },
   "sources": {
@@ -204,10 +215,21 @@
       ],
       "minzoom": 10,
       "maxzoom": 15
+    },
+    "dem": {
+      "type": "raster-dem",
+      "tiles": [
+        "https://forager-pmtiles.brandonlee1-894.workers.dev/relief/{z}/{x}/{y}.png"
+      ],
+      "encoding": "terrarium",
+      "tileSize": 256,
+      "minzoom": 5,
+      "maxzoom": 11,
+      "attribution": "Heights: USGS 3DEP; NRCan MRDEM"
     }
   },
   "glyphs": "http://localhost:8765/assets/fonts/{fontstack}/{range}.pbf",
-  "sprite": "http://localhost:8765/assets/sprites/v5/light",
+  "sprite": "http://localhost:8765/assets/sprites/v6/light",
   "layers": [
     {
       "id": "background",
@@ -310,6 +332,103 @@
           0.6,
           9,
           1
+        ]
+      }
+    },
+    {
+      "id": "landuse_orchards",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "farmland"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "orchard",
+              "plant_nursery",
+              "vineyard"
+            ]
+          ]
+        ]
+      ],
+      "paint": {
+        "fill-color": "#c8dd98",
+        "fill-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.6,
+          9,
+          1
+        ]
+      }
+    },
+    {
+      "id": "landuse_orchards_pattern",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "minzoom": 13,
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "farmland"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "orchard",
+              "plant_nursery",
+              "vineyard"
+            ]
+          ]
+        ]
+      ],
+      "paint": {
+        "fill-pattern": [
+          "match",
+          [
+            "get",
+            "kind_detail"
+          ],
+          "orchard",
+          "orchard_dots",
+          "vineyard",
+          "vineyard_rows",
+          "plant_nursery",
+          "nursery_dots",
+          ""
         ]
       }
     },
@@ -718,17 +837,35 @@
       }
     },
     {
-      "id": "water",
-      "type": "fill",
-      "filter": [
-        "==",
-        "$type",
-        "Polygon"
-      ],
-      "source": "protomaps",
-      "source-layer": "water",
+      "id": "hillshade",
+      "type": "hillshade",
+      "source": "dem",
+      "minzoom": 5,
       "paint": {
-        "fill-color": "#80deea"
+        "hillshade-exaggeration": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          9,
+          0.28,
+          11,
+          0.32,
+          13,
+          0.24,
+          15,
+          0.16,
+          17,
+          0.1
+        ],
+        "hillshade-illumination-direction": 335,
+        "hillshade-illumination-anchor": "map",
+        "hillshade-shadow-color": "#4a3f33",
+        "hillshade-highlight-color": "#ffffff",
+        "hillshade-accent-color": "rgba(74,63,51,0.5)"
       }
     },
     {
@@ -792,6 +929,20 @@
           18,
           12
         ]
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "filter": [
+        "==",
+        "$type",
+        "Polygon"
+      ],
+      "source": "protomaps",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#80deea"
       }
     },
     {
@@ -871,63 +1022,93 @@
       ],
       "paint": {
         "line-color": [
-          "match",
+          "case",
           [
-            "get",
-            "kind"
+            "all",
+            [
+              "==",
+              [
+                "get",
+                "kind"
+              ],
+              "farmland"
+            ],
+            [
+              "in",
+              [
+                "get",
+                "kind_detail"
+              ],
+              [
+                "literal",
+                [
+                  "orchard",
+                  "plant_nursery",
+                  "vineyard"
+                ]
+              ]
+            ]
           ],
+          "#b0c286",
           [
-            "forest",
-            "wood"
-          ],
-          "#94b988",
-          [
-            "scrub",
-            "grassland",
-            "grass",
-            "meadow",
-            "heath",
-            "cemetery",
-            "golf_course"
-          ],
-          "#c2cdaa",
-          [
-            "park",
-            "recreation_ground",
-            "garden",
-            "dog_park",
-            "pitch"
-          ],
-          "#b4caa8",
-          [
-            "allotments",
-            "village_green",
-            "playground"
-          ],
-          "#88b99d",
-          "wetland",
-          "#adc8bc",
-          "bare_rock",
-          "#b0aba4",
-          "residential",
-          "#c3bfba",
-          "commercial",
-          "#d0bdb9",
-          "railway",
-          "#c4bfc2",
-          "farmland",
-          "#ccceb4",
-          [
-            "school",
-            "university",
-            "college"
-          ],
-          "#c9c3bd",
-          "hospital",
-          "#c9c0bf",
-          "industrial",
-          "#c6b3c3",
-          "#000000"
+            "match",
+            [
+              "get",
+              "kind"
+            ],
+            [
+              "forest",
+              "wood"
+            ],
+            "#94b988",
+            [
+              "scrub",
+              "grassland",
+              "grass",
+              "meadow",
+              "heath",
+              "cemetery",
+              "golf_course"
+            ],
+            "#c2cdaa",
+            [
+              "park",
+              "recreation_ground",
+              "garden",
+              "dog_park",
+              "pitch"
+            ],
+            "#b4caa8",
+            [
+              "allotments",
+              "village_green",
+              "playground"
+            ],
+            "#88b99d",
+            "wetland",
+            "#adc8bc",
+            "bare_rock",
+            "#b0aba4",
+            "residential",
+            "#c3bfba",
+            "commercial",
+            "#d0bdb9",
+            "railway",
+            "#c4bfc2",
+            "farmland",
+            "#ccceb4",
+            [
+              "school",
+              "university",
+              "college"
+            ],
+            "#c9c3bd",
+            "hospital",
+            "#c9c0bf",
+            "industrial",
+            "#c6b3c3",
+            "#000000"
+          ]
         ],
         "line-width": [
           "interpolate",

@@ -31,7 +31,7 @@ import { layers, namedFlavor } from "@protomaps/basemaps";
 import { applyStreetDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
-import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
+import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_HILLSHADE_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -44,14 +44,17 @@ export const WORKER = "https://forager-pmtiles.brandonlee1-894.workers.dev";
  */
 const ARCHIVE = "us";
 const LOCAL = "http://localhost:8765";
-/** The sprite both versions use (tools/build-sprite-v5.mjs). */
-const SPRITE = "sprites/v5/light";
+/**
+ * The sprite each version names (tools/build-sprite-v5.mjs): v3 sprite v5; v4 sprite v6, v5 unchanged plus the orchard,
+ * vineyard and nursery patterns (dispatch 2026-10-31-coder-07 Part 3; the owner: "New icon set v6 (Recommended)").
+ */
+const SPRITES = { v3: "sprites/v5/light", v4: "sprites/v6/light" };
 
 // The sprite's images the app's night rules invert (its bundled night set since dispatch 2026-10-22-06), recorded in the style's
 // metadata because MapLibre has no call that lists a style's images; the app's copy is checked against this one by
 // a unit test (StreetStyleTest). The patterns the app paints one colour instead (forager:night-patterns) are left
 // off it, so no image is both inverted and painted.
-const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${SPRITE}.json`), "utf8")))
+const spriteIconsOf = (sprite) => Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${sprite}.json`), "utf8")))
   .filter((name) => !(name in NIGHT_PATTERN_COLOURS))
   .sort();
 
@@ -76,6 +79,15 @@ const VERSIONS = {
     nightLayers: NIGHT_LAYER_COLOURS_V4,
     nightFills: NIGHT_FILL_COLOURS_V4,
     nightLines: NIGHT_LINE_COLOURS_V4,
+    nightHillshade: NIGHT_HILLSHADE_V4,
+    // Hill shading's heights (dispatch 2026-11-01-coder-11): Terrarium PNG from the Worker's relief archive, z5-11, given
+    // inline so MapLibre over-zooms past z11 on the phone and never asks for a tile the archive lacks.
+    sources: {
+      dem: {
+        type: "raster-dem", tiles: [`${WORKER}/relief/{z}/{x}/{y}.png`], encoding: "terrarium", tileSize: 256, minzoom: 5, maxzoom: 11,
+        attribution: "Heights: USGS 3DEP; NRCan MRDEM",
+      },
+    },
     toWorker: false,
   },
 };
@@ -85,7 +97,7 @@ const style = (version, assetsBase) => ({
   name: `Forager Street ${version}`,
   metadata: {
     "forager:generated-from": VERSIONS[version].generatedFrom,
-    "forager:sprite-icons": spriteIcons,
+    "forager:sprite-icons": spriteIconsOf(SPRITES[version]),
     // The design's colours, day and the night exceptions (-1343), for the app's tests to read.
     "forager:palette": VERSIONS[version].palette,
     // Night exceptions (-1345): by layer, and for icon rings.
@@ -98,6 +110,8 @@ const style = (version, assetsBase) => ({
     "forager:night-patterns": NIGHT_PATTERN_COLOURS,
     // v4 only: night line colours by day colour, per layer (the night tertiary). Absent from v3, which stays byte for byte.
     ...(VERSIONS[version].nightLines ? { "forager:night-line-colours": VERSIONS[version].nightLines } : {}),
+    // v4 only: the hillshade's night (the recolour never touches a hillshade layer).
+    ...(VERSIONS[version].nightHillshade ? { "forager:night-hillshade": VERSIONS[version].nightHillshade } : {}),
   },
   sources: {
     protomaps: {
@@ -107,9 +121,10 @@ const style = (version, assetsBase) => ({
     },
     // The official-trails band's tiles, by address in the style rather than a TileJSON (see forager-reference.mjs).
     [REFERENCE_SOURCE_ID]: referenceSource(WORKER),
+    ...(VERSIONS[version].sources ?? {}),
   },
   glyphs: `${assetsBase}/fonts/{fontstack}/{range}.pbf`,
-  sprite: `${assetsBase}/${SPRITE}`,
+  sprite: `${assetsBase}/${SPRITES[version]}`,
   layers: VERSIONS[version].layers,
 });
 

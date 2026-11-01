@@ -144,12 +144,17 @@ internal fun MapStyleReload(
             // Street v4 (the fill-in) has its own night tables, chosen by the style's URI (StreetNightTables.kt); every other
             // Trail Map version, and Street under Topographical, keeps v1 to v3's.
             if (requested.night && source !is MapStyleSource.Json) {
-                applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source), streetTables = streetNightTablesFor((source as? MapStyleSource.Uri)?.uri))
+                val tables = streetNightTablesFor((source as? MapStyleSource.Uri)?.uri)
+                applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source), streetTables = tables)
+                // Street v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
+                tables.hillshade?.let { applyStreetHillshadeNight(style, it) }
             }
             // Trail Map's night icons and patterns: the bundled night copies, added under their own names and switched to
             // (NightImageSwitch.kt; dispatch 2026-10-22-06 Amendment 1). The sprite is not loaded yet at this point.
             if (requested.night && usesStreetSprite(source)) applyStreetNightImages(style, context)
             if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
+            // OpenTopoMap brings its own relief: Street's hill shading is hidden under it (coder-11).
+            if (source is MapStyleSource.StreetWithTopoOver) hideHillshadeUnderTopo(style)
             // Step 8b (dispatch 2026-10-26-15): the official-trails band's visibility from the user's choice, after the night
             // recolour (which walks every layer, hidden or not, so the band is in its night colour whenever it shows) and
             // before the overlays are added above it. Under Topographical the band is not offered (Trail Map only, -1633).
