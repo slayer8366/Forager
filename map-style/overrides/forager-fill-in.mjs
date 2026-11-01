@@ -156,6 +156,24 @@ export const NIGHT_LINE_COLOURS_V4 = {
   },
 };
 
+/**
+ * Hill shading (dispatch 2026-11-01-coder-11; the owner: "It's good. It actively defines the trail map from a street or topo
+ * map, which is ideal. Let's keep this"; Sage's sage-11 ALT, as on the S22 trial). Drawn from the style's `dem` source
+ * (generate-street.mjs: Terrarium PNG, z5-11, from the Worker's relief archive), above the land fills and below the creeks
+ * and water. The night recolour never touches a hillshade layer, so its night is its own table, `forager:night-hillshade`,
+ * which the app applies (StreetNightTables.kt, HillshadeNight).
+ */
+export const HILLSHADE_PAINT = {
+  "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 9, 0.28, 11, 0.32, 13, 0.24, 15, 0.16, 17, 0.1],
+  "hillshade-illumination-direction": 335,
+  "hillshade-illumination-anchor": "map",
+  "hillshade-shadow-color": "#4a3f33",
+  "hillshade-highlight-color": "#ffffff",
+  "hillshade-accent-color": "rgba(74,63,51,0.5)",
+};
+/** The hillshade's night (Sage's sage-11 ALT): darker shadows, a faint cool highlight, so the relief never glows. */
+export const NIGHT_HILLSHADE_V4 = { shadow: "rgba(0,0,0,0.7)", highlight: "rgba(220,228,236,0.2)", accent: "rgba(0,0,0,0.35)" };
+
 function byId(layers, id) {
   const layer = layers.find((l) => l.id === id);
   if (!layer) throw new Error(`forager-fill-in: there is no layer "${id}" to edit; the pinned style changed`);
@@ -289,6 +307,9 @@ export function applyFillIn(layers) {
     const line = layers.splice(layers.indexOf(byId(layers, id)), 1)[0];
     layers.splice(layers.indexOf(water), 0, line);
   }
+
+  // --- Hill shading, right before the creeks (and so below them and the water) ------------------------------------
+  layers.splice(layers.indexOf(byId(layers, "water_stream")), 0, { id: "hillshade", type: "hillshade", source: "dem", minzoom: 5, paint: HILLSHADE_PAINT });
 
   // --- Rail, darker and stronger ---------------------------------------------------------------------
   const rail = byId(layers, "roads_rail");

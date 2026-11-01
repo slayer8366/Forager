@@ -64,6 +64,16 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
             ),
             // Public domain: nothing is required; credited anyway, as the owner's practice is, with no link.
             SourceCredit("blm-trails", "Trails: Bureau of Land Management, public domain", linkLabel = null, url = null),
+            // Trail Map's hill shading (dispatch 2026-11-01-coder-11), drawn from the 3" heights: USGS 3DEP in the US (public
+            // domain; credited anyway, with no link) and NRCan's MRDEM in Canada, whose Open Government Licence – Canada 2.0 asks
+            // for exactly this statement and a link to the licence.
+            SourceCredit("usgs-3dep", "Heights (hill shading): USGS 3D Elevation Program, public domain", linkLabel = null, url = null),
+            SourceCredit(
+                "nrcan-mrdem",
+                "Heights in Canada (hill shading): Natural Resources Canada, MRDEM. Contains information licensed under the Open Government Licence – Canada.",
+                "licence",
+                "https://open.canada.ca/en/open-government-licence-canada",
+            ),
         ),
     ),
     // The forager-forecast map layers and the data behind them (GBIF occurrences among it) go here, as

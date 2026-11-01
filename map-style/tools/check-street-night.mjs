@@ -434,6 +434,40 @@ if (V4) {
   console.log(`orchards: fill #c8dd98, night ${night("#c8dd98")} on night ground ${contrast(night("#c8dd98"), night(GROUND)).toFixed(2)}:1; edge #b0c286, night rim #3a4b14 on it ${contrast("#3a4b14", night("#c8dd98")).toFixed(2)}:1 (recorded, not gated)`);
 }
 
+// 13. v4's hill shading (dispatch 2026-11-01-coder-11; the owner: "It's good... Let's keep this", then "Go for all four";
+//     Sage's sage-11 ALT, as on the trial), by hand from the spec: the dem source, Terrarium PNG from the Worker's relief
+//     archive (z5-11, inline tiles so MapLibre never asks past z11); the hillshade layer right before water_stream, from
+//     z5; its paint; and its night in forager:night-hillshade, which the app applies (the recolour never touches it).
+//     v3 has none of it.
+if (V4) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const DEM = {
+    type: "raster-dem", tiles: ["https://forager-pmtiles.brandonlee1-894.workers.dev/relief/{z}/{x}/{y}.png"], encoding: "terrarium",
+    tileSize: 256, minzoom: 5, maxzoom: 11, attribution: "Heights: USGS 3DEP; NRCan MRDEM",
+  };
+  if (!same(style2.sources.dem, DEM)) problems.push(`v4's dem source is ${JSON.stringify(style2.sources.dem)}; ruled ${JSON.stringify(DEM)}`);
+  const order = style2.layers.map((l) => l.id);
+  const hill = style2.layers.find((l) => l.id === "hillshade");
+  const PAINT = {
+    "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 9, 0.28, 11, 0.32, 13, 0.24, 15, 0.16, 17, 0.1],
+    "hillshade-illumination-direction": 335,
+    "hillshade-illumination-anchor": "map",
+    "hillshade-shadow-color": "#4a3f33",
+    "hillshade-highlight-color": "#ffffff",
+    "hillshade-accent-color": "rgba(74,63,51,0.5)",
+  };
+  if (!hill) problems.push("v4 has no hillshade layer");
+  else {
+    if (order[order.indexOf("water_stream") - 1] !== "hillshade") problems.push(`hillshade is not right before water_stream: ${order.slice(order.indexOf("water_stream") - 2, order.indexOf("water_stream") + 1)}`);
+    if (hill.type !== "hillshade" || hill.source !== "dem" || hill.minzoom !== 5 || "maxzoom" in hill) problems.push(`hillshade: ${hill.type} on ${hill.source}, minzoom ${hill.minzoom}; ruled a hillshade on dem from z5`);
+    if (!same(hill.paint, PAINT)) problems.push(`hillshade's paint is ${JSON.stringify(hill.paint)}; ruled ${JSON.stringify(PAINT)}`);
+  }
+  const NIGHT = { shadow: "rgba(0,0,0,0.7)", highlight: "rgba(220,228,236,0.2)", accent: "rgba(0,0,0,0.35)" };
+  if (!same(JSON.parse(text).metadata["forager:night-hillshade"], NIGHT)) problems.push(`forager:night-hillshade is ${JSON.stringify(JSON.parse(text).metadata["forager:night-hillshade"])}; ruled ${JSON.stringify(NIGHT)}`);
+  const v3 = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8"));
+  if (v3.sources.dem || v3.layers.some((l) => l.type === "hillshade") || "forager:night-hillshade" in v3.metadata) problems.push("v3 has hill shading; ruled v4 only");
+}
+
 for (const [what, colour, against, min] of exceptions) {
   const ratio = contrast(colour, against);
   const line = `${what}: ${colour} on ${against} ${ratio.toFixed(2)}:1 (minimum ${min})`;

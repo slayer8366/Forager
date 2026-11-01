@@ -14,7 +14,16 @@ internal data class StreetNightTables(
     val fillColours: Map<Int, Int>,
     /** Per layer, night line colours by day colour (`forager:night-line-colours`, v4 only): one road class's night. */
     val lineColours: Map<String, Map<Int, Int>> = emptyMap(),
+    /** The hillshade layers' night (`forager:night-hillshade`, v4 only); the recolour walks no hillshade colour. */
+    val hillshade: HillshadeNight? = null,
 )
+
+/**
+ * A hillshade layer's three night colours, as MapLibre colour strings (dispatch 2026-11-01-coder-11; Sage's sage-11 ALT).
+ * Applied in place of the day's by [applyStreetHillshadeNight]: the night recolour never touches hillshade colours, and
+ * the day's white highlight would glow on the dark map.
+ */
+internal data class HillshadeNight(val shadow: String, val highlight: String, val accent: String)
 
 /** Trail Map v1 to v3's night tables, and Street under Topographical's: the ones every version had before v4. */
 internal val STREET_NIGHT_TABLES = StreetNightTables(STREET_NIGHT_LAYER_COLOURS, STREET_NIGHT_FILL_COLOURS)
@@ -57,6 +66,8 @@ internal val STREET_V4_NIGHT_TABLES = StreetNightTables(
             0xB0C286 to 0x3A4B14,
         ),
     ),
+    // Hill shading's night (Sage's sage-11 ALT): darker shadows and a faint cool highlight, so the relief never glows.
+    hillshade = HillshadeNight(shadow = "rgba(0,0,0,0.7)", highlight = "rgba(220,228,236,0.2)", accent = "rgba(0,0,0,0.35)"),
 )
 
 /**

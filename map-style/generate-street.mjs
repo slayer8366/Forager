@@ -31,7 +31,7 @@ import { layers, namedFlavor } from "@protomaps/basemaps";
 import { applyStreetDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
-import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
+import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_HILLSHADE_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -76,6 +76,15 @@ const VERSIONS = {
     nightLayers: NIGHT_LAYER_COLOURS_V4,
     nightFills: NIGHT_FILL_COLOURS_V4,
     nightLines: NIGHT_LINE_COLOURS_V4,
+    nightHillshade: NIGHT_HILLSHADE_V4,
+    // Hill shading's heights (dispatch 2026-11-01-coder-11): Terrarium PNG from the Worker's relief archive, z5-11, given
+    // inline so MapLibre over-zooms past z11 on the phone and never asks for a tile the archive lacks.
+    sources: {
+      dem: {
+        type: "raster-dem", tiles: [`${WORKER}/relief/{z}/{x}/{y}.png`], encoding: "terrarium", tileSize: 256, minzoom: 5, maxzoom: 11,
+        attribution: "Heights: USGS 3DEP; NRCan MRDEM",
+      },
+    },
     toWorker: false,
   },
 };
@@ -98,6 +107,8 @@ const style = (version, assetsBase) => ({
     "forager:night-patterns": NIGHT_PATTERN_COLOURS,
     // v4 only: night line colours by day colour, per layer (the night tertiary). Absent from v3, which stays byte for byte.
     ...(VERSIONS[version].nightLines ? { "forager:night-line-colours": VERSIONS[version].nightLines } : {}),
+    // v4 only: the hillshade's night (the recolour never touches a hillshade layer).
+    ...(VERSIONS[version].nightHillshade ? { "forager:night-hillshade": VERSIONS[version].nightHillshade } : {}),
   },
   sources: {
     protomaps: {
@@ -107,6 +118,7 @@ const style = (version, assetsBase) => ({
     },
     // The official-trails band's tiles, by address in the style rather than a TileJSON (see forager-reference.mjs).
     [REFERENCE_SOURCE_ID]: referenceSource(WORKER),
+    ...(VERSIONS[version].sources ?? {}),
   },
   glyphs: `${assetsBase}/fonts/{fontstack}/{range}.pbf`,
   sprite: `${assetsBase}/${SPRITE}`,

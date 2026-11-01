@@ -266,6 +266,17 @@ class NightExceptionsV4Test {
     }
 
     @Test
+    fun `v4's hill shading takes the design's night, and v1 to v3 have none`() {
+        // Sage's sage-11 ALT (dispatch 2026-11-01-coder-11): the night recolour never touches a hillshade layer, so its night
+        // is a table of its own, `forager:night-hillshade`, applied by the night pass.
+        val design = metadata.getValue("forager:night-hillshade").jsonObject.mapValues { it.value.jsonPrimitive.content }
+        assertEquals(HillshadeNight(shadow = design.getValue("shadow"), highlight = design.getValue("highlight"), accent = design.getValue("accent")), tables.hillshade)
+        assertEquals(HillshadeNight("rgba(0,0,0,0.7)", "rgba(220,228,236,0.2)", "rgba(0,0,0,0.35)"), tables.hillshade)
+        assertEquals(null, STREET_NIGHT_TABLES.hillshade)
+        assertEquals("hillshade", layers.getValue("hillshade").jsonObject.getValue("type").jsonPrimitive.content)
+    }
+
+    @Test
     fun `v4 is chosen by its style's name, and every other style keeps v1 to v3's tables`() {
         assertNotEquals(STREET_NIGHT_TABLES, tables)
         assertEquals(tables, streetNightTablesFor("https://raw.githubusercontent.com/slayer8366/Forager/street-v4/map-style/forager-street-v4.json"))

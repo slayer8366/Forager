@@ -192,6 +192,11 @@
         "#c6b3c3": "#382735",
         "#b0c286": "#3a4b14"
       }
+    },
+    "forager:night-hillshade": {
+      "shadow": "rgba(0,0,0,0.7)",
+      "highlight": "rgba(220,228,236,0.2)",
+      "accent": "rgba(0,0,0,0.35)"
     }
   },
   "sources": {
@@ -207,6 +212,17 @@
       ],
       "minzoom": 10,
       "maxzoom": 15
+    },
+    "dem": {
+      "type": "raster-dem",
+      "tiles": [
+        "https://forager-pmtiles.brandonlee1-894.workers.dev/relief/{z}/{x}/{y}.png"
+      ],
+      "encoding": "terrarium",
+      "tileSize": 256,
+      "minzoom": 5,
+      "maxzoom": 11,
+      "attribution": "Heights: USGS 3DEP; NRCan MRDEM"
     }
   },
   "glyphs": "https://forager-pmtiles.brandonlee1-894.workers.dev/fonts/{fontstack}/{range}.pbf",
@@ -766,6 +782,38 @@
       ],
       "paint": {
         "fill-color": "#e9e9ed"
+      }
+    },
+    {
+      "id": "hillshade",
+      "type": "hillshade",
+      "source": "dem",
+      "minzoom": 5,
+      "paint": {
+        "hillshade-exaggeration": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          9,
+          0.28,
+          11,
+          0.32,
+          13,
+          0.24,
+          15,
+          0.16,
+          17,
+          0.1
+        ],
+        "hillshade-illumination-direction": 335,
+        "hillshade-illumination-anchor": "map",
+        "hillshade-shadow-color": "#4a3f33",
+        "hillshade-highlight-color": "#ffffff",
+        "hillshade-accent-color": "rgba(74,63,51,0.5)"
       }
     },
     {

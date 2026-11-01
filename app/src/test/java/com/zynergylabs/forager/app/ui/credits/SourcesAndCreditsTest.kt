@@ -248,6 +248,14 @@ class SourcesAndCreditsTest {
                 "https://creativecommons.org/licenses/by/4.0/",
             ),
             ExpectedSource("blm-trails", "Trails: Bureau of Land Management, public domain", null, null),
+            // Trail Map's hill shading (dispatch 2026-11-01-coder-11): the heights it is drawn from.
+            ExpectedSource("usgs-3dep", "Heights (hill shading): USGS 3D Elevation Program, public domain", null, null),
+            ExpectedSource(
+                "nrcan-mrdem",
+                "Heights in Canada (hill shading): Natural Resources Canada, MRDEM. Contains information licensed under the Open Government Licence – Canada.",
+                "licence ›",
+                "https://open.canada.ca/en/open-government-licence-canada",
+            ),
             ExpectedSource("open-meteo", "Weather data by Open-Meteo.com", "CC BY 4.0 ›", "https://open-meteo.com/en/licence"),
             ExpectedSource("inaturalist", "iNaturalist and its observers", "site ›", "https://www.inaturalist.org/"),
         )
