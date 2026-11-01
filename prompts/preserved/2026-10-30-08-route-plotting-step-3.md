@@ -278,3 +278,10 @@ Build in that order: Part 1, then Part 2.
 **Stop and report the numbers, don't choose, if:** a card line can't fit at the narrower width at the largest font scale tested on this card; the card can't reach Save above the navigation card in the short landscape window; or the tablet's card needs a different rule.
 
 Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
+
+## Amendment 15 (2026-11-01): the portrait card slides in sideways (RECORD -1929)
+Read with Amendment 14; everything there stands except this. The owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)".
+- **Portrait:** the same narrower bottom card, entering and leaving horizontally from the screen edge opposite the icon bar, and stopping beside the bar. With the bar on the right it comes from the left; with the bar on the left, from the right.
+- Dragging the handle still slides the rows up above the total line, and the total line still stays put.
+- **Landscape:** as Amendment 14 Part 2, rising from the bottom like the navigation card.
+- Reduced motion: follow the app's existing rule for a sliding card.

@@ -31425,3 +31425,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Hazel (Opus), the audit on tools/s22-combined 3709b6a15: a throwaway area downloaded on 4324, the routing request and route file answered 200, routes stored; the area deleted, Regions 1 and 2 and all tables unchanged. The Offline Maps picker's remembered pin stays at the test area.
 **Decision:** the owner: "Portrait has the same issue as landscape. Shorten the card in portrait to accommodate the map icon bar, with the card offset to the side. when the user swaps sides with the icon bar, the card simply shifts over to the other side. And then after that, make landscape card the same size as the navigation card that pops up, but have it pop up behind the navigation card and extend above it is they're already navigating"; "The map icon bar stays the same no matter what. The card just gets resized to fit the map icon bar next to it"; "Rests on top of the nav card (Recommended)"; "Same place, swaps with the bar (Recommended)". Dispatch 2026-10-30-08 Amendment 14, replacing 13 and removing Amendments 10 and 11's fold and held pill.
 **Notes:** Written by the planner by hand. The portrait overlap is the owner's sighting; the audit recorded portrait as passing. Next free ID -1929.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1929
+**Timestamp:** 2026-11-01T16:54:38Z
+**Continues:** 2026-09-28-1928
+**Title:** In portrait the route card slides in from the side opposite the icon bar
+**Decision:** the owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)". Dispatch 2026-10-30-08 Amendment 15. Amendments 14 and 15 wait for the owner's go: "Wait for my word".
+**Notes:** Written by the planner by hand. Next free ID -1930.
