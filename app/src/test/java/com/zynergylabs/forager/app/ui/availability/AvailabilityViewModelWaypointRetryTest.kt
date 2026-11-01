@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -74,7 +75,7 @@ class AvailabilityViewModelWaypointRetryTest {
     private fun viewModel(waypoint: LatLng = there, vararg listed: OfflineRegionSummary): AvailabilityViewModel {
         regions.list = listed.toList()
         val pin = Waypoint("wp-1", waypoint.lat, waypoint.lng, null, "Creek pin", "", 1_000L)
-        val find = FindWayToWaypointUseCase(regions, FakeEngines(router), ErrorLog { _, _, _ -> })
+        val find = FindWayToWaypointUseCase(regions, FakeEngines(router), ErrorLog { _, _, _ -> }, AcceptEnds)
         return mapLayersViewModel(
             waypointNavigationRepository = store,
             locationTracker = tracker,

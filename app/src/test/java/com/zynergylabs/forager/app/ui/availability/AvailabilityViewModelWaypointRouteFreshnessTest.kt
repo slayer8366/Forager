@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LOST_AFTER_MILLIS
@@ -60,7 +61,7 @@ class AvailabilityViewModelWaypointRouteFreshnessTest {
     private val router = FakeTrailRouter(listOf(at(-3_000.0, 0.0) to at(3_000.0, 0.0)))
 
     private fun viewModel(): AvailabilityViewModel {
-        val find = FindWayToWaypointUseCase(FakeRegions(Ground.region()), FakeEngines(router), ErrorLog { _, _, _ -> })
+        val find = FindWayToWaypointUseCase(FakeRegions(Ground.region()), FakeEngines(router), ErrorLog { _, _, _ -> }, AcceptEnds)
         return mapLayersViewModel(
             waypointNavigationRepository = InMemoryWaypointNavigation(),
             locationTracker = tracker,
