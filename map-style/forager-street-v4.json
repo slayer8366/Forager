@@ -45,6 +45,8 @@
       "library",
       "marina",
       "museum",
+      "nursery_dots",
+      "orchard_dots",
       "park",
       "parking",
       "peak",
@@ -63,6 +65,7 @@
       "tufts",
       "university",
       "viewpoint_c",
+      "vineyard_rows",
       "zoo"
     ],
     "forager:palette": {
@@ -226,7 +229,7 @@
     }
   },
   "glyphs": "https://forager-pmtiles.brandonlee1-894.workers.dev/fonts/{fontstack}/{range}.pbf",
-  "sprite": "https://forager-pmtiles.brandonlee1-894.workers.dev/sprites/v5/light",
+  "sprite": "https://forager-pmtiles.brandonlee1-894.workers.dev/sprites/v6/light",
   "layers": [
     {
       "id": "background",
@@ -377,6 +380,55 @@
           0.6,
           9,
           1
+        ]
+      }
+    },
+    {
+      "id": "landuse_orchards_pattern",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "minzoom": 13,
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "farmland"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "orchard",
+              "plant_nursery",
+              "vineyard"
+            ]
+          ]
+        ]
+      ],
+      "paint": {
+        "fill-pattern": [
+          "match",
+          [
+            "get",
+            "kind_detail"
+          ],
+          "orchard",
+          "orchard_dots",
+          "vineyard",
+          "vineyard_rows",
+          "plant_nursery",
+          "nursery_dots",
+          ""
         ]
       }
     },
