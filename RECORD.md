@@ -31094,3 +31094,22 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The route total becomes the sum of its legs; the fullscreen "i" rises above the card; phone checks part 2 run now
 **Decision:** the owner: "Total = sum of the legs (Recommended)"; "\"i\" moves above the card (Recommended)"; "Yes, fresh helper now (Recommended)". Dispatch 2026-10-30-08 Amendment 9 (F-1, the "i", and a test check of F-2), and dispatch 2026-10-31-02 (phone checks part 2).
 **Notes:** Written by the planner by hand. This supersedes -1896 and -1897's banking of the total across legs. Next free ID -1903.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1903
+**Timestamp:** 2026-11-01T00:11:07Z
+**Continues:** 2026-09-28-1902
+**Title:** #449's Amendment 9: the total is the sum of the legs and the "i" rises above the card; F-2 is a real overlap with no fix chosen
+**Observed:** Hazel (Opus), route-plot-ui 73a18af40, with pre-main b38c1d161 (#453, Worker only) merged.
+- **CI:** run 41254469845, 6088 tests, 0 failures.
+- **Fail first:** run 41254078313, 8 of 12 failed.
+- **Reverts:** 41254491362 (the total), 41254493227 (the "i") and 41254494920 (the cluster floor), each biting.
+- **F-1:** the phone's case now totals "+11 ft (↑ 14 ↓ 13)". The totals are summed in metres and rounded once, so a shown total can differ by 1 from the sum of the shown rows; the phone already does this for distance (0.4 + 0.4 + 0.4 mi shown with a total of 1.3).
+- **F-2, at 384×823 dp with four stops expanded:**
+  - the 380 dp cluster cannot fit between its top limit (76.3 dp) and the card's top (431 dp);
+  - its bottom sits 25.3 dp into the card, over the handle and the count line;
+  - the floor already follows the expanded top, so the dispatch's premise was wrong.
+- **Not verified:** a phone, and the "i" in the short landscape window.
+**Notes:** Written by the planner by hand. Next free ID -1904.
