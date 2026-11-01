@@ -232,3 +232,21 @@ Read the PR #449 body, "Calls beyond the dispatch". The owner:
 - **Trip Planner, "Match the card (Recommended)".** A saved route's row uses the same shown-rows total as its card (PlannedRouteRow.kt:58, as of 9167cead5), so one route never shows two distances. Fail first with the 0.4 + 0.4 + 0.4 case, then a revert check. If the row does not have the legs it needs without a new query or a schema change, stop and report.
 
 Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
+
+## Amendment 12 (2026-11-01): the total line stays put (RECORD -1910)
+Starts after Amendment 11 is pushed, on its head. The owner: "Can the collapsed card have the 'X Waypoints routed' with the distance and elevation info like the expanded card? And when the card gets expanded, simply have that info stay at the bottom while the card with the info slides up, to be the total of the info".
+
+**The steps, confirmed by the owner:**
+- Plot two or more waypoints. The collapsed card shows "N Waypoints routed", its distance, the elevation line under it, then Undo, Cancel, Save.
+- Drag up: that line stays exactly where it is on screen, and the leg rows slide up above it.
+- Drag down: the rows slide back behind it.
+
+**The rest:**
+- **The top line, "Remove it (Recommended)".** Expanded, "N Waypoints selected" and its distance are gone; the rows start right under the handle. The total appears once.
+- **Saved routes, "Name, then total line (Recommended)".** The name stays on top. Below it, the same total line with distance and elevation stays put, and the rows slide up between the two.
+- **Unchanged:** one stop keeps "1 Waypoint selected, tap another to route". The elevation line keeps its rule: it shows only when every leg has heights. Amendment 10's rounding and Amendment 11's pill stay.
+- This replaces Amendment 6's "N Waypoints selected" peek for two or more stops. The text "Waypoints selected" stays only in the one-stop hint.
+
+**Tests:** fail first, asserting the total line's on-screen top is the same collapsed and expanded, to the pixel, and its text literally; mid-drag too if the test can hold a drag. The column, the pill and the "i" clear the taller peek at the S22's size. If the taller peek stops any of them clearing, stop and report the numbers. Then revert checks.
+
+Merge pre-main in if it moves. Full CI green. No merge, and never force-push.

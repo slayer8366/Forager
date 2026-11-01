@@ -31200,3 +31200,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The pill stays showing while the card is expanded; Trip Planner matches the card; the handle and mixed units stay as built
 **Decision:** the owner: "Collapse the card (Recommended)"; "Keep the pill showing (Recommended)"; "Yes, leave it (Recommended)"; "Match the card (Recommended)". Dispatch 2026-10-30-08 Amendment 11.
 **Notes:** Written by the planner by hand. This reverses Amendment 10's folding of the pill, which was the coder's call. Next free ID -1910.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1910
+**Timestamp:** 2026-11-01T03:58:02Z
+**Continues:** 2026-09-28-1909
+**Title:** The route card's total line shows when collapsed and stays put while the rows slide up above it
+**Decision:** the owner: "Can the collapsed card have the 'X Waypoints routed' with the distance and elevation info like the expanded card? And when the card gets expanded, simply have that info stay at the bottom while the card with the info slides up, to be the total of the info"; "Remove it (Recommended)"; "Name, then total line (Recommended)". Dispatch 2026-10-30-08 Amendment 12.
+**Notes:** Written by the planner by hand. This replaces Amendment 6's peek for two or more stops. Next free ID -1911.
