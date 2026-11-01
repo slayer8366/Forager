@@ -146,6 +146,8 @@ internal fun BoxScope.CompactMapRouteCard(
     onCardHeightDp: (Int) -> Unit,
     /** The card's top in the root whenever it moves, null when there is none (Amendment 3: the icon cluster stays above it). */
     onCardTopInRootPx: (Float?) -> Unit = {},
+    /** Amendment 13 (RECORD -1919): in the landscape L, whether the L is on the left; the card clears its pill. `null` otherwise. */
+    landscapeClusterOnLeft: Boolean? = null,
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
@@ -189,6 +191,7 @@ internal fun BoxScope.CompactMapRouteCard(
             .align(Alignment.BottomCenter)
             .padding(controlsPadding)
             .padding(bottom = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+            .routeCardClearOfPill(landscapeClusterOnLeft)
             .onGloballyPositioned {
                 onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() })
                 onCardTopInRootPx(it.positionInRoot().y)

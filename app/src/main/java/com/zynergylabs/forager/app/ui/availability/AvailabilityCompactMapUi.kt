@@ -658,6 +658,7 @@ internal fun CompactMapTab(
                     onCardHeightDp = { routeCardHeightDp = it },
                     // Amendment 3: the card's top, in the map box, is the icon cluster's lowest edge while it shows.
                     onCardTopInRootPx = { top -> cluster.routeCardTopPx = top?.let { it - cluster.mapContentBoxTopInRootPx } },
+                    landscapeClusterOnLeft = cluster.isOnLeftSide.takeIf { cluster.landscape },
                 )
 
                 // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;
