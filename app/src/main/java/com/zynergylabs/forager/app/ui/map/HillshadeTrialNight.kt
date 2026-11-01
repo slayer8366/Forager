@@ -14,9 +14,10 @@ import org.maplibre.android.style.layers.PropertyFactory
 internal fun applyHillshadeTrialNight(style: Style) {
     val layer = style.getLayer("hillshade") as? HillshadeLayer ?: return
     layer.setProperties(
-        // rgba(0,0,0,0.7), rgba(220,228,236,0.2), rgba(0,0,0,0.35): alpha 0.7 = 179/255, 0.2 = 51, 0.35 = 89.
-        PropertyFactory.hillshadeShadowColor(Color.argb(179, 0, 0, 0)),
-        PropertyFactory.hillshadeHighlightColor(Color.argb(51, 220, 228, 236)),
+        // MapLibre 13.5.0 takes shadow and highlight as colour arrays (one per light, for multidirectional hillshade).
+        PropertyFactory.hillshadeShadowColor(arrayOf("rgba(0, 0, 0, 0.7)")),
+        PropertyFactory.hillshadeHighlightColor(arrayOf("rgba(220, 228, 236, 0.2)")),
+        // Accent is one colour: rgba(0,0,0,0.35), alpha 0.35 = 89/255.
         PropertyFactory.hillshadeAccentColor(Color.argb(89, 0, 0, 0)),
     )
 }
