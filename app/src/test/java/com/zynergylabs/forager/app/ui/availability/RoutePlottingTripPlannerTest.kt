@@ -15,11 +15,18 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.route.PlottedRoute
+import com.zynergylabs.forager.app.domain.route.RouteLeg
+import com.zynergylabs.forager.app.domain.route.StraightReason
 import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_DIALOG_TAG
 import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_KEEP_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAME_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TOTAL_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
@@ -59,8 +66,14 @@ class RoutePlottingTripPlannerTest {
     )
     private lateinit var viewModel: AvailabilityViewModel
 
-    private fun setScreen(trips: List<PlannedTrip> = listOf(ROUTE_TRIP)) {
-        viewModel = mapLayersViewModel(plannedTrips = trips)
+    private fun setScreen(trips: List<PlannedTrip> = listOf(ROUTE_TRIP), units: UnitSystem = UnitSystem.IMPERIAL) {
+        viewModel = mapLayersViewModel(
+            plannedTrips = trips,
+            unitSystemPreferences = object : UnitSystemPreferenceRepository {
+                override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(units)
+                override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
+            },
+        )
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
             MapLayersTestScreen(
@@ -112,6 +125,25 @@ class RoutePlottingTripPlannerTest {
         val request = map.renderMode?.cameraRequest
         assertEquals("$where: the fit for this open", "saved-route-${ROUTE_TRIP.id}-${showing.serial}", request?.id)
         assertEquals("$where: the card under the route's name", ROUTE_TRIP.name, text(ROUTE_CARD_NAME_TAG))
+    }
+
+    /**
+     * Amendment 11 (RECORD -1909, the owner: "Match the card (Recommended)"): the phone's case, three legs of 0.44 mi. The row and
+     * the card both read 1.2 mi, the sum of the rows' shown 0.4 mi, where the metres summed would show 1.3 mi.
+     */
+    @Test
+    fun `a route row shows the same total as its card, 1_2 mi under rows of 0_4 mi`() {
+        val a = CREEK.stop()
+        val b = RIDGE.stop()
+        fun leg(from: LatLng, to: LatLng) = RouteLeg.Straight(listOf(from, to), 0.44 * 1609.344, StraightReason.NO_REGION_COVERS)
+        val trip = ROUTE_TRIP.copy(route = PlottedRoute(listOf(a, b, a, b), listOf(leg(a.position, b.position), leg(b.position, a.position), leg(a.position, b.position))))
+        setScreen(listOf(trip))
+        openTripPlanner()
+
+        assertEquals(listOf(trip.name, "1.2 mi"), row(trip).fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text })
+
+        touchAcross(row(trip), 0.5f, 0.5f)
+        assertEquals("1.2 mi", text(ROUTE_CARD_TOTAL_TAG))
     }
 
     @Test
