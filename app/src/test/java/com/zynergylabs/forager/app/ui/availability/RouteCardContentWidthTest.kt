@@ -186,10 +186,11 @@ class RouteCardContentWidthTest {
     @Test
     fun `a long saved name wraps whole, Directions stays on the card`() {
         val rig = RouteCardBarRig(composeRule)
-        rig.setScreen()
-        val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
         val name = "Upper Falls of the North Fork Trailhead Overlook loop by way of the South Meadow"
-        rig.openSaved(name, 3)
+        val trip = rig.savedTrip(name, 3)
+        rig.setScreen(trips = listOf(trip))
+        val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
+        rig.open(trip)
         val card = rig.bounds(ROUTE_CARD_TAG)
         assertTrue("the name wraps", rig.assertWhole("saved", ROUTE_CARD_NAME_TAG, name) > 1)
         assertTrue("the card stays clear of the bar", card.right <= bar.left - 7.5.dp)

@@ -89,7 +89,7 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
     private val fix = LocationFix.Update(lat = 45.32, lng = -122.63, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val origin = Waypoint(id = "origin", lat = 45.33, lng = -122.63, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
 
-    fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false, navigating: Boolean = false) {
+    fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false, navigating: Boolean = false, trips: List<PlannedTrip> = emptyList()) {
         val store = OneCellStore()
         val viewModel = if (withLegend) mapLayersViewModel(store = store) else mapLayersViewModel()
         composeRule.setContent {
@@ -101,7 +101,7 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
                     store = store,
                     waypoints = stops,
                     routePlotting = RoutePlottingControls(state, plotting),
-                    uiStateTransform = { if (navigating) it.copy(liveFix = fix) else it },
+                    uiStateTransform = { (if (navigating) it.copy(liveFix = fix) else it).copy(plannedTrips = trips) },
                     navigation = if (navigating) {
                         AvailabilityScreenNavigation(isReturning = true, onToggleReturning = { returnTouches++ }, navigationTarget = origin)
                     } else {
@@ -166,11 +166,15 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
         plotted++
     }
 
-    /** Opens a saved route of the first [n] stops, named [name]. The opening's touches are `RouteCardLayoutTest`'s. */
-    fun openSaved(name: String, n: Int) {
+    /** A saved route of the first [n] stops, named [name]. [setScreen] must carry it, or the card closes as for a deleted trip. */
+    fun savedTrip(name: String, n: Int): PlannedTrip {
         val shown = stops.take(n).map { it.stop() }
         val legs = shown.zipWithNext { a, b -> trail(a.position, b.position) }
-        val trip = PlannedTrip("saved", name, shown.first().position, null, PlottedRoute(shown, legs))
+        return PlannedTrip("saved", name, shown.first().position, null, PlottedRoute(shown, legs))
+    }
+
+    /** Opens [trip]. The opening's touches are `RouteCardLayoutTest`'s. */
+    fun open(trip: PlannedTrip) {
         composeRule.runOnUiThread { plotting.onOpenSavedRoute(trip, fromTripPlanner = false) }
         settle()
     }

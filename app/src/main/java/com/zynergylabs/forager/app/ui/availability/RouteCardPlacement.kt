@@ -2,24 +2,32 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
+import androidx.compose.ui.unit.min
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.route.RouteCardContentFit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /*
@@ -50,6 +58,23 @@ internal fun routeCardPortraitPadding(cluster: MapIconClusterState): PaddingValu
         PaddingValues(start = barColumn, end = ROUTE_CARD_SIDE_MARGIN)
     } else {
         PaddingValues(start = ROUTE_CARD_SIDE_MARGIN, end = barColumn)
+    }
+}
+
+/**
+ * The portrait card's width (Amendment 16, RECORD -1932, the owner: "only give enough room to display the info"): [needed], what its
+ * lines ask for, and never more than the room this is given, which is what is left beside the bar. [content] gets the card's width
+ * and the fit its lines are laid out at. A change eases on the slide's own timing, and is immediate under reduced motion, where the
+ * card does not slide either. The width only moves when the widest line changes: never with the handle, and never for a leg that
+ * is no wider, because the rows count at peek and the total line always counts its progress mark ([rememberRouteCardNeededWidth]).
+ */
+@Composable
+internal fun RouteCardPortraitWidth(needed: Dp, sides: PaddingValues, barOnLeft: Boolean, content: @Composable (Dp, RouteCardContentFit) -> Unit) {
+    BoxWithConstraints(Modifier.padding(sides)) {
+        val target = min(needed, maxWidth)
+        val spec = if (LocalReduceMotion.current) snap<Dp>() else MotionTokens.navigationViewChromeSpec<Dp>()
+        val width by animateDpAsState(target, spec, label = "route card width")
+        content(width, RouteCardContentFit(target, if (barOnLeft) Alignment.End else Alignment.Start))
     }
 }
 

@@ -15,7 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -36,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -61,8 +61,10 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  * ViewModel, so it survives a tab change (CLAUDE.md, UX defaults). Between them the rows slide, following the finger
  * (Amendment 12, RECORD -1910, `RouteCardReveal.kt`).
  *
- * Its bounds are its own: a width cap of [ROUTE_CARD_MAX_WIDTH] and a height that wraps its content, the expanded rows capped
- * and scrolling. Nothing in it fills the map box (CLAUDE.md, the Surface pitfall), so a long-press above or beside it reaches
+ * Its bounds are its own: the width its host gives it (`RouteCardPlacement.kt`: what its lines need in portrait, the strip's in
+ * landscape) and a height that wraps its content, the expanded rows capped and scrolling. A line that can't fit wraps, and nothing
+ * is cut with an ellipsis (Amendment 16, RECORD -1932, the owner: "Wrap to two lines (Recommended)"), so a long name takes as many
+ * lines as it needs. Nothing in it fills the map box (CLAUDE.md, the Surface pitfall), so a long-press above or beside it reaches
  * the map.
  *
  * Words on screen, all approved: "Undo", "Cancel", "Save", "No trail data, straight line" (RECORD -1845 and Amendment 1),
@@ -77,8 +79,17 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  * step 3b. The total line sits under the rows and over the buttons, so it stays put on screen while the rows slide up above it.
  */
 
-/** M3's sheet width cap (`BottomSheetDefaults.SheetMaxWidth`), so the card stays a readable column on a tablet. */
-val ROUTE_CARD_MAX_WIDTH: Dp = 640.dp
+/** The card's padding at each side, which [rememberRouteCardNeededWidth] counts. */
+internal val ROUTE_CARD_SIDE_PADDING: Dp = Spacing.md
+
+/** The progress mark's size, which [rememberRouteCardNeededWidth] counts. */
+internal val ROUTE_CARD_PROGRESS_SIZE: Dp = 16.dp
+
+/**
+ * The width the card's lines are laid out at while the card's own width eases towards it, so a row never wraps and unwraps on the
+ * way, and the card's height holds. They stay at the [align] side, the card's anchored one, and the moving edge uncovers them.
+ */
+class RouteCardContentFit(val width: Dp, val align: Alignment.Horizontal)
 
 /** How far a drag on the handle must go to move the card between peek and expanded. */
 private val HANDLE_DRAG_THRESHOLD = 24.dp
@@ -141,12 +152,13 @@ fun RouteCard(
     modifier: Modifier = Modifier,
     /** Kept empty under the buttons: the part of the card tucked behind the landscape navigation card (Amendment 14, RECORD -1928). */
     contentBottomPadding: Dp = 0.dp,
+    /** Set when the card's own width is on the move ([RouteCardContentFit]). */
+    contentFit: RouteCardContentFit? = null,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
     Surface(
         modifier = modifier
-            .widthIn(max = ROUTE_CARD_MAX_WIDTH)
             .fillMaxWidth()
             .testTag(ROUTE_CARD_TAG)
             .mapChromeContainerColor(fill),
@@ -156,10 +168,11 @@ fun RouteCard(
     ) {
         val reveal = remember { RouteCardReveal(expanded) }
         LaunchedEffect(expanded) { reveal.settle(expanded) }
-        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = Spacing.md, end = Spacing.md, bottom = contentBottomPadding)) {
+        val fit = if (contentFit != null) Modifier.wrapContentWidth(contentFit.align, unbounded = true).width(contentFit.width) else Modifier
+        Column(Modifier.mapChromeContentColor(LocalContentColor.current).then(fit).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding)) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
-                Text(content.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))
+                Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))
             }
             if ((expanded || reveal.showsRows) && (content.legs.isNotEmpty() || content.legInFlight)) {
                 RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight)
@@ -224,7 +237,7 @@ private fun RouteCardHandle(expanded: Boolean, reveal: RouteCardReveal, onToggle
 private fun RouteTotalLine(content: RouteCardContent, distanceUnit: DistanceUnit) {
     Column(Modifier.padding(vertical = Spacing.xs).testTag(ROUTE_CARD_ROUTED_TAG)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_ROUTED_COUNT_TAG))
+            Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_ROUTED_COUNT_TAG))
             Text(routeTotalDistanceText(content.legs.map { it.meters }, distanceUnit), style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_TOTAL_TAG))
             if (content.legInFlight) RouteCardProgress()
         }
@@ -244,14 +257,14 @@ private fun RouteNoLegsLine(content: RouteCardContent) {
         if (content.legInFlight) {
             RouteCardProgress()
         } else {
-            Text(ONE_WAYPOINT_SELECTED, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_COUNT_TAG))
+            Text(ONE_WAYPOINT_SELECTED, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_COUNT_TAG))
         }
     }
 }
 
 @Composable
 private fun RouteCardProgress() {
-    CircularProgressIndicator(Modifier.size(16.dp).testTag(ROUTE_CARD_PROGRESS_TAG), strokeWidth = 2.dp)
+    CircularProgressIndicator(Modifier.size(ROUTE_CARD_PROGRESS_SIZE).testTag(ROUTE_CARD_PROGRESS_TAG), strokeWidth = 2.dp)
 }
 
 /**
@@ -267,7 +280,7 @@ private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: Di
             content.legs.forEachIndexed { i, leg ->
                 Column(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i))) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
+                        Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
                         Text(formatDistanceMeters(leg.meters, distanceUnit), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(routeCardLegDistanceTag(i)))
                     }
                     content.legElevations.getOrNull(i)?.let {
@@ -279,8 +292,8 @@ private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: Di
             if (content.legInFlight) {
                 val i = content.legs.size
                 Row(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i)), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
-                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
+                    CircularProgressIndicator(Modifier.size(ROUTE_CARD_PROGRESS_SIZE), strokeWidth = 2.dp)
                 }
             }
         }

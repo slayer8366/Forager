@@ -37,6 +37,8 @@ import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
+import com.zynergylabs.forager.app.ui.route.RouteCardContentFit
+import com.zynergylabs.forager.app.ui.route.rememberRouteCardNeededWidth
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingUiState
@@ -143,8 +145,8 @@ private fun routeCardContent(state: RoutePlottingUiState?): RouteCardContent? = 
  * [controlsPadding] so it keeps clear of the landscape rail; and the dialogs. [onCardHeightDp] is told the card's height whenever it
  * changes, 0 as soon as there is none, so what rises above the card comes back as it starts to leave.
  *
- * In portrait (Amendments 14 and 15, RECORD -1928, -1929) the card is narrower and beside the bar, and slides in from the edge away
- * from it (`RouteCardPlacement.kt`). A card still leaving draws what it last showed, and takes no touch.
+ * In portrait (Amendments 14, 15 and 16, RECORD -1928, -1929, -1932) the card is as wide as its lines need, within the room beside the
+ * bar, and slides in from the edge away from it (`RouteCardPlacement.kt`). A card still leaving draws what it last showed, and takes no touch.
  */
 @Composable
 internal fun BoxScope.CompactMapRouteCard(
@@ -172,7 +174,6 @@ internal fun BoxScope.CompactMapRouteCard(
     val barOnLeft = cluster.isOnLeftSide
     val portrait = !cluster.landscape
     val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
-    val sides = if (portrait) routeCardPortraitPadding(cluster) else PaddingValues()
     val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
     val size = if (landscapeRoom != null) Modifier.width(landscapeRoom.width).heightIn(max = landscapeRoom.maxHeight) else Modifier
     NoTouchTargetExpansion(active = leaving) {
@@ -187,26 +188,34 @@ internal fun BoxScope.CompactMapRouteCard(
                 .leavingTakesNoTouches(leaving = leaving),
         ) {
             if (shownContent != null && shownActions != null) {
-                RouteCard(
-                    content = shownContent,
-                    expanded = state?.expanded == true,
-                    distanceUnit = distanceUnit,
-                    callbacks = RouteCardCallbacks(
-                        onToggleExpanded = shownActions::onSetExpanded,
-                        onUndo = shownActions::onUndo,
-                        onCancel = shownActions::onCancel,
-                        onSave = shownActions::onOpenSaveDialog,
-                        onDirections = { showing?.trip?.let { trip -> launchDirections(context, trip) } },
-                    ),
-                    expandedMaxHeight = expandedMaxHeight,
-                    contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
-                    modifier = Modifier
-                        .padding(sides)
-                        .then(size)
-                        // What rises above the card and the map's fit clear it wherever it sits, so a card resting on the navigation
-                        // card counts from the screen's bottom edge.
-                        .onGloballyPositioned { if (!leaving) onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) }) },
-                )
+                val card: @Composable (Modifier, RouteCardContentFit?) -> Unit = { sized, fit ->
+                    RouteCard(
+                        content = shownContent,
+                        expanded = state?.expanded == true,
+                        distanceUnit = distanceUnit,
+                        callbacks = RouteCardCallbacks(
+                            onToggleExpanded = shownActions::onSetExpanded,
+                            onUndo = shownActions::onUndo,
+                            onCancel = shownActions::onCancel,
+                            onSave = shownActions::onOpenSaveDialog,
+                            onDirections = { showing?.trip?.let { trip -> launchDirections(context, trip) } },
+                        ),
+                        expandedMaxHeight = expandedMaxHeight,
+                        contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
+                        contentFit = fit,
+                        modifier = sized
+                            // What rises above the card and the map's fit clear it wherever it sits, so a card resting on the navigation
+                            // card counts from the screen's bottom edge.
+                            .onGloballyPositioned { if (!leaving) onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) }) },
+                    )
+                }
+                if (portrait) {
+                    RouteCardPortraitWidth(rememberRouteCardNeededWidth(shownContent, distanceUnit), routeCardPortraitPadding(cluster), barOnLeft) { width, fit ->
+                        card(Modifier.width(width), fit)
+                    }
+                } else {
+                    card(size, null)
+                }
             }
         }
     }
