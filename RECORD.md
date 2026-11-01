@@ -31113,3 +31113,24 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
   - the floor already follows the expanded top, so the dispatch's premise was wrong.
 - **Not verified:** a phone, and the "i" in the short landscape window.
 **Notes:** Written by the planner by hand. Next free ID -1904.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1904
+**Timestamp:** 2026-11-01T00:58:26Z
+**Continues:** 2026-09-28-1903
+**Title:** The button column minimises while the route card is expanded; card totals add up from the shown figures; phone checks part 2 in
+**Observed:** Hazel (Opus), the "Part 2" section of docs/audits/2026-10-31-s22-phone-checks.md, s22-phone-checks c90507e71. Indoors, no GPS fix.
+- **450-1 pass:** 16 surface-not-valid lines in 3 min with the screen off while recording, against about 940 a minute on 10-30. The compass listener was off.
+- **450-2 fail:** the main thread at 29-39% of a core with the screen off while recording, against a target of about 4.7%; 27.7% with the screen on; 0.7% at Home.
+  - **F-4:** a profile shows Compose recomposition running frame after frame while nothing is drawn (42% AnimatedContent, 18% WordSwap.wordsOf at ui/motion/WordSwap.kt:23).
+  - The cause is inferred, not read: recording state read in composition, with the frame clock running under the always-on display.
+  - Not like for like with trial C (no fix here).
+- **450-4/F-3 pass:** "—" is shown after a 15 s screen-off, caught in a recording that started before the wake.
+- **450-6 and 450-7:** partial, observation only.
+- **The #449 leftovers were not run:** adb could not undo an accidental zoom-in.
+- **Data:** one throwaway recording, deleted; all tables match the baseline.
+- **Slip, disclosed:** a laptop screen recording wrote 4.5 GB and filled the root disk for about a minute before it was killed.
+**Decision:** the owner: "Minimise the column while open (Recommended)"; "Yes, add up what's shown (Recommended)". Dispatch 2026-10-30-08 Amendment 10.
+**Notes:** Written by the planner by hand. F-4 is brought to the owner separately. Next free ID -1905.

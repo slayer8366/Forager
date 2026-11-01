@@ -211,3 +211,13 @@ Read docs/audits/2026-10-31-s22-phone-checks.md on origin/s22-phone-checks (2de1
 - **Fullscreen, "\"i\" moves above the card (Recommended)".** The map's attribution "i" rises above the card while the card shows, as the cluster, pill and chip do (routeCardLift). Fail first with a coordinate touch on Save at the "i"'s old place, then a revert check.
 - **F-2 (unconfirmed on the phone):** check in a test whether the cluster's bottom button overlaps the expanded card's first row, at the S22's size (portrait, xxhdpi). If it does, the cluster's floor must follow the card's expanded top, not only its peek. Fail first, then fix. If it doesn't, say so with the measured numbers.
 - Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
+
+## Amendment 10 (2026-10-31): F-2 and the rounding (RECORD -1904)
+The owner:
+- **F-2, "Minimise the column while open (Recommended)".** While the route card is **expanded**, the map's button column folds to its minimised state. When the card collapses or closes, the column comes back exactly as the user had it: side, height and minimised flag (CLAUDE.md UX defaults). It never changes the remembered state. At peek, the column stays as Amendment 3 has it, raised above the card.
+  - Fail first with Amendment 9's RouteCardExpandedClusterTest numbers: no overlap expanded, and the state restored after collapse.
+  - Then a revert check.
+- **Rounding, "Yes, add up what's shown (Recommended)".** Every total on the card (distance, net, climb and descent) is the sum of the rows' **shown, rounded** figures in the current units, so the digits always add up (0.4 + 0.4 + 0.4 shows 1.2 mi). This applies to the routed total row and to the peek's total.
+  - Fail first with the phone's distance case, then a revert check.
+
+Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
