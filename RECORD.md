@@ -31221,3 +31221,19 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** The 10-21 plan never landed: origin/topo-plan-report holds its method notes and no report. -1628 still holds the release for the whole trail navigation plan.
 **Decision:** the owner: "Now we have elevation data, I think next release should contain our own topo maps"; "Size it, then decide (Recommended)"; "Yes, Juniper redoes it (Recommended)". Dispatch 2026-11-01-01 (read only), and a question to Aspen in prompts/aspen/. No build go.
 **Notes:** Written by the planner by hand. The release gate in -1628 is unchanged until the owner rules on the report. Next free ID -1912.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1912
+**Timestamp:** 2026-11-01T05:06:23Z
+**Continues:** 2026-09-28-1911
+**Title:** Own topo is feasible and cheap to host; 3-6 weeks from a go; the ruled contours need a new height pull
+**Observed:** Juniper (Opus), docs/plans/2026-11-01-own-topo-plan-report.md on topo-plan-2026-11 b48573c40, read only, using Aspen's reply prompts/aspen/2026-11-01-02 (46b8deafc).
+- **Sizes, modelled:** about 30-40 GB on the server (range 17-196 GB), about $0.50 a month, about 2-4 MB added to a default offline area.
+- **Heights:** the Pi's 3″ grid shades to about z11 but cannot make 40 ft contours. Those need 1″: about 48 GB for the US, up to 84 GB for Canada.
+- **Pi:** topo work goes on the USB drive, Monday to Saturday, away from the weekly run, and shares that drive with Willow's global pilot.
+- **Conflict:** replacing Topographical removes topo outside the US and Canada, against the owner's 10-31 global ask, unless a fallback is chosen.
+- **Unknown until a pilot:** real contour size (it rests on four Oregon tiles), Pi build times, how it looks on a phone, whether WebP height tiles decode there.
+- **Corrected here:** the report lists the OpenTopoMap letter as unknown; an earlier entry, "The owner sent the note to OpenTopoMap", records that it was sent.
+**Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1913.
