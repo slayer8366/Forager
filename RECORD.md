@@ -31345,3 +31345,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Prove a problem before suggesting a fix
 **Decision:** the owner: "Next time prove the problem before suggesting a fix. Keep that in record". A problem is shown to exist before any fix is offered or dispatched; where a test or a report is the only evidence, the planner says so and gets the proof first.
 **Notes:** Written by the planner by hand. Next free ID -1922.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1922
+**Timestamp:** 2026-11-01T12:25:14Z
+**Continues:** 2026-09-28-1920
+**Title:** Amendment 13's two test commits come off #449 by revert; route plotting stays on it
+**Decision:** the owner: "Remove all commit from 449 and let's use that PR for something else", then, asked which, "Only the landscape commits". e336f8423 and 63e3e08ff are reverted; the #454 merge stays; no history rewritten.
+**Notes:** Written by the planner by hand. No new use for the PR was named. Next free ID -1923.
