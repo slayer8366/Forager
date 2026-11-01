@@ -243,6 +243,6 @@ internal class RouteCardBarRig(private val composeRule: RouteRule) {
         composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
         val layout = results.single()
         val cut = (0 until layout.lineCount).any { layout.isLineEllipsized(it) }
-        return cut to "${layout.layoutInput.text}: lines ${layout.lineCount}, cut $cut, box ${composeRule.density.run { layout.size.width.toDp() }}, ink ${composeRule.density.run { (0 until layout.lineCount).maxOf { layout.getLineWidth(it) }.toDp() }}"
+        return cut to "${layout.layoutInput.text}: lines ${layout.lineCount}, cut $cut, box ${composeRule.density.run { layout.size.width.toDp() }}, ink ${composeRule.density.run { (0 until layout.lineCount).maxOf { layout.getLineRight(it) - layout.getLineLeft(it) }.toDp() }}"
     }
 }
