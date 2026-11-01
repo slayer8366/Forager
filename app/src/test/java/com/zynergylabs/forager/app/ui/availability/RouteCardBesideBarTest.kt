@@ -12,6 +12,8 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
+import com.zynergylabs.forager.app.ui.map.MAP_LEGEND_CHIP_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_CANCEL_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -138,5 +140,46 @@ class RouteCardBesideBarTest {
         val card = rig.bounds(ROUTE_CARD_TAG)
         println("A14 bottom: card ${card.bottom.value}, nav top ${navTop.value}, clearance ${LEGEND_ATTRIBUTION_CLEARANCE.value}")
         assertTrue("the card ends above the nav's top ${navTop}: ${card.bottom}", card.bottom <= navTop)
+    }
+
+    @Test
+    fun `with the legend chip, the chip rises beside the bar and the bar stays where the chip had it`() {
+        rig.setScreen(withLegend = true)
+        val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
+        rig.plotTo(3)
+        listOf(false, true).forEach { expanded ->
+            rig.setExpanded(expanded)
+            val where = "legend, expanded $expanded"
+            rig.assertBarUntouched(where, bar)
+            val chip = rig.bounds(MAP_LEGEND_CHIP_TAG)
+            val card = rig.bounds(ROUTE_CARD_TAG)
+            println("A14 $where: chip ${chip.left.value}..${chip.right.value} x ${chip.top.value}..${chip.bottom.value}")
+            assertTrue("$where: the chip's bottom ${chip.bottom} clears the card's top ${card.top}", chip.bottom <= card.top + 0.5.dp)
+            rig.assertApart("$where: the chip and the bar", chip, bar)
+        }
+    }
+
+    @Test
+    fun `with the bar on the left, the legend chip keeps its corner, above the card`() {
+        rig.setScreen(withLegend = true)
+        rig.dragBarAcross(rightward = false)
+        val corner = rig.bounds(MAP_LEGEND_CHIP_TAG)
+        rig.plotTo(3)
+        val chip = rig.bounds(MAP_LEGEND_CHIP_TAG)
+        assertEquals("the chip's right", corner.right.value, chip.right.value, 0.5f)
+        assertTrue("the chip's bottom ${chip.bottom} clears the card's top", chip.bottom <= rig.bounds(ROUTE_CARD_TAG).top + 0.5.dp)
+    }
+
+    @Test
+    fun `the anchor a closed expanded card leaves does not open the next route's card, which starts at its peek`() {
+        rig.setScreen()
+        rig.plotTo(3)
+        rig.setExpanded(true)
+        composeRule.onNodeWithTag(ROUTE_CARD_CANCEL_TAG).performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
+        rig.settle()
+        assertEquals("the card closed", 0, rig.count(ROUTE_CARD_TAG))
+        composeRule.runOnUiThread { rig.plotting.onStartPlotting(CREEK.stop()) }
+        rig.settle()
+        assertTrue("the new route is at its peek", !rig.plotting.uiState.value.expanded)
     }
 }

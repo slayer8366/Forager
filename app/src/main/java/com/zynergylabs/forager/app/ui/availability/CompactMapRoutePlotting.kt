@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -10,8 +11,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -29,12 +28,16 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.PlottedRouteOnMap
+import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
+import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
 import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
+import com.zynergylabs.forager.app.ui.route.RoutePlottingUiState
 import com.zynergylabs.forager.app.ui.route.SaveRouteDialog
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -81,19 +84,6 @@ internal fun plottedRouteOnMap(controls: RoutePlottingControls?): PlottedRouteOn
     RoutePlotMode.Off, null -> null
 }
 
-/**
- * Whether the route card is showing and expanded, so the icon cluster folds (Amendment 10, RECORD -1904). The anchor outlives the
- * card ([RoutePlottingUiState.expanded] is kept when it closes), so a card that is not showing folds nothing.
- */
-internal fun routeCardFoldsCluster(controls: RoutePlottingControls?): Boolean {
-    val state = controls?.state ?: return false
-    return state.expanded && when (val mode = state.mode) {
-        is RoutePlotMode.Plotting -> true
-        is RoutePlotMode.Showing -> mode.trip.route != null
-        RoutePlotMode.Off -> false
-    }
-}
-
 /** The most of the map's height the expanded card's rows take before they scroll (the first stop, (b)). */
 internal const val ROUTE_CARD_EXPANDED_FRACTION = 0.5f
 
@@ -102,11 +92,12 @@ internal const val ROUTE_CARD_EXPANDED_FRACTION = 0.5f
  * 0), MapLibre's attribution "i" keeps clear of it as the cluster, "Return to Route" and the legend chip do: its bottom inset is
  * raised to the card's top plus the same gap ([CompactMapBottomChrome]'s routeCardLift: the card's height and Spacing.sm, over
  * the card's own bottom, [bottomInset][MapRenderMode.bottomInset] and its clearance). Never lowered, and unchanged with no card,
- * so it goes back when the card closes. In the short landscape window the "i" sits beside the credit strip
+ * so it goes back when the card closes. Amendment 14 (RECORD -1928): only where the card is [overAttribution]; see
+ * [routeCardOverAttribution]. In the short landscape window the "i" sits beside the credit strip
  * ([MapRenderMode.attributionBesideCredit]), below the card's bottom, and that placement does not read this inset.
  */
-internal fun MapRenderMode.withAttributionAboveRouteCard(cardHeightDp: Int): MapRenderMode {
-    if (cardHeightDp <= 0) return this
+internal fun MapRenderMode.withAttributionAboveRouteCard(cardHeightDp: Int, overAttribution: Boolean): MapRenderMode {
+    if (cardHeightDp <= 0 || !overAttribution) return this
     val current = attributionBottomInset ?: bottomInset
     val aboveCard = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + cardHeightDp.dp + Spacing.sm
     return if (aboveCard > current) copy(attributionBottomInset = aboveCard) else this
@@ -131,69 +122,85 @@ internal fun savedRouteCameraRequest(controls: RoutePlottingControls?, cardHeigh
     )
 }
 
+/** What the card shows for [state], `null` for no card. */
+private fun routeCardContent(state: RoutePlottingUiState?): RouteCardContent? = when (val mode = state?.mode) {
+    // Amendment 8 (RECORD -1896): the elevation lines while plotting, from each leg's trail heights. A saved route has none
+    // until step 3b stores them.
+    is RoutePlotMode.Plotting -> RouteCardContent.Plotting(
+        mode.draft.stops,
+        mode.draft.legs,
+        canSave = mode.draft.toRoute() != null,
+        legElevations = mode.draft.legs.map(::legElevation),
+    )
+    is RoutePlotMode.Showing -> mode.trip.route?.let { RouteCardContent.Saved(mode.trip.name, it.stops, it.legs) }
+    RoutePlotMode.Off, null -> null
+}
+
 /**
- * The card, at the bottom of the map's Box, above the attribution as "Return to Route" is ([bottomInset] and its clearance),
- * inside [controlsPadding] so it keeps clear of the landscape rail; and the dialogs. [onCardHeightDp] is told the card's
- * height whenever it changes, 0 when there is none.
+ * The card, at the bottom of the map's Box, above the attribution as "Return to Route" is ([bottomInset] and its clearance), inside
+ * [controlsPadding] so it keeps clear of the landscape rail; and the dialogs. [onCardHeightDp] is told the card's height whenever it
+ * changes, 0 as soon as there is none, so what rises above the card comes back as it starts to leave.
+ *
+ * In portrait (Amendments 14 and 15, RECORD -1928, -1929) the card is narrower and beside the bar, and slides in from the edge away
+ * from it (`RouteCardPlacement.kt`). A card still leaving draws what it last showed, and takes no touch.
  */
 @Composable
 internal fun BoxScope.CompactMapRouteCard(
     controls: RoutePlottingControls?,
+    cluster: MapIconClusterState,
     distanceUnit: DistanceUnit,
     controlsPadding: PaddingValues,
     bottomInset: Dp,
     expandedMaxHeight: Dp,
     onCardHeightDp: (Int) -> Unit,
-    /** The card's top in the root whenever it moves, null when there is none (Amendment 3: the icon cluster stays above it). */
-    onCardTopInRootPx: (Float?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val state = controls?.state
     val actions = controls?.actions
-    val content = when (val mode = state?.mode) {
-        // Amendment 8 (RECORD -1896): the elevation lines while plotting, from each leg's trail heights. A saved route has none
-        // until step 3b stores them.
-        is RoutePlotMode.Plotting -> RouteCardContent.Plotting(
-            mode.draft.stops,
-            mode.draft.legs,
-            canSave = mode.draft.toRoute() != null,
-            legElevations = mode.draft.legs.map(::legElevation),
-        )
-        is RoutePlotMode.Showing -> mode.trip.route?.let { RouteCardContent.Saved(mode.trip.name, it.stops, it.legs) }
-        RoutePlotMode.Off, null -> null
-    }
-    if (content == null || state == null || actions == null) {
-        LaunchedEffect(Unit) {
-            onCardHeightDp(0)
-            onCardTopInRootPx(null)
+    val content = routeCardContent(state)
+    val shownContent = rememberLastShown(content)
+    val shownActions = rememberLastShown(actions)
+    val leaving = content == null
+    LaunchedEffect(leaving) { if (leaving) onCardHeightDp(0) }
+    val showing = state?.mode as? RoutePlotMode.Showing
+    val barOnLeft = cluster.isOnLeftSide
+    val portrait = !cluster.landscape
+    val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
+    val sides = if (portrait) routeCardPortraitPadding(cluster) else PaddingValues()
+    NoTouchTargetExpansion(active = leaving) {
+        AnimatedVisibility(
+            visible = !leaving,
+            enter = enter,
+            exit = exit,
+            modifier = Modifier
+                .align(if (portrait) routeCardPortraitAlignment(barOnLeft) else Alignment.BottomCenter)
+                .padding(controlsPadding)
+                .padding(bottom = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                .leavingTakesNoTouches(leaving = leaving),
+        ) {
+            if (shownContent != null && shownActions != null) {
+                RouteCard(
+                    content = shownContent,
+                    expanded = state?.expanded == true,
+                    distanceUnit = distanceUnit,
+                    callbacks = RouteCardCallbacks(
+                        onToggleExpanded = shownActions::onSetExpanded,
+                        onUndo = shownActions::onUndo,
+                        onCancel = shownActions::onCancel,
+                        onSave = shownActions::onOpenSaveDialog,
+                        onDirections = { showing?.trip?.let { trip -> launchDirections(context, trip) } },
+                    ),
+                    expandedMaxHeight = expandedMaxHeight,
+                    modifier = Modifier
+                        .padding(sides)
+                        .onGloballyPositioned { if (!leaving) onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() }) },
+                )
+            }
         }
-        return
     }
-    val showing = state.mode as? RoutePlotMode.Showing
-    DisposableEffect(Unit) { onDispose { onCardTopInRootPx(null) } }
-    RouteCard(
-        content = content,
-        expanded = state.expanded,
-        distanceUnit = distanceUnit,
-        callbacks = RouteCardCallbacks(
-            onToggleExpanded = actions::onSetExpanded,
-            onUndo = actions::onUndo,
-            onCancel = actions::onCancel,
-            onSave = actions::onOpenSaveDialog,
-            onDirections = { showing?.trip?.let { trip -> launchDirections(context, trip) } },
-        ),
-        expandedMaxHeight = expandedMaxHeight,
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .padding(controlsPadding)
-            .padding(bottom = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
-            .onGloballyPositioned {
-                onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() })
-                onCardTopInRootPx(it.positionInRoot().y)
-            },
-    )
+    if (content == null || state == null || actions == null) return
     val plotting = state.mode as? RoutePlotMode.Plotting
     if (plotting != null && state.saveDialogOpen) {
         SaveRouteDialog(

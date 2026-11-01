@@ -53,7 +53,6 @@ import org.robolectric.annotation.Config
 /** The trail leg of `RouteCardShownTotalsTest`: 0.44 mi, climbing 4.6 m, so a row reads 0.4 mi and +15 ft. */
 internal fun totalLineTrail(from: LatLng, to: LatLng) = RouteLeg.Trail(listOf(from, from, to, to), 0.44 * 1609.344, trailFrom = 1, trailTo = 2, trailHeightsMetres = listOf(100.0, 104.6))
 
-private const val PILL = "control-pill"
 
 /**
  * Dispatch 2026-10-30-08, Amendment 12 (RECORD -1910), the owner: "when the card gets expanded, simply have that info stay at the
@@ -280,45 +279,6 @@ class RouteCardTotalLineTest {
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
         assertEquals("1 Waypoint selected, tap another to route", text(ROUTE_CARD_COUNT_TAG))
         assertTrue("no total line", !exists(ROUTE_CARD_ROUTED_TAG))
-    }
-
-    @Test
-    fun `the taller peek - the column, its pill and the i clear it where the column opens, dragged lowest, and on the left`() {
-        setScreen()
-        val before = map.renderMode!!.let { it.attributionBottomInset ?: it.bottomInset }
-        plotFour()
-        fun assertClear(where: String) {
-            val card = bounds(ROUTE_CARD_TAG)
-            val column = bounds(MAP_ICON_CLUSTER_TAG)
-            val pill = bounds(PILL)
-            val mode = map.renderMode!!
-            val iBottom = bounds("map-slot").bottom - (mode.attributionBottomInset ?: mode.bottomInset)
-            println("A12 $where: card top ${card.top} height ${card.bottom - card.top}, column ${column.top}..${column.bottom}, pill bottom ${pill.bottom}, i bottom $iBottom (inset before the card $before)")
-            assertTrue("$where: the column's bottom ${column.bottom} clears the card's top ${card.top}", column.bottom <= card.top + 0.5.dp)
-            assertTrue("$where: the pill's bottom ${pill.bottom} clears the card's top ${card.top}", pill.bottom <= card.top + 0.5.dp)
-            assertTrue("$where: the i's bottom $iBottom clears the card's top ${card.top}", iBottom <= card.top + 0.5.dp)
-        }
-        assertClear("where it opens")
-        dragCluster(Offset(0f, with(composeRule.density) { 900.dp.toPx() }))
-        assertClear("dragged lowest")
-        dragCluster(Offset(-with(composeRule.density) { 200.dp.toPx() }, 0f))
-        assertClear("lowest, on the left")
-        composeRule.onNodeWithContentDescription("Fullscreen").performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
-        settle()
-        assertClear("fullscreen")
-    }
-
-    private fun dragCluster(by: Offset) {
-        val handle = bounds("map-icon-bar-minimize-handle")
-        val from = with(composeRule.density) { Offset(((handle.left + handle.right) / 2).toPx(), ((handle.top + handle.bottom) / 2).toPx()) }
-        composeRule.onRoot().performTouchInput {
-            down(from)
-            advanceEventTime(600)
-            moveTo(from + by)
-            advanceEventTime(50)
-            up()
-        }
-        settle()
     }
 
     private companion object {

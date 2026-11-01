@@ -68,7 +68,7 @@ internal val WALKER_DOT_CLEARANCE = 12.dp
  * edge by its own height, with a fade, on the same timing, and back down; under reduced motion it only fades.
  */
 @Composable
-private fun navigationChromeFromBottomTransitions(): Pair<EnterTransition, ExitTransition> {
+internal fun navigationChromeFromBottomTransitions(): Pair<EnterTransition, ExitTransition> {
     val reduceMotion = LocalReduceMotion.current
     val slide = MotionTokens.navigationViewChromeSpec<IntOffset>()
     val timedFade = MotionTokens.navigationViewChromeSpec<Float>()

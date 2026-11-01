@@ -33,7 +33,6 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
@@ -87,6 +86,7 @@ internal fun BoxScope.CompactMapBottomChrome(
     // Dispatch 2026-10-30-08: how far "Return to Route" (Amendment 3) and the legend chip (Amendment 4) rise while the route
     // card shows, its height and a gap; nothing while it does not.
     val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
+    val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
     val returnToRouteShown = isNavigating && !navigationFollowing
     MapPopUp(
         visible = returnToRouteShown,
@@ -117,11 +117,11 @@ internal fun BoxScope.CompactMapBottomChrome(
     // cluster's column reaches the corner the legend sits in, so the legend moves just inboard of
     // it (the cluster's edge inset and measured width, plus the portrait gap), bottom-aligned as
     // before, collapsed or expanded. Otherwise it is in its corner as it always was.
-    val legendEndPadding = if (landscapeCluster && !isMapIconBarOnLeftSide) {
-        MAP_ICON_BAR_EDGE_INSET + with(LocalDensity.current) { mapIconClusterWidthPx.toDp() } + Spacing.sm
-    } else {
-        Spacing.sm
-    }
+    // Amendment 14 (RECORD -1928): in portrait the same while the route card shows, as the chip rises beside the bar then.
+    val legendEndPadding = routeCardLegendEndPadding(
+        barOnRight = !isMapIconBarOnLeftSide && (landscapeCluster || routeCardHeight > 0.dp),
+        barWidth = with(LocalDensity.current) { mapIconClusterWidthPx.toDp() },
+    )
     // Motion Part 2, item 4 (scout M2; "Fade and grow"): the legend grows out of its own bottom-end corner and shrinks
     // back into it; item 5: leaving, it takes no touch and gives up its keep-out at once. It keeps the cluster clear of
     // it (legendChipTopPx) until it has gone, so the cluster does not glide down over a legend still fading. Opening
@@ -146,8 +146,10 @@ internal fun BoxScope.CompactMapBottomChrome(
                 onExpandedChange = mapLayers.onLegendExpandedChange,
                 modifier = Modifier
                     .then(if (legendNow != null) Modifier.mapKeepOut(MapKeepOutIds.LEGEND) else Modifier)
+                    // Amendment 14 (RECORD -1928): the bar's lowest edge is where the chip sits with no card, so the card moves the
+                    // chip and not, through it, the bar.
                     .onGloballyPositioned { coordinates ->
-                        legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
+                        legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx + routeCardLiftPx
                     },
             )
         }
