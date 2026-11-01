@@ -146,22 +146,25 @@ class RouteCardContentWidthTest {
     }
 
     @Test
-    fun `under reduced motion a wider leg sets the width at once`() {
+    fun `under reduced motion a wider leg sets the width without easing`() {
         val rig = RouteCardBarRig(composeRule, WIDENING_NAMES)
         rig.setScreen(reduceMotion = true)
         rig.plotTo(2)
         val narrow = rig.bounds(ROUTE_CARD_TAG)
         composeRule.mainClock.autoAdvance = false
         rig.tapNext()
-        composeRule.mainClock.advanceTimeByFrame()
-        composeRule.mainClock.advanceTimeByFrame()
-        composeRule.mainClock.advanceTimeByFrame()
-        val after = rig.bounds(ROUTE_CARD_TAG)
+        val widths = (1..24).map {
+            composeRule.mainClock.advanceTimeByFrame()
+            width(rig.bounds(ROUTE_CARD_TAG)).value
+        }
         composeRule.mainClock.autoAdvance = true
         rig.settle()
         val wide = rig.bounds(ROUTE_CARD_TAG)
-        assertTrue("precondition: this leg widens the card: ${width(narrow)} to ${width(wide)}", width(wide) >= width(narrow) + 16.dp)
-        assertEquals("the width is there on the first frames", width(wide).value, width(after).value, 0.5f)
+        println("A16 reduced motion, by frame: $widths")
+        assertTrue("precondition: this leg widens the card: ${width(narrow)} to ${width(wide)}", width(wide) >= width(narrow) + 8.dp)
+        assertEquals("it reached its width inside the frames read", width(wide).value, widths.last(), 0.5f)
+        // Two jumps at most: the row in flight with its mark, then the row with its distance. Easing would show many values.
+        assertTrue("no easing, the widths by frame: $widths", widths.distinct().size <= 3)
     }
 
     @Test
