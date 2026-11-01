@@ -131,6 +131,8 @@ class WordSwapStoppedActivityTest {
     private var text by mutableStateOf("Sunset 5:59 PM · in 1 h 9 min · dark 6:29")
     private var shown: String? = null
     private var clockFrames = 0
+    private var outerText: String? = null
+    private var choreoFrames = 0
 
     private fun frames(count: Int) = repeat(count) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS)) }
 
@@ -147,6 +149,11 @@ class WordSwapStoppedActivityTest {
                     shown = line
                     Text(line)
                 }
+            }
+            outerText = text
+            LaunchedEffect(Unit) {
+                fun tick() { android.view.Choreographer.getInstance().postFrameCallback { choreoFrames++; tick() } }
+                tick()
             }
             LaunchedEffect(Unit) { while (true) withFrameNanos { clockFrames++ } }
         }
@@ -169,7 +176,10 @@ class WordSwapStoppedActivityTest {
                 text = "Sunset 5:59 PM · in 1 h 8 min · dark 6:29"
                 Snapshot.sendApplyNotifications()
             }
-            frames(SETTLE_FRAMES)
+            repeat(12) { i ->
+                frames(5)
+                scenario.onActivity { println("PROBE $i state=${recomposer.currentState.value} pending=${recomposer.hasPendingWork} changes=${recomposer.changeCount} shown=$shown outer=$outerText choreo=$choreoFrames attached=${it.window.decorView.isAttachedToWindow} life=${it.lifecycle.currentState}") }
+            }
 
             var applied = 0
             val observer = Snapshot.registerApplyObserver { changed, _ -> if (changed.isNotEmpty()) applied++ }
