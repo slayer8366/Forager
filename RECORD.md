@@ -31376,3 +31376,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The release's terrain is hill shading, slope and aspect from the Pi's existing grid; own Topographical with contours stays out
 **Decision:** the owner, to the planner's reading: "Yes, that's it (Recommended)". No build go. The step path comes to the owner before anything starts; -1913's "Not yet" on the pilot stands until then.
 **Notes:** Written by the planner by hand. Juniper's report puts the 3″ grid at about z11 for shading; slope and aspect are not sized. Next free ID -1925.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1925
+**Timestamp:** 2026-11-01T16:15:26Z
+**Continues:** 2026-09-28-1628, 2026-09-28-1924
+**Supersedes:** -1628's "We should finish the entire plan before release" as the release gate
+**Title:** The release offers what is finished; anything not ready stays under the hood and is polished after
+**Decision:** the owner: "If it's not ready for release, we'll keep it under the hood and offer whatever feature we can from what is finished, and then work on the rest until it's polished". The list in -1923 and -1924 is now the work in progress, not a gate; each feature ships when it is ready, not all together.
+**Notes:** Written by the planner by hand. Anything unfinished already on pre-main has to be hidden before a promotion. Next free ID -1926.
