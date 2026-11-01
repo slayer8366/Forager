@@ -83,7 +83,7 @@ internal fun BoxScope.CompactMapIconCluster(
             modifier = barModifier,
         )
     }
-    val trailhead: @Composable (Boolean, Boolean, Color, Dp) -> Unit = { onLeftSide, horizontal, fillColor, rowSpacing ->
+    val trailhead: @Composable (Boolean, Boolean, Color, Dp, Boolean) -> Unit = { onLeftSide, horizontal, fillColor, rowSpacing, fullSquareTouches ->
         TrailheadControls(
             isRecording = isRecording,
             onToggleRecording = onToggleRecording,
@@ -96,6 +96,7 @@ internal fun BoxScope.CompactMapIconCluster(
             horizontal = horizontal,
             fillColor = fillColor,
             rowSpacing = rowSpacing,
+            fullSquareTouches = fullSquareTouches,
             // Dispatch -502: the X-circle for either navigation, a waypoint's included.
             isNavigating = isNavigating,
         )
@@ -120,16 +121,16 @@ internal fun BoxScope.CompactMapIconCluster(
         landscapeBar = { barModifier -> phoneBar(barModifier, Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, true) },
         // Composed whenever MapIconBar is (regardless of isRecording — record start/stop must stay reachable before the first
         // recording starts; isRecording flows in as a plain parameter, see TrailheadControls' own doc comment, not a presence check).
-        pill = { onLeftSide -> trailhead(onLeftSide, false, Color.Unspecified, Spacing.xs) },
+        pill = { onLeftSide -> trailhead(onLeftSide, false, Color.Unspecified, Spacing.xs, false) },
         // Landscape L: the pill turned horizontal (record under the bar's column, return inboard, 96 x 48), one layer at the
         // standing 0.8 fill, both buttons taking touches across their full 48 x 48 squares.
-        landscapePill = { onLeftSide -> trailhead(onLeftSide, true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING) },
+        landscapePill = { onLeftSide -> trailhead(onLeftSide, true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, false) },
         // Amendment 11 (RECORD -1909): alone over the map, so one layer at the standing 0.8 fill; the L's own pill in the L.
         heldPill = { onLeftSide ->
             if (cluster.landscape) {
-                trailhead(onLeftSide, true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING)
+                trailhead(onLeftSide, true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, false)
             } else {
-                trailhead(onLeftSide, false, mapIconChromeFillColor(), Spacing.xs)
+                trailhead(onLeftSide, false, mapIconChromeFillColor(), Spacing.xs, true)
             }
         },
         // T11 fixes (RECORD -766, P4): the L slides below the navigation display while navigating on its side.
