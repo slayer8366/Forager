@@ -85,6 +85,9 @@ the future".
 - **The guard,** `.github/workflows/worker-release.yml`, runs `tools/check-release.sh` on every `worker/*` pull request to
   `main`. It fails if any changed file is outside this folder, or if the folder differs from pre-main's. Its tests are
   `test/check-release.test.mjs`.
+- **Any pull request to `main` that touches this folder,** whatever its branch, runs the equality half too
+  (`.github/workflows/worker-folder-guard.yml`, `check-release.sh --equality-only`; Sorrel's should-fix 1): the folder
+  reaches `main` only equal to pre-main's.
 - **The folder stands alone,** so its tests pass on `main`, whose other folders are an older release's.
   `test/self-contained.test.mjs` fails if any source or test reads a file outside it. The checks that the Worker's copies
   equal the rest of the repository's (the official-trails names in `test/reference-names.mjs`, and the frozen v2 style)

@@ -1,0 +1,26 @@
+# The Worker folder reaches main only equal to pre-main's (dispatch 2026-11-01-coder-11; Sorrel's should-fix 1 on
+# worker-self-contained-tests). worker-release.yml checks worker/* release branches in full; this checks the equality half
+# on any pull request to main that touches server/pmtiles-worker, whatever its branch, since Cloudflare Workers Builds
+# deploys main's folder on every push to main. A paths filter applies to a whole workflow, so this is its own file.
+name: Worker folder guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["server/pmtiles-worker/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  equals-pre-main:
+    name: server/pmtiles-worker equals pre-main's
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Fetch main and pre-main
+        run: git fetch --no-tags origin main pre-main
+      - name: Check the folder
+        run: bash server/pmtiles-worker/tools/check-release.sh --equality-only origin/main "${{ github.event.pull_request.head.sha }}" origin/pre-main
