@@ -743,7 +743,8 @@ jobs:
         run: >-
           node --test --test-reporter=spec --test-reporter-destination=stdout
           --test-reporter=junit --test-reporter-destination=pmtiles-worker-junit.xml
-          test/worker.test.mjs test/routing.test.mjs
+          test/worker.test.mjs test/routing.test.mjs test/cross-folder.test.mjs test/self-contained.test.mjs
+          test/check-release.test.mjs
       - name: Summarize from the JUnit XML
         if: always()
         run: |
