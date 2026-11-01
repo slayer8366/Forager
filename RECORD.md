@@ -31445,3 +31445,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** In portrait the route card slides in from the side opposite the icon bar
 **Decision:** the owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)"; "Yes that's how i want it. Carry on". Dispatch 2026-10-30-08 Amendment 15.
 **Notes:** Written by the planner by hand. Next free ID -1930.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1930
+**Timestamp:** 2026-11-01T20:31:34Z
+**Continues:** 2026-09-28-1929
+**Title:** RECORD -1929 and Amendment 15 each appear twice; the first copy is a write that ran though it showed as rejected
+**Observed:** e0416e0ee and 0bbe31ad8. The tool call was shown as rejected, the planner re-ran it without checking the branch, and both landed. The two say the same; the second adds the owner's "Yes that's how i want it. Carry on". Read the second. Left in place, since the record is append-only.
+**Notes:** Written by the planner by hand. Next free ID -1931.
