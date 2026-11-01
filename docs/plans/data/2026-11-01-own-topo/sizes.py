@@ -71,3 +71,6 @@ for r,n in area.items():
 for gb in (20,60,125):
     print(f'{gb} GB: ${gb*.015:.2f}/month; upload at 2.9 MiB/s {gb*1e9/(2.9*2**20)/3600:.1f} h; parts at 16 MiB {gb*1e9/2**24:.0f}')
 print('download at 10 GB/h: US re-pull + MRDEM 84 GB:',round((sum(c['dep'] for c in no1)/GB+84)/10,1),'h')
+# --- middle case for planning, not a measurement: k 1.3e-4, spacing 25 m, 2.5 B a vertex, gzip .75
+km,_=lengthkm(1.3e-4,12.192); m=km*1000
+print(f'40 ft middle case: {km/1e6:.0f} M km; z13-14 {(m/25+m/5/50)*2.5*.75*1.1/GB:.1f} GB')
