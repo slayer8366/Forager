@@ -31481,3 +31481,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** In portrait the route card is only as wide as its content needs; a long line wraps; then an S22 build and Sorrel
 **Decision:** the owner: "The card is supposed to slide from the opposite side, only give enough room to display the info"; "Keep the same width (Recommended)"; "Wrap to two lines (Recommended)"; "Fix these, then S22 build (Recommended)". Dispatch 2026-10-30-08 Amendment 16. The S22 build goes on when the phone is plugged in, with the bar's place checked; Sorrel reviews everything since Amendment 5 before the owner decides on the merge.
 **Notes:** Written by the planner by hand. Next free ID -1933.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1933
+**Timestamp:** 2026-11-01T21:41:26Z
+**Continues:** 2026-09-28-1932
+**Title:** The planner holds all merges for now; nothing to main until Aspen confirms #456 live
+**Observed:** Aspen's note prompts/aspen/2026-11-01-05: every push to main redeploys the Worker from main's older folder, so any merge there would drop Trail Map's style and the official trails on every phone.
+**Decision:** the owner: "Hold off on the merges for the time being". The planner merges nothing, into pre-main or main, until the owner says otherwise. Coders keep working on their branches.
+**Notes:** Written by the planner by hand. Next free ID -1934.
