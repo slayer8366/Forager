@@ -12,6 +12,8 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { gunzipSync } from "node:zlib";
+import crypto from "node:crypto";
+import * as reference from "../../../map-style/overrides/forager-reference.mjs";
 
 const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
@@ -23,6 +25,12 @@ const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
 const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
 const STREET_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json"), "utf8");
+// Step 8a (dispatch 2026-10-26-14): Trail Map v3, with the official-trails band, and the synthetic archive standing in
+// for reference-trails.pmtiles (test/fixtures/make-reference-trails-pmtiles.py; invented positions, marker bodies).
+const STREET_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
+const REFERENCE = fs.readFileSync(here("./fixtures/reference-trails.pmtiles"));
+// The archive's manifest (dispatch 2026-10-26-22 M1), an R2 object beside it: invented values in the real file's shape.
+const MANIFEST = fs.readFileSync(here("./fixtures/reference-trails-manifest.json"));
 const HOST = "https://forager-pmtiles.brandonlee1-894.workers.dev";
 
 let fetchCalls;
@@ -31,6 +39,7 @@ let assets;
 let worldOnR2;
 let bucketHeads;
 let bucketPuts;
+let referenceOnR2;
 
 class FakeCache {
   constructor() { this.entries = new Map(); }
@@ -58,6 +67,7 @@ const bucket = {
     // from it is missing from us too, and only the archive's name differs.
     if (key === "us.pmtiles" || key === "other.pmtiles") return rangeRead(ARCHIVE, options);
     if (key === "world-south.pmtiles" && worldOnR2) return rangeRead(WORLD, options);
+    if (key === "reference-trails.pmtiles" && referenceOnR2) return rangeRead(REFERENCE, options);
     if (assets.has(key)) {
       const bytes = assets.get(key);
       return { body: true, etag: "asset", httpMetadata: {}, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
@@ -72,6 +82,7 @@ const bucket = {
     bucketHeads.push(key);
     if (key === "us.pmtiles" || key === "other.pmtiles") return { key };
     if (key === "world-south.pmtiles" && worldOnR2) return { key };
+    if (key === "reference-trails.pmtiles" && referenceOnR2) return { key };
     return null;
   },
 };
@@ -115,6 +126,7 @@ beforeEach(() => {
   bucketReads = [];
   pending = [];
   worldOnR2 = true;
+  referenceOnR2 = true;
   bucketHeads = [];
   bucketPuts = [];
   globalThis.caches.default = new FakeCache();
@@ -124,6 +136,9 @@ beforeEach(() => {
     ["sprites/v4/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47])],
     ["sprites/v5/light.json", Buffer.from('{"townspot":{},"trailhead_b":{}}')],
     ["sprites/v5/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x35])],
+    ["sprites/v6/light.json", Buffer.from('{"townspot":{},"trailhead_b":{},"orchard_dots":{}}')],
+    ["sprites/v6/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x36])],
+    ["reference-trails-manifest.json", MANIFEST],
   ]);
 });
 
@@ -154,6 +169,32 @@ test("the TileJSON still advertises maxzoom 15 and the Worker's own tile URL", a
   const tilejson = await response.json();
   assert.equal(tilejson.maxzoom, 15);
   assert.deepEqual(tilejson.tiles, [`${HOST}/us/{z}/{x}/{y}.mvt`]);
+});
+
+// --- The overflow and the advertised maxzoom are the Street archive's alone (dispatch 2026-11-01-coder-11 step 1, before
+// relief.pmtiles, z5-11 raster-dem PNG, goes on R2). Any other archive advertises its own maxzoom, and a tile above it is
+// 204: never Protomaps' live vector build, which would answer a relief .png request with MVT and write it into R2.
+// other.pmtiles stands in for any non-Street archive: tiny.pmtiles's tiles, maxzoom 14.
+
+test("a non-Street archive's TileJSON advertises its own maxzoom, not the overflow's 15", async () => {
+  const tilejson = await (await call("/other.json")).json();
+  assert.equal(tilejson.maxzoom, 14);
+  assert.deepEqual(tilejson.tiles, [`${HOST}/other/{z}/{x}/{y}.mvt`]);
+});
+
+test("a non-Street archive's tile above its maxzoom is 204, with no Protomaps read and no R2 overflow read or write", async () => {
+  const response = await call("/other/15/5303/11553.mvt");
+  assert.equal(response.status, 204);
+  assert.deepEqual(fetchCalls, []);
+  assert.ok(!bucketReads.some((k) => k.startsWith("overflow/")), JSON.stringify(bucketReads));
+  assert.deepEqual(bucketPuts, []);
+});
+
+test("the Street archive keeps the overflow: us.json advertises 15 and its z15 tile reads the live build", async () => {
+  assert.equal((await (await call("/us.json")).json()).maxzoom, 15);
+  const response = await call("/us/15/5303/11553.mvt");
+  assert.equal(response.status, 200);
+  assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
 });
 
 test("/style/offline.json is the bundled offline style, byte for byte as before", async () => {
@@ -234,6 +275,23 @@ test("sprite v5 files are read from R2 under sprites/v5/, with a week's cache, a
   assert.deepEqual(bucketReads, ["sprites/v5/light.json", "sprites/v5/light@2x.png", "sprites/v4/light.json"]);
 });
 
+// Sprite v6 (dispatch 2026-10-31-coder-07 Part 3; the owner: "New icon set v6 (Recommended)"): v5 unchanged plus the
+// orchard, vineyard and nursery patterns, named by Street v4 only. v4 and v5 stay where they were.
+test("sprite v6 files are read from R2 under sprites/v6/, with a week's cache, and v4 and v5 stay where they were", async () => {
+  const json = await call("/sprites/v6/light.json");
+  assert.equal(json.status, 200);
+  assert.equal(json.headers.get("Content-Type"), "application/json");
+  assert.equal(json.headers.get("Cache-Control"), "public, max-age=604800");
+  assert.equal(await json.text(), '{"townspot":{},"trailhead_b":{},"orchard_dots":{}}');
+  const png = await call("/sprites/v6/light@2x.png");
+  assert.equal(png.status, 200);
+  assert.equal(png.headers.get("Content-Type"), "image/png");
+  assert.deepEqual([...Buffer.from(await png.arrayBuffer())], [0x89, 0x50, 0x4e, 0x47, 0x36]);
+  assert.equal(await (await call("/sprites/v5/light.json")).text(), '{"townspot":{},"trailhead_b":{}}');
+  assert.equal(await (await call("/sprites/v4/light.json")).text(), '{"townspot":{}}');
+  assert.deepEqual(bucketReads, ["sprites/v6/light.json", "sprites/v6/light@2x.png", "sprites/v5/light.json", "sprites/v4/light.json"]);
+});
+
 test("a missing font range is a 404 and is not cached", async () => {
   const response = await call("/fonts/Noto%20Sans%20Regular/256-511.pbf");
   assert.equal(response.status, 404);
@@ -245,7 +303,7 @@ test("a missing font range is a 404 and is not cached", async () => {
 test("other paths under /fonts/ and /sprites/ never read R2", async () => {
   for (const path of [
     "/fonts/../us.pmtiles", "/fonts/Noto%20Sans%20Regular/x.pbf", "/sprites/v4/dark.json", "/sprites/us.pmtiles",
-    "/sprites/v6/light.json", "/sprites/v5/dark.png",
+    "/sprites/v7/light.json", "/sprites/v5/dark.png", "/sprites/v6/dark.json",
   ]) {
     const response = await call(path);
     assert.equal(response.status, 404, path);
@@ -385,4 +443,274 @@ test("overflow: a z15 tile inside the archive's own bounds still goes to the ove
   assert.equal(await tileText(response), "live 15/5303/11553");
   assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
   assert.ok(bucketReads.includes("overflow/us/15/5303/11553.mvt"));
+});
+
+// --- Step 8a: Trail Map v3 with the official-trails band (dispatch 2026-10-26-14 and Amendment 1; RECORD -1633, -1678).
+// The archive's names come from map-style/overrides/forager-reference.mjs, the one place they are written.
+
+const sha256 = (path) => crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
+const v3Style = () => JSON.parse(STREET_V3_STYLE_SOURCE);
+const referenceLayers = (style) => style.layers.filter((l) => l.source === reference.REFERENCE_SOURCE_ID);
+
+test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are served as before", async () => {
+  const response = await call("/style/street-v3.json");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/json");
+  const text = await response.text();
+  assert.equal(text, JSON.stringify(JSON.parse(STREET_V3_STYLE_SOURCE)));
+  assert.equal(JSON.parse(text).name, "Forager Street v3");
+  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(STREET_STYLE_SOURCE)));
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("v2 is frozen: all three copies byte for byte what pre-main c91f34c49 held", () => {
+  // Regions downloaded against v2 keep drawing in it (MapLibre keys a region by its style URL), so v2 never changes.
+  const v2 = "7547507bc2b7dbdae24e8b3735eeda569c0f903c068282259b1e51b4bcc7886d";
+  assert.deepEqual(
+    {
+      worker: sha256("../src/street-style-v2.json"),
+      app: sha256("../../../map-style/forager-street-v2.json"),
+      preview: sha256("../../../map-style/forager-street-v2.preview.json"),
+    },
+    { worker: v2, app: v2, preview: "d07ce0e343c1187e607f04e5bb455898776e9acaa41c9133430f459f98fdd039" },
+  );
+});
+
+// Since dispatch 2026-10-27-02 (RECORD -1730) v3 also differs from v2 in its buildings: the buildings layer's paint, and
+// one new layer, buildings_outline. Everything else is v2's, which this test holds by comparing the rest whole.
+const BUILDINGS_EDIT = new Set(["buildings", "buildings_outline"]);
+
+test("v3 is v2 plus the reference source and its layers and the buildings edit, and nothing else", () => {
+  const v3 = v3Style();
+  const v2 = JSON.parse(STREET_V2_STYLE_SOURCE);
+  const { [reference.REFERENCE_SOURCE_ID]: added, ...sources } = v3.sources;
+  assert.ok(added, "v3 has no reference source");
+  assert.deepEqual(sources, v2.sources);
+  const own = v3.layers.filter((l) => l.source !== reference.REFERENCE_SOURCE_ID);
+  assert.deepEqual(own.filter((l) => !BUILDINGS_EDIT.has(l.id)), v2.layers.filter((l) => !BUILDINGS_EDIT.has(l.id)));
+  assert.deepEqual(own.map((l) => l.id), v2.layers.flatMap((l) => (l.id === "buildings" ? ["buildings", "buildings_outline"] : [l.id])));
+  // The buildings layer keeps all but its paint: the same source, source-layer, filter and zooms as v2's.
+  const buildings = (style) => style.layers.find((l) => l.id === "buildings");
+  assert.deepEqual({ ...buildings(v3), paint: undefined }, { ...buildings(v2), paint: undefined });
+  assert.deepEqual({ ...v3, name: v2.name, sources: v2.sources, layers: v2.layers, metadata: undefined }, { ...v2, metadata: undefined });
+  // The same app tiles, glyphs and sprite: a v3 region draws v2's tiles and fonts.
+  assert.equal(v3.sources.protomaps.url, v2.sources.protomaps.url);
+});
+
+test("buildings below z14 are v2's, solid from z14, a step darker at z14 only, with a 0.75 outline from z15 directly above them (dispatch 2026-10-27-02)", () => {
+  // After the OpenStreetMap Carto style's buildings (style/buildings.mss): an opaque fill from z14, darker at z14, and
+  // from z15 a line 15% darker. The owner: "Can we have a border around the buildings and houses to separate them
+  // from the rest of the map?" (RECORD -1730). Protomaps' tiles carry buildings from z11; below z14 they stay v2's
+  // half-opaque #cccccc, the owner: "Change only from zoom 14 (Recommended)" (Amendment 2, RECORD -1737).
+  const layers = v3Style().layers;
+  const at = (id) => layers.findIndex((l) => l.id === id);
+  const buildings = layers[at("buildings")];
+  assert.deepEqual(buildings.paint, {
+    "fill-color": ["step", ["zoom"], "#cccccc", 14, "#c1c1c1", 15, "#cccccc"],
+    "fill-opacity": ["step", ["zoom"], 0.5, 14, 1],
+  });
+  // Below z14 each step's first output is v2's own paint, so z11 to z13 draw as before.
+  const v2Buildings = JSON.parse(STREET_V2_STYLE_SOURCE).layers.find((l) => l.id === "buildings");
+  assert.equal(buildings.paint["fill-color"][2], v2Buildings.paint["fill-color"], "below z14 the fill is not v2's");
+  assert.equal(buildings.paint["fill-opacity"][2], v2Buildings.paint["fill-opacity"], "below z14 the opacity is not v2's");
+  assert.equal(at("buildings_outline"), at("buildings") + 1, "the outline is not directly above the buildings");
+  assert.deepEqual(layers[at("buildings_outline")], {
+    id: "buildings_outline",
+    type: "line",
+    source: "protomaps",
+    "source-layer": "buildings",
+    filter: buildings.filter,
+    minzoom: 15,
+    paint: { "line-color": "#a6a6a6", "line-width": 0.75 },
+  });
+  // The forest and its tree glyphs draw below, so a building covers them.
+  for (const id of ["landuse_park", "landuse_forest_glyphs"]) assert.ok(at(id) >= 0 && at(id) < at("buildings"), id);
+});
+
+test("the reference source carries its tile address on this Worker, zooms 10 to 15, and no TileJSON URL", () => {
+  const source = v3Style().sources[reference.REFERENCE_SOURCE_ID];
+  // A TileJSON URL would 404 until the archive exists, and MapLibre treats that 404 as an error (Amendment 1).
+  assert.deepEqual(source, {
+    type: "vector",
+    tiles: [`${HOST}/reference-trails/{z}/{x}/{y}.mvt`],
+    minzoom: 10,
+    maxzoom: 15,
+  });
+  assert.equal(source.url, undefined);
+});
+
+test("the bands sit below every Trail Map trail line, the number above them all", () => {
+  const ids = v3Style().layers.map((l) => l.id);
+  const trails = ids.flatMap((id, i) => (id.startsWith("roads_path_") ? [i] : []));
+  assert.equal(trails.length, 18, "Trail Map v2 has 18 trail layers (roads_path_track to roads_path_hard_faint)");
+  const at = (id) => ids.indexOf(id);
+  assert.deepEqual(
+    { fsBand: at("reference_fs_band"), blmBand: at("reference_blm_band"), number: at("reference_fs_number") },
+    { fsBand: trails[0] - 2, blmBand: trails[0] - 1, number: trails[trails.length - 1] + 1 },
+  );
+  assert.deepEqual(referenceLayers(v3Style()).map((l) => l.id), ["reference_fs_band", "reference_blm_band", "reference_fs_number"]);
+});
+
+test("the bands: one per agency source-layer, violet at 35%, 6 to 10 wide, from zoom 12; the number from 14", () => {
+  const byId = Object.fromEntries(referenceLayers(v3Style()).map((l) => [l.id, l]));
+  for (const [id, sourceLayer] of [["reference_fs_band", "fs_trails"], ["reference_blm_band", "blm_trails"]]) {
+    const l = byId[id];
+    assert.ok(l, `v3 has no ${id} layer`);
+    assert.equal(l.type, "line", id);
+    assert.equal(l["source-layer"], sourceLayer, id);
+    assert.equal(l.minzoom, 12, id);
+    assert.equal(l.paint["line-color"], "#7b5ea7", id);
+    assert.equal(l.paint["line-opacity"], 0.35, id);
+    assert.deepEqual(l.paint["line-width"], ["interpolate", ["linear"], ["zoom"], 12, 6, 15, 10], id);
+    // The -1633 default "On": visible until 8b's switch says otherwise.
+    assert.notEqual(l.layout?.visibility, "none", id);
+  }
+  const number = byId.reference_fs_number;
+  assert.ok(number, "v3 has no reference_fs_number layer");
+  assert.equal(number.type, "symbol");
+  assert.equal(number["source-layer"], "fs_trails");
+  assert.equal(number.minzoom, 14);
+  assert.deepEqual(number.layout["text-field"], ["get", "trail_no"]);
+});
+
+// The filters are evaluated on features, not compared as text: what is claimed is which trails draw. The evaluator below
+// knows only the operators these filters may use and throws on any other, so a filter written with a new operator fails
+// here rather than being read wrongly. Its answers were checked against MapLibre GL JS 6.12.0's own featureFilter
+// (map-style's pinned copy) when written (dispatch 2026-10-26-22).
+function evaluate(expression, properties) {
+  if (!Array.isArray(expression)) return expression;
+  const [op, ...args] = expression;
+  const value = (e) => evaluate(e, properties);
+  switch (op) {
+    case "get": return Object.hasOwn(properties, args[0]) ? properties[args[0]] : null;
+    case "has": return Object.hasOwn(properties, args[0]);
+    case "literal": return args[0];
+    case "coalesce": for (const a of args) { const v = value(a); if (v !== null && v !== undefined) return v; } return null;
+    case "==": return value(args[0]) === value(args[1]);
+    case "!=": return value(args[0]) !== value(args[1]);
+    case "!": return !value(args[0]);
+    case "all": return args.every((a) => value(a) === true);
+    case "any": return args.some((a) => value(a) === true);
+    case "match": {
+      const input = value(args[0]);
+      for (let i = 1; i + 1 < args.length; i += 2) {
+        const labels = Array.isArray(args[i]) ? args[i] : [args[i]];
+        if (labels.includes(input)) return value(args[i + 1]);
+      }
+      return value(args[args.length - 1]);
+    }
+    default: throw new Error(`the test's evaluator does not know the operator ${JSON.stringify(op)}`);
+  }
+}
+
+// One Forest Service feature per trail_type the live archive carries (RECORD -1700: TERRA 78,169, SNOW 8,177, WATER 76),
+// and one with no type, which is kept.
+const FS_FEATURES = {
+  terra: { trail_type: "TERRA", trail_no: "060" },
+  snow: { trail_type: "SNOW", trail_no: "061" },
+  water: { trail_type: "WATER", trail_no: "062" },
+  untyped: { trail_no: "063" },
+};
+const drawnBy = (layer) => Object.keys(FS_FEATURES).filter((k) => layer.filter === undefined || evaluate(layer.filter, FS_FEATURES[k]) === true);
+
+test("Forest Service snow and water trails are left out of its band and its number; BLM's band has no filter", () => {
+  const byId = Object.fromEntries(referenceLayers(v3Style()).map((l) => [l.id, l]));
+  for (const id of ["reference_fs_band", "reference_blm_band", "reference_fs_number"]) assert.ok(byId[id], `v3 has no ${id} layer`);
+  assert.deepEqual(
+    { band: drawnBy(byId.reference_fs_band), number: drawnBy(byId.reference_fs_number) },
+    { band: ["terra", "untyped"], number: ["terra", "untyped"] },
+  );
+  // The number also needs a number to show.
+  assert.equal(evaluate(byId.reference_fs_number.filter, { trail_type: "TERRA" }), false);
+  assert.equal(byId.reference_blm_band.filter, undefined);
+});
+
+test("reference archive, generic path: a z10 tile is served from reference-trails.pmtiles, with no outside request", async () => {
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}/10/163/360.mvt`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("X-Forager-Origin"), "r2");
+  assert.equal(response.headers.get("Content-Type"), "application/x-protobuf");
+  assert.equal(await tileText(response), "reference 10/163/360");
+  assert.deepEqual(fetchCalls, []);
+  assert.ok(bucketReads.every((k) => k === "reference-trails.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("reference archive, generic path: a z15 tile comes from the archive, never from the Protomaps overflow", async () => {
+  // live-build.pmtiles holds this tile too, so an overflow answer would read "live 15/5303/11553".
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}/15/5303/11553.mvt`);
+  assert.equal(response.status, 200);
+  assert.equal(await tileText(response), "reference 15/5303/11553");
+  assert.deepEqual({ fetchCalls, bucketPuts }, { fetchCalls: [], bucketPuts: [] });
+});
+
+test("reference archive, generic path: a tile it lacks is 204, never us's tile or the world fill's", async () => {
+  // tiny.pmtiles (us) holds 14/2651/5776; the world fill answers only for us, and only to z8.
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}/14/2651/5776.mvt`);
+  assert.equal(response.status, 204);
+  assert.ok(bucketReads.every((k) => k === "reference-trails.pmtiles"), JSON.stringify(bucketReads));
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("reference archive, generic path: its TileJSON has its own zooms and bounds, and never asks after the world archive", async () => {
+  const response = await call(`/${reference.REFERENCE_ARCHIVE}.json`);
+  assert.equal(response.status, 200);
+  const tilejson = await response.json();
+  assert.deepEqual(
+    { tiles: tilejson.tiles, minzoom: tilejson.minzoom, maxzoom: tilejson.maxzoom, bounds: tilejson.bounds },
+    { tiles: [`${HOST}/reference-trails/{z}/{x}/{y}.mvt`], minzoom: 10, maxzoom: 15, bounds: [-123, 42, -120, 46] },
+  );
+  assert.deepEqual(bucketHeads, []);
+});
+
+test("reference archive not on R2 yet: a tile is a 404 (no content to MapLibre), with no Protomaps read or R2 write", async () => {
+  referenceOnR2 = false;
+  for (const path of ["10/163/360", "15/5303/11553"]) {
+    const response = await call(`/${reference.REFERENCE_ARCHIVE}/${path}.mvt`);
+    assert.equal(response.status, 404, path);
+  }
+  assert.deepEqual({ fetchCalls, bucketPuts }, { fetchCalls: [], bucketPuts: [] });
+});
+
+// --- The official-trails manifest (dispatch 2026-10-26-22 M1; the switch report section 5): the archive's dates, sources
+// and coverage, which the generic /reference-trails.json drops (pmtiles' getTileJson keeps no custom metadata). Served
+// from R2's reference-trails-manifest.json as its bytes, never through the tileset path.
+
+const MANIFEST_PATH = "/reference-trails-manifest.json";
+
+test("manifest: served from R2's reference-trails-manifest.json byte for byte, as JSON, cached a day like the other JSON routes", async () => {
+  const response = await call(MANIFEST_PATH);
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    {
+      type: response.headers.get("Content-Type"),
+      cache: response.headers.get("Cache-Control"),
+      origin: response.headers.get("Access-Control-Allow-Origin"),
+      body: Buffer.from(await response.arrayBuffer()).equals(MANIFEST),
+      reads: bucketReads,
+    },
+    { type: "application/json", cache: "public, max-age=86400", origin: "*", body: true, reads: ["reference-trails-manifest.json"] },
+  );
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("manifest: a second request is answered from the edge cache, with no R2 read", async () => {
+  await call(MANIFEST_PATH);
+  bucketReads = [];
+  const again = await call(MANIFEST_PATH);
+  assert.equal(again.status, 200);
+  assert.ok(Buffer.from(await again.arrayBuffer()).equals(MANIFEST));
+  assert.deepEqual(bucketReads, []);
+});
+
+test("manifest: not on R2 is a 404 that is not cached, and never a read of a .pmtiles archive", async () => {
+  assets.delete("reference-trails-manifest.json");
+  const response = await call(MANIFEST_PATH);
+  assert.equal(response.status, 404);
+  assert.deepEqual(bucketReads, ["reference-trails-manifest.json"]);
+  // Uploaded later: the next request finds it, because the 404 was not kept.
+  assets.set("reference-trails-manifest.json", MANIFEST);
+  const later = await call(MANIFEST_PATH);
+  assert.equal(later.status, 200);
+  assert.ok(Buffer.from(await later.arrayBuffer()).equals(MANIFEST));
 });
