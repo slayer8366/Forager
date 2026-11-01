@@ -31335,3 +31335,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Decision:** the owner: "Before adding it make sure the problem exists. Take the screenshot before fixing". Amendment 13's coder was stopped by the owner. The screenshot was not taken: "S22 got unplugged. You were too late."
 **Observed:** The 52 dp overlap in -1918 is a test figure from a simulated 823 x 384 dp screen at mdpi, and it has never been seen on a phone. The planner put it to the owner as fact and dispatched on it (-1919).
 **Notes:** Written by the planner by hand. Next time the S22 is connected: the screenshot first, then Amendment 13 only if the owner confirms the problem. Next free ID -1921.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1921
+**Timestamp:** 2026-11-01T12:23:59Z
+**Continues:** 2026-09-28-1920
+**Title:** Prove a problem before suggesting a fix
+**Decision:** the owner: "Next time prove the problem before suggesting a fix. Keep that in record". A problem is shown to exist before any fix is offered or dispatched; where a test or a report is the only evidence, the planner says so and gets the proof first.
+**Notes:** Written by the planner by hand. Next free ID -1922.
