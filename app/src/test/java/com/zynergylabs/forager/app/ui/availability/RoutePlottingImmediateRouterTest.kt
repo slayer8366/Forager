@@ -17,7 +17,6 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_PROGRESS_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_COUNT_TAG
@@ -115,7 +114,6 @@ class RoutePlottingImmediateRouterTest {
         val unit = viewModel.uiState.value.distanceUnit
 
         assertEquals("both legs asked for, in order", listOf(CREEK.stop().position to RIDGE.stop().position, RIDGE.stop().position to falls.stop().position), asked)
-        assertEquals("3 Waypoints selected", text(ROUTE_CARD_COUNT_TAG))
         assertEquals("Creek to Ridge", text(routeCardLegNameTag(0)))
         assertEquals(formatDistanceMeters(metres(CREEK, RIDGE), unit), text(routeCardLegDistanceTag(0)))
         assertEquals("Ridge to Falls", text(routeCardLegNameTag(1)))
@@ -128,7 +126,6 @@ class RoutePlottingImmediateRouterTest {
         touchCentreOf(glyphTag(CREEK.id))
 
         assertEquals("the third leg asked for", 3, asked.size)
-        assertEquals("4 Waypoints selected", text(ROUTE_CARD_COUNT_TAG))
         assertEquals("Falls to Creek", text(routeCardLegNameTag(2)))
         assertEquals(formatDistanceMeters(metres(falls, CREEK), unit), text(routeCardLegDistanceTag(2)))
         assertEquals("4 Waypoints routed", text(ROUTE_CARD_ROUTED_COUNT_TAG))

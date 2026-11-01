@@ -26,7 +26,7 @@ import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_DIALOG_TAG
 import com.zynergylabs.forager.app.ui.route.DISCARD_ROUTE_KEEP_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAME_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TOTAL_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TOTAL_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
@@ -143,7 +143,7 @@ class RoutePlottingTripPlannerTest {
         assertEquals(listOf(trip.name, "1.2 mi"), row(trip).fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text })
 
         touchAcross(row(trip), 0.5f, 0.5f)
-        assertEquals("1.2 mi", text(ROUTE_CARD_TOTAL_TAG))
+        assertEquals("1.2 mi", text(ROUTE_CARD_ROUTED_TOTAL_TAG))
     }
 
     @Test

@@ -54,7 +54,7 @@ import org.robolectric.annotation.Config
  * asserted as text, written out here as the owner approved it rather than read from the constant the screen uses, so a changed
  * word fails a test. The words are the dispatch's "Words on screen" and Amendment 1's approved list, with Amendment 6's card
  * words (RECORD -1887) in place of "Tap the next waypoint", which is gone: "1 Waypoint selected, tap another to route",
- * "N Waypoints selected", "<from> to <to>" and "N Waypoints routed", singular "Waypoint" only for 1. "Elevation:" is not on
+ * "<from> to <to>" and "N Waypoints routed", singular "Waypoint" only for 1. "Elevation:" is not on
  * screen until the follow-up on #447; `RouteCardLayoutTest` asserts it at the card's seam.
  *
  * One walk through the real screen with real touches: the waypoint's bubble, the card while plotting, the expanded rows, the
@@ -142,7 +142,7 @@ class RoutePlottingWordsTest {
         assertWord("Save", shown(ROUTE_CARD_SAVE_TAG), "the card")
 
         touchCentreOf(glyphTag(RIDGE.id))
-        assertWord("2 Waypoints selected", shown(ROUTE_CARD_COUNT_TAG), "the card at two stops")
+        assertWord("2 Waypoints routed", shown(ROUTE_CARD_ROUTED_COUNT_TAG), "the card at two stops")
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
         assertWordIn("No trail data, straight line", ROUTE_CARD_LEGS_TAG, "a leg with no trail data, in the expanded rows")
         assertWord("Creek to Ridge", shown(routeCardLegNameTag(0)), "the first leg's row")
@@ -150,7 +150,7 @@ class RoutePlottingWordsTest {
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
 
         touchCentreOf(glyphTag(CREEK.id))
-        assertWord("3 Waypoints selected", shown(ROUTE_CARD_COUNT_TAG), "the card at three stops, A to B to A")
+        assertWord("3 Waypoints routed", shown(ROUTE_CARD_ROUTED_COUNT_TAG), "the card at three stops, A to B to A")
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
         assertWord("Ridge to Creek", shown(routeCardLegNameTag(1)), "the second leg's row")
         assertWord("3 Waypoints routed", shown(ROUTE_CARD_ROUTED_COUNT_TAG), "the expanded list's last row, three stops")

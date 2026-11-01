@@ -17,11 +17,8 @@ import org.junit.Test
 class RouteCardTextTest {
 
     @Test
-    fun `one waypoint selected is singular and carries the hint, two and more are plural`() {
-        assertEquals("1 Waypoint selected, tap another to route", waypointsSelectedText(1))
-        assertEquals("2 Waypoints selected", waypointsSelectedText(2))
-        assertEquals("3 Waypoints selected", waypointsSelectedText(3))
-        assertEquals("12 Waypoints selected", waypointsSelectedText(12))
+    fun `the one-stop hint is singular and is the only selected text left (Amendment 12)`() {
+        assertEquals("1 Waypoint selected, tap another to route", ONE_WAYPOINT_SELECTED)
     }
 
     @Test

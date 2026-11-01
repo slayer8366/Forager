@@ -23,7 +23,6 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_ELEVATION_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TOTAL_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TOTAL_TAG
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
@@ -118,12 +117,11 @@ class RouteCardShownTotalsTest {
     fun `imperial - the peek and the routed row both total 1_2 mi under rows of 0_4 mi`() {
         setScreen(UnitSystem.IMPERIAL)
         plotFour()
-        assertEquals("the peek's total", "1.2 mi", text(ROUTE_CARD_TOTAL_TAG))
+        assertEquals("the peek's total", "1.2 mi", text(ROUTE_CARD_ROUTED_TOTAL_TAG))
 
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
         (0..2).forEach { assertEquals("0.4 mi", text(routeCardLegDistanceTag(it))) }
         assertEquals("the routed total", "1.2 mi", text(ROUTE_CARD_ROUTED_TOTAL_TAG))
-        assertEquals("the peek's total, expanded", "1.2 mi", text(ROUTE_CARD_TOTAL_TAG))
     }
 
     @Test
@@ -146,6 +144,6 @@ class RouteCardShownTotalsTest {
             }
         }
         composeRule.waitForIdle()
-        assertEquals("1.2 mi", text(ROUTE_CARD_TOTAL_TAG))
+        assertEquals("1.2 mi", text(ROUTE_CARD_ROUTED_TOTAL_TAG))
     }
 }
