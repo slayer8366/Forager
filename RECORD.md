@@ -31134,3 +31134,16 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Slip, disclosed:** a laptop screen recording wrote 4.5 GB and filled the root disk for about a minute before it was killed.
 **Decision:** the owner: "Minimise the column while open (Recommended)"; "Yes, add up what's shown (Recommended)". Dispatch 2026-10-30-08 Amendment 10.
 **Notes:** Written by the planner by hand. F-4 is brought to the owner separately. Next free ID -1905.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1905
+**Timestamp:** 2026-11-01T01:40:42Z
+**Continues:** 2026-09-28-1904
+**Title:** A new planner session takes over; #450 merged; #449 Amendment 10 restarted; a look-only dispatch for F-4; disk cleared
+**Observed:** The previous planner session and its Hazel stopped at the weekly limit at 2026-11-01T00:59Z. Hazel had made 11 reads and no change; route-plot-ui stayed clean at 73a18af40. The planner's three last answers were unacted on and unrecorded. This session runs on another account and read them from that session's transcript.
+- #450 merged to pre-main at d54189479. It had been green and CLEAN. 450-2 fails on the phone (-1904, F-4), which the owner knew when answering; 450-5 and 450-8 are still theirs.
+- **Disk, / went from 4.3 GB free:** removed the screenshots, APKs and notes in s22-2026-10-27, -28, s22-glyph, s22-glyph-fix and -29/tools, the APKs and zips in -29/pr440, and session files older than a day in /tmp. Kept: every phone database copy, and #440's evidence other than APKs. The laptop-only evidence those folders held is gone; the reports in docs/audits remain.
+**Decision:** the owner, in the old session: "Merge #450 now (Recommended)"; "Look-only investigation (Recommended)"; "List big items, ask first (Recommended)". Again in this session: "Merge #450 (Recommended)", "Restart Amendment 10 (Recommended)", "Look-only battery check (Recommended)"; and for the disk "System log, 3 GB", "Temp files, about 4 GB", "Old S22 evidence, 5 GB". Dispatch 2026-10-31-03 (F-4).
+**Notes:** Written by the planner by hand. The system log needs sudo, so it is left for the owner. Next free ID -1906.
