@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_LEGS_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
@@ -103,13 +104,14 @@ class RouteCardHandleTest {
     }
 
     @Test
-    fun `the handle keeps its look - the summary line starts 32 dp below the card's top, peek and expanded (guard, not shown to bite)`() {
+    fun `the handle keeps its look - what follows it starts 32 dp below the card's top, peek and expanded (guard, not shown to bite)`() {
         setScreen()
         listOf(false, true).forEach { open ->
             composeRule.runOnUiThread { plotting.onSetExpanded(open) }
             composeRule.waitForIdle()
-            val gap = bounds(ROUTE_CARD_COUNT_TAG).top - bounds(ROUTE_CARD_TAG).top
-            assertEquals("expanded=$open: the summary line's offset from the card's top, in dp", 32f, gap.value, 0.5f)
+            // Amendment 12 (RECORD -1910): the total line at peek, the rows expanded.
+            val gap = bounds(if (open) ROUTE_CARD_LEGS_TAG else ROUTE_CARD_ROUTED_TAG).top - bounds(ROUTE_CARD_TAG).top
+            assertEquals("expanded=$open: the first line's offset from the card's top, in dp", 32f, gap.value, 0.5f)
         }
     }
 }
