@@ -31147,3 +31147,20 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Disk, / went from 4.3 GB free:** removed the screenshots, APKs and notes in s22-2026-10-27, -28, s22-glyph, s22-glyph-fix and -29/tools, the APKs and zips in -29/pr440, and session files older than a day in /tmp. Kept: every phone database copy, and #440's evidence other than APKs. The laptop-only evidence those folders held is gone; the reports in docs/audits remain.
 **Decision:** the owner, in the old session: "Merge #450 now (Recommended)"; "Look-only investigation (Recommended)"; "List big items, ask first (Recommended)". Again in this session: "Merge #450 (Recommended)", "Restart Amendment 10 (Recommended)", "Look-only battery check (Recommended)"; and for the disk "System log, 3 GB", "Temp files, about 4 GB", "Old S22 evidence, 5 GB". Dispatch 2026-10-31-03 (F-4).
 **Notes:** Written by the planner by hand. The system log needs sudo, so it is left for the owner. Next free ID -1906.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1906
+**Timestamp:** 2026-11-01T01:49:44Z
+**Continues:** 2026-09-28-1905
+**Title:** F-4 looks like one stuck animation helper in WordSwap, old and in the released app; inferred, not run
+**Observed:** A helper (Opus), docs/audits/2026-10-31-recording-screen-off-recomposition.md on recording-screen-off-report ff7dbefc4, code and existing evidence only.
+- **Mechanism, inferred from library code and matched to the profile:** a number-only text change after the activity stops starts a transition that cannot finish, because Compose pauses its animation clock on stop while composition continues. AnimatedContent then rewrites its own list every frame and draws nothing.
+- **Feed:** the 15 s sundown tick, and the 1 Hz "Last seen" and navigation tickers.
+- **Age:** WordSwap came in at cd394b467 (-666) and is on main. #450 did not cause it.
+- **Size:** about 41% of a core on the debug build; the release cost is unmeasured.
+- **Fix A, proposed:** about 15 lines in WordSwap, covering its 14 call sites, nothing visible to the user.
+- **Not established:** the loop has not been run; what started run 1 is undetermined; three sibling uses of contentKey were not traced.
+- **Premises wrong:** the always-on display is not the cause; trial C was on a desk, not a walk with a fix.
+**Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1907.
