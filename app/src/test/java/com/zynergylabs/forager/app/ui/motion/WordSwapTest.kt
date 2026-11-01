@@ -40,7 +40,6 @@ import org.robolectric.shadows.ShadowChoreographer
  * on the lines the strip and the navigation display really show; [WordSwap] is driven with the clock stopped, so a crossfade
  * shows as two lines on screen at once and a change in numbers alone as one line, already new.
  *
- * Nothing here has been run: written with the code, before the build.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -104,6 +103,29 @@ class WordSwapTest {
         composeRule.mainClock.advanceTimeBy(1_000)
         composeRule.waitForIdle()
         assertEquals(listOf("No fix"), linesOnScreen())
+    }
+
+    @Test
+    fun `numbers that change on a line show the latest each time, and the line fades out on its last number`() {
+        show()
+        changeTo("Fix 6 s ago")
+        assertEquals(listOf("Fix 6 s ago"), linesOnScreen())
+        changeTo("Fix 7 s ago")
+        assertEquals(listOf("Fix 7 s ago"), linesOnScreen())
+        changeTo("No fix")
+        assertEquals("the outgoing line keeps its last number", setOf("Fix 7 s ago", "No fix"), linesOnScreen().toSet())
+    }
+
+    @Test
+    fun `words coming back during a crossfade show the latest number, on the line they came back to`() {
+        show()
+        changeTo("No fix")
+        changeTo("Fix 9 s ago")
+        assertEquals(setOf("Fix 9 s ago", "No fix"), linesOnScreen().toSet())
+        composeRule.mainClock.autoAdvance = true
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.waitForIdle()
+        assertEquals(listOf("Fix 9 s ago"), linesOnScreen())
     }
 
     private companion object {
