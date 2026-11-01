@@ -1,0 +1,22 @@
+tiles cum z0-10 88447 z0-11 348565 z0-12 1384781  z13 4134698 z14 16518741
+1in listing 3811 130.11 GB; stray rows [['USGS_13_n30w090.tif', '168648889']]
+1/3in listing 1449 493.6 GB
+hgt cells 3631 3DEP cells 1440 bytes 62.6 GB
+3DEP cells with no 1in copy 1145 48.4 GB to re-pull; with copy 295
+cells on MRDEM 2351 MRDEM only 2191
+sum of per-cell seconds 24.418055555555554 h (3 workers)
+relief 256px PNG z0-12: 55-125 GB
+relief 256px PNG z0-11: 14-31 GB
+relief 256px PNG z0-10: 4-8 GB
+relief 512px WebP z0-11: 13-26 GB
+relief 512px WebP z0-10: 3-7 GB
+40 ft line 96-345 M km; z13-14 4.1-71.0 GB; area counted 22.9 M km2
+20 m line 58-210 M km; z13-14 2.5-43.3 GB; area counted 22.9 M km2
+100 ft line 38-138 M km; z13-14 1.6-28.4 GB; area counted 22.9 M km2
+area r=8 km: relief PNG 13 tiles 1.5 MB, or WebP 5 tiles 0.4 MB; contours 130 tiles 0.2-2.2 MB
+area r=10 km: relief PNG 25 tiles 2.9 MB, or WebP 13 tiles 1.0 MB; contours 218 tiles 0.3-3.4 MB
+area r=24 km: relief PNG 89 tiles 10.3 MB, or WebP 34 tiles 2.6 MB; contours 1066 tiles 1.6-19.4 MB
+20 GB: $0.30/month; upload at 2.9 MiB/s 1.8 h; parts at 16 MiB 1192
+60 GB: $0.90/month; upload at 2.9 MiB/s 5.5 h; parts at 16 MiB 3576
+125 GB: $1.88/month; upload at 2.9 MiB/s 11.4 h; parts at 16 MiB 7451
+download at 10 GB/h: US re-pull + MRDEM 84 GB: 13.2 h
