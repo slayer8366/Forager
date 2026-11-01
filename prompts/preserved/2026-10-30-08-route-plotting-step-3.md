@@ -258,3 +258,23 @@ The owner: "Inset the card past the pill (Recommended)". In landscape, the route
 - All the card's text still fits at the narrower width, at the largest font scale tested on this card.
 
 pre-main moved to 9ef5c9385 (#454): merge it in. Full CI green. No merge, and never force-push.
+
+## Amendment 14 (2026-11-01): the card sits beside the icon bar (RECORD -1928)
+This replaces Amendment 13, whose commits were reverted. Branch head as written: d4c681d98. Evidence: docs/audits/2026-11-01-s22-build-449-454.md on origin/tools/s22-combined, with phone figures. The owner: "Portrait has the same issue as landscape. Shorten the card in portrait to accommodate the map icon bar, with the card offset to the side. when the user swaps sides with the icon bar, the card simply shifts over to the other side. And then after that, make landscape card the same size as the navigation card that pops up, but have it pop up behind the navigation card and extend above it is they're already navigating".
+
+Build in that order: Part 1, then Part 2.
+
+**The rule, the owner: "The map icon bar stays the same no matter what. The card just gets resized to fit the map icon bar next to it".** The route card never moves, folds or raises the icon bar or the record and return pill, in either orientation, peek or expanded, plotting or saved. This removes Amendment 10's fold, Amendment 11's held pill and the raising from earlier amendments (routeCardLift for the column and pill). The restore handle's card-collapse goes with the fold. Remove what no longer has a caller, and their tests with them, naming each. The "i" and any other chrome keep clear of the card; say what each does now.
+
+**Part 1, portrait.** The steps:
+- Plot a route: the card opens narrower, its side edge beside the icon bar with a small gap, reaching the far screen edge margin. It is anchored at the bottom as now.
+- Move the bar to the other side: the card shifts over to the other side.
+- A minimised bar, a bar dragged to another height: the bar stays exactly as the user set it. If a minimised bar is narrower, say what the card does; don't choose.
+
+**Part 2, landscape.** Same size as the navigation card: the strip's width, at the screen's bottom edge, in the column away from the icon bar (CompactMapLandscapeNavigationCard.kt). "Same place, swaps with the bar (Recommended)": when the bar moves across, the card shifts over. While navigating, "Rests on top of the nav card (Recommended)": the card comes up from behind the navigation card, its lower edge tucked behind it, and all its content, Save included, shows above it. The expanded card stays below the strip and the search bar; at 5 or more stops its rows scroll.
+
+**Tests:** fail first with the phone's figures: pill [130,1179][490,1359] px, 3.75 px per dp, landscape. Coordinate touches sampled across record, return, Layers, "+" and Save, card shown and expanded, 1, 3, 5 and 6 stops, either side, recording. The card's bounds never meet the bar's or the pill's; the bar's position, flag, side and height are unchanged by the card. Then revert checks.
+
+**Stop and report the numbers, don't choose, if:** a card line can't fit at the narrower width at the largest font scale tested on this card; the card can't reach Save above the navigation card in the short landscape window; or the tablet's card needs a different rule.
+
+Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
