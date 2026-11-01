@@ -31397,3 +31397,20 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** A small hill shading trial on Trail Map, judged on the S22 before anything else is decided
 **Decision:** the owner: "Let's see about doing hill shading in the trail maps first. It could help deal with having no topographical trail map until that's ready."; "Yes, start the trial (Recommended)". One steep area from the 3″ grid (Aspen), the look (Sage), a throwaway S22 build. Note to Aspen prompts/aspen/2026-11-01-03; message to Sage.
 **Notes:** Written by the planner by hand. It may change the 10-22 "Street stays flat" ruling if the owner accepts it; that is not decided. Own topo's pilot stays "Not yet". Next free ID -1927.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1927
+**Timestamp:** 2026-11-01T16:40:49Z
+**Continues:** 2026-09-28-1920, 2026-09-28-1918
+**Title:** The landscape overlap is real on the S22, and it blocks touches; the card, column and pill pass in portrait
+**Observed:** Hazel (Opus), docs/audits/2026-11-01-s22-build-449-454.md on tools/s22-combined 441e1433e, build 4324. Evidence in /home/zynergy-labs/s22-2026-11-01/, never git.
+- **Landscape:** the pill sits 37.6 dp behind the collapsed card at any stop count; clear at 3 stops expanded; 19.5 dp behind at 4; wholly behind at 5 and 6. At peek the card takes the touches, so record and return can't be pressed through it. Layers and "+" are also under it. At 6 stops the card runs over the search bar. The simulated 52 dp was not seen at any stop count.
+- **Portrait:** Amendments 10, 11 and 12 pass with real fonts and insets; the pill clears by 11.7 dp; Trip Planner and card agree; the total line's ink rows match collapsed and expanded.
+- **A saved route's card** shows no elevation line, rows or total. Not established whether intended; heights saved with a route are not built yet.
+- **Routing** works from route files stored in October. That does not prove the routing key has a value, since the key is sent only when a region's routes are fetched.
+- **Not run:** WordSwap on screen, a landscape recording, the strip below the card.
+- **Data:** TEST rows deleted; all tables equal the baseline except sqlite_sequence for track_points.
+**Decision:** the owner: "Look at the pictures first" on the landscape fix, so Amendment 13 stays on hold; "Yes, one small area (Recommended)" for the routing key, on a throwaway area.
+**Notes:** Written by the planner by hand. Next free ID -1928.
