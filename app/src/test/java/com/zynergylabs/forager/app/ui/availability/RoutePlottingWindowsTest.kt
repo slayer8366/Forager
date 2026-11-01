@@ -183,7 +183,11 @@ abstract class RoutePlottingWindowTests(private val hasRail: Boolean, private va
     }
 }
 
-/** A short landscape phone window, the rail on (dispatch 2026-10-30-08, Amendment 3). The gaps beside the 640 dp card are too narrow here to test a press in. */
+/**
+ * A short landscape phone window, the rail on (dispatch 2026-10-30-08, Amendment 3). Native graphics since Amendment 14: the card takes
+ * the strip's width, and the strip's width follows its text, which Robolectric's default graphics measures far too narrow (80 dp).
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi")
 class RoutePlottingShortLandscapeTest : RoutePlottingWindowTests(hasRail = true, besideRoom = false)
