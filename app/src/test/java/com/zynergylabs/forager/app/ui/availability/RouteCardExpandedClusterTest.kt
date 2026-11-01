@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
@@ -74,6 +75,7 @@ class RouteCardExpandedClusterTest {
             StubGlyph(MapLayerIds.WAYPOINTS, RIDGE.id, 150.dp, 250.dp, LatLng(RIDGE.lat, RIDGE.lng)),
             StubGlyph(MapLayerIds.WAYPOINTS, falls.id, 220.dp, 200.dp, LatLng(falls.lat, falls.lng)),
             StubGlyph(MapLayerIds.WAYPOINTS, pond.id, 220.dp, 250.dp, LatLng(pond.lat, pond.lng)),
+            StubGlyph(MapLayerIds.PLANNED_TRIPS, ROUTE_TRIP.id, 150.dp, 320.dp, ROUTE_TRIP.location),
         ),
     )
 
@@ -91,11 +93,12 @@ class RouteCardExpandedClusterTest {
         errorLog = { _, _, _ -> },
     )
 
-    private fun setScreen() {
+    private fun setScreen(plannedTrips: List<PlannedTrip> = emptyList()) {
+        val viewModel = mapLayersViewModel(plannedTrips = plannedTrips)
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
             MapLayersTestScreen(
-                viewModel = mapLayersViewModel(),
+                viewModel = viewModel,
                 mapSlot = map.slot,
                 store = OneCellStore(),
                 waypoints = listOf(CREEK, RIDGE, falls, pond),
@@ -289,10 +292,9 @@ class RouteCardExpandedClusterTest {
 
     @Test
     fun `a saved route's card folds the column while expanded too, and Back closing it brings the column back`() {
-        setScreen()
+        setScreen(listOf(ROUTE_TRIP))
         val open = bounds(MAP_ICON_CLUSTER_TAG)
-        composeRule.runOnUiThread { plotting.onOpenSavedRoute(ROUTE_TRIP, fromTripPlanner = false) }
-        settle()
+        touchCentreOf(glyphTag(ROUTE_TRIP.id))
         assertTrue("the column shows at the saved route's peek", clusterShows())
         expandCard()
         assertTrue("folded", !clusterShows() && restoreHandleShows())
