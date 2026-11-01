@@ -140,7 +140,7 @@ class RouteCardContentWidthTest {
         val narrow = rig.bounds(ROUTE_CARD_TAG)
         composeRule.mainClock.autoAdvance = false
         rig.tapNext()
-        val widths = (1..6).map {
+        val widths = (1..12).map {
             composeRule.mainClock.advanceTimeByFrame()
             width(rig.bounds(ROUTE_CARD_TAG)).value
         }
