@@ -151,10 +151,6 @@ class WordSwapStoppedActivityTest {
                 }
             }
             outerText = text
-            LaunchedEffect(Unit) {
-                fun tick() { android.view.Choreographer.getInstance().postFrameCallback { choreoFrames++; tick() } }
-                tick()
-            }
             LaunchedEffect(Unit) { while (true) withFrameNanos { clockFrames++ } }
         }
     }
@@ -177,6 +173,7 @@ class WordSwapStoppedActivityTest {
                 Snapshot.sendApplyNotifications()
             }
             repeat(12) { i ->
+                scenario.onActivity { android.view.Choreographer.getInstance().postFrameCallback { choreoFrames++ } }
                 frames(5)
                 scenario.onActivity { println("PROBE $i state=${recomposer.currentState.value} pending=${recomposer.hasPendingWork} changes=${recomposer.changeCount} shown=$shown outer=$outerText choreo=$choreoFrames attached=${it.window.decorView.isAttachedToWindow} life=${it.lifecycle.currentState}") }
             }
