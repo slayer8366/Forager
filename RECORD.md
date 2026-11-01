@@ -31492,3 +31492,17 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Aspen's note prompts/aspen/2026-11-01-05: every push to main redeploys the Worker from main's older folder, so any merge there would drop Trail Map's style and the official trails on every phone.
 **Decision:** the owner: "Hold off on the merges for the time being". The planner merges nothing, into pre-main or main, until the owner says otherwise. Coders keep working on their branches.
 **Notes:** Written by the planner by hand. Next free ID -1934.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1934
+**Timestamp:** 2026-11-01T22:22:37Z
+**Continues:** 2026-09-28-1932
+**Title:** #449's Amendment 16 is green: the portrait card is as wide as its words need; long names wrap past two lines
+**Observed:** Hazel (Opus), route-plot-ui fb878627d, pre-main 08c1c3363 merged in. CI run 41355463207, 6166 tests, 0 failed. Fail first 41348154796, 11 of 65. 14 reverts cited, each biting.
+- **Widths, no real insets:** phone 223.3 dp with short names, 312 dp with the one-stop hint, tablet 224 dp at the far edge.
+- **Long names (44-48 characters):** whole, with rows on 3 and 4 lines. The owner's "Wrap to two lines" and "nothing is cut" meet here.
+- **Effects:** the card shrinks from 312 dp to about 223 dp at the first leg; a wider leg moves the width twice; on the moving side Save or Undo is partly covered for up to 750 ms.
+- **Not verified:** any of it on a phone; long names in the short landscape window while navigating.
+**Notes:** Written by the planner by hand. Next free ID -1935.
