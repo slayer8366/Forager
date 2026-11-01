@@ -45,7 +45,7 @@ writer.close()
 PY
 
 # 3. BRouter's three map-creator steps, exactly as the Pi runs them (pi-build map-build/bin/build-orwa.sh:227-236),
-#    with an empty elevation directory, so the square carries no elevation, like the Pi's.
+#    with an empty elevation directory, so the square carries no elevation, like the Pi's before 2026-10-28.
 br="$out/br"
 mkdir -p "$br"/{nodetiles,waytiles,waytiles55,nodes55,unodes55,segments,no-elevation}
 p="$out/profiles2"
