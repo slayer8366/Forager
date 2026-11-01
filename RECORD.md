@@ -31286,3 +31286,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** One S22 build with #449 and #454 now, ahead of Amendment 12's report; the drain check waits for the sunset window
 **Decision:** the owner: "Build and install now (Recommended)". Dispatch 2026-11-01-02.
 **Notes:** Written by the planner by hand. Next free ID -1917.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1917
+**Timestamp:** 2026-11-01T11:31:04Z
+**Continues:** 2026-09-28-1916
+**Title:** The drain check runs now, with the S22's clock moved into the sunset window and restored after
+**Decision:** the owner: "Change the time if you need to". Dispatch 2026-11-01-02 Amendment 1.
+**Notes:** Written by the planner by hand. Next free ID -1918.
