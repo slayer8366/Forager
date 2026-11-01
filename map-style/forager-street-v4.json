@@ -207,6 +207,23 @@
       ],
       "minzoom": 10,
       "maxzoom": 15
+    },
+    "relief": {
+      "type": "raster-dem",
+      "tiles": [
+        "https://raw.githubusercontent.com/slayer8366/Forager/hillshade-trial-tiles/png256/{z}/{x}/{y}.png"
+      ],
+      "encoding": "terrarium",
+      "tileSize": 256,
+      "minzoom": 5,
+      "maxzoom": 11,
+      "bounds": [
+        -123,
+        45,
+        -121,
+        46
+      ],
+      "attribution": "Heights: USGS 3DEP"
     }
   },
   "glyphs": "https://forager-pmtiles.brandonlee1-894.workers.dev/fonts/{fontstack}/{range}.pbf",
@@ -767,6 +784,11 @@
       "paint": {
         "fill-color": "#e9e9ed"
       }
+    },
+    {
+      "id": "hillshade_trial",
+      "type": "hillshade",
+      "source": "relief"
     },
     {
       "id": "water_stream",
