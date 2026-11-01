@@ -31266,3 +31266,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
   - **Flake:** attempt 1 failed in AvailabilityScreenCrowdedIconsSettingTest, unrelated to WordSwap; passed on re-run. Inferred: its idle wait can be met by the first of three picks. Not touched; for the deferred flake hunt.
 - **Not verified:** neither on a phone; #454's drain figure unmeasured after the fix.
 **Notes:** Written by the planner by hand. Amendment 12 starts on 617b2aae9. Next free ID -1915.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1915
+**Timestamp:** 2026-11-01T10:50:39Z
+**Continues:** 2026-09-28-1914
+**Title:** #454 waits for the S22 run
+**Decision:** the owner: "S22 run first (Recommended)". Amendment 12 has started on 617b2aae9. The planner will carry #454 and #449 in one S22 build once Amendment 12 is green, and run the drain measurement in the window before sunset.
+**Notes:** Written by the planner by hand. Next free ID -1916.
