@@ -44,7 +44,7 @@ private val LONG_NAMES = listOf(
 )
 
 /** Short stops, then one long enough to widen the card, then short again. */
-private val WIDENING_NAMES = listOf("Creek", "Ridge", "Upper Falls Overlook Trailhead", "Pond", "Bluff", "Spring")
+private val WIDENING_NAMES = listOf("Creek", "Ridge", "Upper Falls Overlook", "Pond", "Bluff", "Spring")
 
 private const val CARD_SIDE_PADDING_DP = 12f
 
