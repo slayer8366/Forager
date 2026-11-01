@@ -88,3 +88,23 @@ them again once this is deployed.
 `us` is unchanged, every other archive advertises its own maxzoom and answers 204 above it with no overflow read or
 write, the two halves are each pinned by a test my reverts confirm, and the only other live change in a `pre-main`
 deploy is the allowed v6 route. The deploy is the owner's go.
+
+## Addendum, about 14:05 PST: PR #456, the `worker/*` release of this change to `main`
+
+`worker/overflow-street-only` at `9a148c87f` → `main` `177215135`, the folder checked out from `pre-main` `08c1c3363`
+(which holds #455, the overflow fix, and #457, the guard). Read and computed:
+
+- **Confined:** from the merge-base with `main` (which is `main`'s head), the diff touches 17 files, all under
+  `server/pmtiles-worker`; nothing outside.
+- **Byte for byte:** the folder's tree id at the PR head and at `pre-main` is the same object,
+  `28896deea85a92375fd7c6257d5c93563eda18ff`, so every file is identical. The PR's own `check-release.sh`, run here
+  against `origin/main`, the head and `origin/pre-main`, prints "worker release ok".
+- **Live effect:** the runtime delta `main` → head is `index.ts` and the bundled `street-style-v3.json` (`package.json`
+  changes only its test line). The `index.ts` hunks are four: the `/style/street-v3.json` route and the
+  `/reference-trails-manifest.json` route, both already live (section 3); the v6 sprite regex (allowed); and the
+  overflow fix (this review). `wrangler.toml` is unchanged. Live today, probed again: v6 404, `world-south.json`
+  maxzoom 15, so nothing has moved since section 1. Deploying this changes live behaviour in exactly two ways: v6
+  served, and non-Street archives advertising their own maxzoom and answering 204 above it.
+- CI run 41353699114 on the head: success, all five checks.
+
+**Merge verdict for #456: mergeable.** The merge, which is the deploy, is the owner's go.
