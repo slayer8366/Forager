@@ -40,6 +40,7 @@ import org.robolectric.shadows.ShadowChoreographer
  * on the lines the strip and the navigation display really show; [WordSwap] is driven with the clock stopped, so a crossfade
  * shows as two lines on screen at once and a change in numbers alone as one line, already new.
  *
+ * Nothing here has been run: written with the code, before the build.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
