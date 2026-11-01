@@ -31296,3 +31296,21 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The drain check runs now, with the S22's clock moved into the sunset window and restored after
 **Decision:** the owner: "Change the time if you need to". Dispatch 2026-11-01-02 Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -1918.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1918
+**Timestamp:** 2026-11-01T11:58:50Z
+**Continues:** 2026-09-28-1917
+**Title:** With #454 on the S22 the screen-off drain falls to 1.7% of a core in a shortened trial; #449's Amendment 12 is green; landscape does not clear
+**Observed:**
+- **S22, Hazel (Opus), docs/audits/2026-11-01-s22-build-449-454.md on tools/s22-combined 35aa8e783.** 1.0.4324+g9f3a07a9, CI run 41302224294, 6260 tests, only the three allowed failures. Data identical after install and after the clock's restore. Clock moved 03:54 to 03:57 PST; the planner read it restored.
+  - **Drain:** with the sunset line showing and changing, main thread 1.7% of a core over 83 s with the screen off, against about 41%; ticks per 8 s 4 to 28 against about 330.
+  - **Not like for like:** no GPS fix, 83 s rather than 3 minutes, debug build.
+  - **Not run:** the outside-window run, the profile, and all the card, column and pill checks. The routing key's value was not confirmed non-empty.
+- **#449 Amendment 12, Hazel (Opus), route-plot-ui 30231df36.** CI run 41302728805, 6141 tests, 0 failed. Fail first 41298481762, 17 of 43. 10 of 11 reverts bit; the rows' weight did not (41301016706).
+  - The total line holds the same pixel through peek, drag and expanded.
+  - Portrait clears: the peek's top 587.0 dp, column and pill bottom 579.3 dp.
+  - **Landscape does not clear:** the pill overlaps the card by 52 dp across, and did before this amendment; the taller peek makes it deeper.
+**Notes:** Written by the planner by hand. The S22 build holds 05437cc78; app code is unchanged to 30231df36. Next free ID -1919.
