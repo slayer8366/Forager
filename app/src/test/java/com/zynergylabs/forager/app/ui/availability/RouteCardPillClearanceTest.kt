@@ -21,8 +21,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.model.UnitSystem
-import com.zynergylabs.forager.app.domain.repository.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
