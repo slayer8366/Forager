@@ -31387,3 +31387,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The release offers what is finished; anything not ready stays under the hood and is polished after
 **Decision:** the owner: "If it's not ready for release, we'll keep it under the hood and offer whatever feature we can from what is finished, and then work on the rest until it's polished". The list in -1923 and -1924 is now the work in progress, not a gate; each feature ships when it is ready, not all together.
 **Notes:** Written by the planner by hand. Anything unfinished already on pre-main has to be hidden before a promotion. Next free ID -1926.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1926
+**Timestamp:** 2026-11-01T16:22:52Z
+**Continues:** 2026-09-28-1924, 2026-09-28-1925
+**Title:** A small hill shading trial on Trail Map, judged on the S22 before anything else is decided
+**Decision:** the owner: "Let's see about doing hill shading in the trail maps first. It could help deal with having no topographical trail map until that's ready."; "Yes, start the trial (Recommended)". One steep area from the 3″ grid (Aspen), the look (Sage), a throwaway S22 build. Note to Aspen prompts/aspen/2026-11-01-03; message to Sage.
+**Notes:** Written by the planner by hand. It may change the 10-22 "Street stays flat" ruling if the owner accepts it; that is not decided. Own topo's pilot stays "Not yet". Next free ID -1927.
