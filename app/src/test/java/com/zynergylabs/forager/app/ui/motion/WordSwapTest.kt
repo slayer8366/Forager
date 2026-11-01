@@ -1,10 +1,9 @@
 package com.zynergylabs.forager.app.ui.motion
 
+import android.os.Handler
 import android.os.Looper
-import android.view.View
-import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
+import androidx.compose.runtime.BroadcastFrameClock
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.snapshots.Snapshot
@@ -14,7 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.findViewTreeCompositionContext
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.createLifecycleAwareWindowRecomposer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -23,7 +23,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import com.zynergylabs.forager.app.ui.availability.layoutFixesHostActivityRule
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
-import java.time.Duration
+import kotlinx.coroutines.android.asCoroutineDispatcher
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -33,7 +33,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowChoreographer
 
 /**
  * Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"). [wordsOf] is checked
@@ -141,16 +140,15 @@ class WordSwapTest {
  *
  * In its own class, with no compose rule, on purpose. The rule installs its own Recomposer on a test clock through
  * WindowRecomposerPolicy (ui-test 1.12.0, ComposeUiTest.android.kt:608, :771), so stopping the activity under it pauses nothing
- * and this failure cannot happen; the "numbers alone" test above passed with the fault in place for that reason. Here a plain
- * ActivityScenario and setContent get the real lifecycle-aware recomposer, and the test confirms it did: [clockFrames] stops at
- * the stop.
+ * and this failure cannot happen; the "numbers alone" test above passed with the fault in place for that reason. Here the
+ * production factory makes the recomposer and observes the real activity lifecycle, so the real ON_STOP pauses its frame clock,
+ * and the test confirms it did: [clockFrames] stops at the stop.
  *
- * The Choreographer is paused so a frame comes only when [frames] moves the clock. By default each frame callback moves it
- * itself, so a looper idle never catches up with anything that asks for another frame: a repeating frame request here ran 23.8
- * million frames inside one idle until the heap ran out, and killed the recomposer's coroutine (CI run 41267935587). The
- * failure this test exists to see is exactly such a request. It is paused after the launch, because ActivityScenario's launch
- * needs its frames (NullPointerException in windowFocusChanged otherwise), and before there is any content. Robolectric resets
- * both settings after each test.
+ * Only the source of frames is the test's own: [frames] sends each one by hand, on a dispatcher made for this test, and every
+ * frame is one chance for the loop to go round. The default source does not work here. Robolectric's Choreographer moves the
+ * clock itself on every frame request, so one looper idle never catches up with anything that keeps asking for frames, which is
+ * what this failure does (a repeating frame request ran 23.8 million frames inside one idle until the heap ran out, CI run
+ * 41267935587). Pausing the Choreographer passed alone and got no frames at all in the full suite (CI run 41270455533).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -163,16 +161,22 @@ class WordSwapStoppedActivityTest {
     private var shown: String? = null
     private var clockFrames = 0
 
-    private fun frames(count: Int) = repeat(count) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS)) }
+    private val clock = BroadcastFrameClock()
+    private var frameNanos = 0L
 
-    private fun recomposerOf(activity: ComponentActivity): Recomposer {
-        val content = activity.window.decorView.findViewById<ViewGroup>(android.R.id.content)
-        val composeView: View = content.getChildAt(0)
-        return composeView.findViewTreeCompositionContext() as Recomposer
+    private fun frames(count: Int) = repeat(count) {
+        frameNanos += FRAME_NANOS
+        clock.sendFrame(frameNanos)
+        shadowOf(Looper.getMainLooper()).idle()
     }
 
-    private fun onScreen(activity: ComponentActivity) {
-        activity.setContent {
+    private fun onScreen(activity: ComponentActivity): Recomposer {
+        val view = ComposeView(activity)
+        val onThisTestsFrames = clock + Handler(Looper.getMainLooper()).asCoroutineDispatcher()
+        val recomposer = view.createLifecycleAwareWindowRecomposer(onThisTestsFrames, activity.lifecycle)
+        view.setParentCompositionContext(recomposer)
+        activity.setContentView(view)
+        view.setContent {
             ForagerTheme {
                 WordSwap(text = text) { line ->
                     shown = line
@@ -181,17 +185,15 @@ class WordSwapStoppedActivityTest {
             }
             LaunchedEffect(Unit) { while (true) withFrameNanos { clockFrames++ } }
         }
+        return recomposer
     }
 
     @Test
     fun `a number changing while the activity is stopped leaves composition quiet, and the latest number shows`() {
         ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
-            ShadowChoreographer.setPaused(true)
-            ShadowChoreographer.setFrameDelay(Duration.ofMillis(FRAME_MILLIS))
             lateinit var recomposer: Recomposer
-            scenario.onActivity(::onScreen)
+            scenario.onActivity { recomposer = onScreen(it) }
             frames(SETTLE_FRAMES)
-            scenario.onActivity { recomposer = recomposerOf(it) }
             assertEquals("the frame clock ran while on screen", true, clockFrames > 0)
 
             scenario.moveToState(Lifecycle.State.CREATED)
@@ -223,7 +225,7 @@ class WordSwapStoppedActivityTest {
     }
 
     private companion object {
-        const val FRAME_MILLIS = 16L
+        const val FRAME_NANOS = 16_000_000L
         const val SETTLE_FRAMES = 20
         const val COUNTED_FRAMES = 30
     }
