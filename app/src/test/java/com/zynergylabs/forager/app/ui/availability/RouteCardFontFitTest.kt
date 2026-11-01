@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_CANCEL_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_COUNT_TAG
@@ -58,7 +59,7 @@ abstract class RouteCardFontFitTests(private val wraps: Boolean) {
         val total = rig.bounds(ROUTE_CARD_ROUTED_TOTAL_TAG)
         val count = rig.bounds(ROUTE_CARD_ROUTED_COUNT_TAG)
         assertTrue("font $scale: the distance ${total.left} sits at the count's right ${count.right}", total.left >= count.right)
-        assertTrue("font $scale: the distance's right ${total.right} is inside the card ${card.right}", total.right <= card.right)
+        assertEquals("font $scale: the distance stays at the card's right", (card.right - 12.dp).value, total.right.value, 0.5f)
         listOf(ROUTE_CARD_UNDO_TAG, ROUTE_CARD_CANCEL_TAG, ROUTE_CARD_SAVE_TAG).forEach { tag ->
             val button = rig.bounds(tag)
             println("FONT $scale $tag ${button.left.value}..${button.right.value}")
