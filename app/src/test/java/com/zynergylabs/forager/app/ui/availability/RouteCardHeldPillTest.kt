@@ -217,6 +217,7 @@ class RouteCardHeldPillTest {
     @Test
     fun `the column on the left - the pill stays on the side the user chose`() {
         setScreen()
+        dragClusterDown()
         dragClusterToLeft()
         plotFour()
         expandCard()

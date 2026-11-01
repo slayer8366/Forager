@@ -168,6 +168,8 @@ internal fun BoxScope.MapIconCluster(
     foldedForRouteCard: Boolean = false,
     /** A touch on the restore handle while [foldedForRouteCard]: the column is held folded by the card, so the card is what gives way. */
     onRestoreWhileFolded: () -> Unit = {},
+    /** The pill on its own while [foldedForRouteCard], at one layer's fill ([RouteCardHeldPill]); null for a caller that never folds. */
+    heldPill: (@Composable (onLeftSide: Boolean) -> Unit)? = null,
 ) {
     // RECORD -711: nothing is drawn until a stored side and height have been applied, so a cluster restored
     // to the left never shows a frame on the right first. See MapIconClusterPositionState.
@@ -650,6 +652,17 @@ internal fun BoxScope.MapIconCluster(
                     .then(mapIconBarDragModifier),
             )
         }
+    }
+    // Amendment 11 (RECORD -1909): composed last, so it wins any overlap with the restore handle, as the handles win over the column.
+    if (heldPill != null) {
+        RouteCardHeldPill(
+            visible = foldedForRouteCard && !state.isMinimized,
+            state = state,
+            lowestEdgePx = legendBoundPx,
+            topLimitPx = dropdownTopPx,
+            controlsPadding = controlsPadding,
+            pill = heldPill,
+        )
     }
 }
 

@@ -83,6 +83,23 @@ internal fun BoxScope.CompactMapIconCluster(
             modifier = barModifier,
         )
     }
+    val trailhead: @Composable (Boolean, Boolean, Color, Dp) -> Unit = { onLeftSide, horizontal, fillColor, rowSpacing ->
+        TrailheadControls(
+            isRecording = isRecording,
+            onToggleRecording = onToggleRecording,
+            returnToStart = returnToStart,
+            isReturning = isReturning,
+            isOffTrack = isOffTrack,
+            onToggleReturning = onToggleReturning,
+            distanceUnit = uiState.distanceUnit,
+            onLeftSide = onLeftSide,
+            horizontal = horizontal,
+            fillColor = fillColor,
+            rowSpacing = rowSpacing,
+            // Dispatch -502: the X-circle for either navigation, a waypoint's included.
+            isNavigating = isNavigating,
+        )
+    }
     MapIconCluster(
         state = cluster,
         isFullscreen = isFullscreen,
@@ -101,40 +118,19 @@ internal fun BoxScope.CompactMapIconCluster(
         // Landscape L: the bar's rows 48 dp apart with no end padding (240 dp), one layer at the standing 0.8 fill, every row
         // taking touches across its full 48 x 48 square (owner's "A" and ruling (d), continuations -160 and -172).
         landscapeBar = { barModifier -> phoneBar(barModifier, Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, true) },
-        pill = { onLeftSide ->
-            // Composed whenever MapIconBar is (regardless of isRecording — record start/stop must
-            // stay reachable before the first recording starts; isRecording flows in as a plain
-            // parameter, see TrailheadControls' own doc comment, not a presence check).
-            TrailheadControls(
-                isRecording = isRecording,
-                onToggleRecording = onToggleRecording,
-                returnToStart = returnToStart,
-                isReturning = isReturning,
-                isOffTrack = isOffTrack,
-                onToggleReturning = onToggleReturning,
-                distanceUnit = uiState.distanceUnit,
-                onLeftSide = onLeftSide,
-                // Dispatch -502: the X-circle for either navigation, a waypoint's included.
-                isNavigating = isNavigating,
-            )
-        },
+        // Composed whenever MapIconBar is (regardless of isRecording — record start/stop must stay reachable before the first
+        // recording starts; isRecording flows in as a plain parameter, see TrailheadControls' own doc comment, not a presence check).
+        pill = { onLeftSide -> trailhead(onLeftSide, false, Color.Unspecified, Spacing.xs) },
         // Landscape L: the pill turned horizontal (record under the bar's column, return inboard, 96 x 48), one layer at the
         // standing 0.8 fill, both buttons taking touches across their full 48 x 48 squares.
-        landscapePill = { onLeftSide ->
-            TrailheadControls(
-                isRecording = isRecording,
-                onToggleRecording = onToggleRecording,
-                returnToStart = returnToStart,
-                isReturning = isReturning,
-                isOffTrack = isOffTrack,
-                onToggleReturning = onToggleReturning,
-                distanceUnit = uiState.distanceUnit,
-                onLeftSide = onLeftSide,
-                horizontal = true,
-                fillColor = mapIconChromeFillColor(),
-                rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING,
-                isNavigating = isNavigating,
-            )
+        landscapePill = { onLeftSide -> trailhead(onLeftSide, true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING) },
+        // Amendment 11 (RECORD -1909): alone over the map, so one layer at the standing 0.8 fill; the L's own pill in the L.
+        heldPill = { onLeftSide ->
+            if (cluster.landscape) {
+                trailhead(onLeftSide, true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING)
+            } else {
+                trailhead(onLeftSide, false, mapIconChromeFillColor(), Spacing.xs)
+            }
         },
         // T11 fixes (RECORD -766, P4): the L slides below the navigation display while navigating on its side.
         isNavigating = isNavigating,
