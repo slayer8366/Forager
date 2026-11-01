@@ -160,12 +160,21 @@ class WordSwapStoppedActivityTest {
         ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
             lateinit var recomposer: Recomposer
             scenario.onActivity(::onScreen)
-            frames(SETTLE_FRAMES)
-            scenario.onActivity { recomposer = recomposerOf(it) }
+            scenario.onActivity { recomposer = recomposerOf(it); println("PROBE A state=${recomposer.currentState.value} clock=$clockFrames changes=${recomposer.changeCount} id=${System.identityHashCode(recomposer)}") }
+            repeat(4) { frames(5); println("PROBE B$it state=${recomposer.currentState.value} clock=$clockFrames changes=${recomposer.changeCount}") }
+            scenario.onActivity { recomposer = recomposerOf(it); println("PROBE C id=${System.identityHashCode(recomposer)} state=${recomposer.currentState.value}") }
+            run {
+                val before = shown
+                scenario.onActivity { text = "Sunset 5:59 PM · in 2 h 9 min · dark 6:29"; Snapshot.sendApplyNotifications() }
+                frames(5)
+                println("PROBE D resumed change before=$before shown=$shown state=${recomposer.currentState.value} changes=${recomposer.changeCount}")
+            }
             assertEquals("the frame clock ran while on screen", true, clockFrames > 0)
 
             scenario.moveToState(Lifecycle.State.CREATED)
+            println("PROBE E after stop state=${recomposer.currentState.value} clock=$clockFrames")
             frames(SETTLE_FRAMES)
+            println("PROBE F state=${recomposer.currentState.value} clock=$clockFrames")
             val clockAtStop = clockFrames
 
             scenario.onActivity {
