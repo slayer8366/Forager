@@ -58,8 +58,8 @@ class RouteCardAttributionTest {
 
     private val map = RouteMapSlot(
         listOf(
-            StubGlyph(MapLayerIds.WAYPOINTS, CREEK.id, 120.dp, 300.dp, LatLng(CREEK.lat, CREEK.lng)),
-            StubGlyph(MapLayerIds.WAYPOINTS, RIDGE.id, 120.dp, 360.dp, LatLng(RIDGE.lat, RIDGE.lng)),
+            StubGlyph(MapLayerIds.WAYPOINTS, CREEK.id, 220.dp, 300.dp, LatLng(CREEK.lat, CREEK.lng)),
+            StubGlyph(MapLayerIds.WAYPOINTS, RIDGE.id, 220.dp, 360.dp, LatLng(RIDGE.lat, RIDGE.lng)),
         ),
     )
     private val plotting = RoutePlottingViewModel(
