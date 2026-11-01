@@ -26,6 +26,9 @@
 #
 # 0006 (dispatch 2026-10-31-coder-06; the owner: "Orchards, Plant nurseries, Vineyards") writes orchards, plant nurseries and
 # vineyards as kind farmland with kind_detail orchard, plant_nursery or vineyard, so a style can tell each apart.
+#
+# 0007 (dispatch 2026-11-01-coder-09) makes 0004's mark a fill over the tile instead of a point: Planetiler deduplicates
+# only tiles of fills and edges, and the point made every zoom-15 tile unique, so run usca-20261031T193102Z ran out of heap.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -100,8 +103,8 @@ oran="$(grep -c '<testcase name="foragerOrchardKindDetail\|<testcase name="forag
 [[ "$oran" -eq 6 && "$lfailed" -eq 0 ]] || die "foragerOrchardKindDetail and foragerNoKindDetail cases in the LanduseTest report: $oran (expected 6), failures: $lfailed"
 log "Forager orchard-kind tests ran: $oran cases, 0 failures"
 
-# 0003's and 0004's cases: BarriersTest 8 (5 + the mark's 3), BuildingsTest 3, WaterTest 3, each named forager*.
-for pair in BarriersTest:8 BuildingsTest:3 WaterTest:3; do
+# 0003's, 0004's and 0007's cases: BarriersTest 9 (5 + the mark's 3 + 0007's dedup case), BuildingsTest 3, WaterTest 3, each named forager*.
+for pair in BarriersTest:9 BuildingsTest:3 WaterTest:3; do
   cls=${pair%%:*}; want=${pair##*:}
   r="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.$cls.xml"
   [[ -r "$r" ]] || die "no $cls report at $r"
