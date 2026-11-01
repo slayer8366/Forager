@@ -31355,3 +31355,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Amendment 13's two test commits come off #449 by revert; route plotting stays on it
 **Decision:** the owner: "Remove all commit from 449 and let's use that PR for something else", then, asked which, "Only the landscape commits". e336f8423 and 63e3e08ff are reverted; the #454 merge stays; no history rewritten.
 **Notes:** Written by the planner by hand. No new use for the PR was named. Next free ID -1923.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1923
+**Timestamp:** 2026-11-01T16:10:39Z
+**Continues:** 2026-09-28-1628, 2026-09-28-1913
+**Title:** Land context moves to a later release; all of terrain stays in the release gate
+**Observed:** Step reports exist, unruled, on later-steps-reports (b7382c8ae terrain, e4f9324c8 land context); the planner first said it could find no start. -1913 took own topo out of the release while -1628 still gated it on terrain.
+**Decision:** the owner: "All of H stays in"; "Move it to a later release (Recommended)". This changes -1628's "Everything" for step 11 only.
+**Notes:** Written by the planner by hand. How H sits beside -1913 is being asked. Next free ID -1924.
