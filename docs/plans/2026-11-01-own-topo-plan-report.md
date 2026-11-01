@@ -17,7 +17,7 @@ Marks: **[R]** read (file or page cited), **[C]** computed (`sizes.py`, `tiles.p
 ## 1. Topographical today, and what own topo would be
 
 **Today:**
-- Topographical is an outside raster service, OpenTopoMap, to zoom 17, online only (`Basemap.kt:152-164`) [R]. It keeps being used by no-signal fallback rules: with no signal and a downloaded area, the map switches to Trail Map (`NoSignalTrailMap.kt:26-60`) [R].
+- Topographical is an outside raster service, OpenTopoMap, to zoom 17, online only (`Basemap.kt:152-164`) [R]. With no signal and a downloaded area, the map switches to Trail Map (`NoSignalTrailMap.kt:26-60`) [R].
 - **Who reaches it:** anyone who taps the "Topo" chip (`MapMode.kt:45`; `MapModeChips.kt:112`, reached from `MapTypePanel` at `CompactMapPickers.kt:96` and `CartographyEntryReportScreen.kt:648`), and anyone holding a stored key that no longer names a mode, such as former Satellite users (`MapMode.kt:66`) [R]. New users open on Trail (`MapMode.kt:58`) [R]. How many users that is: could not determine.
 - **Night:** inverted raster, crossfading to OpenStreetMap's raster or Trail Map below zoom 9.5-9.7 (`BasemapStyles.kt:68-90`, `:141`, `:269`) [R].
 - **Trail Map** is our vector map to tile zoom 15, shown to 18, with no hillshade or contour anywhere in `app/src/main` (grep: only comments) [R]. It is the only map offline areas store (`StreetStyle.kt`, RECORD -1554) [R].
@@ -49,7 +49,7 @@ Marks: **[R]** read (file or page cited), **[C]** computed (`sizes.py`, `tiles.p
 
 **A format choice worth more than any other** [C, I]: 256 px PNG to z12 and 512 px lossless WebP to z11 carry the same pixels. The published planet terrain archive in that WebP form averages 38 KB a tile [R]. The WebP form is about a quarter the size (table in section 4). It's unproven: whether the phone decodes WebP height tiles exactly is a pilot check. The library's Android decoder is the platform's, so it probably works [I]; PNG is the fallback.
 
-**Tools on the Pi:** the raster toolkit is installed, 3.6.2 [A] (a premise from 10-22 now out of date; see Premises). The Pi's vector tiler, 0.10.2 (`pins.env:180`), already reads GeoPackage sources: the build's landcover file is one (`pins.env:223`) [R]. Whether it can tile contours needs a small profile written [I]; the alternative tiler isn't in the Pi's package source (10-22 sizing) [R]. The Terrarium encoder is a short script to write [I].
+**Tools on the Pi:** the raster toolkit is installed, 3.6.2 [A] (a premise from 10-22 now out of date; see Premises). The Pi's vector tiler, 0.10.2 (`pins.env:47`), already reads GeoPackage sources: the build's landcover file is one (`pins.env:90`) [R]. Whether it can tile contours needs a small profile written [I]; the alternative tiler isn't in the Pi's package source (10-22 sizing) [R]. The Terrarium encoder is a short script to write [I].
 
 ## 3. Where the heights come from
 
@@ -118,7 +118,7 @@ I recommend 1 for this release, and 2 with the global build. That's a judgment f
 - **Clash:** Willow's global build pilot also wants that USB space after this weekend. Aspen will schedule them apart once the owner chooses [A]. This is the one real dependency.
 - **Disk fit** [I]: output 30-40 GB likely, plus unmeasured contour working files ("possibly tens of GB" [A]). Likely fits in 158 GB; the 196 GB high case doesn't. The pilot answers this.
 - **Build time, unmeasured:** relief 6-24 h on 3 cores, contours 1-2 days [A, from 10-22 sizing]. With the read, about **3-5 days of Pi time** for the first build [I].
-- **Upload:** at the last measured 2.9 MiB/s, 40 GB is about 4 hours; 125 GB about 11 hours [C]. The 16 MiB parts allow about 156 GB per file under the 10,000-part limit [C, R], fine for both archives. Rclone can't resume, so use the pi-29 resume method [R].
+- **Upload:** at the last measured 2.9 MiB/s, 40 GB is about 4 hours; 125 GB about 11 hours [C]. The 16 MiB parts allow about 168 GB per file under the 10,000-part limit [C, R], fine for both archives. The usual upload tool can't resume, so use the pi-29 resume method [R].
 - **Storage:** $0.015 per GB-month, so $0.60 a month at 40 GB, $0.25-3 across the range [C, R]. Downloads cost nothing [R]. Read counts rise; not computed.
 - **Keeping it current:** heights change rarely, so a one-off, not weekly [A].
 
@@ -130,7 +130,7 @@ I recommend 1 for this release, and 2 with the global build. That's a judgment f
 - Today Topo has no offline form. With own topo it can. That needs a ruling, because the rule is "Offline downloads → Trail Map only" (-1554) [R].
 - The store keys everything by style URL (`OfflineStyle.kt:3-9`) [R]. **One style that carries the topo layers, hidden on Trail Map, keeps one download for both maps** [I]. A second style would mean two downloads or a change to the area model.
 - Older areas lack the new tiles. They'd show Trail Map without relief, with the existing "Older map style" notice (`StreetStyle.kt`) [R].
-- A style with labels now downloads fine offline (RECORD, Cannon Beach packs, line 11435) [R], so the old glyph crash is no longer the risk P5 named. Contour labels are unproven on the phone, though.
+- A style with labels now downloads fine offline (RECORD.md line 11435, Cannon Beach packs on a test branch; since then Trail Map downloads store fonts, `StreetStyle.kt:76` doc) [R], so the old glyph crash is no longer the risk P5 named. Contour labels are unproven on the phone, though.
 - PR #448 (Street v4) is open [R]; its style must land first, or topo's style goes on top of it.
 
 **Night:**
