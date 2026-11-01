@@ -292,3 +292,12 @@ Read with Amendment 14; everything there stands except this. The owner: "I have 
 - Dragging the handle still slides the rows up above the total line, and the total line still stays put.
 - **Landscape:** as Amendment 14 Part 2, rising from the bottom like the navigation card.
 - Reduced motion: follow the app's existing rule for a sliding card.
+
+## Amendment 16 (2026-11-01): the card takes only the room it needs (RECORD -1932)
+Read Hazel's report in the PR #449 body first. Head as written: f97231aee. The owner:
+- **Width, "The card is supposed to slide from the opposite side, only give enough room to display the info".** In portrait, on every screen size, the card is as wide as its content needs, anchored to the side away from the bar, and never wider than the room beside the bar. The 640 dp cap no longer decides the width in portrait. So on a tablet it does not stretch to the bar, and on a phone it may be narrower than 312 dp. Don't let the width change on every keystroke-like update during a slide: if widening as legs are added looks jumpy in the tests' terms, animate it, and say what you did. Landscape stays at the strip's width.
+- **Minimised bar, "Keep the same width (Recommended)".** Stays as built.
+- **Large font, "Wrap to two lines (Recommended)".** When a line can't fit in the room beside the bar, it wraps; nothing is cut with an ellipsis. The distance at the right stays in place. Assert the 2.0 font-scale case's text whole, using native graphics.
+- **Fail first, then revert checks.** Keep assertBarUntouched. Use native graphics for every width test: default Robolectric widths aren't real.
+
+**Stop and report the numbers, don't choose,** if a card with long waypoint names can't be read at the room available. Full CI green. No merge, and never force-push.

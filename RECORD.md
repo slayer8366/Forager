@@ -31471,3 +31471,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Beyond the amendment:** the legend chip, "i" and credit move to stay clear of the card.
 - **A wider finding:** Robolectric's default text widths aren't real, so a width-fit check in that mode could not fail.
 **Notes:** Written by the planner by hand. Next free ID -1932.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1932
+**Timestamp:** 2026-11-01T20:36:29Z
+**Continues:** 2026-09-28-1931
+**Title:** In portrait the route card is only as wide as its content needs; a long line wraps; then an S22 build and Sorrel
+**Decision:** the owner: "The card is supposed to slide from the opposite side, only give enough room to display the info"; "Keep the same width (Recommended)"; "Wrap to two lines (Recommended)"; "Fix these, then S22 build (Recommended)". Dispatch 2026-10-30-08 Amendment 16. The S22 build goes on when the phone is plugged in, with the bar's place checked; Sorrel reviews everything since Amendment 5 before the owner decides on the merge.
+**Notes:** Written by the planner by hand. Next free ID -1933.
