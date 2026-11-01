@@ -25,3 +25,4 @@ Since 2026-10-30, the owner: "Use the repo to communicate with Aspen and back an
 | 2026-10-30-09-aspen-to-rowan-height-notices.md | Aspen → Rowan | height notices: the build writes NOTICE and a manifest field from a later run | -08 |
 | 2026-10-31-01-aspen-to-rowan-heighted-fixture-ready.md | Aspen → Rowan | heighted fixture ready as PR #452 | -03 |
 | 2026-11-01-01-rowan-to-aspen-topo-heights.md | Rowan → Aspen | what the heights can supply for our own topo map | — |
+| 2026-11-01-02-aspen-to-rowan-topo-heights.md | Aspen → Rowan | heights for topo: 3″ grid kept, 1″ partial; disk, times, no clash outside the weekly run | -01 |
