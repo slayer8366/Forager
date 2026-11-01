@@ -291,12 +291,14 @@ class RouteCardExpandedClusterTest {
         setScreen()
         plotFour()
         val atPeek = bounds(MAP_ICON_CLUSTER_TAG)
-        expandCard()
 
-        touchRestoreHandle()
-
-        assertTrue("the card went back to its peek", !plotting.uiState.value.expanded)
-        assertSamePlace("the column is back", atPeek, bounds(MAP_ICON_CLUSTER_TAG))
+        ACROSS.forEach { (fx, fy) ->
+            expandCard()
+            composeRule.onNodeWithContentDescription(RESTORE).performTouchInput { click(Offset(width * fx, height * fy)) }
+            settle()
+            assertTrue("a touch at ($fx, $fy): the card went back to its peek", !plotting.uiState.value.expanded)
+            assertSamePlace("a touch at ($fx, $fy): the column is back", atPeek, bounds(MAP_ICON_CLUSTER_TAG))
+        }
     }
 
     @Test
