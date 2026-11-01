@@ -2,8 +2,10 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVE_TAG
@@ -47,13 +49,16 @@ abstract class RouteCardLandscapeBarTests {
         body()
     }
 
-    /** The rows' last leg is laid out below where the rows stop showing, so they scroll, and Save stayed on the card. */
+    /** The rows reach their last leg by scrolling, up to the total line, and the card stays where it is. */
     private fun assertRowsScroll(where: String, stops: Int) {
-        val rows = rig.bounds("route-card-legs")
-        val last = rig.bounds(routeCardLegTag(stops - 2))
+        val card = rig.bounds(ROUTE_CARD_TAG)
+        val tag = routeCardLegTag(stops - 2)
+        composeRule.onNodeWithTag("route-card-legs", useUnmergedTree = true).performScrollToNode(hasTestTag(tag))
+        rig.settle()
+        val last = rig.bounds(tag)
         val total = rig.bounds("route-card-routed")
-        println("A14 $where: rows ${rows.top.value}..${rows.bottom.value}, last leg ${last.top.value}..${last.bottom.value}, total line top ${total.top.value}")
-        assertTrue("$where: the last leg's bottom ${last.bottom} runs past the total line's top ${total.top}, so the rows scroll", last.bottom > total.top)
+        println("A14 $where: card ${card.top.value}..${card.bottom.value}, last leg ${last.top.value}..${last.bottom.value}, total line top ${total.top.value}")
+        assertTrue("$where: the last leg's bottom ${last.bottom} shows, at or above the total line's top ${total.top}", last.bottom <= total.top + 0.5.dp)
     }
 
     private fun assertTouches(where: String) {

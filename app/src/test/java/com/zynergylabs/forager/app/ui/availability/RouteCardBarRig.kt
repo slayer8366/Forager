@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -232,5 +234,15 @@ internal class RouteCardBarRig(private val composeRule: RouteRule) {
     fun assertApart(what: String, a: DpRect, b: DpRect) {
         val apart = a.right <= b.left + 0.5.dp || b.right <= a.left + 0.5.dp || a.bottom <= b.top + 0.5.dp || b.bottom <= a.top + 0.5.dp
         assertTrue("$what meet: $a and $b", apart)
+    }
+
+    /** Whether the text at [tag] is cut with an ellipsis, with its lines and the width it took, for a class under native graphics. */
+    fun line(tag: String): Pair<Boolean, String>? {
+        if (count(tag) == 0) return null
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        val layout = results.single()
+        val cut = (0 until layout.lineCount).any { layout.isLineEllipsized(it) }
+        return cut to "${layout.layoutInput.text}: lines ${layout.lineCount}, cut $cut, box ${composeRule.density.run { layout.size.width.toDp() }}, ink ${composeRule.density.run { (0 until layout.lineCount).maxOf { layout.getLineWidth(it) }.toDp() }}"
     }
 }
