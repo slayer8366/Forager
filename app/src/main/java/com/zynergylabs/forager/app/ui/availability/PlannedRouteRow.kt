@@ -20,9 +20,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
-import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.ui.format.displayDate
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.route.routeTotalDistanceText
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -55,7 +55,8 @@ internal fun PlannedRouteRow(
             ) {
                 if (isToday) Text("Today", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text(trip.name, style = MaterialTheme.typography.titleSmall)
-                Text(formatDistanceMeters(route.totalMeters, distanceUnit), style = MaterialTheme.typography.bodyMedium)
+                // Amendment 11 (RECORD -1909, the owner: "Match the card (Recommended)"): the card's own total, so one route never shows two distances.
+                Text(routeTotalDistanceText(route.legs.map { it.meters }, distanceUnit), style = MaterialTheme.typography.bodyMedium)
                 trip.date?.let { Text(displayDate(it), style = MaterialTheme.typography.bodyMedium) }
             }
             BouncingIconButton(onClick = onDelete, modifier = Modifier.padding(end = Spacing.sm).testTag(plannedRouteDeleteTag(trip.id))) {

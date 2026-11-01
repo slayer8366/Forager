@@ -138,9 +138,8 @@ class RoutePlottingChromeTest {
 
         composeRule.runOnUiThread { plotting.onSetExpanded(true) }
         settle()
-        val expanded = bounds(ROUTE_CARD_TAG)
-        val withExpanded = bounds(MAP_ICON_CLUSTER_TAG)
-        assertTrue("expanded: the cluster's bottom ${withExpanded.bottom} is at or above the card's top ${expanded.top}", withExpanded.bottom <= expanded.top + 0.5.dp)
+        // Amendment 10 (RECORD -1904): expanded, the column folds rather than rising (RouteCardExpandedClusterTest).
+        assertTrue("expanded: the column is folded", !shown(MAP_ICON_CLUSTER_TAG))
 
         composeRule.runOnUiThread { plotting.onCancel() }
         settle()

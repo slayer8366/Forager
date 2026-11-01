@@ -15,18 +15,19 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.domain.route.defaultRouteName
 import com.zynergylabs.forager.app.domain.route.legElevation
-import com.zynergylabs.forager.app.domain.route.routeElevation
 import com.zynergylabs.forager.app.domain.route.routeFrame
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MapCameraRequest
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.PlottedRouteOnMap
 import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
 import com.zynergylabs.forager.app.ui.route.RouteCard
@@ -35,6 +36,7 @@ import com.zynergylabs.forager.app.ui.route.RouteCardContent
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.SaveRouteDialog
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
 /*
@@ -79,8 +81,36 @@ internal fun plottedRouteOnMap(controls: RoutePlottingControls?): PlottedRouteOn
     RoutePlotMode.Off, null -> null
 }
 
+/**
+ * Whether the route card is showing and expanded, so the icon cluster folds (Amendment 10, RECORD -1904). The anchor outlives the
+ * card ([RoutePlottingUiState.expanded] is kept when it closes), so a card that is not showing folds nothing.
+ */
+internal fun routeCardFoldsCluster(controls: RoutePlottingControls?): Boolean {
+    val state = controls?.state ?: return false
+    return state.expanded && when (val mode = state.mode) {
+        is RoutePlotMode.Plotting -> true
+        is RoutePlotMode.Showing -> mode.trip.route != null
+        RoutePlotMode.Off -> false
+    }
+}
+
 /** The most of the map's height the expanded card's rows take before they scroll (the first stop, (b)). */
 internal const val ROUTE_CARD_EXPANDED_FRACTION = 0.5f
+
+/**
+ * Amendment 9 (RECORD -1902, the owner: "\"i\" moves above the card (Recommended)"): while the card shows ([cardHeightDp] above
+ * 0), MapLibre's attribution "i" keeps clear of it as the cluster, "Return to Route" and the legend chip do: its bottom inset is
+ * raised to the card's top plus the same gap ([CompactMapBottomChrome]'s routeCardLift: the card's height and Spacing.sm, over
+ * the card's own bottom, [bottomInset][MapRenderMode.bottomInset] and its clearance). Never lowered, and unchanged with no card,
+ * so it goes back when the card closes. In the short landscape window the "i" sits beside the credit strip
+ * ([MapRenderMode.attributionBesideCredit]), below the card's bottom, and that placement does not read this inset.
+ */
+internal fun MapRenderMode.withAttributionAboveRouteCard(cardHeightDp: Int): MapRenderMode {
+    if (cardHeightDp <= 0) return this
+    val current = attributionBottomInset ?: bottomInset
+    val aboveCard = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + cardHeightDp.dp + Spacing.sm
+    return if (aboveCard > current) copy(attributionBottomInset = aboveCard) else this
+}
 
 /** The side margin of a saved route's fit, and the gap kept between the route and the card's top. */
 internal const val ROUTE_FIT_MARGIN_DP = 48
@@ -130,7 +160,6 @@ internal fun BoxScope.CompactMapRouteCard(
             mode.draft.legs,
             canSave = mode.draft.toRoute() != null,
             legElevations = mode.draft.legs.map(::legElevation),
-            totalElevation = routeElevation(mode.draft.legs),
         )
         is RoutePlotMode.Showing -> mode.trip.route?.let { RouteCardContent.Saved(mode.trip.name, it.stops, it.legs) }
         RoutePlotMode.Off, null -> null

@@ -488,8 +488,10 @@ internal fun CompactMapTab(
                     tapped = tapped,
                     onTapped = { tapped = it },
                     mapLayers = mapLayers,
-                    // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest).
-                    renderMode = savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode,
+                    // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest). Amendment 9:
+                    // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
+                    renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
+                        .withAttributionAboveRouteCard(routeCardHeightDp),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onFeatureTap = onFeatureTap,
@@ -575,6 +577,9 @@ internal fun CompactMapTab(
                     topLimitPx = layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
                     controlsPadding = controlsPadding,
+                    // Dispatch 2026-10-30-08, Amendment 10: the column folds while the route card is expanded.
+                    foldedForRouteCard = routeCardFoldsCluster(bubbleSources.routePlotting),
+                    onRestoreWhileFolded = { bubbleSources.routePlotting?.actions?.onSetExpanded(false) },
                 )
                 // The chips under the strip (RECORD -741: CompactMapChips, moved out unchanged; its comments are there). Dispatch
                 // 2026-10-12-08: composed before the strip, no longer after it. While navigating in portrait the strip's card now holds

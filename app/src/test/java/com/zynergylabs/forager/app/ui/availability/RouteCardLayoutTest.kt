@@ -25,7 +25,6 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.route.RouteElevation
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_LEGS_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAME_TAG
@@ -33,9 +32,7 @@ import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_ELEVATION_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TOTAL_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVED_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TOTAL_TAG
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
@@ -58,8 +55,8 @@ import org.robolectric.annotation.Config
 /**
  * Dispatch 2026-10-30-08, Amendment 6 (RECORD -1887): the route card's layout, from the owner's first use on the S22.
  *
- * Peek while plotting: "N Waypoints selected" with the total distance at its right; the arrow chain of names is gone.
- * Expanded: per leg "<from> to <to>" with its distance at the right; the last row "N Waypoints routed" with the total.
+ * Peek while plotting, since Amendment 12 (RECORD -1910): "N Waypoints routed" with the total distance at its right; the arrow
+ * chain of names is gone. Expanded: per leg "<from> to <to>" with its distance at the right, above that same line.
  * No elevation line yet: heights arrive with #447. The seam, an optional elevation per leg and for the total, is shown here
  * by handing the card one directly, since nothing in the app makes one yet.
  *
@@ -142,14 +139,16 @@ class RouteCardLayoutTest {
     private fun legMeters(i: Int): Double = (listOf(CREEK, RIDGE, CREEK).map { it.stop().position }.zipWithNext())[i].let { (a, b) -> straight(a, b).meters }
 
     @Test
-    fun `the peek while plotting shows the count with the total at its right, and no chain of names`() {
+    fun `the peek while plotting shows the routed count with the total at its right, and no chain of names`() {
         setScreen()
         plotCreekRidgeCreek()
         val unit = viewModel.uiState.value.distanceUnit
 
-        assertEquals("3 Waypoints selected", text(ROUTE_CARD_COUNT_TAG))
-        assertEquals(formatDistanceMeters(legMeters(0) + legMeters(1), unit), text(ROUTE_CARD_TOTAL_TAG))
-        assertAtRightOf("the total", bounds(ROUTE_CARD_COUNT_TAG), bounds(ROUTE_CARD_TOTAL_TAG))
+        assertEquals("3 Waypoints routed", text(ROUTE_CARD_ROUTED_COUNT_TAG))
+        // Amendment 10 (RECORD -1904): the sum of the rows as shown, 1.4 + 1.4; the metres summed read 2.7.
+        assertEquals("1.4 km", formatDistanceMeters(legMeters(0), unit))
+        assertEquals("2.8 km", text(ROUTE_CARD_ROUTED_TOTAL_TAG))
+        assertAtRightOf("the total", bounds(ROUTE_CARD_ROUTED_COUNT_TAG), bounds(ROUTE_CARD_ROUTED_TOTAL_TAG))
         assertTrue("no arrow on the card: ${cardTexts()}", cardTexts().none { "→" in it })
         assertTrue("no stop names on the peek: ${cardTexts()}", cardTexts().none { "Creek" in it || "Ridge" in it })
     }
@@ -168,31 +167,30 @@ class RouteCardLayoutTest {
             assertTrue("leg $i: no elevation line yet", !exists(routeCardLegElevationTag(i)))
         }
         assertEquals("3 Waypoints routed", text(ROUTE_CARD_ROUTED_COUNT_TAG))
-        assertEquals(text(ROUTE_CARD_TOTAL_TAG), text(ROUTE_CARD_ROUTED_TOTAL_TAG))
+        assertEquals("2.8 km", text(ROUTE_CARD_ROUTED_TOTAL_TAG))
         assertAtRightOf("the routed total", bounds(ROUTE_CARD_ROUTED_COUNT_TAG), bounds(ROUTE_CARD_ROUTED_TOTAL_TAG))
-        val legs = bounds(ROUTE_CARD_LEGS_TAG)
         val routed = bounds(ROUTE_CARD_ROUTED_TAG)
-        assertTrue("the routed row is in the expanded list", routed.top >= legs.top && routed.bottom <= legs.bottom + 0.5.dp)
-        assertTrue("the routed row is below the last leg", routed.top >= bounds(routeCardLegTag(1)).bottom)
+        assertTrue("the routed row is below the list (Amendment 12)", routed.top >= bounds(ROUTE_CARD_LEGS_TAG).bottom - 0.5.dp)
+        assertTrue("the routed row is below the last leg", routed.top >= bounds(routeCardLegTag(1)).bottom - 0.5.dp)
         assertTrue("no elevation for the total yet", !exists(ROUTE_CARD_ROUTED_ELEVATION_TAG))
         assertTrue("no elevation text anywhere on the card: ${cardTexts()}", cardTexts().none { it.startsWith("Elevation") })
         assertTrue("no arrow on the card: ${cardTexts()}", cardTexts().none { "→" in it })
     }
 
     @Test
-    fun `a saved route's peek shows its name with the total at its right and N Waypoints routed under it, opened by a real touch on its pin`() {
+    fun `a saved route's peek shows its name, then N Waypoints routed with the total at its right, opened by a real touch on its pin`() {
         setScreen()
         touchCentreOf(glyphTag(ROUTE_TRIP.id))
         val unit = viewModel.uiState.value.distanceUnit
 
         assertTrue("the card peeks", !plotting.uiState.value.expanded)
         assertEquals("Creek to Ridge", text(ROUTE_CARD_NAME_TAG))
-        assertEquals(formatDistanceMeters(legMeters(0), unit), text(ROUTE_CARD_TOTAL_TAG))
-        assertAtRightOf("the total", bounds(ROUTE_CARD_NAME_TAG), bounds(ROUTE_CARD_TOTAL_TAG))
-        assertEquals("2 Waypoints routed", text(ROUTE_CARD_SAVED_COUNT_TAG))
-        assertTrue("the routed count is under the name", bounds(ROUTE_CARD_SAVED_COUNT_TAG).top >= bounds(ROUTE_CARD_NAME_TAG).bottom)
+        assertEquals(formatDistanceMeters(legMeters(0), unit), text(ROUTE_CARD_ROUTED_TOTAL_TAG))
+        assertEquals("2 Waypoints routed", text(ROUTE_CARD_ROUTED_COUNT_TAG))
+        assertAtRightOf("the total", bounds(ROUTE_CARD_ROUTED_COUNT_TAG), bounds(ROUTE_CARD_ROUTED_TOTAL_TAG))
+        assertTrue("the routed count is under the name", bounds(ROUTE_CARD_ROUTED_COUNT_TAG).top >= bounds(ROUTE_CARD_NAME_TAG).bottom)
         assertTrue("no arrow on the card: ${cardTexts()}", cardTexts().none { "→" in it })
-        assertEquals("the peek's texts", listOf("Creek to Ridge", formatDistanceMeters(legMeters(0), unit), "2 Waypoints routed", "Directions"), cardTexts())
+        assertEquals("the peek's texts", listOf("Creek to Ridge", "2 Waypoints routed", formatDistanceMeters(legMeters(0), unit), "Directions"), cardTexts())
     }
 
     @Test
@@ -212,8 +210,7 @@ class RouteCardLayoutTest {
             stops = listOf(CREEK.stop(), RIDGE.stop(), CREEK.stop()),
             legs = listOf(straight(CREEK.stop().position, RIDGE.stop().position), straight(RIDGE.stop().position, CREEK.stop().position)),
             canSave = true,
-            legElevations = listOf(RouteElevation(73.152, 97.536, 24.384), null),
-            totalElevation = RouteElevation(-30.48, 30.48, 60.96),
+            legElevations = listOf(RouteElevation(73.152, 97.536, 24.384), RouteElevation(-103.632, 3.048, 106.68)),
         )
         var unit by mutableStateOf(DistanceUnit.MILES)
         composeRule.setContent {
@@ -225,13 +222,14 @@ class RouteCardLayoutTest {
 
         assertEquals("Elevation: +240 ft (↑ 320 ↓ 80)", text(routeCardLegElevationTag(0)))
         assertTrue("under its leg's name", bounds(routeCardLegElevationTag(0)).top >= bounds(routeCardLegNameTag(0)).bottom)
-        assertTrue("a leg with no elevation shows none", !exists(routeCardLegElevationTag(1)))
-        assertEquals("Elevation: -100 ft (↑ 100 ↓ 200)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        assertEquals("Elevation: -340 ft (↑ 10 ↓ 350)", text(routeCardLegElevationTag(1)))
+        assertEquals("Elevation: -100 ft (↑ 330 ↓ 430)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
         assertTrue("under the routed count", bounds(ROUTE_CARD_ROUTED_ELEVATION_TAG).top >= bounds(ROUTE_CARD_ROUTED_COUNT_TAG).bottom)
 
         unit = DistanceUnit.KILOMETERS
         composeRule.waitForIdle()
         assertEquals("Elevation: +73 m (↑ 98 ↓ 24)", text(routeCardLegElevationTag(0)))
-        assertEquals("Elevation: -30 m (↑ 30 ↓ 61)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        assertEquals("Elevation: -104 m (↑ 3 ↓ 107)", text(routeCardLegElevationTag(1)))
+        assertEquals("Elevation: -31 m (↑ 101 ↓ 131)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
     }
 }

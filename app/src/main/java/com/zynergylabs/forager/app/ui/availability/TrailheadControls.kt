@@ -98,6 +98,8 @@ internal fun TrailheadControls(
      * since a waypoint navigation needs none. [isReturning] by default, so the return alone is as before.
      */
     isNavigating: Boolean = isReturning,
+    /** The upright pill's buttons take touches across their full squares, as the horizontal pill's always do; see [ControlPill]. */
+    fullSquareTouches: Boolean = false,
 ) {
     Column(
         modifier = modifier,
@@ -105,6 +107,7 @@ internal fun TrailheadControls(
     ) {
         ControlPill(
             horizontal = horizontal,
+            fullSquareTouches = fullSquareTouches,
             onLeftSide = onLeftSide,
             fillColor = fillColor,
             rowSpacing = rowSpacing,
@@ -144,6 +147,11 @@ private fun ControlPill(
     distanceUnit: DistanceUnit,
     modifier: Modifier = Modifier,
     horizontal: Boolean = false,
+    /**
+     * Amendment 11 (RECORD -1909): the upright pill drawn under its buttons rather than around them, so its round ends do not clip
+     * their squares. The pill alone over the map asks for it: there a touch that misses a corner lands on the map, not the column.
+     */
+    fullSquareTouches: Boolean = false,
     /** Which side the cluster is on: the horizontal pill keeps record at the outer end, under the bar, so its order mirrors. */
     onLeftSide: Boolean = true,
     fillColor: Color = Color.Unspecified,
@@ -211,7 +219,7 @@ private fun ControlPill(
             }
         }
     }
-    if (horizontal) {
+    if (horizontal || fullSquareTouches) {
         // Owner's ruling (d), continuation 2026-09-28-172: both buttons take touches across their full 48 x 48 squares, corners
         // included. The drawn pill is a content-less Surface underneath, so its rounded ends do not clip the buttons' hit areas.
         Box(modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill)) {
