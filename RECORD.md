@@ -31366,3 +31366,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Step reports exist, unruled, on later-steps-reports (b7382c8ae terrain, e4f9324c8 land context); the planner first said it could find no start. -1913 took own topo out of the release while -1628 still gated it on terrain.
 **Decision:** the owner: "All of H stays in"; "Move it to a later release (Recommended)". This changes -1628's "Everything" for step 11 only.
 **Notes:** Written by the planner by hand. How H sits beside -1913 is being asked. Next free ID -1924.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1924
+**Timestamp:** 2026-11-01T16:13:34Z
+**Continues:** 2026-09-28-1923
+**Title:** The release's terrain is hill shading, slope and aspect from the Pi's existing grid; own Topographical with contours stays out
+**Decision:** the owner, to the planner's reading: "Yes, that's it (Recommended)". No build go. The step path comes to the owner before anything starts; -1913's "Not yet" on the pilot stands until then.
+**Notes:** Written by the planner by hand. Juniper's report puts the 3″ grid at about z11 for shading; slope and aspect are not sized. Next free ID -1925.
