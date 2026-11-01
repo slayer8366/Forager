@@ -109,9 +109,9 @@ class RouteCardHandleTest {
         listOf(false, true).forEach { open ->
             composeRule.runOnUiThread { plotting.onSetExpanded(open) }
             composeRule.waitForIdle()
-            // Amendment 12 (RECORD -1910): the total line at peek, the rows expanded.
+            // Amendment 12 (RECORD -1910): the total line at peek, inside its Spacing.xs; the rows expanded.
             val gap = bounds(if (open) ROUTE_CARD_LEGS_TAG else ROUTE_CARD_ROUTED_TAG).top - bounds(ROUTE_CARD_TAG).top
-            assertEquals("expanded=$open: the first line's offset from the card's top, in dp", 32f, gap.value, 0.5f)
+            assertEquals("expanded=$open: the first line's offset from the card's top, in dp", if (open) 32f else 36f, gap.value, 0.5f)
         }
     }
 }
