@@ -62,7 +62,7 @@ fun WordSwap(
         // A plain holder, not State: this scope reads it, so a State written here would invalidate the scope that wrote it.
         val line = remember { Line(latest) }
         if (wordsOf(latest) == words) line.text = latest
-        content(line.text)
+        content(latest)
     }
 }
 
