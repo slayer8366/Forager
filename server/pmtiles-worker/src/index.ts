@@ -387,8 +387,9 @@ async function worldFillTile(
 // answers 404, which MapLibre takes as an empty tile. v2 and v1 are served exactly as before.
 //
 // Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
-// sprites/{v4,v5}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
-// v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs). They are matched
+// sprites/{v4,v5,v6}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
+// v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs); v6 is v5 unchanged plus
+// the orchard, vineyard and nursery patterns, for Street v4 (dispatch 2026-10-31-coder-07 Part 3). They are matched
 // before tilePath, because tilePath's tileset pattern also matches /sprites/v4/light.json.
 // Only these exact shapes are read; anything else under /fonts/ or /sprites/ is a 404, never an R2 read of
 // an arbitrary key.
@@ -398,7 +399,7 @@ async function worldFillTile(
 const ASSET_CACHE_CONTROL = "public, max-age=604800";
 
 const FONT_PATH = /^\/fonts\/([A-Za-z0-9 ,-]+)\/(\d+-\d+)\.pbf$/;
-const SPRITE_PATH = /^\/sprites\/(v4|v5)\/(light(?:@2x)?)\.(json|png)$/;
+const SPRITE_PATH = /^\/sprites\/(v4|v5|v6)\/(light(?:@2x)?)\.(json|png)$/;
 
 /** The R2 key and content type for a font or sprite URL, or null when [pathname] is neither. */
 export function assetKeyFor(pathname: string): { key: string; contentType: string } | null {
