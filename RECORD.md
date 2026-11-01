@@ -31210,3 +31210,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The route card's total line shows when collapsed and stays put while the rows slide up above it
 **Decision:** the owner: "Can the collapsed card have the 'X Waypoints routed' with the distance and elevation info like the expanded card? And when the card gets expanded, simply have that info stay at the bottom while the card with the info slides up, to be the total of the info"; "Remove it (Recommended)"; "Name, then total line (Recommended)". Dispatch 2026-10-30-08 Amendment 12.
 **Notes:** Written by the planner by hand. This replaces Amendment 6's peek for two or more stops. Next free ID -1911.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1911
+**Timestamp:** 2026-11-01T04:05:15Z
+**Continues:** 2026-09-28-1552, 2026-09-28-1628
+**Title:** Our own topo maps are wanted for the next release; sized first, then the owner decides whether they hold it
+**Observed:** The 10-21 plan never landed: origin/topo-plan-report holds its method notes and no report. -1628 still holds the release for the whole trail navigation plan.
+**Decision:** the owner: "Now we have elevation data, I think next release should contain our own topo maps"; "Size it, then decide (Recommended)"; "Yes, Juniper redoes it (Recommended)". Dispatch 2026-11-01-01 (read only), and a question to Aspen in prompts/aspen/. No build go.
+**Notes:** Written by the planner by hand. The release gate in -1628 is unchanged until the owner rules on the report. Next free ID -1912.
