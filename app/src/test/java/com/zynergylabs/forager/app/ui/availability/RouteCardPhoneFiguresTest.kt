@@ -10,12 +10,14 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * The S22's own landscape figures (docs/audits/2026-11-01-s22-build-449-454.md on tools/s22-combined): 3.75 px per dp, screen 3088 x
  * 1440 px, the pill at [130,1179][490,1359] px, the card's right edge at 2554 px (the rail's edge). Robolectric has no cut-out, so the
  * L sits further left here than on the phone; this reads the card's width from the real tab and sets it against the phone's pill.
  */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 class RouteCardPhoneFiguresTest {

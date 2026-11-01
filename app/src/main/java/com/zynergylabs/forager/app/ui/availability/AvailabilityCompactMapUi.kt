@@ -491,6 +491,7 @@ internal fun CompactMapTab(
                     // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest). Amendment 9:
                     // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
                     renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
+                        .withCreditAboveRouteCard(routeCardHeightDp, routeCardOverCredit(cluster))
                         .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster)),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
@@ -626,6 +627,24 @@ internal fun CompactMapTab(
                     },
                 )
 
+                // Dispatch 2026-10-30-08: the route card, before the bottom chrome, so "Return to Route" and the nav stay on top; Amendment 14
+                // (RECORD -1928): and before the landscape navigation card, so it comes up from behind it.
+                CompactMapRouteCard(
+                    controls = bubbleSources.routePlotting,
+                    cluster = cluster,
+                    landscapeRoom = routeCardLandscapeRoom(
+                        cluster,
+                        layout.landscapeStripWidthPx,
+                        layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
+                        navigation.isNavigating,
+                    ),
+                    distanceUnit = uiState.distanceUnit,
+                    controlsPadding = controlsPadding,
+                    bottomInset = renderMode.bottomInset,
+                    expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
+                    onCardHeightDp = { routeCardHeightDp = it },
+                )
+
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
                 // strip's card above). Its comments are there.
                 CompactMapNavigationDisplay(
@@ -643,17 +662,6 @@ internal fun CompactMapTab(
                     quickSettings = quickSettings,
                     sundownClock = sundownClock,
                     layout = layout,
-                )
-
-                // Dispatch 2026-10-30-08: the route card, before the bottom chrome, so "Return to Route" and the nav stay on top.
-                CompactMapRouteCard(
-                    controls = bubbleSources.routePlotting,
-                    cluster = cluster,
-                    distanceUnit = uiState.distanceUnit,
-                    controlsPadding = controlsPadding,
-                    bottomInset = renderMode.bottomInset,
-                    expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
-                    onCardHeightDp = { routeCardHeightDp = it },
                 )
 
                 // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;

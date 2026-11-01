@@ -17,6 +17,7 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 private const val STRIP = "compass-elevation-strip"
 
@@ -170,10 +171,12 @@ abstract class RouteCardLandscapeBarTests {
     }
 }
 
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 class RouteCardLandscapeBarTest : RouteCardLandscapeBarTests()
 
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi")
 class RouteCardShortLandscapeBarTest : RouteCardLandscapeBarTests()

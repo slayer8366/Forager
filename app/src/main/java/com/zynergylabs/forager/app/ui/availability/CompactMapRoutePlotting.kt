@@ -5,7 +5,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -148,6 +150,8 @@ private fun routeCardContent(state: RoutePlottingUiState?): RouteCardContent? = 
 internal fun BoxScope.CompactMapRouteCard(
     controls: RoutePlottingControls?,
     cluster: MapIconClusterState,
+    /** The landscape card's place, null in portrait ([routeCardLandscapeRoom]). */
+    landscapeRoom: RouteCardLandscapeRoom?,
     distanceUnit: DistanceUnit,
     controlsPadding: PaddingValues,
     bottomInset: Dp,
@@ -169,15 +173,17 @@ internal fun BoxScope.CompactMapRouteCard(
     val portrait = !cluster.landscape
     val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
     val sides = if (portrait) routeCardPortraitPadding(cluster) else PaddingValues()
+    val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+    val size = if (landscapeRoom != null) Modifier.width(landscapeRoom.width).heightIn(max = landscapeRoom.maxHeight) else Modifier
     NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
-            visible = !leaving,
+            visible = !leaving && (portrait || landscapeRoom != null),
             enter = enter,
             exit = exit,
             modifier = Modifier
-                .align(if (portrait) routeCardPortraitAlignment(barOnLeft) else Alignment.BottomCenter)
+                .align(routeCardAlignment(barOnLeft))
                 .padding(controlsPadding)
-                .padding(bottom = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                .padding(bottom = bottomPadding)
                 .leavingTakesNoTouches(leaving = leaving),
         ) {
             if (shownContent != null && shownActions != null) {
@@ -193,9 +199,13 @@ internal fun BoxScope.CompactMapRouteCard(
                         onDirections = { showing?.trip?.let { trip -> launchDirections(context, trip) } },
                     ),
                     expandedMaxHeight = expandedMaxHeight,
+                    contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
                     modifier = Modifier
                         .padding(sides)
-                        .onGloballyPositioned { if (!leaving) onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() }) },
+                        .then(size)
+                        // What rises above the card and the map's fit clear it wherever it sits, so a card resting on the navigation
+                        // card counts from the screen's bottom edge.
+                        .onGloballyPositioned { if (!leaving) onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) }) },
                 )
             }
         }
