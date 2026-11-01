@@ -31455,3 +31455,19 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** RECORD -1929 and Amendment 15 each appear twice; the first copy is a write that ran though it showed as rejected
 **Observed:** e0416e0ee and 0bbe31ad8. The tool call was shown as rejected, the planner re-ran it without checking the branch, and both landed. The two say the same; the second adds the owner's "Yes that's how i want it. Carry on". Read the second. Left in place, since the record is append-only.
 **Notes:** Written by the planner by hand. Next free ID -1931.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1931
+**Timestamp:** 2026-11-01T20:33:38Z
+**Continues:** 2026-09-28-1930, 2026-09-28-1927
+**Title:** #449's card now sits beside the bar, green; the owner's prediction holds: the portrait check passed because the bar was moved
+**Observed:** Hazel (Opus), route-plot-ui f97231aee. CI run 41339153958, 6155 tests, 0 failed. Fail first 41329453873 (9 of 12) and 41333279945 (11 of 13, default graphics, so its widths aren't real). 18 revert checks, 17 biting. Nothing on a phone.
+- **The prediction, the owner's "it passed because the icon bar slides up with the card":** holds. The card's top clamped the bar's drawn offset; the portrait gap is 44 px at three card heights. The audit measured a gap, which a displaced bar still passes. assertBarUntouched now asserts the bar's bounds.
+- **Built:** portrait 312 dp at the S22's size, sliding in from the side away from the bar. Landscape the strip's width on the bottom edge, away from the L, resting on the navigation card with 16 dp tucked behind it.
+- **Removed:** the fold, the held pill and the card's hold on the bar; 20 tests.
+- **For the owner:** at font scale 2.0 in portrait, "4 Waypoints routed" is cut with an ellipsis; on a tablet in portrait the card keeps its 640 dp cap, 120 dp from the bar; a minimised bar leaves the card at its width.
+- **Beyond the amendment:** the legend chip, "i" and credit move to stay clear of the card.
+- **A wider finding:** Robolectric's default text widths aren't real, so a width-fit check in that mode could not fail.
+**Notes:** Written by the planner by hand. Next free ID -1932.
