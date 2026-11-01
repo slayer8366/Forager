@@ -31190,3 +31190,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Coder's calls, unruled:** a touch on the restore handle collapses the card; the record and return pill folds with the column; mixed-unit rows add at their shown figures (900 ft + 900 ft totals "0.3 mi"); the Trip Planner row still rounds once; a zero sum reads "+0 ft".
 - **Not verified:** a phone; landscape beyond one rotation; dragging the handle while the card is expanded.
 **Notes:** Written by the planner by hand. Next free ID -1909.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1909
+**Timestamp:** 2026-11-01T03:46:04Z
+**Continues:** 2026-09-28-1908
+**Title:** The pill stays showing while the card is expanded; Trip Planner matches the card; the handle and mixed units stay as built
+**Decision:** the owner: "Collapse the card (Recommended)"; "Keep the pill showing (Recommended)"; "Yes, leave it (Recommended)"; "Match the card (Recommended)". Dispatch 2026-10-30-08 Amendment 11.
+**Notes:** Written by the planner by hand. This reverses Amendment 10's folding of the pill, which was the coder's call. Next free ID -1910.

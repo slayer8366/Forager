@@ -221,3 +221,14 @@ The owner:
   - Fail first with the phone's distance case, then a revert check.
 
 Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
+
+## Amendment 11 (2026-11-01): the coder's calls from Amendment 10 (RECORD -1909)
+Read the PR #449 body, "Calls beyond the dispatch". The owner:
+- **The restore handle, "Collapse the card (Recommended)".** Stays as built. Nothing to change.
+- **The pill, "Keep the pill showing (Recommended)".** While the route card is expanded, only the column folds. The record and return pill stays showing and reachable, and clear of the card. This reverses Amendment 10's folding of the pill.
+  - Fail first with coordinate touches on stop and return while the card is expanded and recording, sampled across each target's bounds, at the S22's size. Assert the pill's bounds clear the card's top. Then a revert check.
+  - If the pill cannot clear the card at the S22's size with four stops expanded, stop and report the numbers. Do not choose a layout.
+- **Mixed units, "Yes, leave it (Recommended)".** Stays as built.
+- **Trip Planner, "Match the card (Recommended)".** A saved route's row uses the same shown-rows total as its card (PlannedRouteRow.kt:58, as of 9167cead5), so one route never shows two distances. Fail first with the 0.4 + 0.4 + 0.4 case, then a revert check. If the row does not have the legs it needs without a new query or a schema change, stop and report.
+
+Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
