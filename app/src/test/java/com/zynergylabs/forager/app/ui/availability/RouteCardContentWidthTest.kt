@@ -140,8 +140,10 @@ class RouteCardContentWidthTest {
         val narrow = rig.bounds(ROUTE_CARD_TAG)
         composeRule.mainClock.autoAdvance = false
         rig.tapNext()
-        composeRule.mainClock.advanceTimeByFrame()
-        composeRule.mainClock.advanceTimeBy(100)
+        val widths = (1..6).map {
+            composeRule.mainClock.advanceTimeByFrame()
+            width(rig.bounds(ROUTE_CARD_TAG)).value
+        }
         val part = rig.bounds(ROUTE_CARD_TAG)
         val partLines = rig.lineCount(routeCardLegNameTag(1))
         val partUndo = rig.bounds(ROUTE_CARD_UNDO_TAG)
@@ -149,9 +151,11 @@ class RouteCardContentWidthTest {
         composeRule.mainClock.autoAdvance = true
         rig.settle()
         val wide = rig.bounds(ROUTE_CARD_TAG)
-        println("A16 widening: ${width(narrow).value} > ${width(part).value} > ${width(wide).value}, lines part way $partLines")
+        println("A16 widening, bar on left $barOnLeft: ${width(narrow).value} to ${width(wide).value}, by frame $widths, lines part way $partLines")
         assertTrue("precondition: this leg widens the card: ${width(narrow)} to ${width(wide)}", width(wide) >= width(narrow) + 16.dp)
         assertTrue("part way it is on its way: ${width(narrow)}, ${width(part)}, ${width(wide)}", width(part) > width(narrow) + 1.dp && width(part) < width(wide) - 1.dp)
+        // Each frame a new value: the two jumps of a leg in flight and then landed would show as two or three (the reduced-motion test).
+        assertTrue("it eases, the widths by frame: $widths", widths.distinct().size >= 5)
         assertEquals("part way, the new row is on one line", 1, partLines)
         if (barOnLeft) {
             rig.assertSame("part way, Save stays at the anchored side", rig.bounds(ROUTE_CARD_SAVE_TAG), partSave)
@@ -266,7 +270,7 @@ class RouteCardNeededWidthTest {
         val settled = needed(routed)
         val flying = needed(inFlight)
         println("A16 needed: routed ${settled.value}, a leg in flight ${flying.value}")
-        assertTrue("precondition: wider than the buttons need", settled > 240.dp)
+        assertTrue("precondition: wider than the buttons need, 223.33 dp", settled > 230.dp)
         assertEquals("the width", settled.value, flying.value, 0.5f)
     }
 }
