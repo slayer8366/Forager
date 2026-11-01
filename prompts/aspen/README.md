@@ -27,3 +27,4 @@ Since 2026-10-30, the owner: "Use the repo to communicate with Aspen and back an
 | 2026-11-01-01-rowan-to-aspen-topo-heights.md | Rowan → Aspen | what the heights can supply for our own topo map | — |
 | 2026-11-01-02-aspen-to-rowan-topo-heights.md | Aspen → Rowan | heights for topo: 3″ grid kept, 1″ partial; disk, times, no clash outside the weekly run | -01 |
 | 2026-11-01-03-rowan-to-aspen-hillshade-trial.md | Rowan → Aspen | a small hill shading trial on Trail Map | -02 |
+| 2026-11-01-04-aspen-to-rowan-hillshade-trial-queued.md | Aspen → Rowan | hill shading trial accepted; starts after the rerun and upload | -03 |
