@@ -78,6 +78,17 @@ const EDGE_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 0.5, 15, 0.75, 17, 
 const MOTORWAY_CENTRES = ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"];
 const MOTORWAY_CASINGS = ["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing"];
 
+/**
+ * Sprite v6's images (tools/build-sprite-v5.mjs v6): sprite v5, unchanged, plus these three patterns in one row below it,
+ * Sage's sage-10b art (Forager-cartography assets/sprite-drafts/2026-10-31). Square cells, in 1x px. v4 names sprite v6;
+ * v3 and older keep v5. Night is the app's plain inversion (ink #8ea65c to #829a50), as ruled: no night paint.
+ */
+export const SPRITE_V6_ITEMS = [
+  { name: "orchard_dots", size: 24 },
+  { name: "vineyard_rows", size: 16 },
+  { name: "nursery_dots", size: 12 },
+];
+
 /** Orchards, plant nurseries and vineyards: kind farmland with one of these kind_detail values (basemap patch 0006). */
 const ORCHARD_KINDS = ["orchard", "plant_nursery", "vineyard"];
 const IS_ORCHARD = ["all", ["==", ["get", "kind"], "farmland"], ["in", ["get", "kind_detail"], ["literal", ORCHARD_KINDS]]];
@@ -200,7 +211,7 @@ export function applyFillIn(layers) {
       "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1],
     },
   });
-  // Orchards, plant nurseries and vineyards over the farmland fill (sage-10); each kind's pattern is a later step.
+  // Orchards, plant nurseries and vineyards over the farmland fill (sage-10), and each kind's pattern from z13 (sprite v6).
   insertAfter(layers, "landuse_settled", {
     id: "landuse_orchards",
     type: "fill",
@@ -213,6 +224,17 @@ export function applyFillIn(layers) {
     },
   });
   insertAfter(layers, "landuse_orchards", {
+    id: "landuse_orchards_pattern",
+    type: "fill",
+    source: "protomaps",
+    "source-layer": "landuse",
+    minzoom: 13,
+    filter: IS_ORCHARD,
+    paint: {
+      "fill-pattern": ["match", ["get", "kind_detail"], "orchard", "orchard_dots", "vineyard", "vineyard_rows", "plant_nursery", "nursery_dots", ""],
+    },
+  });
+  insertAfter(layers, "landuse_orchards_pattern", {
     id: "landuse_parks_fill",
     type: "fill",
     source: "protomaps",

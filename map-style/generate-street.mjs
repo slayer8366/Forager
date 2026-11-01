@@ -44,14 +44,17 @@ export const WORKER = "https://forager-pmtiles.brandonlee1-894.workers.dev";
  */
 const ARCHIVE = "us";
 const LOCAL = "http://localhost:8765";
-/** The sprite both versions use (tools/build-sprite-v5.mjs). */
-const SPRITE = "sprites/v5/light";
+/**
+ * The sprite each version names (tools/build-sprite-v5.mjs): v3 sprite v5; v4 sprite v6, v5 unchanged plus the orchard,
+ * vineyard and nursery patterns (dispatch 2026-10-31-coder-07 Part 3; the owner: "New icon set v6 (Recommended)").
+ */
+const SPRITES = { v3: "sprites/v5/light", v4: "sprites/v6/light" };
 
 // The sprite's images the app's night rules invert (its bundled night set since dispatch 2026-10-22-06), recorded in the style's
 // metadata because MapLibre has no call that lists a style's images; the app's copy is checked against this one by
 // a unit test (StreetStyleTest). The patterns the app paints one colour instead (forager:night-patterns) are left
 // off it, so no image is both inverted and painted.
-const spriteIcons = Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${SPRITE}.json`), "utf8")))
+const spriteIconsOf = (sprite) => Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${sprite}.json`), "utf8")))
   .filter((name) => !(name in NIGHT_PATTERN_COLOURS))
   .sort();
 
@@ -94,7 +97,7 @@ const style = (version, assetsBase) => ({
   name: `Forager Street ${version}`,
   metadata: {
     "forager:generated-from": VERSIONS[version].generatedFrom,
-    "forager:sprite-icons": spriteIcons,
+    "forager:sprite-icons": spriteIconsOf(SPRITES[version]),
     // The design's colours, day and the night exceptions (-1343), for the app's tests to read.
     "forager:palette": VERSIONS[version].palette,
     // Night exceptions (-1345): by layer, and for icon rings.
@@ -121,7 +124,7 @@ const style = (version, assetsBase) => ({
     ...(VERSIONS[version].sources ?? {}),
   },
   glyphs: `${assetsBase}/fonts/{fontstack}/{range}.pbf`,
-  sprite: `${assetsBase}/${SPRITE}`,
+  sprite: `${assetsBase}/${SPRITES[version]}`,
   layers: VERSIONS[version].layers,
 });
 
