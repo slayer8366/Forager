@@ -171,6 +171,32 @@ test("the TileJSON still advertises maxzoom 15 and the Worker's own tile URL", a
   assert.deepEqual(tilejson.tiles, [`${HOST}/us/{z}/{x}/{y}.mvt`]);
 });
 
+// --- The overflow and the advertised maxzoom are the Street archive's alone (dispatch 2026-11-01-coder-11 step 1, before
+// relief.pmtiles, z5-11 raster-dem PNG, goes on R2). Any other archive advertises its own maxzoom, and a tile above it is
+// 204: never Protomaps' live vector build, which would answer a relief .png request with MVT and write it into R2.
+// other.pmtiles stands in for any non-Street archive: tiny.pmtiles's tiles, maxzoom 14.
+
+test("a non-Street archive's TileJSON advertises its own maxzoom, not the overflow's 15", async () => {
+  const tilejson = await (await call("/other.json")).json();
+  assert.equal(tilejson.maxzoom, 14);
+  assert.deepEqual(tilejson.tiles, [`${HOST}/other/{z}/{x}/{y}.mvt`]);
+});
+
+test("a non-Street archive's tile above its maxzoom is 204, with no Protomaps read and no R2 overflow read or write", async () => {
+  const response = await call("/other/15/5303/11553.mvt");
+  assert.equal(response.status, 204);
+  assert.deepEqual(fetchCalls, []);
+  assert.ok(!bucketReads.some((k) => k.startsWith("overflow/")), JSON.stringify(bucketReads));
+  assert.deepEqual(bucketPuts, []);
+});
+
+test("the Street archive keeps the overflow: us.json advertises 15 and its z15 tile reads the live build", async () => {
+  assert.equal((await (await call("/us.json")).json()).maxzoom, 15);
+  const response = await call("/us/15/5303/11553.mvt");
+  assert.equal(response.status, 200);
+  assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
+});
+
 test("/style/offline.json is the bundled offline style, byte for byte as before", async () => {
   const response = await call("/style/offline.json");
   assert.equal(response.status, 200);
