@@ -31435,3 +31435,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** In portrait the route card slides in from the side opposite the icon bar
 **Decision:** the owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)". Dispatch 2026-10-30-08 Amendment 15. Amendments 14 and 15 wait for the owner's go: "Wait for my word".
 **Notes:** Written by the planner by hand. Next free ID -1930.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1929
+**Timestamp:** 2026-11-01T16:56:16Z
+**Continues:** 2026-09-28-1928
+**Title:** In portrait the route card slides in from the side opposite the icon bar
+**Decision:** the owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)"; "Yes that's how i want it. Carry on". Dispatch 2026-10-30-08 Amendment 15.
+**Notes:** Written by the planner by hand. Next free ID -1930.
