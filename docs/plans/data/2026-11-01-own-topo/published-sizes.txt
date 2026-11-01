@@ -1,0 +1,10 @@
+Published and listing figures read for this report, 2026-11-01 UTC (one request each, named user agent).
+Terrain archive (planet, z0-12): https://download.mapterhorn.com/planet.pmtiles
+  HEAD content-length 355579263191, last-modified 2026-09-11. First 127 bytes (PMTiles v3 header) read, nothing else:
+  tile data 355558242852 B; addressed tiles 13485266; distinct contents 9316839; type WebP (4); z0-12.
+  Data page says: Terrarium, 512 px, WebP. Average per distinct tile 38163 B.
+R2: https://developers.cloudflare.com/r2/pricing/ $0.015/GB-month, free 10 GB-month; Class A $4.50/M; Class B $0.36/M; egress free.
+    https://developers.cloudflare.com/r2/platform/limits/ 10,000 parts; 4.995 TiB per object (page dated 2026-10-30).
+Map library: maplibre-native tag android-v13.5.0 (efbde81526f2), files read at that tag:
+  platform/default/src/mbgl/storage/offline_download.cpp; src/mbgl/util/tile_cover.cpp; .../style/layers/HillshadeLayer.java;
+  .../style/layers/Property.java; tree listing (only paths matching 'contour' are 4 test tile images).
