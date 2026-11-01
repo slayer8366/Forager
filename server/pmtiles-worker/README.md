@@ -46,9 +46,9 @@ recording rather than hiding:
 
 | Path | What | From |
 |---|---|---|
-| `/{name}/{z}/{x}/{y}.mvt` | a vector tile | R2's `{name}.pmtiles`; z15 from Protomaps' live build through the overflow, cached into R2 |
+| `/{name}/{z}/{x}/{y}.{mvt,png,…}` | a tile | R2's `{name}.pmtiles`. Above `us.pmtiles`'s own maxzoom, z15 from Protomaps' live build through the overflow, cached into R2; above any other archive's maxzoom, 204 (dispatch 2026-11-01-coder-11) |
 | `/us/{z}/{x}/{y}.mvt`, z0-8, tile not in `us.pmtiles` | the world fill (dispatch 2026-10-22-01 Part A) | R2's `world-south.pmtiles`, labelled `X-Forager-Origin: r2-world-south`; 204 if it has no tile or is not on R2 |
-| `/{name}.json` | TileJSON | R2's `{name}.pmtiles` header and metadata |
+| `/{name}.json` | TileJSON | R2's `{name}.pmtiles` header and metadata; maxzoom 15 for `us` (the overflow), the archive's own for any other |
 | `/us.json` while `world-south.pmtiles` is on R2 | TileJSON with its south bound taken from the world archive (dispatch 2026-10-22-01 Amendment 3), so MapLibre requests the tiles the fill serves | R2 `head` of `world-south.pmtiles`, then its header |
 | `/style/offline.json` | the label-less offline style every pre-Street offline pack was downloaded against; never changed (RECORD -1294) | bundled |
 | `/style/street-v1.json` | Forager's Street style as it was before Trail Map's character; frozen, for older apps and regions downloaded against it | bundled |
@@ -67,6 +67,29 @@ Every tile comes from R2. The response header `X-Forager-Origin` still names the
 
 **Tests:** `npm ci && npm run build && npm test` runs `test/worker.test.mjs` against `dist/index.js`, the
 bundle the dashboard is given, with R2 faked from `test/fixtures/tiny.pmtiles`.
+
+## Deploying: Worker releases (dispatch 2026-11-01-coder-11)
+
+The owner: "Yes, Worker folder only (Recommended)", then "may as well get it modular to work around these situations in
+the future".
+
+- **What is live is main's `server/pmtiles-worker`.** Cloudflare Workers Builds deploys that folder on every push to
+  `main` (root directory `server/pmtiles-worker`, production branch `main`). Any push to `main`, even one that touches
+  nothing here, redeploys whatever the folder holds. So main's folder must always be the Worker that should be live.
+  Earlier hand deploys with wrangler from `pre-main` (e.g. 2026-10-22) left the live Worker ahead of main's folder until
+  the first release.
+- **Worker work lands on `pre-main` first,** with its tests, like everything else.
+- **A Worker release is a `worker/*` pull request to `main` that changes only this folder,** making it byte-identical to
+  pre-main's: `git checkout origin/pre-main -- server/pmtiles-worker` on a branch off `main`. App work on `pre-main` doesn't
+  ride along, and `main` gets no app release nobody ruled on.
+- **The guard,** `.github/workflows/worker-release.yml`, runs `tools/check-release.sh` on every `worker/*` pull request to
+  `main`. It fails if any changed file is outside this folder, or if the folder differs from pre-main's. Its tests are
+  `test/check-release.test.mjs`.
+- **The folder stands alone,** so its tests pass on `main`, whose other folders are an older release's.
+  `test/self-contained.test.mjs` fails if any source or test reads a file outside it. The checks that the Worker's copies
+  equal the rest of the repository's (the official-trails names in `test/reference-names.mjs`, and the frozen v2 style)
+  are in `test/cross-folder.test.mjs`. They run where `map-style` is the same release (always on `pre-main`), and are
+  skipped, with the reason, on a folder-only `main`.
 
 ## What's already done
 
