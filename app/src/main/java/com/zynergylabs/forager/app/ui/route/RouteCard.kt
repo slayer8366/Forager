@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,8 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -38,6 +39,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
@@ -56,7 +58,8 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  * waypoint's tap. Its fill is the map chrome's 80% (CLAUDE.md, "Nothing fully obstructs the map"); its content colour opaque.
  *
  * Two states, peek and expanded, moved between by tapping the handle or dragging it. The state is user-set and kept in the
- * ViewModel, so it survives a tab change (CLAUDE.md, UX defaults).
+ * ViewModel, so it survives a tab change (CLAUDE.md, UX defaults). Between them the rows slide, following the finger
+ * (Amendment 12, RECORD -1910, `RouteCardReveal.kt`).
  *
  * Its bounds are its own: a width cap of [ROUTE_CARD_MAX_WIDTH] and a height that wraps its content, the expanded rows capped
  * and scrolling. Nothing in it fills the map box (CLAUDE.md, the Surface pitfall), so a long-press above or beside it reaches
@@ -64,13 +67,14 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  *
  * Words on screen, all approved: "Undo", "Cancel", "Save", "No trail data, straight line" (RECORD -1845 and Amendment 1),
  * "Directions" on a saved route (Amendment 1, Q7), and Amendment 6's (RECORD -1887, in RouteCardText.kt): "1 Waypoint
- * selected, tap another to route", which replaced "Tap the next waypoint", "N Waypoints selected", "<from> to <to>",
- * "N Waypoints routed" and "Elevation:".
+ * selected, tap another to route", which replaced "Tap the next waypoint", "<from> to <to>", "N Waypoints routed" and
+ * "Elevation:".
  *
- * The layout is the owner's, from the first use on the S22 (Amendment 6): the peek while plotting is the count with the
- * total at its right, the arrow chain of names gone; the expanded list is a row per leg with its distance at the right, then
- * "N Waypoints routed" with the total. Under each, an elevation line when the content carries one (the seam for #447),
- * filled while plotting since Amendment 8 (RECORD -1896, `RouteLegElevation.kt`); a saved route carries none until step 3b.
+ * The layout is the owner's, from the first use on the S22 (Amendment 6) and Amendment 12 (RECORD -1910): the handle, a saved
+ * route's name, the rows when open, the total line, the buttons. The total line is "N Waypoints routed" with the total at its
+ * right. Each row is a leg with its distance at the right. Under each, an elevation line when the content carries one (the seam
+ * for #447), filled while plotting since Amendment 8 (RECORD -1896, `RouteLegElevation.kt`); a saved route carries none until
+ * step 3b. The total line sits under the rows and over the buttons, so it stays put on screen while the rows slide up above it.
  */
 
 /** M3's sheet width cap (`BottomSheetDefaults.SheetMaxWidth`), so the card stays a readable column on a tablet. */
@@ -84,7 +88,8 @@ private val HANDLE_LAYOUT_HEIGHT = 32.dp
 
 /**
  * The handle's touch target (Amendment 5, N-9: "a 48 dp touch target, with the same look"), Material's minimum. The extra
- * 16 dp reach down over the top of the summary line, which takes no touch of its own, so the card and the bar do not move.
+ * 16 dp reach down over what comes next, so the card and the bar do not move. That can be the rows, which scroll, so the handle
+ * is above them in touch order ([RouteCardHandle]'s zIndex).
  */
 private val HANDLE_TOUCH_HEIGHT = 48.dp
 
@@ -147,19 +152,17 @@ fun RouteCard(
         color = fill,
         contentColor = contentColour,
     ) {
+        val reveal = remember { RouteCardReveal(expanded) }
+        LaunchedEffect(expanded) { reveal.settle(expanded) }
         Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(horizontal = Spacing.md)) {
-            RouteCardHandle(expanded, callbacks.onToggleExpanded)
-            RouteSummaryLine(content, distanceUnit)
-            if (expanded) {
-                Column(
-                    Modifier
-                        .heightIn(max = expandedMaxHeight)
-                        .verticalScroll(rememberScrollState())
-                        .testTag(ROUTE_CARD_LEGS_TAG),
-                ) {
-                    RouteLegRows(content, distanceUnit)
-                }
+            RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
+            if (content is RouteCardContent.Saved) {
+                Text(content.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))
             }
+            if ((expanded || reveal.showsRows) && (content.legs.isNotEmpty() || content.legInFlight)) {
+                RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight)
+            }
+            if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit) else RouteNoLegsLine(content)
             RouteCardButtons(content, callbacks)
         }
     }
@@ -170,13 +173,13 @@ fun RouteCard(
  * out [HANDLE_LAYOUT_HEIGHT] tall and takes touches over [HANDLE_TOUCH_HEIGHT] from its top (Amendment 5, N-9).
  */
 @Composable
-private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Unit) {
+private fun RouteCardHandle(expanded: Boolean, reveal: RouteCardReveal, onToggleExpanded: (Boolean) -> Unit) {
     val currentExpanded by rememberUpdatedState(expanded)
     val currentToggle by rememberUpdatedState(onToggleExpanded)
-    val dragged = remember { mutableFloatStateOf(0f) }
     val thresholdPx = with(androidx.compose.ui.platform.LocalDensity.current) { HANDLE_DRAG_THRESHOLD.toPx() }
     Box(
         modifier = Modifier
+            .zIndex(1f)
             .fillMaxWidth()
             .layout { measurable, constraints ->
                 val touch = HANDLE_TOUCH_HEIGHT.roundToPx()
@@ -186,14 +189,17 @@ private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Un
             .testTag(ROUTE_CARD_HANDLE_TAG)
             .clickable(role = Role.Button) { currentToggle(!currentExpanded) }
             .draggable(
-                state = rememberDraggableState { delta -> dragged.floatValue += delta },
+                state = rememberDraggableState(reveal::dragBy),
                 orientation = Orientation.Vertical,
-                onDragStarted = { dragged.floatValue = 0f },
+                onDragStarted = { reveal.grab() },
                 onDragStopped = {
-                    when {
-                        dragged.floatValue <= -thresholdPx && !currentExpanded -> currentToggle(true)
-                        dragged.floatValue >= thresholdPx && currentExpanded -> currentToggle(false)
+                    val target = when {
+                        reveal.draggedPx <= -thresholdPx -> true
+                        reveal.draggedPx >= thresholdPx -> false
+                        else -> currentExpanded
                     }
+                    if (target != currentExpanded) currentToggle(target)
+                    reveal.release(target)
                 },
             ),
         contentAlignment = Alignment.TopCenter,
@@ -208,79 +214,72 @@ private fun RouteCardHandle(expanded: Boolean, onToggleExpanded: (Boolean) -> Un
 }
 
 /**
- * While plotting, "3 Waypoints selected   1.9 mi", or at one stop "1 Waypoint selected, tap another to route" (Amendment 6).
- * A saved route: its name with the total at its right, and "2 Waypoints routed" under it (Amendment 7, the owner: "Name +
- * total, "N Waypoints routed" (Recommended)"). Neither has the arrow chain of stops.
+ * The total line (Amendment 12, RECORD -1910): "3 Waypoints routed   1.9 mi", with the whole route's elevation under it in the
+ * form of the rows'. It is at peek and expanded, the only place the total shows. The count is the waypoints the routed legs join,
+ * so a stop whose leg is still in flight is not counted until it lands.
  */
 @Composable
-private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUnit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        when (content) {
-            is RouteCardContent.Plotting -> Text(
-                waypointsSelectedText(content.stops.size),
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).testTag(ROUTE_CARD_COUNT_TAG),
-            )
-            is RouteCardContent.Saved -> Text(
-                content.name,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).testTag(ROUTE_CARD_NAME_TAG),
-            )
+private fun RouteTotalLine(content: RouteCardContent, distanceUnit: DistanceUnit) {
+    Column(Modifier.padding(vertical = Spacing.xs).testTag(ROUTE_CARD_ROUTED_TAG)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_ROUTED_COUNT_TAG))
+            Text(routeTotalDistanceText(content.legs.map { it.meters }, distanceUnit), style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_TOTAL_TAG))
+            if (content.legInFlight) RouteCardProgress()
         }
-        if (content.legs.isNotEmpty()) {
-            Text(
-                routeTotalDistanceText(content.legs.map { it.meters }, distanceUnit),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.testTag(ROUTE_CARD_TOTAL_TAG),
-            )
+        routeTotalElevationText(content.legElevations, UnitSystem.forDistanceUnit(distanceUnit))?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG))
         }
-        if (content.legInFlight) CircularProgressIndicator(Modifier.size(16.dp).testTag(ROUTE_CARD_PROGRESS_TAG), strokeWidth = 2.dp)
-    }
-    if (content is RouteCardContent.Saved) {
-        Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag(ROUTE_CARD_SAVED_COUNT_TAG))
     }
 }
 
 /**
- * The expanded list (Amendment 6): one row per routed leg, "Creek to Ridge   1.4 mi", its elevation under it when the content
- * carries one, and the straight-line note; the leg in flight with a progress mark; then the last row, "3 Waypoints routed
- * 1.9 mi", with the whole route's elevation under it in the same form. The routed count is the waypoints the routed legs join,
- * so a stop whose leg is still in flight is not counted until it lands.
+ * Before the first leg lands there is no total. At one stop this is the hint, as ever (Amendment 12: "one stop keeps ..."). At two
+ * with the first leg in flight no words are true yet, and none are approved for it, so only the progress mark shows.
  */
 @Composable
-private fun RouteLegRows(content: RouteCardContent, distanceUnit: DistanceUnit) {
+private fun RouteNoLegsLine(content: RouteCardContent) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+        if (content.legInFlight) {
+            RouteCardProgress()
+        } else {
+            Text(ONE_WAYPOINT_SELECTED, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_COUNT_TAG))
+        }
+    }
+}
+
+@Composable
+private fun RouteCardProgress() {
+    CircularProgressIndicator(Modifier.size(16.dp).testTag(ROUTE_CARD_PROGRESS_TAG), strokeWidth = 2.dp)
+}
+
+/**
+ * The rows (Amendment 6): one per routed leg, "Creek to Ridge   1.4 mi", its elevation under it when the content carries one, and
+ * the straight-line note; then the leg in flight with a progress mark. They scroll past [maxHeight], and show as far as [reveal]
+ * says. Measured last among the card's lines (`weight`), so the total line and the buttons are never squeezed in a short window.
+ */
+@Composable
+private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: DistanceUnit, reveal: RouteCardReveal, maxHeight: Dp) {
     val unitSystem = UnitSystem.forDistanceUnit(distanceUnit)
-    content.legs.forEachIndexed { i, leg ->
-        Column(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i))) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
-                Text(formatDistanceMeters(leg.meters, distanceUnit), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(routeCardLegDistanceTag(i)))
+    Box(Modifier.weight(1f, fill = false).routeCardReveal(reveal)) {
+        Column(Modifier.heightIn(max = maxHeight).verticalScroll(rememberScrollState()).testTag(ROUTE_CARD_LEGS_TAG)) {
+            content.legs.forEachIndexed { i, leg ->
+                Column(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i))) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
+                        Text(formatDistanceMeters(leg.meters, distanceUnit), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(routeCardLegDistanceTag(i)))
+                    }
+                    content.legElevations.getOrNull(i)?.let {
+                        Text(routeElevationText(it, unitSystem), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(routeCardLegElevationTag(i)))
+                    }
+                    if (leg is RouteLeg.Straight) Text(NO_TRAIL_DATA_NOTE, style = MaterialTheme.typography.bodySmall)
+                }
             }
-            content.legElevations.getOrNull(i)?.let {
-                Text(routeElevationText(it, unitSystem), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(routeCardLegElevationTag(i)))
-            }
-            if (leg is RouteLeg.Straight) Text(NO_TRAIL_DATA_NOTE, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-    if (content.legInFlight) {
-        val i = content.legs.size
-        Row(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i)), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
-            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-        }
-    }
-    if (content.legs.isNotEmpty()) {
-        Column(Modifier.padding(vertical = Spacing.xs).testTag(ROUTE_CARD_ROUTED_TAG)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_ROUTED_COUNT_TAG))
-                Text(routeTotalDistanceText(content.legs.map { it.meters }, distanceUnit), style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_TOTAL_TAG))
-            }
-            routeTotalElevationText(content.legElevations, unitSystem)?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+            if (content.legInFlight) {
+                val i = content.legs.size
+                Row(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i)), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                }
             }
         }
     }
@@ -313,7 +312,6 @@ const val NO_TRAIL_DATA_NOTE = "No trail data, straight line"
 const val ROUTE_CARD_TAG = "route-card"
 const val ROUTE_CARD_HANDLE_TAG = "route-card-handle"
 const val ROUTE_CARD_NAME_TAG = "route-card-name"
-const val ROUTE_CARD_TOTAL_TAG = "route-card-total"
 const val ROUTE_CARD_PROGRESS_TAG = "route-card-progress"
 const val ROUTE_CARD_LEGS_TAG = "route-card-legs"
 const val ROUTE_CARD_UNDO_TAG = "route-card-undo"
@@ -326,9 +324,6 @@ const val ROUTE_CARD_ROUTED_TAG = "route-card-routed"
 const val ROUTE_CARD_ROUTED_COUNT_TAG = "route-card-routed-count"
 const val ROUTE_CARD_ROUTED_TOTAL_TAG = "route-card-routed-total"
 const val ROUTE_CARD_ROUTED_ELEVATION_TAG = "route-card-routed-elevation"
-
-/** A saved route's peek: "N Waypoints routed", under its name (Amendment 7, RECORD -1890). */
-const val ROUTE_CARD_SAVED_COUNT_TAG = "route-card-saved-count"
 
 fun routeCardLegTag(index: Int) = "route-card-leg-$index"
 fun routeCardLegNameTag(index: Int) = "route-card-leg-name-$index"

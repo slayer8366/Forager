@@ -10,14 +10,11 @@ import com.zynergylabs.forager.app.domain.route.RouteElevation
 
 /*
  * The route card's words (dispatch 2026-10-30-08, Amendment 6, RECORD -1887), all the owner's: "1 Waypoint selected, tap
- * another to route", "Waypoints selected", "to", "Waypoints routed", "Elevation:". Singular "Waypoint" only for 1.
+ * another to route", "to", "Waypoints routed", "Elevation:". Amendment 12 (RECORD -1910) took "N Waypoints selected" off the card.
  * Pure Kotlin, so each is tested headless (RouteCardTextTest).
  */
 
-/** The peek's line while plotting: the hint at one stop (it replaces "Tap the next waypoint"), then the count. */
-fun waypointsSelectedText(count: Int): String = if (count == 1) ONE_WAYPOINT_SELECTED else "$count Waypoints selected"
-
-/** The expanded list's last row. A route has it from its first leg, so from two waypoints; it is never singular. */
+/** The total line. A route has it from its first leg, so from two waypoints; it is never singular. */
 fun waypointsRoutedText(count: Int): String {
     require(count >= 2) { "a routed line is for two waypoints or more; got $count" }
     return "$count Waypoints routed"
@@ -59,4 +56,5 @@ fun routeTotalElevationText(legs: List<RouteElevation?>, unitSystem: UnitSystem)
     return "Elevation: ${if (net >= 0) "+" else ""}$net $unit (↑ $climb ↓ $descent)"
 }
 
+/** The line at one stop (it replaces "Tap the next waypoint"). */
 const val ONE_WAYPOINT_SELECTED = "1 Waypoint selected, tap another to route"
