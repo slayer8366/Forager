@@ -31314,3 +31314,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
   - Portrait clears: the peek's top 587.0 dp, column and pill bottom 579.3 dp.
   - **Landscape does not clear:** the pill overlaps the card by 52 dp across, and did before this amendment; the taller peek makes it deeper.
 **Notes:** Written by the planner by hand. The S22 build holds 05437cc78; app code is unchanged to 30231df36. Next free ID -1919.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1919
+**Timestamp:** 2026-11-01T12:11:54Z
+**Continues:** 2026-09-28-1918
+**Title:** #454 merged; in landscape the route card starts past the pill
+**Decision:** the owner: "Merge #454 (Recommended)"; "Inset the card past the pill (Recommended)". #454 merged to pre-main at 9ef5c9385. Dispatch 2026-10-30-08 Amendment 13.
+**Notes:** Written by the planner by hand. #454's on-screen fades and all of #449's card checks are still unchecked on a phone. Next free ID -1920.

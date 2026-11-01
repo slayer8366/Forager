@@ -250,3 +250,11 @@ Starts after Amendment 11 is pushed, on its head. The owner: "Can the collapsed 
 **Tests:** fail first, asserting the total line's on-screen top is the same collapsed and expanded, to the pixel, and its text literally; mid-drag too if the test can hold a drag. The column, the pill and the "i" clear the taller peek at the S22's size. If the taller peek stops any of them clearing, stop and report the numbers. Then revert checks.
 
 Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
+
+## Amendment 13 (2026-11-01): landscape, the card clears the pill (RECORD -1919)
+The owner: "Inset the card past the pill (Recommended)". In landscape, the route card starts to the right of the record and return pill, so nothing overlaps, at peek and expanded. The card is narrower there. Portrait is unchanged. Amendment 12's report has the numbers: pill x 8..104, y 284..332 at 823 x 384 dp, the card starting at x 52.
+- Fail first: at that size, recording, peek and expanded, the card's left edge clears the pill's right edge, and five real touches across stop and return reach them. Then a revert check.
+- Also check the column on the left side in landscape, and ROTATION_270. If the pill or the column sits elsewhere there, the card must clear it too; if it can't, stop and report the numbers. Do not choose a layout.
+- All the card's text still fits at the narrower width, at the largest font scale tested on this card.
+
+pre-main moved to 9ef5c9385 (#454): merge it in. Full CI green. No merge, and never force-push.
