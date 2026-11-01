@@ -1,18 +1,29 @@
 package com.zynergylabs.forager.app.ui.motion
 
+import android.os.Looper
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.findViewTreeCompositionContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.ActivityScenario
 import com.zynergylabs.forager.app.ui.availability.layoutFixesHostActivityRule
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
+import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -20,6 +31,7 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -95,5 +107,91 @@ class WordSwapTest {
 
     private companion object {
         const val LINE_TAG = "word-swap-line"
+    }
+}
+
+/**
+ * Dispatch 2026-10-31-04 (RECORD -1907; docs/audits/2026-10-31-recording-screen-off-recomposition.md, fix A): a number changing
+ * while the activity is stopped must leave composition quiet. Compose keeps composing a stopped activity with its frame clock
+ * paused, so a transition started then cannot finish.
+ *
+ * In its own class, with no compose rule, on purpose. The rule installs its own Recomposer on a test clock through
+ * WindowRecomposerPolicy (ui-test 1.12.0, ComposeUiTest.android.kt:608, :771), so stopping the activity under it pauses nothing
+ * and this failure cannot happen; the "numbers alone" test above passed with the fault in place for that reason. Here a plain
+ * ActivityScenario and setContent get the real lifecycle-aware recomposer, and the test confirms it did: [clockFrames] stops at
+ * the stop.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class WordSwapStoppedActivityTest {
+
+    @get:Rule
+    val host = layoutFixesHostActivityRule()
+
+    private var text by mutableStateOf("Sunset 5:59 PM · in 1 h 9 min · dark 6:29")
+    private var shown: String? = null
+    private var clockFrames = 0
+
+    private fun frames(count: Int) = repeat(count) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS)) }
+
+    private fun recomposerOf(activity: ComponentActivity): Recomposer {
+        val content = activity.window.decorView.findViewById<ViewGroup>(android.R.id.content)
+        val composeView: View = content.getChildAt(0)
+        return composeView.findViewTreeCompositionContext() as Recomposer
+    }
+
+    private fun onScreen(activity: ComponentActivity) {
+        activity.setContent {
+            ForagerTheme {
+                WordSwap(text = text) { line ->
+                    shown = line
+                    Text(line)
+                }
+            }
+            LaunchedEffect(Unit) { while (true) withFrameNanos { clockFrames++ } }
+        }
+    }
+
+    @Test
+    fun `a number changing while the activity is stopped leaves composition quiet, and the latest number shows`() {
+        ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
+            lateinit var recomposer: Recomposer
+            scenario.onActivity(::onScreen)
+            frames(SETTLE_FRAMES)
+            scenario.onActivity { recomposer = recomposerOf(it) }
+            assertEquals("the frame clock ran while on screen", true, clockFrames > 0)
+
+            scenario.moveToState(Lifecycle.State.CREATED)
+            frames(SETTLE_FRAMES)
+            val clockAtStop = clockFrames
+
+            scenario.onActivity {
+                text = "Sunset 5:59 PM · in 1 h 8 min · dark 6:29"
+                Snapshot.sendApplyNotifications()
+            }
+            frames(SETTLE_FRAMES)
+
+            var applied = 0
+            val observer = Snapshot.registerApplyObserver { changed, _ -> if (changed.isNotEmpty()) applied++ }
+            val changesBefore = recomposer.changeCount
+            frames(COUNTED_FRAMES)
+            val changes = recomposer.changeCount - changesBefore
+            observer.dispose()
+
+            assertEquals("the real lifecycle paused the frame clock, or this test shows nothing", clockAtStop, clockFrames)
+            assertEquals("snapshots applied over $COUNTED_FRAMES frames, with $changes recompositions", 0, applied)
+            assertEquals("recompositions over $COUNTED_FRAMES frames", 0L, changes)
+            assertEquals("Sunset 5:59 PM · in 1 h 8 min · dark 6:29", shown)
+
+            scenario.moveToState(Lifecycle.State.RESUMED)
+            frames(SETTLE_FRAMES)
+            assertEquals("Sunset 5:59 PM · in 1 h 8 min · dark 6:29", shown)
+        }
+    }
+
+    private companion object {
+        const val FRAME_MILLIS = 16L
+        const val SETTLE_FRAMES = 20
+        const val COUNTED_FRAMES = 30
     }
 }
