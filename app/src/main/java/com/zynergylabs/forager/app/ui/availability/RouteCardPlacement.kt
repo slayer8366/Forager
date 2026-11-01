@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
@@ -71,7 +72,7 @@ internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: 
     return with(LocalDensity.current) {
         val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
         val tuck = if (navigationCard != null) ROUTE_CARD_NAVIGATION_TUCK else 0.dp
-        val bottom = if (navigationCard != null) (boxBottomPx - navigationCard.top).toDp() - tuck else 0.dp
+        val bottom = if (navigationCard != null) ((boxBottomPx - navigationCard.top).toDp() - tuck).coerceAtLeast(0.dp) else 0.dp
         RouteCardLandscapeRoom(stripWidthPx.toDp(), bottom, tuck, (cluster.mapContentBoxHeightPx - topLimitPx).toDp() - Spacing.sm - bottom)
     }
 }
