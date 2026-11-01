@@ -31324,3 +31324,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** #454 merged; in landscape the route card starts past the pill
 **Decision:** the owner: "Merge #454 (Recommended)"; "Inset the card past the pill (Recommended)". #454 merged to pre-main at 9ef5c9385. Dispatch 2026-10-30-08 Amendment 13.
 **Notes:** Written by the planner by hand. #454's on-screen fades and all of #449's card checks are still unchecked on a phone. Next free ID -1920.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1920
+**Timestamp:** 2026-11-01T12:23:22Z
+**Continues:** 2026-09-28-1919
+**Title:** Amendment 13 is on hold until the landscape overlap is seen on a phone
+**Decision:** the owner: "Before adding it make sure the problem exists. Take the screenshot before fixing". Amendment 13's coder was stopped by the owner. The screenshot was not taken: "S22 got unplugged. You were too late."
+**Observed:** The 52 dp overlap in -1918 is a test figure from a simulated 823 x 384 dp screen at mdpi, and it has never been seen on a phone. The planner put it to the owner as fact and dispatched on it (-1919).
+**Notes:** Written by the planner by hand. Next time the S22 is connected: the screenshot first, then Amendment 13 only if the owner confirms the problem. Next free ID -1921.
