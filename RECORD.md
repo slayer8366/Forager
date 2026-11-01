@@ -31174,3 +31174,19 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Build WordSwap's small fix for the screen-off drain, with a phone run after
 **Decision:** the owner: "Build the small fix (Recommended)". Dispatch 2026-10-31-04, fix A of the F-4 report; a phone run confirms it afterwards.
 **Notes:** Written by the planner by hand. Next free ID -1908.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1908
+**Timestamp:** 2026-11-01T02:55:22Z
+**Continues:** 2026-09-28-1907
+**Title:** #449's Amendment 10 is green; the coder's calls go to the owner
+**Observed:** Hazel (Opus), route-plot-ui 9167cead5, with pre-main d54189479 merged.
+- **CI:** run 41265778530, 6118 tests, 0 failures, 24 skipped.
+- **Fail first:** run 41263141396, 18 of 38 failed. 11 revert checks, each with 0 compile errors and its own message.
+- **Totals:** three rows of 0.4 mi total 1.2 mi; legs -7, +3, +14 total +10 ft (was +11).
+- **The fold is display only.** Nothing writes the flag, side or height.
+- **Coder's calls, unruled:** a touch on the restore handle collapses the card; the record and return pill folds with the column; mixed-unit rows add at their shown figures (900 ft + 900 ft totals "0.3 mi"); the Trip Planner row still rounds once; a zero sum reads "+0 ft".
+- **Not verified:** a phone; landscape beyond one rotation; dragging the handle while the card is expanded.
+**Notes:** Written by the planner by hand. Next free ID -1909.
