@@ -31237,3 +31237,32 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Unknown until a pilot:** real contour size (it rests on four Oregon tiles), Pi build times, how it looks on a phone, whether WebP height tiles decode there.
 - **Corrected here:** the report lists the OpenTopoMap letter as unknown; an earlier entry, "The owner sent the note to OpenTopoMap", records that it was sent.
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1913.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1913
+**Timestamp:** 2026-11-01T10:34:57Z
+**Continues:** 2026-09-28-1912
+**Title:** The next release ships without own topo; outside the US and Canada the current topo stays; the pilot waits
+**Decision:** the owner: "No. We'll release without it"; "Keep the current topo there (Recommended)"; "Not yet". No Pi work, no build go. -1628's gate stands.
+**Notes:** Written by the planner by hand. Next free ID -1914.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1914
+**Timestamp:** 2026-11-01T10:34:57Z
+**Continues:** 2026-09-28-1909, 2026-09-28-1907
+**Title:** #449's Amendment 11 and #454's WordSwap fix are green and unmerged; one flake on #454's first attempt
+**Observed:** Hazel (Opus), two sessions, after the container restart.
+- **#449, 617b2aae9:** CI run 41275148592, 6127 tests, 0 failed. Fail first 41270721246, 7 of 14. Four revert checks, each with 0 compile errors and its own message.
+  - The first CI failure (41271172516) was a real miss: the pill's round ends let a corner touch fall through to the map. The held pill now takes the whole square.
+  - The pill clears the card: 7.7 dp at four stops expanded, at Robolectric's metrics.
+  - One fail-first case failed on a missing handle, not its own reason; the revert runs are its evidence.
+- **#454, a219b67fb:** CI run 41271595819 attempt 2, 5986 tests, 0 failed.
+  - **Fail first, the whole fix reverted (41271610776):** only WordSwapStoppedActivityTest failed, 30 snapshots and 30 recompositions over 30 frames, with the clock stopped at ON_STOP. The frames are hand-sent, so the loop is shown in a test, not on a phone.
+  - **Reverts 2 and 3:** 41275045656 and 41271612458, each biting with its own messages.
+  - **Flake:** attempt 1 failed in AvailabilityScreenCrowdedIconsSettingTest, unrelated to WordSwap; passed on re-run. Inferred: its idle wait can be met by the first of three picks. Not touched; for the deferred flake hunt.
+- **Not verified:** neither on a phone; #454's drain figure unmeasured after the fix.
+**Notes:** Written by the planner by hand. Amendment 12 starts on 617b2aae9. Next free ID -1915.
