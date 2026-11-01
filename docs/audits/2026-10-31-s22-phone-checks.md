@@ -168,3 +168,108 @@ needing a GPS fix (449-2, 449-7(d), 450-6, check 5) need the phone outdoors.
   showed "Tap Back Button Again to Exit" (the app did not exit), and later ran a second time by mistake; both times it only
   opened and closed TEST route 1 and moved the camera. I deleted that script.
 - The Restricted Object was not read, named or quoted.
+
+# Part 2
+
+Dispatch `prompts/preserved/2026-10-31-02-s22-phone-checks-part-2.md` (origin/records-after-173, RECORD -1902), rules as in
+2026-10-31-01. Run by Hazel (Opus), 2026-10-31, 16:41 to 17:12 PDT, same phone and build (1.0.4294+g8e70a28b), same
+conditions: **indoors on the desk, no GPS fix** ("Approximate location, finding GPS…" throughout, network fixes only).
+Evidence is in `/home/zynergy-labs/s22-2026-10-31/checks/part2/` (off git): `logs/`, `shots/`, `ui/`, `baseline/`,
+`after/`, `scripts/`. Nothing here carries coordinates or place names.
+
+**Also partial.** The #450 checks and F-3 ran; the #449 leftovers did not (see "Not run"). The reason is the map, not the
+checks: an early double tap zoomed the map in to street level, and getting a usable view back by adb took most of the
+remaining budget (see "Zooming out by adb", for the next helper).
+
+## Verdict table (part 2)
+
+| # | Check | Verdict | Evidence |
+|---|---|---|---|
+| 450-1 | Redraws stop while recording, app in front, screen off | **Pass** | 3 min off: 16 "surface is not valid" lines (8, 4, 4 a minute, the 8 being the screen-off burst), against about 940 a minute on 10-30. Repeat, 90 s: 9 lines (4, 4, 1), one every 15 s after the burst. `dumpsys gfxinfo` total frames did not move while off (64979 before and after). The compass listener (`AndroidCompassProvider`) was unregistered at screen-off and absent in every 8 s sample. `logs/450-1-rec-front-off/`, `logs/450-1-rec-front-off-r2/` |
+| 450-2 | Main-thread CPU, same runs | **Fail** | main thread **39.2%** of a core over 174 s (process 46.3%), and **29.4%** over 82 s on the repeat (process 36.6%), against the target of about 4.7% and above the 16% of trial C. See F-4 |
+| 450-9 | Backgrounded while recording (observation) | **Observed: falls well below 4.7%** | Home, screen on, 116 s: main 0.7% of a core, process 8.4%; compass listener absent; 3 surface lines, all at the move to Home. `logs/450-9-rec-home/` |
+| 450-4 / F-3 | Return after more than 10 s: "—", then the first reading | **Pass, shown** | screenrecord started before the wake. After 15 s off: frame 10 the old heading (arrow straight up), **frame 11 "—"**, frame 12 the new heading crossfading in. After 20 s off: the old heading for two frames, then one frame with the heading blank (no figure), then the reading. Control, 6 s off: the first lit frame already shows the live heading, no dash and no blank. In every run these frames come while the panel is still at 1-10% of full brightness, which is why part 1's screencaps and the eye never caught it. `logs/f3-r3/first-frames-stretched.png`, `logs/f3-r4-vs-within.png` |
+| 450-6 | Navigation across a long screen-off | **Partial, no fix** | navigating to Waypoint 1 (owner's, read-only, ended with Stop navigating). Compass unregistered at each screen-off and re-registered at each wake (`dumpsys sensorservice`). Run 1 (15 s): the HUD's first lit frames show the same 292° as before the off, so stale and fresh cannot be told apart. Run 2 (20 s): the first lit frame shows the HUD with no heading figure and the heading arrow straight up, the next frame the reading (296°). The grey arrow to the target stayed throughout. "Map stays facing-up": the map did not move between the first lit frame and 3 s later, but with no fix the map was not rotating with heading before the off either, so this is not shown. `logs/450-6-nav-r1/`, `logs/450-6-nav-r2/` |
+| 450-7 | Picker map after a long screen-off (observation) | **Observed, puck not readable** | Offline Maps picker, 15 s off: its compass also unregistered at screen-off and re-registered at the wake. The puck sits almost wholly under the picker's pin at that zoom; the visible edge did not change over the first 12 lit frames (about 250 ms). What MapLibre draws for `UNRELIABLE` there is still unread. `logs/450-7-picker-r1/puck-grid.png` |
+| 449-2, 449-5, 449-8 | Layer order; a stop on a trail; a leg in flight | **Not run** | see "Not run" |
+| 449-4, 449-6, 449-7(d), 449-10, 449-13 landscape | Part 1's partials | **Not run** | see "Not run" |
+
+## F-4. The main thread works at about 30-40% of a core while recording with the screen off
+
+The fail in 450-2, with what was measured. Not diagnosed further than this.
+
+- **What runs.** A 10 s `simpleperf` profile of the main thread, screen off, recording, activity `STOPPED`
+  (`logs/450-1-rec-front-off/perf-children.txt`): 72% under `Choreographer.doFrame`, 70% under Compose's
+  `AndroidUiFrameClock` frame callback, 65% under `Recomposer.runRecomposeAndApplyChanges`, 42% in `AnimatedContent`, and 18%
+  in the app's `WordSwap` → `wordsOf` (the regex that keys the crossfade, `ui/motion/WordSwap.kt:23` at 8e70a28ba). So
+  composition is running frame after frame while the activity is stopped, and no frame is drawn (gfxinfo unchanged).
+  `top -H`: the main thread at 33.8%, no other thread above 4.4%.
+- **What is registered while off.** The compass is gone. Still registered: one `AndroidPressureProvider` (1 s period, 5 s
+  batch; a second instance unregistered at screen-off) and the walk logger, `AndroidWalkLogPlatform` (step counter, step
+  detector, rotation vector at 100 ms, game rotation vector, pressure, and gyroscope, magnetometer and accelerometer at
+  40 ms). `AndroidPressureProvider.onSensorChanged` is 0.8% of the profile; the walk logger does not appear in it.
+- **What differs.** Not recording, screen off (part 1's 450-3): main 0.4%. Recording, screen on: main 27.7%. Recording,
+  Home: 0.7%. Recording, screen off: 29-39%. So the cost appears with the recording, and the screen-off in front does not
+  stop it as Home does. The screen-off here is "Dozing" (always-on display), where the task stays `visible=true,
+  visibleRequested=false`; with Home it is hidden.
+- **Inferred, not read in code:** that some state the recording writes is read in composition on the Maps tab, and that the
+  frame clock keeps running under the always-on display while the activity is stopped. Which state, and whether the walk
+  logger (a dev tool on this build) is part of it, I did not establish. Trial C on 10-30 was on a walk with a fix; this
+  was indoors with "finding GPS" and "waiting for a fix" lines, so the figures are not like for like.
+- **Observation:** the throwaway track showed "0 points" in Records while the database held one track point for it.
+
+## Zooming out by adb (for the next helper)
+
+`input` has no two-finger gesture, `/dev/input` is closed to the shell by SELinux, and `KEYCODE_ZOOM_OUT` does nothing on
+this map. What works about half the time: `input tap X Y; input swipe X Y X Y-600 700` in one `adb shell` (a double tap
+then a slow drag up, MapLibre's one-finger zoom-out). When it fails it pans instead. Part 1's `zoomout.sh` (motionevent
+moves) did not work at all this time. Avoid double-tapping on the map: two `input tap`s zoom in a whole level.
+
+## Not run, for a fresh helper or the owner
+
+All need plotting, which needs a usable map view and TEST waypoints on a trail inside Region 1 or 2:
+- **449-5:** drop a TEST waypoint exactly on a trail line (zoom in first), plot from it.
+- **449-4:** open a saved TEST route from the Trip Planner and measure the route's extent against the view edges and the
+  card's top (48 dp is 132 px on this phone).
+- **449-10:** two stops plotted, tap a saved route's pin, tap **Discard**: the saved route opens with its dots.
+- **449-6:** the pill (navigating, map moved away) and the legend chip (a forecast field on, then restored) above the card.
+- **449-7(d):** navigating, fullscreen, plotting: Back cancels the plot, then leaves fullscreen, then the navigation prompt.
+- **449-13 landscape:** needs `accelerometer_rotation` (now 1) or `user_rotation` changed and restored.
+- **449-2:** navigating and a plotted route across the same trail. Without a fix the way-home line is straight from the
+  network position, so this is best outdoors.
+- **449-8:** a screenrecord from before the tap (the method used for F-3 here) may catch the progress mark.
+
+## Data and settings (part 2)
+
+- **Backup first:** `part2/baseline/` (raw `run-as tar`, table and file hashes), 16:41 PDT. Its forager.db tables equal
+  part 1's after-state.
+- **Created and deleted:** one throwaway recording (16:43 to 16:55 PDT, unnamed, one network point), deleted by swipe in
+  Journal > Records > Tracks after reading its row ("Oct 31, 2026, 4:43 PM"). No waypoints, routes or trips were created.
+- **Confirmed gone:** `part2/after/table-hashes.txt` against the baseline: every forager.db table identical (tracks 5,
+  track_points 273, waypoints 11, offline_regions 2, planned trips, stops and legs 0) except `sqlite_sequence`
+  (track_points 275 → 276, from the inserted and deleted point). `user_version` 23, integrity ok. The other differences are
+  the map tile cache. `shared_prefs` and datastore files byte-identical.
+- **The owner's data:** Waypoint 1 navigated to (twice across screen-offs, ended); its detail sheet opened from the Journal
+  and closed; a track bubble opened once by a mis-tap and closed. Nothing edited; the hashes prove it.
+- **Settings:** none changed. Font scale 1.0, auto-rotate 1, screen timeout unchanged.
+- **Navigation and recording:** one navigation, ended with Stop navigating; one recording, ended with Stop recording.
+- **Not cleared or reset:** logcat, crash buffers, caches, permissions. Temporary files on the phone (`hz-ui.xml`,
+  `hz-perf.data`, a pinch folder) removed; no screenrecord or simpleperf left running.
+- **Laptop slip, disclosed:** my first F-3 screenrecord used the headerless raw format with no working time limit and wrote
+  4.5 GB in about two minutes, which **filled the laptop's root disk (40 MB free) for about a minute** before I killed it and
+  truncated the file (3.6 GB free after; 3.4 GB at the end). Anything else writing to the root disk in that minute may have
+  failed. The later captures used the framed format at 360x772 with a hard stop.
+
+## Phone's end state (part 2)
+
+1.0.4294+g8e70a28b, Maps tab in front, zoomed in near the network position, not plotting, no navigation, no recording, no
+Forager service running, screen on (Awake), font scale 1.0, auto-rotate on, Imperial, Night Maps off. Battery 89%, USB.
+
+## Disclosure (part 2)
+
+- **Confirmed:** the counts, CPU figures, listener states and frames above, from the named logs and captures.
+- **Inferred:** F-4's mechanism (composition kept running by recording state under the always-on display).
+- **Could not determine:** which state drives F-4; whether the walk logger contributes; the map's facing behaviour across a
+  screen-off without a fix; what the picker's puck draws.
+- **Premises wrong or incomplete:** none in the dispatch.
+- The Restricted Object was not read, named or quoted.
