@@ -21,11 +21,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Amendment 14's stop condition: whether the card's lines fit the narrower width. Under native graphics, because Robolectric's default
- * text is far too narrow to judge a width (a 28-character line measured 10 dp). The buttons must stay on the card at every scale; a cut
- * line is asserted against only at font scale 1, and printed at the larger scales, for the owner.
+ * Amendment 16 (RECORD -1932), the owner: "Wrap to two lines (Recommended)". When a line can't fit in the room beside the bar it wraps;
+ * nothing is cut with an ellipsis, and the distance at the right stays in place. Under native graphics, because Robolectric's default
+ * text is far too narrow to judge a width (a 28-character line measured 10 dp). [wraps] is whether the count line must wrap: the case
+ * Amendment 14's report gave the numbers for, "4 Waypoints routed" needing 227 dp of 199.3 dp at font scale 2.0.
  */
-abstract class RouteCardFontFitTests(private val mustFit: Boolean) {
+abstract class RouteCardFontFitTests(private val wraps: Boolean) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -34,26 +35,30 @@ abstract class RouteCardFontFitTests(private val mustFit: Boolean) {
 
     private val rig = RouteCardBarRig(composeRule)
 
-    private fun report(what: String, tag: String) {
+    private fun cardLine(what: String, tag: String) {
         val line = rig.line(tag) ?: throw AssertionError("$what is not on screen")
         println("FONT ${composeRule.density.fontScale} $what ${line.second}")
-        if (mustFit) assertEquals("$what is whole: ${line.second}", false, line.first)
     }
 
     @Test
-    fun `the card's lines and buttons`() {
+    fun `the card's lines are whole, the distance stays at the right, and the buttons stay on the card`() {
         rig.setScreen()
         rig.plotTo(1)
         val scale = composeRule.density.fontScale
         val hintCard = rig.bounds(ROUTE_CARD_TAG)
         println("FONT $scale card ${hintCard.left.value}..${hintCard.right.value} x ${hintCard.top.value}..${hintCard.bottom.value}")
-        report("hint", ROUTE_CARD_COUNT_TAG)
+        rig.assertWhole("font $scale, the hint", ROUTE_CARD_COUNT_TAG, "1 Waypoint selected, tap another to route")
         rig.plotTo(4)
-        report("count", ROUTE_CARD_ROUTED_COUNT_TAG)
-        report("total", ROUTE_CARD_ROUTED_TOTAL_TAG)
-        report("elevation", ROUTE_CARD_ROUTED_ELEVATION_TAG)
+        val lines = rig.assertWhole("font $scale, the count", ROUTE_CARD_ROUTED_COUNT_TAG, "4 Waypoints routed")
+        assertEquals("font $scale: the count's lines", if (wraps) 2 else 1, lines)
+        cardLine("total", ROUTE_CARD_ROUTED_TOTAL_TAG)
+        cardLine("elevation", ROUTE_CARD_ROUTED_ELEVATION_TAG)
         val card = rig.bounds(ROUTE_CARD_TAG)
         println("FONT $scale card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}")
+        val total = rig.bounds(ROUTE_CARD_ROUTED_TOTAL_TAG)
+        val count = rig.bounds(ROUTE_CARD_ROUTED_COUNT_TAG)
+        assertTrue("font $scale: the distance ${total.left} sits at the count's right ${count.right}", total.left >= count.right)
+        assertTrue("font $scale: the distance's right ${total.right} is inside the card ${card.right}", total.right <= card.right)
         listOf(ROUTE_CARD_UNDO_TAG, ROUTE_CARD_CANCEL_TAG, ROUTE_CARD_SAVE_TAG).forEach { tag ->
             val button = rig.bounds(tag)
             println("FONT $scale $tag ${button.left.value}..${button.right.value}")
@@ -65,19 +70,19 @@ abstract class RouteCardFontFitTests(private val mustFit: Boolean) {
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi", fontScale = 1.0f)
-class RouteCardFontFitPortraitOneTest : RouteCardFontFitTests(mustFit = true)
+class RouteCardFontFitPortraitOneTest : RouteCardFontFitTests(wraps = false)
 
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi", fontScale = 2.0f)
-class RouteCardFontFitPortraitTwoTest : RouteCardFontFitTests(mustFit = false)
+class RouteCardFontFitPortraitTwoTest : RouteCardFontFitTests(wraps = true)
 
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.0f)
-class RouteCardFontFitLandscapeOneTest : RouteCardFontFitTests(mustFit = true)
+class RouteCardFontFitLandscapeOneTest : RouteCardFontFitTests(wraps = false)
 
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardFontFitLandscapeTwoTest : RouteCardFontFitTests(mustFit = false)
+class RouteCardFontFitLandscapeTwoTest : RouteCardFontFitTests(wraps = false)

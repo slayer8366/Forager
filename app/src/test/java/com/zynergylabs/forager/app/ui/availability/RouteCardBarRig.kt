@@ -21,7 +21,9 @@ import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.route.PlottedRoute
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_SCRIM_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
@@ -53,7 +55,7 @@ internal val ACROSS_ROUND = listOf(0.5f to 0.2f, 0.2f to 0.5f, 0.5f to 0.5f, 0.8
  * The real Maps tab with a route card over it, recording, six waypoints to plot, for the rule of Amendments 14 and 15 (RECORD
  * -1928, -1929): the card fits beside the icon bar, and the bar, its height and its side never change for the card.
  */
-internal class RouteCardBarRig(private val composeRule: RouteRule) {
+internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<String>? = null) {
     private val stops = listOf(
         CREEK,
         RIDGE,
@@ -61,7 +63,7 @@ internal class RouteCardBarRig(private val composeRule: RouteRule) {
         Waypoint("wp-pond", 45.356, -122.664, null, "Pond", "", 4_000L),
         Waypoint("wp-bluff", 45.366, -122.674, null, "Bluff", "", 5_000L),
         Waypoint("wp-spring", 45.376, -122.684, null, "Spring", "", 6_000L),
-    )
+    ).mapIndexed { i, stop -> names?.getOrNull(i)?.let { stop.copy(name = it) } ?: stop }
 
     val map = RouteMapSlot(emptyList())
 
@@ -158,6 +160,21 @@ internal class RouteCardBarRig(private val composeRule: RouteRule) {
         settle()
     }
 
+    /** Plots the next stop and leaves the clock alone, for a test holding it to read a frame. */
+    fun tapNext() {
+        composeRule.runOnUiThread { plotting.onWaypointTapped(stops[plotted].stop()) }
+        plotted++
+    }
+
+    /** Opens a saved route of the first [n] stops, named [name]. The opening's touches are `RouteCardLayoutTest`'s. */
+    fun openSaved(name: String, n: Int) {
+        val shown = stops.take(n).map { it.stop() }
+        val legs = shown.zipWithNext { a, b -> trail(a.position, b.position) }
+        val trip = PlannedTrip("saved", name, shown.first().position, null, PlottedRoute(shown, legs))
+        composeRule.runOnUiThread { plotting.onOpenSavedRoute(trip, fromTripPlanner = false) }
+        settle()
+    }
+
     fun touchHandle() {
         composeRule.onNodeWithTag(ROUTE_CARD_HANDLE_TAG).performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
         settle()
@@ -234,6 +251,37 @@ internal class RouteCardBarRig(private val composeRule: RouteRule) {
     fun assertApart(what: String, a: DpRect, b: DpRect) {
         val apart = a.right <= b.left + 0.5.dp || b.right <= a.left + 0.5.dp || a.bottom <= b.top + 0.5.dp || b.bottom <= a.top + 0.5.dp
         assertTrue("$what meet: $a and $b", apart)
+    }
+
+    /**
+     * The text at [tag] is [expected], literally, and every character of it is laid out: no line is ellipsized, and the last line ends
+     * at the text's end. Returns its line count. For a class under native graphics (Amendment 16: "nothing is cut with an ellipsis").
+     */
+    fun assertWhole(where: String, tag: String, expected: String): Int {
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        val layout = results.single()
+        assertEquals("$where: the text", expected, layout.layoutInput.text.text)
+        (0 until layout.lineCount).forEach { assertFalse("$where: line $it of \"$expected\" is cut", layout.isLineEllipsized(it)) }
+        assertFalse("$where: \"$expected\" overflows its box", layout.hasVisualOverflow)
+        assertEquals("$where: the last line ends at the text's end", expected.length, layout.getLineEnd(layout.lineCount - 1))
+        println("A16 $where: \"$expected\" lines ${layout.lineCount}, box ${composeRule.density.run { layout.size.width.toDp() }}")
+        return layout.lineCount
+    }
+
+    /** The lines the text at [tag] is laid out on, for a class under native graphics. */
+    fun lineCount(tag: String): Int {
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results.single().lineCount
+    }
+
+    /** The widest ink of the text at [tag], for a class under native graphics. */
+    fun ink(tag: String): Dp {
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        val layout = results.single()
+        return with(composeRule.density) { (0 until layout.lineCount).maxOf { layout.getLineRight(it) - layout.getLineLeft(it) }.toDp() }
     }
 
     /** Whether the text at [tag] is cut with an ellipsis, with its lines and the width it took, for a class under native graphics. */

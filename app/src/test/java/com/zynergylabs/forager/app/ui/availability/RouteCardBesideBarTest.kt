@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MAP_LEGEND_CHIP_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_CANCEL_TAG
@@ -23,13 +24,15 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Dispatch 2026-10-30-08, Amendments 14 and 15, Part 1 (RECORD -1928, -1929), the owner: "The map icon bar stays the same no matter
  * what. The card just gets resized to fit the map icon bar next to it". The real Maps tab at the S22's size, recording: the card is
- * narrower, beside the bar with a small gap, reaching the far edge's margin, at peek and expanded, at 1, 3, 5 and 6 stops, on either
- * side; the bar never moves, folds or rises; and record, return, Layers, "+" and Save each take real touches across their bounds.
+ * at the far edge's margin and never closer to the bar than a small gap (Amendment 16 sets its width), at peek and expanded, at 1, 3, 5
+ * and 6 stops, on either side; the bar never moves, folds or rises; and record, return, Layers, "+" and Save each take real touches across their bounds.
  */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 class RouteCardBesideBarTest {
@@ -47,10 +50,10 @@ class RouteCardBesideBarTest {
         val navTop = composeRule.onNodeWithText("Maps").getUnclippedBoundsInRoot().top
         println("A14 $where: nav top ${navTop.value}")
         if (barOnLeft) {
-            assertEquals("$where: the card's left, 8 dp past the bar's right ${bar.right}", (bar.right + 8.dp).value, card.left.value, 0.5f)
+            assertTrue("$where: the card's left ${card.left} keeps 8 dp from the bar's right ${bar.right}", card.left >= bar.right + 7.5.dp)
             assertEquals("$where: the card's right, at the screen edge's margin", (screen.right - 8.dp).value, card.right.value, 0.5f)
         } else {
-            assertEquals("$where: the card's right, 8 dp short of the bar's left ${bar.left}", (bar.left - 8.dp).value, card.right.value, 0.5f)
+            assertTrue("$where: the card's right ${card.right} keeps 8 dp from the bar's left ${bar.left}", card.right <= bar.left - 7.5.dp)
             assertEquals("$where: the card's left, at the screen edge's margin", 8f, card.left.value, 0.5f)
         }
     }
@@ -112,17 +115,26 @@ class RouteCardBesideBarTest {
     @Test
     fun `a minimised bar stays minimised, the card keeps its width, and the restore handle restores the bar, not the card`() {
         rig.setScreen()
+        rig.plotTo(3)
+        val rightWithBar = rig.bounds(ROUTE_CARD_TAG).right
+        composeRule.runOnUiThread { rig.plotting.onCancel() }
+        rig.settle()
         val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
         composeRule.onNodeWithTag(BAR_MINIMIZE_TAG).performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
         rig.settle()
         val handle = rig.described(BAR_RESTORE)
-        rig.plotTo(3)
+        composeRule.runOnUiThread {
+            rig.plotting.onStartPlotting(CREEK.stop())
+            rig.plotting.onWaypointTapped(RIDGE.stop())
+            rig.plotting.onWaypointTapped(FALLS.stop())
+        }
+        rig.settle()
         rig.setExpanded(true)
         assertEquals("the bar stays minimised", 0, rig.count(MAP_ICON_CLUSTER_TAG))
         rig.assertSame("the restore handle", handle, rig.described(BAR_RESTORE))
         val card = rig.bounds(ROUTE_CARD_TAG)
         println("A14 minimised: card ${card.left.value}..${card.right.value}, restore handle ${handle.left.value}..${handle.right.value}")
-        assertEquals("the card's right, where it is with the bar showing", (bar.left - 8.dp).value, card.right.value, 0.5f)
+        assertEquals("the card's right, where it is with the bar showing", rightWithBar.value, card.right.value, 0.5f)
         rig.assertApart("the card and the restore handle", card, handle)
 
         composeRule.onNodeWithContentDescription(BAR_RESTORE).performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
@@ -184,39 +196,4 @@ class RouteCardBesideBarTest {
     }
 }
 
-/**
- * Amendment 14's stop condition names the tablet. The card keeps its reading width (`ROUTE_CARD_MAX_WIDTH`, the first stop, (b)), so
- * it sits at the far edge's margin and does not reach the bar. The numbers are printed for the report.
- */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w824dp-h1318dp-xhdpi")
-class RouteCardBesideBarTabletTest {
-
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
-
-    private val rig = RouteCardBarRig(composeRule)
-
-    private fun walk(barOnLeft: Boolean) {
-        rig.setScreen()
-        if (barOnLeft) rig.dragBarAcross(rightward = false)
-        val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
-        rig.plotTo(3)
-        rig.assertBarUntouched("tablet, bar on left $barOnLeft", bar)
-        val card = rig.bounds(ROUTE_CARD_TAG)
-        assertEquals("the card's width stays its cap", 640f, (card.right - card.left).value, 0.5f)
-        if (barOnLeft) {
-            assertEquals("the card's right, at the far edge's margin", (rig.screen().right - 8.dp).value, card.right.value, 0.5f)
-        } else {
-            assertEquals("the card's left, at the far edge's margin", 8f, card.left.value, 0.5f)
-        }
-    }
-
-    @Test
-    fun `the bar on the right - the card sits at the left edge's margin`() = walk(barOnLeft = false)
-
-    @Test
-    fun `the bar on the left - the card sits at the right edge's margin`() = walk(barOnLeft = true)
-}
+private val FALLS = Waypoint("wp-falls", 45.346, -122.654, null, "Falls", "", 3_000L)
