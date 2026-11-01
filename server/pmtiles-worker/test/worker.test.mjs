@@ -13,7 +13,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { gunzipSync } from "node:zlib";
 import crypto from "node:crypto";
-import * as reference from "../../../map-style/overrides/forager-reference.mjs";
+// The official-trails archive's names: the folder's own copy (test/cross-folder.test.mjs holds it equal to map-style's).
+import * as reference from "./reference-names.mjs";
 
 const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
@@ -446,7 +447,8 @@ test("overflow: a z15 tile inside the archive's own bounds still goes to the ove
 });
 
 // --- Step 8a: Trail Map v3 with the official-trails band (dispatch 2026-10-26-14 and Amendment 1; RECORD -1633, -1678).
-// The archive's names come from map-style/overrides/forager-reference.mjs, the one place they are written.
+// The archive's names come from map-style/overrides/forager-reference.mjs, the one place they are written, through the
+// folder's copy in test/reference-names.mjs.
 
 const sha256 = (path) => crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
 const v3Style = () => JSON.parse(STREET_V3_STYLE_SOURCE);
@@ -464,17 +466,10 @@ test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are
   assert.deepEqual(fetchCalls, []);
 });
 
-test("v2 is frozen: all three copies byte for byte what pre-main c91f34c49 held", () => {
-  // Regions downloaded against v2 keep drawing in it (MapLibre keys a region by its style URL), so v2 never changes.
-  const v2 = "7547507bc2b7dbdae24e8b3735eeda569c0f903c068282259b1e51b4bcc7886d";
-  assert.deepEqual(
-    {
-      worker: sha256("../src/street-style-v2.json"),
-      app: sha256("../../../map-style/forager-street-v2.json"),
-      preview: sha256("../../../map-style/forager-street-v2.preview.json"),
-    },
-    { worker: v2, app: v2, preview: "d07ce0e343c1187e607f04e5bb455898776e9acaa41c9133430f459f98fdd039" },
-  );
+test("v2 is frozen: the Worker's copy byte for byte what pre-main c91f34c49 held", () => {
+  // Regions downloaded against v2 keep drawing in it (MapLibre keys a region by its style URL), so v2 never changes. The
+  // app's and the preview's copies are held to the same sums in test/cross-folder.test.mjs.
+  assert.equal(sha256("../src/street-style-v2.json"), "7547507bc2b7dbdae24e8b3735eeda569c0f903c068282259b1e51b4bcc7886d");
 });
 
 // Since dispatch 2026-10-27-02 (RECORD -1730) v3 also differs from v2 in its buildings: the buildings layer's paint, and
