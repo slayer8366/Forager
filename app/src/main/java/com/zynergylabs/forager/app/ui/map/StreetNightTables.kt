@@ -67,7 +67,6 @@ internal val STREET_V4_NIGHT_TABLES = StreetNightTables(
         ),
     ),
     // Hill shading's night (Sage's sage-11 ALT): darker shadows and a faint cool highlight, so the relief never glows.
-    hillshade = HillshadeNight(shadow = "rgba(0,0,0,0.7)", highlight = "rgba(220,228,236,0.2)", accent = "rgba(0,0,0,0.35)"),
 )
 
 /**
