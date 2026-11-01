@@ -26,7 +26,6 @@ import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -126,7 +125,9 @@ class WordSwapTest {
  * The Choreographer is paused so a frame comes only when [frames] moves the clock. By default each frame callback moves it
  * itself, so a looper idle never catches up with anything that asks for another frame: a repeating frame request here ran 23.8
  * million frames inside one idle until the heap ran out, and killed the recomposer's coroutine (CI run 41267935587). The
- * failure this test exists to see is exactly such a request.
+ * failure this test exists to see is exactly such a request. It is paused after the launch, because ActivityScenario's launch
+ * needs its frames (NullPointerException in windowFocusChanged otherwise), and before there is any content. Robolectric resets
+ * both settings after each test.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -138,18 +139,6 @@ class WordSwapStoppedActivityTest {
     private var text by mutableStateOf("Sunset 5:59 PM · in 1 h 9 min · dark 6:29")
     private var shown: String? = null
     private var clockFrames = 0
-
-    @Before
-    fun framesOnlyWhenTheClockMoves() {
-        ShadowChoreographer.setPaused(true)
-        ShadowChoreographer.setFrameDelay(Duration.ofMillis(FRAME_MILLIS))
-    }
-
-    @After
-    fun framesAsTheyWere() {
-        ShadowChoreographer.setPaused(false)
-        ShadowChoreographer.setFrameDelay(Duration.ofMillis(1))
-    }
 
     private fun frames(count: Int) = repeat(count) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS)) }
 
@@ -174,6 +163,8 @@ class WordSwapStoppedActivityTest {
     @Test
     fun `a number changing while the activity is stopped leaves composition quiet, and the latest number shows`() {
         ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
+            ShadowChoreographer.setPaused(true)
+            ShadowChoreographer.setFrameDelay(Duration.ofMillis(FRAME_MILLIS))
             lateinit var recomposer: Recomposer
             scenario.onActivity(::onScreen)
             frames(SETTLE_FRAMES)
