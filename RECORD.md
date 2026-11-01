@@ -31276,3 +31276,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** #454 waits for the S22 run
 **Decision:** the owner: "S22 run first (Recommended)". Amendment 12 has started on 617b2aae9. The planner will carry #454 and #449 in one S22 build once Amendment 12 is green, and run the drain measurement in the window before sunset.
 **Notes:** Written by the planner by hand. Next free ID -1916.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1916
+**Timestamp:** 2026-11-01T11:30:32Z
+**Continues:** 2026-09-28-1915
+**Title:** One S22 build with #449 and #454 now, ahead of Amendment 12's report; the drain check waits for the sunset window
+**Decision:** the owner: "Build and install now (Recommended)". Dispatch 2026-11-01-02.
+**Notes:** Written by the planner by hand. Next free ID -1917.
