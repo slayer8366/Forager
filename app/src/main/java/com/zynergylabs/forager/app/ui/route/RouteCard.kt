@@ -94,11 +94,11 @@ sealed interface RouteCardContent {
     val legs: List<RouteLeg>
 
     /**
-     * Amendment 6's seam (RECORD -1887): an optional elevation for each leg, by the leg's index, and one for the whole route.
-     * Filled while plotting from the trail data's heights (Amendment 8, RECORD -1896); empty for a saved route until step 3b.
+     * Amendment 6's seam (RECORD -1887): an optional elevation for each leg, by the leg's index. The whole route's line is added
+     * up from these ([routeTotalElevationText]). Filled while plotting from the trail data's heights (Amendment 8, RECORD -1896);
+     * empty for a saved route until step 3b.
      */
     val legElevations: List<RouteElevation?>
-    val totalElevation: RouteElevation?
 
     /** Plotting: [legInFlight] while the leg to the last stop is still being routed. */
     data class Plotting(
@@ -106,7 +106,6 @@ sealed interface RouteCardContent {
         override val legs: List<RouteLeg>,
         val canSave: Boolean,
         override val legElevations: List<RouteElevation?> = emptyList(),
-        override val totalElevation: RouteElevation? = null,
     ) : RouteCardContent
 
     /** A saved route, under its [name]. */
@@ -115,7 +114,6 @@ sealed interface RouteCardContent {
         override val stops: List<RouteStop>,
         override val legs: List<RouteLeg>,
         override val legElevations: List<RouteElevation?> = emptyList(),
-        override val totalElevation: RouteElevation? = null,
     ) : RouteCardContent
 }
 
@@ -235,7 +233,7 @@ private fun RouteSummaryLine(content: RouteCardContent, distanceUnit: DistanceUn
         }
         if (content.legs.isNotEmpty()) {
             Text(
-                formatDistanceMeters(content.legs.sumOf { it.meters }, distanceUnit),
+                routeTotalDistanceText(content.legs.map { it.meters }, distanceUnit),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.testTag(ROUTE_CARD_TOTAL_TAG),
             )
@@ -279,10 +277,10 @@ private fun RouteLegRows(content: RouteCardContent, distanceUnit: DistanceUnit) 
         Column(Modifier.padding(vertical = Spacing.xs).testTag(ROUTE_CARD_ROUTED_TAG)) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_ROUTED_COUNT_TAG))
-                Text(formatDistanceMeters(content.legs.sumOf { it.meters }, distanceUnit), style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_TOTAL_TAG))
+                Text(routeTotalDistanceText(content.legs.map { it.meters }, distanceUnit), style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_TOTAL_TAG))
             }
-            content.totalElevation?.let {
-                Text(routeElevationText(it, unitSystem), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+            routeTotalElevationText(content.legElevations, unitSystem)?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG))
             }
         }
     }

@@ -27,13 +27,6 @@ import com.zynergylabs.forager.app.domain.bankedClimb
 /** [leg]'s elevation, or `null` when it is straight or any point of its trail part has no height. */
 fun legElevation(leg: RouteLeg): RouteElevation? = heightsOf(leg)?.let(::elevationOf)
 
-/** The whole route's elevation: the sums of [legs]' own; `null` when there are none or any leg has no elevation. */
-fun routeElevation(legs: List<RouteLeg>): RouteElevation? {
-    if (legs.isEmpty()) return null
-    val each = legs.map { legElevation(it) ?: return null }
-    return RouteElevation(each.sumOf { it.netMeters }, each.sumOf { it.climbMeters }, each.sumOf { it.descentMeters })
-}
-
 private fun heightsOf(leg: RouteLeg): List<Double>? = when (leg) {
     is RouteLeg.Straight -> null
     is RouteLeg.Trail -> leg.trailHeightsMetres.takeIf { heights -> heights.none { it == null } }?.map { it!! }

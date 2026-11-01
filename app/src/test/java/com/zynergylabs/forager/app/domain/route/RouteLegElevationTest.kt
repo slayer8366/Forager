@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.route.routeElevationText
+import com.zynergylabs.forager.app.ui.route.routeTotalElevationText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -54,7 +55,7 @@ class RouteLegElevationTest {
         // Leg by leg: +7, 10 up 6 down; then +5, 5 up (107 to 112). Summed: +12, 15 up, 6 down. One run banked across both would
         // bank 104 to 110 as 6, so 16 up: the figure Amendment 9 replaces.
         assertElevation(RouteElevation(5.0, 5.0, 0.0), legElevation(second))
-        assertElevation(RouteElevation(12.0, 15.0, 6.0), routeElevation(listOf(first, second)))
+        assertEquals("Elevation: +12 m (↑ 15 ↓ 6)", routeTotalElevationText(listOf(first, second).map(::legElevation), UnitSystem.METRIC))
     }
 
     @Test
@@ -69,8 +70,8 @@ class RouteLegElevationTest {
         assertEquals("Elevation: -7 ft (↑ 0 ↓ 13)", shown(legElevation(first)))
         assertEquals("Elevation: +3 ft (↑ 0 ↓ 0)", shown(legElevation(second)))
         assertEquals("Elevation: +14 ft (↑ 14 ↓ 0)", shown(legElevation(third)))
-        assertElevation(RouteElevation(-2.0 + 1.0 + 4.3, 4.3, 4.0), routeElevation(legs))
-        assertEquals("the total is the legs' sums", "Elevation: +11 ft (↑ 14 ↓ 13)", shown(routeElevation(legs)))
+        // Amendment 10 (RECORD -1904): the total adds up the shown digits, -7 + 3 + 14, so +10; the metres summed would show +11.
+        assertEquals("the total is the sum of the shown rows", "Elevation: +10 ft (↑ 14 ↓ 13)", routeTotalElevationText(legs.map(::legElevation), UnitSystem.IMPERIAL))
     }
 
     @Test
@@ -83,9 +84,10 @@ class RouteLegElevationTest {
     @Test
     fun `the total shows only when every leg has heights`() {
         val heighted = trail(a, b, listOf(100.0, 110.0))
-        assertElevation(RouteElevation(10.0, 10.0, 0.0), routeElevation(listOf(heighted)))
-        assertNull("a straight leg after it", routeElevation(listOf(heighted, straight(b, c))))
-        assertNull("a leg with only some heights after it", routeElevation(listOf(heighted, trail(b, c, listOf(110.0, null)))))
-        assertNull("no legs", routeElevation(emptyList()))
+        fun total(vararg legs: RouteLeg) = routeTotalElevationText(legs.map(::legElevation), UnitSystem.METRIC)
+        assertEquals("Elevation: +10 m (↑ 10 ↓ 0)", total(heighted))
+        assertNull("a straight leg after it", total(heighted, straight(b, c)))
+        assertNull("a leg with only some heights after it", total(heighted, trail(b, c, listOf(110.0, null))))
+        assertNull("no legs", total())
     }
 }

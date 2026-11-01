@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.route
 
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.formatElevationChange
 import com.zynergylabs.forager.app.domain.model.wholeLength
 import com.zynergylabs.forager.app.domain.route.RouteElevation
@@ -31,5 +33,15 @@ fun routeLegText(from: String, to: String): String = "$from to $to"
 fun routeElevationText(elevation: RouteElevation, unitSystem: UnitSystem): String =
     "Elevation: ${formatElevationChange(elevation.netMeters, unitSystem)} " +
         "(↑ ${wholeLength(elevation.climbMeters, unitSystem)} ↓ ${wholeLength(elevation.descentMeters, unitSystem)})"
+
+/** STUB (tests first): the whole route's distance, summed in metres and rounded once, as before. */
+fun routeTotalDistanceText(legMeters: List<Double>, distanceUnit: DistanceUnit): String = formatDistanceMeters(legMeters.sum(), distanceUnit)
+
+/** STUB (tests first): the whole route's elevation, summed in metres and rounded once, as before; `null` unless every leg has one. */
+fun routeTotalElevationText(legs: List<RouteElevation?>, unitSystem: UnitSystem): String? {
+    if (legs.isEmpty()) return null
+    val each = legs.map { it ?: return null }
+    return routeElevationText(RouteElevation(each.sumOf { it.netMeters }, each.sumOf { it.climbMeters }, each.sumOf { it.descentMeters }), unitSystem)
+}
 
 const val ONE_WAYPOINT_SELECTED = "1 Waypoint selected, tap another to route"

@@ -212,8 +212,7 @@ class RouteCardLayoutTest {
             stops = listOf(CREEK.stop(), RIDGE.stop(), CREEK.stop()),
             legs = listOf(straight(CREEK.stop().position, RIDGE.stop().position), straight(RIDGE.stop().position, CREEK.stop().position)),
             canSave = true,
-            legElevations = listOf(RouteElevation(73.152, 97.536, 24.384), null),
-            totalElevation = RouteElevation(-30.48, 30.48, 60.96),
+            legElevations = listOf(RouteElevation(73.152, 97.536, 24.384), RouteElevation(-103.632, 3.048, 106.68)),
         )
         var unit by mutableStateOf(DistanceUnit.MILES)
         composeRule.setContent {
@@ -225,13 +224,14 @@ class RouteCardLayoutTest {
 
         assertEquals("Elevation: +240 ft (↑ 320 ↓ 80)", text(routeCardLegElevationTag(0)))
         assertTrue("under its leg's name", bounds(routeCardLegElevationTag(0)).top >= bounds(routeCardLegNameTag(0)).bottom)
-        assertTrue("a leg with no elevation shows none", !exists(routeCardLegElevationTag(1)))
-        assertEquals("Elevation: -100 ft (↑ 100 ↓ 200)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        assertEquals("Elevation: -340 ft (↑ 10 ↓ 350)", text(routeCardLegElevationTag(1)))
+        assertEquals("Elevation: -100 ft (↑ 330 ↓ 430)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
         assertTrue("under the routed count", bounds(ROUTE_CARD_ROUTED_ELEVATION_TAG).top >= bounds(ROUTE_CARD_ROUTED_COUNT_TAG).bottom)
 
         unit = DistanceUnit.KILOMETERS
         composeRule.waitForIdle()
         assertEquals("Elevation: +73 m (↑ 98 ↓ 24)", text(routeCardLegElevationTag(0)))
-        assertEquals("Elevation: -30 m (↑ 30 ↓ 61)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        assertEquals("Elevation: -104 m (↑ 3 ↓ 107)", text(routeCardLegElevationTag(1)))
+        assertEquals("Elevation: -31 m (↑ 101 ↓ 131)", text(ROUTE_CARD_ROUTED_ELEVATION_TAG))
     }
 }

@@ -21,7 +21,6 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.domain.route.defaultRouteName
 import com.zynergylabs.forager.app.domain.route.legElevation
-import com.zynergylabs.forager.app.domain.route.routeElevation
 import com.zynergylabs.forager.app.domain.route.routeFrame
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MapCameraRequest
@@ -148,7 +147,6 @@ internal fun BoxScope.CompactMapRouteCard(
             mode.draft.legs,
             canSave = mode.draft.toRoute() != null,
             legElevations = mode.draft.legs.map(::legElevation),
-            totalElevation = routeElevation(mode.draft.legs),
         )
         is RoutePlotMode.Showing -> mode.trip.route?.let { RouteCardContent.Saved(mode.trip.name, it.stops, it.legs) }
         RoutePlotMode.Off, null -> null
