@@ -223,5 +223,14 @@ last="${pb##* }"; lw="${last%%:*}"; le="${last##*:}"
 check_on "both squares' west edges are in the last band, $last" \
   'for q in W70_N15 W65_N15; do x="$(rd5_west_edge $q.rd5)"; (( lw <= x && x < le )) || exit 1; done'
 
+# --- The Java heaps in pins.env: a size Java's -Xmx accepts, a whole number with an optional k, m or g ("4.5g" stops the
+#     JVM before it starts: "Invalid maximum heap size"); Planetiler's is 4608m, 4.5 GiB (dispatch 2026-11-01-coder-09,
+#     the owner: "0007 + 4.5 GB (Recommended)") --------------------------------------------------------------------
+xmx_ok() { [[ "$1" =~ ^[0-9]+[kKmMgG]?$ ]]; }
+check "every *_XMX in pins.env is a size Java accepts" \
+  '(source "$here/pins.env"; for v in PLANETILER_XMX BROUTER_XMX USCA_PLANETILER_XMX USCA_BROUTER_XMX; do xmx_ok "${!v}" || { echo "$v=${!v}"; exit 1; }; done)'
+check "xmx_ok refuses 4.5g and accepts 4608m" '! xmx_ok 4.5g && xmx_ok 4608m && xmx_ok 4g'
+check "Planetiler's US + Canada heap is 4608m" '[[ "$(source "$here/pins.env"; echo "$USCA_PLANETILER_XMX")" == 4608m ]]'
+
 if [[ $nfail -gt 0 ]]; then echo "FAILED: $nfail checks failed, $pass passed"; exit 1; fi
 echo "ok: $pass checks"
