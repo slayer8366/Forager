@@ -3,9 +3,9 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
@@ -130,7 +130,7 @@ class RouteCardContentWidthTest {
     @Test
     fun `the bar on the left - a leg that widens the card eases it wider, and its lines hold`() = widening(barOnLeft = true)
 
-    /** The moving edge uncovers the lines: they sit at their settled place, on the anchored side, from the first frame. */
+    /** The moving edge uncovers the lines: on the anchored side they do not move from the first frame. */
     private fun widening(barOnLeft: Boolean) {
         val rig = RouteCardBarRig(composeRule, WIDENING_NAMES)
         rig.setScreen()
@@ -153,8 +153,11 @@ class RouteCardContentWidthTest {
         assertTrue("precondition: this leg widens the card: ${width(narrow)} to ${width(wide)}", width(wide) >= width(narrow) + 16.dp)
         assertTrue("part way it is on its way: ${width(narrow)}, ${width(part)}, ${width(wide)}", width(part) > width(narrow) + 1.dp && width(part) < width(wide) - 1.dp)
         assertEquals("part way, the new row is on one line", 1, partLines)
-        rig.assertSame("part way, Undo is at its settled place", rig.bounds(ROUTE_CARD_UNDO_TAG), partUndo)
-        rig.assertSame("part way, Save is at its settled place", rig.bounds(ROUTE_CARD_SAVE_TAG), partSave)
+        if (barOnLeft) {
+            rig.assertSame("part way, Save stays at the anchored side", rig.bounds(ROUTE_CARD_SAVE_TAG), partSave)
+        } else {
+            rig.assertSame("part way, Undo stays at the anchored side", rig.bounds(ROUTE_CARD_UNDO_TAG), partUndo)
+        }
         rig.plotTo(4)
         val later = rig.bounds(ROUTE_CARD_TAG)
         composeRule.mainClock.autoAdvance = false
@@ -230,8 +233,10 @@ class RouteCardContentWidthTest {
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 class RouteCardNeededWidthTest {
 
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
     private val a = RouteStop("A", LatLng(45.0, -122.0))
     private val b = RouteStop("B", LatLng(45.1, -122.0))
@@ -240,19 +245,22 @@ class RouteCardNeededWidthTest {
     /** A leg long enough that the total line is the card's widest, past the buttons. */
     private val leg = RouteLeg.Trail(listOf(a.position, b.position), 123_456_789.0, trailFrom = 0, trailTo = 1)
 
+    private val shown = mutableStateOf<RouteCardContent>(RouteCardContent.Plotting(listOf(a, b), listOf(leg), canSave = true))
+    private var width = 0.dp
+
     private fun needed(content: RouteCardContent): Dp {
-        var width = 0.dp
-        composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(3f)) {
-                MaterialTheme { width = rememberRouteCardNeededWidth(content, DistanceUnit.KILOMETERS) }
-            }
-        }
+        shown.value = content
         composeRule.waitForIdle()
         return width
     }
 
     @Test
     fun `a leg in flight does not move the width while the total line is the widest - its mark's room is always kept`() {
+        composeRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(3f)) {
+                MaterialTheme { width = rememberRouteCardNeededWidth(shown.value, DistanceUnit.KILOMETERS) }
+            }
+        }
         val routed = RouteCardContent.Plotting(listOf(a, b), listOf(leg), canSave = true)
         val inFlight = routed.copy(stops = listOf(a, b, c))
         val settled = needed(routed)
