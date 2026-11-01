@@ -101,7 +101,7 @@ class AvailabilityScreenNavigationWordsTest {
         this.route = route
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = navigating,
                 ),
@@ -413,7 +413,7 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
     fun `in landscape the longest lines fit whole and the display stays above the walker's dot, nothing covering the needle`() {
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                 ),

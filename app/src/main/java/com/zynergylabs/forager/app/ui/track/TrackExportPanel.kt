@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
+import com.zynergylabs.forager.app.domain.gpxHeightsAboveSeaLevel
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
@@ -156,6 +159,7 @@ internal fun TrackExportRow(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val seaLevelConverter = LocalSeaLevelConverter.current
     val is24Hour = is24HourClock()
     Row(
         modifier = Modifier
@@ -193,7 +197,7 @@ internal fun TrackExportRow(
         // a sighted tester can find it visually — see this dispatch's item 2 for the bug that shape
         // of assertion hid for an entire release.
         BouncingIconButton(
-            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
+            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord, seaLevelConverter) } },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {
             Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${displayDateTime(track.startedAtEpochMillis, is24Hour)}")
@@ -261,19 +265,23 @@ internal suspend fun shareTrackGpx(
     track: Track,
     allWaypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
-) = exportAndShareTrack(context, track, allWaypoints.filter { it.trackId == track.id }, getFullRecord)
+    /** Dispatch 2026-10-28-13: the file's `<ele>` above sea level ([gpxHeightsAboveSeaLevel]); the caller's [LocalSeaLevelConverter]. */
+    seaLevelConverter: SeaLevelConverter,
+) = exportAndShareTrack(context, track, allWaypoints.filter { it.trackId == track.id }, getFullRecord, seaLevelConverter)
 
 private suspend fun exportAndShareTrack(
     context: Context,
     track: Track,
     waypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    seaLevelConverter: SeaLevelConverter,
 ) {
     val fullRecordRead = getFullRecord(track.id)
         .onFailure { error -> Log.w("TrackExportPanel", "Couldn't load track ${track.id}'s full record; exporting without it.", error) }
     val fullRecord = fullRecordRead.getOrDefault(emptyList())
     val file = withContext(Dispatchers.IO) {
-        TrackGpxExporter.forContext(context).write(track, fullRecord = fullRecord, waypoints = waypoints)
+        val (shownTrack, shownWaypoints) = gpxHeightsAboveSeaLevel(track, waypoints, seaLevelConverter)
+        TrackGpxExporter.forContext(context).write(shownTrack, fullRecord = fullRecord, waypoints = shownWaypoints)
     }
     // Dispatch 2026-09-28-658 (R9): an export without the full record is partial, and the person
     // sharing it is told so before the share sheet opens, not left to believe it is complete.

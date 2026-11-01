@@ -20,7 +20,11 @@ internal data class NavigationHudReadout(
     val distanceText: String,
     val distanceDeEmphasised: Boolean,
     val statusText: String,
-    /** The fix's altitude, or "Elevation unavailable" for a fix that carries none; `null` with no fix at all (the row is not drawn). */
+    /**
+     * The live height above sea level, the strip's ([AvailabilityUiState.liveAltitudeMeters], dispatch 2026-10-28-13), or
+     * "Alt unavailable" with none to show; `null` with no fix at all. No composable draws it since RECORD -950 moved the
+     * height to the strip; it is kept equal to the strip's so the two cannot disagree.
+     */
     val elevationText: String?,
     /** MGRS or the labelled decimal pair, per the shared toggle; `null` with no fix at all (the row is not drawn). */
     val coordinatesText: String?,
