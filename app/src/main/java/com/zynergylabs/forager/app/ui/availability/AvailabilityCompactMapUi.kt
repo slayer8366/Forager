@@ -577,6 +577,9 @@ internal fun CompactMapTab(
                     topLimitPx = layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
                     controlsPadding = controlsPadding,
+                    // Dispatch 2026-10-30-08, Amendment 10: the column folds while the route card is expanded.
+                    foldedForRouteCard = routeCardFoldsCluster(bubbleSources.routePlotting),
+                    onRestoreWhileFolded = { bubbleSources.routePlotting?.actions?.onSetExpanded(false) },
                 )
                 // The chips under the strip (RECORD -741: CompactMapChips, moved out unchanged; its comments are there). Dispatch
                 // 2026-10-12-08: composed before the strip, no longer after it. While navigating in portrait the strip's card now holds

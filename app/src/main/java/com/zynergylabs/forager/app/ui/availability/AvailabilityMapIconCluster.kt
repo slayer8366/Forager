@@ -160,10 +160,20 @@ internal fun BoxScope.MapIconCluster(
     landscapePill: (@Composable (onLeftSide: Boolean) -> Unit)? = null,
     /** T11 fixes (RECORD -766, P4): navigation is on; with [MapIconClusterState.navigationDisplayBottomInRootPx], see [navigationSlideApplies]. */
     isNavigating: Boolean = false,
+    /**
+     * The route card is expanded (dispatch 2026-10-30-08, Amendment 10, RECORD -1904, the owner: "Minimise the column while open
+     * (Recommended)"): the column is drawn folded, whatever the user's minimised flag says. Display only, like the legend's and the
+     * card's lowest edge: nothing here writes the flag, the side or the height, so it comes back exactly as the user had it.
+     */
+    foldedForRouteCard: Boolean = false,
+    /** A touch on the restore handle while [foldedForRouteCard]: the column is held folded by the card, so the card is what gives way. */
+    onRestoreWhileFolded: () -> Unit = {},
 ) {
     // RECORD -711: nothing is drawn until a stored side and height have been applied, so a cluster restored
     // to the left never shows a frame on the right first. See MapIconClusterPositionState.
     if (!state.position.placementApplied) return
+    // rememberUpdatedState: release() below runs from the long-lived gesture block, which keeps the closure it started with.
+    val drawnMinimized by rememberUpdatedState(state.isMinimized || foldedForRouteCard)
     val compassStripDensity = LocalDensity.current
     val mapIconBarOffsetScope = rememberCoroutineScope()
     // A drag distance past this point (either direction) commits the bar to the opposite side —
@@ -423,7 +433,7 @@ internal fun BoxScope.MapIconCluster(
     SideEffect {
         if (state.fixedLeft != fixedLeftNow) {
             val wasLeft = state.isOnLeftSide
-            val from = state.glide.leftInRootPx(minimized = state.isMinimized)
+            val from = state.glide.leftInRootPx(minimized = drawnMinimized)
             state.fixedLeft = fixedLeftNow
             if (state.isOnLeftSide != wasLeft && !reduceMotionNow && from != null) {
                 state.glide.fromLeftInRootPx = from
@@ -433,7 +443,7 @@ internal fun BoxScope.MapIconCluster(
     }
     // The release, as it always was (a side change past the threshold on a drag's end, none on a cancel), plus the glide.
     fun release(commitSide: Boolean) {
-        val from = state.glide.leftInRootPx(minimized = state.isMinimized)
+        val from = state.glide.leftInRootPx(minimized = drawnMinimized)
         val glides = !reduceMotionNow && state.horizontalDragPx != 0f && from != null
         if (commitSide) {
             when {
@@ -552,7 +562,7 @@ internal fun BoxScope.MapIconCluster(
         IntOffset(0, (state.centreInClusterPx - state.clusterHeightPx / 2f).roundToInt())
     }
     androidx.compose.animation.AnimatedVisibility(
-        visible = state.isMinimized,
+        visible = drawnMinimized,
         enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
         exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
         modifier = Modifier
@@ -563,7 +573,7 @@ internal fun BoxScope.MapIconCluster(
             .clusterGlideDraw(state.glide, minimized = true),
     ) {
         MapIconBarRestoreHandle(
-            onRestore = { state.isMinimized = false },
+            onRestore = { if (foldedForRouteCard) onRestoreWhileFolded() else state.isMinimized = false },
             onLeftSide = state.isOnLeftSide,
             // Reports nothing into state.clusterHeightPx — its drag is clamped to
             // the cluster's own range, see that variable's doc comment.
@@ -571,7 +581,7 @@ internal fun BoxScope.MapIconCluster(
         )
     }
     androidx.compose.animation.AnimatedVisibility(
-        visible = !state.isMinimized,
+        visible = !drawnMinimized,
         enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = mapIconBarSlideOffset),
         exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = mapIconBarSlideOffset),
         modifier = Modifier

@@ -81,6 +81,19 @@ internal fun plottedRouteOnMap(controls: RoutePlottingControls?): PlottedRouteOn
     RoutePlotMode.Off, null -> null
 }
 
+/**
+ * Whether the route card is showing and expanded, so the icon cluster folds (Amendment 10, RECORD -1904). The anchor outlives the
+ * card ([RoutePlottingUiState.expanded] is kept for the next route), so a card that is not showing folds nothing.
+ */
+internal fun routeCardFoldsCluster(controls: RoutePlottingControls?): Boolean {
+    val state = controls?.state ?: return false
+    return state.expanded && when (val mode = state.mode) {
+        is RoutePlotMode.Plotting -> true
+        is RoutePlotMode.Showing -> mode.trip.route != null
+        RoutePlotMode.Off -> false
+    }
+}
+
 /** The most of the map's height the expanded card's rows take before they scroll (the first stop, (b)). */
 internal const val ROUTE_CARD_EXPANDED_FRACTION = 0.5f
 

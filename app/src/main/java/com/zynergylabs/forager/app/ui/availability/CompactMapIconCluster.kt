@@ -39,6 +39,8 @@ internal fun BoxScope.CompactMapIconCluster(
     topLimitPx: Float,
     noticeBottomPx: Float,
     controlsPadding: PaddingValues,
+    foldedForRouteCard: Boolean = false,
+    onRestoreWhileFolded: () -> Unit = {},
 ) {
     val isNavigating = navigation.isNavigating
     val onReturnToRoute = navigation.onReturnToRoute
@@ -93,6 +95,8 @@ internal fun BoxScope.CompactMapIconCluster(
         topLimitPx = topLimitPx,
         noticeBottomPx = noticeBottomPx,
         controlsPadding = controlsPadding,
+        foldedForRouteCard = foldedForRouteCard,
+        onRestoreWhileFolded = onRestoreWhileFolded,
         bar = { barModifier -> phoneBar(barModifier, mapIconClusterChildColor(), Spacing.xs, false) },
         // Landscape L: the bar's rows 48 dp apart with no end padding (240 dp), one layer at the standing 0.8 fill, every row
         // taking touches across its full 48 x 48 square (owner's "A" and ruling (d), continuations -160 and -172).

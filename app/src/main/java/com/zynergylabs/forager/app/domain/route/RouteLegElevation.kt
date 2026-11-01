@@ -9,10 +9,10 @@ import com.zynergylabs.forager.app.domain.bankedClimb
  * - **Net change:** the last height minus the first.
  * - **Climb and descent:** [bankedClimb], the function the way home's climbing allowance uses, which banks exactly as the
  *   journal's Climb and Descent do (`ComputeTrackStatisticsUseCase`, `ElevationHysteresis.THRESHOLD_METERS`, 4 m).
- * - **The total:** the sums of the legs' own net change, climb and descent (Amendment 9, RECORD -1902, the owner: "Total = sum
- *   of the legs (Recommended)"), so the total matches the rows above it. This replaces Amendment 8's one run banked across the
- *   legs, which on the S22 showed legs of ↑ 0, ↑ 0 and ↑ 14 ft under a total of ↑ 13 (the S22 phone checks, F-1). Each figure
- *   is summed in metres and rounded once for the screen, as the routed row's distance is.
+ * - **The total** adds up the legs' own lines, as shown (Amendment 9, RECORD -1902, the owner: "Total = sum of the legs
+ *   (Recommended)"; Amendment 10, RECORD -1904, "Yes, add up what's shown (Recommended)"): `routeTotalElevationText`, in the
+ *   Units setting. This replaces Amendment 8's one run banked across the legs, which on the S22 showed legs of ↑ 0, ↑ 0 and
+ *   ↑ 14 ft under a total of ↑ 13 (the S22 phone checks, F-1).
  *
  * Missing heights are never 0 and never invented:
  * - a straight leg, a leg with no heights, and a leg with only some have no elevation. The last is the rule proposed in the
