@@ -31897,3 +31897,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The map credit shows when a map opens, then fades into the "i" after 5 seconds or on the first pan or zoom; with OSM's own tiles it stays
 **Decision:** the owner: "Show, then fade to the 'i' (Recommended)". Dispatch 2026-10-30-08 item D25, replacing D24's removal of the strip; D24's Map Layers rows and the "i" at the bottom end stand.
 **Notes:** Written by the planner by hand. Next free ID -1969.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1969
+**Timestamp:** 2026-11-02T23:10:13Z
+**Continues:** 2026-09-28-1968
+**Title:** When the map credit shows and fades: on a new map and on a credit change, not on return from the background or a rotation; never faded while OSM's raster tiles are drawn
+**Decision:** the planner's readings of the owner's "When a map opens" (-1968), on Hazel's verify-first, stated to the owner, who may override. Dispatch 2026-10-30-08 item D26.
+**Notes:** Written by the planner by hand. Next free ID -1970.
