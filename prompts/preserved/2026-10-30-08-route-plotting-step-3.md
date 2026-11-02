@@ -310,3 +310,10 @@ Head as written: fb878627d. Evidence: docs/audits/2026-11-01-s22-card-beside-bar
 - Read Sorrel's other notes; report any you did not take, with why.
 
 Merge origin/pre-main in; it has moved. Full CI green. Don't merge the PR: the planner does.
+
+## Amendment 17, part 2 ruled (2026-11-02): Re-center rises only over the card (RECORD -1943)
+Head as written: d17c6959b. The owner, to Hazel's stop (-1942): "Fix the S22 case, then check (Recommended)", whose option read "Re-center rises only when it actually sits over the card. That fixes what was seen on the S22. Then one S22 check at a larger font shows whether the shared-space case is real on a phone before anything more is built".
+- Build option A from your report: lift Re-center for the card only where its horizontal span overlaps the card's; the legend chip keeps its lift. Use the parked tests at 985196468 (and /mnt/work/scratch/route-plot-ui/a17/parked/). Fail first, then a revert check.
+- The tests that pin the shared-column cases (the 640 x 360 window, the 25.7 dp Robolectric overlap) must not be written to assert the search bar is cleared there: that case is unruled and unproven on a phone. Record what they show; don't pick a behaviour for it.
+- No empty commits to run CI: put the CI run on the last real commit by leaving [skip ci] off it.
+- Merge origin/pre-main in if it has moved. Full CI green. Don't merge the PR (-1938).

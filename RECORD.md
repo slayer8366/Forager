@@ -31609,3 +31609,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Beyond the dispatch:** with the width held, a wider in-flight row wraps until its leg lands (inferred).
 - **Slip:** d17c6959b is an empty commit pushed to run CI after three [skip ci] commits; the planner did not forbid it.
 **Notes:** Written by the planner by hand. Brought to the owner. #449 is not merged (-1938). Next free ID -1943.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1943
+**Timestamp:** 2026-11-02T06:31:20Z
+**Continues:** 2026-09-28-1942, 2026-09-28-1940
+**Title:** Re-center rises only where it sits over the card, then an S22 check at a larger font; known bug 14 gets a warning in the area picker
+**Decision:** the owner: "Fix the S22 case, then check (Recommended)"; "Warn in the area picker (Recommended)", whose option read "Users choosing an area there are told before they download. The release isn't held." Dispatch 2026-10-30-08, Amendment 17 part 2 ruled. The bug 14 warning is not dispatched yet: its wording and path come to the owner first.
+**Notes:** Written by the planner by hand. **Slip:** the planner recommended a fix for bug 14 without saying that bug 14 has never been seen on a phone (its row: "Read from the code ... not seen on a phone"), against -1921. Brought to the owner with a phone proof first. Next free ID -1944.
