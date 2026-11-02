@@ -32,6 +32,7 @@ import { applyStreetDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGH
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
 import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_HILLSHADE_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
+import { applyOsmZooms, CLONES } from "./overrides/forager-osm-zooms.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -48,7 +49,7 @@ const LOCAL = "http://localhost:8765";
  * The sprite each version names (tools/build-sprite-v5.mjs): v3 sprite v5; v4 sprite v6, v5 unchanged plus the orchard,
  * vineyard and nursery patterns (dispatch 2026-10-31-coder-07 Part 3; the owner: "New icon set v6 (Recommended)").
  */
-const SPRITES = { v3: "sprites/v5/light", v4: "sprites/v6/light" };
+const SPRITES = { v3: "sprites/v5/light", v4: "sprites/v6/light", v5: "sprites/v6/light" };
 
 // The sprite's images the app's night rules invert (its bundled night set since dispatch 2026-10-22-06), recorded in the style's
 // metadata because MapLibre has no call that lists a style's images; the app's copy is checked against this one by
@@ -61,6 +62,15 @@ const spriteIconsOf = (sprite) => Object.keys(JSON.parse(fs.readFileSync(here(`.
 // v3's buildings, solid with an outline (dispatch 2026-10-27-02), are applied here and not in applyStreetDesign, which
 // v2 was generated with.
 const v3Layers = () => withReferenceLayers(withBuildingOutline(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
+
+// v5 (dispatch 2026-11-02-coder-13): v4 with OSM's first zooms (overrides/forager-osm-zooms.mjs). Layers it splits keep
+// their id for one group; each clone takes its original's night-table entries, so night draws it as it drew the original.
+const v5Layers = applyOsmZooms(applyFillIn(v3Layers()));
+const withClones = (table) => {
+  const out = { ...table };
+  for (const [clone, original] of Object.entries(CLONES)) if (original in table) out[clone] = table[original];
+  return out;
+};
 
 /** What differs between the versions this script writes: v4 is v3's layers with the fill-in and v4's night tables. */
 const VERSIONS = {
@@ -91,6 +101,26 @@ const VERSIONS = {
     // Since the switch to Street v4 (dispatch 2026-11-01-coder-11 step (c)): bundled in the Worker as /style/street-v4.json.
     toWorker: true,
   },
+  v5: {
+    layers: v5Layers,
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs, overrides/forager-fill-in.mjs and overrides/forager-osm-zooms.mjs",
+    palette: { ...COLOURS, fillIn: FILL_IN_COLOURS },
+    nightLayers: withClones(NIGHT_LAYER_COLOURS_V4),
+    nightFills: NIGHT_FILL_COLOURS_V4,
+    nightLines: withClones(NIGHT_LINE_COLOURS_V4),
+    nightHillshade: NIGHT_HILLSHADE_V4,
+    nightBands: withClones(NIGHT_LAYER_BANDS),
+    // The split layers, clone id to original id, for whoever wires v5 into the app (its night tables are keyed by id).
+    layerClones: { ...CLONES },
+    sources: {
+      dem: {
+        type: "raster-dem", tiles: [`${WORKER}/relief/{z}/{x}/{y}.png`], encoding: "terrarium", tileSize: 256, minzoom: 5, maxzoom: 11,
+        attribution: "Heights: USGS 3DEP; NRCan MRDEM",
+      },
+    },
+    // Wired to nothing (dispatch 2026-11-02-coder-13): v5 or v4 in place is decided at the merge, with the owner.
+    toWorker: false,
+  },
 };
 
 const style = (version, assetsBase) => ({
@@ -105,7 +135,7 @@ const style = (version, assetsBase) => ({
     "forager:night-layers": VERSIONS[version].nightLayers,
     "forager:night-icon-rings": NIGHT_ICON_RINGS,
     // Per-layer contrast bands that replace the night floor for one layer on one ground (dispatch 2026-10-19-41).
-    "forager:night-bands": NIGHT_LAYER_BANDS,
+    "forager:night-bands": VERSIONS[version].nightBands ?? NIGHT_LAYER_BANDS,
     // Night fill colours by day colour, and pattern images painted one colour (dispatch 2026-10-22-03).
     "forager:night-fills": VERSIONS[version].nightFills,
     "forager:night-patterns": NIGHT_PATTERN_COLOURS,
@@ -113,6 +143,8 @@ const style = (version, assetsBase) => ({
     ...(VERSIONS[version].nightLines ? { "forager:night-line-colours": VERSIONS[version].nightLines } : {}),
     // v4 only: the hillshade's night (the recolour never touches a hillshade layer).
     ...(VERSIONS[version].nightHillshade ? { "forager:night-hillshade": VERSIONS[version].nightHillshade } : {}),
+    // v5 only: the layers it split, clone id to original id.
+    ...(VERSIONS[version].layerClones ? { "forager:layer-clones": VERSIONS[version].layerClones } : {}),
   },
   sources: {
     protomaps: {
