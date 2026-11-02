@@ -25,7 +25,7 @@ internal data class StreetNightTables(
  */
 internal data class HillshadeNight(val shadow: String, val highlight: String, val accent: String)
 
-/** Trail Map v1 to v3's night tables, and Street under Topographical's: the ones every version had before v4. */
+/** Trail Map v1 to v3's night tables: the ones every version had before v4. */
 internal val STREET_NIGHT_TABLES = StreetNightTables(STREET_NIGHT_LAYER_COLOURS, STREET_NIGHT_FILL_COLOURS)
 
 /**

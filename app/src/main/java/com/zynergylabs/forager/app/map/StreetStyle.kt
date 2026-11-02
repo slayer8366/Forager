@@ -14,13 +14,20 @@ package com.zynergylabs.forager.app.map
  */
 
 /**
- * The Street style document the app loads and downloads in: Trail Map v3, which is v2 with the official-trails band
- * (step 8a, dispatch 2026-10-26-14; the switch is dispatch 2026-10-26-21, RECORD -1678: "switching is its own PR"),
- * served by the Worker at `/style/street-v3.json` (`server/pmtiles-worker`), built by `map-style/generate-street.mjs`.
+ * The Street style document the app loads and downloads in: Trail Map v4, v3 with the fill-in, sprite v6's orchard
+ * patterns and the hill shading (the switch is dispatch 2026-11-01-coder-11 step (d); the owner: "Yes, queue it"),
+ * served by the Worker at `/style/street-v4.json` (`server/pmtiles-worker`), built by `map-style/generate-street.mjs`.
  * Like [OFFLINE_STYLE_URL] it is a URL that never changes meaning: MapLibre's offline store keys a downloaded region by
- * the style URL, so a later design ships as `street-v4.json` beside it.
+ * the style URL, so a later design ships as `street-v5.json` beside it.
  */
-internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v3.json"
+internal const val STREET_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json"
+
+/**
+ * Trail Map v3, v2 with the official-trails band (step 8a, dispatch 2026-10-26-14; switched to in dispatch 2026-10-26-21):
+ * what the app loaded before v4. Still served, frozen, for the regions downloaded against it, which keep drawing in it
+ * and show the -1294 notice, as v2's did.
+ */
+internal const val STREET_STYLE_V3_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v3.json"
 
 /**
  * Trail Map with its character, before the band (dispatch 2026-10-22-03, RECORD -1561, the owner: "Yes, v2"): what the
@@ -36,7 +43,7 @@ internal const val STREET_STYLE_V2_URL = "https://forager-pmtiles.brandonlee1-89
 internal const val STREET_STYLE_V1_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v1.json"
 
 /** Every Trail Map style the app may load: the current one first, then the older, newest first. All take the Street night. */
-internal val STREET_STYLE_URLS: List<String> = listOf(STREET_STYLE_URL, STREET_STYLE_V2_URL, STREET_STYLE_V1_URL)
+internal val STREET_STYLE_URLS: List<String> = listOf(STREET_STYLE_URL, STREET_STYLE_V3_URL, STREET_STYLE_V2_URL, STREET_STYLE_V1_URL)
 
 /**
  * The always-visible credit over the own Street map: the same Protomaps tiles as the offline style, so the
@@ -63,15 +70,15 @@ internal fun offlineDownloadStyleUrl(): String = STREET_STYLE_URL
  * OpenStreetMap or Topographical user with no signal (`NoSignalTrailMap.kt`, RECORD -1556).
  *
  * The store serves a style only under the URL a region stored it with, so the map can only load a style some region
- * holds. The newest Trail Map style any region holds wins ([STREET_STYLE_URLS], v3, v2, then v1): the tiles every region
+ * holds. The newest Trail Map style any region holds wins ([STREET_STYLE_URLS], v4, v3, v2, then v1): the tiles every region
  * holds are the same tile URLs under each style, and the fonts and icons a Street download stores are shared by URL,
  * so the older regions draw in it too. With no Street region at all, it is [OFFLINE_STYLE_URL], the style every older
  * region holds, so they keep drawing exactly as they did (-1294).
  *
  * v1 is a step of its own (dispatch 2026-10-22-03 Amendment 1): a phone holding only v1 regions has never stored v2,
  * so loading v2 or the offline style there would load a style no region holds and the offline map would not draw. v2 is
- * one for the same reason since the switch to v3 (dispatch 2026-10-26-21). With any v3 region, v2 and v1 regions draw in
- * v3 (the same basemap tile URLs); their areas hold no band tiles.
+ * one for the same reason since the switch to v3 (dispatch 2026-10-26-21), and v3 since the switch to v4. With any v4
+ * region, the older regions draw in v4 (the same basemap tile URLs); their areas hold no relief or band tiles of v4's.
  */
 internal fun offlineRenderStyleUrl(downloadedStyleUrls: Collection<String?>): String =
     STREET_STYLE_URLS.firstOrNull { it in downloadedStyleUrls } ?: OFFLINE_STYLE_URL

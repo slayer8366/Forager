@@ -1,7 +1,9 @@
 package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
+import com.zynergylabs.forager.app.map.STREET_STYLE_URL
 import com.zynergylabs.forager.app.map.STREET_STYLE_URLS
+import com.zynergylabs.forager.app.map.STREET_STYLE_V3_URL
 import java.io.File
 import kotlin.math.pow
 import kotlinx.serialization.json.Json
@@ -21,10 +23,10 @@ import org.junit.Test
  * pink" and "Invert like OSM", tertiary "Dark grey #333333" and rail "Plain inversion"). v4 has its own night tables,
  * chosen by the style's URI ([streetNightTablesFor]): the major roads, motorways, ramps and rail take the plain inversion
  * (no layer exception) except the tertiary's day white, which is `#333333`, and the five new fills (residential,
- * commercial, railway land, farmland, parks) take their ruled night colours. v1 to v3, and Street under Topographical, keep [STREET_NIGHT_TABLES], which
- * [NightExceptionsTest] holds.
+ * commercial, railway land, farmland, parks) take their ruled night colours. v1 to v3 keep [STREET_NIGHT_TABLES], which
+ * [NightExceptionsTest] holds; Street under Topographical takes the tables of the Street it draws ([streetUriOf]).
  *
- * Read from `map-style/forager-street-v4.json`: v4 is not on the Worker yet.
+ * Read from `map-style/forager-street-v4.json`, the file the Worker bundles as `/style/street-v4.json`.
  */
 class NightExceptionsV4Test {
 
@@ -280,8 +282,21 @@ class NightExceptionsV4Test {
     fun `v4 is chosen by its style's name, and every other style keeps v1 to v3's tables`() {
         assertNotEquals(STREET_NIGHT_TABLES, tables)
         assertEquals(tables, streetNightTablesFor("https://raw.githubusercontent.com/slayer8366/Forager/street-v4/map-style/forager-street-v4.json"))
-        for (url in STREET_STYLE_URLS + listOf(null, OFFLINE_STYLE_URL)) {
+        // Since the switch (dispatch 2026-11-01-coder-11 step (d)) the app's own Street URL is v4's.
+        assertEquals(v4Url, STREET_STYLE_URL)
+        for (url in STREET_STYLE_URLS - STREET_STYLE_URL + listOf(null, OFFLINE_STYLE_URL)) {
             assertSame(url.toString(), STREET_NIGHT_TABLES, streetNightTablesFor(url))
         }
+    }
+
+    @Test
+    fun `Street under Topographical takes the night tables of the Street it draws`() {
+        // Sorrel's carried fix: the selector reads StreetWithTopoOver's own Street URL, not only a plain Uri's, so Street v4
+        // under the night topo takes v4's tables (it took v1 to v3's whatever it drew).
+        assertEquals(STREET_STYLE_URL, streetUriOf(MapStyleSource.StreetWithTopoOver(STREET_STYLE_URL, Basemap.OPEN_TOPO_MAP)))
+        assertEquals(STREET_STYLE_URL, streetUriOf(MapStyleSource.Uri(STREET_STYLE_URL)))
+        assertEquals(null, streetUriOf(MapStyleSource.Json("{}")))
+        assertSame(STREET_V4_NIGHT_TABLES, streetNightTablesFor(streetUriOf(ownStreetStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true)!!)))
+        assertSame(STREET_NIGHT_TABLES, streetNightTablesFor(streetUriOf(MapStyleSource.StreetWithTopoOver(STREET_STYLE_V3_URL, Basemap.OPEN_TOPO_MAP))))
     }
 }

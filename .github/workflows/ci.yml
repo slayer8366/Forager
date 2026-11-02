@@ -708,6 +708,40 @@ jobs:
         if: always()
         with: { name: route-cutter-junit, path: route-cutter-junit.xml, if-no-files-found: error }
 
+  # The map style's own checkers (dispatch 2026-11-01-coder-11 step (d); Sorrel's carried fix on #448): until now they ran
+  # only on the machine that changed a style. The job fetches the pinned fonts, icons and cut-outs (fetch-assets.sh checks
+  # each against its sums), builds sprites v5 and v6, regenerates every street style and fails if the result differs from
+  # what is committed (a style edited by hand, or a generator change not regenerated), then runs v2's and v4's checks:
+  # the night contrast and limits, the trail spec, the style spec, and each sprite against a fresh build. No Gradle.
+  map-style:
+    name: Map style checkers pass, and the styles regenerate to what is committed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: map-style
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.22.1" }
+      - name: Install the locked dependencies
+        run: npm ci
+      - name: Fetch and check the pinned fonts, icons and sprite cut-outs
+        run: ./fetch-assets.sh
+      - name: Build sprites v5 and v6
+        run: |
+          node tools/build-sprite-v5.mjs
+          node tools/build-sprite-v5.mjs v6
+      - name: The street styles regenerate to what is committed
+        run: |
+          npm run -s generate:street
+          git diff --exit-code -- . ../server/pmtiles-worker/src/ \
+            || { echo "::error::A committed street style differs from the generator's output: run npm run generate:street"; exit 1; }
+      - name: v2's checks
+        run: npm run check:street
+      - name: v4's checks
+        run: npm run check:street:v4
+
   # The tile Worker's route tests (server/pmtiles-worker/test/worker.test.mjs, and since dispatch 2026-10-23-01 the
   # route-data routes in test/routing.test.mjs), run against dist/index.js, the bundle
   # the owner pastes into the dashboard (dispatch 2026-10-22-01 Amendment 2, RECORD -1556: the owner, "Yes, add it").
