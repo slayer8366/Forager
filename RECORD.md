@@ -31865,3 +31865,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The relief build is stopped so the map can be rebuilt with the zoom fixes; nothing on the Pi restarts until the map build is finished
 **Decision:** the owner, to Aspen about 14:00 PST (relayed by Aspen, verbatim): "I want the zoom levels fixed. So if the map needs to be rebuilt, then start now"; "Stop the relief build"; "Nothing happens until the map build is finished"; "Stop the relief build since it'll need to restart anyway". The owner rejected Aspen's start of the weekly build unit (Aspen's reading: a plain rebuild without the fixes isn't wanted). Aspen stopped the relief build at 14:00:31 with its guarded stop, 106,560 of 348,509 tiles kept, resumable. Juniper's comparison (dispatch 2026-11-02-03) had been stopped by the owner before the planner could ask for its C1 table first; nothing of it is pushed (no osm-zoom-levels branch on origin). Whether to restart it waits on the owner.
 **Notes:** Written by the planner by hand, from Aspen's message. Next free ID -1967.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1967
+**Timestamp:** 2026-11-02T22:15:36Z
+**Continues:** 2026-09-28-1966, 2026-09-28-1963
+**Closes:** dispatch 2026-11-02-03 (superseded on Aspen's side; Juniper stopped, nothing pushed)
+**Title:** The OSM zoom work runs on Aspen's side: Willow compares against openstreetmap-carto v5.9.0, edits the style on a Forager branch and the build profile, then Aspen rebuilds
+**Observed:** Aspen, by send_message. The owner, to Aspen, 14:06-14:14 PST, verbatim: "The style to match is the zoom levels that objects, icons, names, etc begin appearing on the map when zooming in"; then, with the four S26 screenshots of 12:30-12:32: "That needs to be redone as some parts are not coming in properly". Aspen's dispatch coder-13 to Willow (forager-cartography main 2fb0183): a first-zoom table against openstreetmap-carto v5.9.0 with a hold for Aspen; style edits on a Forager branch (no main or pre-main pushes) and profile patch 0008, with tests and renders for the owner; the install and a rebuild Aspen starts. The R2 upload and the style merge each need the owner's go.
+**Notes:** Written by the planner by hand. Not read by the planner: coder-13 itself, in forager-cartography. Next free ID -1968.
