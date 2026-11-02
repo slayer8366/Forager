@@ -144,7 +144,7 @@ internal fun MapStyleReload(
             // Street v4 (the fill-in) has its own night tables, chosen by the style's URI (StreetNightTables.kt); every other
             // Trail Map version keeps v1 to v3's. Street under Topographical takes those of the Street it draws (streetUriOf).
             if (requested.night && source !is MapStyleSource.Json) {
-                val tables = streetNightTablesFor(streetUriOf(source))
+                val tables = streetNightTablesForSource(source)
                 applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source), streetTables = tables)
                 // Street v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
                 tables.hillshade?.let { applyStreetHillshadeNight(style, it) }
