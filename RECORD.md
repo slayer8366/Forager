@@ -31827,3 +31827,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 
 
 
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1963
+**Timestamp:** 2026-11-02T22:32:13Z
+**Continues:** 2026-09-28-1962, 2026-09-28-1958
+**Title:** The credit line stays at the bottom and never moves for the route card; where the card would cover it, the credit strip is made shorter
+**Decision:** the owner, from a phone screenshot at 2:29 PM: "Found a bug: the copyright pill moves with the card. Have the pill stay at the bottom where it's supposed to be, and shorten the strip's height to accommodate the card size"; "The credit strip (Recommended)". Dispatch 2026-10-30-08 item D22, replacing D18 and, by the planner's reading, D13. Stops if the licence credit can't stay whole and readable.
+**Notes:** Written by the planner by hand. Not checked: which phone and build the screenshot came from. Next free ID -1964.
