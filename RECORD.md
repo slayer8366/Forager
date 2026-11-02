@@ -31835,3 +31835,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** D20's fallback squeezes Re-center against the screen top at the smallest window with the largest text; a second stop on one case seen only in tests
 **Observed:** Hazel (Opus), route-plot-ui 51708eeda [skip ci], work in progress, known red: reCenterFitsBesideTheL decides by measurement. At 640 x 360, font 2.0 (Robolectric only), the old rise leaves Re-center 33 dp tall at 1 stop and 6 dp at 3 stops; a real touch at its corner misses it. Every other D17 class passes. Last CI still 41508457912 (1 failure). No D20 revert check yet; phone not touched; D19 not done. Hazel is at its hand-off point.
 **Notes:** Written by the planner by hand. This is the second stop on one window-and-font case never seen on a phone; under CLAUDE.md's two-attempts rule the next step is data, not a third design. Brought to the owner. Next free ID -1962.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1962
+**Timestamp:** 2026-11-02T19:47:02Z
+**Continues:** 2026-09-28-1961
+**Title:** The smallest-screen case is seen on the S22, set to a 640 x 360 window, before any further fix
+**Decision:** the owner: "See it on the S22 first (Recommended)". Dispatch item D21, with D19, on 51708eeda's code. The one known test failure is the case under look; any other stops the install.
+**Notes:** Written by the planner by hand. Next free ID -1963.
