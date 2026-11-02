@@ -31837,3 +31837,15 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The credit line stays at the bottom and never moves for the route card; where the card would cover it, the credit strip is made shorter
 **Decision:** the owner, from a phone screenshot at 2:29 PM: "Found a bug: the copyright pill moves with the card. Have the pill stay at the bottom where it's supposed to be, and shorten the strip's height to accommodate the card size"; "The credit strip (Recommended)". Dispatch 2026-10-30-08 item D22, replacing D18, portrait only: the owner, of a landscape screenshot at 2:33 PM, "Looks good on landscape mode", so D13 stands (the planner's first reading, that D22 covered landscape, withdrawn). Stops if the licence credit can't stay whole and readable. Go: the owner, "Yes, start Hazel on D22".
 **Notes:** Written by the planner by hand. Not checked: which phone and build the screenshot came from. Next free ID -1964.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1964
+**Timestamp:** 2026-11-02T22:50:28Z
+**Continues:** 2026-09-28-1963
+**Title:** Waypoint names show on the map, crowded ones hidden until zoomed in, the route's stops always named, with a setting to turn them off; the owner proposes moving the map credits off the map into Map Layers
+**Observed:** a researcher (Fable), read only, web, 2026-11-02, not written to the repo: CalTopo documents collision-hidden labels with zoom reveal and an All / Non-Overlapping / None setting (training.caltopo.com/all_users/tools/config); OsmAnd hides Favorites' names by default (docs.osmand.net point-layers-on-map); Gaia GPS has a waypoint-label toggle and clusters crowded waypoints, no label collision documented; Organic Maps ships names as opt-in; AllTrails has a per-waypoint "Show title on map" in its route builder; Google Maps' saved-place name text not confirmed. The planner's from-memory claims to the owner (OsmAnd and Google show names; Gaia hides colliding labels) were wrong and corrected to the owner.
+- D22 stopped at its own stop (Hazel, Opus, nothing built, route-plot-ui still 51708eeda): in portrait at font 2.0 the whole credit needs about 100 dp and the room below the card is about 32 dp (Robolectric, S22 window); at 1.0 it fits on two tighter lines.
+**Decision:** the owner: "Option 1 plus an off switch" (names). Of the credit at large text: "This is a temp HUD people will use. Can we take the pill off the map and move the credits to the map layers section?"
+**Notes:** Written by the planner by hand. The credit move is not dispatched: the licences' attribution terms are to be read at source first. Next free ID -1965.
