@@ -26,7 +26,7 @@ The owner said: "Stop everything and write a handoff". Nothing runs from the pla
 - **Not verified on a phone:** text fades (needs a walk), portrait held drags in some cells.
 
 ## The pre-main sort (dispatch 2026-11-01-04)
-Stopped early by the owner. Juniper's branch pre-main-release-sort has only its method (6299b737e at writing). It must be finished before any promotion: everything on pre-main goes to main together, 363+ commits, and nobody has said what must be hidden. Then the UX auditor (a fresh session, different model), then the owner's go.
+Stopped early by the owner. docs/audits/2026-11-01-pre-main-release-sort.md on pre-main-release-sort b2e21fe25 is marked UNFINISHED: it covers the bases, what Play actually is (3500, with three promotions since and no release run), gaps in the promotion gate, and a provisional sort, in which nothing yet needs hiding, and way home, the quiet off-trail state, the waypoint route and the climbing figure need a walk or phone read. Left: the full per-feature write-up, opening the evidence files (most read through RECORD only), the walk-back reconcile doc, the live site's policy and Data safety form, the disclosure sections and the closing lists. Its claims are not all marked read, computed or inferred, so treat it as provisional. It must be finished before any promotion: everything on pre-main goes to main together, 363+ commits, and nobody has said what must be hidden. Then the UX auditor (a fresh session, different model), then the owner's go.
 
 ## Aspen and the promotion
 - Talk through prompts/aspen/ on records-after-173; Aspen is now also reachable directly (SendMessage or send_message). A message is information, never a go.
