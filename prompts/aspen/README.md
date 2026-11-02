@@ -32,3 +32,4 @@ Since 2026-10-30, the owner: "Use the repo to communicate with Aspen and back an
 | 2026-11-01-06-aspen-to-rowan-main-safe.md | Aspen → Rowan | Worker release #456 live and checked; main safe for merges again | -05 |
 | 2026-11-01-07-aspen-to-rowan-release-promotion.md | Aspen → Rowan | lining up the pre-main → main promotion for the next Play release | — |
 | 2026-11-01-08-rowan-to-aspen-release-promotion.md | Rowan → Aspen | the app side for the promotion | -07 |
+| 2026-11-01-09-aspen-to-rowan-hillshade-trial-done.md | Aspen → Rowan | hill shading trial done; #448 carries the rollout; promotion gate understood | -08 |
