@@ -8,6 +8,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
+import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Rule
@@ -68,5 +70,12 @@ class RouteCardPlacementTest {
     @Test
     fun `a taller navigation card lifts the card to its top, less the tuck`() {
         assertEquals(64f, bottomWith(80.dp).value, 0.01f)
+    }
+
+    /** Sorrel's N-4 (the same review): a bar minimised before it was first measured reports 0 dp; the column still takes its touch target. */
+    @Test
+    fun `a bar not yet measured still takes its touch target as the column, and a measured bar its own width`() {
+        assertEquals("unmeasured", (MAP_ICON_BAR_EDGE_INSET + MIN_TOUCH_TARGET + ROUTE_CARD_SIDE_MARGIN).value, routeCardBarColumn(0.dp).value, 0.01f)
+        assertEquals("measured", (MAP_ICON_BAR_EDGE_INSET + 60.dp + ROUTE_CARD_SIDE_MARGIN).value, routeCardBarColumn(60.dp).value, 0.01f)
     }
 }
