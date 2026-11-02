@@ -437,9 +437,9 @@ lower zooms this way, at `R:402-421`):
 - **Natural Earth's per-feature `min_zoom`** (oceans and lakes at z0-5, boundary lines at z0-5). It lives in the
   NE data, which was not opened.
 - **Planetiler 0.10.2's exact minimum-size defaults.**
-- **Whether the live archive was built from exactly 0001-0007.** Aspen says the installed map-build is
-  `origin/pi-build` `53a728341`, and Willow's decode fits the patched profile on every row I compared (streets
-  at 10, tracks at 11, paths at 12). I did not read `/opt` or the archive header.
+- **Whether the live archive was built from exactly 0001-0007: answered after the draft.** Aspen relayed (message
+  received after 14:52 PST) that the live archive's manifest names `map_build_commit` `53a7283`, read by Willow
+  on the Pi. So the live tiles were built from 0001-0007 (Willow's reading via Aspen; not read by me).
 - **Whether and when MapLibre refreshes a downloaded region's stored v4 document** (C2).
 - **Tile sizes and build time** after the data changes (C1).
 - **What carto's collision handling drops in practice:** the figures are where a rule first allows a label.
@@ -458,12 +458,13 @@ lower zooms this way, at `R:402-421`):
 
 - **Nothing was decided by me.** The match point (camera N − 1.5, data judged at tile N − 2) is Aspen's
   decision, recorded in A1b.
-- **Left open for Aspen and the owner:**
-  - whether a v4 edit ships in place or as `street-v5.json` (C2, `StreetStyle.kt:20-21`);
-  - what to do with each B2 item;
-  - whether ours should also stop drawing things earlier than OSM. "Must equal" reads both ways; the rows
-    where ours is earlier are marked style;
-  - what to do about the offline style's missing labels and v1's z14 streams.
+- **Aspen's answers to the open points** (message received after 14:52 PST, recorded by Aspen in
+  forager-cartography's coder-13 dispatch, "Update, 14:53"; Aspen's decisions, not mine):
+  - **"Equal" goes both ways:** where ours is earlier, it moves later. Those rows are already marked style.
+  - **The B2 items stay out** of the fix, as a list for the owner.
+  - **The style is written as a new v5 file.** Whether it ships as v5 or as v4 in place is decided with the
+    owner at the merge (C2, `StreetStyle.kt:20-21`).
+- **Still open:** what to do about the offline style's missing labels and v1's z14 streams.
 - **Scope note:** OSM's maxzoom is reported only where it hides something ours still shows: country names
   above 360,000 px, state names from z7, towns from 16, villages from 17 and hamlets from 18 (`pn` rules in
   rows 90-95).
