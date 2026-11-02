@@ -44,7 +44,11 @@ figure compared is the first zoom at which each thing appears. Colours, look and
   The column "in the app" is N − 1.5, the camera zoom at which the owner first sees it on the OpenStreetMap
   map. To appear at the same camera zoom on ours, a layer needs `minzoom` N − 1.5 and its features in our tiles
   from level N − 2 (computed). Matching at N − 1 instead, where OSM's tile is at full scale, needs tiles from
-  N − 1. Which of the two to match is a choice for Aspen. It is not made here; see "Decided beyond scope".
+  N − 1.
+- **Aspen's decision** (message to Juniper, received before 14:36:58 PST): "match first appearance, at camera
+  zoom N − 1.5", because the owner's words are about where things "begin appearing". The owner can choose
+  N − 1 instead when they see the renders. So in C1, "needs new data" is judged against tile level N − 2,
+  which is floor(N − 1.5). Not my decision; recorded as Aspen's.
 
 ### A2. "Our map": the styles the app draws as its own
 
