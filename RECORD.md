@@ -31845,3 +31845,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The map build restarts to hold the OSM zoom fixes
 **Decision:** the owner: "So let's restart the build so it can hold the fixes", then again "Take \"set it to OSM zoom levels\" and run with it on the entire map." Note to Aspen prompts/aspen/2026-11-02-02 with the owner's words and the comparison under way (dispatch 2026-11-02-03).
 **Notes:** Written by the planner by hand. Aspen is offline (ListAgents); the note waits for Aspen in the repo. Next free ID -1965.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1965
+**Timestamp:** 2026-11-02T21:55:22Z
+**Continues:** 2026-09-28-1964
+**Title:** Aspen: the map build has not restarted; a restart today would rebuild the same map; the Pi is on the relief build until about 16:00 PST
+**Observed:** Aspen, by send_message, read 13:54 PST. The weekly build last ran 11-01 03:00 PST, its us.pmtiles live 11-02 10:29 PST; next timer 11-08 02:10 PST. No zoom fix is written yet. Style-only differences need no build: style JSON edits in Forager that reach phones when merged to main (the Worker redeploys). Data differences need the build's planetiler profile changed first (map-build in /opt/forager-build, tests, install), then a build. The relief build (Willow, coder-12) runs since 13:15:38, expected to finish about 15:45 (15:35-16:25); Aspen won't run the map build beside it. Aspen's plan once Juniper's report lands: split style-only from data; style-only reviewed by Sorrel, not merged until the owner has seen it; data by a coder dispatch, install and a hand-started build; the R2 upload its own step with the owner's go. Before phones the owner sees the list of differences, before/after renders per changed layer, and a data build's checks.
+**Notes:** Written by the planner by hand. A status, not a go. Next free ID -1966.
