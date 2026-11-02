@@ -31566,3 +31566,21 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Handoff prompts/preserved/2026-11-01-planner-handoff.md at 3e60df3bc. ListAgents shows all 55 peer sessions offline, the previous Rowan included. Worktrees clean: route-plot-ui at 42aa60972 (does not compile, [skip ci]), pre-main-release-sort at b2e21fe25 (UNFINISHED). Not in the handoff or RECORD: #461 (the Worker's Street v4 style) merged to main at 0a819b3d6; #462 (the app's switch to Street v4) and #463 (Worker guards to main) are open with Sorrel review branches, and sorrel-app-street-v4 9577c3255 was pushed at 2026-11-02T05:43:40Z, 12 minutes after the handoff. Not opened by the planner.
 **Decision:** the owner: "Finish what the last planner was doing". Dispatch 2026-10-30-08 Amendment 17 resumes with Hazel (Opus) from 42aa60972; dispatch 2026-11-01-04 resumes with Juniper (Opus) from b2e21fe25. -1938 stands: #449 is not merged when green. No promotion until the sort and the auditor's report exist.
 **Notes:** Written by the planner by hand. Next free ID -1940.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1940
+**Timestamp:** 2026-11-02T06:05:26Z
+**Continues:** 2026-09-28-1939, 2026-09-28-1936
+**Closes:** dispatch 2026-11-01-04
+**Title:** The pre-main sort is finished: nothing must be hidden; Street v4 and the trail way home need work first; altitude and row 14 weigh on a promotion
+**Observed:** Juniper (Opus), docs/audits/2026-11-01-pre-main-release-sort.md on pre-main-release-sort b39f3e496, read only, against pre-main 2bc8913f4 and main 8d0eefdbc (both moved; the planner read both tips).
+- **Correction to -1939:** #462 and #463 were not open. Both merged at about 05:45Z, before -1939 was written; the planner said open without checking. #462 put Street v4 on pre-main; #463 put the Worker guards on main. Sorrel found nothing blocking on either; S-1 on #462 (the night pass's call site has no test) can follow.
+- **Could ship today:** official trails, buildings, the pattern, fallback and crash fixes, the recording line, finds' photos off the map, crowded icons, Map Layers in Tools, live counts, the trash button, Directions, Heights credits, the compass and WordSwap battery fixes.
+- **After small work:** Street v4 (the relief tiles 404 on the live Worker today, one tile checked; whether a download completes on that 404 is in conflict between a code comment and #462's inference, unseen on a phone; then a look at a plain pre-main build); the way home, off-trail pieces and waypoint route along trails (one walk that leaves the trail; the 40-50 m band has no recorded walk).
+- **Whatever ships:** a launch check on pre-main itself (the last plain one was 3c5e63468); the upgrade check over Play 3500, schema 22 to 23; the live privacy policy brought up to date (dated 21 October, missing route requests; read through a fetch summary); the Data safety form confirmed; Elder's audit.
+- **Must hide: nothing.** Route plotting has no user path (PlotRouteUseCase unreached); wrong-turn, slope, aspect and own topo aren't in the code.
+- **Holds, per the report:** altitude about 24 m low (-1791), in the Play build and not on the known-bugs list; whether it is the serious class is the owner's. Row 14, the report's reading: a download south of 15.92°N says it succeeded with empty tiles.
+- **Unknown:** the v4 download on a 404, the Data safety form, main 8d0eefdbc's CI, the release build's battery cost.
+**Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1941.
