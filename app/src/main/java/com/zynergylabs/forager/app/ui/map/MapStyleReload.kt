@@ -142,9 +142,9 @@ internal fun MapStyleReload(
             // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
             // The own Street takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
             // Street v4 (the fill-in) has its own night tables, chosen by the style's URI (StreetNightTables.kt); every other
-            // Trail Map version, and Street under Topographical, keeps v1 to v3's.
+            // Trail Map version keeps v1 to v3's. Street under Topographical takes those of the Street it draws (streetUriOf).
             if (requested.night && source !is MapStyleSource.Json) {
-                val tables = streetNightTablesFor((source as? MapStyleSource.Uri)?.uri)
+                val tables = streetNightTablesFor(streetUriOf(source))
                 applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source), streetTables = tables)
                 // Street v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
                 tables.hillshade?.let { applyStreetHillshadeNight(style, it) }
