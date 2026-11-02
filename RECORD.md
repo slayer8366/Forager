@@ -31800,3 +31800,18 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Re-center moves into the open map at the bottom while the card sits on the navigation card; the portrait credit rises above the card; the tab labels' mid-word break is listed for later
 **Decision:** the owner: "Into the open map, at the bottom (Recommended)"; "List it, fix later (Recommended)", whose option read "Added to the known bugs list now; fixed as its own small task after route plotting, checked first on the released build." Dispatch items D17, D18 (D16 already ruled), D19. Known bugs row 23 on pre-main.
 **Notes:** Written by the planner by hand. Then dispatch 2026-11-02-02 (bug 14's warning). Next free ID -1959.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1959
+**Timestamp:** 2026-11-02T19:35:46Z
+**Continues:** 2026-09-28-1958
+**Title:** D18 is built; D17 is built but stops on its own condition at the smallest landscape window with the largest text; D19 not done
+**Observed:** Hazel (Opus), route-plot-ui 1ea496ab5 (tests 8c607717d, pre-main 04746d8f0 merged at 373f15e50). CI 41508457912: 6239 tests, 1 failure, the predicted RouteCardRecenterShortLandscapeFont20Test, not silenced (Hazel's reading). Fail first 10 of 12; five revert checks bite.
+- **D18:** in portrait the credit rises 8 dp above the card's top where their resting rectangles overlap; the "i" keeps its inset.
+- **D17:** while the card rests on the navigation card, Re-center sits beside the L at the bottom and never rises for the card. **The stop:** at 640 x 360 and font 2.0 (Robolectric only), the open map beside the card is 101 dp and Re-center is 160.7 dp, so it overlaps the card. The S22's window fits at fonts 1.0 and 2.0. Not seen on any phone.
+- **Calls beyond the dispatch, accepted by the planner as following the ruling's words:** Re-center moves beside the L on every window while the card rests on the navigation card; it keeps 8 dp above a credit taller than usual (font 2.0); the move is instant, as D10's rise was; two helpers without callers removed.
+- **Seen in Robolectric, not changed:** at font 2.0 with no card, Re-center at the bottom centre and the L's lower end already sit on the credit.
+- **Not verified:** anything on a device; in portrait while navigating, whether the risen credit shares a band with Re-center or the legend chip.
+**Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1960.
