@@ -22995,27 +22995,6 @@ If any step misses, the release ships Street on OpenStreetMap, as -1282 has it.
 ---
 
 **Kind:** decision
-**ID:** 2026-09-28-1342
-**Timestamp:** 2026-10-19T02:13:29Z
-**Continues:** 2026-09-28-1314, 2026-09-28-1316, 2026-09-28-1339
-**Title:** Work on Forager's own Street map starts now, for the next release, keeping #258's design (decisions 3 to 8); no OSM-look matching (owner)
-**The owner, verbatim:** "I also think we should immediately begin work on drawing our own maps, starting with street. Make it look close to OSM style we have now both night and day." Then, through the question tool:
-- "Keep #258's design", to: OSM look plus trails and POIs / OSM look only / keep #258's design;
-- "Start now, next release (Recommended)", to: start now for the next release / start now for this release.
-**What it sets:**
-- The own Street map is #258's street-v1, from decisions 3 to 8. Its day and night review starts now, aimed at the next release. Tonight's release goes ahead as planned.
-- The owner's first wording ("close to OSM style") is set aside by their own choice of "Keep #258's design".
-- -1339 (Cloudflare Street in this release if it passes) is now moot for tonight, because the review targets the next release.
-- **Next steps, to be put to the owner:**
-  1. The owner's hand deploy of the Worker and the R2 fonts and icons (Hazel's handover). Auto-deploy stays paused through tonight's promotion, or main's redeploy would put the old Worker back.
-  2. The planner builds an S22 review copy with the switch on, reading today's us.pmtiles (the lower 48).
-  3. Day and night review rounds.
-  4. The Pi's US and Canada file replaces us.pmtiles when it is ready.
-**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -1343.
-
----
-
-**Kind:** decision
 **ID:** 2026-09-28-1343
 **Timestamp:** 2026-10-19T02:20:07Z
 **Continues:** 2026-09-28-1342, 2026-09-28-1288
@@ -31846,13 +31825,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Decision:** the owner: "See it on the S22 first (Recommended)". Dispatch item D21, with D19, on 51708eeda's code. The one known test failure is the case under look; any other stops the install.
 **Notes:** Written by the planner by hand. Next free ID -1963.
 
+
 ---
 
 **Kind:** decision
 **ID:** 2026-09-28-1963
-**Timestamp:** 2026-11-02T20:44:32Z
+**Timestamp:** 2026-11-02T20:49:13Z
 **Continues:** 2026-09-28-1962
-**Title:** Street v4's map patterns come in at the zooms OSM's standard style uses
-**Observed:** the owner, S26 screenshots, 12:30-12:32 PST: "The grass zones appear, but the glyphs get cut off at different zooms." street-style-v4.json on main: forest glyphs from z12, orchard dots from z13, wetland tufts from z10 (planner's read); the screenshots' zooms read from their content, not the phone.
-**Decision:** the owner: "Have them match OSM like I originally wanted." The planner's reading: the patterns' zooms only. Note to Aspen prompts/aspen/2026-11-02-01. Supersedes -27197's "The glyph minzoom stays 12" for forest.
-**Notes:** Written by the planner by hand. Not checked: which build is on the S26. Next free ID -1964.
+**Title:** Our own map is set to OSM's zoom levels, every layer; step 1 is a read-only comparison
+**Decision:** the owner: "Take \"set it to OSM zoom levels\" and run with it on the entire map." Earlier the same day: "If the map needs to be redownloadedb let's start now". Dispatch 2026-11-02-03 (Juniper, read only): what "OSM" and "our map" are in the code, every layer's zooms against OSM's at source, and what needs new map data. The change itself goes to Aspen with the comparison.
+**Notes:** Written by the planner by hand. The ID -1963 was freed by the deletion at edac34280. Next free ID -1964.
