@@ -97,7 +97,7 @@ internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: 
     return with(LocalDensity.current) {
         val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
         val tuck = if (navigationCard != null) ROUTE_CARD_NAVIGATION_TUCK else 0.dp
-        val bottom = if (navigationCard != null) ((boxBottomPx - navigationCard.top).toDp() - tuck).coerceAtLeast(0.dp) else 0.dp
+        val bottom = if (navigationCard != null) ((boxBottomPx - navigationCard.top).toDp() - tuck) else 0.dp
         RouteCardLandscapeRoom(stripWidthPx.toDp(), bottom, tuck, (cluster.mapContentBoxHeightPx - topLimitPx).toDp() - Spacing.sm - bottom)
     }
 }
