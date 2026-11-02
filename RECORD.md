@@ -31734,3 +31734,18 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The card's one width fits a long route at the user's text size; with the L on the rail side the landscape card takes the other corner; Re-center is judged on the S22 after C18
 **Decision:** the owner: "Fits a long route, per text size (Recommended)"; "The other bottom corner (Recommended)"; "Build, then look on the S22 (Recommended)". Dispatch 2026-10-30-08 items C19, C20 and D12. A new Hazel continues from route-plot-ui 8a6126f9d.
 **Notes:** Written by the planner by hand. Next free ID -1954.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1954
+**Timestamp:** 2026-11-02T13:22:38Z
+**Continues:** 2026-09-28-1953
+**Title:** C16 to C20 are green; on the S22 the card beside the navigation card is cramped: Save breaks as "Sav/e" and the credit line covers its buttons; Re-center goes under the search bar at 6 stops expanded
+**Observed:** Hazel (Opus). route-plot-ui a04b55048, CI run 41444878632, 6216 tests, 0 failed, six revert checks each with its own message (Hazel's reading). S22 build 4410 from tools/s22-combined 61ae72887, CI 41447864352, 6340 tests, 0 failed; audit section D12 at 2312b363e; evidence /home/zynergy-labs/s22-2026-11-02/d12/. The planner looked at r90-3p and r90-6e.
+- Navigating in landscape at font 1.0 the room between the L's column and the navigation card is about 205 dp against C19's 247.67 dp reference: "N Waypoints routed" wraps and Save breaks as "Sav" / "e" (seen in both shots). Hazel had inferred about 278 dp beforehand; wrong.
+- The credit strip is drawn over the card's button row (Undo by 9 px, Save by 46 px): D9's "the 'i' and other chrome keep clear of the card" is not met there.
+- Re-center: clear at 1, 3 and 6 stops collapsed and at 3 expanded; at 6 expanded it rises under the search bar and is not visible. Walker's dot clear in every shot (for this pan only).
+- Data equal to before; phone restored. Not seen: fonts above 1.0, C20's L-on-the-rail case, not navigating.
+- Hazel's earlier note: the same room is also short from font 1.3 on the S22 (inferred) and at 640 x 360 (176 dp) at 1.0.
+**Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1955.
