@@ -301,6 +301,7 @@ internal fun CompactMapTab(
     val currentBubbleSources by rememberUpdatedState(bubbleSources)
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> if (!routePlottingTakesTap(tap, currentBubbleSources)) tappedThingOf(tap)?.let { tapped = it } } }
     var routeCardHeightDp by remember { mutableIntStateOf(0) }
+    var routeCardSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
     val onCloseBubble: () -> Unit = remember { { tapped = null } }
     // Dispatch 2026-10-27-07 (RECORD -1736): a crowded stack's list and the cameras Back returns to (CrowdedStackHost), held
@@ -643,6 +644,7 @@ internal fun CompactMapTab(
                     bottomInset = renderMode.bottomInset,
                     expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
                     onCardHeightDp = { routeCardHeightDp = it },
+                    onCardSpanPx = { routeCardSpanPx = it },
                 )
 
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
@@ -680,6 +682,8 @@ internal fun CompactMapTab(
                     onBottomNavHeightMeasured = onBottomNavHeightMeasured,
                     // Dispatch 2026-10-30-08, Amendment 3: "Return to Route" rises above the route card while it shows.
                     routeCardHeight = routeCardHeightDp.dp,
+                    // Amendment 17, part 2 ruled (RECORD -1943): Re-center rises only for a card it shares a column with.
+                    routeCardSpanPx = routeCardSpanPx,
                 )
 
                 // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out

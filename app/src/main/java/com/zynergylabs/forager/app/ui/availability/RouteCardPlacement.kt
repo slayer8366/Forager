@@ -147,6 +147,20 @@ internal fun MapRenderMode.withCreditAboveRouteCard(cardHeightDp: Int, cardOverC
 /** Whether the landscape card sits over the credit. */
 internal fun routeCardOverCredit(cluster: MapIconClusterState): Boolean = cluster.landscape && !cluster.isOnLeftSide
 
+/**
+ * Whether "Re-center" rises for the card (Amendment 17, part 2 ruled, RECORD -1943, the owner: "Fix the S22 case, then check
+ * (Recommended)"): only where its horizontal span, [pill], overlaps the card's, [card], both in root px. A card in the other column
+ * leaves it where it is, so it never rises onto the search bar for a card it was never over (the S22, landscape, navigating,
+ * expanded). Where they share a column it rises as before, which in a short landscape window can still reach the search bar: that
+ * case is unruled (RECORD -1943). A pill not yet measured rises, so it is never drawn over the card; no card, no rise. The legend
+ * chip's own lift is unchanged.
+ */
+internal fun reCenterRisesForRouteCard(pill: ClosedFloatingPointRange<Float>?, card: ClosedFloatingPointRange<Float>?): Boolean {
+    if (card == null) return false
+    if (pill == null) return true
+    return pill.start < card.endInclusive && card.start < pill.endInclusive
+}
+
 /** How far inboard the legend chip sits while the card shows: past the bar in portrait with the bar on its side, as in the L. */
 internal fun routeCardLegendEndPadding(barOnRight: Boolean, barWidth: Dp): Dp = if (barOnRight) MAP_ICON_BAR_EDGE_INSET + barWidth + Spacing.sm else Spacing.sm
 

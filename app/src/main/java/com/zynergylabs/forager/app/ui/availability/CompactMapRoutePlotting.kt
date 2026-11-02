@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -160,6 +161,8 @@ internal fun BoxScope.CompactMapRouteCard(
     bottomInset: Dp,
     expandedMaxHeight: Dp,
     onCardHeightDp: (Int) -> Unit,
+    /** Amendment 17, part 2 ruled: the card's left and right in root px while it shows, `null` as soon as it starts to leave. */
+    onCardSpanPx: (ClosedFloatingPointRange<Float>?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
@@ -170,7 +173,12 @@ internal fun BoxScope.CompactMapRouteCard(
     val shownContent = rememberLastShown(content)
     val shownActions = rememberLastShown(actions)
     val leaving = content == null
-    LaunchedEffect(leaving) { if (leaving) onCardHeightDp(0) }
+    LaunchedEffect(leaving) {
+        if (leaving) {
+            onCardHeightDp(0)
+            onCardSpanPx(null)
+        }
+    }
     val showing = state?.mode as? RoutePlotMode.Showing
     val barOnLeft = cluster.isOnLeftSide
     val portrait = !cluster.landscape
@@ -207,7 +215,13 @@ internal fun BoxScope.CompactMapRouteCard(
                         modifier = sized
                             // What rises above the card and the map's fit clear it wherever it sits, so a card resting on the navigation
                             // card counts from the screen's bottom edge.
-                            .onGloballyPositioned { if (!leaving) onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) }) },
+                            .onGloballyPositioned {
+                                if (!leaving) {
+                                    onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) })
+                                    val left = it.positionInRoot().x
+                                    onCardSpanPx(left..left + it.size.width)
+                                }
+                            },
                     )
                 }
                 if (portrait) {
