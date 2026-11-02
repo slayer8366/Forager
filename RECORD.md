@@ -31859,3 +31859,15 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The map's credit strip comes off the map into Map Layers, as Gaia does, with the "i" kept; waypoint names are built after; the licences are checked alongside
 **Decision:** the owner: "Gaia does this automatically" (with a Gaia GPS layer picker showing each base map's credit under its name); "Yes, start both". Dispatch 2026-10-30-08 item D23 (replacing D22), dispatch 2026-11-02-04 (waypoint names, after D23), dispatch 2026-11-02-05 (a researcher on the licences' attribution terms, beside D23). The planner's reading, stated to the owner: off the map always, not only while the card shows; the "i" stays.
 **Notes:** Written by the planner by hand. Next free ID -1966.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1966
+**Timestamp:** 2026-11-02T23:01:17Z
+**Continues:** 2026-09-28-1965
+**Title:** Map credits go in Tools > Map Layers under each map's chip word; the "i" goes bottom right everywhere; every map loses the strip; coders go back to CI only
+**Observed:** Hazel's verify-first (Opus, nothing built): Tools > Map Layers lists no maps (MapLayersToolsSection.kt:100-130), the planner's premise to the owner was wrong; the trails source carries no attribution, so its CC BY 4.0 credit would show on no map surface once the caption goes; Settings > Sources and credits (DataSourceCredits.kt:38-96) already lists every source.
+- **Slip, the planner's:** every Hazel prompt today told coders to run Gradle on the laptop under a 5 GB cap, against the coder profile ("CI only for the app. No Gradle on the laptop") and this dispatch's Rules ("CI only, no Gradle on the laptop"). Hazel caught it.
+**Decision:** the owner: "Tools > Map Layers (Recommended)"; "Bottom right, as in portrait (Recommended)" (replacing -954 for landscape); "Every map (Recommended)". Dispatch 2026-10-30-08 item D24. The planner's calls: dead code and tests removed and named; CI only from now on.
+**Notes:** Written by the planner by hand. Next free ID -1967.
