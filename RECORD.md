@@ -31773,3 +31773,19 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Hazel (Opus), route-plot-ui cd727ecce [skip ci], tests and stubs only, nothing built, S22 untouched. Robolectric: navigation card 343 dp at font 1.0, 397.7 at 1.3, 329 at 2.0 (823 x 384); C19's reference 246.0, 309.7, 409.67. The credit and the card meet when not navigating with the L on the left at 640 x 360 (1.0) and 823 x 384 (1.3, 2.0), and in portrait (4 dp at 1.0, 68 at 2.0); after C21, navigating, they never meet (inferred). A full test recompile with a 1200 MB Kotlin daemon hung 37 minutes in GC, then fell back to in-process and took 20 minutes.
 **Decision:** the owner: "Navigation card's width, lines wrap (Recommended)"; "Check it on the S22 first (Recommended)". Dispatch items C23 and D16. **The planner's calls:** "meet" means the rectangles overlap; the Kotlin daemon heap rises to 2 GB (-Pkotlin.daemon.jvmargs=-Xmx2048m), Gradle's stays 1536m, the 5 GB scope cap unchanged, so a runaway still dies alone.
 **Notes:** Written by the planner by hand. Next free ID -1957.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1957
+**Timestamp:** 2026-11-02T18:56:45Z
+**Continues:** 2026-09-28-1956
+**Title:** On the S22 the card rests on the navigation card whole and the credit clears it; Re-center goes under the search bar at 3 and 6 stops expanded; in portrait the credit sits on the card, covered at the largest text
+**Observed:** Hazel (Opus). route-plot-ui 68ea07b82, CI 41495921575, 6233 tests, 0 failed, seven revert checks biting (Hazel's reading). S22 build 4415 from tools/s22-combined 687d517da, CI 41498709875 with one failure, RouteCardRecenterLandscapeTest, attributed by its own output to the tools branch's wider navigation strip (it passes on route-plot-ui). Audit D15 at 50d501561; evidence /home/zynergy-labs/s22-2026-11-02/d15/. The planner looked at r90-3e and p20-3p.
+- **Landscape, navigating, font 1.0:** the card rests on the navigation card edge to edge (about 350 dp), Save above it, no line wrapped. The credit is clear of the route card (D13). Re-center: clear collapsed at 1, 3, 6 and expanded at 1; **under the search bar at 3 and 6 expanded**. Walker's dot clear in every shot (these pans only).
+- **C20:** with the L dragged right the card takes the other corner and the credit rises clear; the card sits about 100 px in from the edge, cause not checked.
+- **Portrait, D16:** font 1.0, the card's bottom lies over the credit's top by about 4 dp, the text clear; font 2.0, the credit's text runs under the card's buttons, about 71 dp, covered.
+- **Outside the dispatch, seen at font 2.0:** the bottom navigation's labels break inside words ("Seas" / "onal", "Journ" / "al").
+- Also seen before plotting: Re-center overlaps the navigation card's left edge (n3); not caused by this work.
+- Data equal to before; phone restored.
+**Notes:** Written by the planner by hand. D16 is already ruled: the credit really sits on the card, so it rises above it in portrait. Next free ID -1958.
