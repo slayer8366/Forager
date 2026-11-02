@@ -31887,3 +31887,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Allowed off the map:** USDA Forest Service trails (CC BY 4.0 §3(a)(2), "any reasonable manner", provided the licence link and the modification note stay reachable, as Settings > Sources and credits has them), BLM (public domain), Protomaps' own name (requested, not required), MapLibre's logo and "i" (not required by BSD-2), USGS 3DEP (credit asked). NRCan OGL Canada and Copernicus: unclear on placement; Copernicus' annex could not be fetched.
 - Not established: whether Gaia GPS's practice complies. This is a reading of published text, not legal advice.
 **Notes:** Written by the planner by hand. D24's caption removal held with Hazel; brought to the owner. Next free ID -1968.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1968
+**Timestamp:** 2026-11-02T23:08:53Z
+**Continues:** 2026-09-28-1967, 2026-09-28-1966
+**Title:** The map credit shows when a map opens, then fades into the "i" after 5 seconds or on the first pan or zoom; with OSM's own tiles it stays
+**Decision:** the owner: "Show, then fade to the 'i' (Recommended)". Dispatch 2026-10-30-08 item D25, replacing D24's removal of the strip; D24's Map Layers rows and the "i" at the bottom end stand.
+**Notes:** Written by the planner by hand. Next free ID -1969.
