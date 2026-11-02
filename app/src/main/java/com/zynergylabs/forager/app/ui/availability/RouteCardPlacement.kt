@@ -210,6 +210,14 @@ internal fun reCenterBesideTheL(landscapeRoom: RouteCardLandscapeRoom?, cardShow
     cardShowing && landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp
 
 /**
+ * D20 (RECORD -1960): whether Re-center, [widthPx] wide, fits beside the L, starting at [leftPx], with [gapPx] before the card's left
+ * edge, [cardLeftPx], all in root px. Decided by measurement, never by window or font. A Re-center or card not yet measured does not
+ * fit, so it takes D10's rise, which is never drawn over the card.
+ */
+internal fun reCenterFitsBesideTheL(widthPx: Float?, leftPx: Float, cardLeftPx: Float?, gapPx: Float): Boolean =
+    widthPx != null && cardLeftPx != null && leftPx + widthPx + gapPx <= cardLeftPx
+
+/**
  * D17: how far above the map's [MapRenderMode.bottomInset] Re-center sits beside the L: the usual [LEGEND_ATTRIBUTION_CLEARANCE], or,
  * where the credit strip at the bottom start ([creditSizePx]) reaches Re-center's [start] and stands taller than that, a gap above the
  * credit's top, so it is never drawn on the credit (D17: "clear of the pill, the L and the credit").

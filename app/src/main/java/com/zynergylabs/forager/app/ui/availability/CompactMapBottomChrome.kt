@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MapIconBar
@@ -103,19 +104,25 @@ internal fun BoxScope.CompactMapBottomChrome(
     val returnToRouteShown = isNavigating && !navigationFollowing
     // Amendment 17, part 2 ruled: the pill's own span, which the lift does not move, so reading it here has no loop.
     var returnToRouteSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
-    val returnToRouteLift = if (!reCenterBesideTheL && reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
+    // D20 (RECORD -1960, the owner: "Rise as before, there only (Recommended)"): beside the L only where Re-center's measured width
+    // fits the gap between the L and the card; otherwise D10's rise, as before D17. Its width does not change with where it sits.
+    val besideStart = routeCardBarColumn(with(LocalDensity.current) { mapIconClusterWidthPx.toDp() })
+    val besideLeftPx = cluster.mapContentBoxLeftInRootPx + with(LocalDensity.current) { (controlsPadding.calculateLeftPadding(LocalLayoutDirection.current) + besideStart).toPx() }
+    val besideTheL = reCenterBesideTheL &&
+        reCenterFitsBesideTheL(returnToRouteSpanPx?.let { it.endInclusive - it.start }, besideLeftPx, routeCardSpanPx?.start, with(LocalDensity.current) { Spacing.sm.toPx() })
+    val returnToRouteLift = if (!besideTheL && reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
     // D17 (RECORD -1958, the owner: "Into the open map, at the bottom (Recommended)"): while the card rests on the navigation card,
     // Re-center leaves the card's column for the open map beside the L (fixed on the screen's left while navigating, RECORD -955), at
     // the bottom, next to the record pill, a gap from the L's measured width; it never rises for the card there. Elsewhere, as before.
-    val reCenterStart = if (reCenterBesideTheL) routeCardBarColumn(with(LocalDensity.current) { mapIconClusterWidthPx.toDp() }) else 0.dp
+    val reCenterStart = if (besideTheL) besideStart else 0.dp
     // At large text the credit there is taller than the clearance (68 dp at font 2.0 in the S22's window, two lines), so Re-center
     // sits at the lowest place clear of it: a gap above its top where it reaches Re-center's start, the usual clearance otherwise.
-    val reCenterClearance = if (reCenterBesideTheL) reCenterClearanceBesideTheL(creditSizePx, reCenterStart, LocalDensity.current) else LEGEND_ATTRIBUTION_CLEARANCE
+    val reCenterClearance = if (besideTheL) reCenterClearanceBesideTheL(creditSizePx, reCenterStart, LocalDensity.current) else LEGEND_ATTRIBUTION_CLEARANCE
     MapPopUp(
         visible = returnToRouteShown,
         pivot = PopUpPivot.BottomCentre,
         modifier = Modifier
-            .align(if (reCenterBesideTheL) AbsoluteAlignment.BottomLeft else Alignment.BottomCenter)
+            .align(if (besideTheL) AbsoluteAlignment.BottomLeft else Alignment.BottomCenter)
             .padding(controlsPadding)
             .padding(start = reCenterStart)
             // Amendment 3 (the owner: "Pill sits above the card (Recommended)"): the card sits on the same bottom, so the pill
