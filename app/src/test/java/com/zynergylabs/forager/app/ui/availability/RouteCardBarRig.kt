@@ -184,6 +184,13 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
         heldLeg = null
     }
 
+    /** Cancels the route, as the card's Cancel does, so the card closes. The touches on Cancel are `RoutePlottingScreenTest`'s. */
+    fun closeCard() {
+        composeRule.runOnUiThread { plotting.onCancel() }
+        plotted = 0
+        settle()
+    }
+
     /** Moves the map away from the navigation view, so "Re-center" shows. */
     fun leaveNavigationView() {
         val view = map.renderMode?.navigationView ?: throw AssertionError("navigating, so the map was asked for its navigation view")

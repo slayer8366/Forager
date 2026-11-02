@@ -7,6 +7,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Rule
@@ -50,7 +51,8 @@ class RouteCardPlacementTest {
             room = routeCardLandscapeRoom(cluster, stripWidthPx = with(density) { 278.dp.roundToPx() }, topLimitPx = 0f, isNavigating = true)
         }
         composeRule.waitForIdle()
-        return assertNotNull("a landscape window with a measured strip has a place", room).let { room!!.bottom }
+        assertNotNull("a landscape window with a measured strip has a place", room)
+        return room!!.bottom
     }
 
     @Test

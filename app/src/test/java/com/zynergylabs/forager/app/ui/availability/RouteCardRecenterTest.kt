@@ -32,7 +32,7 @@ abstract class RouteCardRecenterTests {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    protected val rig = RouteCardBarRig(composeRule)
+    internal val rig = RouteCardBarRig(composeRule)
 
     protected fun recenter(): DpRect = rig.bounds(RETURN_TO_ROUTE_TAG)
 
@@ -65,8 +65,10 @@ abstract class RouteCardRecenterTests {
         rig.setScreen(navigating = true)
         rig.leaveNavigationView()
         val before = recenter()
-        rig.map.renderMode!!.navigationView!!.let { view -> composeRule.runOnUiThread { view.onRestored() } }
+        // Back to the navigation view as the user gets there, through Re-center, so the card comes up with no Re-center showing.
+        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).performTouchInput { click(center) }
         rig.settle()
+        assertEquals("precondition: Re-center went with the view restored", 0, rig.count(RETURN_TO_ROUTE_TAG))
         rig.plotTo(3)
         rig.setExpanded(true)
         listOf(0.5f to 0.5f, -1f to -1f, 1f to -1f, -1f to 1f, 1f to 1f).forEach { (sx, sy) ->
