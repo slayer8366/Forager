@@ -31849,3 +31849,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - D22 stopped at its own stop (Hazel, Opus, nothing built, route-plot-ui still 51708eeda): in portrait at font 2.0 the whole credit needs about 100 dp and the room below the card is about 32 dp (Robolectric, S22 window); at 1.0 it fits on two tighter lines.
 **Decision:** the owner: "Option 1 plus an off switch" (names). Of the credit at large text: "This is a temp HUD people will use. Can we take the pill off the map and move the credits to the map layers section?"
 **Notes:** Written by the planner by hand. The credit move is not dispatched: the licences' attribution terms are to be read at source first. Next free ID -1965.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1965
+**Timestamp:** 2026-11-02T22:53:10Z
+**Continues:** 2026-09-28-1964
+**Title:** The map's credit strip comes off the map into Map Layers, as Gaia does, with the "i" kept; waypoint names are built after; the licences are checked alongside
+**Decision:** the owner: "Gaia does this automatically" (with a Gaia GPS layer picker showing each base map's credit under its name); "Yes, start both". Dispatch 2026-10-30-08 item D23 (replacing D22), dispatch 2026-11-02-04 (waypoint names, after D23), dispatch 2026-11-02-05 (a researcher on the licences' attribution terms, beside D23). The planner's reading, stated to the owner: off the map always, not only while the card shows; the "i" stays.
+**Notes:** Written by the planner by hand. Next free ID -1966.
