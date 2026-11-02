@@ -63,7 +63,10 @@ internal fun BoxScope.CompactMapBottomChrome(
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
-    /** Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise; "Return to Route" (Amendment 3) and the legend chip (Amendment 4) sit above it. */
+    /**
+     * Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise. The legend chip (Amendment 4) sits above it;
+     * "Return to Route", now Re-center (Amendment 3), only where it shares the card's column (Amendment 17, part 2 ruled, RECORD -1943).
+     */
     routeCardHeight: Dp = 0.dp,
     /** Amendment 17, part 2 ruled (RECORD -1943): the route card's left and right in root px while it shows. */
     routeCardSpanPx: ClosedFloatingPointRange<Float>? = null,
@@ -87,8 +90,8 @@ internal fun BoxScope.CompactMapBottomChrome(
     // nav keeps winning its own band.
     // Motion Part 2, item 4 (scout N3; "Fade and grow"): it grows up from its bottom centre and shrinks back down;
     // item 5: from the moment it starts to leave (a tap on it, which brings the view back) it takes no touch.
-    // Dispatch 2026-10-30-08: how far "Return to Route" (Amendment 3) and the legend chip (Amendment 4) rise while the route
-    // card shows, its height and a gap; nothing while it does not.
+    // Dispatch 2026-10-30-08: how far the legend chip (Amendment 4) rises while the route card shows, its height and a gap; nothing
+    // while it does not. "Return to Route" (Amendment 3) rises by the same, only for a card whose span it overlaps (below).
     val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
     val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
     val returnToRouteShown = isNavigating && !navigationFollowing
