@@ -35,6 +35,7 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * The route card in a short landscape window with the rail and in tablet windows (dispatch 2026-10-30-08, Amendment 3; the
@@ -171,7 +172,10 @@ abstract class RoutePlottingWindowTests(private val hasRail: Boolean, private va
         val leftEdge = if (rail != null && rail.right <= card.left) rail.right else root.left
         val rightEdge = if (rail != null && rail.left >= card.right) rail.left else root.right
         val midY = (card.top + card.bottom) / 2
-        listOf("left" to (leftEdge + card.left) / 2, "right" to (card.right + rightEdge) / 2).forEach { (side, x) ->
+        // Amendment 14 (RECORD -1928): in a landscape window the card fills its column to the rail, so that side has no gap to press in.
+        listOf("left" to (leftEdge + card.left) / 2, "right" to (card.right + rightEdge) / 2).filter { (side, _) ->
+            if (side == "left") card.left - leftEdge >= 24.dp else rightEdge - card.right >= 24.dp
+        }.forEach { (side, x) ->
             longPressAt(x, midY)
             presses++
             assertEquals("a long-press beside the card, on its $side at $x, $midY (card $card)", presses, map.longPresses)
@@ -179,7 +183,11 @@ abstract class RoutePlottingWindowTests(private val hasRail: Boolean, private va
     }
 }
 
-/** A short landscape phone window, the rail on (dispatch 2026-10-30-08, Amendment 3). The gaps beside the 640 dp card are too narrow here to test a press in. */
+/**
+ * A short landscape phone window, the rail on (dispatch 2026-10-30-08, Amendment 3). Native graphics since Amendment 14: the card takes
+ * the strip's width, and the strip's width follows its text, which Robolectric's default graphics measures far too narrow (80 dp).
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi")
 class RoutePlottingShortLandscapeTest : RoutePlottingWindowTests(hasRail = true, besideRoom = false)
@@ -190,6 +198,7 @@ class RoutePlottingShortLandscapeTest : RoutePlottingWindowTests(hasRail = true,
  * touch, and their touch bounds were their own bounds; at xhdpi the five samples all take. Why mdpi differs was not
  * determined; no real tablet runs at mdpi.
  */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w1318dp-h824dp-land-xhdpi")
 class RoutePlottingTabletLandscapeTest : RoutePlottingWindowTests(hasRail = true, besideRoom = true)

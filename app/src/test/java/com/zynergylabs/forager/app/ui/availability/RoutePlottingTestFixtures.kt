@@ -49,12 +49,13 @@ internal class RouteMapSlot(private val glyphs: List<StubGlyph>) {
     var renderMode: MapRenderMode? = null
     var content: MapOverlayContent? = null
     var longPresses = 0
+    var taps = 0
 
     val slot: MapSlot = { _, content, renderMode, _, _, onTap, _, _, modifier ->
         this.renderMode = renderMode
         this.content = content
         val density = LocalDensity.current
-        Box(modifier.testTag("map-slot").pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }, onTap = { onTap() }) }) {
+        Box(modifier.testTag("map-slot").pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }, onTap = { taps++; onTap() }) }) {
             glyphs.filter { it.layerId != MapLayerIds.PLANNED_TRIPS || content.plannedTrips.any { trip -> trip.id == it.featureId } }.forEach { glyph ->
                 Box(
                     Modifier

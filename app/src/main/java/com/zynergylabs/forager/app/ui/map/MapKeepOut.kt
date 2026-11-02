@@ -38,8 +38,6 @@ internal object MapKeepOutIds {
     const val SEARCH_BAR = "search-bar"
     /** Dispatch 2026-09-28-430: "Return to Route", while it shows. */
     const val RETURN_TO_ROUTE = "return-to-route"
-    /** Dispatch 2026-10-30-08, Amendment 11: the record and return pill, while the route card holds the column folded. */
-    const val HELD_PILL = "route-card-held-pill"
 }
 
 /**

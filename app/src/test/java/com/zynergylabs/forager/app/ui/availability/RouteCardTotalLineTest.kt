@@ -1,8 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
-import android.view.Surface
 import androidx.activity.ComponentActivity
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
@@ -19,17 +17,14 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
-import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.route.PlottedRoute
-import com.zynergylabs.forager.app.domain.route.RouteElevation
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
@@ -37,15 +32,11 @@ import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_LEGS_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAME_TAG
-import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_PROGRESS_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_COUNT_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_ELEVATION_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TOTAL_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
-import com.zynergylabs.forager.app.ui.route.RouteCard
-import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
-import com.zynergylabs.forager.app.ui.route.RouteCardContent
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
 import com.zynergylabs.forager.app.ui.route.routeCardLegTag
@@ -57,14 +48,11 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowDisplay
 
 /** The trail leg of `RouteCardShownTotalsTest`: 0.44 mi, climbing 4.6 m, so a row reads 0.4 mi and +15 ft. */
-private fun trail(from: LatLng, to: LatLng) = RouteLeg.Trail(listOf(from, from, to, to), 0.44 * 1609.344, trailFrom = 1, trailTo = 2, trailHeightsMetres = listOf(100.0, 104.6))
+internal fun totalLineTrail(from: LatLng, to: LatLng) = RouteLeg.Trail(listOf(from, from, to, to), 0.44 * 1609.344, trailFrom = 1, trailTo = 2, trailHeightsMetres = listOf(100.0, 104.6))
 
-private const val PILL = "control-pill"
 
 /**
  * Dispatch 2026-10-30-08, Amendment 12 (RECORD -1910), the owner: "when the card gets expanded, simply have that info stay at the
@@ -95,7 +83,7 @@ class RouteCardTotalLineTest {
     )
 
     private val plotting = RoutePlottingViewModel(
-        routeLeg = { a, b -> yield(); trail(a, b) },
+        routeLeg = { a, b -> yield(); totalLineTrail(a, b) },
         saveRoute = { _, _, _ -> Result.failure(IllegalStateException("not saved in this test")) },
         onSaved = {},
         errorLog = { _, _, _ -> },
@@ -293,189 +281,14 @@ class RouteCardTotalLineTest {
         assertTrue("no total line", !exists(ROUTE_CARD_ROUTED_TAG))
     }
 
-    @Test
-    fun `the taller peek - the column, its pill and the i clear it where the column opens, dragged lowest, and on the left`() {
-        setScreen()
-        val before = map.renderMode!!.let { it.attributionBottomInset ?: it.bottomInset }
-        plotFour()
-        fun assertClear(where: String) {
-            val card = bounds(ROUTE_CARD_TAG)
-            val column = bounds(MAP_ICON_CLUSTER_TAG)
-            val pill = bounds(PILL)
-            val mode = map.renderMode!!
-            val iBottom = bounds("map-slot").bottom - (mode.attributionBottomInset ?: mode.bottomInset)
-            println("A12 $where: card top ${card.top} height ${card.bottom - card.top}, column ${column.top}..${column.bottom}, pill bottom ${pill.bottom}, i bottom $iBottom (inset before the card $before)")
-            assertTrue("$where: the column's bottom ${column.bottom} clears the card's top ${card.top}", column.bottom <= card.top + 0.5.dp)
-            assertTrue("$where: the pill's bottom ${pill.bottom} clears the card's top ${card.top}", pill.bottom <= card.top + 0.5.dp)
-            assertTrue("$where: the i's bottom $iBottom clears the card's top ${card.top}", iBottom <= card.top + 0.5.dp)
-        }
-        assertClear("where it opens")
-        dragCluster(Offset(0f, with(composeRule.density) { 900.dp.toPx() }))
-        assertClear("dragged lowest")
-        dragCluster(Offset(-with(composeRule.density) { 200.dp.toPx() }, 0f))
-        assertClear("lowest, on the left")
-        composeRule.onNodeWithContentDescription("Fullscreen").performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
-        settle()
-        assertClear("fullscreen")
-    }
-
-    private fun dragCluster(by: Offset) {
-        val handle = bounds("map-icon-bar-minimize-handle")
-        val from = with(composeRule.density) { Offset(((handle.left + handle.right) / 2).toPx(), ((handle.top + handle.bottom) / 2).toPx()) }
-        composeRule.onRoot().performTouchInput {
-            down(from)
-            advanceEventTime(600)
-            moveTo(from + by)
-            advanceEventTime(50)
-            up()
-        }
-        settle()
-    }
-
     private companion object {
         val LONG_TRIP = ROUTE_TRIP.copy(
             id = "route-long",
             name = "Long way",
             route = PlottedRoute(
                 listOf(CREEK.stop(), RIDGE.stop(), CREEK.stop()),
-                listOf(trail(CREEK.stop().position, RIDGE.stop().position), trail(RIDGE.stop().position, CREEK.stop().position)),
+                listOf(totalLineTrail(CREEK.stop().position, RIDGE.stop().position), totalLineTrail(RIDGE.stop().position, CREEK.stop().position)),
             ),
         )
-    }
-}
-
-/** The card alone, for what the Maps tab cannot reach in a test: the seam for a saved route's line, a first leg in flight, long rows. */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
-class RouteCardTotalLineContentTest {
-
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
-
-    private val a = CREEK.stop()
-    private val b = RIDGE.stop()
-
-    private fun setCard(content: RouteCardContent, expanded: Boolean, maxHeight: Dp = 400.dp) {
-        composeRule.setContent {
-            MaterialTheme {
-                RouteCard(content, expanded = expanded, distanceUnit = DistanceUnit.MILES, callbacks = RouteCardCallbacks(onToggleExpanded = {}), expandedMaxHeight = maxHeight)
-            }
-        }
-        composeRule.waitForIdle()
-    }
-
-    private fun texts(): List<String> =
-        composeRule.onAllNodes(SemanticsMatcher("has text") { it.config.getOrNull(SemanticsProperties.Text) != null } and hasAnyAncestor(hasTestTag(ROUTE_CARD_TAG)), useUnmergedTree = true)
-            .fetchSemanticsNodes()
-            .flatMap { it.config[SemanticsProperties.Text].map { t -> t.text } }
-
-    @Test
-    fun `a saved route with heights shows the same elevation line under its total, name on top`() {
-        val content = RouteCardContent.Saved("Loop", listOf(a, b), listOf(trail(a.position, b.position)), listOf(RouteElevation(73.152, 97.536, 24.384)))
-        setCard(content, expanded = false)
-        assertEquals(listOf("Loop", "2 Waypoints routed", "0.4 mi", "Elevation: +240 ft (↑ 320 ↓ 80)", "Directions"), texts())
-    }
-
-    @Test
-    fun `one leg without heights takes the elevation line off the peek, the distance stays`() {
-        val content = RouteCardContent.Plotting(listOf(a, b, a), listOf(trail(a.position, b.position), straight(b.position, a.position)), canSave = true, legElevations = listOf(RouteElevation(1.0, 1.0, 0.0), null))
-        setCard(content, expanded = false)
-        assertTrue("no elevation: ${texts()}", texts().none { it.startsWith("Elevation") })
-        assertTrue("the total line: ${texts()}", texts().contains("3 Waypoints routed"))
-    }
-
-    @Test
-    fun `two stops with the first leg in flight say nothing that is not so - no selected line, no routed line, the progress mark`() {
-        setCard(RouteCardContent.Plotting(listOf(a, b), emptyList(), canSave = false), expanded = false)
-        assertEquals("only the buttons have words", listOf("Undo", "Cancel", "Save"), texts())
-        assertTrue("the progress mark shows", composeRule.onAllNodes(hasTestTag(ROUTE_CARD_PROGRESS_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
-    }
-
-    @Test
-    fun `a later leg in flight keeps the line on the routed legs, with the progress mark`() {
-        setCard(RouteCardContent.Plotting(listOf(a, b, a), listOf(trail(a.position, b.position)), canSave = false), expanded = false)
-        assertEquals(listOf("2 Waypoints routed", "0.4 mi", "Undo", "Cancel", "Save"), texts())
-        assertTrue("the progress mark shows", composeRule.onAllNodes(hasTestTag(ROUTE_CARD_PROGRESS_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
-    }
-
-    @Test
-    fun `rows taller than the cap scroll behind the fixed total line, by a real swipe`() {
-        val stops = List(13) { if (it % 2 == 0) a else b }
-        val legs = stops.zipWithNext { x, y -> trail(x.position, y.position) }
-        setCard(RouteCardContent.Plotting(stops, legs, canSave = true), expanded = true, maxHeight = 200.dp)
-        val line = composeRule.onNodeWithTag(ROUTE_CARD_ROUTED_TAG, useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
-        val first = composeRule.onNodeWithTag(routeCardLegTag(0), useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
-
-        composeRule.onNodeWithTag(ROUTE_CARD_LEGS_TAG).performTouchInput { swipeUp() }
-        composeRule.waitForIdle()
-
-        assertTrue("the rows moved", composeRule.onNodeWithTag(routeCardLegTag(0), useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y < first)
-        assertEquals("the line did not", line, composeRule.onNodeWithTag(ROUTE_CARD_ROUTED_TAG, useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y, 0f)
-    }
-}
-
-/**
- * The same in the short landscape window. The line stays put. The L is 296 dp tall in a 384 dp window and already sat under the
- * shorter peek before Amendment 12 (bottom 332 against a card top of 232, run 41298481762), so clearing it there is not asserted:
- * the numbers go in the report, for the owner.
- */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w823dp-h384dp-land")
-class RouteCardTotalLineLandscapeTest {
-
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
-
-    private val map = RouteMapSlot(emptyList())
-
-    private val plotting = RoutePlottingViewModel(
-        routeLeg = { a, b -> yield(); trail(a, b) },
-        saveRoute = { _, _, _ -> Result.failure(IllegalStateException("not saved in this test")) },
-        onSaved = {},
-        errorLog = { _, _, _ -> },
-    )
-
-    private fun settle() {
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.waitForIdle()
-    }
-
-    @Test
-    fun `the total line is the same pixel expanded, and the L and the card at peek are printed`() {
-        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
-        composeRule.setContent {
-            val state by plotting.uiState.collectAsState()
-            MapLayersTestScreen(
-                viewModel = mapLayersViewModel(),
-                mapSlot = map.slot,
-                store = OneCellStore(),
-                waypoints = listOf(CREEK, RIDGE),
-                routePlotting = RoutePlottingControls(state, plotting),
-                recording = AvailabilityScreenRecording(isRecording = true, onToggleRecording = {}),
-            )
-        }
-        settle()
-        composeRule.runOnUiThread {
-            plotting.onStartPlotting(CREEK.stop())
-            plotting.onWaypointTapped(RIDGE.stop())
-        }
-        settle()
-
-        val card = composeRule.onNodeWithTag(ROUTE_CARD_TAG).getUnclippedBoundsInRoot()
-        val cluster = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).getUnclippedBoundsInRoot()
-        val pill = composeRule.onNodeWithTag(PILL, useUnmergedTree = true).getUnclippedBoundsInRoot()
-        println("A12 landscape: card ${card.left}..${card.right} x ${card.top}..${card.bottom}, L ${cluster.left}..${cluster.right} x ${cluster.top}..${cluster.bottom}, pill ${pill.left}..${pill.right} x ${pill.top}..${pill.bottom}")
-        fun h(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot().let { "$tag ${it.top}..${it.bottom}" }
-        println("A12 landscape lines: ${h(ROUTE_CARD_HANDLE_TAG)}, ${h(ROUTE_CARD_ROUTED_COUNT_TAG)}, ${h(ROUTE_CARD_ROUTED_ELEVATION_TAG)}, ${h("route-card-undo")}")
-
-        val line = composeRule.onNodeWithTag(ROUTE_CARD_ROUTED_TAG, useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
-        composeRule.onNodeWithTag(ROUTE_CARD_HANDLE_TAG).performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
-        settle()
-        assertTrue("expanded", plotting.uiState.value.expanded)
-        assertEquals("expanded, in pixels", line, composeRule.onNodeWithTag(ROUTE_CARD_ROUTED_TAG, useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y, 0f)
     }
 }

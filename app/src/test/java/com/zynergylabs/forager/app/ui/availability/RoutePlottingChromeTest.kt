@@ -102,49 +102,11 @@ class RoutePlottingChromeTest {
 
     private fun shown(tag: String) = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
-    /** A real long-press drag on the cluster's handle, as a finger moves it (AttributionClearOfLTest's shape). */
-    private fun dragClusterDown() {
-        val handle = bounds("map-icon-bar-minimize-handle")
-        val from = with(composeRule.density) { Offset(((handle.left + handle.right) / 2).toPx(), ((handle.top + handle.bottom) / 2).toPx()) }
-        val by = with(composeRule.density) { 900.dp.toPx() }
-        composeRule.onRoot().performTouchInput {
-            down(from)
-            advanceEventTime(600)
-            moveTo(from + Offset(0f, by))
-            advanceEventTime(50)
-            up()
-        }
-        settle()
-    }
-
     private fun startPlotting() {
         composeRule.runOnUiThread { plotting.onStartPlotting(CREEK.stop()) }
         settle()
         composeRule.onNodeWithTag(glyphTag(RIDGE.id)).performTouchInput { click(center) }
         settle()
-    }
-
-    @Test
-    fun `while the card shows, the icon cluster's lowest position is the card's top, and it goes back when the card closes`() {
-        setScreen()
-        dragClusterDown()
-        val lowest = bounds(MAP_ICON_CLUSTER_TAG)
-
-        startPlotting()
-        val card = bounds(ROUTE_CARD_TAG)
-        assertTrue("precondition: the cluster dragged to its lowest (bottom ${lowest.bottom}) reaches below the card's top (${card.top})", lowest.bottom > card.top)
-        val withCard = bounds(MAP_ICON_CLUSTER_TAG)
-        assertTrue("the cluster's bottom ${withCard.bottom} is at or above the card's top ${card.top}", withCard.bottom <= card.top + 0.5.dp)
-
-        composeRule.runOnUiThread { plotting.onSetExpanded(true) }
-        settle()
-        // Amendment 10 (RECORD -1904): expanded, the column folds rather than rising (RouteCardExpandedClusterTest).
-        assertTrue("expanded: the column is folded", !shown(MAP_ICON_CLUSTER_TAG))
-
-        composeRule.runOnUiThread { plotting.onCancel() }
-        settle()
-        assertEquals(RoutePlotMode.Off, plotting.uiState.value.mode)
-        assertEquals("the card closed, the cluster is back at the height the user chose", lowest.bottom.value, bounds(MAP_ICON_CLUSTER_TAG).bottom.value, 1f)
     }
 
     @Test

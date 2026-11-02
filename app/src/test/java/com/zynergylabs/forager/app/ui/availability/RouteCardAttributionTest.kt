@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
@@ -57,8 +58,8 @@ class RouteCardAttributionTest {
 
     private val map = RouteMapSlot(
         listOf(
-            StubGlyph(MapLayerIds.WAYPOINTS, CREEK.id, 120.dp, 300.dp, LatLng(CREEK.lat, CREEK.lng)),
-            StubGlyph(MapLayerIds.WAYPOINTS, RIDGE.id, 120.dp, 360.dp, LatLng(RIDGE.lat, RIDGE.lng)),
+            StubGlyph(MapLayerIds.WAYPOINTS, CREEK.id, 220.dp, 300.dp, LatLng(CREEK.lat, CREEK.lng)),
+            StubGlyph(MapLayerIds.WAYPOINTS, RIDGE.id, 220.dp, 360.dp, LatLng(RIDGE.lat, RIDGE.lng)),
         ),
     )
     private val plotting = RoutePlottingViewModel(
@@ -100,6 +101,20 @@ class RouteCardAttributionTest {
     private fun attributionBottom(): Dp {
         val mode = map.renderMode ?: throw AssertionError("the map slot was given a render mode")
         return mode.attributionBottomInset ?: mode.bottomInset
+    }
+
+    private fun moveTheBarLeft() {
+        val handle = bounds("map-icon-bar-minimize-handle")
+        val from = with(composeRule.density) { Offset(((handle.left + handle.right) / 2).toPx(), ((handle.top + handle.bottom) / 2).toPx()) }
+        val by = with(composeRule.density) { Offset((-200).dp.toPx(), 0f) }
+        composeRule.onRoot().performTouchInput {
+            down(from)
+            advanceEventTime(600)
+            moveTo(from + by)
+            advanceEventTime(50)
+            up()
+        }
+        settle()
     }
 
     private fun plotCreekToRidge() {
@@ -145,17 +160,31 @@ class RouteCardAttributionTest {
     }
 
     @Test
-    fun `in fullscreen, the attribution i rises above the card while it shows, and goes back when it closes`() {
+    fun `in fullscreen, with the bar on the left, the attribution i rises above the card while it shows, and goes back when it closes`() {
         setScreen()
         composeRule.onNodeWithContentDescription("Fullscreen").performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
         settle()
         assertTrue("fullscreen is on", composeRule.onAllNodesWithContentDescription("Exit fullscreen").fetchSemanticsNodes().isNotEmpty())
+        moveTheBarLeft()
         assertAboveCardThenBack("fullscreen")
     }
 
     @Test
-    fun `out of fullscreen, the attribution i rises above the card while it shows, and goes back when it closes`() {
+    fun `out of fullscreen, with the bar on the left, the attribution i rises above the card while it shows, and goes back when it closes`() {
         setScreen()
+        moveTheBarLeft()
         assertAboveCardThenBack("portrait")
+    }
+
+    /** Amendment 14 (RECORD -1928): the card is at the far side, so the "i" in its corner is under the bar, and has nothing to clear. */
+    @Test
+    fun `with the bar on the right the card is away from the attribution i, which stays in its corner`() {
+        setScreen()
+        val before = attributionBottom()
+        plotCreekToRidge()
+        val card = bounds(ROUTE_CARD_TAG)
+        val mapRight = bounds("map-slot").right
+        assertEquals("the i keeps its inset", before.value, attributionBottom().value, 0.5f)
+        assertTrue("the card's right ${card.right} is clear of the i's corner, the i's ${ATTRIBUTION_BUTTON_DP} dp button from the map's right $mapRight", card.right <= mapRight - ATTRIBUTION_BUTTON_DP.dp)
     }
 }
