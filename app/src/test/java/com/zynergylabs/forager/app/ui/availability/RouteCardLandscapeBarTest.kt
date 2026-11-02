@@ -187,17 +187,10 @@ abstract class RouteCardLandscapeBarTests(private val rotation: Int) {
         assertTrue("the card is behind the navigation card", isBehind(card, navigationCard))
     }
 
-    @Test
-    fun `the credit and the i rise above the card only where it sits over them, with the L on the right`() {
-        setScreen()
-        val before = rig.map.renderMode!!.bottomInset
-        rig.plotTo(3)
-        assertEquals("the L on the left, the card is away from the credit", before.value, rig.map.renderMode!!.bottomInset.value, 0.5f)
-        rig.dragBarAcross(rightward = true)
-        val card = rig.bounds(ROUTE_CARD_TAG)
-        val inset = rig.map.renderMode!!.bottomInset
-        assertTrue("the credit's inset $inset clears the card's height ${card.bottom - card.top}", inset >= card.bottom - card.top)
-    }
+    // D13 (RECORD -1955): "the credit and the i rise above the card only where it sits over them, with the L on the right" was
+    // here, reading the render mode's inset with no credit drawn. The credit now rises where the card covers it at rest, so its
+    // case needs the credit drawn: RouteCardCreditTest, in this window and the short one.
+
 }
 
 /**

@@ -110,16 +110,18 @@ class RouteCardPlacementTest {
         assertEquals("measured", (MAP_ICON_BAR_EDGE_INSET + 60.dp + ROUTE_CARD_SIDE_MARGIN).value, routeCardBarColumn(60.dp).value, 0.01f)
     }
 
-    private fun sides(barOnLeft: Boolean, cardOnLeft: Boolean, beside: Float): Pair<Float, Float> {
-        val p = routeCardSides(barOnLeft, barColumn = 64.dp, cardOnLeft = cardOnLeft, besideNavigationCard = beside.dp)
+    private fun sides(barOnLeft: Boolean): Pair<Float, Float> {
+        val p = routeCardSides(barOnLeft, barColumn = 64.dp)
         return p.calculateStartPadding(LayoutDirection.Ltr).value to p.calculateEndPadding(LayoutDirection.Ltr).value
     }
 
-    /** C17: nothing on the card's own edge; the bar's column on the bar's side; beside the navigation card, its width on the card's. */
+    /**
+     * C17: nothing on the card's own edge, the bar's column on the bar's side. C18's third case, the navigation card's width on the
+     * card's side while touching it, went with C21 (RECORD -1955), which puts the card on the navigation card at its width instead.
+     */
     @Test
-    fun `the card's own edge takes nothing, the bar its column, and the navigation card its width`() {
-        assertEquals("bar on the right, card at the left edge", 0f to 64f, sides(barOnLeft = false, cardOnLeft = true, beside = 0f))
-        assertEquals("bar on the left, card at the right edge", 64f to 0f, sides(barOnLeft = true, cardOnLeft = false, beside = 0f))
-        assertEquals("navigating, the L on the left, the navigation card on the right", 64f to 343f, sides(barOnLeft = true, cardOnLeft = false, beside = 343f))
+    fun `the card's own edge takes nothing, and the bar its column`() {
+        assertEquals("bar on the right, card at the left edge", 0f to 64f, sides(barOnLeft = false))
+        assertEquals("bar on the left, card at the right edge", 64f to 0f, sides(barOnLeft = true))
     }
 }

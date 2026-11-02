@@ -56,12 +56,22 @@ abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int) {
         return results.single()
     }
 
-    /** Whole: nothing ellipsised or overflowing, every character laid out, and every line break between words. Returns the lines. */
-    private fun assertWholeWords(where: String, matcher: SemanticsMatcher): Int {
+    /**
+     * Whole: nothing ellipsised or overflowing, every character laid out, and every line break between words. Returns the lines. A
+     * text that wraps its content, a button's label or the total, is checked by its ink fitting [inside] (the button's bounds, or its
+     * own) instead of the layout's overflow flag, which Robolectric reports for every such text here, a portrait card's button labels at
+     * font 1.0 included (a probe, deleted after; its figures are in the C23 report).
+     */
+    private fun assertWholeWords(where: String, matcher: SemanticsMatcher, inside: androidx.compose.ui.unit.DpRect? = null): Int {
         val layout = layoutOf(matcher)
         val text = layout.layoutInput.text.text
         (0 until layout.lineCount).forEach { assertFalse("$where: line $it of \"$text\" is cut", layout.isLineEllipsized(it)) }
-        assertFalse("$where: \"$text\" overflows its box", layout.hasVisualOverflow)
+        if (inside == null) {
+            assertFalse("$where: \"$text\" overflows its box", layout.hasVisualOverflow)
+        } else {
+            val ink = with(composeRule.density) { (0 until layout.lineCount).maxOf { layout.getLineRight(it) - layout.getLineLeft(it) }.toDp() }
+            assertTrue("$where: \"$text\" ink $ink fits its button ${inside.right - inside.left}", ink <= inside.right - inside.left)
+        }
         assertEquals("$where: the last line of \"$text\" ends at its end", text.length, layout.getLineEnd(layout.lineCount - 1))
         (0 until layout.lineCount - 1).forEach { line ->
             val end = layout.getLineEnd(line)
@@ -99,11 +109,11 @@ abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int) {
                     wrapped += assertWholeWords("$where, the hint", hasTestTag(ROUTE_CARD_COUNT_TAG)) - 2
                 } else {
                     wrapped += assertWholeWords("$where, the count", hasTestTag(ROUTE_CARD_ROUTED_COUNT_TAG)) - 1
-                    assertWholeWords("$where, the total", hasTestTag(ROUTE_CARD_ROUTED_TOTAL_TAG))
+                    assertWholeWords("$where, the total", hasTestTag(ROUTE_CARD_ROUTED_TOTAL_TAG), rig.bounds(ROUTE_CARD_ROUTED_TOTAL_TAG))
                 }
-                assertEquals("$where: Undo on one line", 1, assertWholeWords("$where, Undo", button(ROUTE_CARD_UNDO_TAG, "Undo")))
-                assertEquals("$where: Cancel on one line", 1, assertWholeWords("$where, Cancel", button(ROUTE_CARD_CANCEL_TAG, "Cancel")))
-                assertEquals("$where: Save on one line", 1, assertWholeWords("$where, Save", button(ROUTE_CARD_SAVE_TAG, "Save")))
+                assertEquals("$where: Undo on one line", 1, assertWholeWords("$where, Undo", button(ROUTE_CARD_UNDO_TAG, "Undo"), rig.bounds(ROUTE_CARD_UNDO_TAG)))
+                assertEquals("$where: Cancel on one line", 1, assertWholeWords("$where, Cancel", button(ROUTE_CARD_CANCEL_TAG, "Cancel"), rig.bounds(ROUTE_CARD_CANCEL_TAG)))
+                assertEquals("$where: Save on one line", 1, assertWholeWords("$where, Save", button(ROUTE_CARD_SAVE_TAG, "Save"), rig.bounds(ROUTE_CARD_SAVE_TAG)))
                 rig.assertBarUntouched(where, bar)
             }
         }

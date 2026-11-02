@@ -125,3 +125,14 @@ class RouteCardCreditFont20Test : RouteCardCreditTests(Surface.ROTATION_270) {
         notNavigatingLLeft()
     }
 }
+
+/** The short landscape window at font 1.0: the card in the rail's corner reaches the credit (Robolectric: they meet), so it rises. */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 1.0f)
+class RouteCardCreditShortTest : RouteCardCreditTests(Surface.ROTATION_90) {
+    @Test
+    fun `not navigating, the L on the left, the card over the credit lifts it clear`() {
+        assertTrue("the credit rose for the card over it", notNavigatingLLeft().all { it })
+    }
+}

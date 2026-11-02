@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
@@ -147,8 +148,8 @@ private fun routeCardContent(state: RoutePlottingUiState?): RouteCardContent? = 
  *
  * One width from the first tap, the reference card's, within the room beside the bar (C16 with C19, RECORD -1946, -1953). In portrait
  * it slides in from the edge away from the bar (Amendment 15, RECORD -1929) and sits flush against it, square on that side (C17). In
- * landscape it rises from the bottom edge in the corner away from the L, or touching the navigation card while navigating (C18 with
- * C20, RECORD -1947, -1953). See `RouteCardPlacement.kt`. A card still leaving draws what it last showed, and takes no touch.
+ * landscape it rises from the bottom edge in the corner away from the L (C18 with C20, RECORD -1947, -1953), or, while navigating,
+ * from behind the navigation card to rest on it at its width (C21 with C23, -1955, -1956). See `RouteCardPlacement.kt`. A card still leaving draws what it last showed, and takes no touch.
  */
 @Composable
 internal fun BoxScope.CompactMapRouteCard(
@@ -163,6 +164,11 @@ internal fun BoxScope.CompactMapRouteCard(
     onCardHeightDp: (Int) -> Unit,
     /** Amendment 17, part 2 ruled: the card's left and right in root px while it shows, `null` as soon as it starts to leave. */
     onCardSpanPx: (ClosedFloatingPointRange<Float>?) -> Unit = {},
+    /**
+     * D13 (RECORD -1955): the landscape card's bounds in root px where it rests, the rise it slides in by left out, while it shows;
+     * `null` in portrait (D16: portrait waits for the S22's pictures) and as soon as it starts to leave.
+     */
+    onCardRestPx: (Rect?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
@@ -177,20 +183,19 @@ internal fun BoxScope.CompactMapRouteCard(
         if (leaving) {
             onCardHeightDp(0)
             onCardSpanPx(null)
+            onCardRestPx(null)
         }
     }
     val showing = state?.mode as? RoutePlotMode.Showing
     val barOnLeft = cluster.isOnLeftSide
     val portrait = !cluster.landscape
     val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
-    val bottomPadding = if (landscapeRoom != null) 0.dp else bottomInset + LEGEND_ATTRIBUTION_CLEARANCE
+    // C21 (RECORD -1955): on the navigation card while navigating in landscape, its lower edge tucked behind that card's top.
+    val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
     val cardOnLeft = routeCardOnLeft(barOnLeft, landscapeRoom)
-    val sides = routeCardSides(
-        barOnLeft = barOnLeft,
-        barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() }),
-        cardOnLeft = cardOnLeft,
-        besideNavigationCard = landscapeRoom?.besideNavigationCard ?: 0.dp,
-    )
+    val sides = routeCardSides(barOnLeft = barOnLeft, barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() }))
+    // C21 with C23 (RECORD -1955, -1956): on the navigation card, its width, edge to edge, whatever C19's reference is; lines wrap.
+    val onNavigationCard = landscapeRoom?.onNavigationCard?.takeIf { it > 0.dp }
     val shape = if (portrait) routeCardPortraitShape(barOnLeft) else ROUTE_CARD_LANDSCAPE_SHAPE
     val referenceWidth = rememberRouteCardWidth(distanceUnit)
     NoTouchTargetExpansion(active = leaving) {
@@ -205,7 +210,7 @@ internal fun BoxScope.CompactMapRouteCard(
                 .leavingTakesNoTouches(leaving = leaving),
         ) {
             if (shownContent != null && shownActions != null) {
-                RouteCardWithin(referenceWidth, sides) { width ->
+                val card: @Composable (Dp) -> Unit = { width ->
                     RouteCard(
                         content = shownContent,
                         expanded = state?.expanded == true,
@@ -219,18 +224,33 @@ internal fun BoxScope.CompactMapRouteCard(
                         ),
                         expandedMaxHeight = expandedMaxHeight,
                         shape = shape,
+                        contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
                         modifier = Modifier
                             .width(width)
                             .then(if (landscapeRoom != null) Modifier.heightIn(max = landscapeRoom.maxHeight) else Modifier)
                             .onGloballyPositioned {
                                 if (!leaving) {
-                                    onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() })
+                                    // What rises above the card, and the map's fit, clear it wherever it sits, so a card resting on the
+                                    // navigation card counts from the map's bottom edge (C21, as C11 did).
+                                    onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) })
                                     val left = it.positionInRoot().x
                                     onCardSpanPx(left..left + it.size.width)
+                                    onCardRestPx(
+                                        if (landscapeRoom == null) {
+                                            null
+                                        } else {
+                                            // At rest: the landscape card slides in vertically, so its left is its laid-out one, and its
+                                            // bottom is the map box's bottom less its padding, wherever the slide has it now.
+                                            val restBottom = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx -
+                                                with(density) { (controlsPadding.calculateBottomPadding() + bottomPadding).toPx() }
+                                            Rect(left, restBottom - it.size.height, left + it.size.width, restBottom)
+                                        },
+                                    )
                                 }
                             },
                     )
                 }
+                if (onNavigationCard != null) card(onNavigationCard) else RouteCardWithin(referenceWidth, sides, card)
             }
         }
     }

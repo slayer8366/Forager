@@ -201,6 +201,8 @@ fun SightingsMap(
     offlineRegionCircles: List<RecordRegion> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.bottomInset]'s own doc comment. */
     bottomInset: Dp = 0.dp,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onCreditSizeChanged]'s own doc comment. */
+    onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit = {},
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onUserCameraGesture]'s own doc comment. */
     onUserCameraGesture: () -> Unit = {},
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.layers]'s own doc comment. */
@@ -770,6 +772,7 @@ fun SightingsMap(
         drawnLayersState = drawnLayersState,
         nightMode = nightMode,
         bottomInset = bottomInset,
+        onCreditSizeChanged = onCreditSizeChanged,
         fanSpace = fanSpace,
     )
 }
