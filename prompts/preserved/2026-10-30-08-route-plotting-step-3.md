@@ -324,8 +324,8 @@ Head as written: e3a500ebf. **Starts only on the owner's confirmation of the pat
 **Portrait**
 1. Tap a waypoint > the card slides in from the side away from the icon bar, reading on two lines "1 Waypoint selected," / "tap another to route", at the routed card's width (about 223 dp on the S22, as measured in -1936; a premise to re-check).
 2. Tap a second waypoint > the card shows "2 Waypoints routed" with its total, **at the same width**. The width never changes from the first tap on: anything longer (a long name, a wider distance) wraps onto more lines. This replaces -1932's content-sized width and Amendment 17 part 1's held-width easing; remove what that leaves dead, and its tests, saying which.
-3. The tab sits on the card's outer side edge (the side it slid in from), not on top. Dragging it up expands to every leg, down collapses, as the top tab does today.
-4. Bar swapped sides > the card and its tab move to the other side, as now.
+3. The drag handle stays on top, as now. The card's flat edge is the side it slides in from: it sits flush against that screen edge, with no gap, and both corners on that side are square. Its other two corners, top and bottom on the side facing the map, are round. (Today it has round top corners and a flat bottom, RouteCard.kt:165 at e3a500ebf.) Portrait only; landscape keeps its shape (step 5). Whether the 16 dp gained goes to the words or the card keeps its text width: report, don't choose.
+4. Bar swapped sides > the card moves to the other edge, its square side with it.
 
 **Landscape**
 5. Not navigating: the card, at the portrait card's width, sits at the bottom in the navigation card's spot, on the rail's side (which follows the phone's rotation; CompactMapLandscapeNavigationCard.kt:153). It rises from the bottom with its tab on top.
@@ -333,3 +333,4 @@ Head as written: e3a500ebf. **Starts only on the owner's confirmation of the pat
 7. Re-center, the L, the legend chip, the search bar and the pill: the -1943 rule stands (Re-center rises only over the card). Report anything the new place covers; don't choose.
 
 Fail first, revert checks, full CI, no empty commits, don't merge (-1938). Stop and ask on: the routed width being content-driven in a way one fixed width can't match (say what you'd fix it to and why), the icon bar or its L sitting where step 5 or 6 puts the card, or anything a user would see that isn't above.
+
