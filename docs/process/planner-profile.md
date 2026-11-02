@@ -98,9 +98,9 @@ Since 2026-10-16 (RECORD -1085 to -1087; the gate amended by -1133 and -1134). T
 
 ## Keeping the record
 
-- **RECORD.md gets an entry for every intent, ruling, merge and correction,** on `records-after-173`, written by hand.
+- **RECORD.md gets an entry for every intent, ruling and merge,** on `records-after-173`, written by hand.
 - **Timestamps come from `date -u`,** never estimated. (The 2026-10-06 planner guessed them and was corrected in -608.)
-- **Corrections are appended, never edited in.** A wrong claim stays visible with its correction beside it.
+- **A correction goes into the record it corrects, not a new entry.** The owner, 2026-11-02: "The rule is corrections go into the same record that was recorded. I have always said that". This line said the opposite ("Corrections are appended, never edited in") from 2026-10-07 until then.
 - **Check for open intents at every natural stop.** At each handoff, and whenever a report lands, list every intent with no closing entry (a terminal, or an outcome carrying `Closes`, per E-GD's RECORDING.md) and close or continue each one. Added 2026-10-16 (RECORD -1120) after three intents were left open that day by outcomes that only continued them (-1115).
 - **Say what wasn't checked.** "Not seen on a phone", "inferred, not measured", "unverified" are stated plainly in every report to the owner.
 
