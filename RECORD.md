@@ -31855,3 +31855,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Aspen: the map build has not restarted; a restart today would rebuild the same map; the Pi is on the relief build until about 16:00 PST
 **Observed:** Aspen, by send_message, read 13:54 PST. The last map build is log usca-20261101T174337Z, 11-01 09:43 to 23:59 PST, "[publish] done" at 23:59:01; the unit's journal ends with a failed timer run on 10-31 at 23:29, so the 11-01 run was started by hand (Aspen's inference; Aspen's correction at 13:57 PST of its first "last ran 11-01 03:00"). Its us.pmtiles live 11-02 10:29 PST; next timer 11-08 02:10 PST. At 13:57 only the relief build was running (5 relief.py processes), no java or planetiler, no transient unit started today; the owner confirmed "Willow is running the relief build now." No zoom fix is written yet. Style-only differences need no build: style JSON edits in Forager that reach phones when merged to main (the Worker redeploys). Data differences need the build's planetiler profile changed first (map-build in /opt/forager-build, tests, install), then a build. The relief build (Willow, coder-12) runs since 13:15:38, expected to finish about 15:45 (15:35-16:25); Aspen won't run the map build beside it. Aspen's plan once Juniper's report lands: split style-only from data; style-only reviewed by Sorrel, not merged until the owner has seen it; data by a coder dispatch, install and a hand-started build; the R2 upload its own step with the owner's go. Before phones the owner sees the list of differences, before/after renders per changed layer, and a data build's checks.
 **Notes:** Written by the planner by hand. A status, not a go. Next free ID -1966.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1966
+**Timestamp:** 2026-11-02T22:02:17Z
+**Continues:** 2026-09-28-1965
+**Title:** The relief build is stopped so the map can be rebuilt with the zoom fixes; nothing on the Pi restarts until the map build is finished
+**Decision:** the owner, to Aspen about 14:00 PST (relayed by Aspen, verbatim): "I want the zoom levels fixed. So if the map needs to be rebuilt, then start now"; "Stop the relief build"; "Nothing happens until the map build is finished"; "Stop the relief build since it'll need to restart anyway". The owner rejected Aspen's start of the weekly build unit (Aspen's reading: a plain rebuild without the fixes isn't wanted). Aspen stopped the relief build at 14:00:31 with its guarded stop, 106,560 of 348,509 tiles kept, resumable. The planner asked Juniper to push the C1 table (per layer, style edit or new data) first, for Willow's profile work.
+**Notes:** Written by the planner by hand, from Aspen's message. Next free ID -1967.
