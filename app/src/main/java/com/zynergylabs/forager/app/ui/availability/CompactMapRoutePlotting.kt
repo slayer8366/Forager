@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingUiState
 import com.zynergylabs.forager.app.ui.route.SaveRouteDialog
+import com.zynergylabs.forager.app.ui.route.legInFlight
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
@@ -210,7 +211,7 @@ internal fun BoxScope.CompactMapRouteCard(
                     )
                 }
                 if (portrait) {
-                    RouteCardPortraitWidth(rememberRouteCardNeededWidth(shownContent, distanceUnit), routeCardPortraitPadding(cluster), barOnLeft) { width, fit ->
+                    RouteCardPortraitWidth(rememberRouteCardNeededWidth(shownContent, distanceUnit), shownContent.legInFlight, routeCardPortraitPadding(cluster), barOnLeft) { width, fit ->
                         card(Modifier.width(width), fit)
                     }
                 } else {

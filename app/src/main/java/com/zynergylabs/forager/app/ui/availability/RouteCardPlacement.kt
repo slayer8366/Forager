@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -67,11 +70,20 @@ internal fun routeCardPortraitPadding(cluster: MapIconClusterState): PaddingValu
  * and the fit its lines are laid out at. A change eases on the slide's own timing, and is immediate under reduced motion, where the
  * card does not slide either. The width only moves when the widest line changes: never with the handle, and never for a leg that
  * is no wider, because the rows count at peek and the total line always counts its progress mark ([rememberRouteCardNeededWidth]).
+ *
+ * Amendment 17 (RECORD -1937, the owner: "Change width once the leg lands (Recommended)"): while [legInFlight], the target stays the
+ * width the card had when the last leg landed, so the card does not ease to the in-flight row's width and then back out when the
+ * distance replaces the progress mark (on the S22: 312 dp, about 212 dp, then 226.9 dp). Once the leg lands it eases once, to the
+ * final width. The held width is still kept within the room, and the lines are laid out at it, so a line that needs more wraps for
+ * the leg's flight rather than being cut. The width the in-flight lines alone ask for is never a target.
  */
 @Composable
-internal fun RouteCardPortraitWidth(needed: Dp, sides: PaddingValues, barOnLeft: Boolean, content: @Composable (Dp, RouteCardContentFit) -> Unit) {
+internal fun RouteCardPortraitWidth(needed: Dp, legInFlight: Boolean, sides: PaddingValues, barOnLeft: Boolean, content: @Composable (Dp, RouteCardContentFit) -> Unit) {
     BoxWithConstraints(Modifier.padding(sides)) {
-        val target = min(needed, maxWidth)
+        val fresh = min(needed, maxWidth)
+        val lastLanded = remember { mutableStateOf<Dp?>(null) }
+        val target = if (legInFlight) lastLanded.value?.let { min(it, maxWidth) } ?: fresh else fresh
+        SideEffect { if (!legInFlight) lastLanded.value = fresh }
         val spec = if (LocalReduceMotion.current) snap<Dp>() else MotionTokens.navigationViewChromeSpec<Dp>()
         val width by animateDpAsState(target, spec, label = "route card width")
         content(width, RouteCardContentFit(target, if (barOnLeft) Alignment.End else Alignment.Start))
