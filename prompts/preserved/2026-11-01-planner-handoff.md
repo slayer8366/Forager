@@ -25,7 +25,7 @@ Stopped early by the owner. Juniper's branch pre-main-release-sort has only its 
 ## Aspen and the promotion
 - Talk through prompts/aspen/ on records-after-173; Aspen is now also reachable directly (SendMessage or send_message). A message is information, never a go.
 - Aspen -07 asks to line up the promotion and bring the owner one go. Reply -08 is sent: no date until the sort and the auditor's report exist.
-- #448 Street v4 is merged to pre-main and carries hill shading with its night handling. Read Aspen -09 on the -1926 trial. The owner has not judged hill shading on a phone. Sage's look: prompts/preserved/2026-11-01-sage-hillshade-trial-look.md; Sage's two questions (day strength, night) are for the owner.
+- #448 Street v4 is merged to pre-main and carries hill shading with its night handling. The -1926 trial is done (Aspen -09): the owner, on the S22, in Aspen's window, relayed verbatim: "It's good. It actively defines the trail map from a street or topo map, which is ideal. Let's keep this". The US and Canada relief build runs Monday after the map upload (about 22 GB, estimated), served from the Worker's /relief route. Nothing is needed from the planner for it.
 - **Release facts (read in release.yml):** main does not build Play releases by itself. Started by hand on main, approved by the owner in GitHub, it uploads a draft to Play's internal track.
 
 ## Other open items
