@@ -31835,3 +31835,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Our own map is set to OSM's zoom levels, every layer; step 1 is a read-only comparison
 **Decision:** the owner: "Take \"set it to OSM zoom levels\" and run with it on the entire map." Earlier the same day: "If the map needs to be redownloadedb let's start now". Dispatch 2026-11-02-03 (Juniper, read only): what "OSM" and "our map" are in the code, every layer's zooms against OSM's at source, and what needs new map data. The change itself goes to Aspen with the comparison.
 **Notes:** Written by the planner by hand. The ID -1963 was freed by the deletion at edac34280. Next free ID -1964.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1964
+**Timestamp:** 2026-11-02T20:50:39Z
+**Continues:** 2026-09-28-1963
+**Title:** The map build restarts to hold the OSM zoom fixes
+**Decision:** the owner: "So let's restart the build so it can hold the fixes", then again "Take \"set it to OSM zoom levels\" and run with it on the entire map." Note to Aspen prompts/aspen/2026-11-02-02 with the owner's words and the comparison under way (dispatch 2026-11-02-03).
+**Notes:** Written by the planner by hand. Aspen is offline (ListAgents); the note waits for Aspen in the repo. Next free ID -1965.
