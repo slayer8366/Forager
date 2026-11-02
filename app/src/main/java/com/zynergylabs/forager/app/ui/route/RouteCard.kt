@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -61,8 +60,8 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  * ViewModel, so it survives a tab change (CLAUDE.md, UX defaults). Between them the rows slide, following the finger
  * (Amendment 12, RECORD -1910, `RouteCardReveal.kt`).
  *
- * Its bounds are its own: the width its host gives it (`RouteCardPlacement.kt`: what its lines need in portrait, the strip's in
- * landscape) and a height that wraps its content, the expanded rows capped and scrolling. A line that can't fit wraps, and nothing
+ * Its bounds are its own: the width its host gives it (`RouteCardPlacement.kt`: one width from the first tap, C16 with C19, RECORD
+ * -1946, -1953) and a height that wraps its content, the expanded rows capped and scrolling. A line that can't fit wraps, and nothing
  * is cut with an ellipsis (Amendment 16, RECORD -1932, the owner: "Wrap to two lines (Recommended)"), so a long name takes as many
  * lines as it needs. Nothing in it fills the map box (CLAUDE.md, the Surface pitfall), so a long-press above or beside it reaches
  * the map.
@@ -79,17 +78,11 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
  * step 3b. The total line sits under the rows and over the buttons, so it stays put on screen while the rows slide up above it.
  */
 
-/** The card's padding at each side, which [rememberRouteCardNeededWidth] counts. */
+/** The card's padding at each side, which [rememberRouteCardWidth] counts. */
 internal val ROUTE_CARD_SIDE_PADDING: Dp = Spacing.md
 
-/** The progress mark's size, which [rememberRouteCardNeededWidth] counts. */
+/** The progress mark's size, which [rememberRouteCardWidth] counts. */
 internal val ROUTE_CARD_PROGRESS_SIZE: Dp = 16.dp
-
-/**
- * The width the card's lines are laid out at while the card's own width eases towards it, so a row never wraps and unwraps on the
- * way, and the card's height holds. They stay at the [align] side, the card's anchored one, and the moving edge uncovers them.
- */
-class RouteCardContentFit(val width: Dp, val align: Alignment.Horizontal)
 
 /** How far a drag on the handle must go to move the card between peek and expanded. */
 private val HANDLE_DRAG_THRESHOLD = 24.dp
@@ -150,10 +143,8 @@ fun RouteCard(
     callbacks: RouteCardCallbacks,
     expandedMaxHeight: Dp,
     modifier: Modifier = Modifier,
-    /** Kept empty under the buttons: the part of the card tucked behind the landscape navigation card (Amendment 14, RECORD -1928). */
-    contentBottomPadding: Dp = 0.dp,
-    /** Set when the card's own width is on the move ([RouteCardContentFit]). */
-    contentFit: RouteCardContentFit? = null,
+    /** Its outline: square on a screen edge it sits against, round facing the map (C17, C18; `RouteCardPlacement.kt`). */
+    shape: Shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -162,14 +153,13 @@ fun RouteCard(
             .fillMaxWidth()
             .testTag(ROUTE_CARD_TAG)
             .mapChromeContainerColor(fill),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        shape = shape,
         color = fill,
         contentColor = contentColour,
     ) {
         val reveal = remember { RouteCardReveal(expanded) }
         LaunchedEffect(expanded) { reveal.settle(expanded) }
-        val fit = if (contentFit != null) Modifier.wrapContentWidth(contentFit.align, unbounded = true).width(contentFit.width) else Modifier
-        Column(Modifier.mapChromeContentColor(LocalContentColor.current).then(fit).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding)) {
+        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(horizontal = ROUTE_CARD_SIDE_PADDING)) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
                 Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))

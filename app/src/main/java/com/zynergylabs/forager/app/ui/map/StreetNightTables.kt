@@ -82,3 +82,10 @@ private val STREET_V4_STYLE_FILES = setOf("street-v4.json", "forager-street-v4.j
  */
 internal fun streetNightTablesFor(styleUri: String?): StreetNightTables =
     if (styleUri?.substringAfterLast('/') in STREET_V4_STYLE_FILES) STREET_V4_NIGHT_TABLES else STREET_NIGHT_TABLES
+
+/**
+ * The night pass's tables for the style [source] it loaded: those of the Street it draws ([streetUriOf]), so Street under
+ * Topographical takes v4's when it draws v4 (Sorrel's carried fix and S-1, dispatch 2026-11-01-coder-11). The one place
+ * the night pass chooses; `NightTablesBySourceTest` holds MapStyleReload to it.
+ */
+internal fun streetNightTablesForSource(source: MapStyleSource): StreetNightTables = streetNightTablesFor(streetUriOf(source))

@@ -50,6 +50,7 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 ## Dispatching work
 
 - **Every task is a committed file** (`prompts/preserved/` in Forager, `docs/dispatch/` in forager-forecast), recorded as an intent in RECORD.md, before a coder starts.
+- **Amendments go by category, not by date.** A dispatch's later rulings are sorted into lettered categories (A, B, C... as many as it takes), each item numbered in the order it was ruled (C1, C2, C3), naming its date and RECORD entry. A new ruling is the next item in its category, and marks the earlier item it replaces. The rules every item shares are written once at the top, with a short list of what is still to build. The owner, 2026-11-02: "Revert the amendments into separate parts, but have them arranged different. A B C D to arrange different categories. And have the amendments add to each category. IE amendments C1 C2 C3 for the cards"; "4 isn't the limit, use as many as it takes"; "Now I can read the amendments easier and we can have an easier time sorting what's been done should we need to change anything in the future"; "Yes, all dispatches". First done on dispatch 2026-10-30-08 (route plotting).
 - **Verify first, then build.** Coders read the code and report, by message, before writing anything. Every premise in a dispatch is marked as a premise to re-check, with file and line.
 - **Check from source, not memory.** Every fact a dispatch states (a path, a line, an ID, a count, a branch or commit, what a RECORD entry or ruling says, whether something exists) is read from its source while the dispatch is written, and cited with the commit or time read. Recall, summaries, handoffs, earlier reports, a coder's reading and the memory notes are pointers to where to look, not sources; anything that can't be checked first is marked unverified and listed as a premise to re-check. The owner, 2026-10-16: "Memory drifts, so always check from source".
 - **Name the stops.** Each dispatch lists what makes the coder stop and ask rather than choose: an owner-level choice, a migration number, a restricted permission, a wrong premise.
@@ -98,9 +99,9 @@ Since 2026-10-16 (RECORD -1085 to -1087; the gate amended by -1133 and -1134). T
 
 ## Keeping the record
 
-- **RECORD.md gets an entry for every intent, ruling, merge and correction,** on `records-after-173`, written by hand.
+- **RECORD.md gets an entry for every intent, ruling and merge,** on `records-after-173`, written by hand.
 - **Timestamps come from `date -u`,** never estimated. (The 2026-10-06 planner guessed them and was corrected in -608.)
-- **Corrections are appended, never edited in.** A wrong claim stays visible with its correction beside it.
+- **A correction goes into the record it corrects, not a new entry.** The owner, 2026-11-02: "The rule is corrections go into the same record that was recorded. I have always said that". This line said the opposite ("Corrections are appended, never edited in") from 2026-10-07 until then.
 - **Check for open intents at every natural stop.** At each handoff, and whenever a report lands, list every intent with no closing entry (a terminal, or an outcome carrying `Closes`, per E-GD's RECORDING.md) and close or continue each one. Added 2026-10-16 (RECORD -1120) after three intents were left open that day by outcomes that only continued them (-1115).
 - **Say what wasn't checked.** "Not seen on a phone", "inferred, not measured", "unverified" are stated plainly in every report to the owner.
 

@@ -2,8 +2,6 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -11,17 +9,14 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
@@ -30,7 +25,7 @@ import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
-import com.zynergylabs.forager.app.ui.route.RouteCardContentFit
+import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /*
@@ -40,8 +35,11 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * held pill all went through the bar, and each had a state the bar was not where the user left it.
  */
 
-/** The gap between the card's side edge and the bar, and the card's margin from the far screen edge. */
+/** The gap between the card's side edge and the bar (C17: the card's far side is flush to the screen's edge, with no margin). */
 internal val ROUTE_CARD_SIDE_MARGIN: Dp = Spacing.sm
+
+/** The radius of the card's round corners: the ones facing the map. */
+internal val ROUTE_CARD_CORNER: Dp = 16.dp
 
 /**
  * How much of the map's width the bar's column takes: its edge inset, its width and the gap. The width is the bar's measured one,
@@ -50,69 +48,63 @@ internal val ROUTE_CARD_SIDE_MARGIN: Dp = Spacing.sm
  */
 internal fun routeCardBarColumn(barWidth: Dp): Dp = MAP_ICON_BAR_EDGE_INSET + max(barWidth, MIN_TOUCH_TARGET) + ROUTE_CARD_SIDE_MARGIN
 
-/** The card's bottom corner: the one away from the bar. */
-internal fun routeCardAlignment(barOnLeft: Boolean): Alignment = if (barOnLeft) Alignment.BottomEnd else Alignment.BottomStart
-
-/** The card's side padding in portrait: the bar's column on its side, the margin on the other. */
-@Composable
-internal fun routeCardPortraitPadding(cluster: MapIconClusterState): PaddingValues {
-    val barColumn = routeCardBarColumn(with(LocalDensity.current) { cluster.clusterWidthPx.toDp() })
-    return if (cluster.isOnLeftSide) {
-        PaddingValues(start = barColumn, end = ROUTE_CARD_SIDE_MARGIN)
-    } else {
-        PaddingValues(start = ROUTE_CARD_SIDE_MARGIN, end = barColumn)
-    }
+/**
+ * The room the card's width is capped by (C19: "never wider than the room beside the bar"), as padding inside the controls' own:
+ * the bar's column on the bar's side, and, beside the landscape navigation card, that card's width on the card's side, so the card
+ * ends where the navigation card begins (C18: "Touching it (Recommended)"). Nothing on the card's own edge (C17: "Flush to the edge
+ * (Recommended)").
+ */
+internal fun routeCardSides(barOnLeft: Boolean, barColumn: Dp, cardOnLeft: Boolean, besideNavigationCard: Dp): PaddingValues {
+    val left = (if (barOnLeft) barColumn else 0.dp) + (if (cardOnLeft) besideNavigationCard else 0.dp)
+    val right = (if (barOnLeft) 0.dp else barColumn) + (if (cardOnLeft) 0.dp else besideNavigationCard)
+    return PaddingValues(start = left, end = right)
 }
 
 /**
- * The portrait card's width (Amendment 16, RECORD -1932, the owner: "only give enough room to display the info"): [needed], what its
- * lines ask for, and never more than the room this is given, which is what is left beside the bar. [content] gets the card's width
- * and the fit its lines are laid out at. A change eases on the slide's own timing, and is immediate under reduced motion, where the
- * card does not slide either. The width only moves when the widest line changes: never with the handle, and never for a leg that
- * is no wider, because the rows count at peek and the total line always counts its progress mark ([rememberRouteCardNeededWidth]).
- *
- * Amendment 17 (RECORD -1937, the owner: "Change width once the leg lands (Recommended)"): while [legInFlight], the target stays the
- * width the card had when the last leg landed, so the card does not ease to the in-flight row's width and then back out when the
- * distance replaces the progress mark (on the S22: 312 dp, about 212 dp, then 226.9 dp). Once the leg lands it eases once, to the
- * final width. The held width is still kept within the room, and the lines are laid out at it, so a line that needs more wraps for
- * the leg's flight rather than being cut. The width the in-flight lines alone ask for is never a target.
+ * The card's width (C16 with C19, RECORD -1946, -1953): the reference card's, [reference] (`RouteCardWidth.kt`), and never more than
+ * the room left inside [sides]. One width for every state; it changes with the text size or the room, never with what the card shows.
  */
 @Composable
-internal fun RouteCardPortraitWidth(needed: Dp, legInFlight: Boolean, sides: PaddingValues, barOnLeft: Boolean, content: @Composable (Dp, RouteCardContentFit) -> Unit) {
-    BoxWithConstraints(Modifier.padding(sides)) {
-        val fresh = min(needed, maxWidth)
-        val lastLanded = remember { mutableStateOf<Dp?>(null) }
-        val target = if (legInFlight) lastLanded.value?.let { min(it, maxWidth) } ?: fresh else fresh
-        SideEffect { if (!legInFlight) lastLanded.value = fresh }
-        val spec = if (LocalReduceMotion.current) snap<Dp>() else MotionTokens.navigationViewChromeSpec<Dp>()
-        val width by animateDpAsState(target, spec, label = "route card width")
-        content(width, RouteCardContentFit(target, if (barOnLeft) Alignment.End else Alignment.Start))
-    }
+internal fun RouteCardWithin(reference: Dp, sides: PaddingValues, content: @Composable (Dp) -> Unit) {
+    BoxWithConstraints(Modifier.padding(sides)) { content(min(reference, maxWidth)) }
 }
 
-/** How far the card's lower edge sits behind the landscape navigation card: past that card's rounded top corners. */
-internal val ROUTE_CARD_NAVIGATION_TUCK: Dp = 16.dp
+/**
+ * The portrait card's shape (C17, RECORD -1946, the owner: "Flat on the side it comes from only"): square on the screen edge it
+ * slid in from, both corners; round on the side facing the map, top and bottom. The handle stays on top.
+ */
+internal fun routeCardPortraitShape(barOnLeft: Boolean): Shape =
+    if (barOnLeft) AbsoluteRoundedCornerShape(topLeft = ROUTE_CARD_CORNER, bottomLeft = ROUTE_CARD_CORNER) else AbsoluteRoundedCornerShape(topRight = ROUTE_CARD_CORNER, bottomRight = ROUTE_CARD_CORNER)
+
+/** The landscape card's shape (C18: "Rises from the bottom, tab on top (Recommended)"): round top corners, square on the bottom edge. */
+internal val ROUTE_CARD_LANDSCAPE_SHAPE: Shape = RoundedCornerShape(topStart = ROUTE_CARD_CORNER, topEnd = ROUTE_CARD_CORNER)
 
 /**
- * The landscape card's place (Amendment 14, Part 2): [width], the strip's and so the navigation card's; [bottom] above the screen's
- * bottom edge, which is 0 except while navigating, when the card rests on the navigation card with [tuck] of its lower edge behind
- * it, kept empty so all its content shows above; and at most [maxHeight] tall, below the strip and the search bar, the rows taking
- * what is cut (`RouteCard`'s rows are measured last, and scroll).
+ * The landscape card's place (C18 with C20, RECORD -1947, -1953). On the screen's bottom edge, at C19's width. Not navigating, in the
+ * corner away from the L: the navigation card's spot on the rail's side, or, with the L kept on the rail's side, the other bottom
+ * corner (C20). Navigating, [besideNavigationCard] is the navigation card's width, the strip's (`CompactMapLandscapeNavigationCard.kt`),
+ * and the card sits touching it on the side away from the rail ([railOnLeft]); the L is on the screen's left then (RECORD -955).
+ * At most [maxHeight] tall, below the strip and the search bar, the rows taking what is cut (`RouteCard`'s rows are measured last, and
+ * scroll). The rail is on the screen's right at both rotations (RECORD -956), so both rotations place the card alike.
  */
-internal data class RouteCardLandscapeRoom(val width: Dp, val bottom: Dp, val tuck: Dp, val maxHeight: Dp)
+internal data class RouteCardLandscapeRoom(val besideNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp)
 
 /** `null` outside a landscape window, and for the frames before the strip is measured, when there is no width to take. */
 @Composable
 internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: Int, topLimitPx: Float, isNavigating: Boolean): RouteCardLandscapeRoom? {
     if (!cluster.landscape || stripWidthPx <= 0) return null
-    val navigationCard = cluster.navigationCardBoundsInRoot?.takeIf { isNavigating }
     return with(LocalDensity.current) {
-        val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
-        val tuck = if (navigationCard != null) ROUTE_CARD_NAVIGATION_TUCK else 0.dp
-        val bottom = if (navigationCard != null) ((boxBottomPx - navigationCard.top).toDp() - tuck).coerceAtLeast(0.dp) else 0.dp
-        RouteCardLandscapeRoom(stripWidthPx.toDp(), bottom, tuck, (cluster.mapContentBoxHeightPx - topLimitPx).toDp() - Spacing.sm - bottom)
+        RouteCardLandscapeRoom(
+            besideNavigationCard = if (isNavigating) stripWidthPx.toDp() else 0.dp,
+            railOnLeft = cluster.railPortEdge == ScreenEdge.Left,
+            maxHeight = (cluster.mapContentBoxHeightPx - topLimitPx).toDp() - Spacing.sm,
+        )
     }
 }
+
+/** Which side the card sits on: beside the navigation card, the rail's; otherwise away from the bar. */
+internal fun routeCardOnLeft(barOnLeft: Boolean, landscapeRoom: RouteCardLandscapeRoom?): Boolean =
+    if (landscapeRoom != null && landscapeRoom.besideNavigationCard > 0.dp) landscapeRoom.railOnLeft else !barOnLeft
 
 /**
  * The portrait card's motion (Amendment 15, the owner: "Have the card slide in from the opposite side of the map icon bar in

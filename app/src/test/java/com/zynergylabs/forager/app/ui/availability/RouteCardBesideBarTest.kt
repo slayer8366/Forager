@@ -29,7 +29,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Dispatch 2026-10-30-08, Amendments 14 and 15, Part 1 (RECORD -1928, -1929), the owner: "The map icon bar stays the same no matter
  * what. The card just gets resized to fit the map icon bar next to it". The real Maps tab at the S22's size, recording: the card is
- * at the far edge's margin and never closer to the bar than a small gap (Amendment 16 sets its width), at peek and expanded, at 1, 3, 5
+ * flush to the far edge (C17, RECORD -1946) and never closer to the bar than a small gap (Amendment 16 sets its width), at peek and expanded, at 1, 3, 5
  * and 6 stops, on either side; the bar never moves, folds or rises; and record, return, Layers, "+" and Save each take real touches across their bounds.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -51,10 +51,11 @@ class RouteCardBesideBarTest {
         println("A14 $where: nav top ${navTop.value}")
         if (barOnLeft) {
             assertTrue("$where: the card's left ${card.left} keeps 8 dp from the bar's right ${bar.right}", card.left >= bar.right + 7.5.dp)
-            assertEquals("$where: the card's right, at the screen edge's margin", (screen.right - 8.dp).value, card.right.value, 0.5f)
+            // C17 (RECORD -1946, "Flush to the edge (Recommended)"): was the screen edge's 8 dp margin.
+            assertEquals("$where: the card's right, flush to the screen's edge", screen.right.value, card.right.value, 0.5f)
         } else {
             assertTrue("$where: the card's right ${card.right} keeps 8 dp from the bar's left ${bar.left}", card.right <= bar.left - 7.5.dp)
-            assertEquals("$where: the card's left, at the screen edge's margin", 8f, card.left.value, 0.5f)
+            assertEquals("$where: the card's left, flush to the screen's edge", 0f, card.left.value, 0.5f)
         }
     }
 

@@ -85,7 +85,11 @@ abstract class RouteCardRecenterTests {
         }
     }
 
-    /** Re-center shown with the card already up sits as it does with no card, and five real touches across it reach it. */
+    /**
+     * Re-center shown with the card already up sits as it does with no card, or, where it shares the card's column, clears the card
+     * (D10's rule, which C18 moved the landscape card into: the card now touches the navigation card, where Re-center sits); and five
+     * real touches across it reach it.
+     */
     protected fun assertShownWithCardUp(window: String) {
         rig.setScreen(navigating = true)
         rig.leaveNavigationView()
@@ -98,7 +102,12 @@ abstract class RouteCardRecenterTests {
         rig.setExpanded(true)
         listOf(0.5f to 0.5f, -1f to -1f, 1f to -1f, -1f to 1f, 1f to 1f).forEach { (sx, sy) ->
             rig.leaveNavigationView()
-            rig.assertSame("$window: shown over a card already up", before, recenter())
+            val card = rig.bounds(ROUTE_CARD_TAG)
+            if (before.left < card.right && card.left < before.right) {
+                rig.assertApart("$window: shown over a card already up, sharing its column, Re-center and the card", recenter(), card)
+            } else {
+                rig.assertSame("$window: shown over a card already up", before, recenter())
+            }
             val restore = rig.map.renderMode!!.navigationView!!.restoreRequestId
             composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).performTouchInput {
                 val inX = 12.dp.toPx()
@@ -112,9 +121,10 @@ abstract class RouteCardRecenterTests {
 }
 
 /**
- * A 915 x 412 landscape phone: the card on the right (the L is fixed on the left while navigating, RECORD -955) and Re-center in the
- * other column, 20 dp apart. The S22's own window does not give this under Robolectric, with no real insets: there they share a
- * column ([RouteCardRecenterS22LandscapeTest]), while on the phone they were about 3 px apart.
+ * A 915 x 412 landscape phone. Before C18 (RECORD -1947) the card was on the right, resting on the navigation card, and Re-center in
+ * the other column, 20 dp apart, and this class asserted Re-center stayed put. C18 puts the card touching the navigation card, side by
+ * side, which is Re-center's column (D11), so here they now share it and Re-center clears the card by D10's rule (RECORD -1943), which
+ * D12 keeps. Its place against the search bar is printed, not asserted.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
@@ -122,23 +132,27 @@ abstract class RouteCardRecenterTests {
 class RouteCardRecenterLandscapeTest : RouteCardRecenterTests() {
 
     @Test
-    fun `navigating in landscape, Re-center stays put for the card in the other column, at peek and expanded`() = assertStaysPut("landscape")
+    fun `navigating in landscape, the card beside the navigation card shares Re-center's column, and Re-center clears it`() = assertClearsSharedColumn("915")
 
     @Test
-    fun `shown with the card already up, Re-center sits where it does with no card, and takes real touches`() = assertShownWithCardUp("landscape")
+    fun `shown with the card already up, Re-center clears it, and takes real touches`() = assertShownWithCardUp("landscape")
 }
 
-/** A tablet in landscape: the card in the column away from the L, Re-center in the middle of the map. */
+/**
+ * A tablet in landscape. The card takes the portrait rule here (the tablet has no short-landscape L). At C19's one width (248.5 dp,
+ * was its words' width, about 224 dp) flush to the right edge (C17, was 8 dp in), it now reaches Re-center's column in the middle of
+ * the map, so Re-center clears it by D10's rule. Was: the stays-put case.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w1318dp-h824dp-land-xhdpi")
 class RouteCardRecenterTabletLandscapeTest : RouteCardRecenterTests() {
 
     @Test
-    fun `on a tablet in landscape, Re-center stays put for the card in the other column`() = assertStaysPut("tablet landscape", listOf(3))
+    fun `on a tablet in landscape, the card shares Re-center's column, and Re-center clears it`() = assertClearsSharedColumn("tablet landscape")
 }
 
-/** A tablet in portrait: the card as wide as its words at the left, Re-center at the bottom centre. */
+/** A tablet in portrait: the card at its one width at the left edge, Re-center at the bottom centre. */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w824dp-h1318dp-xhdpi")

@@ -56,5 +56,8 @@ fun routeTotalElevationText(legs: List<RouteElevation?>, unitSystem: UnitSystem)
     return "Elevation: ${if (net >= 0) "+" else ""}$net $unit (↑ $climb ↓ $descent)"
 }
 
-/** The line at one stop (it replaces "Tap the next waypoint"). */
-const val ONE_WAYPOINT_SELECTED = "1 Waypoint selected, tap another to route"
+/**
+ * The hint at one stop (it replaces "Tap the next waypoint"), on two lines since C15 (RECORD -1946, the owner: "Have the two sentences
+ * be on separate lines and reduce it to the other card size so both can be uniform without switching").
+ */
+const val ONE_WAYPOINT_SELECTED = "1 Waypoint selected,\ntap another to route"
