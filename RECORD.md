@@ -31918,3 +31918,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Hazel (Opus), route-plot-ui a73915df0, CI only. Tests 22af62a8a, build 429f3a8cb, dead code 986b1049d. Full run on 4b29bf174 (41543362662): 6198 tests, 3 failed: the known D20 case and two scroll-fragile reads caused by the taller Map Layers, fixed at a73915df0 (one in an existing test, AvailabilityScreenMapLayersTest.kt:195, whose claim is unchanged; accepted by the planner). Fail first 8 of 9; reverts r1, r2, r4, r5 bite; r3 inconclusive and r6 (the "i") ran nothing on a bad filter, both rerunning. Runs pending: 41546133936, 41546144216, 41546148141, 41546151462, 41546164752. Removed: D13's and D18's rise and -954's credit-beside-i plumbing, with their tests, named in the report. Seen in code: in landscape the "i" now takes the card's rise too (device-only question). The trails source still has no attribution, so the "i" never shows the Trails credit.
 **Decision:** the planner's call: under reduced motion the strip keeps its fade ("The fade alone", as the map pop-up and the sundown line in docs/motion-spec.md section 4). D26 corrected in place.
 **Notes:** Written by the planner by hand. A fresh Hazel reads the pending runs, then builds D25/D26, then the waypoint names. Next free ID -1971.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1971
+**Timestamp:** 2026-11-02T23:38:52Z
+**Continues:** 2026-09-28-1970
+**Title:** A read-only look at what it would take to make every map part editable in the app
+**Decision:** the owner: "What would it take to make every map part modular and editable in-app, so then people can choose overlays they want shown, what zoom it can be read in, what color fill, etc."; "Yes, start the read-only look". Dispatch 2026-11-02-06 (Juniper, read only).
+**Notes:** Written by the planner by hand. The planner's four-step sketch and its sizes were from memory, not the code. Next free ID -1972.
