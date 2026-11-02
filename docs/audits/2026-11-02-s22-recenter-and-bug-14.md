@@ -238,3 +238,47 @@ The card rests on the navigation card at its width (x 1290 to 2604 px at ROTATIO
 - Landscape at fonts above 1.0 on the phone, so C23's wrapping is seen only in Robolectric and in portrait at 2.0.
 - Whether one stop was actually expanded: one stop shows the same either way.
 - Why the C20 card sits about 100 px in from the left edge at ROTATION_90.
+
+## D19 and D21: Re-center beside the L, the portrait credit, and the 640 x 360 window on the S22 (dispatch 2026-10-30-08; RECORD -1958, -1962)
+
+Run by Hazel from 11:50 PST on 11-02. The evidence is in `/home/zynergy-labs/s22-2026-11-02/d19/`, off git: `shots/`, `ui/`, snapshots, CI artefacts and scripts. The scale is 3.75 px per dp. No app code was changed. **This section is in progress:** the phone was paused at 12:33 at the planner's word (the owner was using it), and what is not yet done is listed at the end.
+
+### Build and install
+- **Merge.** a00ab3d09: origin/route-plot-ui 51708eeda (D17, D18, D20) merged into 50d501561, no conflicts. origin/pre-main 04746d8f0 was already in route-plot-ui (`merge-base --is-ancestor`).
+- **CI run 41513366514** (workflow_dispatch, head a00ab3d09): every job green except "Build, test, publish APK"; "Build the debug APK" BUILD SUCCESSFUL, "Run the unit tests" BUILD FAILED. 0 compile-error lines in the log. From the JUnit XML: 913 files, 6363 tests, 24 skipped, **1 failure**, 0 errors.
+- **The one failure, attributed by its own message:** `RouteCardRecenterShortLandscapeFont20Test`, "640 font 2.0, 3 stops, peek: a touch at (-1.0, -1.0) on Re-center expected:<12> but was:<11>". Its printed figures: at 1 stop Re-center is 186.7..347.3 x 0.3..33.3 dp, at 3 stops 0.0..6.0 dp tall, with the card 205..534 dp and the L's right edge at 104 dp. This is the known D20 case under look. D15's merge-only failure (`RouteCardRecenterLandscapeTest`) does not appear in this run, so nothing needed attributing to the tools branch's HUD changes.
+- **APK:** sha256 86cf061f…789ca, versionCode 4423 (4415 was installed), signing certificate equal to the installed one (cb2f6da5…1626, both read with apksigner). Schema: this build's ForagerDatabase is 23, and the phone is at user_version 23.
+- **The phone before anything:** dozing, versionCode 4415. No Forager service, no Forager notification and no shell logger process, so no recording and no walk logger. Font 1.0, auto-rotate on, user_rotation 0, `wm size` 1440x3088 and `wm density` 600 with no override. forager.db and fungi_index.db tables equal to D15's `after-delete`.
+- **In-app backup:** `forager-backup-2026-11-02-d19.zip` (a new name, older files untouched), sha256 7da1247e…244b, manifest 4415 and schema 23, pulled to `d19/in-app-backup/`. Not restore-tested.
+- **Across `install -r`:** every table hash and every file hash equal (`pre-install-2` against `after-install`). Between `pre-install` and `pre-install-2` only mbgl-offline.db `resources` and `tiles` changed (same counts): map cache from viewing.
+
+### Setup
+- TEST A to F dropped as waypoints (+ > Waypoint > OK > name > Drop); waypoints 11 to 17. Navigation to TEST B (about 1.5 mi) started from its bubble.
+- Landscape from user_rotation 1 with auto-rotate off. A pan took the map off the navigation view so Re-center showed; the pinch injector (pushed as `hz-pinch.dex`) was used for zoom only.
+- Each pin's name was read from its bubble before use. "Waypoint 1" is the owner's and was never tapped as a stop.
+- Plotting went C, B, D, A, C, B (an A→B→A-style repeat, allowed), keeping every stop left of the card's region. 6 stops were shot first; Undo then took the plot to 3 and 1, so the Re-center touches did not need the map re-framed.
+
+### D19, landscape, navigating, font 1.0 (`d19/shots/r90-*`, contact sheet `d19-landscape-sheet.png`)
+Re-center sits beside the L at the bottom, as D17 rules, and did not move in any state: its pill is [520,1140][938,1320] px (138.7..250.1 x 304..352 dp). That is 30 px (8 dp) right of the record and stop-navigating pill (right edge 490), 44 px above the credit strip (top 1364), and far below the search bar (bottom 224).
+
+| Stops | State | Shot | Card (px) | Re-center | Real touches (5, at 0.2/0.8 and centre of the pill) | Walker's dot |
+|---|---|---|---|---|---|---|
+| 1 | collapsed | r90-1p | [1563,671][2608,1211] | clear | not run collapsed | clear |
+| 1 | expanded | r90-1e | same (one stop has no rows) | clear | 5/5 reached | clear |
+| 3 | collapsed | r90-3p | [1563,746][2608,1211] | clear | 5/5 reached | clear |
+| 3 | expanded | r90-3e | [1563,414][2608,1211] | clear | 5/5 reached | clear |
+| 6 | collapsed | r90-6p | [1563,746][2608,1211] | clear | not run collapsed | **half under the card's left edge** |
+| 6 | expanded | r90-6e | [1563,278][2608,1211] | clear | 5/5 reached | **half under the card's left edge** |
+
+- "Reached" means Re-center was confirmed showing before the tap, was gone after it (the map went back to the navigation view), and the stop count was unchanged.
+- **The walker's dot** depends on the pan. At 6 stops the map had been panned so the dot sat at x about 1563, the card's left edge, and half of it is under the card's 80% fill in both states. At 1 and 3 stops (after Re-center touches and a re-pan) it sat about 240 px left of the card, clear. Neither is the navigation view's own dot position, because Re-center needs the view left.
+- Re-center keeps clear of the card at every stop count here, so the S22's own landscape size does not reach D20's fallback.
+
+### Slips
+- **A first Re-center touch run at 6 stops expanded is discarded.** Its helper did not confirm Re-center was showing before each tap. One of its small pans (40 px) did not leave the navigation view, Re-center was hidden, and a tap at its place went to the map and added a seventh stop. Undo removed it before any shot (the last legs read back as A to C and C to B), nothing was saved, and the helper was rewritten to check before every tap and to compare the stop count. All figures above are from the rewritten helper.
+- **Portrait at 12:31 to 12:33 overlapped the owner's use of the phone.** The planner paused the phone at 12:33. In that window a fourth stop (TEST A) appeared after my 3-stop plot (A, F, E), after a tap I meant for the card's handle. Whether it was that tap or the owner's touch is not known. The portrait shots from that window (`p10-3p`, `p10-3e`) are not cited and will be redone.
+
+### Not yet done (paused)
+- D19 portrait at fonts 1.0 and 2.0, collapsed and expanded.
+- D21 entire.
+- Clean-up: the open plot (unsaved), TEST A to F, `hz-pinch.dex`, and auto-rotate (off since 12:14; it was on).
