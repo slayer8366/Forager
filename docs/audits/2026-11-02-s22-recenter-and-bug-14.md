@@ -163,3 +163,78 @@ Forager on the Maps tab: not navigating, no plot, no service running. Font 1.0, 
 - Fonts above 1.0 on the phone, and the L on the rail's side (C20) on the phone. Not navigating was not photographed.
 - Whether one stop was actually expanded: one stop shows the same either way.
 - The walker's dot in the navigation view itself, because Re-center needs the view left.
+
+## D15: the route card on the navigation card (C21 with C23), the credit (D13), C20, and portrait's credit (D16) on the S22 (dispatch 2026-10-30-08; RECORD -1955, -1956)
+
+Run by Hazel, 10:16 to 10:55 PST on 11-02. The evidence is in `/home/zynergy-labs/s22-2026-11-02/d15/`, off git: `shots/`, `ui/`, snapshots, CI artefacts and scripts. The scale is 3.75 px per dp. Re-center keeps D10's rule unchanged. Nothing about Re-center or the portrait credit was changed; the owner decides from these pictures.
+
+### Build and install
+- **Merge.** This branch is 687d517da: origin/route-plot-ui 68ea07b82 (C21 with C23, D13) merged into 2312b363e with no conflicts. origin/pre-main 13c872d79 was already included (`merge-base --is-ancestor`).
+- **CI run 41498709875** (workflow_dispatch, head 687d517da): every job green except "Build, test, publish APK". From the JUnit XML: 909 files, 6357 tests, 24 skipped, 1 failure, 0 errors. The APK was still published.
+- **The one failure, attributed by the runs' own output:** `RouteCardRecenterLandscapeTest`, "Re-center stays put for the card in the other column". On this branch the card is 425.3..835 dp at 915 x 412, and its precondition fails because the card reaches Re-center (363.3..471.7).
+  - The card follows the navigation card (C21), and on this branch that card is wider. `RouteCardLandscapeBarTest` prints it as 333.3..743 dp at 823 x 384 here, against 400..743 in route-plot-ui's own CI (41495921575, where the same test passes).
+  - This branch's tools-only navigation HUD changes (the altitude work) widen the strip. So the failure belongs to the merge, not to route-plot-ui. It was not silenced.
+- **APK:** sha256 6a067287…1598, versionCode 4415 (4410 was installed). Its signing certificate equals the installed one (cb2f6da5…1626). Schema: this build's ForagerDatabase is 23, and the phone is at user_version 23.
+- **The phone before anything:** dozing, versionCode 4410. There was no Forager service and no Forager notification, so no recording and no walk logger was running. Font 1.0, auto-rotate on, user_rotation 0. The forager.db and fungi_index.db tables were equal to D12's `after-delete`.
+- **In-app backup:** `forager-backup-2026-11-02-d15.zip`, a new name with older files untouched. sha256 c8056754…c321, manifest 4410 and schema 23. Pulled to `d15/in-app-backup/`. Not restore-tested.
+- **Across `install -r`:** every table hash and every file hash is equal (`pre-install-2` against `after-install`).
+
+### Setup
+- TEST A to F were dropped as waypoints (+ > Waypoint > OK > name > Drop). Navigation to TEST A started, but A was at the walker and read "Arrived" at once. So it was stopped, and navigation to TEST C (0.9 mi) was started from its bubble instead.
+- A pan took the map off the navigation view, so Re-center showed. The pinch injector was used for zoom only; it was pushed as `hz-pinch.dex` and deleted after.
+- Plotting went E, B, F, D, C, A. Overlapping pins were reached through their fans.
+- One slip: a tap meant for the handle at one stop landed on the map and added "Waypoint 1", the owner's record, as a stop. Undo removed it before any shot. Nothing was saved.
+- At ROTATION_270, Undo took the plot from 6 stops to 3, then to 1.
+- Landscape came from user_rotation 1 and 3 with auto-rotate off. Portrait was user_rotation 0, at font 1.0 and then 2.0.
+
+### What the pictures show: landscape, navigating, font 1.0 (`d15/shots/r90-*`, `r270-*`)
+The card rests on the navigation card at its width (x 1290 to 2604 px at ROTATION_90, about 350 dp), edge to edge, with Save above that card's top. At ROTATION_270 the layout is 80 px to the right. No line wraps, and Save is whole.
+
+| Stops | State | Shot (90 / 270) | Re-center | Walker's dot | Credit line |
+|---|---|---|---|---|---|
+| 1 | collapsed | r90-1p / r270-1x | clear, raised above the card (y 334–409 px) | clear, just above the card's top | clear: down at y 1364–1440, below the card |
+| 1 | expanded | r90-1e / r270-1t | clear, as collapsed (one stop has no rows, so the two states look alike) | clear | clear |
+| 3 | collapsed | r90-3p / r270-3p | clear (y 349–424) | clear | clear |
+| 3 | expanded | r90-3e / r270-3e | **covered**: raised to y 114–147, mostly under the search bar | clear | clear |
+| 6 | collapsed | r90-6p / r270-6p | clear (y 409–484) | clear | clear |
+| 6 | expanded | r90-6e / r270-6e | **covered**: raised to y 113–131, under the search bar, not visible | clear | clear |
+
+- **D13:** the credit no longer touches the route card while navigating. D12's 9 px over Undo and 46 px over Save are gone, and the credit stays down because the card is above it.
+- The credit's right end still runs under the navigation card (x 1290 to 1638), as it did before route plotting. That is the navigation card, not the route card, and was not changed.
+- **Re-center:** on the navigation card the route card is in Re-center's column, so D10's rule raises it. At 3 and 6 stops expanded that puts Re-center under the search bar. D12 saw this only at 6 stops expanded; now it is 3 and 6.
+- Also seen before plotting (`n3`): Re-center (x 1273–1518) overlaps the navigation card's left edge (x 1290). This was not caused by this change and is recorded only.
+
+### C20: not navigating, the L dragged to the rail side (`c20-left-3p`, `c20-right-3p`, `c20-right-3e`)
+- **The L on the left (before the drag):** the card is in the navigation card's spot (x about 1690–2604 px). The credit, x 0–1638, is clear and stays down.
+- **The L dragged right:** the card takes the other bottom corner, as C20 rules. Its left edge is about 100 px in from the screen's edge at ROTATION_90; Robolectric has it at 0, and the cause was not checked.
+  - The credit rises above the card: y 929–1005 collapsed, 599–675 expanded. It is clear of the card in both.
+  - Walker's dot: clear collapsed, and just above the risen credit when expanded.
+  - Re-center: not shown, because the phone was not navigating.
+- The L was dragged back. It sits where it was (Fullscreen at [130,249][310,429]), and the DataStore files are equal to before.
+
+### Portrait, plotting 3 stops, not navigating (D16; `p10-3p`, `p10-3e`, `p20-3p`, `p20-3e`)
+- **Font 1.0:** the card's bottom edge lies over the credit strip's top by about 15 px (y 2472 to 2486, about 4 dp), collapsed and expanded. Robolectric gave 4 dp. The credit's text is clear. In the strict sense of D16's "meet", the rectangles overlap.
+- **Font 2.0:** the card covers the credit from y 2140 to about 2405 px (about 71 dp; Robolectric gave 68). The credit's first line and a half lie under the card's button row and can be read only through the card's 80% fill: **covered**.
+  - Walker's dot: clear collapsed; seen through the card when expanded.
+  - The card's "3 Waypoints routed" wraps onto two lines, whole words, as C13 rules.
+- Re-center: not shown in portrait, because the phone was not navigating.
+
+### For the owner (not changed, by the dispatch's rule)
+- **Re-center in landscape:** with the card on the navigation card it is covered (under the search bar) at 3 and 6 stops expanded.
+- **Portrait credit:** it is on the card at both sizes, by 4 dp at 1.0 (its text clear) and 71 dp at 2.0 (its text under the buttons).
+- **Seen at font 2.0, outside this dispatch:** the bottom navigation's labels break inside words ("Seas" / "onal", "Journ" / "al").
+
+### Data after the check
+- **Deleted:** the plot (Cancel), navigation (stopped), and TEST A to F, each swiped in Journal > Records > All after its name was read (24 to 18).
+- **`after-delete` against `pre-install`:** every forager.db and fungi_index.db table is equal. In mbgl-offline.db, `regions`, `region_tiles` and `region_resources` are equal; `tiles` (2007 rows, the same count) and `resources` changed: ambient cache from viewing. Of the other files, only forager.db's -wal/-shm and ART's `profileInstalled` differ. The DataStore files are equal.
+
+### Phone end state
+- Forager is on the Maps tab: not navigating, no plot, no service.
+- Font 1.0, auto-rotate on, user_rotation 0, read back after the restore.
+- `/data/local/tmp`: `hz-clock-watchdog.sh`, `pinch.sh` and `hz-ui.xml` are present as found (hz-ui.xml is rewritten by each UI dump). `hz-pinch.dex` is removed.
+
+### Not verified
+- The walker's dot in the navigation view itself, because Re-center needs the view left. The dot's results hold for these pans only.
+- Landscape at fonts above 1.0 on the phone, so C23's wrapping is seen only in Robolectric and in portrait at 2.0.
+- Whether one stop was actually expanded: one stop shows the same either way.
+- Why the C20 card sits about 100 px in from the left edge at ROTATION_90.
