@@ -141,12 +141,8 @@ internal fun SightingsMapLayout(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(bottom = bottomInset)
-                // RECORD -954: its laid-out width, for the "i" beside it in landscape; D13 (RECORD -1955): its size, for the
-                // compact Maps tab to tell where it rests against the route card.
-                .onSizeChanged {
-                    state.creditWidthPx = it.width
-                    onCreditSizeChanged(it)
-                },
+                // D13 (RECORD -1955): its size, for the compact Maps tab (since D24, D17's Re-center beside the L keeps clear of it).
+                .onSizeChanged { onCreditSizeChanged(it) },
         )
     }
 }

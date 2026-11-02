@@ -97,17 +97,6 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
         Box(modifier.testTag(TOP_CARD_MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
     }
 
-    /**
-     * D24 (dispatch 2026-10-30-08, RECORD -1966; the owner: "Bottom right, as in portrait (Recommended)", which "replaces -954 for
-     * landscape"): with the credit strip off the map, the Maps tab never asks for the "i" beside it, in any window, so the "i" takes
-     * the bottom-end corner as in portrait. MapLibre's control cannot be drawn or touched under Robolectric.
-     */
-    @Test
-    fun `the map is never asked to put the i beside a credit strip`() {
-        setScreen()
-        assertEquals("beside the credit strip (rotation $rotation)", false, lastRenderMode?.attributionBesideCredit)
-    }
-
     fun setScreen() {
         if (rotation != null) Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {

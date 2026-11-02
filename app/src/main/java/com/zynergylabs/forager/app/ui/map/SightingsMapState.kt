@@ -79,7 +79,6 @@ internal class SightingsMapState(
     private val cameraIdleCountState: MutableIntState,
     private val navigationMapHeightPxState: MutableIntState,
     private val mapSizePxState: MutableState<IntSize>,
-    private val creditWidthPxState: MutableIntState,
     // Objects made once for the MapView's life (unkeyed remember in SightingsMap), shared by reference.
     /** The position look last handed to MapLibre. */
     val appliedPositionLook: Array<PositionLook>,
@@ -177,11 +176,6 @@ internal class SightingsMapState(
     var mapSizePx: IntSize
         get() = mapSizePxState.value
         set(value) { mapSizePxState.value = value }
-
-    /** The credit strip's laid-out width, for the attribution placement. */
-    var creditWidthPx: Int
-        get() = creditWidthPxState.intValue
-        set(value) { creditWidthPxState.intValue = value }
 
     /**
      * What this MapView last asked `setStyle` for (RECORD -1513): written by the style effect just before `setStyle`, read

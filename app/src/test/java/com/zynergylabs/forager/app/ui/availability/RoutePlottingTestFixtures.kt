@@ -87,6 +87,12 @@ internal class RouteMapSlot(private val glyphs: List<StubGlyph>, private val cre
     }
 }
 
+/**
+ * The credit the S22 showed in D12 (`d12/ui/r90-3p.xml`), 1638 px wide there at 3.75 px per dp. Moved here from RouteCardCreditTest
+ * (removed with D13's rise, D24) for the tests that still draw the credit strip.
+ */
+internal const val S22_MAP_CREDIT = "Protomaps © OpenStreetMap · Trails: USDA Forest Service, CC BY 4.0 · BLM"
+
 internal val CREEK = Waypoint("wp-creek", 45.326, -122.634, null, "Creek", "", 1_000L)
 internal val RIDGE = Waypoint("wp-ridge", 45.336, -122.644, null, "Ridge", "", 2_000L)
 internal fun Waypoint.stop() = RouteStop(name, LatLng(lat, lng))

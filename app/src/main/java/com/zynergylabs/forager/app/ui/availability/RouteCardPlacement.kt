@@ -153,39 +153,6 @@ internal fun routeCardPortraitTransitions(barOnLeft: Boolean): Pair<EnterTransit
 internal fun routeCardOverAttribution(cluster: MapIconClusterState): Boolean = cluster.landscape || cluster.isOnLeftSide
 
 /**
- * In a landscape window the map's credit and its "i" sit at the bottom left (RECORD -954). Where the card covers the credit
- * ([cardOverCredit], [routeCardOverCredit]) they rise above it, by the inset they both read. They go back when the card closes or no
- * longer covers it.
- */
-internal fun MapRenderMode.withCreditAboveRouteCard(cardHeightDp: Int, cardOverCredit: Boolean): MapRenderMode =
-    if (cardHeightDp <= 0 || !cardOverCredit) this else copy(bottomInset = bottomInset + cardHeightDp.dp + Spacing.sm)
-
-/**
- * D13 (RECORD -1955, the planner's call under D9: "the 'i' and other chrome keep clear of the card"): whether the card, [card], covers
- * the credit where it rests, [creditAtRest], both in root px. D16 (RECORD -1956, the planner's call): "meet" means the two rectangles
- * overlap; a card that only shares the credit's horizontal span, or only its rows, or only touches its edge, leaves it down. Was
- * "landscape with the L on the right", which left the credit under the card beside the navigation card on the S22 (D12: over Undo by
- * 9 px, Save by 46 px). The credit's resting place is judged, never where it is drawn, so a risen credit is not then found clear and
- * dropped back under the card. In portrait since D18 (RECORD -1958), there through [withCreditAbovePortraitRouteCard]. No card or no
- * measured credit: no rise.
- */
-internal fun routeCardOverCredit(card: Rect?, creditAtRest: Rect?): Boolean {
-    if (card == null || creditAtRest == null) return false
-    return card.left < creditAtRest.right && creditAtRest.left < card.right && card.top < creditAtRest.bottom && creditAtRest.top < card.bottom
-}
-
-/**
- * Where the map's credit strip rests, in root px: at the map box's bottom start, over the map's own [bottomInsetPx] (the inset before any
- * rise for the card; `SightingsMapLayout` pads it by that), at its laid-out [creditSizePx]. `null` until it is measured.
- */
-internal fun mapCreditAtRest(cluster: MapIconClusterState, creditSizePx: IntSize, bottomInsetPx: Float): Rect? {
-    if (creditSizePx.width <= 0 || creditSizePx.height <= 0) return null
-    val bottom = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx - bottomInsetPx
-    val left = cluster.mapContentBoxLeftInRootPx
-    return Rect(left, bottom - creditSizePx.height, left + creditSizePx.width, bottom)
-}
-
-/**
  * Whether "Re-center" rises for the card (Amendment 17, part 2 ruled, RECORD -1943, the owner: "Fix the S22 case, then check
  * (Recommended)"): only where its horizontal span, [pill], overlaps the card's, [card], both in root px. A card in the other column
  * leaves it where it is, so it never rises onto the search bar for a card it was never over (the S22, landscape, navigating,
@@ -224,18 +191,6 @@ internal fun reCenterFitsBesideTheL(widthPx: Float?, leftPx: Float, cardLeftPx: 
  */
 internal fun reCenterClearanceBesideTheL(creditSizePx: IntSize, start: Dp, density: Density): Dp = with(density) {
     if (creditSizePx.width.toDp() <= start) LEGEND_ATTRIBUTION_CLEARANCE else max(LEGEND_ATTRIBUTION_CLEARANCE, creditSizePx.height.toDp() + Spacing.sm)
-}
-
-/**
- * D18 (RECORD -1958): in portrait the credit rises above the card where the two overlap at rest ([routeCardOverCredit]), its bottom a
- * gap above the card's top, [cardTopAboveBottom] above the map's bottom edge where the card rests. D15 saw the card on the credit on the
- * S22, about 4 dp at font 1.0 and 71 dp at 2.0. The "i" keeps the inset it had (its own rule, [withAttributionAboveRouteCard], is
- * applied first), so only the credit moves. Never lowered; unchanged with no card or no overlap, so it goes back when the card closes.
- */
-internal fun MapRenderMode.withCreditAbovePortraitRouteCard(cardTopAboveBottom: Dp?, cardOverCredit: Boolean): MapRenderMode {
-    if (cardTopAboveBottom == null || !cardOverCredit) return this
-    val aboveCard = cardTopAboveBottom + Spacing.sm
-    return if (aboveCard > bottomInset) copy(bottomInset = aboveCard, attributionBottomInset = attributionBottomInset ?: bottomInset) else this
 }
 
 /** How far inboard the legend chip sits while the card shows: past the bar in portrait with the bar on its side, as in the L. */

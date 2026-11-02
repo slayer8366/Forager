@@ -304,9 +304,8 @@ internal fun CompactMapTab(
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> if (!routePlottingTakesTap(tap, currentBubbleSources)) tappedThingOf(tap)?.let { tapped = it } } }
     var routeCardHeightDp by remember { mutableIntStateOf(0) }
     var routeCardSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
-    // D13 (RECORD -1955): the landscape card where it rests, and the credit strip's size, so the credit rises only where the card
-    // covers it (routeCardOverCredit). The size's setter is remembered, so the render mode compares equal across recompositions.
-    var routeCardRestPx by remember { mutableStateOf<Rect?>(null) }
+    // The credit strip's size, for Re-center beside the L to keep clear of it (D17, reCenterClearanceBesideTheL). The size's setter is
+    // remembered, so the render mode compares equal across recompositions.
     var mapCreditSizePx by remember { mutableStateOf(IntSize.Zero) }
     val onMapCreditSize: (IntSize) -> Unit = remember { { mapCreditSizePx = it } }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
@@ -483,8 +482,6 @@ internal fun CompactMapTab(
                         cluster.mapContentBoxWidthPx = coordinates.size.width.toFloat()
                     },
             ) {
-                // D13 and D18 (RECORD -1955, -1958): whether the card where it rests covers the credit where it rests.
-                val creditUnderRouteCard = routeCardOverCredit(routeCardRestPx, mapCreditAtRest(cluster, mapCreditSizePx, with(compassStripDensity) { renderMode.bottomInset.toPx() }))
                 // The map (RECORD -741: CompactMapMapSlot, moved out unchanged; its comments are there).
                 CompactMapMapSlot(
                     mapSlot = mapSlot,
@@ -656,7 +653,6 @@ internal fun CompactMapTab(
                     expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
                     onCardHeightDp = { routeCardHeightDp = it },
                     onCardSpanPx = { routeCardSpanPx = it },
-                    onCardRestPx = { routeCardRestPx = it },
                 )
 
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
