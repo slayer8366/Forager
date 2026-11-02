@@ -31815,3 +31815,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Seen in Robolectric, not changed:** at font 2.0 with no card, Re-center at the bottom centre and the L's lower end already sit on the credit.
 - **Not verified:** anything on a device; in portrait while navigating, whether the risen credit shares a band with Re-center or the legend chip.
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1960.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1960
+**Timestamp:** 2026-11-02T19:36:32Z
+**Continues:** 2026-09-28-1959
+**Title:** Where the gap beside the icon bar is too narrow, Re-center rises as before
+**Decision:** the owner: "Rise as before, there only (Recommended)". Dispatch item D20, decided by measurement; then D19 on the S22. Hazel's four calls beyond D17 accepted (-1959).
+**Notes:** Written by the planner by hand. Next free ID -1961.
