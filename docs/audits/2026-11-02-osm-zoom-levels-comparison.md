@@ -464,7 +464,10 @@ lower zooms this way, at `R:402-421`):
   - **The B2 items stay out** of the fix, as a list for the owner.
   - **The style is written as a new v5 file.** Whether it ships as v5 or as v4 in place is decided with the
     owner at the merge (C2, `StreetStyle.kt:20-21`).
-- **Still open:** what to do about the offline style's missing labels and v1's z14 streams.
+- **Aspen's answers to the last two points** (message received after 14:54 PST, recorded in coder-13):
+  - v1 to v3 are frozen, so v1's z14 streams stay.
+  - The offline style's missing labels are not added. They go on the owner's list with B2, and its existing
+    layers get matched.
 - **Scope note:** OSM's maxzoom is reported only where it hides something ours still shows: country names
   above 360,000 px, state names from z7, towns from 16, villages from 17 and hamlets from 18 (`pn` rules in
   rows 90-95).
