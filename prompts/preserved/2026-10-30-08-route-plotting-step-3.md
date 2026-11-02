@@ -317,3 +317,19 @@ Head as written: d17c6959b. The owner, to Hazel's stop (-1942): "Fix the S22 cas
 - The tests that pin the shared-column cases (the 640 x 360 window, the 25.7 dp Robolectric overlap) must not be written to assert the search bar is cleared there: that case is unruled and unproven on a phone. Record what they show; don't pick a behaviour for it.
 - No empty commits to run CI: put the CI run on the last real commit by leaving [skip ci] off it.
 - Merge origin/pre-main in if it has moved. Full CI green. Don't merge the PR (-1938).
+
+## Amendment 18 (2026-11-02): one card width, a side tab in portrait, and landscape beside the navigation card (RECORD -1946, -1947)
+Head as written: e3a500ebf. **Starts only on the owner's confirmation of the path below, recorded in RECORD.** The owner's words are in -1946 and -1947; the planner's restatement:
+
+**Portrait**
+1. Tap a waypoint > the card slides in from the side away from the icon bar, reading on two lines "1 Waypoint selected," / "tap another to route", at the routed card's width (about 223 dp on the S22, as measured in -1936; a premise to re-check).
+2. Tap a second waypoint > the card shows "2 Waypoints routed" with its total, **at the same width**. The width never changes from the first tap on: anything longer (a long name, a wider distance) wraps onto more lines. This replaces -1932's content-sized width and Amendment 17 part 1's held-width easing; remove what that leaves dead, and its tests, saying which.
+3. The tab sits on the card's outer side edge (the side it slid in from), not on top. Dragging it up expands to every leg, down collapses, as the top tab does today.
+4. Bar swapped sides > the card and its tab move to the other side, as now.
+
+**Landscape**
+5. Not navigating: the card, at the portrait card's width, sits at the bottom in the navigation card's spot, on the rail's side (which follows the phone's rotation; CompactMapLandscapeNavigationCard.kt:153). It rises from the bottom with its tab on top.
+6. Navigating: the navigation card takes that spot and the route card sits touching it, side by side at the bottom, on the side away from the rail. Phone turned the other way > both mirror.
+7. Re-center, the L, the legend chip, the search bar and the pill: the -1943 rule stands (Re-center rises only over the card). Report anything the new place covers; don't choose.
+
+Fail first, revert checks, full CI, no empty commits, don't merge (-1938). Stop and ask on: the routed width being content-driven in a way one fixed width can't match (say what you'd fix it to and why), the icon bar or its L sitting where step 5 or 6 puts the card, or anything a user would see that isn't above.
