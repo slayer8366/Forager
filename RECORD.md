@@ -31555,3 +31555,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** #449 is not merged when green; it waits for the owner's word
 **Decision:** the owner: "Hold off on the merge for now." This replaces -1937's merge once green. Amendment 17's work continues.
 **Notes:** Written by the planner by hand. Next free ID -1939.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1939
+**Timestamp:** 2026-11-02T05:49:24Z
+**Continues:** 2026-09-28-1937, 2026-09-28-1938, 2026-09-28-1936
+**Title:** A new planner session takes over; Amendment 17 on #449 and the pre-main sort resume from where "Stop everything" left them
+**Observed:** Handoff prompts/preserved/2026-11-01-planner-handoff.md at 3e60df3bc. ListAgents shows all 55 peer sessions offline, the previous Rowan included. Worktrees clean: route-plot-ui at 42aa60972 (does not compile, [skip ci]), pre-main-release-sort at b2e21fe25 (UNFINISHED). Not in the handoff or RECORD: #461 (the Worker's Street v4 style) merged to main at 0a819b3d6; #462 (the app's switch to Street v4) and #463 (Worker guards to main) are open with Sorrel review branches, and sorrel-app-street-v4 9577c3255 was pushed at 2026-11-02T05:43:40Z, 12 minutes after the handoff. Not opened by the planner.
+**Decision:** the owner: "Finish what the last planner was doing". Dispatch 2026-10-30-08 Amendment 17 resumes with Hazel (Opus) from 42aa60972; dispatch 2026-11-01-04 resumes with Juniper (Opus) from b2e21fe25. -1938 stands: #449 is not merged when green. No promotion until the sort and the auditor's report exist.
+**Notes:** Written by the planner by hand. Next free ID -1940.
