@@ -31724,3 +31724,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **C18 stopped (a named stop):** not navigating, a landscape L kept on the rail side sits in the bottom corner where C18 puts the card. Navigating, the L moves left (-955) and is clear.
 - **D11, computed from code and S22 positions, not built or run:** navigating in landscape the route card would be at about x 701-1563 px; Re-center (1145-1562) is wholly inside it and would rise toward the search bar when expanded; the walker's dot is clear at peek and covered expanded; the credit line probably partly covered.
 **Notes:** Written by the planner by hand. The planner's "about 223 dp" and "16 dp" were wrong; corrected in place in -1946 and the dispatch. Next free ID -1953.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1953
+**Timestamp:** 2026-11-02T12:04:45Z
+**Continues:** 2026-09-28-1952
+**Title:** The card's one width fits a long route at the user's text size; with the L on the rail side the landscape card takes the other corner; Re-center is judged on the S22 after C18
+**Decision:** the owner: "Fits a long route, per text size (Recommended)"; "The other bottom corner (Recommended)"; "Build, then look on the S22 (Recommended)". Dispatch 2026-10-30-08 items C19, C20 and D12. A new Hazel continues from route-plot-ui 8a6126f9d.
+**Notes:** Written by the planner by hand. Next free ID -1954.
