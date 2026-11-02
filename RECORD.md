@@ -31790,3 +31790,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - Data equal to before; phone restored.
 - **Hazel's final report:** tests b97373724, build 68ea07b82; restored from 8a6126f9d the landscape room's bottom and tuck, the padding floor and its three tests (Sorrel's N-5), RouteCard's contentBottomPadding. D13: routeCardOverCredit(card, creditAtRest), landscape only. Beyond the dispatch, accepted by the planner as changing nothing a user sees: the two Re-center landscape tests are back to "stays put" (D14's acceptance no longer holds after C21: they no longer share a column at 915 x 412); a credit test that read the inset with no credit drawn replaced by RouteCardCreditTest and RouteCardCreditShortTest; routeCardSides' dead navigation half removed; C23's wrap check reads ink, since Robolectric reports overflow for every TextButton label. Also seen in Robolectric: at font 2.0 the wrapped card fills nearly all the height above the navigation card (top at 45 dp of 384).
 **Notes:** Written by the planner by hand. D16 is already ruled: the credit really sits on the card, so it rises above it in portrait. Next free ID -1958.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1958
+**Timestamp:** 2026-11-02T18:58:28Z
+**Continues:** 2026-09-28-1957
+**Title:** Re-center moves into the open map at the bottom while the card sits on the navigation card; the portrait credit rises above the card; the tab labels' mid-word break is listed for later
+**Decision:** the owner: "Into the open map, at the bottom (Recommended)"; "List it, fix later (Recommended)", whose option read "Added to the known bugs list now; fixed as its own small task after route plotting, checked first on the released build." Dispatch items D17, D18 (D16 already ruled), D19. Known bugs row 23 on pre-main.
+**Notes:** Written by the planner by hand. Then dispatch 2026-11-02-02 (bug 14's warning). Next free ID -1959.
