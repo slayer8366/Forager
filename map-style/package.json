@@ -9,7 +9,8 @@
     "diff": "node tools/diff-style.mjs",
     "generate:street": "node generate-street.mjs",
     "check:street": "node tools/build-sprite-v5.mjs --check && node tools/check-style.mjs forager-street-v2.preview.json && node tools/check-street-night.mjs && node tools/check-street-trails.mjs",
-    "build:sprite": "node tools/build-sprite-v5.mjs"
+    "build:sprite": "node tools/build-sprite-v5.mjs",
+    "check:street:v4": "node tools/build-sprite-v5.mjs v6 --check && node tools/check-style.mjs forager-street-v4.preview.json && node tools/check-street-night.mjs v4 && node tools/check-street-trails.mjs v4"
   },
   "dependencies": {
     "@protomaps/basemaps": "5.7.2",

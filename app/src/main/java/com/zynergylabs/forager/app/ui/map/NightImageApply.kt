@@ -7,6 +7,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import java.io.IOException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -23,6 +24,24 @@ import org.maplibre.android.style.layers.SymbolLayer
  */
 internal const val NIGHT_SPRITE_ASSET_DIR = "night-sprite/v5"
 
+/** Sprite v6's night sheets: v5's, plus the orchard, vineyard and nursery patterns (dispatch 2026-10-31-coder-07 Part 3). */
+internal const val NIGHT_SPRITE_V6_ASSET_DIR = "night-sprite/v6"
+
+private val SPRITE_V6 = Regex("""/sprites/v6/light$""")
+
+/**
+ * The night sheets for the style the map loaded, by the sprite it names: v6's for a style naming sprite v6 (Street v4),
+ * v5's for every other (v1 to v3 and anything unreadable), as before v6.
+ */
+internal fun nightSpriteAssetDirFor(styleJson: String): String {
+    val sprite = try {
+        (Json.parseToJsonElement(styleJson).jsonObject["sprite"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+    } catch (e: RuntimeException) {
+        null
+    }
+    return if (sprite != null && SPRITE_V6.containsMatchIn(sprite)) NIGHT_SPRITE_V6_ASSET_DIR else NIGHT_SPRITE_ASSET_DIR
+}
+
 /**
  * The @2x sheet on any screen whose pixel ratio is above 1, the 1x sheet otherwise: the same choice MapLibre Native
  * makes for the day sprite (a `@2x` URL when the map's pixel ratio is above 1), so each night copy has its day image's
@@ -31,21 +50,22 @@ internal const val NIGHT_SPRITE_ASSET_DIR = "night-sprite/v5"
 internal fun nightSpriteSuffixFor(density: Float): String = if (density > 1f) "@2x" else ""
 
 /**
- * The night copies by their day names, decoded once per process: the sheet is cut into one bitmap per index entry, each
- * given the density MapLibre reads its pixel ratio from (`Style.toImage`: `getDensity() / DENSITY_DEFAULT`, checked
- * against the `13.5.0` source).
+ * The night copies by their day names, decoded once per sheet (the last one read is kept): the sheet is cut into one
+ * bitmap per index entry, each given the density MapLibre reads its pixel ratio from (`Style.toImage`:
+ * `getDensity() / DENSITY_DEFAULT`, checked against the `13.5.0` source).
  */
 private object NightSpriteCache {
     @Volatile
     private var images: Pair<String, Map<String, Bitmap>>? = null
 
-    fun images(context: Context): Map<String, Bitmap> {
+    fun images(context: Context, dir: String): Map<String, Bitmap> {
         val suffix = nightSpriteSuffixFor(context.resources.displayMetrics.density)
-        images?.let { (cachedSuffix, cached) -> if (cachedSuffix == suffix) return cached }
-        val index = context.assets.open("$NIGHT_SPRITE_ASSET_DIR/light$suffix.json").use {
+        val key = "$dir/light$suffix"
+        images?.let { (cachedKey, cached) -> if (cachedKey == key) return cached }
+        val index = context.assets.open("$dir/light$suffix.json").use {
             Json.parseToJsonElement(it.reader().readText()).jsonObject
         }
-        val sheet = context.assets.open("$NIGHT_SPRITE_ASSET_DIR/light$suffix.png").use {
+        val sheet = context.assets.open("$dir/light$suffix.png").use {
             BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inScaled = false })
         } ?: throw IOException("the night sheet light$suffix.png did not decode")
         val cut = index.mapValues { (_, entry) ->
@@ -55,7 +75,7 @@ private object NightSpriteCache {
                 density = DisplayMetrics.DENSITY_DEFAULT * field("pixelRatio")
             }
         }
-        images = suffix to cut
+        images = key to cut
         return cut
     }
 }
@@ -100,7 +120,7 @@ private class StyleNightImageTarget(private val style: Style) : NightImageTarget
  */
 internal fun applyStreetNightImages(style: Style, context: Context) {
     val images = try {
-        NightSpriteCache.images(context)
+        NightSpriteCache.images(context, nightSpriteAssetDirFor(style.json))
     } catch (e: IOException) {
         Log.w(SIGHTINGS_MAP_TAG, "Street night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
         emptyMap()

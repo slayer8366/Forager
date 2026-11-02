@@ -184,6 +184,20 @@ class NightImageSwitchTest {
     }
 
     @Test
+    fun `v4 with sprite v6's night copies switches its orchard patterns too, with nothing left or missing`() {
+        // Dispatch 2026-10-31-coder-07 Part 3: Street v4 names sprite v6, whose three patterns each have a night copy;
+        // the match's unreachable "" output names no image, so it is neither switched nor missing.
+        val v4 = Json.parseToJsonElement(File("../map-style/forager-street-v4.json").readText()).jsonObject
+        val v6Names = Json.parseToJsonElement(File("src/test/resources/sprite-v6-day/light@2x.json").readText()).jsonObject.keys
+        val plan = nightImageSwitchPlan(v4.toString(), v6Names)
+        assertEquals(emptyList<String>(), plan.left)
+        assertEquals(emptyList<String>(), plan.missingNightCopies)
+        val orchards = plan.switches.single { it.layerId == "landuse_orchards_pattern" && it.property == "fill-pattern" }
+        val json = (orchards.night as ImageReference.Expr).json
+        for (name in listOf("orchard_dots", "vineyard_rows", "nursery_dots")) assertTrue(json, json.contains("\"night/$name\""))
+    }
+
+    @Test
     fun `v2 switches exactly its six image references, with nothing left or missing`() {
         val style = styleOf(2)
         val plan = nightImageSwitchPlan(style.toString(), spriteNames)

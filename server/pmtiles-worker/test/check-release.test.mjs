@@ -30,6 +30,8 @@ function repo() {
 }
 
 const run = (dir) => spawnSync("bash", [script, "main", "worker/release", "pre-main"], { cwd: dir, encoding: "utf8" });
+/** The equality half alone (--equality-only), as the path-triggered job runs it on any pull request to main touching the folder. */
+const runEquality = (dir) => spawnSync("bash", [script, "--equality-only", "main", "worker/release", "pre-main"], { cwd: dir, encoding: "utf8" });
 
 test("a release of exactly pre-main's folder, and nothing else, passes", () => {
   const { dir, git } = repo();
@@ -60,4 +62,21 @@ test("a release missing a file pre-main's folder has fails", () => {
   const r = run(dir);
   assert.notEqual(r.status, 0);
   assert.match(r.stdout + r.stderr, /test\/t\.mjs/);
+});
+
+// Sorrel's should-fix 1 (sorrel-worker-self-contained): a pull request to main from any branch that touches the folder is
+// held to the equality half too, so the folder can only ever reach main equal to pre-main's.
+test("--equality-only passes a change outside the folder when the folder equals pre-main's", () => {
+  const { dir, git, write } = repo();
+  git("checkout", "pre-main", "--", W); write("app/App.kt", "an app change\n"); git("add", "-A"); git("commit", "-qm", "any PR");
+  const r = runEquality(dir);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+test("--equality-only fails a pull request whose folder differs from pre-main's, naming the file", () => {
+  const { dir, git, write } = repo();
+  write(`${W}/src/index.ts`, "edited outside a release\n"); git("add", "-A"); git("commit", "-qm", "any PR");
+  const r = runEquality(dir);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stdout + r.stderr, /src\/index\.ts/);
 });

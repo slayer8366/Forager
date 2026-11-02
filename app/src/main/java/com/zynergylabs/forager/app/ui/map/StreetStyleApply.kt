@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.ui.map
 import android.util.Log
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.HillshadeLayer
+import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.RasterLayer
 import org.maplibre.android.style.layers.SymbolLayer
@@ -58,4 +60,33 @@ internal fun hideStreetLabelsUnderTopo(style: Style, maxZoom: Double) {
         }
     }
     Log.i(SIGHTINGS_MAP_TAG, "Topo night over Street: $hidden Street label layers end at zoom $maxZoom.")
+}
+
+/**
+ * Street v4's hill shading at night (dispatch 2026-11-01-coder-11): every hillshade layer takes [night]'s colours. MapLibre
+ * 13.5.0 takes shadow and highlight as colour arrays (one per light, for multidirectional shading), accent as one colour.
+ */
+internal fun applyStreetHillshadeNight(style: Style, night: HillshadeNight) {
+    var set = 0
+    for (layer in style.layers) {
+        if (layer is HillshadeLayer) {
+            layer.setProperties(
+                PropertyFactory.hillshadeShadowColor(arrayOf(night.shadow)),
+                PropertyFactory.hillshadeHighlightColor(arrayOf(night.highlight)),
+                PropertyFactory.hillshadeAccentColor(night.accent),
+            )
+            set++
+        }
+    }
+    if (set > 0) Log.i(SIGHTINGS_MAP_TAG, "Street night: $set hillshade layer(s) take their night colours.")
+}
+
+/**
+ * Under Topographical, OpenTopoMap brings its own relief, so Street's hill shading is hidden (dispatch 2026-11-01-coder-11):
+ * two shadings would double.
+ */
+internal fun hideHillshadeUnderTopo(style: Style) {
+    for (layer in style.layers) {
+        if (layer is HillshadeLayer) layer.setProperties(PropertyFactory.visibility(Property.NONE))
+    }
 }
