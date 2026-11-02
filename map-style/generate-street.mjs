@@ -88,7 +88,8 @@ const VERSIONS = {
         attribution: "Heights: USGS 3DEP; NRCan MRDEM",
       },
     },
-    toWorker: false,
+    // Since the switch to Street v4 (dispatch 2026-11-01-coder-11 step (c)): bundled in the Worker as /style/street-v4.json.
+    toWorker: true,
   },
 };
 
