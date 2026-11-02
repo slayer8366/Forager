@@ -31506,3 +31506,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Effects:** the card shrinks from 312 dp to about 223 dp at the first leg; a wider leg moves the width twice; on the moving side Save or Undo is partly covered for up to 750 ms.
 - **Not verified:** any of it on a phone; long names in the short landscape window while navigating.
 **Notes:** Written by the planner by hand. Next free ID -1935.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1935
+**Timestamp:** 2026-11-02T03:58:53Z
+**Continues:** 2026-09-28-1934
+**Title:** Long names keep every word; the width motion is judged on the S22; a new S22 build and Sorrel's review start
+**Decision:** the owner: "Keep every word (Recommended)"; "Judge it on the S22 (Recommended)". Dispatch 2026-11-01-03; Sorrel reviews #449 since Amendment 5 on the go in -1932. No merges (-1933).
+**Notes:** Written by the planner by hand. Next free ID -1936.
