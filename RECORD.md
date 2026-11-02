@@ -31584,3 +31584,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Holds, per the report:** altitude about 24 m low (-1791), in the Play build and not on the known-bugs list; whether it is the serious class is the owner's. Row 14, the report's reading: a download south of 15.92°N says it succeeded with empty tiles.
 - **Unknown:** the v4 download on a 404, the Data safety form, main 8d0eefdbc's CI, the release build's battery cost.
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1941.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1941
+**Timestamp:** 2026-11-02T06:24:02Z
+**Continues:** 2026-09-28-1940, 2026-09-28-1791
+**Title:** The altitude bug is listed as known bug 22 and a promotion may ship with it; #440 follows once walked
+**Decision:** the owner: "Option 1", whose option read "List it and ship with it (recommended). It goes on the known-bugs list now, and the fix (#440) follows once it's walked." Row 22 added to docs/process/known-bugs.md on pre-main at 6522e5d1e, [skip ci]. Its Serious field reads "not ruled", since the owner was asked whether to hold, not whether it is serious.
+**Notes:** Written by the planner by hand. Row 14's weight in a promotion (-1940) is not asked yet. Hazel's Amendment 17 will take 6522e5d1e when it merges pre-main in; a doc only. Next free ID -1942.
