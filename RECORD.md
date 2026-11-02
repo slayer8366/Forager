@@ -31752,3 +31752,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Premise wrong, the planner's:** landscape does not mirror. Since -956 the rail is on the screen's right at both rotations (mainWindowRailEdgeFor, PortEdge.kt), so the navigation card and the route card sit the same way in both. The planner told the owner the rail's side follows rotation (-1947's question, C18). Corrected in place there.
 - **C17's margin:** as built the 8 dp goes to the words only where the room limits the card (font 2.0: 320 dp, was 312); at normal size the card keeps the reference width. Metric: the reference total is the same route in kilometres, "160.8 km".
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1955.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1955
+**Timestamp:** 2026-11-02T16:26:40Z
+**Continues:** 2026-09-28-1954
+**Title:** While navigating in landscape the route card sits on top of the navigation card; the 8 dp stays as built; the credit clears the card; then the S22 again
+**Decision:** the owner: "On top of the navigation card (Recommended)"; "As built (Recommended)". Dispatch 2026-10-30-08 items C21, C22; the planner's calls D13 (the credit line, under D9's existing rule), D14 (Hazel's Re-center test changes accepted), D15 (S22 pictures after C21, as D12, adding C20's case). Re-center at 6 stops expanded waits for D15's pictures. Then dispatch 2026-11-02-02 (bug 14's warning).
+**Notes:** Written by the planner by hand. Next free ID -1956.
