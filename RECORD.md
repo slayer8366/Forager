@@ -31845,3 +31845,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The smallest-screen case is seen on the S22, set to a 640 x 360 window, before any further fix
 **Decision:** the owner: "See it on the S22 first (Recommended)". Dispatch item D21, with D19, on 51708eeda's code. The one known test failure is the case under look; any other stops the install.
 **Notes:** Written by the planner by hand. Next free ID -1963.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1963
+**Timestamp:** 2026-11-02T20:44:32Z
+**Continues:** 2026-09-28-1962
+**Title:** Street v4's map patterns come in at the zooms OSM's standard style uses
+**Observed:** the owner, S26 screenshots, 12:30-12:32 PST: "The grass zones appear, but the glyphs get cut off at different zooms." street-style-v4.json on main: forest glyphs from z12, orchard dots from z13, wetland tufts from z10 (planner's read); the screenshots' zooms read from their content, not the phone.
+**Decision:** the owner: "Have them match OSM like I originally wanted." The planner's reading: the patterns' zooms only. Note to Aspen prompts/aspen/2026-11-02-01. Supersedes -27197's "The glyph minzoom stays 12" for forest.
+**Notes:** Written by the planner by hand. Not checked: which build is on the S26. Next free ID -1964.
