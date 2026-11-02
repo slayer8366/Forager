@@ -31928,3 +31928,21 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** A read-only look at what it would take to make every map part editable in the app
 **Decision:** the owner: "What would it take to make every map part modular and editable in-app, so then people can choose overlays they want shown, what zoom it can be read in, what color fill, etc."; "Yes, start the read-only look". Dispatch 2026-11-02-06 (Juniper, read only).
 **Notes:** Written by the planner by hand. The planner's four-step sketch and its sizes were from memory, not the code. Next free ID -1972.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1972
+**Timestamp:** 2026-11-02T23:56:29Z
+**Continues:** 2026-09-28-1971
+**Closes:** dispatch 2026-11-02-06
+**Title:** Editable map parts: Trail Map is 104 layers, about 18 parts; switches per part are about one dispatch; zoom, colour and presets are larger and need rulings
+**Observed:** Juniper (Fable), docs/audits/2026-11-02-editable-map-parts-pulse.md on editable-map-parts-pulse ade5d995f, read against pre-main 04746d8f0 and route-plot-ui a73915df0, read only.
+- Trail Map v4: 104 layers from three sources; grouped into 18 parts (Juniper's grouping; ten is as defensible). Offline style 57 layers. Topo and OSM are one picture layer each: contours exist only where nothing per part can change.
+- Step 1, switches per part: the Trails switch's pattern (PR #418, 10 files, +635), applied on every style load (MapStyleReload.kt:161), stored in DataStore; about one dispatch. Rows greyed where the loaded map lacks the part. The parts table lives in the app, since already-downloaded regions keep their old style.
+- MapLibre 13.5.0 (read from the pinned library) supports per-layer zoom, filter and paint changes.
+- Zoom per part: raising a floor is cheap; lowering it is a spike (filters gate on zoom, line widths ramp by zoom, the data has per-kind floors not recorded in the repo).
+- Colours: 100 literal and 16 expression colours; what "the colour" of a 36-layer roads part or of the forest pattern is, is a design decision. Night colours are derived today, not stored.
+- Presets: Room or DataStore to be ruled first.
+- **Premise wrong in the report:** it says the credit strip "is gone on route-plot-ui, D24"; it is kept (D25, -1968).
+**Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1973.
