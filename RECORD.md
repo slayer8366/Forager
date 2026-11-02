@@ -31686,3 +31686,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** The Hazel running dispatch 2026-11-02-01 was stopped by the owner during C1 (bug 14); it cannot be resumed. Nothing pushed past 070b2bb1a; no audit. Its last screenshot (23:46 PST, /home/zynergy-labs/s22-2026-11-02/shots/o9.png) shows the Offline Maps picker, keyboard open, pin at the old test area; whether a download started is not established. Phone read by the planner: airplane mode off, font scale 1.0, auto-rotate on, Forager open. Laptop evidence: before-area/, pre-install/, in-app-backup/.
 **Decision:** the owner: "Option 1", whose option read "A new Hazel finishes C1, then builds C15 to C18 (recommended). It first checks the phone against the 'before' copy, then does the download." Dispatch 2026-11-02-01 C1, then dispatch 2026-10-30-08 C15 to C18 and D11 (-1948).
 **Notes:** Written by the planner by hand. Next free ID -1950.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1950
+**Timestamp:** 2026-11-02T11:49:20Z
+**Continues:** 2026-09-28-1949, 2026-09-28-1943
+**Title:** Known bug 14 is seen on the S22 as written: a download in Guatemala says it succeeded and holds only empty tiles; the relief 404 is not the cause
+**Observed:** Hazel (Opus), dispatch 2026-11-02-01 C1, build 1.0.4398 (message; the audit is being written). A 1 mi TEST area at 14.7°N 91.5°W downloaded in about 1 s with no error, its row reading "5.9 MB". All 39 stored tiles empty: basemap and trails z10-15 answered 204; the one relief z11 tile answered 404, was stored as no content, and did not stop the download. Offline: z8 drew from the ambient cache, z10 and z13 blank grey. TEST deleted; every forager.db table equals the before copy; mbgl differs only in ambient cache and the region id counter; the picker's remembered pin now points at TEST.
+- **Also answers, for one tile:** a Street v4 download completes when a relief tile answers 404 (the pre-main sort's open question, -1940). One tile, south of the archive; not shown for a US area.
+**Notes:** Written by the planner by hand. The warning's wording goes to the owner. Next free ID -1951.
