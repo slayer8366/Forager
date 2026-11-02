@@ -272,8 +272,8 @@ internal fun ownStreetStyleSourceFor(basemap: Basemap, night: Boolean, ownStreet
 
 /**
  * Whether [source] is a Trail Map style, whose sprite icons the night inverts one by one and whose water and fills take
- * the Street night: v3 ([STREET_STYLE_URL], dispatch 2026-10-26-21), or v2 or v1, which offline regions downloaded
- * before it still load ([STREET_STYLE_URLS]; dispatch 2026-10-22-03 Amendment 1).
+ * the Street night: v4 ([STREET_STYLE_URL], since dispatch 2026-11-01-coder-11 step (d)), or v3, v2 or v1, which offline
+ * regions downloaded before it still load ([STREET_STYLE_URLS]; dispatch 2026-10-22-03 Amendment 1).
  */
 internal fun usesStreetSprite(source: MapStyleSource): Boolean = when (source) {
     is MapStyleSource.Json -> false
@@ -457,4 +457,16 @@ private fun String.toJsonStringLiteral(): String {
         append('"')
     }
     return escaped
+}
+
+/**
+ * The Trail Map style URL [source] draws: a plain URI's, or the Street under Topographical's ([MapStyleSource.
+ * StreetWithTopoOver.streetUri]); `null` for a JSON style. The night pass picks its tables by it ([streetNightTablesFor];
+ * Sorrel's carried fix, dispatch 2026-11-01-coder-11 step (d)): before, Street under Topographical took v1 to v3's
+ * tables whatever Street it drew.
+ */
+internal fun streetUriOf(source: MapStyleSource): String? = when (source) {
+    is MapStyleSource.Json -> null
+    is MapStyleSource.Uri -> source.uri
+    is MapStyleSource.StreetWithTopoOver -> source.streetUri
 }
