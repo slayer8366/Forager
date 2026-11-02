@@ -18,16 +18,18 @@ import { FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_L
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
 
-// `node tools/check-street-night.mjs v4` checks forager-street-v4.json (the fill-in) against v4's own night tables; v4
-// is not on the Worker yet, so there is no bundled copy to compare. With no argument it checks v2, as before.
+// `node tools/check-street-night.mjs v4` checks forager-street-v4.json (the fill-in) against v4's own night tables, and,
+// since the switch to Street v4, its bundled copy in the Worker. With no argument it checks v2, as before.
 const V4 = process.argv[2] === "v4";
 const STYLE = V4 ? "v4" : "v2";
 const NIGHT_LAYER_COLOURS = V4 ? NIGHT_LAYER_COLOURS_V4 : NIGHT_LAYER_COLOURS_V2;
 const NIGHT_FILL_COLOURS = V4 ? NIGHT_FILL_COLOURS_V4 : NIGHT_FILL_COLOURS_V2;
 const text = fs.readFileSync(here(`forager-street-${STYLE}.json`), "utf8");
-if (!V4) {
-  const bundled = fs.readFileSync(here("../server/pmtiles-worker/src/street-style-v2.json"), "utf8");
-  if (text !== bundled) problems.push("server/pmtiles-worker/src/street-style-v2.json differs from forager-street-v2.json: run npm run generate:street");
+// v4 is on the Worker too since the switch to Street v4 (dispatch 2026-11-01-coder-11 step (c)): its bundled copy is
+// compared the same way.
+{
+  const bundled = fs.readFileSync(here(`../server/pmtiles-worker/src/street-style-${STYLE}.json`), "utf8");
+  if (text !== bundled) problems.push(`server/pmtiles-worker/src/street-style-${STYLE}.json differs from forager-street-${STYLE}.json: run npm run generate:street`);
 }
 // The style's own metadata must carry the tables checked here: the app reads its copy against it.
 const meta = JSON.parse(text).metadata;
@@ -512,4 +514,4 @@ if (problems.length) {
   console.log("PROBLEMS:\n  " + problems.join("\n  "));
   process.exit(1);
 }
-console.log(`street style ${STYLE} valid${V4 ? "" : ", bundled copy identical"}, v1 unchanged, day and night contrast and the night limits held`);
+console.log(`street style ${STYLE} valid, bundled copy identical, v1 unchanged, day and night contrast and the night limits held`);
