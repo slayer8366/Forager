@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -67,6 +68,9 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
 
     val map = RouteMapSlot(emptyList())
 
+    /** While set, a leg being routed waits for it, so a test can read the card with a leg in flight on the phone's terms. */
+    private var heldLeg: CompletableDeferred<Unit>? = null
+
     /** A trail leg with heights, so each row carries its elevation line and the card is as tall as on the phone. */
     private fun trail(from: LatLng, to: LatLng): RouteLeg.Trail {
         val heights = listOf(100.0, 110.0, 104.0)
@@ -75,7 +79,11 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
     }
 
     val plotting = RoutePlottingViewModel(
-        routeLeg = { a, b -> yield(); trail(a, b) },
+        routeLeg = { a, b ->
+            heldLeg?.await()
+            yield()
+            trail(a, b)
+        },
         saveRoute = { _, _, _ -> Result.failure(IllegalStateException("not saved in this test")) },
         onSaved = {},
         errorLog = { _, _, _ -> },
@@ -164,6 +172,23 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
     fun tapNext() {
         composeRule.runOnUiThread { plotting.onWaypointTapped(stops[plotted].stop()) }
         plotted++
+    }
+
+    /** The next leg stays in flight until [landLeg]. */
+    fun holdLegs() {
+        heldLeg = CompletableDeferred()
+    }
+
+    fun landLeg() {
+        composeRule.runOnUiThread { heldLeg?.complete(Unit) }
+        heldLeg = null
+    }
+
+    /** Moves the map away from the navigation view, so "Re-center" shows. */
+    fun leaveNavigationView() {
+        val view = map.renderMode?.navigationView ?: throw AssertionError("navigating, so the map was asked for its navigation view")
+        composeRule.runOnUiThread { view.onLeftView() }
+        settle()
     }
 
     /** A saved route of the first [n] stops, named [name]. [setScreen] must carry it, or the card closes as for a deleted trip. */
