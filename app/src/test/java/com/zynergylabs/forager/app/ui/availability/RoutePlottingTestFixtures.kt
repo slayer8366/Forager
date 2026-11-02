@@ -11,7 +11,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.layout.padding
+import com.zynergylabs.forager.app.ui.map.MapCreditCaption
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -45,7 +49,7 @@ internal typealias RouteRule = AndroidComposeTestRule<ActivityScenarioRule<Compo
  * touch, as `SightingsMap` does; a map surface that counts real taps and real long-presses; and the last content and render
  * mode the screen handed it.
  */
-internal class RouteMapSlot(private val glyphs: List<StubGlyph>) {
+internal class RouteMapSlot(private val glyphs: List<StubGlyph>, private val credit: String? = null) {
     var renderMode: MapRenderMode? = null
     var content: MapOverlayContent? = null
     var longPresses = 0
@@ -66,6 +70,17 @@ internal class RouteMapSlot(private val glyphs: List<StubGlyph>) {
                             val centre = with(density) { Offset(glyph.x.toPx(), glyph.y.toPx()) }
                             renderMode.onFeatureTap(MapFeatureTap(glyph.layerId, glyph.featureId, centre, 0f, glyph.at))
                         },
+                )
+            }
+            // D13: the map's credit strip where SightingsMapLayout draws it, at the bottom start over the render mode's bottom inset,
+            // reporting its size as that one does. Only for a slot given a credit.
+            if (credit != null) {
+                MapCreditCaption(
+                    text = credit,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(bottom = renderMode.bottomInset)
+                        .onSizeChanged { renderMode.onCreditSizeChanged(it) },
                 )
             }
         }

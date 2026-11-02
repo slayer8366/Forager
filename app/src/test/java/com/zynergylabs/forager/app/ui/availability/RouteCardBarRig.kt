@@ -56,7 +56,7 @@ internal val ACROSS_ROUND = listOf(0.5f to 0.2f, 0.2f to 0.5f, 0.5f to 0.5f, 0.8
  * The real Maps tab with a route card over it, recording, six waypoints to plot, for the rule of Amendments 14 and 15 (RECORD
  * -1928, -1929): the card fits beside the icon bar, and the bar, its height and its side never change for the card.
  */
-internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<String>? = null) {
+internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<String>? = null, credit: String? = null) {
     private val stops = listOf(
         CREEK,
         RIDGE,
@@ -66,7 +66,7 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
         Waypoint("wp-spring", 45.376, -122.684, null, "Spring", "", 6_000L),
     ).mapIndexed { i, stop -> names?.getOrNull(i)?.let { stop.copy(name = it) } ?: stop }
 
-    val map = RouteMapSlot(emptyList())
+    val map = RouteMapSlot(emptyList(), credit)
 
     /** While set, a leg being routed waits for it, so a test can read the card with a leg in flight on the phone's terms. */
     private var heldLeg: CompletableDeferred<Unit>? = null

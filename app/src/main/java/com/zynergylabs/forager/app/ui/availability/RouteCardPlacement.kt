@@ -87,7 +87,14 @@ internal val ROUTE_CARD_LANDSCAPE_SHAPE: Shape = RoundedCornerShape(topStart = R
  * At most [maxHeight] tall, below the strip and the search bar, the rows taking what is cut (`RouteCard`'s rows are measured last, and
  * scroll). The rail is on the screen's right at both rotations (RECORD -956), so both rotations place the card alike.
  */
-internal data class RouteCardLandscapeRoom(val besideNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp)
+internal data class RouteCardLandscapeRoom(val besideNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp, val bottom: Dp = 0.dp)
+
+/** C21 stub. */
+internal val ROUTE_CARD_NAVIGATION_TUCK: Dp = 16.dp
+
+/** D13 stub: false, as today's rule gives for D12's case (navigating, the L on the left). */
+@Suppress("UNUSED_PARAMETER")
+internal fun routeCardOverCredit(card: androidx.compose.ui.geometry.Rect?, creditAtRest: androidx.compose.ui.geometry.Rect?): Boolean = false
 
 /** `null` outside a landscape window, and for the frames before the strip is measured, when there is no width to take. */
 @Composable
