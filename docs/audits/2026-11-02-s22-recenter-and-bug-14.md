@@ -115,3 +115,51 @@ Side by side: `c1b/offline-8-10-13.png`.
 
 ## Phone end state
 Forager on the Maps tab, centred on the phone's own location. Airplane mode off, font scale 1.0, auto-rotate on; no Forager service running. Regions: Region 1 and Region 2 only, as before. No TEST data remains outside the ambient map cache and the remembered pin.
+
+## D12: the route card beside the navigation card, landscape, on the S22 (dispatch 2026-10-30-08, C18 and D12; RECORD -1953)
+
+Run by Hazel, 04:50 to 05:21 PST on 11-02. Evidence is in `/home/zynergy-labs/s22-2026-11-02/d12/` (shots, UI dumps, snapshots, CI artefacts), off git. 3.75 px per dp. Re-center follows D10's rule unchanged, and nothing was fixed.
+
+### Build and install
+- **Merges.** This branch is 61ae72887: origin/route-plot-ui a04b55048 (C16 to C20) merged into 213769ffa. origin/pre-main 13c872d79 was already included (`merge-base --is-ancestor`), so its merge was a no-op. No conflicts.
+- **CI run 41447864352** (workflow_dispatch, head 61ae72887): every job green. 0 compile-error lines in the log. From the JUnit XML: 902 files, 6340 tests, 24 skipped, 0 failures, 0 errors. Nothing needed attributing.
+- **APK:** sha256 52e56664…28f7a7, versionCode 4410 (installed was 4398), signing certificate equal to the installed one (cb2f6da5…1626). The routing key is set in the APK step (masked in the log) and was never printed. Schema: this build's ForagerDatabase is 23, and the phone is at user_version 23.
+- **Phone before anything:** dozing on the lock screen, versionCode 4398. No Forager service and no Forager notification, so no recording and no walk logger. Font 1.0, auto-rotate on, user_rotation 0.
+- **In-app backup:** `forager-backup-2026-11-02.zip` (a new name, older files untouched), sha256 ad81228a…b6e4, manifest 4398 and schema 23, pulled to `d12/in-app-backup/`. Not restore-tested.
+- **Across `install -r`:** every forager.db and fungi_index.db table hash is equal (`pre-install-2` against `after-install`). mbgl-offline.db `resources` and `tiles` changed with the same counts: map cache from viewing. Among the other files, only ART's `profileInstalled` changed.
+
+### Setup
+- TEST A to F were dropped as waypoints. Navigation to TEST A was started from its bubble. The map was moved off the navigation view, so Re-center showed, using the earlier two-finger pinch injector (`c1b/tools/pinch-src/`, pushed as `hz-pinch.dex`, deleted after). Plotting went E, D, F, A, B, C. At ROTATION_270, Undo took the plot from 6 stops to 3 and then 1.
+- Landscape came from `user_rotation` 1 and 3 with auto-rotate off. Both were restored afterwards and read back.
+
+### What the pictures show (`d12/shots/`, contact sheet `d12-contact-sheet.png`)
+The card sits left of the navigation card and touches it, as C18 rules. At ROTATION_270 the whole layout is 80 px to the right, behind the system bar on the left. Otherwise it matches ROTATION_90.
+
+| Stops | State | Shot (90 / 270) | Re-center | Walker's dot | Credit line |
+|---|---|---|---|---|---|
+| 1 | collapsed | r90-1p / r270-1p | clear, raised above the card (label y 653–728) | clear | its text clear; drawn over the card's bottom 76 px |
+| 1 | expanded | r90-1e / r270-1e | clear, as collapsed (one stop has no rows, so the two states look alike) | clear | as above |
+| 3 | collapsed | r90-3p / r270-3p | clear (label y 653–728) | clear | as above |
+| 3 | expanded | r90-3e / r270-3e | clear, raised to y 323–398, below the search bar (bottom about 271) | clear | as above |
+| 6 | collapsed | r90-6p / r270-6p | clear (label y 653–728) | clear | as above |
+| 6 | expanded | r90-6e / r270-6e | **covered**: raised to y 113–131, under the search bar, and not visible | clear | as above |
+
+- **Walker's dot:** with the map moved off the navigation view, the dot is the phone's position on the moved map, not the navigation view's fixed dot. It was clear in every shot, for this pan only.
+- **Credit line:** the credit strip (x 0–1638, y 1364–1440 at ROTATION_90) is drawn over the card. Its text stays readable, but it overlaps the button row: Undo by 9 px and Save by 46 px. The credit rises only for a card in the other bottom corner (`routeCardOverCredit`: landscape with the L on the right). Navigating, the L is fixed on the left, so the credit stays down here. The D9 rule ("the 'i' and other chrome keep clear of the card") is not met in this spot. This is recorded, not fixed.
+
+### For the owner and planner: the card is cramped in this spot at font 1.0
+- The room between the L's column and the navigation card is about **205 dp** (card x 520–1287 px). C19's reference card is 247.67 dp, so the card takes the room, as C19's cap says.
+- At that width "N Waypoints routed" wraps onto two lines, and the **Save button's label breaks mid-word, "Sav" / "e"**, with the "e" under the credit line. This is the stop the dispatch names: a width that can't serve the reference card within the room. The 205 dp was measured on the phone at font 1.0. Before this run I had inferred about 278 dp at 1.0 from this audit's earlier figures, and that inference was wrong: the navigation card is wider here than those figures implied.
+- No change was made. Options for the owner, not chosen: let the card cover the L's column; put the card above the navigation card when the room is short (C11's arrangement); shrink the buttons or let them wrap whole words; or another arrangement.
+
+### Data after the check
+- Deleted: the plot (Cancel), navigation (stopped), and TEST A to F, each swiped in Journal > Records > All after reading its name (24 to 18).
+- `after-delete` against `pre-install`: **every forager.db and fungi_index.db table equal.** mbgl-offline.db `regions`, `region_tiles` and `region_resources` are equal. `tiles` went from 1994 to 2007, and `resources` and `sqlite_sequence` changed: ambient cache from viewing. The DataStore and other non-database files are equal to `after-install`.
+
+### Phone end state
+Forager on the Maps tab: not navigating, no plot, no service running. Font 1.0, auto-rotate on, user_rotation 0. `/data/local/tmp/hz-clock-watchdog.sh` and `pinch.sh` are as found; `hz-pinch.dex` is removed.
+
+### Not verified
+- Fonts above 1.0 on the phone, and the L on the rail's side (C20) on the phone. Not navigating was not photographed.
+- Whether one stop was actually expanded: one stop shows the same either way.
+- The walker's dot in the navigation view itself, because Re-center needs the view left.
