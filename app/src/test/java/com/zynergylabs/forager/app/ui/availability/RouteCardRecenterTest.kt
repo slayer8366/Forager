@@ -72,6 +72,43 @@ abstract class RouteCardRecenterTests {
      * the card, the L, the pill, the credit and the search bar, and five real touches across it reach it, each time shown again over the
      * card already up. Back where it was when the card closes. Replaces D10's rise for this case only.
      */
+    /**
+     * D20 (RECORD -1960, the owner: "Rise as before, there only (Recommended)"): where Re-center's measured width does not fit the gap
+     * between the L and the card on the navigation card, it falls back to D10's rise: above the card, clear of it, at every stop count,
+     * peek and expanded, and five real touches across it reach it. Back where it was when the card closes.
+     */
+    protected fun assertRisesWhereNoRoom(window: String, stops: List<Int> = listOf(1, 3, 6)) {
+        rig.setScreen(navigating = true)
+        rig.leaveNavigationView()
+        val noCard = recenter()
+        stops.forEach { n ->
+            listOf(false, true).forEach { expanded ->
+                val where = "$window font ${composeRule.density.fontScale}, $n stops, ${if (expanded) "expanded" else "peek"}"
+                rig.plotTo(n)
+                rig.setExpanded(expanded)
+                listOf(0.5f to 0.5f, -1f to -1f, 1f to -1f, -1f to 1f, 1f to 1f).forEach { (sx, sy) ->
+                    val card = rig.bounds(ROUTE_CARD_TAG)
+                    val pill = recenter()
+                    val l = rig.bounds(MAP_ICON_CLUSTER_TAG)
+                    println("D20 $where ($sx, $sy): Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, L right ${l.right.value}")
+                    assertTrue("$where: precondition: the gap beside the L, ${card.left - l.right - 8.dp}, is narrower than Re-center, ${pill.right - pill.left}", card.left - l.right - 8.dp < pill.right - pill.left)
+                    rig.assertApart("$where: Re-center and the card", pill, card)
+                    assertTrue("$where: Re-center's bottom ${pill.bottom} is above the card's top ${card.top}", pill.bottom <= card.top + 0.5.dp)
+                    val restore = rig.map.renderMode!!.navigationView!!.restoreRequestId
+                    composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).performTouchInput {
+                        click(Offset(center.x + sx * (width / 2 - 12.dp.toPx()), center.y + sy * (height / 2 - 6.dp.toPx())))
+                    }
+                    rig.settle()
+                    assertEquals("$where: a touch at ($sx, $sy) on Re-center", restore + 1, rig.map.renderMode!!.navigationView!!.restoreRequestId)
+                    rig.leaveNavigationView()
+                }
+            }
+        }
+        rig.setExpanded(false)
+        rig.closeCard()
+        rig.assertSame("$window: the card closed, Re-center", noCard, recenter())
+    }
+
     protected fun assertBesideTheL(window: String, stops: List<Int> = listOf(1, 3, 6)) {
         rig.setScreen(navigating = true)
         rig.leaveNavigationView()
@@ -215,12 +252,15 @@ class RouteCardRecenterShortLandscapeTest : RouteCardRecenterTests() {
     fun `in the shortest landscape window, Re-center sits beside the L, clear of the card, peek and expanded`() = assertBesideTheL("640")
 }
 
-/** The shortest landscape window at font 2.0: the least open map beside the card that this suite has. */
+/**
+ * The shortest landscape window at font 2.0: the gap beside the L is 101 dp and Re-center 160.7 dp (D17's stop, 1ea496ab5), so it falls
+ * back to D10's rise (D20, RECORD -1960). The fallback is decided by measurement, not by this window or font.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardRecenterShortLandscapeFont20Test : RouteCardRecenterTests() {
 
     @Test
-    fun `in the shortest landscape window at font 2_0, Re-center sits beside the L, clear of the card, peek and expanded`() = assertBesideTheL("640")
+    fun `in the shortest landscape window at font 2_0, Re-center too wide for the gap rises above the card, peek and expanded`() = assertRisesWhereNoRoom("640")
 }
