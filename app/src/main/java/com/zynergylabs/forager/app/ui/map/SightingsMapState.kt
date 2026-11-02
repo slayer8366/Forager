@@ -3,6 +3,9 @@ package com.zynergylabs.forager.app.ui.map
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntSize
@@ -161,6 +164,12 @@ internal class SightingsMapState(
     var attributionDefaultMargins: IntArray?
         get() = attributionDefaultMarginsState.value
         set(value) { attributionDefaultMarginsState.value = value }
+
+    /**
+     * Counts the user's own camera gestures (MapLibre's gesture reason, MapListeners.kt): the credit strip fades at the first
+     * one after it shows (D25, D26; MapCreditStrip.kt). Made with this holder, so it lives as long as this MapView.
+     */
+    var userCameraGestures by mutableIntStateOf(0)
 
     /** Counts camera idles; the forecast cells' feed is keyed on it. */
     var cameraIdleCount: Int
