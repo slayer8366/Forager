@@ -1,0 +1,1404 @@
+Forager patch 0008: each line, name, shield, place, POI and label goes into the tiles at openstreetmap-carto v6.1.0's
+first zoom N minus 2, and polygons are kept from a quarter pixel (dispatch 2026-11-02-coder-13; the owner: "set it to
+OSM zoom levels", "on the entire map").
+
+Against protomaps/basemaps at ca93fc06efbaff1c5f069d06edbe5de18839c1c8 (tiles 4.15.2), with 0001 to 0007 already
+applied. Applied after them with `git apply` by map-build/bin/build-basemap-jar.sh.
+
+Why N - 2: the app's OpenStreetMap map is a 256 px raster, and MapLibre shows carto's tile level N from camera N - 1.5;
+our 512 px vector tiles draw level z from camera z (Juniper's comparison, Forager osm-zoom-levels 53c5d6801, A1b; the
+planner's decision of 14:36). The style's minzoom goes to N - 1.5 (Forager osm-zooms-style), so a feature has to be
+in our tiles from level N - 2. Every value is carto's rule at v6.1.0, cited in the code by file and line.
+
+- Roads: lines (FORAGER_OSM_LINE_ZOOMS: motorway and trunk 4, primary 6, secondary 7, tertiary and links 8,
+  residential and unclassified 10, road 8, raceway 10, living street 11, service 12 and driveways 14, pedestrian,
+  path, footway and steps 12, track, cycleway and bridleway 11), names (trunk to secondary 11, tertiary 12, streets,
+  living streets, pedestrian streets and tracks 13) and shields (motorway 8, trunk and primary 9, secondary 10,
+  tertiary 11). The class decides, as on carto: no US route-network zoom, and access=private or no keeps the class's
+  zoom, except paths and tracks carto's int_access calls "no" (13). Bridges with their own casing from 11 (motorway to
+  secondary; others 12), tunnels from 10 (motorway to tertiary) and 11 (streets). Links are kept from 8 (LinkSimplify
+  only below 8). Rail from 6 (preserved 10, tram and subway 10, spurs, sidings and yards 11, disused 13), piers from 10
+  with no size floor below 13, taxiways from 9.
+- Water: rivers 6, streams 10, intermittent and seasonal streams 11; water polygons from a quarter pixel (upstream 1);
+  lake labels at carto's first level over 3000 px (5 to 16) minus 2, from 3, else 15.
+- Landuse: polygons from a quarter pixel, by setMinPixelSize and by the bounding-box filter below 15 (upstream 2 px and
+  1.5625 px2, more at 6 and below).
+- Boundaries: admin_level 5 from 6 (upstream 8), 7 from 9 (upstream 10).
+- Places: carto's rules (city score of population or 100,000, doubled for capital=4: 2 at 3,000,000, 3 at 400,000,
+  4 at 70,000, else 5; national capitals 2 over 600,000, else 3; town 7, village 10, hamlet 12, isolated dwelling and
+  farm 13, locality 14, suburb 10, quarter 12, neighbourhood 13), over places.csv's zooms.
+- POIs: peaks 9, alpine and wilderness huts 11, camp sites, picnic sites, viewpoints and shelters 14, parking 12 over
+  750 px at 14 else 15; area names by carto's tag groups (forest, wood, national park, protected area, nature reserve
+  from 8; leisure=park from 10) at the first level over 3000 px minus 2, else 15.
+- Islands: the label at carto's first level over 3000 px (from 4) minus 2, else 14, with no 20 px floor.
+
+Unchanged: Natural Earth at low zooms, the min_zoom attributes and sort keys of roads (label priority), POI thinning,
+kinds the tiles don't write (saddles, heath, wetland subtypes, ditch and canal styles; Juniper's B2).
+
+Tests: 72 upstream and earlier-Forager cases updated to these zooms, each marked "Forager patch 0008", and 77 new
+foragerOsm* cases (RoadsTest 35, PlacesTest 16, PoisTest 9, WaterTest 6, BoundariesTest 5, LanduseTest 4,
+EarthTest 2). 590 tests, 0 failures.
+
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Boundaries.java b/tiles/src/main/java/com/protomaps/basemap/layers/Boundaries.java
+index 8a1625f..a27aea1 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Boundaries.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Boundaries.java
+@@ -200,14 +200,22 @@ public class Boundaries implements ForwardingProfile.OsmRelationPreprocessor,
+             themeMinZoom = 6;
+           }
+           // used in Colombia, Brazil
++          // Forager patch 0008 (dispatch 2026-11-02-coder-13): carto draws admin_level 5 from 8 (admin.mss:323-331),
++          // so it goes in at carto's N - 2 (upstream: 8).
+           case 5 -> {
+             kind = "county";
+-            themeMinZoom = 8;
++            themeMinZoom = 6;
+           }
+           case 6 -> {
+             kind = "county";
+             themeMinZoom = 8;
+           }
++          // Forager patch 0008: carto draws admin_level 7 from 11 (admin.mss:381-391), so it goes in at N - 2 (upstream:
++          // 10, in the default branch below).
++          case 7 -> {
++            kind = "locality";
++            themeMinZoom = 9;
++          }
+           case 8 -> {
+             kind = "locality";
+             themeMinZoom = 10;
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Earth.java b/tiles/src/main/java/com/protomaps/basemap/layers/Earth.java
+index 60c48ae..9b73b40 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Earth.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Earth.java
+@@ -52,6 +52,28 @@ public class Earth implements ForwardingProfile.LayerPostProcessor {
+       .setBufferPixels(8);
+   }
+ 
++  /**
++   * Forager patch 0008 (dispatch 2026-11-02-coder-13; the owner: "set it to OSM zoom levels", "on the entire map"):
++   * carto names an island from 4 once it is over 3000 px, and any island from 16 (amenity-points.mss:1625-1626;
++   * way_pixels, the area in 256 px tile pixels at that level). The label goes in at that N minus 2, where the style
++   * shows it from camera N - 1.5 (Juniper's comparison, Forager osm-zoom-levels 53c5d6801, row 101).
++   */
++  static int foragerOsmIslandZoom(SourceFeature sf) {
++    double area;
++    try {
++      area = sf.area();
++    } catch (GeometryException e) {
++      area = 0;
++    }
++    for (int z = 4; z < 16; z++) {
++      double pixels = 256d * Math.pow(2, z);
++      if (area * pixels * pixels > 3000) {
++        return z - 2;
++      }
++    }
++    return 16 - 2;
++  }
++
+   public void processOsm(SourceFeature sf, FeatureCollector features) {
+     if (sf.canBeLine() && !sf.canBePolygon() && sf.hasTag("natural", "cliff")) {
+       int minZoom = 12;
+@@ -69,8 +91,10 @@ public class Earth implements ForwardingProfile.LayerPostProcessor {
+       var feat = features.innermostPoint(LAYER_NAME)
+         .setId(FeatureId.create(sf))
+         .setAttr("kind", "island")
+-        .setMinPixelSize(20)
+-        .setMinZoom(6);
++        // Forager patch 0008: in at carto's first zoom N minus 2 (foragerOsmIslandZoom), with no size floor of its own
++        // (upstream: from 6, over 20 px).
++        .setMinPixelSize(0)
++        .setMinZoom(foragerOsmIslandZoom(sf));
+       OsmNames.setOsmNames(feat, sf, 0);
+     }
+   }
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
+index 0a2c3c7..3a8f226 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
+@@ -265,7 +265,10 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+         // NOTE: (nvkelso 20230622) Consider zoom 5 instead...
+         //       But to match Protomaps v2 we do earlier
+         .setZoomRange(2, 15)
+-        .setMinPixelSize(2.0);
++        // Forager patch 0008 (dispatch 2026-11-02-coder-13): carto keeps a land polygon once it is over 1 px at its
++        // 256 px tile level N (project.mml:139, 246; 0.01 px at 5-9, mml:79), so at our level N - 2, where the style
++        // shows it from camera N - 1.5, a quarter of a pixel across (upstream: 2.0, about 3 zooms later than OSM).
++        .setMinPixelSize(FORAGER_OSM_MIN_PIXEL_SIZE);
+ 
+     }
+   }
+@@ -319,6 +322,9 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+ 
+   public static final String LAYER_NAME = "landuse";
+ 
++  /** Forager patch 0008: the polygon size floor, in pixels at the tile's level (see processOsm). */
++  static final double FORAGER_OSM_MIN_PIXEL_SIZE = 0.25;
++
+   /** Forager patch 0006: the landuse values written as kind farmland with kind_detail. */
+   private static final Set<String> FORAGER_FARMLAND_DETAILS = Set.of("orchard", "plant_nursery",
+     "vineyard");
+@@ -332,11 +338,9 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+   public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
+     if (zoom == 15)
+       return items;
+-    double minArea = 400d / (4096 * 4096) * (256 * 256);
+-    if (zoom == 6)
+-      minArea = 600d / (4096 * 4096) * (256 * 256);
+-    else if (zoom <= 5)
+-      minArea = 800d / (4096 * 4096) * (256 * 256);
++    // Forager patch 0008: the same floor as setMinPixelSize, on the bounding box, at every level below 15 (upstream:
++    // 1.5625 px2, 2.34 at 6 and 3.125 at 5 and below).
++    double minArea = FORAGER_OSM_MIN_PIXEL_SIZE * FORAGER_OSM_MIN_PIXEL_SIZE;
+     items = Area.filterArea(items, minArea);
+ 
+     // We only care about park boundaries inside groups of adjacent parks at higher zooms when they are labeled
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Places.java b/tiles/src/main/java/com/protomaps/basemap/layers/Places.java
+index 382a77b..7f3d1e0 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Places.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Places.java
+@@ -29,6 +29,7 @@ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
++import java.util.Set;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
+@@ -282,6 +283,11 @@ public class Places implements ForwardingProfile.LayerPostProcessor {
+     int maxZoom = zp.maxZoom();
+     int kindRank = zp.kindRank();
+     int populationRank = zp.populationRank();
++    // Forager patch 0008: OSM's first zooms for city to neighbourhood names (foragerOsmPlaceZoom).
++    Integer osmZoom = foragerOsmPlaceZoom(sf);
++    if (osmZoom != null) {
++      minZoom = osmZoom;
++    }
+ 
+     var feat = features.point(this.name())
+       .setId(FeatureId.create(sf))
+@@ -398,6 +404,44 @@ public class Places implements ForwardingProfile.LayerPostProcessor {
+ 
+   record ZoomsPops(int minZoom, int maxZoom, int kindRank, int populationRank) {}
+ 
++  /**
++   * Forager patch 0008 (dispatch 2026-11-02-coder-13; the owner: "set it to OSM zoom levels", "on the entire map"):
++   * a place name is in the tiles from openstreetmap-carto v6.1.0's first zoom N minus 2, where the style shows it from
++   * camera N - 1.5, as the app's OpenStreetMap map does (Juniper's comparison, Forager osm-zoom-levels 53c5d6801, rows
++   * 92-100). Null keeps the zoom above (countries, regions and anything carto has no rule for here).
++   */
++  static Integer foragerOsmPlaceZoom(SourceFeature sf) {
++    String place = sf.getString("place");
++    if (place == null) {
++      return null;
++    }
++    String populationTag = sf.getString("population");
++    Integer population = populationTag != null && populationTag.matches("[0-9]{1,8}") ?
++      Integer.valueOf(populationTag) : null;
++    // National capitals (capital-names, project.mml:1263-1284; placenames.mss:91-93): from 4 over 600,000, else 5.
++    if (sf.hasTag("capital", "yes") && Set.of("city", "town", "village", "hamlet").contains(place)) {
++      return (population != null && population > 600000 ? 4 : 5) - 2;
++    }
++    return switch (place) {
++      case "city" -> {
++        // placenames-medium (project.mml:1309-1353; placenames.mss:155-158, 223-226): score = population, or 100,000
++        // with none, doubled for capital=4; from 4 at 3,000,000, 5 at 400,000, 6 at 70,000, else 7.
++        long score = (population != null ? population : 100000L) * (sf.hasTag("capital", "4") ? 2 : 1);
++        int n = score >= 3000000 ? 4 : score >= 400000 ? 5 : score >= 70000 ? 6 : 7;
++        yield n - 2;
++      }
++      case "town" -> 9 - 2; // placenames.mss:287-289
++      case "village" -> 12 - 2; // placenames.mss:356-357
++      case "hamlet" -> 14 - 2; // placenames.mss:427-428
++      case "isolated_dwelling", "farm" -> 15 - 2; // placenames.mss:461-463
++      case "locality" -> 16 - 2; // amenity-points.mss:1650
++      case "suburb" -> 12 - 2; // placenames.mss:322
++      case "quarter" -> 14 - 2; // placenames.mss:398-399
++      case "neighbourhood" -> 15 - 2; // placenames.mss:461
++      default -> null;
++    };
++  }
++
+   private ZoomsPops getZoomsPops(Matcher.SourceFeatureWithComputedTags sf2, String kind, int population) {
+     var zoomMatches = zoomsIndex.getMatches(sf2);
+     int minZoom = getInteger(sf2, zoomMatches, "pm:minzoom", 99);
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java b/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java
+index 21a420e..e39bc08 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java
+@@ -25,6 +25,7 @@ import com.protomaps.basemap.feature.QrankDb;
+ import com.protomaps.basemap.names.OsmNames;
+ import java.util.List;
+ import java.util.Map;
++import java.util.Set;
+ import java.util.regex.Pattern;
+ 
+ @SuppressWarnings("java:S1192")
+@@ -414,6 +415,63 @@ public class Pois implements ForwardingProfile.LayerPostProcessor {
+   private static final double WORLD_AREA_FOR_70_SQUARE_METERS =
+     Math.pow(GeoUtils.metersToPixelAtEquator(0, Math.sqrt(70)) / 256d, 2);
+ 
++  /**
++   * Forager patch 0008 (dispatch 2026-11-02-coder-13; the owner: "set it to OSM zoom levels", "on the entire map"): these
++   * POIs go in at openstreetmap-carto v6.1.0's first zoom N minus 2, where the style shows them from camera N - 1.5, as
++   * the app's OpenStreetMap map does (Juniper's comparison, Forager osm-zoom-levels 53c5d6801, rows 102-110). Size rules
++   * use carto's way_pixels, the polygon's area in 256 px tile pixels at that level. Null keeps the zoom above.
++   */
++  static Integer foragerOsmPoiZoom(SourceFeature sf, String kind, boolean hasNamedPolygon) {
++    switch (kind) {
++      case "peak" -> {
++        return 11 - 2; // amenity-points.mss:1396
++      }
++      case "alpine_hut", "wilderness_hut" -> {
++        return 13 - 2; // amenity-points.mss:46-47
++      }
++      case "camp_site", "picnic_site", "viewpoint", "shelter" -> {
++        return 16 - 2; // amenity-points.mss:233, 1278, 773, 48
++      }
++      case "parking" -> {
++        // amenity-points.mss:1478-1484: from 14 once over 750 px, any size from 17
++        return (hasNamedPolygon && foragerOsmWayPixels(sf, 14) > 750 ? 14 : 17) - 2;
++      }
++      default -> {
++        // Area names: carto chooses by tag, not by our kind (US national parks and forests are kind park here). From 8
++        // for forests, woods, national parks, protected areas, nature reserves and aboriginal lands
++        // (amenity-points.mss:2087-2095), from 10 for leisure=park (2175-2181, 2222-2229); once over 3000 px, and any
++        // size from 17.
++        if (!Set.of("national_park", "protected_area", "nature_reserve", "forest", "park").contains(kind)) {
++          return null;
++        }
++        int from = sf.hasTag("boundary", "national_park", "protected_area", "aboriginal_lands") ||
++          sf.hasTag("leisure", "nature_reserve") || sf.hasTag("landuse", "forest", "military") ||
++          sf.hasTag("natural", "wood") ? 8 : sf.hasTag("leisure", "park") ? 10 : -1;
++        if (from < 0) {
++          return null;
++        }
++        if (hasNamedPolygon) {
++          for (int z = from; z < 17; z++) {
++            if (foragerOsmWayPixels(sf, z) > 3000) {
++              return z - 2;
++            }
++          }
++        }
++        return 17 - 2;
++      }
++    }
++  }
++
++  /** Carto's way_pixels: the polygon's area in 256 px tile pixels at the zoom (0 if it isn't a polygon). */
++  static double foragerOsmWayPixels(SourceFeature sf, int zoom) {
++    try {
++      double pixels = 256d * Math.pow(2, zoom);
++      return sf.canBePolygon() ? sf.area() * pixels * pixels : 0;
++    } catch (GeometryException e) {
++      return 0;
++    }
++  }
++
+   private boolean isNamedPolygon(SourceFeature sf) {
+     return sf.canBePolygon() && sf.hasTag("name") && sf.getString("name") != null;
+   }
+@@ -523,6 +581,12 @@ public class Pois implements ForwardingProfile.LayerPostProcessor {
+       }
+     }
+ 
++    // Forager patch 0008: OSM's first zooms for these kinds (foragerOsmPoiZoom), in place of the rules above.
++    Integer osmZoom = foragerOsmPoiZoom(sf, kind, hasNamedPolygon);
++    if (osmZoom != null) {
++      minZoom = osmZoom;
++    }
++
+     // Assign outputFeature
+     if (hasNamedPolygon) {
+       outputFeature = features.pointOnSurface(this.name());
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+index 2ac0508..eab0fdb 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+@@ -46,6 +46,102 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+   private static final List<String> FORAGER_TRAIL_KEYS =
+     List.of("sac_scale", "trail_visibility", "informal", "tracktype", "surface", "foot");
+ 
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13; the owner: "set it to OSM zoom levels", "on the entire map").
++  // Every line, name and shield is in the tiles from openstreetmap-carto v6.1.0's first zoom N minus 2: carto's 256 px
++  // tile level N first shows in the app at camera N - 1.5, and the style's minzoom is set to N - 1.5 over 512 px tiles
++  // (Juniper's comparison, Forager osm-zoom-levels 53c5d6801, rows 35-85). Each value below is carto's N - 2, with the
++  // carto rule it comes from; it replaces the zoom set above, so a way is neither later nor earlier than OSM's.
++
++  /** Lines: highway value to carto N - 2 (roads.mss at v6.1.0). */
++  static final Map<String, Integer> FORAGER_OSM_LINE_ZOOMS = Map.ofEntries(
++    Map.entry("motorway", 4), // rd:1419-1423, roads-low-zoom from 6 (project.mml:849)
++    Map.entry("trunk", 4), // rd:1533-1537
++    Map.entry("primary", 6), // rd:1639-1643
++    Map.entry("secondary", 7), // rd:1741-1742
++    Map.entry("tertiary", 8), // rd:1840-1841
++    Map.entry("motorway_link", 8), Map.entry("trunk_link", 8), Map.entry("primary_link", 8), // links 10
++    Map.entry("secondary_link", 8), Map.entry("tertiary_link", 8), // rd:1424, 1538, 1644, 1743
++    Map.entry("residential", 10), Map.entry("unclassified", 10), // rd:1939-1946
++    Map.entry("road", 8), // rd:2062-2068
++    Map.entry("raceway", 10), // rd:2254-2255
++    Map.entry("living_street", 11), // rd:2004-2007
++    Map.entry("service", 12), // rd:2115-2118
++    Map.entry("pedestrian", 12), // rd:2205-2208
++    Map.entry("track", 11), // rd:2515-2517
++    Map.entry("path", 12), Map.entry("footway", 12), Map.entry("steps", 12), // rd:2354-2357, 2314-2316
++    Map.entry("cycleway", 11), Map.entry("bridleway", 11) // rd:2435-2437, 2332-2334
++  );
++  /** Service roads carto draws as minor from 16 (project.mml:475, rd:2119): driveways, parking aisles, drive-throughs. */
++  static final int FORAGER_OSM_MINOR_SERVICE_ZOOM = 14;
++  /** Paths and tracks carto's int_access calls "no" are drawn from 15 (rd:2357, 2517; functions.sql:10-75). */
++  static final int FORAGER_OSM_PATH_ACCESS_NO_ZOOM = 13;
++  private static final Set<String> FORAGER_OSM_ACCESS_NO =
++    Set.of("no", "permit", "private", "agricultural", "forestry", "agricultural;forestry");
++  /** Names: highway value to carto N - 2 (rd:3956-3994, 4019-4021, 4061-4068, 4116-4120, 4159-4162). */
++  static final Map<String, Integer> FORAGER_OSM_NAME_ZOOMS = Map.ofEntries(
++    Map.entry("motorway", 11), Map.entry("trunk", 11), Map.entry("primary", 11), Map.entry("secondary", 11),
++    Map.entry("tertiary", 12),
++    Map.entry("residential", 13), Map.entry("unclassified", 13), Map.entry("road", 13),
++    Map.entry("living_street", 13), Map.entry("pedestrian", 13), Map.entry("track", 13)
++  );
++  /** Shields: highway value to carto N - 2 (rd:3764-3768, 3801-3807); carto draws none on links. */
++  static final Map<String, Integer> FORAGER_OSM_SHIELD_ZOOMS = Map.of(
++    "motorway", 8, "trunk", 9, "primary", 9, "secondary", 10, "tertiary", 11);
++  /** Bridges with their own casing: motorway to secondary from 13 (rd:377-486), the rest from 14 (rd:516-705). */
++  static final Set<String> FORAGER_OSM_MAJOR_BRIDGES = Set.of("motorway", "motorway_link", "trunk", "trunk_link",
++    "primary", "primary_link", "secondary", "secondary_link");
++  static final int FORAGER_OSM_MAJOR_BRIDGE_ZOOM = 11;
++  /** Tunnels: motorway to tertiary dashed from 12 (rd:374-376 ...), residential and living street from 13 (rd:527-542). */
++  static final Set<String> FORAGER_OSM_MAJOR_TUNNELS = Set.of("motorway", "motorway_link", "trunk", "trunk_link",
++    "primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link");
++  static final int FORAGER_OSM_MAJOR_TUNNEL_ZOOM = 10;
++  static final Set<String> FORAGER_OSM_MINOR_TUNNELS = Set.of("residential", "living_street", "unclassified", "road");
++  static final int FORAGER_OSM_MINOR_TUNNEL_ZOOM = 11;
++  /** Links are kept from 10 on OSM (rd:1424 ...), so LinkSimplify only runs below their N - 2. */
++  static final int FORAGER_OSM_LINK_SIMPLIFY_BELOW = 8;
++
++  /** Carto's int_access for paths and tracks (functions.sql:48-75): "no" means drawn from 15 only. */
++  static boolean foragerOsmPathAccessNo(SourceFeature sf, String highway) {
++    String value = switch (highway) {
++      case "path" -> sf.hasTag("bicycle", "designated") ? sf.getString("bicycle") :
++        sf.hasTag("horse", "designated") ? sf.getString("horse") : foragerOsmFirst(sf, "foot", "access");
++      case "footway", "steps" -> foragerOsmFirst(sf, "foot", "access");
++      case "cycleway" -> foragerOsmFirst(sf, "bicycle", "access");
++      case "bridleway" -> foragerOsmFirst(sf, "horse", "access");
++      case "track" -> sf.getString("access");
++      default -> null;
++    };
++    return value != null && FORAGER_OSM_ACCESS_NO.contains(value);
++  }
++
++  private static String foragerOsmFirst(SourceFeature sf, String key, String fallback) {
++    String v = sf.getString(key);
++    return v != null && !v.equals("unknown") ? v : sf.getString(fallback);
++  }
++
++  /** Rail, piers and taxiways: carto N - 2 (rd:2610-2803, project.mml:833-850; water-features.mss:85-97). */
++  static Integer foragerOsmNonHighwayZoom(SourceFeature sf, String kindDetail) {
++    boolean preserved = sf.hasTag("railway:preserved", "yes");
++    boolean serviceTrack = sf.hasTag("service", "spur", "siding", "yard");
++    if (sf.hasTag("railway", "rail", "light_rail", "narrow_gauge", "funicular")) {
++      if (serviceTrack) {
++        return 11; // railway_INT-*-service from 13 (rd:2616, 2744)
++      }
++      return preserved ? 10 : 6; // from 8, but preserved from 12 (rd:2610-2615, 2690-2695; mml:840-842)
++    }
++    if (sf.hasTag("railway", "tram", "subway", "preserved")) {
++      return 10; // from 12 (rd:2773-2774, 2802-2803)
++    }
++    if (sf.hasTag("railway", "disused")) {
++      return 13; // from 15 (rd:2869-2870)
++    }
++    return switch (kindDetail) {
++      case "pier" -> 10; // from 12 (project.mml:386; water-features.mss:85-97)
++      case "taxiway" -> 9; // from 11 (rd:3729-3748)
++      default -> null;
++    };
++  }
++
+   private static final MultiExpression.Index<Map<String, Object>> osmKindsIndex = MultiExpression.of(List.of(
+     rule(
+       use("pm:kindDetail", fromTag("highway")),
+@@ -419,6 +515,21 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+       (kindDetail.equals("residential") || kindDetail.equals("unclassified") || kindDetail.equals("road"))) {
+       foragerMinZoom = Math.min(minZoom, FORAGER_STREETS_MIN_ZOOM);
+     }
++    // Forager patch 0008: OSM's first zooms (FORAGER_OSM_LINE_ZOOMS), for the line, its names and its shields. Where it
++    // meets the blocks above it decides: a way with access=private or no keeps its class's zoom, as carto draws it,
++    // except paths and tracks carto's int_access calls "no", which come in at 13; 0005's streets at 10 are carto's too.
++    Integer osmLineZoom = FORAGER_OSM_LINE_ZOOMS.get(highway);
++    if (osmLineZoom != null) {
++      foragerMinZoom = osmLineZoom;
++      if (highway.equals("service") && sf.hasTag("service", "driveway", "parking_aisle", "drive-through")) {
++        foragerMinZoom = FORAGER_OSM_MINOR_SERVICE_ZOOM;
++      }
++      if (foragerOsmPathAccessNo(sf, highway)) {
++        foragerMinZoom = Math.max(foragerMinZoom, FORAGER_OSM_PATH_ACCESS_NO_ZOOM);
++      }
++    }
++    minZoomNames = FORAGER_OSM_NAME_ZOOMS.getOrDefault(highway, minZoomNames);
++    minZoomShieldText = FORAGER_OSM_SHIELD_ZOOMS.getOrDefault(highway, minZoomShieldText);
+ 
+     var feat = features.line("roads")
+       .setId(FeatureId.create(sf))
+@@ -474,10 +585,14 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+ 
+     // Set "brunnel" (bridge / tunnel) property where "level" = 1 is a bridge, 0 is ground level, and -1 is a tunnel
+     // Because of MapLibre performance and draw order limitations, generally the boolean is sufficent
++    // Forager patch 0008: bridges and tunnels from carto's N - 2 (FORAGER_OSM_MAJOR_BRIDGES and _TUNNELS); upstream 12.
+     if (sf.hasTag("bridge") && !sf.hasTag("bridge", "no")) {
+-      feat.setAttrWithMinzoom("is_bridge", true, 12);
++      feat.setAttrWithMinzoom("is_bridge", true,
++        FORAGER_OSM_MAJOR_BRIDGES.contains(highway) ? FORAGER_OSM_MAJOR_BRIDGE_ZOOM : 12);
+     } else if (sf.hasTag("tunnel") && !sf.hasTag("tunnel", "no")) {
+-      feat.setAttrWithMinzoom("is_tunnel", true, 12);
++      feat.setAttrWithMinzoom("is_tunnel", true,
++        FORAGER_OSM_MAJOR_TUNNELS.contains(highway) ? FORAGER_OSM_MAJOR_TUNNEL_ZOOM :
++          FORAGER_OSM_MINOR_TUNNELS.contains(highway) ? FORAGER_OSM_MINOR_TUNNEL_ZOOM : 12);
+     }
+ 
+     // Server sort features so client label collisions are pre-sorted
+@@ -506,6 +621,11 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+     int minZoom = getInteger(sf, matches, "minZoom", 11);
+     String kind = getString(sf, matches, "kind", "other");
+     String kindDetail = getString(sf, matches, "kindDetail", "");
++    // Forager patch 0008: rail, piers and taxiways from carto's N - 2 (foragerOsmNonHighwayZoom).
++    Integer osmZoom = foragerOsmNonHighwayZoom(sf, kindDetail);
++    if (osmZoom != null) {
++      minZoom = osmZoom;
++    }
+ 
+ 
+     var feature = features.line(this.name())
+@@ -538,6 +658,9 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+     // Too many small pier lines otherwise
+     if (kindDetail.equals("pier")) {
+       feature.setMinPixelSize(2);
++      // Forager patch 0008: carto draws piers of any length from 12 (water-features.mss:85-97), so none is dropped
++      // for size below 13, at their N - 2 of 10 and the two levels after it.
++      feature.setMinPixelSizeBelowZoom(12, 0);
+     }
+ 
+     // Server sort features so client label collisions are pre-sorted
+@@ -872,7 +995,8 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+   @Override
+   public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
+     // limit the application of LinkSimplify to where cloverleafs are unlikely to be at tile edges.
+-    if (zoom < 12) {
++    // Forager patch 0008: links stay from carto's N - 2 of 8 (upstream: removed below 12).
++    if (zoom < FORAGER_OSM_LINK_SIMPLIFY_BELOW) {
+       items = linkSimplify(items, "pm:highway", "motorway", "motorway_link");
+       items = linkSimplify(items, "pm:highway", "trunk", "trunk_link");
+       items = linkSimplify(items, "pm:highway", "primary", "primary_link");
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Water.java b/tiles/src/main/java/com/protomaps/basemap/layers/Water.java
+index 7ce492a..8a543c7 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Water.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Water.java
+@@ -15,6 +15,7 @@ import com.onthegomap.planetiler.FeatureCollector;
+ import com.onthegomap.planetiler.FeatureMerge;
+ import com.onthegomap.planetiler.ForwardingProfile;
+ import com.onthegomap.planetiler.VectorTile;
++import com.onthegomap.planetiler.expression.Expression;
+ import com.onthegomap.planetiler.expression.MultiExpression;
+ import com.onthegomap.planetiler.geo.GeoUtils;
+ import com.onthegomap.planetiler.geo.GeometryException;
+@@ -28,6 +29,11 @@ import java.util.Map;
+ @SuppressWarnings("java:S1192")
+ public class Water implements ForwardingProfile.LayerPostProcessor {
+ 
++  /** Forager patch 0008: the water polygon size floor, in pixels at the tile's level (see processOsm). */
++  static final double FORAGER_OSM_MIN_PIXEL_SIZE = 0.25;
++  /** Forager patch 0008: the first level a water label goes in at, carto's 5 minus 2. */
++  static final int FORAGER_OSM_WATER_LABEL_FIRST_ZOOM = 3;
++
+   private static final double WORLD_AREA_FOR_70K_SQUARE_METERS =
+     Math.pow(GeoUtils.metersToPixelAtEquator(0, Math.sqrt(70_000)) / 256d, 2);
+ 
+@@ -96,15 +102,27 @@ public class Water implements ForwardingProfile.LayerPostProcessor {
+       use("kind", "ditch"),
+       use("minZoom", 15)
+     ),
++    // Forager patch 0008 (dispatch 2026-11-02-coder-13): streams and rivers from openstreetmap-carto v6.1.0's first
++    // zoom N minus 2, so they first appear where the app's OpenStreetMap map first shows them (upstream: 13 and 9).
++    // Streams from 12 and intermittent ones from 13 (water.mss:223-228; int_intermittent, project.mml:200-202); rivers
++    // from 8 (water.mss:64-75, project.mml:186).
+     rule(
+       with("waterway", "stream"),
+       use("kind", "stream"),
+-      use("minZoom", 13)
++      use("minZoom", 10)
++    ),
++    rule(
++      with("waterway", "stream"),
++      Expression.or(
++        with("intermittent", "yes"),
++        with("seasonal", "yes", "spring", "summer", "autumn", "winter", "wet_season", "dry_season")
++      ),
++      use("minZoom", 11)
+     ),
+     rule(
+       with("waterway", "river"),
+       use("kind", "river"),
+-      use("minZoom", 9)
++      use("minZoom", 6)
+     ),
+     rule(
+       with("waterway", "canal"),
+@@ -361,7 +379,9 @@ public class Water implements ForwardingProfile.LayerPostProcessor {
+         .setAttrWithMinzoom("layer", Parse.parseIntOrNull(sf.getString("layer")), extraAttrMinzoom)
+         .setPixelTolerance(Earth.PIXEL_TOLERANCE)
+         .setMinZoom(6)
+-        .setMinPixelSize(1.0)
++        // Forager patch 0008: carto keeps a water polygon once it is over 1 px at its 256 px tile level N
++        // (project.mml:241, 246); at our level N - 2 that is a quarter of a pixel across (upstream: 1.0).
++        .setMinPixelSize(FORAGER_OSM_MIN_PIXEL_SIZE)
+         .setBufferPixels(8);
+     }
+ 
+@@ -410,9 +430,13 @@ public class Water implements ForwardingProfile.LayerPostProcessor {
+         e.log("Exception in way area calculation");
+       }
+ 
+-      for (int i = 6; i < 15; ++i) {
++      // Forager patch 0008: carto names a lake from 5 once it is over 3000 px, and any lake from 17 (water.mss:458-463).
++      // The area test below finds carto's level N (Juniper's comparison, row 88: 70,000 m2 x 4^(15-z) is carto's
++      // 3000 px to within 2 %), and the label goes in at N - 2, from 3; other named water from 15 (upstream: the first
++      // level 6-14 itself, else 15).
++      for (int i = 5; i < 17; ++i) {
+         if (wayArea > Math.pow(4.0, 15.0 - i)) {
+-          nameMinZoom = i;
++          nameMinZoom = Math.max(FORAGER_OSM_WATER_LABEL_FIRST_ZOOM, i - 2);
+           break;
+         }
+       }
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/BoundariesTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/BoundariesTest.java
+index 16b071b..fb8737f 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/BoundariesTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/BoundariesTest.java
+@@ -261,4 +261,20 @@ class BoundariesTest extends LayerTest {
+         1
+       )));
+   }
++
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): admin levels 5 and 7 from openstreetmap-carto v6.1.0's 8 and
++  // 11 minus 2 (upstream: 8 and 10); levels 4, 6 and 8 already were (6, 8 and 10).
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({"4, 6", "5, 6", "6, 8", "7, 9", "8, 10"})
++  void foragerOsmAdminLevelZooms(String adminLevel, int minZoom) {
++    var infos = profile.preprocessOsmRelation(
++      new OsmElement.Relation(1, Map.of("type", "boundary", "boundary", "administrative", "admin_level", adminLevel),
++        List.of(new OsmElement.Relation.Member(OsmElement.Type.WAY, 123, ""))));
++    var way = SimpleFeature.createFakeOsmFeature(newLineString(0, 0, 1, 1), new HashMap<>(Map.of()), "osm", null, 123,
++      infos.stream().map(r -> new OsmReader.RelationMember<>("", r)).toList());
++    var collector = featureCollectorFactory.get(way);
++    profile.processFeature(way, collector);
++    assertFeatures(12, List.of(Map.of("_minzoom", minZoom)), collector);
++  }
++
+ }
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/EarthTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/EarthTest.java
+index bcbfd91..e1ed10f 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/EarthTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/EarthTest.java
+@@ -39,8 +39,9 @@ class EarthTest extends LayerTest {
+ 
+   @Test
+   void island() {
++    // Forager patch 0008: an island's label from carto's first level over 3000 px (7 for this one) minus 2, with no 20 px floor (upstream 6).
+     assertFeatures(6,
+-      List.of(Map.of("kind", "island", "_minzoom", 6)),
++      List.of(Map.of("kind", "island", "_minzoom", 5)),
+       process(SimpleFeature.create(
+         newPolygon(0, 0, 0, 1, 1, 1, 0, 0),
+         new HashMap<>(Map.of("place", "island")),
+@@ -78,4 +79,15 @@ class EarthTest extends LayerTest {
+       ))
+     );
+   }
++
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): an island's label from openstreetmap-carto v6.1.0's first level
++  // over 3000 px minus 2, from 4, and any size from 16: a 6-degree island from 2, a 0.001-degree one from 14.
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({"6, 2", "0.001, 14"})
++  void foragerOsmIslandZooms(double degrees, int minZoom) {
++    var feature = process(SimpleFeature.create(newPolygon(0, 0, degrees, 0, degrees, degrees, 0, degrees, 0, 0),
++      new HashMap<>(Map.of("place", "island", "name", "Isle")), "osm", null, 0)).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
++  }
++
+ }
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
+index f90ebd3..e7e7198 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
+@@ -639,15 +639,28 @@ class LanduseTest extends LayerTest {
+ 
+   @Test
+   void postProcessFiltersSmallPolygonsBelowZoom15() throws GeometryException {
++    // Forager patch 0008: the floor is 0.25 px across (0.0625 px2 bounding box; upstream 1.5625 px2), so a 0.2 px
++    // square is still dropped and a 1 px square, which upstream dropped, is kept.
+     var small = new VectorTile.Feature("landuse", 1,
+-      VectorTile.encodeGeometry(newPolygon(0, 0, 1, 0, 1, 1, 0, 1, 0, 0)),
++      VectorTile.encodeGeometry(newPolygon(0, 0, 0.2, 0, 0.2, 0.2, 0, 0.2, 0, 0)),
+       new HashMap<>(Map.of("kind", "park")));
+     var large = new VectorTile.Feature("landuse", 2,
+-      VectorTile.encodeGeometry(newPolygon(0, 0, 2, 0, 2, 2, 0, 2, 0, 0)),
++      VectorTile.encodeGeometry(newPolygon(0, 0, 1, 0, 1, 1, 0, 1, 0, 0)),
+       new HashMap<>(Map.of("kind", "park")));
+ 
+     var result = new Landuse().postProcess(14, List.of(small, large));
+ 
+     assertEquals(List.of(large), result);
+   }
++
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): a land polygon is kept once it is a quarter pixel across at the
++  // tile's level, carto's 1 px at its level N, two levels on (upstream: 2 px).
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({"forest", "orchard", "residential", "meadow"})
++  void foragerOsmLanduseMinPixelSize(String landuse) {
++    var feature = processWith("landuse", landuse).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(0.25, feature.getMinPixelSizeAtZoom(10), "size floor at 10");
++    org.junit.jupiter.api.Assertions.assertEquals(0.25, feature.getMinPixelSizeAtZoom(5), "size floor at 5");
++  }
++
+ }
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/PlacesTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/PlacesTest.java
+index 47f6f7b..c3e2f18 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/PlacesTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/PlacesTest.java
+@@ -102,8 +102,9 @@ class PlacesTest extends LayerTest {
+ 
+   @Test
+   void testMinMaxLabelPopulatedPlaceNoMatch() {
++    // Forager patch 0008: a city with no population scores carto's 100,000, first at 6, so in from 4 (upstream 8).
+     assertFeatures(12,
+-      List.of(Map.of("_minzoom", 8, "kind", "locality")),
++      List.of(Map.of("_minzoom", 4, "kind", "locality")),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("place", "city", "wikidata", "Q999", "name", "XX")),
+@@ -205,10 +206,11 @@ class PlacesTest extends LayerTest {
+ 
+   @Test
+   void testLocalityNoPopulationHasCorrectMinZoom() {
++    // Forager patch 0008: place=locality from carto's 16 minus 2 (upstream 12).
+     // Place Mahiouindo - OSM node/4535788658
+     // place=locality without population should have _minzoom=12 (not 7)
+     assertFeatures(7,
+-      List.of(Map.of("_minzoom", 12, "_maxzoom", 14, "kind", "locality", "kind_detail", "locality")),
++      List.of(Map.of("_minzoom", 14, "_maxzoom", 14, "kind", "locality", "kind_detail", "locality")),
+       process(SimpleFeature.create(
+         newPoint(2.5892, 7.3321),
+         new HashMap<>(Map.of("place", "locality", "name", "Place Mahiouindo")),
+@@ -220,11 +222,12 @@ class PlacesTest extends LayerTest {
+ 
+   @Test
+   void testLocalityNoPopulationMinZoom() {
++    // Forager patch 0008: place=locality from carto's 16 minus 2, so min_zoom 15 (upstream 13).
+     // Place Mahiouindo - should have min_zoom=13 (minzoom=12 + 1)
+     assertFeatures(12,
+       List.of(Map.of("kind", "locality",
+         "kind_detail", "locality",
+-        "min_zoom", 13,
++        "min_zoom", 15,
+         "population", 1000)),
+       process(SimpleFeature.create(
+         newPoint(2.5892, 7.3321),
+@@ -237,12 +240,13 @@ class PlacesTest extends LayerTest {
+ 
+   @Test
+   void testCityWithPopulationVisibleAtZoom7() {
++    // Forager patch 0008: a city of 160,000 scores over 70,000, carto's 6, so in from 4 and min_zoom 5 (upstream 8).
+     // Kétou - OSM node/2313302870
+     // place=city with population=160000 should be visible at zoom 7 (minzoom=7, min_zoom=8)
+     assertFeatures(7,
+       List.of(Map.of("kind", "locality",
+         "kind_detail", "city",
+-        "min_zoom", 8,
++        "min_zoom", 5,
+         "population", 160000)),
+       process(SimpleFeature.create(
+         newPoint(2.5892, 7.3632),
+@@ -255,9 +259,10 @@ class PlacesTest extends LayerTest {
+ 
+   @Test
+   void testCityWithoutPopulationHasCorrectMinZoom() {
++    // Forager patch 0008: a city with no population scores carto's 100,000, first at 6, so in from 4 (upstream 8).
+     // Cities without population tags get populationFallback=5000 and should have _minZoom=8
+     assertFeatures(8,
+-      List.of(Map.of("_minzoom", 8, "kind", "locality", "kind_detail", "city", "population", 5000)),
++      List.of(Map.of("_minzoom", 4, "kind", "locality", "kind_detail", "city", "population", 5000)),
+       process(SimpleFeature.create(
+         newPoint(2.5892, 7.3632),
+         new HashMap<>(Map.of("place", "city", "name", "Some City")),
+@@ -285,6 +290,30 @@ class PlacesTest extends LayerTest {
+       )));
+   }
+ 
++
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): place names from openstreetmap-carto v6.1.0's first zoom N minus
++  // 2. Cities by carto's score (population, or 100,000 with none, doubled for capital=4): 4 at 3,000,000, 5 at 400,000,
++  // 6 at 70,000, else 7; national capitals 4 over 600,000, else 5; towns 9, villages 12, hamlets 14, isolated
++  // dwellings 15, localities 16, suburbs 12, quarters 14, neighbourhoods 15.
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({
++    "city, 3500000, , 2", "city, 500000, , 3", "city, 100000, , 4", "city, 50000, , 5", "city, , , 4",
++    "city, 250000, 4, 3", "city, 700000, yes, 2", "city, 500000, yes, 3",
++    "town, 20000, , 7", "village, 3000, , 10", "hamlet, , , 12", "isolated_dwelling, , , 13", "locality, , , 14",
++    "suburb, , , 10", "quarter, , , 12", "neighbourhood, , , 13",
++  })
++  void foragerOsmPlaceZooms(String place, String population, String capital, int minZoom) {
++    var tags = new HashMap<String, Object>(Map.of("place", place, "name", "Someplace"));
++    if (population != null) {
++      tags.put("population", population);
++    }
++    if (capital != null) {
++      tags.put("capital", capital);
++    }
++    var feature = process(SimpleFeature.create(newPoint(1, 1), tags, "osm", null, 0)).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
++  }
++
+ }
+ 
+ 
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/PoisTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/PoisTest.java
+index 26e4174..6b4965c 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/PoisTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/PoisTest.java
+@@ -189,8 +189,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_14_peak() {
++    // Forager patch 0008: peaks from carto's 11 minus 2, so min_zoom 10 (upstream 14).
+     assertFeatures(14,
+-      List.of(Map.of("kind", "peak", "min_zoom", 14)),
++      List.of(Map.of("kind", "peak", "min_zoom", 10)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("natural", "peak")),
+@@ -200,8 +201,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void peakElevation() {
++    // Forager patch 0008: peaks from carto's 11 minus 2, so min_zoom 10 (upstream 14).
+     assertFeatures(14,
+-      List.of(Map.of("kind", "peak", "min_zoom", 14, "elevation", 569)),
++      List.of(Map.of("kind", "peak", "min_zoom", 10, "elevation", 569)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("natural", "peak", "ele", "569")),
+@@ -211,8 +213,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void peakElevationDecimal() {
++    // Forager patch 0008: peaks from carto's 11 minus 2, so min_zoom 10 (upstream 14).
+     assertFeatures(14,
+-      List.of(Map.of("kind", "peak", "min_zoom", 14, "elevation", 570)),
++      List.of(Map.of("kind", "peak", "min_zoom", 10, "elevation", 570)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("natural", "peak", "ele", "569.5")),
+@@ -222,8 +225,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void peakElevationMeterSuffix() {
++    // Forager patch 0008: peaks from carto's 11 minus 2, so min_zoom 10 (upstream 14).
+     assertFeatures(14,
+-      List.of(Map.of("kind", "peak", "min_zoom", 14, "elevation", 569)),
++      List.of(Map.of("kind", "peak", "min_zoom", 10, "elevation", 569)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("natural", "peak", "ele", "569 m")),
+@@ -233,8 +237,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void peakElevationMeterSuffixWithoutWhitespace() {
++    // Forager patch 0008: peaks from carto's 11 minus 2, so min_zoom 10 (upstream 14).
+     assertFeatures(14,
+-      List.of(Map.of("kind", "peak", "min_zoom", 14, "elevation", 569)),
++      List.of(Map.of("kind", "peak", "min_zoom", 10, "elevation", 569)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("natural", "peak", "ele", "569m")),
+@@ -288,8 +293,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_15_parkPoint() {
++    // Forager patch 0008: a park node is named from carto's 17 minus 2, so min_zoom 16 (upstream 15).
+     assertFeatures(15,
+-      List.of(Map.of("kind", "park", "min_zoom", 15)),
++      List.of(Map.of("kind", "park", "min_zoom", 16)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("leisure", "park")),
+@@ -332,8 +338,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_16_campSite() {
++    // Forager patch 0008: camp sites from carto's 16 minus 2, so min_zoom 15 (upstream 16).
+     assertFeatures(15,
+-      List.of(Map.of("kind", "camp_site", "min_zoom", 16)),
++      List.of(Map.of("kind", "camp_site", "min_zoom", 15)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("tourism", "camp_site")),
+@@ -416,9 +423,10 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_8_nationalForest_usfsOperator() {
++    // Forager patch 0008: boundary=national_park's name from carto's 8 (over 3000 px) minus 2, so min_zoom 7 (upstream 8).
+     assertFeatures(8,
+       List.of(Map.of("kind", "park"), // landuse layer
+-        Map.of("kind", "park", "min_zoom", 8, "name", "Angeles National Forest")), // pois layer shows as park with area-based zoom
++        Map.of("kind", "park", "min_zoom", 7, "name", "Angeles National Forest")), // pois layer shows as park with area-based zoom
+       process(SimpleFeature.create(
+         AREA_2K_SQ_KM,
+         new HashMap<>(Map.of(
+@@ -592,9 +600,10 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_8_park_largeArea() {
++    // Forager patch 0008: a park's name from carto's 10 (over 3000 px) minus 2, so min_zoom 9 (upstream 8).
+     assertFeatures(8,
+       List.of(Map.of("kind", "park"),
+-        Map.of("kind", "park", "min_zoom", 8, "name", "Giant City Park")),
++        Map.of("kind", "park", "min_zoom", 9, "name", "Giant City Park")),
+       process(SimpleFeature.create(
+         AREA_1K_SQ_KM,
+         new HashMap<>(Map.of(
+@@ -652,9 +661,10 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_13_natureReserve_wilderness() {
++    // Forager patch 0008: a nature reserve's name from carto's first level over 3000 px (13 here) minus 2, with no Wilderness discount, so 12.
+     assertFeatures(13,
+       List.of(Map.of("kind", "nature_reserve"),
+-        Map.of("kind", "nature_reserve", "min_zoom", 13, "name", "Some Wilderness")),
++        Map.of("kind", "nature_reserve", "min_zoom", 12, "name", "Some Wilderness")),
+       process(SimpleFeature.create(
+         AREA_3_SQ_KM,
+         new HashMap<>(Map.of(
+@@ -732,9 +742,10 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_10_longName_46chars() {
++    // Forager patch 0008: a park's name from carto's 10 minus 2; carto has no name-length rule, so 9 (upstream 10).
+     assertFeatures(10,
+       List.of(Map.of("kind", "park"),
+-        Map.of("kind", "park", "min_zoom", 10, "name", "This Is A Very Long Name For A Park That Goes On Forever")),
++        Map.of("kind", "park", "min_zoom", 9, "name", "This Is A Very Long Name For A Park That Goes On Forever")),
+       process(SimpleFeature.create(
+         AREA_1K_SQ_KM,
+         new HashMap<>(Map.of(
+@@ -747,9 +758,10 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_8_mediumLongName_31chars() {
++    // Forager patch 0008: a park's name from carto's 10 minus 2, so min_zoom 9 (upstream 8).
+     assertFeatures(8,
+       List.of(Map.of("kind", "park"),
+-        Map.of("kind", "park", "min_zoom", 8, "name", "Medium Length Park Name Here")),
++        Map.of("kind", "park", "min_zoom", 9, "name", "Medium Length Park Name Here")),
+       process(SimpleFeature.create(
+         AREA_1K_SQ_KM,
+         new HashMap<>(Map.of(
+@@ -797,8 +809,9 @@ class PoisTest extends LayerTest {
+ 
+   @Test
+   void zoom_17_unnamedViewpoint() {
++    // Forager patch 0008: viewpoints, named or not, from carto's 16 minus 2, so min_zoom 15 (upstream 17 unnamed).
+     assertFeatures(15,
+-      List.of(Map.of("kind", "viewpoint", "min_zoom", 17)),
++      List.of(Map.of("kind", "viewpoint", "min_zoom", 15)),
+       process(SimpleFeature.create(
+         newPoint(1, 1),
+         new HashMap<>(Map.of("tourism", "viewpoint")),
+@@ -1188,6 +1201,37 @@ class PoisTest extends LayerTest {
+         "osm", null, 0
+       )));
+   }
++
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): these POIs from openstreetmap-carto v6.1.0's first zoom N minus 2:
++  // alpine and wilderness huts 13, camp sites, picnic sites, viewpoints and shelters 16, parking 14 once over 750 px
++  // and 17 at any size (a node is never over it).
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({
++    "tourism, alpine_hut, 11", "tourism, wilderness_hut, 11", "tourism, camp_site, 14", "tourism, picnic_site, 14",
++    "tourism, viewpoint, 14", "amenity, shelter, 14", "amenity, parking, 15",
++  })
++  void foragerOsmPoiNodeZooms(String key, String value, int minZoom) {
++    var feature = process(SimpleFeature.create(newPoint(1, 1), new HashMap<>(Map.of(key, value)), "osm", null, 0))
++      .iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
++  }
++
++  // A named car park of 0.01 degrees is over 750 px at 14 (about 13,000), so from 12; one of 0.0005 degrees is not
++  // (about 34 px), so from 15.
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({"0.01, 12", "0.0005, 15"})
++  void foragerOsmParkingAreaZooms(double degrees, int minZoom) {
++    int pois = 0;
++    for (var f : process(SimpleFeature.create(newPolygon(0, 0, degrees, 0, degrees, degrees, 0, degrees, 0, 0),
++      new HashMap<>(Map.of("amenity", "parking", "name", "Lot")), "osm", null, 0))) {
++      if (f.getLayer().equals("pois")) {
++        pois++;
++        org.junit.jupiter.api.Assertions.assertEquals(minZoom, f.getMinZoom(), "first zoom");
++      }
++    }
++    org.junit.jupiter.api.Assertions.assertEquals(1, pois, "one POI");
++  }
++
+ }
+ 
+ 
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+index 93c4b92..9127373 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/RoadsTest.java
+@@ -106,10 +106,11 @@ class RoadsTest extends LayerTest {
+   @Test
+   void relation1() {
+     // highway=motorway is part of a US Interstate relation and is located in the US -> minzoom should be 3
++    // Forager patch 0008: every motorway from 4, carto's 6 minus 2, whatever its network or country
+     // Denver - Boulder
+     assertFeatures(0,
+       List.of(Map.of(
+-        "_minzoom", 3
++        "_minzoom", 4
+       )),
+       processWithRelationAndCoords("US:I", -104.97235, 39.73867, -105.260503, 40.010771, "highway", "motorway")
+     );
+@@ -118,10 +119,11 @@ class RoadsTest extends LayerTest {
+   @Test
+   void relation2() {
+     // highway=motorway is part of US State network and is located in the US -> minzoom should be 6
++    // Forager patch 0008: every motorway from 4, carto's 6 minus 2, whatever its network or country
+     // Denver - Boulder
+     assertFeatures(0,
+       List.of(Map.of(
+-        "_minzoom", 6
++        "_minzoom", 4
+       )),
+       processWithRelationAndCoords("US:US", -104.97235, 39.73867, -105.260503, 40.010771, "highway", "motorway")
+     );
+@@ -130,10 +132,11 @@ class RoadsTest extends LayerTest {
+   @Test
+   void relation3() {
+     // highway=motorway is not part of US Interstate/State network and is located in the US -> minzoom should be 7
++    // Forager patch 0008: every motorway from 4, carto's 6 minus 2, whatever its network or country
+     // Denver - Boulder
+     assertFeatures(0,
+       List.of(Map.of(
+-        "_minzoom", 7
++        "_minzoom", 4
+       )),
+       processWithRelationAndCoords("some:network", -104.97235, 39.73867, -105.260503, 40.010771, "highway", "motorway")
+     );
+@@ -142,10 +145,11 @@ class RoadsTest extends LayerTest {
+   @Test
+   void relation4() {
+     // highway=motorway is part of US State network and is located ouside of the US -> minzoom should be 3
++    // Forager patch 0008: every motorway from 4, carto's 6 minus 2, whatever its network or country
+     // Paris - Zurich
+     assertFeatures(0,
+       List.of(Map.of(
+-        "_minzoom", 3
++        "_minzoom", 4
+       )),
+       processWithRelationAndCoords("US:US", 2.424, 48.832, 8.52332, 47.36919, "highway", "motorway")
+     );
+@@ -171,11 +175,11 @@ class RoadsTest extends LayerTest {
+ 
+   @Test
+   void carriagewayNetworkNormalizedToBaseInterstate() {
+-    // A US:I:Local relation shares the Interstate shield and gets the Interstate minzoom (3).
+-    // Denver - Boulder.
++    // A US:I:Local relation shares the Interstate shield and gets the Interstate minzoom (3; Forager patch 0008: every
++    // motorway from 4). Denver - Boulder.
+     assertFeatures(12,
+       List.of(Map.of(
+-        "_minzoom", 3,
++        "_minzoom", 4,
+         "network_1", "US:I",
+         "shield_text_1", "70",
+         "network", "US:I",
+@@ -271,30 +275,32 @@ class RoadsTest extends LayerTest {
+   }
+ 
+   @ParameterizedTest
++  // Forager patch 0008: every class from openstreetmap-carto v6.1.0's first zoom minus 2, the same in the US
++  // (Roads.FORAGER_OSM_LINE_ZOOMS; upstream: motorway 3/7, trunk 6/7, primary 7, secondary and tertiary 9, service 13 ...).
+   @CsvSource({
+-    "motorway, highway, motorway, 3, 7",
+-    "motorway_link, highway, motorway_link, 3, 7",
+-    "trunk, major_road, trunk, 6, 7",
+-    "trunk_link, major_road, trunk_link, 6, 7",
+-    "primary, major_road, primary, 7, 7",
+-    "primary_link, major_road, primary_link, 7, 7",
+-    "secondary, major_road, secondary, 9, 9",
+-    "secondary_link, major_road, secondary_link, 9, 9",
+-    "tertiary, major_road, tertiary, 9, 9",
+-    "tertiary_link, major_road, tertiary_link, 9, 9",
++    "motorway, highway, motorway, 4, 4",
++    "motorway_link, highway, motorway_link, 8, 8",
++    "trunk, major_road, trunk, 4, 4",
++    "trunk_link, major_road, trunk_link, 8, 8",
++    "primary, major_road, primary, 6, 6",
++    "primary_link, major_road, primary_link, 8, 8",
++    "secondary, major_road, secondary, 7, 7",
++    "secondary_link, major_road, secondary_link, 8, 8",
++    "tertiary, major_road, tertiary, 8, 8",
++    "tertiary_link, major_road, tertiary_link, 8, 8",
+     "residential, minor_road, residential, 10, 10",
+-    "service, minor_road, service, 13, 13",
++    "service, minor_road, service, 12, 12",
+     "residential, minor_road, residential, 10, 10",
+     "unclassified, minor_road, unclassified, 10, 10",
+-    "road, minor_road, road, 10, 10",
+-    "raceway, minor_road, raceway, 12, 12",
++    "road, minor_road, road, 8, 8",
++    "raceway, minor_road, raceway, 10, 10",
+     "pedestrian, path, pedestrian, 12, 12",
+     "track, path, track, 11, 11",
+     "path, path, path, 12, 12",
+-    "cycleway, path, cycleway, 13, 13",
+-    "bridleway, path, bridleway, 13, 13",
+-    "footway, path, footway, 13, 13",
+-    "steps, path, steps, 13, 13",
++    "cycleway, path, cycleway, 11, 11",
++    "bridleway, path, bridleway, 11, 11",
++    "footway, path, footway, 12, 12",
++    "steps, path, steps, 12, 12",
+     "corridor, path, corridor, 14, 14",
+   })
+   void testHighways(String highway, String kind, String kindDetail, int genericMinZoom, int usMinZoom) {
+@@ -320,11 +326,13 @@ class RoadsTest extends LayerTest {
+       )
+     );
+ 
+-    // US with relation US:US
++    // US with relation US:US (Forager patch 0008: carto has no network rule, so the class's zoom; upstream 6 for any way,
++    // which still holds for a way carto has no zoom for, such as corridor)
++    boolean osmZoom = Roads.FORAGER_OSM_LINE_ZOOMS.containsKey(highway);
+     assertFeatures(12,
+       List.of(Map.of("kind", kind,
+         "kind_detail", kindDetail,
+-        "_minzoom", 6
++        "_minzoom", osmZoom ? genericMinZoom : 6
+       )),
+       processWithRelationAndCoords("US:US",
+         -104.97235, 39.73867, -105.260503, 40.010771,
+@@ -332,11 +340,11 @@ class RoadsTest extends LayerTest {
+       )
+     );
+ 
+-    // US with relation US:I
++    // US with relation US:I (Forager patch 0008: the class's zoom; upstream 3 for any way, and still for corridor)
+     assertFeatures(12,
+       List.of(Map.of("kind", kind,
+         "kind_detail", kindDetail,
+-        "_minzoom", 3
++        "_minzoom", osmZoom ? genericMinZoom : 3
+       )),
+       processWithRelationAndCoords("US:I",
+         -104.97235, 39.73867, -105.260503, 40.010771,
+@@ -421,22 +429,24 @@ class RoadsTest extends LayerTest {
+     );
+   }
+ 
++  // Forager patch 0008: funicular, light rail and narrow gauge from carto's 8 minus 2, preserved, subway and tram from
++  // 12 minus 2; miniature and monorail keep upstream's 14 (Roads.foragerOsmNonHighwayZoom).
+   @ParameterizedTest
+   @CsvSource({
+-    "funicular",
+-    "light_rail",
+-    "miniature",
+-    "monorail",
+-    "narrow_gauge",
+-    "preserved",
+-    "subway",
+-    "tram"
++    "funicular, 6",
++    "light_rail, 6",
++    "miniature, 14",
++    "monorail, 14",
++    "narrow_gauge, 6",
++    "preserved, 10",
++    "subway, 10",
++    "tram, 10"
+   })
+-  void testRailwaysSpecial(String railway) {
++  void testRailwaysSpecial(String railway, int minZoom) {
+     assertFeatures(12,
+       List.of(Map.of("kind", "rail",
+         "kind_detail", railway,
+-        "_minzoom", 14
++        "_minzoom", minZoom
+       )),
+       processWithRelationAndCoords("",
+         0, 0, 1, 1,
+@@ -450,7 +460,7 @@ class RoadsTest extends LayerTest {
+     assertFeatures(12,
+       List.of(Map.of("kind", "rail",
+         "kind_detail", "disused",
+-        "_minzoom", 15
++        "_minzoom", 13 // Forager patch 0008: carto's 15 minus 2
+       )),
+       processWithRelationAndCoords("",
+         0, 0, 1, 1,
+@@ -478,7 +488,7 @@ class RoadsTest extends LayerTest {
+     assertFeatures(12,
+       List.of(Map.of("kind", "path",
+         "kind_detail", "pier",
+-        "_minzoom", 13
++        "_minzoom", 10 // Forager patch 0008: carto's 12 minus 2
+       )),
+       processWithRelationAndCoords("",
+         0, 0, 1, 1,
+@@ -505,7 +515,7 @@ class RoadsTest extends LayerTest {
+     assertFeatures(12,
+       List.of(Map.of("kind", "aeroway",
+         "kind_detail", "taxiway",
+-        "_minzoom", 10
++        "_minzoom", 9 // Forager patch 0008: carto's 11 minus 2
+       )),
+       processWithRelationAndCoords("",
+         0, 0, 1, 1,
+@@ -695,20 +705,21 @@ class RoadsTest extends LayerTest {
+     org.junit.jupiter.api.Assertions.assertEquals(sortKey, feature.getSortKey(), "sort key");
+   }
+ 
+-  // Everything else keeps upstream's zoom: footway, bridleway, steps and cycleway 13, pedestrian 12, sidewalk,
+-  // crossing and corridor 14, and a private or no-access track or path 15.
++  // Everything else kept upstream's zoom until Forager patch 0008, which sets carto's first zoom minus 2: footway and
++  // steps 12, bridleway and cycleway 11, pedestrian 12, sidewalk and crossing 12, and a track or path carto's
++  // int_access calls "no" 13 (upstream: 13, 13, 12, 14 and 15). Corridor keeps upstream's 14.
+   @ParameterizedTest
+   @CsvSource({
+-    "highway, footway, , , footway, 13",
+-    "highway, bridleway, , , bridleway, 13",
+-    "highway, steps, , , steps, 13",
+-    "highway, cycleway, , , cycleway, 13",
++    "highway, footway, , , footway, 12",
++    "highway, bridleway, , , bridleway, 11",
++    "highway, steps, , , steps, 12",
++    "highway, cycleway, , , cycleway, 11",
+     "highway, pedestrian, , , pedestrian, 12",
+-    "highway, footway, footway, sidewalk, sidewalk, 14",
+-    "highway, footway, footway, crossing, crossing, 14",
++    "highway, footway, footway, sidewalk, sidewalk, 12",
++    "highway, footway, footway, crossing, crossing, 12",
+     "highway, corridor, , , corridor, 14",
+-    "highway, track, access, private, track, 15",
+-    "highway, path, access, no, path, 15",
++    "highway, track, access, private, track, 13",
++    "highway, path, access, no, path, 13",
+   })
+   void foragerZoomOthersUnchanged(String k1, String v1, String k2, String v2, String kindDetail, int minZoom) {
+     String[] tags = k2 == null ? new String[]{k1, v1} : new String[]{k1, v1, k2, v2};
+@@ -718,15 +729,16 @@ class RoadsTest extends LayerTest {
+     );
+   }
+ 
+-  // Names keep their zoom (minzoomName 14): not on a track or a path at z13, there at z14.
++  // Names kept their zoom (minzoomName 14) until Forager patch 0008: a track's from 13 (carto's 15 minus 2), a path's
++  // still from 14 (carto's 16 minus 2). Absent the zoom before, there at that zoom.
+   @ParameterizedTest
+-  @CsvSource({"track", "path"})
+-  void foragerZoomNamesStayAtZ14(String highway) {
+-    assertFeatures(13,
++  @CsvSource({"track, 13", "path, 14"})
++  void foragerZoomNamesStayAtZ14(String highway, int nameZoom) {
++    assertFeatures(nameZoom - 1,
+       List.of(Map.of("kind_detail", highway, "name", "<null>")),
+       processWith("highway", highway, "name", "Ridge Trail")
+     );
+-    assertFeatures(14,
++    assertFeatures(nameZoom,
+       List.of(Map.of("kind_detail", highway, "name", "Ridge Trail")),
+       processWith("highway", highway, "name", "Ridge Trail")
+     );
+@@ -736,26 +748,116 @@ class RoadsTest extends LayerTest {
+   // Forager (dispatch 2026-10-30-coder-05): residential, unclassified and road streets from z10, two zooms before
+   // upstream, so the street grid shows at glance level as OpenStreetMap's map does. Service roads (the owner: "Streets
+   // only"), raceways, and private or no-access streets keep upstream's zoom. Only the first zoom moves.
++  // Forager patch 0008: highway=road from carto's 10 minus 2, 8; residential and unclassified stay at 10, carto's 12
++  // minus 2.
+   @ParameterizedTest
+-  @CsvSource({"residential", "unclassified", "road"})
+-  void foragerStreetsFromZoom10(String highway) {
++  @CsvSource({"residential, 10", "unclassified, 10", "road, 8"})
++  void foragerStreetsFromZoom10(String highway, int firstZoom) {
+     var feature = processWith("highway", highway).iterator().next();
+-    org.junit.jupiter.api.Assertions.assertEquals(10, feature.getMinZoom(), "first zoom");
++    org.junit.jupiter.api.Assertions.assertEquals(firstZoom, feature.getMinZoom(), "first zoom");
+     org.junit.jupiter.api.Assertions.assertEquals(13, feature.getAttrsAtZoom(15).get("min_zoom"), "min_zoom attribute");
+     org.junit.jupiter.api.Assertions.assertEquals(12, feature.getSortKey(), "sort key");
+   }
+ 
++  // Forager patch 0008: service 12 and raceway 10 (carto's 14 and 12 minus 2); a private or no-access street keeps its
++  // class's 10, as carto draws it (upstream: 13, 12 and 15).
+   @ParameterizedTest
+   @CsvSource({
+-    "highway, service, , , 13",
+-    "highway, raceway, , , 12",
+-    "highway, residential, access, private, 15",
+-    "highway, unclassified, access, no, 15",
++    "highway, service, , , 12",
++    "highway, raceway, , , 10",
++    "highway, residential, access, private, 10",
++    "highway, unclassified, access, no, 10",
+   })
+   void foragerStreetsOthersUnchanged(String k1, String v1, String k2, String v2, int minZoom) {
+     var feature = (k2 == null ? processWith(k1, v1) : processWith(k1, v1, k2, v2)).iterator().next();
+     org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
+   }
++
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): lines, names, bridges and tunnels from openstreetmap-carto
++  // v6.1.0's first zoom N minus 2, where the style shows them from camera N - 1.5, as the app's OpenStreetMap map does.
++
++  // Names: absent the zoom before, there at carto's N - 2 (upstream: trunk to secondary 12, tertiary 13, streets 14).
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({"trunk, 11", "primary, 11", "secondary, 11", "tertiary, 12", "residential, 13", "unclassified, 13",
++    "road, 13", "living_street, 13", "pedestrian, 13"})
++  void foragerOsmNameZooms(String highway, int nameZoom) {
++    assertFeatures(nameZoom - 1,
++      List.of(Map.of("kind_detail", highway, "name", "<null>")),
++      processWith("highway", highway, "name", "Main Street")
++    );
++    assertFeatures(nameZoom,
++      List.of(Map.of("kind_detail", highway, "name", "Main Street")),
++      processWith("highway", highway, "name", "Main Street")
++    );
++  }
++
++  // Driveways, parking aisles and drive-throughs from carto's 16 minus 2; other service roads from 14 minus 2.
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({"driveway, 14", "parking_aisle, 14", "drive-through, 14", "alley, 12"})
++  void foragerOsmServiceZooms(String service, int minZoom) {
++    var feature = processWith("highway", "service", "service", service).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
++  }
++
++  // Paths and tracks carto's int_access calls "no" come in at 13 (carto's 15 minus 2), by carto's own tag order: foot
++  // before access on paths and footways, bicycle on cycleways; a street keeps its class's zoom whatever its access.
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({
++    "path, foot, private, , , 13",
++    "path, access, permit, , , 13",
++    "footway, access, no, , , 13",
++    "track, access, forestry, , , 13",
++    "cycleway, bicycle, no, , , 13",
++    "path, access, no, foot, yes, 12",
++    "cycleway, access, private, bicycle, designated, 11",
++    "residential, access, private, , , 10",
++  })
++  void foragerOsmAccessNoZooms(String highway, String k1, String v1, String k2, String v2, int minZoom) {
++    var feature = (k2 == null ? processWith("highway", highway, k1, v1) :
++      processWith("highway", highway, k1, v1, k2, v2)).iterator().next();
++    org.junit.jupiter.api.Assertions.assertEquals(minZoom, feature.getMinZoom(), "first zoom");
++  }
++
++  // Bridges and tunnels: absent the zoom before, there at carto's N - 2 (upstream: 12 for every class).
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({
++    "motorway, bridge, is_bridge, 11",
++    "secondary, bridge, is_bridge, 11",
++    "tertiary, bridge, is_bridge, 12",
++    "residential, bridge, is_bridge, 12",
++    "motorway, tunnel, is_tunnel, 10",
++    "tertiary, tunnel, is_tunnel, 10",
++    "residential, tunnel, is_tunnel, 11",
++    "track, tunnel, is_tunnel, 12",
++  })
++  void foragerOsmBridgeTunnelZooms(String highway, String key, String attr, int zoom) {
++    assertFeatures(zoom - 1,
++      List.of(Map.of("kind_detail", highway, attr, "<null>")),
++      processWith("highway", highway, key, "yes")
++    );
++    assertFeatures(zoom,
++      List.of(Map.of("kind_detail", highway, attr, true)),
++      processWith("highway", highway, key, "yes")
++    );
++  }
++
++  // Rail: main lines from carto's 8 minus 2; spurs, sidings and yards from 13 minus 2; preserved lines from 12 minus 2.
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({
++    "rail, , , 6",
++    "rail, service, yard, 11",
++    "rail, service, spur, 11",
++    "light_rail, service, siding, 11",
++    "rail, railway:preserved, yes, 10",
++    "rail, service, crossover, 6",
++  })
++  void foragerOsmRailZooms(String railway, String key, String value, int minZoom) {
++    var features = key == null ?
++      processWithRelationAndCoords("", 0, 0, 1, 1, "railway", railway) :
++      processWithRelationAndCoords("", 0, 0, 1, 1, "railway", railway, key, value);
++    assertFeatures(12, List.of(Map.of("kind", "rail", "_minzoom", minZoom)), features);
++  }
++
+ }
+ 
+ 
+diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java
+index d279528..22f5f8b 100644
+--- a/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java
++++ b/tiles/src/test/java/com/protomaps/basemap/layers/WaterTest.java
+@@ -132,6 +132,54 @@ class WaterTest extends LayerTest {
+         0
+       )));
+   }
++
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): waterways from openstreetmap-carto v6.1.0's first zoom N minus 2
++  // (rivers 8, streams 12, intermittent and seasonal streams 13); canals keep upstream's 10.
++  @org.junit.jupiter.params.ParameterizedTest
++  @org.junit.jupiter.params.provider.CsvSource({
++    "river, river, , , 6",
++    "stream, stream, , , 10",
++    "stream, stream, intermittent, yes, 11",
++    "stream, stream, seasonal, summer, 11",
++    "canal, canal, , , 10",
++  })
++  void foragerOsmWaterwayZooms(String waterway, String kind, String key, String value, int minZoom) {
++    var tags = new HashMap<String, Object>(Map.of("waterway", waterway));
++    if (key != null) {
++      tags.put(key, value);
++    }
++    assertFeatures(15,
++      List.of(Map.of("kind", kind, "_minzoom", minZoom)),
++      process(SimpleFeature.create(newLineString(0, 0, 1, 1), tags, "osm", null, 0)));
++  }
++
++  // Lake labels at carto's first level over 3000 px minus 2: a 3-degree lake is over 3000 px at 5, so from 3; a 0.001
++  // degree pond is never over it before 17, so from 15. The polygon's floor is a quarter pixel (upstream: 1). Water's
++  // own processOsm is called, since the whole profile also writes a named lake as a POI.
++  @Test
++  void foragerOsmLakeLabelZooms() {
++    for (var c : new double[][]{{3, 3}, {0.001, 15}}) {
++      double d = c[0];
++      var sf = SimpleFeature.create(newPolygon(0, 0, d, 0, d, d, 0, d, 0, 0),
++        new HashMap<>(Map.of("natural", "water", "name", "Lake")), "osm", null, 0);
++      var collector = featureCollectorFactory.get(sf);
++      new Water().processOsm(sf, collector);
++      int labels = 0;
++      int polygons = 0;
++      for (var f : collector) {
++        if (f.getAttrsAtZoom(15).containsKey("min_zoom")) { // only the label point carries min_zoom
++          labels++;
++          org.junit.jupiter.api.Assertions.assertEquals((int) c[1], f.getMinZoom(), "label first zoom, " + d + " degrees");
++        } else {
++          polygons++;
++          org.junit.jupiter.api.Assertions.assertEquals(0.25, f.getMinPixelSizeAtZoom(10), "polygon size floor");
++        }
++      }
++      org.junit.jupiter.api.Assertions.assertEquals(1, labels, "one label point");
++      org.junit.jupiter.api.Assertions.assertEquals(1, polygons, "one polygon");
++    }
++  }
++
+ }
+ 
+ 

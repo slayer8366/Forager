@@ -29,6 +29,12 @@
 #
 # 0007 (dispatch 2026-11-01-coder-09) makes 0004's mark a fill over the tile instead of a point: Planetiler deduplicates
 # only tiles of fills and edges, and the point made every zoom-15 tile unique, so run usca-20261031T193102Z ran out of heap.
+#
+# 0008 (dispatch 2026-11-02-coder-13; the owner: "set it to OSM zoom levels", "on the entire map") puts each line, name,
+# shield, place, POI and label in the tiles from openstreetmap-carto v6.1.0's first zoom minus 2, and lowers the polygon
+# size floors to a quarter pixel, so with the style's minzoom of N - 1.5 things first appear where the app's
+# OpenStreetMap map first shows them. It supersedes 0005's streets at 10 for highway=road (8) and 0001's private and
+# no-access paths at 15 (13).
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -103,15 +109,28 @@ oran="$(grep -c '<testcase name="foragerOrchardKindDetail\|<testcase name="forag
 [[ "$oran" -eq 6 && "$lfailed" -eq 0 ]] || die "foragerOrchardKindDetail and foragerNoKindDetail cases in the LanduseTest report: $oran (expected 6), failures: $lfailed"
 log "Forager orchard-kind tests ran: $oran cases, 0 failures"
 
-# 0003's, 0004's and 0007's cases: BarriersTest 9 (5 + the mark's 3 + 0007's dedup case), BuildingsTest 3, WaterTest 3, each named forager*.
+# 0003's, 0004's and 0007's cases: BarriersTest 9 (5 + the mark's 3 + 0007's dedup case), BuildingsTest 3, WaterTest 3, each named
+# forager* (0008's foragerOsm* cases are counted below, not here).
 for pair in BarriersTest:9 BuildingsTest:3 WaterTest:3; do
   cls=${pair%%:*}; want=${pair##*:}
   r="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.$cls.xml"
   [[ -r "$r" ]] || die "no $cls report at $r"
-  n="$(grep -c '<testcase name="forager' "$r" || true)"
+  n="$(grep '<testcase name="forager' "$r" | grep -vc 'name="foragerOsm' || true)"
   f="$(grep -c '<failure\|<error' "$r" || true)"
   [[ "$n" -eq "$want" && "$f" -eq 0 ]] || die "forager cases in the $cls report: $n (expected $want), failures: $f"
   log "Forager $cls cases ran: $n, 0 failures"
+done
+
+# OSM's first zooms (patch 0008, dispatch 2026-11-02-coder-13): foragerOsm* cases per class, 77 in all. A jar built without
+# 0008 has none of them, and stops here.
+for pair in RoadsTest:35 WaterTest:6 LanduseTest:4 BoundariesTest:5 PlacesTest:16 PoisTest:9 EarthTest:2; do
+  cls=${pair%%:*}; want=${pair##*:}
+  r="$src/tiles/target/surefire-reports/TEST-com.protomaps.basemap.layers.$cls.xml"
+  [[ -r "$r" ]] || die "no $cls report at $r"
+  n="$(grep -c '<testcase name="foragerOsm' "$r" || true)"
+  f="$(grep -c '<failure\|<error' "$r" || true)"
+  [[ "$n" -eq "$want" && "$f" -eq 0 ]] || die "foragerOsm cases in the $cls report: $n (expected $want), failures: $f"
+  log "Forager OSM-zoom $cls cases ran: $n, 0 failures"
 done
 
 jar="$src/tiles/target/$BASEMAPS_JAR_NAME"
