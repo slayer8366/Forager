@@ -31643,3 +31643,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Beyond the dispatch:** the landscape other-column case is tested at 915 x 412, since at the S22's 823 x 384 Robolectric (no insets) puts them in one column; the S22 is covered by analogy until the phone check. A card sliding under Re-center could lift it for those frames (inferred).
 - **Not verified:** any of it on a phone.
 **Notes:** Written by the planner by hand. Dispatch 2026-11-02-01 starts on e3a500ebf. #449 not merged (-1938). Next free ID -1946.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1946
+**Timestamp:** 2026-11-02T07:36:47Z
+**Continues:** 2026-09-28-1945, 2026-09-28-1932, 2026-09-28-1929
+**Title:** The route card keeps one width from the first tap, the hint on two lines; the tab moves to the side it slides from; landscape is being re-placed
+**Observed:** the owner, from two S22 screenshots at 9:29 PM (portrait, one stop then two; read by the planner): the one-stop hint card is wider than the routed card.
+**Decision:** the owner: "The cards are two sizes. Have the two sentences be on separate lines and reduce it to the other card size so both can be uniform without switching. Also have the card tab from the side and not the bottom since that's where it's sliding from"; then "One width, rows wrap (Recommended)", whose option read "The card never changes width: always the routed card's size (about 223 dp on the S22). Anything longer wraps onto another line ... This replaces 'only as wide as its content needs' (-1932) and the held-width easing just built"; "Up and down, as now (Recommended)", whose option read "Only the tab's place changes: it sits on the outer edge, and dragging it up expands the card ... and down collapses it"; and of landscape: "Portrait, but change landscape: same card size as portrait, have it set to the far left side next to where the navigation tab would be, so they're side by side when the user is navigating. Else, have it on the far right side where the navigation tab would be."
+**Notes:** Written by the planner by hand. Supersedes -1932's content-sized width and Amendment 17 part 1's easing. The landscape placement is being clarified before any dispatch: the landscape navigation card sits on the navigation rail's side, which follows the phone's rotation (CompactMapLandscapeNavigationCard.kt:153 at e3a500ebf). Next free ID -1947.
