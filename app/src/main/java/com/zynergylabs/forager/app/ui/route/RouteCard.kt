@@ -145,6 +145,8 @@ fun RouteCard(
     modifier: Modifier = Modifier,
     /** Its outline: square on a screen edge it sits against, round facing the map (C17, C18; `RouteCardPlacement.kt`). */
     shape: Shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    /** Kept empty under the buttons: the part of the card tucked behind the landscape navigation card (C11, restored by C21, RECORD -1955). */
+    contentBottomPadding: Dp = 0.dp,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -159,7 +161,7 @@ fun RouteCard(
     ) {
         val reveal = remember { RouteCardReveal(expanded) }
         LaunchedEffect(expanded) { reveal.settle(expanded) }
-        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(horizontal = ROUTE_CARD_SIDE_PADDING)) {
+        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding)) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
                 Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))

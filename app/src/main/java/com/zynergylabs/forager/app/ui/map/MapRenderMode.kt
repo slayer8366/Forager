@@ -251,6 +251,12 @@ data class MapRenderMode(
      */
     val attributionBesideCredit: Boolean = false,
     /**
+     * Dispatch 2026-10-30-08, D13 (RECORD -1955): told the map credit strip's laid-out size, in px, whenever it changes, so the
+     * compact Maps tab can tell where the strip rests and raise it only where the route card would cover it (`routeCardOverCredit`).
+     * A no-op for every other caller. Remembered by its one setter, so the render mode still compares equal across recompositions.
+     */
+    val onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit = {},
+    /**
      * Where a fan's member keys are written while it is open, and where the fan to reopen after Back from a
      * find opened on the map is waiting (dispatch 2026-09-29-57, item 8). `null` for every caller but the compact
      * Maps tab. Here rather than on [MapSlot] for the parameter-count reason [layers] gives.

@@ -34,6 +34,7 @@ internal fun SightingsMapLayout(
     drawnLayersState: MapLayersState,
     nightMode: Boolean,
     bottomInset: Dp,
+    onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit,
     fanSpace: MapFanSpace,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -140,8 +141,12 @@ internal fun SightingsMapLayout(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(bottom = bottomInset)
-                // RECORD -954: its laid-out width, for the "i" beside it in landscape.
-                .onSizeChanged { state.creditWidthPx = it.width },
+                // RECORD -954: its laid-out width, for the "i" beside it in landscape; D13 (RECORD -1955): its size, for the
+                // compact Maps tab to tell where it rests against the route card.
+                .onSizeChanged {
+                    state.creditWidthPx = it.width
+                    onCreditSizeChanged(it)
+                },
         )
     }
 }

@@ -54,7 +54,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
@@ -302,6 +304,11 @@ internal fun CompactMapTab(
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> if (!routePlottingTakesTap(tap, currentBubbleSources)) tappedThingOf(tap)?.let { tapped = it } } }
     var routeCardHeightDp by remember { mutableIntStateOf(0) }
     var routeCardSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
+    // D13 (RECORD -1955): the landscape card where it rests, and the credit strip's size, so the credit rises only where the card
+    // covers it (routeCardOverCredit). The size's setter is remembered, so the render mode compares equal across recompositions.
+    var routeCardRestPx by remember { mutableStateOf<Rect?>(null) }
+    var mapCreditSizePx by remember { mutableStateOf(IntSize.Zero) }
+    val onMapCreditSize: (IntSize) -> Unit = remember { { mapCreditSizePx = it } }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
     val onCloseBubble: () -> Unit = remember { { tapped = null } }
     // Dispatch 2026-10-27-07 (RECORD -1736): a crowded stack's list and the cameras Back returns to (CrowdedStackHost), held
@@ -492,7 +499,12 @@ internal fun CompactMapTab(
                     // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest). Amendment 9:
                     // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
                     renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
-                        .withCreditAboveRouteCard(routeCardHeightDp, routeCardOverCredit(cluster))
+                        .copy(onCreditSizeChanged = onMapCreditSize)
+                        .withCreditAboveRouteCard(
+                            routeCardHeightDp,
+                            cardOverCredit = cluster.landscape &&
+                                routeCardOverCredit(routeCardRestPx, mapCreditAtRest(cluster, mapCreditSizePx, with(compassStripDensity) { renderMode.bottomInset.toPx() })),
+                        )
                         .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster)),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
@@ -645,6 +657,7 @@ internal fun CompactMapTab(
                     expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
                     onCardHeightDp = { routeCardHeightDp = it },
                     onCardSpanPx = { routeCardSpanPx = it },
+                    onCardRestPx = { routeCardRestPx = it },
                 )
 
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the

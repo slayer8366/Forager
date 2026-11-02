@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import android.view.Surface
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -141,42 +142,55 @@ abstract class RouteCardLandscapeBarTests(private val rotation: Int) {
         }
     }
 
+    /** Whether [back] is drawn before [front]: composed earlier under their nearest shared parent. */
+    private fun isBehind(back: SemanticsNode, front: SemanticsNode): Boolean {
+        fun chain(node: SemanticsNode): List<SemanticsNode> = generateSequence(node) { it.parent }.toList().reversed()
+        val a = chain(back)
+        val b = chain(front)
+        val split = a.indices.first { i -> a[i].id != b.getOrNull(i)?.id }
+        val siblings = a[split - 1].children
+        return siblings.indexOfFirst { it.id == a[split].id } < siblings.indexOfFirst { it.id == b[split].id }
+    }
+
+    /**
+     * C21 (RECORD -1955, the owner: "On top of the navigation card (Recommended)", "sits on it, at its width"): while navigating the
+     * card rises from behind the navigation card and rests on it, at its width, edge to edge, its lower edge tucked behind it by
+     * [ROUTE_CARD_NAVIGATION_TUCK] and all its content, Save included, above it. Restored from C11 (8a6126f9d), replacing C18's
+     * "touching it" side by side.
+     */
     @Test
-    fun `navigating - the card touches the navigation card, side by side, at C19's width`() {
+    fun `navigating - the card rests on the navigation card at its width, behind it, with Save above it`() {
         setScreen(navigating = true)
         val hud = rig.bounds(NAVIGATION_HUD_TAG)
         val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
         val strip = rig.bounds(STRIP)
-        println("C18 rot $rotation navigating: navigation card ${hud.left.value}..${hud.right.value} x ${hud.top.value}..${hud.bottom.value}, bar ${bar.left.value}..${bar.right.value}, strip bottom ${strip.bottom.value}")
+        println("C21 rot $rotation navigating: navigation card ${hud.left.value}..${hud.right.value} x ${hud.top.value}..${hud.bottom.value}, bar ${bar.left.value}..${bar.right.value}, strip bottom ${strip.bottom.value}")
         listOf(1, 3, 5, 6).forEach { stops ->
             listOf(false, true).forEach { expanded ->
                 val where = "navigating, $stops stops, ${if (expanded) "expanded" else "peek"}"
                 lowerStops(stops, expanded, where) {
                     val card = rig.bounds(ROUTE_CARD_TAG)
-                    println("C18 rot $rotation $where: card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}")
-                    assertEquals("$where: touching the navigation card's left", hud.left.value, card.right.value, 0.5f)
-                    assertEquals("$where: rising from the screen's bottom edge, as the navigation card", hud.bottom.value, card.bottom.value, 0.5f)
-                    assertEquals("$where: C19's width", ruledWidth((hud.left - bar.right - 8.dp).value), (card.right - card.left).value, 0.5f)
+                    val save = rig.bounds(ROUTE_CARD_SAVE_TAG)
+                    println("C21 rot $rotation $where: card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, Save ${save.top.value}..${save.bottom.value}")
+                    assertEquals("$where: the navigation card's left", hud.left.value, card.left.value, 0.5f)
+                    assertEquals("$where: the navigation card's right", hud.right.value, card.right.value, 0.5f)
+                    assertEquals("$where: its lower edge tucked behind the navigation card's top ${hud.top}", ROUTE_CARD_NAVIGATION_TUCK.value, (card.bottom - hud.top).value, 0.5f)
+                    assertTrue("$where: Save's bottom ${save.bottom} shows at or above the navigation card's top ${hud.top}", save.bottom <= hud.top + 0.5.dp)
                     assertTrue("$where: the top ${card.top} is below the strip's bottom ${strip.bottom}", card.top >= strip.bottom)
-                    rig.assertApart("$where: the card and the navigation card", card, hud)
                     rig.assertBarUntouched(where, bar)
                     assertTouches(where)
                 }
             }
         }
+        val card = composeRule.onNodeWithTag(ROUTE_CARD_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        val navigationCard = composeRule.onNodeWithTag(NAVIGATION_HUD_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        assertTrue("the card is behind the navigation card", isBehind(card, navigationCard))
     }
 
-    @Test
-    fun `the credit and the i rise above the card only where it sits over them, with the L on the right`() {
-        setScreen()
-        val before = rig.map.renderMode!!.bottomInset
-        rig.plotTo(3)
-        assertEquals("the L on the left, the card is away from the credit", before.value, rig.map.renderMode!!.bottomInset.value, 0.5f)
-        rig.dragBarAcross(rightward = true)
-        val card = rig.bounds(ROUTE_CARD_TAG)
-        val inset = rig.map.renderMode!!.bottomInset
-        assertTrue("the credit's inset $inset clears the card's height ${card.bottom - card.top}", inset >= card.bottom - card.top)
-    }
+    // D13 (RECORD -1955): "the credit and the i rise above the card only where it sits over them, with the L on the right" was
+    // here, reading the render mode's inset with no credit drawn. The credit now rises where the card covers it at rest, so its
+    // case needs the credit drawn: RouteCardCreditTest, in this window and the short one.
+
 }
 
 /**

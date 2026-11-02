@@ -127,6 +127,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
             photoMarkers = content.photoMarkers,
             offlineRegionCircles = content.offlineRegionCircles,
             bottomInset = renderMode.bottomInset,
+            onCreditSizeChanged = renderMode.onCreditSizeChanged,
             onUserCameraGesture = renderMode.onUserCameraGesture,
             layersState = renderMode.layers,
             onFeatureTap = renderMode.onFeatureTap,
