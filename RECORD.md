@@ -31871,3 +31871,19 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Slip, the planner's:** every Hazel prompt today told coders to run Gradle on the laptop under a 5 GB cap, against the coder profile ("CI only for the app. No Gradle on the laptop") and this dispatch's Rules ("CI only, no Gradle on the laptop"). Hazel caught it.
 **Decision:** the owner: "Tools > Map Layers (Recommended)"; "Bottom right, as in portrait (Recommended)" (replacing -954 for landscape); "Every map (Recommended)". Dispatch 2026-10-30-08 item D24. The planner's calls: dead code and tests removed and named; CI only from now on.
 **Notes:** Written by the planner by hand. Next free ID -1967.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1967
+**Timestamp:** 2026-11-02T23:05:48Z
+**Continues:** 2026-09-28-1966
+**Closes:** dispatch 2026-11-02-05
+**Title:** OpenStreetMap's terms don't allow the credit to live only behind the "i": it must show on the map or at startup first, then may fade; with OSM's own tiles it must stay visible
+**Observed:** Juniper (Fable), read only, every quote fetched at its URL 2026-11-02, nothing written to the repo, no contact with Aspen.
+- **OSMF Attribution Guidelines** (osmfoundation.org/wiki/Licence/Attribution_Guidelines) §1.3: "The attribution format should not require individuals to interact with the map or produced work to see the attribution." §1.5.2 allows a corner credit, or one "on a splash screen or pop-up shown when a user starts the app", and a fade or collapse "immediately with a dismiss interaction ...; automatically on map interaction such as panning, clicking, or zooming; automatically after five seconds", after which "the user must still be able to find the licence information ... for example from an '(i)' button". Covers Trail Map and offline (Protomaps, ODbL) and OpenTopoMap's OSM data.
+- **OSM tile policy** (operations.osmfoundation.org/policies/tiles/) §2, for tile.openstreetmap.org (the app's OSM option): "Show OpenStreetMap licence attribution clearly on the map (typically bottom-right). ... Do not hide attribution beneath UI, behind toggles, or off-screen."
+- **OpenTopoMap:** its about page asks the credit be "deutlich sichtbar" (clearly visible); unclear, leaning not allowed.
+- **Allowed off the map:** USDA Forest Service trails (CC BY 4.0 §3(a)(2), "any reasonable manner", provided the licence link and the modification note stay reachable, as Settings > Sources and credits has them), BLM (public domain), Protomaps' own name (requested, not required), MapLibre's logo and "i" (not required by BSD-2), USGS 3DEP (credit asked). NRCan OGL Canada and Copernicus: unclear on placement; Copernicus' annex could not be fetched.
+- Not established: whether Gaia GPS's practice complies. This is a reading of published text, not legal advice.
+**Notes:** Written by the planner by hand. D24's caption removal held with Hazel; brought to the owner. Next free ID -1968.
