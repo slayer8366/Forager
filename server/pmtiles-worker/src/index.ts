@@ -25,6 +25,7 @@ import offlineStyle from "./offline-style.json";
 import streetStyle from "./street-style-v1.json";
 import streetStyleV2 from "./street-style-v2.json";
 import streetStyleV3 from "./street-style-v3.json";
+import streetStyleV4 from "./street-style-v4.json";
 import { type RoutingEnv, routingResponse } from "./routing/handler.ts";
 
 // The route-data fields (ROUTING_APP_KEY, the two limiters) come from RoutingEnv (src/routing/handler.ts).
@@ -386,6 +387,12 @@ async function worldFillTile(
 // generic /{name}/{z}/{x}/{y}.mvt path below, with no code of its own; until that archive is on R2 each of its tiles
 // answers 404, which MapLibre takes as an empty tile. v2 and v1 are served exactly as before.
 //
+// /style/street-v4.json is the fill-in, sprite v6's orchard patterns and the hill shading (the switch to Street v4,
+// dispatch 2026-11-01-coder-11 step (c); the owner: "Yes, queue it"), map-style/forager-street-v4.json bundled the same
+// way. Its sprite is /sprites/v6 and its relief tiles come from relief.pmtiles through the generic path (z5-11, given
+// inline in the style); until that archive is on R2 they answer 404 and the hill shading draws nothing. v1 to v3 are
+// served exactly as before.
+//
 // Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
 // sprites/{v4,v5,v6}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
 // v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs); v6 is v5 unchanged plus
@@ -491,6 +498,9 @@ export default {
 
     if (url.pathname === "/style/street-v3.json") {
       return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV3);
+    }
+    if (url.pathname === "/style/street-v4.json") {
+      return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV4);
     }
 
     if (url.pathname === REFERENCE_MANIFEST_PATH) {
