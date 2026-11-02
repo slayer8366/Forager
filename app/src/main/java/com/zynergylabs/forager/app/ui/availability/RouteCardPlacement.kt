@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -67,11 +70,20 @@ internal fun routeCardPortraitPadding(cluster: MapIconClusterState): PaddingValu
  * and the fit its lines are laid out at. A change eases on the slide's own timing, and is immediate under reduced motion, where the
  * card does not slide either. The width only moves when the widest line changes: never with the handle, and never for a leg that
  * is no wider, because the rows count at peek and the total line always counts its progress mark ([rememberRouteCardNeededWidth]).
+ *
+ * Amendment 17 (RECORD -1937, the owner: "Change width once the leg lands (Recommended)"): while [legInFlight], the target stays the
+ * width the card had when the last leg landed, so the card does not ease to the in-flight row's width and then back out when the
+ * distance replaces the progress mark (on the S22: 312 dp, about 212 dp, then 226.9 dp). Once the leg lands it eases once, to the
+ * final width. The held width is still kept within the room, and the lines are laid out at it, so a line that needs more wraps for
+ * the leg's flight rather than being cut. The width the in-flight lines alone ask for is never a target.
  */
 @Composable
-internal fun RouteCardPortraitWidth(needed: Dp, sides: PaddingValues, barOnLeft: Boolean, content: @Composable (Dp, RouteCardContentFit) -> Unit) {
+internal fun RouteCardPortraitWidth(needed: Dp, legInFlight: Boolean, sides: PaddingValues, barOnLeft: Boolean, content: @Composable (Dp, RouteCardContentFit) -> Unit) {
     BoxWithConstraints(Modifier.padding(sides)) {
-        val target = min(needed, maxWidth)
+        val fresh = min(needed, maxWidth)
+        val lastLanded = remember { mutableStateOf<Dp?>(null) }
+        val target = if (legInFlight) lastLanded.value?.let { min(it, maxWidth) } ?: fresh else fresh
+        SideEffect { if (!legInFlight) lastLanded.value = fresh }
         val spec = if (LocalReduceMotion.current) snap<Dp>() else MotionTokens.navigationViewChromeSpec<Dp>()
         val width by animateDpAsState(target, spec, label = "route card width")
         content(width, RouteCardContentFit(target, if (barOnLeft) Alignment.End else Alignment.Start))
@@ -134,6 +146,20 @@ internal fun MapRenderMode.withCreditAboveRouteCard(cardHeightDp: Int, cardOverC
 
 /** Whether the landscape card sits over the credit. */
 internal fun routeCardOverCredit(cluster: MapIconClusterState): Boolean = cluster.landscape && !cluster.isOnLeftSide
+
+/**
+ * Whether "Re-center" rises for the card (Amendment 17, part 2 ruled, RECORD -1943, the owner: "Fix the S22 case, then check
+ * (Recommended)"): only where its horizontal span, [pill], overlaps the card's, [card], both in root px. A card in the other column
+ * leaves it where it is, so it never rises onto the search bar for a card it was never over (the S22, landscape, navigating,
+ * expanded). Where they share a column it rises as before, which in a short landscape window can still reach the search bar: that
+ * case is unruled (RECORD -1943). A pill not yet measured rises, so it is never drawn over the card; no card, no rise. The legend
+ * chip's own lift is unchanged.
+ */
+internal fun reCenterRisesForRouteCard(pill: ClosedFloatingPointRange<Float>?, card: ClosedFloatingPointRange<Float>?): Boolean {
+    if (card == null) return false
+    if (pill == null) return true
+    return pill.start < card.endInclusive && card.start < pill.endInclusive
+}
 
 /** How far inboard the legend chip sits while the card shows: past the bar in portrait with the bar on its side, as in the L. */
 internal fun routeCardLegendEndPadding(barOnRight: Boolean, barWidth: Dp): Dp = if (barOnRight) MAP_ICON_BAR_EDGE_INSET + barWidth + Spacing.sm else Spacing.sm

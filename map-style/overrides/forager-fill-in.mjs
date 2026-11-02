@@ -44,6 +44,10 @@ export const FILL_IN_COLOURS = {
   buildingZ14: "#ccc0b7",
   buildingOutline: "#b9a99c",
   waterEdge: "#71c3ce",
+  // Orchards, plant nurseries and vineyards (Sage's sage-10; the owner: "Fill + pattern per kind (Recommended)", "#c8dd98",
+  // "Standard night (Recommended)": the plain inversion #495e19, no fill exception), and their edge.
+  orchards: "#c8dd98",
+  orchardsEdge: "#b0c286",
 };
 
 /**
@@ -74,16 +78,47 @@ const EDGE_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 0.5, 15, 0.75, 17, 
 const MOTORWAY_CENTRES = ["roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link"];
 const MOTORWAY_CASINGS = ["roads_highway_casing_early", "roads_highway_casing_late", "roads_bridges_highway_casing", "roads_link_casing", "roads_bridges_link_casing"];
 
+/**
+ * Sprite v6's images (tools/build-sprite-v5.mjs v6): sprite v5, unchanged, plus these three patterns in one row below it,
+ * Sage's sage-10b art (Forager-cartography assets/sprite-drafts/2026-10-31). Square cells, in 1x px. v4 names sprite v6;
+ * v3 and older keep v5. Night is the app's plain inversion (ink #8ea65c to #829a50), as ruled: no night paint.
+ */
+export const SPRITE_V6_ITEMS = [
+  { name: "orchard_dots", size: 24 },
+  { name: "vineyard_rows", size: 16 },
+  { name: "nursery_dots", size: 12 },
+];
+
+/** Orchards, plant nurseries and vineyards: kind farmland with one of these kind_detail values (basemap patch 0006). */
+const ORCHARD_KINDS = ["orchard", "plant_nursery", "vineyard"];
+const IS_ORCHARD = ["all", ["==", ["get", "kind"], "farmland"], ["in", ["get", "kind_detail"], ["literal", ORCHARD_KINDS]]];
+
 /** The landuse kinds each new fill draws. */
 const SETTLED_KINDS = ["residential", "commercial", "railway", "farmland"];
 const PARK_FILL_KINDS = ["park", "recreation_ground", "garden", "dog_park", "pitch"];
 /** The earth fill: the settled fill's default, which no kind in its filter reaches. */
 const EARTH = "#e2dfda";
 
-/** Major-road width by zoom, and the casings' gap to match it. */
-const MAJOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 6, 0, 8, 0.8, 10, 1.3, 12, 1.9, 15, 3, 18, 13];
-/** Minor-road width by zoom, and its casing's gap. */
-const MINOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 11, 0.3, 12, 0.7, 15, 2, 18, 11];
+// The low zooms, after OSM Carto (the fill-in rulings, "Low-zoom roads, night borders, notices route": "A: OSM's treatment
+// (Recommended)", Sage's sage-11 spec): no casings below z11, the majors thinner by class, Carto's motorway widths and
+// low-zoom colours fading into the ruled ones from z10.5 to z11.5, and the minor roads a faint texture from z10.
+
+/** A value per major-road class: trunk, primary, secondary, tertiary (each with its ramps), and any other. */
+const byClass = (trunk, primary, secondary, tertiary, other) => ["match", ["get", "kind_detail"], ["trunk", "trunk_link"], trunk, ["primary", "primary_link"], primary, ["secondary", "secondary_link"], secondary, ["tertiary", "tertiary_link"], tertiary, other];
+/** Major-road width by zoom and class, and the casings' gap to match it; one width for all classes from z15. */
+const MAJOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"],
+  8, byClass(0.9, 0.9, 0.5, 0, 0.5), 9, byClass(1.1, 1.1, 0.7, 0.4, 0.7), 10, byClass(1.3, 1.3, 0.9, 0.6, 0.9),
+  11, byClass(1.6, 1.6, 1.2, 0.9, 1.2), 12, byClass(1.9, 1.9, 1.7, 1.5, 1.7), 15, 3, 18, 13];
+/** Motorway width by zoom, and its casings' gap. */
+const MOTORWAY_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 6, 0.8, 8, 1.0, 9, 1.3, 10, 1.7, 11, 2.0, 12, 2.4, 15, 5, 18, 15];
+/** The early casings (to z12): none below z11. */
+const EARLY_CASING_WIDTH = ["interpolate", ["linear"], ["zoom"], 10.9, 0, 11, 0.3, 12, 0.5];
+/** Minor-road width by zoom from z10, and its casing's gap. */
+const MINOR_WIDTH = ["interpolate", ["exponential", 1.6], ["zoom"], 10, 0.4, 11, 0.6, 12, 0.8, 15, 2, 18, 11];
+/** Carto's low-zoom road colours (style/road-colors-generated.mss, motorway-low-zoom; the others Sage's, after Carto). */
+const LOW_ZOOM = { motorway: "#e66e89", motorwayCasing: "#c24e6b", trunk: "#eeab4f", primary: "#efc46c", secondary: "#ecd58c", tertiary: "#bdb7ad", other: "#efc46c", minor: "#c4beb4" };
+/** A colour fading from its low-zoom value at z10.5 to its ruled value at z11.5. */
+const lowZoomFade = (low, ruled, from = 10.5, to = 11.5) => ["interpolate", ["linear"], ["zoom"], from, low, to, ruled];
 
 /** The lines v3 gives a night colour that v4 inverts instead, as the app's OpenStreetMap night does. */
 const INVERTED_AT_NIGHT = ["roads_major", "roads_bridges_major", ...MOTORWAY_CENTRES, "roads_rail"];
@@ -119,7 +154,36 @@ export const NIGHT_LINE_COLOURS_V4 = {
   // black inversion (3.28:1) outranked it (Sorrel's review). The other classes in the same match invert.
   roads_major: { [FILL_IN_COLOURS.tertiary]: "#333333" },
   roads_bridges_major: { [FILL_IN_COLOURS.tertiary]: "#333333" },
+  // The minor roads' white takes the tertiary's night and its band ("Low-zoom roads"); their low-zoom grey inverts.
+  roads_minor: { "#ffffff": "#333333" },
+  // Darker night rims ("Darker rims (Recommended)", Sage's REC table): each edge a shade darker than its fill's night,
+  // as by day; recorded by check-street-night, not gated. The water edges take the night water, so they stay off.
+  landuse_edges: {
+    "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
+    "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
+    "#c9c3bd": "#3b352e", "#c9c0bf": "#3c3231", "#c6b3c3": "#382735",
+    // Orchards, plant nurseries and vineyards (sage-10).
+    [FILL_IN_COLOURS.orchardsEdge]: "#3a4b14",
+  },
 };
+
+/**
+ * Hill shading (dispatch 2026-11-01-coder-11; the owner: "It's good. It actively defines the trail map from a street or topo
+ * map, which is ideal. Let's keep this"; Sage's sage-11 ALT, as on the S22 trial). Drawn from the style's `dem` source
+ * (generate-street.mjs: Terrarium PNG, z5-11, from the Worker's relief archive), above the land fills and below the creeks
+ * and water. The night recolour never touches a hillshade layer, so its night is its own table, `forager:night-hillshade`,
+ * which the app applies (StreetNightTables.kt, HillshadeNight).
+ */
+export const HILLSHADE_PAINT = {
+  "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 9, 0.28, 11, 0.32, 13, 0.24, 15, 0.16, 17, 0.1],
+  "hillshade-illumination-direction": 335,
+  "hillshade-illumination-anchor": "map",
+  "hillshade-shadow-color": "#4a3f33",
+  "hillshade-highlight-color": "#ffffff",
+  "hillshade-accent-color": "rgba(74,63,51,0.5)",
+};
+/** The hillshade's night (Sage's sage-11 ALT): darker shadows, a faint cool highlight, so the relief never glows. */
+export const NIGHT_HILLSHADE_V4 = { shadow: "rgba(0,0,0,0.7)", highlight: "rgba(220,228,236,0.2)", accent: "rgba(0,0,0,0.35)" };
 
 function byId(layers, id) {
   const layer = layers.find((l) => l.id === id);
@@ -147,7 +211,30 @@ export function applyFillIn(layers) {
       "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1],
     },
   });
+  // Orchards, plant nurseries and vineyards over the farmland fill (sage-10), and each kind's pattern from z13 (sprite v6).
   insertAfter(layers, "landuse_settled", {
+    id: "landuse_orchards",
+    type: "fill",
+    source: "protomaps",
+    "source-layer": "landuse",
+    filter: IS_ORCHARD,
+    paint: {
+      "fill-color": C.orchards,
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1],
+    },
+  });
+  insertAfter(layers, "landuse_orchards", {
+    id: "landuse_orchards_pattern",
+    type: "fill",
+    source: "protomaps",
+    "source-layer": "landuse",
+    minzoom: 13,
+    filter: IS_ORCHARD,
+    paint: {
+      "fill-pattern": ["match", ["get", "kind_detail"], "orchard", "orchard_dots", "vineyard", "vineyard_rows", "plant_nursery", "nursery_dots", ""],
+    },
+  });
+  insertAfter(layers, "landuse_orchards_pattern", {
     id: "landuse_parks_fill",
     type: "fill",
     source: "protomaps",
@@ -159,28 +246,49 @@ export function applyFillIn(layers) {
   // --- Major roads by class, wider from z8 ---------------------------------------------------------
   // Each ramp takes its road's colour (the rulings' "Ramps": the owner, "Approve the fix (Recommended)"), so at night it
   // takes the same inversion. The draft matched trunk_link only; the other ramps fell to v3's amber.
-  const byClass = ["match", ["get", "kind_detail"], ["trunk", "trunk_link"], C.trunk, ["primary", "primary_link"], C.primary, ["secondary", "secondary_link"], C.secondary, ["tertiary", "tertiary_link"], C.tertiary, C.majorOther];
+  const classColour = lowZoomFade(
+    byClass(LOW_ZOOM.trunk, LOW_ZOOM.primary, LOW_ZOOM.secondary, LOW_ZOOM.tertiary, LOW_ZOOM.other),
+    byClass(C.trunk, C.primary, C.secondary, C.tertiary, C.majorOther),
+  );
   for (const id of ["roads_major", "roads_bridges_major"]) {
     const layer = byId(layers, id);
     layer.paint["line-width"] = MAJOR_WIDTH;
-    layer.paint["line-color"] = byClass;
+    layer.paint["line-color"] = classColour;
   }
   for (const id of ["roads_major_casing_early", "roads_major_casing_late", "roads_bridges_major_casing"]) {
     const layer = byId(layers, id);
     layer.paint["line-gap-width"] = MAJOR_WIDTH;
-    if (id === "roads_major_casing_early") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 7.5, 0, 8.5, 0.6, 12, 1];
+    if (id === "roads_major_casing_early") layer.paint["line-width"] = EARLY_CASING_WIDTH;
+    if (id === "roads_major_casing_late") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 12, 0.5, 13, 0.75, 15, 1];
+    if (id === "roads_bridges_major_casing") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 12, 0.6, 13, 1, 15, 1.5];
     layer.paint["line-color"] = ["match", ["get", "kind_detail"], ["tertiary", "tertiary_link"], C.tertiaryCasing, C.majorCasing];
   }
 
   // --- Minor roads from z11, their casing from z12 ---------------------------------------------------
-  byId(layers, "roads_minor").paint["line-width"] = MINOR_WIDTH;
+  const minor = byId(layers, "roads_minor");
+  minor.paint["line-width"] = MINOR_WIDTH;
+  minor.paint["line-color"] = lowZoomFade(LOW_ZOOM.minor, "#ffffff", 11.5, 12);
+  minor.paint["line-opacity"] = ["interpolate", ["linear"], ["zoom"], 10, 0.7, 11, 1];
   const minorCasing = byId(layers, "roads_minor_casing");
   minorCasing.paint["line-gap-width"] = MINOR_WIDTH;
-  minorCasing.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 11, 0, 12, 0.6];
+  minorCasing.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 11.5, 0, 12, 0.5];
 
   // --- Motorways and their ramps in OSM Carto's pink, with its casing ----------------------------------------
-  for (const id of MOTORWAY_CENTRES) byId(layers, id).paint["line-color"] = C.motorway;
-  for (const id of MOTORWAY_CASINGS) byId(layers, id).paint["line-color"] = C.motorwayCasing;
+  // The ramps (roads_link) keep their own widths; the motorways take Carto's, with its low-zoom pink to z11.5 and casing
+  // to z12.5, and no casing below z11.
+  for (const id of MOTORWAY_CENTRES) {
+    const layer = byId(layers, id);
+    layer.paint["line-color"] = id.includes("highway") ? lowZoomFade(LOW_ZOOM.motorway, C.motorway) : C.motorway;
+    if (id.includes("highway")) layer.paint["line-width"] = MOTORWAY_WIDTH;
+  }
+  for (const id of MOTORWAY_CASINGS) {
+    const layer = byId(layers, id);
+    if (!id.includes("highway")) { layer.paint["line-color"] = C.motorwayCasing; continue; }
+    layer.paint["line-color"] = lowZoomFade(LOW_ZOOM.motorwayCasing, C.motorwayCasing, 11.5, 12.5);
+    layer.paint["line-gap-width"] = MOTORWAY_WIDTH;
+    if (id === "roads_highway_casing_early") layer.paint["line-width"] = EARLY_CASING_WIDTH;
+    if (id === "roads_highway_casing_late") layer.paint["line-width"] = ["interpolate", ["linear"], ["zoom"], 12, 0.5, 13, 0.75, 15, 1, 20, 15];
+  }
 
   // --- Faint area edges, after the area fills, and the water's (night: the water rule paints them the water) ------
   insertAfter(layers, "landuse_pier", {
@@ -191,7 +299,9 @@ export function applyFillIn(layers) {
     minzoom: 13,
     filter: ["in", ["get", "kind"], ["literal", EDGE_COLOURS.flatMap(([kinds]) => kinds)]],
     paint: {
-      "line-color": ["match", ["get", "kind"], ...EDGE_COLOURS.flatMap(([kinds, colour]) => [kinds.length === 1 ? kinds[0] : kinds, colour]), "#000000"],
+      // Orchards, plant nurseries and vineyards are kind farmland: their own edge first, then the edge by kind.
+      "line-color": ["case", IS_ORCHARD, C.orchardsEdge,
+        ["match", ["get", "kind"], ...EDGE_COLOURS.flatMap(([kinds, colour]) => [kinds.length === 1 ? kinds[0] : kinds, colour]), "#000000"]],
       "line-width": EDGE_WIDTH,
       "line-opacity": ["step", ["zoom"], ["match", ["get", "kind"], EDGES_FROM_Z14, 0, 1], 14, 1],
     },
@@ -210,6 +320,18 @@ export function applyFillIn(layers) {
   byId(layers, "landuse_industrial").paint["fill-color"] = C.industrial;
   byId(layers, "buildings").paint["fill-color"] = ["step", ["zoom"], C.building, 14, C.buildingZ14, 15, C.building];
   byId(layers, "buildings_outline").paint["line-color"] = C.buildingOutline;
+
+  // --- Creeks under the water (the owner: "Creeks under water (Recommended)") -------------------------------------
+  // water_stream and water_river draw just before the water fill, so a lake or river polygon covers the line inside it
+  // and the creek shows everywhere else. Nothing else moves, and no colour changes.
+  const water = byId(layers, "water");
+  for (const id of ["water_stream", "water_river"]) {
+    const line = layers.splice(layers.indexOf(byId(layers, id)), 1)[0];
+    layers.splice(layers.indexOf(water), 0, line);
+  }
+
+  // --- Hill shading, right before the creeks (and so below them and the water) ------------------------------------
+  layers.splice(layers.indexOf(byId(layers, "water_stream")), 0, { id: "hillshade", type: "hillshade", source: "dem", minzoom: 5, paint: HILLSHADE_PAINT });
 
   // --- Rail, darker and stronger ---------------------------------------------------------------------
   const rail = byId(layers, "roads_rail");

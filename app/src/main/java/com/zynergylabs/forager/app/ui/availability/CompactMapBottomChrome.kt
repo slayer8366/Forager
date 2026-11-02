@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import androidx.compose.ui.Alignment
@@ -61,8 +63,13 @@ internal fun BoxScope.CompactMapBottomChrome(
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
-    /** Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise; "Return to Route" (Amendment 3) and the legend chip (Amendment 4) sit above it. */
+    /**
+     * Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise. The legend chip (Amendment 4) sits above it;
+     * "Return to Route", now Re-center (Amendment 3), only where it shares the card's column (Amendment 17, part 2 ruled, RECORD -1943).
+     */
     routeCardHeight: Dp = 0.dp,
+    /** Amendment 17, part 2 ruled (RECORD -1943): the route card's left and right in root px while it shows. */
+    routeCardSpanPx: ClosedFloatingPointRange<Float>? = null,
 ) {
     val isNavigating = navigation.isNavigating
     val navigationFollowing = navigation.navigationFollowing
@@ -83,11 +90,14 @@ internal fun BoxScope.CompactMapBottomChrome(
     // nav keeps winning its own band.
     // Motion Part 2, item 4 (scout N3; "Fade and grow"): it grows up from its bottom centre and shrinks back down;
     // item 5: from the moment it starts to leave (a tap on it, which brings the view back) it takes no touch.
-    // Dispatch 2026-10-30-08: how far "Return to Route" (Amendment 3) and the legend chip (Amendment 4) rise while the route
-    // card shows, its height and a gap; nothing while it does not.
+    // Dispatch 2026-10-30-08: how far the legend chip (Amendment 4) rises while the route card shows, its height and a gap; nothing
+    // while it does not. "Return to Route" (Amendment 3) rises by the same, only for a card whose span it overlaps (below).
     val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
     val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
     val returnToRouteShown = isNavigating && !navigationFollowing
+    // Amendment 17, part 2 ruled: the pill's own span, which the lift does not move, so reading it here has no loop.
+    var returnToRouteSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
+    val returnToRouteLift = if (reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
     MapPopUp(
         visible = returnToRouteShown,
         pivot = PopUpPivot.BottomCentre,
@@ -96,11 +106,16 @@ internal fun BoxScope.CompactMapBottomChrome(
             .padding(controlsPadding)
             // Amendment 3 (the owner: "Pill sits above the card (Recommended)"): the card sits on the same bottom, so the pill
             // rises by the card's height and a gap, and the two never overlap.
-            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + routeCardLift),
+            // Amendment 17, part 2 ruled (RECORD -1943): only for a card whose span it overlaps ([reCenterRisesForRouteCard]).
+            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + returnToRouteLift),
     ) {
         ReturnToRoutePill(
             onClick = onReturnToRoute,
-            modifier = if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier,
+            modifier = (if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier)
+                .onGloballyPositioned { coordinates ->
+                    val left = coordinates.positionInRoot().x
+                    returnToRouteSpanPx = left..left + coordinates.size.width
+                },
         )
     }
 

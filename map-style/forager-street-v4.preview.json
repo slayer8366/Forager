@@ -45,6 +45,8 @@
       "library",
       "marina",
       "museum",
+      "nursery_dots",
+      "orchard_dots",
       "park",
       "parking",
       "peak",
@@ -63,6 +65,7 @@
       "tufts",
       "university",
       "viewpoint_c",
+      "vineyard_rows",
       "zoo"
     ],
     "forager:palette": {
@@ -106,7 +109,9 @@
         "building": "#d9d0c9",
         "buildingZ14": "#ccc0b7",
         "buildingOutline": "#b9a99c",
-        "waterEdge": "#71c3ce"
+        "waterEdge": "#71c3ce",
+        "orchards": "#c8dd98",
+        "orchardsEdge": "#b0c286"
       }
     },
     "forager:night-layers": {
@@ -170,7 +175,31 @@
       },
       "roads_bridges_major": {
         "#ffffff": "#333333"
+      },
+      "roads_minor": {
+        "#ffffff": "#333333"
+      },
+      "landuse_edges": {
+        "#94b988": "#38552b",
+        "#c2cdaa": "#1d240b",
+        "#b4caa8": "#203216",
+        "#88b99d": "#255239",
+        "#adc8bc": "#203c36",
+        "#b0aba4": "#5d636c",
+        "#c3bfba": "#1d1b18",
+        "#d0bdb9": "#241a18",
+        "#c4bfc2": "#1a1919",
+        "#ccceb4": "#131207",
+        "#c9c3bd": "#3b352e",
+        "#c9c0bf": "#3c3231",
+        "#c6b3c3": "#382735",
+        "#b0c286": "#3a4b14"
       }
+    },
+    "forager:night-hillshade": {
+      "shadow": "rgba(0,0,0,0.7)",
+      "highlight": "rgba(220,228,236,0.2)",
+      "accent": "rgba(0,0,0,0.35)"
     }
   },
   "sources": {
@@ -186,10 +215,21 @@
       ],
       "minzoom": 10,
       "maxzoom": 15
+    },
+    "dem": {
+      "type": "raster-dem",
+      "tiles": [
+        "https://forager-pmtiles.brandonlee1-894.workers.dev/relief/{z}/{x}/{y}.png"
+      ],
+      "encoding": "terrarium",
+      "tileSize": 256,
+      "minzoom": 5,
+      "maxzoom": 11,
+      "attribution": "Heights: USGS 3DEP; NRCan MRDEM"
     }
   },
   "glyphs": "http://localhost:8765/assets/fonts/{fontstack}/{range}.pbf",
-  "sprite": "http://localhost:8765/assets/sprites/v5/light",
+  "sprite": "http://localhost:8765/assets/sprites/v6/light",
   "layers": [
     {
       "id": "background",
@@ -292,6 +332,103 @@
           0.6,
           9,
           1
+        ]
+      }
+    },
+    {
+      "id": "landuse_orchards",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "farmland"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "orchard",
+              "plant_nursery",
+              "vineyard"
+            ]
+          ]
+        ]
+      ],
+      "paint": {
+        "fill-color": "#c8dd98",
+        "fill-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0.6,
+          9,
+          1
+        ]
+      }
+    },
+    {
+      "id": "landuse_orchards_pattern",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "minzoom": 13,
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "farmland"
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind_detail"
+          ],
+          [
+            "literal",
+            [
+              "orchard",
+              "plant_nursery",
+              "vineyard"
+            ]
+          ]
+        ]
+      ],
+      "paint": {
+        "fill-pattern": [
+          "match",
+          [
+            "get",
+            "kind_detail"
+          ],
+          "orchard",
+          "orchard_dots",
+          "vineyard",
+          "vineyard_rows",
+          "plant_nursery",
+          "nursery_dots",
+          ""
         ]
       }
     },
@@ -700,17 +837,35 @@
       }
     },
     {
-      "id": "water",
-      "type": "fill",
-      "filter": [
-        "==",
-        "$type",
-        "Polygon"
-      ],
-      "source": "protomaps",
-      "source-layer": "water",
+      "id": "hillshade",
+      "type": "hillshade",
+      "source": "dem",
+      "minzoom": 5,
       "paint": {
-        "fill-color": "#80deea"
+        "hillshade-exaggeration": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          9,
+          0.28,
+          11,
+          0.32,
+          13,
+          0.24,
+          15,
+          0.16,
+          17,
+          0.1
+        ],
+        "hillshade-illumination-direction": 335,
+        "hillshade-illumination-anchor": "map",
+        "hillshade-shadow-color": "#4a3f33",
+        "hillshade-highlight-color": "#ffffff",
+        "hillshade-accent-color": "rgba(74,63,51,0.5)"
       }
     },
     {
@@ -774,6 +929,20 @@
           18,
           12
         ]
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "filter": [
+        "==",
+        "$type",
+        "Polygon"
+      ],
+      "source": "protomaps",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#80deea"
       }
     },
     {
@@ -853,63 +1022,93 @@
       ],
       "paint": {
         "line-color": [
-          "match",
+          "case",
           [
-            "get",
-            "kind"
+            "all",
+            [
+              "==",
+              [
+                "get",
+                "kind"
+              ],
+              "farmland"
+            ],
+            [
+              "in",
+              [
+                "get",
+                "kind_detail"
+              ],
+              [
+                "literal",
+                [
+                  "orchard",
+                  "plant_nursery",
+                  "vineyard"
+                ]
+              ]
+            ]
           ],
+          "#b0c286",
           [
-            "forest",
-            "wood"
-          ],
-          "#94b988",
-          [
-            "scrub",
-            "grassland",
-            "grass",
-            "meadow",
-            "heath",
-            "cemetery",
-            "golf_course"
-          ],
-          "#c2cdaa",
-          [
-            "park",
-            "recreation_ground",
-            "garden",
-            "dog_park",
-            "pitch"
-          ],
-          "#b4caa8",
-          [
-            "allotments",
-            "village_green",
-            "playground"
-          ],
-          "#88b99d",
-          "wetland",
-          "#adc8bc",
-          "bare_rock",
-          "#b0aba4",
-          "residential",
-          "#c3bfba",
-          "commercial",
-          "#d0bdb9",
-          "railway",
-          "#c4bfc2",
-          "farmland",
-          "#ccceb4",
-          [
-            "school",
-            "university",
-            "college"
-          ],
-          "#c9c3bd",
-          "hospital",
-          "#c9c0bf",
-          "industrial",
-          "#c6b3c3",
-          "#000000"
+            "match",
+            [
+              "get",
+              "kind"
+            ],
+            [
+              "forest",
+              "wood"
+            ],
+            "#94b988",
+            [
+              "scrub",
+              "grassland",
+              "grass",
+              "meadow",
+              "heath",
+              "cemetery",
+              "golf_course"
+            ],
+            "#c2cdaa",
+            [
+              "park",
+              "recreation_ground",
+              "garden",
+              "dog_park",
+              "pitch"
+            ],
+            "#b4caa8",
+            [
+              "allotments",
+              "village_green",
+              "playground"
+            ],
+            "#88b99d",
+            "wetland",
+            "#adc8bc",
+            "bare_rock",
+            "#b0aba4",
+            "residential",
+            "#c3bfba",
+            "commercial",
+            "#d0bdb9",
+            "railway",
+            "#c4bfc2",
+            "farmland",
+            "#ccceb4",
+            [
+              "school",
+              "university",
+              "college"
+            ],
+            "#c9c3bd",
+            "hospital",
+            "#c9c0bf",
+            "industrial",
+            "#c6b3c3",
+            "#000000"
+          ]
         ],
         "line-width": [
           "interpolate",
@@ -1635,10 +1834,12 @@
           [
             "zoom"
           ],
+          10,
+          0.4,
           11,
-          0.3,
+          0.6,
           12,
-          0.7,
+          0.8,
           15,
           2,
           18,
@@ -1652,10 +1853,10 @@
           [
             "zoom"
           ],
-          11,
+          11.5,
           0,
           12,
-          0.6
+          0.5
         ]
       }
     },
@@ -1748,14 +1949,151 @@
           [
             "zoom"
           ],
-          6,
-          0,
           8,
-          0.8,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            0.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            0.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.5,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0,
+            0.5
+          ],
+          9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.1,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.1,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.4,
+            0.7
+          ],
           10,
-          1.3,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.3,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.3,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.9,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.6,
+            0.9
+          ],
+          11,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.6,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.6,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.2,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.9,
+            1.2
+          ],
           12,
-          1.9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            1.5,
+            1.7
+          ],
           15,
           3,
           18,
@@ -1764,15 +2102,16 @@
         "line-width": [
           "interpolate",
           [
-            "exponential",
-            1.6
+            "linear"
           ],
           [
             "zoom"
           ],
-          9,
-          0,
-          9.5,
+          12,
+          0.5,
+          13,
+          0.75,
+          15,
           1
         ]
       }
@@ -1804,7 +2143,19 @@
         ]
       ],
       "paint": {
-        "line-color": "#dc2a67",
+        "line-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11.5,
+          "#c24e6b",
+          12.5,
+          "#dc2a67"
+        ],
         "line-gap-width": [
           "interpolate",
           [
@@ -1814,25 +2165,36 @@
           [
             "zoom"
           ],
-          3,
-          0,
-          3.5,
-          0.5,
+          6,
+          0.8,
+          8,
+          1,
+          9,
+          1.3,
+          10,
+          1.7,
+          11,
+          2,
+          12,
+          2.4,
+          15,
+          5,
           18,
           15
         ],
         "line-width": [
           "interpolate",
           [
-            "exponential",
-            1.6
+            "linear"
           ],
           [
             "zoom"
           ],
-          7,
-          0,
-          7.5,
+          12,
+          0.5,
+          13,
+          0.75,
+          15,
           1,
           20,
           15
@@ -4101,7 +4463,19 @@
         ]
       ],
       "paint": {
-        "line-color": "#ffffff",
+        "line-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11.5,
+          "#c4beb4",
+          12,
+          "#ffffff"
+        ],
         "line-width": [
           "interpolate",
           [
@@ -4111,14 +4485,29 @@
           [
             "zoom"
           ],
+          10,
+          0.4,
           11,
-          0.3,
+          0.6,
           12,
-          0.7,
+          0.8,
           15,
           2,
           18,
           11
+        ],
+        "line-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.7,
+          11,
+          1
         ]
       }
     },
@@ -4167,14 +4556,151 @@
           [
             "zoom"
           ],
-          6,
-          0,
           8,
-          0.8,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            0.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            0.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.5,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0,
+            0.5
+          ],
+          9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.1,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.1,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.4,
+            0.7
+          ],
           10,
-          1.3,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.3,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.3,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.9,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.6,
+            0.9
+          ],
+          11,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.6,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.6,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.2,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.9,
+            1.2
+          ],
           12,
-          1.9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            1.5,
+            1.7
+          ],
           15,
           3,
           18,
@@ -4188,12 +4714,12 @@
           [
             "zoom"
           ],
-          7.5,
+          10.9,
           0,
-          8.5,
-          0.6,
+          11,
+          0.3,
           12,
-          1
+          0.5
         ]
       }
     },
@@ -4220,32 +4746,71 @@
       ],
       "paint": {
         "line-color": [
-          "match",
+          "interpolate",
           [
-            "get",
-            "kind_detail"
+            "linear"
           ],
           [
-            "trunk",
-            "trunk_link"
+            "zoom"
           ],
-          "#f2bf72",
+          10.5,
           [
-            "primary",
-            "primary_link"
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            "#eeab4f",
+            [
+              "primary",
+              "primary_link"
+            ],
+            "#efc46c",
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            "#ecd58c",
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            "#bdb7ad",
+            "#efc46c"
           ],
-          "#f5d28c",
+          11.5,
           [
-            "secondary",
-            "secondary_link"
-          ],
-          "#f8e3ae",
-          [
-            "tertiary",
-            "tertiary_link"
-          ],
-          "#ffffff",
-          "#f6d68f"
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            "#f2bf72",
+            [
+              "primary",
+              "primary_link"
+            ],
+            "#f5d28c",
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            "#f8e3ae",
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            "#ffffff",
+            "#f6d68f"
+          ]
         ],
         "line-width": [
           "interpolate",
@@ -4256,14 +4821,151 @@
           [
             "zoom"
           ],
-          6,
-          0,
           8,
-          0.8,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            0.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            0.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.5,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0,
+            0.5
+          ],
+          9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.1,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.1,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.4,
+            0.7
+          ],
           10,
-          1.3,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.3,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.3,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.9,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.6,
+            0.9
+          ],
+          11,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.6,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.6,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.2,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.9,
+            1.2
+          ],
           12,
-          1.9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            1.5,
+            1.7
+          ],
           15,
           3,
           18,
@@ -4298,7 +5000,19 @@
         ]
       ],
       "paint": {
-        "line-color": "#dc2a67",
+        "line-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11.5,
+          "#c24e6b",
+          12.5,
+          "#dc2a67"
+        ],
         "line-gap-width": [
           "interpolate",
           [
@@ -4308,26 +5022,37 @@
           [
             "zoom"
           ],
-          3,
-          0,
-          3.5,
-          0.5,
+          6,
+          0.8,
+          8,
+          1,
+          9,
+          1.3,
+          10,
+          1.7,
+          11,
+          2,
+          12,
+          2.4,
+          15,
+          5,
           18,
           15
         ],
         "line-width": [
           "interpolate",
           [
-            "exponential",
-            1.6
+            "linear"
           ],
           [
             "zoom"
           ],
-          7,
+          10.9,
           0,
-          7.5,
-          1
+          11,
+          0.3,
+          12,
+          0.5
         ]
       }
     },
@@ -4357,7 +5082,19 @@
         ]
       ],
       "paint": {
-        "line-color": "#e892a2",
+        "line-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10.5,
+          "#e66e89",
+          11.5,
+          "#e892a2"
+        ],
         "line-width": [
           "interpolate",
           [
@@ -4367,12 +5104,18 @@
           [
             "zoom"
           ],
-          3,
-          0,
           6,
-          1.1,
+          0.8,
+          8,
+          1,
+          9,
+          1.3,
+          10,
+          1.7,
+          11,
+          2,
           12,
-          1.6,
+          2.4,
           15,
           5,
           18,
@@ -4670,14 +5413,151 @@
           [
             "zoom"
           ],
-          6,
-          0,
           8,
-          0.8,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            0.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            0.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.5,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0,
+            0.5
+          ],
+          9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.1,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.1,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.4,
+            0.7
+          ],
           10,
-          1.3,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.3,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.3,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.9,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.6,
+            0.9
+          ],
+          11,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.6,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.6,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.2,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.9,
+            1.2
+          ],
           12,
-          1.9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            1.5,
+            1.7
+          ],
           15,
           3,
           18,
@@ -4686,15 +5566,16 @@
         "line-width": [
           "interpolate",
           [
-            "exponential",
-            1.6
+            "linear"
           ],
           [
             "zoom"
           ],
-          9,
-          0,
-          9.5,
+          12,
+          0.6,
+          13,
+          1,
+          15,
           1.5
         ]
       }
@@ -4837,32 +5718,71 @@
       ],
       "paint": {
         "line-color": [
-          "match",
+          "interpolate",
           [
-            "get",
-            "kind_detail"
+            "linear"
           ],
           [
-            "trunk",
-            "trunk_link"
+            "zoom"
           ],
-          "#f2bf72",
+          10.5,
           [
-            "primary",
-            "primary_link"
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            "#eeab4f",
+            [
+              "primary",
+              "primary_link"
+            ],
+            "#efc46c",
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            "#ecd58c",
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            "#bdb7ad",
+            "#efc46c"
           ],
-          "#f5d28c",
+          11.5,
           [
-            "secondary",
-            "secondary_link"
-          ],
-          "#f8e3ae",
-          [
-            "tertiary",
-            "tertiary_link"
-          ],
-          "#ffffff",
-          "#f6d68f"
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            "#f2bf72",
+            [
+              "primary",
+              "primary_link"
+            ],
+            "#f5d28c",
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            "#f8e3ae",
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            "#ffffff",
+            "#f6d68f"
+          ]
         ],
         "line-width": [
           "interpolate",
@@ -4873,14 +5793,151 @@
           [
             "zoom"
           ],
-          6,
-          0,
           8,
-          0.8,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            0.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            0.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.5,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0,
+            0.5
+          ],
+          9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.1,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.1,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.4,
+            0.7
+          ],
           10,
-          1.3,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.3,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.3,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            0.9,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.6,
+            0.9
+          ],
+          11,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.6,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.6,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.2,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            0.9,
+            1.2
+          ],
           12,
-          1.9,
+          [
+            "match",
+            [
+              "get",
+              "kind_detail"
+            ],
+            [
+              "trunk",
+              "trunk_link"
+            ],
+            1.9,
+            [
+              "primary",
+              "primary_link"
+            ],
+            1.9,
+            [
+              "secondary",
+              "secondary_link"
+            ],
+            1.7,
+            [
+              "tertiary",
+              "tertiary_link"
+            ],
+            1.5,
+            1.7
+          ],
           15,
           3,
           18,
@@ -4911,7 +5968,19 @@
         ]
       ],
       "paint": {
-        "line-color": "#dc2a67",
+        "line-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11.5,
+          "#c24e6b",
+          12.5,
+          "#dc2a67"
+        ],
         "line-gap-width": [
           "interpolate",
           [
@@ -4921,10 +5990,20 @@
           [
             "zoom"
           ],
-          3,
-          0,
-          3.5,
-          0.5,
+          6,
+          0.8,
+          8,
+          1,
+          9,
+          1.3,
+          10,
+          1.7,
+          11,
+          2,
+          12,
+          2.4,
+          15,
+          5,
           18,
           15
         ],
@@ -4968,7 +6047,19 @@
         ]
       ],
       "paint": {
-        "line-color": "#e892a2",
+        "line-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10.5,
+          "#e66e89",
+          11.5,
+          "#e892a2"
+        ],
         "line-width": [
           "interpolate",
           [
@@ -4978,12 +6069,18 @@
           [
             "zoom"
           ],
-          3,
-          0,
           6,
-          1.1,
+          0.8,
+          8,
+          1,
+          9,
+          1.3,
+          10,
+          1.7,
+          11,
+          2,
           12,
-          1.6,
+          2.4,
           15,
           5,
           18,
