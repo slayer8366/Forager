@@ -98,14 +98,14 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
     }
 
     /**
-     * RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): the Maps tab asks the map to
-     * put the "i" beside the credit strip in landscape, and not in portrait. The placement itself is `AttributionBesideCreditTest`'s;
-     * MapLibre's control cannot be drawn or touched under Robolectric.
+     * D24 (dispatch 2026-10-30-08, RECORD -1966; the owner: "Bottom right, as in portrait (Recommended)", which "replaces -954 for
+     * landscape"): with the credit strip off the map, the Maps tab never asks for the "i" beside it, in any window, so the "i" takes
+     * the bottom-end corner as in portrait. MapLibre's control cannot be drawn or touched under Robolectric.
      */
     @Test
-    fun `the map is asked to put the i beside the credit strip in landscape only`() {
+    fun `the map is never asked to put the i beside a credit strip`() {
         setScreen()
-        assertEquals("beside the credit strip: landscape ${rotation != null}", rotation != null, lastRenderMode?.attributionBesideCredit)
+        assertEquals("beside the credit strip (rotation $rotation)", false, lastRenderMode?.attributionBesideCredit)
     }
 
     fun setScreen() {
