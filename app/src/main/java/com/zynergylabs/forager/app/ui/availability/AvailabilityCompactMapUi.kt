@@ -503,13 +503,7 @@ internal fun CompactMapTab(
                     // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
                     renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
                         .copy(onCreditSizeChanged = onMapCreditSize)
-                        .withCreditAboveRouteCard(routeCardHeightDp, cardOverCredit = cluster.landscape && creditUnderRouteCard)
-                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster))
-                        // D18 (RECORD -1958): in portrait the credit rises above the card where they overlap; the "i" stays as it was.
-                        .withCreditAbovePortraitRouteCard(
-                            cardTopAboveBottom = routeCardRestPx?.let { card -> with(compassStripDensity) { (cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx - card.top).toDp() } },
-                            cardOverCredit = !cluster.landscape && creditUnderRouteCard,
-                        ),
+                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster)),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onFeatureTap = onFeatureTap,
