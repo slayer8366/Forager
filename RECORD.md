@@ -31629,3 +31629,17 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** One S22 session after Re-center is green: Re-center at a larger font, and known bug 14 proven or not with one throwaway download
 **Decision:** the owner: "Yes, run both on the S22". Dispatch 2026-11-02-01, to start when #449's Amendment 17 part 2 is green. The S22 is connected (adb, R5CT321008R); not touched yet.
 **Notes:** Written by the planner by hand. The dispatch names a confound: pre-main now loads Street v4, whose relief tiles 404 on the live Worker, so a download may end on that rather than bug 14. Next free ID -1945.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1945
+**Timestamp:** 2026-11-02T07:00:57Z
+**Continues:** 2026-09-28-1943, 2026-09-28-1944
+**Closes:** dispatch 2026-10-30-08 Amendment 17
+**Title:** #449's Re-center rises only over the card, green; the S22 session starts
+**Observed:** Hazel (Opus), route-plot-ui e3a500ebf (planner read the head), pre-main 6522e5d1e merged in. CI run 41401562588, 6207 tests, 0 failed, 24 skipped (Hazel's reading). Fail first 4 of 7, all other-column cases; reverts "alwaysrise" and "neverrise" each bite with their own figures. No empty commit.
+- Where the two share a column (823 x 384 and 640 x 360 in Robolectric), Re-center clears the card and, expanded, meets or sits on the search bar: printed, not asserted, as ruled.
+- **Beyond the dispatch:** the landscape other-column case is tested at 915 x 412, since at the S22's 823 x 384 Robolectric (no insets) puts them in one column; the S22 is covered by analogy until the phone check. A card sliding under Re-center could lift it for those frames (inferred).
+- **Not verified:** any of it on a phone.
+**Notes:** Written by the planner by hand. Dispatch 2026-11-02-01 starts on e3a500ebf. #449 not merged (-1938). Next free ID -1946.
