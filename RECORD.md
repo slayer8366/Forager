@@ -31594,3 +31594,18 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The altitude bug is listed as known bug 22 and a promotion may ship with it; #440 follows once walked
 **Decision:** the owner: "Option 1", whose option read "List it and ship with it (recommended). It goes on the known-bugs list now, and the fix (#440) follows once it's walked." Row 22 added to docs/process/known-bugs.md on pre-main at 6522e5d1e, [skip ci]. Its Serious field reads "not ruled", since the owner was asked whether to hold, not whether it is serious.
 **Notes:** Written by the planner by hand. Row 14's weight in a promotion (-1940) is not asked yet. Hazel's Amendment 17 will take 6522e5d1e when it merges pre-main in; a doc only. Next free ID -1942.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1942
+**Timestamp:** 2026-11-02T06:29:29Z
+**Continues:** 2026-09-28-1937, 2026-09-28-1938, 2026-09-28-1939
+**Title:** #449's Amendment 17: the held width and Sorrel's floor tests are green; Re-center is stopped on a conflict between the owner's two rules
+**Observed:** Hazel (Opus), route-plot-ui d17c6959b (planner read the head), pre-main 2bc8913f4 merged in at 013f77a48. CI run 41398352039, 6200 tests, 0 failed, 24 skipped (Hazel's reading; the planner did not open the run). Nothing on a phone.
+- **Width (part 1):** while a leg is in flight the portrait card holds the width from the last landed leg, then eases once. Fail first: all 3 width tests, the card easing 312 to 208 in flight, then 235. Revert "nohold" bites with its own message.
+- **Sorrel's N-5 and N-4 (part 3):** the landscape padding's floor and the bar column's 64 dp touch floor. Reverts "nofloor2" and "nomin" bite; the first "nofloor" did not compile and was not cited.
+- **Re-center (part 2), stopped, no production change:** in landscape while navigating the card and Re-center are not always in different columns. At the S22's size in Robolectric they overlap by 25.7 dp; from the S22 audit's screenshots, read and not measured, they are about 3 px apart; at 640 x 360 dp they overlap outright. Where they share a column, "never on the search bar" and "stays clear of the card" cannot both hold. Only the S22 at default font is a sighting (-1936); the rest are test figures.
+- **Beyond the dispatch:** with the width held, a wider in-flight row wraps until its leg lands (inferred).
+- **Slip:** d17c6959b is an empty commit pushed to run CI after three [skip ci] commits; the planner did not forbid it.
+**Notes:** Written by the planner by hand. Brought to the owner. #449 is not merged (-1938). Next free ID -1943.
