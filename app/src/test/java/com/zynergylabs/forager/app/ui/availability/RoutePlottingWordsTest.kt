@@ -135,7 +135,7 @@ class RoutePlottingWordsTest {
         assertWord("Plot route", shown(MAP_BUBBLE_PLOT_ROUTE_TAG), "the waypoint's bubble")
 
         touchCentreOf(MAP_BUBBLE_PLOT_ROUTE_TAG)
-        assertWord("1 Waypoint selected, tap another to route", shown(ROUTE_CARD_COUNT_TAG), "the card at one stop")
+        assertWord("1 Waypoint selected,\ntap another to route", shown(ROUTE_CARD_COUNT_TAG), "the card at one stop")
         assertEquals("the old hint is gone", 0, composeRule.onAllNodes(hasText("Tap the next waypoint", substring = true), useUnmergedTree = true).fetchSemanticsNodes().size)
         assertWord("Undo", shown(ROUTE_CARD_UNDO_TAG), "the card")
         assertWord("Cancel", shown(ROUTE_CARD_CANCEL_TAG), "the card")

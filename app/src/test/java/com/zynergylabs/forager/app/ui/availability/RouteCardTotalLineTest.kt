@@ -274,10 +274,10 @@ class RouteCardTotalLineTest {
         setScreen()
         touchCentreOf(glyphTag(CREEK.id))
         touchCentreOf(MAP_BUBBLE_PLOT_ROUTE_TAG)
-        assertEquals("1 Waypoint selected, tap another to route", text(ROUTE_CARD_COUNT_TAG))
+        assertEquals("1 Waypoint selected,\ntap another to route", text(ROUTE_CARD_COUNT_TAG))
         assertTrue("no total line", !exists(ROUTE_CARD_ROUTED_TAG))
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
-        assertEquals("1 Waypoint selected, tap another to route", text(ROUTE_CARD_COUNT_TAG))
+        assertEquals("1 Waypoint selected,\ntap another to route", text(ROUTE_CARD_COUNT_TAG))
         assertTrue("no total line", !exists(ROUTE_CARD_ROUTED_TAG))
     }
 

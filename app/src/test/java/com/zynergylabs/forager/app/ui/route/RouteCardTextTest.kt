@@ -18,7 +18,7 @@ class RouteCardTextTest {
 
     @Test
     fun `the one-stop hint is singular and is the only selected text left (Amendment 12)`() {
-        assertEquals("1 Waypoint selected, tap another to route", ONE_WAYPOINT_SELECTED)
+        assertEquals("1 Waypoint selected,\ntap another to route", ONE_WAYPOINT_SELECTED)
     }
 
     @Test

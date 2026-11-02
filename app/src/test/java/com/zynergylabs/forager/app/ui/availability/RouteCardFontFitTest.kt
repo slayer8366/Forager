@@ -48,7 +48,7 @@ abstract class RouteCardFontFitTests(private val wraps: Boolean) {
         val scale = composeRule.density.fontScale
         val hintCard = rig.bounds(ROUTE_CARD_TAG)
         println("FONT $scale card ${hintCard.left.value}..${hintCard.right.value} x ${hintCard.top.value}..${hintCard.bottom.value}")
-        rig.assertWhole("font $scale, the hint", ROUTE_CARD_COUNT_TAG, "1 Waypoint selected, tap another to route")
+        rig.assertWhole("font $scale, the hint", ROUTE_CARD_COUNT_TAG, "1 Waypoint selected,\ntap another to route")
         rig.plotTo(4)
         val lines = rig.assertWhole("font $scale, the count", ROUTE_CARD_ROUTED_COUNT_TAG, "4 Waypoints routed")
         assertEquals("font $scale: the count's lines", if (wraps) 2 else 1, lines)
