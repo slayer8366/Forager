@@ -29,6 +29,9 @@ const STREET_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json
 // Step 8a (dispatch 2026-10-26-14): Trail Map v3, with the official-trails band, and the synthetic archive standing in
 // for reference-trails.pmtiles (test/fixtures/make-reference-trails-pmtiles.py; invented positions, marker bodies).
 const STREET_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
+// The switch to Street v4 (dispatch 2026-11-01-coder-11 step (c); the owner: "Yes, queue it"): the fill-in, sprite v6's
+// orchard patterns and the hill shading, bundled like v3. test/cross-folder.test.mjs holds it equal to map-style's.
+const STREET_V4_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v4.json"), "utf8");
 const REFERENCE = fs.readFileSync(here("./fixtures/reference-trails.pmtiles"));
 // The archive's manifest (dispatch 2026-10-26-22 M1), an R2 object beside it: invented values in the real file's shape.
 const MANIFEST = fs.readFileSync(here("./fixtures/reference-trails-manifest.json"));
@@ -463,6 +466,22 @@ test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are
   assert.equal(JSON.parse(text).name, "Forager Street v3");
   assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
   assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(STREET_STYLE_SOURCE)));
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("/style/street-v4.json is the bundled v4 style, beside v3, v2 and v1, which are served as before", async () => {
+  const response = await call("/style/street-v4.json");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/json");
+  const text = await response.text();
+  assert.equal(text, JSON.stringify(JSON.parse(STREET_V4_STYLE_SOURCE)));
+  const v4 = JSON.parse(text);
+  assert.equal(v4.name, "Forager Street v4");
+  assert.equal(v4.sprite, `${HOST}/sprites/v6/light`);
+  assert.deepEqual(v4.sources.dem.tiles, [`${HOST}/relief/{z}/{x}/{y}.png`]);
+  assert.equal(v4.sources.protomaps.url, `${HOST}/us.json`);
+  assert.ok(v4.layers.some((l) => l.id === "hillshade") && v4.layers.some((l) => l.id === "landuse_orchards_pattern"));
+  assert.equal(await (await call("/style/street-v3.json")).text(), JSON.stringify(JSON.parse(STREET_V3_STYLE_SOURCE)));
   assert.deepEqual(fetchCalls, []);
 });
 

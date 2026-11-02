@@ -54,6 +54,7 @@ recording rather than hiding:
 | `/style/street-v1.json` | Forager's Street style as it was before Trail Map's character; frozen, for older apps and regions downloaded against it | bundled |
 | `/style/street-v2.json` | Trail Map with its character (dispatch 2026-10-22-03); what the app loaded until it switched to v3 (dispatch 2026-10-26-21); frozen, for regions downloaded against it | bundled |
 | `/style/street-v3.json` | v2 plus the official-trails band (step 8a, dispatch 2026-10-26-14; water and snow trails left out, dispatch 2026-10-26-22), built by `map-style/generate-street.mjs`; what the app loads since the switch (dispatch 2026-10-26-21) | bundled; its band's tiles from R2's `reference-trails.pmtiles` through the generic tile path |
+| `/style/street-v4.json` | Street v4: the fill-in, sprite v6's orchard patterns and the hill shading (`map-style/forager-street-v4.json`, bundled; dispatch 2026-11-01-coder-11) | bundled |
 | `/reference-trails-manifest.json` | the official-trails archive's manifest: build date, sources' dates and licences, coverage (dispatch 2026-10-26-22), which `/reference-trails.json` cannot carry; a day's cache; an uncached 404 until uploaded | R2 `reference-trails-manifest.json` |
 | `/fonts/{stack}/{range}.pbf` | Noto Sans glyphs (SIL OFL; `fonts/OFL.txt` beside them) | R2 `fonts/` |
 | `/sprites/v4/light{,@2x}.{json,png}` | the icon set (MIT, from tangrams; `sprites/LICENSE-MIT.md` beside it) | R2 `sprites/v4/` |
@@ -85,6 +86,9 @@ the future".
 - **The guard,** `.github/workflows/worker-release.yml`, runs `tools/check-release.sh` on every `worker/*` pull request to
   `main`. It fails if any changed file is outside this folder, or if the folder differs from pre-main's. Its tests are
   `test/check-release.test.mjs`.
+- **Any pull request to `main` that touches this folder,** whatever its branch, runs the equality half too
+  (`.github/workflows/worker-folder-guard.yml`, `check-release.sh --equality-only`; Sorrel's should-fix 1): the folder
+  reaches `main` only equal to pre-main's.
 - **The folder stands alone,** so its tests pass on `main`, whose other folders are an older release's.
   `test/self-contained.test.mjs` fails if any source or test reads a file outside it. The checks that the Worker's copies
   equal the rest of the repository's (the official-trails names in `test/reference-names.mjs`, and the frozen v2 style)
