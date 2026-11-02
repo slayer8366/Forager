@@ -153,7 +153,7 @@ N-1 and N-4 to N-7 are record only. Each rule gets fail-first, then a revert che
 The owner tried 1.0.4275 on the S22: "The waypoint to waypoint line at the top is useful for the total, but seems out of place being at the top, and messy with the text." Then the owner's layout, confirmed as sketched ("Yes, as sketched (Recommended)"):
 
 **Peek (while plotting):**
-- one stop: "1 Waypoint selected, tap another to route" (replaces "Tap the next waypoint");
+- one stop: "1 Waypoint selected, tap another to route" (replaces "Tap the next waypoint"), on two lines, "1 Waypoint selected," / "tap another to route", at the routed card's width (the owner, 2026-11-02, RECORD -1946: "Have the two sentences be on separate lines and reduce it to the other card size so both can be uniform without switching");
 - two or more: "N Waypoints selected", with the total distance at the right, e.g. "3 Waypoints selected    1.9 mi". The arrow chain of names leaves the peek.
 
 **Expanded list:**
@@ -266,16 +266,26 @@ Build in that order: Part 1, then Part 2.
 
 **The rule, the owner: "The map icon bar stays the same no matter what. The card just gets resized to fit the map icon bar next to it".** The route card never moves, folds or raises the icon bar or the record and return pill, in either orientation, peek or expanded, plotting or saved. This removes Amendment 10's fold, Amendment 11's held pill and the raising from earlier amendments (routeCardLift for the column and pill). The restore handle's card-collapse goes with the fold. Remove what no longer has a caller, and their tests with them, naming each. The "i" and any other chrome keep clear of the card; say what each does now.
 
+**Rewritten 2026-11-02 (RECORD -1946, -1947); the rewrite starts only on the owner's confirmation of these steps, recorded in RECORD. Head as rewritten: e3a500ebf.**
+
 **Part 1, portrait.** The steps:
-- Plot a route: the card opens narrower, its side edge beside the icon bar with a small gap, reaching the far screen edge margin. It is anchored at the bottom as now.
-- Move the bar to the other side: the card shifts over to the other side.
+- Plot a route: the card slides in (Amendment 15) from the screen edge away from the icon bar and sits **flush against that edge, with no gap**. Both corners on that side are square; its top and bottom corners on the side facing the map are round; the drag handle stays on top (the owner: "When I meant to have it tab from the side, I meant the flat part on the side. The draggable tab remains at the top"; "Flat on the side it comes from only"; "Flush to the edge (Recommended)"). Anchored at the bottom. Today it has round top corners and a flat bottom (RouteCard.kt:165 at e3a500ebf).
+- **One width from the first tap:** the routed card's width (about 223 dp on the S22, -1936; a premise to re-check), for the hint and every routed state alike. It never changes; anything longer wraps (Amendment 16). Whether the 16 dp gained by going flush goes to the words or the card keeps its text width: report, don't choose.
+- Move the bar to the other side: the card moves to the other edge, its square side with it.
 - A minimised bar, a bar dragged to another height: the bar stays exactly as the user set it. If a minimised bar is narrower, say what the card does; don't choose.
 
-**Part 2, landscape.** Same size as the navigation card: the strip's width, at the screen's bottom edge, in the column away from the icon bar (CompactMapLandscapeNavigationCard.kt). "Same place, swaps with the bar (Recommended)": when the bar moves across, the card shifts over. While navigating, "Rests on top of the nav card (Recommended)": the card comes up from behind the navigation card, its lower edge tucked behind it, and all its content, Save included, shows above it. The expanded card stays below the strip and the search bar; at 5 or more stops its rows scroll.
+**Part 2, landscape.** The owner, 2026-11-02: "same card size as portrait, have it set to the far left side next to where the navigation tab would be, so they're side by side when the user is navigating. Else, have it on the far right side where the navigation tab would be"; "Follow the navigation card (Recommended)"; "Touching it (Recommended)"; "Rises from the bottom, tab on top (Recommended)".
+- At the portrait card's width, at the screen's bottom edge, rising from it with round top corners and the handle on top.
+- Not navigating: in the navigation card's spot, on the rail's side, which follows the phone's rotation (CompactMapLandscapeNavigationCard.kt:153).
+- Navigating: the navigation card takes that spot, and the route card sits touching it, side by side at the bottom, on the side away from the rail.
+- Phone turned the other way: both mirror.
+- The expanded card stays below the strip and the search bar; at 5 or more stops its rows scroll.
+- Until 2026-11-02 this part read: the strip's width, in the column away from the icon bar, resting on the navigation card while navigating (-1928). Remove what that leaves dead, and its tests, naming each.
+- Re-center, the L, the legend chip, the search bar and the pill: the -1943 rule stands (Re-center rises only over the card). On the S22 (dispatch 2026-11-02-01, Part 2) Re-center sits just beside the navigation card's column while navigating, which is where the route card now goes: report what it covers; don't choose.
 
 **Tests:** fail first with the phone's figures: pill [130,1179][490,1359] px, 3.75 px per dp, landscape. Coordinate touches sampled across record, return, Layers, "+" and Save, card shown and expanded, 1, 3, 5 and 6 stops, either side, recording. The card's bounds never meet the bar's or the pill's; the bar's position, flag, side and height are unchanged by the card. Then revert checks.
 
-**Stop and report the numbers, don't choose, if:** a card line can't fit at the narrower width at the largest font scale tested on this card; the card can't reach Save above the navigation card in the short landscape window; or the tablet's card needs a different rule.
+**Stop and report the numbers, don't choose, if:** one fixed width can't serve the routed card (say what you'd fix it to and why); the icon bar or its L sits where Part 2 puts the card; a card line can't fit at the narrower width at the largest font scale tested on this card; the card can't reach Save above the navigation card in the short landscape window; or the tablet's card needs a different rule.
 
 Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
 
@@ -295,7 +305,7 @@ Read with Amendment 14; everything there stands except this. The owner: "I have 
 
 ## Amendment 16 (2026-11-01): the card takes only the room it needs (RECORD -1932)
 Read Hazel's report in the PR #449 body first. Head as written: f97231aee. The owner:
-- **Width, "The card is supposed to slide from the opposite side, only give enough room to display the info".** In portrait, on every screen size, the card is as wide as its content needs, anchored to the side away from the bar, and never wider than the room beside the bar. The 640 dp cap no longer decides the width in portrait. So on a tablet it does not stretch to the bar, and on a phone it may be narrower than 312 dp. Don't let the width change on every keystroke-like update during a slide: if widening as legs are added looks jumpy in the tests' terms, animate it, and say what you did. Landscape stays at the strip's width.
+- **Width, rewritten 2026-11-02 (RECORD -1946), the owner: "One width, rows wrap (Recommended)".** In portrait, on every screen size, the card has one width from the first tap, the routed card's, and it never changes; anything longer wraps. It is anchored to the side away from the bar and never wider than the room beside the bar. Landscape takes the same width (Amendment 14, Part 2). Until 2026-11-02 this read "as wide as its content needs" (the owner, -1932: "The card is supposed to slide from the opposite side, only give enough room to display the info").
 - **Minimised bar, "Keep the same width (Recommended)".** Stays as built.
 - **Large font, "Wrap to two lines (Recommended)".** When a line can't fit in the room beside the bar, it wraps; nothing is cut with an ellipsis. The distance at the right stays in place. Assert the 2.0 font-scale case's text whole, using native graphics.
 - **Fail first, then revert checks.** Keep assertBarUntouched. Use native graphics for every width test: default Robolectric widths aren't real.
@@ -304,7 +314,7 @@ Read Hazel's report in the PR #449 body first. Head as written: f97231aee. The o
 
 ## Amendment 17 (2026-11-01): the last fixes before the merge (RECORD -1937)
 Head as written: fb878627d. Evidence: docs/audits/2026-11-01-s22-card-beside-bar.md on origin/tools/s22-combined, and docs/reviews/2026-11-01-sorrel-pr449-2.md on origin/sorrel-pr449-2. The owner:
-- **First leg, "Change width once the leg lands (Recommended)".** While a leg is in flight the card keeps its width; once it lands, it eases once to the final width. No overshoot: on the S22 today it goes 312 dp, about 212 dp, then 226.9 dp. Fail first with those steps: the width never passes below its final value, and doesn't move while the leg is in flight. Then a revert check.
+- **First leg, rewritten 2026-11-02 (RECORD -1946):** the width does not change at all, since the card has one width from the first tap (Amendment 16). The held-width easing built for "Change width once the leg lands (Recommended)" (dbe3621eb, RouteCardFirstLegWidthTest) comes out with its tests, named.
 - **Re-center, "Stop it rising (Recommended)".** Re-center doesn't rise for the card when the card is in the other column, so it never lands on the search bar. It stays clear of the card where they share a column. Fail first in landscape, navigating, expanded; then a revert check.
 - **Sorrel's N-5:** a direct test of the padding floor in RouteCardPlacementTest (the navigation card's top within the 16 dp tuck of the box bottom, expecting 0 dp), which fails with the floor removed.
 - Read Sorrel's other notes; report any you did not take, with why.
@@ -317,20 +327,4 @@ Head as written: d17c6959b. The owner, to Hazel's stop (-1942): "Fix the S22 cas
 - The tests that pin the shared-column cases (the 640 x 360 window, the 25.7 dp Robolectric overlap) must not be written to assert the search bar is cleared there: that case is unruled and unproven on a phone. Record what they show; don't pick a behaviour for it.
 - No empty commits to run CI: put the CI run on the last real commit by leaving [skip ci] off it.
 - Merge origin/pre-main in if it has moved. Full CI green. Don't merge the PR (-1938).
-
-## Amendment 18 (2026-11-02): one card width, a side tab in portrait, and landscape beside the navigation card (RECORD -1946, -1947)
-Head as written: e3a500ebf. **Starts only on the owner's confirmation of the path below, recorded in RECORD.** The owner's words are in -1946 and -1947; the planner's restatement:
-
-**Portrait**
-1. Tap a waypoint > the card slides in from the side away from the icon bar, reading on two lines "1 Waypoint selected," / "tap another to route", at the routed card's width (about 223 dp on the S22, as measured in -1936; a premise to re-check).
-2. Tap a second waypoint > the card shows "2 Waypoints routed" with its total, **at the same width**. The width never changes from the first tap on: anything longer (a long name, a wider distance) wraps onto more lines. This replaces -1932's content-sized width and Amendment 17 part 1's held-width easing; remove what that leaves dead, and its tests, saying which.
-3. The drag handle stays on top, as now. The card's flat edge is the side it slides in from: it sits flush against that screen edge, with no gap, and both corners on that side are square. Its other two corners, top and bottom on the side facing the map, are round. (Today it has round top corners and a flat bottom, RouteCard.kt:165 at e3a500ebf.) Portrait only; landscape keeps its shape (step 5). Whether the 16 dp gained goes to the words or the card keeps its text width: report, don't choose.
-4. Bar swapped sides > the card moves to the other edge, its square side with it.
-
-**Landscape**
-5. Not navigating: the card, at the portrait card's width, sits at the bottom in the navigation card's spot, on the rail's side (which follows the phone's rotation; CompactMapLandscapeNavigationCard.kt:153). It rises from the bottom with its tab on top.
-6. Navigating: the navigation card takes that spot and the route card sits touching it, side by side at the bottom, on the side away from the rail. Phone turned the other way > both mirror.
-7. Re-center, the L, the legend chip, the search bar and the pill: the -1943 rule stands (Re-center rises only over the card). Report anything the new place covers; don't choose.
-
-Fail first, revert checks, full CI, no empty commits, don't merge (-1938). Stop and ask on: the routed width being content-driven in a way one fixed width can't match (say what you'd fix it to and why), the icon bar or its L sitting where step 5 or 6 puts the card, or anything a user would see that isn't above.
 
