@@ -62,277 +62,89 @@ Push it, and wait for the planner's amendment.
 - Past about 200k tokens: push and hand off.
 - Ambiguity: stop and report.
 
-## Amendment 1 (2026-10-30): answers to the first stop, and the go (RECORD -1852)
-The first stop is docs/audits/2026-10-30-route-plotting-step-3-first-stop.md (route-plot-ui, 9d9393a8f). It is accepted as proposed, including its corrected premises, with these answers.
+## Amendments, by category (arranged 2026-11-02)
+The owner, 2026-11-02: "Revert the amendments into separate parts, but have them arranged different. A B C D to arrange different categories. And have the amendments add to each category. IE amendments C1 C2 C3 for the cards"; "4 isn't the limit, use as many as it takes".
 
-**The owner's answers:**
-- **Q1, start hint:** "Yes, \"Tap the next waypoint\" (Recommended)". The card peeks at once with that line until the first leg exists.
-- **Q4, plotting while busy:** "Yes (Recommended)". Plotting is allowed while navigating or recording, and neither is touched.
-- **Q5, a saved route tapped mid-plot:** "Ask: \"Discard this route?\" (Recommended)". The buttons are "Discard", which opens the saved route, and "Keep plotting".
-- **Q7, the pin:** "Opens the route straight away (Recommended)". A route trip's pin opens it exactly as its row does: fit, line, card peek. Directions (to the first stop) sits on the card. There is no bubble for route trips.
-- **Q8, stops:** "Yes, small dots (Recommended)" at each stop on a saved route.
-- **Q9, colour:** "Orange (Recommended)". Check orange isn't already used by another line or layer (sundown line, tracks, forecast); if it is, stop and report.
-- **Q12, route rows:** "No, keep it clean (Recommended)": name, distance, climb (step 3b) and date; no MGRS or coordinates.
-- **Q3, fullscreen:** "Yes, cancel first (Recommended)". Back cancels plotting before leaving fullscreen.
-- **The Save dialog:**
-  - title "Save route";
-  - label "Route name";
-  - "Add date" / "Remove date";
-  - on failure, "Couldn't save the route. Try again.", with the dialog kept open and the name kept.
+Amendments 1 to 17 were written in date order; their rulings are kept here, sorted into categories and numbered in the order they were ruled. Each item names the amendment it came from, its date and its RECORD entry. A later item that replaces an earlier one says so, and the earlier one is marked. The amendments' original text is in this file's history up to f66ccf8ae.
 
-**The planner's rulings:**
-- **Q6:** Back on an expanded card cancels in one tap, as already ruled (-1817).
-- **Q5, second half:** Back retraces the way in. A route opened from the Trip Planner in the Tools drawer closes its card and line on Back, and the drawer reopens.
-- **Q10:** "and back" is judged by position. The last stop is at the first stop's position.
-- **Q11:** the plotting controls ride on MapRecordSources. AvailabilityCompactScaffold.kt is not changed.
-- **Also accepted:**
-  - the one `private` → `internal`;
-  - a new fit frame with separate side padding;
-  - leaving GPS-follow when a route opens;
-  - N8 now, N9 noted, N10 measured in step 5.
-- **Approved words:** "Tap the next waypoint", "Discard this route?", "Discard", "Keep plotting", "Save route", "Route name", "Add date", "Remove date", "Couldn't save the route. Try again.". Anything else goes back to the planner.
+| | Category |
+|---|---|
+| **A** | Plotting and saved routes: tapping, Back, Discard, Save, opening a saved route, the camera, the Trip Planner row |
+| **B** | The route line on the map |
+| **C** | The cards: words, rows, totals, elevation, and the card's place, shape, width and motion |
+| **D** | What sits around the card: icon bar, record and return pill, legend chip, the "i", Re-center |
+| **E** | Tests, reviews and checks |
 
-**The go: build step 3** (the owner's "Yes, split around #447 (Recommended)", -1845).
-- Tests fail first, then revert checks per rule, with build logs checked and restores from saved copies.
-- Coordinate touches per the first stop's (h).
-- New files stay under 400 lines.
-- CI only. A PR into pre-main, with no merge. Merge pre-main in if it moves.
-- No phone without the planner's word.
+**Open, to build:** C15 to C18 and D11, on the owner's confirmation of their steps, recorded in RECORD. Head as written: e3a500ebf.
 
-## Amendment 2 (2026-10-30): the route colour is magenta (RECORD -1853)
-Hazel found orange taken: the forecast ramp (ColourFields.kt:60-75), and Street v3/v4's highways and major roads by day and night (#f0b95c, #f2bf72; NightColour.kt:117-121). The owner: "Magenta (Recommended)".
-- Set PLOTTED_ROUTE_COLOUR_DAY and _NIGHT to a magenta.
-- Check it against the track purples (MapPalette.kt), Street v3 and v4, the topo style and the forecast ramps, by day and night. If it sits too close to a track purple, stop and report with the colours.
-- Report the chosen values and contrast against the main map backgrounds.
+**For every item:** fail first, then a revert check (build log checked for compile errors, restored from a saved copy). Merge origin/pre-main in when it moves: merge, never rebase or force-push. Full CI green, with the CI run on the last real commit, never an empty one (Amendment 17). Update the PR body. Don't merge the PR (-1938). New words go back to the planner. Stop and report, don't choose, on anything a user would see that isn't ruled here.
 
-## Amendment 3 (2026-10-30): finishing PR #449 (RECORD -1861)
-PR #449 is at route-plot-ui 044552862, green (run 41128288933). Read the handoff docs/audits/2026-10-30-route-plotting-step-3-handoff.md first. The first coder's calls beyond the dispatch (RECORD -1859) are accepted.
+## A. Plotting and saved routes
+- **A1** (Amendment 1, 2026-10-30, -1852). The first stop (docs/audits/2026-10-30-route-plotting-step-3-first-stop.md, route-plot-ui 9d9393a8f) is accepted as proposed, including its corrected premises. The go: build step 3 (the owner's "Yes, split around #447 (Recommended)", -1845). Coordinate touches per the first stop's (h). New files stay under 400 lines. CI only. A PR into pre-main. No phone without the planner's word.
+- **A2** (Amendment 1, Q4). "Yes (Recommended)": plotting is allowed while navigating or recording, and neither is touched.
+- **A3** (Amendment 1, Q5). "Ask: \"Discard this route?\" (Recommended)": a saved route tapped mid-plot asks; "Discard" opens the saved route, "Keep plotting" stays.
+- **A4** (Amendment 1, Q7). "Opens the route straight away (Recommended)": a route trip's pin opens it exactly as its row does: fit, line, card peek. Directions (to the first stop) sits on the card. No bubble for route trips.
+- **A5** (Amendment 1, Q12). "No, keep it clean (Recommended)": route rows show name, distance, climb (step 3b) and date; no MGRS or coordinates.
+- **A6** (Amendment 1, Q3). "Yes, cancel first (Recommended)": Back cancels plotting before leaving fullscreen.
+- **A7** (Amendment 1). The Save dialog: title "Save route"; label "Route name"; "Add date" / "Remove date"; on failure, "Couldn't save the route. Try again.", with the dialog kept open and the name kept.
+- **A8** (Amendment 1, the planner's rulings). Q6: Back on an expanded card cancels in one tap (-1817). Q5, second half: Back retraces the way in; a route opened from the Trip Planner in the Tools drawer closes its card and line on Back, and the drawer reopens. Q10: "and back" is judged by position (the last stop at the first stop's position). Q11: the plotting controls ride on MapRecordSources; AvailabilityCompactScaffold.kt is not changed. Also accepted: the one `private` → `internal`; a new fit frame with separate side padding; leaving GPS-follow when a route opens; N8 now, N9 noted, N10 measured in step 5.
+- **A9** (Amendment 3, 2026-10-30, -1861). The first coder's calls beyond the dispatch (-1859) are accepted. Handoff: docs/audits/2026-10-30-route-plotting-step-3-handoff.md.
+- **A10** (Amendment 5, 2026-10-30, -1879, Sorrel's S-1). "Fix: keep my view (Recommended)": a saved route fits once when opened. After that, returning to the Maps tab keeps the user's camera and leaves GPS-follow as the user set it (-750's precedent: keep the applied id in MapCameraMemory, or consume the open's serial once applied). Fail first through a real tab change, open → pan → Journal → Maps, with MapDataRefresh running.
+- **A11** (Amendment 5, N-10). draft.withLeg moves inside the try, so a failed require is logged as a failed leg, never a crash.
+- **A12** (Amendment 5, N-11). Deleting a route trip while it shows closes its card and line.
+- **A13** (Amendment 5, N-2). "Keep plotting" after a Trip Planner row tap reopens the drawer.
+- **A14** (Amendment 7, 2026-10-31, -1890). The leg stall, a defect in this PR's own code: in RoutePlottingViewModel.routeNextLeg, assign legJob before the launched body can finish (or check isActive/completion rather than non-null), so a router that answers without suspending never stalls later legs. Fail first with a test router that does not suspend, through the real entry points: three stops, every leg lands. Keep the yield() routers' tests.
+- **A15** (Amendment 11, 2026-11-01, -1909). Trip Planner, "Match the card (Recommended)": a saved route's row uses the same shown-rows total as its card (PlannedRouteRow.kt:58, as of 9167cead5), so one route never shows two distances. Fail first with 0.4 + 0.4 + 0.4. If the row lacks the legs without a new query or a schema change, stop and report.
 
-**The owner's answers:**
-- **Icon cluster:** "Cluster stays above card (Recommended)". While the card shows, the cluster's lowest position is the card's top. When the card closes, it goes back. The user's chosen side and height stay remembered (CLAUDE.md, UX defaults). *Replaced by Amendment 14 (-1928): the bar never moves for the card. Superseded again below, under "The card's place, shape and width".*
-- **The dashes:** "Add a thin outline (Recommended)". The joins and straight legs get the same casing as the solid line: white by day, black by night.
-- **Return to Route pill:** "Pill sits above the card (Recommended)". It moves up to clear the card, and both stay visible and tappable. *Replaced by Amendment 14 (-1928).*
+## B. The route line on the map
+- **B1** (Amendment 1, Q9). "Orange (Recommended)". *Replaced by B3.*
+- **B2** (Amendment 1, Q8). "Yes, small dots (Recommended)" at each stop on a saved route.
+- **B3** (Amendment 2, 2026-10-30, -1853). Orange was taken (the forecast ramp, ColourFields.kt:60-75; Street v3/v4's highways and major roads, NightColour.kt:117-121). The owner: "Magenta (Recommended)". PLOTTED_ROUTE_COLOUR_DAY and _NIGHT are a magenta, checked against the track purples (MapPalette.kt), Street v3 and v4, topo and the forecast ramps, by day and night; too close to a track purple: stop and report. Report the values and contrast.
+- **B4** (Amendment 3, -1861; Amendment 4, -1872). "Add a thin outline (Recommended)": the joins and straight legs get the same casing as the solid line, white by day, black by night. Accepted in Amendment 4: the dashes are outlined on their sides only.
 
-**The card's place, shape and width, rewritten here 2026-11-02 (RECORD -1946, -1947).** This is the one place for the card's place, shape and width; where Amendments 6, 14, 15, 16 or 17 disagree with it, this wins. It starts only on the owner's confirmation of these steps, recorded in RECORD. Head as written: e3a500ebf. The owner: "The cards are two sizes. Have the two sentences be on separate lines and reduce it to the other card size so both can be uniform without switching"; "One width, rows wrap (Recommended)"; "When I meant to have it tab from the side, I meant the flat part on the side. The draggable tab remains at the top"; "Flat on the side it comes from only"; "Flush to the edge (Recommended)"; of landscape, "same card size as portrait, have it set to the far left side next to where the navigation tab would be, so they're side by side when the user is navigating. Else, have it on the far right side where the navigation tab would be"; "Follow the navigation card (Recommended)"; "Touching it (Recommended)"; "Rises from the bottom, tab on top (Recommended)".
+## C. The cards
+- **C1** (the dispatch; Amendment 1, Q1). "Yes, \"Tap the next waypoint\" (Recommended)": the card peeks at once with that line until the first leg exists. *Replaced by C3's hint.*
+- **C2** (Amendment 5, N-9). The card handle gets a 48 dp touch target, with the same look; a coordinate-touch test at its edges.
+- **C3** (Amendment 6, 2026-10-31, -1887). The card's layout, from the owner's first use on the S22: "The waypoint to waypoint line at the top is useful for the total, but seems out of place being at the top, and messy with the text"; "Yes, as sketched (Recommended)".
+  - Peek, one stop: "1 Waypoint selected, tap another to route" (replaces C1). *Two lines since C15.*
+  - Peek, two or more: "N Waypoints selected" with the total at the right. *Replaced by C9.*
+  - Expanded: per leg, "<from> to <to>" with its distance at the right and its elevation under it; last row "N Waypoints routed" with the total and the route's elevation under it ("Yes, same form as the legs (Recommended)"); the form "Elevation: +240 ft (↑ 320 ↓ 80)" ("Both"), in the Units setting; "No trail data, straight line" stays on its leg.
+  - Words, all the owner's: "1 Waypoint selected, tap another to route", "Waypoints selected", "to", "Waypoints routed", "Elevation:". Singular "Waypoint" only for 1. Text asserted literally.
+  - Leave a seam, an optional elevation per leg and for the total ("Show them while plotting (Recommended)"); filled by C5.
+- **C4** (Amendment 7, -1890). "Name + total, \"N Waypoints routed\" (Recommended)": a saved route's peek shows its name with the total at the right, and "N Waypoints routed" under it. The arrow chain goes. *Arranged by C9.*
+- **C5** (Amendment 8, 2026-10-31, -1896). "Elevation lines into #449, then S22 (Recommended)", on #447's heights (TrailRoute.heightsMetres; a missing height is never 0). Fill C3's seam while plotting: net change last minus first; climb and descent through the journal's 4 m hysteresis (ClimbAllowance / bankedClimb; name what you reuse). A leg with no heights, a straight leg, or one in a square with no heights shows no elevation line, never "+0". A partly heighted leg: propose the rule first. The total shows only when every leg has heights. Say whether joins carry heights. Saved routes stay without elevation until step 3b. Tests: a fake router with known heights, exact text in imperial and metric; the segments-heighted fixture through PlotRouteUseCase. *The total's banking is replaced by C6.*
+- **C6** (Amendment 9, 2026-10-31, -1902, F-1). "Total = sum of the legs (Recommended)": the total's net, climb and descent are the sums of the legs' own figures. Fail first with legs ↑0, ↑0, ↑14 giving ↑14.
+- **C7** (Amendment 10, 2026-10-31, -1904). "Yes, add up what's shown (Recommended)": every total on the card (distance, net, climb, descent) is the sum of the rows' shown, rounded figures in the current units (0.4 + 0.4 + 0.4 shows 1.2 mi), on the routed total row and the peek.
+- **C8** (Amendment 11, -1909). Mixed units, "Yes, leave it (Recommended)": stays as built.
+- **C9** (Amendment 12, 2026-11-01, -1910). The owner: "Can the collapsed card have the 'X Waypoints routed' with the distance and elevation info like the expanded card? And when the card gets expanded, simply have that info stay at the bottom while the card with the info slides up, to be the total of the info". Two or more stops: the collapsed card shows "N Waypoints routed", its distance, the elevation line, then Undo, Cancel, Save. Drag up: that line stays where it is on screen and the rows slide up above it; drag down: they slide back. "Remove it (Recommended)": expanded, the top "N Waypoints selected" line is gone. "Name, then total line (Recommended)": a saved route keeps its name on top, the total line stays put below, and the rows slide up between. Replaces C3's two-or-more peek. Tests: the total line's top is the same collapsed and expanded, to the pixel, and its text literal.
+- **C10** (Amendment 13, 2026-11-01, -1919). "Inset the card past the pill (Recommended)": in landscape the card starts past the pill. *Withdrawn: the owner, "Before adding it make sure the problem exists" (-1920); its commits reverted (-1922). Replaced by C11.*
+- **C11** (Amendment 14, 2026-11-01, -1928). The owner: "Portrait has the same issue as landscape. Shorten the card in portrait to accommodate the map icon bar, with the card offset to the side. when the user swaps sides with the icon bar, the card simply shifts over to the other side. And then after that, make landscape card the same size as the navigation card that pops up, but have it pop up behind the navigation card and extend above it is they're already navigating". Evidence: docs/audits/2026-11-01-s22-build-449-454.md on tools/s22-combined.
+  - Portrait: narrower, beside the icon bar with a small gap, anchored at the bottom; the bar crossing moves it over. A minimised or dragged bar stays exactly as set. *The gap is replaced by C17.*
+  - Landscape: "Same place, swaps with the bar (Recommended)", the strip's width at the bottom, in the column away from the bar; "Rests on top of the nav card (Recommended)", rising from behind the navigation card with its lower edge tucked and all content, Save included, above it; below the strip and the search bar, rows scrolling at 5 or more stops. *Replaced by C18.*
+  - Stop and report, don't choose: a line that can't fit at the narrower width at the largest font scale; Save unreachable above the navigation card in the short window; a tablet needing a different rule.
+- **C12** (Amendment 15, 2026-11-01, -1929). The owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)"; "Yes that's how i want it". Portrait: the card enters and leaves horizontally from the edge opposite the bar. Dragging the handle still slides the rows up above the total line. Reduced motion follows the app's rule for a sliding card. (Amendment 15 appears twice in the original; the second, with "Yes that's how i want it", is the one.)
+- **C13** (Amendment 16, 2026-11-01, -1932). Width: "The card is supposed to slide from the opposite side, only give enough room to display the info": as wide as its content needs, never wider than the room beside the bar, the 640 dp cap no longer deciding. *Replaced by C16.* Minimised bar, "Keep the same width (Recommended)": stays. Large font, "Wrap to two lines (Recommended)": a line that can't fit wraps, nothing cut with an ellipsis, the distance staying at the right; 2.0 font scale asserted whole with native graphics. Long names, "Keep every word (Recommended)" (-1935). Use native graphics for every width test.
+- **C14** (Amendment 17, 2026-11-01, -1937). First leg, "Change width once the leg lands (Recommended)": the card held its width while a leg was in flight, then eased once. Built at dbe3621eb (RouteCardFirstLegWidthTest). *Replaced by C16: the easing comes out with its tests, named.*
+- **C15** (2026-11-02, -1946). The owner, from two S22 screenshots: "The cards are two sizes. Have the two sentences be on separate lines and reduce it to the other card size so both can be uniform without switching". The one-stop hint reads on two lines, "1 Waypoint selected," / "tap another to route". *To build.*
+- **C16** (2026-11-02, -1946). "One width, rows wrap (Recommended)": the card has one width from the first tap, the routed card's (about 223 dp on the S22, -1936; a premise to re-check), for the hint and every routed state, and it never changes; anything longer wraps (C13). Replaces C13's content width and C14's easing; remove what that leaves dead, and its tests, naming each. Stop and ask if one fixed width can't serve the routed card: say what you'd fix it to and why. *To build.*
+- **C17** (2026-11-02, -1946). The owner: "When I meant to have it tab from the side, I meant the flat part on the side. The draggable tab remains at the top"; "Flat on the side it comes from only"; "Flush to the edge (Recommended)". Portrait: the card sits flush against the edge it slid in from, no gap; both corners on that side square; its top and bottom corners facing the map round; the handle stays on top. Today: round top corners, flat bottom (RouteCard.kt:165 at e3a500ebf). The bar moving across takes the card to the other edge, its square side with it. Whether the 16 dp gained goes to the words or the card keeps its text width: report, don't choose. *To build.*
+- **C18** (2026-11-02, -1947). The owner: "Portrait, but change landscape: same card size as portrait, have it set to the far left side next to where the navigation tab would be, so they're side by side when the user is navigating. Else, have it on the far right side where the navigation tab would be"; "Follow the navigation card (Recommended)"; "Touching it (Recommended)"; "Rises from the bottom, tab on top (Recommended)". Landscape, at C16's width, rising from the bottom edge, round top corners, handle on top. Not navigating: in the navigation card's spot, on the rail's side, which follows the phone's rotation (CompactMapLandscapeNavigationCard.kt:153). Navigating: the navigation card takes that spot and the route card sits touching it, side by side, on the side away from the rail. Phone turned the other way: both mirror. Expanded below the strip and the search bar; rows scroll at 5 or more stops. Replaces C11's landscape; remove what that leaves dead, and its tests, naming each. Stop and ask if the icon bar or its L sits where the card goes. *To build.*
 
-*Portrait*
-1. Tap a waypoint > the card slides in from the screen edge away from the icon bar (Amendment 15), reading on two lines "1 Waypoint selected," / "tap another to route" (Amendment 6's words).
-2. Tap a second waypoint > "2 Waypoints routed" with its total, **at the same width**. The card has one width from the first tap, the routed card's (about 223 dp on the S22, -1936; a premise to re-check), and it never changes: anything longer wraps onto more lines. This replaces Amendment 16's content-sized width and Amendment 17's held-width easing (dbe3621eb, RouteCardFirstLegWidthTest); remove what that leaves dead, and its tests, naming each.
-3. The card sits **flush against the edge it slid in from, with no gap**. Both corners on that side are square; its top and bottom corners facing the map are round; the drag handle stays on top. Today it has round top corners and a flat bottom (RouteCard.kt:165 at e3a500ebf). Whether the 16 dp gained goes to the words or the card keeps its text width: report, don't choose.
-4. Bar moved to the other side > the card moves to the other edge, its square side with it. The bar never moves for the card (Amendment 14).
+## D. What sits around the card
+- **D1** (Amendment 3, -1861). Icon cluster, "Cluster stays above card (Recommended)": its lowest position is the card's top while the card shows; the user's side and height stay remembered. *Replaced by D9.*
+- **D2** (Amendment 3). Return to Route pill, "Pill sits above the card (Recommended)". *Replaced by D9.*
+- **D3** (Amendment 4, 2026-10-30, -1872). "Chip rises above the card (Recommended)": the legend chip's bottom clears the card's top while the card shows. Accepted: the cluster's floor applies in every window.
+- **D4** (Amendment 9, -1902). Fullscreen, "\"i\" moves above the card (Recommended)": the attribution "i" rises above the card. Fail first with a coordinate touch on Save at the "i"'s old place. *Revisited by D9: the "i" and credit keep clear of the card (-1931).*
+- **D5** (Amendment 9, F-2). Check whether the cluster's bottom button overlaps the expanded card's first row at the S22's size; if so, the floor follows the expanded top. *Led to D6.*
+- **D6** (Amendment 10, -1904, F-2). "Minimise the column while open (Recommended)": the column folds while the card is expanded and comes back exactly as set. *Removed by D9.*
+- **D7** (Amendment 11, -1909). The pill, "Keep the pill showing (Recommended)": while expanded only the column folds; the pill stays reachable and clear of the card. *Removed by D9.*
+- **D8** (Amendment 11). The restore handle, "Collapse the card (Recommended)": stays as built. *Removed with the fold by D9.*
+- **D9** (Amendment 14, -1928). The owner: "The map icon bar stays the same no matter what. The card just gets resized to fit the map icon bar next to it". The card never moves, folds or raises the icon bar or the record and return pill, in either orientation, peek or expanded, plotting or saved. Removes D6's fold, D7's held pill and the raising (routeCardLift for the column and pill), and the handle's collapse with the fold; remove what has no caller and its tests, naming each. The "i" and other chrome keep clear of the card. Tests: the bar's bounds, flag, side and height unchanged by the card (assertBarUntouched asserts bounds, -1931); coordinate touches across record, return, Layers, "+" and Save, card shown and expanded, 1, 3, 5 and 6 stops, either side, recording; the phone's figures, pill [130,1179][490,1359] px at 3.75 px per dp, landscape.
+- **D10** (Amendment 17, part 2, 2026-11-02, -1943). "Fix the S22 case, then check (Recommended)": Re-center rises for the card only where its horizontal span overlaps the card's; the legend chip keeps its lift. The shared-column cases (640 x 360, the 25.7 dp Robolectric overlap) are recorded, not asserted to clear the search bar. Built, e3a500ebf. On the S22 (dispatch 2026-11-02-01, Part 2): at font 1.0 Re-center stays off the search bar; from 1.3 the two share space and Re-center rises under the search bar.
+- **D11** (2026-11-02, -1947). With C18, while navigating in landscape the route card goes where the S22 put Re-center, just beside the navigation card's column. Report what it covers; don't choose. *Open.*
 
-*Landscape*
-5. Not navigating: the card, at the portrait width, sits at the screen's bottom edge in the navigation card's spot, on the rail's side, which follows the phone's rotation (CompactMapLandscapeNavigationCard.kt:153). It rises from the bottom, round top corners, handle on top.
-6. Navigating: the navigation card takes that spot, and the route card sits touching it, side by side at the bottom, on the side away from the rail. This replaces Amendment 14 Part 2's strip width and resting on the navigation card.
-7. Phone turned the other way > both mirror. The expanded card stays below the strip and the search bar; at 5 or more stops its rows scroll.
-8. Re-center, the L, the legend chip, the search bar and the pill: the -1943 rule stands (Re-center rises only over the card). On the S22 (dispatch 2026-11-02-01, Part 2) Re-center sits just beside the navigation card's column while navigating, which is where step 6 puts the route card: report what it covers; don't choose.
-
-Fail first, revert checks, full CI, no empty commits, don't merge (-1938). Stop and ask on: one fixed width not serving the routed card (say what you'd fix it to and why); the icon bar or its L sitting where step 5 or 6 puts the card; anything a user would see that isn't above.
-
-**Also finish, from the handoff's list:**
-- touch tests for the Trip Planner row (with Back reopening the drawer), the Discard dialog, Add date / Remove date and the failure line, landscape and tablet windows, and the Back order over a bubble, fan, drawer and fullscreen;
-- MapChromeAlphaTest covering the card and dialogs;
-- the bubble's wrapped row at font scale 2.0;
-- a revert check for "taps while not plotting do nothing".
-
-Each rule gets a test that fails first, then a revert check. Merge pre-main in if it moves. CI green. No merge.
-
-## Amendment 4 (2026-10-30): the two test fixes and the legend chip (RECORD -1872)
-Read the Amendment 3 handoff, docs/audits/2026-10-30-route-plotting-step-3-amendment-3-handoff.md on route-plot-ui (213a38ebf). The owner:
-- **"Apply both (Recommended)":**
-  - the Fullscreen button's touch samples move to 0.2/0.8 of its bounds, as LandscapeLClusterTest's do;
-  - the two tablet window qualifiers gain `-xhdpi`.
-  Say in the PR body that the tablet windows now run at xhdpi, and what was seen at mdpi (centre-only touches).
-- **"Chip rises above the card (Recommended)":** the legend chip's bottom clears the card's top while the card shows, as the cluster and pill do. Fail first, then a revert check.
-- **Then:**
-  - re-run the fullscreen-Back revert, which is now readable;
-  - find why the font-scale revert didn't bite, and make that test bite or say why it can't;
-  - get full CI green on the final head.
-- The calls beyond the dispatch in the Amendment 3 handoff are accepted: the cluster's floor applies in every window, and the dashes are outlined on their sides only.
-- Never force-push.
-
-## Amendment 5 (2026-10-30): Sorrel's review of #449 (RECORD -1879)
-Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr449.md (sorrel-pr449, 8d83e7b77). The owner:
-- **S-1, "Fix: keep my view (Recommended)":** a saved route fits once when it is opened. After that, returning to the Maps tab keeps the user's camera and leaves GPS-follow as the user set it. Use -750's precedent: keep the applied id in MapCameraMemory, or consume the open's serial once applied.
-  - Fail first through a real tab change: open → pan → Journal → Maps, then the camera is unchanged and following is not ended again. The test must run MapDataRefresh.
-  - Then a revert check.
-- **N-3:** each approved word is asserted as text in the screen tests. This covers "Plot route", "Tap the next waypoint", Undo, Cancel, Save, "No trail data, straight line", "Discard this route?", "Discard", "Keep plotting", "Save route", "Route name", "Add date", "Remove date", and "Couldn't save the route. Try again.". Revert one word to show it bites.
-- **N-9:** the card handle gets a 48 dp touch target, with the same look. Do a coordinate-touch test at its edges.
-- **N-10:** draft.withLeg moves inside the try, so a failed require is logged as a failed leg, never a crash.
-- **N-11:** deleting a route trip while it shows closes its card and line.
-- **N-2:** "Keep plotting" after a Trip Planner row tap reopens the drawer, so the user is back where they were.
-- **N-8:** remove the unused imports in RoutePlottingTestFixtures.kt and RoutePlottingScreenTest.kt.
-
-N-1 and N-4 to N-7 are record only. Each rule gets fail-first, then a revert check. Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
-
-## Amendment 6 (2026-10-31): the card's layout, from the owner's first use on the S22 (RECORD -1887)
-The owner tried 1.0.4275 on the S22: "The waypoint to waypoint line at the top is useful for the total, but seems out of place being at the top, and messy with the text." Then the owner's layout, confirmed as sketched ("Yes, as sketched (Recommended)"):
-
-**Peek (while plotting):**
-- one stop: "1 Waypoint selected, tap another to route" (replaces "Tap the next waypoint"); on two lines since 2026-11-02, Amendment 3;
-- two or more: "N Waypoints selected", with the total distance at the right, e.g. "3 Waypoints selected    1.9 mi". The arrow chain of names leaves the peek.
-
-**Expanded list:**
-- per leg, "<from name> to <to name>" with its distance at the right; under it, the leg's elevation;
-- last row: "N Waypoints routed" with the total distance; under it, the whole route's elevation (owner: "Yes, same form as the legs (Recommended)");
-- the elevation form (owner: "Both"): "Elevation: +240 ft (↑ 320 ↓ 80)", meaning net change, then climb and descent, in the Units setting;
-- the "No trail data, straight line" note stays on its leg.
-
-**When elevation shows** (owner: "Show them while plotting (Recommended)"): while plotting, from the trail data's heights. A saved route's elevation lines come with step 3b. Heights reach the app only through #447 (TrailRoute.heightsMetres), which isn't merged.
-- So **#449 builds the layout and words now**, and shows no elevation lines.
-- The elevation lines while plotting are a follow-up on top of #447 and #449, dispatched when #447 merges.
-- Leave a clear seam, an optional elevation per leg and for the total, so no layout change is needed then.
-
-Words, all the owner's: "1 Waypoint selected, tap another to route", "Waypoints selected", "to", "Waypoints routed", "Elevation:". Use singular "Waypoint" only for 1. Fail first, then revert checks; text asserted literally. CI green; no merge.
-
-## Amendment 7 (2026-10-31): the saved route's peek, and the leg stall (RECORD -1890)
-Amendment 6 is green at route-plot-ui bce9c2de0 (run 41179955025); its report is RECORD -1889.
-- **The saved route's peek.** The owner: "Name + total, \"N Waypoints routed\" (Recommended)". A saved route's peek shows its name with the total distance at the right, and "N Waypoints routed" under it. The arrow chain of stops goes. Fail first, then a revert check, with the text asserted literally.
-- **The leg stall** (found in Amendment 6, a defect in this PR's own code). In RoutePlottingViewModel.routeNextLeg, assign legJob before the launched body can finish (or check isActive/completion rather than non-null), so a router that answers without suspending never stalls later legs.
-  - Fail first with a test router that does **not** suspend, through the real entry points: three stops, every leg lands.
-  - Then a revert check.
-  - Keep the yield() routers' tests as they are.
-- Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
-
-## Amendment 8 (2026-10-31): the elevation lines while plotting (RECORD -1896)
-The owner: "Elevation lines into #449, then S22 (Recommended)". #447 (trail heights) is now on pre-main 206464058: TrailRoute.heightsMetres carries one height or null per point, and a missing height is never 0.
-
-**Do:**
-1. **Merge origin/pre-main 206464058 into route-plot-ui** (merge, never rebase or force-push).
-2. **Fill Amendment 6's seam** (RouteCardContent.legElevations, totalElevation) while plotting, from each leg's route heights:
-   - **net change:** the last height minus the first;
-   - **climb and descent:** banked through the same 4 m hysteresis the journal's Climb uses (ClimbAllowance / bankedClimb). Name what you reuse.
-   - **the total:** over the whole route, banked across legs.
-   - **the form:** "Elevation: +240 ft (↑ 320 ↓ 80)", in the Units setting.
-3. **Missing heights:**
-   - a leg whose route points are all missing, a straight leg, or one in a square with no heights shows **no** elevation line. Never "+0". Don't invent wording.
-   - a leg with only some heights: propose the rule in the PR body before building (show nothing, or show from the heighted points), and stop for the planner if it is not obvious.
-   - the total shows only when every leg has heights.
-4. **Joins:** do the stop → trail joins carry heights? Say what you find. If they don't, the leg's elevation uses the trail part only, and the PR says so.
-5. **Saved routes stay as they are:** no elevation until step 3b stores heights (the 23→24 migration). This amendment is plotting only.
-
-**Tests:**
-- Through the real screen.
-- A fake router with known heights: the exact text for one leg and for the total, in imperial and in metric, and no line for an unheighted leg.
-- The real heighted fixture (segments-heighted, from #447) through PlotRouteUseCase for one leg, checking the climb against the command-line heights.
-- Fail first, then revert checks.
-
-Full CI green. Update the PR body. No merge.
-
-## Amendment 9 (2026-10-31): from the S22 phone checks (RECORD -1902)
-Read docs/audits/2026-10-31-s22-phone-checks.md on origin/s22-phone-checks (2de1cced5). The owner:
-- **F-1, "Total = sum of the legs (Recommended)".** The total's net change, climb and descent are the sums of the legs' own figures, so the total always matches the rows above it. This replaces Amendment 8's one-run banking across legs.
-  - The total still shows only when every leg has heights.
-  - Fail first with the phone's case: legs ↑0, ↑0, ↑14 give a total of ↑14. Then a revert check.
-- **Fullscreen, "\"i\" moves above the card (Recommended)".** The map's attribution "i" rises above the card while the card shows, as the cluster, pill and chip do (routeCardLift). Fail first with a coordinate touch on Save at the "i"'s old place, then a revert check.
-- **F-2 (unconfirmed on the phone):** check in a test whether the cluster's bottom button overlaps the expanded card's first row, at the S22's size (portrait, xxhdpi). If it does, the cluster's floor must follow the card's expanded top, not only its peek. Fail first, then fix. If it doesn't, say so with the measured numbers.
-- Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
-
-## Amendment 10 (2026-10-31): F-2 and the rounding (RECORD -1904)
-The owner:
-- **F-2, "Minimise the column while open (Recommended)".** While the route card is **expanded**, the map's button column folds to its minimised state. When the card collapses or closes, the column comes back exactly as the user had it: side, height and minimised flag (CLAUDE.md UX defaults). It never changes the remembered state. At peek, the column stays as Amendment 3 has it, raised above the card.
-  - Fail first with Amendment 9's RouteCardExpandedClusterTest numbers: no overlap expanded, and the state restored after collapse.
-  - Then a revert check.
-- **Rounding, "Yes, add up what's shown (Recommended)".** Every total on the card (distance, net, climb and descent) is the sum of the rows' **shown, rounded** figures in the current units, so the digits always add up (0.4 + 0.4 + 0.4 shows 1.2 mi). This applies to the routed total row and to the peek's total.
-  - Fail first with the phone's distance case, then a revert check.
-
-Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
-
-## Amendment 11 (2026-11-01): the coder's calls from Amendment 10 (RECORD -1909)
-Read the PR #449 body, "Calls beyond the dispatch". The owner:
-- **The restore handle, "Collapse the card (Recommended)".** Stays as built. Nothing to change.
-- **The pill, "Keep the pill showing (Recommended)".** While the route card is expanded, only the column folds. The record and return pill stays showing and reachable, and clear of the card. This reverses Amendment 10's folding of the pill.
-  - Fail first with coordinate touches on stop and return while the card is expanded and recording, sampled across each target's bounds, at the S22's size. Assert the pill's bounds clear the card's top. Then a revert check.
-  - If the pill cannot clear the card at the S22's size with four stops expanded, stop and report the numbers. Do not choose a layout.
-- **Mixed units, "Yes, leave it (Recommended)".** Stays as built.
-- **Trip Planner, "Match the card (Recommended)".** A saved route's row uses the same shown-rows total as its card (PlannedRouteRow.kt:58, as of 9167cead5), so one route never shows two distances. Fail first with the 0.4 + 0.4 + 0.4 case, then a revert check. If the row does not have the legs it needs without a new query or a schema change, stop and report.
-
-Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
-
-## Amendment 12 (2026-11-01): the total line stays put (RECORD -1910)
-Starts after Amendment 11 is pushed, on its head. The owner: "Can the collapsed card have the 'X Waypoints routed' with the distance and elevation info like the expanded card? And when the card gets expanded, simply have that info stay at the bottom while the card with the info slides up, to be the total of the info".
-
-**The steps, confirmed by the owner:**
-- Plot two or more waypoints. The collapsed card shows "N Waypoints routed", its distance, the elevation line under it, then Undo, Cancel, Save.
-- Drag up: that line stays exactly where it is on screen, and the leg rows slide up above it.
-- Drag down: the rows slide back behind it.
-
-**The rest:**
-- **The top line, "Remove it (Recommended)".** Expanded, "N Waypoints selected" and its distance are gone; the rows start right under the handle. The total appears once.
-- **Saved routes, "Name, then total line (Recommended)".** The name stays on top. Below it, the same total line with distance and elevation stays put, and the rows slide up between the two.
-- **Unchanged:** one stop keeps "1 Waypoint selected, tap another to route". The elevation line keeps its rule: it shows only when every leg has heights. Amendment 10's rounding and Amendment 11's pill stay.
-- This replaces Amendment 6's "N Waypoints selected" peek for two or more stops. The text "Waypoints selected" stays only in the one-stop hint.
-
-**Tests:** fail first, asserting the total line's on-screen top is the same collapsed and expanded, to the pixel, and its text literally; mid-drag too if the test can hold a drag. The column, the pill and the "i" clear the taller peek at the S22's size. If the taller peek stops any of them clearing, stop and report the numbers. Then revert checks.
-
-Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
-
-## Amendment 13 (2026-11-01): landscape, the card clears the pill (RECORD -1919)
-The owner: "Inset the card past the pill (Recommended)". In landscape, the route card starts to the right of the record and return pill, so nothing overlaps, at peek and expanded. The card is narrower there. Portrait is unchanged. Amendment 12's report has the numbers: pill x 8..104, y 284..332 at 823 x 384 dp, the card starting at x 52.
-- Fail first: at that size, recording, peek and expanded, the card's left edge clears the pill's right edge, and five real touches across stop and return reach them. Then a revert check.
-- Also check the column on the left side in landscape, and ROTATION_270. If the pill or the column sits elsewhere there, the card must clear it too; if it can't, stop and report the numbers. Do not choose a layout.
-- All the card's text still fits at the narrower width, at the largest font scale tested on this card.
-
-pre-main moved to 9ef5c9385 (#454): merge it in. Full CI green. No merge, and never force-push.
-
-## Amendment 14 (2026-11-01): the card sits beside the icon bar (RECORD -1928)
-*The card's place, shape and width were rewritten 2026-11-02 in Amendment 3, which wins where this disagrees. The bar rule below stands.*
-This replaces Amendment 13, whose commits were reverted. Branch head as written: d4c681d98. Evidence: docs/audits/2026-11-01-s22-build-449-454.md on origin/tools/s22-combined, with phone figures. The owner: "Portrait has the same issue as landscape. Shorten the card in portrait to accommodate the map icon bar, with the card offset to the side. when the user swaps sides with the icon bar, the card simply shifts over to the other side. And then after that, make landscape card the same size as the navigation card that pops up, but have it pop up behind the navigation card and extend above it is they're already navigating".
-
-Build in that order: Part 1, then Part 2.
-
-**The rule, the owner: "The map icon bar stays the same no matter what. The card just gets resized to fit the map icon bar next to it".** The route card never moves, folds or raises the icon bar or the record and return pill, in either orientation, peek or expanded, plotting or saved. This removes Amendment 10's fold, Amendment 11's held pill and the raising from earlier amendments (routeCardLift for the column and pill). The restore handle's card-collapse goes with the fold. Remove what no longer has a caller, and their tests with them, naming each. The "i" and any other chrome keep clear of the card; say what each does now.
-
-**Part 1, portrait.** The steps:
-- Plot a route: the card opens narrower, its side edge beside the icon bar with a small gap, reaching the far screen edge margin. It is anchored at the bottom as now.
-- Move the bar to the other side: the card shifts over to the other side.
-- A minimised bar, a bar dragged to another height: the bar stays exactly as the user set it. If a minimised bar is narrower, say what the card does; don't choose.
-
-**Part 2, landscape.** Same size as the navigation card: the strip's width, at the screen's bottom edge, in the column away from the icon bar (CompactMapLandscapeNavigationCard.kt). "Same place, swaps with the bar (Recommended)": when the bar moves across, the card shifts over. While navigating, "Rests on top of the nav card (Recommended)": the card comes up from behind the navigation card, its lower edge tucked behind it, and all its content, Save included, shows above it. The expanded card stays below the strip and the search bar; at 5 or more stops its rows scroll.
-
-**Tests:** fail first with the phone's figures: pill [130,1179][490,1359] px, 3.75 px per dp, landscape. Coordinate touches sampled across record, return, Layers, "+" and Save, card shown and expanded, 1, 3, 5 and 6 stops, either side, recording. The card's bounds never meet the bar's or the pill's; the bar's position, flag, side and height are unchanged by the card. Then revert checks.
-
-**Stop and report the numbers, don't choose, if:** a card line can't fit at the narrower width at the largest font scale tested on this card; the card can't reach Save above the navigation card in the short landscape window; or the tablet's card needs a different rule.
-
-Merge pre-main in if it moves. Full CI green. No merge, and never force-push.
-
-## Amendment 15 (2026-11-01): the portrait card slides in sideways (RECORD -1929)
-Read with Amendment 14; everything there stands except this. The owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)".
-- **Portrait:** the same narrower bottom card, entering and leaving horizontally from the screen edge opposite the icon bar, and stopping beside the bar. With the bar on the right it comes from the left; with the bar on the left, from the right.
-- Dragging the handle still slides the rows up above the total line, and the total line still stays put.
-- **Landscape:** as Amendment 14 Part 2, rising from the bottom like the navigation card.
-- Reduced motion: follow the app's existing rule for a sliding card.
-
-## Amendment 15 (2026-11-01): the portrait card slides in sideways (RECORD -1929)
-Read with Amendment 14; everything there stands except this. The owner: "I have a better idea. Have the card slide in from the opposite side of the map icon bar in portrait. Landscape stays the same"; "Same card, slides in sideways (Recommended)"; "Our plan, nav-card size (Recommended)"; "Yes that's how i want it".
-- **Portrait:** the same narrower bottom card, entering and leaving horizontally from the screen edge opposite the icon bar, and stopping beside the bar. With the bar on the right it comes from the left; with the bar on the left, from the right.
-- Dragging the handle still slides the rows up above the total line, and the total line still stays put.
-- **Landscape:** as Amendment 14 Part 2, rising from the bottom like the navigation card.
-- Reduced motion: follow the app's existing rule for a sliding card.
-
-## Amendment 16 (2026-11-01): the card takes only the room it needs (RECORD -1932)
-*The width below is replaced by one width from the first tap, 2026-11-02, Amendment 3. The wrapping stands.*
-Read Hazel's report in the PR #449 body first. Head as written: f97231aee. The owner:
-- **Width, "The card is supposed to slide from the opposite side, only give enough room to display the info".** In portrait, on every screen size, the card is as wide as its content needs, anchored to the side away from the bar, and never wider than the room beside the bar. The 640 dp cap no longer decides the width in portrait. So on a tablet it does not stretch to the bar, and on a phone it may be narrower than 312 dp. Don't let the width change on every keystroke-like update during a slide: if widening as legs are added looks jumpy in the tests' terms, animate it, and say what you did. Landscape stays at the strip's width.
-- **Minimised bar, "Keep the same width (Recommended)".** Stays as built.
-- **Large font, "Wrap to two lines (Recommended)".** When a line can't fit in the room beside the bar, it wraps; nothing is cut with an ellipsis. The distance at the right stays in place. Assert the 2.0 font-scale case's text whole, using native graphics.
-- **Fail first, then revert checks.** Keep assertBarUntouched. Use native graphics for every width test: default Robolectric widths aren't real.
-
-**Stop and report the numbers, don't choose,** if a card with long waypoint names can't be read at the room available. Full CI green. No merge, and never force-push.
-
-## Amendment 17 (2026-11-01): the last fixes before the merge (RECORD -1937)
-Head as written: fb878627d. Evidence: docs/audits/2026-11-01-s22-card-beside-bar.md on origin/tools/s22-combined, and docs/reviews/2026-11-01-sorrel-pr449-2.md on origin/sorrel-pr449-2. The owner:
-- *Replaced 2026-11-02, Amendment 3: one width, so no easing; the easing comes out.* **First leg, "Change width once the leg lands (Recommended)".** While a leg is in flight the card keeps its width; once it lands, it eases once to the final width. No overshoot: on the S22 today it goes 312 dp, about 212 dp, then 226.9 dp. Fail first with those steps: the width never passes below its final value, and doesn't move while the leg is in flight. Then a revert check.
-- **Re-center, "Stop it rising (Recommended)".** Re-center doesn't rise for the card when the card is in the other column, so it never lands on the search bar. It stays clear of the card where they share a column. Fail first in landscape, navigating, expanded; then a revert check.
-- **Sorrel's N-5:** a direct test of the padding floor in RouteCardPlacementTest (the navigation card's top within the 16 dp tuck of the box bottom, expecting 0 dp), which fails with the floor removed.
-- Read Sorrel's other notes; report any you did not take, with why.
-
-Merge origin/pre-main in; it has moved. Full CI green. Don't merge the PR: the planner does.
-
-## Amendment 17, part 2 ruled (2026-11-02): Re-center rises only over the card (RECORD -1943)
-Head as written: d17c6959b. The owner, to Hazel's stop (-1942): "Fix the S22 case, then check (Recommended)", whose option read "Re-center rises only when it actually sits over the card. That fixes what was seen on the S22. Then one S22 check at a larger font shows whether the shared-space case is real on a phone before anything more is built".
-- Build option A from your report: lift Re-center for the card only where its horizontal span overlaps the card's; the legend chip keeps its lift. Use the parked tests at 985196468 (and /mnt/work/scratch/route-plot-ui/a17/parked/). Fail first, then a revert check.
-- The tests that pin the shared-column cases (the 640 x 360 window, the 25.7 dp Robolectric overlap) must not be written to assert the search bar is cleared there: that case is unruled and unproven on a phone. Record what they show; don't pick a behaviour for it.
-- No empty commits to run CI: put the CI run on the last real commit by leaving [skip ci] off it.
-- Merge origin/pre-main in if it has moved. Full CI green. Don't merge the PR (-1938).
-
+## E. Tests, reviews and checks
+- **E1** (Amendment 3, -1861). Finish from the handoff's list: touch tests for the Trip Planner row (Back reopening the drawer), the Discard dialog, Add date / Remove date and the failure line, landscape and tablet windows, and the Back order over a bubble, fan, drawer and fullscreen; MapChromeAlphaTest covering the card and dialogs; the bubble's wrapped row at font scale 2.0; a revert check for "taps while not plotting do nothing".
+- **E2** (Amendment 4, -1872). "Apply both (Recommended)": the Fullscreen button's touch samples move to 0.2/0.8 of its bounds, as LandscapeLClusterTest's do; the two tablet window qualifiers gain `-xhdpi` (say so in the PR body, with what mdpi showed). Re-run the fullscreen-Back revert; find why the font-scale revert didn't bite and make it bite or say why it can't. Handoff: docs/audits/2026-10-30-route-plotting-step-3-amendment-3-handoff.md (213a38ebf).
+- **E3** (Amendment 5, -1879). Sorrel's review docs/reviews/2026-10-30-sorrel-pr449.md (sorrel-pr449, 8d83e7b77). N-3: each approved word asserted as text in the screen tests ("Plot route", "Tap the next waypoint", Undo, Cancel, Save, "No trail data, straight line", "Discard this route?", "Discard", "Keep plotting", "Save route", "Route name", "Add date", "Remove date", "Couldn't save the route. Try again."), with one word reverted to show it bites. N-8: remove the unused imports in RoutePlottingTestFixtures.kt and RoutePlottingScreenTest.kt. N-1 and N-4 to N-7 are record only.
+- **E4** (Amendment 17, -1937). Sorrel's second review, docs/reviews/2026-11-01-sorrel-pr449-2.md (sorrel-pr449-2): N-5, a direct test of the padding floor in RouteCardPlacementTest, failing with the floor removed; report the notes not taken, with why. Built, 9192fe659 (with N-4).
