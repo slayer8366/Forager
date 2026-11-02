@@ -31665,3 +31665,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Decision:** the owner: "Follow the navigation card (Recommended)"; "Touching it (Recommended)"; "Rises from the bottom, tab on top (Recommended)". Dispatch 2026-10-30-08 items C18 and D11; it starts on the owner's confirmation of the restated path.
 **Notes:** Written by the planner by hand. Hazel's S22 session (2026-11-02-01) continues; its Re-center figures are for the landscape layout that C18 replaces. Next free ID -1948.
 
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1948
+**Timestamp:** 2026-11-02T07:56:32Z
+**Continues:** 2026-09-28-1946, 2026-09-28-1947, 2026-09-28-1944
+**Title:** C15 to C18 are confirmed and built after the S22 session; D11 is reported, not chosen
+**Decision:** the owner, to C15 to C18 as written in dispatch 2026-10-30-08 at a52b8d284: "Yes, build them after the S22 session". Hazel (Opus) starts on route-plot-ui e3a500ebf once dispatch 2026-11-02-01 reports. D11 stands as written: report what the card covers, don't choose. #449 not merged (-1938).
+**Notes:** Written by the planner by hand. Next free ID -1949.
