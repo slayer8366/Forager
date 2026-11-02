@@ -31535,3 +31535,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Sorrel (Fable), docs/reviews/2026-11-01-sorrel-pr449-2.md on sorrel-pr449-2 e8517ac91:** no blocking, no should-fix; mergeable after the S22 build; note N-5 asks for a direct test of the padding floor.
 **Decision:** the owner: "Lift it"; "Yes, start the sort (Recommended)". Dispatch 2026-11-01-04. The planner merges again on the owner's word, one PR at a time.
 **Notes:** Written by the planner by hand. Next free ID -1937.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1937
+**Timestamp:** 2026-11-02T05:26:04Z
+**Continues:** 2026-09-28-1936
+**Title:** #449 takes two last fixes and merges into pre-main once green
+**Decision:** the owner: "Change width once the leg lands (Recommended)"; "Stop it rising (Recommended)"; "After these two fixes (Recommended)", whose option read "Hazel makes your choices above and adds Sorrel's small test, CI goes green, then I merge." Dispatch 2026-10-30-08 Amendment 17.
+**Notes:** Written by the planner by hand. Next free ID -1938.

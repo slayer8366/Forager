@@ -301,3 +301,12 @@ Read Hazel's report in the PR #449 body first. Head as written: f97231aee. The o
 - **Fail first, then revert checks.** Keep assertBarUntouched. Use native graphics for every width test: default Robolectric widths aren't real.
 
 **Stop and report the numbers, don't choose,** if a card with long waypoint names can't be read at the room available. Full CI green. No merge, and never force-push.
+
+## Amendment 17 (2026-11-01): the last fixes before the merge (RECORD -1937)
+Head as written: fb878627d. Evidence: docs/audits/2026-11-01-s22-card-beside-bar.md on origin/tools/s22-combined, and docs/reviews/2026-11-01-sorrel-pr449-2.md on origin/sorrel-pr449-2. The owner:
+- **First leg, "Change width once the leg lands (Recommended)".** While a leg is in flight the card keeps its width; once it lands, it eases once to the final width. No overshoot: on the S22 today it goes 312 dp, about 212 dp, then 226.9 dp. Fail first with those steps: the width never passes below its final value, and doesn't move while the leg is in flight. Then a revert check.
+- **Re-center, "Stop it rising (Recommended)".** Re-center doesn't rise for the card when the card is in the other column, so it never lands on the search bar. It stays clear of the card where they share a column. Fail first in landscape, navigating, expanded; then a revert check.
+- **Sorrel's N-5:** a direct test of the padding floor in RouteCardPlacementTest (the navigation card's top within the 16 dp tuck of the box bottom, expecting 0 dp), which fails with the floor removed.
+- Read Sorrel's other notes; report any you did not take, with why.
+
+Merge origin/pre-main in; it has moved. Full CI green. Don't merge the PR: the planner does.
