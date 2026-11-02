@@ -14,7 +14,9 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -76,6 +78,29 @@ class RouteCardPlacementTest {
     @Test
     fun `a taller navigation card lifts the card to its top, less the tuck`() {
         assertEquals(64f, bottomWith(80.dp).value, 0.01f)
+    }
+
+    /** D12's credit on the S22, in px: [0,1364][1638,1440]. */
+    private val d12Credit = Rect(0f, 1364f, 1638f, 1440f)
+
+    /** D13 (RECORD -1955), fail first on D12's figures: the card [520,930][1287,1440] covered the credit's middle, so the credit rises. */
+    @Test
+    fun `D12's card over the credit on the S22 lifts the credit`() {
+        assertTrue(routeCardOverCredit(card = Rect(520f, 930f, 1287f, 1440f), creditAtRest = d12Credit))
+    }
+
+    /**
+     * D16 (RECORD -1956, the planner's call): "meet" means the two rectangles overlap at the credit's resting place. A card that shares
+     * only the credit's horizontal span, above it, or only its rows, beside it, never touches it and leaves it down; so does one whose
+     * bottom edge only reaches the credit's top.
+     */
+    @Test
+    fun `a card that shares only a span with the credit, or only touches its edge, leaves it down`() {
+        assertFalse("above it, the same span", routeCardOverCredit(card = Rect(520f, 930f, 1287f, 1300f), creditAtRest = d12Credit))
+        assertFalse("its bottom on the credit's top", routeCardOverCredit(card = Rect(520f, 930f, 1287f, 1364f), creditAtRest = d12Credit))
+        assertFalse("beside it, the same rows", routeCardOverCredit(card = Rect(1700f, 930f, 2000f, 1440f), creditAtRest = d12Credit))
+        assertFalse("no card", routeCardOverCredit(card = null, creditAtRest = d12Credit))
+        assertFalse("no credit measured", routeCardOverCredit(card = Rect(520f, 930f, 1287f, 1440f), creditAtRest = null))
     }
 
     /** Sorrel's N-4: a bar minimised before it was first measured reports 0 dp; the column still takes its touch target. */
