@@ -480,8 +480,11 @@ internal fun CompactMapTab(
                         mapContentBoxHeightPx = coordinates.size.height.toFloat()
                         mapContentBoxTopInRootPx = coordinates.positionInRoot().y
                         cluster.mapContentBoxLeftInRootPx = coordinates.positionInRoot().x
+                        cluster.mapContentBoxWidthPx = coordinates.size.width.toFloat()
                     },
             ) {
+                // D13 and D18 (RECORD -1955, -1958): whether the card where it rests covers the credit where it rests.
+                val creditUnderRouteCard = routeCardOverCredit(routeCardRestPx, mapCreditAtRest(cluster, mapCreditSizePx, with(compassStripDensity) { renderMode.bottomInset.toPx() }))
                 // The map (RECORD -741: CompactMapMapSlot, moved out unchanged; its comments are there).
                 CompactMapMapSlot(
                     mapSlot = mapSlot,
@@ -500,12 +503,13 @@ internal fun CompactMapTab(
                     // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
                     renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
                         .copy(onCreditSizeChanged = onMapCreditSize)
-                        .withCreditAboveRouteCard(
-                            routeCardHeightDp,
-                            cardOverCredit = cluster.landscape &&
-                                routeCardOverCredit(routeCardRestPx, mapCreditAtRest(cluster, mapCreditSizePx, with(compassStripDensity) { renderMode.bottomInset.toPx() })),
-                        )
-                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster)),
+                        .withCreditAboveRouteCard(routeCardHeightDp, cardOverCredit = cluster.landscape && creditUnderRouteCard)
+                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster))
+                        // D18 (RECORD -1958): in portrait the credit rises above the card where they overlap; the "i" stays as it was.
+                        .withCreditAbovePortraitRouteCard(
+                            cardTopAboveBottom = routeCardRestPx?.let { card -> with(compassStripDensity) { (cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx - card.top).toDp() } },
+                            cardOverCredit = !cluster.landscape && creditUnderRouteCard,
+                        ),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onFeatureTap = onFeatureTap,
@@ -642,15 +646,16 @@ internal fun CompactMapTab(
 
                 // Dispatch 2026-10-30-08: the route card, before the bottom chrome, so "Return to Route" and the nav stay on top; Amendment 14
                 // (RECORD -1928): and before the landscape navigation card, so it comes up from behind it.
+                val routeCardRoom = routeCardLandscapeRoom(
+                    cluster,
+                    layout.landscapeStripWidthPx,
+                    layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
+                    navigation.isNavigating,
+                )
                 CompactMapRouteCard(
                     controls = bubbleSources.routePlotting,
                     cluster = cluster,
-                    landscapeRoom = routeCardLandscapeRoom(
-                        cluster,
-                        layout.landscapeStripWidthPx,
-                        layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
-                        navigation.isNavigating,
-                    ),
+                    landscapeRoom = routeCardRoom,
                     distanceUnit = uiState.distanceUnit,
                     controlsPadding = controlsPadding,
                     bottomInset = renderMode.bottomInset,
@@ -697,6 +702,9 @@ internal fun CompactMapTab(
                     routeCardHeight = routeCardHeightDp.dp,
                     // Amendment 17, part 2 ruled (RECORD -1943): Re-center rises only for a card it shares a column with.
                     routeCardSpanPx = routeCardSpanPx,
+                    // D17 (RECORD -1958): beside the L instead, while the card shows on the navigation card.
+                    reCenterBesideTheL = reCenterBesideTheL(routeCardRoom, cardShowing = routeCardSpanPx != null),
+                    creditSizePx = mapCreditSizePx,
                 )
 
                 // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out

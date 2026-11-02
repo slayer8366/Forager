@@ -17,7 +17,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -165,14 +169,15 @@ internal fun BoxScope.CompactMapRouteCard(
     /** Amendment 17, part 2 ruled: the card's left and right in root px while it shows, `null` as soon as it starts to leave. */
     onCardSpanPx: (ClosedFloatingPointRange<Float>?) -> Unit = {},
     /**
-     * D13 (RECORD -1955): the landscape card's bounds in root px where it rests, the rise it slides in by left out, while it shows;
-     * `null` in portrait (D16: portrait waits for the S22's pictures) and as soon as it starts to leave.
+     * D13 (RECORD -1955): the card's bounds in root px where it rests, the slide it comes in by left out, while it shows; `null` as soon
+     * as it starts to leave. In portrait since D18 (RECORD -1958).
      */
     onCardRestPx: (Rect?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
     val state = controls?.state
     val actions = controls?.actions
     val content = routeCardContent(state)
@@ -237,7 +242,9 @@ internal fun BoxScope.CompactMapRouteCard(
                                     onCardSpanPx(left..left + it.size.width)
                                     onCardRestPx(
                                         if (landscapeRoom == null) {
-                                            null
+                                            // D18 (RECORD -1958): the portrait card slides in sideways and not up, so its top and
+                                            // bottom are its laid-out ones; its side is the edge it rests flush against.
+                                            portraitRouteCardRest(cluster, it.positionInRoot().y, it.size, cardOnLeft, controlsPadding, density, layoutDirection)
                                         } else {
                                             // At rest: the landscape card slides in vertically, so its left is its laid-out one, and its
                                             // bottom is the map box's bottom less its padding, wherever the slide has it now.
@@ -278,6 +285,34 @@ internal fun BoxScope.CompactMapRouteCard(
             },
         )
     }
+}
+
+/**
+ * D18 (RECORD -1958): the portrait card's bounds in root px at rest. It slides in from the edge away from the bar
+ * ([routeCardPortraitTransitions]), so mid-slide its laid-out left is not where it will rest: that is the map box's edge it is aligned
+ * to, inside [controlsPadding]; flush there, with nothing on its own edge (C17). Its top is [topInRootPx], which the slide leaves alone.
+ * `null` until the map box's width is measured.
+ */
+internal fun portraitRouteCardRest(
+    cluster: MapIconClusterState,
+    topInRootPx: Float,
+    size: IntSize,
+    cardOnStart: Boolean,
+    controlsPadding: PaddingValues,
+    density: Density,
+    layoutDirection: LayoutDirection,
+): Rect? {
+    if (cluster.mapContentBoxWidthPx <= 0f) return null
+    val atScreenLeft = cardOnStart == (layoutDirection == LayoutDirection.Ltr)
+    val boxLeft = cluster.mapContentBoxLeftInRootPx
+    val left = with(density) {
+        if (atScreenLeft) {
+            boxLeft + controlsPadding.calculateLeftPadding(layoutDirection).toPx()
+        } else {
+            boxLeft + cluster.mapContentBoxWidthPx - controlsPadding.calculateRightPadding(layoutDirection).toPx() - size.width
+        }
+    }
+    return Rect(left, topInRootPx, left + size.width, topInRootPx + size.height)
 }
 
 /**
