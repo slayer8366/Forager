@@ -31697,3 +31697,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Hazel (Opus), dispatch 2026-11-02-01 C1, build 1.0.4398 (message; the audit is being written). A 1 mi TEST area at 14.7°N 91.5°W downloaded in about 1 s with no error, its row reading "5.9 MB". All 39 stored tiles empty: basemap and trails z10-15 answered 204; the one relief z11 tile answered 404, was stored as no content, and did not stop the download. Offline: z8 drew from the ambient cache, z10 and z13 blank grey. TEST deleted; every forager.db table equals the before copy; mbgl differs only in ambient cache and the region id counter; the picker's remembered pin now points at TEST.
 - **Also answers, for one tile:** a Street v4 download completes when a relief tile answers 404 (the pre-main sort's open question, -1940). One tile, south of the archive; not shown for a US area.
 **Notes:** Written by the planner by hand. The warning's wording goes to the owner. Next free ID -1951.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1951
+**Timestamp:** 2026-11-02T11:50:23Z
+**Continues:** 2026-09-28-1950, 2026-09-28-1943
+**Title:** Known bug 14's warning reads "Detailed offline maps aren't available here yet. A download here will be blank when you're offline."
+**Decision:** the owner: "Detailed maps not here yet (Recommended)", whose option read: "\"Detailed offline maps aren't available here yet. A download here will be blank when you're offline.\" It says what happens in plain terms, so nobody finds out on the trail." Downloading stays possible. Dispatch 2026-11-02-02, to start after C15 to C18 report. Known bugs row 14 updated on pre-main at 13c872d79 (seen on the S22).
+**Notes:** Written by the planner by hand. Next free ID -1952.
