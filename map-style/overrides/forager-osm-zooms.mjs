@@ -49,7 +49,7 @@ export const toExpr = (f) => {
   }
 };
 
-const isIn = (key, values) => ["in", ["get", key], ["literal", values]];
+export const isIn = (key, values) => ["in", ["get", key], ["literal", values]];
 const minZoomAttr = (level) => ["==", ["get", "min_zoom"], level + 1];
 
 /** clone id -> original id, filled in by split; the generator copies night-table entries along it. */
@@ -66,7 +66,7 @@ const at = (layers, id) => {
  * the original keeps what no clone takes, at `keep.minzoom` (unchanged if undefined). Clones go right after the
  * original, in the order given: for symbols, the later layer is placed first.
  */
-function split(layers, id, keep, clones) {
+export function split(layers, id, keep, clones) {
   const i = at(layers, id);
   const orig = layers[i];
   const base = orig.filter === undefined ? null : toExpr(orig.filter);
@@ -87,13 +87,13 @@ function split(layers, id, keep, clones) {
 }
 
 /** One clone per level the tiles can carry (min_zoom = level + 1), shown from level + 0.5; the original keeps `rest`. */
-function byLevel(layers, id, levels, rest, cond = null) {
+export function byLevel(layers, id, levels, rest, cond = null) {
   const and = (c) => (cond === null ? c : ["all", cond, c]);
   split(layers, id, { minzoom: rest + 0.5 },
     [...levels].sort((x, y) => y - x).map((z) => ({ name: `z${z}`, minzoom: z + 0.5, cond: and(minZoomAttr(z)) })));
 }
 
-function set(layers, id, props) {
+export function set(layers, id, props) {
   const l = layers[at(layers, id)];
   for (const [k, v] of Object.entries(props)) {
     if (k === "line-width") l.paint["line-width"] = v;
