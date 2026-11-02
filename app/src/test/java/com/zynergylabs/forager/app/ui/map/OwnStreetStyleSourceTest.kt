@@ -73,8 +73,9 @@ class OwnStreetStyleSourceTest {
     @Test
     fun `the Street sprite is inverted at night only for the own Street style`() {
         assertTrue(usesStreetSprite(MapStyleSource.Uri(STREET_STYLE_URL)))
-        // Dispatch 2026-10-26-21: Trail Map online is v3, written out so this fails if v3 leaves the Street night's list, and
-        // a phone whose newest region is v2 loads v2 offline, which keeps the Street night.
+        // Trail Map online is v4 since the switch (dispatch 2026-11-01-coder-11 step (d)), written out so this fails if v4
+        // leaves the Street night's list; a phone whose newest region is v3 or v2 loads that offline, which keeps the night.
+        assertTrue(usesStreetSprite(MapStyleSource.Uri("https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json")))
         assertTrue(usesStreetSprite(MapStyleSource.Uri("https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v3.json")))
         assertTrue(usesStreetSprite(MapStyleSource.Uri(STREET_STYLE_V2_URL)))
         // A region downloaded before v2 loads v1 offline; it takes the Street night too (dispatch 2026-10-22-03 Amendment 1).
