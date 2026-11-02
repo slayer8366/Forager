@@ -31663,7 +31663,7 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Continues:** 2026-09-28-1946
 **Title:** In landscape the route card follows the navigation card: in its spot when not navigating, touching it when navigating; it rises from the bottom, tab on top
 **Decision:** the owner: "Follow the navigation card (Recommended)"; "Touching it (Recommended)"; "Rises from the bottom, tab on top (Recommended)". Dispatch 2026-10-30-08 items C18 and D11; it starts on the owner's confirmation of the restated path.
-**Notes:** Written by the planner by hand. Hazel's S22 session (2026-11-02-01) continues; its Re-center figures are for the landscape layout that C18 replaces. Next free ID -1948.
+**Notes:** Written by the planner by hand. Hazel's S22 session (2026-11-02-01) continues; its Re-center figures are for the landscape layout that C18 replaces. Next free ID -1948. Correction (-1954): the planner's question said the rail's side follows the phone's rotation; it doesn't, the rail is on the right at both rotations since -956, so the cards don't mirror.
 
 
 ---
@@ -31748,4 +31748,7 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - Re-center: clear at 1, 3 and 6 stops collapsed and at 3 expanded; at 6 expanded it rises under the search bar and is not visible. Walker's dot clear in every shot (for this pan only).
 - Data equal to before; phone restored. Not seen: fonts above 1.0, C20's L-on-the-rail case, not navigating.
 - Hazel's earlier note: the same room is also short from font 1.3 on the S22 (inferred) and at 640 x 360 (176 dp) at 1.0.
+- **Hazel's final report:** tests first 116934103, build a04b55048 (RouteCardWidth.kt: reference "10 Waypoints routed", 99.9 mi, the buttons; 247.67 dp at font 1.0, 320 dp at 2.0, capped by the room). Fail first 30 of 33. Removed: RouteCardContentFit, the easing and held width, rememberRouteCardNeededWidth, the navigation tuck, and their tests, including RouteCardPlacementTest's three padding-floor tests (Sorrel's N-5), since there is no tuck under C18. RouteCardRecenterLandscapeTest and RouteCardRecenterTabletLandscapeTest were changed by Hazel's judgement to assert Re-center rises clear of the card, which now shares its column. The pre-main merge's CI 41440089933: success.
+- **Premise wrong, the planner's:** landscape does not mirror. Since -956 the rail is on the screen's right at both rotations (mainWindowRailEdgeFor, PortEdge.kt), so the navigation card and the route card sit the same way in both. The planner told the owner the rail's side follows rotation (-1947's question, C18). Corrected in place there.
+- **C17's margin:** as built the 8 dp goes to the words only where the room limits the card (font 2.0: 320 dp, was 312); at normal size the card keeps the reference width. Metric: the reference total is the same route in kilometres, "160.8 km".
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1955.
