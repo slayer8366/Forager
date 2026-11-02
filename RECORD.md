@@ -31675,3 +31675,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** C15 to C18 are confirmed and built after the S22 session; D11 is reported, not chosen
 **Decision:** the owner, to C15 to C18 as written in dispatch 2026-10-30-08 at a52b8d284: "Yes, build them after the S22 session". Hazel (Opus) starts on route-plot-ui e3a500ebf once dispatch 2026-11-02-01 reports. D11 stands as written: report what the card covers, don't choose. #449 not merged (-1938).
 **Notes:** Written by the planner by hand. Next free ID -1949.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1949
+**Timestamp:** 2026-11-02T11:22:51Z
+**Continues:** 2026-09-28-1944, 2026-09-28-1948
+**Title:** Hazel was stopped during the bug 14 check; a new Hazel checks the phone, finishes C1, then builds C15 to C18
+**Observed:** The Hazel running dispatch 2026-11-02-01 was stopped by the owner during C1 (bug 14); it cannot be resumed. Nothing pushed past 070b2bb1a; no audit. Its last screenshot (23:46 PST, /home/zynergy-labs/s22-2026-11-02/shots/o9.png) shows the Offline Maps picker, keyboard open, pin at the old test area; whether a download started is not established. Phone read by the planner: airplane mode off, font scale 1.0, auto-rotate on, Forager open. Laptop evidence: before-area/, pre-install/, in-app-backup/.
+**Decision:** the owner: "Option 1", whose option read "A new Hazel finishes C1, then builds C15 to C18 (recommended). It first checks the phone against the 'before' copy, then does the download." Dispatch 2026-11-02-01 C1, then dispatch 2026-10-30-08 C15 to C18 and D11 (-1948).
+**Notes:** Written by the planner by hand. Next free ID -1950.
