@@ -119,7 +119,7 @@ class MapLayersCreditsTest {
     }
 
     @Test
-    fun `a map entry is not a control: no click action, and real touches across it change no map`() {
+    fun `a map entry is not a control, with no click action, and real touches across it change no map`() {
         setScreen()
         assertEquals(Basemap.FORAGER_TRAIL, map.renderMode?.basemap)
         for (name in listOf("Topo", "OSM")) {
