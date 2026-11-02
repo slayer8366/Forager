@@ -31762,3 +31762,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** While navigating in landscape the route card sits on top of the navigation card; the 8 dp stays as built; the credit clears the card; then the S22 again
 **Decision:** the owner: "On top of the navigation card (Recommended)"; "As built (Recommended)". Dispatch 2026-10-30-08 items C21, C22; the planner's calls D13 (the credit line, under D9's existing rule), D14 (Hazel's Re-center test changes accepted), D15 (S22 pictures after C21, as D12, adding C20's case). Re-center at 6 stops expanded waits for D15's pictures. Then dispatch 2026-11-02-02 (bug 14's warning). C21 is at the navigation card's width, as the owner's option said; the planner's "or C19's if narrower" in C21 was corrected in place after Hazel's hand-off asked which edge a narrower card would align to.
 **Notes:** Written by the planner by hand. Next free ID -1956.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1956
+**Timestamp:** 2026-11-02T17:35:31Z
+**Continues:** 2026-09-28-1955
+**Title:** At the largest text the card on the navigation card stays at its width and wraps; the portrait credit is checked on the S22 first; the Kotlin daemon gets more memory inside the 5 GB cap
+**Observed:** Hazel (Opus), route-plot-ui cd727ecce [skip ci], tests and stubs only, nothing built, S22 untouched. Robolectric: navigation card 343 dp at font 1.0, 397.7 at 1.3, 329 at 2.0 (823 x 384); C19's reference 246.0, 309.7, 409.67. The credit and the card meet when not navigating with the L on the left at 640 x 360 (1.0) and 823 x 384 (1.3, 2.0), and in portrait (4 dp at 1.0, 68 at 2.0); after C21, navigating, they never meet (inferred). A full test recompile with a 1200 MB Kotlin daemon hung 37 minutes in GC, then fell back to in-process and took 20 minutes.
+**Decision:** the owner: "Navigation card's width, lines wrap (Recommended)"; "Check it on the S22 first (Recommended)". Dispatch items C23 and D16. **The planner's calls:** "meet" means the rectangles overlap; the Kotlin daemon heap rises to 2 GB (-Pkotlin.daemon.jvmargs=-Xmx2048m), Gradle's stays 1536m, the 5 GB scope cap unchanged, so a runaway still dies alone.
+**Notes:** Written by the planner by hand. Next free ID -1957.
