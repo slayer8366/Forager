@@ -69,11 +69,13 @@ class MapLayersCreditsTest {
     private fun inDrawer(text: String): SemanticsNodeInteraction =
         composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(TOOLS_DRAWER_SHEET_TAG)), useUnmergedTree = true)
 
-    private fun boundsOf(text: String): Rect = inDrawer(text).performScrollTo().getUnclippedBoundsInRoot().let {
+    // Read without scrolling: the drawer is a plain scrolling Column, so every row is laid out and its unclipped bounds are in one
+    // frame. A scroll between two reads would move the second against the first (CI run 41543362662).
+    private fun boundsOf(text: String): Rect = inDrawer(text).getUnclippedBoundsInRoot().let {
         Rect(it.left.value, it.top.value, it.right.value, it.bottom.value)
     }
 
-    private fun trailsRow(): Rect = composeRule.onNodeWithTag(mapLayerSwitchTag(MapLayerIds.REFERENCE_FS_BAND)).performScrollTo()
+    private fun trailsRow(): Rect = composeRule.onNodeWithTag(mapLayerSwitchTag(MapLayerIds.REFERENCE_FS_BAND))
         .getUnclippedBoundsInRoot().let { Rect(it.left.value, it.top.value, it.right.value, it.bottom.value) }
 
     @Test
@@ -106,8 +108,7 @@ class MapLayersCreditsTest {
     @Test
     fun `with the synthetic fields listed, Synthetic test data is under them, and without them it is not shown`() {
         setScreen(store = FixedForecastStore(BOTH_FORECAST_GROUPS))
-        val lastSlider = composeRule.onNodeWithTag(mapLayerOpacityTag(MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS)).performScrollTo()
-            .getUnclippedBoundsInRoot()
+        val lastSlider = composeRule.onNodeWithTag(mapLayerOpacityTag(MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS)).getUnclippedBoundsInRoot()
         val credit = boundsOf("Synthetic test data")
         assertTrue("under the last colour field ($credit, ${lastSlider.bottom})", credit.top >= lastSlider.bottom.value - 0.5f)
     }
