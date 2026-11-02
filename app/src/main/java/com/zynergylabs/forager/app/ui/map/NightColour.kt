@@ -150,25 +150,34 @@ internal val STREET_NIGHT_FILL_COLOURS: Map<Int, Int> = mapOf(
 
 /**
  * The own Street's night for one colour property: [STREET_NIGHT_WATER] for a water fill or line (a layer drawn from
- * [sourceLayer] `water`), a [STREET_NIGHT_LAYER_COLOURS] colour for those layers' lines, [STREET_NIGHT_FILL_COLOURS] for
- * the fill colours it names (the rest of the same expression inverted), and [offlineNightRecolourOf]'s pure inversion
- * for everything else, labels included.
+ * [sourceLayer] `water`), a [StreetNightTables.layerColours] colour for those layers' lines, a
+ * [StreetNightTables.lineColours] colour for the line colours it names on its layers, a [StreetNightTables.fillColours]
+ * colour for the fill colours it names (in both, the rest of the same expression inverted), and
+ * [offlineNightRecolourOf]'s pure inversion for everything else, labels included. [tables] are the loaded Trail Map
+ * version's ([streetNightTablesFor]): v1 to v3's, [STREET_NIGHT_LAYER_COLOURS] and [STREET_NIGHT_FILL_COLOURS], unless
+ * it is v4.
  */
-internal fun streetNightRecolourOf(property: LayerColourProperty, sourceLayer: String?): NightRecolour {
+internal fun streetNightRecolourOf(
+    property: LayerColourProperty,
+    sourceLayer: String?,
+    tables: StreetNightTables = STREET_NIGHT_TABLES,
+): NightRecolour {
     if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
         return NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
     }
-    val layerNight = STREET_NIGHT_LAYER_COLOURS[property.layerId]
+    val layerNight = tables.layerColours[property.layerId]
     if (layerNight != null && property.property == "line-color") {
         return NightRecolour.Recoloured(property, StyleColourValue.Literal(layerNight))
     }
-    if (property.property == "fill-color") return nightRecolourOf(property, ::streetFillNightOf)
+    val lineNights = tables.lineColours[property.layerId]
+    if (lineNights != null && property.property == "line-color") return nightRecolourOf(property) { colourNightOf(it, lineNights) }
+    if (property.property == "fill-color") return nightRecolourOf(property) { colourNightOf(it, tables.fillColours) }
     return offlineNightRecolourOf(property)
 }
 
-/** One fill colour's Street night: its [STREET_NIGHT_FILL_COLOURS] colour at full opacity, else the inversion. */
-private fun streetFillNightOf(day: RgbaColour): RgbaColour {
-    val night = if (day.alpha == 1.0) STREET_NIGHT_FILL_COLOURS[(day.r shl 16) or (day.g shl 8) or day.b] else null
+/** One colour's Street night by day colour: its [nights] colour at full opacity, else the inversion. */
+private fun colourNightOf(day: RgbaColour, nights: Map<Int, Int>): RgbaColour {
+    val night = if (day.alpha == 1.0) nights[(day.r shl 16) or (day.g shl 8) or day.b] else null
     return if (night == null) day.night() else RgbaColour((night shr 16) and 0xFF, (night shr 8) and 0xFF, night and 0xFF, day.alpha)
 }
 
