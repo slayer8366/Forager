@@ -31516,3 +31516,22 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Long names keep every word; the width motion is judged on the S22; a new S22 build and Sorrel's review start
 **Decision:** the owner: "Keep every word (Recommended)"; "Judge it on the S22 (Recommended)". Dispatch 2026-11-01-03; Sorrel reviews #449 since Amendment 5 on the go in -1932. No merges (-1933).
 **Notes:** Written by the planner by hand. Next free ID -1936.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1936
+**Timestamp:** 2026-11-02T05:24:50Z
+**Continues:** 2026-09-28-1933, 2026-09-28-1935
+**Title:** The merge hold is lifted; the pre-main sort starts; on the S22 the bar stays put and the card clears everything; Sorrel finds nothing blocking
+**Observed:**
+- **S22, Hazel (Opus), docs/audits/2026-11-01-s22-card-beside-bar.md on tools/s22-combined aef6f01ac, build 4364, CI 41385959991 with only the three allowed failures.** Data unchanged.
+  - The bar's bounds are equal to the pixel, with 0 changed pixels, against a no-card shot, in both orientations; a few held-drag cells weren't run.
+  - Layers, "+" and Save 5/5, record and return reached, in both orientations, including landscape peek.
+  - While navigating in landscape the card rests on the navigation card, with Save 5/5.
+  - Long names and font scale 2.0 read whole.
+  - **Finding:** expanded while navigating in landscape, Re-center rises with the card and lands on the search bar.
+  - **For the owner:** at the first leg the card eases from 312 dp to about 212 dp, then back to 226.9 dp. Save was not hit in 3 tries while easing; the cause isn't established.
+- **Sorrel (Fable), docs/reviews/2026-11-01-sorrel-pr449-2.md on sorrel-pr449-2 e8517ac91:** no blocking, no should-fix; mergeable after the S22 build; note N-5 asks for a direct test of the padding floor.
+**Decision:** the owner: "Lift it"; "Yes, start the sort (Recommended)". Dispatch 2026-11-01-04. The planner merges again on the owner's word, one PR at a time.
+**Notes:** Written by the planner by hand. Next free ID -1937.
