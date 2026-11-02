@@ -164,11 +164,11 @@ abstract class RouteCardOneWidthTests(private val expectedWidth: Float?) {
     fun `the bar on the left - square on the right edge, round facing the map`() = corners(barOnLeft = true)
 }
 
-/** The S22's portrait window at normal text size: the reference card is 246 dp (C19's "about 246 dp", measured -1952). */
+/** The S22's portrait window at normal text size: the reference card, C19's "about 246 dp" ([REFERENCE_CARD_DP]). */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi", fontScale = 1.0f)
-class RouteCardOneWidthTest : RouteCardOneWidthTests(expectedWidth = 246f)
+class RouteCardOneWidthTest : RouteCardOneWidthTests(expectedWidth = REFERENCE_CARD_DP)
 
 /** At text size 2.0 the reference card needs about 410 dp, more than the room beside the bar: the card takes the room. */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -176,8 +176,11 @@ class RouteCardOneWidthTest : RouteCardOneWidthTests(expectedWidth = 246f)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi", fontScale = 2.0f)
 class RouteCardOneWidthFontTwoTest : RouteCardOneWidthTests(expectedWidth = null)
 
-/** The tablet: the same 246 dp, well inside the room, so it does not stretch to the bar. */
+/**
+ * The tablet: the reference card well inside the room, so it does not stretch to the bar. 248.5 dp at 2 px per dp, against 247.67 at
+ * the phone's 3: the text's widths round to whole pixels.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w824dp-h1318dp-xhdpi", fontScale = 1.0f)
-class RouteCardOneWidthTabletTest : RouteCardOneWidthTests(expectedWidth = 246f)
+class RouteCardOneWidthTabletTest : RouteCardOneWidthTests(expectedWidth = 248.5f)

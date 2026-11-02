@@ -179,8 +179,11 @@ abstract class RouteCardLandscapeBarTests(private val rotation: Int) {
     }
 }
 
-/** C19's "about 246 dp at normal size": the reference card at text size 1.0. */
-private const val REFERENCE_CARD_DP = 246f
+/**
+ * C19's "about 246 dp at normal size": the reference card at text size 1.0, at this window's density. The 246 dp was measured on a
+ * "12.3 mi" total (RECORD -1952); the widest two-digit mile figure, "99.9 mi", is 1.7 dp wider.
+ */
+internal const val REFERENCE_CARD_DP = 247.67f
 
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
