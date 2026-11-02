@@ -31545,3 +31545,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** #449 takes two last fixes and merges into pre-main once green
 **Decision:** the owner: "Change width once the leg lands (Recommended)"; "Stop it rising (Recommended)"; "After these two fixes (Recommended)", whose option read "Hazel makes your choices above and adds Sorrel's small test, CI goes green, then I merge." Dispatch 2026-10-30-08 Amendment 17.
 **Notes:** Written by the planner by hand. Next free ID -1938.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1938
+**Timestamp:** 2026-11-02T05:26:19Z
+**Continues:** 2026-09-28-1937
+**Title:** #449 is not merged when green; it waits for the owner's word
+**Decision:** the owner: "Hold off on the merge for now." This replaces -1937's merge once green. Amendment 17's work continues.
+**Notes:** Written by the planner by hand. Next free ID -1939.
