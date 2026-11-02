@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
+import com.zynergylabs.forager.app.ui.map.MapRenderMode
+import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -123,5 +125,21 @@ class RouteCardPlacementTest {
     fun `the card's own edge takes nothing, and the bar its column`() {
         assertEquals("bar on the right, card at the left edge", 0f to 64f, sides(barOnLeft = false))
         assertEquals("bar on the left, card at the right edge", 64f to 0f, sides(barOnLeft = true))
+    }
+
+    /**
+     * D18 (RECORD -1958): in portrait the credit's inset becomes a gap above the card's top, and MapLibre's "i", which followed that
+     * inset, keeps the one it had, so only the credit moves. No overlap, or no card: unchanged.
+     */
+    @Test
+    fun `the portrait credit rises above the card's top, and the i keeps its inset`() {
+        val mode = MapRenderMode(basemap = Basemap.OSM_STANDARD, bottomInset = 80.dp)
+        val risen = mode.withCreditAbovePortraitRouteCard(cardTopAboveBottom = 240.dp, cardOverCredit = true)
+        assertEquals("the credit's inset", 248f, risen.bottomInset.value, 0.01f)
+        assertEquals("the i's inset", 80f, risen.attributionBottomInset!!.value, 0.01f)
+        val iSet = MapRenderMode(basemap = Basemap.OSM_STANDARD, bottomInset = 80.dp, attributionBottomInset = 300.dp).withCreditAbovePortraitRouteCard(240.dp, cardOverCredit = true)
+        assertEquals("an i already raised for the card keeps that", 300f, iSet.attributionBottomInset!!.value, 0.01f)
+        assertEquals("no overlap", mode, mode.withCreditAbovePortraitRouteCard(240.dp, cardOverCredit = false))
+        assertEquals("no card", mode, mode.withCreditAbovePortraitRouteCard(null, cardOverCredit = true))
     }
 }

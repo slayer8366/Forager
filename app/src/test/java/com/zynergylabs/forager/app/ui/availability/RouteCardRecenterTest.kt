@@ -76,12 +76,15 @@ abstract class RouteCardRecenterTests {
         rig.setScreen(navigating = true)
         rig.leaveNavigationView()
         val noCard = recenter()
+        val creditAtRest = rig.bounds(MAP_CREDIT_CAPTION_TAG)
         rig.plotTo(1)
         val beside = recenter()
         val l = rig.bounds(MAP_ICON_CLUSTER_TAG)
         val fontScale = composeRule.density.fontScale
-        println("D17 $window font $fontScale: no card ${noCard.left.value}..${noCard.right.value} x ${noCard.top.value}..${noCard.bottom.value}, beside ${beside.left.value}..${beside.right.value} x ${beside.top.value}..${beside.bottom.value}, L ${l.left.value}..${l.right.value} x ${l.top.value}..${l.bottom.value}")
-        assertEquals("$window: Re-center stays at the bottom, as with no card: its bottom", noCard.bottom.value, beside.bottom.value, 0.5f)
+        println("D17 $window font $fontScale: no card ${noCard.left.value}..${noCard.right.value} x ${noCard.top.value}..${noCard.bottom.value}, beside ${beside.left.value}..${beside.right.value} x ${beside.top.value}..${beside.bottom.value}, L ${l.left.value}..${l.right.value} x ${l.top.value}..${l.bottom.value}, credit at rest ${creditAtRest.left.value}..${creditAtRest.right.value} x ${creditAtRest.top.value}..${creditAtRest.bottom.value}")
+        // At the bottom: where it sits with no card, or, where the credit is taller than its clearance (font 2.0), a gap above the credit.
+        val bottom = minOf(noCard.bottom.value, (creditAtRest.top - 8.dp).value)
+        assertEquals("$window: Re-center stays at the bottom, clear of the credit: its bottom (no card ${noCard.bottom}, credit top ${creditAtRest.top})", bottom, beside.bottom.value, 0.5f)
         assertTrue("$window: Re-center's left ${beside.left} is next to the L's right ${l.right}", beside.left >= l.right && beside.left <= l.right + 16.dp)
         stops.forEach { n ->
             listOf(false, true).forEach { expanded ->
