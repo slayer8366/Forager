@@ -44,6 +44,19 @@ abstract class RouteCardRecenterTests {
 
     protected fun recenter(): DpRect = rig.bounds(RETURN_TO_ROUTE_TAG)
 
+    /**
+     * D32 (RECORD -1987), everywhere else: where the icon fits beside the L at the strip's width, neither card narrows. Both keep the
+     * navigation card's bounds from before the route card showed, [navigationAlone], on the left and the right.
+     */
+    private fun assertCardsUnnarrowed(where: String, navigationAlone: DpRect) {
+        val card = rig.bounds(ROUTE_CARD_TAG)
+        val navigation = rig.bounds(NAVIGATION_HUD_TAG)
+        assertEquals("$where: the route card's left, not narrowed (D32)", navigationAlone.left.value, card.left.value, 0.5f)
+        assertEquals("$where: the route card's right, not narrowed (D32)", navigationAlone.right.value, card.right.value, 0.5f)
+        assertEquals("$where: the navigation card's left, not narrowed (D32)", navigationAlone.left.value, navigation.left.value, 0.5f)
+        assertEquals("$where: the navigation card's right, not narrowed (D32)", navigationAlone.right.value, navigation.right.value, 0.5f)
+    }
+
     private fun assertOtherColumn(where: String, pill: DpRect, card: DpRect) {
         assertTrue("$where: precondition: the card ${card.left}..${card.right} is in the other column from Re-center ${pill.left}..${pill.right}", pill.right <= card.left || card.right <= pill.left)
     }
@@ -80,6 +93,7 @@ abstract class RouteCardRecenterTests {
         rig.setScreen(navigating = true)
         rig.leaveNavigationView()
         val noCard = recenter()
+        val navigationAlone = rig.bounds(NAVIGATION_HUD_TAG)
         val creditAtRest = rig.bounds(MAP_CREDIT_CAPTION_TAG)
         val fontScale = composeRule.density.fontScale
         composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT), { "$window font $fontScale: precondition: with no card Re-center has its word" })
@@ -98,6 +112,7 @@ abstract class RouteCardRecenterTests {
                     val recordPill = rig.bounds(BAR_PILL)
                     println("D27 $where ($sx, $sy): Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, with its word ${(noCard.right - noCard.left).value} wide, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, L ${l.left.value}..${l.right.value} x ${l.top.value}..${l.bottom.value}, record pill ${recordPill.left.value}..${recordPill.right.value} x ${recordPill.top.value}..${recordPill.bottom.value}, credit ${credit.left.value}..${credit.right.value} x ${credit.top.value}..${credit.bottom.value}")
                     assertTrue("$where: precondition: the gap beside the L, ${card.left - l.right - 8.dp}, is narrower than Re-center with its word, ${noCard.right - noCard.left}", card.left - l.right - 8.dp < noCard.right - noCard.left)
+                    assertCardsUnnarrowed(where, navigationAlone)
                     assertEquals("$where: Re-center shows its icon alone, a 48 dp target: its width", 48f, (pill.right - pill.left).value, 0.5f)
                     assertEquals("$where: Re-center shows its icon alone, a 48 dp target: its height", 48f, (pill.bottom - pill.top).value, 0.5f)
                     composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT).not(), { "$where: Re-center shows no word" })
@@ -137,6 +152,7 @@ abstract class RouteCardRecenterTests {
         rig.setScreen(navigating = true)
         rig.leaveNavigationView()
         val noCard = recenter()
+        val navigationAlone = rig.bounds(NAVIGATION_HUD_TAG)
         val creditAtRest = rig.bounds(MAP_CREDIT_CAPTION_TAG)
         rig.plotTo(1)
         val beside = recenter()
@@ -158,6 +174,7 @@ abstract class RouteCardRecenterTests {
                     val credit = rig.bounds(MAP_CREDIT_CAPTION_TAG)
                     println("D17 $where ($sx, $sy): Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, credit ${credit.left.value}..${credit.right.value} x ${credit.top.value}..${credit.bottom.value}")
                     rig.assertSame("$where: Re-center", beside, pill)
+                    assertCardsUnnarrowed(where, navigationAlone)
                     // D27 (RECORD -1976): where it fits, Re-center keeps its word beside the L.
                     composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT), { "$where: Re-center has its word" })
                     rig.assertApart("$where: Re-center and the card", pill, card)

@@ -180,7 +180,8 @@ internal fun BoxScope.CompactMapRouteCard(
     val cardOnLeft = routeCardOnLeft(barOnLeft, landscapeRoom)
     val sides = routeCardSides(barOnLeft = barOnLeft, barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() }))
     // C21 with C23 (RECORD -1955, -1956): on the navigation card, its width, edge to edge, whatever C19's reference is; lines wrap.
-    val onNavigationCard = landscapeRoom?.onNavigationCard?.takeIf { it > 0.dp }
+    // D32 (RECORD -1987): both narrower by the room Re-center's icon needs beside the L, where it would not fit.
+    val onNavigationCard = landscapeRoom?.takeIf { it.onNavigationCard > 0.dp }?.onNavigationCardWidth
     val shape = if (portrait) routeCardPortraitShape(barOnLeft) else ROUTE_CARD_LANDSCAPE_SHAPE
     val referenceWidth = rememberRouteCardWidth(distanceUnit)
     NoTouchTargetExpansion(active = leaving) {

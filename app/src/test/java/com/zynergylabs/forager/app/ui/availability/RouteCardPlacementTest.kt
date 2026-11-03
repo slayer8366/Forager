@@ -64,6 +64,26 @@ class RouteCardPlacementTest {
         return room!!.bottom
     }
 
+    /**
+     * D32 (RECORD -1987): the S22's figures from s8 b3-3p-rc.xml at 3.75 px per dp: Re-center would start at 514 px (the L's foot at
+     * 484 px and the 8 dp gap, 30 px), its icon 180 px, the gap before the cards 30 px, and the cards at the strip's width from 576 px.
+     * Both cards narrow by 514 + 180 + 30 - 576 = 148 px (39.5 dp).
+     */
+    @Test
+    fun `D32 with the S22's figures both cards narrow by the icon and its gaps less the room there`() {
+        assertEquals(148f, routeCardLeaveRoomPx(besideLeftPx = 514f, iconPx = 180f, gapPx = 30f, naturalCardLeftPx = 576f), 0.01f)
+    }
+
+    @Test
+    fun `D32 where the icon and its gaps fit exactly, nothing narrows`() {
+        assertEquals(0f, routeCardLeaveRoomPx(besideLeftPx = 514f, iconPx = 180f, gapPx = 30f, naturalCardLeftPx = 724f), 0.01f)
+    }
+
+    @Test
+    fun `D32 where there is room to spare, nothing narrows and nothing widens`() {
+        assertEquals(0f, routeCardLeaveRoomPx(besideLeftPx = 336f, iconPx = 144f, gapPx = 24f, naturalCardLeftPx = 615f), 0.01f)
+    }
+
     @Test
     fun `a navigation card's top within the tuck of the box's bottom leaves the padding at 0 dp`() {
         assertEquals(0f, bottomWith(10.dp).value, 0.01f)
