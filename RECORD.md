@@ -31967,3 +31967,17 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Waypoint names are drawn as small pictures in the app's own font; their off switch is in Settings > Map
 **Decision:** the owner: "As small pictures (Recommended)"; "Settings > Map". Then, to Hazel's question whether the switch also hides a route's stop names: "Yes, stops keep names (Recommended)" (item B3). Dispatch 2026-11-02-04 items A4, B2, and the planner's C2 (what can be tested headless; the collision on a phone later). A new Hazel builds it on branch waypoint-names from bbf13d270.
 **Notes:** Written by the planner by hand. Next free ID -1975.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1975
+**Timestamp:** 2026-11-03T01:47:14Z
+**Continues:** 2026-09-28-1974
+**Closes:** dispatch 2026-11-02-04 (built; device items open)
+**Title:** Waypoint names are built and green: draft PR #465 on #449
+**Observed:** Hazel (Opus), waypoint-names bc5c309f1 (tests 096f8b40a, build 6fc96f1e1, a density fix the new tests caught), draft PR #465 into route-plot-ui, CI only. Fail first 41557061906: 15 of 16 failed on their own stubs. Full CI 41558849631: 6254 tests, 1 failure (the known D20 case, as on the base), lint and the other jobs green. Eleven revert checks bite, each with its own message; throwaway branches deleted.
+- Names are Noto Sans Medium bitmaps in a no-overlap layer above the pins, hidden with a fanned pin; the route's stops in their own layer that wins over waypoint names; colours from MapPalette; blank names skipped; "Waypoint names" in Settings > Map under "Crowded icons", on by default, key map.waypoint_names; off hides waypoint names only (B3).
+- **Hazel's calls, for the owner:** names on the Maps tab only (an entry's map and the picker show pins alone); 12 dp text, 2 dp right of the pin, a 1.5 dp halo, names past 160 dp end in "…"; names near an open fan may hide; names may push the basemap's own labels out (inferred).
+- **Not verified, device only:** the collision itself, the fan hiding a name, the look day and night, the bitmap scale.
+**Notes:** Written by the planner by hand. Next free ID -1976.
