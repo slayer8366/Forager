@@ -32276,3 +32276,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** Without the Street map, the fallback is downloads then Topo; nothing changes today; CLAUDE.md made
 **Decision:** the owner: "Downloads, then Topo (Recommended)"; "Nothing changes today (Recommended)". The planner accepts Hazel's D7 plan (the registry, ui/map/street/, the street-removable CI job) and keeps the key "street" for the Street map. CLAUDE.md's "Street tiles" became "Trail Map tiles", made by the planner on pre-main at ea230c60e ([skip ci], one line, 486 lines before and after). Dispatch 2026-11-03-05 D8. Hazel's WIP is at 5a34401b7 on trail-and-street-codes, not yet compiled.
 **Notes:** Written by the planner by hand. Next free ID -2004.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2004
+**Timestamp:** 2026-11-03T17:52:17Z
+**Continues:** 2026-09-28-1998
+**Title:** S22 session 9 finished when the phone came back: D32 as ruled; two things seen
+**Outcome:** Hazel's report; audit docs/audits/2026-11-03-s22-session-9.md on tools/s22-combined (5b3fa8c0f); evidence /home/zynergy-labs/s22-2026-11-03/s9/, off git. Build 4465 installed at 09:27:31 over 4451 (backup pulled, not restore-tested; every table equal across install). D32 at 640 x 360 dp, font 2.0, landscape, navigating, 1/3/6 stops, peek: both cards narrow to x 724..1809, edge to edge, right edges kept; Re-center is the 48 dp icon at [514,884][694,1064], never risen, clear of everything; 15/15 real touches re-centred. Route card closed: the navigation card is full width and Re-center has its word. Normal size, font 1.0: nothing narrows, and Re-center keeps its word beside the L. Could not tell: the expanded card at that size (tap and drag on the handle did nothing at 3 and 6 stops); long navigation text wrapping. For the owner: Re-center's bottom is 76 dp above the screen's bottom (the lowest place clear of the two-line credit at font 2.0). Seen, not ruled: with the route card closed at that size, Re-center with its word sits in the middle of the navigation card over its distance text (squeezed to 21 px). Auto-rotate again failed to hold once (cause unknown; reads 1 now). TEST P to T deleted by name.
+**Notes:** Written by the planner by hand. Next free ID -2005.
