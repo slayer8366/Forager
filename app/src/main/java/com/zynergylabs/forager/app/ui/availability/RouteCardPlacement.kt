@@ -199,13 +199,6 @@ internal fun reCenterBesideTheL(landscapeRoom: RouteCardLandscapeRoom?, cardShow
  */
 internal fun reCenterRoomBesideTheL(leftPx: Float, cardLeftPx: Float?, gapPx: Float): Float? = cardLeftPx?.let { it - gapPx - leftPx }
 
-/**
- * D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"): whether Re-center goes beside the L at all: where its
- * icon alone, [iconPx] (the 48 dp target), fits the [roomPx] ([reCenterRoomBesideTheL]). Where it does, it never takes D10's rise,
- * with its word or without ([reCenterShowsWord]). A card not yet measured, or a room narrower than the icon (no window tested reaches
- * that; D27 says stop and report the numbers if one does), keeps D10's rise, which is never drawn over the card.
- */
-internal fun reCenterIconFitsBesideTheL(roomPx: Float?, iconPx: Float): Boolean = roomPx != null && iconPx <= roomPx
 
 /**
  * D32 (RECORD -1987, the owner: "Both cards narrow (Recommended)" and "Always (Recommended)"): how much narrower the route card and the
@@ -214,7 +207,8 @@ internal fun reCenterIconFitsBesideTheL(roomPx: Float?, iconPx: Float): Boolean 
  * `CompactMapBottomChrome` places it) and [naturalCardLeftPx] the cards' left at the strip's width, all in root px. 0 wherever the
  * icon already fits. Replaces D31's "the route card moves right" (the navigation card fills the bottom under the same span).
  */
-internal fun routeCardLeaveRoomPx(besideLeftPx: Float, iconPx: Float, gapPx: Float, naturalCardLeftPx: Float): Float = 0f
+internal fun routeCardLeaveRoomPx(besideLeftPx: Float, iconPx: Float, gapPx: Float, naturalCardLeftPx: Float): Float =
+    (besideLeftPx + iconPx + gapPx - naturalCardLeftPx).coerceAtLeast(0f)
 
 /** D27: whether Re-center beside the L keeps its word: where its measured width with the word, [wordWidthPx], fits the [roomPx]. */
 internal fun reCenterShowsWord(wordWidthPx: Float, roomPx: Float): Boolean = wordWidthPx <= roomPx
