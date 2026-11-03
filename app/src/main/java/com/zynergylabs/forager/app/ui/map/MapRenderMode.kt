@@ -245,6 +245,13 @@ data class MapRenderMode(
      */
     val attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
     /**
+     * D28 (dispatch 2026-10-30-08, RECORD -1979, -1980; the owner: "Hide while a card covers it (Recommended)"): the measured bounds, in
+     * this map's own pixels, of the cards drawn over it (the route card, and the landscape navigation card while navigating). Where
+     * any of them intersects MapLibre's attribution button ("i") as placed, the button and the logo beside it are hidden, and they come
+     * back when the corner clears (`attributionHiddenUnder`). Empty for every caller but the compact Maps tab.
+     */
+    val attributionHideUnder: List<androidx.compose.ui.geometry.Rect> = emptyList(),
+    /**
      * Dispatch 2026-10-30-08, D13 (RECORD -1955): told the map credit strip's laid-out size, in px, whenever it changes. Since D24
      * (RECORD -1966) removed D13's rise, its one reader is D17's Re-center beside the L (`reCenterClearanceBesideTheL`), which keeps
      * clear of the strip. A no-op for every other caller. Remembered by its one setter, so the render mode still compares equal across recompositions.

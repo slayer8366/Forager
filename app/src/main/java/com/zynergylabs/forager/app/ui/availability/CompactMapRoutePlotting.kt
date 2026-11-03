@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
@@ -34,7 +35,6 @@ import com.zynergylabs.forager.app.ui.map.MapCameraRequest
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
-import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.PlottedRouteOnMap
 import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
@@ -48,7 +48,6 @@ import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingUiState
 import com.zynergylabs.forager.app.ui.route.SaveRouteDialog
-import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
 /*
@@ -96,22 +95,6 @@ internal fun plottedRouteOnMap(controls: RoutePlottingControls?): PlottedRouteOn
 
 /** The most of the map's height the expanded card's rows take before they scroll (the first stop, (b)). */
 internal const val ROUTE_CARD_EXPANDED_FRACTION = 0.5f
-
-/**
- * Amendment 9 (RECORD -1902, the owner: "\"i\" moves above the card (Recommended)"): while the card shows ([cardHeightDp] above
- * 0), MapLibre's attribution "i" keeps clear of it as the cluster, "Return to Route" and the legend chip do: its bottom inset is
- * raised to the card's top plus the same gap ([CompactMapBottomChrome]'s routeCardLift: the card's height and Spacing.sm, over
- * the card's own bottom, [bottomInset][MapRenderMode.bottomInset] and its clearance). Never lowered, and unchanged with no card,
- * so it goes back when the card closes. Amendment 14 (RECORD -1928): only where the card is [overAttribution]; see
- * [routeCardOverAttribution]. Since D24 (RECORD -1966) the "i" is in the bottom-end corner in every window, so this applies in
- * landscape too.
- */
-internal fun MapRenderMode.withAttributionAboveRouteCard(cardHeightDp: Int, overAttribution: Boolean): MapRenderMode {
-    if (cardHeightDp <= 0 || !overAttribution) return this
-    val current = attributionBottomInset ?: bottomInset
-    val aboveCard = bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + cardHeightDp.dp + Spacing.sm
-    return if (aboveCard > current) copy(attributionBottomInset = aboveCard) else this
-}
 
 /** The side margin of a saved route's fit, and the gap kept between the route and the card's top. */
 internal const val ROUTE_FIT_MARGIN_DP = 48
@@ -169,6 +152,8 @@ internal fun BoxScope.CompactMapRouteCard(
     onCardHeightDp: (Int) -> Unit,
     /** Amendment 17, part 2 ruled: the card's left and right in root px while it shows, `null` as soon as it starts to leave. */
     onCardSpanPx: (ClosedFloatingPointRange<Float>?) -> Unit = {},
+    /** D28 (RECORD -1979, -1980): the card's bounds in the root while it shows, `null` as soon as it starts to leave, for the "i". */
+    onCardBoundsInRoot: (androidx.compose.ui.geometry.Rect?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
@@ -184,6 +169,7 @@ internal fun BoxScope.CompactMapRouteCard(
         if (leaving) {
             onCardHeightDp(0)
             onCardSpanPx(null)
+            onCardBoundsInRoot(null)
         }
     }
     val showing = state?.mode as? RoutePlotMode.Showing
@@ -235,6 +221,7 @@ internal fun BoxScope.CompactMapRouteCard(
                                     onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) })
                                     val left = it.positionInRoot().x
                                     onCardSpanPx(left..left + it.size.width)
+                                    onCardBoundsInRoot(it.boundsInRoot())
                                 }
                             },
                     )

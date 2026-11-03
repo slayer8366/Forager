@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import android.util.Log
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.LocalMapPosition
@@ -304,6 +306,7 @@ internal fun CompactMapTab(
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> if (!routePlottingTakesTap(tap, currentBubbleSources)) tappedThingOf(tap)?.let { tapped = it } } }
     var routeCardHeightDp by remember { mutableIntStateOf(0) }
     var routeCardSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
+    var routeCardBoundsInRoot by remember { mutableStateOf<Rect?>(null) }
     // The credit strip's size, for Re-center beside the L to keep clear of it (D17, reCenterClearanceBesideTheL). The size's setter is
     // remembered, so the render mode compares equal across recompositions.
     var mapCreditSizePx by remember { mutableStateOf(IntSize.Zero) }
@@ -497,10 +500,18 @@ internal fun CompactMapTab(
                     onTapped = { tapped = it },
                     mapLayers = mapLayers,
                     // Dispatch 2026-10-30-08: a saved route just opened asks the map to fit it (savedRouteCameraRequest). Amendment 9:
-                    // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
+                    // the attribution "i" hides while a card covers it (D28, D30; attributionCoversInMapPx).
                     renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
                         .copy(onCreditSizeChanged = onMapCreditSize)
-                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster)),
+                        // D28 with D30 (RECORD -1979, -1980): the "i" stays in its corner and hides while a card covers it, decided
+                        // by the cards' measured bounds; this replaces Amendment 9's rise above the route card.
+                        .copy(
+                            attributionHideUnder = attributionCoversInMapPx(
+                                listOfNotNull(routeCardBoundsInRoot, cluster.navigationCardBoundsInRoot?.takeIf { navigation.isNavigating && cluster.landscape }),
+                                cluster.mapContentBoxLeftInRootPx,
+                                cluster.mapContentBoxTopInRootPx,
+                            ),
+                        ),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onFeatureTap = onFeatureTap,
@@ -518,6 +529,18 @@ internal fun CompactMapTab(
                     onCameraIdle = { location -> cameraCenter = location },
                     crowdedStacks = crowdedStacks,
                     plottedRoute = plottedRouteOnMap(bubbleSources.routePlotting),
+                    // D29 (RECORD -1979, -1980): while navigating in landscape with the route card expanded, the walker's dot sits in the
+                    // open map beside the card, and goes back when it collapses.
+                    navigationSideInsets = if (navigation.isNavigating && cluster.landscape && bubbleSources.routePlotting?.state?.expanded == true) {
+                        navigationSideInsetsBesideCard(
+                            mapWidthPx = cluster.mapContentBoxWidthPx,
+                            cardInMap = routeCardBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
+                            lInMap = cluster.clusterBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
+                            gapPx = with(compassStripDensity) { Spacing.sm.toPx() },
+                        )
+                    } else {
+                        NavigationSideInsets.NONE
+                    },
                 )
                 // Dispatch 2026-10-30-08: the route card's Back, composed before the bubble's, the crowded list's and the fan's, so
                 // each of those, drawn over the card, closes first; off under the drawer, the menu and the pickers, as theirs are.
@@ -653,6 +676,7 @@ internal fun CompactMapTab(
                     expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
                     onCardHeightDp = { routeCardHeightDp = it },
                     onCardSpanPx = { routeCardSpanPx = it },
+                    onCardBoundsInRoot = { routeCardBoundsInRoot = it },
                 )
 
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the

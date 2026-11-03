@@ -104,12 +104,14 @@ internal fun BoxScope.CompactMapBottomChrome(
     val returnToRouteShown = isNavigating && !navigationFollowing
     // Amendment 17, part 2 ruled: the pill's own span, which the lift does not move, so reading it here has no loop.
     var returnToRouteSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
-    // D20 (RECORD -1960, the owner: "Rise as before, there only (Recommended)"): beside the L only where Re-center's measured width
-    // fits the gap between the L and the card; otherwise D10's rise, as before D17. Its width does not change with where it sits.
+    // D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"), replacing D20's rise where room is short: beside
+    // the L wherever its icon alone fits the gap between the L and the card; there it keeps its word where the word fits too, and shows
+    // its icon alone where it does not (the pill measures that against [besideRoomPx]). It never takes D10's rise there.
     val besideStart = routeCardBarColumn(with(LocalDensity.current) { mapIconClusterWidthPx.toDp() })
     val besideLeftPx = cluster.mapContentBoxLeftInRootPx + with(LocalDensity.current) { (controlsPadding.calculateLeftPadding(LocalLayoutDirection.current) + besideStart).toPx() }
+    val besideRoomPx = reCenterRoomBesideTheL(besideLeftPx, routeCardSpanPx?.start, with(LocalDensity.current) { Spacing.sm.toPx() })
     val besideTheL = reCenterBesideTheL &&
-        reCenterFitsBesideTheL(returnToRouteSpanPx?.let { it.endInclusive - it.start }, besideLeftPx, routeCardSpanPx?.start, with(LocalDensity.current) { Spacing.sm.toPx() })
+        reCenterIconFitsBesideTheL(besideRoomPx, with(LocalDensity.current) { RETURN_TO_ROUTE_PILL_HEIGHT.toPx() })
     val returnToRouteLift = if (!besideTheL && reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
     // D17 (RECORD -1958, the owner: "Into the open map, at the bottom (Recommended)"): while the card rests on the navigation card,
     // Re-center leaves the card's column for the open map beside the L (fixed on the screen's left while navigating, RECORD -955), at
@@ -132,6 +134,7 @@ internal fun BoxScope.CompactMapBottomChrome(
     ) {
         ReturnToRoutePill(
             onClick = onReturnToRoute,
+            roomPx = if (besideTheL) besideRoomPx else null,
             modifier = (if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier)
                 .onGloballyPositioned { coordinates ->
                     val left = coordinates.positionInRoot().x

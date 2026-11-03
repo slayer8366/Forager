@@ -17,6 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.maplibre.android.style.layers.PropertyValue
 import org.maplibre.geojson.Point
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -24,7 +25,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Waypoint names (dispatch 2026-11-02-04, C2): what can run headless. What each name source is given, per waypoint and per
- * route stop, blank names skipped; the two name layers' properties (waypoint names never overlap, the stops' always may);
+ * route stop, blank names skipped; the two name layers' properties (neither waypoint names nor, since A5, the stops' overlap);
  * the names a fan hides; the Waypoints switch and the setting gating the names; and the bitmap itself, drawn with
  * Robolectric's native graphics, in the palette's colours. The collision itself is MapLibre's native placement and is
  * untested until a phone.
@@ -35,8 +36,8 @@ class WaypointNameLayersTest {
 
     private fun waypoint(id: String, name: String, lat: Double = 45.0, lng: Double = -122.0) = Waypoint(id, lat, lng, null, name, "", 0L)
 
-    private fun propertiesOf(allowOverlap: Boolean): Map<String, String> =
-        nameLayerProperties(allowOverlap).associate { it.name to it.value.let { v -> if (v is Array<*>) v.toList().toString() else v.toString() } }
+    private fun propertiesOf(properties: Array<PropertyValue<*>>): Map<String, String> =
+        properties.associate { it.name to it.value.let { v -> if (v is Array<*>) v.toList().toString() else v.toString() } }
 
     @Test
     fun `each waypoint with a name gets one label with its own id and image, and blank names get none`() {
@@ -81,12 +82,12 @@ class WaypointNameLayersTest {
     }
 
     @Test
-    fun `waypoint names never overlap, the stops' names always may, and neither ignores placement`() {
-        val names = propertiesOf(allowOverlap = false)
-        val stops = propertiesOf(allowOverlap = true)
+    fun `waypoint names never overlap, nor since A5 do the stops' names, and neither ignores placement`() {
+        val names = propertiesOf(waypointNameLayerProperties())
+        val stops = propertiesOf(stopNameLayerProperties())
 
-        assertEquals("false", names["icon-allow-overlap"])
-        assertEquals("true", stops["icon-allow-overlap"])
+        assertEquals("waypoint names: a name that would collide is not drawn", "false", names["icon-allow-overlap"])
+        assertEquals("A5: a stop's name that would collide with another stop's is not drawn until you zoom in", "false", stops["icon-allow-overlap"])
         assertEquals("false", names["icon-ignore-placement"])
         assertEquals("false", stops["icon-ignore-placement"])
         for (props in listOf(names, stops)) {

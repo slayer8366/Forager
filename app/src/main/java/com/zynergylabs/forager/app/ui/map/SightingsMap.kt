@@ -235,6 +235,8 @@ fun SightingsMap(
     attributionBottomInset: Dp? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionHideUnder]'s own doc comment. */
+    attributionHideUnder: List<androidx.compose.ui.geometry.Rect> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
     returnMemory: MapReturnMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
@@ -403,6 +405,7 @@ fun SightingsMap(
             },
             thresholdPx = nudgeThresholdPx,
             viewTopPaddingPx = { navigationViewTopPaddingPx(navigationMapHeightPx) },
+            viewSideInsetsPx = { currentNavigationView?.sideInsetsPx ?: NavigationSideInsets.NONE },
         )
     }
     DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
@@ -704,6 +707,7 @@ fun SightingsMap(
         bottomInset = bottomInset,
         attributionEndInset = attributionEndInset,
         attributionKeepClear = attributionKeepClear,
+        attributionHideUnder = attributionHideUnder,
     )
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is

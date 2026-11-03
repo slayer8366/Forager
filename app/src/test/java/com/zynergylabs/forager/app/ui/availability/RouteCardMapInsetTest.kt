@@ -18,8 +18,8 @@ import org.robolectric.shadows.ShadowDisplay
  * D24 (dispatch 2026-10-30-08, RECORD -1966): the credit strip is off the map, so nothing rises for the route card by the map's own
  * bottom inset any more. D13 (landscape, RECORD -1955) and D18 (portrait, -1958) raised [MapRenderMode.bottomInset] wherever the card
  * covered the credit's resting place; both are removed. The real Maps tab, recording, the card plotted to 1, 3 and 6 stops, peek and
- * expanded: the inset the map is handed is the one it had with no card, at every step. The "i" keeps its own rise
- * ([withAttributionAboveRouteCard], through `attributionBottomInset`), which this does not read.
+ * expanded: the inset the map is handed is the one it had with no card, at every step. The "i" had its own rise until D30
+ * (RECORD -1980) removed it; it now hides under a card instead (AttributionUnderCardTest), which this does not read.
  */
 abstract class RouteCardMapInsetTests(private val rotation: Int?) {
 
