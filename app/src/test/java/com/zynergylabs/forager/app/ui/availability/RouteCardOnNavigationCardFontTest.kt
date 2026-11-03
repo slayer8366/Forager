@@ -93,6 +93,7 @@ abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int) {
         val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
         println("C23 font ${composeRule.density.fontScale} rot $rotation: navigation card ${hud.left.value}..${hud.right.value} x ${hud.top.value}..${hud.bottom.value}")
         var wrapped = 0
+        var peekTop = 0.dp
         listOf(1, 3, 6).forEach { stops ->
             listOf(false, true).forEach { expanded ->
                 val where = "navigating, $stops stops, ${if (expanded) "expanded" else "peek"}"
@@ -104,7 +105,16 @@ abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int) {
                 assertEquals("$where: the navigation card's left", hud.left.value, card.left.value, 0.5f)
                 assertEquals("$where: the navigation card's right", hud.right.value, card.right.value, 0.5f)
                 assertTrue("$where: Save's bottom ${save.bottom} shows at or above the navigation card's top ${hud.top}", save.bottom <= hud.top + 0.5.dp)
-                assertTrue("$where: the top ${card.top} is below the strip's bottom ${strip.bottom}", card.top >= strip.bottom)
+                // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek card already fills its cap (its top a
+                // gap below the strip's bottom), the expanded card rises over the strip, to a gap below the screen's top. Elsewhere, as
+                // before, the card's top is below the strip.
+                if (!expanded) peekTop = card.top
+                val peekFillsCap = kotlin.math.abs((peekTop - (strip.bottom + 8.dp)).value) < 0.5f
+                if (expanded && peekFillsCap) {
+                    assertEquals("$where: D37, the peek filled its cap, so expanded the card covers the strip, to 8 dp from the top", 8f, card.top.value, 0.5f)
+                } else {
+                    assertTrue("$where: the top ${card.top} is below the strip's bottom ${strip.bottom}", card.top >= strip.bottom)
+                }
                 if (stops == 1) {
                     wrapped += assertWholeWords("$where, the hint", hasTestTag(ROUTE_CARD_COUNT_TAG)) - 2
                 } else {

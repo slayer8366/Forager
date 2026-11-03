@@ -87,7 +87,12 @@ abstract class RouteCardRecenterTests {
      * rises onto the search bar."): where Re-center with its word does not fit the gap between the L and the card on the navigation card,
      * it shows its icon alone, a 48 dp target whose content description is still "Re-center", beside the L at the bottom, never risen.
      * Through every stop count, peek and expanded, it stays in one place, clear of the card, the L, the record pill, the credit and the
-     * search bar, and five real touches across it reach it. With no card it has its word, and has it again when the card closes.
+     * search bar, and five real touches across it reach it.
+     *
+     * D34 (RECORD -2005) changed the no-card ends of this: with no card, Re-center's word at bottom centre would sit on the navigation
+     * card, so it is already its icon beside the L, and is again when the card closes. The precondition that read Re-center's word width
+     * from its no-card place (the gap beside the L narrower than the word) has no word to read there any more and is removed; the icon
+     * alone at every count is still asserted.
      */
     protected fun assertIconOnlyBesideTheL(window: String, stops: List<Int> = listOf(1, 3, 6)) {
         rig.setScreen(navigating = true)
@@ -96,7 +101,8 @@ abstract class RouteCardRecenterTests {
         val navigationAlone = rig.bounds(NAVIGATION_HUD_TAG)
         val creditAtRest = rig.bounds(MAP_CREDIT_CAPTION_TAG)
         val fontScale = composeRule.density.fontScale
-        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT), { "$window font $fontScale: precondition: with no card Re-center has its word" })
+        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT).not(), { "$window font $fontScale: D34: with no card Re-center's word would cover the navigation card, so it shows no word" })
+        rig.assertApart("$window font $fontScale: D34, with no card, Re-center and the navigation card", noCard, navigationAlone)
         val bottom = minOf(noCard.bottom.value, (creditAtRest.top - 8.dp).value)
         var first: DpRect? = null
         stops.forEach { n ->
@@ -110,8 +116,7 @@ abstract class RouteCardRecenterTests {
                     val l = rig.bounds(MAP_ICON_CLUSTER_TAG)
                     val credit = rig.bounds(MAP_CREDIT_CAPTION_TAG)
                     val recordPill = rig.bounds(BAR_PILL)
-                    println("D27 $where ($sx, $sy): Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, with its word ${(noCard.right - noCard.left).value} wide, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, L ${l.left.value}..${l.right.value} x ${l.top.value}..${l.bottom.value}, record pill ${recordPill.left.value}..${recordPill.right.value} x ${recordPill.top.value}..${recordPill.bottom.value}, credit ${credit.left.value}..${credit.right.value} x ${credit.top.value}..${credit.bottom.value}")
-                    assertTrue("$where: precondition: the gap beside the L, ${card.left - l.right - 8.dp}, is narrower than Re-center with its word, ${noCard.right - noCard.left}", card.left - l.right - 8.dp < noCard.right - noCard.left)
+                    println("D27 $where ($sx, $sy): Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, L ${l.left.value}..${l.right.value} x ${l.top.value}..${l.bottom.value}, record pill ${recordPill.left.value}..${recordPill.right.value} x ${recordPill.top.value}..${recordPill.bottom.value}, credit ${credit.left.value}..${credit.right.value} x ${credit.top.value}..${credit.bottom.value}")
                     assertCardsUnnarrowed(where, navigationAlone)
                     assertEquals("$where: Re-center shows its icon alone, a 48 dp target: its width", 48f, (pill.right - pill.left).value, 0.5f)
                     assertEquals("$where: Re-center shows its icon alone, a 48 dp target: its height", 48f, (pill.bottom - pill.top).value, 0.5f)
@@ -138,7 +143,7 @@ abstract class RouteCardRecenterTests {
         rig.setExpanded(false)
         rig.closeCard()
         rig.assertSame("$window: the card closed, Re-center", noCard, recenter())
-        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT), { "$window: the card closed, Re-center has its word again" })
+        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT).not(), { "$window: D34, the card closed, Re-center is still its icon beside the L" })
     }
 
     /**
