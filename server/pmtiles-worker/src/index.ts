@@ -33,11 +33,25 @@ interface Env extends RoutingEnv {
   ALLOWED_ORIGINS?: string;
   BUCKET: R2Bucket;
   CACHE_CONTROL?: string;
+  // The edge cache's version (dispatch 2026-11-02-coder-14): part of every tile and asset cache key (cacheKeyFor).
+  CACHE_VERSION?: string;
   PMTILES_PATH?: string;
   PUBLIC_HOSTNAME?: string;
 }
 
 class KeyNotFoundError extends Error {}
+
+/**
+ * The edge-cache key for a tile or asset request: a copy of its URL with cv=<CACHE_VERSION> (default "1") added. The
+ * request itself is not changed. Raising CACHE_VERSION in wrangler.toml makes the Worker ignore every tile and asset it
+ * cached before, which a replaced archive needs, since its tile URLs don't change (dispatch 2026-11-02-coder-14; the
+ * owner: "Yes, fix it now"). The routing handler's cache and the internal build-URL key are keyed on their own.
+ */
+export function cacheKeyFor(requestUrl: string, env: { CACHE_VERSION?: string }): string {
+  const key = new URL(requestUrl);
+  key.searchParams.set("cv", env.CACHE_VERSION || "1");
+  return key.toString();
+}
 
 async function nativeDecompress(
   buf: ArrayBuffer,
@@ -459,7 +473,8 @@ async function assetResponse(
     headers.set("Vary", "Origin");
     return new Response(r.body, { headers, status: r.status });
   };
-  const cached = await cache.match(request.url);
+  const cacheKey = cacheKeyFor(request.url, env);
+  const cached = await cache.match(cacheKey);
   if (cached) return withOrigin(cached);
 
   const object = await env.BUCKET.get(asset.key);
@@ -469,7 +484,7 @@ async function assetResponse(
   }
   const body = await object.arrayBuffer();
   const headers = new Headers({ "Content-Type": asset.contentType, "Cache-Control": cacheControl });
-  ctx.waitUntil(cache.put(request.url, new Response(body, { headers })));
+  ctx.waitUntil(cache.put(cacheKey, new Response(body, { headers })));
   return withOrigin(new Response(body, { headers }));
 }
 
@@ -525,7 +540,8 @@ export default {
 
     const allowedOrigin = resolveAllowedOrigin(request, env);
 
-    const cached = await cache.match(request.url);
+    const cacheKey = cacheKeyFor(request.url, env);
+    const cached = await cache.match(cacheKey);
     if (cached) {
       const respHeaders = new Headers(cached.headers);
       if (allowedOrigin) respHeaders.set("Access-Control-Allow-Origin", allowedOrigin);
@@ -549,7 +565,7 @@ export default {
         status,
       });
 
-      ctx.waitUntil(cache.put(request.url, cacheable));
+      ctx.waitUntil(cache.put(cacheKey, cacheable));
 
       const respHeaders = new Headers(cacheableHeaders);
       if (allowedOrigin) respHeaders.set("Access-Control-Allow-Origin", allowedOrigin);
@@ -637,7 +653,13 @@ export default {
       return cacheableResponse(undefined, cacheableHeaders, 204);
     } catch (e) {
       if (e instanceof KeyNotFoundError) {
-        return cacheableResponse("Archive not found", cacheableHeaders, 404);
+        // Never cached, and sent no-store (dispatch 2026-11-02-coder-14): an archive missing now may be on R2 a minute
+        // later, and a cached 404 kept relief tiles blank for up to a day after relief.pmtiles was uploaded (2026-11-02).
+        const respHeaders = new Headers(cacheableHeaders);
+        respHeaders.set("Cache-Control", "no-store");
+        if (allowedOrigin) respHeaders.set("Access-Control-Allow-Origin", allowedOrigin);
+        respHeaders.set("Vary", "Origin");
+        return new Response("Archive not found", { headers: respHeaders, status: 404 });
       }
       throw e;
     }
