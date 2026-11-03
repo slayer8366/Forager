@@ -32508,3 +32508,17 @@ After the release there is one fresh run on the new tips, then the review, the r
 **Title:** The sunset line hides only where the route card would not otherwise fit
 **Decision:** Hazel: -955 leaves the evening lines out and has nowhere to move them to, and while navigating the strip shows no sundown line, so "steps aside" means hidden. The planner put the scope to the owner, because the line is a safety cue. The owner: "Only where room is short (Recommended)". Dispatch 2026-10-30-08 D42, amended in place. Also for the owner: #440's heading check (Hazel, run 41739744089): at 360 and 384 dp, "Alt unavailable" pushes the heading out of the strip, permanently on phones below Android 14 (the converter is unsupported there) and briefly before the first conversion on 14 and up. #440's CI is red only on pre-main's own D37 test.
 **Notes:** Written by the planner by hand. Next free ID -2022.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2022
+**Timestamp:** 2026-11-03T23:50:03Z
+**Continues:** 2026-09-28-2021, 2026-09-28-2014
+**Title:** #440: where the sea-level height isn't available, the strip shows today's GPS height
+**Decision:** the owner: "Today's GPS height (Recommended)", whose option read "Where the phone can't convert (older Android), or until the first conversion arrives, the strip shows the GPS height as it does today. Older phones are no worse than now (still about 24 m low), Android 14+ phones get the fix, and the heading always stays." Hazel, on #440 (altitude-sea-level, 8d10f77aa):
+- build it, with StripHeadingWithEmptyHeightTest (native graphics) joining the PR, asserting the heading stays at 360 and 384 dp in both cases, plus the known-height control;
+- fail first, revert check;
+- CI green, except pre-main's own D37 test until route-card-evening lands.
+Known bug 22's row says it stays on phones below Android 14.
+**Notes:** Written by the planner by hand. Next free ID -2023.
