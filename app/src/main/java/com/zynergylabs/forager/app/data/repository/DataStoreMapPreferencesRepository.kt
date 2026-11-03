@@ -51,7 +51,8 @@ class DataStoreMapPreferencesRepository(
 ) : MapPreferencesRepository, MapLayerPreferencesRepository, BasemapPreferenceRepository,
     MapIconClusterPlacementRepository, CrowdedIconsPreferenceRepository, WaypointNamesPreferenceRepository {
 
-    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
+    // The stored map choice moves to the codes of dispatch 2026-11-03-05 once, before the file's first read (B1).
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope, migrations = listOf(BasemapKeyTrailStreetMigration()))
 
     override suspend fun getLastPickedRegion(): Result<Region?> = runCatchingCancellable {
         val prefs = dataStore.data.first()
@@ -216,7 +217,7 @@ class DataStoreMapPreferencesRepository(
         val KEY_STALE_THRESHOLD_DAYS = intPreferencesKey("offline_map.stale_threshold_days")
         val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
         val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
-        val KEY_BASEMAP = stringPreferencesKey("map.basemap")
+        val KEY_BASEMAP = BASEMAP_PREFERENCE_KEY
         val KEY_CROWDED_ICONS = stringPreferencesKey("map.crowded_icons")
         val KEY_WAYPOINT_NAMES = booleanPreferencesKey("map.waypoint_names")
         val KEY_CLUSTER_PORTRAIT_LEFT = booleanPreferencesKey("map.icon_cluster.portrait_left")

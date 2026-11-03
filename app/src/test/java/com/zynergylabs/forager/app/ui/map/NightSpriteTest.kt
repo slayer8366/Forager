@@ -1,6 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
-import com.zynergylabs.forager.app.map.STREET_SPRITE_ICON_NAMES
+import com.zynergylabs.forager.app.map.TRAIL_SPRITE_ICON_NAMES
 import java.io.File
 import java.security.MessageDigest
 import kotlinx.serialization.json.Json
@@ -135,11 +135,11 @@ class NightSpriteTest {
             assertEquals(v5Index.keys + v6Patterns, v6Index.keys)
             for ((name, entry) in v5Index) assertEquals("$suffix $name", entry, v6Index.getValue(name))
             // Street v4, which names sprite v6, records every v6 image but the painted tree glyph as one its night inverts.
-            val v4Icons = index(File("../map-style/forager-street-v4.json")).getValue("metadata").jsonObject
+            val v4Icons = index(File("../map-style/forager-trail-v4.json")).getValue("metadata").jsonObject
                 .getValue("forager:sprite-icons").jsonArray.map { it.jsonPrimitive.content }.toSet()
             assertEquals(v6Index.keys - "tree_dark_irregular", v4Icons)
             // None of the three is painted at night: each takes the plain inversion, as ruled.
-            assertEquals(emptySet<String>(), v6Patterns.filter { it in STREET_NIGHT_PATTERN_PAINTS || it in STREET_NIGHT_ICON_RINGS }.toSet())
+            assertEquals(emptySet<String>(), v6Patterns.filter { it in TRAIL_NIGHT_PATTERN_PAINTS || it in TRAIL_NIGHT_ICON_RINGS }.toSet())
         }
     }
 
@@ -148,9 +148,9 @@ class NightSpriteTest {
         for (suffix in densities) {
             val names = index(File(v5.dayDir, "light$suffix.json")).keys
             assertEquals(61, names.size)
-            assertEquals(STREET_SPRITE_ICON_NAMES.toSet() + "tree_dark_irregular", names)
-            assertEquals(STREET_NIGHT_PATTERN_PAINTS.keys, names.filter { it in STREET_NIGHT_PATTERN_PAINTS }.toSet())
-            assertEquals(STREET_NIGHT_ICON_RINGS.keys, names.filter { it in STREET_NIGHT_ICON_RINGS }.toSet())
+            assertEquals(TRAIL_SPRITE_ICON_NAMES.toSet() + "tree_dark_irregular", names)
+            assertEquals(TRAIL_NIGHT_PATTERN_PAINTS.keys, names.filter { it in TRAIL_NIGHT_PATTERN_PAINTS }.toSet())
+            assertEquals(TRAIL_NIGHT_ICON_RINGS.keys, names.filter { it in TRAIL_NIGHT_ICON_RINGS }.toSet())
         }
     }
 }

@@ -49,7 +49,7 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 "licence",
                 "https://opentopomap.org/about",
             ),
-            // Forager Trail Map's vector tiles and the offline map packs' (StreetStyle.kt); its OpenStreetMap data is
+            // Forager Trail Map's vector tiles and the offline map packs' (TrailStyle.kt); its OpenStreetMap data is
             // credited in the row above.
             SourceCredit("protomaps", PROTOMAPS_CREDIT_TEXT, "licence", "https://github.com/protomaps/basemaps"),
             // The official-trails band on Trail Map (street-v3, from dispatch 2026-10-26-21; RECORD -1682: "Once the band can

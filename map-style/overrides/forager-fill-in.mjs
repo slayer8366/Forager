@@ -1,5 +1,5 @@
 // Trail Map's fill-in (Street v4): settled-area and park fills, major roads coloured by class, and the rail and minor-road
-// adjustments, as further edits to the v3 layers, applied last by generate-street.mjs for v4 only. v3 and older stay as
+// adjustments, as further edits to the v3 layers, applied last by generate-trail.mjs for v4 only. v3 and older stay as
 // they were, for the regions downloaded against them.
 //
 // The rulings are recorded in slayer8366/Forager-cartography on main:
@@ -15,7 +15,7 @@
 // Night is the app's (-1288: inversion, with named exceptions). The night tables below are v4's own: v3's roads_major
 // keeps its amber night and its rail #b4bec0, so v4 cannot share v3's tables without changing how v3 regions draw at
 // night. The app holds its own copy, chosen by the style it loads, checked equal to these through the style's metadata.
-import { NIGHT_LAYER_COLOURS } from "./forager-street.mjs";
+import { NIGHT_LAYER_COLOURS } from "./forager-trail.mjs";
 import { NIGHT_FILL_COLOURS } from "./forager-character.mjs";
 
 /** Day colours of the fill-in (the ruled draft). */
@@ -157,7 +157,7 @@ export const NIGHT_LINE_COLOURS_V4 = {
   // The minor roads' white takes the tertiary's night and its band ("Low-zoom roads"); their low-zoom grey inverts.
   roads_minor: { "#ffffff": "#333333" },
   // Darker night rims ("Darker rims (Recommended)", Sage's REC table): each edge a shade darker than its fill's night,
-  // as by day; recorded by check-street-night, not gated. The water edges take the night water, so they stay off.
+  // as by day; recorded by check-trail-night, not gated. The water edges take the night water, so they stay off.
   landuse_edges: {
     "#94b988": "#38552b", "#c2cdaa": "#1d240b", "#b4caa8": "#203216", "#88b99d": "#255239", "#adc8bc": "#203c36",
     "#b0aba4": "#5d636c", "#c3bfba": "#1d1b18", "#d0bdb9": "#241a18", "#c4bfc2": "#1a1919", "#ccceb4": "#131207",
@@ -170,7 +170,7 @@ export const NIGHT_LINE_COLOURS_V4 = {
 /**
  * Hill shading (dispatch 2026-11-01-coder-11; the owner: "It's good. It actively defines the trail map from a street or topo
  * map, which is ideal. Let's keep this"; Sage's sage-11 ALT, as on the S22 trial). Drawn from the style's `dem` source
- * (generate-street.mjs: Terrarium PNG, z5-11, from the Worker's relief archive), above the land fills and below the creeks
+ * (generate-trail.mjs: Terrarium PNG, z5-11, from the Worker's relief archive), above the land fills and below the creeks
  * and water. The night recolour never touches a hillshade layer, so its night is its own table, `forager:night-hillshade`,
  * which the app applies (StreetNightTables.kt, HillshadeNight).
  */

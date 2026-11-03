@@ -70,7 +70,7 @@ internal fun plottedRouteParts(legs: List<RouteLeg>): List<PlottedRoutePart> = l
 /**
  * The route's colour: magenta. The owner chose "Orange (Recommended)" (Amendment 1, Q9) on the condition that orange was not
  * already used by another line or layer; it was (the test forecast's chanterelle ramp, Street's roads), and the owner then
- * chose "Magenta (Recommended)" (Amendment 2, RECORD -1853). Measured in Oklab against every map palette role, Street v3 and
+ * chose "Magenta (Recommended)" (Amendment 2, RECORD -1853). Measured in Oklab against every map palette role, Trail Map v3 and
  * v4's road colours, the night road table and both forecast ramps: by day the nearest track colour is the kept track, 0.181,
  * and the nearest of anything is the find marker, 0.133; by night the nearest track colour is the breadcrumb, 0.154, and the
  * nearest of anything is the planned-trip pin, 0.061, the route trip's own pin. The project's floor between fill roles is 0.10

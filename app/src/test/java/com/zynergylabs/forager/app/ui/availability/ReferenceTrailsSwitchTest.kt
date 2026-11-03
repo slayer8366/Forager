@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.ui.map.ADDED_MAP_TYPES
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
@@ -160,12 +161,15 @@ class ReferenceTrailsSwitchTest {
     }
 
     @Test
-    fun `on OSM a stored on shows on, grey`() {
-        setScreen()
-        chooseMapType(MapMode.OPENSTREETMAP)
-        composeRule.openToolsMapLayers()
-        assertTrue(rowDisabled())
-        assertEquals(ToggleableState.On, rowState())
+    fun `on every added map type a stored on shows on, grey`() {
+        // Was "on OSM": the added map types (dispatch 2026-11-03-05 D7; today the Street map, ui/map/street/).
+        ADDED_MAP_TYPES.forEach { added ->
+            setScreen()
+            chooseMapType(added.mapMode)
+            composeRule.openToolsMapLayers()
+            assertTrue("${added.mapMode}", rowDisabled())
+            assertEquals("${added.mapMode}", ToggleableState.On, rowState())
+        }
     }
 
     @Test

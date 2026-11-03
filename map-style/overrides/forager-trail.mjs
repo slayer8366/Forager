@@ -58,7 +58,7 @@ export const COLOURS = {
   // -1343's #8ec5f0. Day water is Protomaps' own #80deea, unchanged. The app draws it (NightColour.kt,
   // STREET_NIGHT_WATER); this is its design value, recorded in the style's metadata and held equal to the app's by
   // NightWaterTest. Held by the ruled ceiling (luminance 0.050, blue 96) and 1.05:1 on every night land fill
-  // (tools/check-street-night.mjs, NIGHT_LIMITS in overrides/forager-character.mjs): 1.08:1 on night grass at least.
+  // (tools/check-trail-night.mjs, NIGHT_LIMITS in overrides/forager-character.mjs): 1.08:1 on night grass at least.
   nightWater: "#163f4b",
   // Labels: near-black on a light halo (-1286); at night they invert to near-white on near-black.
   text: "#262626",
@@ -92,7 +92,7 @@ export const NIGHT_LAYER_COLOURS = {
 
 /**
  * Per-layer contrast bands on a night ground, in place of the 2.5:1 floor for that layer on that ground only
- * (tools/check-street-night.mjs). Every layer and ground not named here keeps the floor.
+ * (tools/check-trail-night.mjs). Every layer and ground not named here keeps the floor.
  *
  * Informal paths on the night forest: the owner, "Accept the range (Recommended)" (docs/audits/2026-10-20-cloudflare-
  * upload-prep.md on pi-build, "The owner's rulings on revision 1"): 1.9 to 2.3:1, and below the night footpath's own
@@ -187,13 +187,13 @@ export function scaleSize(value, factor) {
 
 function byId(layers, id) {
   const layer = layers.find((l) => l.id === id);
-  if (!layer) throw new Error(`forager-street: there is no layer "${id}" to edit; the pinned style changed`);
+  if (!layer) throw new Error(`forager-trail: there is no layer "${id}" to edit; the pinned style changed`);
   return layer;
 }
 
 function insertAfter(layers, id, newLayer) {
   const i = layers.findIndex((l) => l.id === id);
-  if (i < 0) throw new Error(`forager-street: there is no layer "${id}" to insert after`);
+  if (i < 0) throw new Error(`forager-trail: there is no layer "${id}" to insert after`);
   layers.splice(i + 1, 0, newLayer);
 }
 
@@ -296,7 +296,7 @@ function trailLayers(pathBase) {
 }
 
 /** Applies the Street design to Protomaps' light layers, in place, and returns them. */
-export function applyStreetDesign(layers) {
+export function applyTrailDesign(layers) {
   // --- Forest, grass and parks (-1285) ---------------------------------------------------------
   const landcover = byId(layers, "landcover");
   // landcover exists in the tiles at z0-7 only (Part 1, Q1.1); landuse takes over from z2. Both solid:
@@ -424,7 +424,7 @@ export function applyStreetDesign(layers) {
 // Protomaps draws them, #cccccc at half opacity: the change starts at z14 (Amendment 2, RECORD -1737, the owner:
 // "Change only from zoom 14 (Recommended)"). Both steps keep the layer's own paint below z14 rather than restating it.
 //
-// A function of its own, called by generate-street.mjs for v3 only, and not part of applyStreetDesign: v2 and v1 are
+// A function of its own, called by generate-trail.mjs for v3 only, and not part of applyTrailDesign: v2 and v1 are
 // frozen for the regions downloaded against them.
 
 /** The buildings' day colours and the outline's zoom and width. */

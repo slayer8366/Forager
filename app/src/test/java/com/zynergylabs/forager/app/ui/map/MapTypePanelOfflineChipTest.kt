@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.map.STREET_STYLE_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,7 +69,7 @@ class MapTypePanelOfflineChipTest {
 
     private val noSignal = MutableStateFlow(false)
     private var offlineTiles by mutableStateOf(false)
-    private val fallback = OwnStreetFallback(log = {})
+    private val fallback = OwnTrailFallback(log = {})
     private var darkTheme by mutableStateOf(true)
     private var chosen by mutableStateOf(MapMode.TOPOGRAPHIC)
 
@@ -142,6 +142,9 @@ class MapTypePanelOfflineChipTest {
 
     @Test
     fun `fallen back, the grey Trail chip has an onSurface outline, in both themes`() {
+        // While a raster stands in for Trail Map (the Street map's). With none, a failed Trail Map draws from the downloads,
+        // which is what was chosen, so the chip is not grey (dispatch 2026-11-03-05 D8; TrailMapFallbackWithoutStandInTest).
+        if (trailMapStandIn == null) return
         chosen = MapMode.TRAIL
         setSheet()
         failTrailMapStyle()
@@ -182,12 +185,18 @@ class MapTypePanelOfflineChipTest {
     }
 
     @Test
-    fun `the chosen OSM chip turns grey with no signal too`() {
-        chosen = MapMode.OPENSTREETMAP
+    fun `each chosen added map type's chip turns grey with no signal too`() {
+        // Was "the chosen OSM chip": each added map type (dispatch 2026-11-03-05 D7; today the Street map).
+        val added = ADDED_MAP_TYPES.map { it.mapMode }
+        if (added.isEmpty()) return
+        chosen = added.first()
         noSignal.value = true
         setSheet()
-        composeRule.onNodeWithTag(mapModeChipTag(MapMode.OPENSTREETMAP)).assertIsSelected()
-        assertEquals(grey, drawnFill(MapMode.OPENSTREETMAP))
+        for (mode in added) {
+            settle { chosen = mode }
+            composeRule.onNodeWithTag(mapModeChipTag(mode)).assertIsSelected()
+            assertEquals("$mode", grey, drawnFill(mode))
+        }
     }
 
     /** Elder's item 3 (dispatch 2026-10-23-07): grey only when Trail Map is actually drawn instead, so not with nothing downloaded. */
@@ -197,7 +206,8 @@ class MapTypePanelOfflineChipTest {
         offlineRegions = listOf(region(1, isDownloaded = false))
         noSignal.value = true
         setSheet()
-        for (mode in listOf(MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP)) {
+        val modes = MapMode.entries.filter { it != MapMode.TRAIL }
+        for (mode in modes) {
             settle { chosen = mode }
             composeRule.onNodeWithTag(mapModeChipTag(mode)).assertIsSelected()
             assertEquals("$mode, no signal, nothing downloaded: drawn in the normal selected fill", normalSelected, drawnFill(mode))
@@ -205,7 +215,7 @@ class MapTypePanelOfflineChipTest {
         }
         // A download landing while out of signal: Trail Map is now drawn instead, so the chosen chip turns grey.
         settle { offlineRegions = offlineRegions + region(2, isDownloaded = true) }
-        assertEquals("OPENSTREETMAP, a downloaded area appears: grey", grey, drawnFill(MapMode.OPENSTREETMAP))
+        assertEquals("${modes.last()}, a downloaded area appears: grey", grey, drawnFill(modes.last()))
     }
 
     private fun region(id: Long, isDownloaded: Boolean) = OfflineRegionSummary(
@@ -232,12 +242,13 @@ class MapTypePanelOfflineChipTest {
 
     /** Trail Map's style fails to load online, through the fallback's own entry point, as `MapListeners` calls it. */
     private fun failTrailMapStyle() = settle {
-        assertEquals(true, fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(STREET_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404"))
+        assertEquals(true, fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(TRAIL_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404"))
     }
 
     @Test
     fun `once Trail Map has fallen back to OpenStreetMap, the chosen Trail chip is grey, still selected, in both themes`() {
-        // The owner: "Same meaning everywhere: grey = chosen, but something else is shown."
+        // The owner: "Same meaning everywhere: grey = chosen, but something else is shown." While a raster stands in (D8).
+        if (trailMapStandIn == null) return
         chosen = MapMode.TRAIL
         setSheet()
         assertEquals("before the fallback", normalSelected, drawnFill(MapMode.TRAIL))
@@ -247,7 +258,7 @@ class MapTypePanelOfflineChipTest {
             val theme = if (dark) "dark" else "light"
             composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
             assertEquals("$theme, fallen back: Trail drawn grey", grey, drawnFill(MapMode.TRAIL))
-            composeRule.onNodeWithTag(mapModeChipTag(MapMode.OPENSTREETMAP)).assertIsNotSelected()
+            MapMode.entries.filter { it != MapMode.TRAIL }.forEach { composeRule.onNodeWithTag(mapModeChipTag(it)).assertIsNotSelected() }
         }
         assertEquals("the stored choice never changes", emptyList<MapMode>(), choices)
     }

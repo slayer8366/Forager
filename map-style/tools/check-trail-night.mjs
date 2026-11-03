@@ -2,7 +2,7 @@
 // is valid style-spec JSON, it is the same file the Worker bundles, v1 is still byte for byte what phones with older
 // apps and older downloads load, and the day colours the owner's night ruling depends on (-1288: "the day palette is
 // chosen so roads and paths still stand out after inversion") hold their contrast after the app's V1 inversion, with
-// the night exceptions held to their ruled limits. Run: npm run check:street. Exits non-zero, saying what failed.
+// the night exceptions held to their ruled limits. Run: npm run check:trail. Exits non-zero, saying what failed.
 //
 // V1 is the app's night transform, per channel: night = clamp(c + 1 - 2 * mean(r, g, b))
 // (app/src/main/java/com/zynergylabs/forager/app/ui/map/NightColour.kt, nightColorOf). Contrast is the
@@ -11,42 +11,54 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
-import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS as NIGHT_LAYER_COLOURS_V2 } from "../overrides/forager-street.mjs";
+import { COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS as NIGHT_LAYER_COLOURS_V2 } from "../overrides/forager-trail.mjs";
 import { CHARACTER_COLOURS, NIGHT_FILL_COLOURS as NIGHT_FILL_COLOURS_V2, NIGHT_LIMITS, NIGHT_PATTERN_COLOURS } from "../overrides/forager-character.mjs";
 import { FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "../overrides/forager-fill-in.mjs";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
 
-// `node tools/check-street-night.mjs v4` checks forager-street-v4.json (the fill-in) against v4's own night tables, and,
+// `node tools/check-trail-night.mjs v4` checks forager-trail-v4.json (the fill-in) against v4's own night tables, and,
 // since the switch to Street v4, its bundled copy in the Worker. With no argument it checks v2, as before.
 const V4 = process.argv[2] === "v4";
 const STYLE = V4 ? "v4" : "v2";
 const NIGHT_LAYER_COLOURS = V4 ? NIGHT_LAYER_COLOURS_V4 : NIGHT_LAYER_COLOURS_V2;
 const NIGHT_FILL_COLOURS = V4 ? NIGHT_FILL_COLOURS_V4 : NIGHT_FILL_COLOURS_V2;
-const text = fs.readFileSync(here(`forager-street-${STYLE}.json`), "utf8");
+// v4 is checked as trail-v4, the file the app loads (dispatch 2026-11-03-05 D1); street-v4 is frozen, held below.
+const FILE = V4 ? "trail-v4" : "street-v2";
+const text = fs.readFileSync(here(`forager-${FILE}.json`), "utf8");
 // v4 is on the Worker too since the switch to Street v4 (dispatch 2026-11-01-coder-11 step (c)): its bundled copy is
 // compared the same way.
 {
-  const bundled = fs.readFileSync(here(`../server/pmtiles-worker/src/street-style-${STYLE}.json`), "utf8");
-  if (text !== bundled) problems.push(`server/pmtiles-worker/src/street-style-${STYLE}.json differs from forager-street-${STYLE}.json: run npm run generate:street`);
+  const workerCopy = V4 ? "trail-style-v4.json" : "street-style-v2.json";
+  const bundled = fs.readFileSync(here(`../server/pmtiles-worker/src/${workerCopy}`), "utf8");
+  if (text !== bundled) problems.push(`server/pmtiles-worker/src/${workerCopy} differs from forager-${FILE}.json: run npm run generate:trail`);
 }
 // The style's own metadata must carry the tables checked here: the app reads its copy against it.
 const meta = JSON.parse(text).metadata;
-if (JSON.stringify(meta["forager:night-layers"]) !== JSON.stringify(NIGHT_LAYER_COLOURS)) problems.push(`forager-street-${STYLE}.json's forager:night-layers differs from its design table: run npm run generate:street`);
-if (JSON.stringify(meta["forager:night-fills"]) !== JSON.stringify(NIGHT_FILL_COLOURS)) problems.push(`forager-street-${STYLE}.json's forager:night-fills differs from its design table: run npm run generate:street`);
+if (JSON.stringify(meta["forager:night-layers"]) !== JSON.stringify(NIGHT_LAYER_COLOURS)) problems.push(`forager-${FILE}.json's forager:night-layers differs from its design table: run npm run generate:trail`);
+if (JSON.stringify(meta["forager:night-fills"]) !== JSON.stringify(NIGHT_FILL_COLOURS)) problems.push(`forager-${FILE}.json's forager:night-fills differs from its design table: run npm run generate:trail`);
 const errors = validateStyleMin(JSON.parse(text));
 for (const e of errors) problems.push(`style spec: ${e.message}`);
 
-// v1 is frozen (RECORD -1561): what it was at pre-main 563e9b756, byte for byte, in all three copies.
+// v1 is frozen (RECORD -1561): what it was at pre-main 563e9b756, byte for byte, in all three copies. street-v3 and
+// street-v4 are frozen the same way since dispatch 2026-11-03-05 (D2, RECORD -2000): what they were at pre-main
+// d88db1799, every copy, for the regions downloaded against them; a later design ships as trail-v5. v2 is held by the
+// Worker's tests.
 const V1_SHA256 = {
   "forager-street-v1.json": "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da",
   "forager-street-v1.preview.json": "4fc2e14feeecfdf86bc7a4f6d7597eb997732ee97620388fba69ea379926dc88",
   "../server/pmtiles-worker/src/street-style-v1.json": "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da",
+  "forager-street-v3.json": "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f",
+  "forager-street-v3.preview.json": "beb40e3a0e5624da44f52e98f0e85c52e3065cc87af5987396fbf983a8d71c97",
+  "../server/pmtiles-worker/src/street-style-v3.json": "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f",
+  "forager-street-v4.json": "6ce7271ed1d0da0b08b9c190310d6d7e0838febdfaf6bfcdd121b1162eacef80",
+  "forager-street-v4.preview.json": "e6583d7fbc866001de94ef20ea07809407713d5f731438d1b4d7b9a3124d9933",
+  "../server/pmtiles-worker/src/street-style-v4.json": "6ce7271ed1d0da0b08b9c190310d6d7e0838febdfaf6bfcdd121b1162eacef80",
 };
 for (const [path, sum] of Object.entries(V1_SHA256)) {
   const actual = crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
-  if (actual !== sum) problems.push(`${path} changed (sha256 ${actual}): v1 is frozen, the design ships as v2`);
+  if (actual !== sum) problems.push(`${path} changed (sha256 ${actual}): frozen (v1 since -1561, v3 and v4 since dispatch 2026-11-03-05 D2); a new design ships as a new version`);
 }
 
 const channels = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -256,7 +268,7 @@ if (V4) {
   const inverted = ["roads_major", "roads_bridges_major", "roads_highway", "roads_bridges_highway", "roads_link", "roads_bridges_link", "roads_rail"];
   for (const id of inverted) if (id in NIGHT_LAYER_COLOURS) problems.push(`${id} has a night exception ${NIGHT_LAYER_COLOURS[id]}; ruled: the inversion`);
   const lines = JSON.parse(text).metadata["forager:night-line-colours"];
-  if (JSON.stringify(lines) !== JSON.stringify(NIGHT_LINE_COLOURS_V4)) problems.push(`forager-street-v4.json's forager:night-line-colours differs from its design table: run npm run generate:street`);
+  if (JSON.stringify(lines) !== JSON.stringify(NIGHT_LINE_COLOURS_V4)) problems.push(`forager-trail-v4.json's forager:night-line-colours differs from its design table: run npm run generate:trail`);
   // Night line colours by day colour (the rulings' "Night tertiary and rail", then "Low-zoom roads, night borders": the
   // minor roads' white takes the tertiary's #333333 and its band; landuse_edges take Sage's REC darker rims, recorded
   // in the output, not gated).
