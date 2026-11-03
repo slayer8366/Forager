@@ -26,6 +26,9 @@ import trailStyleV1 from "./street-style-v1.json";
 import trailStyleV2 from "./street-style-v2.json";
 import trailStyleV3 from "./street-style-v3.json";
 import trailStyleV4 from "./street-style-v4.json";
+// Trail Map v4 under the Trail Map's own code name (dispatch 2026-11-03-05 D1): the style the app loads. street-v4
+// above is the same style, frozen, for the regions downloaded against it and the builds that load it (B2, D2).
+import trailStyleV4Trail from "./trail-style-v4.json";
 import { type RoutingEnv, routingResponse } from "./routing/handler.ts";
 
 // The route-data fields (ROUTING_APP_KEY, the two limiters) come from RoutingEnv (src/routing/handler.ts).
@@ -516,6 +519,9 @@ export default {
     }
     if (url.pathname === "/style/street-v4.json") {
       return trailStyleResponse(resolveAllowedOrigin(request, env), trailStyleV4);
+    }
+    if (url.pathname === "/style/trail-v4.json") {
+      return trailStyleResponse(resolveAllowedOrigin(request, env), trailStyleV4Trail);
     }
 
     if (url.pathname === REFERENCE_MANIFEST_PATH) {

@@ -2,8 +2,9 @@ package com.zynergylabs.forager.app.ui.map
 
 /**
  * The basemap looks a user picks between, left to right in the map type panel the Layers button opens ([MapTypePanel]): Trail (Forager Trail
- * Map), Topo and OSM (dispatch 2026-10-22-01, RECORD -1554, -1556: the chips read exactly "Trail", "Topo" and "OSM").
- * Before that, two: Street and Topographical. Picked from the Layers sheet's "Map type" row (L0b to 2026-10-28, now [MapTypePanel]) or the quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392).
+ * Map), Topo and Street, the Street map, OpenStreetMap's raster (dispatch 2026-10-22-01, RECORD -1554, -1556: the chips read
+ * "Trail", "Topo" and "OSM" until dispatch 2026-11-03-05 A2 renamed the third "Street"; it lives in `ui/map/street/`, D7).
+ * Before that, two: Street (then the name of what became Trail Map) and Topographical. Picked from the Layers sheet's "Map type" row (L0b to 2026-10-28, now [MapTypePanel]) or the quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392).
  * Replaced the deleted `MapService` entirely, per the project owner's own request.
  *
  * `MapService` used to split this choice into two decisions with two different lifetimes — which
@@ -40,13 +41,13 @@ class MapMode internal constructor(
 
     companion object {
         /**
-         * Forager Trail Map, the app's own map. It keeps the stored key "street" (dispatch 2026-10-22-01 Amendment 2, the
-         * planner's call in RECORD -1556, option (a) of the verify-first report): anyone with Street chosen before this
-         * update opens on Trail Map, with no special read and so nothing to log, and the move happens once because nothing
-         * ever writes "street" for OpenStreetMap again. The key's meaning moved on purpose; it still names a mode, so
-         * nothing stored is orphaned. With the old release switch on (#359), "street" already drew this map.
+         * Forager Trail Map, the app's own map, stored as "trail" since dispatch 2026-11-03-05 (A1, RECORD -1999: our map's
+         * code name is "trail"). From dispatch 2026-10-22-01 Amendment 2 (RECORD -1556, option (a)) it kept the key "street",
+         * which before that named Street; this dispatch gives "street" to the Street map, OpenStreetMap's (A2), on purpose
+         * (A3), so a phone's "street" is moved to "trail" once, before the first read (`BasemapKeyTrailStreetMigration`, B1),
+         * and every user keeps the map they chose.
          */
-        val TRAIL = MapMode(name = "TRAIL", label = "Trail", basemap = Basemap.FORAGER_TRAIL, storageKey = "street")
+        val TRAIL = MapMode(name = "TRAIL", label = "Trail", basemap = Basemap.FORAGER_TRAIL, storageKey = "trail")
         val TOPOGRAPHIC = MapMode(name = "TOPOGRAPHIC", label = "Topo", basemap = Basemap.OPEN_TOPO_MAP, storageKey = "topographic")
 
         /**

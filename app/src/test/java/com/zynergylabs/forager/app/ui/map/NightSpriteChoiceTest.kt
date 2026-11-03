@@ -36,7 +36,7 @@ class NightSpriteChoiceTest {
         for (version in listOf("v1", "v2", "v3")) {
             assertEquals(version, "night-sprite/v5", nightSpriteAssetDirFor(File("../map-style/forager-street-$version.json").readText()))
         }
-        assertEquals("night-sprite/v6", nightSpriteAssetDirFor(File("../map-style/forager-street-v4.json").readText()))
+        assertEquals("night-sprite/v6", nightSpriteAssetDirFor(File("../map-style/forager-trail-v4.json").readText()))
     }
 
     @Test

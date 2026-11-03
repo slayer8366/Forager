@@ -1,11 +1,11 @@
 package com.zynergylabs.forager.app.ui.map
 
 /**
- * The Street night's two tables for one Trail Map style version: line colours by layer, and fill colours by day colour
+ * The Trail night's two tables for one Trail Map style version: line colours by layer, and fill colours by day colour
  * (see [trailNightRecolourOf]). Each version's design copy is in its style's metadata, `forager:night-layers` and
  * `forager:night-fills`, and a test holds the app's copy equal to it.
  *
- * Why per version: Street v4 (the fill-in) changes night colours v3 has, the major roads' and the rail's, so one table
+ * Why per version: Trail Map v4 (the fill-in) changes night colours v3 has, the major roads' and the rail's, so one table
  * shared by every version would change how regions downloaded on v3 draw at night. Each style is a URL that never
  * changes meaning, so the URL it was loaded from says which tables it takes.
  */
@@ -29,7 +29,7 @@ internal data class HillshadeNight(val shadow: String, val highlight: String, va
 internal val TRAIL_NIGHT_TABLES = TrailNightTables(TRAIL_NIGHT_LAYER_COLOURS, TRAIL_NIGHT_FILL_COLOURS)
 
 /**
- * Street v4's night (Forager-cartography `docs/design/2026-10-30-fill-in-rulings.md`; the owner: "Keep it osm-like",
+ * Trail Map v4's night (Forager-cartography `docs/design/2026-10-30-fill-in-rulings.md`; the owner: "Keep it osm-like",
  * "Yes, ship it"; ramps: "Invert them too (Recommended)"; then "Motorways" and "Night tertiary and rail"). The design's
  * copy is `NIGHT_LAYER_COLOURS_V4`, `NIGHT_FILL_COLOURS_V4` and `NIGHT_LINE_COLOURS_V4` in
  * `map-style/overrides/forager-fill-in.mjs`; `NightExceptionsV4Test` holds them equal.
@@ -71,10 +71,11 @@ internal val TRAIL_V4_NIGHT_TABLES = TrailNightTables(
 )
 
 /**
- * The style file names that are Street v4: the Worker's route (`/style/street-v4.json`, not yet served) and the
- * repository's file (`map-style/forager-street-v4.json`), so a test build loading the file draws the same night.
+ * The style file names that are Trail Map v4: the Worker's routes (`/style/trail-v4.json`, and `/style/street-v4.json`,
+ * the same style under its old address, dispatch 2026-11-03-05 D1) and the repository's files
+ * (`map-style/forager-trail-v4.json`, `forager-street-v4.json`), so a test build loading a file draws the same night.
  */
-private val TRAIL_V4_STYLE_FILES = setOf("street-v4.json", "forager-street-v4.json")
+private val TRAIL_V4_STYLE_FILES = setOf("trail-v4.json", "forager-trail-v4.json", "street-v4.json", "forager-street-v4.json")
 
 /**
  * The night tables for the Trail Map style loaded from [styleUri]: v4's for a v4 style file, else v1 to v3's (`null`,
@@ -84,7 +85,7 @@ internal fun trailNightTablesFor(styleUri: String?): TrailNightTables =
     if (styleUri?.substringAfterLast('/') in TRAIL_V4_STYLE_FILES) TRAIL_V4_NIGHT_TABLES else TRAIL_NIGHT_TABLES
 
 /**
- * The night pass's tables for the style [source] it loaded: those of the Street it draws ([trailUriOf]), so Street under
+ * The night pass's tables for the style [source] it loaded: those of the Trail Map it draws ([trailUriOf]), so Street under
  * Topographical takes v4's when it draws v4 (Sorrel's carried fix and S-1, dispatch 2026-11-01-coder-11). The one place
  * the night pass chooses; `NightTablesBySourceTest` holds MapStyleReload to it.
  */

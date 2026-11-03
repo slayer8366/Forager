@@ -26,7 +26,7 @@ import org.junit.Test
 class BuildingsNightV4Test {
 
     private val layers: Map<String, JsonObject> =
-        Json.parseToJsonElement(File("../map-style/forager-street-v4.json").readText()).jsonObject
+        Json.parseToJsonElement(File("../map-style/forager-trail-v4.json").readText()).jsonObject
             .getValue("layers").jsonArray.map { it.jsonObject }.associateBy { it.getValue("id").jsonPrimitive.content }
 
     private val tables = trailNightTablesFor("https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json")

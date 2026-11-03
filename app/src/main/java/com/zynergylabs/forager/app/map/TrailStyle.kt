@@ -14,17 +14,23 @@ package com.zynergylabs.forager.app.map
  */
 
 /**
- * The Street style document the app loads and downloads in: Trail Map v4, v3 with the fill-in, sprite v6's orchard
+ * The Trail Map style document the app loads and downloads in: Trail Map v4, v3 with the fill-in, sprite v6's orchard
  * patterns and the hill shading (the switch is dispatch 2026-11-01-coder-11 step (d); the owner: "Yes, queue it"),
- * served by the Worker at `/style/street-v4.json` (`server/pmtiles-worker`), built by `map-style/generate-trail.mjs`.
- * Like [OFFLINE_STYLE_URL] it is a URL that never changes meaning: MapLibre's offline store keys a downloaded region by
- * the style URL, so a later design ships as `street-v5.json` beside it.
+ * served by the Worker at `/style/trail-v4.json` (`server/pmtiles-worker`), built by `map-style/generate-trail.mjs`: v4
+ * under the Trail Map's own code name since dispatch 2026-11-03-05 (D1, RECORD -2000; the owner: "Add trail-v4 now"),
+ * the same style as `street-v4.json` ([TRAIL_STYLE_V4_STREET_URL]). Like [OFFLINE_STYLE_URL] it is a URL that never
+ * changes meaning: MapLibre's offline store keys a downloaded region by the style URL, so a later design ships as
+ * `trail-v5.json` beside it.
  */
-internal const val TRAIL_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json"
+internal const val TRAIL_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/trail-v4.json"
 
 /**
- * Trail Map v4 under its old address, `street-v4.json`, from before the Trail Map's code name was "trail" (dispatch
- * 2026-11-03-05 D1, RECORD -2000). STUB: the step that switches the app to trail-v4 fills this in.
+ * Trail Map v4 under its old address, `street-v4.json`, what the app loaded from dispatch 2026-11-01-coder-11 step (d)
+ * until dispatch 2026-11-03-05 gave our map its own code name (D1, RECORD -2000; the owner: "Add trail-v4 now"). The same
+ * style as [TRAIL_STYLE_URL]: the Worker's tests hold trail-v4 to be street-v4 with only its `name` and
+ * forager:generated-from changed. So a region downloaded against it is today's style, shows no "Older map style" notice
+ * ([isTodaysTrailStyle]; the planner's call, "Don't make me think"), takes v4's night tables and still draws offline.
+ * Still served, frozen (D2).
  */
 internal const val TRAIL_STYLE_V4_STREET_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json"
 
@@ -48,17 +54,24 @@ internal const val TRAIL_STYLE_V2_URL = "https://forager-pmtiles.brandonlee1-894
  */
 internal const val TRAIL_STYLE_V1_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v1.json"
 
-/** Every Trail Map style the app may load: the current one first, then the older, newest first. All take the Street night. */
-internal val TRAIL_STYLE_URLS: List<String> = listOf(TRAIL_STYLE_URL, TRAIL_STYLE_V3_URL, TRAIL_STYLE_V2_URL, TRAIL_STYLE_V1_URL)
+/** Every Trail Map style the app may load: the current one first, then the older, newest first. All take the Trail night. */
+internal val TRAIL_STYLE_URLS: List<String> =
+    listOf(TRAIL_STYLE_URL, TRAIL_STYLE_V4_STREET_URL, TRAIL_STYLE_V3_URL, TRAIL_STYLE_V2_URL, TRAIL_STYLE_V1_URL)
 
 /**
- * The always-visible credit over the own Street map: the same Protomaps tiles as the offline style, so the
+ * Whether [styleUrl] is today's Trail Map style: trail-v4, or the same style under its old address, street-v4 (dispatch
+ * 2026-11-03-05 D1). The older-style notice reads this, so a region downloaded against street-v4 never shows it.
+ */
+internal fun isTodaysTrailStyle(styleUrl: String?): Boolean = styleUrl == TRAIL_STYLE_URL || styleUrl == TRAIL_STYLE_V4_STREET_URL
+
+/**
+ * The always-visible credit over Trail Map: the same Protomaps tiles as the offline style, so the
  * same credit ([OFFLINE_STYLE_ATTRIBUTION]).
  */
 internal const val TRAIL_STYLE_ATTRIBUTION = OFFLINE_STYLE_ATTRIBUTION
 
 /**
- * The own Street map's maximum zoom (-1289, the owner: "Stop at 18"). The tiles carry detail to zoom 15; past that
+ * Trail Map's maximum zoom (-1289, the owner: "Stop at 18"). The tiles carry detail to zoom 15; past that
  * the map enlarges what it has, which stays sharp because it is drawn, not scaled. An operating limit chosen by the
  * owner, not the tiles' reported range (CLAUDE.md).
  */
@@ -77,8 +90,8 @@ internal fun offlineDownloadStyleUrl(): String = TRAIL_STYLE_URL
  *
  * The store serves a style only under the URL a region stored it with, so the map can only load a style some region
  * holds. The newest Trail Map style any region holds wins ([TRAIL_STYLE_URLS], v4, v3, v2, then v1): the tiles every region
- * holds are the same tile URLs under each style, and the fonts and icons a Street download stores are shared by URL,
- * so the older regions draw in it too. With no Street region at all, it is [OFFLINE_STYLE_URL], the style every older
+ * holds are the same tile URLs under each style, and the fonts and icons a Trail Map download stores are shared by URL,
+ * so the older regions draw in it too. With no Trail Map region at all, it is [OFFLINE_STYLE_URL], the style every older
  * region holds, so they keep drawing exactly as they did (-1294).
  *
  * v1 is a step of its own (dispatch 2026-10-22-03 Amendment 1): a phone holding only v1 regions has never stored v2,
@@ -98,7 +111,7 @@ internal fun offlineRenderStyleUrl(downloadedStyleUrls: Collection<String?>): St
 internal fun regionHasOlderMapStyle(
     regionStyleUrl: String?,
     isDownloaded: Boolean,
-): Boolean = isDownloaded && regionStyleUrl != null && regionStyleUrl != offlineDownloadStyleUrl()
+): Boolean = isDownloaded && regionStyleUrl != null && regionStyleUrl != offlineDownloadStyleUrl() && !isTodaysTrailStyle(regionStyleUrl)
 
 /**
  * The one-line notice on an older region (-1294; the wording offered in the Part 1 report, question 5, and accepted

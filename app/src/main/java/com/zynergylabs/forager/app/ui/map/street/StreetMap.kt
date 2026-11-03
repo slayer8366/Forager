@@ -26,7 +26,12 @@ internal object StreetMap : AddedMapType {
         tileUrlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     )
 
-    override val mapMode = MapMode(name = "STREET", label = "OSM", basemap = BASEMAP, storageKey = "openstreetmap")
+    /**
+     * The chip reads "Street" (A2, RECORD -1997, the owner: "The OSM button should be renamed to "Street" to differentiate
+     * itself still. OSM credits can still apply"; it read "OSM" from dispatch 2026-10-22-01). Stored as "street" (RECORD
+     * -1999: "just use street for OSM"); a phone's "openstreetmap" is moved to it once (B1).
+     */
+    override val mapMode = MapMode(name = "STREET", label = "Street", basemap = BASEMAP, storageKey = "street")
 
     /** -1513: "If our Street fails to load, the app quietly draws today's OpenStreetMap Street instead and logs it". */
     override val standsInForTrailMap = true

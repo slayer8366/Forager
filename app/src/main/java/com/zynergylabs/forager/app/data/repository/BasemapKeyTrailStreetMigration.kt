@@ -27,9 +27,22 @@ internal class BasemapKeyTrailStreetMigration(
     private val log: (String) -> Unit = { Log.i(TAG, it) },
 ) : DataMigration<Preferences> {
 
-    override suspend fun shouldMigrate(currentData: Preferences): Boolean = false
+    override suspend fun shouldMigrate(currentData: Preferences): Boolean = currentData[BASEMAP_KEYS_TRAIL_STREET_DONE] != true
 
-    override suspend fun migrate(currentData: Preferences): Preferences = currentData
+    override suspend fun migrate(currentData: Preferences): Preferences {
+        val prefs = currentData.toMutablePreferences()
+        val before = prefs[BASEMAP_PREFERENCE_KEY]
+        var key = before
+        // In this order (B1): the Trail Map's old key first, so only a key that was "openstreetmap" becomes "street".
+        if (key == "street") key = "trail"
+        if (key == "openstreetmap") key = "street"
+        if (key != null && key != before) {
+            prefs[BASEMAP_PREFERENCE_KEY] = key
+            log("The stored map choice \"$before\" is now \"$key\" (dispatch 2026-11-03-05: Trail Map is \"trail\", the Street map \"street\").")
+        }
+        prefs[BASEMAP_KEYS_TRAIL_STREET_DONE] = true
+        return prefs.toPreferences()
+    }
 
     override suspend fun cleanUp() = Unit
 

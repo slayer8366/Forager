@@ -135,7 +135,7 @@ class NightSpriteTest {
             assertEquals(v5Index.keys + v6Patterns, v6Index.keys)
             for ((name, entry) in v5Index) assertEquals("$suffix $name", entry, v6Index.getValue(name))
             // Street v4, which names sprite v6, records every v6 image but the painted tree glyph as one its night inverts.
-            val v4Icons = index(File("../map-style/forager-street-v4.json")).getValue("metadata").jsonObject
+            val v4Icons = index(File("../map-style/forager-trail-v4.json")).getValue("metadata").jsonObject
                 .getValue("forager:sprite-icons").jsonArray.map { it.jsonPrimitive.content }.toSet()
             assertEquals(v6Index.keys - "tree_dark_irregular", v4Icons)
             // None of the three is painted at night: each takes the plain inversion, as ruled.

@@ -30,7 +30,7 @@ import org.junit.Test
  */
 class NightExceptionsV4Test {
 
-    private val style = Json.parseToJsonElement(File("../map-style/forager-street-v4.json").readText()).jsonObject
+    private val style = Json.parseToJsonElement(File("../map-style/forager-trail-v4.json").readText()).jsonObject
     private val metadata = style.getValue("metadata").jsonObject
     private val palette = metadata.getValue("forager:palette").jsonObject
     private val layers = style.getValue("layers").jsonArray.associateBy { it.jsonObject.getValue("id").jsonPrimitive.content }
