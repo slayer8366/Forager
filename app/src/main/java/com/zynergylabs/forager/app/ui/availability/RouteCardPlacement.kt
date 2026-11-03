@@ -146,11 +146,6 @@ internal fun routeCardPortraitTransitions(barOnLeft: Boolean): Pair<EnterTransit
     return enter to exit
 }
 
-/**
- * Whether the attribution "i" shares the card's edge in portrait. It sits in the bottom-end corner, so with the bar on the right the
- * card is away from it, and the "i" stays put, under the bar as it always was; with the bar on the left the card is over that corner.
- */
-internal fun routeCardOverAttribution(cluster: MapIconClusterState): Boolean = cluster.landscape || cluster.isOnLeftSide
 
 /**
  * Whether "Re-center" rises for the card (Amendment 17, part 2 ruled, RECORD -1943, the owner: "Fix the S22 case, then check
@@ -177,12 +172,21 @@ internal fun reCenterBesideTheL(landscapeRoom: RouteCardLandscapeRoom?, cardShow
     cardShowing && landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp
 
 /**
- * D20 (RECORD -1960): whether Re-center, [widthPx] wide, fits beside the L, starting at [leftPx], with [gapPx] before the card's left
- * edge, [cardLeftPx], all in root px. Decided by measurement, never by window or font. A Re-center or card not yet measured does not
- * fit, so it takes D10's rise, which is never drawn over the card.
+ * D20 (RECORD -1960), as D27 (RECORD -1976) replaces it where room is short: the room for Re-center beside the L, from [leftPx] to a gap,
+ * [gapPx], before the card's left edge, [cardLeftPx], all in root px; null while the card is not yet measured.
  */
-internal fun reCenterFitsBesideTheL(widthPx: Float?, leftPx: Float, cardLeftPx: Float?, gapPx: Float): Boolean =
-    widthPx != null && cardLeftPx != null && leftPx + widthPx + gapPx <= cardLeftPx
+internal fun reCenterRoomBesideTheL(leftPx: Float, cardLeftPx: Float?, gapPx: Float): Float? = cardLeftPx?.let { it - gapPx - leftPx }
+
+/**
+ * D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"): whether Re-center goes beside the L at all: where its
+ * icon alone, [iconPx] (the 48 dp target), fits the [roomPx] ([reCenterRoomBesideTheL]). Where it does, it never takes D10's rise,
+ * with its word or without ([reCenterShowsWord]). A card not yet measured, or a room narrower than the icon (no window tested reaches
+ * that; D27 says stop and report the numbers if one does), keeps D10's rise, which is never drawn over the card.
+ */
+internal fun reCenterIconFitsBesideTheL(roomPx: Float?, iconPx: Float): Boolean = roomPx != null && iconPx <= roomPx
+
+/** D27: whether Re-center beside the L keeps its word: where its measured width with the word, [wordWidthPx], fits the [roomPx]. */
+internal fun reCenterShowsWord(wordWidthPx: Float, roomPx: Float): Boolean = wordWidthPx <= roomPx
 
 /**
  * D17: how far above the map's [MapRenderMode.bottomInset] Re-center sits beside the L: the usual [LEGEND_ATTRIBUTION_CLEARANCE], or,
@@ -196,3 +200,11 @@ internal fun reCenterClearanceBesideTheL(creditSizePx: IntSize, start: Dp, densi
 /** How far inboard the legend chip sits while the card shows: past the bar in portrait with the bar on its side, as in the L. */
 internal fun routeCardLegendEndPadding(barOnRight: Boolean, barWidth: Dp): Dp = if (barOnRight) MAP_ICON_BAR_EDGE_INSET + barWidth + Spacing.sm else Spacing.sm
 
+
+/**
+ * D28 with D30 (dispatch 2026-10-30-08, RECORD -1979, -1980): [cardsInRoot], the cards drawn over the map (the route card, and the
+ * landscape navigation card while navigating), moved from root px into the map's own, for the map to hide the "i" under
+ * (`MapRenderMode.attributionHideUnder`). [mapLeftInRootPx] and [mapTopInRootPx] are the map pane's place in the root.
+ */
+internal fun attributionCoversInMapPx(cardsInRoot: List<androidx.compose.ui.geometry.Rect>, mapLeftInRootPx: Float, mapTopInRootPx: Float): List<androidx.compose.ui.geometry.Rect> =
+    cardsInRoot.map { it.translate(-mapLeftInRootPx, -mapTopInRootPx) }

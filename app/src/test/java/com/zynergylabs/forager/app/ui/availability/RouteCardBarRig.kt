@@ -102,6 +102,7 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
         val viewModel = if (withLegend) mapLayersViewModel(store = store) else mapLayersViewModel()
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
+            val navigatingShown = navigating || navigatingNow.value
             CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
                 MapLayersTestScreen(
                     viewModel = viewModel,
@@ -109,8 +110,8 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
                     store = store,
                     waypoints = stops,
                     routePlotting = RoutePlottingControls(state, plotting),
-                    uiStateTransform = { (if (navigating) it.copy(liveFix = fix) else it).copy(plannedTrips = trips) },
-                    navigation = if (navigating) {
+                    uiStateTransform = { (if (navigatingShown) it.copy(liveFix = fix) else it).copy(plannedTrips = trips) },
+                    navigation = if (navigatingShown) {
                         AvailabilityScreenNavigation(isReturning = true, onToggleReturning = { returnTouches++ }, navigationTarget = origin)
                     } else {
                         AvailabilityScreenNavigation(onToggleReturning = { returnTouches++ })
@@ -121,6 +122,9 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
         }
         settle()
     }
+
+    /** D28: navigation started and ended after [setScreen], for a test that watches something come back when it ends. */
+    val navigatingNow = androidx.compose.runtime.mutableStateOf(false)
 
     fun settle() {
         composeRule.mainClock.advanceTimeBy(2_000)
