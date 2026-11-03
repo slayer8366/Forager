@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.map
 
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -61,7 +60,7 @@ class OwnTrailFallbackRetryTest {
 
     private val trailRequest = MapStyleRequest(MapStyleSource.Uri(TRAIL_STYLE_URL), useOfflineTiles = false)
     private val fallbackLine =
-        "Trail Map style failed to load (Failed to load style: offline); drawing OpenStreetMap's raster until the connection returns or the app restarts."
+        "Trail Map style failed to load (Failed to load style: offline); drawing ${trailMapFallbackDrawn()} until the connection returns or the app restarts."
     private val retryLine = "Connection back: trying Forager Trail Map again."
 
     private class FakeSignal : NetworkSignal {
@@ -157,8 +156,9 @@ class OwnTrailFallbackRetryTest {
             composeRule.runOnIdle { fallback.onStyleLoadFailed(trailRequest, "Failed to load style: offline") }
             composeRule.waitForIdle()
             val fallenBack = request
-            assertEquals("fallen back: OpenStreetMap's credit", listOf(StreetMap.BASEMAP.attribution), credits)
-            assertEquals("fallen back: OpenStreetMap's limit", StreetMap.BASEMAP.maxZoom, maxZoom)
+            // The stand-in's (the Street map's while it is in the app: ui/map/street/StreetMapFallbackTest; D7, D8).
+            assertEquals("fallen back: the stand-in's credit", listOf(Basemap.FORAGER_TRAIL.rasterDrawn().attribution), credits)
+            assertEquals("fallen back: the stand-in's limit", Basemap.FORAGER_TRAIL.rasterDrawn().maxZoom, maxZoom)
             assertEquals("fallen back: the Trail chip grey", grey, recordedFill(MapMode.TRAIL))
             assertTrue("fallen back: the style effect reloads", needsStyleReload(applied = trailMap, requested = fallenBack!!))
 

@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.map
 
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
@@ -34,10 +33,9 @@ class OwnTrailStyleSourceTest {
     @Test
     fun `with the switch on Street loads the own vector style by URL, day and night`() {
         for (night in listOf(false, true)) {
-            // Was StreetMap.BASEMAP: Trail Map is its own entry since dispatch 2026-10-22-01.
+            // Was Basemap.STREET: Trail Map is its own entry since dispatch 2026-10-22-01.
             assertEquals(MapStyleSource.Uri(TRAIL_STYLE_URL), mapStyleSourceFor(Basemap.FORAGER_TRAIL, night, useOfflineTiles = false, ownTrail = true))
-            // OpenStreetMap is its own raster whether or not Trail Map has fallen back (RECORD -1554).
-            assertEquals(MapStyleSource.Json(styleJsonFor(StreetMap.BASEMAP, night)), mapStyleSourceFor(StreetMap.BASEMAP, night, useOfflineTiles = false, ownTrail = true))
+            // The Street map is its own raster whether or not Trail Map has fallen back: ui/map/street/StreetMapFallbackTest.
         }
     }
 
@@ -63,7 +61,7 @@ class OwnTrailStyleSourceTest {
     @Test
     fun `offline tiles load the style the regions hold, switch on or off`() {
         for (ownTrail in listOf(false, true)) {
-            assertEquals(MapStyleSource.Uri(OFFLINE_STYLE_URL), mapStyleSourceFor(StreetMap.BASEMAP, false, useOfflineTiles = true, ownTrail = ownTrail))
+            assertEquals(MapStyleSource.Uri(OFFLINE_STYLE_URL), mapStyleSourceFor(Basemap.FORAGER_TRAIL, false, useOfflineTiles = true, ownTrail = ownTrail))
             assertEquals(
                 MapStyleSource.Uri(TRAIL_STYLE_URL),
                 mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, true, useOfflineTiles = true, offlineStyleUrl = TRAIL_STYLE_URL, ownTrail = ownTrail),
@@ -83,19 +81,18 @@ class OwnTrailStyleSourceTest {
         assertTrue(usesTrailSprite(MapStyleSource.Uri(TRAIL_STYLE_V1_URL)))
         assertTrue(usesTrailSprite(MapStyleSource.TrailWithTopoOver(TRAIL_STYLE_URL, Basemap.OPEN_TOPO_MAP)))
         assertFalse(usesTrailSprite(MapStyleSource.Uri(OFFLINE_STYLE_URL)))
-        assertFalse(usesTrailSprite(MapStyleSource.Json(styleJsonFor(StreetMap.BASEMAP))))
+        assertFalse(usesTrailSprite(MapStyleSource.Json(styleJsonFor(Basemap.OPEN_TOPO_MAP))))
     }
 
     @Test
     fun `the zoom limit is 18 on the own Street and each basemap's own otherwise`() {
-        // Was StreetMap.BASEMAP for the own Street's 18: Trail Map is its own entry since dispatch 2026-10-22-01.
+        // Was Basemap.STREET for the own Street's 18: Trail Map is its own entry since dispatch 2026-10-22-01.
         assertEquals(18, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownTrail = true))
-        assertEquals("fallen back, OpenStreetMap's", StreetMap.BASEMAP.maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownTrail = false))
-        assertEquals(StreetMap.BASEMAP.maxZoom, operatingMaxZoom(StreetMap.BASEMAP, ownTrail = true))
+        assertEquals("fallen back, the stand-in's", Basemap.FORAGER_TRAIL.rasterDrawn().maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownTrail = false))
         assertEquals(Basemap.OPEN_TOPO_MAP.maxZoom, operatingMaxZoom(Basemap.OPEN_TOPO_MAP, ownTrail = true))
-        // The release values, through the camera's own entry point (the dispatch: 18 for Trail Map, 19 for OpenStreetMap).
+        // The release values, through the camera's own entry point (18 for Trail Map; the Street map's 19 is held in
+        // ui/map/street/StreetMapTest, dispatch 2026-11-03-05 D7).
         assertEquals(18.0, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false), 0.0)
-        assertEquals(19.0, navigationMaxZoom(StreetMap.BASEMAP, navigating = false), 0.0)
     }
 
     @Test
@@ -105,20 +102,19 @@ class OwnTrailStyleSourceTest {
             listOf(Basemap.OPEN_TOPO_MAP.attribution, OFFLINE_STYLE_ATTRIBUTION),
             mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownTrail = true),
         )
-        // Fallen back: OpenStreetMap's own credit, for the raster drawn in Trail Map's place.
-        assertEquals(listOf(StreetMap.BASEMAP.attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = false))
-        // OpenStreetMap chosen: its own credit either way.
-        assertEquals(listOf(StreetMap.BASEMAP.attribution), mapCreditsFor(StreetMap.BASEMAP, useOfflineTiles = false, ownTrail = true))
+        // Fallen back: the credit of the raster drawn in Trail Map's place, and under topo at night of the raster drawn
+        // there, if any (the Street map's while it is in the app: ui/map/street/StreetMapFallbackTest; D7, D8).
+        assertEquals(listOf(Basemap.FORAGER_TRAIL.rasterDrawn().attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = false))
         assertEquals(
-            listOf(Basemap.OPEN_TOPO_MAP.attribution, StreetMap.BASEMAP.attribution),
+            listOfNotNull(Basemap.OPEN_TOPO_MAP.attribution, nightLowZoomBasemap(Basemap.OPEN_TOPO_MAP)?.attribution),
             mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownTrail = false),
         )
     }
 
     @Test
     fun `a change in the offline style the regions hold is a style reload`() {
-        val before = requestedMapStyle(StreetMap.BASEMAP, useOfflineTiles = true, nightMode = false, nightModeLoaded = true)!!
-        val after = requestedMapStyle(StreetMap.BASEMAP, useOfflineTiles = true, nightMode = false, nightModeLoaded = true, offlineStyleUrl = TRAIL_STYLE_URL)!!
+        val before = requestedMapStyle(Basemap.OPEN_TOPO_MAP, useOfflineTiles = true, nightMode = false, nightModeLoaded = true)!!
+        val after = requestedMapStyle(Basemap.OPEN_TOPO_MAP, useOfflineTiles = true, nightMode = false, nightModeLoaded = true, offlineStyleUrl = TRAIL_STYLE_URL)!!
         assertEquals(OFFLINE_STYLE_URL, before.offlineStyleUrl)
         assertTrue(needsStyleReload(before, after))
     }

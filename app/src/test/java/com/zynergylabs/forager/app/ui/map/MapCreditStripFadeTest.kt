@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.map
 
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.app.Application
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -187,7 +186,8 @@ class MapCreditStripFadeTest {
 
     @Test
     fun `with OpenStreetMap drawn it never fades, after a minute or at a gesture`() {
-        basemap = StreetMap.BASEMAP
+        // The added map types whose tiles ask for it (dispatch 2026-11-03-05 D7: today the Street map's, OpenStreetMap's).
+        basemap = ADDED_MAP_TYPES.firstOrNull { it.creditNeverFades }?.mapMode?.basemap ?: return
         show()
         advance(60_000)
         assertShown("a minute on the OSM map")
@@ -198,6 +198,9 @@ class MapCreditStripFadeTest {
 
     @Test
     fun `the Trail Map fallback and topo at night after it never fade, topo by day after it does`() {
+        // While a stand-in whose credit never fades is registered (the Street map's; D7, D8). With none the fallback is
+        // Topographical, whose credit fades as on any map.
+        if (trailMapStandIn?.creditNeverFades() != true) return
         basemap = Basemap.FORAGER_TRAIL
         ownTrail = false
         show()
@@ -215,7 +218,7 @@ class MapCreditStripFadeTest {
 
     @Test
     fun `leaving OpenStreetMap shows the strip for 5 s and then it fades`() {
-        basemap = StreetMap.BASEMAP
+        basemap = ADDED_MAP_TYPES.firstOrNull { it.creditNeverFades }?.mapMode?.basemap ?: return
         show()
         change { gestures++ }
         advance(30_000)

@@ -23,6 +23,12 @@ package com.zynergylabs.forager.app.map
 internal const val TRAIL_STYLE_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json"
 
 /**
+ * Trail Map v4 under its old address, `street-v4.json`, from before the Trail Map's code name was "trail" (dispatch
+ * 2026-11-03-05 D1, RECORD -2000). STUB: the step that switches the app to trail-v4 fills this in.
+ */
+internal const val TRAIL_STYLE_V4_STREET_URL = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json"
+
+/**
  * Trail Map v3, v2 with the official-trails band (step 8a, dispatch 2026-10-26-14; switched to in dispatch 2026-10-26-21):
  * what the app loaded before v4. Still served, frozen, for the regions downloaded against it, which keep drawing in it
  * and show the -1294 notice, as v2's did.

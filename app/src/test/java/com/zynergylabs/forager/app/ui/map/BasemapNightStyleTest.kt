@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.map
 
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
@@ -50,9 +49,12 @@ class BasemapNightStyleTest {
      * Street carries it at every zoom; Topographical carries it from map zoom 9.5 up (next test).
      */
     @Test
-    fun `night mode on Street carries exactly the three V1 properties`() {
-        val paint = rasterLayer(StreetMap.BASEMAP, night = true)["paint"]
-            ?: error("STREET has no raster paint in night mode")
+    // Was "night mode on Street": the Street map's own is held in ui/map/street/StreetMapTest since dispatch 2026-11-03-05
+    // D7; here the single-layer night of a raster with nothing drawn under it, Topographical with no added map type.
+    fun `a single-layer night raster carries exactly the three V1 properties`() {
+        val paint = json.parseToJsonElement(styleJsonFor(Basemap.OPEN_TOPO_MAP, night = true, underTopo = null))
+            .jsonObject.getValue("layers").jsonArray.single().jsonObject["paint"]
+            ?: error("a single-layer night raster has no paint")
         val obj = paint.jsonObject
 
         assertEquals("the night paint is exactly the V1 properties", setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), obj.keys)

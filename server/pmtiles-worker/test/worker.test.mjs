@@ -32,6 +32,9 @@ const TRAIL_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"
 // The switch to Street v4 (dispatch 2026-11-01-coder-11 step (c); the owner: "Yes, queue it"): the fill-in, sprite v6's
 // orchard patterns and the hill shading, bundled like v3. test/cross-folder.test.mjs holds it equal to map-style's.
 const TRAIL_V4_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v4.json"), "utf8");
+// Trail Map v4 under the Trail Map's own code name (dispatch 2026-11-03-05 D1, RECORD -2000): the style the app loads.
+// street-v4 above stays, byte for byte, for the regions downloaded against it.
+const TRAIL_STYLE_V4_SOURCE = fs.readFileSync(here("../src/trail-style-v4.json"), "utf8");
 const REFERENCE = fs.readFileSync(here("./fixtures/reference-trails.pmtiles"));
 // The archive's manifest (dispatch 2026-10-26-22 M1), an R2 object beside it: invented values in the real file's shape.
 const MANIFEST = fs.readFileSync(here("./fixtures/reference-trails-manifest.json"));
@@ -483,6 +486,44 @@ test("/style/street-v4.json is the bundled v4 style, beside v3, v2 and v1, which
   assert.ok(v4.layers.some((l) => l.id === "hillshade") && v4.layers.some((l) => l.id === "landuse_orchards_pattern"));
   assert.equal(await (await call("/style/street-v3.json")).text(), JSON.stringify(JSON.parse(TRAIL_V3_STYLE_SOURCE)));
   assert.deepEqual(fetchCalls, []);
+});
+
+test("/style/trail-v4.json is the bundled trail-v4 style, and every old route is served as before", async () => {
+  const response = await call("/style/trail-v4.json");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/json");
+  assert.equal(response.headers.get("Cache-Control"), "public, max-age=86400");
+  const text = await response.text();
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_STYLE_V4_SOURCE)));
+  assert.equal(JSON.parse(text).name, "Forager Trail v4");
+  // Shipped builds and downloaded regions keep their routes (B2, D2): each answers what it answered before.
+  assert.equal(await (await call("/style/street-v4.json")).text(), JSON.stringify(JSON.parse(TRAIL_V4_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v3.json")).text(), JSON.stringify(JSON.parse(TRAIL_V3_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(TRAIL_V2_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(TRAIL_V1_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/offline.json")).text(), JSON.stringify(JSON.parse(OFFLINE_STYLE_SOURCE)));
+  assert.equal(JSON.parse(TRAIL_V4_STYLE_SOURCE).name, "Forager Street v4");
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("trail-v4 is street-v4 with only its name and its generated-from changed: one style under two addresses", () => {
+  // D1's equivalence, which the app relies on (no false "Older map style" notice, v4's night tables): every layer,
+  // source, sprite, glyph and night table of trail-v4 is street-v4's.
+  const trail = JSON.parse(TRAIL_STYLE_V4_SOURCE);
+  const street = JSON.parse(TRAIL_V4_STYLE_SOURCE);
+  assert.equal(trail.name, "Forager Trail v4");
+  assert.equal(street.name, "Forager Street v4");
+  assert.match(trail.metadata["forager:generated-from"], /overrides\/forager-trail\.mjs/);
+  const rest = (style) => ({ ...style, name: undefined, metadata: { ...style.metadata, "forager:generated-from": undefined } });
+  assert.deepEqual(rest(trail), rest(street));
+});
+
+test("street-v4, street-v3 and offline.json are frozen: the Worker's copies byte for byte what pre-main d88db1799 held", () => {
+  // Dispatch 2026-11-03-05 D2 (RECORD -2000): they stay byte for byte; "Forager Trail v4" goes only in trail-v4.json.
+  assert.equal(sha256("../src/street-style-v4.json"), "6ce7271ed1d0da0b08b9c190310d6d7e0838febdfaf6bfcdd121b1162eacef80");
+  assert.equal(sha256("../src/street-style-v3.json"), "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f");
+  assert.equal(sha256("../src/street-style-v1.json"), "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da");
+  assert.equal(sha256("../src/offline-style.json"), "357e2603d1d72e4bf0e9431ecfb06292e91fca4333782ca3fd7e06713879b294");
 });
 
 test("v2 is frozen: the Worker's copy byte for byte what pre-main c91f34c49 held", () => {

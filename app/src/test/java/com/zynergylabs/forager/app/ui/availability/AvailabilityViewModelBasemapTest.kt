@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.availability
 
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.ui.map.MapMode
@@ -39,7 +38,7 @@ class AvailabilityViewModelBasemapTest {
         mapLayersViewModel(errorLog = errorLog, basemapPreferences = preferences)
 
     @Test
-    // Was "nothing stored opens on Street…", asserting StreetMap.mapMode; the opening map became Trail (dispatch 2026-10-22-01; RECORD -1554).
+    // Was "nothing stored opens on Street…", asserting MapMode.STREET; the opening map became Trail (dispatch 2026-10-22-01; RECORD -1554).
     fun `nothing stored opens on Trail, stores nothing and logs nothing`() = runTest(dispatcher) {
         val preferences = InMemoryBasemapPreference(stored = null)
         val vm = viewModel(preferences)
@@ -65,12 +64,13 @@ class AvailabilityViewModelBasemapTest {
     }
 
     /**
-     * Was "a stored Street opens on Street". Street chosen before the update opens on Trail Map, once (RECORD -1554):
-     * Trail keeps the key "street" (option (a), RECORD -1556), so nothing is rewritten and nothing is logged.
+     * Trail Map's key is "trail" since dispatch 2026-11-03-05 (A1, B1): a phone's old "street" is moved to it once, in the
+     * data layer, before this read (`BasemapKeyTrailStreetMigrationTest`). Was "a stored Street, from before the update,
+     * opens on Trail" (RECORD -1556, option (a)); the Street map's own "street" is held in ui/map/street (D7).
      */
     @Test
-    fun `a stored Street, from before the update, opens on Trail, stores nothing and logs nothing`() = runTest(dispatcher) {
-        val preferences = InMemoryBasemapPreference(stored = "street")
+    fun `a stored Trail opens on Trail, stores nothing and logs nothing`() = runTest(dispatcher) {
+        val preferences = InMemoryBasemapPreference(stored = "trail")
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
@@ -79,28 +79,20 @@ class AvailabilityViewModelBasemapTest {
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }
 
-    /** OpenStreetMap picked after the update keeps across restarts: it has a key of its own (RECORD -1556). */
+    // "A stored Street opens on the Street map" and "picking Street stores street" are held in ui/map/street/StreetMapViewModelTest
+    // (dispatch 2026-11-03-05 D7).
+
     @Test
-    fun `a stored OpenStreetMap opens on OSM`() = runTest(dispatcher) {
-        val preferences = InMemoryBasemapPreference(stored = "openstreetmap")
+    fun `picking Trail stores trail`() = runTest(dispatcher) {
+        val preferences = InMemoryBasemapPreference(stored = "topographic")
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        assertEquals(StreetMap.mapMode, vm.uiState.value.mapMode)
-        assertEquals(emptyList<String>(), preferences.writes)
-    }
-
-    @Test
-    fun `picking OSM stores the new key, never "street"`() = runTest(dispatcher) {
-        val preferences = InMemoryBasemapPreference(stored = "street")
-        val vm = viewModel(preferences)
+        vm.onMapModeSelected(MapMode.TRAIL)
         advanceUntilIdle()
 
-        vm.onMapModeSelected(StreetMap.mapMode)
-        advanceUntilIdle()
-
-        assertEquals(StreetMap.mapMode, vm.uiState.value.mapMode)
-        assertEquals(listOf("openstreetmap"), preferences.writes)
+        assertEquals(MapMode.TRAIL, vm.uiState.value.mapMode)
+        assertEquals(listOf("trail"), preferences.writes)
     }
 
     @Test

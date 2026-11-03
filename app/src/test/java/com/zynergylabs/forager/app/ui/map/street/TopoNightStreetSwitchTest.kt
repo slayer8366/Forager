@@ -1,6 +1,7 @@
-package com.zynergylabs.forager.app.ui.map
+package com.zynergylabs.forager.app.ui.map.street
 
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
+import com.zynergylabs.forager.app.ui.map.*
+
 import android.graphics.BitmapFactory
 import java.io.File
 import kotlinx.serialization.json.Json

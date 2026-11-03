@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.map
 
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
@@ -18,7 +17,7 @@ class OwnTrailFallbackTest {
 
     private val street = MapStyleSource.Uri(TRAIL_STYLE_URL)
     private val streetUnderTopo = MapStyleSource.TrailWithTopoOver(TRAIL_STYLE_URL, Basemap.OPEN_TOPO_MAP)
-    private val raster = MapStyleSource.Json(styleJsonFor(StreetMap.BASEMAP))
+    private val raster = MapStyleSource.Json(styleJsonFor(Basemap.OPEN_TOPO_MAP))
 
     @Test
     fun `only the own Street online falls back, alone or under topo at night`() {
@@ -44,18 +43,23 @@ class OwnTrailFallbackTest {
 
         val day = mapStyleSourceFor(Basemap.FORAGER_TRAIL, night = false, useOfflineTiles = false, ownTrail = ownTrail)
         assertTrue("Street by day is a raster JSON style: $day", day is MapStyleSource.Json)
-        assertTrue("on OpenStreetMap's tiles", (day as MapStyleSource.Json).json.contains(StreetMap.BASEMAP.tileUrlTemplate))
+        // The raster that stands in for Trail Map (the Street map's while it is in the app, ui/map/street/StreetMapFallbackTest;
+        // Topographical with none, TrailMapFallbackWithoutStandInTest; dispatch 2026-11-03-05 D7, D8).
+        val standIn = Basemap.FORAGER_TRAIL.rasterDrawn()
+        assertTrue("on the stand-in's tiles", (day as MapStyleSource.Json).json.contains(standIn.tileUrlTemplate))
         val topoNight = mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true, useOfflineTiles = false, ownTrail = ownTrail)
         assertTrue("topo at night is the raster night style: $topoNight", topoNight is MapStyleSource.Json)
-        assertTrue("with OpenStreetMap below", (topoNight as MapStyleSource.Json).json.contains(StreetMap.BASEMAP.tileUrlTemplate))
+        nightLowZoomBasemap(Basemap.OPEN_TOPO_MAP)?.let { below ->
+            assertTrue("with the night under-topo raster below", (topoNight as MapStyleSource.Json).json.contains(below.tileUrlTemplate))
+        }
 
-        assertEquals(listOf(StreetMap.BASEMAP.attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = ownTrail))
+        assertEquals(listOf(standIn.attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = ownTrail))
         assertEquals(
-            listOf(Basemap.OPEN_TOPO_MAP.attribution, StreetMap.BASEMAP.attribution),
+            listOfNotNull(Basemap.OPEN_TOPO_MAP.attribution, nightLowZoomBasemap(Basemap.OPEN_TOPO_MAP)?.attribution),
             mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownTrail = ownTrail),
         )
-        assertEquals(StreetMap.BASEMAP.maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownTrail))
-        assertEquals(StreetMap.BASEMAP.maxZoom.toDouble(), navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownTrail = ownTrail), 0.0)
+        assertEquals(standIn.maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownTrail))
+        assertEquals(standIn.maxZoom.toDouble(), navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownTrail = ownTrail), 0.0)
         // Before the fallback, the own Street's: its credit and the owner's 18 (-1289).
         assertEquals(listOf(OFFLINE_STYLE_ATTRIBUTION), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = true))
         assertEquals(18.0, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownTrail = true), 0.0)
@@ -63,15 +67,14 @@ class OwnTrailFallbackTest {
 
     @Test
     fun `while navigating a basemap cap above the start zoom is not lowered`() {
-        // Dispatch 2026-09-28-440, Amendment 1, driven with the switch off, where Street's cap is OpenStreetMap's 19.
-        assertEquals(19.0, navigationMaxZoom(StreetMap.BASEMAP, navigating = true, ownTrail = false), 0.0)
+        // Dispatch 2026-09-28-440, Amendment 1. The Street map's 19 is held in ui/map/street/StreetMapTest (dispatch 2026-11-03-05 D7).
         assertEquals(NAVIGATION_VIEW_ZOOM, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = true, ownTrail = true), 0.0)
     }
 
     @Test
     fun `the fallback changes what the style effect asks for, so it reloads the style`() {
-        val before = requestedMapStyle(StreetMap.BASEMAP, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownTrail = true)!!
-        val after = requestedMapStyle(StreetMap.BASEMAP, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownTrail = false)!!
+        val before = requestedMapStyle(Basemap.FORAGER_TRAIL, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownTrail = true)!!
+        val after = requestedMapStyle(Basemap.FORAGER_TRAIL, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownTrail = false)!!
         assertTrue(needsStyleReload(applied = before, requested = after))
     }
 
@@ -85,7 +88,7 @@ class OwnTrailFallbackTest {
         assertTrue(fallback.fellBack)
         assertFalse("the map now draws OpenStreetMap's Street", fallback.ownTrail(switch = true))
         assertEquals(
-            listOf("Trail Map style failed to load (Failed to load style: 404); drawing OpenStreetMap's raster until the connection returns or the app restarts."),
+            listOf("Trail Map style failed to load (Failed to load style: 404); drawing ${trailMapFallbackDrawn()} until the connection returns or the app restarts."),
             lines,
         )
 

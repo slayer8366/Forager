@@ -81,6 +81,33 @@ class TrailStyleTest {
         assertFalse("an unknown style is never guessed old", regionHasOlderMapStyle(null, isDownloaded = true))
     }
 
+    // Dispatch 2026-11-03-05 D1 (RECORD -2000): the owner, "Add trail-v4 now"; the planner, street-v4 and trail-v4 are one
+    // style, so no region shows a false "Older map style" notice ("Don't make me think").
+    @Test
+    fun `the app loads trail-v4, and street-v4 is the same style under its old address`() {
+        assertEquals("https://forager-pmtiles.brandonlee1-894.workers.dev/style/trail-v4.json", TRAIL_STYLE_URL)
+        assertEquals("https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json", TRAIL_STYLE_V4_STREET_URL)
+        assertEquals(
+            listOf(TRAIL_STYLE_URL, TRAIL_STYLE_V4_STREET_URL, TRAIL_STYLE_V3_URL, TRAIL_STYLE_V2_URL, TRAIL_STYLE_V1_URL),
+            TRAIL_STYLE_URLS,
+        )
+        assertEquals("downloads are made in trail-v4", TRAIL_STYLE_URL, offlineDownloadStyleUrl())
+    }
+
+    @Test
+    fun `a region downloaded against street-v4 shows no older-style notice, as a trail-v4 one shows none`() {
+        assertFalse("street-v4 is today's style", regionHasOlderMapStyle(TRAIL_STYLE_V4_STREET_URL, isDownloaded = true))
+        assertFalse("trail-v4", regionHasOlderMapStyle(TRAIL_STYLE_URL, isDownloaded = true))
+        assertTrue("v3 is still older", regionHasOlderMapStyle(TRAIL_STYLE_V3_URL, isDownloaded = true))
+    }
+
+    @Test
+    fun `the offline map loads trail-v4 when a region holds it, street-v4 when only that does, and each wins over v3`() {
+        assertEquals("only street-v4 regions", TRAIL_STYLE_V4_STREET_URL, offlineRenderStyleUrl(listOf(TRAIL_STYLE_V4_STREET_URL)))
+        assertEquals("street-v4 and v3", TRAIL_STYLE_V4_STREET_URL, offlineRenderStyleUrl(listOf(TRAIL_STYLE_V3_URL, TRAIL_STYLE_V4_STREET_URL)))
+        assertEquals("trail-v4 and street-v4", TRAIL_STYLE_URL, offlineRenderStyleUrl(listOf(TRAIL_STYLE_V4_STREET_URL, TRAIL_STYLE_URL)))
+    }
+
     @Test
     fun `the notice reads as accepted`() {
         assertEquals("Older map style. Download again to update.", OLDER_MAP_STYLE_NOTICE)
