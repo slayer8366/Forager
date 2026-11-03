@@ -32409,3 +32409,18 @@ The owner then, to Aspen, relayed verbatim: "Nobody has v4 yet so it won't hurt"
 - the planner merges.
 Known bug 22's row (docs/process/known-bugs.md) is updated to say the walk is to come, not removed.
 **Notes:** Written by the planner by hand. Next free ID -2015.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2015
+**Timestamp:** 2026-11-03T22:38:08Z
+**Continues:** 2026-09-28-2013
+**Closes:** 2026-09-28-2010
+**Title:** #472 merged into main; the Worker serves /style/trail-v4.json
+**Outcome:**
+- #472 (worker/trail-v4) merged into main at 22:35:34Z as 713c1e94f, after every check was green, the release and folder guards included. Just before merging, the planner confirmed the folder still equalled pre-main's.
+- /style/trail-v4.json answered with name "Forager Trail v4" at 22:37:43Z. The planner polled it every 30 s from 22:35:41.
+- street-v4, street-v2 and street-v1 each answered 200. Served street-v4 parses equal to the committed file on pre-main, and to main's before the release.
+- A build from pre-main that loads trail-v4 may now be installed. Not seen on a phone.
+**Notes:** Written by the planner by hand. Next free ID -2016.
