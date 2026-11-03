@@ -36,7 +36,11 @@ import org.robolectric.shadows.ShadowDisplay
  *
  * Both cards narrow from the L's side by just enough for the icon and an 8 dp gap either side, keeping their right edges and edge to
  * edge (C21); Re-center shows its icon alone at the bottom beside the L, never risen, at every stop count, peek and expanded, and
- * five real touches across it reach it. With the card closed, the navigation card is back at its width.
+ * five real touches across it reach it.
+ *
+ * D38 (RECORD -2006, the owner: "Keep it narrow (Recommended)") changed this class's last claim: with the card closed the navigation
+ * card used to be back at the strip's width (D32), and now it stays narrowed, so Re-center keeps its spot beside the L (D34). The
+ * natural width is read from the strip, which the navigation card sits at the width of, since the navigation card no longer shows it.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
@@ -61,14 +65,18 @@ class RouteCardRecenterLeaveRoomTest {
         rig.leaveNavigationView()
         val noCard = recenter()
         val navigationAlone = rig.bounds(NAVIGATION_HUD_TAG)
+        val strip = rig.bounds(BAR_STRIP)
         val l = rig.bounds(MAP_ICON_CLUSTER_TAG)
         val creditAtRest = rig.bounds(MAP_CREDIT_CAPTION_TAG)
-        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT), { "precondition: with no card Re-center has its word" })
-        println("D32 no card: L ${l.left.value}..${l.right.value} x ${l.top.value}..${l.bottom.value}, navigation card ${navigationAlone.left.value}..${navigationAlone.right.value} x ${navigationAlone.top.value}..${navigationAlone.bottom.value}, gap ${(navigationAlone.left - l.right).value} (the S22: 24.5), Re-center ${noCard.left.value}..${noCard.right.value}")
+        println("D32 no card: L ${l.left.value}..${l.right.value} x ${l.top.value}..${l.bottom.value}, strip ${strip.left.value}..${strip.right.value}, navigation card ${navigationAlone.left.value}..${navigationAlone.right.value} x ${navigationAlone.top.value}..${navigationAlone.bottom.value}, natural gap ${(strip.left - l.right).value} (the S22: 24.5), Re-center ${noCard.left.value}..${noCard.right.value}")
         // The case is reached: at the strip's width the gap is narrower than the icon and a gap either side.
         val needed = 8.dp + RETURN_TO_ROUTE_PILL_HEIGHT + 8.dp
-        assertTrue("precondition: the gap beside the L, ${navigationAlone.left - l.right}, is narrower than $needed", navigationAlone.left - l.right < needed)
+        assertTrue("precondition: the gap beside the L at the strip's width, ${strip.left - l.right}, is narrower than $needed", strip.left - l.right < needed)
         val cardsLeft = l.right + needed
+        // D38: with no card the navigation card is already narrowed, its right edge the strip's; D34: Re-center is its icon beside the L.
+        assertEquals("D38, no card: the navigation card is narrowed from the L's side", cardsLeft.value, navigationAlone.left.value, 0.5f)
+        assertEquals("D38, no card: the navigation card keeps the strip's right edge", strip.right.value, navigationAlone.right.value, 0.5f)
+        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT).not(), { "D34, no card: Re-center shows no word" })
         val bottom = minOf(noCard.bottom.value, (creditAtRest.top - 8.dp).value)
         var first: DpRect? = null
         listOf(1, 3, 6).forEach { n ->
@@ -83,8 +91,8 @@ class RouteCardRecenterLeaveRoomTest {
                     println("D32 $where ($sx, $sy): Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, navigation card ${navigation.left.value}..${navigation.right.value} x ${navigation.top.value}..${navigation.bottom.value}")
                     assertEquals("$where: the route card's left leaves just the room for the icon beside the L", cardsLeft.value, card.left.value, 0.5f)
                     assertEquals("$where: the navigation card narrows with it, from the L's side", cardsLeft.value, navigation.left.value, 0.5f)
-                    assertEquals("$where: the route card keeps its right edge", navigationAlone.right.value, card.right.value, 0.5f)
-                    assertEquals("$where: the navigation card keeps its right edge", navigationAlone.right.value, navigation.right.value, 0.5f)
+                    assertEquals("$where: the route card keeps its right edge", strip.right.value, card.right.value, 0.5f)
+                    assertEquals("$where: the navigation card keeps its right edge", strip.right.value, navigation.right.value, 0.5f)
                     assertEquals("$where: Re-center shows its icon alone, a 48 dp target: its width", 48f, (pill.right - pill.left).value, 0.5f)
                     assertEquals("$where: Re-center shows its icon alone, a 48 dp target: its height", 48f, (pill.bottom - pill.top).value, 0.5f)
                     composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT).not(), { "$where: Re-center shows no word" })
@@ -110,8 +118,9 @@ class RouteCardRecenterLeaveRoomTest {
         }
         rig.setExpanded(false)
         rig.closeCard()
-        rig.assertSame("the card closed, the navigation card is back at its width", navigationAlone, rig.bounds(NAVIGATION_HUD_TAG))
+        // D38 (replacing D32's "back at its width"): the card closed, the navigation card stays narrowed; D34: Re-center stays put.
+        rig.assertSame("the card closed, the navigation card stays narrowed", navigationAlone, rig.bounds(NAVIGATION_HUD_TAG))
         rig.assertSame("the card closed, Re-center", noCard, recenter())
-        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT), { "the card closed, Re-center has its word again" })
+        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT).not(), { "the card closed, Re-center is still its icon alone" })
     }
 }
