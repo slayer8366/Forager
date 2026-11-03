@@ -32315,3 +32315,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** Aspen's Worker merges into Forager, on the owner's go (confirmed by the owner)
 **Observed:** GitHub shows #466 merged into pre-main at 09:27:25Z (3b9c0b70b), #467 into main at 09:46:54Z (532f45dcf), #468 into pre-main at 18:19:13Z (f9ca5824c, CACHE_VERSION 3), and #469 (worker/cache-version-3 into main, folder only) open. None had an entry here first. Aspen's account: the owner's go, through Aspen's question tool on 11-02 between 20:25 and 20:28:59 PST, "Yes, fix it now (Recommended)", whose option read "Willow adds a cache version to the Worker's cache key and stops caching 'Archive not found', with tests. Sorrel reviews, then it's released to main, which redeploys the Worker for every phone. I raise the version again right after tomorrow's upload." (forager-cartography prompts/preserved/2026-11-02-coder-14-worker-cache-version.md, "The go"; not read by the planner). The Trail Map upload finished at 06:51 PST, by Aspen's account. Folder-only Worker releases to main go through worker/* branches with guards (worker-release.yml, worker-folder-guard.yml, dispatch 2026-11-01-coder-11). Aspen held #469 until the owner confirmed to the planner, and will send a line before any further merge into Forager's pre-main or main. The owner, to the planner: "I approved Aspen's merges". So #466, #467 and #468 stand on the owner's go, and #469 is the "released to main" step of the same approved option; the planner told Aspen it may merge #469.
 **Notes:** Written by the planner by hand. Next free ID -2008.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2008
+**Timestamp:** 2026-11-03T18:23:41Z
+**Continues:** 2026-09-28-2006
+**Title:** D33's slide is closed by D38; Hazel's D37 and D34 calls accepted
+**Decision:** Hazel: once D38 keeps the navigation card narrow with or without the route card, its width never changes with the route card, so D33/D39 has no trigger; the owner's D38 option said so ("D33's slide never happens there"). The planner's call: not built, closed. Hazel's calls accepted: D37 measures "no room" as the peek lines filling the cap within 1 px, and the cap drops at once on collapse; D34 uses D27's word-or-icon measurement beside the L. Dispatch 2026-10-30-08 D39.
+**Notes:** Written by the planner by hand. Next free ID -2009.
