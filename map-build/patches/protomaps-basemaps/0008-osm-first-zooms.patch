@@ -21,8 +21,10 @@ in our tiles from level N - 2. Every value is carto's rule at v6.1.0, cited in t
   with no size floor below 13, taxiways from 9.
 - Water: rivers 6, streams 10, intermittent and seasonal streams 11; water polygons from a quarter pixel (upstream 1);
   lake labels at carto's first level over 3000 px (5 to 16) minus 2, from 3, else 15.
-- Landuse: polygons from a quarter pixel, by setMinPixelSize and by the bounding-box filter below 15 (upstream 2 px and
-  1.5625 px2, more at 6 and below).
+- Landuse: polygons from a quarter pixel from z11, by setMinPixelSize and by the bounding-box filter (upstream 2 px and
+  1.5625 px2, more at 6 and below). Below z11 upstream's floors stay: the quarter pixel took the densest landuse tiles
+  over 500 KB gzipped (West Virginia, 8/70/97: 744 KB against 352 KB; 7/35/48: 1 MB), so small fills there come in 1-2
+  zooms after OSM (Aspen's (b), 2026-11-02 18:2x).
 - Boundaries: admin_level 5 from 6 (upstream 8), 7 from 9 (upstream 10).
 - Places: carto's rules (city score of population or 100,000, doubled for capital=4: 2 at 3,000,000, 3 at 400,000,
   4 at 70,000, else 5; national capitals 2 over 600,000, else 3; town 7, village 10, hamlet 12, isolated dwelling and
@@ -37,7 +39,7 @@ kinds the tiles don't write (saddles, heath, wetland subtypes, ditch and canal s
 
 Tests: 72 upstream and earlier-Forager cases updated to these zooms, each marked "Forager patch 0008", and 77 new
 foragerOsm* cases (RoadsTest 35, PlacesTest 16, PoisTest 9, WaterTest 6, BoundariesTest 5, LanduseTest 4,
-EarthTest 2). 590 tests, 0 failures.
+EarthTest 2). 590 tests, 0 failures (jar sha256 5f9a8bcd…).
 
 diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Boundaries.java b/tiles/src/main/java/com/protomaps/basemap/layers/Boundaries.java
 index 8a1625f..a27aea1 100644
@@ -114,10 +116,10 @@ index 60c48ae..9b73b40 100644
      }
    }
 diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
-index 0a2c3c7..3a8f226 100644
+index 0a2c3c7..55ebf6c 100644
 --- a/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
 +++ b/tiles/src/main/java/com/protomaps/basemap/layers/Landuse.java
-@@ -265,7 +265,10 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+@@ -265,7 +265,14 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
          // NOTE: (nvkelso 20230622) Consider zoom 5 instead...
          //       But to match Protomaps v2 we do earlier
          .setZoomRange(2, 15)
@@ -125,32 +127,39 @@ index 0a2c3c7..3a8f226 100644
 +        // Forager patch 0008 (dispatch 2026-11-02-coder-13): carto keeps a land polygon once it is over 1 px at its
 +        // 256 px tile level N (project.mml:139, 246; 0.01 px at 5-9, mml:79), so at our level N - 2, where the style
 +        // shows it from camera N - 1.5, a quarter of a pixel across (upstream: 2.0, about 3 zooms later than OSM).
-+        .setMinPixelSize(FORAGER_OSM_MIN_PIXEL_SIZE);
++        // From FORAGER_OSM_MIN_PIXEL_FROM_ZOOM only: below it, upstream's 2 px stays, because the quarter pixel took
++        // the densest landuse tiles over 500 KB gzipped (8/70/97 in West Virginia: 744 KB against 352 KB; 7/35/48:
++        // 1 MB; Aspen's (b), after the test of 18:14).
++        .setMinPixelSize(FORAGER_OSM_MIN_PIXEL_SIZE)
++        .setMinPixelSizeBelowZoom(FORAGER_OSM_MIN_PIXEL_FROM_ZOOM - 1, 2.0);
  
      }
    }
-@@ -319,6 +322,9 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+@@ -319,6 +326,11 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
  
    public static final String LAYER_NAME = "landuse";
  
 +  /** Forager patch 0008: the polygon size floor, in pixels at the tile's level (see processOsm). */
 +  static final double FORAGER_OSM_MIN_PIXEL_SIZE = 0.25;
++  /** Forager patch 0008: the first level the quarter-pixel floor applies at; below it, upstream's 2 px. */
++  static final int FORAGER_OSM_MIN_PIXEL_FROM_ZOOM = 11;
 +
    /** Forager patch 0006: the landuse values written as kind farmland with kind_detail. */
    private static final Set<String> FORAGER_FARMLAND_DETAILS = Set.of("orchard", "plant_nursery",
      "vineyard");
-@@ -332,11 +338,9 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
+@@ -332,11 +344,15 @@ public class Landuse implements ForwardingProfile.LayerPostProcessor {
    public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
      if (zoom == 15)
        return items;
--    double minArea = 400d / (4096 * 4096) * (256 * 256);
--    if (zoom == 6)
--      minArea = 600d / (4096 * 4096) * (256 * 256);
--    else if (zoom <= 5)
--      minArea = 800d / (4096 * 4096) * (256 * 256);
-+    // Forager patch 0008: the same floor as setMinPixelSize, on the bounding box, at every level below 15 (upstream:
-+    // 1.5625 px2, 2.34 at 6 and 3.125 at 5 and below).
-+    double minArea = FORAGER_OSM_MIN_PIXEL_SIZE * FORAGER_OSM_MIN_PIXEL_SIZE;
++    // Forager patch 0008: from FORAGER_OSM_MIN_PIXEL_FROM_ZOOM, the same floor as setMinPixelSize, on the bounding box;
++    // below it, upstream's (1.5625 px2, 2.34 at 6 and 3.125 at 5 and below).
+     double minArea = 400d / (4096 * 4096) * (256 * 256);
+     if (zoom == 6)
+       minArea = 600d / (4096 * 4096) * (256 * 256);
+     else if (zoom <= 5)
+       minArea = 800d / (4096 * 4096) * (256 * 256);
++    if (zoom >= FORAGER_OSM_MIN_PIXEL_FROM_ZOOM)
++      minArea = FORAGER_OSM_MIN_PIXEL_SIZE * FORAGER_OSM_MIN_PIXEL_SIZE;
      items = Area.filterArea(items, minArea);
  
      // We only care about park boundaries inside groups of adjacent parks at higher zooms when they are labeled
@@ -628,15 +637,15 @@ index bcbfd91..e1ed10f 100644
 +
  }
 diff --git a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
-index f90ebd3..e7e7198 100644
+index f90ebd3..3ac5397 100644
 --- a/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
 +++ b/tiles/src/test/java/com/protomaps/basemap/layers/LanduseTest.java
-@@ -639,15 +639,28 @@ class LanduseTest extends LayerTest {
+@@ -639,15 +639,33 @@ class LanduseTest extends LayerTest {
  
    @Test
    void postProcessFiltersSmallPolygonsBelowZoom15() throws GeometryException {
-+    // Forager patch 0008: the floor is 0.25 px across (0.0625 px2 bounding box; upstream 1.5625 px2), so a 0.2 px
-+    // square is still dropped and a 1 px square, which upstream dropped, is kept.
++    // Forager patch 0008: from z11 the floor is 0.25 px across (0.0625 px2 bounding box; upstream 1.5625 px2), so a
++    // 0.2 px square is still dropped and a 1 px square, which upstream dropped, is kept.
      var small = new VectorTile.Feature("landuse", 1,
 -      VectorTile.encodeGeometry(newPolygon(0, 0, 1, 0, 1, 1, 0, 1, 0, 0)),
 +      VectorTile.encodeGeometry(newPolygon(0, 0, 0.2, 0, 0.2, 0.2, 0, 0.2, 0, 0)),
@@ -649,16 +658,21 @@ index f90ebd3..e7e7198 100644
      var result = new Landuse().postProcess(14, List.of(small, large));
  
      assertEquals(List.of(large), result);
++    // Below z11 the floor is upstream's 1.5625 px2, so the 1 px square is dropped there too.
++    assertEquals(List.of(), new Landuse().postProcess(10, List.of(small, large)));
    }
 +
-+  // Forager patch 0008 (dispatch 2026-11-02-coder-13): a land polygon is kept once it is a quarter pixel across at the
-+  // tile's level, carto's 1 px at its level N, two levels on (upstream: 2 px).
++  // Forager patch 0008 (dispatch 2026-11-02-coder-13): from z11 a land polygon is kept once it is a quarter pixel across
++  // at the tile's level, carto's 1 px at its level N, two levels on; below z11 upstream's 2 px stays (Aspen's (b): the
++  // quarter pixel took the densest tiles over 500 KB).
 +  @org.junit.jupiter.params.ParameterizedTest
 +  @org.junit.jupiter.params.provider.CsvSource({"forest", "orchard", "residential", "meadow"})
 +  void foragerOsmLanduseMinPixelSize(String landuse) {
 +    var feature = processWith("landuse", landuse).iterator().next();
-+    org.junit.jupiter.api.Assertions.assertEquals(0.25, feature.getMinPixelSizeAtZoom(10), "size floor at 10");
-+    org.junit.jupiter.api.Assertions.assertEquals(0.25, feature.getMinPixelSizeAtZoom(5), "size floor at 5");
++    org.junit.jupiter.api.Assertions.assertEquals(0.25, feature.getMinPixelSizeAtZoom(11), "size floor at 11");
++    org.junit.jupiter.api.Assertions.assertEquals(0.25, feature.getMinPixelSizeAtZoom(13), "size floor at 13");
++    org.junit.jupiter.api.Assertions.assertEquals(2.0, feature.getMinPixelSizeAtZoom(10), "size floor at 10");
++    org.junit.jupiter.api.Assertions.assertEquals(2.0, feature.getMinPixelSizeAtZoom(5), "size floor at 5");
 +  }
 +
  }
