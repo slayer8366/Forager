@@ -101,12 +101,13 @@ class RouteCardRecenterCoversNoCardTest {
 
 /**
  * D34's other side (RECORD -2005): where Re-center's word at bottom centre covers no card, nothing changes: it keeps its word there.
- * The S22's own window at font 1.0 (823 x 384 dp, session 9 b1-n-closed, where the word sat clear of the navigation card), with its
- * insets. Without this, a rule that put Re-center beside the L everywhere would pass the class above.
+ * Without this, a rule that put Re-center beside the L everywhere would pass the class above. A tablet's landscape window at font 1.0:
+ * the S22's own (823 x 384 dp) was tried first and is not this case under Robolectric, where the word at bottom centre (306..414 dp)
+ * meets the navigation card (352..695 dp; CI run 41694249037), though on the phone it sat clear (session 9, b1-n-closed).
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.0f)
+@Config(sdk = [36], qualifiers = "w1280dp-h800dp-land-xhdpi", fontScale = 1.0f)
 class RouteCardRecenterCoversNoCardWideTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
