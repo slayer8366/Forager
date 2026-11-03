@@ -24,7 +24,6 @@ local.properties
 *.keystore
 !app/debug.keystore
 /signing.properties
-/signing/
 
 # Claude Code session state (worktrees, local agent config) -- tooling, never part of a build.
 # Untracked entries here previously made resolveBuildIdentity() stamp release builds `.dirty`,
