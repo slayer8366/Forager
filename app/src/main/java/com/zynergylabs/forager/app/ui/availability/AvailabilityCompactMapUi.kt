@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import android.util.Log
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.LocalMapPosition
@@ -527,6 +529,18 @@ internal fun CompactMapTab(
                     onCameraIdle = { location -> cameraCenter = location },
                     crowdedStacks = crowdedStacks,
                     plottedRoute = plottedRouteOnMap(bubbleSources.routePlotting),
+                    // D29 (RECORD -1979, -1980): while navigating in landscape with the route card expanded, the walker's dot sits in the
+                    // open map beside the card, and goes back when it collapses.
+                    navigationSideInsets = if (navigation.isNavigating && cluster.landscape && bubbleSources.routePlotting?.state?.expanded == true) {
+                        navigationSideInsetsBesideCard(
+                            mapWidthPx = cluster.mapContentBoxWidthPx,
+                            cardInMap = routeCardBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
+                            lInMap = cluster.clusterBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
+                            gapPx = with(compassStripDensity) { Spacing.sm.toPx() },
+                        )
+                    } else {
+                        NavigationSideInsets.NONE
+                    },
                 )
                 // Dispatch 2026-10-30-08: the route card's Back, composed before the bubble's, the crowded list's and the fan's, so
                 // each of those, drawn over the card, closes first; off under the drawer, the menu and the pickers, as theirs are.

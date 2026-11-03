@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
@@ -208,3 +209,20 @@ internal fun routeCardLegendEndPadding(barOnRight: Boolean, barWidth: Dp): Dp = 
  */
 internal fun attributionCoversInMapPx(cardsInRoot: List<androidx.compose.ui.geometry.Rect>, mapLeftInRootPx: Float, mapTopInRootPx: Float): List<androidx.compose.ui.geometry.Rect> =
     cardsInRoot.map { it.translate(-mapLeftInRootPx, -mapTopInRootPx) }
+
+/**
+ * D29 (dispatch 2026-10-30-08, RECORD -1979, -1980; the owner: "Keep the dot clear of the card (Recommended)"): the navigation view's
+ * side padding, in px, that puts the walker's dot in the middle of the open map between the L and the expanded route card, both in
+ * the map's own px ([cardInMap], [lInMap]). On the card's side, the map's edge to the card's inner edge plus [gapPx]; on the far side,
+ * the L's inner edge plus [gapPx] where the L is there, else nothing. [NavigationSideInsets.NONE] with no card, before the map has a
+ * width, or where nothing would be left open between the two.
+ */
+internal fun navigationSideInsetsBesideCard(mapWidthPx: Float, cardInMap: androidx.compose.ui.geometry.Rect?, lInMap: androidx.compose.ui.geometry.Rect?, gapPx: Float): NavigationSideInsets {
+    if (cardInMap == null || mapWidthPx <= 0f) return NavigationSideInsets.NONE
+    val cardOnRight = cardInMap.center.x >= mapWidthPx / 2f
+    val farL = lInMap?.takeIf { (it.center.x < mapWidthPx / 2f) == cardOnRight }
+    val left = if (cardOnRight) (farL?.let { it.right + gapPx } ?: 0f) else cardInMap.right + gapPx
+    val right = if (cardOnRight) mapWidthPx - cardInMap.left + gapPx else (farL?.let { mapWidthPx - it.left + gapPx } ?: 0f)
+    if (left + right >= mapWidthPx) return NavigationSideInsets.NONE
+    return NavigationSideInsets(left.toDouble(), right.toDouble())
+}

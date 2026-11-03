@@ -403,6 +403,7 @@ fun SightingsMap(
             },
             thresholdPx = nudgeThresholdPx,
             viewTopPaddingPx = { navigationViewTopPaddingPx(navigationMapHeightPx) },
+            viewSideInsetsPx = { currentNavigationView?.sideInsetsPx ?: NavigationSideInsets.NONE },
         )
     }
     DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
