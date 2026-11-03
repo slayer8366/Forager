@@ -32325,3 +32325,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** D33's slide is closed by D38; Hazel's D37 and D34 calls accepted
 **Decision:** Hazel: once D38 keeps the navigation card narrow with or without the route card, its width never changes with the route card, so D33/D39 has no trigger; the owner's D38 option said so ("D33's slide never happens there"). The planner's call: not built, closed. Hazel's calls accepted: D37 measures "no room" as the peek lines filling the cap within 1 px, and the cap drops at once on collapse; D34 uses D27's word-or-icon measurement beside the L. Dispatch 2026-10-30-08 D39.
 **Notes:** Written by the planner by hand. Next free ID -2009.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2009
+**Timestamp:** 2026-11-03T19:05:51Z
+**Continues:** 2026-09-28-2008
+**Title:** At the smallest size the elevation line steps aside while the card is open
+**Decision:** Hazel: D37's raised cap is still filled by the peek lines at the S22's size (rows 0 dp, CI 41698619389). The owner: "Hide elevation while open (Recommended)". Dispatch 2026-10-30-08 D40. D38 and D34 built (80955f9cc, 663ca13fd, 8d1f80e39); full CI 41699747279 running.
+**Notes:** Written by the planner by hand. Next free ID -2010.
