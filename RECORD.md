@@ -32049,3 +32049,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** D28 with D30 and D29 built and green on route-plot-ui (#449); A5 next
 **Outcome:** Hazel's report: D28 with D30 at 5c5c73b8f and 3d897de73 (the portrait test's premise corrected: outside fullscreen the card rests 32 dp up and clears the "i", CI run 41586729551); D29 at 0e2cc8730 and 796f0aa99. Each failed first (11c03c5e9, f6cfdf473) and was revert-checked on throwaway branches. Full CI on 796f0aa99, run 41588265460 (pull_request): 6246 tests, 0 failures, 24 skipped, every job green including lint. The planner read the run's jobs and conclusion itself; the test counts and the revert checks are as Hazel reported, not re-read. Not seen on a phone. #449 stays held for the owner's word. A5 on waypoint-names (#465) is in progress: test first at ee9aef133, failing as expected.
 **Notes:** Written by the planner by hand. Next free ID -1982.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1982
+**Timestamp:** 2026-11-03T06:49:31Z
+**Continues:** 2026-09-28-1981
+**Closes:** 2026-09-28-1979
+**Title:** A5 built and green on waypoint-names (#465): the stops' names avoid each other
+**Outcome:** Hazel's report: A5 at 99e60dd4d (test first ee9aef133), merged with origin/route-plot-ui at 2c8228480; failed first and revert-checked. Full CI on 2c8228480, run 41590585988 (pull_request): 6262 tests, 0 failures, 24 skipped. The planner read the run's jobs itself: all success except "No debug-only sources on pre-main or main", skipped on this run (it ran green on #449's 796f0aa99); why it skipped is not checked. Test counts and revert checks as Hazel reported, not re-read. The collision itself is phone-only (dispatch 2026-11-02-04 C2); not seen on a phone. #465 stays held for the owner's word.
+**Notes:** Written by the planner by hand. Next free ID -1983.
