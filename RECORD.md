@@ -32029,3 +32029,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The "i" hides while a card covers its corner; route stop names avoid each other; the walker's dot is kept clear of the expanded route card
 **Decision:** the owner: "Hide while a card covers it (Recommended)"; "Stops avoid each other (Recommended)"; "Keep the dot clear of the card (Recommended)". Dispatch 2026-10-30-08 items D28, D29 (on #449); dispatch 2026-11-02-04 item A5 (on #465, after merging route-plot-ui in).
 **Notes:** Written by the planner by hand. Next free ID -1980.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1980
+**Timestamp:** 2026-11-03T05:41:52Z
+**Continues:** 2026-09-28-1979
+**Title:** The "i" hides only where a card still covers it after its existing rise, with the MapLibre logo; the dot's shift and the stop names' collision as Hazel proposed
+**Decision:** the planner's calls on Hazel's verify-first, stated to the owner, who may override: dispatch 2026-10-30-08 item D30, dispatch 2026-11-02-04 item A6.
+**Notes:** Written by the planner by hand. Next free ID -1981.

@@ -26,6 +26,8 @@ Written by Rowan Waymark, 2026-11-02. RECORD -1964, -1965. Starts after dispatch
 
 - **A5** (2026-11-02, -1979). Seen on the S22 (-1978, b4-6e): two route stop names print over each other ("TETEST I"). The owner: "Stops avoid each other (Recommended)", whose option read "Stop names still always beat ordinary waypoint names, but two stop names don't print over each other: the one that would collide hides until you zoom in, like waypoint names. Every stop is still listed by name on the card." Merge origin/route-plot-ui in first (it now holds D27 and later). *To build.*
 
+- **A6** (2026-11-02, -1980, the planner's call). A5 as Hazel proposed: the stop layer's iconAllowOverlap becomes false, so two colliding stops show one and zooming in shows both (the earlier stop wins, inferred); it stays above the waypoint names. An A to B to A route's two identical labels on one point now show once.
+
 ## B. The setting
 - **B1** (2026-11-02, -1964). A setting turns waypoint names off (on by default). Propose where it lives and its words; the planner asks the owner before it ships. It persists across restarts (DataStore, per CLAUDE.md's Room/DataStore rule).
 
