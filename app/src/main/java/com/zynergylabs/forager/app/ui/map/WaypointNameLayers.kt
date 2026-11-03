@@ -146,13 +146,15 @@ internal const val NAME_HALO_DP = 1.5f
  * night, the outline every marker carries), in device pixels as the marker glyphs are, so it draws at its dp size.
  */
 internal class NameLabelPainter(private val typeface: Typeface, private val density: Float, val palette: MapPalette) {
+    // Each dp figure is in the painter's own density, named in full: inside this `apply`, a bare `density` is TextPaint's own
+    // public field (1 by default), which drew every name at a third of its size at 3x (CI run 41556900171).
     private fun paint(colour: Int, halo: Boolean) = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         this.typeface = this@NameLabelPainter.typeface
-        textSize = NAME_TEXT_DP * density
+        textSize = NAME_TEXT_DP * this@NameLabelPainter.density
         color = colour
         if (halo) {
             style = Paint.Style.STROKE
-            strokeWidth = 2 * NAME_HALO_DP * density
+            strokeWidth = 2 * NAME_HALO_DP * this@NameLabelPainter.density
             strokeJoin = Paint.Join.ROUND
         }
     }
