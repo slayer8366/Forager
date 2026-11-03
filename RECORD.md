@@ -32039,3 +32039,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The "i" never rises and hides while any card covers its corner, with the MapLibre logo; the dot's shift and the stop names' collision as Hazel proposed
 **Decision:** the planner's calls on Hazel's verify-first, stated to the owner, who may override: dispatch 2026-10-30-08 item D30, dispatch 2026-11-02-04 item A6. Correction: the planner's D28 reading (keep D4's rise) would not have fixed b4-6e, as Hazel showed; the owner then ruled "Never rises, hides under cards (Recommended)", replacing D4's rise everywhere.
 **Notes:** Written by the planner by hand. Next free ID -1981.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1981
+**Timestamp:** 2026-11-03T06:33:15Z
+**Continues:** 2026-09-28-1980
+**Title:** D28 with D30 and D29 built and green on route-plot-ui (#449); A5 next
+**Outcome:** Hazel's report: D28 with D30 at 5c5c73b8f and 3d897de73 (the portrait test's premise corrected: outside fullscreen the card rests 32 dp up and clears the "i", CI run 41586729551); D29 at 0e2cc8730 and 796f0aa99. Each failed first (11c03c5e9, f6cfdf473) and was revert-checked on throwaway branches. Full CI on 796f0aa99, run 41588265460 (pull_request): 6246 tests, 0 failures, 24 skipped, every job green including lint. The planner read the run's jobs and conclusion itself; the test counts and the revert checks are as Hazel reported, not re-read. Not seen on a phone. #449 stays held for the owner's word. A5 on waypoint-names (#465) is in progress: test first at ee9aef133, failing as expected.
+**Notes:** Written by the planner by hand. Next free ID -1982.
