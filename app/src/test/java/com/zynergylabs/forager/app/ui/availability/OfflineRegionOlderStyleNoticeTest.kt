@@ -93,7 +93,7 @@ class OfflineRegionOlderStyleNoticeTest {
     }
 
     @Test
-    fun `a region downloaded against street-v4 shows no notice: it is today's style under its old address`() {
+    fun `a region downloaded against street-v4 shows no notice, as it is today's style under its old address`() {
         // Dispatch 2026-11-03-05 D1 (RECORD -2000): no false "Older map style" notice once the app loads trail-v4.
         show(region(5, TRAIL_STYLE_V4_STREET_URL))
         composeRule.onNodeWithText("Region 5").assertIsDisplayed()

@@ -41,7 +41,7 @@ class TrailMapFallbackWithoutStandInTest {
     }
 
     @Test
-    fun `a stand-in, while there is one, keeps today's fallback: never from the downloads with a signal`() {
+    fun `a stand-in, while there is one, keeps today's fallback, never from the downloads with a signal`() {
         // RECORD -2003, "Nothing changes today". Topographical stands in here only as some raster other than none.
         val standIn = Basemap.OPEN_TOPO_MAP
         assertFalse(trailMapFailedWithNoStandIn(Basemap.FORAGER_TRAIL, hasDownloadedArea = true, trailMapDraws = false, standIn = standIn))
