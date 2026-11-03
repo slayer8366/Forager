@@ -353,7 +353,8 @@
       "pois__camp": "pois",
       "pois__parking_large": "pois",
       "pois__huts": "pois",
-      "pois__peak": "pois"
+      "pois__peak": "pois",
+      "pois__peak__named": "pois"
     }
   },
   "sources": {
@@ -52070,6 +52071,147 @@
           "Noto Sans Regular"
         ],
         "text-justify": "auto",
+        "text-field": "",
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          12,
+          16,
+          13,
+          19,
+          16
+        ],
+        "text-max-width": 8,
+        "text-offset": [
+          1.1,
+          0
+        ],
+        "text-variable-anchor": [
+          "left",
+          "right"
+        ],
+        "symbol-sort-key": [
+          "match",
+          [
+            "get",
+            "kind"
+          ],
+          [
+            "trailhead",
+            "parking",
+            "camp_site",
+            "picnic_site",
+            "viewpoint",
+            "peak",
+            "toilets",
+            "drinking_water",
+            "ranger_station",
+            "saddle",
+            "shelter",
+            "alpine_hut",
+            "wilderness_hut"
+          ],
+          0,
+          10
+        ]
+      },
+      "paint": {
+        "text-color": "#262626",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.75
+      },
+      "minzoom": 9.5,
+      "maxzoom": 11.5
+    },
+    {
+      "id": "pois__peak__named",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "pois",
+      "filter": [
+        "all",
+        [
+          "in",
+          [
+            "get",
+            "kind"
+          ],
+          [
+            "literal",
+            [
+              "trailhead",
+              "parking",
+              "camp_site",
+              "picnic_site",
+              "viewpoint",
+              "peak",
+              "toilets",
+              "drinking_water",
+              "ranger_station",
+              "saddle",
+              "shelter",
+              "alpine_hut",
+              "wilderness_hut",
+              "restaurant",
+              "fast_food",
+              "cafe",
+              "bar",
+              "supermarket",
+              "convenience",
+              "books",
+              "clothes",
+              "beauty",
+              "electronics"
+            ]
+          ]
+        ],
+        [
+          "in",
+          [
+            "get",
+            "kind"
+          ],
+          [
+            "literal",
+            [
+              "peak"
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "icon-image": [
+          "match",
+          [
+            "get",
+            "kind"
+          ],
+          [
+            "saddle",
+            "shelter",
+            "alpine_hut",
+            "wilderness_hut"
+          ],
+          "townspot",
+          "trailhead",
+          "trailhead_b",
+          "viewpoint",
+          "viewpoint_c",
+          [
+            "get",
+            "kind"
+          ]
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-justify": "auto",
         "text-field": [
           "case",
           [
@@ -53100,7 +53242,7 @@
         "text-halo-color": "#ffffff",
         "text-halo-width": 1.75
       },
-      "minzoom": 9.5
+      "minzoom": 11.5
     },
     {
       "id": "places_subplace",

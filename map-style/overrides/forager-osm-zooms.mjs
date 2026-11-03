@@ -86,6 +86,17 @@ export function split(layers, id, keep, clones) {
   layers.splice(i + 1, 0, ...made);
 }
 
+/** A copy of layer `id` named <id>__<name>, right after it, with the same filter; each is then patched. */
+export function duplicate(layers, id, name, patchClone, patchOrig) {
+  const i = at(layers, id);
+  const l = structuredClone(layers[i]);
+  l.id = `${id}__${name}`;
+  patchClone(l);
+  patchOrig(layers[i]);
+  CLONES[l.id] = CLONES[id] ?? id;
+  layers.splice(i + 1, 0, l);
+}
+
 /** One clone per level the tiles can carry (min_zoom = level + 1), shown from level + 0.5; the original keeps `rest`. */
 export function byLevel(layers, id, levels, rest, cond = null) {
   const and = (c) => (cond === null ? c : ["all", cond, c]);
@@ -258,6 +269,10 @@ export function applyOsmZooms(layers) {
     { name: "peak", minzoom: 9.5, cond: isIn("kind", ["peak"]) }, // row 105: 11
   ]);
   set(layers, "pois", { minzoom: 12 }); // trailhead, ranger station (and saddle, which no tile holds): v4's 12
+  // A peak's icon from 11 but its name and height from 13 (row 106; amenity-points.mss:1396, 1873): the icon alone
+  // from 9.5 to 11.5, then the icon with its text.
+  duplicate(layers, "pois__peak", "named", (named) => { named.minzoom = 11.5; },
+    (icon) => { icon.maxzoom = 11.5; icon.layout["text-field"] = ""; });
 
   set(layers, "address_label", { minzoom: 15.5 }); // row 116: 17
   return layers;
