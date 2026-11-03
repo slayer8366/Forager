@@ -142,6 +142,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
             attributionEndInset = renderMode.attributionEndInset,
             attributionBottomInset = renderMode.attributionBottomInset,
             attributionKeepClear = renderMode.attributionKeepClear,
+            attributionHideUnder = renderMode.attributionHideUnder,
             returnMemory = renderMode.returnMemory,
             backEnabled = renderMode.backEnabled,
             navigationView = renderMode.navigationView,

@@ -24,6 +24,7 @@ internal fun MapAttributionInsets(
     bottomInset: Dp,
     attributionEndInset: Dp,
     attributionKeepClear: Rect?,
+    attributionHideUnder: List<Rect> = emptyList(),
 ) {
     // Part 1 layout fixes, item 5 (Part 1's device check, flag 3; planner message 2026-09-28-98): MapLibre's
     // attribution button ("i") keeps from the bottom what the always-visible caption keeps
