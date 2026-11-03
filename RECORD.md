@@ -32003,3 +32003,19 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** Hazel (Opus), route-plot-ui be61de089 (test first fce564d0c), CI only. Full CI 41579426879: 6238 tests, 0 failures, lint and the release compile green; the D20 test that had been red now passes. Fail first 41578679843: "its width expected:<48.0> but was:<160.66667>". Four reverts bite, each with its own message (word always shown; no content description; icon alone everywhere; no 48 dp size). At 640 x 360, font 2.0 (Robolectric) the room beside the L is about 85 dp and the 48 dp icon fits. Hazel's calls: the icon keeps the pill's 18 dp size in a 48 dp target; where the card isn't measured or the room is under 48 dp, D10's rise stays (no tested window reaches it); the content description is the existing "Re-center".
 - **Not verified:** on a phone (no S22 build of be61de089); TalkBack on a device. The cards covering the L and the pill at that size were seen on the S22 but don't show in Robolectric, so they depend on the phone's real size and insets; not ruled.
 **Notes:** Written by the planner by hand. #465 (waypoint names) is cut from bbf13d270 and doesn't hold this yet. Next free ID -1978.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1978
+**Timestamp:** 2026-11-03T05:28:39Z
+**Continues:** 2026-09-28-1976
+**Closes:** dispatch 2026-11-02-07
+**Title:** On the S22, the credit fade, waypoint names and Re-center beside the icon bar work as ruled; the "i" sits under the navigation card or vanishes under an expanded route card; two stop names can overlap
+**Observed:** Hazel (Opus), docs/audits/2026-11-02-s22-session-7.md on tools/s22-combined 97cfa6410; evidence /home/zynergy-labs/s22-2026-11-02/s7/. Build 1.0.4436 (tools/s22-combined dcea7f027: route-plot-ui bbf13d270 and waypoint-names bc5c309f1; D27 not in it), CI 41578734314, 6378 tests, 1 failure (the then-allowed D20 case). Cleanup: TEST A to F deleted (All 24 to 18), the helper removed, every forager.db and fungi_index.db table equal to d19/pre-install-2; install data equal; backup s7 pulled. The planner looked at b4-nav0.png and b4-6e.png.
+- **B1, the credit:** as ruled, portrait and landscape: gone between 4.9 and 5.7 s, a pan clears it, a basemap switch shows it again, on OSM it stays.
+- **B2, waypoint names:** as ruled: 2 names on 8 crowded pins zoomed out, 5 zoomed in; a fan hides its pins' names; route stops keep names; off hides the others only; legible day and night. Seen: some names partly under the icon column's 80% fill; two stop names overlapping ("TETEST I", b4-6e).
+- **B3, the "i":** bottom right, rising above a route card under its corner. Seen: while navigating it sits under the navigation card's fill (b4-nav0); with the route card expanded it is a 3 x 3 px node at 3 stops and absent at 6 (b4-6e). A card not under its corner never occurred; could not tell.
+- **B4, Re-center:** as ruled beside the L at 1, 3 and 6 stops expanded, 5 of 5 real touches each. Seen: in the navigation view itself the walker's dot sits under the expanded card's left part.
+- **End state:** Forager 4436 in front on Maps, font 1.0, auto-rotate on, no size override, TEST A to K deleted; map.waypoint_names now stored true (was unset; on is the default); YouTube Music no longer in front. Not run: the routing key read (blocked), a backup restore test.
+**Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1979.
