@@ -32199,3 +32199,19 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** S22 session 9: D32 on the phone
 **Intent:** the owner: "Run the S22 session for D32". Dispatch 2026-11-03-04, Hazel (Opus); pre-main d88db1799 merged into tools/s22-combined and installed. The planner read the S22 at 05:22 PST (default display, font 1.0, auto-rotate on, animation 1.0, 4451, no Forager service). The audit is pushed before the planned history rewrite (-1994).
 **Notes:** Written by the planner by hand. Next free ID -1997.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1997
+**Timestamp:** 2026-11-03T17:24:58Z
+**Continues:** 2026-09-28-1994
+**Title:** The rewrite's term list: figures in place of the style's name, the "OSM" button becomes "Street", citations removed
+**Decision:** Juniper drafted Forager's term list (local, outside every repository: /home/zynergy-labs/Zynergy/osm-rewrite/forager-terms-draft.md and forager-replace-text.txt, 87 rules; all 2,229 refs scanned: 20 commit messages, 385 distinct lines, 5 path and 3 branch renames). The owner on its four open points:
+- The zoom documents (the 11-02 comparison, patch 0008, forager-osm-zooms.mjs, two prompts, RECORD -1963 to -1967) and, on the follow-up, "Everywhere it's vague (Recommended)": "Study OSM's metrics and use the metrics themselves, not vague terms like OSM. Change the map button name and all related code". So every comparison with the reference style states the figure itself (zoom, colour, width), and where no figure is found, "by our choice", naming no source.
+- The CC0 buildings credit (forager-street.mjs:414-418): "Reword to the reference style (Recommended)".
+- Identifying citations (stylesheet paths, versions, repository path, a quoted commit title): "Remove them (Recommended)".
+- The records of this ruling (-1985, -1991, -1994, commit 320aae32b's message): "Swap them too (Recommended)".
+- The button: "If it's OSM then that's fine. But if our Trail Maps are named OSM or reference it in code, then it needs to change. The OSM button should be renamed to \"Street\" to differentiate itself still. OSM credits can still apply". On scope: "Both (Recommended)" (the app now, and every past commit in the rewrite).
+The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, OPENSTREETMAP, tile URLs) stays; code where our Trail Map is named after or references the style changes; the button's label "OSM" becomes "Street", in the app and in history; credits stay. The planner's call, which the owner may override: the internal "street" names of our Trail Map that users never see and live installs depend on (MapMode.TRAIL's storageKey "street", the Worker's /style/street-vN.json URLs) are not renamed, because changing them would reset users' saved map choice and break shipped builds; they are noted as a clash with the new button name. The figures need the reference stylesheet's source, which this session's GitHub access does not reach (add_repo refused read access for that repository); asked of Aspen and the owner. S22 session 9 (-1996) stopped at A2 when the owner unplugged the phone: merged c2fb6b4e3, CI 41644020391 green (6390 tests, 0 failures), build 4465 not installed, B1 not run, no setting changed; its partial audit stays local until after the rewrite.
+**Notes:** Written by the planner by hand. Next free ID -1998.
