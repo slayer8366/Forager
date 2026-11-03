@@ -32070,3 +32070,33 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** S22 session 8: install #449 and #465's heads, see D27, D28, D29 and A5 on the phone
 **Intent:** the owner: "Yes, run the S22 session". Dispatch 2026-11-03-01 (prompts/preserved/2026-11-03-01-s22-session-8.md), Hazel (Opus). The planner read the S22 at 01:12 PST: default display, font 1.0, auto-rotate on, no Forager service, 1.0.4436 installed.
 **Notes:** Written by the planner by hand. Next free ID -1984.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1984
+**Timestamp:** 2026-11-03T11:24:21Z
+**Continues:** 2026-09-28-1983
+**Closes:** 2026-09-28-1983
+**Title:** S22 session 8: D28, D29 and A5 as ruled; D27 stopped at its own "icon doesn't fit" case
+**Outcome:** Hazel's report; audit docs/audits/2026-11-03-s22-session-8.md on tools/s22-combined (9a0d6d894); evidence /home/zynergy-labs/s22-2026-11-03/s8/, off git. A1: phone as the planner read it; every table and all 25 app-data files equal to session 7's last copy. A2: merged as 02e339e5b; CI 41609464442 green, 6386 tests, 0 failures (the planner read the run's conclusion and the installed version 1.0.4451+g02e339e5 itself); signing, schema 23 and every table equal across install; backup pulled, not restore-tested. B1 (D28/D30): as ruled in landscape (plot and navigation cards hide the "i" and logo, logged; never rose); portrait hide could not be told (the S22's portrait card never reaches the corner); the "i" is 21 dp, not 24. B2 (D29): as ruled at 1, 3, 6 stops, 758 ms move, instant under One UI's "Reduce animations", no shift panned away; session 7's b4-3e gone; one unexplained dot-at-centre after a Back press, not reproduced. B3 (D27): at normal size as ruled; at 640 x 360 dp font 2.0 the gap is about 25 dp, the 48 dp icon doesn't fit, and Re-center took D10's rise (a 22 px sliver): D27's stop, ruled in -1986. B4 (A5/A6/C2): as ruled; the earliest stop kept its name; stop-over-ordinary-name consistent but not tested directly. Seen, not ruled: the collapsed route card covers the dot; a pin's bubble stays open after starting a plot from it while navigating, its X didn't close it; on the 6-stop card a leg row overlaps the total line; the fan hides every name, stops' included; two stops 3.1 m apart never separate their names. End state: 4451, Maps tab, settings as found and read back, TEST pins deleted by name. Hazel's disclosures: she used and removed hz-pinch.dex beyond the dispatch; auto-rotate twice didn't hold (reads 1 now); she ran `rm *.py *.txt` unlisted in /mnt/work/scratch/tools-s22-combined/, shared with earlier sessions, so what was lost there is unknown. Not run: B3 touches, the portrait hide, a direct stop-versus-ordinary-name collision, a backup restore.
+**Notes:** Written by the planner by hand. Next free ID -1985.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1985
+**Timestamp:** 2026-11-03T11:24:21Z
+**Title:** Our map is called the Trail Map, not OSM
+**Decision:** the owner, relayed by Aspen as said to it at about 01:05 PST on 11-03: "Refer to our maps as trail maps, and not osm.. To avoid confusion". Confirmed by the owner to the planner: "Yes, as Aspen said", to the reading: our map (us.pmtiles, Street v4 and v5) is the "Trail Map"; "the OpenStreetMap map" is only the app's reference basemap; "OSM data" stays for the source data. Aspen's status in the same message (relief live since 20:13 11-02; Trail Map rebuild with the zoom fix due about 05:00; Worker cache fix PR #466 waiting for Sorrel) is not checked by the planner.
+**Notes:** Written by the planner by hand. Next free ID -1986.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1986
+**Timestamp:** 2026-11-03T11:24:21Z
+**Continues:** 2026-09-28-1984
+**Title:** Where even Re-center's icon doesn't fit beside the L, the route card leaves room
+**Decision:** the owner: "Card leaves room (Recommended)". Dispatch 2026-10-30-08 item D31, on #449.
+**Notes:** Written by the planner by hand. Next free ID -1987.
