@@ -32373,3 +32373,21 @@ Each test failed first or was bitten by one of 7 revert checks. CI: main suite 6
 **Title:** #470 merged into pre-main; #471 (trail and street codes) opened
 **Outcome:** the owner: "Yes, merge both and release the Worker". Before merging, the planner backed up pre-main, main and both branches to forager-repo-backups/pre-main-main-before-rcf-tsc-20261103T212324Z.bundle (verified), and read both diffs. Neither adds an @Ignore. #470's 10 removed assertions are D38/D34/D37's ruled changes, named in its commits. #471's 193 removed assertions are mostly renames and moves into the street package. A normalised match left 66 without a textual counterpart; sampled, they are renamed calls such as drawsOpenStreetMapRaster and OSM_STANDARD, not read one by one. #470's CI 41721370801: every job green after one re-run of the release job. Its first attempt ran out of Java heap in bundletool at :app:packageReleaseBundle; the same tree passed that job in 41705858539. A comment on the PR says so. #470 merged as 0d139a424. #471 opened from trail-and-street-codes; its pull_request CI tests it on top of #470. Then comes the worker/* release to main.
 **Notes:** Written by the planner by hand. Next free ID -2013.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-2013
+**Timestamp:** 2026-11-03T22:20:58Z
+**Title:** #471 merged; the Worker release #472 opened; Aspen relays the owner's approval of the zoom work, "Update v4 in place"
+**Observed:** #471 merged into pre-main as 671b669bf after CI 41725808133 was green on every job, the street-removable job included. #472 (worker/trail-v4 into main, d54cbc239) is open: folder only, check-release.sh reports "worker release ok", CACHE_VERSION 3. Aspen's account, not yet confirmed to the planner: the owner said to Aspen at about 14:2x PST, "I approve the zoom. Go ahead and merge when ready", and through Aspen's question tool chose "Update v4 in place" over a new v5/trail-v5. Aspen's plan:
+- a Forager PR to pre-main regenerating street-v4 and trail-v4 (and offline.json) with the approved first zooms, CACHE_VERSION 3 to 4;
+- a folder-only Worker release after it;
+- a map-build PR into pi-build.
+These merges go before the real rewrite run. The planner's conditions:
+- the sha checks frozen by D2 change for v4 only, named in the PR;
+- street-v4 and trail-v4 differ only in name;
+- what an old v4 download shows is stated, with a stop if anything breaks;
+- full CI green;
+- #472 first.
+**Notes:** Written by the planner by hand. Next free ID -2014.
