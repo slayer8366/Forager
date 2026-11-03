@@ -32439,3 +32439,16 @@ What stays ready:
 - the backups.
 After the release there is one fresh run on the new tips, then the review, the rewrite-check CI and the force-push, on the planner's yes for Forager. Merges continue as normal until then.
 **Notes:** Written by the planner by hand. Next free ID -2017.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2017
+**Timestamp:** 2026-11-03T22:48:48Z
+**Continues:** 2026-09-28-2015, 2026-09-28-2011
+**Title:** S22 session 10: pre-main's build on the phone (trail and street codes, trail-v4, the route card fixes)
+**Intent:** The owner: "S22 is plugged in". Hazel (Opus), dispatch 2026-11-03-06, given in her prompt to save phone time and recorded here.
+- Build: the APK from CI run 41725808133, already built (pre-main's tree with #470 and #471), so no build runs during phone time (-1998). If the signer differs, stop.
+- Checks: the saved Trail Map choice survives the migration; the chips read Trail, Topo, Street; the Trail Map loads trail-v4; no false "Older map style" notice; Hazel's route-card-followups checklist at 640 x 360 dp, font 2.0; and the normal window at font 1.0.
+- Audit: docs/audits/2026-11-03-s22-session-10.md on tools/s22-combined.
+**Notes:** Written by the planner by hand. Next free ID -2018.
