@@ -12,7 +12,7 @@ import com.zynergylabs.forager.app.domain.NO_SIGNAL_SWITCH_DELAY_MS
 import com.zynergylabs.forager.app.domain.NetworkSignal
 import com.zynergylabs.forager.app.domain.SIGNAL_RETURN_SWITCH_DELAY_MS
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
-import com.zynergylabs.forager.app.map.STREET_STYLE_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -45,7 +45,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
-class OwnStreetFallbackRetryTest {
+class OwnTrailFallbackRetryTest {
     private val composeRule = createComposeRule()
 
     private val declareHostActivity = object : ExternalResource() {
@@ -58,9 +58,9 @@ class OwnStreetFallbackRetryTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private val trailRequest = MapStyleRequest(MapStyleSource.Uri(STREET_STYLE_URL), useOfflineTiles = false)
+    private val trailRequest = MapStyleRequest(MapStyleSource.Uri(TRAIL_STYLE_URL), useOfflineTiles = false)
     private val fallbackLine =
-        "Own Street style failed to load (Failed to load style: offline); drawing OpenStreetMap's Street until the connection returns or the app restarts."
+        "Trail Map style failed to load (Failed to load style: offline); drawing the Street map, OpenStreetMap's raster, until the connection returns or the app restarts."
     private val retryLine = "Connection back: trying Forager Trail Map again."
 
     private class FakeSignal : NetworkSignal {
@@ -71,28 +71,28 @@ class OwnStreetFallbackRetryTest {
     fun `a fallback taken with no signal is retried once the signal has held 30 s, and falls back again if Trail Map still fails`() = runTest {
         val signal = FakeSignal()
         val lines = mutableListOf<String>()
-        val fallback = OwnStreetFallback(log = { lines += it })
+        val fallback = OwnTrailFallback(log = { lines += it })
         val noSignal = noSignalState(signal, backgroundScope, fallback)
 
         signal.validated.emit(false)
         runCurrent()
         assertTrue("offline at start: no signal at once", noSignal.value)
         assertTrue("Trail Map's style fails offline and falls back", fallback.onStyleLoadFailed(trailRequest, "Failed to load style: offline"))
-        assertFalse(fallback.ownStreet())
+        assertFalse(fallback.ownTrail())
 
         signal.validated.emit(true)
         advanceTimeBy(SIGNAL_RETURN_SWITCH_DELAY_MS - 1)
         runCurrent()
-        assertFalse("still OpenStreetMap at 29.999 s", fallback.ownStreet())
+        assertFalse("still OpenStreetMap at 29.999 s", fallback.ownTrail())
         advanceTimeBy(1)
         runCurrent()
         assertFalse("signal held 30 s: the no-signal state has ended", noSignal.value)
-        assertTrue("Trail Map tried again at 30 s", fallback.ownStreet())
+        assertTrue("Trail Map tried again at 30 s", fallback.ownTrail())
         assertEquals(listOf(fallbackLine, retryLine), lines)
 
         // Trail Map still cannot load (the Worker down): it quietly falls back again, and logs it.
         assertTrue("a failure after the retry falls back again", fallback.onStyleLoadFailed(trailRequest, "Failed to load style: offline"))
-        assertFalse(fallback.ownStreet())
+        assertFalse(fallback.ownTrail())
         assertEquals(listOf(fallbackLine, retryLine, fallbackLine), lines)
     }
 
@@ -100,7 +100,7 @@ class OwnStreetFallbackRetryTest {
     fun `a fallback taken while the signal holds stays through a drop too short to be no signal`() = runTest {
         val signal = FakeSignal()
         val lines = mutableListOf<String>()
-        val fallback = OwnStreetFallback(log = { lines += it })
+        val fallback = OwnTrailFallback(log = { lines += it })
         val noSignal = noSignalState(signal, backgroundScope, fallback)
 
         signal.validated.emit(true)
@@ -117,7 +117,7 @@ class OwnStreetFallbackRetryTest {
         runCurrent()
 
         assertFalse("never no signal", noSignal.value)
-        assertFalse("still OpenStreetMap: the no-signal state never ended, so nothing is retried", fallback.ownStreet())
+        assertFalse("still OpenStreetMap: the no-signal state never ended, so nothing is retried", fallback.ownTrail())
         assertEquals("one fallback line, no retry line", listOf(fallbackLine), lines)
     }
 
@@ -126,7 +126,7 @@ class OwnStreetFallbackRetryTest {
         val scope = TestScope(StandardTestDispatcher())
         try {
             val signal = FakeSignal()
-            val fallback = OwnStreetFallback(log = {})
+            val fallback = OwnTrailFallback(log = {})
             val noSignal = noSignalState(signal, scope, fallback)
             scope.emitAndRun(signal, validated = false)
 
@@ -142,11 +142,11 @@ class OwnStreetFallbackRetryTest {
                     normalSelected = MaterialTheme.colorScheme.secondary
                     grey = MaterialTheme.colorScheme.outlineVariant
                     // Read in composition, as MapStyleReload, SightingsMapLayout and MapNavigationView read it.
-                    val ownStreet = fallback.ownStreet()
-                    request = requestedMapStyle(Basemap.FORAGER_TRAIL, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownStreet = ownStreet)
-                    credits = mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownStreet = ownStreet)
-                    maxZoom = operatingMaxZoom(Basemap.FORAGER_TRAIL, ownStreet)
-                    navigationZoom = navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownStreet = ownStreet)
+                    val ownTrail = fallback.ownTrail()
+                    request = requestedMapStyle(Basemap.FORAGER_TRAIL, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownTrail = ownTrail)
+                    credits = mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = ownTrail)
+                    maxZoom = operatingMaxZoom(Basemap.FORAGER_TRAIL, ownTrail)
+                    navigationZoom = navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownTrail = ownTrail)
                     MapModeChipRow(mapMode = MapMode.TRAIL, onMapModeSelected = {}, fallback = fallback)
                 }
             }
@@ -156,8 +156,8 @@ class OwnStreetFallbackRetryTest {
             composeRule.runOnIdle { fallback.onStyleLoadFailed(trailRequest, "Failed to load style: offline") }
             composeRule.waitForIdle()
             val fallenBack = request
-            assertEquals("fallen back: OpenStreetMap's credit", listOf(Basemap.OSM_STANDARD.attribution), credits)
-            assertEquals("fallen back: OpenStreetMap's limit", Basemap.OSM_STANDARD.maxZoom, maxZoom)
+            assertEquals("fallen back: OpenStreetMap's credit", listOf(Basemap.STREET.attribution), credits)
+            assertEquals("fallen back: OpenStreetMap's limit", Basemap.STREET.maxZoom, maxZoom)
             assertEquals("fallen back: the Trail chip grey", grey, recordedFill(MapMode.TRAIL))
             assertTrue("fallen back: the style effect reloads", needsStyleReload(applied = trailMap, requested = fallenBack!!))
 
@@ -166,7 +166,7 @@ class OwnStreetFallbackRetryTest {
             scope.runCurrent()
             composeRule.waitForIdle()
 
-            assertTrue("signal back 30 s: Trail Map draws", fallback.ownStreet())
+            assertTrue("signal back 30 s: Trail Map draws", fallback.ownTrail())
             assertEquals("Trail Map's credit again", listOf(OFFLINE_STYLE_ATTRIBUTION), credits)
             assertEquals("Trail Map's limit again", Basemap.FORAGER_TRAIL.maxZoom, maxZoom)
             assertEquals(18.0, navigationZoom, 0.0)

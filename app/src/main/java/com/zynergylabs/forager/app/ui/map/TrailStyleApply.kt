@@ -16,14 +16,14 @@ import org.maplibre.android.style.sources.TileSet
 // now lives in MapStyleReload.kt, and only `private` became `internal` so it can call them.
 
 /**
- * The own Street style with Topographical over it at night ([MapStyleSource.StreetWithTopoOver]; dispatch 2026-10-18-05
+ * The own Street style with Topographical over it at night ([MapStyleSource.TrailWithTopoOver]; dispatch 2026-10-18-05
  * Part 2): the Street style by URL, then the topo raster added as the top layer, drawn from the source's minimum zoom
  * and fading in, with the V1 night paint the raster styles use ([NIGHT_RASTER_PAINT]'s three properties). The SDK
  * calls were checked with `javap` against the pinned `13.5.0` artifact: `Style.Builder.fromUri`/`withSource`/
  * `withLayer`, `RasterSource(String, TileSet, int)`, `TileSet(String, String...)` with `setMaxZoom` and
  * `setAttribution`, `RasterLayer(String, String)` and the raster `PropertyFactory` setters.
  */
-internal fun streetWithTopoOverBuilder(source: MapStyleSource.StreetWithTopoOver): Style.Builder {
+internal fun trailWithTopoOverBuilder(source: MapStyleSource.TrailWithTopoOver): Style.Builder {
     val tiles = TileSet("2.2.0", source.topo.tileUrlTemplate).apply {
         setMaxZoom(source.topo.maxZoom.toFloat())
         attribution = source.topo.fullAttribution
@@ -41,7 +41,7 @@ internal fun streetWithTopoOverBuilder(source: MapStyleSource.StreetWithTopoOver
             ),
         ),
     ).apply { minZoom = source.topoMinZoom.toFloat() }
-    return Style.Builder().fromUri(source.streetUri)
+    return Style.Builder().fromUri(source.trailUri)
         .withSource(RasterSource(RASTER_SOURCE_ID, tiles, 256))
         .withLayer(layer)
 }
@@ -51,7 +51,7 @@ internal fun streetWithTopoOverBuilder(source: MapStyleSource.StreetWithTopoOver
  * (-1291: "The Street labels must not show through that composition"). Run before the overlays are added, so only
  * the Street style's own symbol layers are touched; the app's markers keep every zoom.
  */
-internal fun hideStreetLabelsUnderTopo(style: Style, maxZoom: Double) {
+internal fun hideTrailLabelsUnderTopo(style: Style, maxZoom: Double) {
     var hidden = 0
     for (layer in style.layers) {
         if (layer is SymbolLayer) {
@@ -59,14 +59,14 @@ internal fun hideStreetLabelsUnderTopo(style: Style, maxZoom: Double) {
             hidden++
         }
     }
-    Log.i(SIGHTINGS_MAP_TAG, "Topo night over Street: $hidden Street label layers end at zoom $maxZoom.")
+    Log.i(SIGHTINGS_MAP_TAG, "Topo night over Trail: $hidden Trail label layers end at zoom $maxZoom.")
 }
 
 /**
  * Street v4's hill shading at night (dispatch 2026-11-01-coder-11): every hillshade layer takes [night]'s colours. MapLibre
  * 13.5.0 takes shadow and highlight as colour arrays (one per light, for multidirectional shading), accent as one colour.
  */
-internal fun applyStreetHillshadeNight(style: Style, night: HillshadeNight) {
+internal fun applyTrailHillshadeNight(style: Style, night: HillshadeNight) {
     var set = 0
     for (layer in style.layers) {
         if (layer is HillshadeLayer) {
@@ -78,7 +78,7 @@ internal fun applyStreetHillshadeNight(style: Style, night: HillshadeNight) {
             set++
         }
     }
-    if (set > 0) Log.i(SIGHTINGS_MAP_TAG, "Street night: $set hillshade layer(s) take their night colours.")
+    if (set > 0) Log.i(SIGHTINGS_MAP_TAG, "Trail night: $set hillshade layer(s) take their night colours.")
 }
 
 /**

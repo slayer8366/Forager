@@ -137,7 +137,7 @@ class MapLibreOfflineMapRepository(
         onPauseChanged: (paused: Boolean) -> Unit,
     ): Result<OfflineRegionSummary> = runCatchingCancellable {
         val definition = OfflineTilePyramidRegionDefinition(
-            // OFFLINE_STYLE_URL, unless the own Street is on (StreetStyle.kt): then the Street style.
+            // OFFLINE_STYLE_URL, unless the own Street is on (TrailStyle.kt): then the Street style.
             offlineDownloadStyleUrl(),
             region.toLatLngBounds(),
             OfflineMapRepository.MIN_ZOOM,

@@ -85,7 +85,7 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        assertEquals(MapMode.OPENSTREETMAP, vm.uiState.value.mapMode)
+        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
         assertEquals(emptyList<String>(), preferences.writes)
     }
 
@@ -95,10 +95,10 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        vm.onMapModeSelected(MapMode.OPENSTREETMAP)
+        vm.onMapModeSelected(MapMode.STREET)
         advanceUntilIdle()
 
-        assertEquals(MapMode.OPENSTREETMAP, vm.uiState.value.mapMode)
+        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
         assertEquals(listOf("openstreetmap"), preferences.writes)
     }
 

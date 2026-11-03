@@ -94,12 +94,12 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
  * the same colour from the style's design file. The day water colour is unchanged. Only the own Street takes it: the
  * offline style keeps its inverted water.
  */
-internal const val STREET_NIGHT_WATER = "#163f4b"
+internal const val TRAIL_NIGHT_WATER = "#163f4b"
 
 /** The vector source layer the own Street's water is drawn from (Protomaps' `water`). */
 internal const val WATER_SOURCE_LAYER = "water"
 
-/** The colour properties [streetNightRecolourOf] gives [STREET_NIGHT_WATER]: fills and lines, never label text. */
+/** The colour properties [trailNightRecolourOf] gives [TRAIL_NIGHT_WATER]: fills and lines, never label text. */
 private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", "line-color")
 
 /**
@@ -110,7 +110,7 @@ private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", 
  * and ground, except where the design gives a layer its own band on one ground (`NIGHT_LAYER_BANDS`: informal paths on
  * the night forest).
  */
-internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
+internal val TRAIL_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
     "roads_minor_casing" to "#c4bcae", // minor road edge, 3.21:1 on the night forest
     "roads_bridges_minor_casing" to "#c4bcae",
     "roads_minor_service_casing" to "#b3ab9d", // service road edge, 2.65:1
@@ -135,35 +135,35 @@ internal val STREET_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
  * a fill layer's `fill-color` draws one of these day colours, as a literal or inside an expression, night draws this
  * colour instead of the inversion. RGB, no alpha; a colour matches only at full opacity.
  * - Forest `#a9d39b` to `#446835`, the owner's pick over the inversion `#436d35`. It ships with the tree glyph, which is
- *   1.42:1 on it and 1.34:1 on the inversion, below its 1.35 floor (`STREET_NIGHT_PATTERN_COLOURS`).
+ *   1.42:1 on it and 1.34:1 on the inversion, below its 1.35 floor (`TRAIL_NIGHT_PATTERN_COLOURS`).
  * - Wetland `#c5e3d6` to `#2a4f47`; the inversion, `#1b392c`, sat on the night ground.
  * - Bare rock `#c9c4bb` to `#6e7580` (the owner: "Rock night color ... good"); the inversion would be `#433e35`.
  *
  * The design's copy is `NIGHT_FILL_COLOURS` in `map-style/overrides/forager-character.mjs`, recorded in the style as
  * `forager:night-fills`; `NightExceptionsTest` holds the two equal.
  */
-internal val STREET_NIGHT_FILL_COLOURS: Map<Int, Int> = mapOf(
+internal val TRAIL_NIGHT_FILL_COLOURS: Map<Int, Int> = mapOf(
     0xA9D39B to 0x446835,
     0xC5E3D6 to 0x2A4F47,
     0xC9C4BB to 0x6E7580,
 )
 
 /**
- * The own Street's night for one colour property: [STREET_NIGHT_WATER] for a water fill or line (a layer drawn from
- * [sourceLayer] `water`), a [StreetNightTables.layerColours] colour for those layers' lines, a
- * [StreetNightTables.lineColours] colour for the line colours it names on its layers, a [StreetNightTables.fillColours]
+ * The own Street's night for one colour property: [TRAIL_NIGHT_WATER] for a water fill or line (a layer drawn from
+ * [sourceLayer] `water`), a [TrailNightTables.layerColours] colour for those layers' lines, a
+ * [TrailNightTables.lineColours] colour for the line colours it names on its layers, a [TrailNightTables.fillColours]
  * colour for the fill colours it names (in both, the rest of the same expression inverted), and
  * [offlineNightRecolourOf]'s pure inversion for everything else, labels included. [tables] are the loaded Trail Map
- * version's ([streetNightTablesFor]): v1 to v3's, [STREET_NIGHT_LAYER_COLOURS] and [STREET_NIGHT_FILL_COLOURS], unless
+ * version's ([trailNightTablesFor]): v1 to v3's, [TRAIL_NIGHT_LAYER_COLOURS] and [TRAIL_NIGHT_FILL_COLOURS], unless
  * it is v4.
  */
-internal fun streetNightRecolourOf(
+internal fun trailNightRecolourOf(
     property: LayerColourProperty,
     sourceLayer: String?,
-    tables: StreetNightTables = STREET_NIGHT_TABLES,
+    tables: TrailNightTables = TRAIL_NIGHT_TABLES,
 ): NightRecolour {
     if (sourceLayer == WATER_SOURCE_LAYER && property.property in WATER_COLOUR_PROPERTIES) {
-        return NightRecolour.Recoloured(property, StyleColourValue.Literal(STREET_NIGHT_WATER))
+        return NightRecolour.Recoloured(property, StyleColourValue.Literal(TRAIL_NIGHT_WATER))
     }
     val layerNight = tables.layerColours[property.layerId]
     if (layerNight != null && property.property == "line-color") {

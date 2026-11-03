@@ -272,7 +272,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         touchLayersRow()
         composeRule.onNodeWithText("OSM").performTouchInput { click() }
         awaitIdle("OSM to be stored") { stored(firstRepository) == "openstreetmap" }
-        assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
+        assertEquals(Basemap.STREET, released().last().basemap)
         release(firstScope)
 
         val (secondRepository, _) = launchRepository()
@@ -283,7 +283,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         }
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
 
-        assertEquals("after the restart, OSM", listOf(Basemap.OSM_STANDARD), released().map { it.basemap }.distinct())
+        assertEquals("after the restart, OSM", listOf(Basemap.STREET), released().map { it.basemap }.distinct())
         composeRule.onNode(hasContentDescription("Layers: OSM map.", substring = true)).assertExists()
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }

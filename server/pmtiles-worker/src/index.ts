@@ -7,7 +7,7 @@
 // reference implementation this project's chosen stack (Cloudflare R2 + Workers) is based on. The
 // only changes from upstream: importing the inlined ./shared helpers instead of a sibling
 // monorepo package, renamed identifiers to match this project's naming conventions, the
-// z>14 overflow path below (not present upstream at all), the Street style, font and sprite
+// z>14 overflow path below (not present upstream at all), the Trail Map style, font and sprite
 // routes (dispatch 2026-10-18-05 Part 2, also not upstream), and the world fill (dispatch 2026-10-22-01 Part A).
 import {
   Compression,
@@ -22,10 +22,10 @@ import {
 } from "pmtiles";
 import { pmtilesPath, tilePath } from "./shared";
 import offlineStyle from "./offline-style.json";
-import streetStyle from "./street-style-v1.json";
-import streetStyleV2 from "./street-style-v2.json";
-import streetStyleV3 from "./street-style-v3.json";
-import streetStyleV4 from "./street-style-v4.json";
+import trailStyleV1 from "./street-style-v1.json";
+import trailStyleV2 from "./street-style-v2.json";
+import trailStyleV3 from "./street-style-v3.json";
+import trailStyleV4 from "./street-style-v4.json";
 import { type RoutingEnv, routingResponse } from "./routing/handler.ts";
 
 // The route-data fields (ROUTING_APP_KEY, the two limiters) come from RoutingEnv (src/routing/handler.ts).
@@ -286,17 +286,17 @@ async function overflowTileResponse(
 const ORIGIN_HEADER = "X-Forager-Origin";
 
 // --- The world fill (dispatch 2026-10-22-01 Part A; RECORD -1554). us.pmtiles stops at about 16°N (its TileJSON
-// bounds read 15.92° south on 2026-10-22), so south of that the Street map drew grey. Where the Street archive has
+// bounds read 15.92° south on 2026-10-22), so south of that Trail Map drew grey. Where the Trail Map archive has
 // no tile at z0-8, the tile is read from a second R2 archive, world-south.pmtiles (the Protomaps planet to z8,
 // uploaded by the Pi planner), and served labelled with its own origin. Nothing else changes: the TileJSON, the
 // z15 overflow, the style routes and every other archive name answer as before.
 //
-// Which archive is "the Street archive": the Worker has no setting naming it. The name lives in the bundled Street
+// Which archive is "the Trail Map archive": the Worker has no setting naming it. The name lives in the bundled Trail Map
 // style's source URL (…/us.json), so it is read from there rather than written a second time here; the offline
 // style points at the same archive. A request under any other name never reaches the world archive.
 //
 // If world-south.pmtiles is not on R2, the tile answers 204 exactly as before, and a warning is logged. Other
-// read errors are not caught here, as with the Street archive's own reads below: a 500 is not cached, a 204 is
+// read errors are not caught here, as with the Trail Map archive's own reads below: a 500 is not cached, a 204 is
 // cached for a day.
 // -------------------------------------------------------------------------------------------------
 
@@ -317,59 +317,59 @@ export function archiveNameFromTileJsonUrl(url: string): string {
 }
 
 /**
- * The TileJSON [bounds] for the Street archive while the world fill can answer (dispatch 2026-10-22-01 Amendment 3).
+ * The TileJSON [bounds] for the Trail Map archive while the world fill can answer (dispatch 2026-10-22-01 Amendment 3).
  * MapLibre Native never requests a tile outside a source's TileJSON `bounds` (`tile_pyramid.cpp:178-188` at
  * android-v13.5.0, the app's pinned version), and us.pmtiles's header stops at about 15.92°N, so without this the app
  * never asks for a tile the fill could serve. The south bound becomes the world archive's own (its header's minLat,
- * -85.05 on the uploaded file); west, east and north stay as the Street archive's header gives them.
+ * -85.05 on the uploaded file); west, east and north stay as the Trail Map archive's header gives them.
  *
  * Only while the world archive is on R2: presence is one R2 `head` of its key at TileJSON time (the TileJSON is then
  * cached at the edge for a day, so this is not per tile). Absent, or a tile type the fill would refuse, the bounds are
  * returned unchanged and a warning is logged.
  */
-async function worldFillBounds(env: Env, bounds: number[], streetTileType: TileType): Promise<number[]> {
+async function worldFillBounds(env: Env, bounds: number[], trailTileType: TileType): Promise<number[]> {
   const key = pmtilesPath(WORLD_FILL_ARCHIVE, env.PMTILES_PATH);
   try {
     if (!(await env.BUCKET.head(key))) {
-      console.warn(`World fill bounds skipped: ${key} is not on R2; the TileJSON keeps the Street archive's bounds`);
+      console.warn(`World fill bounds skipped: ${key} is not on R2; the TileJSON keeps the Trail Map archive's bounds`);
       return bounds;
     }
     const header = await new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress).getHeader();
-    if (header.tileType !== streetTileType) {
-      console.warn(`World fill bounds skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}; the TileJSON keeps the Street archive's bounds`);
+    if (header.tileType !== trailTileType) {
+      console.warn(`World fill bounds skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}; the TileJSON keeps the Trail Map archive's bounds`);
       return bounds;
     }
     return [bounds[0], Math.min(bounds[1], header.minLat), bounds[2], bounds[3]];
   } catch (e) {
     if (e instanceof KeyNotFoundError) {
-      console.warn(`World fill bounds skipped: ${key} vanished during the read; the TileJSON keeps the Street archive's bounds`);
+      console.warn(`World fill bounds skipped: ${key} vanished during the read; the TileJSON keeps the Trail Map archive's bounds`);
       return bounds;
     }
     throw e;
   }
 }
 
-/** The Street archive: the one the bundled Street style draws from. */
-export const STREET_ARCHIVE_NAME = archiveNameFromTileJsonUrl(streetStyle.sources.protomaps.url);
+/** The Trail Map archive: the one the bundled Trail Map style draws from. */
+export const TRAIL_ARCHIVE_NAME = archiveNameFromTileJsonUrl(trailStyleV1.sources.protomaps.url);
 
 /**
  * The world archive's tile at [tile], or undefined when the fill does not apply or has no tile: above
- * [WORLD_FILL_MAX_ZOOM], outside the archive's own zoom range, a tile type that differs from the Street archive's,
+ * [WORLD_FILL_MAX_ZOOM], outside the archive's own zoom range, a tile type that differs from the Trail Map archive's,
  * or the archive missing from R2. Each of the last two is logged, since each means the deploy is not as intended.
  */
 async function worldFillTile(
   env: Env,
   tile: [number, number, number],
-  streetTileType: TileType
+  trailTileType: TileType
 ): Promise<ArrayBuffer | undefined> {
   const [z, x, y] = tile;
   if (z > WORLD_FILL_MAX_ZOOM) return undefined;
   const world = new PMTiles(new R2Source(env, WORLD_FILL_ARCHIVE), CACHE, nativeDecompress);
   try {
     const header = await world.getHeader();
-    if (header.tileType !== streetTileType) {
+    if (header.tileType !== trailTileType) {
       console.warn(
-        `World fill skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}, ${STREET_ARCHIVE_NAME} has ${streetTileType}; answering 204`
+        `World fill skipped: ${WORLD_FILL_ARCHIVE} has tile type ${header.tileType}, ${TRAIL_ARCHIVE_NAME} has ${trailTileType}; answering 204`
       );
       return undefined;
     }
@@ -384,7 +384,7 @@ async function worldFillTile(
   }
 }
 
-// --- The vector Street style, its fonts and its icons (dispatch 2026-10-18-05 Part 2).
+// --- The vector Trail Map style (once called Street), its fonts and its icons (dispatch 2026-10-18-05 Part 2).
 //
 // /style/street-v1.json is map-style/forager-street-v1.json, bundled in like offline-style.json so it needs
 // no upload. The "v1" is load-bearing: MapLibre's offline store keys a pack by the style URL it was
@@ -401,7 +401,7 @@ async function worldFillTile(
 // generic /{name}/{z}/{x}/{y}.mvt path below, with no code of its own; until that archive is on R2 each of its tiles
 // answers 404, which MapLibre takes as an empty tile. v2 and v1 are served exactly as before.
 //
-// /style/street-v4.json is the fill-in, sprite v6's orchard patterns and the hill shading (the switch to Street v4,
+// /style/street-v4.json is the fill-in, sprite v6's orchard patterns and the hill shading (the switch to Trail Map v4,
 // dispatch 2026-11-01-coder-11 step (c); the owner: "Yes, queue it"), map-style/forager-street-v4.json bundled the same
 // way. Its sprite is /sprites/v6 and its relief tiles come from relief.pmtiles through the generic path (z5-11, given
 // inline in the style); until that archive is on R2 they answer 404 and the hill shading draws nothing. v1 to v3 are
@@ -410,7 +410,7 @@ async function worldFillTile(
 // Fonts and icons are R2 objects the owner uploads (the r2-upload/ folder): fonts/{stack}/{range}.pbf and
 // sprites/{v4,v5,v6}/{light,light@2x}.{json,png}, with fonts/OFL.txt and sprites/LICENSE-MIT.md beside them. v5 is
 // v4 unchanged plus Trail Map's own icons and patterns (map-style/tools/build-sprite-v5.mjs); v6 is v5 unchanged plus
-// the orchard, vineyard and nursery patterns, for Street v4 (dispatch 2026-10-31-coder-07 Part 3). They are matched
+// the orchard, vineyard and nursery patterns, for Trail Map v4 (dispatch 2026-10-31-coder-07 Part 3). They are matched
 // before tilePath, because tilePath's tileset pattern also matches /sprites/v4/light.json.
 // Only these exact shapes are read; anything else under /fonts/ or /sprites/ is a 404, never an R2 read of
 // an arbitrary key.
@@ -449,7 +449,7 @@ const REFERENCE_MANIFEST_PATH = "/reference-trails-manifest.json";
 const REFERENCE_MANIFEST = { key: "reference-trails-manifest.json", contentType: "application/json" };
 const REFERENCE_MANIFEST_CACHE_CONTROL = "public, max-age=86400";
 
-function streetStyleResponse(allowedOrigin: string, style: unknown = streetStyle): Response {
+function trailStyleResponse(allowedOrigin: string, style: unknown = trailStyleV1): Response {
   const headers = new Headers({
     "Content-Type": "application/json",
     "Cache-Control": "public, max-age=86400",
@@ -504,18 +504,18 @@ export default {
     }
 
     if (url.pathname === "/style/street-v1.json") {
-      return streetStyleResponse(resolveAllowedOrigin(request, env));
+      return trailStyleResponse(resolveAllowedOrigin(request, env));
     }
 
     if (url.pathname === "/style/street-v2.json") {
-      return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV2);
+      return trailStyleResponse(resolveAllowedOrigin(request, env), trailStyleV2);
     }
 
     if (url.pathname === "/style/street-v3.json") {
-      return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV3);
+      return trailStyleResponse(resolveAllowedOrigin(request, env), trailStyleV3);
     }
     if (url.pathname === "/style/street-v4.json") {
-      return streetStyleResponse(resolveAllowedOrigin(request, env), streetStyleV4);
+      return trailStyleResponse(resolveAllowedOrigin(request, env), trailStyleV4);
     }
 
     if (url.pathname === REFERENCE_MANIFEST_PATH) {
@@ -588,14 +588,14 @@ export default {
           unknown
         >;
         // Advertise the overflow ceiling, not just the local archive's own maxzoom, so MapLibre's
-        // OfflineManager knows tiles are actually servable past 14 — see the overflow block above. The Street archive
+        // OfflineManager knows tiles are actually servable past 14 — see the overflow block above. The Trail Map archive
         // only (dispatch 2026-11-01-coder-11): any other archive advertises its own maxzoom, since nothing serves it
         // past that (a raster-dem relief archive must not be asked for tiles the overflow would answer with vector data).
         const declaredMaxZoom = typeof t.maxzoom === "number" ? t.maxzoom : pHeader.maxZoom;
-        const advertisedMaxZoom = name === STREET_ARCHIVE_NAME ? Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) : declaredMaxZoom;
+        const advertisedMaxZoom = name === TRAIL_ARCHIVE_NAME ? Math.max(declaredMaxZoom, OVERFLOW_MAX_ZOOM) : declaredMaxZoom;
         const advertised: Record<string, unknown> = { ...t, maxzoom: advertisedMaxZoom };
         // The world fill is only reachable if the bounds cover it (worldFillBounds, dispatch 2026-10-22-01 Amendment 3).
-        if (name === STREET_ARCHIVE_NAME && Array.isArray(t.bounds) && t.bounds.length === 4) {
+        if (name === TRAIL_ARCHIVE_NAME && Array.isArray(t.bounds) && t.bounds.length === 4) {
           advertised.bounds = await worldFillBounds(env, t.bounds as number[], pHeader.tileType);
         }
         return cacheableResponse(JSON.stringify(advertised), cacheableHeaders, 200);
@@ -603,8 +603,8 @@ export default {
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
         // Above any other archive's own maxzoom: 204, the empty tile, never the overflow (coder-11). Protomaps' live
-        // build is the Street archive's vector tiles; for another archive it would be the wrong data, written into R2.
-        if (tile[0] > pHeader.maxZoom && name !== STREET_ARCHIVE_NAME) {
+        // build is the Trail Map archive's vector tiles; for another archive it would be the wrong data, written into R2.
+        if (tile[0] > pHeader.maxZoom && name !== TRAIL_ARCHIVE_NAME) {
           return cacheableResponse(undefined, cacheableHeaders, 204);
         }
         if (tile[0] > pHeader.maxZoom && tile[0] <= OVERFLOW_MAX_ZOOM) {
@@ -643,7 +643,7 @@ export default {
       if (tiledata) {
         return cacheableResponse(tiledata.data, cacheableHeaders, 200);
       }
-      if (name === STREET_ARCHIVE_NAME) {
+      if (name === TRAIL_ARCHIVE_NAME) {
         const filled = await worldFillTile(env, tile, pHeader.tileType);
         if (filled) {
           cacheableHeaders.set(ORIGIN_HEADER, WORLD_FILL_ORIGIN);

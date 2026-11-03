@@ -26,10 +26,10 @@ import org.maplibre.android.style.layers.SymbolLayer
  * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
  * is unverified until a device run; a form this does not read shows up in these log lines.
  *
- * [streetTables] are the Street night's tables for the Trail Map version loaded ([streetNightTablesFor]); they apply
- * only with [streetWater], the own Street.
+ * [trailTables] are the Street night's tables for the Trail Map version loaded ([trailNightTablesFor]); they apply
+ * only with [trailWater], the own Street.
  */
-internal fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = false, streetTables: StreetNightTables = STREET_NIGHT_TABLES) {
+internal fun applyOfflineNightRecolour(style: Style, trailWater: Boolean = false, trailTables: TrailNightTables = TRAIL_NIGHT_TABLES) {
     var recoloured = 0
     var left = 0
     for (layer in style.layers) {
@@ -45,8 +45,8 @@ internal fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = fals
                     LayerColourProperty(layer.id, property, StyleColourValue.Literal(value.toString())),
                     "value of type ${value.value?.javaClass?.name} is neither a colour string nor an expression",
                 )
-            } else if (streetWater) {
-                streetNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer), streetTables)
+            } else if (trailWater) {
+                trailNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer), trailTables)
             } else {
                 offlineNightRecolourOf(LayerColourProperty(layer.id, property, colourValue))
             }

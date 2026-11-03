@@ -444,7 +444,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         assertEquals(Basemap.FORAGER_TRAIL, capturedBasemap)
 
-        for ((label, basemap) in listOf("Topo" to Basemap.OPEN_TOPO_MAP, "OSM" to Basemap.OSM_STANDARD)) {
+        for ((label, basemap) in listOf("Topo" to Basemap.OPEN_TOPO_MAP, "OSM" to Basemap.STREET)) {
             composeRule.onNodeWithContentDescription("Layers:", substring = true).performClick()
             composeRule.waitForIdle()
             composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)

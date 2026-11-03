@@ -2,22 +2,22 @@ package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
-import com.zynergylabs.forager.app.map.STREET_STYLE_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The own Street's fallback (RECORD -1513; `OwnStreetFallback.kt`): which failed loads fall back, what the map draws and
+ * The own Street's fallback (RECORD -1513; `OwnTrailFallback.kt`): which failed loads fall back, what the map draws and
  * credits after, and that the holder flips once and logs once. MapLibre cannot run here, so the listener calling the
  * holder, and the map redrawing, are the device check's (S22: a dead style URL, Street and Topographical at night).
  */
-class OwnStreetFallbackTest {
+class OwnTrailFallbackTest {
 
-    private val street = MapStyleSource.Uri(STREET_STYLE_URL)
-    private val streetUnderTopo = MapStyleSource.StreetWithTopoOver(STREET_STYLE_URL, Basemap.OPEN_TOPO_MAP)
-    private val raster = MapStyleSource.Json(styleJsonFor(Basemap.OSM_STANDARD))
+    private val street = MapStyleSource.Uri(TRAIL_STYLE_URL)
+    private val streetUnderTopo = MapStyleSource.TrailWithTopoOver(TRAIL_STYLE_URL, Basemap.OPEN_TOPO_MAP)
+    private val raster = MapStyleSource.Json(styleJsonFor(Basemap.STREET))
 
     @Test
     fun `only the own Street online falls back, alone or under topo at night`() {
@@ -30,61 +30,61 @@ class OwnStreetFallbackTest {
 
     @Test
     fun `the map uses the own Street only while the switch is on and it has not failed`() {
-        assertTrue(effectiveOwnStreet(switch = true, fellBack = false))
-        assertFalse(effectiveOwnStreet(switch = true, fellBack = true))
-        assertFalse(effectiveOwnStreet(switch = false, fellBack = false))
-        assertFalse(effectiveOwnStreet(switch = false, fellBack = true))
+        assertTrue(effectiveOwnTrail(switch = true, fellBack = false))
+        assertFalse(effectiveOwnTrail(switch = true, fellBack = true))
+        assertFalse(effectiveOwnTrail(switch = false, fellBack = false))
+        assertFalse(effectiveOwnTrail(switch = false, fellBack = true))
     }
 
     @Test
     // Dispatch 2026-10-22-01: "Street" here is Forager Trail Map, its own Basemap entry (FORAGER_TRAIL); the rules are unchanged.
     fun `after the fallback Street is OpenStreetMap's raster Street, credited and capped as before the own Street`() {
-        val ownStreet = effectiveOwnStreet(switch = true, fellBack = true)
+        val ownTrail = effectiveOwnTrail(switch = true, fellBack = true)
 
-        val day = mapStyleSourceFor(Basemap.FORAGER_TRAIL, night = false, useOfflineTiles = false, ownStreet = ownStreet)
+        val day = mapStyleSourceFor(Basemap.FORAGER_TRAIL, night = false, useOfflineTiles = false, ownTrail = ownTrail)
         assertTrue("Street by day is a raster JSON style: $day", day is MapStyleSource.Json)
-        assertTrue("on OpenStreetMap's tiles", (day as MapStyleSource.Json).json.contains(Basemap.OSM_STANDARD.tileUrlTemplate))
-        val topoNight = mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true, useOfflineTiles = false, ownStreet = ownStreet)
+        assertTrue("on OpenStreetMap's tiles", (day as MapStyleSource.Json).json.contains(Basemap.STREET.tileUrlTemplate))
+        val topoNight = mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true, useOfflineTiles = false, ownTrail = ownTrail)
         assertTrue("topo at night is the raster night style: $topoNight", topoNight is MapStyleSource.Json)
-        assertTrue("with OpenStreetMap below", (topoNight as MapStyleSource.Json).json.contains(Basemap.OSM_STANDARD.tileUrlTemplate))
+        assertTrue("with OpenStreetMap below", (topoNight as MapStyleSource.Json).json.contains(Basemap.STREET.tileUrlTemplate))
 
-        assertEquals(listOf(Basemap.OSM_STANDARD.attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownStreet = ownStreet))
+        assertEquals(listOf(Basemap.STREET.attribution), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = ownTrail))
         assertEquals(
-            listOf(Basemap.OPEN_TOPO_MAP.attribution, Basemap.OSM_STANDARD.attribution),
-            mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownStreet = ownStreet),
+            listOf(Basemap.OPEN_TOPO_MAP.attribution, Basemap.STREET.attribution),
+            mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, nightMode = true, ownTrail = ownTrail),
         )
-        assertEquals(Basemap.OSM_STANDARD.maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownStreet))
-        assertEquals(Basemap.OSM_STANDARD.maxZoom.toDouble(), navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownStreet = ownStreet), 0.0)
+        assertEquals(Basemap.STREET.maxZoom, operatingMaxZoom(Basemap.FORAGER_TRAIL, ownTrail))
+        assertEquals(Basemap.STREET.maxZoom.toDouble(), navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownTrail = ownTrail), 0.0)
         // Before the fallback, the own Street's: its credit and the owner's 18 (-1289).
-        assertEquals(listOf(OFFLINE_STYLE_ATTRIBUTION), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownStreet = true))
-        assertEquals(18.0, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownStreet = true), 0.0)
+        assertEquals(listOf(OFFLINE_STYLE_ATTRIBUTION), mapCreditsFor(Basemap.FORAGER_TRAIL, useOfflineTiles = false, ownTrail = true))
+        assertEquals(18.0, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = false, ownTrail = true), 0.0)
     }
 
     @Test
     fun `while navigating a basemap cap above the start zoom is not lowered`() {
         // Dispatch 2026-09-28-440, Amendment 1, driven with the switch off, where Street's cap is OpenStreetMap's 19.
-        assertEquals(19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = true, ownStreet = false), 0.0)
-        assertEquals(NAVIGATION_VIEW_ZOOM, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = true, ownStreet = true), 0.0)
+        assertEquals(19.0, navigationMaxZoom(Basemap.STREET, navigating = true, ownTrail = false), 0.0)
+        assertEquals(NAVIGATION_VIEW_ZOOM, navigationMaxZoom(Basemap.FORAGER_TRAIL, navigating = true, ownTrail = true), 0.0)
     }
 
     @Test
     fun `the fallback changes what the style effect asks for, so it reloads the style`() {
-        val before = requestedMapStyle(Basemap.OSM_STANDARD, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownStreet = true)!!
-        val after = requestedMapStyle(Basemap.OSM_STANDARD, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownStreet = false)!!
+        val before = requestedMapStyle(Basemap.STREET, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownTrail = true)!!
+        val after = requestedMapStyle(Basemap.STREET, useOfflineTiles = false, nightMode = false, nightModeLoaded = true, ownTrail = false)!!
         assertTrue(needsStyleReload(applied = before, requested = after))
     }
 
     @Test
     fun `a failed own Street load falls back for the process and logs one line`() {
         val lines = mutableListOf<String>()
-        val fallback = OwnStreetFallback(log = { lines += it })
-        assertTrue("before any failure", fallback.ownStreet(switch = true))
+        val fallback = OwnTrailFallback(log = { lines += it })
+        assertTrue("before any failure", fallback.ownTrail(switch = true))
 
         assertTrue("falls back", fallback.onStyleLoadFailed(MapStyleRequest(street, useOfflineTiles = false), "Failed to load style: 404"))
         assertTrue(fallback.fellBack)
-        assertFalse("the map now draws OpenStreetMap's Street", fallback.ownStreet(switch = true))
+        assertFalse("the map now draws OpenStreetMap's Street", fallback.ownTrail(switch = true))
         assertEquals(
-            listOf("Own Street style failed to load (Failed to load style: 404); drawing OpenStreetMap's Street until the connection returns or the app restarts."),
+            listOf("Trail Map style failed to load (Failed to load style: 404); drawing the Street map, OpenStreetMap's raster, until the connection returns or the app restarts."),
             lines,
         )
 
@@ -95,33 +95,33 @@ class OwnStreetFallbackTest {
     @Test
     fun `a failure that is not the own Street online changes nothing and logs nothing`() {
         val lines = mutableListOf<String>()
-        val fallback = OwnStreetFallback(log = { lines += it })
+        val fallback = OwnTrailFallback(log = { lines += it })
 
         assertFalse(fallback.onStyleLoadFailed(MapStyleRequest(raster, useOfflineTiles = false), "raster"))
         assertFalse(fallback.onStyleLoadFailed(MapStyleRequest(street, useOfflineTiles = true), "offline"))
         assertFalse(fallback.onStyleLoadFailed(null, "before any request"))
         assertFalse(fallback.fellBack)
-        assertTrue(fallback.ownStreet(switch = true))
+        assertTrue(fallback.ownTrail(switch = true))
         assertEquals(emptyList<String>(), lines)
     }
 
     @Test
     fun `own Street tile errors are logged a few times and never fall back`() {
         val lines = mutableListOf<String>()
-        val fallback = OwnStreetFallback(log = { lines += it })
+        val fallback = OwnTrailFallback(log = { lines += it })
 
         repeat(5) { fallback.onTileError(MapStyleRequest(street, useOfflineTiles = false), "protomaps", 14, it, 7) }
         fallback.onTileError(MapStyleRequest(raster, useOfflineTiles = false), "basemap-raster", 14, 1, 1)
 
         assertEquals(
             listOf(
-                "Map tile failed to load while the own Street is showing: source=protomaps z=14 x=0 y=7 (no fallback for tiles)",
-                "Map tile failed to load while the own Street is showing: source=protomaps z=14 x=1 y=7 (no fallback for tiles)",
-                "Map tile failed to load while the own Street is showing: source=protomaps z=14 x=2 y=7 (no fallback for tiles); further tile errors are not logged in this process",
+                "Map tile failed to load while Trail Map is showing: source=protomaps z=14 x=0 y=7 (no fallback for tiles)",
+                "Map tile failed to load while Trail Map is showing: source=protomaps z=14 x=1 y=7 (no fallback for tiles)",
+                "Map tile failed to load while Trail Map is showing: source=protomaps z=14 x=2 y=7 (no fallback for tiles); further tile errors are not logged in this process",
             ),
             lines,
         )
         assertFalse(fallback.fellBack)
-        assertTrue(fallback.ownStreet(switch = true))
+        assertTrue(fallback.ownTrail(switch = true))
     }
 }

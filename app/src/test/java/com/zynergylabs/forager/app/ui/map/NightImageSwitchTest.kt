@@ -113,7 +113,7 @@ class NightImageSwitchTest {
         style.loadSprite(spriteNames.associateWith { "day pixels of $it" })
 
         assertEquals(
-            "Street night: 61 night images added, 6 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.",
+            "Trail night: 61 night images added, 6 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.",
             outcome.logLine(),
         )
         val drawn = v2Samples.map { s -> "${s.key} ${s.dayName}" to style.drawn(s.key, s.properties, s.zoom) }
@@ -215,7 +215,7 @@ class NightImageSwitchTest {
         val style = LoadedStyle(styleOf(1))
         val outcome = applyNightImages(style, spriteNames.associateWith { "night pixels of $it" })
         style.loadSprite(spriteNames.associateWith { "day pixels of $it" })
-        assertEquals("Street night: 61 night images added, 4 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.", outcome.logLine())
+        assertEquals("Trail night: 61 night images added, 4 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.", outcome.logLine())
         assertEquals("night pixels of arrow", style.drawn("roads_oneway/icon-image"))
         assertEquals("night pixels of US:I-1char", style.drawn("roads_shields/icon-image", mapOf("network" to "US:I", "shield_text" to "5")))
         assertEquals("night pixels of townspot", style.drawn("pois/icon-image", mapOf("kind" to "parking")))

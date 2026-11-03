@@ -55,7 +55,7 @@ class MapStartGateTest {
         SightingsMapSlot(
             Region(lat = 45.5, lng = -122.6, radiusKm = 5),
             MapOverlayContent(),
-            MapRenderMode(basemap = Basemap.OSM_STANDARD),
+            MapRenderMode(basemap = Basemap.STREET),
             null,
             {},
             {},

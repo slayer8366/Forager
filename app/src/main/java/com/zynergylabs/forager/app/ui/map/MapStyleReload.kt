@@ -68,12 +68,12 @@ internal fun MapStyleReload(
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
     // RECORD -1513: the switch as the map uses it, off for the rest of the process once the own Street has failed to load
-    // (OwnStreetFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
-    val ownStreet = OWN_STREET_FALLBACK.ownStreet()
+    // (OwnTrailFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
+    val ownTrail = OWN_TRAIL_FALLBACK.ownTrail()
     // Dispatches 2026-10-27-11 and -13 (RECORD -1742, -1748): patterns lost on the tiles a reload keeps, a MapLibre 13.5.0
     // fault worked around in PatternRelayout.kt. Told of each request below and each callback; it listens for the sprite itself.
     val patternRelayout = rememberPatternRelayout(state.mapView)
-    LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded, ownStreet) {
+    LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded, ownTrail) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
@@ -86,7 +86,7 @@ internal fun MapStyleReload(
             nightMode = nightMode,
             nightModeLoaded = nightModeLoaded,
             offlineStyleUrl = offlineStyleUrl,
-            ownStreet = ownStreet,
+            ownTrail = ownTrail,
         ) ?: return@LaunchedEffect
         if (!needsStyleReload(state.appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
@@ -117,15 +117,15 @@ internal fun MapStyleReload(
             state.cameraMoveClassifier.markAppMove()
             applyCameraRestore(map, it)
         }
-        map.setMaxZoomPreference(operatingMaxZoom(basemap, ownStreet).toDouble())
-        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl, ownStreet = ownStreet)
+        map.setMaxZoomPreference(operatingMaxZoom(basemap, ownTrail).toDouble())
+        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl, ownTrail = ownTrail)
         // Whose load a failure is: the failure listener (MapListeners.kt) gets only MapLibre's message (RECORD -1513).
         // Assumption, not verified: a later setStyle cancels this request, so any failure belongs to the latest lastStyleRequest.
         state.lastStyleRequest = MapStyleRequest(source, useOfflineTiles)
         val builder = when (source) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
-            is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
+            is MapStyleSource.TrailWithTopoOver -> trailWithTopoOverBuilder(source)
         }
         // Before setStyle, while the current style can still be written (a pending restore runs here). The MapView's first
         // style is told apart so it is not relaid out: it keeps no tiles from an earlier style (PatternRelayout.kt).
@@ -141,24 +141,24 @@ internal fun MapStyleReload(
             // Since dispatch 2026-10-18-05 Part 2 the same recolour serves the own Street online (loaded by URI too),
             // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
             // The own Street takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
-            // Street v4 (the fill-in) has its own night tables, chosen by the style's URI (StreetNightTables.kt); every other
-            // Trail Map version keeps v1 to v3's. Street under Topographical takes those of the Street it draws (streetUriOf).
+            // Street v4 (the fill-in) has its own night tables, chosen by the style's URI (TrailNightTables.kt); every other
+            // Trail Map version keeps v1 to v3's. Street under Topographical takes those of the Street it draws (trailUriOf).
             if (requested.night && source !is MapStyleSource.Json) {
-                val tables = streetNightTablesForSource(source)
-                applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source), streetTables = tables)
+                val tables = trailNightTablesForSource(source)
+                applyOfflineNightRecolour(style, trailWater = usesTrailSprite(source), trailTables = tables)
                 // Street v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
-                tables.hillshade?.let { applyStreetHillshadeNight(style, it) }
+                tables.hillshade?.let { applyTrailHillshadeNight(style, it) }
             }
             // Trail Map's night icons and patterns: the bundled night copies, added under their own names and switched to
             // (NightImageSwitch.kt; dispatch 2026-10-22-06 Amendment 1). The sprite is not loaded yet at this point.
-            if (requested.night && usesStreetSprite(source)) applyStreetNightImages(style, context)
-            if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
+            if (requested.night && usesTrailSprite(source)) applyTrailNightImages(style, context)
+            if (source is MapStyleSource.TrailWithTopoOver) hideTrailLabelsUnderTopo(style, source.trailLabelsMaxZoom)
             // OpenTopoMap brings its own relief: Street's hill shading is hidden under it (coder-11).
-            if (source is MapStyleSource.StreetWithTopoOver) hideHillshadeUnderTopo(style)
+            if (source is MapStyleSource.TrailWithTopoOver) hideHillshadeUnderTopo(style)
             // Step 8b (dispatch 2026-10-26-15): the official-trails band's visibility from the user's choice, after the night
             // recolour (which walks every layer, hidden or not, so the band is in its night colour whenever it shows) and
             // before the overlays are added above it. Under Topographical the band is not offered (Trail Map only, -1633).
-            referenceTrailsLoaded.value = applyReferenceTrailsOnStyleLoad(MapLibreStyleLayerSwitches(style), drawnOnThisMap = source !is MapStyleSource.StreetWithTopoOver, chosen = chosenLayers.value)
+            referenceTrailsLoaded.value = applyReferenceTrailsOnStyleLoad(MapLibreStyleLayerSwitches(style), drawnOnThisMap = source !is MapStyleSource.TrailWithTopoOver, chosen = chosenLayers.value)
             initializeOverlayLayers(
                 style,
                 density = resources.displayMetrics.density,

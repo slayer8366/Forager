@@ -29,7 +29,7 @@ class MapAttributionListTest {
 
     @Test
     fun `a layer's credit follows the basemap's, joined by a middle dot`() {
-        val credits = mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, layerCredits = listOf("Forecast: example"))
+        val credits = mapCreditsFor(Basemap.STREET, useOfflineTiles = false, layerCredits = listOf("Forecast: example"))
         assertEquals(listOf("© OpenStreetMap contributors", "Forecast: example"), credits)
         assertEquals("© OpenStreetMap contributors · Forecast: example", attributionCaption(credits))
     }
@@ -43,7 +43,7 @@ class MapAttributionListTest {
     @Test
     fun `a credit already present is not repeated`() {
         val credits = mapCreditsFor(
-            Basemap.OSM_STANDARD,
+            Basemap.STREET,
             useOfflineTiles = false,
             layerCredits = listOf("© OpenStreetMap contributors", "Forecast: example", "Forecast: example"),
         )

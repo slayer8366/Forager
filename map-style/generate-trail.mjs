@@ -1,9 +1,10 @@
-// Builds Forager's own Street style (dispatch 2026-10-18-05 Part 2) from the same pinned Protomaps light
-// layers as forager-light.json, with overrides/forager-street.mjs applied, and since dispatch 2026-10-22-03
-// (RECORD -1561) overrides/forager-character.mjs after it. Run: npm run generate:street
+// Builds Forager Trail Map's style (dispatch 2026-10-18-05 Part 2; called Street until dispatch 2026-11-03-05, RECORD
+// -1999, -2000) from the same pinned Protomaps light layers as forager-light.json, with overrides/forager-trail.mjs
+// applied, and since dispatch 2026-10-22-03 (RECORD -1561) overrides/forager-character.mjs after it. Run:
+// npm run generate:trail
 //
 // A separate script, not a branch inside generate.mjs: forager-light.json stays exactly what it was (the
-// website and the label check read it), and the Street style is its own output.
+// website and the label check read it), and the Trail Map style is its own output.
 //
 // The design ships as street-v2.json (RECORD -1561, the owner: "Yes, v2"). MapLibre's offline store keys a
 // downloaded region by its style URL, and an app older than v2 inverts only the icons it was built knowing, so
@@ -26,9 +27,17 @@
 // overrides/forager-fill-in.mjs applied last and its own night tables, beside v3, which is written exactly as before. v4 is
 // written to map-style only (forager-street-v4.json and its preview copy): the Worker's copy, and the app's switch to it,
 // are each their own step.
+//
+// Since dispatch 2026-11-03-05 (RECORD -2000, D1, D2) it also writes trail-v4: v4 under the Trail Map's own code name,
+// the style the app loads. Its layers, sources and night tables are v4's; only its `name` and its
+// forager:generated-from differ, which the Worker's tests hold. street-v3 and street-v4 are frozen from then on, as
+// v1 and v2 are: they are still written here, from the same design, so CI's regeneration check proves the design
+// still draws them exactly, and tools/check-trail-night.mjs holds every copy to its sha256. Their `name` and
+// forager:generated-from are the text they were frozen with, which names this design file by its old name,
+// overrides/forager-street.mjs. A later design ships as trail-v5.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
-import { applyStreetDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-street.mjs";
+import { applyTrailDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-trail.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
 import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_HILLSHADE_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
@@ -58,15 +67,14 @@ const spriteIconsOf = (sprite) => Object.keys(JSON.parse(fs.readFileSync(here(`.
   .filter((name) => !(name in NIGHT_PATTERN_COLOURS))
   .sort();
 
-// v3's buildings, solid with an outline (dispatch 2026-10-27-02), are applied here and not in applyStreetDesign, which
+// v3's buildings, solid with an outline (dispatch 2026-10-27-02), are applied here and not in applyTrailDesign, which
 // v2 was generated with.
-const v3Layers = () => withReferenceLayers(withBuildingOutline(applyCharacter(applyStreetDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
+const v3Layers = () => withReferenceLayers(withBuildingOutline(applyCharacter(applyTrailDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
 
 /** What differs between the versions this script writes: v4 is v3's layers with the fill-in and v4's night tables. */
 const VERSIONS = {
   v3: {
     layers: v3Layers(),
-    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs and overrides/forager-reference.mjs",
     palette: COLOURS,
     nightLayers: NIGHT_LAYER_COLOURS,
     nightFills: NIGHT_FILL_COLOURS,
@@ -74,7 +82,6 @@ const VERSIONS = {
   },
   v4: {
     layers: applyFillIn(v3Layers()),
-    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs and overrides/forager-fill-in.mjs",
     palette: { ...COLOURS, fillIn: FILL_IN_COLOURS },
     nightLayers: NIGHT_LAYER_COLOURS_V4,
     nightFills: NIGHT_FILL_COLOURS_V4,
@@ -88,16 +95,39 @@ const VERSIONS = {
         attribution: "Heights: USGS 3DEP; NRCan MRDEM",
       },
     },
-    // Since the switch to Street v4 (dispatch 2026-11-01-coder-11 step (c)): bundled in the Worker as /style/street-v4.json.
-    toWorker: true,
   },
 };
 
-const style = (version, assetsBase) => ({
+/**
+ * The files this script writes (dispatch 2026-11-03-05, D1, D2): each a version's design under a code name, with the
+ * `name` and forager:generated-from it carries. The two street files keep the text they were frozen with.
+ */
+const OUTPUTS = [
+  {
+    code: "street",
+    version: "v3",
+    name: "Forager Street v3",
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs and overrides/forager-reference.mjs",
+  },
+  {
+    code: "street",
+    version: "v4",
+    name: "Forager Street v4",
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs and overrides/forager-fill-in.mjs",
+  },
+  {
+    code: "trail",
+    version: "v4",
+    name: "Forager Trail v4",
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-trail.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs and overrides/forager-fill-in.mjs",
+  },
+];
+
+const style = ({ version, name, generatedFrom }, assetsBase) => ({
   version: 8,
-  name: `Forager Street ${version}`,
+  name,
   metadata: {
-    "forager:generated-from": VERSIONS[version].generatedFrom,
+    "forager:generated-from": generatedFrom,
     "forager:sprite-icons": spriteIconsOf(SPRITES[version]),
     // The design's colours, day and the night exceptions (-1343), for the app's tests to read.
     "forager:palette": VERSIONS[version].palette,
@@ -129,11 +159,12 @@ const style = (version, assetsBase) => ({
   layers: VERSIONS[version].layers,
 });
 
-for (const version of Object.keys(VERSIONS)) {
-  const forWorker = JSON.stringify(style(version, WORKER), null, 2) + "\n";
-  fs.writeFileSync(here(`./forager-street-${version}.json`), forWorker);
-  if (VERSIONS[version].toWorker) fs.writeFileSync(here(`../server/pmtiles-worker/src/street-style-${version}.json`), forWorker);
-  fs.writeFileSync(here(`./forager-street-${version}.preview.json`), JSON.stringify(style(version, `${LOCAL}/assets`), null, 2) + "\n");
-  const where = VERSIONS[version].toWorker ? `; copied to server/pmtiles-worker/src/street-style-${version}.json` : "; map-style only";
-  console.log(`forager-street-${version}.json: ${VERSIONS[version].layers.length} layers${where}`);
+// Every output goes to the Worker too, bundled and served at /style/<code>-<version>.json.
+for (const output of OUTPUTS) {
+  const file = `${output.code}-${output.version}`;
+  const forWorker = JSON.stringify(style(output, WORKER), null, 2) + "\n";
+  fs.writeFileSync(here(`./forager-${file}.json`), forWorker);
+  fs.writeFileSync(here(`../server/pmtiles-worker/src/${output.code}-style-${output.version}.json`), forWorker);
+  fs.writeFileSync(here(`./forager-${file}.preview.json`), JSON.stringify(style(output, `${LOCAL}/assets`), null, 2) + "\n");
+  console.log(`forager-${file}.json: ${VERSIONS[output.version].layers.length} layers; copied to server/pmtiles-worker/src/${output.code}-style-${output.version}.json`);
 }

@@ -114,7 +114,7 @@ class BasemapStyleTest {
         }
         val night = json.parseToJsonElement(styleJsonFor(Basemap.OPEN_TOPO_MAP, night = true)).jsonObject.getValue("sources").jsonObject
         val attributions = night.values.map { it.jsonObject.getValue("attribution").jsonPrimitive.content }
-        assertEquals(listOf(Basemap.OSM_STANDARD.fullAttribution, full).sorted(), attributions.sorted())
+        assertEquals(listOf(Basemap.STREET.fullAttribution, full).sorted(), attributions.sorted())
     }
 
     /**
@@ -194,7 +194,7 @@ class BasemapStyleTest {
      */
     @Test
     fun `the OSM-derived sources declare x-y order in their tile template`() {
-        assertEquals("https://tile.openstreetmap.org/{z}/{x}/{y}.png", tileTemplateFor(Basemap.OSM_STANDARD))
+        assertEquals("https://tile.openstreetmap.org/{z}/{x}/{y}.png", tileTemplateFor(Basemap.STREET))
         assertEquals("https://a.tile.opentopomap.org/{z}/{x}/{y}.png", tileTemplateFor(Basemap.OPEN_TOPO_MAP))
     }
 
@@ -212,16 +212,16 @@ class BasemapStyleTest {
 
     /**
      * Dispatch 2026-10-22-01: Forager Trail Map is a [Basemap] entry but not a raster. Where a raster has to draw it
-     * (the -1513 fallback, `OwnStreetFallback`), the style is OpenStreetMap's exactly, day and night, and its own vector
+     * (the -1513 fallback, `OwnTrailFallback`), the style is OpenStreetMap's exactly, day and night, and its own vector
      * tile URL never lands in a raster source.
      */
     @Test
     fun `Forager Trail Map's raster stand-in is OpenStreetMap's style exactly, never its own vector tiles`() {
         assertFalse(Basemap.FORAGER_TRAIL.isRaster)
-        assertEquals(Basemap.OSM_STANDARD, Basemap.FORAGER_TRAIL.rasterDrawn())
+        assertEquals(Basemap.STREET, Basemap.FORAGER_TRAIL.rasterDrawn())
         listOf(false, true).forEach { night ->
             val style = styleJsonFor(Basemap.FORAGER_TRAIL, night)
-            assertEquals("night=$night", styleJsonFor(Basemap.OSM_STANDARD, night), style)
+            assertEquals("night=$night", styleJsonFor(Basemap.STREET, night), style)
             assertFalse("night=$night", style.contains(Basemap.FORAGER_TRAIL.tileUrlTemplate))
         }
         Basemap.entries.filter { it.isRaster }.forEach { assertEquals(it, it.rasterDrawn()) }

@@ -75,7 +75,7 @@ internal fun MapTypePanel(
     growsFrom: Alignment = Alignment.CenterEnd,
     /** See `MapModeChipRow`: the entry map's "Use offline tiles". */
     offlineTiles: Boolean = false,
-    fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
+    fallback: OwnTrailFallback = OWN_TRAIL_FALLBACK,
 ) {
     if (visible) BackHandler(onBack = onDismiss)
     val isDarkTheme = LocalForagerDarkTheme.current

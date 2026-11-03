@@ -19,7 +19,7 @@ import org.junit.Test
  * `#cccccc` at half opacity, as in v2: the owner, "Change only from zoom 14 (Recommended)" (Amendment 2, RECORD -1737).
  *
  * Night takes no exception for them: the app's own V1 inversion. This holds what the app's Street night recolour
- * ([streetNightRecolourOf], the function the map's night adapter calls for each layer colour) gives for the served
+ * ([trailNightRecolourOf], the function the map's night adapter calls for each layer colour) gives for the served
  * street-v3's buildings layers: `#333333` below z14, `#3e3e3e` at z14, `#333333` from z15, and `#595959` for the outline,
  * the values the dispatch computed by hand from `night = c + 255 - 2 * mean`. Opacity is not a colour and is not recoloured.
  */
@@ -33,7 +33,7 @@ class BuildingsNightTest {
         val layer = layers[id] ?: error("no layer $id in street-v3")
         val value = layer.getValue("paint").jsonObject[property] ?: error("$id has no $property")
         val colour = if (value is JsonPrimitive) StyleColourValue.Literal(value.content) else StyleColourValue.Expression(value.toString())
-        return streetNightRecolourOf(LayerColourProperty(id, property, colour), layer["source-layer"]?.jsonPrimitive?.content)
+        return trailNightRecolourOf(LayerColourProperty(id, property, colour), layer["source-layer"]?.jsonPrimitive?.content)
     }
 
     @Test

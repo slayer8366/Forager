@@ -12,8 +12,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
-import com.zynergylabs.forager.app.map.STREET_STYLE_URL
-import com.zynergylabs.forager.app.map.STREET_STYLE_V1_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_V1_URL
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -63,7 +63,7 @@ class NoSignalTrailMapTest {
         composeRule.waitForIdle()
         assertEquals(
             "no signal: OSM and Topo from the downloads; Trail is already Trail Map",
-            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, Basemap.OSM_STANDARD to true),
+            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, Basemap.STREET to true),
             seen.toMap(),
         )
 
@@ -74,13 +74,13 @@ class NoSignalTrailMapTest {
 
     /**
      * Dispatch 2026-10-22-01 Amendment 3 (Sorrel's review): a Trail user whose Trail Map has fallen back to OSM's raster
-     * (`OwnStreetFallback`, -1513) gets what an OSM user gets when the signal goes. Driven through the fallback's own
+     * (`OwnTrailFallback`, -1513) gets what an OSM user gets when the signal goes. Driven through the fallback's own
      * entry point, a failed online load of Trail Map's style, on a fallback of the test's own.
      */
     @Test
     fun `a Trail user fallen back to OSM draws from the downloads with no signal, like an OSM user`() {
         val noSignal = MutableStateFlow(true)
-        val fallback = OwnStreetFallback(log = {})
+        val fallback = OwnTrailFallback(log = {})
         var trail: Boolean? = null
         composeRule.setContent {
             CompositionLocalProvider(LocalNoSignal provides noSignal, LocalHasDownloadedArea provides true) {
@@ -91,7 +91,7 @@ class NoSignalTrailMapTest {
         assertEquals("Trail Map drawing, no signal: its own style, unchanged", false, trail)
 
         composeRule.runOnIdle {
-            fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(STREET_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404")
+            fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(TRAIL_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404")
         }
         composeRule.waitForIdle()
         assertEquals("fallen back to OSM, no signal: from the downloads", true, trail)
@@ -141,7 +141,7 @@ class NoSignalTrailMapTest {
         composeRule.waitForIdle()
         assertEquals(
             "a downloaded region: OSM and Topo from the downloads; Trail is already Trail Map",
-            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, Basemap.OSM_STANDARD to true),
+            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, Basemap.STREET to true),
             seen.toMap(),
         )
 
@@ -152,7 +152,7 @@ class NoSignalTrailMapTest {
 
     @Test
     fun `a Trail user fallen back to OSM with no downloaded area keeps the OSM raster with no signal`() {
-        val fallback = OwnStreetFallback(log = {})
+        val fallback = OwnTrailFallback(log = {})
         var trail: Boolean? = null
         composeRule.setContent {
             CompositionLocalProvider(LocalNoSignal provides MutableStateFlow(true), LocalHasDownloadedArea provides false) {
@@ -160,7 +160,7 @@ class NoSignalTrailMapTest {
             }
         }
         composeRule.runOnIdle {
-            fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(STREET_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404")
+            fallback.onStyleLoadFailed(MapStyleRequest(MapStyleSource.Uri(TRAIL_STYLE_URL), useOfflineTiles = false), "Failed to load style: 404")
         }
         composeRule.waitForIdle()
         assertEquals("fallen back, no signal, nothing downloaded: the OSM raster stays", false, trail)
@@ -195,12 +195,12 @@ class NoSignalTrailMapTest {
 
     @Test
     fun `drawn from the downloads, OSM and Topo load the regions' style by URL, credited as such, and never fall back`() {
-        for (basemap in listOf(Basemap.OSM_STANDARD, Basemap.OPEN_TOPO_MAP)) for (night in listOf(false, true)) {
+        for (basemap in listOf(Basemap.STREET, Basemap.OPEN_TOPO_MAP)) for (night in listOf(false, true)) {
             val offline = drawsFromDownloads(useOfflineTiles = false, basemap = basemap, noSignal = true, hasDownloadedArea = true)
-            for (regionsStyle in listOf(OFFLINE_STYLE_URL, STREET_STYLE_URL, STREET_STYLE_V1_URL)) {
+            for (regionsStyle in listOf(OFFLINE_STYLE_URL, TRAIL_STYLE_URL, TRAIL_STYLE_V1_URL)) {
                 val source = mapStyleSourceFor(basemap, night, useOfflineTiles = offline, offlineStyleUrl = regionsStyle)
                 assertEquals("$basemap night=$night", MapStyleSource.Uri(regionsStyle), source)
-                // OwnStreetFallback's rule, unchanged: never in offline mode. So no signal cannot lock the map on OSM.
+                // OwnTrailFallback's rule, unchanged: never in offline mode. So no signal cannot lock the map on OSM.
                 assertFalse("$basemap night=$night falls back", fallsBack(source, useOfflineTiles = offline))
             }
             assertEquals(listOf("Protomaps © OpenStreetMap"), mapCreditsFor(basemap, useOfflineTiles = offline, nightMode = night))

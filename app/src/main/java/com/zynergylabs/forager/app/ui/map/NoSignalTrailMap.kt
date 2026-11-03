@@ -34,12 +34,12 @@ import kotlinx.coroutines.flow.stateIn
  * ```
  *
  * The last line is dispatch 2026-10-22-01 Amendment 3 (Sorrel's review): once Trail Map's style has failed to load
- * (`OwnStreetFallback`, -1513) a Trail user is looking at OpenStreetMap's raster, and losing the signal then must give
+ * (`OwnTrailFallback`, -1513) a Trail user is looking at OpenStreetMap's raster, and losing the signal then must give
  * them what it gives any OSM user (-519: every failure has a fallback).
  *
  * **Drawn through the offline branch** ([mapStyleSourceFor] with `useOfflineTiles`), the style the downloaded regions
  * hold. Not Trail Map's online style: with no signal that load can fail, and an online failure of Trail Map's style is
- * exactly what `OwnStreetFallback` falls back on, which would swap the map to OpenStreetMap until the signal returns
+ * exactly what `OwnTrailFallback` falls back on, which would swap the map to OpenStreetMap until the signal returns
  * (since dispatch 2026-10-27-09 Amendment 1; before it, for the rest of the process). The fallback never fires in offline mode, so its rules stay as they are, and nothing asks OpenStreetMap's
  * tile host for anything (its tiles are never stored, -1554).
  *
@@ -82,15 +82,15 @@ internal val LocalHasDownloadedArea = compositionLocalOf { false }
 
 /**
  * [drawsFromDownloads] for this composition: [LocalNoSignal]'s current value, `false` when none is provided, and
- * whether Trail Map draws in this process ([fallback], the app's one `OWN_STREET_FALLBACK`; a parameter so a test can
+ * whether Trail Map draws in this process ([fallback], the app's one `OWN_TRAIL_FALLBACK`; a parameter so a test can
  * give it its own).
  */
 @Composable
-internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, fallback: OwnStreetFallback = OWN_STREET_FALLBACK): Boolean {
+internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, fallback: OwnTrailFallback = OWN_TRAIL_FALLBACK): Boolean {
     val flow = LocalNoSignal.current ?: return useOfflineTiles
     val noSignal by flow.collectAsState()
     val hasArea = LocalHasDownloadedArea.current
-    val trailMapDraws = fallback.ownStreet()
+    val trailMapDraws = fallback.ownTrail()
     // The kept map is a fallback of its own (CLAUDE.md: logged when it fires): no signal would have drawn from the
     // downloads, and there are none.
     val keptForNoArea = noSignal && !hasArea && !useOfflineTiles && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws)
@@ -108,20 +108,20 @@ internal fun noSignalState(context: Context, scope: CoroutineScope): StateFlow<B
 
 /**
  * [noSignalState] from any [NetworkSignal] (a test gives its own, and its own [fallback]). When the state turns to
- * "signal", the Trail Map fallback is retried ([OwnStreetFallback.onSignalReturned]; dispatch 2026-10-27-09 Amendment 1,
+ * "signal", the Trail Map fallback is retried ([OwnTrailFallback.onSignalReturned]; dispatch 2026-10-27-09 Amendment 1,
  * RECORD -1739, the owner: "Yes, retry after 30 s (Recommended)").
  */
 internal fun noSignalState(
     signal: NetworkSignal,
     scope: CoroutineScope,
-    fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
+    fallback: OwnTrailFallback = OWN_TRAIL_FALLBACK,
 ): StateFlow<Boolean> =
     noSignalWithHysteresis(signal.validated)
         .onEach { noSignal ->
             Log.i(
                 NO_SIGNAL_LOG_TAG,
                 if (noSignal) {
-                    "No validated network (${NO_SIGNAL_SWITCH_DELAY_MS / 1000} s): OSM and Topo maps draw Forager Trail Map from the downloaded areas, if any."
+                    "No validated network (${NO_SIGNAL_SWITCH_DELAY_MS / 1000} s): Street and Topo maps draw Forager Trail Map from the downloaded areas, if any."
                 } else {
                     "Validated network (${SIGNAL_RETURN_SWITCH_DELAY_MS / 1000} s, or at start): maps draw the chosen map type."
                 },

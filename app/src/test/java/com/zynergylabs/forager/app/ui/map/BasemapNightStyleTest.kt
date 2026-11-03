@@ -50,8 +50,8 @@ class BasemapNightStyleTest {
      */
     @Test
     fun `night mode on Street carries exactly the three V1 properties`() {
-        val paint = rasterLayer(Basemap.OSM_STANDARD, night = true)["paint"]
-            ?: error("OSM_STANDARD has no raster paint in night mode")
+        val paint = rasterLayer(Basemap.STREET, night = true)["paint"]
+            ?: error("STREET has no raster paint in night mode")
         val obj = paint.jsonObject
 
         assertEquals("the night paint is exactly the V1 properties", setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), obj.keys)

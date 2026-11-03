@@ -24,14 +24,14 @@ const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
 // (dispatch 2026-10-22-02). Before it, tiny.pmtiles stood in, stopped at z14, and the overflow's R2 write was unreachable.
 const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
-const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
-const STREET_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json"), "utf8");
+const TRAIL_V1_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
+const TRAIL_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json"), "utf8");
 // Step 8a (dispatch 2026-10-26-14): Trail Map v3, with the official-trails band, and the synthetic archive standing in
 // for reference-trails.pmtiles (test/fixtures/make-reference-trails-pmtiles.py; invented positions, marker bodies).
-const STREET_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
+const TRAIL_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
 // The switch to Street v4 (dispatch 2026-11-01-coder-11 step (c); the owner: "Yes, queue it"): the fill-in, sprite v6's
 // orchard patterns and the hill shading, bundled like v3. test/cross-folder.test.mjs holds it equal to map-style's.
-const STREET_V4_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v4.json"), "utf8");
+const TRAIL_V4_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v4.json"), "utf8");
 const REFERENCE = fs.readFileSync(here("./fixtures/reference-trails.pmtiles"));
 // The archive's manifest (dispatch 2026-10-26-22 M1), an R2 object beside it: invented values in the real file's shape.
 const MANIFEST = fs.readFileSync(here("./fixtures/reference-trails-manifest.json"));
@@ -175,18 +175,18 @@ test("the TileJSON still advertises maxzoom 15 and the Worker's own tile URL", a
   assert.deepEqual(tilejson.tiles, [`${HOST}/us/{z}/{x}/{y}.mvt`]);
 });
 
-// --- The overflow and the advertised maxzoom are the Street archive's alone (dispatch 2026-11-01-coder-11 step 1, before
+// --- The overflow and the advertised maxzoom are the Trail Map archive's alone (dispatch 2026-11-01-coder-11 step 1, before
 // relief.pmtiles, z5-11 raster-dem PNG, goes on R2). Any other archive advertises its own maxzoom, and a tile above it is
 // 204: never Protomaps' live vector build, which would answer a relief .png request with MVT and write it into R2.
-// other.pmtiles stands in for any non-Street archive: tiny.pmtiles's tiles, maxzoom 14.
+// other.pmtiles stands in for any non-Trail Map archive: tiny.pmtiles's tiles, maxzoom 14.
 
-test("a non-Street archive's TileJSON advertises its own maxzoom, not the overflow's 15", async () => {
+test("a non-Trail Map archive's TileJSON advertises its own maxzoom, not the overflow's 15", async () => {
   const tilejson = await (await call("/other.json")).json();
   assert.equal(tilejson.maxzoom, 14);
   assert.deepEqual(tilejson.tiles, [`${HOST}/other/{z}/{x}/{y}.mvt`]);
 });
 
-test("a non-Street archive's tile above its maxzoom is 204, with no Protomaps read and no R2 overflow read or write", async () => {
+test("a non-Trail Map archive's tile above its maxzoom is 204, with no Protomaps read and no R2 overflow read or write", async () => {
   const response = await call("/other/15/5303/11553.mvt");
   assert.equal(response.status, 204);
   assert.deepEqual(fetchCalls, []);
@@ -194,7 +194,7 @@ test("a non-Street archive's tile above its maxzoom is 204, with no Protomaps re
   assert.deepEqual(bucketPuts, []);
 });
 
-test("the Street archive keeps the overflow: us.json advertises 15 and its z15 tile reads the live build", async () => {
+test("the Trail Map archive keeps the overflow: us.json advertises 15 and its z15 tile reads the live build", async () => {
   assert.equal((await (await call("/us.json")).json()).maxzoom, 15);
   const response = await call("/us/15/5303/11553.mvt");
   assert.equal(response.status, 200);
@@ -212,7 +212,7 @@ test("/style/street-v1.json is the Street style, with fonts and icons on this Wo
   const response = await call("/style/street-v1.json");
   assert.equal(response.status, 200);
   const text = await response.text();
-  assert.equal(text, JSON.stringify(JSON.parse(STREET_STYLE_SOURCE)));
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V1_STYLE_SOURCE)));
   const style = JSON.parse(text);
   assert.equal(style.glyphs, `${HOST}/fonts/{fontstack}/{range}.pbf`);
   assert.equal(style.sprite, `${HOST}/sprites/v4/light`);
@@ -224,13 +224,13 @@ test("/style/street-v2.json is Trail Map's v2 style, on sprite v5, beside an unc
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Content-Type"), "application/json");
   const text = await response.text();
-  assert.equal(text, JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V2_STYLE_SOURCE)));
   const style = JSON.parse(text);
   assert.equal(style.name, "Forager Street v2");
   assert.equal(style.glyphs, `${HOST}/fonts/{fontstack}/{range}.pbf`);
   assert.equal(style.sprite, `${HOST}/sprites/v5/light`);
   // The same tiles as v1, so a region downloaded against either draws the other's tiles.
-  assert.equal(style.sources.protomaps.url, JSON.parse(STREET_STYLE_SOURCE).sources.protomaps.url);
+  assert.equal(style.sources.protomaps.url, JSON.parse(TRAIL_V1_STYLE_SOURCE).sources.protomaps.url);
   const ids = style.layers.map((l) => l.id);
   for (const id of ["landuse_forest_glyphs", "landuse_wetland_tufts", "pois_area_names"]) assert.ok(ids.includes(id), id);
   // v1 is still v1: its own sprite, and none of v2's layers.
@@ -353,7 +353,7 @@ test("world fill: a z9 tile stays 204 even though world-south.pmtiles holds it",
 
 test("world fill: a tile missing from both archives is still 204", async () => {
   // No R2 read is asserted: with both archives' directories cached from earlier tests, a tile in neither directory
-  // needs none. The claim here is the answer: still 204, labelled as the Street archive's.
+  // needs none. The claim here is the answer: still 204, labelled as the Trail Map archive's.
   const response = await call("/us/5/9/17.mvt");
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("X-Forager-Origin"), "r2");
@@ -454,7 +454,7 @@ test("overflow: a z15 tile inside the archive's own bounds still goes to the ove
 // folder's copy in test/reference-names.mjs.
 
 const sha256 = (path) => crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
-const v3Style = () => JSON.parse(STREET_V3_STYLE_SOURCE);
+const v3Style = () => JSON.parse(TRAIL_V3_STYLE_SOURCE);
 const referenceLayers = (style) => style.layers.filter((l) => l.source === reference.REFERENCE_SOURCE_ID);
 
 test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are served as before", async () => {
@@ -462,10 +462,10 @@ test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Content-Type"), "application/json");
   const text = await response.text();
-  assert.equal(text, JSON.stringify(JSON.parse(STREET_V3_STYLE_SOURCE)));
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V3_STYLE_SOURCE)));
   assert.equal(JSON.parse(text).name, "Forager Street v3");
-  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
-  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(STREET_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(TRAIL_V2_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(TRAIL_V1_STYLE_SOURCE)));
   assert.deepEqual(fetchCalls, []);
 });
 
@@ -474,14 +474,14 @@ test("/style/street-v4.json is the bundled v4 style, beside v3, v2 and v1, which
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Content-Type"), "application/json");
   const text = await response.text();
-  assert.equal(text, JSON.stringify(JSON.parse(STREET_V4_STYLE_SOURCE)));
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V4_STYLE_SOURCE)));
   const v4 = JSON.parse(text);
   assert.equal(v4.name, "Forager Street v4");
   assert.equal(v4.sprite, `${HOST}/sprites/v6/light`);
   assert.deepEqual(v4.sources.dem.tiles, [`${HOST}/relief/{z}/{x}/{y}.png`]);
   assert.equal(v4.sources.protomaps.url, `${HOST}/us.json`);
   assert.ok(v4.layers.some((l) => l.id === "hillshade") && v4.layers.some((l) => l.id === "landuse_orchards_pattern"));
-  assert.equal(await (await call("/style/street-v3.json")).text(), JSON.stringify(JSON.parse(STREET_V3_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v3.json")).text(), JSON.stringify(JSON.parse(TRAIL_V3_STYLE_SOURCE)));
   assert.deepEqual(fetchCalls, []);
 });
 
@@ -497,7 +497,7 @@ const BUILDINGS_EDIT = new Set(["buildings", "buildings_outline"]);
 
 test("v3 is v2 plus the reference source and its layers and the buildings edit, and nothing else", () => {
   const v3 = v3Style();
-  const v2 = JSON.parse(STREET_V2_STYLE_SOURCE);
+  const v2 = JSON.parse(TRAIL_V2_STYLE_SOURCE);
   const { [reference.REFERENCE_SOURCE_ID]: added, ...sources } = v3.sources;
   assert.ok(added, "v3 has no reference source");
   assert.deepEqual(sources, v2.sources);
@@ -525,7 +525,7 @@ test("buildings below z14 are v2's, solid from z14, a step darker at z14 only, w
     "fill-opacity": ["step", ["zoom"], 0.5, 14, 1],
   });
   // Below z14 each step's first output is v2's own paint, so z11 to z13 draw as before.
-  const v2Buildings = JSON.parse(STREET_V2_STYLE_SOURCE).layers.find((l) => l.id === "buildings");
+  const v2Buildings = JSON.parse(TRAIL_V2_STYLE_SOURCE).layers.find((l) => l.id === "buildings");
   assert.equal(buildings.paint["fill-color"][2], v2Buildings.paint["fill-color"], "below z14 the fill is not v2's");
   assert.equal(buildings.paint["fill-opacity"][2], v2Buildings.paint["fill-opacity"], "below z14 the opacity is not v2's");
   assert.equal(at("buildings_outline"), at("buildings") + 1, "the outline is not directly above the buildings");

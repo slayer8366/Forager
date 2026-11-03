@@ -97,13 +97,13 @@ internal fun MapModeChipRow(
     mapMode: MapMode,
     onMapModeSelected: (MapMode) -> Unit,
     offlineTiles: Boolean = false,
-    fallback: OwnStreetFallback = OWN_STREET_FALLBACK,
+    fallback: OwnTrailFallback = OWN_TRAIL_FALLBACK,
     modifier: Modifier = Modifier,
 ) {
     val noSignal = rememberNoSignal()
     val hasDownloadedArea = LocalHasDownloadedArea.current
     // RECORD -1513: false once Trail Map's style has failed to load in this process; Compose state, so the chip follows it.
-    val trailMapDraws = fallback.ownStreet()
+    val trailMapDraws = fallback.ownTrail()
     val isDarkTheme = LocalForagerDarkTheme.current
     Row(
         modifier = modifier,

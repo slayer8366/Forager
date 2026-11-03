@@ -118,14 +118,14 @@ private class StyleNightImageTarget(private val style: Style) : NightImageTarget
  * night copies were added, how many references switched, and anything left in day images. If the bundled sheets cannot
  * be read, nothing is added, every reference keeps its day image, and the line says so: never a crash, never silent.
  */
-internal fun applyStreetNightImages(style: Style, context: Context) {
+internal fun applyTrailNightImages(style: Style, context: Context) {
     val images = try {
         NightSpriteCache.images(context, nightSpriteAssetDirFor(style.json))
     } catch (e: IOException) {
-        Log.w(SIGHTINGS_MAP_TAG, "Street night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
+        Log.w(SIGHTINGS_MAP_TAG, "Trail night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
         emptyMap()
     } catch (e: RuntimeException) {
-        Log.w(SIGHTINGS_MAP_TAG, "Street night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
+        Log.w(SIGHTINGS_MAP_TAG, "Trail night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
         emptyMap()
     }
     Log.i(SIGHTINGS_MAP_TAG, applyNightImages(StyleNightImageTarget(style), images).logLine())

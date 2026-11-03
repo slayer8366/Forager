@@ -29,13 +29,13 @@ class BuildingsNightV4Test {
         Json.parseToJsonElement(File("../map-style/forager-street-v4.json").readText()).jsonObject
             .getValue("layers").jsonArray.map { it.jsonObject }.associateBy { it.getValue("id").jsonPrimitive.content }
 
-    private val tables = streetNightTablesFor("https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json")
+    private val tables = trailNightTablesFor("https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json")
 
     private fun nightOf(id: String, property: String): NightRecolour {
         val layer = layers[id] ?: error("no layer $id in street-v4")
         val value = layer.getValue("paint").jsonObject[property] ?: error("$id has no $property")
         val colour = if (value is JsonPrimitive) StyleColourValue.Literal(value.content) else StyleColourValue.Expression(value.toString())
-        return streetNightRecolourOf(LayerColourProperty(id, property, colour), layer["source-layer"]?.jsonPrimitive?.content, tables)
+        return trailNightRecolourOf(LayerColourProperty(id, property, colour), layer["source-layer"]?.jsonPrimitive?.content, tables)
     }
 
     private fun luminance(colour: Int): Double {
@@ -73,7 +73,7 @@ class BuildingsNightV4Test {
     @Test
     fun `each night building colour clears the night water floor`() {
         // Read from what the app draws at night for v4, so a changed day colour is measured here, not a copy of it.
-        val water = STREET_NIGHT_WATER.removePrefix("#").toInt(16)
+        val water = TRAIL_NIGHT_WATER.removePrefix("#").toInt(16)
         val drawn = listOf(nightOf("buildings", "fill-color"), nightOf("buildings_outline", "line-color")).joinToString(" ") { outcome ->
             when (val night = (outcome as NightRecolour.Recoloured).night) {
                 is StyleColourValue.Literal -> night.text

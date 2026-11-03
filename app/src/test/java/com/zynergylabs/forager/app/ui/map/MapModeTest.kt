@@ -23,7 +23,7 @@ class MapModeTest {
     fun `each mode resolves to its own fixed basemap`() {
         assertEquals(Basemap.FORAGER_TRAIL, MapMode.TRAIL.basemap)
         assertEquals(Basemap.OPEN_TOPO_MAP, MapMode.TOPOGRAPHIC.basemap)
-        assertEquals(Basemap.OSM_STANDARD, MapMode.OPENSTREETMAP.basemap)
+        assertEquals(Basemap.STREET, MapMode.STREET.basemap)
         // The Journal's map reads the mode back from the basemap (JournalTab), so the lookup must hold both ways.
         MapMode.entries.forEach { assertEquals(it, MapMode.forBasemap(it.basemap)) }
     }
@@ -51,7 +51,7 @@ class MapModeTest {
      */
     @Test
     fun `the modes are Trail, Topo and OSM, in that order`() {
-        assertEquals(listOf(MapMode.TRAIL, MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP), MapMode.entries.toList())
+        assertEquals(listOf(MapMode.TRAIL, MapMode.TOPOGRAPHIC, MapMode.STREET), MapMode.entries.toList())
         assertEquals(listOf("Trail", "Topo", "OSM"), MapMode.entries.map { it.label })
     }
 
@@ -64,7 +64,7 @@ class MapModeTest {
         // Trail keeps "street", so Street chosen before the update opens on Trail (RECORD -1556, option (a)).
         assertEquals("street", MapMode.TRAIL.storageKey)
         assertEquals("topographic", MapMode.TOPOGRAPHIC.storageKey)
-        assertEquals("openstreetmap", MapMode.OPENSTREETMAP.storageKey)
+        assertEquals("openstreetmap", MapMode.STREET.storageKey)
         MapMode.entries.forEach { assertEquals(it, MapMode.forStoredKey(it.storageKey)) }
     }
 

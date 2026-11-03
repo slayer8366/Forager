@@ -162,7 +162,7 @@ class ReferenceTrailsSwitchTest {
     @Test
     fun `on OSM a stored on shows on, grey`() {
         setScreen()
-        chooseMapType(MapMode.OPENSTREETMAP)
+        chooseMapType(MapMode.STREET)
         composeRule.openToolsMapLayers()
         assertTrue(rowDisabled())
         assertEquals(ToggleableState.On, rowState())

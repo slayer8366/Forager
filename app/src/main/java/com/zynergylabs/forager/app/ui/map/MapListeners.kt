@@ -48,14 +48,14 @@ internal fun MapListeners(
         // 13.5.0 artifact with javap, the same way every other SDK call in this file was.
         state.mapView.addOnDidFailLoadingMapListener { message ->
             Log.w(SIGHTINGS_MAP_TAG, "MapLibre failed to load the map style: $message")
-            // RECORD -1513: the own Street online falls back to OpenStreetMap's Street for the process (OwnStreetFallback.kt).
-            OWN_STREET_FALLBACK.onStyleLoadFailed(state.lastStyleRequest, message)
+            // RECORD -1513: the own Street online falls back to OpenStreetMap's Street for the process (OwnTrailFallback.kt).
+            OWN_TRAIL_FALLBACK.onStyleLoadFailed(state.lastStyleRequest, message)
         }
         // RECORD -1513: tile errors on the own Street are logged, a few a process, and never fall back. Listener checked with
         // javap against the pinned 13.5.0 artifact: addOnTileActionListener, onTileAction(TileOperation, z, x, y, wrap,
         // overscaledZ, sourceId).
         val tileErrorLogger = MapView.OnTileActionListener { operation, z, x, y, _, _, sourceId ->
-            if (operation == TileOperation.Error) OWN_STREET_FALLBACK.onTileError(state.lastStyleRequest, sourceId, z, x, y)
+            if (operation == TileOperation.Error) OWN_TRAIL_FALLBACK.onTileError(state.lastStyleRequest, sourceId, z, x, y)
         }
         state.mapView.addOnTileActionListener(tileErrorLogger)
         // RECORD -752 (dispatch 2026-09-28-755, item 4): logging only, to find the S22's blank and magnified frame on a return

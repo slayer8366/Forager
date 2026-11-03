@@ -45,7 +45,7 @@ enum class MapMode(
     TOPOGRAPHIC(label = "Topo", basemap = Basemap.OPEN_TOPO_MAP, storageKey = "topographic"),
 
     /** OpenStreetMap's raster map, online only (RECORD -1554). A new key, so a choice of it survives restarts. */
-    OPENSTREETMAP(label = "OSM", basemap = Basemap.OSM_STANDARD, storageKey = "openstreetmap"),
+    STREET(label = "OSM", basemap = Basemap.STREET, storageKey = "openstreetmap"),
     ;
 
     companion object {
