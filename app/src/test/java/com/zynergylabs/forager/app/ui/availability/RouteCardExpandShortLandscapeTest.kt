@@ -11,6 +11,12 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_LEGS_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_COUNT_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_ELEVATION_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_SAVE_TAG
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_UNDO_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.routeCardLegTag
 import org.junit.Assert.assertEquals
@@ -57,6 +63,13 @@ class RouteCardExpandShortLandscapeTest {
         val row = rowShown()
         val card = rig.bounds(ROUTE_CARD_TAG)
         println("D37 $where: card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, row 0 shown ${row.top.value}..${row.bottom.value} (peek top ${peek.top.value})")
+        // What the card's lines take, so a card at its cap can be read: each line's unclipped top and bottom.
+        listOf(ROUTE_CARD_HANDLE_TAG, ROUTE_CARD_LEGS_TAG, ROUTE_CARD_ROUTED_TAG, ROUTE_CARD_ROUTED_COUNT_TAG, ROUTE_CARD_ROUTED_ELEVATION_TAG, ROUTE_CARD_UNDO_TAG, ROUTE_CARD_SAVE_TAG, NAVIGATION_HUD_TAG, BAR_STRIP).forEach { tag ->
+            if (rig.count(tag) > 0) {
+                val b = rig.bounds(tag)
+                println("D37 $where: $tag ${b.left.value}..${b.right.value} x ${b.top.value}..${b.bottom.value}")
+            }
+        }
         assertTrue("$where: leg row 0 shows, height ${row.bottom - row.top}", row.bottom - row.top > 0.dp)
         assertTrue("$where: the card rose over the strip, top ${card.top} above the peek's ${peek.top}", card.top < peek.top - 0.5.dp)
         rig.assertSame("$where: the card's bottom stays on the navigation card", peek.copy(top = card.top), card)
