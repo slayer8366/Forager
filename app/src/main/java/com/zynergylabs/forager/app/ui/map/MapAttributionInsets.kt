@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import android.util.Log
 import android.view.Gravity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +62,28 @@ internal fun MapAttributionInsets(
     // bottom-end corner in every window. This replaces RECORD -954, which put it at the bottom start beside the credit strip in a
     // short landscape window.
     val logoBesideAttributionOffsetPx = with(LocalDensity.current) { (ATTRIBUTION_BUTTON_DP + LOGO_ATTRIBUTION_GAP_DP).dp.roundToPx() }
+    // D28 with D30 (dispatch 2026-10-30-08, RECORD -1979, -1980): the button, and the logo beside it, hidden while a card covers the
+    // button where it is placed, shown again when that clears (attributionHiddenUnder).
+    val buttonPx = with(LocalDensity.current) { ATTRIBUTION_BUTTON_DP.dp.roundToPx() }
+    val hidden = state.attributionDefaultMargins?.let { defaults ->
+        attributionHiddenUnder(
+            covers = attributionHideUnder,
+            mapWidthPx = state.mapSizePx.width,
+            mapHeightPx = state.mapSizePx.height,
+            defaults = defaults,
+            bottomInsetPx = attributionBottomPx,
+            endInsetPx = attributionEndPx,
+            isRtl = layoutDirection == LayoutDirection.Rtl,
+            buttonPx = buttonPx,
+        )
+    } ?: false
+    LaunchedEffect(state.mapLibreMap, hidden) {
+        val map = state.mapLibreMap ?: return@LaunchedEffect
+        if (map.uiSettings.isAttributionEnabled == !hidden && map.uiSettings.isLogoEnabled == !hidden) return@LaunchedEffect
+        Log.i(ATTRIBUTION_LOG_TAG, if (hidden) "a card covers the attribution's corner: the \"i\" and the logo hidden" else "the attribution's corner is clear: the \"i\" and the logo shown")
+        map.uiSettings.isAttributionEnabled = !hidden
+        map.uiSettings.isLogoEnabled = !hidden
+    }
     LaunchedEffect(state.mapLibreMap, state.attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
         val defaults = state.attributionDefaultMargins ?: return@LaunchedEffect
@@ -80,3 +103,6 @@ internal fun MapAttributionInsets(
         map.uiSettings.setLogoMargins(logoLeft, logoTop, logoRight, logoBottom)
     }
 }
+
+/** D28: the log tag for the attribution's hide and show. */
+private const val ATTRIBUTION_LOG_TAG = "ForagerAttribution"

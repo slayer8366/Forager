@@ -146,11 +146,6 @@ internal fun routeCardPortraitTransitions(barOnLeft: Boolean): Pair<EnterTransit
     return enter to exit
 }
 
-/**
- * Whether the attribution "i" shares the card's edge in portrait. It sits in the bottom-end corner, so with the bar on the right the
- * card is away from it, and the "i" stays put, under the bar as it always was; with the bar on the left the card is over that corner.
- */
-internal fun routeCardOverAttribution(cluster: MapIconClusterState): Boolean = cluster.landscape || cluster.isOnLeftSide
 
 /**
  * Whether "Re-center" rises for the card (Amendment 17, part 2 ruled, RECORD -1943, the owner: "Fix the S22 case, then check
@@ -205,3 +200,11 @@ internal fun reCenterClearanceBesideTheL(creditSizePx: IntSize, start: Dp, densi
 /** How far inboard the legend chip sits while the card shows: past the bar in portrait with the bar on its side, as in the L. */
 internal fun routeCardLegendEndPadding(barOnRight: Boolean, barWidth: Dp): Dp = if (barOnRight) MAP_ICON_BAR_EDGE_INSET + barWidth + Spacing.sm else Spacing.sm
 
+
+/**
+ * D28 with D30 (dispatch 2026-10-30-08, RECORD -1979, -1980): [cardsInRoot], the cards drawn over the map (the route card, and the
+ * landscape navigation card while navigating), moved from root px into the map's own, for the map to hide the "i" under
+ * (`MapRenderMode.attributionHideUnder`). [mapLeftInRootPx] and [mapTopInRootPx] are the map pane's place in the root.
+ */
+internal fun attributionCoversInMapPx(cardsInRoot: List<androidx.compose.ui.geometry.Rect>, mapLeftInRootPx: Float, mapTopInRootPx: Float): List<androidx.compose.ui.geometry.Rect> =
+    cardsInRoot.map { it.translate(-mapLeftInRootPx, -mapTopInRootPx) }
