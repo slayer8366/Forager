@@ -8,6 +8,7 @@ package com.zynergylabs.forager.app.ui.availability
 // left behind is reached from here. Seam F (the wide layout) was released by the owner for this
 // split, as recorded in the Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
@@ -60,9 +61,9 @@ import com.zynergylabs.forager.app.ui.format.displayDate
  * absolute map points the user placed, independent of any search.
  */
 @Composable
-internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTrip: (String) -> Unit) {
+internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTrip: (String) -> Unit, onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        PlannedTripsList(plannedTrips = uiState.plannedTrips, onDeletePlannedTrip = onDeletePlannedTrip)
+        PlannedTripsList(plannedTrips = uiState.plannedTrips, onDeletePlannedTrip = onDeletePlannedTrip, onOpenPlannedRoute = onOpenPlannedRoute, distanceUnit = uiState.distanceUnit)
         HorizontalDivider()
         if (uiState.hasSearched) {
             TripWindowsCard(uiState = uiState)
@@ -81,7 +82,12 @@ internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTri
  * already moved to the front — this composable renders that order, it doesn't recompute it.
  */
 @Composable
-private fun PlannedTripsList(plannedTrips: List<PlannedTrip>, onDeletePlannedTrip: (String) -> Unit) {
+private fun PlannedTripsList(
+    plannedTrips: List<PlannedTrip>,
+    onDeletePlannedTrip: (String) -> Unit,
+    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
+    distanceUnit: DistanceUnit = DistanceUnit.KILOMETERS,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Planned Trips", style = MaterialTheme.typography.titleSmall)
         // Motion Part 3, Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout P1): a deleted trip's card
@@ -97,11 +103,22 @@ private fun PlannedTripsList(plannedTrips: List<PlannedTrip>, onDeletePlannedTri
             rows.forEach { row ->
                 key(row.key) {
                     ListRowMotion(row) { trip ->
-                        PlannedTripRow(
-                            trip = trip,
-                            isToday = trip.date == today,
-                            onDelete = { onDeletePlannedTrip(trip.id) },
-                        )
+                        if (trip.route != null) {
+                            // Dispatch 2026-10-30-08: a route trip's row, which opens the route on the map (PlannedRouteRow.kt).
+                            PlannedRouteRow(
+                                trip = trip,
+                                isToday = trip.date == today,
+                                distanceUnit = distanceUnit,
+                                onOpen = onOpenPlannedRoute?.let { open -> { open(trip) } },
+                                onDelete = { onDeletePlannedTrip(trip.id) },
+                            )
+                        } else {
+                            PlannedTripRow(
+                                trip = trip,
+                                isToday = trip.date == today,
+                                onDelete = { onDeletePlannedTrip(trip.id) },
+                            )
+                        }
                     }
                 }
             }

@@ -181,6 +181,8 @@ internal fun MapListeners(
                 }
                 state.tapHandlerRef.handler?.onCameraMoveStarted(cause)
                 if (isUserCameraGesture(reason)) state.onUserCameraGesture()
+                // D25, D26 (RECORD -1968, -1969): the credit strip fades at the user's first pan or zoom (MapCreditStrip.kt).
+                if (isUserCameraGesture(reason)) state.userCameraGestures++
             }
             // OnCameraIdleListener.onCameraIdle() takes no argument (verified via javap against
             // the pinned org.maplibre.gl:android-sdk:13.5.0 artifact — MapLibreMap$OnCameraIdleListener

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
@@ -53,4 +54,6 @@ data class AvailabilityScreenMapControls(
      * height ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). Defaulted, so no other caller changes.
      */
     val onMapIconClusterPlacementChanged: (MapIconClusterPlacement) -> Unit = {},
+    /** Route plotting (dispatch 2026-10-30-08, step 3): the ViewModel's state and actions. `null` (tests, other callers) offers none. */
+    val routePlotting: RoutePlottingControls? = null,
 )

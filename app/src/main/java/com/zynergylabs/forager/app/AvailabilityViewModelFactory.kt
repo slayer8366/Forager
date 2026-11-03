@@ -59,6 +59,7 @@ internal fun createAvailabilityViewModel(
         basemapPreferenceRepository = container.basemapPreferenceRepository,
         mapIconClusterPlacementRepository = container.mapIconClusterPlacementRepository,
         crowdedIconsRepository = container.crowdedIconsRepository,
+        waypointNamesRepository = container.waypointNamesRepository,
         noSignal = noSignal,
         // Dispatch 2026-10-24-07: the service's stored-end report, so a finished track is on the map right after Stop.
         trackEnds = container.trackEnds.latest,

@@ -5,7 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -54,6 +55,8 @@ internal fun MapFeatureBubble(
      * and, since RECORD -890, a journal entry's map pass one; `null` (tests only) offers none.
      */
     onNavigate: ((String) -> Unit)? = null,
+    /** Dispatch 2026-10-30-08: a waypoint's "Plot route", given its id, after Navigate. Only the Maps tab passes one. */
+    onPlotRoute: ((String) -> Unit)? = null,
 ) {
     MapBubbleShell(tipInBubble = tipInBubble, onDismiss = onDismiss, cardTag = MAP_BUBBLE_TAG, closeTag = MAP_BUBBLE_CLOSE_TAG) {
         when (content) {
@@ -89,6 +92,7 @@ internal fun MapFeatureBubble(
                 BubbleActions {
                     // Only for a waypoint still in Records: one an entry knows only from its snapshot has nothing to navigate by.
                     onNavigate?.takeIf { content.hasDetails }?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.waypoint.id) } }
+                    onPlotRoute?.takeIf { content.hasDetails }?.let { plot -> BubbleAction("Plot route", MAP_BUBBLE_PLOT_ROUTE_TAG) { plot(content.waypoint.id) } }
                     // Dispatch 2026-10-29-09 (RECORD -1819): Directions only where Navigate cannot reach, that snapshot-only
                     // waypoint (the owner: "Keep Directions (Recommended)"). A waypoint in Records has Navigate in its place.
                     if (!content.hasDetails) {
@@ -220,8 +224,10 @@ private fun BubbleLine(text: String) {
 }
 
 @Composable
-private fun BubbleActions(content: @Composable RowScope.() -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), content = content)
+private fun BubbleActions(content: @Composable FlowRowScope.() -> Unit) {
+    // A FlowRow since dispatch 2026-10-30-08: a waypoint's third action ("Plot route") wraps to a second line where the
+    // bubble's 280 dp cannot hold all three (large font scales) rather than being clipped. Where they fit it lays out as the Row did.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), content = content)
 }
 
 @Composable
@@ -239,6 +245,7 @@ internal const val MAP_BUBBLE_OPEN_FIND_TAG = "map-bubble-open-find"
 internal const val MAP_BUBBLE_VIEW_PHOTO_TAG = "map-bubble-view-photo"
 internal const val MAP_BUBBLE_DIRECTIONS_TAG = "map-bubble-directions"
 internal const val MAP_BUBBLE_NAVIGATE_TAG = "map-bubble-navigate"
+internal const val MAP_BUBBLE_PLOT_ROUTE_TAG = "map-bubble-plot-route"
 internal const val MAP_BUBBLE_DETAILS_TAG = "map-bubble-details"
 internal const val MAP_BUBBLE_STALE_TAG = "map-bubble-stale"
 internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"

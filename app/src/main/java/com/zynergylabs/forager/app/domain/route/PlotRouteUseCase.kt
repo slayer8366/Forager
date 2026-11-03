@@ -99,7 +99,8 @@ class PlotRouteUseCase(
         }
         val line = listOf(from) + route.points + listOf(to)
         val meters = GeoDistance.metersBetween(from, route.points.first()) + route.lengthMetres + GeoDistance.metersBetween(route.points.last(), to)
-        return RouteLeg.Trail(line, meters, trailFrom = 1, trailTo = route.points.size)
+        // The trail part keeps the engine's heights, point for point; the joins carry none (Amendment 8, RECORD -1896).
+        return RouteLeg.Trail(line, meters, trailFrom = 1, trailTo = route.points.size, trailHeightsMetres = route.heightsMetres)
     }
 
     /** A region holding both stops whose routes are not usable, as the way to a waypoint says the same states. */

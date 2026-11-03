@@ -49,12 +49,26 @@ sealed interface RouteLeg {
      * before and after it are the straight joins from each stop to the trail point nearest it. The owner: "Dashed link to
      * trail (Recommended)": the joins are drawn dashed and count in [meters], so they are kept apart from the trail part
      * here (Amendment 1).
+     *
+     * [trailHeightsMetres] is the trail data's height at each point of the trail part, `line[trailFrom..trailTo]`, in order;
+     * `null` where the data has none (`TrailRoute.heightsMetres`, #447). The joins carry none: a stop is a name and a
+     * position only. Defaults to all missing. Only plotting reads it (dispatch 2026-10-30-08, Amendment 8, RECORD -1896):
+     * a saved route does not store it until step 3b's migration, so a route read back from the database has none.
      */
-    data class Trail(override val line: List<LatLng>, override val meters: Double, val trailFrom: Int, val trailTo: Int) : RouteLeg {
+    data class Trail(
+        override val line: List<LatLng>,
+        override val meters: Double,
+        val trailFrom: Int,
+        val trailTo: Int,
+        val trailHeightsMetres: List<Double?> = List((trailTo - trailFrom + 1).coerceAtLeast(0)) { null },
+    ) : RouteLeg {
         init {
             require(line.size >= 2) { "a leg has at least two points; got ${line.size}" }
             require(trailFrom in 0 until trailTo && trailTo <= line.lastIndex) {
                 "the trail part $trailFrom..$trailTo is not inside a line of ${line.size} points"
+            }
+            require(trailHeightsMetres.size == trailTo - trailFrom + 1) {
+                "${trailHeightsMetres.size} heights for a trail part of ${trailTo - trailFrom + 1} points"
             }
         }
     }

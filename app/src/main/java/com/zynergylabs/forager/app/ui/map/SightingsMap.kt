@@ -177,6 +177,8 @@ fun SightingsMap(
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     waypoints: List<Waypoint> = emptyList(),
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.waypointNames]'s own doc comment. */
+    waypointNames: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.resumeTrackingRequestId]'s own doc comment. */
     resumeTrackingRequestId: Int = 0,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.searchFrameRequestId]'s own doc comment. */
@@ -201,6 +203,8 @@ fun SightingsMap(
     offlineRegionCircles: List<RecordRegion> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.bottomInset]'s own doc comment. */
     bottomInset: Dp = 0.dp,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onCreditSizeChanged]'s own doc comment. */
+    onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit = {},
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onUserCameraGesture]'s own doc comment. */
     onUserCameraGesture: () -> Unit = {},
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.layers]'s own doc comment. */
@@ -219,6 +223,8 @@ fun SightingsMap(
     journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.route]'s own doc comment. */
     route: RouteOnMap? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.plottedRoute]'s own doc comment. */
+    plottedRoute: PlottedRouteOnMap? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraMemory]'s own doc comment. */
     cameraMemory: MapCameraMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.leavingTab]'s own doc comment. */
@@ -229,8 +235,8 @@ fun SightingsMap(
     attributionBottomInset: Dp? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
-    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBesideCredit]'s own doc comment. */
-    attributionBesideCredit: Boolean = false,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionHideUnder]'s own doc comment. */
+    attributionHideUnder: List<androidx.compose.ui.geometry.Rect> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
     returnMemory: MapReturnMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
@@ -399,6 +405,7 @@ fun SightingsMap(
             },
             thresholdPx = nudgeThresholdPx,
             viewTopPaddingPx = { navigationViewTopPaddingPx(navigationMapHeightPx) },
+            viewSideInsetsPx = { currentNavigationView?.sideInsetsPx ?: NavigationSideInsets.NONE },
         )
     }
     DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
@@ -531,10 +538,6 @@ fun SightingsMap(
     // read by the attribution placement (MapAttributionInsets.kt). Declared here, with the holder's other states, since UI split Phase 2.2 (dispatch 2026-10-19-29);
     // it was declared in the attribution block until then. A plain remember with a constant start, not an observer.
     val mapSizePxState = remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-    // RECORD -954: the credit strip's laid-out width, written by the layout (SightingsMapLayout.kt) and read by the attribution
-    // placement (MapAttributionInsets.kt).
-    // Moved up here for the same reason as mapSizePx.
-    val creditWidthPxState = remember { mutableIntStateOf(0) }
 
     // UI split Phase 2.2 (dispatch 2026-10-19-29): the map's state holder, over the very State objects remembered above, so
     // the effect groups can move to their own files and take it. Nothing is copied into it: each read is a getter and each
@@ -574,7 +577,6 @@ fun SightingsMap(
             cameraIdleCountState = cameraIdleCountState,
             navigationMapHeightPxState = navigationMapHeightPxState,
             mapSizePxState = mapSizePxState,
-            creditWidthPxState = creditWidthPxState,
             appliedPositionLook = appliedPositionLook,
             navigationModeChange = navigationModeChange,
             fanCircleColour = fanCircleColour,
@@ -640,6 +642,24 @@ fun SightingsMap(
         resources = resources,
     )
 
+    // A plotted route (dispatch 2026-10-30-08): pushed whenever it or the style changes (a new style starts empty).
+    LaunchedEffect(sightingsMapState.loadedStyle, plottedRoute) { plottedRouteOnCurrentStyle(sightingsMapState.loadedStyle, plottedRoute) }
+
+    // Waypoint names and the route's stops' names (dispatch 2026-11-02-04): pushed whenever they, the setting, the
+    // Waypoints switch, the night look or the style change (a new style starts with no images and empty sources).
+    val nameTypeface = remember(context) { nameLabelTypeface(context) }
+    val nameImages = remember { NameImageRegistry() }
+    val namesDrawn = waypointNamesDrawn(waypointNames, drawnLayersState)
+    LaunchedEffect(sightingsMapState.loadedStyle, waypoints, namesDrawn, plottedRoute?.stopNames, nightMode, resources.displayMetrics.density) {
+        nameLabelsOnCurrentStyle(
+            sightingsMapState.loadedStyle,
+            waypointNameLabels(waypoints, namesDrawn),
+            routeStopNameLabels(plottedRoute?.stopNames.orEmpty()),
+            NameLabelPainter(nameTypeface, resources.displayMetrics.density, MapPalette.forMode(nightMode)),
+            nameImages,
+        )
+    }
+
     // The marker fan's effects on the loaded style (dispatch 2026-09-28-197 and its follow-ups): MapFan.kt.
     MapFan(
         state = sightingsMapState,
@@ -687,7 +707,7 @@ fun SightingsMap(
         bottomInset = bottomInset,
         attributionEndInset = attributionEndInset,
         attributionKeepClear = attributionKeepClear,
-        attributionBesideCredit = attributionBesideCredit,
+        attributionHideUnder = attributionHideUnder,
     )
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
@@ -765,6 +785,7 @@ fun SightingsMap(
         drawnLayersState = drawnLayersState,
         nightMode = nightMode,
         bottomInset = bottomInset,
+        onCreditSizeChanged = onCreditSizeChanged,
         fanSpace = fanSpace,
     )
 }
