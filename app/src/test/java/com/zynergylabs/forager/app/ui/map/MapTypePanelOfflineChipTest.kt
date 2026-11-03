@@ -142,6 +142,9 @@ class MapTypePanelOfflineChipTest {
 
     @Test
     fun `fallen back, the grey Trail chip has an onSurface outline, in both themes`() {
+        // While a raster stands in for Trail Map (the Street map's). With none, a failed Trail Map draws from the downloads,
+        // which is what was chosen, so the chip is not grey (dispatch 2026-11-03-05 D8; TrailMapFallbackWithoutStandInTest).
+        if (trailMapStandIn == null) return
         chosen = MapMode.TRAIL
         setSheet()
         failTrailMapStyle()
@@ -244,7 +247,8 @@ class MapTypePanelOfflineChipTest {
 
     @Test
     fun `once Trail Map has fallen back to OpenStreetMap, the chosen Trail chip is grey, still selected, in both themes`() {
-        // The owner: "Same meaning everywhere: grey = chosen, but something else is shown."
+        // The owner: "Same meaning everywhere: grey = chosen, but something else is shown." While a raster stands in (D8).
+        if (trailMapStandIn == null) return
         chosen = MapMode.TRAIL
         setSheet()
         assertEquals("before the fallback", normalSelected, drawnFill(MapMode.TRAIL))

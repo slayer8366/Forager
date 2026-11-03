@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URLS
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_V4_STREET_URL
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_V3_URL
 import java.io.File
 import kotlin.math.pow
@@ -282,9 +283,12 @@ class NightExceptionsV4Test {
     fun `v4 is chosen by its style's name, and every other style keeps v1 to v3's tables`() {
         assertNotEquals(TRAIL_NIGHT_TABLES, tables)
         assertEquals(tables, trailNightTablesFor("https://raw.githubusercontent.com/slayer8366/Forager/street-v4/map-style/forager-street-v4.json"))
-        // Since the switch (dispatch 2026-11-01-coder-11 step (d)) the app's own Street URL is v4's.
-        assertEquals(v4Url, TRAIL_STYLE_URL)
-        for (url in TRAIL_STYLE_URLS - TRAIL_STYLE_URL + listOf(null, OFFLINE_STYLE_URL)) {
+        // Since the switch (dispatch 2026-11-01-coder-11 step (d)) the app's own URL is v4's: trail-v4 since dispatch
+        // 2026-11-03-05 D1, and street-v4, the same style under its old address, keeps v4's tables.
+        assertEquals("https://forager-pmtiles.brandonlee1-894.workers.dev/style/trail-v4.json", TRAIL_STYLE_URL)
+        assertEquals(v4Url, TRAIL_STYLE_V4_STREET_URL)
+        assertEquals(tables, trailNightTablesFor(TRAIL_STYLE_V4_STREET_URL))
+        for (url in TRAIL_STYLE_URLS - TRAIL_STYLE_URL - TRAIL_STYLE_V4_STREET_URL + listOf(null, OFFLINE_STYLE_URL)) {
             assertSame(url.toString(), TRAIL_NIGHT_TABLES, trailNightTablesFor(url))
         }
     }

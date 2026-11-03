@@ -98,7 +98,9 @@ class NoSignalTrailMapTest {
 
         composeRule.runOnIdle { noSignal.value = false }
         composeRule.waitForIdle()
-        assertEquals("fallen back, signal back: the OSM raster again", false, trail)
+        // With a stand-in (the Street map's) the fallback draws its raster again; with none, the downloads (dispatch
+        // 2026-11-03-05 D8, "Downloads, then Topo").
+        assertEquals("fallen back, signal back: the stand-in's raster, or with none the downloads", trailMapStandIn == null, trail)
     }
 
     /**

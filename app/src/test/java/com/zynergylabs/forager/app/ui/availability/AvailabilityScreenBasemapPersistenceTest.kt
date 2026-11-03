@@ -272,7 +272,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         assertEquals("and is stored as trail", "trail", stored(firstRepository))
         release(firstScope)
 
-        val (secondRepository, _) = launchRepository()
+        val (secondRepository, secondScope) = launchRepository()
         val secondViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = secondRepository)
         composeRule.runOnIdle {
             modes.clear()
@@ -281,7 +281,9 @@ class AvailabilityScreenBasemapPersistenceTest {
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
 
         assertEquals("after the restart, Trail", listOf(Basemap.FORAGER_TRAIL), released().map { it.basemap }.distinct())
-        assertEquals("trail", rawStoredKey())
+        assertEquals("trail", stored(secondRepository))
+        release(secondScope)
+        assertEquals("the file says trail", "trail", rawStoredKey())
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }
 }

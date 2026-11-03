@@ -209,7 +209,7 @@ class StreetMapPersistenceTest {
         }
         release(firstScope)
 
-        val (secondRepository, _) = launchRepository()
+        val (secondRepository, secondScope) = launchRepository()
         val secondViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = secondRepository)
         composeRule.runOnIdle {
             modes.clear()
@@ -218,7 +218,9 @@ class StreetMapPersistenceTest {
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
 
         assertEquals("after the restart, the Street map", listOf(StreetMap.BASEMAP), released().map { it.basemap }.distinct())
-        assertEquals("street", rawStoredKey())
+        assertEquals("street", stored(secondRepository))
+        release(secondScope)
+        assertEquals("the file says street", "street", rawStoredKey())
         assertEquals(listOf(Basemap.FORAGER_TRAIL, Basemap.OPEN_TOPO_MAP, StreetMap.BASEMAP), MapMode.entries.map { it.basemap })
     }
 }

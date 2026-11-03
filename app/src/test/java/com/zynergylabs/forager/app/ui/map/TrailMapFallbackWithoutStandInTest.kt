@@ -41,6 +41,13 @@ class TrailMapFallbackWithoutStandInTest {
     }
 
     @Test
+    fun `with no stand-in, the chosen Trail chip is grey only when Topographical is shown in its place`() {
+        // The owner: "grey = chosen, but something else is shown." From the downloads it is Trail Map, what was chosen.
+        assertEquals("a downloaded area: Trail Map from it, not grey", false, chosenMapModeStandsAside(MapMode.TRAIL, noSignal = false, hasDownloadedArea = true, trailMapDraws = false, standIn = null))
+        assertEquals("none: Topographical instead, grey", true, chosenMapModeStandsAside(MapMode.TRAIL, noSignal = false, hasDownloadedArea = false, trailMapDraws = false, standIn = null))
+    }
+
+    @Test
     fun `a stand-in, while there is one, keeps today's fallback, never from the downloads with a signal`() {
         // RECORD -2003, "Nothing changes today". Topographical stands in here only as some raster other than none.
         val standIn = Basemap.OPEN_TOPO_MAP

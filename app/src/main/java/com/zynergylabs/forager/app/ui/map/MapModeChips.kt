@@ -51,8 +51,10 @@ internal fun chosenMapModeStandsAside(
     hasDownloadedArea: Boolean,
     offlineTiles: Boolean = false,
     trailMapDraws: Boolean = true,
+    /** The raster that stands in for a failed Trail Map ([trailMapStandIn]); a parameter so a test can give it none. */
+    standIn: Basemap? = trailMapStandIn,
 ): Boolean {
-    val fromDownloads = drawsFromDownloads(offlineTiles, mode.basemap, noSignal, hasDownloadedArea, trailMapDraws)
+    val fromDownloads = drawsFromDownloads(offlineTiles, mode.basemap, noSignal, hasDownloadedArea, trailMapDraws, standIn)
     return if (mode.basemap == Basemap.FORAGER_TRAIL) {
         // Trail chosen: something else is shown only when its style has failed to load (RECORD -1513) and the map draws
         // OpenStreetMap's raster in its place. From the downloads it is Trail Map again, which is what was chosen.
