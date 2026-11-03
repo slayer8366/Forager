@@ -32391,5 +32391,21 @@ These merges go before the real rewrite run. The planner's conditions:
 - full CI green;
 - #472 first.
 
-The owner then, to Aspen, relayed verbatim: "Nobody has v4 yet so it won't hurt"; "The release build doesn't have our trail map system so it's only me that gets affected, and I'm not offended by test builds". This supersedes Aspen's earlier line that today's installed app loads street-v4: only the owner's test builds load v4. The hold on the style PR and its Worker release stays until the owner confirms to the planner directly (the planner's message lifting it on the relayed words was not sent). #473 into pi-build goes ahead.
+The owner then, to Aspen, relayed verbatim: "Nobody has v4 yet so it won't hurt"; "The release build doesn't have our trail map system so it's only me that gets affected, and I'm not offended by test builds". This supersedes Aspen's earlier line that today's installed app loads street-v4: only the owner's test builds load v4. The hold on the style PR and its Worker release stays until the owner confirms to the planner directly (the planner's message lifting it on the relayed words was not sent). The owner then confirmed to the planner directly: "1 yes" (to "Did you give Aspen 'update v4 in place'?"). The hold is lifted. #473 into pi-build goes ahead.
 **Notes:** Written by the planner by hand. Next free ID -2014.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2014
+**Timestamp:** 2026-11-03T22:27:05Z
+**Continues:** 2026-09-28-1941, 2026-09-28-1867
+**Title:** #440 is updated and merged once green; the screen-on walk comes later
+**Decision:** The owner: "2 yes", to the planner's question "Should Hazel update #440 and merge it, with the walk done later?" The planner stated the facts first: in the 10-30 replay (-1866), the full fix scored 75/91 points within 10 m, mean +6.4 m; the plain sea-level GPS alone 61/91, mean +8.5 m; raw GPS 26/91, mean -13.2 m. It is not seen on screen, and the barometer part is the least proven. The owner's earlier "Not yet: walk again, screen on" (-1867) is replaced by: merge now, walk later. Hazel's work:
+- merge pre-main (671b669bf or later) into altitude-sea-level, never rebase;
+- carry the one-line CompassScreenOffTest fix (-1885);
+- check the possible empty-height effect on the heading (-1885);
+- full CI green;
+- the planner merges.
+Known bug 22's row (docs/process/known-bugs.md) is updated to say the walk is to come, not removed.
+**Notes:** Written by the planner by hand. Next free ID -2015.
