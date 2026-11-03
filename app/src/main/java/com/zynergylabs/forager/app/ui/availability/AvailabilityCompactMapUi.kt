@@ -304,9 +304,8 @@ internal fun CompactMapTab(
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> if (!routePlottingTakesTap(tap, currentBubbleSources)) tappedThingOf(tap)?.let { tapped = it } } }
     var routeCardHeightDp by remember { mutableIntStateOf(0) }
     var routeCardSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
-    // D13 (RECORD -1955): the landscape card where it rests, and the credit strip's size, so the credit rises only where the card
-    // covers it (routeCardOverCredit). The size's setter is remembered, so the render mode compares equal across recompositions.
-    var routeCardRestPx by remember { mutableStateOf<Rect?>(null) }
+    // The credit strip's size, for Re-center beside the L to keep clear of it (D17, reCenterClearanceBesideTheL). The size's setter is
+    // remembered, so the render mode compares equal across recompositions.
     var mapCreditSizePx by remember { mutableStateOf(IntSize.Zero) }
     val onMapCreditSize: (IntSize) -> Unit = remember { { mapCreditSizePx = it } }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
@@ -483,8 +482,6 @@ internal fun CompactMapTab(
                         cluster.mapContentBoxWidthPx = coordinates.size.width.toFloat()
                     },
             ) {
-                // D13 and D18 (RECORD -1955, -1958): whether the card where it rests covers the credit where it rests.
-                val creditUnderRouteCard = routeCardOverCredit(routeCardRestPx, mapCreditAtRest(cluster, mapCreditSizePx, with(compassStripDensity) { renderMode.bottomInset.toPx() }))
                 // The map (RECORD -741: CompactMapMapSlot, moved out unchanged; its comments are there).
                 CompactMapMapSlot(
                     mapSlot = mapSlot,
@@ -503,13 +500,7 @@ internal fun CompactMapTab(
                     // the attribution "i" rises above the route card while it shows (withAttributionAboveRouteCard).
                     renderMode = (savedRouteCameraRequest(bubbleSources.routePlotting, routeCardHeightDp)?.let { renderMode.copy(cameraRequest = it) } ?: renderMode)
                         .copy(onCreditSizeChanged = onMapCreditSize)
-                        .withCreditAboveRouteCard(routeCardHeightDp, cardOverCredit = cluster.landscape && creditUnderRouteCard)
-                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster))
-                        // D18 (RECORD -1958): in portrait the credit rises above the card where they overlap; the "i" stays as it was.
-                        .withCreditAbovePortraitRouteCard(
-                            cardTopAboveBottom = routeCardRestPx?.let { card -> with(compassStripDensity) { (cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx - card.top).toDp() } },
-                            cardOverCredit = !cluster.landscape && creditUnderRouteCard,
-                        ),
+                        .withAttributionAboveRouteCard(routeCardHeightDp, routeCardOverAttribution(cluster)),
                     // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298).
                     fanBackEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onFeatureTap = onFeatureTap,
@@ -662,7 +653,6 @@ internal fun CompactMapTab(
                     expandedMaxHeight = with(compassStripDensity) { (mapContentBoxHeightPx * ROUTE_CARD_EXPANDED_FRACTION).toDp() },
                     onCardHeightDp = { routeCardHeightDp = it },
                     onCardSpanPx = { routeCardSpanPx = it },
-                    onCardRestPx = { routeCardRestPx = it },
                 )
 
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the

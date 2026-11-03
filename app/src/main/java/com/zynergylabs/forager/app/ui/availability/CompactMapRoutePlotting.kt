@@ -102,8 +102,8 @@ internal const val ROUTE_CARD_EXPANDED_FRACTION = 0.5f
  * raised to the card's top plus the same gap ([CompactMapBottomChrome]'s routeCardLift: the card's height and Spacing.sm, over
  * the card's own bottom, [bottomInset][MapRenderMode.bottomInset] and its clearance). Never lowered, and unchanged with no card,
  * so it goes back when the card closes. Amendment 14 (RECORD -1928): only where the card is [overAttribution]; see
- * [routeCardOverAttribution]. In the short landscape window the "i" sits beside the credit strip
- * ([MapRenderMode.attributionBesideCredit]), below the card's bottom, and that placement does not read this inset.
+ * [routeCardOverAttribution]. Since D24 (RECORD -1966) the "i" is in the bottom-end corner in every window, so this applies in
+ * landscape too.
  */
 internal fun MapRenderMode.withAttributionAboveRouteCard(cardHeightDp: Int, overAttribution: Boolean): MapRenderMode {
     if (cardHeightDp <= 0 || !overAttribution) return this
@@ -168,11 +168,6 @@ internal fun BoxScope.CompactMapRouteCard(
     onCardHeightDp: (Int) -> Unit,
     /** Amendment 17, part 2 ruled: the card's left and right in root px while it shows, `null` as soon as it starts to leave. */
     onCardSpanPx: (ClosedFloatingPointRange<Float>?) -> Unit = {},
-    /**
-     * D13 (RECORD -1955): the card's bounds in root px where it rests, the slide it comes in by left out, while it shows; `null` as soon
-     * as it starts to leave. In portrait since D18 (RECORD -1958).
-     */
-    onCardRestPx: (Rect?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
 ) {
     val context = LocalContext.current
@@ -188,7 +183,6 @@ internal fun BoxScope.CompactMapRouteCard(
         if (leaving) {
             onCardHeightDp(0)
             onCardSpanPx(null)
-            onCardRestPx(null)
         }
     }
     val showing = state?.mode as? RoutePlotMode.Showing
@@ -240,19 +234,6 @@ internal fun BoxScope.CompactMapRouteCard(
                                     onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) })
                                     val left = it.positionInRoot().x
                                     onCardSpanPx(left..left + it.size.width)
-                                    onCardRestPx(
-                                        if (landscapeRoom == null) {
-                                            // D18 (RECORD -1958): the portrait card slides in sideways and not up, so its top and
-                                            // bottom are its laid-out ones; its side is the edge it rests flush against.
-                                            portraitRouteCardRest(cluster, it.positionInRoot().y, it.size, cardOnLeft, controlsPadding, density, layoutDirection)
-                                        } else {
-                                            // At rest: the landscape card slides in vertically, so its left is its laid-out one, and its
-                                            // bottom is the map box's bottom less its padding, wherever the slide has it now.
-                                            val restBottom = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx -
-                                                with(density) { (controlsPadding.calculateBottomPadding() + bottomPadding).toPx() }
-                                            Rect(left, restBottom - it.size.height, left + it.size.width, restBottom)
-                                        },
-                                    )
                                 }
                             },
                     )
@@ -285,34 +266,6 @@ internal fun BoxScope.CompactMapRouteCard(
             },
         )
     }
-}
-
-/**
- * D18 (RECORD -1958): the portrait card's bounds in root px at rest. It slides in from the edge away from the bar
- * ([routeCardPortraitTransitions]), so mid-slide its laid-out left is not where it will rest: that is the map box's edge it is aligned
- * to, inside [controlsPadding]; flush there, with nothing on its own edge (C17). Its top is [topInRootPx], which the slide leaves alone.
- * `null` until the map box's width is measured.
- */
-internal fun portraitRouteCardRest(
-    cluster: MapIconClusterState,
-    topInRootPx: Float,
-    size: IntSize,
-    cardOnStart: Boolean,
-    controlsPadding: PaddingValues,
-    density: Density,
-    layoutDirection: LayoutDirection,
-): Rect? {
-    if (cluster.mapContentBoxWidthPx <= 0f) return null
-    val atScreenLeft = cardOnStart == (layoutDirection == LayoutDirection.Ltr)
-    val boxLeft = cluster.mapContentBoxLeftInRootPx
-    val left = with(density) {
-        if (atScreenLeft) {
-            boxLeft + controlsPadding.calculateLeftPadding(layoutDirection).toPx()
-        } else {
-            boxLeft + cluster.mapContentBoxWidthPx - controlsPadding.calculateRightPadding(layoutDirection).toPx() - size.width
-        }
-    }
-    return Rect(left, topInRootPx, left + size.width, topInRootPx + size.height)
 }
 
 /**

@@ -3,6 +3,9 @@ package com.zynergylabs.forager.app.ui.map
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntSize
@@ -79,7 +82,6 @@ internal class SightingsMapState(
     private val cameraIdleCountState: MutableIntState,
     private val navigationMapHeightPxState: MutableIntState,
     private val mapSizePxState: MutableState<IntSize>,
-    private val creditWidthPxState: MutableIntState,
     // Objects made once for the MapView's life (unkeyed remember in SightingsMap), shared by reference.
     /** The position look last handed to MapLibre. */
     val appliedPositionLook: Array<PositionLook>,
@@ -163,6 +165,12 @@ internal class SightingsMapState(
         get() = attributionDefaultMarginsState.value
         set(value) { attributionDefaultMarginsState.value = value }
 
+    /**
+     * Counts the user's own camera gestures (MapLibre's gesture reason, MapListeners.kt): the credit strip fades at the first
+     * one after it shows (D25, D26; MapCreditStrip.kt). Made with this holder, so it lives as long as this MapView.
+     */
+    var userCameraGestures by mutableIntStateOf(0)
+
     /** Counts camera idles; the forecast cells' feed is keyed on it. */
     var cameraIdleCount: Int
         get() = cameraIdleCountState.intValue
@@ -177,11 +185,6 @@ internal class SightingsMapState(
     var mapSizePx: IntSize
         get() = mapSizePxState.value
         set(value) { mapSizePxState.value = value }
-
-    /** The credit strip's laid-out width, for the attribution placement. */
-    var creditWidthPx: Int
-        get() = creditWidthPxState.intValue
-        set(value) { creditWidthPxState.intValue = value }
 
     /**
      * What this MapView last asked `setStyle` for (RECORD -1513): written by the style effect just before `setStyle`, read

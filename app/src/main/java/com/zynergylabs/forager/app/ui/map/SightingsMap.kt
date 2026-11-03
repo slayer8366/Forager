@@ -233,8 +233,6 @@ fun SightingsMap(
     attributionBottomInset: Dp? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
-    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBesideCredit]'s own doc comment. */
-    attributionBesideCredit: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
     returnMemory: MapReturnMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
@@ -535,10 +533,6 @@ fun SightingsMap(
     // read by the attribution placement (MapAttributionInsets.kt). Declared here, with the holder's other states, since UI split Phase 2.2 (dispatch 2026-10-19-29);
     // it was declared in the attribution block until then. A plain remember with a constant start, not an observer.
     val mapSizePxState = remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-    // RECORD -954: the credit strip's laid-out width, written by the layout (SightingsMapLayout.kt) and read by the attribution
-    // placement (MapAttributionInsets.kt).
-    // Moved up here for the same reason as mapSizePx.
-    val creditWidthPxState = remember { mutableIntStateOf(0) }
 
     // UI split Phase 2.2 (dispatch 2026-10-19-29): the map's state holder, over the very State objects remembered above, so
     // the effect groups can move to their own files and take it. Nothing is copied into it: each read is a getter and each
@@ -578,7 +572,6 @@ fun SightingsMap(
             cameraIdleCountState = cameraIdleCountState,
             navigationMapHeightPxState = navigationMapHeightPxState,
             mapSizePxState = mapSizePxState,
-            creditWidthPxState = creditWidthPxState,
             appliedPositionLook = appliedPositionLook,
             navigationModeChange = navigationModeChange,
             fanCircleColour = fanCircleColour,
@@ -694,7 +687,6 @@ fun SightingsMap(
         bottomInset = bottomInset,
         attributionEndInset = attributionEndInset,
         attributionKeepClear = attributionKeepClear,
-        attributionBesideCredit = attributionBesideCredit,
     )
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is

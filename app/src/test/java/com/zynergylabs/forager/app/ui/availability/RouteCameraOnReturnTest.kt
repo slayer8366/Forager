@@ -334,7 +334,6 @@ private fun rememberTestMapState(
         cameraIdleCountState = mutableIntStateOf(0),
         navigationMapHeightPxState = mutableIntStateOf(0),
         mapSizePxState = mutableStateOf(IntSize.Zero),
-        creditWidthPxState = mutableIntStateOf(0),
         appliedPositionLook = arrayOf(PositionLook.PRECISE),
         navigationModeChange = NavigationModeChange(),
         fanCircleColour = arrayOfNulls(1),

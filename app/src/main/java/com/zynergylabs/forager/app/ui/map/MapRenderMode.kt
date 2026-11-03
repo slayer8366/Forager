@@ -245,15 +245,9 @@ data class MapRenderMode(
      */
     val attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
     /**
-     * RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): MapLibre's attribution
-     * button sits beside the map credit strip at the bottom start, rather than in the bottom end corner. Only the compact Maps tab
-     * in a short landscape window sets it; portrait and every other map keep the bottom-end corner.
-     */
-    val attributionBesideCredit: Boolean = false,
-    /**
-     * Dispatch 2026-10-30-08, D13 (RECORD -1955): told the map credit strip's laid-out size, in px, whenever it changes, so the
-     * compact Maps tab can tell where the strip rests and raise it only where the route card would cover it (`routeCardOverCredit`).
-     * A no-op for every other caller. Remembered by its one setter, so the render mode still compares equal across recompositions.
+     * Dispatch 2026-10-30-08, D13 (RECORD -1955): told the map credit strip's laid-out size, in px, whenever it changes. Since D24
+     * (RECORD -1966) removed D13's rise, its one reader is D17's Re-center beside the L (`reCenterClearanceBesideTheL`), which keeps
+     * clear of the strip. A no-op for every other caller. Remembered by its one setter, so the render mode still compares equal across recompositions.
      */
     val onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit = {},
     /**
