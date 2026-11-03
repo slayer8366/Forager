@@ -665,6 +665,7 @@ internal fun CompactMapTab(
                     layout.landscapeStripWidthPx,
                     layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
                     navigation.isNavigating,
+                    controlsPadding,
                 )
                 CompactMapRouteCard(
                     controls = bubbleSources.routePlotting,
@@ -696,6 +697,8 @@ internal fun CompactMapTab(
                     quickSettings = quickSettings,
                     sundownClock = sundownClock,
                     layout = layout,
+                    // D32 (RECORD -1987): narrower with the route card while it shows on it, edge to edge.
+                    narrowBy = if (routeCardSpanPx != null) routeCardRoom?.leaveRoom ?: 0.dp else 0.dp,
                 )
 
                 // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;

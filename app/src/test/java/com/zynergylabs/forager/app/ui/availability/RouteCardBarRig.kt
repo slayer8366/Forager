@@ -123,6 +123,22 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
         settle()
     }
 
+    /**
+     * D32 (RECORD -1987): window insets as the platform delivers them, which Robolectric otherwise reports as zero: [left] a display
+     * cutout and [right] the navigation bar, as the S22 had in landscape (s8 b3-3p-rc.xml: the L at 124 px, the rail's items ending
+     * 180 px short of its edge, at 3.75 px per dp). Which kind of inset each is on the phone is inferred, not read.
+     */
+    fun applyInsets(left: Dp, right: Dp) {
+        val insets = androidx.core.view.WindowInsetsCompat.Builder()
+            .setInsets(androidx.core.view.WindowInsetsCompat.Type.displayCutout(), androidx.core.graphics.Insets.of(with(composeRule.density) { left.roundToPx() }, 0, 0, 0))
+            .setInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, with(composeRule.density) { right.roundToPx() }, 0))
+            .build()
+        composeRule.runOnUiThread {
+            androidx.core.view.ViewCompat.dispatchApplyWindowInsets(composeRule.activity.window.decorView.findViewById(android.R.id.content), insets)
+        }
+        settle()
+    }
+
     /** D28: navigation started and ended after [setScreen], for a test that watches something come back when it ends. */
     val navigatingNow = androidx.compose.runtime.mutableStateOf(false)
 
