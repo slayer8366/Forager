@@ -32149,3 +32149,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Juniper: no public text names OSM as our style or a target
 **Outcome:** Report docs/audits/2026-11-03-osm-style-name-check.md at d66096114 on juniper/osm-style-name-check (read-only; pre-main 3b9c0b70b, main 532f45dcf, zynergy-site main 1e37879c5). Category (i), the style named as ours or a target: 0 public, 26 internal (code and test comments, style build and check scripts, two records), all repository-only; the served style JSONs carry only their attribution lines. (ii) the reference basemap by name: 7 public lines (the "OSM" chip, MapMode.kt:48; the privacy policy; README; beta README; site privacy page). (iii) attribution: 26 public lines, required, flagged only. Side findings: README still lists "Street, topographical and satellite base maps", never "Trail Map"; the site's privacy page calls our map "Our map tile service"/"the offline basemap" where the repo's policy says "Forager Trail Map"; the Worker's style names say "Street". Premise flagged: credits on pre-main are in Settings > Sources & credits (AvailabilitySettingsPages.kt:110,116), not Tools > Map Layers (the planner did not re-read whether #449 moves them). Not checked: the live store listing (no listing text in the repos), the served site, image assets, the Forager-cartography repository.
 **Notes:** Written by the planner by hand. Next free ID -1992.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1992
+**Timestamp:** 2026-11-03T13:05:07Z
+**Continues:** 2026-09-28-1990, 2026-09-28-1991
+**Title:** The route card's step 3 confirmed; README and the site's privacy page to say "Trail Map"
+**Decision:** the owner: "Yes to both, change them to Trail Map", to the planner's two questions: whether Navigate closes the route card with an "i" at the navigation card's top right bringing it back (dispatch 2026-11-03-03 A4, now confirmed), and whether README.md (Forager, lines 32 and 148 at pre-main 3b9c0b70b) and the site's privacy page (zynergy-site privacy/index.html:116-118 at 1e37879c5) change to "Trail Map". README: to a coder after #449 lands, every claim in the changed lines checked from code (USGS is still referenced in app/src/main, so the satellite wording is not simply dropped). The site: this session's GitHub access covers only the Forager repository, so the planner cannot push it; brought to the owner.
+**Notes:** Written by the planner by hand. Next free ID -1993.
