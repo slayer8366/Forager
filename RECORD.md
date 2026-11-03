@@ -32019,3 +32019,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **B4, Re-center:** as ruled beside the L at 1, 3 and 6 stops expanded, 5 of 5 real touches each. Seen: in the navigation view itself the walker's dot sits under the expanded card's left part.
 - **End state:** Forager 4436 in front on Maps, font 1.0, auto-rotate on, no size override, TEST A to K deleted; map.waypoint_names now stored true (was unset; on is the default); YouTube Music no longer in front. Not run: the routing key read (blocked), a backup restore test.
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1979.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1979
+**Timestamp:** 2026-11-03T05:36:50Z
+**Continues:** 2026-09-28-1978
+**Title:** The "i" hides while a card covers its corner; route stop names avoid each other; the walker's dot is kept clear of the expanded route card
+**Decision:** the owner: "Hide while a card covers it (Recommended)"; "Stops avoid each other (Recommended)"; "Keep the dot clear of the card (Recommended)". Dispatch 2026-10-30-08 items D28, D29 (on #449); dispatch 2026-11-02-04 item A5 (on #465, after merging route-plot-ui in).
+**Notes:** Written by the planner by hand. Next free ID -1980.
