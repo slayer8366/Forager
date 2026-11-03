@@ -470,7 +470,7 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(badgeTag(type, id), useUnmergedTree = true).assertExists()
         }
         // The same rows the single-type chips show: find tiles, the track row's share action, the
-        // waypoint row's Directions and its swipe-to-delete row (J4: the trash icon is gone), the
+        // waypoint row with no Directions (dispatch 2026-10-29-09) and its swipe-to-delete row (J4: the trash icon is gone), the
         // region row and its swipe-to-delete row (J4: its "Delete" button is gone).
         // Each find row is a find tile: an unnamed find with no time shows no title and says "Find, <date>" to a screen reader
         // (data part D, RECORD -702 and -703; it read "Find on <d1>" before, counted twice for d1's two finds).
@@ -478,7 +478,7 @@ class RecordsFilterChipsTest {
             composeRule.onNode(hasContentDescription("Find, ${displayDate(d1)}") and hasAnyAncestor(hasTestTag(rowTag("finds", id))), useUnmergedTree = true).assertExists()
         }
         composeRule.onNodeWithTag("share-track-T1").assertExists()
-        composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
+        composeRule.onNodeWithContentDescription("Directions to Morning pin").assertDoesNotExist() // Was assertExists (-1819).
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "W2")).assertExists()
         composeRule.onNodeWithText("Noon region").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).assertExists()

@@ -145,20 +145,23 @@ internal fun OfflineRegionsSection(
                         onDelete = { onDeleteOfflineRegion(region.id) },
                         onEdit = null,
                     ) {
-                        OfflineRegionRow(
-                            region = region,
-                            isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
-                            distanceUnit = distanceUnit,
-                            nowEpochMillis = nowEpochMillis,
-                            onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
-                            onDownloadAgain = { onDownloadAgain(region.id) },
-                            routeLine = if (region.isDownloaded) {
-                                offlineRouteLine(region.routeData, region.id in routeFetchingIds, region.id in routeFailedIds, noSignal)
-                            } else {
-                                null
-                            },
-                            onTryAgainRoutes = { routeActions.onTryAgain(region.id) },
-                        )
+                        // Dispatch 2026-10-29-10 (RECORD -1817, -1818): a visible trash button beside the row, calling the swipe's own delete.
+                        OfflineRegionRowWithDelete(region = region, onDelete = { onDeleteOfflineRegion(region.id) }) {
+                            OfflineRegionRow(
+                                region = region,
+                                isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
+                                distanceUnit = distanceUnit,
+                                nowEpochMillis = nowEpochMillis,
+                                onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
+                                onDownloadAgain = { onDownloadAgain(region.id) },
+                                routeLine = if (region.isDownloaded) {
+                                    offlineRouteLine(region.routeData, region.id in routeFetchingIds, region.id in routeFailedIds, noSignal)
+                                } else {
+                                    null
+                                },
+                                onTryAgainRoutes = { routeActions.onTryAgain(region.id) },
+                            )
+                        }
                     }
                 } }
             }
@@ -184,7 +187,8 @@ internal fun OfflineRegionsSection(
  * parts without the dots.
  *
  * No delete control of its own since journal redesign J4 (the text "Delete" button is gone): its
- * callers wrap it in a [TwoStageSwipeRow] (J4b L6).
+ * callers wrap it in a [TwoStageSwipeRow] (J4b L6). Since dispatch 2026-10-29-10 they also put a visible trash button
+ * beside it ([OfflineRegionRowWithDelete]), outside this row, so the row itself is unchanged.
  *
  * [onClick] (journal redesign J5c) is what a tap on the row opens, the region's details sheet, or
  * `null` for no row tap. The All logbook passes `null` and puts the tap on its badged row instead,

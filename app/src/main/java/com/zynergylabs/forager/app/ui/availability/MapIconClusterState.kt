@@ -103,6 +103,9 @@ internal class MapIconClusterState(
     /** The map pane's left in the root, written with the top above; with [clusterBoundsInRoot] it gives the cluster's rectangle in the map's own pixels (attribution clearance, dispatch 2026-09-29-57, item 1). */
     var mapContentBoxLeftInRootPx by mutableFloatStateOf(0f)
 
+    /** The map pane's width, written with its left (D18, RECORD -1958: where the portrait route card rests, against the credit). */
+    var mapContentBoxWidthPx by mutableFloatStateOf(0f)
+
     /** The cluster container's measured bounds in the root, written by the container only; null until first measured. */
     var clusterBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 

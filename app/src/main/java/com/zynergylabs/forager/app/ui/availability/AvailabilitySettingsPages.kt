@@ -64,6 +64,7 @@ internal fun CompactSettingsTab(
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
+    waypointNames: WaypointNamesControls = WaypointNamesControls(),
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
@@ -103,6 +104,7 @@ internal fun CompactSettingsTab(
                     nightModeMaps = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     crowdedIcons = crowdedIcons,
+                    waypointNames = waypointNames,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     backup = backup,
@@ -169,6 +171,8 @@ internal fun SettingsContent(
     onNightModeMapsChanged: (Boolean) -> Unit,
     /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14). */
     crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
+    /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04). */
+    waypointNames: WaypointNamesControls = WaypointNamesControls(),
     /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
@@ -201,7 +205,7 @@ internal fun SettingsContent(
         HorizontalDivider()
         // The Map section (dispatch 2026-10-27-14 Amendment 3, RECORD -1758; the owner: "New \"Map\" section (Recommended)"),
         // after Night Mode and before Backup. Night Maps stays under Night Mode.
-        MapSettingsSection(crowdedIcons)
+        MapSettingsSection(crowdedIcons, waypointNames)
         HorizontalDivider()
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
         // Settings ends at Sources & credits, the very bottom (dispatch 2026-10-13-05; the owner: "Bottom of settings page

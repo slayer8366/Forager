@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.Uri
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -56,7 +55,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -89,9 +87,10 @@ import org.robolectric.shadows.ShadowDialog
  * - **Back** is a real Back key sent to the sheet's own window (the sheet is a dialog with its own
  *   back dispatcher, which is what a Back press reaches while it shows). **The scrim** is touched
  *   at a point the sheet does not cover.
- * - **Navigate** (dispatch 2026-09-28-502, which changed this): the waypoint test pins its presence
- *   beside Directions', and Directions still starting its intent. Until -502 Navigate was not built and
- *   that test pinned its absence. What Navigate does is `AvailabilityScreenWaypointNavigateTest`'s.
+ * - **Navigate** (dispatch 2026-09-28-502, which changed this): the waypoint test pins its presence. Until
+ *   -502 Navigate was not built and that test pinned its absence. Dispatch 2026-10-29-09 (RECORD -1819)
+ *   removed Directions from the sheet and the rows, so they pin its absence. What Navigate does is
+ *   `AvailabilityScreenWaypointNavigateTest`'s.
  *
  * Tags are literals so these compile against the base they were written before.
  */
@@ -234,8 +233,8 @@ class RecordDetailsSheetTest {
         field("created").assertTextEquals("Created", stamp(CREEK.createdAtEpochMillis))
         field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
         field("used-in").assertTextEquals("Used in", "2 journal entries")
-        // The sheet's content scrolls in a short window, so an action may start below its fold.
-        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
+        // Dispatch 2026-10-29-09 (RECORD -1819): was "is displayed"; the sheet offers Navigate in Directions' place.
+        composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
     }
 
     private fun tile(label: String): SemanticsNodeInteraction = composeRule.onNodeWithTag("track-tile-$label")
@@ -366,18 +365,15 @@ class RecordDetailsSheetTest {
 
     // ── The row's own buttons keep doing what they do ──
 
+    // Dispatch 2026-10-29-09 (RECORD -1819): was `the waypoint row's own Directions button starts directions and does not
+    // open the sheet`. The row has no Directions now; its Navigate is AvailabilityScreenWaypointNavigateTest's.
     @Test
-    fun `the waypoint row's own Directions button starts directions and does not open the sheet`() {
+    fun `the waypoint row has no Directions button`() {
         setScreen()
-        registerFakeMapsApp()
         openRecords()
         selectChip(RecordsSubTab.WAYPOINTS)
-        composeRule.onNodeWithContentDescription("Directions to Creek pin").performScrollTo().performTouchInput { click(center) }
-        composeRule.waitForIdle()
-
-        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
-        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
-        assertTrue("a tap on the row's own Directions button does not open the sheet", !sheetShowing())
+        composeRule.onNodeWithText("Creek pin").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Directions to Creek pin").assertDoesNotExist()
     }
 
     @Suppress("DEPRECATION")
@@ -480,24 +476,19 @@ class RecordDetailsSheetTest {
     // ── Actions ──
 
     @Test
-    fun `the waypoint sheet offers Navigate beside Directions, and its Directions starts directions to that waypoint`() {
+    fun `the waypoint sheet offers Navigate and no Directions`() {
         // Dispatch -502 changed this. Before: named "... and there is no Navigate", it asserted that no
         // node's text contained "Navigate" (the J5c stop rule: no in-app entry point navigated to a chosen
         // waypoint). After: the owner asked for Navigate beside Directions (-502, T9), so it asserts the
-        // sheet's Navigate is shown, labelled "Navigate"; Directions' assertions below are unchanged.
+        // sheet's Navigate is shown, labelled "Navigate". Dispatch 2026-10-29-09 (RECORD -1819) changed it
+        // again: named "... beside Directions, and its Directions starts directions to that waypoint", it
+        // asserted Directions shown and its geo intent; Directions is gone from the sheet, so it asserts that.
         setScreen(onNavigateToWaypoint = {})
-        registerFakeMapsApp()
         openRecords()
         touch(waypointRow("W1"), Offset(0.3f, 0.5f))
-        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
         composeRule.onNodeWithTag(NAVIGATE).performScrollTo().assertIsDisplayed()
         assertEquals("Navigate", composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
-
-        composeRule.onNodeWithTag(DIRECTIONS).performTouchInput { click(Offset(width * 0.3f, height * 0.5f)) }
-        composeRule.waitForIdle()
-        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
-        assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
     }
 
     @Suppress("DEPRECATION")
@@ -617,7 +608,7 @@ class RecordDetailsSheetTest {
             touch(walkWaypointRow("W1"), point)
             composeRule.onNodeWithTag(TITLE).assertTextEquals("Creek pin")
             field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
-            composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist() // Was "is displayed" (dispatch 2026-10-29-09).
 
             pressBackOnSheet()
             assertTrue("Back from the waypoint (tap at $point) leaves a sheet showing", sheetShowing())
@@ -693,21 +684,6 @@ class RecordDetailsSheetTest {
             started != null
         }
         return started!!
-    }
-
-    private fun registerFakeMapsApp() {
-        val activity = composeRule.activity
-        val componentName = ComponentName(activity, "com.example.fakemaps.MapsActivity")
-        val shadowPackageManager = Shadows.shadowOf(activity.packageManager)
-        shadowPackageManager.addActivityIfNotPresent(componentName)
-        shadowPackageManager.addIntentFilterForActivity(
-            componentName,
-            IntentFilter(Intent.ACTION_VIEW).apply {
-                addCategory(Intent.CATEGORY_DEFAULT)
-                addDataScheme("geo")
-            },
-        )
-        assertNull("nothing started before the tap", Shadows.shadowOf(activity).nextStartedActivity)
     }
 
     private fun hasClickLabel(label: String): SemanticsMatcher =

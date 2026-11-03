@@ -25,8 +25,11 @@ import org.maplibre.android.style.layers.SymbolLayer
  * silently (CLAUDE.md); a summary line says how many were recoloured and how many left. Which form
  * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
  * is unverified until a device run; a form this does not read shows up in these log lines.
+ *
+ * [trailTables] are the Trail night's tables for the Trail Map version loaded ([trailNightTablesFor]); they apply
+ * only with [trailWater], Trail Map.
  */
-internal fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = false) {
+internal fun applyOfflineNightRecolour(style: Style, trailWater: Boolean = false, trailTables: TrailNightTables = TRAIL_NIGHT_TABLES) {
     var recoloured = 0
     var left = 0
     for (layer in style.layers) {
@@ -42,8 +45,8 @@ internal fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = fals
                     LayerColourProperty(layer.id, property, StyleColourValue.Literal(value.toString())),
                     "value of type ${value.value?.javaClass?.name} is neither a colour string nor an expression",
                 )
-            } else if (streetWater) {
-                streetNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer))
+            } else if (trailWater) {
+                trailNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer), trailTables)
             } else {
                 offlineNightRecolourOf(LayerColourProperty(layer.id, property, colourValue))
             }

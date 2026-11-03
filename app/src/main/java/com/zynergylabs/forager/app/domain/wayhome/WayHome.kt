@@ -55,9 +55,10 @@ data class WayHome(
 }
 
 /**
- * One part of a [WayHome]: its [kind], its line in walking order, and its length. [heights] are its barometric heights
- * for the walk back's climbing allowance (`WayHomeHeights.kt`; RECORD -1689): the track parts' own, the trail part's a
- * stand-in from the walker's track; `null` where nothing measured them (the way to a waypoint's parts).
+ * One part of a [WayHome]: its [kind], its line in walking order, and its length. [heights] are its heights for the walk
+ * back's climbing allowance (`WayHomeHeights.kt`; RECORD -1689, -1838): the track parts' own barometric ones, the trail
+ * part's from the trail data, or a stand-in from the walker's track where the trail data has none for every route point;
+ * `null` where nothing measured them (the way to a waypoint's parts).
  */
 data class WayHomePart(val kind: WayHomePartKind, val points: List<LatLng>, val meters: Double, val heights: PartHeights? = null)
 

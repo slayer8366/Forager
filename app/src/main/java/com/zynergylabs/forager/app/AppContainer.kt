@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app
 
+import com.zynergylabs.forager.app.domain.route.SavePlottedRouteUseCase
+import com.zynergylabs.forager.app.domain.route.PlotRouteUseCase
 import android.content.Context
 import com.zynergylabs.forager.app.data.repository.RoomEntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
@@ -294,7 +296,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val runScheduledBackupUseCase = RunScheduledBackupUseCase(journalBackup, backupSchedulePreferences, backupFiles)
     val backupNotifier: BackupNotifier = AndroidBackupNotifier(context.applicationContext)
     val scheduledBackupReporter = ScheduledBackupReporter(backupNotifier, backupSchedulePreferences, errorLog)
-    val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())
+    val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripRouteDao(), errorLog)
     val getPlannedTripsUseCase = GetPlannedTripsUseCase(plannedTripRepository)
     val savePlannedTripUseCase = SavePlannedTripUseCase(plannedTripRepository)
     val deletePlannedTripUseCase = DeletePlannedTripUseCase(plannedTripRepository)
@@ -324,6 +326,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val basemapPreferenceRepository: BasemapPreferenceRepository = dataStoreMapPreferencesRepository
     val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = dataStoreMapPreferencesRepository
     val crowdedIconsRepository: CrowdedIconsPreferenceRepository = dataStoreMapPreferencesRepository
+    val waypointNamesRepository: com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository = dataStoreMapPreferencesRepository
 
     /**
      * Where the map's colour fields read their cells (map layers L0b, B5 and B6): the store that reports
@@ -459,6 +462,10 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
      * hands it to the ViewModel, whose `AvailabilityWaypointRoute` asks it at the first fix.
      */
     val findWayToWaypoint = FindWayToWaypointUseCase(offlineMapRepository = offlineMapRepository, engines = trailRoutingEngine, errorLog = errorLog)
+
+    /** Route plotting (dispatch 2026-10-30-08, step 3), on the shared engine; its caller is `RoutePlottingViewModel`. */
+    val plotRoute = PlotRouteUseCase(offlineMapRepository = offlineMapRepository, engines = trailRoutingEngine, errorLog = errorLog)
+    val savePlottedRoute = SavePlottedRouteUseCase(plannedTripRepository)
     // Dispatch 2026-10-26-05 (RECORD -1651): the recording's newest kept points, written or not, held here so they outlive
     // the Activity, as the watches are. The service adds each kept point and ends it; the recording screen draws its line
     // from the stored track and these (TrackRecordingUiState.recordingLine).

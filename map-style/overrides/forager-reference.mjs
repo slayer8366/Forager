@@ -1,11 +1,11 @@
 // The official-trails band (step 8, PR 8a; dispatch 2026-10-26-14 and its Amendment 1; RECORD -1633, -1677, -1678):
 // the Forest Service's and BLM's trails drawn as a wide, faint violet band under Trail Map's own trail lines, with the
 // Forest Service trail number along it from zoom 14. Drawn apart from the OpenStreetMap trails, never joined to them,
-// and routes never follow it (-445, -1176). generate-street.mjs adds it to street-v3.json with withReferenceLayers().
+// and routes never follow it (-445, -1176). generate-trail.mjs adds it to street-v3.json with withReferenceLayers().
 //
 // **Everything about the server's archive is here and nowhere else.** The archive's name, its zoom range, its
 // source-layer names and its fields are the step 8 report's proposal for Aspen's archive (section 7), premises rather
-// than facts until the archive exists. A different name is one line below, then `npm run generate:street`.
+// than facts until the archive exists. A different name is one line below, then `npm run generate:trail`.
 //
 // **The tile address is in the style, not a TileJSON URL** (Amendment 1, the owner: "When Aspen's data is live
 // (Recommended)"). MapLibre fetches a source's TileJSON when the style loads, and until the archive is on R2 the

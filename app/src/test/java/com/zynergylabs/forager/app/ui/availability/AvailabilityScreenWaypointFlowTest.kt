@@ -364,9 +364,8 @@ class AvailabilityScreenWaypointFlowTest {
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Directions to Reachable Waypoint")
-            .performScrollTo()
-            .assertIsDisplayed()
+        // Dispatch 2026-10-29-09 (RECORD -1819): was "performScrollTo().assertIsDisplayed()"; the row's Directions is gone.
+        composeRule.onNodeWithContentDescription("Directions to Reachable Waypoint").assertDoesNotExist()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "reachable-waypoint"))
             .performScrollTo()
             .performTouchInput { swipeLeft() }

@@ -173,7 +173,8 @@ class CartographyEntryReportScreenFullscreenTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed()
-        listOf("Trail", "Topo", "OSM").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+        // Every map type's chip, in the app's own words (dispatch 2026-11-03-05 D7: the Street map's "Street" is one).
+        com.zynergylabs.forager.app.ui.map.MapMode.entries.forEach { composeRule.onNodeWithText(it.label).assertIsDisplayed() }
         // Satellite was removed by dispatch 2026-09-28-708; the entry map's panel offers it nowhere.
         composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
     }

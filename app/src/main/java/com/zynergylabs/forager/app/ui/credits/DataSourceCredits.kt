@@ -49,7 +49,7 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 "licence",
                 "https://opentopomap.org/about",
             ),
-            // Forager Trail Map's vector tiles and the offline map packs' (StreetStyle.kt); its OpenStreetMap data is
+            // Forager Trail Map's vector tiles and the offline map packs' (TrailStyle.kt); its OpenStreetMap data is
             // credited in the row above.
             SourceCredit("protomaps", PROTOMAPS_CREDIT_TEXT, "licence", "https://github.com/protomaps/basemaps"),
             // The official-trails band on Trail Map (street-v3, from dispatch 2026-10-26-21; RECORD -1682: "Once the band can
@@ -64,6 +64,40 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
             ),
             // Public domain: nothing is required; credited anyway, as the owner's practice is, with no link.
             SourceCredit("blm-trails", "Trails: Bureau of Land Management, public domain", linkLabel = null, url = null),
+        ),
+    ),
+    // The heights in the route files (dispatch 2026-10-30-19; the owner: "New \"Heights\" section (Recommended)",
+    // "Approve as written (Recommended)"). The wording is Juniper's proposal, word for word
+    // (docs/research/2026-10-30-nrcan-attribution.md, branch juniper-nrcan-credit): the Open Government Licence – Canada's
+    // own attribution sentence and a link to it; the Copernicus WorldDEM-30 licence's notice for adapted data (its Article
+    // 6(b)) and its liability sentence (6(c)), which NRCan's MRDEM carries on; and the USGS's "courtesy of" form for 3DEP.
+    SourceSection(
+        "Heights",
+        listOf(
+            SourceCredit(
+                "nrcan-heights",
+                "Heights in Canada: Natural Resources Canada. Contains information licensed under the Open Government Licence – Canada.",
+                "licence",
+                "https://open.canada.ca/en/open-government-licence-canada",
+                detail = "Route heights in Forager are averaged from this data.",
+            ),
+            SourceCredit(
+                "copernicus-heights",
+                "Heights in Canada: produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space " +
+                    "GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.",
+                linkLabel = null,
+                url = null,
+                detail = "The organisations in charge of the Copernicus programme by law or by delegation do not incur any " +
+                    "liability for any use of the Copernicus WorldDEM-30.",
+            ),
+            // Public domain: the USGS asks for, and does not require, this credit; no link, as the BLM's row.
+            SourceCredit(
+                "usgs-3dep-heights",
+                "Heights in the United States: 3DEP elevation data courtesy of the U.S. Geological Survey, public domain",
+                linkLabel = null,
+                url = null,
+                detail = "Route heights in Forager are averaged from this data.",
+            ),
         ),
     ),
     // The forager-forecast map layers and the data behind them (GBIF occurrences among it) go here, as

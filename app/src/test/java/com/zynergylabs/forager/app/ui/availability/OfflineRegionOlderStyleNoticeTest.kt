@@ -12,8 +12,9 @@ import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
-import com.zynergylabs.forager.app.map.STREET_STYLE_URL
-import com.zynergylabs.forager.app.map.STREET_STYLE_V1_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_V1_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_V4_STREET_URL
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import org.junit.Rule
 import org.junit.Test
@@ -61,7 +62,7 @@ class OfflineRegionOlderStyleNoticeTest {
         styleUrl = styleUrl,
     )
 
-    // The ownStreet parameter went with the release switch (dispatch 2026-10-22-01): every row now compares with Forager
+    // The ownTrail parameter went with the release switch (dispatch 2026-10-22-01): every row now compares with Forager
     // Trail Map's style, the one downloads are made in.
     private fun show(region: OfflineRegionSummary) = composeRule.setContent {
         ForagerTheme {
@@ -80,15 +81,24 @@ class OfflineRegionOlderStyleNoticeTest {
     @Test
     fun `a region downloaded under Trail Map's first style shows the notice`() {
         // RECORD -1561, the owner: "The existing notice" for regions downloaded under v1.
-        show(region(4, STREET_STYLE_V1_URL))
+        show(region(4, TRAIL_STYLE_V1_URL))
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(4)).assertIsDisplayed()
         composeRule.onNodeWithText("Older map style. Download again to update.").assertIsDisplayed()
     }
 
     @Test
     fun `a Forager Trail Map region shows no notice`() {
-        show(region(2, STREET_STYLE_URL))
+        show(region(2, TRAIL_STYLE_URL))
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(2)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a region downloaded against street-v4 shows no notice, as it is today's style under its old address`() {
+        // Dispatch 2026-11-03-05 D1 (RECORD -2000): no false "Older map style" notice once the app loads trail-v4.
+        show(region(5, TRAIL_STYLE_V4_STREET_URL))
+        composeRule.onNodeWithText("Region 5").assertIsDisplayed()
+        composeRule.onNodeWithTag(offlineRegionOlderStyleTag(5)).assertDoesNotExist()
+        composeRule.onNodeWithText("Older map style. Download again to update.").assertDoesNotExist()
     }
 
     @Test

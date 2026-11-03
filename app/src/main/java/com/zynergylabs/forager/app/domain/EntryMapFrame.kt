@@ -15,6 +15,20 @@ sealed interface EntryMapFrame {
         val maxZoom: Double = ENTRY_MAP_FRAME_MAX_ZOOM,
     ) : EntryMapFrame
 
+    /**
+     * Fit [bounds] with its own padding on each side, in dp, zoomed no closer than [maxZoom] (dispatch 2026-10-30-08, step 3):
+     * a saved route fitted above the route card, whose height is [bottomDp]. A new frame rather than a flag on [Fit], whose one
+     * padding serves the entry maps unchanged.
+     */
+    data class FitInsets(
+        val bounds: GeoBoundingBox,
+        val topDp: Int,
+        val bottomDp: Int,
+        val leftDp: Int,
+        val rightDp: Int,
+        val maxZoom: Double = ENTRY_MAP_FRAME_MAX_ZOOM,
+    ) : EntryMapFrame
+
     /** Everything the entry keeps is at one place: centre on it at [zoom]. */
     data class SinglePoint(val at: LatLng, val zoom: Double = ENTRY_MAP_SINGLE_POINT_ZOOM) : EntryMapFrame
 }

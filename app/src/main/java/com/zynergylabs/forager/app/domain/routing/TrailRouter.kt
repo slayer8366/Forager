@@ -9,8 +9,8 @@ import java.io.File
  * this, never on the engine. The one implementation is BRouter's (`routing/BRouterTrailRouter`), chosen at
  * RECORD -484.
  *
- * Nothing calls this in production yet. The way home, waypoint navigation and the stored route data for a
- * download are later steps (RECORD -1568).
+ * Called in production by the way home (`domain/wayhome/FindWayHomeUseCase`, through `routing/WayHomeRouting`) and
+ * the way to a waypoint (`domain/wayto/FindWayToWaypointUseCase`, through `TrailEngineSource`).
  */
 interface TrailRouter {
     /**
@@ -42,7 +42,18 @@ data class TrailRoute(
     val points: List<LatLng>,
     /** The engine's own length of the route, in whole metres. */
     val lengthMetres: Int,
-)
+    /**
+     * The trail data's height at each of [points], in metres, in the same order; `null` where the data has none
+     * (dispatch 2026-10-30-06, RECORD -1836, -1838). A square built without heights, or downloaded before they were
+     * added (2026-10-28), gives `null` at every point: missing is never 0 (Aspen: "treat missing heights as missing, not
+     * as zero"). Defaults to all missing, so a route built without heights says so.
+     */
+    val heightsMetres: List<Double?> = points.map { null },
+) {
+    init {
+        require(heightsMetres.size == points.size) { "${heightsMetres.size} heights for ${points.size} points" }
+    }
+}
 
 /** Which end of a route a failure is about. */
 enum class RouteEnd { START, END }
