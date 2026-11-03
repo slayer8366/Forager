@@ -59,7 +59,16 @@ internal val ACROSS_ROUND = listOf(0.5f to 0.2f, 0.2f to 0.5f, 0.5f to 0.5f, 0.8
  * The real Maps tab with a route card over it, recording, six waypoints to plot, for the rule of Amendments 14 and 15 (RECORD
  * -1928, -1929): the card fits beside the icon bar, and the bar, its height and its side never change for the card.
  */
-internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<String>? = null, credit: String? = null) {
+internal class RouteCardBarRig(
+    private val composeRule: RouteRule,
+    names: List<String>? = null,
+    credit: String? = null,
+    /**
+     * The screen's clock. The real one by default, as before; a fixed one where the claim depends on the hour, since the sundown line
+     * the navigation card carries within 150 minutes of sunset (SUNDOWN_LINE_SUNSET_WINDOW_MILLIS) makes that card taller.
+     */
+    private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider,
+) {
     private val stops = listOf(
         CREEK,
         RIDGE,
@@ -120,6 +129,7 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
                         AvailabilityScreenNavigation(onToggleReturning = { returnTouches++ })
                     },
                     recording = AvailabilityScreenRecording(isRecording = true, onToggleRecording = { stopTouches++ }),
+                    currentTime = clock,
                 )
             }
         }

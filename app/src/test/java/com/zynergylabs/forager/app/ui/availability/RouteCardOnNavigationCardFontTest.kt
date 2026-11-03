@@ -41,14 +41,14 @@ import org.robolectric.shadows.ShadowDisplay
  * card at peek and expanded, the buttons included, is whole: no ellipsis, no overflow, and a break only between words (D12 saw Save
  * broken as "Sav" / "e" beside the navigation card).
  */
-abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int) {
+abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int, private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private val rig = RouteCardBarRig(composeRule)
+    private val rig = RouteCardBarRig(composeRule, clock = clock)
 
     private fun layoutOf(matcher: SemanticsMatcher): TextLayoutResult {
         val results = mutableListOf<TextLayoutResult>()
@@ -91,7 +91,7 @@ abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int) {
         val hud = rig.bounds(NAVIGATION_HUD_TAG)
         val strip = rig.bounds("compass-elevation-strip")
         val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
-        println("C23 font ${composeRule.density.fontScale} rot $rotation: navigation card ${hud.left.value}..${hud.right.value} x ${hud.top.value}..${hud.bottom.value}")
+        println("C23 font ${composeRule.density.fontScale} rot $rotation: navigation card ${hud.left.value}..${hud.right.value} x ${hud.top.value}..${hud.bottom.value}, sundown line shown ${rig.count(NAVIGATION_HUD_SUNDOWN_LINE_TAG)}")
         var wrapped = 0
         var peekTop = 0.dp
         listOf(1, 3, 6).forEach { stops ->
@@ -148,3 +148,18 @@ class RouteCardOnNavigationCardFont20Test : RouteCardOnNavigationCardFontTests(S
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardOnNavigationCardShortFont20Test : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90)
+
+/**
+ * Pre-main's push run 41728736456 (671b669bf) and tools/s22-combined's 41734379417: RouteCardOnNavigationCardFont20Test failed at
+ * "1 stops, expanded: D37 ... expected 8.0 but was 16.666666" with the navigation card at 186..384 dp, where the green runs had it at
+ * 266..384. Both red runs' tests ran at 22:28 and 23:07 UTC, inside the 150 minutes before the rig's sunset (45.32 N, 122.63 W, about
+ * 00:53 UTC on 2026-11-04), when the navigation card carries its sundown line; the green ones ran at 18:36 to 19:36 UTC. The class
+ * read the real clock, so its answer depended on the hour. This is that class at a fixed 22:45 UTC on 2026-11-03.
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardOnNavigationCardFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_270, ROUTE_CARD_EVENING_CLOCK)
+
+/** 2026-11-03 22:45 UTC: 2 h 8 min before sunset at the rig's place, so the sundown line shows. */
+internal val ROUTE_CARD_EVENING_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T22:45:00Z").toEpochMilli() }
