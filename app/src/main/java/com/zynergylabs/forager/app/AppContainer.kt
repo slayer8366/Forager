@@ -329,6 +329,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val basemapPreferenceRepository: BasemapPreferenceRepository = dataStoreMapPreferencesRepository
     val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = dataStoreMapPreferencesRepository
     val crowdedIconsRepository: CrowdedIconsPreferenceRepository = dataStoreMapPreferencesRepository
+    val waypointNamesRepository: com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository = dataStoreMapPreferencesRepository
 
     /**
      * Where the map's colour fields read their cells (map layers L0b, B5 and B6): the store that reports

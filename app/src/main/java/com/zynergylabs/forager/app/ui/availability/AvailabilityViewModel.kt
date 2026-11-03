@@ -173,6 +173,8 @@ class AvailabilityViewModel(
     /** RECORD -711: where the Maps tab's icon cluster's side and height persist across restarts. */
     private val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = NoStoredMapIconClusterPlacement,
     private val crowdedIconsRepository: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
+    /** Dispatch 2026-11-02-04: where Settings > Map > "Waypoint names" persists across restarts. */
+    private val waypointNamesRepository: com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository = NoStoredWaypointNames,
     /** The maps' "no signal" state (NoSignalTrailMap.kt), read when Offline maps opens; defaulted to "no signal", so nothing fetches. */
     internal val noSignal: () -> Boolean = { true },
     /**
@@ -243,6 +245,7 @@ class AvailabilityViewModel(
         setBatterySaverEnabled = setBatterySaverEnabled,
         errorLog = errorLog,
         crowdedIconsRepository = crowdedIconsRepository,
+        waypointNamesRepository = waypointNamesRepository,
     )
 
     /**

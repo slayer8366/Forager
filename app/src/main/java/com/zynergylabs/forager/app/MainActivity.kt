@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.onAutoSaveLocationToPhotosChanged
 import com.zynergylabs.forager.app.ui.availability.onBatterySaverChanged
 import com.zynergylabs.forager.app.ui.availability.onCrowdedIconsModeChanged
+import com.zynergylabs.forager.app.ui.availability.onWaypointNamesChanged
 import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
 import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
 import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
@@ -534,6 +535,7 @@ class MainActivity : ComponentActivity() {
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                         onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                         onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
+                        onWaypointNamesChanged = viewModel::onWaypointNamesChanged,
                         onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                         onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
                         onDarknessMarginChanged = viewModel::onDarknessMarginChanged,

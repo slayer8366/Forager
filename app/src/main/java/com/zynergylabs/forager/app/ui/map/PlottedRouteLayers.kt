@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import android.util.Log
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.route.RouteLeg
+import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
@@ -28,8 +29,11 @@ import org.maplibre.geojson.Point
  * hidden under a plotted route.
  */
 
-/** What the map draws of a plotted route: its [legs], and [stopDots] (empty while plotting). */
-data class PlottedRouteOnMap(val legs: List<RouteLeg>, val stopDots: List<LatLng> = emptyList())
+/**
+ * What the map draws of a plotted route: its [legs], [stopDots] (empty while plotting), and [stopNames], the stops whose
+ * names are always drawn, while plotting and on a saved route (dispatch 2026-11-02-04, A2; WaypointNameLayers.kt).
+ */
+data class PlottedRouteOnMap(val legs: List<RouteLeg>, val stopDots: List<LatLng> = emptyList(), val stopNames: List<RouteStop> = emptyList())
 
 internal object PlottedRouteIds {
     const val SOURCE = "plotted-route"

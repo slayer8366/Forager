@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
+import com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
@@ -48,7 +49,7 @@ class DataStoreMapPreferencesRepository(
     /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
     settingsReset: SettingsResetListener = SettingsResetListener.None,
 ) : MapPreferencesRepository, MapLayerPreferencesRepository, BasemapPreferenceRepository,
-    MapIconClusterPlacementRepository, CrowdedIconsPreferenceRepository {
+    MapIconClusterPlacementRepository, CrowdedIconsPreferenceRepository, WaypointNamesPreferenceRepository {
 
     private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
 
@@ -165,6 +166,15 @@ class DataStoreMapPreferencesRepository(
         dataStore.edit { prefs -> prefs[KEY_CROWDED_ICONS] = mode.stored }
     }
 
+    /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04), under `map.waypoint_names`; `null` when nothing is stored. */
+    override suspend fun getWaypointNamesShown(): Result<Boolean?> = runCatchingCancellable {
+        dataStore.data.first()[KEY_WAYPOINT_NAMES]
+    }
+
+    override suspend fun setWaypointNamesShown(shown: Boolean): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_WAYPOINT_NAMES] = shown }
+    }
+
     /**
      * RECORD -711: the icon cluster's side and height, four keys under `map.icon_cluster` in this same file
      * and [dataStore]. `null` when none of the four is stored; a key missing beside others (which no write
@@ -208,6 +218,7 @@ class DataStoreMapPreferencesRepository(
         val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
         val KEY_BASEMAP = stringPreferencesKey("map.basemap")
         val KEY_CROWDED_ICONS = stringPreferencesKey("map.crowded_icons")
+        val KEY_WAYPOINT_NAMES = booleanPreferencesKey("map.waypoint_names")
         val KEY_CLUSTER_PORTRAIT_LEFT = booleanPreferencesKey("map.icon_cluster.portrait_left")
         val KEY_CLUSTER_PORTRAIT_OFFSET_DP = floatPreferencesKey("map.icon_cluster.portrait_offset_dp")
         val KEY_CLUSTER_LANDSCAPE_PORT_SIDE = booleanPreferencesKey("map.icon_cluster.landscape_port_side")

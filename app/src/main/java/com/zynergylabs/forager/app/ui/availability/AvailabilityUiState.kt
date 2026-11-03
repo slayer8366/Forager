@@ -233,6 +233,8 @@ data class AvailabilityUiState(
     val nightModeMapsLoaded: Boolean = false,
     /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14); the Maps tab writes it into its crowded-stack host. */
     val crowdedIconsMode: CrowdedIconsMode = CrowdedIconsMode.DEFAULT,
+    /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04), on by default; the Maps tab hands it to its map. */
+    val waypointNamesShown: Boolean = true,
     /**
      * The Maps tab's basemap (dispatch 2026-09-28-708): restored at start from
      * [com.zynergylabs.forager.app.domain.BasemapPreferenceRepository] and kept in step with every pick

@@ -728,6 +728,7 @@ fun AvailabilityScreen(
         isNightMode = isNightMode,
         onNightModeMapsChanged = onNightModeMapsChanged,
         crowdedIcons = CrowdedIconsControls(uiState.crowdedIconsMode, settings.onCrowdedIconsModeChanged),
+        waypointNames = WaypointNamesControls(uiState.waypointNamesShown, settings.onWaypointNamesChanged),
         onThemeModeChanged = onThemeModeChanged,
         crashFileStore = crashFileStore,
         backup = backup,
