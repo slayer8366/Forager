@@ -81,23 +81,30 @@ private fun drawnName(name: String): String? = name.trim().takeIf { it.isNotEmpt
 
 /** Every waypoint's name label, in order, blank names left out; none at all when [drawn] is false ([waypointNamesDrawn]). */
 internal fun waypointNameLabels(waypoints: List<Waypoint>, drawn: Boolean): List<NameLabel> =
-    emptyList() // STUB (test first)
+    if (!drawn) emptyList() else waypoints.mapNotNull { w -> drawnName(w.name)?.let { NameLabel(w.id, it, w.lat, w.lng) } }
 
 /** The route's stops' name labels, from [RouteStop.name], blank names left out. */
 internal fun routeStopNameLabels(stops: List<RouteStop>): List<NameLabel> =
-    emptyList() // STUB (test first)
+    stops.mapNotNull { s -> drawnName(s.name)?.let { NameLabel(null, it, s.position.lat, s.position.lng) } }
 
 /**
  * Whether waypoint names are drawn: the setting ([MapOverlayContent.waypointNames]) and the waypoints layer itself drawn
  * under [layersState] (the Layers sheet's Waypoints switch), so a name is never drawn beside a pin that is not.
  */
 internal fun waypointNamesDrawn(setting: Boolean, layersState: MapLayersState): Boolean {
-    return false // STUB (test first)
+    if (!setting) return false
+    val spec = MAP_LAYER_REGISTRY.firstOrNull { it.id == MapLayerIds.WAYPOINTS } ?: return false
+    return layerPaintFor(spec, layersState).visible
 }
 
 /** What a name source receives for [labels]: a point each, with its image and, for a waypoint, its id. */
 internal fun nameLabelFeatures(labels: List<NameLabel>): FeatureCollection = FeatureCollection.fromFeatures(
-    emptyList<Feature>(), // STUB (test first)
+    labels.map { label ->
+        Feature.fromGeometry(Point.fromLngLat(label.lng, label.lat)).apply {
+            label.featureId?.let { addStringProperty(FEATURE_ID_PROPERTY, it) }
+            addStringProperty(WaypointNameIds.IMAGE_PROPERTY, label.imageId)
+        }
+    },
 )
 
 /**
@@ -112,7 +119,13 @@ private const val NAME_GAP_DP = 2f
  * `PropertyValue` can). [allowOverlap]: false for waypoint names (a name that would collide is not drawn), true for the
  * route's stops (always drawn). Neither ignores placement, so each still takes its room from the names placed after it.
  */
-internal fun nameLayerProperties(allowOverlap: Boolean): Array<PropertyValue<*>> = arrayOf() // STUB (test first)
+internal fun nameLayerProperties(allowOverlap: Boolean): Array<PropertyValue<*>> = arrayOf(
+    PropertyFactory.iconImage(Expression.get(WaypointNameIds.IMAGE_PROPERTY)),
+    PropertyFactory.iconAllowOverlap(allowOverlap),
+    PropertyFactory.iconIgnorePlacement(false),
+    PropertyFactory.iconAnchor(Property.ICON_ANCHOR_LEFT),
+    PropertyFactory.iconOffset(NAME_OFFSET_DP.toTypedArray()),
+)
 
 /** Adds both name sources and layers, empty: waypoint names directly above [aboveLayerId] (the pins), the stops' above them. */
 internal fun addWaypointNameLayers(style: Style, aboveLayerId: String) {
@@ -146,11 +159,9 @@ internal class NameLabelPainter(private val typeface: Typeface, private val dens
 
     /** [text] as drawn, cut with an ellipsis at [NAME_MAX_WIDTH_DP]. */
     fun fitted(text: String): String =
-        text // STUB (test first)
+        TextUtils.ellipsize(text, paint(palette.waypoint, halo = false), NAME_MAX_WIDTH_DP * density, TextUtils.TruncateAt.END).toString()
 
-    fun bitmap(text: String): Bitmap = createBitmap(1, 1) // STUB (test first)
-
-    private fun unusedBitmap(text: String): Bitmap {
+    fun bitmap(text: String): Bitmap {
         val fill = paint(palette.waypoint, halo = false)
         val halo = paint(palette.casing, halo = true)
         val shown = fitted(text)
@@ -191,13 +202,13 @@ internal class NameImageRegistry {
             this.palette = palette
             ids.clear()
         }
-        return emptyList() // STUB (test first)
+        return labels.distinctBy { it.imageId }.filter { ids.add(it.imageId) }
     }
 }
 
 /** The waypoint ids whose names a fan of [members] hides: the fanned waypoints', as their pins are hidden (`applyFanOutHiding`). */
 internal fun fanHiddenNameIds(members: List<FanMember>): List<String> =
-    emptyList() // STUB (test first)
+    members.filter { it.key.layerId == MapLayerIds.WAYPOINTS }.map { it.key.featureId }
 
 /** Pushes both name sources to the current style, registering any image not yet there; nothing in a style change (logged). */
 internal fun nameLabelsOnCurrentStyle(

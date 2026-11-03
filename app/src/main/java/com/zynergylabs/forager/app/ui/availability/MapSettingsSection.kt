@@ -46,6 +46,6 @@ internal fun MapSettingsSection(crowdedIcons: CrowdedIconsControls, waypointName
             )
         }
         // Dispatch 2026-11-02-04, B2 (the owner: "Settings > Map"): a checkbox under "Crowded icons", the shape Night Maps has.
-        // STUB (test first): no row yet.
+        SettingsCheckboxRow(waypointNames.shown, waypointNames.onChanged, WAYPOINT_NAMES_LABEL, tag = WAYPOINT_NAMES_TAG)
     }
 }

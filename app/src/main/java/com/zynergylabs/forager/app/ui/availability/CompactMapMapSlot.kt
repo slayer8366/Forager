@@ -93,7 +93,7 @@ internal fun CompactMapMapSlot(
             route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true, waypointStraightLine?.isOffline ?: false) else null,
             plottedRoute = plottedRoute,
             // Dispatch 2026-11-02-04: Settings > Map > "Waypoint names", on by default.
-            waypointNames = false, // STUB (test first)
+            waypointNames = uiState.waypointNamesShown,
             resumeTrackingRequestId = resumeTrackingRequestId,
             // RECORD -750, item 5: each location search frames its region, following or not.
             searchFrameRequestId = uiState.searchFrameSerial,

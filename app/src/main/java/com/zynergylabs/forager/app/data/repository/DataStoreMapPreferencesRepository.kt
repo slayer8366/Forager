@@ -168,11 +168,11 @@ class DataStoreMapPreferencesRepository(
 
     /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04), under `map.waypoint_names`; `null` when nothing is stored. */
     override suspend fun getWaypointNamesShown(): Result<Boolean?> = runCatchingCancellable {
-        null // STUB (test first)
+        dataStore.data.first()[KEY_WAYPOINT_NAMES]
     }
 
     override suspend fun setWaypointNamesShown(shown: Boolean): Result<Unit> = runCatchingCancellable {
-        Unit // STUB (test first)
+        dataStore.edit { prefs -> prefs[KEY_WAYPOINT_NAMES] = shown }
     }
 
     /**
