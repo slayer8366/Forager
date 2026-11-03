@@ -107,13 +107,42 @@ class AvailabilityScreenSeaLevelHeightTest {
         assertEquals("72 m", stripHeight())
     }
 
+    /**
+     * RECORD -2022 (the owner: "Today's GPS height"), replacing this test's earlier claim, "reads Alt unavailable, never
+     * the raw height": on a phone that cannot convert, the strip shows the fix's GPS height as it did before #440, so
+     * "Alt unavailable" does not push the heading out of a narrow strip (StripHeadingWithEmptyHeightTest).
+     */
     @Test
-    fun `on a phone that cannot convert the strip reads Alt unavailable, never the raw height`() {
+    fun `on a phone that cannot convert the strip shows the fix's GPS height, not Alt unavailable`() {
         val r = rig(FakeBarometer(flow { emit(null) }), converter = NoSeaLevelConverter)
         fixes.tryEmit(fixAt(0, raw = 50.0))
         r.settle()
 
-        assertEquals("Alt unavailable", stripHeight())
+        assertEquals("50 m", stripHeight())
+    }
+
+    /** A converter that answers only once [gate] opens, as the platform's may take a moment on the first fix. */
+    private class GatedConverter : com.zynergylabs.forager.app.domain.SeaLevelConverter {
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        override suspend fun seaLevel(lat: Double, lng: Double, rawMeters: Double?): com.zynergylabs.forager.app.domain.SeaLevelHeight {
+            gate.await()
+            return if (rawMeters == null) com.zynergylabs.forager.app.domain.SeaLevelHeight.NoHeight
+            else com.zynergylabs.forager.app.domain.SeaLevelHeight.Known(rawMeters + SEA_LEVEL_ABOVE_RAW, SEA_LEVEL_ABOVE_RAW)
+        }
+    }
+
+    /** RECORD -2022: until the first conversion arrives, the fix's GPS height; then the height above sea level. */
+    @Test
+    fun `before the first conversion arrives the strip shows the fix's GPS height, then the sea-level one`() {
+        val converter = GatedConverter()
+        val r = rig(FakeBarometer(flow { emit(null) }), converter = converter)
+        fixes.tryEmit(fixAt(0, raw = 50.0))
+        r.settle()
+        assertEquals("50 m", stripHeight())
+
+        converter.gate.complete(Unit)
+        r.settle()
+        assertEquals("72 m", stripHeight())
     }
 
     @Test
