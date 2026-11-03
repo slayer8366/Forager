@@ -1,9 +1,10 @@
 package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
-import com.zynergylabs.forager.app.map.STREET_STYLE_URL
-import com.zynergylabs.forager.app.map.STREET_STYLE_URLS
-import com.zynergylabs.forager.app.map.STREET_STYLE_V3_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_URLS
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_V4_STREET_URL
+import com.zynergylabs.forager.app.map.TRAIL_STYLE_V3_URL
 import java.io.File
 import kotlin.math.pow
 import kotlinx.serialization.json.Json
@@ -21,23 +22,23 @@ import org.junit.Test
  * [NightExceptionsTest]'s twin for Street v4, the fill-in (Forager-cartography `docs/design/2026-10-30-fill-in-rulings.md`;
  * the owner: "Keep it osm-like", "Yes, ship it", and for ramps "Invert them too (Recommended)"; then motorways "A: OSM
  * pink" and "Invert like OSM", tertiary "Dark grey #333333" and rail "Plain inversion"). v4 has its own night tables,
- * chosen by the style's URI ([streetNightTablesFor]): the major roads, motorways, ramps and rail take the plain inversion
+ * chosen by the style's URI ([trailNightTablesFor]): the major roads, motorways, ramps and rail take the plain inversion
  * (no layer exception) except the tertiary's day white, which is `#333333`, and the five new fills (residential,
- * commercial, railway land, farmland, parks) take their ruled night colours. v1 to v3 keep [STREET_NIGHT_TABLES], which
- * [NightExceptionsTest] holds; Street under Topographical takes the tables of the Street it draws ([streetUriOf]).
+ * commercial, railway land, farmland, parks) take their ruled night colours. v1 to v3 keep [TRAIL_NIGHT_TABLES], which
+ * [NightExceptionsTest] holds; Street under Topographical takes the tables of the Street it draws ([trailUriOf]).
  *
  * Read from `map-style/forager-street-v4.json`, the file the Worker bundles as `/style/street-v4.json`.
  */
 class NightExceptionsV4Test {
 
-    private val style = Json.parseToJsonElement(File("../map-style/forager-street-v4.json").readText()).jsonObject
+    private val style = Json.parseToJsonElement(File("../map-style/forager-trail-v4.json").readText()).jsonObject
     private val metadata = style.getValue("metadata").jsonObject
     private val palette = metadata.getValue("forager:palette").jsonObject
     private val layers = style.getValue("layers").jsonArray.associateBy { it.jsonObject.getValue("id").jsonPrimitive.content }
 
     /** v4 as the Worker would serve it, beside v3: `/style/street-v4.json`. */
     private val v4Url = "https://forager-pmtiles.brandonlee1-894.workers.dev/style/street-v4.json"
-    private val tables = streetNightTablesFor(v4Url)
+    private val tables = trailNightTablesFor(v4Url)
 
     private fun rgb(hex: String): Int = hex.removePrefix("#").toInt(16)
 
@@ -68,7 +69,7 @@ class NightExceptionsV4Test {
     private fun nightOf(id: String, property: String): NightRecolour {
         val value = layers.getValue(id).jsonObject.getValue("paint").jsonObject.getValue(property)
         val colour = if (value is JsonPrimitive) StyleColourValue.Literal(value.content) else StyleColourValue.Expression(value.toString())
-        return streetNightRecolourOf(LayerColourProperty(id, property, colour), layers.getValue(id).jsonObject["source-layer"]?.jsonPrimitive?.content, tables)
+        return trailNightRecolourOf(LayerColourProperty(id, property, colour), layers.getValue(id).jsonObject["source-layer"]?.jsonPrimitive?.content, tables)
     }
 
     @Test
@@ -96,12 +97,12 @@ class NightExceptionsV4Test {
         // The rulings' table, by hand, so a design and app that drifted together still fail here.
         assertEquals(
             mapOf(0xD5D1CB to 0x2D2A25, 0xE3CFCA to 0x362824, 0xD6D1D4 to 0x2B2829, 0xE8EACD to 0x2E2A10, 0xCDE5BF to 0x2C461E),
-            tables.fillColours - STREET_NIGHT_FILL_COLOURS.keys,
+            tables.fillColours - TRAIL_NIGHT_FILL_COLOURS.keys,
         )
-        assertEquals(STREET_NIGHT_FILL_COLOURS, tables.fillColours.filterKeys { it in STREET_NIGHT_FILL_COLOURS })
+        assertEquals(TRAIL_NIGHT_FILL_COLOURS, tables.fillColours.filterKeys { it in TRAIL_NIGHT_FILL_COLOURS })
         // The major roads, the motorways and their ramps ("Invert like OSM"), and the rail ("Plain inversion") take the
         // inversion: no layer exception. The rest are v3's.
-        assertEquals(STREET_NIGHT_LAYER_COLOURS - INVERTED_LINES, tables.layerColours)
+        assertEquals(TRAIL_NIGHT_LAYER_COLOURS - INVERTED_LINES, tables.layerColours)
         // The night tertiary ("Dark grey #333333 (Recommended)"): day white on the major-road layers.
         // The night tertiary ("Dark grey #333333") on the major roads, and the minor roads' white with it ("Low-zoom roads").
         // landuse_edges' darker rims are held in their own test.
@@ -134,7 +135,7 @@ class NightExceptionsV4Test {
 
     @Test
     fun `the night tertiary sits under the trails on the night forest, grass and ground`() {
-        // The app's own night tertiary, as STREET_V4_NIGHT_TABLES draws it (Sorrel's re-look: not a copy of the value).
+        // The app's own night tertiary, as TRAIL_V4_NIGHT_TABLES draws it (Sorrel's re-look: not a copy of the value).
         val tertiary = tables.lineColours.getValue("roads_major").getValue(0xFFFFFF)
         val footpath = nightColorOf((0xFF shl 24) or rgb(palette.getValue("footpath").jsonPrimitive.content)) and 0xFFFFFF
         nightGrounds.forEach { (name, ground) ->
@@ -252,7 +253,7 @@ class NightExceptionsV4Test {
             val text = "rgba(${(rim shr 16) and 0xFF}, ${(rim shr 8) and 0xFF}, ${rim and 0xFF}, 1)"
             assertTrue("landuse_edges at night lacks $text: $night", night.contains(text))
         }
-        assertEquals(StyleColourValue.Literal(STREET_NIGHT_WATER), (nightOf("water_edges", "line-color") as NightRecolour.Recoloured).night)
+        assertEquals(StyleColourValue.Literal(TRAIL_NIGHT_WATER), (nightOf("water_edges", "line-color") as NightRecolour.Recoloured).night)
         // Industrial in OSM Carto's lilac (style/landcover.mss:22) inverts to #21111e.
         assertEquals(StyleColourValue.Literal("rgba(33, 17, 30, 1)"), (nightOf("landuse_industrial", "fill-color") as NightRecolour.Recoloured).night)
     }
@@ -274,29 +275,32 @@ class NightExceptionsV4Test {
         val design = metadata.getValue("forager:night-hillshade").jsonObject.mapValues { it.value.jsonPrimitive.content }
         assertEquals(HillshadeNight(shadow = design.getValue("shadow"), highlight = design.getValue("highlight"), accent = design.getValue("accent")), tables.hillshade)
         assertEquals(HillshadeNight("rgba(0,0,0,0.7)", "rgba(220,228,236,0.2)", "rgba(0,0,0,0.35)"), tables.hillshade)
-        assertEquals(null, STREET_NIGHT_TABLES.hillshade)
+        assertEquals(null, TRAIL_NIGHT_TABLES.hillshade)
         assertEquals("hillshade", layers.getValue("hillshade").jsonObject.getValue("type").jsonPrimitive.content)
     }
 
     @Test
     fun `v4 is chosen by its style's name, and every other style keeps v1 to v3's tables`() {
-        assertNotEquals(STREET_NIGHT_TABLES, tables)
-        assertEquals(tables, streetNightTablesFor("https://raw.githubusercontent.com/slayer8366/Forager/street-v4/map-style/forager-street-v4.json"))
-        // Since the switch (dispatch 2026-11-01-coder-11 step (d)) the app's own Street URL is v4's.
-        assertEquals(v4Url, STREET_STYLE_URL)
-        for (url in STREET_STYLE_URLS - STREET_STYLE_URL + listOf(null, OFFLINE_STYLE_URL)) {
-            assertSame(url.toString(), STREET_NIGHT_TABLES, streetNightTablesFor(url))
+        assertNotEquals(TRAIL_NIGHT_TABLES, tables)
+        assertEquals(tables, trailNightTablesFor("https://raw.githubusercontent.com/slayer8366/Forager/street-v4/map-style/forager-street-v4.json"))
+        // Since the switch (dispatch 2026-11-01-coder-11 step (d)) the app's own URL is v4's: trail-v4 since dispatch
+        // 2026-11-03-05 D1, and street-v4, the same style under its old address, keeps v4's tables.
+        assertEquals("https://forager-pmtiles.brandonlee1-894.workers.dev/style/trail-v4.json", TRAIL_STYLE_URL)
+        assertEquals(v4Url, TRAIL_STYLE_V4_STREET_URL)
+        assertEquals(tables, trailNightTablesFor(TRAIL_STYLE_V4_STREET_URL))
+        for (url in TRAIL_STYLE_URLS - TRAIL_STYLE_URL - TRAIL_STYLE_V4_STREET_URL + listOf(null, OFFLINE_STYLE_URL)) {
+            assertSame(url.toString(), TRAIL_NIGHT_TABLES, trailNightTablesFor(url))
         }
     }
 
     @Test
     fun `Street under Topographical takes the night tables of the Street it draws`() {
-        // Sorrel's carried fix: the selector reads StreetWithTopoOver's own Street URL, not only a plain Uri's, so Street v4
+        // Sorrel's carried fix: the selector reads TrailWithTopoOver's own Street URL, not only a plain Uri's, so Street v4
         // under the night topo takes v4's tables (it took v1 to v3's whatever it drew).
-        assertEquals(STREET_STYLE_URL, streetUriOf(MapStyleSource.StreetWithTopoOver(STREET_STYLE_URL, Basemap.OPEN_TOPO_MAP)))
-        assertEquals(STREET_STYLE_URL, streetUriOf(MapStyleSource.Uri(STREET_STYLE_URL)))
-        assertEquals(null, streetUriOf(MapStyleSource.Json("{}")))
-        assertSame(STREET_V4_NIGHT_TABLES, streetNightTablesFor(streetUriOf(ownStreetStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true)!!)))
-        assertSame(STREET_NIGHT_TABLES, streetNightTablesFor(streetUriOf(MapStyleSource.StreetWithTopoOver(STREET_STYLE_V3_URL, Basemap.OPEN_TOPO_MAP))))
+        assertEquals(TRAIL_STYLE_URL, trailUriOf(MapStyleSource.TrailWithTopoOver(TRAIL_STYLE_URL, Basemap.OPEN_TOPO_MAP)))
+        assertEquals(TRAIL_STYLE_URL, trailUriOf(MapStyleSource.Uri(TRAIL_STYLE_URL)))
+        assertEquals(null, trailUriOf(MapStyleSource.Json("{}")))
+        assertSame(TRAIL_V4_NIGHT_TABLES, trailNightTablesFor(trailUriOf(ownTrailStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = true)!!)))
+        assertSame(TRAIL_NIGHT_TABLES, trailNightTablesFor(trailUriOf(MapStyleSource.TrailWithTopoOver(TRAIL_STYLE_V3_URL, Basemap.OPEN_TOPO_MAP))))
     }
 }

@@ -143,7 +143,7 @@ internal fun SightingsMapLayout(
             useOfflineTiles = useOfflineTiles,
             layerCredits = activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState),
             nightMode = nightMode,
-            ownStreet = OWN_STREET_FALLBACK.ownStreet(),
+            ownTrail = OWN_TRAIL_FALLBACK.ownTrail(),
             userCameraGestures = state.userCameraGestures,
             modifier = Modifier
                 .align(Alignment.BottomStart)

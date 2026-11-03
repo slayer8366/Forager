@@ -32,7 +32,7 @@ import kotlinx.coroutines.delay
  *   user every time").
  * - **It fades** [MAP_CREDIT_STRIP_SHOWN_MILLIS] after it shows, or at the first user pan or zoom since it showed, whichever is
  *   first: [userCameraGestures] counts MapLibre's gesture reason (MapListeners.kt), never follow-me or a route fit.
- * - **It never fades while OpenStreetMap's raster tiles are drawn** ([drawsOpenStreetMapRaster]), including the -1513 fallback
+ * - **It never fades while OpenStreetMap's raster tiles are drawn** ([drawsStreetRaster]), including the -1513 fallback
  *   and topo at night after it: the owner's option gave the reason "as those tiles require", so the rule follows the tiles.
  *   Leaving them is a new showing, so the strip then stays 5 s like any other.
  * - **Motion:** the fade alone, on the map pop-up's fade ([MotionTokens.mapPopUpFadeSpec]), kept under reduced motion like the
@@ -46,12 +46,12 @@ internal fun MapCreditStrip(
     useOfflineTiles: Boolean,
     layerCredits: List<String>,
     nightMode: Boolean,
-    ownStreet: Boolean,
+    ownTrail: Boolean,
     userCameraGestures: Int,
     modifier: Modifier = Modifier,
 ) {
-    val text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, layerCredits, nightMode, ownStreet))
-    val keepShown = drawsOpenStreetMapRaster(basemap, useOfflineTiles, nightMode, ownStreet)
+    val text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, layerCredits, nightMode, ownTrail))
+    val keepShown = drawsNeverFadingCredit(basemap, useOfflineTiles, nightMode, ownTrail)
     // One showing per text and per whether OSM's tiles are drawn: leaving them starts a showing of its own. The gesture count it
     // started at, so a pan made before this showing does not end it.
     val showing = remember(text, keepShown) { MapCreditShowing(gesturesAtStart = userCameraGestures) }
@@ -74,16 +74,17 @@ internal fun MapCreditStrip(
 private class MapCreditShowing(val gesturesAtStart: Int)
 
 /**
- * Whether the map draws OpenStreetMap's raster tiles (D26): the OSM map; Trail Map once it has fallen back ([ownStreet] `false`,
+ * Whether the map draws a raster whose credit never fades ([creditNeverFades]; dispatch 2026-11-03-05 D7: today the Street
+ * map's, `ui/map/street/`, OpenStreetMap's raster tiles, D26): the Street map; Trail Map once it has fallen back ([ownTrail] `false`,
  * RECORD -1513), which draws OSM's raster in its place ([rasterDrawn]); and topo at night after the fallback, which draws OSM's
  * raster below the night fade ([nightLowZoomBasemap]). Never offline, whose style is the downloaded vector one. The same
- * branches [mapStyleSourceFor] takes, so the two cannot disagree (`DrawsOpenStreetMapRasterTest` checks every case against the
+ * branches [mapStyleSourceFor] takes, so the two cannot disagree (`DrawsStreetRasterTest` checks every case against the
  * style JSON).
  */
-internal fun drawsOpenStreetMapRaster(basemap: Basemap, useOfflineTiles: Boolean, night: Boolean, ownStreet: Boolean): Boolean {
-    if (useOfflineTiles || ownStreetStyleSourceFor(basemap, night, ownStreet) != null) return false
+internal fun drawsNeverFadingCredit(basemap: Basemap, useOfflineTiles: Boolean, night: Boolean, ownTrail: Boolean): Boolean {
+    if (useOfflineTiles || ownTrailStyleSourceFor(basemap, night, ownTrail) != null) return false
     val raster = basemap.rasterDrawn()
-    return raster == Basemap.OSM_STANDARD || (night && nightLowZoomBasemap(raster) == Basemap.OSM_STANDARD)
+    return raster.creditNeverFades() || (night && nightLowZoomBasemap(raster)?.creditNeverFades() == true)
 }
 
 /** The alpha the credit strip draws at now, 1 shown and 0 faded into the "i", readable in tests. */

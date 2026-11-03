@@ -14,6 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -21,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
@@ -83,6 +86,22 @@ internal fun ReturnToRoutePill(onClick: () -> Unit, modifier: Modifier = Modifie
 }
 
 private enum class ReturnToRoutePillSlot { Probe, WithWord, IconOnly }
+
+/**
+ * D34 (RECORD -2005): the pill's size with its word, told to [onMeasured] on every pass, measured on a probe that is never placed (no
+ * semantics, never drawn or touched) and takes no room: 0 x 0 in its parent. Its height is at least the 48 dp target, as the pill's.
+ */
+@Composable
+internal fun ReturnToRouteWordProbe(onMeasured: (IntSize) -> Unit) {
+    val currentOnMeasured by rememberUpdatedState(onMeasured)
+    SubcomposeLayout { _ ->
+        val probe = subcompose(Unit) {
+            Box(Modifier.clearAndSetSemantics {}.heightIn(min = RETURN_TO_ROUTE_PILL_HEIGHT)) { ReturnToRoutePillContent(iconOnly = false) }
+        }.map { it.measure(Constraints()) }
+        currentOnMeasured(IntSize(probe.maxOfOrNull { it.width } ?: 0, probe.maxOfOrNull { it.height } ?: 0))
+        layout(0, 0) {}
+    }
+}
 
 @Composable
 private fun ReturnToRoutePillSurface(onClick: () -> Unit, iconOnly: Boolean, modifier: Modifier = Modifier) {

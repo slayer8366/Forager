@@ -113,7 +113,7 @@ class MapTypePanelMapsTabTest {
         setScreen()
         // Each pass ends on Trail, so every touch is a change the map has to show.
         CHIP_TOUCH_POINTS.forEach { (fx, fy) ->
-            listOf(MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP, MapMode.TRAIL).forEach { mode ->
+            (MapMode.entries.filter { it != MapMode.TRAIL } + MapMode.TRAIL).forEach { mode ->
                 openPanel()
                 val chip = bounds(mapModeChipTag(mode))
                 touchAt(chip.left + (chip.right - chip.left) * fx, chip.top + (chip.bottom - chip.top) * fy)
@@ -190,7 +190,7 @@ class MapTypePanelMapsTabTest {
         assertEquals(MAP_CHROME_OVER_MAP_ALPHA, fill.alpha, 0.001f)
         val panel = bounds(MAP_TYPE_PANEL_TAG)
         val first = bounds(mapModeChipTag(MapMode.TRAIL))
-        val last = bounds(mapModeChipTag(MapMode.OPENSTREETMAP))
+        val last = bounds(mapModeChipTag(MapMode.entries.last()))
         // The chips' laid-out boxes are 48 dp minimum touch targets, wider than a narrow drawn chip under Robolectric's fonts
         // (MapChromeChipsTest's finding, RECORD -719), so the drawn chips are held to 4 dp of centred.
         assertEquals("centred: left gap ${first.left - panel.left}, right gap ${panel.right - last.right}", (first.left - panel.left).value, (panel.right - last.right).value, 4f)
@@ -286,7 +286,7 @@ class MapTypePanelEntryMapTest {
     fun `a real touch at several points across each chip applies it to this map and closes the panel`() {
         setFullscreen()
         CHIP_TOUCH_POINTS.forEach { (fx, fy) ->
-            listOf(MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP, MapMode.TRAIL).forEach { mode ->
+            (MapMode.entries.filter { it != MapMode.TRAIL } + MapMode.TRAIL).forEach { mode ->
                 openPanel()
                 val chip = bounds(mapModeChipTag(mode))
                 touchAt(chip.left + (chip.right - chip.left) * fx, chip.top + (chip.bottom - chip.top) * fy)

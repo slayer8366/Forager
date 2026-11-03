@@ -100,9 +100,21 @@ internal val ROUTE_CARD_LANDSCAPE_SHAPE: Shape = RoundedCornerShape(topStart = R
  * scroll).
  *
  * [leaveRoom] (D32, RECORD -1987): navigating, how much narrower both cards are, from the L's side, so Re-center's icon fits beside
- * the L at the bottom ([routeCardLeaveRoomPx]); 0 dp wherever it already fits, and not navigating.
+ * the L at the bottom ([routeCardLeaveRoomPx]); 0 dp wherever it already fits, and not navigating. Since D38 (RECORD -2006) the
+ * navigation card is narrowed by it whether or not the route card shows.
+ *
+ * [overStripMaxHeight] (D37, RECORD -2006, the owner: "Cover the top bar (Recommended)"): the cap while expanded where the card's peek
+ * lines already fill [maxHeight], so the rows would get no room ([routeCardCoversStrip]): up over the strip, to a gap below the
+ * controls' top. The bottom is the same, so the card stays on the navigation card.
  */
-internal data class RouteCardLandscapeRoom(val onNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp, val bottom: Dp = 0.dp, val tuck: Dp = 0.dp, val leaveRoom: Dp = 0.dp)
+internal data class RouteCardLandscapeRoom(val onNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp, val bottom: Dp = 0.dp, val tuck: Dp = 0.dp, val leaveRoom: Dp = 0.dp, val overStripMaxHeight: Dp = maxHeight)
+
+/**
+ * D37 (RECORD -2006; the planner accepted the reading, -2008): whether the expanded card rises over the strip. Only while [expanded],
+ * and only where the card's peek lines, [linesPx] (its height less the rows'), fill the normal cap, [maxHeightPx], to within 1 px, so
+ * the rows would get no room under it. The lines do not depend on the cap once it is raised, so the answer does not flip back.
+ */
+internal fun routeCardCoversStrip(expanded: Boolean, linesPx: Int, maxHeightPx: Float): Boolean = expanded && linesPx > 0 && linesPx >= maxHeightPx - 1f
 
 /** D32: the width both cards take while the route card rests on the navigation card: the strip's, less [RouteCardLandscapeRoom.leaveRoom]. */
 internal val RouteCardLandscapeRoom.onNavigationCardWidth: Dp get() = (onNavigationCard - leaveRoom).coerceAtLeast(0.dp)
@@ -136,6 +148,7 @@ internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: 
         val tuck = if (navigationCard != null) ROUTE_CARD_NAVIGATION_TUCK else 0.dp
         // Sorrel's N-5: a navigation card whose top is within the tuck of the box's bottom leaves no room to tuck into; never below 0.
         val bottom = if (navigationCard != null) ((boxBottomPx - navigationCard.top).toDp() - tuck).coerceAtLeast(0.dp) else 0.dp
+        val overStripMaxHeight = cluster.mapContentBoxHeightPx.toDp() - controlsPadding.calculateTopPadding() - Spacing.sm - bottom
         RouteCardLandscapeRoom(
             onNavigationCard = if (isNavigating) stripWidthPx.toDp() else 0.dp,
             railOnLeft = railOnLeft,
@@ -143,6 +156,7 @@ internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: 
             bottom = bottom,
             tuck = tuck,
             leaveRoom = leaveRoomPx.toDp(),
+            overStripMaxHeight = overStripMaxHeight,
         )
     }
 }
@@ -209,6 +223,21 @@ internal fun reCenterRoomBesideTheL(leftPx: Float, cardLeftPx: Float?, gapPx: Fl
  */
 internal fun routeCardLeaveRoomPx(besideLeftPx: Float, iconPx: Float, gapPx: Float, naturalCardLeftPx: Float): Float =
     (besideLeftPx + iconPx + gapPx - naturalCardLeftPx).coerceAtLeast(0f)
+
+/**
+ * D34 (RECORD -2005, the owner: "Icon beside the L (Recommended)"): where Re-center with its word would sit at its own place, bottom
+ * centre of the map box, in root px: the box from [boxLeftPx], [boxWidthPx] wide, inside [leftPadPx] and [rightPadPx]; its bottom at
+ * [bottomPx]; [wordSize] the pill's size with its word, at least the 48 dp target tall ([minHeightPx]). From the box and the word's
+ * measured size, never the pill's own place, which this moves.
+ */
+internal fun reCenterWordRectInRoot(boxLeftPx: Float, boxWidthPx: Float, leftPadPx: Float, rightPadPx: Float, bottomPx: Float, wordSize: IntSize, minHeightPx: Float): Rect {
+    val centreX = boxLeftPx + leftPadPx + (boxWidthPx - leftPadPx - rightPadPx) / 2f
+    val height = kotlin.math.max(wordSize.height.toFloat(), minHeightPx)
+    return Rect(centreX - wordSize.width / 2f, bottomPx - height, centreX + wordSize.width / 2f, bottomPx)
+}
+
+/** D34: whether Re-center's word at its own place, [word], would overlap any of [cards] (the route card, the navigation card). */
+internal fun reCenterWordCoversCard(word: Rect?, cards: List<Rect>): Boolean = word != null && cards.any { it.overlaps(word) }
 
 /** D27: whether Re-center beside the L keeps its word: where its measured width with the word, [wordWidthPx], fits the [roomPx]. */
 internal fun reCenterShowsWord(wordWidthPx: Float, roomPx: Float): Boolean = wordWidthPx <= roomPx

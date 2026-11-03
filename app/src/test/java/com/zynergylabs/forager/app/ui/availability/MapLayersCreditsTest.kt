@@ -20,6 +20,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.ui.map.ADDED_MAP_TYPES
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import org.junit.Assert.assertEquals
@@ -81,11 +82,12 @@ class MapLayersCreditsTest {
     @Test
     fun `after the Trails row each map is listed by its chip word, its credit under it, in today's words`() {
         setScreen()
+        // Then each added map type's, by its own chip word and credit (dispatch 2026-11-03-05 D7; ui/map/street/StreetMapTest
+        // holds the Street map's "Street" and "© OpenStreetMap contributors" word for word).
         val expected = listOf(
             "Trail" to "Protomaps © OpenStreetMap",
             "Topo" to "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
-            "OSM" to "© OpenStreetMap contributors",
-        )
+        ) + ADDED_MAP_TYPES.map { it.mapMode.label to it.mapMode.basemap.attribution }
         var floor = boundsOf("Trails: USDA Forest Service, CC BY 4.0 · BLM").bottom
         for ((name, credit) in expected) {
             val n = boundsOf(name)
@@ -123,7 +125,7 @@ class MapLayersCreditsTest {
     fun `a map entry is not a control, with no click action, and real touches across it change no map`() {
         setScreen()
         assertEquals(Basemap.FORAGER_TRAIL, map.renderMode?.basemap)
-        for (name in listOf("Topo", "OSM")) {
+        for (name in listOf("Topo") + ADDED_MAP_TYPES.map { it.mapMode.label }) {
             val node = inDrawer(name).performScrollTo()
             assertFalse("$name has no click action", node.fetchSemanticsNode().config.contains(SemanticsActions.OnClick))
             ACROSS.forEach { (x, y) ->

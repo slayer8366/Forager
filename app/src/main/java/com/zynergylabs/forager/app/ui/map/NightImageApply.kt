@@ -30,7 +30,7 @@ internal const val NIGHT_SPRITE_V6_ASSET_DIR = "night-sprite/v6"
 private val SPRITE_V6 = Regex("""/sprites/v6/light$""")
 
 /**
- * The night sheets for the style the map loaded, by the sprite it names: v6's for a style naming sprite v6 (Street v4),
+ * The night sheets for the style the map loaded, by the sprite it names: v6's for a style naming sprite v6 (Trail Map v4),
  * v5's for every other (v1 to v3 and anything unreadable), as before v6.
  */
 internal fun nightSpriteAssetDirFor(styleJson: String): String {
@@ -118,14 +118,14 @@ private class StyleNightImageTarget(private val style: Style) : NightImageTarget
  * night copies were added, how many references switched, and anything left in day images. If the bundled sheets cannot
  * be read, nothing is added, every reference keeps its day image, and the line says so: never a crash, never silent.
  */
-internal fun applyStreetNightImages(style: Style, context: Context) {
+internal fun applyTrailNightImages(style: Style, context: Context) {
     val images = try {
         NightSpriteCache.images(context, nightSpriteAssetDirFor(style.json))
     } catch (e: IOException) {
-        Log.w(SIGHTINGS_MAP_TAG, "Street night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
+        Log.w(SIGHTINGS_MAP_TAG, "Trail night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
         emptyMap()
     } catch (e: RuntimeException) {
-        Log.w(SIGHTINGS_MAP_TAG, "Street night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
+        Log.w(SIGHTINGS_MAP_TAG, "Trail night: the night sheets could not be read; every icon and pattern stays in day colours.", e)
         emptyMap()
     }
     Log.i(SIGHTINGS_MAP_TAG, applyNightImages(StyleNightImageTarget(style), images).logLine())

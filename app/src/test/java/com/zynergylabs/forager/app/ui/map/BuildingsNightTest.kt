@@ -14,12 +14,12 @@ import org.junit.Test
 /**
  * Dispatch 2026-10-27-02 (RECORD -1730): Trail Map's buildings are solid from z14, `#c1c1c1` at z14 (Amendment 1, RECORD -1733) and `#cccccc`
  * from z15, with a `#a6a6a6` outline from z15, after the OpenStreetMap Carto style's buildings
- * (`map-style/overrides/forager-street.mjs`, `withBuildingOutline`). The owner: "Can we have a border around the buildings
+ * (`map-style/overrides/forager-trail.mjs`, `withBuildingOutline`). The owner: "Can we have a border around the buildings
  * and houses to separate them from the rest of the map?" Below z14 (Protomaps' tiles carry buildings from z11) they stay
  * `#cccccc` at half opacity, as in v2: the owner, "Change only from zoom 14 (Recommended)" (Amendment 2, RECORD -1737).
  *
  * Night takes no exception for them: the app's own V1 inversion. This holds what the app's Street night recolour
- * ([streetNightRecolourOf], the function the map's night adapter calls for each layer colour) gives for the served
+ * ([trailNightRecolourOf], the function the map's night adapter calls for each layer colour) gives for the served
  * street-v3's buildings layers: `#333333` below z14, `#3e3e3e` at z14, `#333333` from z15, and `#595959` for the outline,
  * the values the dispatch computed by hand from `night = c + 255 - 2 * mean`. Opacity is not a colour and is not recoloured.
  */
@@ -33,7 +33,7 @@ class BuildingsNightTest {
         val layer = layers[id] ?: error("no layer $id in street-v3")
         val value = layer.getValue("paint").jsonObject[property] ?: error("$id has no $property")
         val colour = if (value is JsonPrimitive) StyleColourValue.Literal(value.content) else StyleColourValue.Expression(value.toString())
-        return streetNightRecolourOf(LayerColourProperty(id, property, colour), layer["source-layer"]?.jsonPrimitive?.content)
+        return trailNightRecolourOf(LayerColourProperty(id, property, colour), layer["source-layer"]?.jsonPrimitive?.content)
     }
 
     @Test

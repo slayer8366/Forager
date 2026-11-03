@@ -46,6 +46,9 @@ internal const val BAR_ADD = "Plan a trip or log a find here"
 internal const val BAR_RESTORE = "Show map controls"
 internal const val BAR_MINIMIZE_TAG = "map-icon-bar-minimize-handle"
 
+/** The landscape strip (AvailabilityMapControlsUi.kt's tag): the navigation card's natural width is its width (D32, D38). */
+internal const val BAR_STRIP = "compass-elevation-strip"
+
 /**
  * Five points across the upright pill's squares: its round ends are clipped to the shape, so a touch 10% in from a corner of the
  * square is outside it and lands on the column (Amendment 11's report). These stay inside what the pill draws.

@@ -77,6 +77,12 @@ internal fun BoxScope.CompactMapBottomChrome(
     reCenterBesideTheL: Boolean = false,
     /** D17: the map credit strip's laid-out size in px, at the bottom start, which Re-center beside the L keeps above. */
     creditSizePx: IntSize = IntSize.Zero,
+    /**
+     * D34 (RECORD -2005, the owner: "Icon beside the L (Recommended)"): the cards over the map in root px, the route card and the
+     * navigation card, in landscape navigation; empty elsewhere. Where Re-center's word at bottom centre would overlap one, Re-center
+     * goes beside the L, where D27's measurement shows its icon alone if the word does not fit.
+     */
+    cardsInRoot: List<androidx.compose.ui.geometry.Rect> = emptyList(),
 ) {
     val isNavigating = navigation.isNavigating
     val navigationFollowing = navigation.navigationFollowing
@@ -111,8 +117,30 @@ internal fun BoxScope.CompactMapBottomChrome(
     // (reCenterIconFitsBesideTheL) is removed. Before the card is measured the room is unknown, and the pill shows its icon alone.
     val besideStart = routeCardBarColumn(with(LocalDensity.current) { mapIconClusterWidthPx.toDp() })
     val besideLeftPx = cluster.mapContentBoxLeftInRootPx + with(LocalDensity.current) { (controlsPadding.calculateLeftPadding(LocalLayoutDirection.current) + besideStart).toPx() }
-    val besideRoomPx = reCenterRoomBesideTheL(besideLeftPx, routeCardSpanPx?.start, with(LocalDensity.current) { Spacing.sm.toPx() })
-    val besideTheL = reCenterBesideTheL
+    // D34: Re-center's word measured once, never placed, so where it would sit at bottom centre is known without moving it there.
+    var reCenterWordSize by remember { mutableStateOf(IntSize.Zero) }
+    ReturnToRouteWordProbe { reCenterWordSize = it }
+    val reCenterWord = if (cardsInRoot.isNotEmpty() && reCenterWordSize != IntSize.Zero) {
+        with(LocalDensity.current) {
+            val direction = LocalLayoutDirection.current
+            reCenterWordRectInRoot(
+                boxLeftPx = cluster.mapContentBoxLeftInRootPx,
+                boxWidthPx = cluster.mapContentBoxWidthPx,
+                leftPadPx = controlsPadding.calculateLeftPadding(direction).toPx(),
+                rightPadPx = controlsPadding.calculateRightPadding(direction).toPx(),
+                bottomPx = mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx - (controlsPadding.calculateBottomPadding() + renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE).toPx(),
+                wordSize = reCenterWordSize,
+                minHeightPx = RETURN_TO_ROUTE_PILL_HEIGHT.toPx(),
+            )
+        }
+    } else {
+        null
+    }
+    // The room beside the L runs to the nearest card's left: the route card's, or with it closed the navigation card's (D38 keeps
+    // that narrowed, so the icon fits).
+    val besideCardLeftPx = (listOfNotNull(routeCardSpanPx?.start) + cardsInRoot.map { it.left }).filter { it >= besideLeftPx }.minOrNull()
+    val besideRoomPx = reCenterRoomBesideTheL(besideLeftPx, besideCardLeftPx, with(LocalDensity.current) { Spacing.sm.toPx() })
+    val besideTheL = reCenterBesideTheL || reCenterWordCoversCard(reCenterWord, cardsInRoot)
     val returnToRouteLift = if (!besideTheL && reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
     // D17 (RECORD -1958, the owner: "Into the open map, at the bottom (Recommended)"): while the card rests on the navigation card,
     // Re-center leaves the card's column for the open map beside the L (fixed on the screen's left while navigating, RECORD -955), at

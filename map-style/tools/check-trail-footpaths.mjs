@@ -1,8 +1,8 @@
-// Checks the Street style's footpath layers against the trail spec (dispatch 2026-10-19-41, RECORD -1480): the spec is
+// Checks the Trail Map style's footpath layers against the trail spec (dispatch 2026-10-19-41, RECORD -1480): the spec is
 // prompts/preserved/2026-10-20-trail-design-handover-rowan.md on pi-build, from the owner's rulings on Sage Wayfinder's
-// design. Run: npm run check:street (or node tools/check-street-trails.mjs). Exits non-zero, saying what failed.
+// design. Run: npm run check:trail (or node tools/check-trail-footpaths.mjs). Exits non-zero, saying what failed.
 //
-// The expected values below are typed from the spec, not imported from overrides/forager-street.mjs, so a change to
+// The expected values below are typed from the spec, not imported from overrides/forager-trail.mjs, so a change to
 // the design file that strays from the spec is caught here rather than agreed with. Two parts:
 //   1. Every synthetic path feature (each sac_scale group value, untagged and an unlisted value; each visibility;
 //      informal yes, no and absent; each footpath kind and steps) at zooms 13 to 18 is drawn by exactly one footpath
@@ -15,10 +15,11 @@ import fs from "node:fs";
 import { featureFilter } from "@maplibre/maplibre-gl-style-spec";
 
 const here = (path) => new URL(`../${path}`, import.meta.url);
-// `node tools/check-street-trails.mjs v4` checks forager-street-v4.json (the fill-in), which adds two fill layers; with no
+// `node tools/check-trail-footpaths.mjs v4` checks forager-trail-v4.json (the fill-in), which adds two fill layers; with no
 // argument it checks v2, as before.
 const STYLE = process.argv[2] === "v4" ? "v4" : "v2";
-const style = JSON.parse(fs.readFileSync(here(`forager-street-${STYLE}.json`), "utf8")); // v2 since dispatch 2026-10-22-03
+// v4 is read as trail-v4, the file the app loads (dispatch 2026-11-03-05 D1); v2 keeps its old name, frozen.
+const style = JSON.parse(fs.readFileSync(here(`forager-${STYLE === "v4" ? "trail-v4" : "street-v2"}.json`), "utf8")); // v2 since dispatch 2026-10-22-03
 const problems = [];
 
 // --- The spec, typed from the handover ----------------------------------------------------------------------------
