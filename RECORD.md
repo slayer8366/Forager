@@ -31981,3 +31981,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - **Hazel's calls, for the owner:** names on the Maps tab only (an entry's map and the picker show pins alone); 12 dp text, 2 dp right of the pin, a 1.5 dp halo, names past 160 dp end in "…"; names near an open fan may hide; names may push the basemap's own labels out (inferred).
 - **Not verified, device only:** the collision itself, the fan hiding a name, the look day and night, the bitmap scale.
 **Notes:** Written by the planner by hand. Next free ID -1976.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1976
+**Timestamp:** 2026-11-03T04:27:44Z
+**Continues:** 2026-09-28-1975, 2026-09-28-1962
+**Title:** The small-screen Re-center case is seen; where room is short Re-center shows its icon alone; one S22 session to clean up and check today's work
+**Observed:** the stopped D19/D21 session's pictures (/home/zynergy-labs/s22-2026-11-02/d19/shots/d21-3p.png, d21-3e.png; build 4423; the planner looked at both): at 640 x 360 dp, font 2.0, navigating, 3 stops, Re-center sits on the search bar collapsed and under the top strip expanded; the route and navigation cards cover the L and the pill. The planner found the S22 still on that session's settings (wm size 1350x2400, font 2.0, auto-rotate off), reset them and read them back.
+**Decision:** the owner: "Icon only where room is short (Recommended)"; "Yes, one session (Recommended)". Dispatch 2026-10-30-08 item D27 and dispatch 2026-11-02-07.
+**Notes:** Written by the planner by hand. Next free ID -1977.
