@@ -31946,3 +31946,24 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - Presets: Room or DataStore to be ruled first.
 - **Premise wrong in the report:** it says the credit strip "is gone on route-plot-ui, D24"; it is kept (D25, -1968).
 **Notes:** Written by the planner by hand. Brought to the owner. Next free ID -1973.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1973
+**Timestamp:** 2026-11-03T00:50:28Z
+**Continues:** 2026-09-28-1970
+**Title:** The credit work is green: credits in Map Layers, the "i" bottom right, and the strip that shows, then fades into the "i"
+**Observed:** Hazel (Opus), route-plot-ui bbf13d270, CI only. D24 full suite 41546133936: 6222 tests, 1 failure (the known D20 case). The "i": fail first 41546144216 (2 failed on their own message), forward 41546148141 green, r6 41546151462 and r3b 41546164752 bite. D25/D26: fail first 41547841516 (14 of 16), full suite 41549177317 on bbf13d270: 6238 tests, 1 failure (D20), lint green; eight reverts bite, each with its own message. MapCreditStrip.kt; the fade is mapPopUpFadeSpec, drawn only, kept under reduced motion; docs/motion-spec.md gains rows. Throwaway branches deleted. Hazel's calls, accepted by the planner: a rotate or tilt gesture also fades the strip; leaving OSM's tiles is a new showing with its own 5 s; the faded strip stays readable to TalkBack.
+- **Not verified:** the gesture count in MapListeners and the fallback flag's wiring (device only); that a rotation keeps the map composed (inferred); the rotation and background tests aren't shown to bite. No phone.
+**Notes:** Written by the planner by hand. Next free ID -1974.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1974
+**Timestamp:** 2026-11-03T00:50:28Z
+**Continues:** 2026-09-28-1973, 2026-09-28-1964
+**Title:** Waypoint names are drawn as small pictures in the app's own font; their off switch is in Settings > Map
+**Decision:** the owner: "As small pictures (Recommended)"; "Settings > Map". Dispatch 2026-11-02-04 items A4, B2, and the planner's C2 (what can be tested headless; the collision on a phone later). A new Hazel builds it on branch waypoint-names from bbf13d270.
+**Notes:** Written by the planner by hand. Next free ID -1975.
