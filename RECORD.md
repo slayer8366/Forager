@@ -32363,3 +32363,13 @@ Each test failed first or was bitten by one of 7 revert checks. CI: main suite 6
 **Title:** D34, D37, D38 and D40 built and green on route-card-followups
 **Outcome:** Hazel's report. route-card-followups at 3999411d4 (pre-main f9ca5824c merged in). The planner read CI 41705858539 as green on it. 6269 tests, 0 failures (Hazel's count). Each fix failed first, and each had a revert check (D38 41699905237, D34 41699912827, the control 41699918794, D40 41701589151, D37 41703755919). D33/D39 not built (-2008). Not seen on a phone. Every figure is from Robolectric with the S22's insets injected. Hazel's device checklist is kept for the next phone session: at 640 x 360 dp font 2.0, the card closed with the icon in the gap; the card open at 3 and 6 stops, rows showing, and whether the elevation line hides; collapse; and at 823 x 384 font 1.0, whether Re-center has moved beside the L. Seen, not ruled: at peek at that size the card is still squeezed (its lines need 250 dp under a 212.67 dp cap; buttons as in s8). Hazel's calls accepted: the BAR_STRIP test constant; the D34 control at 1280 x 800; D40's test also asserting the routed line, Undo and Save stay.
 **Notes:** Written by the planner by hand. Next free ID -2012.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2012
+**Timestamp:** 2026-11-03T21:53:20Z
+**Continues:** 2026-09-28-2011
+**Title:** #470 merged into pre-main; #471 (trail and street codes) opened
+**Outcome:** the owner: "Yes, merge both and release the Worker". Before merging, the planner backed up pre-main, main and both branches to forager-repo-backups/pre-main-main-before-rcf-tsc-20261103T212324Z.bundle (verified), and read both diffs. Neither adds an @Ignore. #470's 10 removed assertions are D38/D34/D37's ruled changes, named in its commits. #471's 193 removed assertions are mostly renames and moves into the street package. A normalised match left 66 without a textual counterpart; sampled, they are renamed calls such as drawsOpenStreetMapRaster and OSM_STANDARD, not read one by one. #470's CI 41721370801: every job green after one re-run of the release job. Its first attempt ran out of Java heap in bundletool at :app:packageReleaseBundle; the same tree passed that job in 41705858539. A comment on the PR says so. #470 merged as 0d139a424. #471 opened from trail-and-street-codes; its pull_request CI tests it on top of #470. Then comes the worker/* release to main.
+**Notes:** Written by the planner by hand. Next free ID -2013.
