@@ -194,6 +194,9 @@ internal fun BoxScope.CompactMapRouteCard(
     var linesPx by remember { mutableIntStateOf(0) }
     val coversStrip = landscapeRoom != null && routeCardCoversStrip(state?.expanded == true, linesPx, with(density) { landscapeRoom.maxHeight.toPx() })
     val cardMaxHeight = landscapeRoom?.let { if (coversStrip) it.overStripMaxHeight else it.maxHeight }
+    // D40 (RECORD -2009, the owner: "Hide elevation while open"): where the lines fill even that raised cap, the total line's elevation
+    // line is left out while expanded, and comes back on collapse.
+    val hideElevation = coversStrip && landscapeRoom != null && routeCardCoversStrip(true, linesPx, with(density) { landscapeRoom.overStripMaxHeight.toPx() })
     NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
             visible = !leaving && (portrait || landscapeRoom != null),
@@ -222,6 +225,7 @@ internal fun BoxScope.CompactMapRouteCard(
                         shape = shape,
                         contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
                         onLinesHeightPx = { linesPx = it },
+                        hideElevation = hideElevation,
                         modifier = Modifier
                             .width(width)
                             .then(if (cardMaxHeight != null) Modifier.heightIn(max = cardMaxHeight) else Modifier)

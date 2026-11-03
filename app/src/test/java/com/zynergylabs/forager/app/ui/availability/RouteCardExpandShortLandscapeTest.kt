@@ -74,11 +74,18 @@ class RouteCardExpandShortLandscapeTest {
         assertTrue("$where: the card rose over the strip, top ${card.top} above the peek's ${peek.top}", card.top < peek.top - 0.5.dp)
         rig.assertSame("$where: the card's bottom stays on the navigation card", peek.copy(top = card.top), card)
         assertEquals("$where: the navigation card stays", 1, rig.count(NAVIGATION_HUD_TAG))
+        // D40 (RECORD -2009, the owner: "Hide elevation while open"): here even the raised cap is filled by the lines (CI run
+        // 41698619389: 250 dp of lines, 250 dp of cap), so the total line's elevation line is left out; the count and the buttons stay.
+        assertEquals("$where: D40, the total line's elevation line is left out while open", 0, rig.count(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        assertEquals("$where: D40, \"N Waypoints routed\" stays", 1, rig.count(ROUTE_CARD_ROUTED_COUNT_TAG))
+        assertEquals("$where: D40, Save stays", 1, rig.count(ROUTE_CARD_SAVE_TAG))
+        assertEquals("$where: D40, Undo stays", 1, rig.count(ROUTE_CARD_UNDO_TAG))
     }
 
     private fun assertClosed(where: String, peek: DpRect) {
         assertEquals("$where: the card's state", false, rig.plotting.uiState.value.expanded)
         rig.assertSame("$where: collapsed, the card is back at its peek, under the strip", peek, rig.bounds(ROUTE_CARD_TAG))
+        assertEquals("$where: D40, collapsed, the elevation line is back", 1, rig.count(ROUTE_CARD_ROUTED_ELEVATION_TAG))
     }
 
     @Test
@@ -89,6 +96,7 @@ class RouteCardExpandShortLandscapeTest {
         listOf(3, 6).forEach { n ->
             rig.plotTo(n)
             assertEquals("precondition, $n stops: peek", false, rig.plotting.uiState.value.expanded)
+            assertEquals("precondition, $n stops: the total line carries its elevation line at peek", 1, rig.count(ROUTE_CARD_ROUTED_ELEVATION_TAG))
             val peek = rig.bounds(ROUTE_CARD_TAG)
             listOf(0.5f to 0.5f, 0.2f to 0.2f, 0.8f to 0.2f, 0.2f to 0.8f, 0.8f to 0.8f).forEach { (fx, fy) ->
                 val where = "$n stops, a tap at ($fx, $fy) on the handle"

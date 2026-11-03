@@ -156,6 +156,11 @@ fun RouteCard(
      * total line, the buttons and [contentBottomPadding]), in px, whenever it changes: what the rows leave of the card's height.
      */
     onLinesHeightPx: (Int) -> Unit = {},
+    /**
+     * D40 (RECORD -2009, the owner: "Hide elevation while open"): the total line's elevation line is left out, where even D37's raised
+     * cap leaves the rows no room. [onLinesHeightPx] still counts it, at its last measured height, so the answer does not flip back.
+     */
+    hideElevation: Boolean = false,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -173,8 +178,10 @@ fun RouteCard(
         LaunchedEffect(expanded) { reveal.settle(expanded) }
         var columnPx by remember { mutableIntStateOf(0) }
         var rowsPx by remember { mutableIntStateOf(0) }
+        var elevationPx by remember { mutableIntStateOf(0) }
         val currentOnLines by rememberUpdatedState(onLinesHeightPx)
-        LaunchedEffect(columnPx, rowsPx) { if (columnPx > 0) currentOnLines(columnPx - rowsPx) }
+        val elevationLeftOut = if (hideElevation) elevationPx else 0
+        LaunchedEffect(columnPx, rowsPx, elevationLeftOut) { if (columnPx > 0) currentOnLines(columnPx - rowsPx + elevationLeftOut) }
         Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding).onSizeChanged { columnPx = it.height + with(density) { contentBottomPadding.roundToPx() } }) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
@@ -184,7 +191,7 @@ fun RouteCard(
                 DisposableEffect(Unit) { onDispose { rowsPx = 0 } }
                 RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight, onHeightPx = { rowsPx = it })
             }
-            if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit) else RouteNoLegsLine(content)
+            if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit, showElevation = !hideElevation, onElevationHeightPx = { elevationPx = it }) else RouteNoLegsLine(content)
             RouteCardButtons(content, callbacks)
         }
     }
@@ -241,15 +248,15 @@ private fun RouteCardHandle(expanded: Boolean, reveal: RouteCardReveal, onToggle
  * so a stop whose leg is still in flight is not counted until it lands.
  */
 @Composable
-private fun RouteTotalLine(content: RouteCardContent, distanceUnit: DistanceUnit) {
+private fun RouteTotalLine(content: RouteCardContent, distanceUnit: DistanceUnit, showElevation: Boolean = true, onElevationHeightPx: (Int) -> Unit = {}) {
     Column(Modifier.padding(vertical = Spacing.xs).testTag(ROUTE_CARD_ROUTED_TAG)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(waypointsRoutedText(content.legs.size + 1), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_ROUTED_COUNT_TAG))
             Text(routeTotalDistanceText(content.legs.map { it.meters }, distanceUnit), style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_TOTAL_TAG))
             if (content.legInFlight) RouteCardProgress()
         }
-        routeTotalElevationText(content.legElevations, UnitSystem.forDistanceUnit(distanceUnit))?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        routeTotalElevationText(content.legElevations, UnitSystem.forDistanceUnit(distanceUnit))?.takeIf { showElevation }?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG).onSizeChanged { size -> onElevationHeightPx(size.height) })
         }
     }
 }
