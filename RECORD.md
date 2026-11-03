@@ -32110,3 +32110,12 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Where Re-center's icon needs room, both cards narrow, always
 **Decision:** the owner: "Both cards narrow (Recommended)"; "Always (Recommended)". The planner's call: D27's rise fallback, dead in landscape navigation once room is guaranteed, is removed. Dispatch 2026-10-30-08 item D32, on #449. Also the owner: "Yes, check (Recommended)" to Juniper reading the app's words, store text and site for "OSM" used as a style name (-1985): dispatch 2026-11-03-02.
 **Notes:** Written by the planner by hand. Next free ID -1988.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1988
+**Timestamp:** 2026-11-03T12:19:11Z
+**Title:** Navigate on a saved route's card: walk the route stop by stop, on its own branch after #449
+**Intent:** the owner: "Add a navigate function to this card please" (a screenshot of a saved route's card); then "Walk the route, stop by stop (Recommended)", "Navigate, then Directions (Recommended)", "Moves on by itself (Recommended)", "Its own branch after #449 (Recommended)". Dispatch 2026-11-03-03, Hazel (Opus); verify-first, then the questions it raises go to the owner. Building starts after D32 lands.
+**Notes:** Written by the planner by hand. Next free ID -1989.
