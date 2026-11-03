@@ -32168,3 +32168,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The navigation card slides when D32 narrows or widens it
 **Decision:** Hazel's D32 report: the navigation card's width changes instantly, unruled. The owner: "Have it slide". Dispatch 2026-10-30-08 item D33; the planner's calls: the route card's existing motion timing, at once under Reduce Motion, on a follow-up branch after #449 merges. Also in the D32 report: #465 merged into route-plot-ui by fast-forward to 1ac35075a at 13:04Z (the planner, on -1989); pre-main backed up first to forager-repo-backups/pre-main-before-449-20261103T130412Z.bundle (verified).
 **Notes:** Written by the planner by hand. Next free ID -1994.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1994
+**Timestamp:** 2026-11-03T13:17:49Z
+**Continues:** 2026-09-28-1991
+**Title:** The reference style's name is rewritten out of Forager's files and history, force-pushed, as Aspen proposed
+**Decision:** Aspen relayed the owner's words to it at about 02:15 PST: "Option 3, clean it all up" (rename branches and files, and edit or rewrite the existing records), then "Also rewrite history" ("Plus a force-push rewrite of both repos. Every commit id in the records, builds and copies changes, and every session has to stop and re-clone. GitHub still keeps the old PR commits unless GitHub Support purges them."). The planner asked the owner directly, stating the costs (commit ids in records, CI runs and backup bundles stop matching; open PRs re-opened; every clone re-made; the owner's quoted rulings, e.g. "Keep it osm-like", "Invert like OSM", change). The owner: "Yes, rewrite history". Aspen's plan: one term list per repo, category (i) only (the reference style named as ours or as a target), in file text, commit messages, file names and branch names; every data credit and data reference stays; the list kept locally, never in a repository; the planner approves Forager's. Then a dry run in fresh mirror clones (git filter-repo), reviewed by both; a pause window for every pushing session; the force-push of all refs; one commit at each tip translating old commit ids in RECORD.md and the dispatches from filter-repo's commit-map; re-clones afterwards. Not before the Trail Map upload is done (Aspen: about 08:30 to 09:00 PST). This entry itself will be rewritten by its own term list. Before the force-push the planner takes a full mirror backup bundle of Forager.
+**Notes:** Written by the planner by hand. Next free ID -1995.
