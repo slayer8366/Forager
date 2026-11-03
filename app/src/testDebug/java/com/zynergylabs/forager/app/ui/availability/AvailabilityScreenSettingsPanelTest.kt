@@ -438,13 +438,14 @@ class AvailabilityScreenSettingsPanelTest {
 
     @Test
     fun `tapping the quick-fire icon opens the map type panel, and each chip there changes the basemap and closes it`() {
-        // The map opens on Trail (dispatch 2026-10-22-01), so Topo is taken first, then OSM, then back to Trail. Since dispatch
+        // The map opens on Trail (dispatch 2026-10-22-01), so every other map type is taken in chip order (Topo, then each
+        // added one, dispatch 2026-11-03-05 D7: the Street map's), then back to Trail. Since dispatch
         // 2026-10-28-02 the button opens the map type panel again, which a chip tap closes (as the picker did before L0b), so
         // the button is tapped before each chip. No Satellite chip is offered (dispatch 2026-09-28-708).
         setScreen()
         assertEquals(Basemap.FORAGER_TRAIL, capturedBasemap)
 
-        for ((label, basemap) in listOf("Topo" to Basemap.OPEN_TOPO_MAP, "OSM" to Basemap.STREET)) {
+        for ((label, basemap) in MapMode.entries.filter { it != MapMode.TRAIL }.map { it.label to it.basemap }) {
             composeRule.onNodeWithContentDescription("Layers:", substring = true).performClick()
             composeRule.waitForIdle()
             composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)

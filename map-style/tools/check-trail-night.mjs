@@ -18,7 +18,7 @@ import { FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_L
 const here = (path) => new URL(`../${path}`, import.meta.url);
 const problems = [];
 
-// `node tools/check-trail-night.mjs v4` checks forager-street-v4.json (the fill-in) against v4's own night tables, and,
+// `node tools/check-trail-night.mjs v4` checks forager-trail-v4.json (the fill-in) against v4's own night tables, and,
 // since the switch to Street v4, its bundled copy in the Worker. With no argument it checks v2, as before.
 const V4 = process.argv[2] === "v4";
 const STYLE = V4 ? "v4" : "v2";
@@ -30,8 +30,9 @@ const text = fs.readFileSync(here(`forager-${FILE}.json`), "utf8");
 // v4 is on the Worker too since the switch to Street v4 (dispatch 2026-11-01-coder-11 step (c)): its bundled copy is
 // compared the same way.
 {
-  const bundled = fs.readFileSync(here(`../server/pmtiles-worker/src/trail-style-${STYLE}.json`), "utf8");
-  if (text !== bundled) problems.push(`server/pmtiles-worker/src/trail-style-${STYLE}.json differs from forager-${FILE}.json: run npm run generate:trail`);
+  const workerCopy = V4 ? "trail-style-v4.json" : "street-style-v2.json";
+  const bundled = fs.readFileSync(here(`../server/pmtiles-worker/src/${workerCopy}`), "utf8");
+  if (text !== bundled) problems.push(`server/pmtiles-worker/src/${workerCopy} differs from forager-${FILE}.json: run npm run generate:trail`);
 }
 // The style's own metadata must carry the tables checked here: the app reads its copy against it.
 const meta = JSON.parse(text).metadata;
