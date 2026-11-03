@@ -32284,7 +32284,7 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Timestamp:** 2026-11-03T17:52:17Z
 **Continues:** 2026-09-28-1998
 **Title:** S22 session 9 finished when the phone came back: D32 as ruled; two things seen
-**Outcome:** Hazel's report; audit docs/audits/2026-11-03-s22-session-9.md on tools/s22-combined (5b3fa8c0f); evidence /home/zynergy-labs/s22-2026-11-03/s9/, off git. Build 4465 installed at 09:27:31 over 4451 (backup pulled, not restore-tested; every table equal across install). D32 at 640 x 360 dp, font 2.0, landscape, navigating, 1/3/6 stops, peek: both cards narrow to x 724..1809, edge to edge, right edges kept; Re-center is the 48 dp icon at [514,884][694,1064], never risen, clear of everything; 15/15 real touches re-centred. Route card closed: the navigation card is full width and Re-center has its word. Normal size, font 1.0: nothing narrows, and Re-center keeps its word beside the L. Could not tell: the expanded card at that size (tap and drag on the handle did nothing at 3 and 6 stops); long navigation text wrapping. For the owner: Re-center's bottom is 76 dp above the screen's bottom (the lowest place clear of the two-line credit at font 2.0). Seen, not ruled: with the route card closed at that size, Re-center with its word sits in the middle of the navigation card over its distance text (squeezed to 21 px). Auto-rotate again failed to hold once (cause unknown; reads 1 now). TEST P to T deleted by name.
+**Outcome:** Hazel's report; audit docs/audits/2026-11-03-s22-session-9.md on tools/s22-combined (5b3fa8c0f); evidence /home/zynergy-labs/s22-2026-11-03/s9/, off git. Build 4465 installed at 09:27:31 over 4451 (backup pulled, not restore-tested; every table equal across install). D32 at 640 x 360 dp, font 2.0, landscape, navigating, 1/3/6 stops, peek: both cards narrow to x 724..1809, edge to edge, right edges kept; Re-center is the 48 dp icon at [514,884][694,1064], never risen, clear of everything; 15/15 real touches re-centred. Correction (Hazel's D33 verify-first, -2006): the "about 39.5 dp narrower" compares session 9's narrowed left with session 8's natural left (576 px); in session 9 with the route card closed the navigation card started at about 94 px, so the narrowing there was probably about 168 dp, a figure carried across a boundary. Route card closed: the navigation card is full width and Re-center has its word. Normal size, font 1.0: nothing narrows, and Re-center keeps its word beside the L. Could not tell: the expanded card at that size (tap and drag on the handle did nothing at 3 and 6 stops); long navigation text wrapping. For the owner: Re-center's bottom is 76 dp above the screen's bottom (the lowest place clear of the two-line credit at font 2.0). Seen, not ruled: with the route card closed at that size, Re-center with its word sits in the middle of the navigation card over its distance text (squeezed to 21 px). Auto-rotate again failed to hold once (cause unknown; reads 1 now). TEST P to T deleted by name.
 **Notes:** Written by the planner by hand. Next free ID -2005.
 
 ---
@@ -32296,3 +32296,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** Re-center's icon wherever its word would cover a card; the handle at the smallest size found and fixed; the height stays
 **Decision:** the owner: "Icon beside the L (Recommended)"; "Find and fix (Recommended)"; "Yes, that's fine (Recommended)". Dispatch 2026-10-30-08 items D34, D35, D36. Built with D33 (the navigation card slides, -1993) on a new branch, route-card-followups, from pre-main, Hazel (Opus).
 **Notes:** Written by the planner by hand. Next free ID -2006.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2006
+**Timestamp:** 2026-11-03T18:21:27Z
+**Continues:** 2026-09-28-2005
+**Title:** At the smallest size the expanded card covers the top bar; the navigation card stays narrow there; D33 on the rise's clock
+**Decision:** Hazel's verify-first for D33 to D35 (route-card-followups, cut from pre-main ea230c60e): D35's handle works, but the card has no room to expand (cap 196.67 dp, rows 0 dp), and D32's tests checked the flag, not the rows; D34 has no room with the route card closed. The owner: "Cover the top bar (Recommended)"; "Keep it narrow (Recommended)". The planner's call: D33 uses the 750 ms rise. Dispatch 2026-10-30-08 D37, D38, D39. -2004 corrected in place: its 39.5 dp narrowing figure compared two sessions.
+**Notes:** Written by the planner by hand. Next free ID -2007.
