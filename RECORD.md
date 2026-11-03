@@ -31965,5 +31965,5 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Timestamp:** 2026-11-03T00:50:28Z
 **Continues:** 2026-09-28-1973, 2026-09-28-1964
 **Title:** Waypoint names are drawn as small pictures in the app's own font; their off switch is in Settings > Map
-**Decision:** the owner: "As small pictures (Recommended)"; "Settings > Map". Dispatch 2026-11-02-04 items A4, B2, and the planner's C2 (what can be tested headless; the collision on a phone later). A new Hazel builds it on branch waypoint-names from bbf13d270.
+**Decision:** the owner: "As small pictures (Recommended)"; "Settings > Map". Then, to Hazel's question whether the switch also hides a route's stop names: "Yes, stops keep names (Recommended)" (item B3). Dispatch 2026-11-02-04 items A4, B2, and the planner's C2 (what can be tested headless; the collision on a phone later). A new Hazel builds it on branch waypoint-names from bbf13d270.
 **Notes:** Written by the planner by hand. Next free ID -1975.

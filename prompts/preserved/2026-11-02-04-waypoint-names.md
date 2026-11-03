@@ -29,6 +29,8 @@ Written by Rowan Waymark, 2026-11-02. RECORD -1964, -1965. Starts after dispatch
 
 - **B2** (2026-11-02, -1974). The owner: "Settings > Map", whose option read "A checkbox 'Waypoint names' in Settings > Map, under 'Crowded icons'." So: a checkbox "Waypoint names" in Settings > Map under "Crowded icons" (MapSettingsSection.kt), on by default, its own DataStore key ("map.waypoint_names"), surviving restarts.
 
+- **B3** (2026-11-02, -1974). Hazel asked whether the switch also hides the route's stop names. The owner: "Yes, stops keep names (Recommended)", whose option read "The setting hides names on ordinary waypoints; a route's stops stay named while it's on screen, since you're working with them." So off hides the waypoint-name layer only.
+
 ## C. Tests and checks
 - **C1** (2026-11-02, -1964). Through the real Maps tab: names show by default; a crowded group shows fewer names than pins and more after zooming in; the route's stops are named while plotting; the setting hides them and survives a restart. Fail first, then revert checks. No phone unless the planner says.
 - **C2** (2026-11-02, -1974, the planner's call). C1's crowding claim can't run headless (MapLibre's collision is native; no real MapView under Robolectric). Test headless what can be: the name layer's properties (no overlap; stops overlap allowed), the images and features per waypoint with blank names skipped, through the real Maps tab what the map is handed (names by default, the stops' names while plotting, the setting turning them off), and the setting surviving a restart on a new DataStore instance. The collision itself is checked on a phone later and recorded as untested until then. CI only.
