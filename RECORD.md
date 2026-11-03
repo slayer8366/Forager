@@ -32128,3 +32128,24 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Merge #465 into #449, then #449 into pre-main, once D32 is green
 **Decision:** the owner: "Merge the PRs that are ready to merge. Routing looks good." The planner found #449's head was D32's test-first commit (b4749e63e, D32 in progress), so not ready, and named the other open PRs as not ready for this word (#440 waits on its walk; #433 to #439 not updated since 10-29; #101, #104, #109 target main, which changes only by promotion). The owner then: "After D32 is green (Recommended)", whose option read "Hazel finishes D32 (the small-screen Re-center room). Then #465 merges into #449, #449 merges into pre-main once CI is green on its head, with a backup of pre-main first." The planner merges, after reading each diff for @Ignore and removed assertions. This lifts -1938's hold on #449 and the hold on #465 for these merges only.
 **Notes:** Written by the planner by hand. Next free ID -1990.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1990
+**Timestamp:** 2026-11-03T12:32:53Z
+**Continues:** 2026-09-28-1988
+**Title:** Route navigation: the owner's eight rulings on Hazel's verify-first, and the planner's three calls
+**Decision:** dispatch 2026-11-03-03 items A4 (the owner's rulings, quoted with their options), A5 (the planner's calls: the ViewModel split first, WayHome.regionId's "none", one stop per fix), A6 (open: the summoned card's content, Back's order, the "i" button's look, the words). The card: the owner, "Option 2, but have it collapsible. Add an i button to the navigation card at the top right corner to summon the card. Both landscape and portrait". Corrections of the planner's earlier options, found by Hazel: Navigate and Directions sit side by side nowhere today; the route line starts at stop 1. Building waits for D32 and the merges (-1989).
+**Notes:** Written by the planner by hand. Next free ID -1991.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1991
+**Timestamp:** 2026-11-03T12:32:53Z
+**Continues:** 2026-09-28-1987
+**Closes:** 2026-09-28-1987
+**Title:** Juniper: no public text names OSM as our style or a target
+**Outcome:** Report docs/audits/2026-11-03-osm-style-name-check.md at d66096114 on juniper/osm-style-name-check (read-only; pre-main 3b9c0b70b, main 532f45dcf, zynergy-site main 1e37879c5). Category (i), the style named as ours or a target: 0 public, 26 internal (code and test comments, style build and check scripts, two records), all repository-only; the served style JSONs carry only their attribution lines. (ii) the reference basemap by name: 7 public lines (the "OSM" chip, MapMode.kt:48; the privacy policy; README; beta README; site privacy page). (iii) attribution: 26 public lines, required, flagged only. Side findings: README still lists "Street, topographical and satellite base maps", never "Trail Map"; the site's privacy page calls our map "Our map tile service"/"the offline basemap" where the repo's policy says "Forager Trail Map"; the Worker's style names say "Street". Premise flagged: credits on pre-main are in Settings > Sources & credits (AvailabilitySettingsPages.kt:110,116), not Tools > Map Layers (the planner did not re-read whether #449 moves them). Not checked: the live store listing (no listing text in the repos), the served site, image assets, the Forager-cartography repository.
+**Notes:** Written by the planner by hand. Next free ID -1992.
