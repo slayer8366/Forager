@@ -251,6 +251,8 @@ internal fun mapLayersViewModel(
     findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
     // Dispatch 2026-10-27-14: Settings > Map > "Crowded icons". Defaulted to nothing stored, which is "Zoom in, then fan".
     crowdedIcons: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
+    // Dispatch 2026-11-02-04: Settings > Map > "Waypoint names". Defaulted to nothing stored, which is on.
+    waypointNames: com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository = NoStoredWaypointNames,
     // Dispatch 2026-10-28-08: the live journal-entry counts. Defaulted to none, every count reading 0, as before.
     entryReferenceCounts: com.zynergylabs.forager.app.domain.EntryReferenceCountSource = com.zynergylabs.forager.app.domain.NoEntryReferenceCounts,
     // Dispatch 2026-10-30-08 Amendment 8: the Units setting. Defaulted to metric, as before.
@@ -303,6 +305,7 @@ internal fun mapLayersViewModel(
         currentTime = currentTime,
         findWayToWaypoint = findWayToWaypoint,
         crowdedIconsRepository = crowdedIcons,
+        waypointNamesRepository = waypointNames,
         entryReferenceCounts = entryReferenceCounts,
     )
 }
@@ -370,6 +373,7 @@ internal fun MapLayersTestScreen(
             onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
             onThemeModeChanged = viewModel::onThemeModeChanged,
             onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
+            onWaypointNamesChanged = viewModel::onWaypointNamesChanged,
         ),
         mapSlot = mapSlot,
         mapControls = AvailabilityScreenMapControls(

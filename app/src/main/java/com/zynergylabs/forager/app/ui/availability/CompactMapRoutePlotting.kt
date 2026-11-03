@@ -88,8 +88,9 @@ internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources
 
 /** The line the map draws: the route being plotted, or a saved one with a dot at each stop (Amendment 1, Q8); `null` for none. */
 internal fun plottedRouteOnMap(controls: RoutePlottingControls?): PlottedRouteOnMap? = when (val mode = controls?.state?.mode) {
-    is RoutePlotMode.Plotting -> PlottedRouteOnMap(mode.draft.legs)
-    is RoutePlotMode.Showing -> mode.trip.route?.let { route -> PlottedRouteOnMap(route.legs, route.stops.map { it.position }) }
+    // Dispatch 2026-11-02-04 (A2): the stops' names, from RouteStop.name, while plotting and on a saved route.
+    is RoutePlotMode.Plotting -> PlottedRouteOnMap(mode.draft.legs) // STUB (test first)
+    is RoutePlotMode.Showing -> mode.trip.route?.let { route -> PlottedRouteOnMap(route.legs, route.stops.map { it.position }) /* STUB (test first) */ }
     RoutePlotMode.Off, null -> null
 }
 

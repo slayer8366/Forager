@@ -177,6 +177,8 @@ fun SightingsMap(
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     waypoints: List<Waypoint> = emptyList(),
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.waypointNames]'s own doc comment. */
+    waypointNames: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.resumeTrackingRequestId]'s own doc comment. */
     resumeTrackingRequestId: Int = 0,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.searchFrameRequestId]'s own doc comment. */
@@ -639,6 +641,21 @@ fun SightingsMap(
 
     // A plotted route (dispatch 2026-10-30-08): pushed whenever it or the style changes (a new style starts empty).
     LaunchedEffect(sightingsMapState.loadedStyle, plottedRoute) { plottedRouteOnCurrentStyle(sightingsMapState.loadedStyle, plottedRoute) }
+
+    // Waypoint names and the route's stops' names (dispatch 2026-11-02-04): pushed whenever they, the setting, the
+    // Waypoints switch, the night look or the style change (a new style starts with no images and empty sources).
+    val nameTypeface = remember(context) { nameLabelTypeface(context) }
+    val nameImages = remember { NameImageRegistry() }
+    val namesDrawn = waypointNamesDrawn(waypointNames, drawnLayersState)
+    LaunchedEffect(sightingsMapState.loadedStyle, waypoints, namesDrawn, plottedRoute?.stopNames, nightMode, resources.displayMetrics.density) {
+        nameLabelsOnCurrentStyle(
+            sightingsMapState.loadedStyle,
+            waypointNameLabels(waypoints, namesDrawn),
+            routeStopNameLabels(plottedRoute?.stopNames.orEmpty()),
+            NameLabelPainter(nameTypeface, resources.displayMetrics.density, MapPalette.forMode(nightMode)),
+            nameImages,
+        )
+    }
 
     // The marker fan's effects on the loaded style (dispatch 2026-09-28-197 and its follow-ups): MapFan.kt.
     MapFan(

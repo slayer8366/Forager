@@ -114,6 +114,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
             onCameraIdle = onCameraIdle,
             breadcrumbPoints = content.breadcrumbPoints,
             waypoints = content.waypoints,
+            waypointNames = content.waypointNames,
             resumeTrackingRequestId = content.resumeTrackingRequestId,
             searchFrameRequestId = content.searchFrameRequestId,
             resetOrientationRequestId = content.resetOrientationRequestId,
