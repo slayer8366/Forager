@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -185,6 +189,11 @@ internal fun BoxScope.CompactMapRouteCard(
     val onNavigationCard = landscapeRoom?.takeIf { it.onNavigationCard > 0.dp }?.onNavigationCardWidth
     val shape = if (portrait) routeCardPortraitShape(barOnLeft) else ROUTE_CARD_LANDSCAPE_SHAPE
     val referenceWidth = rememberRouteCardWidth(distanceUnit)
+    // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek lines fill the cap, the expanded card's cap rises
+    // over the strip; collapsing brings the cap, and so the strip, back at once (the planner accepted that, -2008).
+    var linesPx by remember { mutableIntStateOf(0) }
+    val coversStrip = landscapeRoom != null && routeCardCoversStrip(state?.expanded == true, linesPx, with(density) { landscapeRoom.maxHeight.toPx() })
+    val cardMaxHeight = landscapeRoom?.let { if (coversStrip) it.overStripMaxHeight else it.maxHeight }
     NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
             visible = !leaving && (portrait || landscapeRoom != null),
@@ -212,9 +221,10 @@ internal fun BoxScope.CompactMapRouteCard(
                         expandedMaxHeight = expandedMaxHeight,
                         shape = shape,
                         contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
+                        onLinesHeightPx = { linesPx = it },
                         modifier = Modifier
                             .width(width)
-                            .then(if (landscapeRoom != null) Modifier.heightIn(max = landscapeRoom.maxHeight) else Modifier)
+                            .then(if (cardMaxHeight != null) Modifier.heightIn(max = cardMaxHeight) else Modifier)
                             .onGloballyPositioned {
                                 if (!leaving) {
                                     // What rises above the card, and the map's fit, clear it wherever it sits, so a card resting on the

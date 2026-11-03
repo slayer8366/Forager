@@ -26,7 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -34,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -147,6 +151,11 @@ fun RouteCard(
     shape: Shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     /** Kept empty under the buttons: the part of the card tucked behind the landscape navigation card (C11, restored by C21, RECORD -1955). */
     contentBottomPadding: Dp = 0.dp,
+    /**
+     * D37 (dispatch 2026-10-30-08, RECORD -2006): told the height of the card's lines other than the rows (the handle, the name, the
+     * total line, the buttons and [contentBottomPadding]), in px, whenever it changes: what the rows leave of the card's height.
+     */
+    onLinesHeightPx: (Int) -> Unit = {},
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -159,15 +168,21 @@ fun RouteCard(
         color = fill,
         contentColor = contentColour,
     ) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
         val reveal = remember { RouteCardReveal(expanded) }
         LaunchedEffect(expanded) { reveal.settle(expanded) }
-        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding)) {
+        var columnPx by remember { mutableIntStateOf(0) }
+        var rowsPx by remember { mutableIntStateOf(0) }
+        val currentOnLines by rememberUpdatedState(onLinesHeightPx)
+        LaunchedEffect(columnPx, rowsPx) { if (columnPx > 0) currentOnLines(columnPx - rowsPx) }
+        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding).onSizeChanged { columnPx = it.height + with(density) { contentBottomPadding.roundToPx() } }) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
                 Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))
             }
             if ((expanded || reveal.showsRows) && (content.legs.isNotEmpty() || content.legInFlight)) {
-                RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight)
+                DisposableEffect(Unit) { onDispose { rowsPx = 0 } }
+                RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight, onHeightPx = { rowsPx = it })
             }
             if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit) else RouteNoLegsLine(content)
             RouteCardButtons(content, callbacks)
@@ -265,9 +280,9 @@ private fun RouteCardProgress() {
  * says. Measured last among the card's lines (`weight`), so the total line and the buttons are never squeezed in a short window.
  */
 @Composable
-private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: DistanceUnit, reveal: RouteCardReveal, maxHeight: Dp) {
+private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: DistanceUnit, reveal: RouteCardReveal, maxHeight: Dp, onHeightPx: (Int) -> Unit = {}) {
     val unitSystem = UnitSystem.forDistanceUnit(distanceUnit)
-    Box(Modifier.weight(1f, fill = false).routeCardReveal(reveal)) {
+    Box(Modifier.weight(1f, fill = false).onSizeChanged { onHeightPx(it.height) }.routeCardReveal(reveal)) {
         Column(Modifier.heightIn(max = maxHeight).verticalScroll(rememberScrollState()).testTag(ROUTE_CARD_LEGS_TAG)) {
             content.legs.forEachIndexed { i, leg ->
                 Column(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i))) {

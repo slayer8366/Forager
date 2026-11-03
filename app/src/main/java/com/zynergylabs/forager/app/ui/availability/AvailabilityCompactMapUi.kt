@@ -697,8 +697,10 @@ internal fun CompactMapTab(
                     quickSettings = quickSettings,
                     sundownClock = sundownClock,
                     layout = layout,
-                    // D32 (RECORD -1987): narrower with the route card while it shows on it, edge to edge.
-                    narrowBy = if (routeCardSpanPx != null) routeCardRoom?.leaveRoom ?: 0.dp else 0.dp,
+                    // D32 (RECORD -1987): narrower from the L's side, edge to edge with the route card. D38 (RECORD -2006, the owner:
+                    // "Keep it narrow (Recommended)"): whether or not the route card shows, so Re-center's icon always has its spot
+                    // and nothing moves; this replaces D32's "back at its width" with the card closed, and D33's slide with it.
+                    narrowBy = routeCardRoom?.leaveRoom ?: 0.dp,
                 )
 
                 // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;
@@ -722,6 +724,8 @@ internal fun CompactMapTab(
                     // D17 (RECORD -1958): beside the L instead, while the card shows on the navigation card.
                     reCenterBesideTheL = reCenterBesideTheL(routeCardRoom, cardShowing = routeCardSpanPx != null),
                     creditSizePx = mapCreditSizePx,
+                    // D34 (RECORD -2005): the cards Re-center's word must not cover, in landscape navigation only (D38's scope).
+                    cardsInRoot = if (navigation.isNavigating && cluster.landscape) listOfNotNull(routeCardBoundsInRoot, cluster.navigationCardBoundsInRoot) else emptyList(),
                 )
 
                 // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out
