@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -97,8 +98,14 @@ internal val ROUTE_CARD_LANDSCAPE_SHAPE: Shape = RoundedCornerShape(topStart = R
  *
  * At most [maxHeight] tall, below the strip and the search bar, the rows taking what is cut (`RouteCard`'s rows are measured last, and
  * scroll).
+ *
+ * [leaveRoom] (D32, RECORD -1987): navigating, how much narrower both cards are, from the L's side, so Re-center's icon fits beside
+ * the L at the bottom ([routeCardLeaveRoomPx]); 0 dp wherever it already fits, and not navigating.
  */
-internal data class RouteCardLandscapeRoom(val onNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp, val bottom: Dp = 0.dp, val tuck: Dp = 0.dp)
+internal data class RouteCardLandscapeRoom(val onNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp, val bottom: Dp = 0.dp, val tuck: Dp = 0.dp, val leaveRoom: Dp = 0.dp)
+
+/** D32: the width both cards take while the route card rests on the navigation card: the strip's, less [RouteCardLandscapeRoom.leaveRoom]. */
+internal val RouteCardLandscapeRoom.onNavigationCardWidth: Dp get() = (onNavigationCard - leaveRoom).coerceAtLeast(0.dp)
 
 /** How far the card's lower edge sits behind the landscape navigation card: past that card's rounded top corners (C11, C21). */
 internal val ROUTE_CARD_NAVIGATION_TUCK: Dp = 16.dp
@@ -108,20 +115,34 @@ internal val ROUTE_CARD_NAVIGATION_TUCK: Dp = 16.dp
  * the navigation card is first measured, the card sits at its width on the bottom edge, behind it.
  */
 @Composable
-internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: Int, topLimitPx: Float, isNavigating: Boolean): RouteCardLandscapeRoom? {
+internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: Int, topLimitPx: Float, isNavigating: Boolean, controlsPadding: PaddingValues = PaddingValues(0.dp)): RouteCardLandscapeRoom? {
     if (!cluster.landscape || stripWidthPx <= 0) return null
     val navigationCard = cluster.navigationCardBoundsInRoot?.takeIf { isNavigating }
+    val layoutDirection = LocalLayoutDirection.current
     return with(LocalDensity.current) {
+        val railOnLeft = cluster.railPortEdge == ScreenEdge.Left
+        // D32 (RECORD -1987): from the values both cards are placed by, never the cards' measured edges, which this moves.
+        val leaveRoomPx = if (isNavigating && !railOnLeft) {
+            routeCardLeaveRoomPx(
+                besideLeftPx = cluster.mapContentBoxLeftInRootPx + (controlsPadding.calculateLeftPadding(layoutDirection) + routeCardBarColumn(cluster.clusterWidthPx.toDp())).toPx(),
+                iconPx = RETURN_TO_ROUTE_PILL_HEIGHT.toPx(),
+                gapPx = Spacing.sm.toPx(),
+                naturalCardLeftPx = cluster.mapContentBoxLeftInRootPx + cluster.mapContentBoxWidthPx - controlsPadding.calculateRightPadding(layoutDirection).toPx() - stripWidthPx,
+            )
+        } else {
+            0f
+        }
         val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
         val tuck = if (navigationCard != null) ROUTE_CARD_NAVIGATION_TUCK else 0.dp
         // Sorrel's N-5: a navigation card whose top is within the tuck of the box's bottom leaves no room to tuck into; never below 0.
         val bottom = if (navigationCard != null) ((boxBottomPx - navigationCard.top).toDp() - tuck).coerceAtLeast(0.dp) else 0.dp
         RouteCardLandscapeRoom(
             onNavigationCard = if (isNavigating) stripWidthPx.toDp() else 0.dp,
-            railOnLeft = cluster.railPortEdge == ScreenEdge.Left,
+            railOnLeft = railOnLeft,
             maxHeight = (cluster.mapContentBoxHeightPx - topLimitPx).toDp() - Spacing.sm - bottom,
             bottom = bottom,
             tuck = tuck,
+            leaveRoom = leaveRoomPx.toDp(),
         )
     }
 }
@@ -178,13 +199,16 @@ internal fun reCenterBesideTheL(landscapeRoom: RouteCardLandscapeRoom?, cardShow
  */
 internal fun reCenterRoomBesideTheL(leftPx: Float, cardLeftPx: Float?, gapPx: Float): Float? = cardLeftPx?.let { it - gapPx - leftPx }
 
+
 /**
- * D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"): whether Re-center goes beside the L at all: where its
- * icon alone, [iconPx] (the 48 dp target), fits the [roomPx] ([reCenterRoomBesideTheL]). Where it does, it never takes D10's rise,
- * with its word or without ([reCenterShowsWord]). A card not yet measured, or a room narrower than the icon (no window tested reaches
- * that; D27 says stop and report the numbers if one does), keeps D10's rise, which is never drawn over the card.
+ * D32 (RECORD -1987, the owner: "Both cards narrow (Recommended)" and "Always (Recommended)"): how much narrower the route card and the
+ * navigation card are, from the L's side, so Re-center's icon, [iconPx] (the 48 dp target), fits beside the L at the bottom with a
+ * gap, [gapPx], before the cards. [besideLeftPx] is where Re-center starts beside the L (the L's right and a gap, as
+ * `CompactMapBottomChrome` places it) and [naturalCardLeftPx] the cards' left at the strip's width, all in root px. 0 wherever the
+ * icon already fits. Replaces D31's "the route card moves right" (the navigation card fills the bottom under the same span).
  */
-internal fun reCenterIconFitsBesideTheL(roomPx: Float?, iconPx: Float): Boolean = roomPx != null && iconPx <= roomPx
+internal fun routeCardLeaveRoomPx(besideLeftPx: Float, iconPx: Float, gapPx: Float, naturalCardLeftPx: Float): Float =
+    (besideLeftPx + iconPx + gapPx - naturalCardLeftPx).coerceAtLeast(0f)
 
 /** D27: whether Re-center beside the L keeps its word: where its measured width with the word, [wordWidthPx], fits the [roomPx]. */
 internal fun reCenterShowsWord(wordWidthPx: Float, roomPx: Float): Boolean = wordWidthPx <= roomPx

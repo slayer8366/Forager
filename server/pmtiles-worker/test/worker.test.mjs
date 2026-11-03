@@ -728,3 +728,69 @@ test("manifest: not on R2 is a 404 that is not cached, and never a read of a .pm
   assert.equal(later.status, 200);
   assert.ok(Buffer.from(await later.arrayBuffer()).equals(MANIFEST));
 });
+
+// --- The edge cache's version, and "Archive not found" never cached (dispatch 2026-11-02-coder-14; the owner: "Yes,
+// fix it now"). Before it, the Worker kept every response a day under its plain URL, 404s included, so relief tiles asked
+// for before relief.pmtiles reached R2 stayed blank after it was there, and a replaced archive's old tiles were served.
+
+const TILE = "/us/14/2651/5776.mvt";
+async function withCacheVersion(version, fn) {
+  const before = env.CACHE_VERSION;
+  if (version === undefined) delete env.CACHE_VERSION; else env.CACHE_VERSION = version;
+  try { return await fn(); } finally { if (before === undefined) delete env.CACHE_VERSION; else env.CACHE_VERSION = before; }
+}
+
+test("coder-14: 'Archive not found' is a 404 sent no-store and never put in the edge cache", async () => {
+  const first = await call("/relief/9/82/183.png");
+  assert.equal(first.status, 404);
+  assert.equal(await first.text(), "Archive not found");
+  assert.equal(first.headers.get("Cache-Control"), "no-store", "the archive-not-found 404 must be sent no-store");
+  assert.deepEqual([...globalThis.caches.default.entries.keys()], [], "the archive-not-found 404 must not be put in the edge cache");
+  // So the next request reads R2 again, and finds the archive once it is there.
+  bucketReads = [];
+  assert.equal((await call("/relief/9/82/183.png")).status, 404);
+  assert.ok(bucketReads.includes("relief.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("coder-14: the same URL under the same version is answered from the edge cache the second time", async () => {
+  await withCacheVersion("2", async () => {
+    assert.equal((await call(TILE)).status, 200);
+    const key = `${HOST}${TILE}?cv=2`;
+    assert.deepEqual([...globalThis.caches.default.entries.keys()], [key], "the cache key is the URL with cv=<CACHE_VERSION>");
+    // A marker in that entry proves the second answer comes from the cache, not from R2.
+    await globalThis.caches.default.put(key, new Response("from the edge cache", { status: 200 }));
+    assert.equal(await (await call(TILE)).text(), "from the edge cache");
+  });
+});
+
+test("coder-14: a tile or asset cached under version 1 is not served under version 2; R2 is read again", async () => {
+  const font = "/fonts/Noto%20Sans%20Regular/0-255.pbf";
+  await withCacheVersion("1", async () => {
+    await globalThis.caches.default.put(`${HOST}${TILE}?cv=1`, new Response("old tile", { status: 200 }));
+    await globalThis.caches.default.put(`${HOST}${font}?cv=1`, new Response("old font", { status: 200 }));
+    assert.equal(await (await call(TILE)).text(), "old tile", "under version 1 the version-1 entry is served");
+    assert.equal(await (await call(font)).text(), "old font");
+  });
+  await withCacheVersion("2", async () => {
+    const tile = await call(TILE);
+    assert.equal(tile.status, 200);
+    assert.equal(await tileText(tile), "tile 14/2651/5776", "a version-1 tile must not be served under version 2");
+    assert.equal(await (await call(font)).text(), "glyphs 0-255", "a version-1 asset must not be served under version 2");
+    const keys = [...globalThis.caches.default.entries.keys()];
+    assert.ok(keys.includes(`${HOST}${TILE}?cv=2`) && keys.includes(`${HOST}${font}?cv=2`), JSON.stringify(keys));
+  });
+});
+
+test("coder-14: a 404 cached before this change, under the plain URL, is not served", async () => {
+  // What the edge held at 2026-11-02 20:25: "Archive not found" for relief tiles, under the request URL itself.
+  await globalThis.caches.default.put(`${HOST}${TILE}`, new Response("Archive not found", { status: 404 }));
+  await globalThis.caches.default.put(`${HOST}/fonts/Noto%20Sans%20Regular/0-255.pbf`, new Response("Not found", { status: 404 }));
+  for (const version of [undefined, "2"]) {
+    await withCacheVersion(version, async () => {
+      const tile = await call(TILE);
+      assert.equal(tile.status, 200, `a plain-URL cached 404 must not be served (CACHE_VERSION ${version ?? "unset"})`);
+      assert.equal(await tileText(tile), "tile 14/2651/5776");
+      assert.equal((await call("/fonts/Noto%20Sans%20Regular/0-255.pbf")).status, 200);
+    });
+  }
+});

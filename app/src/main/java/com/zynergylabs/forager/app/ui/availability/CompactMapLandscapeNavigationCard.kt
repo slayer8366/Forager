@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
@@ -117,6 +118,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     sundownClock: SundownClock,
     /** The landscape strip's measured size, read here; see [CompactMapLayoutState]. */
     layout: CompactMapLayoutState,
+    /**
+     * D32 (RECORD -1987, the owner: "Both cards narrow (Recommended)"): while the route card rests on this card, how much narrower both
+     * are from the L's side, so Re-center's icon fits beside the L at the bottom; the right edge is kept. 0 dp otherwise.
+     */
+    narrowBy: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val railPortEdge = landscape.railPortEdge ?: return
     val isNavigating = navigation.isNavigating
@@ -152,7 +158,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
         modifier = Modifier
             .align(if (railPortEdge == ScreenEdge.Left) Alignment.BottomStart else Alignment.BottomEnd)
             .padding(controlsPadding)
-            .width(with(density) { layout.landscapeStripWidthPx.toDp() })
+            .width(with(density) { (layout.landscapeStripWidthPx.toDp() - narrowBy).coerceAtLeast(0.dp) })
             .clipToBounds()
             .leavingTakesNoTouches(leaving = !isNavigating),
     ) {
