@@ -32256,3 +32256,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** OSM kept detached and removable from now on; the Street map first
 **Decision:** the owner: "We will migrate away from OSM altogether so we should keep all OSM references detached and easily removable from this point on." On scope: "The Street map first (Recommended)", whose option read "From now on the Street button's map (OpenStreetMap's own tiles) lives in one self-contained place that can be deleted cleanly. OSM data (Trail Map tiles, trails, routing) is kept behind its own boundary too, ready to swap out when you choose a replacement source, but nothing changes for users now." A standing rule for every dispatch from now on. Dispatch 2026-11-03-05 item D7. The Trail Map's style-failure fallback to the Street map (-1513) is a stop for the owner.
 **Notes:** Written by the planner by hand. Next free ID -2002.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2002
+**Timestamp:** 2026-11-03T17:42:10Z
+**Continues:** 2026-09-28-2001
+**Title:** The map's direction: our own styles as layers, with street as the base; all OSM maps dropped when our own topo arrives
+**Decision:** the owner: "When we get our own Topo maps we will drop all OSM maps and run our own map styles as layers, with street as the base, and trails, relief, and topographical styles. That way we can have full control over our maps". A direction, not a dispatch: nothing changes for users now. It guides -2001's boundary work (dispatch 2026-11-03-05 D7): the Street map's self-contained place is built so that it can later be deleted, and so that "Street" can then name our own street base layer. The design favours separate layers (street base, trails, relief, topo) over one combined style. When our own topo is ready, dropping the OSM maps is its own dispatch, with the owner's rulings.
+**Notes:** Written by the planner by hand. Next free ID -2003.
