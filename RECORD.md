@@ -32266,3 +32266,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** The map's direction: our own styles as layers, with street as the base; all OSM maps dropped when our own topo arrives
 **Decision:** the owner: "When we get our own Topo maps we will drop all OSM maps and run our own map styles as layers, with street as the base, and trails, relief, and topographical styles. That way we can have full control over our maps". A direction, not a dispatch: nothing changes for users now. It guides -2001's boundary work (dispatch 2026-11-03-05 D7): the Street map's self-contained place is built so that it can later be deleted, and so that "Street" can then name our own street base layer. The design favours separate layers (street base, trails, relief, topo) over one combined style. When our own topo is ready, dropping the OSM maps is its own dispatch, with the owner's rulings.
 **Notes:** Written by the planner by hand. Next free ID -2003.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2003
+**Timestamp:** 2026-11-03T17:44:24Z
+**Continues:** 2026-09-28-2001, 2026-09-28-2002
+**Title:** Without the Street map, the fallback is downloads then Topo; nothing changes today; CLAUDE.md made
+**Decision:** the owner: "Downloads, then Topo (Recommended)"; "Nothing changes today (Recommended)". The planner accepts Hazel's D7 plan (the registry, ui/map/street/, the street-removable CI job) and keeps the key "street" for the Street map. CLAUDE.md's "Street tiles" became "Trail Map tiles", made by the planner on pre-main at ea230c60e ([skip ci], one line, 486 lines before and after). Dispatch 2026-11-03-05 D8. Hazel's WIP is at 5a34401b7 on trail-and-street-codes, not yet compiled.
+**Notes:** Written by the planner by hand. Next free ID -2004.

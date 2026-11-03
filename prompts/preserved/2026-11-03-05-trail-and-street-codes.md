@@ -45,3 +45,9 @@ Hazel read pre-main at d88db1799. Corrected premises: no style layer or app asse
   - Give the size of what that deletion would be and test that the app runs without it.
   - The fallback when the Trail Map's style fails to load (OwnStreetFallback, -1513) currently falls back to the Street map. Report what it would fall back to without it, and stop before changing that behaviour: it's the owner's call.
   - Report where OSM data enters (tiles, trails, routing, osm_timestamp, BRouter) and propose the boundary. Build only what this branch already touches; the rest is a later dispatch.
+- **D8** (2026-11-03, -2003). Hazel's revised plan for D7 is accepted: Basemap and MapMode become registry-backed classes, and ui/map/street/ is the one place, registered by one line. The night raster hook stays inside the package. A parallel CI job, street-removable, deletes the package and its registration line, then builds and runs the unit tests. Tests that use Street only as a sample move onto Topo.
+  - The fallback, the owner's two answers:
+    - "Downloads, then Topo (Recommended)", whose option read "If you have downloaded areas, it draws our Trail Map from them, as it already does with no signal. Otherwise it shows the Topo map. You always see a map. Topo is darker at night when zoomed out, until our own topo arrives."
+    - "Nothing changes today (Recommended)", whose option read "While the Street map is still in the app it stays the fallback, exactly as now. Your choice above only takes effect when the Street map is deleted, and the removal check builds the app that way."
+  - The planner's call: the Street map keeps the stored key "street", as A2 and the owner's "just use street for OSM" say. Later, people who chose it will land on our own street base, which takes the name.
+  - CLAUDE.md (D6): made by the planner on pre-main at ea230c60e, one word, 486 lines before and after. Hazel declined to edit CLAUDE.md on an agent's message, which is her rule.
