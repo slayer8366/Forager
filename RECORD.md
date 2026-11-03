@@ -32119,3 +32119,12 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** Navigate on a saved route's card: walk the route stop by stop, on its own branch after #449
 **Intent:** the owner: "Add a navigate function to this card please" (a screenshot of a saved route's card); then "Walk the route, stop by stop (Recommended)", "Navigate, then Directions (Recommended)", "Moves on by itself (Recommended)", "Its own branch after #449 (Recommended)". Dispatch 2026-11-03-03, Hazel (Opus); verify-first, then the questions it raises go to the owner. Building starts after D32 lands.
 **Notes:** Written by the planner by hand. Next free ID -1989.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1989
+**Timestamp:** 2026-11-03T12:22:03Z
+**Title:** Merge #465 into #449, then #449 into pre-main, once D32 is green
+**Decision:** the owner: "Merge the PRs that are ready to merge. Routing looks good." The planner found #449's head was D32's test-first commit (b4749e63e, D32 in progress), so not ready, and named the other open PRs as not ready for this word (#440 waits on its walk; #433 to #439 not updated since 10-29; #101, #104, #109 target main, which changes only by promotion). The owner then: "After D32 is green (Recommended)", whose option read "Hazel finishes D32 (the small-screen Re-center room). Then #465 merges into #449, #449 merges into pre-main once CI is green on its head, with a backup of pre-main first." The planner merges, after reading each diff for @Ignore and removed assertions. This lifts -1938's hold on #449 and the hold on #465 for these merges only.
+**Notes:** Written by the planner by hand. Next free ID -1990.
