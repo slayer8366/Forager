@@ -31992,3 +31992,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Observed:** the stopped D19/D21 session's pictures (/home/zynergy-labs/s22-2026-11-02/d19/shots/d21-3p.png, d21-3e.png; build 4423; the planner looked at both): at 640 x 360 dp, font 2.0, navigating, 3 stops, Re-center sits on the search bar collapsed and under the top strip expanded; the route and navigation cards cover the L and the pill. The planner found the S22 still on that session's settings (wm size 1350x2400, font 2.0, auto-rotate off), reset them and read them back.
 **Decision:** the owner: "Icon only where room is short (Recommended)"; "Yes, one session (Recommended)". Dispatch 2026-10-30-08 item D27 and dispatch 2026-11-02-07.
 **Notes:** Written by the planner by hand. Next free ID -1977.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-1977
+**Timestamp:** 2026-11-03T04:57:32Z
+**Continues:** 2026-09-28-1976
+**Title:** Re-center shows its icon alone where its word doesn't fit beside the icon bar; #449 is fully green
+**Observed:** Hazel (Opus), route-plot-ui be61de089 (test first fce564d0c), CI only. Full CI 41579426879: 6238 tests, 0 failures, lint and the release compile green; the D20 test that had been red now passes. Fail first 41578679843: "its width expected:<48.0> but was:<160.66667>". Four reverts bite, each with its own message (word always shown; no content description; icon alone everywhere; no 48 dp size). At 640 x 360, font 2.0 (Robolectric) the room beside the L is about 85 dp and the 48 dp icon fits. Hazel's calls: the icon keeps the pill's 18 dp size in a 48 dp target; where the card isn't measured or the room is under 48 dp, D10's rise stays (no tested window reaches it); the content description is the existing "Re-center".
+- **Not verified:** on a phone (no S22 build of be61de089); TalkBack on a device. The cards covering the L and the pill at that size were seen on the S22 but don't show in Robolectric, so they depend on the phone's real size and insets; not ruled.
+**Notes:** Written by the planner by hand. #465 (waypoint names) is cut from bbf13d270 and doesn't hold this yet. Next free ID -1978.
