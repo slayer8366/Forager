@@ -32159,3 +32159,12 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The route card's step 3 confirmed; README and the site's privacy page to say "Trail Map"
 **Decision:** the owner: "Yes to both, change them to Trail Map", to the planner's two questions: whether Navigate closes the route card with an "i" at the navigation card's top right bringing it back (dispatch 2026-11-03-03 A4, now confirmed), and whether README.md (Forager, lines 32 and 148 at pre-main 3b9c0b70b) and the site's privacy page (zynergy-site privacy/index.html:116-118 at 1e37879c5) change to "Trail Map". README: to a coder after #449 lands, every claim in the changed lines checked from code (USGS is still referenced in app/src/main, so the satellite wording is not simply dropped). The site: this session's GitHub access covers only the Forager repository, so the planner cannot push it; brought to the owner.
 **Notes:** Written by the planner by hand. Next free ID -1993.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1993
+**Timestamp:** 2026-11-03T13:10:05Z
+**Title:** The navigation card slides when D32 narrows or widens it
+**Decision:** Hazel's D32 report: the navigation card's width changes instantly, unruled. The owner: "Have it slide". Dispatch 2026-10-30-08 item D33; the planner's calls: the route card's existing motion timing, at once under Reduce Motion, on a follow-up branch after #449 merges. Also in the D32 report: #465 merged into route-plot-ui by fast-forward to 1ac35075a at 13:04Z (the planner, on -1989); pre-main backed up first to forager-repo-backups/pre-main-before-449-20261103T130412Z.bundle (verified).
+**Notes:** Written by the planner by hand. Next free ID -1994.
