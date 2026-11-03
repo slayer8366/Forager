@@ -32226,3 +32226,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** S22 session 9 ended without the D32 check; the phone is away for a while
 **Outcome:** the owner: "It'll be a while. That moment was your only chance for the time being." The session spent its phone time on the merge and the CI build (c2fb6b4e3, run 41644020391, green), so build 4465 was ready only after the S22 was unplugged; D32 is not seen on a phone. The planner's slip: the dispatch put the build after reading the phone, when the build could have run on CI before the phone was asked for. From now on an S22 session's build is merged, green on CI and its APK downloaded before the phone is needed, so phone time goes to the install and the checks. D32's phone check is open, with build 4465 ready.
 **Notes:** Written by the planner by hand. Next free ID -1999.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1999
+**Timestamp:** 2026-11-03T17:27:46Z
+**Continues:** 2026-09-28-1997
+**Title:** Our map's code name becomes "trail"; "street" names the OpenStreetMap map
+**Decision:** the owner, overriding the planner's call in -1997: "Go ahead and make a new map code called Trail drop OSM, and just use street for OSM. That should fix the problem". Dispatch 2026-11-03-05 (Hazel, Opus). The planner's calls: a one-time flagged migration of the stored map choice (old "street" to "trail", then "openstreetmap" to "street") so each user keeps the map they chose; the Worker keeps serving the old style routes for shipped builds. The stored key "street" moved once before, from OpenStreetMap to the Trail Map (dispatch 2026-10-22-01 Amendment 2, MapMode.kt:38-44), and this reverses it on purpose.
+**Notes:** Written by the planner by hand. Next free ID -2000.
