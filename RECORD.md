@@ -32488,3 +32488,13 @@ After the release there is one fresh run on the new tips, then the review, the r
 - **End state:** 4489 on the Maps tab, Trail Map; settings restored and read back; TEST Q, S, T, U and V deleted by name.
 - **Setup differed:** TEST U and V were added near Q because the camera could not be zoomed out.
 **Notes:** Written by the planner by hand. Next free ID -2020.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2020
+**Timestamp:** 2026-11-03T23:43:16Z
+**Continues:** 2026-09-28-2018, 2026-09-28-2019
+**Title:** The sunset line steps aside while the route card rests on the navigation card; D37 only where rows exist; tests on fixed clocks
+**Decision:** the owner: "Sunset line steps aside (Recommended)". The planner's calls: D37 and D40 only at 2 or more stops; the clock-dependent tests on fixed noon and evening clocks. Dispatch 2026-10-30-08 D41, D42 and D43, built on route-card-evening, Hazel (Opus). Pre-main stays red until it lands.
+**Notes:** Written by the planner by hand. Next free ID -2021.
