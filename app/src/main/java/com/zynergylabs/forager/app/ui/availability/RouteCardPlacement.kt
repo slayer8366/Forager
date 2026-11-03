@@ -177,12 +177,21 @@ internal fun reCenterBesideTheL(landscapeRoom: RouteCardLandscapeRoom?, cardShow
     cardShowing && landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp
 
 /**
- * D20 (RECORD -1960): whether Re-center, [widthPx] wide, fits beside the L, starting at [leftPx], with [gapPx] before the card's left
- * edge, [cardLeftPx], all in root px. Decided by measurement, never by window or font. A Re-center or card not yet measured does not
- * fit, so it takes D10's rise, which is never drawn over the card.
+ * D20 (RECORD -1960), as D27 (RECORD -1976) replaces it where room is short: the room for Re-center beside the L, from [leftPx] to a gap,
+ * [gapPx], before the card's left edge, [cardLeftPx], all in root px; null while the card is not yet measured.
  */
-internal fun reCenterFitsBesideTheL(widthPx: Float?, leftPx: Float, cardLeftPx: Float?, gapPx: Float): Boolean =
-    widthPx != null && cardLeftPx != null && leftPx + widthPx + gapPx <= cardLeftPx
+internal fun reCenterRoomBesideTheL(leftPx: Float, cardLeftPx: Float?, gapPx: Float): Float? = cardLeftPx?.let { it - gapPx - leftPx }
+
+/**
+ * D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"): whether Re-center goes beside the L at all: where its
+ * icon alone, [iconPx] (the 48 dp target), fits the [roomPx] ([reCenterRoomBesideTheL]). Where it does, it never takes D10's rise,
+ * with its word or without ([reCenterShowsWord]). A card not yet measured, or a room narrower than the icon (no window tested reaches
+ * that; D27 says stop and report the numbers if one does), keeps D10's rise, which is never drawn over the card.
+ */
+internal fun reCenterIconFitsBesideTheL(roomPx: Float?, iconPx: Float): Boolean = roomPx != null && iconPx <= roomPx
+
+/** D27: whether Re-center beside the L keeps its word: where its measured width with the word, [wordWidthPx], fits the [roomPx]. */
+internal fun reCenterShowsWord(wordWidthPx: Float, roomPx: Float): Boolean = wordWidthPx <= roomPx
 
 /**
  * D17: how far above the map's [MapRenderMode.bottomInset] Re-center sits beside the L: the usual [LEGEND_ATTRIBUTION_CLEARANCE], or,
