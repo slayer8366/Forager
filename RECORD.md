@@ -32306,3 +32306,12 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** At the smallest size the expanded card covers the top bar; the navigation card stays narrow there; D33 on the rise's clock
 **Decision:** Hazel's verify-first for D33 to D35 (route-card-followups, cut from pre-main ea230c60e): D35's handle works, but the card has no room to expand (cap 196.67 dp, rows 0 dp), and D32's tests checked the flag, not the rows; D34 has no room with the route card closed. The owner: "Cover the top bar (Recommended)"; "Keep it narrow (Recommended)". The planner's call: D33 uses the 750 ms rise. Dispatch 2026-10-30-08 D37, D38, D39. -2004 corrected in place: its 39.5 dp narrowing figure compared two sessions.
 **Notes:** Written by the planner by hand. Next free ID -2007.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-2007
+**Timestamp:** 2026-11-03T18:22:36Z
+**Title:** Aspen's Worker merges into Forager, on Aspen's account of the owner's go (unverified)
+**Observed:** GitHub shows #466 merged into pre-main at 09:27:25Z (3b9c0b70b), #467 into main at 09:46:54Z (532f45dcf), #468 into pre-main at 18:19:13Z (f9ca5824c, CACHE_VERSION 3), and #469 (worker/cache-version-3 into main, folder only) open. None had an entry here first. Aspen's account: the owner's go, through Aspen's question tool on 11-02 between 20:25 and 20:28:59 PST, "Yes, fix it now (Recommended)", whose option read "Willow adds a cache version to the Worker's cache key and stops caching 'Archive not found', with tests. Sorrel reviews, then it's released to main, which redeploys the Worker for every phone. I raise the version again right after tomorrow's upload." (forager-cartography prompts/preserved/2026-11-02-coder-14-worker-cache-version.md, "The go"; not read by the planner). The Trail Map upload finished at 06:51 PST, by Aspen's account. Folder-only Worker releases to main go through worker/* branches with guards (worker-release.yml, worker-folder-guard.yml, dispatch 2026-11-01-coder-11). Aspen holds #469 until the owner confirms to the planner, and will send a line before any further merge into Forager's pre-main or main. Asked of the owner.
+**Notes:** Written by the planner by hand. Next free ID -2008.
