@@ -16,7 +16,7 @@ import org.junit.Test
  * drinking-water icons, take their own night colours instead of the inversion (the owner: "Roads (Recommended),
  * Railways + boundaries (Recommended), Place dots + icon rings (Recommended)"). Footpaths and tracks were not chosen
  * and keep the inversion. The design's copies are in the served style's metadata; the contrast floors are the ones
- * `map-style/tools/check-street-night.mjs` holds (2.5:1 for the lines, 3:1 for the rings), against the night forest,
+ * `map-style/tools/check-trail-night.mjs` holds (2.5:1 for the lines, 3:1 for the rings), against the night forest,
  * grass and ground derived with the app's own [nightColorOf].
  *
  * Dispatch 2026-10-19-41: informal paths take their own night colour too, held on the night forest to the owner's band

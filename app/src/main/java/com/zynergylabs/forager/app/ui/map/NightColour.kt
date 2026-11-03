@@ -90,7 +90,7 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
  *
  * Held to the owner's "Rules from your colours" with the planner's numbers: relative luminance at most 0.050 and blue
  * at most 96 (this is 0.042 and 75; `#8ec5f0` was 0.52 and 240), and at least 1.05:1 on every night land fill (1.08:1
- * on the night grass `#2d3911` at least), in `NightWaterTest` and `map-style/tools/check-street-night.mjs`, which reads
+ * on the night grass `#2d3911` at least), in `NightWaterTest` and `map-style/tools/check-trail-night.mjs`, which reads
  * the same colour from the style's design file. The day water colour is unchanged. Only the own Street takes it: the
  * offline style keeps its inverted water.
  */
@@ -105,7 +105,7 @@ private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", 
 /**
  * The own Street's night line colours by layer (RECORD -1345, the owner: "Roads (Recommended), Railways + boundaries
  * (Recommended)"): the inversion left these at 1.0 to 1.5:1 on the night forest (Part 1 report, round 1). Tunnels keep
- * the inversion. The design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-street.mjs`, recorded in
+ * the inversion. The design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-trail.mjs`, recorded in
  * the style's metadata; `NightExceptionsTest` holds the two equal and each colour to 2.5:1 on the night forest, grass
  * and ground, except where the design gives a layer its own band on one ground (`NIGHT_LAYER_BANDS`: informal paths on
  * the night forest).

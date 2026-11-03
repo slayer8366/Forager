@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.app.Application
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -186,7 +187,7 @@ class MapCreditStripFadeTest {
 
     @Test
     fun `with OpenStreetMap drawn it never fades, after a minute or at a gesture`() {
-        basemap = Basemap.STREET
+        basemap = StreetMap.BASEMAP
         show()
         advance(60_000)
         assertShown("a minute on the OSM map")
@@ -214,7 +215,7 @@ class MapCreditStripFadeTest {
 
     @Test
     fun `leaving OpenStreetMap shows the strip for 5 s and then it fades`() {
-        basemap = Basemap.STREET
+        basemap = StreetMap.BASEMAP
         show()
         change { gestures++ }
         advance(30_000)

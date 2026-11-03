@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -23,7 +24,7 @@ class MapModeTest {
     fun `each mode resolves to its own fixed basemap`() {
         assertEquals(Basemap.FORAGER_TRAIL, MapMode.TRAIL.basemap)
         assertEquals(Basemap.OPEN_TOPO_MAP, MapMode.TOPOGRAPHIC.basemap)
-        assertEquals(Basemap.STREET, MapMode.STREET.basemap)
+        assertEquals(StreetMap.BASEMAP, StreetMap.mapMode.basemap)
         // The Journal's map reads the mode back from the basemap (JournalTab), so the lookup must hold both ways.
         MapMode.entries.forEach { assertEquals(it, MapMode.forBasemap(it.basemap)) }
     }
@@ -51,7 +52,7 @@ class MapModeTest {
      */
     @Test
     fun `the modes are Trail, Topo and OSM, in that order`() {
-        assertEquals(listOf(MapMode.TRAIL, MapMode.TOPOGRAPHIC, MapMode.STREET), MapMode.entries.toList())
+        assertEquals(listOf(MapMode.TRAIL, MapMode.TOPOGRAPHIC, StreetMap.mapMode), MapMode.entries.toList())
         assertEquals(listOf("Trail", "Topo", "OSM"), MapMode.entries.map { it.label })
     }
 
@@ -64,7 +65,7 @@ class MapModeTest {
         // Trail keeps "street", so Street chosen before the update opens on Trail (RECORD -1556, option (a)).
         assertEquals("street", MapMode.TRAIL.storageKey)
         assertEquals("topographic", MapMode.TOPOGRAPHIC.storageKey)
-        assertEquals("openstreetmap", MapMode.STREET.storageKey)
+        assertEquals("openstreetmap", StreetMap.mapMode.storageKey)
         MapMode.entries.forEach { assertEquals(it, MapMode.forStoredKey(it.storageKey)) }
     }
 

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -29,7 +30,7 @@ class MapAttributionListTest {
 
     @Test
     fun `a layer's credit follows the basemap's, joined by a middle dot`() {
-        val credits = mapCreditsFor(Basemap.STREET, useOfflineTiles = false, layerCredits = listOf("Forecast: example"))
+        val credits = mapCreditsFor(StreetMap.BASEMAP, useOfflineTiles = false, layerCredits = listOf("Forecast: example"))
         assertEquals(listOf("© OpenStreetMap contributors", "Forecast: example"), credits)
         assertEquals("© OpenStreetMap contributors · Forecast: example", attributionCaption(credits))
     }
@@ -43,7 +44,7 @@ class MapAttributionListTest {
     @Test
     fun `a credit already present is not repeated`() {
         val credits = mapCreditsFor(
-            Basemap.STREET,
+            StreetMap.BASEMAP,
             useOfflineTiles = false,
             layerCredits = listOf("© OpenStreetMap contributors", "Forecast: example", "Forecast: example"),
         )

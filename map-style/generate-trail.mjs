@@ -9,13 +9,13 @@
 // The design ships as street-v2.json (RECORD -1561, the owner: "Yes, v2"). MapLibre's offline store keys a
 // downloaded region by its style URL, and an app older than v2 inverts only the icons it was built knowing, so
 // v1 is never rewritten: forager-street-v1.json, its preview copy and the Worker's street-style-v1.json stay
-// byte for byte what they were (tools/check-street-night.mjs holds their sha256).
+// byte for byte what they were (tools/check-trail-night.mjs holds their sha256).
 //
 // Since step 8a (dispatch 2026-10-26-14, RECORD -1677, -1678) it writes v3: v2 with the official-trails band
 // (overrides/forager-reference.mjs), a second source added and nothing of v2 changed. v2 is frozen the same way v1 was,
 // for the regions downloaded against it: its three copies are held to their sha256 by the Worker's tests
 // (server/pmtiles-worker/test/worker.test.mjs), which CI runs. This script writes v3 only. The app does not load v3
-// until the agency archive is live (Amendment 1); tools/check-street-*.mjs and check:street still read v2.
+// until the agency archive is live (Amendment 1); tools/check-trail-*.mjs and check:trail still read v2.
 //
 // Three files come out, identical except for where fonts and icons are fetched from:
 //   forager-street-v3.json            fonts and icons on the owner's Worker; what the app will load.
@@ -61,7 +61,7 @@ const SPRITES = { v3: "sprites/v5/light", v4: "sprites/v6/light" };
 
 // The sprite's images the app's night rules invert (its bundled night set since dispatch 2026-10-22-06), recorded in the style's
 // metadata because MapLibre has no call that lists a style's images; the app's copy is checked against this one by
-// a unit test (StreetStyleTest). The patterns the app paints one colour instead (forager:night-patterns) are left
+// a unit test (TrailStyleTest). The patterns the app paints one colour instead (forager:night-patterns) are left
 // off it, so no image is both inverted and painted.
 const spriteIconsOf = (sprite) => Object.keys(JSON.parse(fs.readFileSync(here(`./assets/${sprite}.json`), "utf8")))
   .filter((name) => !(name in NIGHT_PATTERN_COLOURS))

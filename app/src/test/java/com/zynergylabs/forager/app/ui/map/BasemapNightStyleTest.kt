@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
@@ -50,7 +51,7 @@ class BasemapNightStyleTest {
      */
     @Test
     fun `night mode on Street carries exactly the three V1 properties`() {
-        val paint = rasterLayer(Basemap.STREET, night = true)["paint"]
+        val paint = rasterLayer(StreetMap.BASEMAP, night = true)["paint"]
             ?: error("STREET has no raster paint in night mode")
         val obj = paint.jsonObject
 

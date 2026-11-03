@@ -51,7 +51,7 @@ internal fun MapCreditStrip(
     modifier: Modifier = Modifier,
 ) {
     val text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, layerCredits, nightMode, ownTrail))
-    val keepShown = drawsStreetRaster(basemap, useOfflineTiles, nightMode, ownTrail)
+    val keepShown = drawsNeverFadingCredit(basemap, useOfflineTiles, nightMode, ownTrail)
     // One showing per text and per whether OSM's tiles are drawn: leaving them starts a showing of its own. The gesture count it
     // started at, so a pan made before this showing does not end it.
     val showing = remember(text, keepShown) { MapCreditShowing(gesturesAtStart = userCameraGestures) }
@@ -74,16 +74,17 @@ internal fun MapCreditStrip(
 private class MapCreditShowing(val gesturesAtStart: Int)
 
 /**
- * Whether the map draws OpenStreetMap's raster tiles (D26): the OSM map; Trail Map once it has fallen back ([ownTrail] `false`,
+ * Whether the map draws a raster whose credit never fades ([creditNeverFades]; dispatch 2026-11-03-05 D7: today the Street
+ * map's, `ui/map/street/`, OpenStreetMap's raster tiles, D26): the Street map; Trail Map once it has fallen back ([ownTrail] `false`,
  * RECORD -1513), which draws OSM's raster in its place ([rasterDrawn]); and topo at night after the fallback, which draws OSM's
  * raster below the night fade ([nightLowZoomBasemap]). Never offline, whose style is the downloaded vector one. The same
  * branches [mapStyleSourceFor] takes, so the two cannot disagree (`DrawsStreetRasterTest` checks every case against the
  * style JSON).
  */
-internal fun drawsStreetRaster(basemap: Basemap, useOfflineTiles: Boolean, night: Boolean, ownTrail: Boolean): Boolean {
+internal fun drawsNeverFadingCredit(basemap: Basemap, useOfflineTiles: Boolean, night: Boolean, ownTrail: Boolean): Boolean {
     if (useOfflineTiles || ownTrailStyleSourceFor(basemap, night, ownTrail) != null) return false
     val raster = basemap.rasterDrawn()
-    return raster == Basemap.STREET || (night && nightLowZoomBasemap(raster) == Basemap.STREET)
+    return raster.creditNeverFades() || (night && nightLowZoomBasemap(raster)?.creditNeverFades() == true)
 }
 
 /** The alpha the credit strip draws at now, 1 shown and 0 faded into the "i", readable in tests. */

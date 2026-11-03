@@ -18,7 +18,7 @@ internal data class IconRingNight(val dayRing: Int, val dayFill: Int, val nightR
 
 /**
  * The own Street's icons whose rings read too dark inverted (1.0 to 1.4:1 on the night forest): the place dot, and the
- * toilets and drinking-water icons. The design's copy is `NIGHT_ICON_RINGS` in `map-style/overrides/forager-street.mjs`.
+ * toilets and drinking-water icons. The design's copy is `NIGHT_ICON_RINGS` in `map-style/overrides/forager-trail.mjs`.
  */
 internal val TRAIL_NIGHT_ICON_RINGS: Map<String, IconRingNight> = mapOf(
     "townspot" to IconRingNight(dayRing = 0x868686, dayFill = 0xF3F3F3, nightRing = 0xD6D6D6),

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map.layers
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import com.zynergylabs.forager.app.ui.map.withReferenceTrailsHiddenUnlessLoaded
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.ui.map.Basemap
@@ -128,8 +129,8 @@ class MapLayerPreferencesStateTest {
             available = setOf(MapLayerIds.FORECAST_CHANTERELLES, MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS),
         )
         // Step 8b: as the map draws it, with the official-trails band hidden on a style without it (SightingsMap.kt).
-        val credits = mapCreditsFor(Basemap.STREET, useOfflineTiles = false, layerCredits = activeLayerCredits(registry, withReferenceTrailsHiddenUnlessLoaded(both, loaded = false)))
-        assertEquals(listOf(mapAttributionFor(Basemap.STREET, false), "Synthetic test data"), credits)
+        val credits = mapCreditsFor(StreetMap.BASEMAP, useOfflineTiles = false, layerCredits = activeLayerCredits(registry, withReferenceTrailsHiddenUnlessLoaded(both, loaded = false)))
+        assertEquals(listOf(mapAttributionFor(StreetMap.BASEMAP, false), "Synthetic test data"), credits)
         assertEquals("© OpenStreetMap contributors · Synthetic test data", attributionCaption(credits))
 
         // Step 8b: as the map draws it, with the official-trails band hidden on a style without it (SightingsMap.kt), so

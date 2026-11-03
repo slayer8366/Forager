@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -183,11 +184,11 @@ class MapTypePanelOfflineChipTest {
 
     @Test
     fun `the chosen OSM chip turns grey with no signal too`() {
-        chosen = MapMode.STREET
+        chosen = StreetMap.mapMode
         noSignal.value = true
         setSheet()
-        composeRule.onNodeWithTag(mapModeChipTag(MapMode.STREET)).assertIsSelected()
-        assertEquals(grey, drawnFill(MapMode.STREET))
+        composeRule.onNodeWithTag(mapModeChipTag(StreetMap.mapMode)).assertIsSelected()
+        assertEquals(grey, drawnFill(StreetMap.mapMode))
     }
 
     /** Elder's item 3 (dispatch 2026-10-23-07): grey only when Trail Map is actually drawn instead, so not with nothing downloaded. */
@@ -197,7 +198,7 @@ class MapTypePanelOfflineChipTest {
         offlineRegions = listOf(region(1, isDownloaded = false))
         noSignal.value = true
         setSheet()
-        for (mode in listOf(MapMode.TOPOGRAPHIC, MapMode.STREET)) {
+        for (mode in listOf(MapMode.TOPOGRAPHIC, StreetMap.mapMode)) {
             settle { chosen = mode }
             composeRule.onNodeWithTag(mapModeChipTag(mode)).assertIsSelected()
             assertEquals("$mode, no signal, nothing downloaded: drawn in the normal selected fill", normalSelected, drawnFill(mode))
@@ -205,7 +206,7 @@ class MapTypePanelOfflineChipTest {
         }
         // A download landing while out of signal: Trail Map is now drawn instead, so the chosen chip turns grey.
         settle { offlineRegions = offlineRegions + region(2, isDownloaded = true) }
-        assertEquals("STREET, a downloaded area appears: grey", grey, drawnFill(MapMode.STREET))
+        assertEquals("STREET, a downloaded area appears: grey", grey, drawnFill(StreetMap.mapMode))
     }
 
     private fun region(id: Long, isDownloaded: Boolean) = OfflineRegionSummary(
@@ -247,7 +248,7 @@ class MapTypePanelOfflineChipTest {
             val theme = if (dark) "dark" else "light"
             composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
             assertEquals("$theme, fallen back: Trail drawn grey", grey, drawnFill(MapMode.TRAIL))
-            composeRule.onNodeWithTag(mapModeChipTag(MapMode.STREET)).assertIsNotSelected()
+            composeRule.onNodeWithTag(mapModeChipTag(StreetMap.mapMode)).assertIsNotSelected()
         }
         assertEquals("the stored choice never changes", emptyList<MapMode>(), choices)
     }

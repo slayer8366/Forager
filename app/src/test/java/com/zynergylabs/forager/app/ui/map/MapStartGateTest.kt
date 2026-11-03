@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -55,7 +56,7 @@ class MapStartGateTest {
         SightingsMapSlot(
             Region(lat = 45.5, lng = -122.6, radiusKm = 5),
             MapOverlayContent(),
-            MapRenderMode(basemap = Basemap.STREET),
+            MapRenderMode(basemap = StreetMap.BASEMAP),
             null,
             {},
             {},

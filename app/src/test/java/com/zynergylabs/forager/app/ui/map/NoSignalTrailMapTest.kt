@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -63,7 +64,7 @@ class NoSignalTrailMapTest {
         composeRule.waitForIdle()
         assertEquals(
             "no signal: OSM and Topo from the downloads; Trail is already Trail Map",
-            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, Basemap.STREET to true),
+            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, StreetMap.BASEMAP to true),
             seen.toMap(),
         )
 
@@ -141,7 +142,7 @@ class NoSignalTrailMapTest {
         composeRule.waitForIdle()
         assertEquals(
             "a downloaded region: OSM and Topo from the downloads; Trail is already Trail Map",
-            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, Basemap.STREET to true),
+            mapOf(Basemap.FORAGER_TRAIL to false, Basemap.OPEN_TOPO_MAP to true, StreetMap.BASEMAP to true),
             seen.toMap(),
         )
 
@@ -195,7 +196,7 @@ class NoSignalTrailMapTest {
 
     @Test
     fun `drawn from the downloads, OSM and Topo load the regions' style by URL, credited as such, and never fall back`() {
-        for (basemap in listOf(Basemap.STREET, Basemap.OPEN_TOPO_MAP)) for (night in listOf(false, true)) {
+        for (basemap in listOf(StreetMap.BASEMAP, Basemap.OPEN_TOPO_MAP)) for (night in listOf(false, true)) {
             val offline = drawsFromDownloads(useOfflineTiles = false, basemap = basemap, noSignal = true, hasDownloadedArea = true)
             for (regionsStyle in listOf(OFFLINE_STYLE_URL, TRAIL_STYLE_URL, TRAIL_STYLE_V1_URL)) {
                 val source = mapStyleSourceFor(basemap, night, useOfflineTiles = offline, offlineStyleUrl = regionsStyle)

@@ -732,15 +732,21 @@ jobs:
         run: |
           node tools/build-sprite-v5.mjs
           node tools/build-sprite-v5.mjs v6
-      - name: The street styles regenerate to what is committed
+      - name: The Trail Map styles regenerate to what is committed
+        # git status, not only git diff: a file the generator writes that is not committed is a difference too
+        # (dispatch 2026-11-03-05, which added trail-v4 beside the frozen street files).
         run: |
-          npm run -s generate:street
-          git diff --exit-code -- . ../server/pmtiles-worker/src/ \
-            || { echo "::error::A committed street style differs from the generator's output: run npm run generate:street"; exit 1; }
+          npm run -s generate:trail
+          changed="$(git status --porcelain -- . ../server/pmtiles-worker/src/)"
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "::error::A committed Trail Map style differs from the generator's output, or one it writes is not committed: run npm run generate:trail"
+            exit 1
+          fi
       - name: v2's checks
-        run: npm run check:street
-      - name: v4's checks
-        run: npm run check:street:v4
+        run: npm run check:trail
+      - name: v4's checks (trail-v4)
+        run: npm run check:trail:v4
 
   # The tile Worker's route tests (server/pmtiles-worker/test/worker.test.mjs, and since dispatch 2026-10-23-01 the
   # route-data routes in test/routing.test.mjs), run against dist/index.js, the bundle

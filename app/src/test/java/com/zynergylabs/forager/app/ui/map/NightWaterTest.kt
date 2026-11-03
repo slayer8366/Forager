@@ -25,7 +25,7 @@ import org.junit.Test
  * `docs/design/2026-10-22-night-colours-rulings.md`, "The planner's call: the checker numbers"): relative luminance at
  * most 0.050 and blue at most 96, and at least 1.05:1 against every night land fill the app draws, read from the served
  * style the app loads (v3 since dispatch 2026-10-26-21, v2 before) and put through the app's own [trailNightRecolourOf].
- * `map-style/tools/check-street-night.mjs` holds the same numbers on the design side.
+ * `map-style/tools/check-trail-night.mjs` holds the same numbers on the design side.
  */
 class NightWaterTest {
 

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.hardware.SensorManager
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -85,9 +86,9 @@ class NavigationViewTest {
     @Test
     fun `while navigating the camera may reach the start zoom on every basemap, and not otherwise`() {
         assertEquals(18.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = true), 0.0)
-        assertEquals("a higher cap is not lowered", 19.0, navigationMaxZoom(Basemap.STREET, navigating = true), 0.0)
+        assertEquals("a higher cap is not lowered", 19.0, navigationMaxZoom(StreetMap.BASEMAP, navigating = true), 0.0)
         assertEquals(17.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = false), 0.0)
-        assertEquals(19.0, navigationMaxZoom(Basemap.STREET, navigating = false), 0.0)
+        assertEquals(19.0, navigationMaxZoom(StreetMap.BASEMAP, navigating = false), 0.0)
     }
 
     /**

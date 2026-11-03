@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.graphics.BitmapFactory
 import java.io.File
 import kotlinx.serialization.json.Json
@@ -162,8 +163,8 @@ class TopoNightStreetSwitchTest {
         val sources = style.getValue("sources").jsonObject
         assertEquals(setOf(RASTER_SOURCE_ID, street.getValue("source").jsonPrimitive.content), sources.keys)
         val streetSource = sources.getValue(street.getValue("source").jsonPrimitive.content).jsonObject
-        assertEquals(listOf(Basemap.STREET.tileUrlTemplate), streetSource.getValue("tiles").jsonArray.map { it.jsonPrimitive.content })
-        assertEquals(Basemap.STREET.attribution, streetSource.getValue("attribution").jsonPrimitive.content)
+        assertEquals(listOf(StreetMap.BASEMAP.tileUrlTemplate), streetSource.getValue("tiles").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(StreetMap.BASEMAP.attribution, streetSource.getValue("attribution").jsonPrimitive.content)
         assertEquals(256, streetSource.getValue("tileSize").jsonPrimitive.int())
         assertEquals("the topo source is the day document's, unchanged", json.parseToJsonElement(styleJsonFor(Basemap.OPEN_TOPO_MAP, night = false)).jsonObject.getValue("sources").jsonObject.getValue(RASTER_SOURCE_ID), sources.getValue(RASTER_SOURCE_ID))
     }
@@ -354,12 +355,12 @@ class TopoNightStreetSwitchTest {
     @Test
     fun `day style JSON is byte-identical to before for every basemap`() {
         assertEquals(TOPO_DAY, styleJsonFor(Basemap.OPEN_TOPO_MAP, night = false))
-        assertEquals(STREET_DAY, styleJsonFor(Basemap.STREET, night = false))
+        assertEquals(STREET_DAY, styleJsonFor(StreetMap.BASEMAP, night = false))
     }
 
     @Test
     fun `Street's night style JSON is byte-identical to before`() {
-        assertEquals(STREET_NIGHT, styleJsonFor(Basemap.STREET, night = true))
+        assertEquals(STREET_NIGHT, styleJsonFor(StreetMap.BASEMAP, night = true))
     }
 
     private val TOPO_DAY = listOf(

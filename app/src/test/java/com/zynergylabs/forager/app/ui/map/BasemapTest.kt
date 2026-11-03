@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -118,6 +119,6 @@ class BasemapTest {
 
     @Test
     fun `Street's caption and full credit are the same line`() {
-        assertEquals(Basemap.STREET.attribution, Basemap.STREET.fullAttribution)
+        assertEquals(StreetMap.BASEMAP.attribution, StreetMap.BASEMAP.fullAttribution)
     }
 }

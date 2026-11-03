@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -162,7 +163,7 @@ class ReferenceTrailsSwitchTest {
     @Test
     fun `on OSM a stored on shows on, grey`() {
         setScreen()
-        chooseMapType(MapMode.STREET)
+        chooseMapType(StreetMap.mapMode)
         composeRule.openToolsMapLayers()
         assertTrue(rowDisabled())
         assertEquals(ToggleableState.On, rowState())

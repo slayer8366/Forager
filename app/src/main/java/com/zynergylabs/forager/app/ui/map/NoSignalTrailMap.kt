@@ -57,7 +57,24 @@ internal fun drawsFromDownloads(
     noSignal: Boolean,
     hasDownloadedArea: Boolean,
     trailMapDraws: Boolean = true,
-): Boolean = useOfflineTiles || (noSignal && hasDownloadedArea && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws))
+    standIn: Basemap? = trailMapStandIn,
+): Boolean = useOfflineTiles ||
+    (noSignal && hasDownloadedArea && (basemap != Basemap.FORAGER_TRAIL || !trailMapDraws)) ||
+    trailMapFailedWithNoStandIn(basemap, hasDownloadedArea, trailMapDraws, standIn)
+
+/**
+ * The first half of the owner's "Downloads, then Topo" (dispatch 2026-11-03-05 D8, RECORD -2003): with no raster to
+ * stand in for Trail Map ([trailMapStandIn] `null`, the Street map deleted), a Trail Map whose style failed to load
+ * ([trailMapDraws] `false`, -1513) draws from the downloaded areas when there are any, signal or not; otherwise its
+ * raster stand-in is Topographical ([rasterDrawn]). While the Street map is in the app this is never true: "Nothing
+ * changes today", so the Street map stays the fallback exactly as before.
+ */
+internal fun trailMapFailedWithNoStandIn(
+    basemap: Basemap,
+    hasDownloadedArea: Boolean,
+    trailMapDraws: Boolean,
+    standIn: Basemap? = trailMapStandIn,
+): Boolean = standIn == null && basemap == Basemap.FORAGER_TRAIL && !trailMapDraws && hasDownloadedArea
 
 /**
  * Whether the phone holds a downloaded offline area the map can draw from: a region whose tiles are here. A region
@@ -87,7 +104,8 @@ internal val LocalHasDownloadedArea = compositionLocalOf { false }
  */
 @Composable
 internal fun rememberDrawsFromDownloads(useOfflineTiles: Boolean, basemap: Basemap, fallback: OwnTrailFallback = OWN_TRAIL_FALLBACK): Boolean {
-    val flow = LocalNoSignal.current ?: return useOfflineTiles
+    val flow = LocalNoSignal.current
+        ?: return useOfflineTiles || trailMapFailedWithNoStandIn(basemap, LocalHasDownloadedArea.current, fallback.ownTrail())
     val noSignal by flow.collectAsState()
     val hasArea = LocalHasDownloadedArea.current
     val trailMapDraws = fallback.ownTrail()

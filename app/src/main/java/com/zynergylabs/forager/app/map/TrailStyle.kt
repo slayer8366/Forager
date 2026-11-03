@@ -16,7 +16,7 @@ package com.zynergylabs.forager.app.map
 /**
  * The Street style document the app loads and downloads in: Trail Map v4, v3 with the fill-in, sprite v6's orchard
  * patterns and the hill shading (the switch is dispatch 2026-11-01-coder-11 step (d); the owner: "Yes, queue it"),
- * served by the Worker at `/style/street-v4.json` (`server/pmtiles-worker`), built by `map-style/generate-street.mjs`.
+ * served by the Worker at `/style/street-v4.json` (`server/pmtiles-worker`), built by `map-style/generate-trail.mjs`.
  * Like [OFFLINE_STYLE_URL] it is a URL that never changes meaning: MapLibre's offline store keys a downloaded region by
  * the style URL, so a later design ships as `street-v5.json` beside it.
  */

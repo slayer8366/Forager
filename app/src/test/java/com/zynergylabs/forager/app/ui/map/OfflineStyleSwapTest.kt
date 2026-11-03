@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -71,7 +72,7 @@ class OfflineStyleSwapTest {
     @Test
     fun `the credit over a basemap is that basemap's own`() {
         assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", mapAttributionFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false))
-        assertEquals("© OpenStreetMap contributors", mapAttributionFor(Basemap.STREET, useOfflineTiles = false))
+        assertEquals("© OpenStreetMap contributors", mapAttributionFor(StreetMap.BASEMAP, useOfflineTiles = false))
     }
 
     @Test
@@ -85,7 +86,7 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `nothing applied yet is a reload, and an identical request is not`() {
-        val style = AppliedMapStyle(Basemap.STREET, palette, useOfflineTiles = false, night = false)
+        val style = AppliedMapStyle(StreetMap.BASEMAP, palette, useOfflineTiles = false, night = false)
 
         assertTrue(needsStyleReload(applied = null, requested = style))
         assertFalse(needsStyleReload(applied = style, requested = style))
@@ -94,7 +95,7 @@ class OfflineStyleSwapTest {
     @Test
     fun `a basemap change is still a reload, with the offline flag unchanged`() {
         val topo = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false, night = false)
-        val osm = topo.copy(basemap = Basemap.STREET)
+        val osm = topo.copy(basemap = StreetMap.BASEMAP)
 
         assertTrue(needsStyleReload(applied = topo, requested = osm))
     }
@@ -115,7 +116,7 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `turning Night Maps on or off is a reload on Topographical and Street`() {
-        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, Basemap.STREET)) {
+        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, StreetMap.BASEMAP)) {
             val day = applied(basemap, nightMode = false)
             val night = applied(basemap, nightMode = true)
 

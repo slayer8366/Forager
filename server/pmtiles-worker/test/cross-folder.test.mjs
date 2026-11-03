@@ -35,6 +35,6 @@ test("v2 is frozen: the app's and the preview's copies byte for byte what pre-ma
 });
 
 test("the Worker's street-style-v4.json is map-style's forager-street-v4.json, byte for byte", { skip }, () => {
-  // generate-street.mjs writes both (v4 is toWorker since the switch, dispatch 2026-11-01-coder-11 step (c)).
+  // generate-trail.mjs writes both (v4 is toWorker since the switch, dispatch 2026-11-01-coder-11 step (c)).
   assert.equal(sha256(here("../src/street-style-v4.json")), sha256(new URL("forager-street-v4.json", MAP_STYLE)));
 });

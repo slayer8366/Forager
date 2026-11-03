@@ -54,7 +54,7 @@ internal class OwnTrailFallback(private val log: (String) -> Unit = { Log.w(OWN_
     fun onStyleLoadFailed(request: MapStyleRequest?, message: String?): Boolean {
         if (request == null || !fallsBack(request.source, request.useOfflineTiles) || fellBack) return false
         fellBackState.value = true
-        log("Trail Map style failed to load ($message); drawing the Street map, OpenStreetMap's raster, until the connection returns or the app restarts.")
+        log("Trail Map style failed to load ($message); drawing ${trailMapFallbackDrawn()} until the connection returns or the app restarts.")
         return true
     }
 
@@ -99,6 +99,14 @@ internal fun fallsBack(source: MapStyleSource, useOfflineTiles: Boolean): Boolea
 
 /** The switch as the map uses it: on only while [switch] is on and the own Street has not [fellBack]. */
 internal fun effectiveOwnTrail(switch: Boolean, fellBack: Boolean): Boolean = switch && !fellBack
+
+/**
+ * What a failed Trail Map style is replaced with, for the fallback's log line: the stand-in's raster while one is
+ * registered (the Street map's, "OpenStreetMap's raster"), or, with none, the owner's "Downloads, then Topo" (dispatch
+ * 2026-11-03-05 D8, `trailMapFailedWithNoStandIn`, `rasterDrawn`).
+ */
+internal fun trailMapFallbackDrawn(standIn: Basemap? = trailMapStandIn): String =
+    standIn?.let { "${it.label}'s raster" } ?: "the downloaded areas, or Topographical with none"
 
 /** The process's one fallback: every map reads it; it clears when the signal returns ([onSignalReturned]) or with the process. */
 internal val OWN_TRAIL_FALLBACK = OwnTrailFallback()

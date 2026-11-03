@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.ui.map.MapMode
@@ -38,7 +39,7 @@ class AvailabilityViewModelBasemapTest {
         mapLayersViewModel(errorLog = errorLog, basemapPreferences = preferences)
 
     @Test
-    // Was "nothing stored opens on Street…", asserting MapMode.STREET; the opening map became Trail (dispatch 2026-10-22-01; RECORD -1554).
+    // Was "nothing stored opens on Street…", asserting StreetMap.mapMode; the opening map became Trail (dispatch 2026-10-22-01; RECORD -1554).
     fun `nothing stored opens on Trail, stores nothing and logs nothing`() = runTest(dispatcher) {
         val preferences = InMemoryBasemapPreference(stored = null)
         val vm = viewModel(preferences)
@@ -85,7 +86,7 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals(StreetMap.mapMode, vm.uiState.value.mapMode)
         assertEquals(emptyList<String>(), preferences.writes)
     }
 
@@ -95,10 +96,10 @@ class AvailabilityViewModelBasemapTest {
         val vm = viewModel(preferences)
         advanceUntilIdle()
 
-        vm.onMapModeSelected(MapMode.STREET)
+        vm.onMapModeSelected(StreetMap.mapMode)
         advanceUntilIdle()
 
-        assertEquals(MapMode.STREET, vm.uiState.value.mapMode)
+        assertEquals(StreetMap.mapMode, vm.uiState.value.mapMode)
         assertEquals(listOf("openstreetmap"), preferences.writes)
     }
 
