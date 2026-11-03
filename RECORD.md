@@ -32391,7 +32391,7 @@ These merges go before the real rewrite run. The planner's conditions:
 - full CI green;
 - #472 first.
 
-The owner then, to Aspen, relayed verbatim: "Nobody has v4 yet so it won't hurt"; "The release build doesn't have our trail map system so it's only me that gets affected, and I'm not offended by test builds". This supersedes Aspen's earlier line that today's installed app loads street-v4: only the owner's test builds load v4. The hold on the style PR and its Worker release stays until the owner confirms to the planner directly (the planner's message lifting it on the relayed words was not sent). The owner then confirmed to the planner directly: "1 yes" (to "Did you give Aspen 'update v4 in place'?"). The hold is lifted. #473 into pi-build goes ahead.
+The owner then, to Aspen, relayed verbatim: "Nobody has v4 yet so it won't hurt"; "The release build doesn't have our trail map system so it's only me that gets affected, and I'm not offended by test builds". This supersedes Aspen's earlier line that today's installed app loads street-v4: only the owner's test builds load v4. The hold on the style PR and its Worker release stays until the owner confirms to the planner directly (the planner's message lifting it on the relayed words was not sent). The owner then confirmed to the planner directly: "1 yes" (to "Did you give Aspen 'update v4 in place'?"). The hold is lifted. #473 into pi-build goes ahead; Aspen merged it at 14:32:26 PST (6fa92550c, CI 41730136865 green), and pi-build's map-build/pins.env equals the installed one (Aspen's check).
 **Notes:** Written by the planner by hand. Next free ID -2014.
 
 ---
