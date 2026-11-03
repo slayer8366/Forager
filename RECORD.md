@@ -32424,3 +32424,18 @@ Known bug 22's row (docs/process/known-bugs.md) is updated to say the walk is to
 - street-v4, street-v2 and street-v1 each answered 200. Served street-v4 parses equal to the committed file on pre-main, and to main's before the release.
 - A build from pre-main that loads trail-v4 may now be installed. Not seen on a phone.
 **Notes:** Written by the planner by hand. Next free ID -2016.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2016
+**Timestamp:** 2026-11-03T22:41:52Z
+**Continues:** 2026-09-28-1994
+**Title:** The history rewrite waits until after the release
+**Decision:** The owner: "We are closer to release, a few cleanup items are to remain, but we can hold the rewrite until after release if it's too much to circle around". Then: "Hold until after release (Recommended)", whose option read "The rewrite waits, fully prepared, and runs once the release is out. Release checks keep stable commit IDs, and no session has to pause mid-release. Until then the repository's history keeps the old wording."
+What stays ready:
+- the term list (terms-forager.txt, sha 5bfcd1e4…, 289 rules, on the Pi and at /home/zynergy-labs/Zynergy/osm-rewrite/);
+- Aspen's repeat script, with id translation;
+- the backups.
+After the release there is one fresh run on the new tips, then the review, the rewrite-check CI and the force-push, on the planner's yes for Forager. Merges continue as normal until then.
+**Notes:** Written by the planner by hand. Next free ID -2017.
