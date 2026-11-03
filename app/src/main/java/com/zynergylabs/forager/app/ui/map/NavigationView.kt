@@ -138,6 +138,8 @@ data class NavigationViewRequest(
     val zoomOnStart: Boolean = false,
     /** The map reports the start zoom applied, so it is not applied again in this navigation. */
     val onStartZoomApplied: () -> Unit = {},
+    /** D29 (RECORD -1979, -1980): the side padding that keeps the walker's dot in the open map beside an expanded route card. */
+    val sideInsetsPx: NavigationSideInsets = NavigationSideInsets.NONE,
 )
 
 /**
