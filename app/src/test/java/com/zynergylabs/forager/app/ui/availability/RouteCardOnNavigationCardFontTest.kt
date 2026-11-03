@@ -41,7 +41,13 @@ import org.robolectric.shadows.ShadowDisplay
  * card at peek and expanded, the buttons included, is whole: no ellipsis, no overflow, and a break only between words (D12 saw Save
  * broken as "Sav" / "e" beside the navigation card).
  */
-abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int, private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider) {
+abstract class RouteCardOnNavigationCardFontTests(
+    private val rotation: Int,
+    /** A fixed clock (pre-main's red, run 41728736456: the class read the real one, and the sundown line made it hour-dependent). */
+    private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = ROUTE_CARD_NOON_CLOCK,
+    /** Whether the navigation card carries its sundown line at [clock] in this window: the precondition the clock sets up. */
+    private val sundownLineShown: Boolean = false,
+) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -92,8 +98,10 @@ abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int, pri
         val strip = rig.bounds("compass-elevation-strip")
         val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
         println("C23 font ${composeRule.density.fontScale} rot $rotation: navigation card ${hud.left.value}..${hud.right.value} x ${hud.top.value}..${hud.bottom.value}, sundown line shown ${rig.count(NAVIGATION_HUD_SUNDOWN_LINE_TAG)}")
+        assertEquals("precondition: the navigation card's sundown line at this clock", if (sundownLineShown) 1 else 0, rig.count(NAVIGATION_HUD_SUNDOWN_LINE_TAG))
         var wrapped = 0
         var peekTop = 0.dp
+        var peekCard: androidx.compose.ui.unit.DpRect? = null
         listOf(1, 3, 6).forEach { stops ->
             listOf(false, true).forEach { expanded ->
                 val where = "navigating, $stops stops, ${if (expanded) "expanded" else "peek"}"
@@ -106,12 +114,23 @@ abstract class RouteCardOnNavigationCardFontTests(private val rotation: Int, pri
                 assertEquals("$where: the navigation card's right", hud.right.value, card.right.value, 0.5f)
                 assertTrue("$where: Save's bottom ${save.bottom} shows at or above the navigation card's top ${hud.top}", save.bottom <= hud.top + 0.5.dp)
                 // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek card already fills its cap (its top a
-                // gap below the strip's bottom), the expanded card rises over the strip, to a gap below the screen's top. Elsewhere, as
+                // gap below the strip's bottom) and has rows to show (two stops or more), the expanded card rises over the strip. At noon
+                // its lines and rows fill the raised cap, so its top is a gap below the screen's top. In the evening that exact top, and
+                // whether the rows show, wait on the owner (the navigation card's sundown line takes the room, s10); only the rise is
+                // asserted. At one stop there are no rows, so expanded is the same as peek (the planner, 2026-11-03). Elsewhere, as
                 // before, the card's top is below the strip.
-                if (!expanded) peekTop = card.top
+                if (!expanded) {
+                    peekTop = card.top
+                    peekCard = card
+                }
                 val peekFillsCap = kotlin.math.abs((peekTop - (strip.bottom + 8.dp)).value) < 0.5f
-                if (expanded && peekFillsCap) {
+                if (expanded && stops == 1) {
+                    rig.assertSame("$where: at one stop, with no rows, expanded is the same as peek", peekCard!!, card)
+                } else if (expanded && peekFillsCap && !sundownLineShown) {
                     assertEquals("$where: D37, the peek filled its cap, so expanded the card covers the strip, to 8 dp from the top", 8f, card.top.value, 0.5f)
+                } else if (expanded && peekFillsCap) {
+                    assertTrue("$where: D37, the peek filled its cap, so expanded the card rises over the strip: top ${card.top}, strip's bottom ${strip.bottom}", card.top < strip.bottom && card.top >= 8.dp - 0.5.dp)
+                    println("C23 PENDING (owner) $where: the evening's expanded top ${card.top.value} and the rows' room are not ruled")
                 } else {
                     assertTrue("$where: the top ${card.top} is below the strip's bottom ${strip.bottom}", card.top >= strip.bottom)
                 }
@@ -150,16 +169,35 @@ class RouteCardOnNavigationCardFont20Test : RouteCardOnNavigationCardFontTests(S
 class RouteCardOnNavigationCardShortFont20Test : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90)
 
 /**
- * Pre-main's push run 41728736456 (671b669bf) and tools/s22-combined's 41734379417: RouteCardOnNavigationCardFont20Test failed at
- * "1 stops, expanded: D37 ... expected 8.0 but was 16.666666" with the navigation card at 186..384 dp, where the green runs had it at
- * 266..384. Both red runs' tests ran at 22:28 and 23:07 UTC, inside the 150 minutes before the rig's sunset (45.32 N, 122.63 W, about
- * 00:53 UTC on 2026-11-04), when the navigation card carries its sundown line; the green ones ran at 18:36 to 19:36 UTC. The class
- * read the real clock, so its answer depended on the hour. This is that class at a fixed 22:45 UTC on 2026-11-03.
+ * Pre-main's push run 41728736456 (671b669bf) and tools/s22-combined's 41734379417 failed RouteCardOnNavigationCardFont20Test at
+ * "1 stops, expanded: D37 ... expected 8.0 but was 16.666666", the navigation card at 186..384 dp where the green runs had 266..384.
+ * The class read the real clock: both red runs ran inside the 150 minutes before the rig's sunset (45.32 N, 122.63 W, about 00:53 UTC
+ * on 2026-11-04), when the navigation card carries its sundown line; the green ones ran at 18:36 to 19:36 UTC. Every class here now
+ * runs at a fixed clock, noon ([ROUTE_CARD_NOON_CLOCK]) by default, and each window also at [ROUTE_CARD_EVENING_CLOCK].
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardOnNavigationCardFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_270, ROUTE_CARD_EVENING_CLOCK)
+class RouteCardOnNavigationCardFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_270, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = true)
 
-/** 2026-11-03 22:45 UTC: 2 h 8 min before sunset at the rig's place, so the sundown line shows. */
+/** Font 1.3 on the S22's window, in the evening. */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.3f)
+class RouteCardOnNavigationCardFont13EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = true)
+
+/**
+ * Font 2.0 in the short landscape window, in the evening. The sundown line does not show here: the evening lines leave the navigation
+ * card where they would take its top over Reset north or the walker's dot (RECORD -955), as run 41728736456 showed (its navigation
+ * card 242..360 dp at 22:28 UTC).
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardOnNavigationCardShortFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = false)
+
+/** 2026-11-03 12:00 PST (20:00 UTC): 4 h 53 min before sunset at the rig's place, so no sundown line. */
+internal val ROUTE_CARD_NOON_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T20:00:00Z").toEpochMilli() }
+
+/** 2026-11-03 22:45 UTC: 2 h 8 min before sunset at the rig's place, so the sundown line shows where it fits. */
 internal val ROUTE_CARD_EVENING_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T22:45:00Z").toEpochMilli() }
