@@ -32178,3 +32178,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** The reference style's name is rewritten out of Forager's files and history, force-pushed, as Aspen proposed
 **Decision:** Aspen relayed the owner's words to it at about 02:15 PST: "Option 3, clean it all up" (rename branches and files, and edit or rewrite the existing records), then "Also rewrite history" ("Plus a force-push rewrite of both repos. Every commit id in the records, builds and copies changes, and every session has to stop and re-clone. GitHub still keeps the old PR commits unless GitHub Support purges them."). The planner asked the owner directly, stating the costs (commit ids in records, CI runs and backup bundles stop matching; open PRs re-opened; every clone re-made; the owner's quoted rulings, e.g. "Keep it osm-like", "Invert like OSM", change). The owner: "Yes, rewrite history". Aspen's plan: one term list per repo, category (i) only (the reference style named as ours or as a target), in file text, commit messages, file names and branch names; every data credit and data reference stays; the list kept locally, never in a repository; the planner approves Forager's. Then a dry run in fresh mirror clones (git filter-repo), reviewed by both; a pause window for every pushing session; the force-push of all refs; one commit at each tip translating old commit ids in RECORD.md and the dispatches from filter-repo's commit-map; re-clones afterwards. Not before the Trail Map upload is done (Aspen: about 08:30 to 09:00 PST). This entry itself will be rewritten by its own term list. Before the force-push the planner takes a full mirror backup bundle of Forager.
 **Notes:** Written by the planner by hand. Next free ID -1995.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1995
+**Timestamp:** 2026-11-03T13:19:29Z
+**Continues:** 2026-09-28-1989
+**Closes:** 2026-09-28-1989
+**Title:** #465 and #449 merged; route plotting and waypoint names are on pre-main
+**Outcome:** #465 merged into route-plot-ui by fast-forward to 1ac35075a (13:04Z). #449 merged into pre-main as d88db1799, a merge commit, after CI run 41641074946 (pull_request, on 1ac35075a) was green on every job, including "No debug-only sources on pre-main or main". Before merging, the planner read the diff pre-main...1ac35075a (132 files, +11887 −251): no @Ignore added; the 17 removed assertion lines are D24's removal of the beside-credit behaviour (986b1049d names each), and logoBesideAttribution stays with its other tests. pre-main was backed up first (forager-repo-backups/pre-main-before-449-20261103T130412Z.bundle, verified). Not seen on a phone after D32.
+**Notes:** Written by the planner by hand. Next free ID -1996.
