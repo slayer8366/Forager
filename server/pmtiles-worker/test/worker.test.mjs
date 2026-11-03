@@ -745,6 +745,9 @@ test("coder-14: 'Archive not found' is a 404 sent no-store and never put in the 
   assert.equal(first.status, 404);
   assert.equal(await first.text(), "Archive not found");
   assert.equal(first.headers.get("Cache-Control"), "no-store", "the archive-not-found 404 must be sent no-store");
+  // The CORS headers every other tile response carries, so a browser can read the 404 (Sorrel's should-fix on #466).
+  assert.equal(first.headers.get("Access-Control-Allow-Origin"), "*", "the archive-not-found 404 must carry Access-Control-Allow-Origin");
+  assert.equal(first.headers.get("Vary"), "Origin", "the archive-not-found 404 must carry Vary: Origin");
   assert.deepEqual([...globalThis.caches.default.entries.keys()], [], "the archive-not-found 404 must not be put in the edge cache");
   // So the next request reads R2 again, and finds the archive once it is there.
   bucketReads = [];
@@ -769,7 +772,7 @@ test("coder-14: a tile or asset cached under version 1 is not served under versi
     await globalThis.caches.default.put(`${HOST}${TILE}?cv=1`, new Response("old tile", { status: 200 }));
     await globalThis.caches.default.put(`${HOST}${font}?cv=1`, new Response("old font", { status: 200 }));
     assert.equal(await (await call(TILE)).text(), "old tile", "under version 1 the version-1 entry is served");
-    assert.equal(await (await call(font)).text(), "old font");
+    assert.equal(await (await call(font)).text(), "old font", "under version 1 the version-1 asset is served");
   });
   await withCacheVersion("2", async () => {
     const tile = await call(TILE);
@@ -790,7 +793,11 @@ test("coder-14: a 404 cached before this change, under the plain URL, is not ser
       const tile = await call(TILE);
       assert.equal(tile.status, 200, `a plain-URL cached 404 must not be served (CACHE_VERSION ${version ?? "unset"})`);
       assert.equal(await tileText(tile), "tile 14/2651/5776");
-      assert.equal((await call("/fonts/Noto%20Sans%20Regular/0-255.pbf")).status, 200);
+      assert.equal(
+        (await call("/fonts/Noto%20Sans%20Regular/0-255.pbf")).status,
+        200,
+        `a plain-URL cached asset 404 must not be served (CACHE_VERSION ${version ?? "unset"})`,
+      );
     });
   }
 });
