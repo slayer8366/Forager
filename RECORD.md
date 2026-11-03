@@ -32466,3 +32466,25 @@ After the release there is one fresh run on the new tips, then the review, the r
 - **The night gap:** the v4 first zooms add 78 clone layers, and 13 lose their named night exception in the app's tables (NightColour.kt). Tertiary and minor roads go black instead of #333333, admin 5-8 boundaries go #525252 instead of #bdbdbd, and some edges lose their rims.
 - The planner's call: an app PR maps clones to their originals through the style's forager:layer-clones metadata. It is not needed before #474, but it is needed before any promotion, because once promoted the release ships the Trail Map to everyone. The owner's "nobody is affected" holds only until then.
 **Notes:** Written by the planner by hand. Next free ID -2019.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2019
+**Timestamp:** 2026-11-03T23:32:48Z
+**Continues:** 2026-09-28-2017
+**Closes:** 2026-09-28-2017
+**Title:** S22 session 10: trail and street codes as ruled; the expanded card at the smallest size still shows no rows
+**Outcome:** From Hazel's report. The audit is docs/audits/2026-11-03-s22-session-10.md on tools/s22-combined (0a3c17680), and the evidence is in /home/zynergy-labs/s22-2026-11-03/s10/, off git.
+- **Build:** the planned APK (run 41725808133) was versionCode 4429, below the phone's 4465. The versionCode follows the commit count, so a pre-main build installs lower than a tools-branch build: the planner's slip. Built instead: tools/s22-combined 9c63b4a14 (pre-main 671b669bf merged in), run 41734379417, versionCode 4489, the same signer, schema 23. One test is red, RouteCardOnNavigationCardFont20Test (D37); pre-main's own push run is red on the same class (-2018).
+- **Install:** at 15:14:24, with the backup pulled first. Every table is equal across the install.
+- **Check 1, trail and street codes:** as ruled. The stored key went from "street" to "trail" and the app opened on the Trail Map; the chips read Trail, Topo, Street; Street shows the OpenStreetMap map with its credit. Both regions show "Older map style": they were built on street-v3, and TrailStyle.kt:114 flags those by design. That was the planner's wrong premise, not a fault.
+- **Check 2, 640 x 360 dp, font 2.0, navigating:**
+  - (a) as ruled: the navigation card is narrow (left edge at x 724, a 64 dp gap), and the Re-center icon in the gap took 5 of 5 taps;
+  - (b) not as ruled: the card rises over the strip, but no leg rows show (the buttons are squeezed to 28 px), and the route had no elevation line to hide;
+  - (c) the strip returns on collapse.
+- **Check 3, 823 x 384 dp, font 1.0:** Re-center keeps its word at bottom centre and meets the navigation card's edge (placed by eye). It did not move beside the L, which is consistent with D34, since its word covers no card.
+- **Seen, not ruled:** at peek at font 2.0 the title is clipped to "6 Waypoints"; the cold start may draw street-v3 before a re-pick.
+- **End state:** 4489 on the Maps tab, Trail Map; settings restored and read back; TEST Q, S, T, U and V deleted by name.
+- **Setup differed:** TEST U and V were added near Q because the camera could not be zoomed out.
+**Notes:** Written by the planner by hand. Next free ID -2020.
