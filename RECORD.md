@@ -32036,6 +32036,6 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **ID:** 2026-09-28-1980
 **Timestamp:** 2026-11-03T05:41:52Z
 **Continues:** 2026-09-28-1979
-**Title:** The "i" hides only where a card still covers it after its existing rise, with the MapLibre logo; the dot's shift and the stop names' collision as Hazel proposed
-**Decision:** the planner's calls on Hazel's verify-first, stated to the owner, who may override: dispatch 2026-10-30-08 item D30, dispatch 2026-11-02-04 item A6.
+**Title:** The "i" never rises and hides while any card covers its corner, with the MapLibre logo; the dot's shift and the stop names' collision as Hazel proposed
+**Decision:** the planner's calls on Hazel's verify-first, stated to the owner, who may override: dispatch 2026-10-30-08 item D30, dispatch 2026-11-02-04 item A6. Correction: the planner's D28 reading (keep D4's rise) would not have fixed b4-6e, as Hazel showed; the owner then ruled "Never rises, hides under cards (Recommended)", replacing D4's rise everywhere.
 **Notes:** Written by the planner by hand. Next free ID -1981.
