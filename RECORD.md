@@ -32452,3 +32452,17 @@ After the release there is one fresh run on the new tips, then the review, the r
 - Checks: the saved Trail Map choice survives the migration; the chips read Trail, Topo, Street; the Trail Map loads trail-v4; no false "Older map style" notice; Hazel's route-card-followups checklist at 640 x 360 dp, font 2.0; and the normal window at font 1.0.
 - Audit: docs/audits/2026-11-03-s22-session-10.md on tools/s22-combined.
 **Notes:** Written by the planner by hand. Next free ID -2018.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-2018
+**Timestamp:** 2026-11-03T23:19:43Z
+**Title:** pre-main is red on one route card test; the style PR #474; a night gap the app must close before any promotion
+**Observed:**
+- **pre-main 671b669bf's push run 41728736456 failed** RouteCardOnNavigationCardFont20Test ("navigating - the card matches the navigation card edge to edge, and every line on it is whole words"), in the main suite and in the street-removable job. #471's PR run 41725808133, on what should be the same tree, passed. The tools/s22-combined run 41734379417 failed the same class ("1 stops, expanded: D37 … expected:<8.0> but was:<16.666666>").
+- The planner's earlier reading in session 10, that the failure came from the tools branch's own changes, is wrong: pre-main fails too. Under investigation by Hazel, with no waiver.
+- **Aspen's style PR #474** (trail-v4-first-zooms into pre-main): v4 is identical layer for layer to the approved renders' style (182/182 layers), v1-v3 are byte-identical, and the Worker tests pass 80/80 (Aspen's checks). The offline-in-place and CACHE_VERSION 4 commits are dropped. street-v4 and trail-v4 differ in name and forager:generated-from, which is accepted.
+- **The night gap:** the v4 first zooms add 78 clone layers, and 13 lose their named night exception in the app's tables (NightColour.kt). Tertiary and minor roads go black instead of #333333, admin 5-8 boundaries go #525252 instead of #bdbdbd, and some edges lose their rims.
+- The planner's call: an app PR maps clones to their originals through . It is not needed before #474, but it is needed before any promotion, because once promoted the release ships the Trail Map to everyone. The owner's "nobody is affected" holds only until then.
+**Notes:** Written by the planner by hand. Next free ID -2019.
