@@ -32098,5 +32098,15 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Timestamp:** 2026-11-03T11:24:21Z
 **Continues:** 2026-09-28-1984
 **Title:** Where even Re-center's icon doesn't fit beside the L, the route card leaves room
-**Decision:** the owner: "Card leaves room (Recommended)". Dispatch 2026-10-30-08 item D31, on #449.
+**Decision:** the owner: "Card leaves room (Recommended)". Dispatch 2026-10-30-08 item D31, on #449. Correction: the planner's option rested on two wrong premises (Hazel's verify-first): the navigation card fills the bottom under the same span, so moving the route card alone frees nothing; and the shift is about 39.5 dp of narrowing, not 25 dp of moving. Replaced by -1987.
 **Notes:** Written by the planner by hand. Next free ID -1987.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-1987
+**Timestamp:** 2026-11-03T12:11:02Z
+**Continues:** 2026-09-28-1986
+**Title:** Where Re-center's icon needs room, both cards narrow, always
+**Decision:** the owner: "Both cards narrow (Recommended)"; "Always (Recommended)". The planner's call: D27's rise fallback, dead in landscape navigation once room is guaranteed, is removed. Dispatch 2026-10-30-08 item D32, on #449. Also the owner: "Yes, check (Recommended)" to Juniper reading the app's words, store text and site for "OSM" used as a style name (-1985): dispatch 2026-11-03-02.
+**Notes:** Written by the planner by hand. Next free ID -1988.
