@@ -32335,3 +32335,21 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** At the smallest size the elevation line steps aside while the card is open
 **Decision:** Hazel: D37's raised cap is still filled by the peek lines at the S22's size (rows 0 dp, CI 41698619389). The owner: "Hide elevation while open (Recommended)". Dispatch 2026-10-30-08 D40. D38 and D34 built (80955f9cc, 663ca13fd, 8d1f80e39); full CI 41699747279 running.
 **Notes:** Written by the planner by hand. Next free ID -2010.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2010
+**Timestamp:** 2026-11-03T20:04:35Z
+**Continues:** 2026-09-28-2003
+**Title:** trail and street codes built and green; stopped at the Worker release
+**Outcome:** Hazel's report. Branch trail-and-street-codes at b810e4fdc (pre-main f9ca5824c merged in). The planner read CI 41704286111 as green on b810e4fdc; diff against pre-main: 98 files, +53152 −967 (most of it trail-v4.json), no @Ignore added. Built:
+- our map's key "trail" and the Street chip with key "street";
+- a one-time flagged migration;
+- /style/trail-v4.json served beside every old route, treated as street-v4 (no false notice, v4's night tables);
+- street-v1..v4 and offline.json byte for byte, now sha-held;
+- the Street map in ui/map/street/StreetMap.kt, registered by one line (47 main lines, 6 test classes, 30 tests);
+- the fallback without it: downloads, then Topo;
+- renames, log names (listed in the report), comments, README and STATUS.
+Each test failed first or was bitten by one of 7 revert checks. CI: main suite 6298 tests, 0 failures; the new street-removable job 6268 tests, 0 failures (30 fewer, the Street tests); Worker 79/79; map-style regenerates exactly. Not on a phone. Stopped: the Worker must serve trail-v4 (a worker/* release to main) before any build loading it is used or promoted. Hazel's calls beyond the dispatch are listed in her report; the planner accepts them, including topo at night drawn alone after a fallback without the Street map, which the owner's option stated ("Topo is darker at night when zoomed out").
+**Notes:** Written by the planner by hand. Next free ID -2011.
