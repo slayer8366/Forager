@@ -32215,3 +32215,14 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 - The button: "If it's OSM then that's fine. But if our Trail Maps are named OSM or reference it in code, then it needs to change. The OSM button should be renamed to \"Street\" to differentiate itself still. OSM credits can still apply". On scope: "Both (Recommended)" (the app now, and every past commit in the rewrite).
 The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, OPENSTREETMAP, tile URLs) stays; code where our Trail Map is named after or references the style changes; the button's label "OSM" becomes "Street", in the app and in history; credits stay. The planner's call, which the owner may override: the internal "street" names of our Trail Map that users never see and live installs depend on (MapMode.TRAIL's storageKey "street", the Worker's /style/street-vN.json URLs) are not renamed, because changing them would reset users' saved map choice and break shipped builds; they are noted as a clash with the new button name. The figures need the reference stylesheet's source, which this session's GitHub access does not reach (add_repo refused read access for that repository); asked of Aspen and the owner. S22 session 9 (-1996) stopped at A2 when the owner unplugged the phone: merged c2fb6b4e3, CI 41644020391 green (6390 tests, 0 failures), build 4465 not installed, B1 not run, no setting changed; its partial audit stays local until after the rewrite.
 **Notes:** Written by the planner by hand. Next free ID -1998.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-1998
+**Timestamp:** 2026-11-03T17:25:33Z
+**Continues:** 2026-09-28-1996
+**Closes:** 2026-09-28-1996
+**Title:** S22 session 9 ended without the D32 check; the phone is away for a while
+**Outcome:** the owner: "It'll be a while. That moment was your only chance for the time being." The session spent its phone time on the merge and the CI build (c2fb6b4e3, run 41644020391, green), so build 4465 was ready only after the S22 was unplugged; D32 is not seen on a phone. The planner's slip: the dispatch put the build after reading the phone, when the build could have run on CI before the phone was asked for. From now on an S22 session's build is merged, green on CI and its APK downloaded before the phone is needed, so phone time goes to the install and the checks. D32's phone check is open, with build 4465 ready.
+**Notes:** Written by the planner by hand. Next free ID -1999.
