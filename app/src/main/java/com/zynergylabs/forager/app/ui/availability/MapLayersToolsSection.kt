@@ -142,7 +142,7 @@ internal fun MapLayersToolsSection(controls: MapLayersControls, open: Boolean, o
 
 /**
  * D24 (dispatch 2026-10-30-08, RECORD -1966; the owner: "Tools > Map Layers (Recommended)", whose option read "After the Trails row:
- * Trail, Topo, OSM, each with its credit underneath (e.g. Trail: 'Protomaps © OpenStreetMap'). The trail credit goes under the
+ * Trail, Topo, Street, each with its credit underneath (e.g. Trail: 'Protomaps © OpenStreetMap'). The trail credit goes under the
  * Trails row. No heading"): the map's credits, which until then were the strip drawn over every map (`MapCreditCaption`, removed).
  * One entry per map type, by its chip's word ([MapMode.label]) with its credit under it ([Basemap.attribution], the strip's own
  * wording per map). Not a control: the map type is still chosen on the Layers button's panel, so an entry has no click and a touch on

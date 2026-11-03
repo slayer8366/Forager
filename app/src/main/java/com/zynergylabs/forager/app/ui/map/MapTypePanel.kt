@@ -50,7 +50,7 @@ internal val MAP_TYPE_PANEL_ANCHOR_OFFSET_LANDSCAPE: Dp =
  * The map type panel the Layers button opens (dispatch 2026-10-28-02, RECORD -1764; the owner: "Have the mapiconbar layers
  * tab return to the original animated state it was prior to the map layers addition."). The shape is `MapModePicker`'s
  * (`347859d50^:app/src/main/java/com/zynergylabs/forager/app/ui/map/MapChrome.kt:126`), rebuilt on today's parts: a scrim
- * fading in, then a small panel of Trail · Topo · OSM ([MapModeChipRow], so the grey "chosen, but Trail is showing" chip
+ * fading in, then a small panel of Trail · Topo · Street ([MapModeChipRow], so the grey "chosen, but Trail is showing" chip
  * keeps its meaning) fading and growing out of the Layers row, and shrinking back into it.
  *
  * - A chip tap applies that type and closes the panel: one tap.

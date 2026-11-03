@@ -67,7 +67,7 @@ internal fun MapStyleReload(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    // RECORD -1513: the switch as the map uses it, off for the rest of the process once the own Street has failed to load
+    // RECORD -1513: the switch as the map uses it, off for the rest of the process once Trail Map has failed to load
     // (OwnTrailFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
     val ownTrail = OWN_TRAIL_FALLBACK.ownTrail()
     // Dispatches 2026-10-27-11 and -13 (RECORD -1742, -1748): patterns lost on the tiles a reload keeps, a MapLibre 13.5.0
@@ -78,7 +78,7 @@ internal fun MapStyleReload(
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
         // right one. The map shows MapLibre's own blank until then.
-        // useOfflineTiles is also on for OSM or Topo with no signal (NoSignalTrailMap.kt): the regions' own style either way.
+        // useOfflineTiles is also on for Street or Topo with no signal (NoSignalTrailMap.kt): the regions' own style either way.
         val offlineStyleUrl = if (useOfflineTiles) currentOfflineRenderStyleUrl(context) else OFFLINE_STYLE_URL
         val requested = requestedMapStyle(
             basemap = basemap,
@@ -138,15 +138,15 @@ internal fun MapStyleReload(
             // from its one URL and before the overlays are added, so the overlays' own line and
             // fill layers are never touched. Day, or night off, restyles nothing: the style came
             // fresh from its URI.
-            // Since dispatch 2026-10-18-05 Part 2 the same recolour serves the own Street online (loaded by URI too),
-            // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
-            // The own Street takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
-            // Street v4 (the fill-in) has its own night tables, chosen by the style's URI (TrailNightTables.kt); every other
-            // Trail Map version keeps v1 to v3's. Street under Topographical takes those of the Street it draws (trailUriOf).
+            // Since dispatch 2026-10-18-05 Part 2 the same recolour serves Trail Map online (loaded by URI too),
+            // and walks text, halo and icon colours; with Trail Map off, a URI style is only ever the offline one.
+            // Trail Map takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
+            // Trail Map v4 (the fill-in) has its own night tables, chosen by the style's URI (TrailNightTables.kt); every other
+            // Trail Map version keeps v1 to v3's. Trail Map under Topographical takes those of the Trail Map it draws (trailUriOf).
             if (requested.night && source !is MapStyleSource.Json) {
                 val tables = trailNightTablesForSource(source)
                 applyOfflineNightRecolour(style, trailWater = usesTrailSprite(source), trailTables = tables)
-                // Street v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
+                // Trail Map v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
                 tables.hillshade?.let { applyTrailHillshadeNight(style, it) }
             }
             // Trail Map's night icons and patterns: the bundled night copies, added under their own names and switched to

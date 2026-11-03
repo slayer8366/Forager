@@ -69,8 +69,8 @@ internal sealed interface NightRecolour {
 /**
  * The colour paint properties the night recolour walks, by layer type: background, fill and line (the three types
  * `offline-style.json` has), and since dispatch 2026-10-18-05 Part 2 the symbol layers' text, halo and icon colours,
- * which the own Street style has and the offline style does not (-1288: "Labels are inverted too"). `icon-color` acts
- * only on SDF icons; the Street sprite's are not SDF, so its icons are inverted as images instead ([nightPixelsOf]).
+ * which Trail Map style has and the offline style does not (-1288: "Labels are inverted too"). `icon-color` acts
+ * only on SDF icons; the Trail Map sprite's are not SDF, so its icons are inverted as images instead ([nightPixelsOf]).
  * The overlay layers `SightingsMap` adds after the recolour are not walked.
  */
 internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
@@ -81,7 +81,7 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
 )
 
 /**
- * The own Street's night water, on every water fill and line (rivers, streams, lakes, the sea): a dark teal, `#163f4b`
+ * Trail Map's night water, on every water fill and line (rivers, streams, lakes, the sea): a dark teal, `#163f4b`
  * (dispatch 2026-10-22-03; the owner, Forager-cartography's night-colours record: "When the water is on my phone against
  * the dark maps, it lights up the display which runs against the point of night maps", then the round-5 pair, and for
  * streams "Same as water (Recommended)"). It replaces -1343's lighter `#8ec5f0`, which the owner had asked for so
@@ -91,19 +91,19 @@ internal val NIGHT_RECOLOURED_PROPERTIES: Map<String, List<String>> = mapOf(
  * Held to the owner's "Rules from your colours" with the planner's numbers: relative luminance at most 0.050 and blue
  * at most 96 (this is 0.042 and 75; `#8ec5f0` was 0.52 and 240), and at least 1.05:1 on every night land fill (1.08:1
  * on the night grass `#2d3911` at least), in `NightWaterTest` and `map-style/tools/check-trail-night.mjs`, which reads
- * the same colour from the style's design file. The day water colour is unchanged. Only the own Street takes it: the
+ * the same colour from the style's design file. The day water colour is unchanged. Only Trail Map takes it: the
  * offline style keeps its inverted water.
  */
 internal const val TRAIL_NIGHT_WATER = "#163f4b"
 
-/** The vector source layer the own Street's water is drawn from (Protomaps' `water`). */
+/** The vector source layer Trail Map's water is drawn from (Protomaps' `water`). */
 internal const val WATER_SOURCE_LAYER = "water"
 
 /** The colour properties [trailNightRecolourOf] gives [TRAIL_NIGHT_WATER]: fills and lines, never label text. */
 private val WATER_COLOUR_PROPERTIES = setOf("fill-color", "fill-outline-color", "line-color")
 
 /**
- * The own Street's night line colours by layer (RECORD -1345, the owner: "Roads (Recommended), Railways + boundaries
+ * Trail Map's night line colours by layer (RECORD -1345, the owner: "Roads (Recommended), Railways + boundaries
  * (Recommended)"): the inversion left these at 1.0 to 1.5:1 on the night forest (Part 1 report, round 1). Tunnels keep
  * the inversion. The design's copy is `NIGHT_LAYER_COLOURS` in `map-style/overrides/forager-trail.mjs`, recorded in
  * the style's metadata; `NightExceptionsTest` holds the two equal and each colour to 2.5:1 on the night forest, grass
@@ -131,7 +131,7 @@ internal val TRAIL_NIGHT_LAYER_COLOURS: Map<String, String> = mapOf(
 )
 
 /**
- * The own Street's night fill colours by day colour (dispatch 2026-10-22-03 and its Amendment 1, RECORD -1561): wherever
+ * Trail Map's night fill colours by day colour (dispatch 2026-10-22-03 and its Amendment 1, RECORD -1561): wherever
  * a fill layer's `fill-color` draws one of these day colours, as a literal or inside an expression, night draws this
  * colour instead of the inversion. RGB, no alpha; a colour matches only at full opacity.
  * - Forest `#a9d39b` to `#446835`, the owner's pick over the inversion `#436d35`. It ships with the tree glyph, which is
@@ -149,7 +149,7 @@ internal val TRAIL_NIGHT_FILL_COLOURS: Map<Int, Int> = mapOf(
 )
 
 /**
- * The own Street's night for one colour property: [TRAIL_NIGHT_WATER] for a water fill or line (a layer drawn from
+ * Trail Map's night for one colour property: [TRAIL_NIGHT_WATER] for a water fill or line (a layer drawn from
  * [sourceLayer] `water`), a [TrailNightTables.layerColours] colour for those layers' lines, a
  * [TrailNightTables.lineColours] colour for the line colours it names on its layers, a [TrailNightTables.fillColours]
  * colour for the fill colours it names (in both, the rest of the same expression inverted), and
@@ -175,7 +175,7 @@ internal fun trailNightRecolourOf(
     return offlineNightRecolourOf(property)
 }
 
-/** One colour's Street night by day colour: its [nights] colour at full opacity, else the inversion. */
+/** One colour's Trail night by day colour: its [nights] colour at full opacity, else the inversion. */
 private fun colourNightOf(day: RgbaColour, nights: Map<Int, Int>): RgbaColour {
     val night = if (day.alpha == 1.0) nights[(day.r shl 16) or (day.g shl 8) or day.b] else null
     return if (night == null) day.night() else RgbaColour((night shr 16) and 0xFF, (night shr 8) and 0xFF, night and 0xFF, day.alpha)

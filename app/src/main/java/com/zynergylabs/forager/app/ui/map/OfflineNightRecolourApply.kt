@@ -26,8 +26,8 @@ import org.maplibre.android.style.layers.SymbolLayer
  * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
  * is unverified until a device run; a form this does not read shows up in these log lines.
  *
- * [trailTables] are the Street night's tables for the Trail Map version loaded ([trailNightTablesFor]); they apply
- * only with [trailWater], the own Street.
+ * [trailTables] are the Trail night's tables for the Trail Map version loaded ([trailNightTablesFor]); they apply
+ * only with [trailWater], Trail Map.
  */
 internal fun applyOfflineNightRecolour(style: Style, trailWater: Boolean = false, trailTables: TrailNightTables = TRAIL_NIGHT_TABLES) {
     var recoloured = 0

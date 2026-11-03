@@ -5,12 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
 
 /**
- * The own Street's fallback (RECORD -1513). The owner chose "Fall back automatically": "If our Street fails to load, the
+ * Trail Map's fallback (RECORD -1513). The owner chose "Fall back automatically": "If our Street fails to load, the
  * app quietly draws today's OpenStreetMap Street instead and logs it; built as a small PR before the switch flips."
  *
  * The planner's rulings on the verify-first (dispatch of 2026-10-21, PR A):
  * - **What counts as a failure:** only a failed style load, `MapView.OnDidFailLoadingMapListener` while the last style
- *   this MapView asked for is the own Street, online. Tile errors are logged ([onTileError]) and never fall back.
+ *   this MapView asked for is Trail Map, online. Tile errors are logged ([onTileError]) and never fall back.
  *   The limit, stated plainly: the Worker serves the style with a one-day cache, so with a warm cache a Worker that is
  *   down still gives a style that loads, and only the areas not seen before stay blank. This catches a cold or
  *   expired cache, not a warm one.
@@ -37,7 +37,7 @@ internal class OwnTrailFallback(private val log: (String) -> Unit = { Log.w(OWN_
     private val fellBackState = mutableStateOf(false)
     private var tileErrorsLogged = 0
 
-    /** Whether the own Street failed to load in this process. */
+    /** Whether Trail Map failed to load in this process. */
     val fellBack: Boolean get() = fellBackState.value
 
     /**
@@ -49,7 +49,7 @@ internal class OwnTrailFallback(private val log: (String) -> Unit = { Log.w(OWN_
 
     /**
      * MapLibre failed to load a style ([message] is its own) and [request] is what this MapView last asked for. Falls
-     * back, and logs one line, the first time this is the own Street online; returns whether it fell back now.
+     * back, and logs one line, the first time this is Trail Map online; returns whether it fell back now.
      */
     fun onStyleLoadFailed(request: MapStyleRequest?, message: String?): Boolean {
         if (request == null || !fallsBack(request.source, request.useOfflineTiles) || fellBack) return false
@@ -59,7 +59,7 @@ internal class OwnTrailFallback(private val log: (String) -> Unit = { Log.w(OWN_
     }
 
     /**
-     * The map's "no signal" state has ended (`noSignalState`: a validated network held 30 s). If the own Street has
+     * The map's "no signal" state has ended (`noSignalState`: a validated network held 30 s). If Trail Map has
      * fallen back, the flag clears and Trail Map is tried again, with one log line; every reader follows, since the flag
      * is Compose state. Otherwise nothing changes and nothing is logged. The tile-error count is not reset.
      */
@@ -87,7 +87,7 @@ internal class OwnTrailFallback(private val log: (String) -> Unit = { Log.w(OWN_
 internal data class MapStyleRequest(val source: MapStyleSource, val useOfflineTiles: Boolean)
 
 /**
- * Whether a failed load of [source] falls back: only the own Street online, alone ([TRAIL_STYLE_URL]) or under
+ * Whether a failed load of [source] falls back: only Trail Map online, alone ([TRAIL_STYLE_URL]) or under
  * Topographical at night. The raster styles and every offline style never do.
  */
 internal fun fallsBack(source: MapStyleSource, useOfflineTiles: Boolean): Boolean =
@@ -97,7 +97,7 @@ internal fun fallsBack(source: MapStyleSource, useOfflineTiles: Boolean): Boolea
         is MapStyleSource.Json -> false
     }
 
-/** The switch as the map uses it: on only while [switch] is on and the own Street has not [fellBack]. */
+/** The switch as the map uses it: on only while [switch] is on and Trail Map has not [fellBack]. */
 internal fun effectiveOwnTrail(switch: Boolean, fellBack: Boolean): Boolean = switch && !fellBack
 
 /**

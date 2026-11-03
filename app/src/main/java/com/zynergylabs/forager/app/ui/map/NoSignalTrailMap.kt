@@ -27,15 +27,15 @@ import kotlinx.coroutines.flow.stateIn
  * signal returns (dispatch 2026-10-22-01; RECORD -1554 for OpenStreetMap, -1556 for Topographical too). The steps:
  *
  * ```
- * OSM or Topo chosen, signal lost for 5 s  → Trail Map, drawn from the downloaded areas (if any exist; else unchanged)
+ * Street or Topo chosen, signal lost for 5 s  → Trail Map, drawn from the downloaded areas (if any exist; else unchanged)
  * signal back for 30 s                     → the chosen map again
  * Trail chosen                             → unchanged: it is already Trail Map
- * Trail chosen, but fallen back to OSM      → as OSM: Trail Map from the downloaded areas after 5 s
+ * Trail chosen, but fallen back to the Street map      → as Street: Trail Map from the downloaded areas after 5 s
  * ```
  *
  * The last line is dispatch 2026-10-22-01 Amendment 3 (Sorrel's review): once Trail Map's style has failed to load
  * (`OwnTrailFallback`, -1513) a Trail user is looking at OpenStreetMap's raster, and losing the signal then must give
- * them what it gives any OSM user (-519: every failure has a fallback).
+ * them what it gives any Street user (-519: every failure has a fallback).
  *
  * **Drawn through the offline branch** ([mapStyleSourceFor] with `useOfflineTiles`), the style the downloaded regions
  * hold. Not Trail Map's online style: with no signal that load can fail, and an online failure of Trail Map's style is

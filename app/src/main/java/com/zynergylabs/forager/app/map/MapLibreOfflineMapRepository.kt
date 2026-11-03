@@ -137,7 +137,7 @@ class MapLibreOfflineMapRepository(
         onPauseChanged: (paused: Boolean) -> Unit,
     ): Result<OfflineRegionSummary> = runCatchingCancellable {
         val definition = OfflineTilePyramidRegionDefinition(
-            // OFFLINE_STYLE_URL, unless the own Street is on (TrailStyle.kt): then the Street style.
+            // OFFLINE_STYLE_URL, unless Trail Map is on (TrailStyle.kt): then the Trail Map style.
             offlineDownloadStyleUrl(),
             region.toLatLngBounds(),
             OfflineMapRepository.MIN_ZOOM,
@@ -294,7 +294,7 @@ private const val TAG = "MapLibreOfflineMapRepo"
 /**
  * The style "use offline tiles" should load now ([offlineRenderStyleUrl]), from the style URLs MapLibre's own region
  * definitions record (`OfflineRegion.getDefinition().getStyleURL()`, checked with `javap` at the pinned `13.5.0`).
- * A failed read is logged and gives [OFFLINE_STYLE_URL], the style every region downloaded before the own Street
+ * A failed read is logged and gives [OFFLINE_STYLE_URL], the style every region downloaded before Trail Map
  * holds (CLAUDE.md: no fallback that is not logged when it fires).
  */
 internal suspend fun currentOfflineRenderStyleUrl(context: Context): String {

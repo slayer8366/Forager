@@ -35,7 +35,7 @@ private var SemanticsPropertyReceiver.mapModeChipSelectedOutline by MapModeChipS
  * Whether [mode], the chosen map type, is standing aside for Trail Map (dispatch 2026-10-22-06 Amendment 3; the
  * owner: "Have the toggle color be grey to reflect it's chosen, but offline.", then "Same meaning everywhere: grey =
  * chosen, but Trail is being shown instead."). Decided by the map's own rule, [drawsFromDownloads], so the chip and
- * the map cannot disagree. It draws Trail Map from the downloaded areas in place of a chosen OSM or Topographical
+ * the map cannot disagree. It draws Trail Map from the downloaded areas in place of a chosen Street or Topographical
  * map on two paths: no signal ([noSignal], [LocalNoSignal] after its hysteresis, the state the map reads), and "Use
  * offline tiles" ([offlineTiles], `MapRenderMode.useOfflineTiles`). For a Trail user it draws Trail Map, which is what
  * they chose. No signal with no downloaded area ([hasDownloadedArea] false) draws the chosen map, so the chip stays

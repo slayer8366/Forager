@@ -246,11 +246,11 @@ sealed interface MapStyleSource {
     data class Uri(val uri: String) : MapStyleSource
 
     /**
-     * The own Street style by URL with a night [topo] raster over it, for Topographical at night with the own
-     * Street on (dispatch 2026-10-18-05 Part 2; RECORD -1291): the same composition [nightStyleJsonWithBasemapBelow]
-     * builds from two rasters, with the vector Street below instead. [topo] is drawn above every Street layer from
+     * Trail Map's style by URL with a night [topo] raster over it, for Topographical at night while Trail Map draws
+     * (dispatch 2026-10-18-05 Part 2; RECORD -1291): the same composition [nightStyleJsonWithBasemapBelow]
+     * builds from two rasters, with the vector Trail Map below instead. [topo] is drawn above every Trail Map layer from
      * [NIGHT_FADE_START_ZOOM], fading in to [NIGHT_FADE_END_ZOOM], with [NIGHT_RASTER_PAINT]'s V1 properties; the
-     * Street's labels stop at [trailLabelsMaxZoom] so they never show through the topo above them (-1291: "The
+     * Trail Map's labels stop at [trailLabelsMaxZoom] so they never show through the topo above them (-1291: "The
      * Street labels must not show through that composition").
      */
     data class TrailWithTopoOver(
@@ -283,7 +283,7 @@ internal fun ownTrailStyleSourceFor(basemap: Basemap, night: Boolean, ownTrail: 
 
 /**
  * Whether [source] is a Trail Map style, whose sprite icons the night inverts one by one and whose water and fills take
- * the Street night: v4 ([TRAIL_STYLE_URL], since dispatch 2026-11-01-coder-11 step (d)), or v3, v2 or v1, which offline
+ * the Trail night: v4 ([TRAIL_STYLE_URL], since dispatch 2026-11-01-coder-11 step (d)), or v3, v2 or v1, which offline
  * regions downloaded before it still load ([TRAIL_STYLE_URLS]; dispatch 2026-10-22-03 Amendment 1).
  */
 internal fun usesTrailSprite(source: MapStyleSource): Boolean = when (source) {
@@ -401,7 +401,7 @@ internal data class AppliedMapStyle(
     val night: Boolean,
     /**
      * The style "use offline tiles" loads (`offlineRenderStyleUrl`): Trail Map's when a region holds it,
-     * [OFFLINE_STYLE_URL] otherwise. A change is a reload, so the first Street download is drawn in its own style.
+     * [OFFLINE_STYLE_URL] otherwise. A change is a reload, so the first Trail Map download is drawn in its own style.
      */
     val offlineStyleUrl: String = OFFLINE_STYLE_URL,
     /**
@@ -475,9 +475,9 @@ private fun String.toJsonStringLiteral(): String {
 }
 
 /**
- * The Trail Map style URL [source] draws: a plain URI's, or the Street under Topographical's ([MapStyleSource.
+ * The Trail Map style URL [source] draws: a plain URI's, or the Trail Map under Topographical's ([MapStyleSource.
  * TrailWithTopoOver.trailUri]); `null` for a JSON style. The night pass picks its tables by it ([trailNightTablesFor];
- * Sorrel's carried fix, dispatch 2026-11-01-coder-11 step (d)): before, Street under Topographical took v1 to v3's
+ * Sorrel's carried fix, dispatch 2026-11-01-coder-11 step (d)): before, Trail Map under Topographical took v1 to v3's
  * tables whatever Street it drew.
  */
 internal fun trailUriOf(source: MapStyleSource): String? = when (source) {

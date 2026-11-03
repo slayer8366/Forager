@@ -30,7 +30,7 @@ internal const val NIGHT_SPRITE_V6_ASSET_DIR = "night-sprite/v6"
 private val SPRITE_V6 = Regex("""/sprites/v6/light$""")
 
 /**
- * The night sheets for the style the map loaded, by the sprite it names: v6's for a style naming sprite v6 (Street v4),
+ * The night sheets for the style the map loaded, by the sprite it names: v6's for a style naming sprite v6 (Trail Map v4),
  * v5's for every other (v1 to v3 and anything unreadable), as before v6.
  */
 internal fun nightSpriteAssetDirFor(styleJson: String): String {
