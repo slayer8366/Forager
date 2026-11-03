@@ -32236,3 +32236,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** Our map's code name becomes "trail"; "street" names the OpenStreetMap map
 **Decision:** the owner, overriding the planner's call in -1997: "Go ahead and make a new map code called Trail drop OSM, and just use street for OSM. That should fix the problem". Dispatch 2026-11-03-05 (Hazel, Opus). The planner's calls: a one-time flagged migration of the stored map choice (old "street" to "trail", then "openstreetmap" to "street") so each user keeps the map they chose; the Worker keeps serving the old style routes for shipped builds. The stored key "street" moved once before, from OpenStreetMap to the Trail Map (dispatch 2026-10-22-01 Amendment 2, MapMode.kt:38-44), and this reverses it on purpose.
 **Notes:** Written by the planner by hand. Next free ID -2000.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2000
+**Timestamp:** 2026-11-03T17:36:47Z
+**Continues:** 2026-09-28-1999
+**Title:** trail-v4 published now and treated as street-v4; CLAUDE.md says "Trail Map tiles"
+**Decision:** the owner: "Add trail-v4 now"; "Change to "Trail Map tiles" (Recommended)". The planner's calls on Hazel's other stops: street-v4 and trail-v4 treated as one style, so there's no false "Older map style" notice; the Worker is served before any app loads trail-v4, with no deploy without the planner's word; street-v1..v4 frozen byte for byte; osm_timestamp kept; log names renamed and listed; comments as Hazel proposed. Dispatch 2026-11-03-05 section D. README and STATUS go in this branch (-1992).
+**Notes:** Written by the planner by hand. Next free ID -2001.

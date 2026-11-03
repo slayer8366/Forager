@@ -27,3 +27,16 @@ Every fact below is a premise to re-check, with file and line.
 - **C1**. A new branch, trail-and-street-codes, cut from origin/pre-main (d88db1799 or later). The planner opens the PR when asked.
 - **C2**. Tests through real entry points: the Layers sheet's buttons by real coordinate touches show Trail, Topo, Street; the migration through the real preferences repository; the Worker's tests for both old and new routes; the style checkers regenerate to what is committed.
 - **C3**. New user-facing words: only the "Street" label. Anything else goes to the planner first.
+
+## D. Rulings on Hazel's verify-first (2026-11-03, -2000)
+Hazel read pre-main at d88db1799. Corrected premises: no style layer or app asset is named "street". The only runtime ids, "basemap-street" (BasemapStyles.kt:89-90), name the OpenStreetMap raster, so they stay. B2's cache keys need no change. The chips are in MapTypePanel, not the Layers sheet.
+- **D1** (S1, the owner). "Add trail-v4 now", whose option read "Publish a copy of today's style as trail-v4 and switch the app to it. Every downloaded region would then say "Older map style. Download again to update.", which isn't true, unless extra code treats the two as the same. The server has to go live before any app uses it."
+  - The planner's calls: street-v4 and trail-v4 are treated as the same style, so no region shows a false "Older map style" notice. That's tested, and it's the "Don't make me think" rule.
+  - trail-v4 goes into STREET_V4_STYLE_FILES' and STREET_STYLE_URLS' successors, and is tested to get v4's night tables.
+  - The Worker change lands and is served before any app build loads trail-v4. Hazel reports the release route and stops before any deploy, since that is outward-facing and needs the planner's word.
+  - No app build that loads trail-v4 goes on the S22 until the Worker serves it.
+- **D2** (S2, the planner's call). street-v1..v4 and offline.json stay byte for byte, frozen as now. "Forager Trail v4" appears only in trail-v4.json.
+- **D3** (S3, the planner's call). osm_timestamp stays. It names the OSM data's date, which is a data reference, and it's a stored and wire format.
+- **D4** (S4, the planner's call). Log tags and messages take the new names. Name each one, so phone-check scripts can be updated.
+- **D5** (S5, the planner's call, as Hazel proposed). Update comments that name a renamed identifier or call our map "Street" in the present tense. Quotes and history stay. TopoNightStreetSwitchTest keeps its name. docs/, RECORD and prompts are not touched.
+- **D6** (the owner). CLAUDE.md: "Change to "Trail Map tiles" (Recommended)", whose option read "Only that word changes. The line stays where it is, so nothing that points to its line number moves." The "Don't make me think" bullet's "Street tiles" becomes "Trail Map tiles", with the line count unchanged. README.md and STATUS.md go with -1992's Trail Map wording, in this branch.
