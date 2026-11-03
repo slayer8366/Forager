@@ -127,13 +127,24 @@ internal fun nameLayerProperties(allowOverlap: Boolean): Array<PropertyValue<*>>
     PropertyFactory.iconOffset(NAME_OFFSET_DP.toTypedArray()),
 )
 
+/** The waypoint names' layer: a name that would collide with one placed before it is not drawn. */
+internal fun waypointNameLayerProperties(): Array<PropertyValue<*>> = nameLayerProperties(allowOverlap = false)
+
+/**
+ * The route's stops' layer. A5 (dispatch 2026-11-02-04, RECORD -1979; the owner: "Stops avoid each other (Recommended)", whose option
+ * read "Stop names still always beat ordinary waypoint names, but two stop names don't print over each other: the one that would
+ * collide hides until you zoom in, like waypoint names."): no overlap. It sits above the waypoint names' layer, and MapLibre places
+ * symbol layers from the top down, so the stops still take their room first and the waypoint names yield to them.
+ */
+internal fun stopNameLayerProperties(): Array<PropertyValue<*>> = nameLayerProperties(allowOverlap = true)
+
 /** Adds both name sources and layers, empty: waypoint names directly above [aboveLayerId] (the pins), the stops' above them. */
 internal fun addWaypointNameLayers(style: Style, aboveLayerId: String) {
     val empty = FeatureCollection.fromFeatures(emptyList())
     style.addSource(GeoJsonSource(WaypointNameIds.SOURCE, empty))
     style.addSource(GeoJsonSource(WaypointNameIds.STOP_SOURCE, empty))
-    style.addLayerAbove(SymbolLayer(WaypointNameIds.LAYER, WaypointNameIds.SOURCE).withProperties(*nameLayerProperties(allowOverlap = false)), aboveLayerId)
-    style.addLayerAbove(SymbolLayer(WaypointNameIds.STOP_LAYER, WaypointNameIds.STOP_SOURCE).withProperties(*nameLayerProperties(allowOverlap = true)), WaypointNameIds.LAYER)
+    style.addLayerAbove(SymbolLayer(WaypointNameIds.LAYER, WaypointNameIds.SOURCE).withProperties(*waypointNameLayerProperties()), aboveLayerId)
+    style.addLayerAbove(SymbolLayer(WaypointNameIds.STOP_LAYER, WaypointNameIds.STOP_SOURCE).withProperties(*stopNameLayerProperties()), WaypointNameIds.LAYER)
 }
 
 /** A name's text size and the most of its width drawn before it ends in an ellipsis, in dp; its halo's width each side. */
