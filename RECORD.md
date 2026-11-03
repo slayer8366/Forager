@@ -32060,3 +32060,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** A5 built and green on waypoint-names (#465): the stops' names avoid each other
 **Outcome:** Hazel's report: A5 at 99e60dd4d (test first ee9aef133), merged with origin/route-plot-ui at 2c8228480; failed first and revert-checked. Full CI on 2c8228480, run 41590585988 (pull_request): 6262 tests, 0 failures, 24 skipped. The planner read the run's jobs itself: all success except "No debug-only sources on pre-main or main", skipped on this run (it ran green on #449's 796f0aa99); why it skipped is not checked. Test counts and revert checks as Hazel reported, not re-read. The collision itself is phone-only (dispatch 2026-11-02-04 C2); not seen on a phone. #465 stays held for the owner's word.
 **Notes:** Written by the planner by hand. Next free ID -1983.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1983
+**Timestamp:** 2026-11-03T09:13:05Z
+**Continues:** 2026-09-28-1982
+**Title:** S22 session 8: install #449 and #465's heads, see D27, D28, D29 and A5 on the phone
+**Intent:** the owner: "Yes, run the S22 session". Dispatch 2026-11-03-01 (prompts/preserved/2026-11-03-01-s22-session-8.md), Hazel (Opus). The planner read the S22 at 01:12 PST: default display, font 1.0, auto-rotate on, no Forager service, 1.0.4436 installed.
+**Notes:** Written by the planner by hand. Next free ID -1984.
