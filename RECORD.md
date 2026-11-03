@@ -32391,5 +32391,5 @@ These merges go before the real rewrite run. The planner's conditions:
 - full CI green;
 - #472 first.
 
-The owner then, to Aspen, relayed verbatim: "Nobody has v4 yet so it won't hurt"; "The release build doesn't have our trail map system so it's only me that gets affected, and I'm not offended by test builds". This supersedes Aspen's earlier line that today's installed app loads street-v4: only the owner's test builds load v4. The planner accepts the relayed ruling and lifts the hold on the style PR and its Worker release; #473 into pi-build goes ahead as well.
+The owner then, to Aspen, relayed verbatim: "Nobody has v4 yet so it won't hurt"; "The release build doesn't have our trail map system so it's only me that gets affected, and I'm not offended by test builds". This supersedes Aspen's earlier line that today's installed app loads street-v4: only the owner's test builds load v4. The hold on the style PR and its Worker release stays until the owner confirms to the planner directly (the planner's message lifting it on the relayed words was not sent). #473 into pi-build goes ahead.
 **Notes:** Written by the planner by hand. Next free ID -2014.
