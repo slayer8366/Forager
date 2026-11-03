@@ -32246,3 +32246,13 @@ The planner's reading: code naming the OpenStreetMap map itself (OSM_STANDARD, O
 **Title:** trail-v4 published now and treated as street-v4; CLAUDE.md says "Trail Map tiles"
 **Decision:** the owner: "Add trail-v4 now"; "Change to "Trail Map tiles" (Recommended)". The planner's calls on Hazel's other stops: street-v4 and trail-v4 treated as one style, so there's no false "Older map style" notice; the Worker is served before any app loads trail-v4, with no deploy without the planner's word; street-v1..v4 frozen byte for byte; osm_timestamp kept; log names renamed and listed; comments as Hazel proposed. Dispatch 2026-11-03-05 section D. README and STATUS go in this branch (-1992).
 **Notes:** Written by the planner by hand. Next free ID -2001.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2001
+**Timestamp:** 2026-11-03T17:40:19Z
+**Continues:** 2026-09-28-2000
+**Title:** OSM kept detached and removable from now on; the Street map first
+**Decision:** the owner: "We will migrate away from OSM altogether so we should keep all OSM references detached and easily removable from this point on." On scope: "The Street map first (Recommended)", whose option read "From now on the Street button's map (OpenStreetMap's own tiles) lives in one self-contained place that can be deleted cleanly. OSM data (Trail Map tiles, trails, routing) is kept behind its own boundary too, ready to swap out when you choose a replacement source, but nothing changes for users now." A standing rule for every dispatch from now on. Dispatch 2026-11-03-05 item D7. The Trail Map's style-failure fallback to the Street map (-1513) is a stop for the owner.
+**Notes:** Written by the planner by hand. Next free ID -2002.
