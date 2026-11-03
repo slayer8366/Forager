@@ -32498,3 +32498,13 @@ After the release there is one fresh run on the new tips, then the review, the r
 **Title:** The sunset line steps aside while the route card rests on the navigation card; D37 only where rows exist; tests on fixed clocks
 **Decision:** the owner: "Sunset line steps aside (Recommended)". The planner's calls: D37 and D40 only at 2 or more stops; the clock-dependent tests on fixed noon and evening clocks. Dispatch 2026-10-30-08 D41, D42 and D43, built on route-card-evening, Hazel (Opus). Pre-main stays red until it lands.
 **Notes:** Written by the planner by hand. Next free ID -2021.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2021
+**Timestamp:** 2026-11-03T23:49:16Z
+**Continues:** 2026-09-28-2020
+**Title:** The sunset line hides only where the route card would not otherwise fit
+**Decision:** Hazel: -955 leaves the evening lines out and has nowhere to move them to, and while navigating the strip shows no sundown line, so "steps aside" means hidden. The planner put the scope to the owner, because the line is a safety cue. The owner: "Only where room is short (Recommended)". Dispatch 2026-10-30-08 D42, amended in place. Also for the owner: #440's heading check (Hazel, run 41739744089): at 360 and 384 dp, "Alt unavailable" pushes the heading out of the strip, permanently on phones below Android 14 (the converter is unsupported there) and briefly before the first conversion on 14 and up. #440's CI is red only on pre-main's own D37 test.
+**Notes:** Written by the planner by hand. Next free ID -2022.
