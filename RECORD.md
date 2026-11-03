@@ -32189,3 +32189,13 @@ Then an S22 update with #449's head, then the formal phone checks for #449 and #
 **Title:** #465 and #449 merged; route plotting and waypoint names are on pre-main
 **Outcome:** #465 merged into route-plot-ui by fast-forward to 1ac35075a (13:04Z). #449 merged into pre-main as d88db1799, a merge commit, after CI run 41641074946 (pull_request, on 1ac35075a) was green on every job, including "No debug-only sources on pre-main or main". Before merging, the planner read the diff pre-main...1ac35075a (132 files, +11887 −251): no @Ignore added; the 17 removed assertion lines are D24's removal of the beside-credit behaviour (986b1049d names each), and logoBesideAttribution stays with its other tests. pre-main was backed up first (forager-repo-backups/pre-main-before-449-20261103T130412Z.bundle, verified). Not seen on a phone after D32.
 **Notes:** Written by the planner by hand. Next free ID -1996.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-1996
+**Timestamp:** 2026-11-03T13:22:18Z
+**Continues:** 2026-09-28-1995
+**Title:** S22 session 9: D32 on the phone
+**Intent:** the owner: "Run the S22 session for D32". Dispatch 2026-11-03-04, Hazel (Opus); pre-main d88db1799 merged into tools/s22-combined and installed. The planner read the S22 at 05:22 PST (default display, font 1.0, auto-rotate on, animation 1.0, 4451, no Forager service). The audit is pushed before the planned history rewrite (-1994).
+**Notes:** Written by the planner by hand. Next free ID -1997.
