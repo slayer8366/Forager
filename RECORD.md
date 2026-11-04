@@ -33641,3 +33641,65 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The planner's slip:** the question put to the owner cited the line as planner-profile.md:61. It is :60, as Clio had it.
 - **Hazel:** her dispatch's base is "3ffced9c0 or later", so pre-main's move to 9b58c66a4 doesn't change her work. She is still in Phase 1.
 **Notes:** Written by the planner by hand. Next free ID -2088.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-2088
+**Timestamp:** 2026-11-04T18:17:20Z
+**Closes:** 2026-09-28-2085
+**Title:** Dispatch 2026-11-04-06 (the day chip outline) and its Amendment 1 deleted at the owner's word; Hazel's Phase 1 on it ended
+**Outcome:** abandoned, at the owner's word.
+- **The owner, verbatim, as quoted in the deleting commit 32eb6f93f** (records-after-173, 17:22:36Z): "Stop. Delete your dispatches and amendments"; asked which, "The chip ones". This entry's planner did not hear those words; they are taken from that commit's message, which an earlier planner session wrote.
+- **Deleted:** prompts/preserved/2026-11-04-06-day-chip-outline.md (added in c3254ad1d) and prompts/preserved/2026-11-04-06-amendment-1.md (added in b8b8f10b9). Both stay readable in git history.
+- **Working state:** no Phase 1 report from Hazel is on record, and this session cannot see her (ListAgents lists no subagent). Her branch, delete-amendment-4, is at 9b58c66a4 on origin, pre-main's head: no code of hers was pushed. The owner has since said "We are not using delete-amendment-4. This is a fresh start".
+- **Not recorded until now:** the deletion had no entry. It is written here, with the redesign that followed (-2089).
+**Notes:** Written by the planner by hand. Next free ID -2089.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2089
+**Timestamp:** 2026-11-04T18:17:20Z
+**Continues:** 2026-09-28-2088, 2026-09-28-2079, 2026-09-28-2069
+**Title:** The map type chips redesigned: a dark outline by day on the pale fill; rust red at night with a white label and a cream outline, as in the owner's screenshot
+**Decision:**
+- **The owner, verbatim,** sent together with two screenshots of the map type panel (filed at docs/audits/assets/2026-11-04-07-chip-outlines/, night-0911.png and day-0930.png):
+  - "Hi Rowan. Let's design a dark outline for the map style chips in day mode. And have the night mode use a white outline as shown" (the night screenshot);
+  - "Have the day mode be the same outline as shown here. But keep it the same color as it is now, not in the screenshot" (the day screenshot).
+- **Read from the code:** both screenshots show one outline, `selectedChipBorder`, unchanged from b25806b4b (Amendments 5 and 6) through 22ae67021 (#483): 1 dp in the theme's `onSurface` around the selected chip, Bark #3B2E24 by day and #EDE3D0 at night. The unselected chips keep Material's own `outlineVariant` outline (FilterChipTokens.FlatUnselectedOutlineColor, read from the cached material3 1.5.0-alpha26 AAR). Pre-main 9b58c66a4 has no selected outline.
+- **Asked four questions together, the owner chose:**
+  - day fill: "Pale #F6DFC8". The option read "What pre-main has now: Material's default, with a dark label. Only the outline is added.";
+  - night fill: "Rust red #A2612C (Recommended)". The option read "As in your night screenshot, with its white label. Your words: "Rust is the night theme for the app so we must keep that color" (-2069); red is for night vision." The planner marked it Recommended, citing the owner's own -2069;
+  - night "white": "As shown, #EDE3D0";
+  - the grey "chosen, but offline" chip: "No, normal chip only".
+- **And:** "Rust is a red color. That's meant for night vision". Rust red at night is a night-vision feature, not a style choice.
+- **The design:**
+  - day: the normal selected chip keeps #F6DFC8 with its #3A2008 label, and gains a 1 dp Bark #3B2E24 outline;
+  - night: the normal selected chip is rust red #A2612C, with a white #FFFFFF label and a 1 dp #EDE3D0 outline;
+  - unchanged, both themes: the unselected chips and the grey chip (no outline).
+- **How it got here:**
+  - The same four answers were first given one or two at a time. In between, the planner assumed the night fill would stay dark brown and told the owner so as the design; the owner chose rust red, and "Be sure you understand" prompted the questions. A planner slip: -2069's "Brown reduces that ease at night" was already read.
+  - The owner then dropped the first draft dispatch ("Redo the design") and sent both messages again; the answers above are from that second round, the only one recorded.
+- **Also ruled:**
+  - "We are not using delete-amendment-4. This is a fresh start." The work goes on a new branch with a PR into pre-main.
+  - Of the deleted -06's line "Never communicate with any session named Aspen", whose source the planner could not find: "Aspen can be contacted whenever, but she won't be necessary for this part. Go ahead and disregard that".
+- **Then:** "Go ahead and write it" (dispatch 2026-11-04-07, -2090).
+**Notes:** Written by the planner by hand. Next free ID -2090.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2090
+**Timestamp:** 2026-11-04T18:17:20Z
+**Continues:** 2026-09-28-2089
+**Title:** Dispatch 2026-11-04-07 for Hazel: the map type chips' outlines, and the night chip in rust red; not started
+**Change:** dispatch A2 to A5. Day: the normal selected chip gains a 1 dp Bark #3B2E24 outline, fill #F6DFC8 unchanged. Night: the normal selected chip is rust red #A2612C with a white label and a 1 dp #EDE3D0 outline. The unselected chips and the grey chip are unchanged. On both entry points (Maps tab, journal entry's map).
+**Scope boundary:** dispatch C1 to C3. A new branch map-type-chip-outlines from pre-main 9b58c66a4; MapModeChips.kt and the chip tests; the completion report. Not Theme.kt, Color.kt, the grey or unselected chips, pre-main, main, delete-amendment-4, palette-rule, revert-chip-colours, RECORD.md, the audit index or the phone.
+**Baseline:** pre-main 9b58c66a4; records-after-173 32eb6f93f.
+**Prediction (outcome — planner):** the dispatch's Predictions: the outlines and night colours as in A2 and A3, everything else as on 9b58c66a4. Contrast from the solid colours: day outline 10.18:1 on the fill, 11.42:1 on the panel #F4EFE2; night outline 3.85:1 on the rust red, 12.80:1 on the panel #202020; night label 4.90:1.
+**Prediction (mechanism — coder):** to come from Hazel's Phase 1 report, by continuation, before building.
+**Finish line:** a PR from map-type-chip-outlines into pre-main, green on CI at its last real commit, merged only on the owner's word.
+**Abort conditions:** dispatch Stops: an owner-level choice A doesn't rule; a wrong premise; needing Theme.kt, Color.kt, main or a release build; a test having to be weakened; two failed attempts at one symptom.
+**Dispatch-file:** prompts/preserved/2026-11-04-07-map-type-chip-outlines.md
+**Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-04-07 now?". Next free ID -2091.
