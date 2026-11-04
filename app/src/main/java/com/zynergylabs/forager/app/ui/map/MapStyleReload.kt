@@ -143,8 +143,9 @@ internal fun MapStyleReload(
             // Trail Map takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
             // Trail Map v4 (the fill-in) has its own night tables, chosen by the style's URI (TrailNightTables.kt); every other
             // Trail Map version keeps v1 to v3's. Trail Map under Topographical takes those of the Trail Map it draws (trailUriOf).
+            // v4's clone layers take their originals' entries, from the style's own forager:layer-clones (LayerClones.kt).
             if (requested.night && source !is MapStyleSource.Json) {
-                val tables = trailNightTablesForSource(source)
+                val tables = trailNightTablesForSource(source).withLayerClonesOf(style)
                 applyOfflineNightRecolour(style, trailWater = usesTrailSprite(source), trailTables = tables)
                 // Trail Map v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
                 tables.hillshade?.let { applyTrailHillshadeNight(style, it) }
