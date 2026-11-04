@@ -79,5 +79,7 @@ private val WALKING_CAN_CHANGE = setOf(
     WayToWaypointNote.NO_ROUTE_FOUND,
     WayToWaypointNote.NO_TRAIL_ROUTES,
     WayToWaypointNote.WALKER_FAR_FROM_TRAIL,
+    // Way-to dispatch 2026-10-28: a lead-in blocked from here may be clear from a step further on.
+    WayToWaypointNote.LEAD_IN_BLOCKED,
     WayToWaypointNote.WAYPOINT_IN_ANOTHER_AREA,
 )

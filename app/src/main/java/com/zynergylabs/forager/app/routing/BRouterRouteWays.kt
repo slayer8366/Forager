@@ -35,15 +35,23 @@ import java.io.IOException
  * [BRouterTrailRouter]'s one-route lock. It holds one square file open at a time.
  */
 class BRouterRouteWays(
-    /** Holds the `lookups.dat` the squares were built with ([RoutingProfile]). */
-    private val profileDir: File,
+    /**
+     * The folder holding the `lookups.dat` the squares were built with ([RoutingProfile]). Asked on each read, off the
+     * caller's thread, so production can hand in `RoutingProfile.install`, which leaves files that are already there alone.
+     */
+    private val profileDir: () -> File,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : RouteWays {
+
+    constructor(profileDir: File, dispatcher: CoroutineDispatcher = Dispatchers.IO) : this({ profileDir }, dispatcher)
 
     override suspend fun near(center: LatLng, radiusMeters: Double, routeData: File): Result<List<RouteWay>> = withContext(dispatcher) {
         try {
             Result.success(read(center, radiusMeters, routeData))
         } catch (e: IOException) {
+            Result.failure(e)
+        } catch (e: IllegalStateException) {
+            // RoutingProfile.install's check() when the profile could not be moved into place.
             Result.failure(e)
         }
     }
@@ -51,7 +59,7 @@ class BRouterRouteWays(
     private fun read(center: LatLng, radiusMeters: Double, routeData: File): List<RouteWay> {
         val meta = BExpressionMetaData()
         val wayContext = BExpressionContextWay(meta)
-        meta.readMetaData(File(profileDir, RoutingProfile.LOOKUPS_FILE))
+        meta.readMetaData(File(profileDir(), RoutingProfile.LOOKUPS_FILE))
         val perDegree = GeoDistance.metersPerDegree(center.lat)
         val dLat = micro(radiusMeters / perDegree.lat)
         val dLng = micro(radiusMeters / perDegree.lng)

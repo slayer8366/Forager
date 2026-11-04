@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GeoDistance
@@ -59,21 +60,24 @@ class AvailabilityViewModelWaypointRouteTest {
     private val store = InMemoryWaypointNavigation()
     private val router = FakeTrailRouter(listOf(at(-3_000.0, 0.0) to at(3_000.0, 0.0)))
     private val logs = mutableListOf<String>()
+    /** The fix accuracy each search was handed (A2: the pick-up needs a good fix), in order. */
+    private val searchAccuracies = mutableListOf<Float?>()
 
     private fun viewModel(
         regions: List<OfflineRegionSummary> = listOf(Ground.region()),
         gate: CompletableDeferred<Unit>? = null,
     ): AvailabilityViewModel {
-        val find = FindWayToWaypointUseCase(FakeRegions(*regions.toTypedArray()), FakeEngines(router), ErrorLog { _, _, _ -> })
+        val find = FindWayToWaypointUseCase(FakeRegions(*regions.toTypedArray()), FakeEngines(router), ErrorLog { _, _, _ -> }, AcceptEnds)
         return mapLayersViewModel(
             waypointNavigationRepository = store,
             locationTracker = tracker,
             readWaypoint = { id -> Result.success(pin.takeIf { it.id == id }) },
             currentTime = CurrentTimeProvider { t + dispatcher.scheduler.currentTime },
             errorLog = ErrorLog { _, message, _ -> logs += message },
-            findWayToWaypoint = { from, to ->
+            findWayToWaypoint = { from, to, accuracyMeters ->
+                searchAccuracies += accuracyMeters
                 gate?.await()
-                find(from, to)
+                find(from, to, accuracyMeters)
             },
         )
     }
@@ -188,6 +192,25 @@ class AvailabilityViewModelWaypointRouteTest {
         assertEquals("on the new line: no more", 2, router.asked.size)
     }
 
+    /**
+     * Dispatch 2026-11-04-04, A2 and A4 (the owner, "Need a good fix"): the search is handed the accuracy of the fix it
+     * searches from, the first search's and a stray's re-route's alike, so the pick-up is chosen on that fix's own word.
+     */
+    @Test
+    fun `each search is handed the accuracy of the fix it searches from`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.onEnteredForeground()
+        fixes.emit(fixAt(at(0.0, 40.0)))
+        runCurrent()
+        vm.onNavigateToWaypoint("wp-1")
+        runCurrent()
+
+        fixes.emit(fixAt(at(300.0, 60.0)).copy(accuracyMeters = 12.5f)) // 60 m north of the trail: a stray's re-route
+        runCurrent()
+
+        assertEquals(listOf(3.79f, 12.5f), searchAccuracies)
+    }
+
     @Test
     fun `ending the navigation removes the way along trails`() = runTest(dispatcher) {
         val vm = viewModel()
@@ -226,7 +249,7 @@ class AvailabilityViewModelWaypointRouteTest {
             locationTracker = tracker,
             readWaypoint = { id -> Result.success(pin.takeIf { it.id == id }) },
             errorLog = ErrorLog { _, message, _ -> logs += message },
-            findWayToWaypoint = { _, _ -> throw IllegalStateException("boom") },
+            findWayToWaypoint = { _, _, _ -> throw IllegalStateException("boom") },
         )
         vm.onEnteredForeground()
         fixes.emit(fixAt(at(0.0, 40.0)))

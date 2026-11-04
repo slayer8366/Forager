@@ -30,7 +30,7 @@ class FindWayToWaypointAreasTest {
     private val waypoint = at(30_000.0, 40.0)
 
     private fun find(vararg regions: OfflineRegionSummary): WayToWaypointResult =
-        runBlocking { FindWayToWaypointUseCase(FakeRegions(*regions), engines, errorLog)(walker, waypoint) }
+        runBlocking { FindWayToWaypointUseCase(FakeRegions(*regions), engines, errorLog, AcceptEnds)(walker, waypoint) }
 
     private fun aroundWalker(routeData: RegionRouteData) = Ground.region(id = 1, radiusKm = 1, routeData = routeData)
 
