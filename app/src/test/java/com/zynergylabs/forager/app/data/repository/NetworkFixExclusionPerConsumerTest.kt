@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
@@ -307,6 +308,7 @@ class NetworkFixExclusionPerConsumerTest {
             },
             currentTime = fixedTime,
             zone = ZoneOffset.UTC,
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         try {
             vm.startRecording()

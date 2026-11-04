@@ -55,7 +55,7 @@ private fun styleLayerSpecs(registry: List<MapLayerSpec>): List<MapLayerSpec> = 
  * added: whether this style draws the band, and each band layer's visibility set from the user's choice [chosen].
  *
  * The band is drawn when the style has every one of its layers and [drawnOnThisMap] (false under Topographical, whose
- * Street underlay at night is Trail Map's style but whose band would never show: "Trail Map only", RECORD -1633). There
+ * Trail Map underlay at night is Trail Map's style but whose band would never show: "Trail Map only", RECORD -1633). There
  * its layers are hidden and the band is not reported. A style with only some of the layers is a style this app does not
  * know: logged, its layers hidden, not reported. A style with none (today's) writes nothing.
  *

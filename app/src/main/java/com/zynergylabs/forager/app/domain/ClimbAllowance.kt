@@ -40,8 +40,10 @@ import kotlin.math.roundToLong
  * The heights are [barometricHeights] over the whole track (the same heights the journal's Climb reads, with dispatch
  * -18's bridging of a missed reading), taken in walking order along the way back, and banked through the journal's
  * [ElevationHysteresis.THRESHOLD_METERS] exactly as [ComputeTrackStatisticsUseCase] banks Climb and Descent
- * ([bankedClimb]). A straight leg with no stored heights (the hop to the walker's fix, the leg to the origin waypoint,
- * the straight joints at a trail's ends) is counted flat.
+ * ([bankedClimb]). On a way home along trails the trail part's are the trail data's where every route point has one
+ * (dispatch 2026-10-30-06, `wayhome/WayHomeHeights.kt`), with the walker's track's heights on the straight joints at
+ * its ends (RECORD -1842). A straight leg with no stored heights (the hop to the walker's fix, the leg to the origin
+ * waypoint) is counted flat.
  */
 const val CLIMB_ALLOWANCE_SECONDS_PER_METER = 2.2
 

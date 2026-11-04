@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -107,6 +108,7 @@ class AvailabilityViewModelNightModeTest {
             unitSystemPreferenceRepository = NightModeStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = NightModeStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(NightModeStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 

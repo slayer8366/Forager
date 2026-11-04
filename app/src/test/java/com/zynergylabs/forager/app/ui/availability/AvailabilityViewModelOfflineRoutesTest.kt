@@ -5,6 +5,8 @@ import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -194,7 +196,7 @@ class AvailabilityViewModelOfflineRoutesTest {
     private fun viewModel(
         offlineMapRepository: OfflineMapRepository,
         mapPreferencesRepository: MapPreferencesRepository = RoutesStubMapPreferencesRepository,
-        getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
+        entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
         pendingDeleteCommitScope: CoroutineScope? = null,
         noSignal: () -> Boolean = { false },
     ): AvailabilityViewModel = AvailabilityViewModel(
@@ -219,7 +221,7 @@ class AvailabilityViewModelOfflineRoutesTest {
         unitSystemPreferenceRepository = RoutesStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = RoutesStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(RoutesStubTripPlanningWeatherProvider),
-        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
         noSignal = noSignal,
     )

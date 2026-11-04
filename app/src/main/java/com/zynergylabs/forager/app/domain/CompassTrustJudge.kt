@@ -63,6 +63,17 @@ class CompassTrustJudge(
         goodSinceMillis = null
     }
 
+    /**
+     * Dispatch 2026-10-30-14 Amendment 1 (RECORD -1858; the owner: "Yes, re-check (Recommended)"): called when the compass
+     * comes back after the screen was off. Keeps whether the compass is untrusted and restarts only the clear hold, so a
+     * good stretch from before the gap is not counted: the first good reading after the gap starts the hold afresh, and a
+     * compass that was calibrating is not shown as trusted on its first reading back. [reset] would forget the untrusted
+     * state outright, the false all-clear this class exists to prevent.
+     */
+    fun restartClearHold() {
+        goodSinceMillis = null
+    }
+
     companion object {
         const val ENTER_DEGREES = 15f
         const val LEAVE_DEGREES = 12f

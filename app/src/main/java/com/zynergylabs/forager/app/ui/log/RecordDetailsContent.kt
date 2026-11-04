@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.log
 
 // Moved unchanged from RecordDetailsSheet.kt (dispatch 2026-10-19-07, UI split Phase 1, PR 4).
 
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
@@ -39,7 +39,6 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.networkFixExclusionNote
 import com.zynergylabs.forager.app.ui.availability.decimalDegreesLabel
-import com.zynergylabs.forager.app.ui.availability.launchDirections
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionZoomNote
 import com.zynergylabs.forager.app.ui.availability.relativeTimeLabel
@@ -55,7 +54,6 @@ import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 @Composable
 internal fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceCounts: Map<String, Int>, onNavigate: ((String) -> Unit)?) {
-    val context = LocalContext.current
     val is24Hour = is24HourClock()
     val location = LatLng(waypoint.lat, waypoint.lng)
     DetailsTitle(waypoint.name)
@@ -72,9 +70,11 @@ internal fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceC
         val parent = tracks.firstOrNull { it.id == trackId }
         DetailField(FIELD_TRACK, "Track", parent?.let { trackTitle(it, is24Hour) } ?: "Not loaded")
     }
-    referenceCounts[waypoint.id]?.let { count -> DetailField(FIELD_USED_IN, "Used in", journalEntryCountLabel(count)) }
+    // A missing id is no committed entry keeping it: the counts are live and hold only ids with one (dispatch 2026-10-28-08).
+    DetailField(FIELD_USED_IN, "Used in", journalEntryCountLabel(referenceCounts[waypoint.id] ?: 0))
     DetailsActions {
-        // Dispatch -502: the app's own navigation first, then the hand-off to a maps app.
+        // Dispatch -502: the app's own navigation. Dispatch 2026-10-29-09 (RECORD -1819, the owner: "Everywhere Navigate
+        // exists"): the hand-off to a maps app that sat after it is gone, since Navigate is offered wherever this sheet opens.
         onNavigate?.let { navigate ->
             OutlinedButton(
                 onClick = { navigate(waypoint.id) },
@@ -83,13 +83,6 @@ internal fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceC
                 Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text("Navigate", modifier = Modifier.padding(start = Spacing.sm))
             }
-        }
-        OutlinedButton(
-            onClick = { launchDirections(context, waypoint.name, location) },
-            modifier = Modifier.testTag(RECORD_DETAILS_DIRECTIONS_TAG),
-        ) {
-            Icon(Icons.Filled.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("Directions", modifier = Modifier.padding(start = Spacing.sm))
         }
     }
 }
@@ -106,6 +99,7 @@ internal fun TrackDetails(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val seaLevelConverter = LocalSeaLevelConverter.current
     // The same derivation the entry editor's candidate rows use for a live track
     // (CartographyEntryEditScreen's TracksSection), from the points already in memory.
     val stats = ComputeTrackStatisticsUseCase()(track.points)
@@ -150,7 +144,7 @@ internal fun TrackDetails(
     }
     DetailsActions {
         OutlinedButton(
-            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
+            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord, seaLevelConverter) } },
             modifier = Modifier.testTag(RECORD_DETAILS_SHARE_TAG),
         ) {
             Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))

@@ -52,3 +52,6 @@ fun AvailabilityViewModel.onDistanceUnitSelected(unit: DistanceUnit) = onUnitSys
 
 /** See [AvailabilitySettingsPrefs.onCrowdedIconsModeChanged]. */
 fun AvailabilityViewModel.onCrowdedIconsModeChanged(mode: CrowdedIconsMode) = settingsPrefs.onCrowdedIconsModeChanged(mode)
+
+/** See [AvailabilitySettingsPrefs.onWaypointNamesChanged]. */
+fun AvailabilityViewModel.onWaypointNamesChanged(shown: Boolean) = settingsPrefs.onWaypointNamesChanged(shown)

@@ -35,6 +35,8 @@ internal fun navigationReadout(
     showDecimalDegrees: Boolean = false,
     route: ReturnRoute? = null,
     facing: NavigationFacing = NavigationFacing.FACING_UP,
+    /** The live height above sea level, the strip's own ([AvailabilityUiState.liveAltitudeMeters]); `null`, none to show. */
+    heightMeters: Double? = null,
 ): NavigationHudReadout {
     val headingDegrees = (heading as? TrueHeadingReading.Available)?.degrees
     val headingText = when (heading) {
@@ -62,7 +64,8 @@ internal fun navigationReadout(
         (heading is TrueHeadingReading.Available || heading == TrueHeadingReading.NeedsFix)
     val compassUnreliable = heading is TrueHeadingReading.Unreliable
     val northArrowDegrees = headingDegrees?.let { -it }
-    val elevationText = liveFix?.let { fix -> fix.altitude?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: ELEVATION_UNAVAILABLE_TEXT }
+    // Dispatch 2026-10-28-13: the strip's height, not the fix's raw one, so the two cannot disagree.
+    val elevationText = liveFix?.let { heightMeters?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: ELEVATION_UNAVAILABLE_TEXT }
     val coordinatesText = liveFix?.let { coordinatesStripText(LatLng(it.lat, it.lng), showDecimalDegrees) }
 
     if (liveFix == null) {

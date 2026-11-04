@@ -1,0 +1,11 @@
+# The three sprite v6 patterns, day, 1x and 2x (dispatch 2026-10-31-coder-07 Part 3; Sage's sage-10b art), as
+# slayer8366/Forager-cartography records them in assets/sprite-drafts/2026-10-31/SHA256SUMS on branch
+# sprite-drafts-2026-10-31. fetch-assets.sh checks the extracted files against these lines, so the fetched archive's
+# own SHA256SUMS is never what is trusted. nursery_dots@2x.png and orchard_dots.png are byte-identical by design (the
+# same geometry, Sage's note).
+5f63b3b7ab0d314e83f03ab2bc899b965b0893fc008f5359a6f1af018c62519b  day/nursery_dots@2x.png
+bf2221ad5b6ffce652a8fef34d786aa3875b09c6872182c8bc9f800cafae57f2  day/nursery_dots.png
+828479861497611d70ae261f6d08d55ee909af335dd8f113783c80bd2adea02a  day/orchard_dots@2x.png
+5f63b3b7ab0d314e83f03ab2bc899b965b0893fc008f5359a6f1af018c62519b  day/orchard_dots.png
+fd0ec0287bfa23512b1f45325fd7608568800461e2d68493c59700c3308845aa  day/vineyard_rows@2x.png
+9a6a5d2eaff3adcba2820c2c55f71f4be932224e8053b40100a5f43bd7b9fd65  day/vineyard_rows.png
