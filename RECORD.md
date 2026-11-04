@@ -33738,3 +33738,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - K4 accepted: the test fixture's entry-map tap becomes a real `clickable`, so a coordinate touch opens it.
 - **Not started:** Phase 2 waits for the owner's rulings on S1 and S2, an amendment, and the planner's go.
 **Notes:** Written by the planner by hand. Next free ID -2093.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2093
+**Timestamp:** 2026-11-04T18:48:50Z
+**Continues:** 2026-09-28-2092, 2026-09-28-2089
+**Title:** Dispatch 2026-11-04-07 Amendment 1: the night label pale #F6DFC8, the filled chips at 80% over the map; S1 corrected; a fresh Hazel for Phase 1b
+**Decision:**
+- **Told first:** the planner told the owner that the night screenshot's chip is dark brown #6B421A with a pale label, not rust red with a white one; that the planner had assumed the build instead of reading the pixels; and that the night fill stands on the owner's own words ("Rust red #A2612C"; "Rust is a red color. That's meant for night vision") unless the owner says otherwise. The owner didn't change it.
+- **The owner, verbatim, to two questions:**
+  - "At night the selected chip is rust red. Which label colour goes on it? (I'd described the white label as your night screenshot's; it's actually your day one's.)": **"Pale #F6DFC8"**. The option read "The label in your night screenshot. On rust red it stands out 3.8:1, below the 4.5:1 usually wanted for text this size." The other was "White #FFFFFF". Neither was marked Recommended.
+  - "Your rule: "nothing should fully obstruct the map view. All map chrome gets 80% opacity." The filled chips (the selected one, and the grey one when it shows) are solid today, and were in both your screenshots. Should they follow the rule?": **"80%, per your rule"**. The option read "The map shows through the filled chips slightly, like the panel around them. Colours look a little less exact over the map. Added to this dispatch by an amendment." The other was "Keep them solid". Neither was marked Recommended.
+- **The planner's reading, told to the owner:** the rule names fills, so the label and the 1 dp outline stay opaque, as content does on the Layers sheet.
+- **Amendment 1** (prompts/preserved/2026-11-04-07-amendment-1.md): A6 corrects S1; A7 the pale label; A8 and A9 the 80% fills; B5 to B8 the tests and revised predictions (K1 to K4, r4 to r7); C4 a Phase 1b on the 80% mechanism; C5 the widened scope; C6 the device check's step 3; C7 a fresh Hazel session.
+- **A fresh Hazel:** the first Hazel's conversation passed 200,000 tokens, so a new one takes Phase 1b with a handoff (planner-profile.md). It is the same coder role on the same dispatch, under the owner's "Start Hazel yes" (-2091).
+**Notes:** Written by the planner by hand. Next free ID -2094.
