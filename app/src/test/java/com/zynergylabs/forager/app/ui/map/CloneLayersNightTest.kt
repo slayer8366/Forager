@@ -150,11 +150,12 @@ class CloneLayersNightTest {
 
     @Test
     fun `a style that records no clones keeps today's tables`() {
-        assertEquals(LayerClones.NotRecorded, layerClonesOf(File("../map-style/forager-street-v3.json").readText()))
-        assertEquals(LayerClones.NotRecorded, layerClonesOf("{}"))
-        assertEquals(LayerClones.NotRecorded, layerClonesOf("""{"metadata": {}}"""))
-        assertSame(TRAIL_NIGHT_TABLES, trailNightTablesFor(TRAIL_STYLE_V3_URL).withClones(LayerClones.NotRecorded))
-        assertSame(TRAIL_V4_NIGHT_TABLES, TRAIL_V4_NIGHT_TABLES.withClones(LayerClones.NotRecorded))
+        // Dispatch 2026-11-04-05 B1: a style with no metadata at all is told apart from one whose metadata lacks the key.
+        assertEquals(LayerClones.NotRecorded(hasMetadata = true), layerClonesOf(File("../map-style/forager-street-v3.json").readText()))
+        assertEquals(LayerClones.NotRecorded(hasMetadata = false), layerClonesOf("{}"))
+        assertEquals(LayerClones.NotRecorded(hasMetadata = true), layerClonesOf("""{"metadata": {}}"""))
+        assertSame(TRAIL_NIGHT_TABLES, trailNightTablesFor(TRAIL_STYLE_V3_URL).withClones(LayerClones.NotRecorded(hasMetadata = true)))
+        assertSame(TRAIL_V4_NIGHT_TABLES, TRAIL_V4_NIGHT_TABLES.withClones(LayerClones.NotRecorded(hasMetadata = false)))
     }
 
     @Test
