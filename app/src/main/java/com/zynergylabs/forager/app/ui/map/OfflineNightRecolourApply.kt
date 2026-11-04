@@ -109,3 +109,27 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
         }
     }
 }
+
+/**
+ * These Trail night tables with the loaded [style]'s clone layers given their originals' night ([withClones], dispatch
+ * 2026-11-04-03), read from the style's own `forager:layer-clones`. One log line per style load says which way it went: a
+ * style that records no clones, or records them unreadably, keeps the tables as they were, so each clone takes its own id's
+ * night (the plain inversion, for every clone today), as before this.
+ */
+internal fun TrailNightTables.withLayerClonesOf(style: Style): TrailNightTables {
+    val clones = layerClonesOf(style.json)
+    val tables = withClones(clones)
+    when (clones) {
+        is LayerClones.Recorded -> Log.i(
+            SIGHTINGS_MAP_TAG,
+            "Trail night: ${clones.originals.size} clone layers recorded; " +
+                "${tables.layerColours.size - layerColours.size + tables.lineColours.size - lineColours.size} take their originals' night colours.",
+        )
+        LayerClones.NotRecorded -> Log.i(SIGHTINGS_MAP_TAG, "Trail night: the style records no $LAYER_CLONES_KEY; no clone layers to map.")
+        is LayerClones.Unreadable -> Log.w(
+            SIGHTINGS_MAP_TAG,
+            "Trail night: $LAYER_CLONES_KEY could not be read (${clones.reason}); clone layers keep their own ids' night, as before.",
+        )
+    }
+    return tables
+}

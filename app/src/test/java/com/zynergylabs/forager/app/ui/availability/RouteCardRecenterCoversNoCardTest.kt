@@ -35,17 +35,30 @@ import org.robolectric.shadows.ShadowDisplay
  *
  * The S22's insets and rotation, as RouteCardRecenterLeaveRoomTest, which holds the same claim with the route card open.
  */
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardRecenterCoversNoCardTest {
+abstract class RouteCardRecenterCoversNoCardTests(
+    clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider,
+    /**
+     * D42 (RECORD -2021): where the sundown line shows with no card it steps aside when the route card opens, so the navigation card's
+     * top moves; its sides do not (D38's "Nothing moves").
+     */
+    private val sundownLineShown: Boolean,
+) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT)
+    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = clock)
+
+    private fun assertNavigationUnmoved(what: String, expected: DpRect, actual: DpRect) {
+        if (sundownLineShown) {
+            assertEquals("$what: its left", expected.left.value, actual.left.value, 0.5f)
+            assertEquals("$what: its right", expected.right.value, actual.right.value, 0.5f)
+        } else {
+            rig.assertSame(what, expected, actual)
+        }
+    }
 
     @Test
     fun `with the route card closed, Re-center whose word would cover the navigation card is its icon beside the L, and real touches reach it`() {
@@ -77,11 +90,11 @@ class RouteCardRecenterCoversNoCardTest {
         rig.plotTo(3)
         rig.leaveNavigationView()
         rig.assertSame("route card open: Re-center", pill, rig.bounds(RETURN_TO_ROUTE_TAG))
-        rig.assertSame("route card open: the navigation card", navigation, rig.bounds(NAVIGATION_HUD_TAG))
+        assertNavigationUnmoved("route card open: the navigation card", navigation, rig.bounds(NAVIGATION_HUD_TAG))
         rig.closeCard()
         rig.leaveNavigationView()
         rig.assertSame("route card closed again: Re-center", pill, rig.bounds(RETURN_TO_ROUTE_TAG))
-        rig.assertSame("route card closed again: the navigation card", navigation, rig.bounds(NAVIGATION_HUD_TAG))
+        assertNavigationUnmoved("route card closed again: the navigation card", navigation, rig.bounds(NAVIGATION_HUD_TAG))
         touchesReach("closed again", pill)
     }
 
@@ -98,6 +111,20 @@ class RouteCardRecenterCoversNoCardTest {
         }
     }
 }
+
+/**
+ * D43 (RECORD -2020): at fixed clocks. Run 41758945602 failed this class on the real clock after sunset: the sundown line showed with
+ * no card (navigation card 226..360 dp) and stepped aside for the route card (D42), so the navigation card's top moved.
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardRecenterCoversNoCardTest : RouteCardRecenterCoversNoCardTests(ROUTE_CARD_NOON_CLOCK, sundownLineShown = false)
+
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardRecenterCoversNoCardAfterSunsetTest : RouteCardRecenterCoversNoCardTests(ROUTE_CARD_AFTER_SUNSET_CLOCK, sundownLineShown = true)
 
 /**
  * D34's other side (RECORD -2005): where Re-center's word at bottom centre covers no card, nothing changes: it keeps its word there.

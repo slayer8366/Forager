@@ -132,6 +132,18 @@ internal class MapIconClusterState(
     var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /**
+     * D42 (RECORD -2021, the owner: "Only where room is short"): the landscape navigation card's evening lines step aside for the route
+     * card resting on it, which would not otherwise fit; written by the route card, read by the navigation card.
+     */
+    var navigationEveningStepsAside: Boolean by mutableStateOf(false)
+
+    /** D42: whether the landscape navigation card shows its evening lines, written by that card. */
+    var navigationEveningShown: Boolean by mutableStateOf(false)
+
+    /** D42: the tallest the landscape navigation card has been in px with its evening lines, this navigation; null before it has shown them. */
+    var navigationCardHeightWithEveningPx: Float? by mutableStateOf(null)
+
+    /**
      * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster
      * (its top less the offset it was placed at), so the slide's floor is a plain difference and does not move as the bar does.
      */

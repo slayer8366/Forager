@@ -11,6 +11,10 @@
 //   2. The layer list: 90 layers, the 17 footpath ids, and their order, informal below steps below unknown below
 //      easy below rough below hard ("informal below hard, so a warning is never covered").
 //   3. The track layer from z12 and minor-road names from z14 (RECORD -1506).
+// v4 since its first zooms (dispatch 2026-11-02-coder-13; the owner approved the zoom and chose "Update v4 in place"):
+// paths, footways and steps from 12.5, cycleways and bridleways from 11.5 (clones <id>__cycle_bridle of the three z13
+// layers), tracks from 11.5 and minor-road names from 13.5, typed here from the first-zoom comparison's rows 49-52 and
+// 76-78; v2 keeps the rulings above.
 import fs from "node:fs";
 import { featureFilter } from "@maplibre/maplibre-gl-style-spec";
 
@@ -104,9 +108,41 @@ for (const props of [
     if (hits.length) problems.push(`${JSON.stringify(props)} at z${z}: drawn by ${hits.map((h) => h.layer.id).join(", ")}, expected none`);
   }
 }
-// Below z13 there are no paths (PATH_MIN_ZOOM, -1300 (4)).
+// Below z13 there are no paths (PATH_MIN_ZOOM, -1300 (4)); in v4, the first zooms' layers start where they say.
+const FIRST_ZOOMS = STYLE === "v4" ? {
+  roads_path_informal_z13: 12.5, roads_path_unknown_z13: 12.5, roads_path_hard_z13: 12.5, roads_path_steps: 12.5,
+  roads_path_informal_z13__cycle_bridle: 11.5, roads_path_unknown_z13__cycle_bridle: 11.5, roads_path_hard_z13__cycle_bridle: 11.5,
+} : {};
 for (const layer of pathLayers.map((p) => p.layer)) {
-  if ((layer.minzoom ?? 0) < 13) problems.push(`${layer.id} starts at z${layer.minzoom ?? 0}, below 13`);
+  if (layer.id in FIRST_ZOOMS) {
+    if (layer.minzoom !== FIRST_ZOOMS[layer.id]) problems.push(`${layer.id} starts at z${layer.minzoom ?? 0}; the first zooms say ${FIRST_ZOOMS[layer.id]}`);
+  } else if ((layer.minzoom ?? 0) < 13) problems.push(`${layer.id} starts at z${layer.minzoom ?? 0}, below 13`);
+}
+// v4 below z13: from 11.5 cycleways and bridleways, from 12.5 every footpath kind, each by exactly one layer, drawn as at z13.
+if (STYLE === "v4") {
+  for (const kind_detail of ["footway", "path", "bridleway", "cycleway", "steps"]) {
+    for (const sac_scale of [undefined, ...Object.keys(SAC)]) {
+      for (const informal of [undefined, "yes"]) {
+        const props = { kind: "path", kind_detail };
+        if (sac_scale) props.sac_scale = sac_scale;
+        if (informal) props.informal = informal;
+        for (const z of [11, 11.5, 12, 12.5]) {
+          features++;
+          const hits = drawnBy(props, z);
+          const want = z >= 12.5 || (z >= 11.5 && ["cycleway", "bridleway"].includes(kind_detail)) ? 1 : 0;
+          const what = `${JSON.stringify(props)} at z${z}`;
+          if (hits.length !== want) {
+            problems.push(`${what}: drawn by ${hits.length} footpath layers (${hits.map((h) => h.layer.id).join(", ") || "none"}), expected ${want}`);
+            continue;
+          }
+          if (!want) continue;
+          const { layer } = hits[0];
+          const got = { colour: layer.paint["line-color"], dash: layer.paint["line-dasharray"], cap: layer.layout?.["line-cap"], width: layer.paint["line-width"] };
+          if (!same(got, expected(props, 13))) problems.push(`${what}: ${layer.id} draws ${JSON.stringify(got)}, the spec says ${JSON.stringify(expected(props, 13))} (as at z13)`);
+        }
+      }
+    }
+  }
 }
 
 // --- The layer list -----------------------------------------------------------------------------------------------
@@ -120,11 +156,13 @@ const IDS = [
 // 93: Street v1's 74, one footpath layer become 17, and v2's tree glyphs, wetland tufts and area names (dispatch 2026-10-22-03).
 // v4: v3's 97 (v2's 93, the official-trails band's three and the building outline) and the fill-in's two fills,
 // v4 since the borders: and landuse_edges and water_edges; since the orchards (sage-10), landuse_orchards and
-// landuse_orchards_pattern (sprite v6); since the hill shading (coder-11), hillshade.
-const LAYER_COUNT = { v2: 93, v4: 104 }[STYLE];
+// landuse_orchards_pattern (sprite v6); since the hill shading (coder-11), hillshade; since the first zooms, their 78
+// clones (forager:layer-clones), three of them footpath layers, each right after its z13 layer.
+const LAYER_COUNT = { v2: 93, v4: 182 }[STYLE];
 if (style.layers.length !== LAYER_COUNT) problems.push(`the style has ${style.layers.length} layers, expected ${LAYER_COUNT}`);
 const ids = pathLayers.map((p) => p.layer.id);
-if (!same(ids, IDS)) problems.push(`footpath layers, in order, are ${JSON.stringify(ids)}; expected ${JSON.stringify(IDS)}`);
+const IDS_HERE = STYLE === "v4" ? IDS.flatMap((id) => (id in FIRST_ZOOMS && id.endsWith("_z13") ? [id, `${id}__cycle_bridle`] : [id])) : IDS;
+if (!same(ids, IDS_HERE)) problems.push(`footpath layers, in order, are ${JSON.stringify(ids)}; expected ${JSON.stringify(IDS_HERE)}`);
 // The order matters only between layers that draw at the same zoom; a z13-only layer never meets a z15 one.
 const rank = (id) => ["informal", "steps", "unknown", "easy", "rough", "hard"].findIndex((g) => id.includes(`_${g}`));
 const span = (l) => [l.minzoom ?? 0, l.maxzoom ?? 24];
@@ -139,11 +177,15 @@ const track = style.layers.findIndex((l) => l.id === "roads_path_track");
 if (style.layers[track + 1]?.id !== IDS[0]) problems.push(`the footpath layers do not start right after roads_path_track`);
 
 // --- Zooms out (RECORD -1506): tracks from z12, minor-road, track and trail names from z14 -------------------------
-// The owner chose "Style now, data later" and road names "From zoom 14". Typed here, not imported, as above.
-for (const [id, minzoom] of [["roads_path_track", 12], ["roads_labels_minor", 14]]) {
+// The owner chose "Style now, data later" and road names "From zoom 14". Typed here, not imported, as above. v4: the first
+// zooms' 11.5 and 13.5 (rows 49 and 76-78), the service and path names split off from 14.5 (rows 79, 80).
+const ZOOMS_OUT = STYLE === "v4"
+  ? [["roads_path_track", 11.5, "the first zooms"], ["roads_labels_minor", 13.5, "the first zooms"], ["roads_labels_minor__service_paths", 14.5, "the first zooms"]]
+  : [["roads_path_track", 12, "the owner's ruling (-1506)"], ["roads_labels_minor", 14, "the owner's ruling (-1506)"]];
+for (const [id, minzoom, why] of ZOOMS_OUT) {
   const layer = style.layers.find((l) => l.id === id);
   if (!layer) problems.push(`no layer ${id}`);
-  else if (layer.minzoom !== minzoom) problems.push(`${id} starts at z${layer.minzoom}, the owner's ruling (-1506) says z${minzoom}`);
+  else if (layer.minzoom !== minzoom) problems.push(`${id} starts at z${layer.minzoom}, ${why} says z${minzoom}`);
 }
 
 // --- Night: informal has its own colour, hard keeps the inversion ---------------------------------------------------
