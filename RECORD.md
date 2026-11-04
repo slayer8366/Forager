@@ -32628,3 +32628,20 @@ Also recorded from Hazel's report:
 **Title:** The Heights credits cover the hill shading and waypoint elevations too
 **Decision:** The owner: "Yes, broaden the credits to cover them". The planner's wording, given to the owner: "Route heights, the map's hill shading and waypoint elevations in Forager come from this data." It replaces "Route heights in Forager are averaged from this data." on the NRCan and USGS rows. Dispatch 2026-11-03-07 D6, on waypoint-bubble-elevation.
 **Notes:** Written by the planner by hand. Next free ID -2031.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2031
+**Timestamp:** 2026-11-04T02:20:03Z
+**Continues:** 2026-09-28-2030
+**Title:** The waypoint bubble's elevation line is built and green; PR opened
+**Outcome:** From Hazel's report. waypoint-bubble-elevation at 534dba66e, from pre-main b1724365d.
+- **What it builds:** D1 to D6. The planner read CI 41756647763 as green (6376 tests, 0 failures). The diff against pre-main is 20 files, +1110 −14, with no @Ignore and no assertion removed.
+- **Tests and checks:** 31 new tests, each seen failing over stubs, and 4 revert checks.
+- **Lookup cost:** median 5.71 ms cold and 0.52 ms cached, on a CI emulator.
+- **Hazel's slip:** she pushed the build before its tests, then stubbed the code so each test was seen failing first. History still shows the build before the tests.
+- **Hazel's calls,** accepted by the planner: a CompositionLocal for the source; interpolation across tile edges, with no line if a neighbour tile is missing; 4 tiles cached; logging once per tile and reason; a 200 KB SDK-written fixture; BubbleLine's modifier.
+- **Not tested:** the real IO path in the bubble; switching between bubbles; the S22's density; reads during a download; old regions on a phone; Canada's coverage.
+- **PR:** opened against pre-main, not merged.
+**Notes:** Written by the planner by hand. Next free ID -2032.
