@@ -33383,3 +33383,18 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The planner then read "Just resume it" as a yes to restoring, and reset local main to 19aa10589. The owner never said to restore.
   - The owner then: "Undo the restore". Local main is back at 7c145b587, as it was before the planner's restore. Nothing is pushed.
 **Notes:** Written by the planner by hand. Next free ID -2077.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2077
+**Timestamp:** 2026-11-04T15:44:48Z
+**Continues:** 2026-09-28-2076
+**Title:** PR #485 (every chip colour change reverted, a planner error corrected) merged to pre-main
+**Outcome:**
+- **The owner, verbatim:** "Resume the merge"; "Stop the checks"; "No checks"; "Only merge, no unmerge".
+- **Merged:** #485 as fa63ec865.
+- **Before merging:** pre-main was backed up (pre-main-before-485.bundle, verified). The diff is 4 files, +10/-379, with no @Ignore. It deletes MapTypePanelSelectedChipTest and the four colour and outline tests, which are part of the revert itself.
+- **Checks:** 4 of 8 had passed when it merged. The other four (build and test among them) were still running, and their result was not waited for, at the owner's word. The planner's two tool calls (the first merge attempt, then cancelling the checks) were rejected by the owner. The code was not compiled before the merge.
+- **#486:** untouched.
+**Notes:** Written by the planner by hand. Next free ID -2078.
