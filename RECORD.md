@@ -33146,3 +33146,21 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
   - A snapshot afterwards: 11 waypoints, none named Temp stack. Every app table hash is identical to the after-4576 snapshot.
   - Settings > Crowded icons is restored to "Zoom in, then fan" (it was set to List for the test). Night Maps is off. svc power stayon is false.
 **Notes:** Written by the planner by hand. Next free ID -2066.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2066
+**Timestamp:** 2026-11-04T14:20:47Z
+**Continues:** 2026-09-28-2063, 2026-09-28-2065
+**Title:** The waypoint street drop-off series (#433, #435-#439) merged to pre-main
+**Outcome:** The owner: "Merge them when ready."
+- **Before merging:** all six PRs had 8/8 checks green on their heads, and pre-main 2d1dc54a4 was backed up (pre-main-before-wayto-series.bundle, verified).
+- **The series' diff:** 51 files, +3609/-36, no @Ignore, no deleted test file, no wip-a2. The one removed assertion line is the same assertion with AcceptEnds added to the constructor.
+- **First merges:** #433, #435 and #436, as bad4eea94, e25e980a5 and 25e2821fa.
+- **Then #437 refused:** "Pull Request has merge conflicts". There were two merge bases (564120d67 and 7c3b01a27, a criss-cross made by merging 435 and 436 separately), though git merge-tree found it clean.
+- **The planner's fix:** merge pre-main 25e2821fa into wayto-dropoff-gates, wayto-fence-mark and wayto-dropoff-wiring, with merge commits only. Each new tree is byte-identical to its tested head's tree (gates 60c67e98, fence-mark 7905ab5f, wiring d508902b). Pushed as fe78b8624, 478bd24d1 and bb868bf67.
+- **Then merged:** #437, #439 and #438, as 46228254d, a47805e0d and 00be4975f.
+- **pre-main 00be4975f's tree is d508902b**, the tree that full CI 41818672279 ran (6535 tests, 0 failures). The PR checks on the three re-pushed heads were not waited for, because the trees are unchanged. Pre-main's push run is to be read.
+- **Still open, device-only:** the read-only open of mbgl-offline.db alongside MapLibre, the second engine run's time, and the pick-up on a good fix. All need a real GPS fix.
+**Notes:** Written by the planner by hand. Next free ID -2067.
