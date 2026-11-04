@@ -32572,3 +32572,17 @@ Open for the owner: the Return control's height difference reads only the conver
 **Title:** The waypoint bubble's height comes from the Trail Map's relief tiles; "Elevation 1352 ft"; every map
 **Decision:** Hazel's verify-first corrected the planner's premise: the route squares hold per-node heights, not a grid. The owner: "Map relief tiles (Recommended)"; "Elevation 1352 ft (Recommended)"; "Every map with bubbles (Recommended)". The planner's call: snapshot-only waypoints get the line too. Dispatch 2026-11-03-07 section D, starting with a spike that reads the offline relief tiles, and a check of the relief data's credit.
 **Notes:** Written by the planner by hand. Next free ID -2027.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2027
+**Timestamp:** 2026-11-04T01:22:24Z
+**Continues:** 2026-09-28-2021
+**Title:** Where the closed route card doesn't fit, its elevation line steps aside too
+**Decision:** The owner: "Elevation steps aside here too (Recommended)". Dispatch 2026-10-30-08 D44.
+Also recorded from Hazel's report:
+- D42 works at 823 x 384, font 2.0, evening (run 41750461438). It took two builds on that symptom: the first used -955's fit estimate (402 px against 594 px real), and the second came after diagnostic run 41747805978.
+- 8aeb6b47b keeps -955's once-shown memory, so the line comes back when the card closes.
+- The clock sweep: RouteCardOnNavigationCardFont20Test is the only hour-dependent class, now on a noon clock. TrackRecordingServiceAlertClearTest, BackByLoopTest and BackByTest fail when the clock is shifted, not by the hour (inferred: they compare the clock with real elapsed time). Night was not probed.
+**Notes:** Written by the planner by hand. Next free ID -2028.
