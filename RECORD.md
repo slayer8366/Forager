@@ -33773,3 +33773,23 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Then, clarifying, the owner verbatim:** "Only highlighted chips are solid. Unless it's highlighted it stays 80% like it does today". The planner told the owner that the two unhighlighted chips have no fill today, so the 80% panel shows through them, and that the grey "chosen, but offline" chip's fill is solid today. Asked "Does the grey "chosen, but offline" chip count as highlighted?": **"Highlighted: stays solid"**. So the highlighted chip, normal or grey, is solid, and the unhighlighted chips are unchanged. Amendment 2's A10 already reads so, and nothing in it changes.
 - **Amendment 2:** prompts/preserved/2026-11-04-07-amendment-2.md (A10, B9, C8, C9).
 **Notes:** Written by the planner by hand. Next free ID -2095.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2095
+**Timestamp:** 2026-11-04T18:56:04Z
+**Continues:** 2026-09-28-2094, 2026-09-28-2093, 2026-09-28-2092
+**Title:** Hazel's Phase 1b report on dispatch 2026-11-04-07: the plan holds with solid chips; the night press ripple is for the owner (S4)
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-04-07-phase1b-report.md, extracted from her hand-back. The fresh Hazel session read pre-main 9b58c66a4 and records-after-173 47a3f970a (neither moved). She wrote no code, branch or commit, ran no Gradle and didn't touch the phone.
+- **Re-checked:** every fact she relies on from the first report holds, with file and line.
+- **Prediction (mechanism — coder), revised:** her section 3. Only MapModeChips.kt changes, to about 140 lines. `normalChipColors()` overrides only the night fill (MushroomDeep), because A7's pale label is Material's default. `mapModeChipBorder(selected, standsAside)` gives the normal selected chip a 1 dp `onSurface` outline and leaves the grey chip Material's border. Every fill stays opaque.
+- **S3** (which chips the exception covers, and where it is recorded): her report predates the owner's answers in -2094, "Map type chips only" and "Record only, no doc change". Closed; nothing changes.
+- **S4, for the owner:** she infers that at night the press ripple turns white instead of pale. Material takes the chip's content colour from its fill, #A2612C matches no night role, and so it falls back to the panel's `Color.White`. Inferred, not read: that the ripple takes that colour. Brought to the owner.
+- **The planner's calls** (technical; nothing the owner sees changes):
+  - W1 and W2 accepted: r2 and r5 fail only their fill tests, since no label is overridden now.
+  - K5: r8 is added (the day branch given a `PureWhite` label; only the day label tests should fail). The grey fill and label tests are listed as "not shown to bite": this dispatch doesn't touch that branch, and the existing grey tests guard it.
+  - K6: the light and dark backgrounds of B8 go with the 80% work. The outline's contrast against the panel is measured over the test's own background, which the report names.
+- **Not started:** Phase 2 waits for the owner's ruling on S4 and the planner's go.
+**Notes:** Written by the planner by hand. Next free ID -2096.
