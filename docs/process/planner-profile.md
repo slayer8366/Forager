@@ -57,7 +57,6 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 - **Fix choices before data.** Anything that could be tuned to a result (a test, a threshold, a sample, a tolerance) is written down and committed before the result is read.
 - **Assign globally unique numbers up front** (decision IDs, migration numbers) when branches run in parallel, so they can't collide at merge.
 - **Name and role first.** Every helper's prompt opens with its name and role ("You are Hazel, the app coder"), so the accountant can count it (RECORD -1645).
-- **Gradle waits for the owner's "go"**, given in the planner's own window.
 
 ## Running several things at once
 
