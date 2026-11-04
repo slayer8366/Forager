@@ -5,7 +5,10 @@ import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.mapdata.OfflineBasemap
 import com.zynergylabs.forager.app.domain.mapdata.ReadNearbyMapData
 import com.zynergylabs.forager.app.domain.mapdata.TileId
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
+import com.zynergylabs.forager.app.domain.routing.RouteWay
+import com.zynergylabs.forager.app.domain.routing.RouteWays
 import com.zynergylabs.forager.app.domain.routing.TrailEngine
 import com.zynergylabs.forager.app.domain.routing.TrailEngineSource
 import com.zynergylabs.forager.app.domain.routing.TrailSnapMethod
@@ -58,8 +61,8 @@ class FindWayToWaypointDropOffTest {
     private fun find(pin: String, json: String = tileJson("tilejson-with-0003.json"), stored: ByteArray? = tile) =
         findOn(pin, if (stored == null) nothingStored(json) else basemap(json, stored))
 
-    private fun findOn(pin: String, basemap: OfflineBasemap) = runBlocking {
-        val ends = StreetDropOffEnds(ReadNearbyMapData(basemap), BRouterRouteWays(profile))
+    private fun findOn(pin: String, basemap: OfflineBasemap, ways: RouteWays = BRouterRouteWays(profile)) = runBlocking {
+        val ends = StreetDropOffEnds(ReadNearbyMapData(basemap), ways)
         FindWayToWaypointUseCase(FakeRegions(region()), engines, errorLog, ends)(DropOffTestData.point("walker"), DropOffTestData.point(pin))
     }
 
@@ -153,6 +156,24 @@ class FindWayToWaypointDropOffTest {
         assertEquals("the same way as with no ends step (log: $logged)", today("pin_a"), result)
         assertTrailEndsAt(way(result), "engine_a")
         assertEquals("one line per end: $logged", 2, byTrailLines().size)
+    }
+
+    @Test
+    fun `route ways that cannot be read go by trail as today, and the error is logged`() {
+        // A5 (the owner, 2026-11-04): an end whose route ways (.rd5) cannot be read goes by trail, logged, like a
+        // store-read failure. The tile here is the marked one, so only the ways stand between the end and its drop-off.
+        val unreadable = object : RouteWays {
+            override suspend fun near(center: LatLng, radiusMeters: Double, routeData: File) =
+                Result.failure<List<RouteWay>>(IOException("E5_N45.rd5 cannot be read"))
+        }
+        val result = findOn("pin_a", basemap(tileJson("tilejson-with-0003.json"), tile), unreadable)
+        assertEquals("the same way as with no ends step (log: $logged)", today("pin_a"), result)
+        assertTrailEndsAt(way(result), "engine_a")
+        val lines = byTrailLines()
+        assertEquals("one line per end: $logged", 2, lines.size)
+        assertTrue(lines.all { "the route ways could not be read" in it && "E5_N45.rd5 cannot be read" in it })
+        assertTrue(lines.any { "the waypoint's end" in it } && lines.any { "the lead-in" in it })
+        assertTrue("no straight line: $logged", logged.none { "straight line" in it })
     }
 
     @Test
