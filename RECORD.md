@@ -11,12 +11,6 @@ its Kind, its ID and a Timestamp read from the clock, and ends by saying who
 wrote it and on which branch. A decision quotes the owner verbatim and is
 recorded once, after any clarifying, not once for every re-ask.
 
-This file is append-only. Nothing already committed is edited or removed; a
-correction is a new entry that points at the one it corrects. The one
-exception is this header, rewritten on 2026-10-16 at the owner's word
-("Update both formats to match current standards"); entry 2026-09-28-1111 quotes the
-header it replaced.
-
 What makes an entry well formed is defined in E-GD's RECORDING.md
 (github.com/slayer8366/E-GD-Philosophy, branch Test-1), which was written
 from this record's own practice. The check_record.py and check_prompts.py
