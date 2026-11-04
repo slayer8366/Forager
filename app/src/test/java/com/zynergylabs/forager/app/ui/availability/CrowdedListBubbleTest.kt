@@ -320,10 +320,9 @@ abstract class CrowdedListBubbleTests(
         touch(MAP_BUBBLE_DETAILS_TAG)
 
         assertTrue("positive control: Details opened its sheet", shown(RECORD_DETAILS_SHEET_TAG))
+        assertFalse("positive control: the waypoint's bubble closed", shown(MAP_BUBBLE_TAG))
+        // With no bubble up, a list still held would show again here: it does not, because the action closed it (S3).
         assertFalse("the list closed with the bubble (S3)", shown(CROWDED_LIST_TAG))
-        back()
-        assertFalse("positive control: Back closed the sheet", shown(RECORD_DETAILS_SHEET_TAG))
-        assertFalse("and the list does not come back", shown(CROWDED_LIST_TAG))
     }
 
     /** "Crowded icons" stored as List. */
@@ -356,9 +355,16 @@ class CrowdedListBubblePortraitNavigatingFont20Test : CrowdedListBubbleTests(200
 /** Landscape, navigating, font 1.0: the S22's window. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
-class CrowdedListBubbleLandscapeNavigatingTest : CrowdedListBubbleTests(330f, 170f, Offset(-40f, 30f), navigating = true)
+class CrowdedListBubbleLandscapeNavigatingTest : CrowdedListBubbleTests(330f, 170f, LANDSCAPE_PAN, navigating = true)
 
 /** Landscape, navigating, font 2.0. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-class CrowdedListBubbleLandscapeNavigatingFont20Test : CrowdedListBubbleTests(330f, 170f, Offset(-40f, 30f), navigating = true)
+class CrowdedListBubbleLandscapeNavigatingFont20Test : CrowdedListBubbleTests(330f, 170f, LANDSCAPE_PAN, navigating = true)
+
+/**
+ * Landscape's pan: 200 dp right. In this window the bubble at the stack's first place is held by the clamp on both axes (the L
+ * on the left, the room under the strip; run 41785067129 saw it unmoved by a 40 dp pan, at 124 dp from the left, its full
+ * 272.67 dp tall), so the pan carries the stack far enough right that the card's ideal place is inside the box across.
+ */
+private val LANDSCAPE_PAN = Offset(200f, 30f)

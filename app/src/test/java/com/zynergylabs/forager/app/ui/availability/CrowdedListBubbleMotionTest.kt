@@ -90,8 +90,11 @@ class CrowdedListBubbleMotionTest {
         finds.forEach { s.add(MapLayerIds.FINDS, it.id, s.centre.lat, s.centre.lng) }
     }
 
-    /** Stops the clock and lets [frames] frames through after [action], so an entrance or a leave just begun is caught (MapPopUpMotionTest's). */
-    private fun pauseAfter(frames: Int = 2, action: () -> Unit) {
+    /**
+     * Stops the clock and lets [frames] frames through after [action], so an entrance or a leave just begun is caught (MapPopUpMotionTest's
+     * pattern). Five, not its two: two frames into a leave the pop-up is still drawn at 1 (run 41785067129), its shrink not yet begun.
+     */
+    private fun pauseAfter(frames: Int = 5, action: () -> Unit) {
         composeRule.mainClock.autoAdvance = false
         action()
         composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
