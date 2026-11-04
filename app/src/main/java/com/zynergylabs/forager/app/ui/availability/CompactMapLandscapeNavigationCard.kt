@@ -145,7 +145,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     )
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
-    LaunchedEffect(Unit) { cluster.navigationDisplayBottomInRootPx = null }
+    LaunchedEffect(Unit) {
+        cluster.navigationDisplayBottomInRootPx = null
+        // D42: measured afresh for each navigation.
+        cluster.navigationCardHeightWithEveningPx = null
+    }
     // Before the strip is first measured there is no width to take; nothing is drawn for that frame.
     if (layout.landscapeStripWidthPx <= 0 || layout.landscapeStripHeightPx <= 0) return
     // Motion Part 2, item 3: leaving, it takes no touch and gives up its keep-out at once. RECORD -691: no minimum touch target
@@ -189,6 +193,10 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding), WALKER_DOT_CLEARANCE its radius. Reset north is the L's second
             // row, counted only where the L and the card share columns.
             eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
+            // D42 (RECORD -2021, the owner: "Only where room is short"): they also step aside while the route card resting on this one
+            // would not otherwise fit (the route card decides, from this card's measured heights), and come back when it closes.
+            eveningStepsAside = cluster.navigationEveningStepsAside,
+            onEveningShown = { cluster.navigationEveningShown = it },
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
             cardCorners = MapCardCorners.TOP,
             outlineSides = cardOutlineSides,
@@ -197,7 +205,14 @@ internal fun BoxScope.CompactMapNavigationDisplay(
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
-                .onGloballyPositioned { coordinates -> cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot() },
+                .onGloballyPositioned { coordinates ->
+                    cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot()
+                    // D42: the tallest it has been with its evening lines, so a frame of their grow or shrink is never taken for the
+                    // card's height with them (that fed the route card's decision back into itself: Compose never idle, run 41753745001).
+                    if (cluster.navigationEveningShown) {
+                        cluster.navigationCardHeightWithEveningPx = maxOf(cluster.navigationCardHeightWithEveningPx ?: 0f, coordinates.size.height.toFloat())
+                    }
+                },
         )
     }
     }

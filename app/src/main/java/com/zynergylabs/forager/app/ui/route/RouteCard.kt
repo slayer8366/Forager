@@ -161,6 +161,13 @@ fun RouteCard(
      * cap leaves the rows no room. [onLinesHeightPx] still counts it, at its last measured height, so the answer does not flip back.
      */
     hideElevation: Boolean = false,
+    /**
+     * D42 (RECORD -2021): told the card's natural heights in px, whatever the cap squeezes them to: its lines (the handle, the name,
+     * the total line with its elevation line counted even while D40 leaves it out, the buttons and [contentBottomPadding]), the total
+     * line's elevation line, and the first leg row (0 while no row is composed). Intrinsic heights at the card's width, so they do not
+     * depend on the room the card is given.
+     */
+    onNaturalHeightsPx: (RouteCardNaturalHeights) -> Unit = {},
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -182,17 +189,29 @@ fun RouteCard(
         val currentOnLines by rememberUpdatedState(onLinesHeightPx)
         val elevationLeftOut = if (hideElevation) elevationPx else 0
         LaunchedEffect(columnPx, rowsPx, elevationLeftOut) { if (columnPx > 0) currentOnLines(columnPx - rowsPx + elevationLeftOut) }
+        var nameNatural by remember { mutableIntStateOf(0) }
+        var totalNatural by remember { mutableIntStateOf(0) }
+        var buttonsNatural by remember { mutableIntStateOf(0) }
+        var firstRowNatural by remember { mutableIntStateOf(0) }
+        val currentOnNatural by rememberUpdatedState(onNaturalHeightsPx)
+        val handlePx = with(density) { HANDLE_LAYOUT_HEIGHT.roundToPx() }
+        val bottomPx = with(density) { contentBottomPadding.roundToPx() }
+        val linesNatural = handlePx + nameNatural + totalNatural + elevationLeftOut + buttonsNatural + bottomPx
+        LaunchedEffect(linesNatural, elevationPx, firstRowNatural) { if (totalNatural > 0 && buttonsNatural > 0) currentOnNatural(RouteCardNaturalHeights(linesNatural, elevationPx, firstRowNatural)) }
         Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding).onSizeChanged { columnPx = it.height + with(density) { contentBottomPadding.roundToPx() } }) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
-                Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG))
+                DisposableEffect(Unit) { onDispose { nameNatural = 0 } }
+                Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG).naturalHeight { nameNatural = it })
             }
             if ((expanded || reveal.showsRows) && (content.legs.isNotEmpty() || content.legInFlight)) {
-                DisposableEffect(Unit) { onDispose { rowsPx = 0 } }
-                RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight, onHeightPx = { rowsPx = it })
+                DisposableEffect(Unit) { onDispose { rowsPx = 0; firstRowNatural = 0 } }
+                RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight, onHeightPx = { rowsPx = it }, onFirstRowNaturalPx = { firstRowNatural = it })
             }
-            if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit, showElevation = !hideElevation, onElevationHeightPx = { elevationPx = it }) else RouteNoLegsLine(content)
-            RouteCardButtons(content, callbacks)
+            Box(Modifier.naturalHeight { totalNatural = it }) {
+                if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit, showElevation = !hideElevation, onElevationHeightPx = { elevationPx = it }) else RouteNoLegsLine(content)
+            }
+            Box(Modifier.naturalHeight { buttonsNatural = it }) { RouteCardButtons(content, callbacks) }
         }
     }
 }
@@ -256,7 +275,7 @@ private fun RouteTotalLine(content: RouteCardContent, distanceUnit: DistanceUnit
             if (content.legInFlight) RouteCardProgress()
         }
         routeTotalElevationText(content.legElevations, UnitSystem.forDistanceUnit(distanceUnit))?.takeIf { showElevation }?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG).onSizeChanged { size -> onElevationHeightPx(size.height) })
+            Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(ROUTE_CARD_ROUTED_ELEVATION_TAG).naturalHeight(onElevationHeightPx))
         }
     }
 }
@@ -287,12 +306,12 @@ private fun RouteCardProgress() {
  * says. Measured last among the card's lines (`weight`), so the total line and the buttons are never squeezed in a short window.
  */
 @Composable
-private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: DistanceUnit, reveal: RouteCardReveal, maxHeight: Dp, onHeightPx: (Int) -> Unit = {}) {
+private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: DistanceUnit, reveal: RouteCardReveal, maxHeight: Dp, onHeightPx: (Int) -> Unit = {}, onFirstRowNaturalPx: (Int) -> Unit = {}) {
     val unitSystem = UnitSystem.forDistanceUnit(distanceUnit)
     Box(Modifier.weight(1f, fill = false).onSizeChanged { onHeightPx(it.height) }.routeCardReveal(reveal)) {
         Column(Modifier.heightIn(max = maxHeight).verticalScroll(rememberScrollState()).testTag(ROUTE_CARD_LEGS_TAG)) {
             content.legs.forEachIndexed { i, leg ->
-                Column(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i))) {
+                Column(Modifier.padding(vertical = Spacing.xs).testTag(routeCardLegTag(i)).then(if (i == 0) Modifier.naturalHeight(onFirstRowNaturalPx) else Modifier)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(routeLegText(content.stops[i].name, content.stops[i + 1].name), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).testTag(routeCardLegNameTag(i)))
                         Text(formatDistanceMeters(leg.meters, distanceUnit), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(routeCardLegDistanceTag(i)))
@@ -331,6 +350,16 @@ private fun RouteCardButtons(content: RouteCardContent, callbacks: RouteCardCall
             }
         }
     }
+}
+
+/** D42 (RECORD -2021): the card's natural heights in px, [RouteCard]'s `onNaturalHeightsPx`. */
+data class RouteCardNaturalHeights(val linesPx: Int, val elevationPx: Int, val firstRowPx: Int)
+
+/** Reports its content's intrinsic height at the width it is given, then lays it out as it would anyway. */
+private fun Modifier.naturalHeight(onPx: (Int) -> Unit): Modifier = layout { measurable, constraints ->
+    onPx(measurable.maxIntrinsicHeight(constraints.maxWidth))
+    val placeable = measurable.measure(constraints)
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
 }
 
 /** A leg is being routed: the stops have run ahead of the legs. A saved route never has one. */
