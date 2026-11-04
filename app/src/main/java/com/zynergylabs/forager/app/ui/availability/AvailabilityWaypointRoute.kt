@@ -223,7 +223,7 @@ internal class AvailabilityWaypointRoute(
             // before an assignment of `launch`'s result set it to the finished job, blocking every later search.
             val job = scope.launch(start = CoroutineStart.LAZY) {
                 val result = try {
-                    find(from, waypoint, null) // A2 STUB, tests first: accuracyMeters is not yet handed on.
+                    find(from, waypoint, accuracyMeters)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {

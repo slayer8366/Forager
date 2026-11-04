@@ -87,13 +87,14 @@ class FindWayToWaypointUseCase(
         if (found.points.any { !routes.area.contains(it) }) {
             return straight(WayToWaypointNote.LEAVES_AREA, "the trail route runs outside region ${routes.regionId}'s area")
         }
-        // Step 5 (way-to dispatch 2026-10-28): the ends. A street end is rerouted to its drop-off, both legs are gated.
+        // Step 5 (way-to dispatch 2026-10-28): the ends. A street end at the waypoint moves to its drop-off and, on a good
+        // fix, one at the walker to its pick-up (dispatch 2026-11-04-04, A2), in one re-run; both legs are gated.
         val route = when (val settled = ends.settle(from, accuracyMeters, waypoint, found, routes.folder) { a, b -> engine.router.route(a, b, routes.folder) }) {
             is WayToEnds.Settled.Refused -> return straight(settled.note, "the route's ends: ${settled.reason}")
             is WayToEnds.Settled.Route -> settled.route.also { settled.byTrail.forEach(::byTrail) }
         }
         if (route !== found && route.points.any { !routes.area.contains(it) }) {
-            return straight(WayToWaypointNote.LEAVES_AREA, "the route to the drop-off runs outside region ${routes.regionId}'s area")
+            return straight(WayToWaypointNote.LEAVES_AREA, "the re-run route, to the drop-off or from the pick-up, runs outside region ${routes.regionId}'s area")
         }
         val nearWalker = route.points.first()
         val nearWaypoint = route.points.last()
