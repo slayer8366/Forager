@@ -25,6 +25,26 @@ internal class SceneStackCamera(
     val frames = mutableListOf<EntryMapFrame>()
     val restores = mutableListOf<CameraSpot>()
 
+    /** Each restore's [restore] `animate` (dispatch 2026-11-04-02, A6), in order with [restores]. */
+    val restoresAnimated = mutableListOf<Boolean>()
+
+    /** A move shown by [showMoveFrom]: from where, to where the zoom's steps had put the camera. */
+    data class Ease(val from: CameraSpot, val to: CameraSpot)
+
+    /** Every move [showMoveFrom] was asked to show, in order. */
+    val eases = mutableListOf<Ease>()
+
+    /**
+     * While `true`, a shown move waits for [finishEase] or [takeOver], as MapLibre's ease runs over 750 ms; `false` (the default,
+     * as before A6) it arrives at once, so a test that is not about the move reads the outcome straight after the tap.
+     */
+    var holdEases = false
+
+    private var pending: Triple<Ease, () -> Unit, () -> Unit>? = null
+
+    /** Whether a held move is under way. */
+    val easing: Boolean get() = pending != null
+
     /** `false` stands for navigating: the camera is not the app's to move. */
     var available = true
 
@@ -59,11 +79,51 @@ internal class SceneStackCamera(
         return true
     }
 
-    override fun restore(spot: CameraSpot) {
+    override fun restore(spot: CameraSpot, animate: Boolean) {
         classifier.markAppMove()
         restores += spot
+        restoresAnimated += animate
         scene.centre = LatLng(spot.lat, spot.lng)
         scene.zoom = spot.zoom
+    }
+
+    override fun showMoveFrom(from: CameraSpot, onArrived: () -> Unit, onTakenOver: () -> Unit) {
+        val to = checkNotNull(spot()) { "a move shown with no camera" }
+        val ease = Ease(from, to)
+        eases += ease
+        // As MapStackCamera: back to the start at once, then the ease, both marked as the zoom's.
+        classifier.markStackZoomMove()
+        scene.centre = LatLng(from.lat, from.lng)
+        scene.zoom = from.zoom
+        classifier.markStackZoomMove()
+        if (holdEases) {
+            pending = Triple(ease, onArrived, onTakenOver)
+        } else {
+            land(ease)
+            onArrived()
+        }
+    }
+
+    /** The held move lands where the zoom's steps put the camera, and its arrival runs. */
+    fun finishEase() {
+        val (ease, arrived, _) = checkNotNull(pending) { "no move is under way" }
+        pending = null
+        land(ease)
+        arrived()
+    }
+
+    /** The user's touch stops the held move where it is, part way, as MapLibre's ease is cancelled by a gesture. */
+    fun takeOver() {
+        val (ease, _, takenOver) = checkNotNull(pending) { "no move is under way" }
+        pending = null
+        scene.centre = LatLng((ease.from.lat + ease.to.lat) / 2, (ease.from.lng + ease.to.lng) / 2)
+        scene.zoom = (ease.from.zoom + ease.to.zoom) / 2
+        takenOver()
+    }
+
+    private fun land(ease: Ease) {
+        scene.centre = LatLng(ease.to.lat, ease.to.lng)
+        scene.zoom = ease.to.zoom
     }
 
     private fun mercatorY(lat: Double): Double {

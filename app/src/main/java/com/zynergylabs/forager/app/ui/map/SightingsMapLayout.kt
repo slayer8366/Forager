@@ -109,7 +109,15 @@ internal fun SightingsMapLayout(
                     state.mapSizePx = it
                     state.navigationMapHeightPx = it.height
                 }
-                .onViewportResized { state.mapView.post { state.mapLibreMap?.let(state::reanchorFocusedBubble) } },
+                .onViewportResized {
+                    state.mapView.post {
+                        state.mapLibreMap?.let { map ->
+                            state.reanchorFocusedBubble(map)
+                            // Dispatch 2026-11-04-02, A1: the crowded stack's list bubble too.
+                            state.reanchorCrowdedList(map)
+                        }
+                    }
+                },
         )
         // RECORD -761: the cover, over the map and under everything else; no pointer input, so touches reach the map.
         if (state.coverPicture != null && state.coverPhase != CoverPhase.GONE) {
