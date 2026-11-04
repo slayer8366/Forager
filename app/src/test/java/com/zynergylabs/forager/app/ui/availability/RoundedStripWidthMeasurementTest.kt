@@ -52,7 +52,7 @@ class RoundedStripWidthMeasurementTest {
     private val small = listOf(
         "by trail", "straight",
         "sharp right 169°", "slight left 10°", "ahead 5°", "behind 175°", "169°", "5°",
-        "Alt", "9843 ft", "344 ft", "Elevation unavailable",
+        "Alt", "9843 ft", "344 ft", "Alt unavailable",
         "315° NW", "134° SE", "—",
         "Compass unavailable", "Compass unreliable", "Compass calibrating…", "Compass unavailable · north up",
         "10T ER 24991 40768", "-45.5234, -122.6876",

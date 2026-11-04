@@ -123,7 +123,7 @@ class AvailabilityScreenWayHomeRigTest {
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(isRecording = state.isRecording),
                 navigation = AvailabilityScreenNavigation(
                     returnToStart = state.returnToStart,

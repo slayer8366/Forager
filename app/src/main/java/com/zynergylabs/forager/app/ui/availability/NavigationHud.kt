@@ -211,6 +211,8 @@ internal fun NavigationHud(
      * inside the hold does not turn it back into a distance.
      */
     arrivalHeld: Boolean = false,
+    /** The strip's live height above sea level (dispatch 2026-10-28-13); see [NavigationInfo]. */
+    heightMeters: Double? = null,
     /** Dispatch 2026-10-12-06: the rounded card's corners, and how far its fill reaches up behind the piece above (RoundedMapCard.kt). */
     cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
     tuck: Dp = 0.dp,
@@ -251,6 +253,7 @@ internal fun NavigationHud(
                 eveningStepsAside = eveningStepsAside,
                 onEveningShown = onEveningShown,
                 arrivalHeld = arrivalHeld,
+                heightMeters = heightMeters,
             )
         }
     }

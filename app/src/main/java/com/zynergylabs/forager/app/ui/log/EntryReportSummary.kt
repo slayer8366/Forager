@@ -34,6 +34,11 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.EntryReport
 import com.zynergylabs.forager.app.domain.EntryReportWaypoint
 import com.zynergylabs.forager.app.domain.HeightProfile
+import com.zynergylabs.forager.app.domain.ProfileLabels
+import com.zynergylabs.forager.app.domain.seaLevelLabels
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.TrackDecision
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -123,8 +128,13 @@ internal fun EntryHeightProfile(profile: HeightProfile, distanceUnit: DistanceUn
         is HeightProfile.TooFewHeights -> ProfileLine(PROFILE_TOO_FEW_HEIGHTS_LINE, modifier)
         is HeightProfile.Drawn -> {
             val unitSystem = UnitSystem.forDistanceUnit(distanceUnit)
-            val highest = formatWholeLength(profile.highestMeters, unitSystem)
-            val lowest = formatWholeLength(profile.lowestMeters, unitSystem)
+            // Dispatch 2026-10-28-13: the labels read above sea level ([seaLevelLabels]); the stored heights are the
+            // ellipsoid's. Blank until converted, and blank on a phone that cannot convert: never the raw height.
+            val converter = LocalSeaLevelConverter.current
+            val labels by produceState<ProfileLabels?>(null, profile, converter) { value = profile.seaLevelLabels(converter) }
+            val shown = labels as? ProfileLabels.Shown
+            val highest = shown?.let { formatWholeLength(it.highestMeters, unitSystem) }.orEmpty()
+            val lowest = shown?.let { formatWholeLength(it.lowestMeters, unitSystem) }.orEmpty()
             val length = formatDistanceMeters(profile.lengthMeters, distanceUnit)
             val lineColor = MaterialTheme.colorScheme.primary
             val baseColor = MaterialTheme.colorScheme.outlineVariant
@@ -142,7 +152,7 @@ internal fun EntryHeightProfile(profile: HeightProfile, distanceUnit: DistanceUn
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .semantics { contentDescription = "Height profile: lowest $lowest, highest $highest, over $length" },
+                            .semantics { contentDescription = if (shown != null) "Height profile: lowest $lowest, highest $highest, over $length" else "Height profile: over $length" },
                     ) {
                         val span = (profile.highestMeters - profile.lowestMeters).takeIf { it > 0.0 } ?: 1.0
                         val lengthMeters = profile.lengthMeters.takeIf { it > 0.0 } ?: 1.0

@@ -109,6 +109,8 @@ class AvailabilityViewModelLiveFixTest {
             appThemePreferenceRepository = LiveFixStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LiveFixStubTripPlanningWeatherProvider),
             entryReferenceCounts = NoEntryReferenceCounts,
+            // Dispatch 2026-10-28-13: sea level 21.6 m above the raw height, so the strip's reader reads 71.6 for a 50 m fix.
+            seaLevelConverter = FixedOffsetSeaLevelConverter(21.6),
         ).also {
             // Live-fix collection is no longer started from the ViewModel's init -- it is acquired
             // on the hosting Activity's ON_START and released on ON_STOP, so the OS listener does
@@ -140,9 +142,10 @@ class AvailabilityViewModelLiveFixTest {
         val state = vm.uiState.value
         assertEquals(12.5f, state.liveFix?.accuracyMeters)
         assertEquals(1_700_000_000_000L, state.liveFix?.timestampEpochMillis)
-        // The pre-existing consumers' values, unchanged in meaning: the compass strip reads these.
+        // The pre-existing consumers' values: the compass strip reads these. The height is above sea level since
+        // dispatch 2026-10-28-13 (50 m raw + 21.6), no longer the fix's own.
         assertEquals(LatLng(45.52, -122.68), state.liveLocation)
-        assertEquals(50.0, state.liveAltitudeMeters)
+        assertEquals(71.6, state.liveAltitudeMeters!!, 1e-9)
     }
 
     @Test
@@ -249,7 +252,7 @@ class AvailabilityViewModelLiveFixTest {
 
         assertEquals(2, tracker.collectionsStarted)
         assertEquals(LatLng(45.52, -122.68), vm.uiState.value.liveLocation)
-        assertEquals(50.0, vm.uiState.value.liveAltitudeMeters)
+        assertEquals(71.6, vm.uiState.value.liveAltitudeMeters!!, 1e-9)
         assertEquals(12.5f, vm.uiState.value.liveFix?.accuracyMeters)
     }
 

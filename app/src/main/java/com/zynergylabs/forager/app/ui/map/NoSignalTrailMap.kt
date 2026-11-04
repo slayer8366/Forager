@@ -1,5 +1,10 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.domain.GroundHeightSource
+import com.zynergylabs.forager.app.domain.NoGroundHeightSource
+import com.zynergylabs.forager.app.domain.NoSeaLevelConverter
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.Composable
@@ -157,12 +162,18 @@ internal fun ForagerThemeWithNoSignal(
     darkTheme: Boolean,
     noSignal: StateFlow<Boolean>,
     offlineRegions: List<OfflineRegionSummary>,
+    /** Dispatch 2026-10-28-13: for the journal's height labels and GPX export; see [LocalSeaLevelConverter]. */
+    seaLevelConverter: SeaLevelConverter = NoSeaLevelConverter,
+    /** Dispatch 2026-11-03-07: for the waypoint bubble's "Elevation" line; see [LocalGroundHeightSource]. */
+    groundHeightSource: GroundHeightSource = NoGroundHeightSource,
     content: @Composable () -> Unit,
 ) {
     ForagerTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(
             LocalNoSignal provides noSignal,
             LocalHasDownloadedArea provides hasDownloadedArea(offlineRegions),
+            LocalSeaLevelConverter provides seaLevelConverter,
+            LocalGroundHeightSource provides groundHeightSource,
             content = content,
         )
     }
