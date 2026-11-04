@@ -12,6 +12,7 @@ import com.zynergylabs.forager.app.domain.routing.TrailSnapMethod
 import com.zynergylabs.forager.app.domain.wayhome.FakeRegions
 import com.zynergylabs.forager.app.domain.wayhome.Ground
 import com.zynergylabs.forager.app.domain.wayhome.WayHome
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import com.zynergylabs.forager.app.domain.wayto.FindWayToWaypointUseCase
 import com.zynergylabs.forager.app.domain.wayto.StreetDropOffEnds
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
@@ -23,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.io.IOException
 
 /**
  * The way to a waypoint end to end on the drop-off fixture (way-to dispatch 2026-10-28, PR 5): the real use case, the
@@ -52,11 +54,29 @@ class FindWayToWaypointDropOffTest {
         override suspend fun tile(id: TileId) = Result.success(if (id == TileId(15, 9875, 12393)) stored else null)
     }
 
-    private fun find(pin: String, json: String = tileJson("tilejson-with-0003.json"), stored: ByteArray = tile) = runBlocking {
-        val region = Ground.region(id = 7, centre = DropOffTestData.point("pin_a"), radiusKm = 2, routeData = RegionRouteData.Stored("run", "t", 10L, data))
-        val ends = StreetDropOffEnds(ReadNearbyMapData(basemap(json, stored)), BRouterRouteWays(profile))
-        FindWayToWaypointUseCase(FakeRegions(region), engines, errorLog, ends)(DropOffTestData.point("walker"), DropOffTestData.point(pin))
+    /** [stored] is the one fixture tile's bytes; null stores no tile at all. */
+    private fun find(pin: String, json: String = tileJson("tilejson-with-0003.json"), stored: ByteArray? = tile) =
+        findOn(pin, if (stored == null) nothingStored(json) else basemap(json, stored))
+
+    private fun findOn(pin: String, basemap: OfflineBasemap) = runBlocking {
+        val ends = StreetDropOffEnds(ReadNearbyMapData(basemap), BRouterRouteWays(profile))
+        FindWayToWaypointUseCase(FakeRegions(region()), engines, errorLog, ends)(DropOffTestData.point("walker"), DropOffTestData.point(pin))
     }
+
+    private fun region() = Ground.region(id = 7, centre = DropOffTestData.point("pin_a"), radiusKm = 2, routeData = RegionRouteData.Stored("run", "t", 10L, data))
+
+    /** Today's way, with no ends step at all: the engine's own ends and ungated legs. A1's "exactly as it does today". */
+    private fun today(pin: String) = runBlocking {
+        FindWayToWaypointUseCase(FakeRegions(region()), engines, ErrorLog { _, _, _ -> }, AcceptEnds)(DropOffTestData.point("walker"), DropOffTestData.point(pin))
+    }
+
+    private fun nothingStored(json: String) = object : OfflineBasemap {
+        override suspend fun tileJson() = Result.success<String?>(json)
+        override suspend fun tile(id: TileId) = Result.success<ByteArray?>(null)
+    }
+
+    /** The "by trail" lines logged, one per end that went by trail (A1: never silent). */
+    private fun byTrailLines() = synchronized(logged) { logged.filter { "by trail" in it } }
 
     private fun way(result: WayToWaypointResult): WayHome {
         assertTrue("along trails, not $result (log: $logged)", result is WayToWaypointResult.AlongTrails)
@@ -99,9 +119,46 @@ class FindWayToWaypointDropOffTest {
     }
 
     @Test
-    fun `a tile from before fences were carried is the straight line, not a route it cannot vouch for`() {
-        // A tile downloaded before the 11-01 build has no barrier mark, whatever the stored TileJSON says.
-        assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.MAP_NOT_CHECKED), find("pin_a", tileJson("tilejson-with-0003.json"), tileBefore0003))
-        assertTrue(logged.any { "MAP_NOT_CHECKED" in it && "no barrier mark" in it })
+    fun `a tile from before fences were carried goes by trail as today, with no drop-off, and says so in the log`() {
+        // A1 (the owner, 2026-11-04): "In areas without fence data, Navigate works exactly as it does today (by trail),
+        // with no street drop-off." A tile downloaded before the 11-01 build has no barrier mark, whatever the TileJSON says.
+        val result = find("pin_a", tileJson("tilejson-with-0003.json"), tileBefore0003)
+        assertEquals("the same way as with no ends step (log: $logged)", today("pin_a"), result)
+        assertTrailEndsAt(way(result), "engine_a")
+        val lines = byTrailLines()
+        assertEquals("one line per end, the waypoint's and the lead-in's: $logged", 2, lines.size)
+        assertTrue(lines.all { "no barrier mark" in it })
+        assertTrue(lines.any { "the waypoint's end" in it } && lines.any { "the lead-in" in it })
+        assertTrue("no straight line: $logged", logged.none { "straight line" in it })
+    }
+
+    @Test
+    fun `a basemap store that cannot be read goes by trail as today, and the error is logged`() {
+        // A4 (the owner, 2026-11-04): a store-read failure is "Same as an older map: Navigate goes by trail as today".
+        val broken = object : OfflineBasemap {
+            override suspend fun tileJson() = Result.failure<String?>(IOException("mbgl-offline.db is locked"))
+            override suspend fun tile(id: TileId) = Result.failure<ByteArray?>(IOException("mbgl-offline.db is locked"))
+        }
+        val result = findOn("pin_a", broken)
+        assertEquals("the same way as with no ends step (log: $logged)", today("pin_a"), result)
+        assertTrailEndsAt(way(result), "engine_a")
+        val lines = byTrailLines()
+        assertEquals("one line per end: $logged", 2, lines.size)
+        assertTrue(lines.all { "could not be read" in it && "mbgl-offline.db is locked" in it })
+    }
+
+    @Test
+    fun `a stored tile that cannot be decoded goes by trail as today, and the error is logged`() {
+        val result = find("pin_a", stored = byteArrayOf(0x1a, 0x7f, 0x00))
+        assertEquals("the same way as with no ends step (log: $logged)", today("pin_a"), result)
+        assertTrailEndsAt(way(result), "engine_a")
+        assertEquals("one line per end: $logged", 2, byTrailLines().size)
+    }
+
+    @Test
+    fun `an end whose tiles are not stored at all is still the straight line, saying the map could not be checked`() {
+        // A3 under A1: MAP_NOT_CHECKED is left for an end whose tiles are not stored.
+        assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.MAP_NOT_CHECKED), find("pin_a", stored = null))
+        assertTrue(logged.any { "MAP_NOT_CHECKED" in it && "is not stored" in it })
     }
 }
