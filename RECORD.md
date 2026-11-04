@@ -33164,3 +33164,13 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **pre-main 00be4975f's tree is d508902b**, the tree that full CI 41818672279 ran (6535 tests, 0 failures). The PR checks on the three re-pushed heads were not waited for, because the trees are unchanged. Pre-main's push run is to be read.
 - **Still open, device-only:** the read-only open of mbgl-offline.db alongside MapLibre, the second engine run's time, and the pick-up on a good fix. All need a real GPS fix.
 **Notes:** Written by the planner by hand. Next free ID -2067.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2067
+**Timestamp:** 2026-11-04T14:36:39Z
+**Continues:** 2026-09-28-2063
+**Title:** The style picker at night: rust red, replacing "Keep dark brown"
+**Decision:** The owner: "Yeah rust is only for night mode". Asked which colour night should use, given that their earlier answer kept the dark brown #6B421A, the owner chose "Rust red at night": "#A2612C, the rust the day chip used to have, moves to night." This replaces -2063's "Keep dark brown". PR #483 is to gain that change: day stays Cream with a Bark label and today's outline; night becomes #A2612C. The night label colour must stay readable on it; Hazel reports it.
+**Notes:** Written by the planner by hand. Next free ID -2068.
