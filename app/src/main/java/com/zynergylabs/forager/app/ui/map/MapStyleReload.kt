@@ -133,6 +133,8 @@ internal fun MapStyleReload(
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)
+            // Which style loaded, MapLibre's layer count and its clone record (StyleLoadLog.kt; dispatch 2026-11-04-05 B1).
+            Log.i(SIGHTINGS_MAP_TAG, styleLoadLogLine(trailUriOf(source), style.layers.size, style.json))
             // Offline night (colour build C1 (d)): the offline style has no raster layer for
             // NIGHT_RASTER_PAINT to act on, so its own layers are recoloured here, after it loads
             // from its one URL and before the overlays are added, so the overlays' own line and

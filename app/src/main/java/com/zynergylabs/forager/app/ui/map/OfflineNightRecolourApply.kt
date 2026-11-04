@@ -125,7 +125,7 @@ internal fun TrailNightTables.withLayerClonesOf(style: Style): TrailNightTables 
             "Trail night: ${clones.originals.size} clone layers recorded; " +
                 "${tables.layerColours.size - layerColours.size + tables.lineColours.size - lineColours.size} take their originals' night colours.",
         )
-        LayerClones.NotRecorded -> Log.i(SIGHTINGS_MAP_TAG, "Trail night: the style records no $LAYER_CLONES_KEY; no clone layers to map.")
+        is LayerClones.NotRecorded -> Log.i(SIGHTINGS_MAP_TAG, "Trail night: ${clones.what}; no clone layers to map.")
         is LayerClones.Unreadable -> Log.w(
             SIGHTINGS_MAP_TAG,
             "Trail night: $LAYER_CLONES_KEY could not be read (${clones.reason}); clone layers keep their own ids' night, as before.",
