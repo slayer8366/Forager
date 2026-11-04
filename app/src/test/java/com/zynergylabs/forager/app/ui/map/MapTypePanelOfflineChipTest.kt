@@ -8,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -21,7 +20,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
-import com.zynergylabs.forager.app.ui.theme.Cream
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,9 +83,8 @@ class MapTypePanelOfflineChipTest {
     private fun setSheet() {
         composeRule.setContent {
             ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
-                // Dispatch 2026-11-04-05 A1 (RECORD -2062; the owner: "Cream + today's outline", "Keep dark brown"): the light
-                // theme's normal selected fill is Cream, as Amendment 4's `secondary` was before it; the dark theme's is unchanged.
-                normalSelected = if (darkTheme) MaterialTheme.colorScheme.secondaryContainer else Cream
+                // Amendment 4 (RECORD -1771): the light theme's normal selected fill is `secondary`; the dark theme's is unchanged.
+                normalSelected = if (darkTheme) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.secondary
                 grey = MaterialTheme.colorScheme.outlineVariant
                 onSurface = MaterialTheme.colorScheme.onSurface
                 MapTypePanel(
@@ -128,28 +125,6 @@ class MapTypePanelOfflineChipTest {
         val outline = composeRule.onNodeWithTag(mapModeChipTag(mode)).fetchSemanticsNode().config[MapModeChipSelectedOutline]
         assertEquals("$where: the grey chip's recorded outline is onSurface", onSurface, outline)
         assertTrue("$where: an onSurface outline is drawn left of the grey fill", row.subList(0, firstGrey).contains(onSurface))
-    }
-
-    /**
-     * Dispatch 2026-11-04-05 A1 (RECORD -2062): on the light theme's Cream fill the label is drawn in the theme's `onSurface`
-     * (Bark), not Amendment 4's white, which would sit at 1.27:1 on Cream. Read from the drawn pixels: the darkest one in the
-     * chip's middle band, clear of its outline and corners, is the label's, and it must reach AA (4.5:1) against the fill.
-     * The dark theme's chip is unchanged, label and all ("Keep dark brown").
-     */
-    @Test
-    fun `in the light theme the chosen chip is Cream and its label reads on it`() {
-        darkTheme = false
-        chosen = MapMode.TRAIL
-        setSheet()
-        composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
-        assertEquals("light: Trail drawn in Cream", Cream, drawnFill(MapMode.TRAIL))
-        assertEquals("light: Trail's recorded selected fill", Cream, recordedFill(MapMode.TRAIL))
-        val pixels = composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).captureToImage().toPixelMap()
-        val inset = with(composeRule.density) { 3.dp.roundToPx() }
-        val band = (pixels.height / 4 until pixels.height * 3 / 4).flatMap { y -> (inset until pixels.width - inset).map { x -> pixels[x, y] } }
-        val darkest = band.minBy { it.luminance() }
-        val contrast = (Cream.luminance() + 0.05f) / (darkest.luminance() + 0.05f)
-        assertTrue("light: the label's darkest pixel $darkest reaches 4.5:1 on Cream (was $contrast:1)", contrast >= 4.5f)
     }
 
     @Test
