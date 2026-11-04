@@ -33755,3 +33755,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Amendment 1** (prompts/preserved/2026-11-04-07-amendment-1.md): A6 corrects S1; A7 the pale label; A8 and A9 the 80% fills; B5 to B8 the tests and revised predictions (K1 to K4, r4 to r7); C4 a Phase 1b on the 80% mechanism; C5 the widened scope; C6 the device check's step 3; C7 a fresh Hazel session.
 - **A fresh Hazel:** the first Hazel's conversation passed 200,000 tokens, so a new one takes Phase 1b with a handoff (planner-profile.md). It is the same coder role on the same dispatch, under the owner's "Start Hazel yes" (-2091).
 **Notes:** Written by the planner by hand. Next free ID -2094.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2094
+**Timestamp:** 2026-11-04T18:51:53Z
+**Continues:** 2026-09-28-2093
+**Title:** The map type chips stay solid, the owner's exception to the 80% map chrome rule; dispatch 2026-11-04-07 Amendment 2
+**Decision:**
+- **The owner, verbatim,** after -2093's "80%, per your rule": "Keep them solid as they are today." "Chips are the exception to that rule" "As In the opacity rule. Map chrome in general remains 80%".
+- **Asked two questions:**
+  - "Does that cover only the map type chips (Trail, Topo, Street), or every chip drawn over the map?": **"Map type chips only"**. The option read "The exception covers Trail, Topo and Street. Other chips over the map stay under the 80% rule."
+  - "Should Hazel add your ruling there [docs/plans/journal-redesign.md, under "Map chrome at 80%, nothing fully obstructs the map"], in your words, in the same PR as the chips?": **"Record only, no doc change"**.
+- **So:** the map type chips' fills stay opaque, as on pre-main. That is the owner's stated exception to CLAUDE.md's "Nothing fully obstructs the map view", for Trail, Topo and Street only. The panel, the rest of the map chrome and every other chip over the map stay at 80%. It is recorded here and in Amendment 2 only; journal-redesign.md and CLAUDE.md are not changed. -2093's A8, A9, B7, r6, C4 (80% items) and C5 are withdrawn.
+- **Hazel:** the fresh session was told by message before this was written, with the owner's words quoted. Her Phase 1b is narrowed to a revised mechanism and test plan.
+- **Amendment 2:** prompts/preserved/2026-11-04-07-amendment-2.md (A10, B9, C8, C9).
+**Notes:** Written by the planner by hand. Next free ID -2095.
