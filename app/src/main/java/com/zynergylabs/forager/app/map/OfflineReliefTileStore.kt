@@ -41,8 +41,7 @@ class OfflineReliefTileStore(
 ) : ReliefTileStore {
 
     override fun tile(z: Int, x: Int, y: Int): ReliefTileRead {
-        // No database: nothing has ever been downloaded or cached on this phone.
-        if (!database.isFile) return ReliefTileRead.NotStored
+        if (true) return ReliefTileRead.NotStored // STUB
         return try {
             SQLiteDatabase.openDatabase(database.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 schemaProblem(db)?.let { return ReliefTileRead.Unsupported(it) }

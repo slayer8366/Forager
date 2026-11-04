@@ -173,7 +173,7 @@ internal fun ForagerThemeWithNoSignal(
             LocalNoSignal provides noSignal,
             LocalHasDownloadedArea provides hasDownloadedArea(offlineRegions),
             LocalSeaLevelConverter provides seaLevelConverter,
-            LocalGroundHeightSource provides groundHeightSource,
+            // STUB
             content = content,
         )
     }

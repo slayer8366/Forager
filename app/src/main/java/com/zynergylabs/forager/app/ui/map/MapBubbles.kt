@@ -384,7 +384,7 @@ internal fun waypointFromStartLine(meters: Double, distanceUnit: DistanceUnit): 
  * separator ([formatWholeLength], as the strip's "Alt 1352 ft"). `null` for a height not known, which draws no line (A2).
  */
 internal fun waypointElevationLine(height: GroundHeight, distanceUnit: DistanceUnit): String? = when (height) {
-    is GroundHeight.Known -> "Elevation ${formatWholeLength(height.metres, UnitSystem.forDistanceUnit(distanceUnit))}"
+    is GroundHeight.Known -> null // STUB
     is GroundHeight.Unknown -> null
 }
 
