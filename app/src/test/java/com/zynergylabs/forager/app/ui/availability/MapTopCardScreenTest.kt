@@ -97,24 +97,13 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
         Box(modifier.testTag(TOP_CARD_MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
     }
 
-    /**
-     * RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): the Maps tab asks the map to
-     * put the "i" beside the credit strip in landscape, and not in portrait. The placement itself is `AttributionBesideCreditTest`'s;
-     * MapLibre's control cannot be drawn or touched under Robolectric.
-     */
-    @Test
-    fun `the map is asked to put the i beside the credit strip in landscape only`() {
-        setScreen()
-        assertEquals("beside the credit strip: landscape ${rotation != null}", rotation != null, lastRenderMode?.attributionBesideCredit)
-    }
-
     fun setScreen() {
         if (rotation != null) Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             rotationSeen = LocalView.current.display?.rotation
             key(generation) {
                 AvailabilityScreen(
-                    uiState = AvailabilityUiState(liveFix = fix),
+                    uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                     recording = AvailabilityScreenRecording(
                         isRecording = true,
                     ),

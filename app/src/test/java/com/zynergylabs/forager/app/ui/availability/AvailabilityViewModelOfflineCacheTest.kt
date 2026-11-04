@@ -21,6 +21,7 @@ import com.zynergylabs.forager.app.domain.MushroomRepository
 import com.zynergylabs.forager.app.domain.MutableClock
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
@@ -209,6 +210,7 @@ class AvailabilityViewModelOfflineCacheTest {
         unitSystemPreferenceRepository = OfflineCacheStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = OfflineCacheStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineCacheStubTripPlanningWeatherProvider),
+        entryReferenceCounts = NoEntryReferenceCounts,
     )
 
     /** Drives the real coordinate-entry callbacks rather than reaching into state. */

@@ -9,6 +9,7 @@ import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
 import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
@@ -200,14 +201,14 @@ class MushroomLogViewModel(
     /** Photo-geodata dispatch: the fire-and-forget GPS fix for a freshly captured camera photo — see this class's own doc comment, "Camera-capture location." */
     private val locationProvider: LocationProvider,
     private val updatePhotoLocation: UpdatePhotoLocationUseCase,
-    /** How many Cartography entries currently keep a photo attached — Journal Stage 2b's 4b deletion warning, extended to photos. Plain suspend function rather than the whole Cartography repository — see `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why. */
-    private val getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
+    /** How many journal entries keep each photo, live, for its delete message, album badge and map bubble (dispatch 2026-10-28-08). No default, so a factory that leaves it out does not compile (Sorrel's N1). */
+    private val entryReferenceCounts: EntryReferenceCountSource,
     /**
      * The device fix currently in hand, if any — find-location-at-creation dispatch, Fix 1. In
      * production this reads `AvailabilityViewModel`'s held `liveFix` (`MainActivity` wires the
      * lambda), the one live collection of fixes that runs whenever the app is foregrounded and is
      * not gated on a recording. A plain function rather than the other ViewModel or its state
-     * flow, the same shape as [getPhotoEntryReferenceCount]: this class needs one value at one
+     * flow, the same shape the photo counts had until dispatch 2026-10-28-08: this class needs one value at one
      * moment, never a subscription. Never awaited — see [MushroomLogCaptureLocation.freshDeviceLocation].
      */
     private val currentFix: () -> LocationFix.Update? = { null },
@@ -218,7 +219,7 @@ class MushroomLogViewModel(
      * to matter rather than held — see
      * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what it gates and
      * why the owner's ruling makes that wider than the label. Borrowed as a plain suspend function,
-     * the same shape as [getPhotoEntryReferenceCount], and defaulted to `true` so every existing
+     * the same plain-function shape as [currentFix], and defaulted to `true` so every existing
      * test keeps the behaviour it was written against.
      *
      * **Re-read per capture, never cached.** A user who unchecks this in Settings and immediately
@@ -283,7 +284,7 @@ class MushroomLogViewModel(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         getGalleryPhotos = getGalleryPhotos,
-        getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         addPhotoToGallery = addPhotoToGallery,
         deleteGalleryPhoto = deleteGalleryPhoto,
         onPhotoDeleted = onPhotoDeleted,
@@ -333,13 +334,14 @@ class MushroomLogViewModel(
     )
 
     init {
+        gallery.watchReferenceCounts()
         loadEntries()
         loadGalleryPhotos()
     }
 
     fun loadEntries(): Job {
         return viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
+            _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null, draftsLoadErrorMessage = null) }
             // Workstream L4c: the read and the editingEntry merge it feeds are one critical section
             // — see this class's own "Serialized editing-entry mutations" doc comment. Acquired here
             // (not just around the final _uiState.update) so a write that's already mid-flight when
@@ -348,7 +350,8 @@ class MushroomLogViewModel(
             editingEntryMutex.withLock {
                 getEntries().fold(
                     onSuccess = { entries ->
-                        val drafts = getDraftEntries().getOrElse { error ->
+                        val draftsRead = getDraftEntries()
+                        val drafts = draftsRead.getOrElse { error ->
                             Log.w(TAG, "Couldn't load drafts.", error)
                             _uiState.value.draftEntries
                         }
@@ -363,6 +366,7 @@ class MushroomLogViewModel(
                             state.copy(
                                 entries = entries,
                                 draftEntries = drafts,
+                                draftsLoadErrorMessage = if (draftsRead.isFailure) LOG_UNAVAILABLE else null,
                                 editingEntry = if (freshPhotos != null) editing.copy(photos = freshPhotos) else editing,
                                 isLoadingEntries = false,
                             )
@@ -374,7 +378,7 @@ class MushroomLogViewModel(
                             // Not belief-changing — the entries are on disk; only the read failed. See
                             // docs/error-presentation-spec.md's per-field table: neutral "unavailable"
                             // wording that doesn't imply anything was lost, not "Couldn't load...".
-                            it.copy(isLoadingEntries = false, loadErrorMessage = "Log entries unavailable.")
+                            it.copy(isLoadingEntries = false, loadErrorMessage = LOG_UNAVAILABLE)
                         }
                     },
                 )
@@ -763,5 +767,7 @@ class MushroomLogViewModel(
 
     internal companion object {
         const val TAG = "MushroomLog"
+        /** A failed read of the log, on Log and, since Amendment 2 of dispatch 2026-10-28-08 (Sorrel's N5), on Drafts. */
+        const val LOG_UNAVAILABLE = "Log entries unavailable."
     }
 }

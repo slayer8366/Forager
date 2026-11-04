@@ -605,6 +605,7 @@ internal fun JournalTab(
             newFindInHeader = if (inRecords && isLandscapeJournal()) findsLogShownInRecords else null,
             modifier = Modifier.weight(1f),
             loadErrorMessage = uiState.loadErrorMessage,
+            draftsLoadErrorMessage = uiState.draftsLoadErrorMessage,
             // J4b L1: a tile's long-press menu. Delete is the report's own pending delete (J4);
             // Edit opens the find straight into its edit form.
             onDeleteEntry = onDeleteEntry,

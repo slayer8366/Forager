@@ -77,7 +77,7 @@ class JournalBackupTest {
         val manifest = JSONObject(String(zip.getValue("manifest.json")))
         assertEquals(1, manifest.getInt("formatVersion"))
         assertEquals(42L, manifest.getLong("appVersionCode"))
-        assertEquals(22, manifest.getInt("schemaVersion"))
+        assertEquals(23, manifest.getInt("schemaVersion"))
         assertTrue("created time is stamped", manifest.getLong("createdAtEpochMillis") > 0)
         val files = manifest.getJSONArray("files")
         assertEquals(5, files.length())
@@ -96,7 +96,7 @@ class JournalBackupTest {
         val db = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY)
         db.use {
             assertEquals("ok", it.rawQuery("PRAGMA integrity_check", null).use { c -> c.moveToFirst(); c.getString(0) })
-            assertEquals(22, it.version)
+            assertEquals(23, it.version)
             assertEquals(a.count("track_points"), it.rawQuery("SELECT COUNT(*) FROM track_points", null).use { c -> c.moveToFirst(); c.getLong(0) })
         }
     }
@@ -729,8 +729,9 @@ class JournalBackupTest {
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
         assertEquals("a value from the old snapshot survived the migration", "name-1", b.scalar("SELECT name FROM waypoints"))
-        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths") assertEquals("one seeded row in $t", 1L, b.count(t))
+        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths" - ROUTE_TABLE_NAMES) assertEquals("one seeded row in $t", 1L, b.count(t))
         assertEquals("no path was invented for the old backup's track ref", 0L, b.count("cartography_entry_track_paths"))
+        for (t in ROUTE_TABLE_NAMES) assertEquals("no route was invented for the old backup's trips: $t", 0L, b.count(t))
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
 
@@ -777,8 +778,10 @@ class JournalBackupTest {
         assertEquals("a value from the old snapshot survived the migration", "name-1", b.scalar("SELECT name FROM waypoints"))
         assertEquals("text-1", b.scalar("SELECT text FROM cartography_entries"))
         // A v15 file has no path table: it arrives through MIGRATION_16_17, present and empty (F3).
-        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths") assertEquals("one seeded row in $t", 1L, b.count(t))
+        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths" - ROUTE_TABLE_NAMES) assertEquals("one seeded row in $t", 1L, b.count(t))
         assertEquals("the path table the migration created is there and empty", 0L, b.count("cartography_entry_track_paths"))
+        // A v15 file has no route tables either: they arrive through MIGRATION_22_23, present and empty.
+        for (t in ROUTE_TABLE_NAMES) assertEquals("the route table the migration created is there and empty: $t", 0L, b.count(t))
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
 
@@ -792,7 +795,7 @@ class JournalBackupTest {
 
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals("the live database stayed at the app's own version throughout", 22, liveVersionDuringRestore)
+        assertEquals("the live database stayed at the app's own version throughout", 23, liveVersionDuringRestore)
     }
 
     // ---- recent searches are left out (F5, dispatch 2026-09-28-216; owner, "2 A") ------------------
@@ -903,21 +906,6 @@ class JournalBackupTest {
         assertFalse("and its JPG", java.io.File(b.filesDir, "photos/r9.jpg").exists())
     }
 
-    // ---- what the table list is ----------------------------------------------------------------
-
-    @Test
-    fun `every table in the schema is either journal data or explicitly excluded, and the specs match the schema`() {
-        val schemaTables = Phone.allTables()
-        val journal = JournalTables.journal.map { it.name }
-        assertEquals("the journal list, as ruling 3 B names it", JOURNAL_TABLE_NAMES.sorted(), journal.sorted())
-        assertEquals("nothing is both, and nothing is neither", schemaTables.sorted(), (journal + JournalTables.excluded.keys).sorted())
-        assertEquals(emptyList<String>(), journal.intersect(JournalTables.excluded.keys).toList())
-        val pk = schemaPrimaryKeys(Phone.SCHEMA)
-        for (spec in JournalTables.journal) assertEquals("${spec.name}'s key columns", pk.getValue(spec.name), spec.keyColumns)
-        assertEquals("the schema version this build restores up to is the one the database declares", 22, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
-        assertEquals(com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION, phone().database.openHelper.readableDatabase.version)
-    }
-
     /** These rows with a restored region's fresh [new] id read as its old [old]: the id column and every reference to it. */
     private fun Map<String, List<String>>.withRegionId(new: Long, old: Long): Map<String, List<String>> =
         mapValues { (_, rows) ->
@@ -942,9 +930,3 @@ class JournalBackupTest {
         return out
     }
 }
-
-internal val JOURNAL_TABLE_NAMES = listOf(
-    "mushroom_log_entries", "log_photos", "log_entry_photos", "tracks", "track_points", "waypoints", "offline_regions",
-    "planned_trips", "cartography_entries", "cartography_entry_track_refs", "cartography_entry_waypoint_refs",
-    "cartography_entry_offline_region_refs", "cartography_entry_find_refs", "cartography_entry_photo_refs", "cartography_entry_track_paths",
-)

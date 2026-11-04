@@ -36,6 +36,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -184,6 +185,7 @@ class AvailabilityScreenBackNavigationTest {
             unitSystemPreferenceRepository = BackNavStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = BackNavStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(BackNavStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -629,12 +631,12 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performClick()
-        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
 
         pressBack()
 
         // Still on Records, now on Finds — not bounced out to Cartography or Maps.
-        composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertDoesNotExist()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
         composeRule.onNodeWithText("Records").assertIsSelected()
     }

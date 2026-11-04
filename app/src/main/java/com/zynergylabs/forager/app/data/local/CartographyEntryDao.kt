@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Room access to the Cartography entry table and its four kept-item ref tables. One DAO spanning all
@@ -197,4 +198,55 @@ abstract class CartographyEntryDao {
         """,
     )
     abstract suspend fun countEntriesReferencingPhoto(photoId: String): Int
+
+    // Dispatch 2026-10-28-08 (RECORD -1780, -1781; the owner: "Live count (Recommended)"): the four counts above,
+    // every id at once, as queries Room re-runs after any committed write to the ref table or to
+    // cartography_entries. So a journal entry saved or deleted by any path changes the count on screen with
+    // nothing calling a reload. Same WHERE as each one-shot query above (kept = 1 where the table has it,
+    // isDraft = 0 always); an id with no committed, kept reference has no row, and readers take a missing id as 0.
+    @Query(
+        """
+        SELECT cartography_entry_waypoint_refs.waypointId AS id, COUNT(*) AS count FROM cartography_entry_waypoint_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_waypoint_refs.entryId
+        WHERE cartography_entry_waypoint_refs.kept = 1 AND cartography_entries.isDraft = 0
+        GROUP BY cartography_entry_waypoint_refs.waypointId
+        """,
+    )
+    abstract fun observeWaypointReferenceCounts(): Flow<List<EntryReferenceCountRow>>
+
+    @Query(
+        """
+        SELECT cartography_entry_track_refs.trackId AS id, COUNT(*) AS count FROM cartography_entry_track_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_track_refs.entryId
+        WHERE cartography_entry_track_refs.kept = 1 AND cartography_entries.isDraft = 0
+        GROUP BY cartography_entry_track_refs.trackId
+        """,
+    )
+    abstract fun observeTrackReferenceCounts(): Flow<List<EntryReferenceCountRow>>
+
+    @Query(
+        """
+        SELECT cartography_entry_offline_region_refs.offlineRegionId AS id, COUNT(*) AS count FROM cartography_entry_offline_region_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_offline_region_refs.entryId
+        WHERE cartography_entry_offline_region_refs.kept = 1 AND cartography_entries.isDraft = 0
+        GROUP BY cartography_entry_offline_region_refs.offlineRegionId
+        """,
+    )
+    abstract fun observeOfflineRegionReferenceCounts(): Flow<List<OfflineRegionReferenceCountRow>>
+
+    @Query(
+        """
+        SELECT cartography_entry_photo_refs.photoId AS id, COUNT(*) AS count FROM cartography_entry_photo_refs
+        INNER JOIN cartography_entries ON cartography_entries.id = cartography_entry_photo_refs.entryId
+        WHERE cartography_entries.isDraft = 0
+        GROUP BY cartography_entry_photo_refs.photoId
+        """,
+    )
+    abstract fun observePhotoReferenceCounts(): Flow<List<EntryReferenceCountRow>>
 }
+
+/** One row of a live count query above: a record's id and how many committed journal entries keep it. */
+data class EntryReferenceCountRow(val id: String, val count: Int)
+
+/** [EntryReferenceCountRow] for offline regions, whose ids are numbers. */
+data class OfflineRegionReferenceCountRow(val id: Long, val count: Int)

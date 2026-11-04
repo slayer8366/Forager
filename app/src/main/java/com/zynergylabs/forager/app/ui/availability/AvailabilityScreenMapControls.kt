@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
@@ -39,6 +40,12 @@ data class AvailabilityScreenMapControls(
      * `AppContainer.forecastCellStore`). All defaulted, so no other caller changes.
      */
     val onMapShown: () -> Unit = {},
+    /**
+     * Dispatch 2026-10-28-13, Amendment 3 (RECORD -1797; the owner: "Map tab only (Recommended)"): whether the Maps tab is
+     * showing, reported each time it changes, so the map reads the barometer only there
+     * ([AvailabilityViewModel.onMapsTabShownChanged]). Defaulted, so no other caller changes.
+     */
+    val onMapsTabShownChanged: (Boolean) -> Unit = {},
     val onMapLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
     val onMapLayerOpacityChanged: (String, Float) -> Unit = { _, _ -> },
     val onColourFieldMoved: (String, ColourFieldMove) -> Unit = { _, _ -> },
@@ -53,4 +60,6 @@ data class AvailabilityScreenMapControls(
      * height ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). Defaulted, so no other caller changes.
      */
     val onMapIconClusterPlacementChanged: (MapIconClusterPlacement) -> Unit = {},
+    /** Route plotting (dispatch 2026-10-30-08, step 3): the ViewModel's state and actions. `null` (tests, other callers) offers none. */
+    val routePlotting: RoutePlottingControls? = null,
 )

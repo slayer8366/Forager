@@ -11,6 +11,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -19,6 +20,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ForecastCell
+import com.zynergylabs.forager.app.domain.GroundHeight
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.availability.ObservationBubble
@@ -108,6 +113,13 @@ internal fun MapBubbleLayer(
                                 onDismiss()
                             }
                         }
+                    }?.let { found ->
+                        // Dispatch 2026-11-03-07 (B2): the bubble shows at once; its elevation line joins it when read.
+                        if (found is MapBubbleContent.WaypointContent) {
+                            found.copy(elevation = rememberWaypointElevationLine(found.waypoint.lat, found.waypoint.lng, sources.distanceUnit))
+                        } else {
+                            found
+                        }
                     }
                 }
                 content?.let { ShownBubble(thing, it) }
@@ -149,6 +161,18 @@ internal fun MapBubbleLayer(
                                 { id: String ->
                                     onDismiss()
                                     navigate(WaypointNavigationOrigin.MapBubble(id, bubble.tapped.anchorPx, bubble.tapped.bearingDeg))
+                                }
+                            },
+                            // Dispatch 2026-10-30-08: plotting starts from this waypoint, and the bubble closes.
+                            onPlotRoute = sources.routePlotting?.let { plotting ->
+                                { id: String ->
+                                    val waypoint = sources.waypoints.firstOrNull { it.id == id }
+                                    onDismiss()
+                                    if (waypoint != null) {
+                                        plotting.actions.onStartPlotting(RouteStop(waypoint.name, LatLng(waypoint.lat, waypoint.lng)))
+                                    } else {
+                                        Log.w(MAP_BUBBLE_LOG_TAG, "Waypoint $id is gone; plotting did not start.")
+                                    }
                                 }
                             },
                         )
@@ -214,3 +238,16 @@ private const val MAP_BUBBLE_LOG_TAG = "MapBubble"
 
 /** A tapped thing with what its bubble shows, resolved (motion Part 2, Amendment 1, item 6): `content` is null for a sighting. */
 private data class ShownBubble(val tapped: TappedMapThing, val content: MapBubbleContent?)
+
+/**
+ * The elevation line for a waypoint at [lat], [lng] (dispatch 2026-11-03-07): `null` while [LocalGroundHeightSource] reads
+ * it, off the main thread (B2), and when there is no height there (A2). Keyed on the spot, so another waypoint's bubble
+ * never shows this one's height while its own is read.
+ */
+@Composable
+private fun rememberWaypointElevationLine(lat: Double, lng: Double, distanceUnit: DistanceUnit): String? {
+    val source = LocalGroundHeightSource.current
+    var height by remember(source, lat, lng) { mutableStateOf<GroundHeight?>(null) }
+    LaunchedEffect(source, lat, lng) { height = source.groundHeightAt(LatLng(lat, lng)) }
+    return height?.let { waypointElevationLine(it, distanceUnit) }
+}

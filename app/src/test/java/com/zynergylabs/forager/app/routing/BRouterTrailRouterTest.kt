@@ -75,11 +75,27 @@ class BRouterTrailRouterTest {
             micro(lat) to micro(lon)
         }
         val expectedLength = feature.getValue("properties").jsonObject.getValue("track-length").jsonPrimitive.content.toInt()
+        // BRouter's GeoJSON writes a third value only where the point has a height (FormatJson.java:109).
+        val expectedHeights = feature.getValue("geometry").jsonObject.getValue("coordinates").jsonArray.map { point ->
+            point.jsonArray.getOrNull(2)?.jsonPrimitive?.double
+        }
 
         assertTrue("$name: the command-line route has points", expectedPoints.size > 100)
         assertEquals("$name: every point, in micro-degrees", expectedPoints, route.points.map { micro(it.lat) to micro(it.lng) })
         assertEquals("$name: length in metres", expectedLength, route.lengthMetres)
+        assertEquals("$name: every point's height, as the command-line router gives it", expectedHeights, route.heightsMetres)
         assertTrue("nothing logged on a found route: $logged", logged.isEmpty())
+    }
+
+    // ---- Heights (dispatch 2026-10-30-06) ----
+
+    @Test
+    fun `on route data without heights every point's height is missing, never 0`() {
+        val result = route(ACROSS_FROM, ACROSS_TO)
+        assertTrue("found, not $result", result is TrailRouteResult.Found)
+        val heights = (result as TrailRouteResult.Found).route.heightsMetres
+        assertTrue("one height per point, and more than a handful: ${heights.size}", heights.size > 100)
+        assertEquals("the Harriman fixture has no heights: none at any point, and no 0 or -8192 standing in", emptyList<Double>(), heights.filterNotNull())
     }
 
     // ---- An end outside the data (RECORD -1546: never moved to a far trail) ----

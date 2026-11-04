@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.ForecastBlock
 import com.zynergylabs.forager.app.domain.ForecastCell
@@ -11,6 +12,9 @@ import com.zynergylabs.forager.app.domain.HighlightedRecord
 import com.zynergylabs.forager.app.domain.HighlightedRecordKind
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.GroundHeight
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
@@ -196,10 +200,15 @@ data class MapRecordSources(
     val onOpenEntry: ((String) -> Unit)? = null,
     /**
      * Dispatch 2026-09-28-502: a waypoint's "Navigate", in its bubble and its details sheet, given where it
-     * was tapped. Only the Maps tab passes one (the owner: "only Maps, the sheet and Records"); `null`, an
-     * entry map's, offers Directions only.
+     * was tapped. The Maps tab passes one, and since RECORD -890 a journal entry's map does too; `null`
+     * (tests only) offers none. Directions is offered only where Navigate cannot reach (RECORD -1819).
      */
     val onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
+    /**
+     * Route plotting (dispatch 2026-10-30-08, step 3; the planner's ruling on Q11: carried here, so the scaffold is unchanged):
+     * a waypoint bubble's "Plot route", and what the Maps tab's taps, card and Back read. Only the Maps tab passes one.
+     */
+    val routePlotting: RoutePlottingControls? = null,
 )
 
 /** The Maps tab's find action (owner's M1 ruling 2). */
@@ -229,7 +238,7 @@ sealed interface MapBubbleContent {
      */
     data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
+    /** A waypoint: its name and MGRS; Navigate and details while its record exists ([hasDetails]), Directions otherwise (RECORD -1819). */
     data class WaypointContent(
         val waypoint: Waypoint,
         val mgrs: String?,
@@ -237,13 +246,19 @@ sealed interface MapBubbleContent {
         val keptIn: List<JournalEntryOnMap> = emptyList(),
         /** "0.3 mi walked from the start" on an entry map (RECORD -867); `null` everywhere else and when it is not known. */
         val fromStart: String? = null,
+        /**
+         * "Elevation 1352 ft", the ground's height at the waypoint's spot (dispatch 2026-11-03-07; [waypointElevationLine]).
+         * `null` until the height is read ([MapBubbleLayer]), and when there is none, which draws no line (A2).
+         */
+        val elevation: String? = null,
     ) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
     data class TrackContent(val trackId: String, val title: String, val date: String?, val distance: String, val duration: String, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A planned trip: what its Trip Planner row shows; Directions. */
-    data class Trip(val trip: PlannedTrip, val date: String, val mgrs: String?, val coordinates: String) : MapBubbleContent
+    /** [date] is null for an undated trip (schema 23), which shows no date line. */
+    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val coordinates: String) : MapBubbleContent
 
     /** An offline region: its name, radius, size, and whether it is stale; details. */
     data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
@@ -317,7 +332,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             // date, MGRS when there is one, decimal degrees.
             MapBubbleContent.Trip(
                 trip = trip,
-                date = displayDate(trip.date),
+                date = trip.date?.let(::displayDate),
                 mgrs = mgrsOf(trip.location),
                 coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )
@@ -362,6 +377,16 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
 /** A waypoint's distance from the start as its entry-map bubble writes it (RECORD -867): "0.3 mi walked from the start". */
 internal fun waypointFromStartLine(meters: Double, distanceUnit: DistanceUnit): String =
     "${formatDistanceMeters(meters, distanceUnit)} walked from the start"
+
+/**
+ * The waypoint bubble's elevation line (dispatch 2026-11-03-07; the owner: "Example: Elevation 372 ft.", then "Elevation
+ * 1352 ft (Recommended)"): the word, a space, and the height in the Units setting as a whole number with no thousands
+ * separator ([formatWholeLength], as the strip's "Alt 1352 ft"). `null` for a height not known, which draws no line (A2).
+ */
+internal fun waypointElevationLine(height: GroundHeight, distanceUnit: DistanceUnit): String? = when (height) {
+    is GroundHeight.Known -> "Elevation ${formatWholeLength(height.metres, UnitSystem.forDistanceUnit(distanceUnit))}"
+    is GroundHeight.Unknown -> null
+}
 
 /** A find's date as its gallery tile captions it ("Find on <date>", `FindsGalleryScreen`). */
 private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${displayDate(find.foundOn)}"

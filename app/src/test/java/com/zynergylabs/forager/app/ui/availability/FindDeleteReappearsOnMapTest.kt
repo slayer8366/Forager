@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -153,6 +154,7 @@ class FindDeleteReappearsOnMapTest {
             getTodaysForecast = GetTodaysForecastUseCase(NoWeather),
             // The real read is the database the delete removes from: the same store, read at the moment it is asked.
             getMapRecords = { MapRecords.NONE.copy(findMarkers = repository.markers()) },
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         val log = MushroomLogViewModel(
             getEntries = GetMushroomLogEntriesUseCase(repository),
@@ -172,6 +174,7 @@ class FindDeleteReappearsOnMapTest {
             updatePhotoLocation = UpdatePhotoLocationUseCase(repository),
             // As MainActivity wires it.
             onFindDeleted = { id -> availability.onFindDeleted(id) },
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         return Rig(repository, log, availability)
     }
