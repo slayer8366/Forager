@@ -33337,3 +33337,26 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Not compiled or run before the push.** PR #486's checks run on it, and its merge waits for the owner.
 - **In conflict with the owner's earlier words, for the owner:** -2070's palette (night rust red, day cream) and -2073's "Pale default + outline". Both follow from "until all is reverted before any color change". PR #485 (the palette rule) no longer matches the code.
 **Notes:** Written by the planner by hand. Next free ID -2075.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2075
+**Timestamp:** 2026-11-04T15:37:05Z
+**Continues:** 2026-09-28-2074, 2026-09-28-2073
+**Title:** Amendment 4 named as a planner error; PR #485 kept for the next feature; PR #486 set aside
+**Decision:**
+- **The owner, verbatim:**
+  - "It was not deleted on Nov 4 it was corrected on Nov 4. Deleted means I reversed my decision. It was not my choice. Name it as a planner error";
+  - "Use PR 485 for another purpose";
+  - "Merge 486 into 485 and set aside 486 for something else" (the planner's command for it was rejected before running; then "Stop");
+  - "Show the last question again" (answered "Something else");
+  - "Carousel it";
+  - "485 will be used for the next feature."
+- **Done:** dispatch 2026-10-28-02's Amendment 4 note and -2073 now read "corrected on 2026-11-04, a planner error", corrected in place.
+- **Not done, waiting for the owner:**
+  - #485 (branch palette-rule, d951f6b6b, still the palette bullet) is kept for the next feature, which is not yet named. Nothing on it is changed.
+  - #486 (delete-amendment-4, d82cf520e, every chip colour change reverted) is set aside, unmerged.
+  - The meaning of "Carousel it" is unclear and has been asked.
+  - Unchanged: the style-picker-cream-revert-1/2/3 branches and the local undo-chip-colours (dc1bbe972).
+**Notes:** Written by the planner by hand. Next free ID -2076.
