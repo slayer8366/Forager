@@ -22,6 +22,7 @@ import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
 import com.zynergylabs.forager.app.ui.theme.Cream
+import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,9 +86,9 @@ class MapTypePanelOfflineChipTest {
     private fun setSheet() {
         composeRule.setContent {
             ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
-                // Dispatch 2026-11-04-05 A1 (RECORD -2062; the owner: "Cream + today's outline", "Keep dark brown"): the light
-                // theme's normal selected fill is Cream, as Amendment 4's `secondary` was before it; the dark theme's is unchanged.
-                normalSelected = if (darkTheme) MaterialTheme.colorScheme.secondaryContainer else Cream
+                // Dispatch 2026-11-04-05 A1 (RECORD -2062, -2067; the owner: "Cream + today's outline"): the light theme's
+                // normal selected fill is Cream, and the dark theme's the rust red MushroomDeep the light one had before.
+                normalSelected = if (darkTheme) MushroomDeep else Cream
                 grey = MaterialTheme.colorScheme.outlineVariant
                 onSurface = MaterialTheme.colorScheme.onSurface
                 MapTypePanel(
@@ -131,25 +132,48 @@ class MapTypePanelOfflineChipTest {
     }
 
     /**
+     * [mode]'s chip drawn and recorded in [fill], and its label readable on it: the label pixel farthest in luminance from
+     * the fill, in the chip's middle band clear of its outline and corners, must reach AA (4.5:1) against [fill]. A label
+     * no darker or lighter than the fill leaves only fill pixels there, 1:1.
+     */
+    private fun assertChosenChip(mode: MapMode, fill: Color, where: String) {
+        composeRule.onNodeWithTag(mapModeChipTag(mode)).assertIsSelected()
+        assertEquals("$where: drawn fill", fill, drawnFill(mode))
+        assertEquals("$where: recorded selected fill", fill, recordedFill(mode))
+        val pixels = composeRule.onNodeWithTag(mapModeChipTag(mode)).captureToImage().toPixelMap()
+        val inset = with(composeRule.density) { 3.dp.roundToPx() }
+        val band = (pixels.height / 4 until pixels.height * 3 / 4).flatMap { y -> (inset until pixels.width - inset).map { x -> pixels[x, y] } }
+        val contrast = band.maxOf { contrastOf(it, fill) }
+        assertTrue("$where: the label reaches 4.5:1 on the fill (was $contrast:1)", contrast >= 4.5f)
+    }
+
+    private fun contrastOf(a: Color, b: Color): Float {
+        val (high, low) = listOf(a.luminance(), b.luminance()).sortedDescending()
+        return (high + 0.05f) / (low + 0.05f)
+    }
+
+    /**
      * Dispatch 2026-11-04-05 A1 (RECORD -2062): on the light theme's Cream fill the label is drawn in the theme's `onSurface`
-     * (Bark), not Amendment 4's white, which would sit at 1.27:1 on Cream. Read from the drawn pixels: the darkest one in the
-     * chip's middle band, clear of its outline and corners, is the label's, and it must reach AA (4.5:1) against the fill.
-     * The dark theme's chip is unchanged, label and all ("Keep dark brown").
+     * (Bark, 10.3:1), not Amendment 4's white, which would sit at 1.27:1 on Cream.
      */
     @Test
     fun `in the light theme the chosen chip is Cream and its label reads on it`() {
         darkTheme = false
         chosen = MapMode.TRAIL
         setSheet()
-        composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
-        assertEquals("light: Trail drawn in Cream", Cream, drawnFill(MapMode.TRAIL))
-        assertEquals("light: Trail's recorded selected fill", Cream, recordedFill(MapMode.TRAIL))
-        val pixels = composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).captureToImage().toPixelMap()
-        val inset = with(composeRule.density) { 3.dp.roundToPx() }
-        val band = (pixels.height / 4 until pixels.height * 3 / 4).flatMap { y -> (inset until pixels.width - inset).map { x -> pixels[x, y] } }
-        val darkest = band.minBy { it.luminance() }
-        val contrast = (Cream.luminance() + 0.05f) / (darkest.luminance() + 0.05f)
-        assertTrue("light: the label's darkest pixel $darkest reaches 4.5:1 on Cream (was $contrast:1)", contrast >= 4.5f)
+        assertChosenChip(MapMode.TRAIL, Cream, "light")
+    }
+
+    /**
+     * RECORD -2067 (replacing "Keep dark brown"): in the dark theme the chosen chip is the rust red [MushroomDeep] #A2612C,
+     * with a white label (4.90:1; Cream would be 3.85:1, Bark 2.67:1).
+     */
+    @Test
+    fun `in the dark theme the chosen chip is rust red and its label reads on it`() {
+        darkTheme = true
+        chosen = MapMode.TRAIL
+        setSheet()
+        assertChosenChip(MapMode.TRAIL, MushroomDeep, "dark")
     }
 
     @Test
