@@ -26,7 +26,7 @@ Every fact below is a premise to re-check, with file and line.
 - Keep OSM-dependent code behind its boundary (RECORD -2001).
 
 ## A. What the user sees
-- **A1.** The steps: tap a waypoint on the map. Its bubble shows the name, then the coordinates (MGRS), then a new elevation line, then "from start" as now. The line is the ground height at the waypoint's position, in the user's chosen units, e.g. "Elev 1,234 ft". The word and its format are proposed to the planner before building; match the app's existing height wording, such as the strip's "Alt" and the route card's "Elevation:".
+- **A1.** The steps: tap a waypoint on the map. Its bubble shows the name, then the coordinates (MGRS), then a new elevation line, then "from start" as now. The line is the ground height at the waypoint's position, in the user's chosen units, e.g. "Elev 1,234 ft". The owner set the words: "Example: Elevation 372 ft." So the line reads "Elevation 372 ft": the word Elevation, a space, the whole number, then the unit in the user's chosen units ("m" for metres), with no colon. (RECORD -2025, the owner's second message.)
 - **A2.** Where no ground height is known for that spot, the line is left out. Nothing else in the bubble changes.
 
 ## B. Where the height comes from
