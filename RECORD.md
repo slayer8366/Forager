@@ -33703,3 +33703,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** dispatch Stops: an owner-level choice A doesn't rule; a wrong premise; needing Theme.kt, Color.kt, main or a release build; a test having to be weakened; two failed attempts at one symptom.
 **Dispatch-file:** prompts/preserved/2026-11-04-07-map-type-chip-outlines.md
 **Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-04-07 now?". Next free ID -2091.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2091
+**Timestamp:** 2026-11-04T18:21:47Z
+**Continues:** 2026-09-28-2090
+**Title:** The owner's go: Hazel started on dispatch 2026-11-04-07, Phase 1, verify first
+**Decision:**
+- **The owner, verbatim,** asked "Start Hazel on dispatch 2026-11-04-07 now? She would check the code and report back before building anything.": "Start Hazel yes".
+- **Started:** Hazel Cairnwright, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (prompts/preserved/2026-11-04-07-map-type-chip-outlines.md, records-after-173 cb0bd03ac), not a summary.
+- **Phase 1 only:** she reads the code at pre-main 9b58c66a4, checks the dispatch's premises with file and line, gives her mechanism prediction and test plan, reports to the planner, and stops. No branch, commit, push or Gradle until the planner's go for Phase 2. Her scratch is /mnt/work/scratch/map-type-chip-outlines/.
+**Notes:** Written by the planner by hand. Next free ID -2092.
