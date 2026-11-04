@@ -52,7 +52,7 @@ class OfflineReliefTileStore(
                     val stored = row.getBlob(0)
                     val png = if (row.getInt(1) == 1) inflate(stored) else stored
                     when (val decoded = decode(png)) {
-                        is ReliefTileRead.Found -> ReliefTileRead.Found(decoded.tile, null) // STUB
+                        is ReliefTileRead.Found -> ReliefTileRead.Found(decoded.tile, row.getString(2))
                         else -> decoded
                     }
                 }
@@ -68,7 +68,7 @@ class OfflineReliefTileStore(
      * (the caller then reads the tile again, which reports why).
      */
     override fun linkedFingerprint(z: Int, x: Int, y: Int): String? {
-        if (true) return null // STUB
+        if (!database.isFile) return null
         return try {
             SQLiteDatabase.openDatabase(database.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 if (schemaProblem(db) != null) return null

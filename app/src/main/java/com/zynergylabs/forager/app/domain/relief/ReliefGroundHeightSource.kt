@@ -90,7 +90,8 @@ class ReliefGroundHeightSource(
 
     private fun tile(key: TileKey): TileOrWhyNot {
         cached[key]?.let { kept ->
-            return TileOrWhyNot.Tile(kept.tile) // STUB: as before the fix
+            if (kept.fingerprint != null && stillLinkedAs(key) == kept.fingerprint) return TileOrWhyNot.Tile(kept.tile)
+            cached.remove(key)
         }
         val read = try {
             store.tile(key.z, key.x, key.y)
@@ -107,7 +108,7 @@ class ReliefGroundHeightSource(
                     TileOrWhyNot.WhyNot(GroundHeightUnknown.UNSUPPORTED)
                 } else {
                     // A tile with no fingerprint cannot be checked later, so it is not kept.
-                    cached[key] = KeptTile(read.tile, read.fingerprint ?: "") // STUB: as before the fix
+                    read.fingerprint?.let { cached[key] = KeptTile(read.tile, it) }
                     TileOrWhyNot.Tile(read.tile)
                 }
             }
