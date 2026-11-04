@@ -91,7 +91,8 @@ class PhotoViewerDialogTest {
     }
 
     /**
-     * The photo decodes off `Dispatchers.IO`, which `waitForIdle` does not wait on; until it lands
+     * The photo decodes on [PhotoDecodeDispatcher] (the main looper here, posted, since pre-main run 41766149924; before
+     * that `Dispatchers.IO`), which `waitForIdle` does not wait for; until it lands
      * the viewer shows its progress indicator and there is no photo node. Needed after every step
      * to another photo as well as on open — the first full-suite run of this class failed exactly
      * there, reading the zoom label after "Next photo" before the next decode had finished, while
