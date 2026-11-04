@@ -33438,3 +33438,27 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Not changed:** RECORD's earlier entries, CLAUDE.md, the 10-28 completion report, B1, #485, #486, style-picker-cream-revert-1/2/3, the local undo-chip-colours, the running CI runs.
 - **Memory:** feedback undo-means-revert-commits; palette-is-a-feature gains the chips as the owner's exception.
 **Notes:** Written by the planner by hand. Next free ID -2079.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2079
+**Timestamp:** 2026-11-04T16:11:34Z
+**Continues:** 2026-09-28-2078
+**Title:** The full undo confirmed as PR #488's scope (#483's chip colours and 10-28's); the older CI runs ordered stopped, held up by a GitHub Actions incident
+**Decision:**
+- **The owner, verbatim:**
+  - "We're going to undo this morning's day chip rust to cream chip color PR's, in addition to undoing the 10-28 cream to rust color change";
+  - "So the starting chip color before 483 will be the same color as today. It will be a full undo. And then we can start the chip colors properly.";
+  - "Stop the older runners".
+- **The undo, checked against the code:** PR #488 (d4ce043f5) already is this full undo, so nothing new was built.
+  - #483's four chip commits each have their revert on it: 22ae67021 -> 537c7a569, 32c79a187 -> 4c518fb9c, ba79a4080 -> 66f28d829, c00f05686 -> be6e92996 (chip test files only).
+  - On pre-main, MapModeChips.kt carries Cream, MushroomDeep #A2612C, PureWhite and the outline. On #488 none remain: Material's own filterChipColors() is left, plus the grey "chosen, but offline" chip of dispatch 2026-10-22-06 Amendment 3, which is older than both changes and outside them.
+  - The colours after it: day #F6DFC8 (Material's secondaryContainer, the chip before 10-28), not #483's Cream #EDE3D0 that the S22 shows now; night dark brown #6B421A; no outline. #488 is still not merged.
+- **The older runners:** three runs older than #488's 41863141684 and ahead of it in the queue.
+  - 41859153917 (#486, d82cf520e), 41860900001 (pre-main fa63ec865, #485's merge), 41861172175 (pre-main 192b9eab2, pre-main's current head).
+  - gh run cancel was accepted for the two pre-main runs and refused for 41859153917 ("completed"). The REST cancel and force-cancel were then refused for all three: HTTP 409, "not in progress". Yet the API still lists them as in_progress or pending. 41859153917 has not updated since 15:35:08Z.
+  - githubstatus.com at 16:0xZ: "Incident with Actions and Pages | investigating", Actions degraded_performance.
+  - A watcher retries the cancel every minute and reports when each run ends.
+  - Once 41861172175 stops, pre-main's head has no run of its own. Its tree is 9660e542a's, which passed in 41851180717.
+**Notes:** Written by the planner by hand. Next free ID -2080.
