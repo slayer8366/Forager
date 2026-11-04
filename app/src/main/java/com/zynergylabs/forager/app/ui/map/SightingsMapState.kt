@@ -235,6 +235,19 @@ internal class SightingsMapState(
             }
         }
     }
+
+    /**
+     * Dispatch 2026-11-04-02, A1 (RECORD -2039): the crowded stack's list bubble follows its stack as a record's bubble follows
+     * its glyph, at the same calls ([reanchorFocusedBubble]'s: every camera idle, every move while navigating, a resize): the
+     * list's spot projected again, through the host's own [com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost.followList].
+     * Nothing for a map with no host or no list.
+     */
+    fun reanchorCrowdedList(map: MapLibreMap) {
+        tapHandlerRef.crowdedHost?.followList(
+            { at -> map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng)).let { it.x to it.y } },
+            map.cameraPosition.bearing.toFloat(),
+        )
+    }
 }
 
 /**

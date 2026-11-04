@@ -564,7 +564,9 @@ internal fun CompactMapTab(
                 // The tapped thing's bubble (RECORD -741: CompactMapBubble, moved out unchanged; its comments are there).
                 CompactMapBubble(
                     tapped = tapped,
-                    onCloseBubble = onCloseBubble,
+                    // Dispatch 2026-11-04-02, S3 (RECORD -2040): a row's bubble closed by its X or by one of its actions closes
+                    // the crowded list with it. Back from it returns to the list: that is the list's own handler, asked first.
+                    onCloseBubble = { crowdedStacks.closeList(); onCloseBubble() },
                     bubbleSources = bubbleSources,
                     returnMemory = returnMemory,
                     renderMode = renderMode,
@@ -580,15 +582,17 @@ internal fun CompactMapTab(
                     backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     navigation = navigation,
                 )
-                // A crowded stack's list, over the map, and its Back steps (dispatch 2026-10-27-07; CompactMapCrowdedList.kt).
+                // A crowded stack's list, a bubble over the map since dispatch 2026-11-04-02, and its Back steps (CompactMapCrowdedList.kt).
                 CompactMapCrowdedList(
                     host = crowdedStacks,
                     tapped = tapped,
                     bubbleSources = bubbleSources,
                     renderMode = renderMode,
                     onFeatureTap = onFeatureTap,
+                    onCloseBubbleOnly = onCloseBubble,
                     controlsPadding = controlsPadding,
                     cluster = cluster,
+                    clusterInset = noticeInsetDp,
                     minY = layout.bubbleMinY(topInset, compassStripBottomClearance),
                     backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                 )
