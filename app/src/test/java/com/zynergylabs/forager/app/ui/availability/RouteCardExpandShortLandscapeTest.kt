@@ -53,7 +53,8 @@ class RouteCardExpandShortLandscapeTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT)
+    // A fixed clock (D43): the navigation card's sundown line would change the room by the hour.
+    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = ROUTE_CARD_NOON_CLOCK)
 
     /** Leg row 0 as drawn: clipped by the reveal and by the card. */
     private fun rowShown(): DpRect = composeRule.onNodeWithTag(routeCardLegTag(0), useUnmergedTree = true).getBoundsInRoot()
@@ -85,7 +86,9 @@ class RouteCardExpandShortLandscapeTest {
     private fun assertClosed(where: String, peek: DpRect) {
         assertEquals("$where: the card's state", false, rig.plotting.uiState.value.expanded)
         rig.assertSame("$where: collapsed, the card is back at its peek, under the strip", peek, rig.bounds(ROUTE_CARD_TAG))
-        assertEquals("$where: D40, collapsed, the elevation line is back", 1, rig.count(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+        // D44 (RECORD -2027, the owner: "Elevation steps aside here too"): this peek's lines (250 dp) do not fit its cap (212.67 dp), so
+        // collapsed, the elevation line stays out; D40's "back on collapse" holds where the peek has the room.
+        assertEquals("$where: D44, collapsed, the elevation line stays out at this peek", 0, rig.count(ROUTE_CARD_ROUTED_ELEVATION_TAG))
     }
 
     @Test
@@ -96,7 +99,7 @@ class RouteCardExpandShortLandscapeTest {
         listOf(3, 6).forEach { n ->
             rig.plotTo(n)
             assertEquals("precondition, $n stops: peek", false, rig.plotting.uiState.value.expanded)
-            assertEquals("precondition, $n stops: the total line carries its elevation line at peek", 1, rig.count(ROUTE_CARD_ROUTED_ELEVATION_TAG))
+            assertEquals("D44, $n stops: the peek's lines do not fit its cap, so its elevation line is left out", 0, rig.count(ROUTE_CARD_ROUTED_ELEVATION_TAG))
             val peek = rig.bounds(ROUTE_CARD_TAG)
             listOf(0.5f to 0.5f, 0.2f to 0.2f, 0.8f to 0.2f, 0.2f to 0.8f, 0.8f to 0.8f).forEach { (fx, fy) ->
                 val where = "$n stops, a tap at ($fx, $fy) on the handle"

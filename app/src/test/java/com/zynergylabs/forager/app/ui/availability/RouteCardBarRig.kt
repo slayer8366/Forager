@@ -68,6 +68,8 @@ internal class RouteCardBarRig(
      * the navigation card carries within 150 minutes of sunset (SUNDOWN_LINE_SUNSET_WINDOW_MILLIS) makes that card taller.
      */
     private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider,
+    /** Whether each leg carries trail heights, so the card shows elevation lines; without, as the S22 showed in session 10. */
+    private val legHeights: Boolean = true,
 ) {
     private val stops = listOf(
         CREEK,
@@ -87,7 +89,11 @@ internal class RouteCardBarRig(
     private fun trail(from: LatLng, to: LatLng): RouteLeg.Trail {
         val heights = listOf(100.0, 110.0, 104.0)
         val points = (1..heights.size).map { k -> LatLng(from.lat + (to.lat - from.lat) * k / 4, from.lng + (to.lng - from.lng) * k / 4) }
-        return RouteLeg.Trail(listOf(from) + points + listOf(to), GeoDistance.metersBetween(from, to), trailFrom = 1, trailTo = heights.size, trailHeightsMetres = heights)
+        return if (legHeights) {
+            RouteLeg.Trail(listOf(from) + points + listOf(to), GeoDistance.metersBetween(from, to), trailFrom = 1, trailTo = heights.size, trailHeightsMetres = heights)
+        } else {
+            RouteLeg.Trail(listOf(from) + points + listOf(to), GeoDistance.metersBetween(from, to), trailFrom = 1, trailTo = heights.size)
+        }
     }
 
     val plotting = RoutePlottingViewModel(

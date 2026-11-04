@@ -37,14 +37,14 @@ import org.robolectric.shadows.ShadowDisplay
  *
  * At [ROUTE_CARD_EVENING_CLOCK] (22:45 UTC, the sundown line due), the S22's insets and rotation, navigating, real touches on the handle.
  */
-abstract class RouteCardSundownStepsAsideTests {
+abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = ROUTE_CARD_EVENING_CLOCK)
+    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = ROUTE_CARD_EVENING_CLOCK, legHeights = legHeights)
 
     private fun sundownShown() = rig.count(NAVIGATION_HUD_SUNDOWN_LINE_TAG)
 
@@ -63,12 +63,17 @@ abstract class RouteCardSundownStepsAsideTests {
         rig.applyInsets(left = 25.dp, right = 48.dp)
     }
 
-    /** The short window, font 2.0: where the room is short, the line steps aside, the card is whole and its rows show. */
-    protected fun assertStepsAsideWhereShort() {
+    /**
+     * Where the room is short, the line steps aside (D42) and, if that is not enough at peek, the elevation line too (D44, RECORD
+     * -2027): the card is whole and its rows show. [lineExpected] is whether the sundown line shows with no card in this window
+     * (at 640 x 360 with the S22's insets -955's dot rule already leaves it out, so only D44 is left to make the room).
+     */
+    protected fun assertStepsAsideWhereShort(lineExpected: Boolean? = null) {
         start()
         val closedShown = sundownShown()
         val hud = rig.bounds(NAVIGATION_HUD_TAG)
         println("D42 short, no card: sundown line shown $closedShown, navigation card ${hud.top.value}..${hud.bottom.value}")
+        lineExpected?.let { assertEquals("precondition: the sundown line with no card", if (it) 1 else 0, closedShown) }
         listOf(3, 6).forEach { n ->
             rig.plotTo(n)
             listOf(false, true).forEach { expanded ->
@@ -118,7 +123,16 @@ abstract class RouteCardSundownStepsAsideTests {
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideShortTest : RouteCardSundownStepsAsideTests() {
     @Test
-    fun `evening, 640 x 360, font 2_0, the S22's insets - the sundown line steps aside, the card is whole and its rows show`() = assertStepsAsideWhereShort()
+    fun `evening, 640 x 360, font 2_0, the S22's insets - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
+}
+
+/** The same with legs that carry no trail heights, so no elevation line at all: the S22's case in session 10. */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardSundownStepsAsideShortNoElevationTest : RouteCardSundownStepsAsideTests(legHeights = false) {
+    @Test
+    fun `evening, 640 x 360, font 2_0, the S22's insets, no elevation line - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
 }
 
 /** The S22's normal landscape window (823 x 384 dp) at font 1.0. */
