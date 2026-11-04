@@ -32780,7 +32780,7 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
   - Fail first 41775342942; revert check 41777537831.
   - A kept-tile lookup now costs a median 15.4 ms (one noisy emulator run), on IO.
 - **Still seen, not investigated:** AvailabilityScreenCrowdedIconsSettingTest failed again, in throwaway run 41772847614.
-PRs opened against pre-main, not merged.
+PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge both" as ff5632698 and 0fa3a936a. Both PRs' CI was green on every job, pre-main was backed up first (pre-main-before-479-480 bundle, verified), and the two branches don't conflict with each other. A first wait had stopped early on a network error and was re-run.
 **Notes:** Written by the planner by hand. Next free ID -2042.
 
 ---
