@@ -32748,5 +32748,5 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 **ID:** 2026-09-28-2039
 **Timestamp:** 2026-11-04T05:23:55Z
 **Title:** The crowded-icons list becomes a floating bubble anchored to the stack
-**Intent:** The owner: "The list mode for map icons is a screen hog. Can it be a floating bubble that follows the icon cluster on the map, and adjust its height to the standard bubble size to have it fit easier?" Then: "Its own bubble replaces it (Recommended)"; "Yes, as described (Recommended)". Dispatch 2026-11-04-02, Hazel (Opus), verify-first. The owner then: "And have it animate open and shut please" (A5).
+**Intent:** The owner: "The list mode for map icons is a screen hog. Can it be a floating bubble that follows the icon cluster on the map, and adjust its height to the standard bubble size to have it fit easier?" Then: "Its own bubble replaces it (Recommended)"; "Yes, as described (Recommended)". Dispatch 2026-11-04-02, Hazel (Opus), verify-first. The owner then: "And have it animate open and shut please" (A5). And: "For crowded icons again: have the zoom-in and zoom-out animate rather than jump in also so it looks smooth" (A6).
 **Notes:** Written by the planner by hand. Next free ID -2040.
