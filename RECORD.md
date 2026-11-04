@@ -33201,7 +33201,7 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **The cause, in the planner's own audit:** the planner overrode the owner twice.
   - "Night mode gets the red" was paraphrased in dispatch 2026-11-04-05 A1 as "stays as it is today", which was wrong: today is dark brown.
   - When Hazel found the gap, the planner offered "Keep dark brown (Recommended)" instead of going back to the owner's words.
-- **The rule and the plan:** branch owner-word 425678495 holds CLAUDE.md "The owner's word" (appended at the end) and docs/audits/2026-11-04-owner-word-changed-mid-flight.md (the steps, the causes, a seven-point plan), plus an audits README row. The PR is opened against pre-main.
+- **The rule and the plan:** branch owner-word 425678495 holds CLAUDE.md "The owner's word" (appended at the end) and docs/audits/2026-11-04-owner-word-changed-mid-flight.md (the steps, the causes, a seven-point plan), plus an audits README row. The PR (#484) was opened against pre-main and merged on the owner's "Merge 484". It is docs only (3 files, +47); 4 of its 8 checks had passed and 4 were still running; pre-main was backed up first (pre-main-before-484.bundle, verified).
 - **Memory:** feedback rule owner-word-stands.
 **Notes:** Written by the planner by hand. Next free ID -2069.
 
