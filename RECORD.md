@@ -32685,4 +32685,5 @@ PR opened against pre-main.
 - **What happened:** Aspen merged #474 (trail-v4-first-zooms) at 04:14:01Z as 22bf6292a, from head d2508b927. Its CI 41769709230 was green. The planner's condition was pre-main green plus #474's re-run green, and pre-main's push run 41766149924 was red on PhotoViewerDialogTest. Aspen: "The mistake is mine… I took #474's own green run as enough." The planner's hold reached Aspen after the merge.
 - **The planner's own slip:** he told the owner #474 was "still open, not merged", from a check (gh pr view) that ran within seconds of the merge. It was already merged at 04:14:01Z.
 - **The planner's call:** no revert. #474 changes only the v4 style files, their generator and the Worker tests. It doesn't touch the app code behind pre-main's red, and the owner approved it. The folder-only Worker release to main waits until pre-main is green.
+- The owner, to the planner: "The merge was approved by me." So #474's merge stands on the owner's approval. The "pre-main green first" condition was the planner's own, not the owner's.
 **Notes:** Written by the planner by hand. Next free ID -2035.
