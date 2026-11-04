@@ -186,7 +186,9 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             // north or the walker's dot. The dot sits where the navigation view puts it (the map's height times
             // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding), WALKER_DOT_CLEARANCE its radius. Reset north is the L's second
             // row, counted only where the L and the card share columns.
-            eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
+            // D42 (RECORD -2021, the owner: "Only where room is short"): and where they would take its top above the room the route
+            // card resting on it needs (routeCardNavigationTopLimitInRootPx), so they step aside only then, and come back when it closes.
+            eveningLineTopLimitInRootPx = listOfNotNull(cardTopLimitInRootPx(cluster, density), cluster.routeCardNavigationTopLimitInRootPx).maxOrNull(),
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
             cardCorners = MapCardCorners.TOP,
             outlineSides = cardOutlineSides,

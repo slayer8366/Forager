@@ -132,6 +132,13 @@ internal class MapIconClusterState(
     var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /**
+     * D42 (RECORD -2021, the owner: "Only where room is short"): while the route card rests on the landscape navigation card, the
+     * lowest the navigation card's top may sit, in the root, for the route card to fit above it ([routeCardNavigationTopLimitPx]); null
+     * otherwise. The navigation card leaves its evening lines out where they would take its top above it, as RECORD -955's limit does.
+     */
+    var routeCardNavigationTopLimitInRootPx: Float? by mutableStateOf(null)
+
+    /**
      * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster
      * (its top less the offset it was placed at), so the slide's floor is a plain difference and does not move as the bar does.
      */
