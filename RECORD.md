@@ -33245,3 +33245,19 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
   - Where this reading and the owner's words differ, the owner's words stand.
 - **How it applies:** a colour change is a feature change. No dispatch, coder, test or contrast figure swaps a palette colour (night red, day cream, white as accent) for another without the owner's word. Contrast checks protect readability on top of the palette; they don't choose it.
 **Notes:** Written by the planner by hand. Next free ID -2071.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2071
+**Timestamp:** 2026-11-04T15:06:20Z
+**Continues:** 2026-09-28-2069, 2026-09-28-2070
+**Title:** The style picker's colours confirmed on the S22: cream by day, rust red at night; the palette rule opened as #485
+**Outcome:**
+- **The build:** run 41850422000 on tools/s22-combined 3854493f3 (pre-main b8742ea75 with #483) passed all its jobs. That was 22ae67021's first compile and first test run, so no typo got through.
+- **Install:** build 4591 over 4576, same signer. Snapshots are in ~/s22-2026-11-04/s12/snap/{before,after}-4591. App tables are unchanged; schemas 23, 6 and 1, integrity ok.
+- **Day (Light theme):** the Layers popover's Trail chip sampled at #EDE3D0 (Cream), with a dark label and outline (shots/23-day-chip.png).
+- **Night:** the planner set Settings > Night Mode to Dark for the check. The chip sampled at #A2612C (rust red), with a white label and a light outline (shots/24-night-chip.png).
+- **Restored:** Night Mode back to Light; every toggle matches the session's start; svc power stayon false.
+- **The palette rule:** CLAUDE.md, a bullet under "The owner's word" quoting the owner, on branch palette-rule. Opened as #485. The planner's attempt to merge it in the same step was blocked by the permission classifier, since the owner said "add it", not "merge". It waits for the owner's word to merge.
+**Notes:** Written by the planner by hand. Next free ID -2072.
