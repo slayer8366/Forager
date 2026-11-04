@@ -59,7 +59,19 @@ internal val ACROSS_ROUND = listOf(0.5f to 0.2f, 0.2f to 0.5f, 0.5f to 0.5f, 0.8
  * The real Maps tab with a route card over it, recording, six waypoints to plot, for the rule of Amendments 14 and 15 (RECORD
  * -1928, -1929): the card fits beside the icon bar, and the bar, its height and its side never change for the card.
  */
-internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<String>? = null, credit: String? = null) {
+internal class RouteCardBarRig(
+    private val composeRule: RouteRule,
+    names: List<String>? = null,
+    credit: String? = null,
+    /**
+     * The screen's clock: noon on 2026-11-03 by default (D43, RECORD -2020), so no class on this rig reads the hour it runs at. The
+     * navigation card carries its sundown line within 150 minutes of sunset and after it (SundownLine.isShown), which changes the room;
+     * runs 41728736456, 41747193319 and 41758945602 failed classes by the hour. Evening and after-sunset classes pass their own.
+     */
+    private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = ROUTE_CARD_NOON_CLOCK,
+    /** Whether each leg carries trail heights, so the card shows elevation lines; without, as the S22 showed in session 10. */
+    private val legHeights: Boolean = true,
+) {
     private val stops = listOf(
         CREEK,
         RIDGE,
@@ -78,7 +90,11 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
     private fun trail(from: LatLng, to: LatLng): RouteLeg.Trail {
         val heights = listOf(100.0, 110.0, 104.0)
         val points = (1..heights.size).map { k -> LatLng(from.lat + (to.lat - from.lat) * k / 4, from.lng + (to.lng - from.lng) * k / 4) }
-        return RouteLeg.Trail(listOf(from) + points + listOf(to), GeoDistance.metersBetween(from, to), trailFrom = 1, trailTo = heights.size, trailHeightsMetres = heights)
+        return if (legHeights) {
+            RouteLeg.Trail(listOf(from) + points + listOf(to), GeoDistance.metersBetween(from, to), trailFrom = 1, trailTo = heights.size, trailHeightsMetres = heights)
+        } else {
+            RouteLeg.Trail(listOf(from) + points + listOf(to), GeoDistance.metersBetween(from, to), trailFrom = 1, trailTo = heights.size)
+        }
     }
 
     val plotting = RoutePlottingViewModel(
@@ -120,6 +136,7 @@ internal class RouteCardBarRig(private val composeRule: RouteRule, names: List<S
                         AvailabilityScreenNavigation(onToggleReturning = { returnTouches++ })
                     },
                     recording = AvailabilityScreenRecording(isRecording = true, onToggleRecording = { stopTouches++ }),
+                    currentTime = clock,
                 )
             }
         }

@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +50,8 @@ import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
+import com.zynergylabs.forager.app.ui.route.legInFlight
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.route.rememberRouteCardWidth
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
@@ -192,11 +197,58 @@ internal fun BoxScope.CompactMapRouteCard(
     // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek lines fill the cap, the expanded card's cap rises
     // over the strip; collapsing brings the cap, and so the strip, back at once (the planner accepted that, -2008).
     var linesPx by remember { mutableIntStateOf(0) }
-    val coversStrip = landscapeRoom != null && routeCardCoversStrip(state?.expanded == true, linesPx, with(density) { landscapeRoom.maxHeight.toPx() })
+    val hasRows = shownContent?.let { it.legs.isNotEmpty() || it.legInFlight } == true
+    val coversStrip = landscapeRoom != null && routeCardCoversStrip(state?.expanded == true, hasRows, linesPx, with(density) { landscapeRoom.maxHeight.toPx() })
     val cardMaxHeight = landscapeRoom?.let { if (coversStrip) it.overStripMaxHeight else it.maxHeight }
     // D40 (RECORD -2009, the owner: "Hide elevation while open"): where the lines fill even that raised cap, the total line's elevation
     // line is left out while expanded, and comes back on collapse.
-    val hideElevation = coversStrip && landscapeRoom != null && routeCardCoversStrip(true, linesPx, with(density) { landscapeRoom.overStripMaxHeight.toPx() })
+    val hideElevationOpen = coversStrip && landscapeRoom != null && routeCardCoversStrip(true, hasRows, linesPx, with(density) { landscapeRoom.overStripMaxHeight.toPx() })
+    // D42 (RECORD -2021): while the card rests on the navigation card, how low that card's top may sit for this one to fit, which keeps
+    // the navigation card's sundown line out only where it would take the room. Its cap's top is fixed by the strip (or, raised, by the
+    // controls), whatever the navigation card's height: the cap's bottom and height move together.
+    var naturalHeights by remember { mutableStateOf<com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights?>(null) }
+    val onNavigationCardNow = landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp && !leaving
+    val navigationTopLimit = naturalHeights?.takeIf { onNavigationCardNow }?.let { heights ->
+        with(density) {
+            val room = landscapeRoom!!
+            val boxBottom = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
+            routeCardNavigationTopLimitPx(
+                heights = heights,
+                expanded = state?.expanded == true,
+                hasRows = hasRows,
+                capTopPx = boxBottom - (room.bottom + room.maxHeight).toPx(),
+                raisedCapTopPx = boxBottom - (room.bottom + room.overStripMaxHeight).toPx(),
+                tuckPx = room.tuck.toPx(),
+            )
+        }
+    }
+    // The navigation card's top with its evening lines: where it is while they show, or where its height when they last showed puts it,
+    // so stepping aside does not feed back into the decision. A gap once stepped aside, so a top a pixel either side cannot flip it.
+    val navigationCard = cluster.navigationCardBoundsInRoot
+    val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
+    val tallestWithEvening = cluster.navigationCardHeightWithEveningPx
+    val topWithEvening = when {
+        navigationCard == null -> null
+        // While they show, the higher of where it is and where its tallest with them puts it, so a frame of their grow is not read
+        // as room the lines leave.
+        cluster.navigationEveningShown -> minOf(navigationCard.top, tallestWithEvening?.let { boxBottomPx - it } ?: navigationCard.top)
+        else -> tallestWithEvening?.let { boxBottomPx - it }
+    }
+    var steppedAside by remember { mutableStateOf(false) }
+    val stepsAside = navigationTopLimit != null && topWithEvening != null &&
+        routeCardSundownStepsAside(navigationTopLimit, topWithEvening, marginPx = if (steppedAside) with(density) { Spacing.xs.toPx() } else 0f)
+    SideEffect {
+        steppedAside = stepsAside
+        cluster.navigationEveningStepsAside = stepsAside
+    }
+    DisposableEffect(Unit) { onDispose { cluster.navigationEveningStepsAside = false } }
+    // D44 (RECORD -2027, the owner: "Elevation steps aside here too"): at peek, where the lines do not fit the cap even with D42
+    // applied (the cap is read after the sundown line has stepped aside), the total line's elevation line is left out too. The lines
+    // count it at its last height while it is out, so the answer does not flip back.
+    val hideElevationPeek = landscapeRoom != null && state?.expanded != true && naturalHeights?.let { heights ->
+        routeCardPeekLeavesElevationOut(heights, with(density) { landscapeRoom.maxHeight.toPx() })
+    } == true
+    val hideElevation = hideElevationOpen || hideElevationPeek
     NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
             visible = !leaving && (portrait || landscapeRoom != null),
@@ -226,6 +278,7 @@ internal fun BoxScope.CompactMapRouteCard(
                         contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
                         onLinesHeightPx = { linesPx = it },
                         hideElevation = hideElevation,
+                        onNaturalHeightsPx = { naturalHeights = it },
                         modifier = Modifier
                             .width(width)
                             .then(if (cardMaxHeight != null) Modifier.heightIn(max = cardMaxHeight) else Modifier)

@@ -111,10 +111,15 @@ internal data class RouteCardLandscapeRoom(val onNavigationCard: Dp, val railOnL
 
 /**
  * D37 (RECORD -2006; the planner accepted the reading, -2008): whether the expanded card rises over the strip. Only while [expanded],
- * and only where the card's peek lines, [linesPx] (its height less the rows'), fill the normal cap, [maxHeightPx], to within 1 px, so
- * the rows would get no room under it. The lines do not depend on the cap once it is raised, so the answer does not flip back.
+ * only for a card with rows to show, [hasRows] (a routed leg or one in flight: two stops or more), and only where the card's peek
+ * lines, [linesPx] (its height less the rows'), fill the normal cap, [maxHeightPx], to within 1 px, so the rows would get no room under
+ * it. The lines do not depend on the cap once it is raised, so the answer does not flip back.
+ *
+ * [hasRows] (the planner, 2026-11-03, on the pre-main red of run 41728736456): at one stop there are no rows, so D37's "where the
+ * expanded rows would get no room" never holds, and expanded is the same as peek. Before it, a one-stop card whose peek was squeezed
+ * (the navigation card's sundown line taking the room) rose over the strip when expanded, which D37 never ruled.
  */
-internal fun routeCardCoversStrip(expanded: Boolean, linesPx: Int, maxHeightPx: Float): Boolean = expanded && linesPx > 0 && linesPx >= maxHeightPx - 1f
+internal fun routeCardCoversStrip(expanded: Boolean, hasRows: Boolean, linesPx: Int, maxHeightPx: Float): Boolean = expanded && hasRows && linesPx > 0 && linesPx >= maxHeightPx - 1f
 
 /** D32: the width both cards take while the route card rests on the navigation card: the strip's, less [RouteCardLandscapeRoom.leaveRoom]. */
 internal val RouteCardLandscapeRoom.onNavigationCardWidth: Dp get() = (onNavigationCard - leaveRoom).coerceAtLeast(0.dp)
@@ -160,6 +165,35 @@ internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: 
         )
     }
 }
+
+/**
+ * D42 (RECORD -2021, the owner: "Only where room is short", whose option hid the sundown line from the navigation card only while the
+ * route card rests on it and would not otherwise fit): the lowest the navigation card's top may sit, in root px, for the route card to
+ * fit above it, from natural heights only, so hiding the line cannot feed back into the decision. The route card's bottom is the
+ * navigation card's top plus [tuckPx], and its top may reach [capTopPx] (the normal cap's top) at peek, or [raisedCapTopPx] (D37's,
+ * over the strip) while [expanded] with [hasRows]. At peek it needs its natural lines, [heights]' linesPx; expanded with rows, those
+ * lines less the elevation line D40 may leave out, plus the first leg row, so the rows show.
+ */
+internal fun routeCardNavigationTopLimitPx(heights: com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights, expanded: Boolean, hasRows: Boolean, capTopPx: Float, raisedCapTopPx: Float, tuckPx: Float): Float =
+    if (expanded && hasRows) {
+        raisedCapTopPx + heights.linesPx - heights.elevationPx + heights.firstRowPx - tuckPx
+    } else {
+        capTopPx + heights.linesPx - tuckPx
+    }
+
+/**
+ * D42: whether the navigation card's evening lines step aside: where, with them, its top, [topWithEveningPx], would sit above
+ * [limitPx] (from [routeCardNavigationTopLimitPx]), less [marginPx] once already stepped aside, so the decision cannot flip back and
+ * forth on a pixel.
+ */
+internal fun routeCardSundownStepsAside(limitPx: Float, topWithEveningPx: Float, marginPx: Float): Boolean = topWithEveningPx < limitPx + marginPx - 0.5f
+
+/**
+ * D44 (RECORD -2027): whether the peek leaves the total line's elevation line out: where the card's natural lines, [heights]' linesPx
+ * (the elevation line counted even while it is out), are taller than the cap, [maxHeightPx], and there is an elevation line to leave.
+ */
+internal fun routeCardPeekLeavesElevationOut(heights: com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights, maxHeightPx: Float): Boolean =
+    heights.elevationPx > 0 && heights.linesPx > maxHeightPx + 0.5f
 
 /** Which side the card sits on: on the navigation card, the rail's; otherwise away from the bar. */
 internal fun routeCardOnLeft(barOnLeft: Boolean, landscapeRoom: RouteCardLandscapeRoom?): Boolean =
