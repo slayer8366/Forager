@@ -32835,3 +32835,12 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 **Title:** #481 (clone layers at night) merged to pre-main
 **Outcome:** The owner: "481 passed", then "Yes, merge 481". All eight PR checks were green and the PR was mergeable on base 0fa3a936a. Before merging, pre-main was backed up (pre-main-before-481.bundle, verified). The diff is 4 files, +317/-1, with no @Ignore and no removed assertion. Merged as 8f240b447. Still to come: the night check on the S22 (Trail Map near Molalla z11-12, minor roads #333333, boundaries #bdbdbd, and the log line naming 78 clones and 13 recoloured).
 **Notes:** Written by the planner by hand. Next free ID -2046.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2046
+**Timestamp:** 2026-11-04T08:17:57Z
+**Title:** A read-only check of the waypoint series' state
+**Intent:** The owner, asked what is left to merge: "Yes, check the waypoint series". Hazel (Opus) is to check open PRs #433 and #435-#439 (dispatch 2026-10-28) against pre-main 8f240b447: how they stack, CI on the current heads, clean merges into pre-main (the stack in order), drift, blockers, and what the dispatch leaves to do. No commits, pushes or CI runs. gh calls are kept few because of today's rate limit.
+**Notes:** Written by the planner by hand. Next free ID -2047.
