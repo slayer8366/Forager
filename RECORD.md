@@ -33049,3 +33049,26 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **A2:** drafted only, in wip-a2/ at c16ecb1ba, and must not merge.
 - **The owner:** "1 yes 2 yes". That is, an unreadable .rd5 goes by trail, logged (dispatch A5), and a new Hazel finishes from the notes.
 **Notes:** Written by the planner by hand. Next free ID -2061.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2061
+**Timestamp:** 2026-11-04T09:54:37Z
+**Continues:** 2026-09-28-2060, 2026-09-28-2045, 2026-09-28-2057
+**Title:** S22 session 12: build 4545 installed; the clone-night fix not seen on the phone; the style picker's highlight should be cream
+**Outcome:**
+- **The planner's slip, again (as -1998, -2032):** the phone build wasn't ready when the owner plugged in. Pre-main 2d1dc54a4 was merged into tools/s22-combined as 9383e5a0d. CI build 41807117953 passed all jobs.
+- **Install:** APK versionCode 4545 over 4503, the same signer (cb2f6da5…). Snapshots before and after the install, in ~/s22-2026-11-04/s12/snap: every table is unchanged; schemas 23, 6 and 1, integrity ok.
+- **Clone night:**
+  - The planner turned Settings > Night Maps on; it was off.
+  - On every Trail load the log said "Trail night: the style records no forager:layer-clones; no clone layers to map." That happened near Canemah, inside the downloaded Region 1, and in Portland, outside both regions, after Street then Trail.
+  - Both offline regions were downloaded against street-v3, which has no clones.
+  - The Worker's served trail-v4.json and street-v4.json do carry forager:layer-clones (curl, 182 layers).
+  - **Not determined:** whether the app drew street-v3 in Portland, or MapLibre's Style.json drops the metadata on the device (Hazel's untested premise, -2044). No line names the loaded style URL.
+  - **The fix is not confirmed on the device.**
+- **The owner, with a screenshot of the Layers popover:** "That highlight isn't supposed to be red. It's supposed to be a cream color like the theme suggests". That is the selected chip (Trail) in the Trail / Topo / Street picker.
+- **The crowded bubble's five steps:** not started.
+- **GitHub:** SSH auth to GitHub failed intermittently from about 09:42 UTC, with the agent and with the key file alike, and an HTTPS push got an Internal Server Error. The owner checked the account: "Last update was 20 minutes ago, everything looks fine". The push went through on a retry at 2026-11-04T09:54:37Z.
+- **Also:** the A5 text missed dispatch 2026-11-04-04 at -2060 because the script stopped at the failed pull. It is added now, and -2060 is corrected by this note.
+**Notes:** Written by the planner by hand. Next free ID -2062.
