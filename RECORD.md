@@ -33811,3 +33811,34 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **How:** tests first; a draft PR into pre-main so its checks run; revert checks r1 to r5, r7 and r8 on throwaway branches, never merged; commit and push after every step.
   - **Not hers:** the merge waits for the owner. The audit index and RECORD.md are the planner's.
 **Notes:** Written by the planner by hand. Next free ID -2097.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2097
+**Timestamp:** 2026-11-04T20:18:17Z
+**Continues:** 2026-09-28-2096, 2026-09-28-2090
+**Title:** Dispatch 2026-11-04-07 built: PR #489 into pre-main, green and ready for review, not merged
+**Outcome:**
+- **Hazel's summary** is filed unedited at prompts/preserved/2026-11-04-07-report.md. Her full completion report is on the branch, at docs/audits/2026-11-04-07-chip-outlines-completion-report.md (858c77c54).
+- **The commits,** on branch map-type-chip-outlines from pre-main 9b58c66a4:
+  - 3a80644ef, the tests first;
+  - 8184f91de, the change, in MapModeChips.kt only (116 to 164 lines);
+  - 858c77c54, the report.
+- **What it does,** per her report: by day the selected chip keeps #F6DFC8 and gains a 1 dp #3B2E24 outline. At night it is #A2612C with Material's pale #F6DFC8 label and a 1 dp #EDE3D0 outline. The grey and unselected chips are unchanged, and every fill is solid.
+- **Her evidence:**
+  - Fail first: run 41894154203 had 0 compile errors and 14 failures, exactly the 14 predicted.
+  - Reverts r1 to r5, r7 and r8 (runs 41897205441 to 41897303444): each failed only its predicted cases, with 0 compile errors, restored from a saved copy, with the forward change present afterwards.
+  - Full CI at 8184f91de (41897155928) and at 858c77c54 (41902205386): 6,556 tests, 0 failures, 24 skipped, from the JUnit XML. The Street-deleted job's own summary reads 6,526, 0 failures.
+- **The planner checked,** from GitHub and git:
+  - PR #489 is open, not a draft, not merged, base pre-main, head 858c77c54, mergeable;
+  - all 8 checks pass;
+  - pre-main is an ancestor of the branch;
+  - the diff is 5 files, +694/-4: MapModeChips.kt, two new test files, MapTypePanelOfflineChipTest.kt and the report;
+  - there is no @Ignore and no removed assertion. The one changed expectation is the ruled night fill;
+  - in app code, the colour changes are only the night `MushroomDeep` fill and the 1 dp `onSurface` border. Nothing changes transparency.
+  The planner did not re-read the JUnit XML or the revert runs' failures. Those figures are hers.
+- **Not verified:** the phone (Amendment 2 C9 is the owner's to look at; the APK is app-debug-apk from run 41897155928); the press ripple (left to Material); the night-mode fade; contrast over a real map; landscape.
+- **Left in place:** the seven map-type-chip-outlines-rN branches on origin, unmerged; Hazel's worktree ~/.cache/forager-wt/map-type-chip-outlines, clean.
+- **Next:** the merge waits for the owner's word. The audit index row is the planner's, at merge.
+**Notes:** Written by the planner by hand. Next free ID -2098.
