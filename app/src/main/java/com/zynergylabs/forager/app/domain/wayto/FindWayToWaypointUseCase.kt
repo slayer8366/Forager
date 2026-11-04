@@ -64,7 +64,8 @@ class FindWayToWaypointUseCase(
     private val ends: WayToEnds,
 ) {
 
-    suspend operator fun invoke(from: LatLng, waypoint: LatLng): WayToWaypointResult {
+    /** [accuracyMeters] is the accuracy [from]'s fix reports, null when it reports none (A2: the pick-up needs a good fix). */
+    suspend operator fun invoke(from: LatLng, waypoint: LatLng, accuracyMeters: Float? = null): WayToWaypointResult {
         val regions = offlineMapRepository.listRegions().getOrElse { error ->
             return straight(WayToWaypointNote.ROUTES_UNREADABLE, "the downloaded regions could not be listed", error)
         }
@@ -87,7 +88,7 @@ class FindWayToWaypointUseCase(
             return straight(WayToWaypointNote.LEAVES_AREA, "the trail route runs outside region ${routes.regionId}'s area")
         }
         // Step 5 (way-to dispatch 2026-10-28): the ends. A street end is rerouted to its drop-off, both legs are gated.
-        val route = when (val settled = ends.settle(from, waypoint, found, routes.folder) { to -> engine.router.route(from, to, routes.folder) }) {
+        val route = when (val settled = ends.settle(from, accuracyMeters, waypoint, found, routes.folder) { a, b -> engine.router.route(a, b, routes.folder) }) {
             is WayToEnds.Settled.Refused -> return straight(settled.note, "the route's ends: ${settled.reason}")
             is WayToEnds.Settled.Route -> settled.route.also { settled.byTrail.forEach(::byTrail) }
         }

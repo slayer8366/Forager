@@ -75,9 +75,10 @@ internal class FakeEngines(private val router: TrailRouter, var failWith: Except
 internal object AcceptEnds : WayToEnds {
     override suspend fun settle(
         walker: LatLng,
+        walkerAccuracyMeters: Float?,
         waypoint: LatLng,
         route: TrailRoute,
         routeData: File,
-        reroute: suspend (LatLng) -> TrailRouteResult,
+        reroute: suspend (from: LatLng, to: LatLng) -> TrailRouteResult,
     ): WayToEnds.Settled = WayToEnds.Settled.Route(route)
 }

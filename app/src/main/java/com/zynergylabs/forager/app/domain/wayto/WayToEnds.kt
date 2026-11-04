@@ -21,10 +21,18 @@ import java.io.File
  */
 interface WayToEnds {
     /**
-     * [route] runs from near [walker] to near [waypoint] on [routeData]. [reroute] asks the engine for a route from the
-     * walker to another end, for a street drop-off.
+     * [route] runs from near [walker] to near [waypoint] on [routeData]. [walkerAccuracyMeters] is the accuracy the
+     * walker's fix reports, null when it reports none. [reroute] asks the engine for a route between two other ends, for
+     * a street drop-off at the waypoint's end or a pick-up at the walker's (dispatch 2026-11-04-04, A2).
      */
-    suspend fun settle(walker: LatLng, waypoint: LatLng, route: TrailRoute, routeData: File, reroute: suspend (LatLng) -> TrailRouteResult): Settled
+    suspend fun settle(
+        walker: LatLng,
+        walkerAccuracyMeters: Float?,
+        waypoint: LatLng,
+        route: TrailRoute,
+        routeData: File,
+        reroute: suspend (from: LatLng, to: LatLng) -> TrailRouteResult,
+    ): Settled
 
     sealed interface Settled {
         /**
@@ -68,15 +76,16 @@ class StreetDropOffEnds(
 
     override suspend fun settle(
         walker: LatLng,
+        walkerAccuracyMeters: Float?,
         waypoint: LatLng,
         route: TrailRoute,
         routeData: File,
-        reroute: suspend (LatLng) -> TrailRouteResult,
+        reroute: suspend (from: LatLng, to: LatLng) -> TrailRouteResult,
     ): WayToEnds.Settled {
         val byTrail = mutableListOf<WayToEnds.ByTrail>()
         val settled = when (val near = read("the waypoint's end", waypoint, RADIUS_METERS, routeData)) {
             is MapRead.ByTrail -> route.also { byTrail += near.why }
-            is MapRead.Read -> when (val end = waypointEnd(waypoint, route, reroute, near.data, near.ways)) {
+            is MapRead.Read -> when (val end = waypointEnd(waypoint, route, { to -> reroute(walker, to) }, near.data, near.ways)) {
                 is WaypointEnd.Settled -> end.route
                 is WaypointEnd.Refused -> return end.refused
             }
@@ -197,5 +206,8 @@ class StreetDropOffEnds(
 
         /** Round the lead-in: its length plus room to see the walker's own building and the street near them. */
         const val LEAD_IN_MARGIN_METERS = 160.0
+
+        /** A2 STUB, tests first: the pick-up's fix limit, not yet read. */
+        const val PICK_UP_FIX_ACCURACY_METERS = 15f
     }
 }

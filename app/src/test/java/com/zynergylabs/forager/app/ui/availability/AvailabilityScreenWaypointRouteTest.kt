@@ -111,7 +111,7 @@ class AvailabilityScreenWaypointRouteTest {
             locationTracker = tracker,
             readWaypoint = { id -> Result.success(pin.takeIf { it.id == id }) },
             currentTime = clock,
-            findWayToWaypoint = { from, to -> find(from, to) },
+            findWayToWaypoint = { from, to, _ -> find(from, to) },
         )
         viewModel.onEnteredForeground()
         composeRule.setContent {

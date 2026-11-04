@@ -89,7 +89,8 @@ data class WaypointRouteShown(val hud: ReturnRoute?, val line: RouteLine?)
 internal class AvailabilityWaypointRoute(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
     private val readWaypoint: suspend (String) -> Result<Waypoint?>,
-    private val findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)?,
+    /** From, waypoint, and the accuracy the fix searched from reports (null: none reported). */
+    private val findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)?,
     /** The downloaded regions as the ViewModel last read them, for [WayToRetry]'s area check at each fix. */
     private val regions: () -> List<OfflineRegionSummary>,
     private val currentTime: CurrentTimeProvider,
@@ -125,7 +126,7 @@ internal class AvailabilityWaypointRoute(
     /** One navigation's way along trails: the line shown, the walker's place on it, the stray rule and the search. */
     private inner class Following(
         private val waypoint: LatLng,
-        private val find: suspend (LatLng, LatLng) -> WayToWaypointResult,
+        private val find: suspend (LatLng, LatLng, Float?) -> WayToWaypointResult,
         private val scope: CoroutineScope,
     ) {
         private var line: WayHomeLine? = null
@@ -156,7 +157,7 @@ internal class AvailabilityWaypointRoute(
             val shown = line
             if (shown == null) {
                 // The first fix, or a straight-line result [retry] says to try again. One search at a time: no judging while one runs.
-                if (search == null && retry?.judge(here, regions()) != false) startSearch(here)
+                if (search == null && retry?.judge(here, regions()) != false) startSearch(here, fix.accuracyMeters)
                 return
             }
             judgeOffTrail(shown, fix)
@@ -165,7 +166,7 @@ internal class AvailabilityWaypointRoute(
                 StrayVerdict.STAY -> loggedWhy = null
                 StrayVerdict.REROUTE -> {
                     loggedWhy = null
-                    startSearch(here)
+                    startSearch(here, fix.accuracyMeters)
                 }
                 StrayVerdict.SEARCHING, StrayVerdict.ALREADY_REROUTED -> {
                     if (verdict != loggedWhy) {
@@ -215,14 +216,14 @@ internal class AvailabilityWaypointRoute(
             updateState { it.copy(waypointRoute = shown) }
         }
 
-        private fun startSearch(from: LatLng) {
+        private fun startSearch(from: LatLng, accuracyMeters: Float?) {
             val regionsAtSearch = regions()
             // Amendment 2, item 2 (Sorrel's S-413-2): the job is held before its body can run. On Main.immediate a launch
             // can run its body in place until it first suspends, so a search that never suspends would clear [search]
             // before an assignment of `launch`'s result set it to the finished job, blocking every later search.
             val job = scope.launch(start = CoroutineStart.LAZY) {
                 val result = try {
-                    find(from, waypoint)
+                    find(from, waypoint, null) // A2 STUB, tests first: accuracyMeters is not yet handed on.
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {

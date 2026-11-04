@@ -91,7 +91,7 @@ class AvailabilityViewModelWaypointSearchGuardTest {
                 Result.success(pin.takeIf { it.id == id })
             },
             currentTime = CurrentTimeProvider { t + dispatcher.scheduler.currentTime },
-            findWayToWaypoint = { from, to ->
+            findWayToWaypoint = { from, to, _ ->
                 searches += from
                 find(from, to)
             },
