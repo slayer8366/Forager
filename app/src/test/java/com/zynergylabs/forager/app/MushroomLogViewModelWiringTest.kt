@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
+import com.zynergylabs.forager.app.ui.availability.onEnteredForeground
 import com.zynergylabs.forager.app.ui.availability.mapLayersViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import java.time.LocalDate

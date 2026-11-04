@@ -11,6 +11,9 @@ import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
 import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
 import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
 import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.onEnteredForeground
+import com.zynergylabs.forager.app.ui.availability.onLeftForeground
+import com.zynergylabs.forager.app.ui.availability.onLocationPermissionGranted
 import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
 import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
 import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
