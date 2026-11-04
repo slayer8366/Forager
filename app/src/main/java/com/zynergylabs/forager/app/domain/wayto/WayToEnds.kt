@@ -4,6 +4,8 @@ import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.dropoff.GateResult
 import com.zynergylabs.forager.app.domain.dropoff.LegGates
 import com.zynergylabs.forager.app.domain.dropoff.StreetDropOff
+import com.zynergylabs.forager.app.domain.mapdata.Coverage
+import com.zynergylabs.forager.app.domain.mapdata.NearbyMapData
 import com.zynergylabs.forager.app.domain.mapdata.ReadNearbyMapData
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.routing.RouteWays
@@ -24,12 +26,19 @@ interface WayToEnds {
     suspend fun settle(walker: LatLng, waypoint: LatLng, route: TrailRoute, routeData: File, reroute: suspend (LatLng) -> TrailRouteResult): Settled
 
     sealed interface Settled {
-        /** The route to draw: [route] as found, or one to a drop-off. Its legs passed every gate. */
-        data class Route(val route: TrailRoute) : Settled
+        /**
+         * The route to draw: [route] as found, or one to a drop-off. Its legs passed every gate, except at the ends in
+         * [byTrail]: those kept the engine's end with their leg ungated, as before the ends step, because the map there
+         * could not be read or carries no fence data (A1 and A4 of dispatch 2026-11-04-04). The caller logs each one.
+         */
+        data class Route(val route: TrailRoute, val byTrail: List<ByTrail> = emptyList()) : Settled
 
         /** No route may be drawn: [note] says why, [reason] says more for the log. */
         data class Refused(val note: WayToWaypointNote, val reason: String) : Settled
     }
+
+    /** An end that went by trail as today: [reason] for the log, with [cause] when a read failed. */
+    data class ByTrail(val reason: String, val cause: Throwable? = null)
 }
 
 /**
@@ -39,6 +48,15 @@ interface WayToEnds {
  *   or a map that cannot vouch: refused, with its note, never a line (rule 4).
  * - **The walker's end.** The lead-in from the walker to the route's first point is gated the same way (the owner: the
  *   legs "can stay so long as they pass our determined gates"). The walker's own building, within 15 m, is theirs.
+ * - **By trail, as today** (dispatch 2026-11-04-04, A1 and A4). Before an end is classified or gated, the map round it
+ *   is read. If that read fails (`mbgl-offline.db`, its TileJSON, or a tile that will not decode), or any stored tile
+ *   within the end's reach has no barrier mark, that end keeps the engine's end with its leg ungated, and the reason
+ *   goes back in [WayToEnds.Settled.Route.byTrail] for the log. The owner on A1: "In areas without fence data,
+ *   Navigate works exactly as it does today (by trail), with no street drop-off. The drop-off only appears where the
+ *   map can check for houses, fences and water. Nothing goes dark." On which tiles: "If any stored tile within the
+ *   check's reach (about 350 m round the waypoint, or along your lead-in) has no fence data, that end goes by trail as
+ *   today." On a read failure: "Same as an older map: Navigate goes by trail as today, with no drop-off, and the error
+ *   is logged." [WayToWaypointNote.MAP_NOT_CHECKED] is left for an end whose tiles are not stored.
  */
 class StreetDropOffEnds(
     private val mapData: ReadNearbyMapData,
@@ -52,44 +70,97 @@ class StreetDropOffEnds(
         routeData: File,
         reroute: suspend (LatLng) -> TrailRouteResult,
     ): WayToEnds.Settled {
-        val near = mapData(waypoint, RADIUS_METERS).getOrElse { return notChecked("the map round the waypoint could not be read: ${it.message}") }
-        val ways = routeWays.near(waypoint, RADIUS_METERS, routeData).getOrElse { return notChecked("the ways round the waypoint could not be read: ${it.message}") }
+        val byTrail = mutableListOf<WayToEnds.ByTrail>()
+        val settled = when (val near = mapData(waypoint, RADIUS_METERS).byTrailOr("the waypoint's end")) {
+            is MapRead.ByTrail -> route.also { byTrail += near.why }
+            is MapRead.Read -> when (val end = waypointEnd(waypoint, route, routeData, reroute, near.data)) {
+                is WaypointEnd.Settled -> end.route
+                is WaypointEnd.Refused -> return end.refused
+            }
+        }
+        return when (val lead = leadIn(walker, settled, routeData)) {
+            LeadIn.Passes -> WayToEnds.Settled.Route(settled, byTrail)
+            is LeadIn.ByTrail -> WayToEnds.Settled.Route(settled, byTrail + lead.why)
+            is LeadIn.Refused -> lead.refused
+        }
+    }
+
+    /** The map round an end, or why that end goes by trail: the read failed, or a stored tile has no barrier mark. */
+    private sealed interface MapRead {
+        data class Read(val data: NearbyMapData) : MapRead
+
+        data class ByTrail(val why: WayToEnds.ByTrail) : MapRead
+    }
+
+    private fun Result<NearbyMapData>.byTrailOr(end: String): MapRead {
+        val data = getOrElse { return MapRead.ByTrail(WayToEnds.ByTrail("$end: the map could not be read: ${it.message}", it)) }
+        val unmarked = unmarkedTile(data) ?: return MapRead.Read(data)
+        return MapRead.ByTrail(WayToEnds.ByTrail("$end: $unmarked"))
+    }
+
+    private sealed interface WaypointEnd {
+        data class Settled(val route: TrailRoute) : WaypointEnd
+
+        data class Refused(val refused: WayToEnds.Settled.Refused) : WaypointEnd
+    }
+
+    /** The waypoint's end on a map that can vouch for it: the drop-off for a street end, the gated leg for a trail end. */
+    private suspend fun waypointEnd(
+        waypoint: LatLng,
+        route: TrailRoute,
+        routeData: File,
+        reroute: suspend (LatLng) -> TrailRouteResult,
+        near: NearbyMapData,
+    ): WaypointEnd {
+        fun refused(r: WayToEnds.Settled.Refused) = WaypointEnd.Refused(r)
+        val ways = routeWays.near(waypoint, RADIUS_METERS, routeData).getOrElse { return refused(notChecked("the ways round the waypoint could not be read: ${it.message}")) }
         val settled = when (val end = StreetDropOff.classify(waypoint, near, ways)) {
-            is StreetDropOff.End.Unknown -> return notChecked("the waypoint's end: ${end.reason}")
+            is StreetDropOff.End.Unknown -> return refused(notChecked("the waypoint's end: ${end.reason}"))
             StreetDropOff.End.Trail -> when (val gates = LegGates.check(route.points.last(), waypoint, near)) {
                 GateResult.Passes -> route
-                else -> return refusedFor(gates, "the leg from the trail to the waypoint")
+                else -> return refused(refusedFor(gates, "the leg from the trail to the waypoint"))
             }
             is StreetDropOff.End.Street -> when (val choice = StreetDropOff.choose(waypoint, end.building, near, ways)) {
-                is StreetDropOff.Choice.NoneQualifies -> return refusedForAll(choice.tried)
+                is StreetDropOff.Choice.NoneQualifies -> return refused(refusedForAll(choice.tried))
                 is StreetDropOff.Choice.Found -> {
                     val toDropOff = when (val r = reroute(choice.dropOff.at)) {
                         is TrailRouteResult.Found -> r.route
-                        is TrailRouteResult.Failed -> return WayToEnds.Settled.Refused(WayToWaypointNote.NO_ROUTE_FOUND, "no route to the drop-off: ${r.failure}")
+                        is TrailRouteResult.Failed -> return refused(WayToEnds.Settled.Refused(WayToWaypointNote.NO_ROUTE_FOUND, "no route to the drop-off: ${r.failure}"))
                     }
-                    if (toDropOff.points.size < 2) return WayToEnds.Settled.Refused(WayToWaypointNote.NO_ROUTE_FOUND, "the route to the drop-off has ${toDropOff.points.size} points")
+                    if (toDropOff.points.size < 2) return refused(WayToEnds.Settled.Refused(WayToWaypointNote.NO_ROUTE_FOUND, "the route to the drop-off has ${toDropOff.points.size} points"))
                     // The engine matches the drop-off to its nearest way, which is the street it lies on; whatever it
                     // matched, the leg actually drawn is the one gated.
                     val gates = LegGates.check(toDropOff.points.last(), waypoint, near, listOfNotNull(end.building))
-                    if (gates != GateResult.Passes) return refusedFor(gates, "the leg from the drop-off")
+                    if (gates != GateResult.Passes) return refused(refusedFor(gates, "the leg from the drop-off"))
                     toDropOff
                 }
             }
         }
-        return leadIn(walker, settled, routeData) ?: WayToEnds.Settled.Route(settled)
+        return WaypointEnd.Settled(settled)
     }
 
-    /** The lead-in's gates: null when it passes. */
-    private suspend fun leadIn(walker: LatLng, route: TrailRoute, routeData: File): WayToEnds.Settled? {
+    private sealed interface LeadIn {
+        data object Passes : LeadIn
+
+        data class ByTrail(val why: WayToEnds.ByTrail) : LeadIn
+
+        data class Refused(val refused: WayToEnds.Settled.Refused) : LeadIn
+    }
+
+    /** The lead-in's gates, or by trail as today where the map round the walker cannot vouch (A1, A4). */
+    private suspend fun leadIn(walker: LatLng, route: TrailRoute, routeData: File): LeadIn {
         val first = route.points.first()
         val radius = GeoDistance.metersBetween(walker, first) + LEAD_IN_MARGIN_METERS
-        val near = mapData(walker, radius).getOrElse { return notChecked("the map round the walker could not be read: ${it.message}") }
-        val ways = routeWays.near(walker, radius, routeData).getOrElse { return notChecked("the ways round the walker could not be read: ${it.message}") }
+        val near = when (val read = mapData(walker, radius).byTrailOr("the lead-in")) {
+            is MapRead.ByTrail -> return LeadIn.ByTrail(read.why)
+            is MapRead.Read -> read.data
+        }
+        val ways = routeWays.near(walker, radius, routeData).getOrElse { return LeadIn.Refused(notChecked("the ways round the walker could not be read: ${it.message}")) }
         val own = (StreetDropOff.classify(walker, near, ways) as? StreetDropOff.End.Street)?.building
         return when (val gates = LegGates.check(walker, first, near, listOfNotNull(own))) {
-            GateResult.Passes -> null
-            is GateResult.Fails -> WayToEnds.Settled.Refused(WayToWaypointNote.LEAD_IN_BLOCKED, "the lead-in crosses ${gates.crossings}")
-            is GateResult.Unchecked -> notChecked("the lead-in: ${gates.what.joinToString { "${it.what}: ${it.reason}" }}")
+            GateResult.Passes -> LeadIn.Passes
+            is GateResult.Fails -> LeadIn.Refused(WayToEnds.Settled.Refused(WayToWaypointNote.LEAD_IN_BLOCKED, "the lead-in crosses ${gates.crossings}"))
+            is GateResult.Unchecked -> LeadIn.Refused(notChecked("the lead-in: ${gates.what.joinToString { "${it.what}: ${it.reason}" }}"))
         }
     }
 
@@ -107,6 +178,13 @@ class StreetDropOffEnds(
     }
 
     private fun notChecked(reason: String) = WayToEnds.Settled.Refused(WayToWaypointNote.MAP_NOT_CHECKED, reason)
+
+    /**
+     * Why [data] carries no fence data, or null when it does: the reason of the first stored tile with no barrier mark
+     * (#439). A tile not stored is not counted here; it leaves the gates unchecked, which is [notChecked]'s, not by trail.
+     */
+    private fun unmarkedTile(data: NearbyMapData): String? =
+        data.tiles.filter { it !in data.missingTiles }.firstNotNullOfOrNull { (data.fencesByTile[it] as? Coverage.NotInTileSet)?.reason }
 
     companion object {
         /** Round the waypoint: the 150 m street search, plus the 300 m walk along access ways, which starts within 25 m. */

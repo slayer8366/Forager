@@ -49,7 +49,9 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
  * ## The fallbacks, and the log
  *
  * Every way it falls back to the straight line names its [WayToWaypointNote] and is logged once per call, through
- * [errorLog] (CLAUDE.md: no default fallback that isn't logged when it fires), in words, never a position.
+ * [errorLog] (CLAUDE.md: no default fallback that isn't logged when it fires), in words, never a position. An end that
+ * goes by trail as today because the map there cannot vouch for it ([WayToEnds.Settled.Route.byTrail]) is logged the
+ * same way, once per end per call.
  */
 class FindWayToWaypointUseCase(
     private val offlineMapRepository: OfflineMapRepository,
@@ -87,7 +89,7 @@ class FindWayToWaypointUseCase(
         // Step 5 (way-to dispatch 2026-10-28): the ends. A street end is rerouted to its drop-off, both legs are gated.
         val route = when (val settled = ends.settle(from, waypoint, found, routes.folder) { to -> engine.router.route(from, to, routes.folder) }) {
             is WayToEnds.Settled.Refused -> return straight(settled.note, "the route's ends: ${settled.reason}")
-            is WayToEnds.Settled.Route -> settled.route
+            is WayToEnds.Settled.Route -> settled.route.also { settled.byTrail.forEach(::byTrail) }
         }
         if (route !== found && route.points.any { !routes.area.contains(it) }) {
             return straight(WayToWaypointNote.LEAVES_AREA, "the route to the drop-off runs outside region ${routes.regionId}'s area")
@@ -150,6 +152,15 @@ class FindWayToWaypointUseCase(
     private fun straight(note: WayToWaypointNote, reason: String, cause: Throwable? = null): WayToWaypointResult {
         errorLog.w(TAG, "The way to the waypoint is the straight line (${note.name}): $reason.", WayToWaypointFallback(reason, cause))
         return WayToWaypointResult.StraightLine(note)
+    }
+
+    /**
+     * An end that went by trail as today, with no drop-off and its leg ungated (dispatch 2026-11-04-04, A1 and A4): the
+     * map there could not be read or carries no fence data. Not a straight line, but a fallback all the same, so logged
+     * once per end per call, as the straight line's are.
+     */
+    private fun byTrail(end: WayToEnds.ByTrail) {
+        errorLog.w(TAG, "The way to the waypoint keeps the engine's end by trail, with no drop-off and the leg not gated: ${end.reason}.", WayToWaypointFallback(end.reason, end.cause))
     }
 
     /** What [errorLog] is handed for a fallback: [ErrorLog] takes a throwable, and this names the reason. */
