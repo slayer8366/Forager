@@ -32656,3 +32656,20 @@ Also recorded from Hazel's report:
 - **Build:** tools/s22-combined with pre-main 808187098 merged in. Before installing: a versionCode above 4489 and the same signer.
 - **Checks:** A, #440's height on screen at 0, 2 and 5 min, with the heading kept; B, #475 shows no line in the old v3 regions, and, with the owner's "Yes, one small region (Recommended)", one small new US region is downloaded to see "Elevation N ft" and "Elevation N m", then deleted.
 **Notes:** Written by the planner by hand. Next free ID -2033.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2033
+**Timestamp:** 2026-11-04T03:58:08Z
+**Continues:** 2026-09-28-2027
+**Title:** route-card-evening built and green: D41 to D44 and the fixed clocks; PR opened
+**Outcome:** From Hazel's report. The planner read CI 41767616146 as green on 04b362c9b (pre-main 808187098 merged in, run after sunset on the real clock). The diff against pre-main is 14 files; no @Ignore; 5 assertions removed and 38 added (the C23 predicate and the D42/D44 cases, named in her report).
+- **D42 took four commits on the one symptom,** each after run data: the -955 estimate (402 against 594 px); then the measured height; then keeping -955's once-shown memory; then a layout-loop fix that uses the tallest height seen.
+- **The clock sweeps:** route card classes depend on the hour, and are now on fixed clocks. TrackRecordingService AlertClear, BackByLoop, BackBy and SwipeAway react to a shifted clock (not the hour). Night hours were not probed.
+- **Seen, not investigated:** AvailabilityScreenCrowdedIconsSettingTest failed in two runs ("expected list but was zoom_then_fan") and passed on 04b362c9b. pre-main's PhotoViewerDialogTest red is also under investigation.
+- **Hazel's slip:** one git push -f, used to create a new throwaway branch, so nothing was overwritten.
+- **The tests she changed,** accepted by the planner: the C23 predicate; RouteCardExpandShortLandscapeTest under D44; RouteCardRecenterCoversNoCard's after-sunset variant.
+- **Not seen on a phone.**
+PR opened against pre-main.
+**Notes:** Written by the planner by hand. Next free ID -2034.
