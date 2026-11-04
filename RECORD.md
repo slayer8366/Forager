@@ -33866,3 +33866,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - the branch map-type-chip-outlines, and Hazel's worktree ~/.cache/forager-wt/map-type-chip-outlines;
   - the audit index row (the planner's), not yet written.
 **Notes:** Written by the planner by hand. Next free ID -2099.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2099
+**Timestamp:** 2026-11-04T20:48:26Z
+**Continues:** 2026-09-28-2098
+**Title:** pre-main's CI on #489's merge (10c347378) passed on every job
+**Outcome:** run 41906966295, the push run on pre-main at 10c347378, completed with success on all 8 jobs. They include "Build, test, publish APK" and "The app builds and its tests pass with the Street map deleted". The planner's first watcher stopped on a network error ("error connecting to api.github.com"), not on the run. The result was read with gh run view once the run completed. The planner didn't download the run's JUnit XML.
+**Notes:** Written by the planner by hand. Next free ID -2100.
