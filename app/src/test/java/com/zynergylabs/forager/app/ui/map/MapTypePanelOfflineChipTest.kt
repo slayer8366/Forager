@@ -20,10 +20,12 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
+import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -77,12 +79,17 @@ class MapTypePanelOfflineChipTest {
     private val choices = mutableListOf<MapMode>()
     private var normalSelected = Color.Unspecified
     private var grey = Color.Unspecified
+    private var onSurface = Color.Unspecified
 
     private fun setSheet() {
         composeRule.setContent {
             ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
-                normalSelected = MaterialTheme.colorScheme.secondaryContainer
+                // Dispatch 2026-11-04-07 (RECORD -2092, K1): the normal selected fill follows the theme, to the ruled values: by day
+                // Material's own pale `secondaryContainer` (A2), at night the rust red #A2612C (A3, A6). The night value is written
+                // out, not read from MapModeChips, so a chip drawn any other colour fails.
+                normalSelected = if (LocalForagerDarkTheme.current) Color(0xFFA2612C) else MaterialTheme.colorScheme.secondaryContainer
                 grey = MaterialTheme.colorScheme.outlineVariant
+                onSurface = MaterialTheme.colorScheme.onSurface
                 MapTypePanel(
                     visible = true,
                     mapMode = chosen,
@@ -103,6 +110,13 @@ class MapTypePanelOfflineChipTest {
         val pixels = node.captureToImage().toPixelMap()
         val x = with(composeRule.density) { 3.dp.roundToPx() }
         return pixels[x, pixels.height / 2]
+    }
+
+    /** The first 6 dp of [mode]'s chip's middle row, from its left edge: where an outline would be drawn, short of the label. */
+    private fun leftEdge(mode: MapMode): List<Color> {
+        val pixels = composeRule.onNodeWithTag(mapModeChipTag(mode)).captureToImage().toPixelMap()
+        val n = with(composeRule.density) { 6.dp.roundToPx() }
+        return (0 until n).map { pixels[it, pixels.height / 2] }
     }
 
     private fun recordedFill(mode: MapMode): Color =
@@ -209,6 +223,8 @@ class MapTypePanelOfflineChipTest {
             val theme = if (dark) "dark" else "light"
             composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
             assertEquals("$theme, fallen back: Trail drawn grey", grey, drawnFill(MapMode.TRAIL))
+            // Dispatch 2026-11-04-07 A4 (the owner: "No, normal chip only"; RECORD -2092, K3): the grey chip has no outline.
+            assertTrue("$theme, fallen back: no onSurface outline on the grey Trail chip", leftEdge(MapMode.TRAIL).none { it == onSurface })
             MapMode.entries.filter { it != MapMode.TRAIL }.forEach { composeRule.onNodeWithTag(mapModeChipTag(it)).assertIsNotSelected() }
         }
         assertEquals("the stored choice never changes", emptyList<MapMode>(), choices)
