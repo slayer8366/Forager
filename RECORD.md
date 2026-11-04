@@ -32697,3 +32697,20 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 **Title:** The v4 first zooms' Worker release goes ahead; it doesn't wait for pre-main green
 **Decision:** The owner asked: "The merge is to main, is pre main really a hold for that?" The planner answered that it isn't. The folder-only release is guarded by check-release and the Worker tests, pre-main's red is an app test the Worker doesn't touch, and only the owner's test builds load v4. The planner's earlier hold was carried over from #474's own condition without being thought through. The owner: "Yes, tell Aspen to go ahead". Aspen opens the release from main with the usual checks, sends a line before merging, and confirms what is served afterwards. The night-colour app fix is still required before any promotion (-2018).
 **Notes:** Written by the planner by hand. Next free ID -2036.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-2036
+**Timestamp:** 2026-11-04T04:27:16Z
+**Continues:** 2026-09-28-2032
+**Title:** S22 session 11 so far: #440 converts on screen; #475's line works, and a bug where its cache outlives a region delete
+**Observed:** From Hazel's lines. Build 4503 (tools/s22-combined 2ec5b1b1c with pre-main 808187098 in): CI 41769114243 green, 6463 tests. Installed at 20:06:31; every table equal across the install.
+- **A, #440:** Android 16. With GPS, "Alt 429 ft" at 5 min, against the platform's raw 354 ft and mslAlt 425 ft, so it shows sea level. The heading stayed. This was indoors.
+- **B, #475:**
+  - The old v3 regions show no line; the log names the missing relief tile.
+  - A new 1 mi region "TEST S11" (6.5 MB) gave "Elevation 68 ft" by the Willamette. The live Worker's tile gives 20.83 m, the phone's stored tile is byte-identical, and USGS 1 m reads 18.0 m. A control at the phone's spot: relief 133.7 m, USGS 132.7 m, strip 130.8 m.
+  - Metric: "Elevation 21 m".
+- **D:** the region and TEST S11 WP and TEST R2 were deleted by name.
+- **Bug:** right after the region was deleted, Region 1's waypoint (the same z11 tile) showed "Elevation 451 ft" from ReliefGroundHeightSource's in-memory cache, although the tile had no region link any more. After a force-stop it was gone. The fix is dispatched to Hazel, within -2026's ruling.
+**Notes:** Written by the planner by hand. Next free ID -2037.
