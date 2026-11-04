@@ -307,13 +307,15 @@ class AvailabilityScreenCrowdedStackTest {
 
         val list: Rect = composeRule.onNodeWithTag(CROWDED_LIST_TAG).fetchSemanticsNode().boundsInRoot
         val map: Rect = composeRule.onNodeWithTag(MAP_TAG).fetchSemanticsNode().boundsInRoot
-        // Just above the list, further above it, and level with it in the gutter beside it (16 dp on the side away from the
-        // icon cluster; Sorrel's #430 review, N3: the side point used to need 32 dp and never ran).
+        // Just above the list, well below it, and level with it in the gutter beside it (on the side away from the icon cluster;
+        // Sorrel's #430 review, N3: the side point used to need 32 dp and never ran). Dispatch 2026-11-04-02: the list is a bubble
+        // over the stack now, not a card at the bottom, so "120 dp above it" is under the search bar (run 41785067129, 19 dp from
+        // the top); the far point is 120 dp below it instead, on the open map.
         val gutter = list.left - map.left
         assertTrue("positive control: a gutter beside the list, $gutter px", gutter >= 12f * density)
         val outside = listOf(
             Offset(list.center.x, list.top - 24f * density),
-            Offset(list.center.x, list.top - 120f * density),
+            Offset(list.center.x, list.bottom + 120f * density),
             Offset(map.left + gutter / 2, list.center.y),
         )
         for (rootPoint in outside) {
