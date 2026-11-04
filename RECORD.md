@@ -33570,3 +33570,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - Clio's answers are advice. Nothing in Forager changes on them without the owner.
 - **Memory:** feedback process-questions-to-clio.
 **Notes:** Written by the planner by hand. Next free ID -2085.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2085
+**Timestamp:** 2026-11-04T16:54:40Z
+**Continues:** 2026-09-28-2083, 2026-09-28-2084
+**Title:** Hazel started on dispatch 2026-11-04-06 (the day chip outline), Phase 1, verify first
+**Decision:**
+- **The owner, verbatim:** "I opened a new Clio session with your question"; then "Start Hazel on the outline in the meantime".
+- **Started:** Hazel Cairnwright, as a subagent of the planner's session (planner-profile.md:11, "Coders (subagents or owner-opened windows) build"), on Opus. Her prompt opens with her name and role (:59).
+- **Phase 1 only:**
+  - She checks the dispatch's premises with file and line, gives her mechanism prediction and her test plan, and reports to the planner.
+  - She writes no code and doesn't fast-forward the branch until the planner's go.
+  - Her worktree is ~/.cache/forager-wt/delete-a4 (delete-amendment-4 at d82cf520e). Her scratch is /mnt/work/scratch/delete-amendment-4/; that disk is 99% full, with about 650 MB free.
+- **Clio:** the owner opened a new Clio session with the four questions (-2084). The queued message to the old curator session may still arrive later, as a duplicate.
+- **The planner's slip:** today's scratch worktrees went under /tmp (rowan-chip-dryrun, rowan-undo-487, rowan-revert-chip-colours), against coder-profile's "never in /tmp, which is in memory on this laptop" (RECORD -1374). The first two are removed. /tmp/rowan-revert-chip-colours is left; its branch is pushed, and it waits for the owner's word.
+**Notes:** Written by the planner by hand. Next free ID -2086.
