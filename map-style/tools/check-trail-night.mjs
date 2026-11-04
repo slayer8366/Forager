@@ -44,7 +44,8 @@ for (const e of errors) problems.push(`style spec: ${e.message}`);
 // v1 is frozen (RECORD -1561): what it was at pre-main 563e9b756, byte for byte, in all three copies. street-v3 and
 // street-v4 are frozen the same way since dispatch 2026-11-03-05 (D2, RECORD -2000): what they were at pre-main
 // d88db1799, every copy, for the regions downloaded against them; a later design ships as trail-v5. v2 is held by the
-// Worker's tests.
+// Worker's tests. street-v4 was updated in place once since, with the first zooms (dispatch 2026-11-02-coder-13; the
+// owner: "Update v4 in place"), and is held here to the new files' sums; v1 and v3 are as they were.
 const V1_SHA256 = {
   "forager-street-v1.json": "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da",
   "forager-street-v1.preview.json": "4fc2e14feeecfdf86bc7a4f6d7597eb997732ee97620388fba69ea379926dc88",
@@ -52,13 +53,13 @@ const V1_SHA256 = {
   "forager-street-v3.json": "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f",
   "forager-street-v3.preview.json": "beb40e3a0e5624da44f52e98f0e85c52e3065cc87af5987396fbf983a8d71c97",
   "../server/pmtiles-worker/src/street-style-v3.json": "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f",
-  "forager-street-v4.json": "6ce7271ed1d0da0b08b9c190310d6d7e0838febdfaf6bfcdd121b1162eacef80",
-  "forager-street-v4.preview.json": "e6583d7fbc866001de94ef20ea07809407713d5f731438d1b4d7b9a3124d9933",
-  "../server/pmtiles-worker/src/street-style-v4.json": "6ce7271ed1d0da0b08b9c190310d6d7e0838febdfaf6bfcdd121b1162eacef80",
+  "forager-street-v4.json": "d27d42d163baf8a9576e2ad0407625f48aabf41713809fb61689b794d0f94e40",
+  "forager-street-v4.preview.json": "bf389ab39364db3faa46146876f00bd694bce6ae11534f341348f2ad20afec21",
+  "../server/pmtiles-worker/src/street-style-v4.json": "d27d42d163baf8a9576e2ad0407625f48aabf41713809fb61689b794d0f94e40",
 };
 for (const [path, sum] of Object.entries(V1_SHA256)) {
   const actual = crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
-  if (actual !== sum) problems.push(`${path} changed (sha256 ${actual}): frozen (v1 since -1561, v3 and v4 since dispatch 2026-11-03-05 D2); a new design ships as a new version`);
+  if (actual !== sum) problems.push(`${path} changed (sha256 ${actual}): frozen (v1 since -1561, v3 and v4 since dispatch 2026-11-03-05 D2; v4 updated in place once, dispatch 2026-11-02-coder-13); a new design ships as a new version`);
 }
 
 const channels = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -156,6 +157,14 @@ for (const [icon, { night: colour }] of Object.entries(NIGHT_ICON_RINGS)) {
 }
 // --- Dispatch 2026-10-22-03: the ruled night limits ("Rules from your colours", NIGHT_LIMITS) -----------------------
 const style2 = JSON.parse(text);
+// v4's first zooms (dispatch 2026-11-02-coder-13) split some layers into clones, each in the run right after its original
+// (forager:layer-clones, clone id to original id; held in 14). The rulings in 8 to 12 are about the design's layers: their
+// order is read without the clones, and a split layer's ruled filter is the part its clones were cut from.
+const LAYER_CLONES = V4 ? style2.metadata["forager:layer-clones"] ?? {} : {};
+const SPLIT = new Set(Object.values(LAYER_CLONES));
+const designOrder = style2.layers.map((l) => l.id).filter((id) => !(id in LAYER_CLONES));
+/** A layer's ruled filter: its own, or for a split layer (["all", ruled, ["!", ["any", ...the clones' kinds]]]) the ruled part. */
+const ruledFilterOf = (layer) => (layer && SPLIT.has(layer.id) ? layer.filter[1] : layer?.filter);
 /** Every colour literal in a style value, as #rrggbb (rgba() strings with alpha 1 too). */
 function colourLiterals(value) {
   if (typeof value === "string") {
@@ -312,7 +321,7 @@ if (V4) {
 //    new fills is held above with every land fill.
 if (V4) {
   const layerOf = (id) => style2.layers.find((l) => l.id === id);
-  const order = style2.layers.map((l) => l.id);
+  const order = designOrder;
   const at = order.indexOf("landuse_pier");
   if (order[at + 1] !== "landuse_edges" || order[at + 2] !== "water_edges") problems.push(`landuse_edges and water_edges are not right after landuse_pier: ${order.slice(at, at + 3)}`);
   const RULED_EDGES = {
@@ -342,7 +351,7 @@ if (V4) {
       return null;
     };
     const kinds = Object.values(RULED_EDGES).flat();
-    if (JSON.stringify(edges.filter) !== JSON.stringify(["in", ["get", "kind"], ["literal", kinds]])) problems.push(`landuse_edges' filter is ${JSON.stringify(edges.filter)}`);
+    if (JSON.stringify(ruledFilterOf(edges)) !== JSON.stringify(["in", ["get", "kind"], ["literal", kinds]])) problems.push(`landuse_edges' filter is ${JSON.stringify(edges.filter)}`);
     for (const [colour, ks] of Object.entries(RULED_EDGES)) for (const k of ks) if (edgeOf(k) !== colour) problems.push(`landuse_edges: ${k} edge ${edgeOf(k)}, ruled ${colour}`);
     for (const l of [edges, water]) {
       if (l.minzoom !== 13 || JSON.stringify(l.paint["line-width"]) !== WIDTH) problems.push(`${l.id}: minzoom ${l.minzoom}, width ${JSON.stringify(l.paint["line-width"])}; ruled 13 and ${WIDTH}`);
@@ -413,7 +422,7 @@ if (V4) {
 //     under water (Recommended)"): water_stream and water_river draw just before the water fill, so a lake or river
 //     polygon covers the line inside it and the creek shows everywhere else. Nothing else moves.
 if (V4) {
-  const order = style2.layers.map((l) => l.id);
+  const order = designOrder;
   const at = order.indexOf("water");
   const before = order.slice(at - 2, at);
   if (JSON.stringify(before) !== JSON.stringify(["water_stream", "water_river"])) problems.push(`the two layers before the water fill are ${JSON.stringify(before)}; ruled ["water_stream","water_river"]`);
@@ -426,18 +435,19 @@ if (V4) {
 //     "Fill + pattern per kind (Recommended)", fill #c8dd98, "Standard night (Recommended)"), by hand from Sage's sage-10
 //     spec: one fill right after landuse_settled for kind farmland with kind_detail orchard, plant_nursery or vineyard
 //     (basemap patch 0006), opacity 0.6 at z6 to 1 at z9, no minzoom; night the plain inversion #495e19 (no fill
-//     exception); the three in landuse_edges at #b0c286, night rim #3a4b14. The patterns are a later step.
+//     exception); the three in landuse_edges at #b0c286, night rim #3a4b14. The patterns are a later step. Since the
+//     first zooms (14): from 3.5, the plant nurseries split off from 8.5 (the comparison's rows 6 and 7).
 if (V4) {
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const order = style2.layers.map((l) => l.id);
+  const order = designOrder;
   const fill = style2.layers.find((l) => l.id === "landuse_orchards");
   const KINDS = ["orchard", "plant_nursery", "vineyard"];
   const FILTER = ["all", ["==", ["get", "kind"], "farmland"], ["in", ["get", "kind_detail"], ["literal", KINDS]]];
   if (!fill) problems.push("v4 has no landuse_orchards");
   else {
     if (order[order.indexOf("landuse_settled") + 1] !== "landuse_orchards") problems.push(`landuse_orchards is not right after landuse_settled: ${order.slice(order.indexOf("landuse_settled"), order.indexOf("landuse_settled") + 2)}`);
-    if (fill.type !== "fill" || fill["source-layer"] !== "landuse" || "minzoom" in fill || "maxzoom" in fill) problems.push(`landuse_orchards: ${fill.type} on ${fill["source-layer"]}, minzoom ${fill.minzoom}; ruled a fill on landuse, no minzoom`);
-    if (!same(fill.filter, FILTER)) problems.push(`landuse_orchards' filter is ${JSON.stringify(fill.filter)}; ruled ${JSON.stringify(FILTER)}`);
+    if (fill.type !== "fill" || fill["source-layer"] !== "landuse" || fill.minzoom !== 3.5 || "maxzoom" in fill) problems.push(`landuse_orchards: ${fill.type} on ${fill["source-layer"]}, minzoom ${fill.minzoom}; ruled a fill on landuse from 3.5 (the first zooms)`);
+    if (!same(ruledFilterOf(fill), FILTER)) problems.push(`landuse_orchards' filter is ${JSON.stringify(fill.filter)}; ruled ${JSON.stringify(FILTER)}`);
     if (fill.paint["fill-color"] !== "#c8dd98") problems.push(`landuse_orchards is ${JSON.stringify(fill.paint["fill-color"])}, ruled #c8dd98`);
     if (!same(fill.paint["fill-opacity"], ["interpolate", ["linear"], ["zoom"], 6, 0.6, 9, 1])) problems.push(`landuse_orchards' opacity is ${JSON.stringify(fill.paint["fill-opacity"])}; ruled 0.6 at z6 to 1 at z9`);
   }
@@ -454,10 +464,11 @@ if (V4) {
 //     (Recommended)"), by hand from Sage's sage-10 spec: v4 names sprite v6 (v5 unchanged plus the three patterns) and
 //     v3 keeps v5; landuse_orchards_pattern right after landuse_orchards, minzoom 13, the same filter, fill-pattern by
 //     kind_detail; the three are images v6 has (3, above) and in forager:sprite-icons, which the app's night inverts
-//     (ink #8ea65c to #829a50, the plain inversion, as ruled), and none is a painted night pattern.
+//     (ink #8ea65c to #829a50, the plain inversion, as ruled), and none is a painted night pattern. Since the first zooms
+//     (14): from 11.5 (the comparison's row 8), right after the orchards and their nursery clone.
 if (V4) {
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const order = style2.layers.map((l) => l.id);
+  const order = designOrder;
   if (!/\/sprites\/v6\/light$/.test(style2.sprite)) problems.push(`v4's sprite is ${style2.sprite}; ruled sprite v6`);
   const v3 = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8"));
   if (!/\/sprites\/v5\/light$/.test(v3.sprite)) problems.push(`v3's sprite is ${v3.sprite}; it keeps sprite v5`);
@@ -467,8 +478,8 @@ if (V4) {
   if (!pattern) problems.push("v4 has no landuse_orchards_pattern");
   else {
     if (order[order.indexOf("landuse_orchards") + 1] !== "landuse_orchards_pattern") problems.push("landuse_orchards_pattern is not right after landuse_orchards");
-    if (pattern.type !== "fill" || pattern["source-layer"] !== "landuse" || pattern.minzoom !== 13) problems.push(`landuse_orchards_pattern: ${pattern.type} on ${pattern["source-layer"]}, minzoom ${pattern.minzoom}; ruled a fill on landuse from z13`);
-    if (!same(pattern.filter, fill?.filter)) problems.push(`landuse_orchards_pattern's filter ${JSON.stringify(pattern.filter)} is not landuse_orchards'`);
+    if (pattern.type !== "fill" || pattern["source-layer"] !== "landuse" || pattern.minzoom !== 11.5) problems.push(`landuse_orchards_pattern: ${pattern.type} on ${pattern["source-layer"]}, minzoom ${pattern.minzoom}; ruled a fill on landuse from 11.5 (the first zooms)`);
+    if (!same(pattern.filter, ruledFilterOf(fill))) problems.push(`landuse_orchards_pattern's filter ${JSON.stringify(pattern.filter)} is not landuse_orchards'`);
     if (!same(pattern.paint, { "fill-pattern": PATTERN })) problems.push(`landuse_orchards_pattern's paint is ${JSON.stringify(pattern.paint)}; ruled {"fill-pattern": ${JSON.stringify(PATTERN)}}`);
   }
   const icons = JSON.parse(text).metadata["forager:sprite-icons"];
@@ -513,6 +524,45 @@ if (V4) {
   if (!same(JSON.parse(text).metadata["forager:night-hillshade"], NIGHT)) problems.push(`forager:night-hillshade is ${JSON.stringify(JSON.parse(text).metadata["forager:night-hillshade"])}; ruled ${JSON.stringify(NIGHT)}`);
   const v3 = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8"));
   if (v3.sources.dem || v3.layers.some((l) => l.type === "hillshade") || "forager:night-hillshade" in v3.metadata) problems.push("v3 has hill shading; ruled v4 only");
+}
+
+// 14. v4's first zooms (dispatch 2026-11-02-coder-13; the owner approved the zoom and chose "Update v4 in place"): the
+//     layers overrides/forager-reference-zooms.mjs splits. Each clone draws as its original (type, source, source-layer,
+//     paint and layout; the peak's icon alone leaves its name to its clone from 11.5), sits in the run right after its
+//     original, and takes a part of the original's ruled filter: ["all", ruled, its kinds], the original keeping
+//     ["all", ruled, ["!", ["any", ...the clones' kinds]]]. Night: v4's tables, and the app's copy of them, are keyed by
+//     layer id and name no clone, so a clone of a layer with a named night exception draws the plain inversion until the
+//     app maps the clones (recorded, not gated).
+if (V4) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const layerOf = (id) => style2.layers.find((l) => l.id === id);
+  const order = style2.layers.map((l) => l.id);
+  if (!Object.keys(LAYER_CLONES).length) problems.push("v4 has no forager:layer-clones: the first zooms are missing");
+  for (const [id, of] of Object.entries(LAYER_CLONES)) {
+    const clone = layerOf(id);
+    const orig = layerOf(of);
+    if (!clone || !orig) { problems.push(`forager:layer-clones names ${id} of ${of}, and the style lacks one`); continue; }
+    if (!id.startsWith(`${of}__`)) problems.push(`${id} is not named ${of}__<group>`);
+    for (const k of ["type", "source", "source-layer", "paint"]) if (!same(clone[k], orig[k])) problems.push(`${id}'s ${k} is not ${of}'s`);
+    if (id !== "pois__peak" && !same(clone.layout, orig.layout)) problems.push(`${id}'s layout is not ${of}'s`);
+    const [i, j] = [order.indexOf(of), order.indexOf(id)];
+    if (j < i || order.slice(i + 1, j).some((b) => LAYER_CLONES[b] !== of)) problems.push(`${id} is not in the run right after ${of}`);
+  }
+  for (const of of SPLIT) {
+    const f = layerOf(of)?.filter;
+    const cut = Array.isArray(f) && f[0] === "all" && f.length === 3 && Array.isArray(f[2]) && f[2][0] === "!" && Array.isArray(f[2][1]) && f[2][1][0] === "any";
+    if (!cut) { problems.push(`${of}'s filter is not ["all", ruled, ["!", ["any", ...]]]: ${JSON.stringify(f)?.slice(0, 160)}`); continue; }
+    const kinds = new Set(f[2][1].slice(1).map((c) => JSON.stringify(c)));
+    const taken = new Set();
+    for (const id of Object.keys(LAYER_CLONES).filter((c) => LAYER_CLONES[c] === of)) {
+      const g = layerOf(id).filter;
+      if (!Array.isArray(g) || g[0] !== "all" || g.length !== 3 || !same(g[1], f[1]) || !kinds.has(JSON.stringify(g[2]))) problems.push(`${id}'s filter is not ["all", ${of}'s ruled filter, one of the kinds ${of} leaves]`);
+      else taken.add(JSON.stringify(g[2]));
+    }
+    if (taken.size !== kinds.size) problems.push(`${of} leaves ${kinds.size} kinds and its clones take ${taken.size}`);
+  }
+  const unmapped = Object.entries(LAYER_CLONES).filter(([id, of]) => !(id in NIGHT_LAYER_COLOURS) && !(id in NIGHT_LINE_COLOURS_V4) && (of in NIGHT_LAYER_COLOURS || of in NIGHT_LINE_COLOURS_V4));
+  console.log(`first zooms: ${Object.keys(LAYER_CLONES).length} clones of ${SPLIT.size} layers; ${unmapped.length} clones of layers with a named night exception, drawn with the plain inversion until the app maps them (recorded, not gated): ${unmapped.map(([id]) => id).join(", ")}`);
 }
 
 for (const [what, colour, against, min] of exceptions) {

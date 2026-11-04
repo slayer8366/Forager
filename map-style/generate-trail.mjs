@@ -30,17 +30,26 @@
 //
 // Since dispatch 2026-11-03-05 (RECORD -2000, D1, D2) it also writes trail-v4: v4 under the Trail Map's own code name,
 // the style the app loads. Its layers, sources and night tables are v4's; only its `name` and its
-// forager:generated-from differ, which the Worker's tests hold. street-v3 and street-v4 are frozen from then on, as
-// v1 and v2 are: they are still written here, from the same design, so CI's regeneration check proves the design
-// still draws them exactly, and tools/check-trail-night.mjs holds every copy to its sha256. Their `name` and
+// forager:generated-from differ, which the Worker's tests hold. street-v3 is frozen from then on, as v1 and v2 are: it
+// is still written here, from the same design, so CI's regeneration check proves the design still draws it exactly,
+// and tools/check-trail-night.mjs holds every copy to its sha256. street-v3's and street-v4's `name` and
 // forager:generated-from are the text they were frozen with, which names this design file by its old name,
 // overrides/forager-street.mjs. A later design ships as trail-v5.
+//
+// Since dispatch 2026-11-02-coder-13 (the owner approved the zoom and chose "Update v4 in place") v4 also takes
+// overrides/forager-reference-zooms.mjs, applied after the fill-in: the first zoom of each layer, splitting a layer
+// whose kinds start at different zooms into clones (forager:layer-clones, clone id to original id). street-v4 and
+// trail-v4 change together, at the same addresses, and stay one style (D1); their sha256 in tools/check-trail-night.mjs
+// and the Worker's tests are the new files'. v1 to v3 are untouched. v4's night tables are unchanged: they are keyed by
+// layer id and the app holds its own copy equal to them, so until the app maps the clones to their originals, night
+// draws a clone with the plain inversion where its original has a named exception.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 import { applyTrailDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-trail.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
 import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
 import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_HILLSHADE_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
+import { applyReferenceZooms, CLONES } from "./overrides/forager-reference-zooms.mjs";
 
 const here = (path) => new URL(path, import.meta.url);
 
@@ -71,7 +80,10 @@ const spriteIconsOf = (sprite) => Object.keys(JSON.parse(fs.readFileSync(here(`.
 // v2 was generated with.
 const v3Layers = () => withReferenceLayers(withBuildingOutline(applyCharacter(applyTrailDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
 
-/** What differs between the versions this script writes: v4 is v3's layers with the fill-in and v4's night tables. */
+/**
+ * What differs between the versions this script writes: v4 is v3's layers with the fill-in, then the first zooms, and v4's
+ * night tables.
+ */
 const VERSIONS = {
   v3: {
     layers: v3Layers(),
@@ -81,12 +93,14 @@ const VERSIONS = {
     toWorker: true,
   },
   v4: {
-    layers: applyFillIn(v3Layers()),
+    layers: applyReferenceZooms(applyFillIn(v3Layers())),
     palette: { ...COLOURS, fillIn: FILL_IN_COLOURS },
     nightLayers: NIGHT_LAYER_COLOURS_V4,
     nightFills: NIGHT_FILL_COLOURS_V4,
     nightLines: NIGHT_LINE_COLOURS_V4,
     nightHillshade: NIGHT_HILLSHADE_V4,
+    // The layers the first zooms split, clone id to original id (overrides/forager-reference-zooms.mjs).
+    layerClones: CLONES,
     // Hill shading's heights (dispatch 2026-11-01-coder-11): Terrarium PNG from the Worker's relief archive, z5-11, given
     // inline so MapLibre over-zooms past z11 on the phone and never asks for a tile the archive lacks.
     sources: {
@@ -100,7 +114,8 @@ const VERSIONS = {
 
 /**
  * The files this script writes (dispatch 2026-11-03-05, D1, D2): each a version's design under a code name, with the
- * `name` and forager:generated-from it carries. The two street files keep the text they were frozen with.
+ * `name` and forager:generated-from it carries. The two street files keep the text they were frozen with, street-v4's
+ * with the first zooms' file added.
  */
 const OUTPUTS = [
   {
@@ -113,13 +128,13 @@ const OUTPUTS = [
     code: "street",
     version: "v4",
     name: "Forager Street v4",
-    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs and overrides/forager-fill-in.mjs",
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-street.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs, overrides/forager-fill-in.mjs and overrides/forager-reference-zooms.mjs",
   },
   {
     code: "trail",
     version: "v4",
     name: "Forager Trail v4",
-    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-trail.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs and overrides/forager-fill-in.mjs",
+    generatedFrom: "@protomaps/basemaps 5.7.2, flavor light, with overrides/forager-trail.mjs, overrides/forager-character.mjs, overrides/forager-reference.mjs, overrides/forager-fill-in.mjs and overrides/forager-reference-zooms.mjs",
   },
 ];
 
@@ -143,6 +158,8 @@ const style = ({ version, name, generatedFrom }, assetsBase) => ({
     ...(VERSIONS[version].nightLines ? { "forager:night-line-colours": VERSIONS[version].nightLines } : {}),
     // v4 only: the hillshade's night (the recolour never touches a hillshade layer).
     ...(VERSIONS[version].nightHillshade ? { "forager:night-hillshade": VERSIONS[version].nightHillshade } : {}),
+    // v4 only: the layers the first zooms split, clone id to original id.
+    ...(VERSIONS[version].layerClones ? { "forager:layer-clones": { ...VERSIONS[version].layerClones } } : {}),
   },
   sources: {
     protomaps: {
