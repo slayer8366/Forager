@@ -32825,3 +32825,13 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 - **Flagged, not acted on:** pois__peak's layout differs from its original pois.
 - Hazel is told to open the PR against pre-main. Merging waits for the owner.
 **Notes:** Written by the planner by hand. Next free ID -2045.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2045
+**Timestamp:** 2026-11-04T08:01:36Z
+**Continues:** 2026-09-28-2044
+**Title:** #481 (clone layers at night) merged to pre-main
+**Outcome:** The owner: "481 passed", then "Yes, merge 481". All eight PR checks were green and the PR was mergeable on base 0fa3a936a. Before merging, pre-main was backed up (pre-main-before-481.bundle, verified). The diff is 4 files, +317/-1, with no @Ignore and no removed assertion. Merged as 8f240b447. Still to come: the night check on the S22 (Trail Map near Molalla z11-12, minor roads #333333, boundaries #bdbdbd, and the log line naming 78 clones and 13 recoloured).
+**Notes:** Written by the planner by hand. Next free ID -2046.
