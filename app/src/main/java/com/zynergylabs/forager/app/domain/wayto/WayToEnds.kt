@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.mapdata.Coverage
 import com.zynergylabs.forager.app.domain.mapdata.NearbyMapData
 import com.zynergylabs.forager.app.domain.mapdata.ReadNearbyMapData
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.routing.RouteWay
 import com.zynergylabs.forager.app.domain.routing.RouteWays
 import com.zynergylabs.forager.app.domain.routing.TrailRoute
 import com.zynergylabs.forager.app.domain.routing.TrailRouteResult
@@ -56,7 +57,9 @@ interface WayToEnds {
  *   map can check for houses, fences and water. Nothing goes dark." On which tiles: "If any stored tile within the
  *   check's reach (about 350 m round the waypoint, or along your lead-in) has no fence data, that end goes by trail as
  *   today." On a read failure: "Same as an older map: Navigate goes by trail as today, with no drop-off, and the error
- *   is logged." [WayToWaypointNote.MAP_NOT_CHECKED] is left for an end whose tiles are not stored.
+ *   is logged." The same for the route ways round the end (`.rd5`), read after the map (A5, the owner, 2026-11-04: an
+ *   end whose route ways cannot be read also goes by trail, logged, like a store-read failure; a square with no file is
+ *   a failure of [RouteWays.near] too). [WayToWaypointNote.MAP_NOT_CHECKED] is left for an end whose tiles are not stored.
  */
 class StreetDropOffEnds(
     private val mapData: ReadNearbyMapData,
@@ -71,9 +74,9 @@ class StreetDropOffEnds(
         reroute: suspend (LatLng) -> TrailRouteResult,
     ): WayToEnds.Settled {
         val byTrail = mutableListOf<WayToEnds.ByTrail>()
-        val settled = when (val near = mapData(waypoint, RADIUS_METERS).byTrailOr("the waypoint's end")) {
+        val settled = when (val near = read("the waypoint's end", waypoint, RADIUS_METERS, routeData)) {
             is MapRead.ByTrail -> route.also { byTrail += near.why }
-            is MapRead.Read -> when (val end = waypointEnd(waypoint, route, routeData, reroute, near.data)) {
+            is MapRead.Read -> when (val end = waypointEnd(waypoint, route, reroute, near.data, near.ways)) {
                 is WaypointEnd.Settled -> end.route
                 is WaypointEnd.Refused -> return end.refused
             }
@@ -85,17 +88,21 @@ class StreetDropOffEnds(
         }
     }
 
-    /** The map round an end, or why that end goes by trail: the read failed, or a stored tile has no barrier mark. */
+    /**
+     * The map and the route ways round an end, or why that end goes by trail: the map read failed, a stored tile has no
+     * barrier mark, or the route ways (`.rd5`) could not be read (A5).
+     */
     private sealed interface MapRead {
-        data class Read(val data: NearbyMapData) : MapRead
+        data class Read(val data: NearbyMapData, val ways: List<RouteWay>) : MapRead
 
         data class ByTrail(val why: WayToEnds.ByTrail) : MapRead
     }
 
-    private fun Result<NearbyMapData>.byTrailOr(end: String): MapRead {
-        val data = getOrElse { return MapRead.ByTrail(WayToEnds.ByTrail("$end: the map could not be read: ${it.message}", it)) }
-        val unmarked = unmarkedTile(data) ?: return MapRead.Read(data)
-        return MapRead.ByTrail(WayToEnds.ByTrail("$end: $unmarked"))
+    private suspend fun read(end: String, at: LatLng, radius: Double, routeData: File): MapRead {
+        val data = mapData(at, radius).getOrElse { return MapRead.ByTrail(WayToEnds.ByTrail("$end: the map could not be read: ${it.message}", it)) }
+        unmarkedTile(data)?.let { return MapRead.ByTrail(WayToEnds.ByTrail("$end: $it")) }
+        val ways = routeWays.near(at, radius, routeData).getOrElse { return MapRead.ByTrail(WayToEnds.ByTrail("$end: the route ways could not be read: ${it.message}", it)) }
+        return MapRead.Read(data, ways)
     }
 
     private sealed interface WaypointEnd {
@@ -108,12 +115,11 @@ class StreetDropOffEnds(
     private suspend fun waypointEnd(
         waypoint: LatLng,
         route: TrailRoute,
-        routeData: File,
         reroute: suspend (LatLng) -> TrailRouteResult,
         near: NearbyMapData,
+        ways: List<RouteWay>,
     ): WaypointEnd {
         fun refused(r: WayToEnds.Settled.Refused) = WaypointEnd.Refused(r)
-        val ways = routeWays.near(waypoint, RADIUS_METERS, routeData).getOrElse { return refused(notChecked("the ways round the waypoint could not be read: ${it.message}")) }
         val settled = when (val end = StreetDropOff.classify(waypoint, near, ways)) {
             is StreetDropOff.End.Unknown -> return refused(notChecked("the waypoint's end: ${end.reason}"))
             StreetDropOff.End.Trail -> when (val gates = LegGates.check(route.points.last(), waypoint, near)) {
@@ -147,15 +153,14 @@ class StreetDropOffEnds(
         data class Refused(val refused: WayToEnds.Settled.Refused) : LeadIn
     }
 
-    /** The lead-in's gates, or by trail as today where the map round the walker cannot vouch (A1, A4). */
+    /** The lead-in's gates, or by trail as today where the map or the ways round the walker cannot vouch (A1, A4, A5). */
     private suspend fun leadIn(walker: LatLng, route: TrailRoute, routeData: File): LeadIn {
         val first = route.points.first()
         val radius = GeoDistance.metersBetween(walker, first) + LEAD_IN_MARGIN_METERS
-        val near = when (val read = mapData(walker, radius).byTrailOr("the lead-in")) {
-            is MapRead.ByTrail -> return LeadIn.ByTrail(read.why)
-            is MapRead.Read -> read.data
+        val (near, ways) = when (val end = read("the lead-in", walker, radius, routeData)) {
+            is MapRead.ByTrail -> return LeadIn.ByTrail(end.why)
+            is MapRead.Read -> end
         }
-        val ways = routeWays.near(walker, radius, routeData).getOrElse { return LeadIn.Refused(notChecked("the ways round the walker could not be read: ${it.message}")) }
         val own = (StreetDropOff.classify(walker, near, ways) as? StreetDropOff.End.Street)?.building
         return when (val gates = LegGates.check(walker, first, near, listOfNotNull(own))) {
             GateResult.Passes -> LeadIn.Passes
