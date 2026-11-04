@@ -32901,3 +32901,12 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 - "Yes, as written (Recommended)" for the three notes.
 Dispatch 2026-11-04-04 written, items A1 to A3 and B1 to B3. Hazel (Opus) has bringing the stack current: stack-order merges, AppContainer kept on both sides, no new FindWayToWaypointUseCase callers on pre-main.
 **Notes:** Written by the planner by hand. Next free ID -2051.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2051
+**Timestamp:** 2026-11-04T08:53:57Z
+**Title:** Our own map renderer is planned eventually; it's an option if MapLibre limits us
+**Decision:** The owner, on the planner's note that the drop-off reads MapLibre's offline database: "If maplibre is a limiting factor we may want to look into using our own map renderer". Then: "I have plans to do our own renderer eventually, so it's not a cost we're not going to spend anyway. If something comes up that needs it though, it is an option". The planner had priced our own renderer as months of work and offered our own tile copy as the cheaper fallback; the owner's plan stands beside that. For release, the series stays on mbgl-offline.db, subject to the phone checks (dispatch 2026-11-04-04 B3). If those fail, both our own tile copy and an earlier start on our own renderer go to the owner. This is the third step of the map direction, after -2001 (OSM detachable) and -2002 (our own layered styles).
+**Notes:** Written by the planner by hand. Next free ID -2052.
