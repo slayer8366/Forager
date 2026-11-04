@@ -32910,3 +32910,13 @@ Dispatch 2026-11-04-04 written, items A1 to A3 and B1 to B3. Hazel (Opus) has br
 **Title:** Our own map renderer is planned eventually; it's an option if MapLibre limits us
 **Decision:** The owner, on the planner's note that the drop-off reads MapLibre's offline database: "If maplibre is a limiting factor we may want to look into using our own map renderer". Then: "I have plans to do our own renderer eventually, so it's not a cost we're not going to spend anyway. If something comes up that needs it though, it is an option". The planner had priced our own renderer as months of work and offered our own tile copy as the cheaper fallback; the owner's plan stands beside that. For release, the series stays on mbgl-offline.db, subject to the phone checks (dispatch 2026-11-04-04 B3). If those fail, both our own tile copy and an earlier start on our own renderer go to the owner. This is the third step of the map direction, after -2001 (OSM detachable) and -2002 (our own layered styles).
 **Notes:** Written by the planner by hand. Next free ID -2052.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2052
+**Timestamp:** 2026-11-04T08:59:47Z
+**Continues:** 2026-09-28-2049
+**Title:** Route navigation: its own background service, progress per route, obeys silent, a pin replaces the route
+**Decision:** Dispatch 2026-11-03-03 A8. Hazel's split and domain step are green: route-navigate 1cd1d1901, full CI 41800456426, 6435 tests with 0 failures. Fail-first run 41800460255 failed 18 of 26 tests. Four revert checks each produced their own failures. Three tests pass on the stub as well and are noted as not shown to bite. The owner, each the option as read: "Own service (Recommended)"; "Each route remembers (Recommended)"; "Obey silent (Recommended)"; "Pin replaces route (Recommended)". The planner accepts Hazel's four calls beyond scope. Still open: the words, the drawer on stopping, a return mid-route.
+**Notes:** Written by the planner by hand. Next free ID -2053.
