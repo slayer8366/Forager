@@ -33080,7 +33080,7 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 **Timestamp:** 2026-11-04T09:57:07Z
 **Continues:** 2026-09-28-2061
 **Title:** The style picker: cream by day, red at night; the clone-night question goes to a Hazel
-**Decision:** The owner: "Night mode gets the red." So the selected chip is cream by day and stays rust red at night. Also: "GH shows normal on my end. I ran gh auth login again". Dispatch 2026-11-04-05 written: A1 the chip, B1 why the clone-night fix wasn't seen on the S22 ((a) street-v3 drawn, (b) Style.json drops the metadata, (c) other). Night Maps on the S22 stays on until the planner turns it back off at the session's end; the owner didn't say.
+**Decision:** The owner: "Night mode gets the red." So the selected chip is cream by day and rust red (#A2612C) at night. *Correction (planner, 2026-11-04):* the planner first wrote this as "night stays as it is today", assuming today's night chip was the red; it is dark brown #6B421A. He then put "Keep dark brown" to the owner as a choice, as if it matched this ruling, and recorded the answer at -2063. The owner's colour was the red from the start ("I told you the color. Why did you change it?"); -2067 restores it. Also: "GH shows normal on my end. I ran gh auth login again". Dispatch 2026-11-04-05 written: A1 the chip, B1 why the clone-night fix wasn't seen on the S22 ((a) street-v3 drawn, (b) Style.json drops the metadata, (c) other). Night Maps on the S22 stays on until the planner turns it back off at the session's end; the owner didn't say.
 **Notes:** Written by the planner by hand. Next free ID -2063.
 
 ---
