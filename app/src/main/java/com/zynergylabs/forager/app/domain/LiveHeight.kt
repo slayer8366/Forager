@@ -23,6 +23,20 @@ sealed interface ShownHeight {
     data object Unavailable : ShownHeight
 }
 
+/**
+ * The live height, in metres, the strip and the navigation card show (RECORD -2022, the owner: "Today's GPS height"): the
+ * [shown] height above sea level when there is one, and otherwise [gpsMeters], the fix's own GPS height, as the strip showed
+ * before dispatch 2026-10-28-13. "Otherwise" is the two cases the owner ruled: no conversion has arrived yet (`null`), and
+ * the phone cannot convert ([ShownHeight.Unavailable], below Android 14; the converter logs that once). Never "Alt
+ * unavailable" while the fix carries a height, because on a 360 or 384 dp strip that text pushes the heading out under
+ * RECORD -713's fit rule (RECORD -1885, StripHeadingWithEmptyHeightTest). With no height in the fix either, `null`.
+ *
+ * Not taken, of the options in the 2026-11-03 heading report: keeping "Alt unavailable" there, a shorter status text, and
+ * dropping the altitude before the heading when it is only a status. The Return control's height difference reads
+ * [ShownHeight] directly ([com.zynergylabs.forager.app.domain.model.withLiveHeight]) and is not changed by this.
+ */
+fun liveHeightToShowMeters(shown: ShownHeight?, gpsMeters: Double?): Double? = (shown as? ShownHeight.Known)?.meters ?: gpsMeters
+
 /** A phone with no barometer, the default where none is given: emits `null` once and completes, as [PressureProvider] says. */
 object NoBarometer : PressureProvider {
     override val readings: Flow<PressureReading?> = flowOf(null)
