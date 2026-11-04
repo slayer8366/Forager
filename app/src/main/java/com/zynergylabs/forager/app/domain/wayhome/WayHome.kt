@@ -14,7 +14,9 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  * Nothing draws or reads this yet: part 2 puts it on the map (the track parts dotted, the trail part solid, one
  * colour; RECORD -1589) and into the HUD and sundown.
  *
- * [regionId] is the downloaded region whose routes the trail part was found on.
+ * [regionId] is the downloaded region whose routes the trail part was found on, or `null` for a saved route's leg
+ * (dispatch 2026-11-03-03, A5, the planner's call): a leg navigated as saved was found when the route was plotted, and
+ * no region is looked up for it while navigating. A stated none, not a stand-in id. No production code reads it today; tests do.
  */
 data class WayHome(
     /** The walker's track from the most recent stored point back to the point they left the trail at. */
@@ -29,7 +31,7 @@ data class WayHome(
     val trackToStart: WayHomePart,
     /** The two straight joints inside [trail], summed. Part of [trail]'s metres; here so a test can check the arithmetic. */
     val trailJointMeters: Double,
-    val regionId: Long,
+    val regionId: Long?,
 ) {
     /** The whole way home as one line, most recent stored point first, each part's shared end point once. */
     val line: List<LatLng>
