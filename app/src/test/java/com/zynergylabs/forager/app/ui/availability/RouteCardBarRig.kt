@@ -64,10 +64,11 @@ internal class RouteCardBarRig(
     names: List<String>? = null,
     credit: String? = null,
     /**
-     * The screen's clock. The real one by default, as before; a fixed one where the claim depends on the hour, since the sundown line
-     * the navigation card carries within 150 minutes of sunset (SUNDOWN_LINE_SUNSET_WINDOW_MILLIS) makes that card taller.
+     * The screen's clock: noon on 2026-11-03 by default (D43, RECORD -2020), so no class on this rig reads the hour it runs at. The
+     * navigation card carries its sundown line within 150 minutes of sunset and after it (SundownLine.isShown), which changes the room;
+     * runs 41728736456, 41747193319 and 41758945602 failed classes by the hour. Evening and after-sunset classes pass their own.
      */
-    private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider,
+    private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = ROUTE_CARD_NOON_CLOCK,
     /** Whether each leg carries trail heights, so the card shows elevation lines; without, as the S22 showed in session 10. */
     private val legHeights: Boolean = true,
 ) {
