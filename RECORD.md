@@ -33284,3 +33284,34 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 
 **The rule, from now on:** no change of any kind without the owner's explicit say-so. That covers settings on the owner's devices, the owner's data, colours, words and behaviour, and anything else the owner hasn't named. Whether a change can be undone doesn't make it permitted. A check that needs a change is put to the owner first, with exactly what would change and how it would be put back.
 **Notes:** Written by the planner by hand. Next free ID -2073.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2073
+**Timestamp:** 2026-11-04T15:31:35Z
+**Continues:** 2026-09-28-1771, 2026-09-28-2072
+**Title:** Amendment 4 of dispatch 2026-10-28-02 deleted with its code; the day chip back to the default pale fill with its outline
+**Decision:**
+- **The owner, verbatim, in order:**
+  - "Find the change from cream to red in day mode";
+  - "Delete amendment 4 and its coding";
+  - asked what the day chip should then look like, "Pale default + outline";
+  - then, over interrupted messages: "Delete the change from red to cream", "Delete the change from cream to red", "Delete the change from red to cream", "Delete the change from cream to red", the last of them "Delete the change from cream to red".
+  - Before that: "I'm having another planner take over that project so undo everything you did in this session on that" (interrupted), and "Delete the chip color branch".
+- **Found:** the day chip went from Material's pale secondaryContainer (#F6DFC8) to rust red on 2026-10-28, in commit 64aacd969 (layers-to-tools Amendment 4), merged to pre-main in #432 (9f2df1abb).
+  - The owner's ruling then (-1771) was "Option 1, but Give it an outline." to "Make it stand out (Recommended)".
+  - The planner's Amendment 4 asked only for "a clearly stronger fill"; the Hazel chose secondary (#A2612C). The red was never the owner's choice.
+- **Done:**
+  - **The branch:** style-picker-cream deleted locally and on origin.
+  - **The dispatch:** Amendment 4's text in prompts/preserved/2026-10-28-02-layers-to-tools.md replaced by a deletion note.
+  - **The code,** branch delete-amendment-4 (6fad20544, from pre-main 9660e542a):
+    - the light selected chip uses FilterChipDefaults.filterChipColors() (fill #F6DFC8, label #3A2008), and lightSelectedChipColors and the Cream import are removed;
+    - the 1 dp onSurface outline (Amendments 5 and 6) stays, and night stays rust red (-2067);
+    - the three tests' light expectations move to secondaryContainer;
+    - the PR is to be opened, and its merge waits for the owner.
+- **Left as found, waiting for the owner's word:**
+  - the branches style-picker-cream-revert-1/2/3;
+  - the local branch undo-chip-colours (dc1bbe972), made by a command the owner rejected after it had partly run, never pushed;
+  - PR #485 (the palette rule, whose day-cream line no longer matches the code).
+**Notes:** Written by the planner by hand. Next free ID -2074.
