@@ -16,7 +16,6 @@ import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import com.zynergylabs.forager.app.ui.theme.PureWhite
@@ -87,14 +86,10 @@ private fun rememberNoSignal(): Boolean {
  * colour, which the panel does not use; the panel's are recorded in
  * `docs/audits/2026-10-28-layers-to-tools-completion-report.md`.
  *
- * In the light theme the normal selected chip is filled [lightSelectedChipColors]: the theme's [Cream] since dispatch
- * 2026-11-04-05 A1 (RECORD -2062; the owner: "That highlight isn't supposed to be red. It's supposed to be a cream color like
- * the theme suggests", then "Cream + today's outline"). Before it, Amendment 4 of dispatch 2026-10-28-02 (RECORD -1771) had
- * filled it `secondary` (#A2612C), because `secondaryContainer` sat at about 1.04:1 against the panel and read as "slightly
- * warmer, not clearly on". Cream sits about as close to the panel (1.11:1 against #F4EFE2), and the owner chose it knowing
- * that: the chosen chip is told apart by its outline ([selectedChipBorder]), nothing heavier. In the dark theme it is filled
- * [darkSelectedChipColors], the rust red the light theme used to have (RECORD -2067, replacing "Keep dark brown", which
- * had kept Material's `secondaryContainer` #6B421A; the owner: "Night mode gets the red").
+ * In the light theme the normal selected chip keeps Material's own selected fill, `secondaryContainer` (#F6DFC8), and label:
+ * the owner had Amendment 4 of dispatch 2026-10-28-02 (RECORD -1771) deleted with its code ("Delete amendment 4 and its
+ * coding", then "Pale default + outline", RECORD -2073), and the cream that later replaced its fill went with it. In the dark
+ * theme it is filled [darkSelectedChipColors], rust red (RECORD -2067; the owner: "Night mode gets the red").
  *
  * Every selected chip, normal or grey, in both themes, carries [selectedChipBorder], a 1 dp outline in the theme's
  * `onSurface` (Amendments 5 and 6, RECORD -1773 and -1774; the owner: "Give the grey chip an outline too", then "Both themes.
@@ -126,7 +121,7 @@ internal fun MapModeChipRow(
                     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
                 )
                 isDarkTheme -> darkSelectedChipColors()
-                else -> lightSelectedChipColors()
+                else -> FilterChipDefaults.filterChipColors()
             }
             val selectedOutline = MaterialTheme.colorScheme.onSurface
             FilterChip(
@@ -143,18 +138,6 @@ internal fun MapModeChipRow(
         }
     }
 }
-
-/**
- * The light theme's normal selected fill (dispatch 2026-11-04-05 A1): [Cream] (#EDE3D0, the light scheme's `surfaceVariant`),
- * named rather than read as that role so the fill stays the owner's cream if the role is ever re-pointed. The label is the
- * theme's `onSurface` (Bark #3B2E24, 10.3:1 on Cream), the panel's own text colour; Amendment 4's white ([PureWhite]) label would sit
- * at 1.27:1 on Cream. Unselected chips keep Material's defaults.
- */
-@Composable
-private fun lightSelectedChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = Cream,
-    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-)
 
 /**
  * The dark theme's normal selected fill (RECORD -2067): [MushroomDeep] #A2612C, the light scheme's `secondary`, named because

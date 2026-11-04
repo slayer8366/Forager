@@ -21,7 +21,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
-import com.zynergylabs.forager.app.ui.theme.Cream
+import com.zynergylabs.forager.app.ui.theme.LightColors
 import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
@@ -86,9 +86,9 @@ class MapTypePanelOfflineChipTest {
     private fun setSheet() {
         composeRule.setContent {
             ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
-                // Dispatch 2026-11-04-05 A1 (RECORD -2062, -2067; the owner: "Cream + today's outline"): the light theme's
-                // normal selected fill is Cream, and the dark theme's the rust red MushroomDeep the light one had before.
-                normalSelected = if (darkTheme) MushroomDeep else Cream
+                // RECORD -2073 (Amendment 4 deleted): the light theme's normal selected fill is Material's own
+                // secondaryContainer; the dark theme's is the rust red MushroomDeep (RECORD -2067).
+                normalSelected = if (darkTheme) MushroomDeep else MaterialTheme.colorScheme.secondaryContainer
                 grey = MaterialTheme.colorScheme.outlineVariant
                 onSurface = MaterialTheme.colorScheme.onSurface
                 MapTypePanel(
@@ -153,15 +153,15 @@ class MapTypePanelOfflineChipTest {
     }
 
     /**
-     * Dispatch 2026-11-04-05 A1 (RECORD -2062): on the light theme's Cream fill the label is drawn in the theme's `onSurface`
-     * (Bark, 10.3:1), not Amendment 4's white, which would sit at 1.27:1 on Cream.
+     * RECORD -2073 (Amendment 4 deleted): the light theme's chosen chip keeps Material's own `secondaryContainer` fill and
+     * label, and the label reads on it.
      */
     @Test
-    fun `in the light theme the chosen chip is Cream and its label reads on it`() {
+    fun `in the light theme the chosen chip keeps the default fill and its label reads on it`() {
         darkTheme = false
         chosen = MapMode.TRAIL
         setSheet()
-        assertChosenChip(MapMode.TRAIL, Cream, "light")
+        assertChosenChip(MapMode.TRAIL, LightColors.secondaryContainer, "light")
     }
 
     /**

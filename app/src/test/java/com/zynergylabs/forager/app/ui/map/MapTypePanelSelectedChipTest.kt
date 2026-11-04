@@ -31,7 +31,6 @@ import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.ui.availability.MapLayersTestScreen
 import com.zynergylabs.forager.app.ui.availability.mapLayersViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen
-import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.DarkColors
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.theme.LightColors
@@ -54,7 +53,7 @@ import org.robolectric.annotation.GraphicsMode
  * in the light theme the selected map type chip is filled `secondary` with an `onSurface` outline, where it had been the
  * pale `secondaryContainer` with none, about 1.04:1 against the panel on the S22. Since Amendment 6 (RECORD -1774) the dark
  * theme's selected chip carries its own `onSurface` outline too, with its fill unchanged. Since dispatch 2026-11-04-05 A1
- * (RECORD -2062; the owner: "Cream + today's outline") the light fill is [Cream], and since RECORD -2067 the dark fill is the
+ * (RECORD -2073, Amendment 4 deleted) the light fill is Material's own `secondaryContainer`, and since RECORD -2067 the dark fill is the
  * rust red [MushroomDeep] the light one had; the outlines are unchanged.
  *
  * Both of the panel's real entry points: the Maps tab's icon bar and a journal entry's map, each opened by a real touch on
@@ -149,14 +148,14 @@ class MapTypePanelSelectedChipTest {
 
     private fun recorded(mode: MapMode) = composeRule.onNodeWithTag(mapModeChipTag(mode)).fetchSemanticsNode().config
 
-    /** Light: the selected Trail chip is drawn [Cream] (dispatch 2026-11-04-05 A1), and left of its fill there is an `onSurface` outline. */
+    /** Light: the selected Trail chip is drawn in Material's own `secondaryContainer` (RECORD -2073), and left of its fill there is an `onSurface` outline. */
     private fun assertLightSelectedChip(where: String) {
         composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
-        assertEquals("$where: the selected chip's drawn fill is Cream", Cream, drawnFill(MapMode.TRAIL))
-        assertEquals("$where: its recorded fill", Cream, recorded(MapMode.TRAIL)[MapModeChipSelectedFill])
+        assertEquals("$where: the selected chip's drawn fill is secondaryContainer", LightColors.secondaryContainer, drawnFill(MapMode.TRAIL))
+        assertEquals("$where: its recorded fill", LightColors.secondaryContainer, recorded(MapMode.TRAIL)[MapModeChipSelectedFill])
         assertEquals("$where: its recorded outline", LightColors.onSurface, recorded(MapMode.TRAIL)[MapModeChipSelectedOutline])
         val row = middleRow(MapMode.TRAIL)
-        val firstFill = row.indexOf(Cream)
+        val firstFill = row.indexOf(LightColors.secondaryContainer)
         assertTrue("$where: the fill is drawn on the middle row", firstFill >= 0)
         // With no outline the fill starts at the node's own left edge (revert r19 showed it), so nothing is left of it.
         assertTrue("$where: an onSurface outline is drawn left of the fill", row.subList(0, firstFill).contains(LightColors.onSurface))
@@ -177,14 +176,14 @@ class MapTypePanelSelectedChipTest {
     }
 
     @Test
-    fun `Maps tab, light theme, the selected chip is filled Cream with an onSurface outline`() {
+    fun `Maps tab, light theme, the selected chip keeps the default fill with an onSurface outline`() {
         setMapsTab(dark = false)
         openPanel()
         assertLightSelectedChip("Maps tab")
     }
 
     @Test
-    fun `entry map, light theme, the selected chip is filled Cream with an onSurface outline`() {
+    fun `entry map, light theme, the selected chip keeps the default fill with an onSurface outline`() {
         setEntryMap(dark = false)
         openPanel()
         assertLightSelectedChip("entry map")
