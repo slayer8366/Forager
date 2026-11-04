@@ -127,7 +127,7 @@ class CrowdedStackEaseTest {
     }
 
     @Test
-    fun `a touch during the move takes over: nothing opens and Back no longer moves the camera`() {
+    fun `a touch during the move takes over, nothing opens and Back no longer moves the camera`() {
         val m = Rig()
         m.thirtyThatSplitInTwo()
         m.camera.holdEases = true
@@ -175,7 +175,7 @@ class CrowdedStackEaseTest {
     }
 
     @Test
-    fun `a pan keeps the list open and its bubble follows the stack; a move the user asked for still closes it`() {
+    fun `a pan keeps the list open and its bubble follows the stack, and a move the user asked for still closes it`() {
         val m = Rig()
         m.host.mode = CrowdedIconsMode.LIST
         m.addAt(MapLayerIds.FINDS, "f", 3, a.lat, a.lng)
