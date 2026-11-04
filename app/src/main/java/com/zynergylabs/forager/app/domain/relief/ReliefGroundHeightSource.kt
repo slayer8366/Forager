@@ -48,7 +48,7 @@ class ReliefGroundHeightSource(
     private val logged = mutableSetOf<String>()
 
     override suspend fun groundHeightAt(point: LatLng): GroundHeight = withContext(ioDispatcher) {
-        oneAtATime.withLock { GroundHeight.Unknown(GroundHeightUnknown.NO_SOURCE) } // STUB
+        oneAtATime.withLock { lookUp(point) }
     }
 
     private fun lookUp(point: LatLng): GroundHeight {
@@ -192,5 +192,5 @@ fun terrariumMetres(rgb: Int): Double {
     val r = (rgb shr 16) and 0xff
     val g = (rgb shr 8) and 0xff
     val b = rgb and 0xff
-    return 0.0 * (r + g + b) // STUB
+    return r * 256.0 + g + b / 256.0 - 32768.0
 }
