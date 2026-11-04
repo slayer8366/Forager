@@ -33315,3 +33315,25 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - the local branch undo-chip-colours (dc1bbe972), made by a command the owner rejected after it had partly run, never pushed;
   - PR #485 (the palette rule, whose day-cream line no longer matches the code).
 **Notes:** Written by the planner by hand. Next free ID -2074.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2074
+**Timestamp:** 2026-11-04T15:34:36Z
+**Continues:** 2026-09-28-2073
+**Title:** Every map type chip colour change reverted, to before Amendment 4, in both themes
+**Decision:** The owner, verbatim: "Delete the change from cream to red" (twice), "You will spend this session deleting these color changes until all is reverted before any color change", and "Delete the change from cream to red".
+- **Branch delete-amendment-4, d82cf520e, on PR #486:** MapModeChips.kt is its version before d4f300387 (2026-10-28), keeping only the later renames: OwnTrailFallback and ownTrail (5a34401b7), the Street wording (e0eca773a), and the stand-in parameter (e6e37f58a). Verified by diff against d4f300387^.
+- **Gone in both themes:**
+  - Amendment 4's light fill (secondary #A2612C) and white label;
+  - Amendments 5 and 6's 1 dp onSurface outline on selected and grey chips;
+  - #483's day cream and night rust red.
+  Every selected chip is Material's default again: light #F6DFC8, dark #6B421A.
+- **Tests:**
+  - MapTypePanelSelectedChipTest, added by Amendment 4 (d4f300387) to test these colours, is removed with them.
+  - MapTypePanelOfflineChipTest is its pre-Amendment 4 version plus the later non-colour edits (renames, ADDED_MAP_TYPES, the stand-in guard). It drops the four colour and outline tests (Cream, rust red, two outline cases); every other test name is unchanged.
+  - OwnTrailFallbackRetryTest expects secondaryContainer.
+- **Not compiled or run before the push.** PR #486's checks run on it, and its merge waits for the owner.
+- **In conflict with the owner's earlier words, for the owner:** -2070's palette (night rust red, day cream) and -2073's "Pale default + outline". Both follow from "until all is reverted before any color change". PR #485 (the palette rule) no longer matches the code.
+**Notes:** Written by the planner by hand. Next free ID -2075.
