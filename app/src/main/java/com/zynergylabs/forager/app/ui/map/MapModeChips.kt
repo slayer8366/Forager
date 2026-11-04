@@ -16,7 +16,9 @@ import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
+import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import com.zynergylabs.forager.app.ui.theme.PureWhite
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -78,17 +80,21 @@ private fun rememberNoSignal(): Boolean {
  * was the Layers sheet's "Map type" row. Sized to its chips ([modifier] places it), so the panel is as small as they are.
  *
  * While the chosen mode stands aside for Trail Map ([chosenMapModeStandsAside]) its chip stays selected but is filled
- * `colorScheme.outlineVariant` (#D5CEBF light, #444444 dark) in place of the normal selected fill, `secondaryContainer`,
+ * `colorScheme.outlineVariant` (#D5CEBF light, #444444 dark) in place of the normal selected fill (below),
  * with the normal label colour, `onSurface`, so it reads as chosen and not as switched off. Not Material's disabled colours:
  * those dim the label to 38%, which says "can't tap", and a tap here is still a real choice. The Trail chip is not
  * highlighted while Trail Map stands in. The contrast figures this comment gave were measured against the Layers sheet's
  * colour, which the panel does not use; the panel's are recorded in
  * `docs/audits/2026-10-28-layers-to-tools-completion-report.md`.
  *
- * In the light theme the normal selected chip is filled [lightSelectedChipColors] (dispatch 2026-10-28-02 Amendment 4, RECORD
- * -1771): `secondaryContainer` sat at about 1.04:1 against the panel on the S22, so the chosen type read as "slightly
- * warmer, not clearly on". The owner: "Option 1, but Give it an outline." The dark theme keeps Material's fill, which already
- * stood out there.
+ * In the light theme the normal selected chip is filled [lightSelectedChipColors]: the theme's [Cream] since dispatch
+ * 2026-11-04-05 A1 (RECORD -2062; the owner: "That highlight isn't supposed to be red. It's supposed to be a cream color like
+ * the theme suggests", then "Cream + today's outline"). Before it, Amendment 4 of dispatch 2026-10-28-02 (RECORD -1771) had
+ * filled it `secondary` (#A2612C), because `secondaryContainer` sat at about 1.04:1 against the panel and read as "slightly
+ * warmer, not clearly on". Cream sits about as close to the panel (1.11:1 against #F4EFE2), and the owner chose it knowing
+ * that: the chosen chip is told apart by its outline ([selectedChipBorder]), nothing heavier. In the dark theme it is filled
+ * [darkSelectedChipColors], the rust red the light theme used to have (RECORD -2067, replacing "Keep dark brown", which
+ * had kept Material's `secondaryContainer` #6B421A; the owner: "Night mode gets the red").
  *
  * Every selected chip, normal or grey, in both themes, carries [selectedChipBorder], a 1 dp outline in the theme's
  * `onSurface` (Amendments 5 and 6, RECORD -1773 and -1774; the owner: "Give the grey chip an outline too", then "Both themes.
@@ -114,14 +120,13 @@ internal fun MapModeChipRow(
         MapMode.entries.forEach { mode ->
             val standsAside = mode == mapMode && chosenMapModeStandsAside(mode, noSignal, hasDownloadedArea, offlineTiles, trailMapDraws)
             val selected = mode == mapMode
-            val strongLight = !isDarkTheme && !standsAside
             val colors = when {
                 standsAside -> FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.outlineVariant,
                     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
                 )
-                strongLight -> lightSelectedChipColors()
-                else -> FilterChipDefaults.filterChipColors()
+                isDarkTheme -> darkSelectedChipColors()
+                else -> lightSelectedChipColors()
             }
             val selectedOutline = MaterialTheme.colorScheme.onSurface
             FilterChip(
@@ -140,15 +145,25 @@ internal fun MapModeChipRow(
 }
 
 /**
- * The light theme's normal selected fill (Amendment 4): `secondary` (#A2612C) with [PureWhite] for the label, which is what
- * the light scheme's `onSecondary` holds (4.90:1, AA). [PureWhite] is named here rather than read as
- * the scheme's `onSecondary` role: that role's value equals Material's baseline, so reading it trips ThemeCompletenessTest, whose
- * own doc gives `onSecondary` as the example of a correct white it cannot tell from an unset one (CI run 40769534726). The
- * pixels are the same either way. Unselected chips keep Material's defaults.
+ * The light theme's normal selected fill (dispatch 2026-11-04-05 A1): [Cream] (#EDE3D0, the light scheme's `surfaceVariant`),
+ * named rather than read as that role so the fill stays the owner's cream if the role is ever re-pointed. The label is the
+ * theme's `onSurface` (Bark #3B2E24, 10.3:1 on Cream), the panel's own text colour; Amendment 4's white ([PureWhite]) label would sit
+ * at 1.27:1 on Cream. Unselected chips keep Material's defaults.
  */
 @Composable
 private fun lightSelectedChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.secondary,
+    selectedContainerColor = Cream,
+    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+)
+
+/**
+ * The dark theme's normal selected fill (RECORD -2067): [MushroomDeep] #A2612C, the light scheme's `secondary`, named because
+ * the dark scheme's `secondary` is another colour (#E5A76B). The label is white ([PureWhite], 4.90:1 on it, AA; the theme's
+ * dark `onSurface`, Cream, would be 3.85:1). The outline is [selectedChipBorder]'s, as for every selected chip.
+ */
+@Composable
+private fun darkSelectedChipColors() = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = MushroomDeep,
     selectedLabelColor = PureWhite,
 )
 
