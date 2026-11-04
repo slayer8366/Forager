@@ -12,6 +12,9 @@ import com.zynergylabs.forager.app.domain.HighlightedRecord
 import com.zynergylabs.forager.app.domain.HighlightedRecordKind
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.GroundHeight
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
@@ -243,6 +246,11 @@ sealed interface MapBubbleContent {
         val keptIn: List<JournalEntryOnMap> = emptyList(),
         /** "0.3 mi walked from the start" on an entry map (RECORD -867); `null` everywhere else and when it is not known. */
         val fromStart: String? = null,
+        /**
+         * "Elevation 1352 ft", the ground's height at the waypoint's spot (dispatch 2026-11-03-07; [waypointElevationLine]).
+         * `null` until the height is read ([MapBubbleLayer]), and when there is none, which draws no line (A2).
+         */
+        val elevation: String? = null,
     ) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
@@ -369,6 +377,16 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
 /** A waypoint's distance from the start as its entry-map bubble writes it (RECORD -867): "0.3 mi walked from the start". */
 internal fun waypointFromStartLine(meters: Double, distanceUnit: DistanceUnit): String =
     "${formatDistanceMeters(meters, distanceUnit)} walked from the start"
+
+/**
+ * The waypoint bubble's elevation line (dispatch 2026-11-03-07; the owner: "Example: Elevation 372 ft.", then "Elevation
+ * 1352 ft (Recommended)"): the word, a space, and the height in the Units setting as a whole number with no thousands
+ * separator ([formatWholeLength], as the strip's "Alt 1352 ft"). `null` for a height not known, which draws no line (A2).
+ */
+internal fun waypointElevationLine(height: GroundHeight, distanceUnit: DistanceUnit): String? = when (height) {
+    is GroundHeight.Known -> "Elevation ${formatWholeLength(height.metres, UnitSystem.forDistanceUnit(distanceUnit))}"
+    is GroundHeight.Unknown -> null
+}
 
 /** A find's date as its gallery tile captions it ("Find on <date>", `FindsGalleryScreen`). */
 private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${displayDate(find.foundOn)}"

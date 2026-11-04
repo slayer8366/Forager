@@ -89,7 +89,7 @@ internal val LAYOUT_FIXES_FIX_STATE = AvailabilityUiState(
         timestampEpochMillis = System.currentTimeMillis(),
         provider = FixProvider.GPS,
     ),
-)
+).withFixHeight()
 
 /** One saved day entry shown on the map, so J8's chip shows ("1 journal entry on map"). */
 internal val LAYOUT_FIXES_SHOWN_ENTRY_STATE = CartographyUiState(

@@ -130,7 +130,7 @@ class MapPopUpMotionTest {
         composeRule.setContent {
             ForagerTheme {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                     tripStartWarning = tripStartWarning,

@@ -51,8 +51,12 @@ internal const val ALTITUDE_LABEL = "Alt"
 /** The heading's dash while the compass waits for a fix: the status line carries [NO_FIX_MESSAGE] (owner's call). */
 internal const val NO_HEADING_TEXT = "—"
 
-/** A fix that carries no altitude. A status that names itself, so it wears no [ALTITUDE_LABEL]. */
-internal const val ELEVATION_UNAVAILABLE_TEXT = "Elevation unavailable"
+/**
+ * No height to show: a fix that carries none, or a phone that cannot convert to sea level. One phrase for both (dispatch
+ * 2026-10-28-13; the owner: "One: \"Alt unavailable\" (Recommended)"); was "Elevation unavailable". A status that
+ * names itself, so it wears no [ALTITUDE_LABEL] and never reads "Alt Alt unavailable".
+ */
+internal const val ELEVATION_UNAVAILABLE_TEXT = "Alt unavailable"
 
 /** The large slot's words once the walker has arrived at the start (dispatch 2026-09-28-497). */
 internal const val ARRIVED_TEXT = "Arrived"

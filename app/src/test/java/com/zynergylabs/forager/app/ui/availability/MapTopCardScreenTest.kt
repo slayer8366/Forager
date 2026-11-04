@@ -103,7 +103,7 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
             rotationSeen = LocalView.current.display?.rotation
             key(generation) {
                 AvailabilityScreen(
-                    uiState = AvailabilityUiState(liveFix = fix),
+                    uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                     recording = AvailabilityScreenRecording(
                         isRecording = true,
                     ),

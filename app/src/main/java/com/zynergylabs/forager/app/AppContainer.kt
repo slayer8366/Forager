@@ -6,6 +6,10 @@ import android.content.Context
 import com.zynergylabs.forager.app.data.repository.RoomEntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import java.io.File
+import com.zynergylabs.forager.app.domain.GroundHeightSource
+import com.zynergylabs.forager.app.domain.relief.ReliefGroundHeightSource
+import com.zynergylabs.forager.app.map.MAPLIBRE_OFFLINE_DATABASE_FILE
+import com.zynergylabs.forager.app.map.OfflineReliefTileStore
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -71,6 +75,8 @@ import com.zynergylabs.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.PressureProvider
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
+import com.zynergylabs.forager.app.location.AndroidSeaLevelConverter
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.DeclinationProvider
 import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
@@ -224,8 +230,23 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val lastKnownLocation: LastKnownLocationSource = AndroidLastKnownLocationSource(context.applicationContext)
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
 
-    /** The barometer, read by the recording service while a recording runs (RECORD -864, -867); see [PressureProvider]. */
+    /**
+     * The barometer, read by the recording service while a recording runs (RECORD -864, -867), and by the map's live
+     * height whenever the map is in the foreground (dispatch 2026-10-28-13); see [PressureProvider].
+     */
     val pressureProvider: PressureProvider = AndroidPressureProvider(context.applicationContext)
+
+    /** Raw height to sea level for what the app shows (dispatch 2026-10-28-13, RECORD -1792); see [SeaLevelConverter]. */
+    val seaLevelConverter: SeaLevelConverter = AndroidSeaLevelConverter(context.applicationContext, errorLog)
+
+    /**
+     * The ground's height at a point, from the Trail Map relief tiles that downloaded regions hold in MapLibre's offline
+     * database (dispatch 2026-11-03-07, D2): the waypoint bubble's "Elevation" line. See [ReliefGroundHeightSource].
+     */
+    val groundHeightSource: GroundHeightSource = ReliefGroundHeightSource(
+        OfflineReliefTileStore(File(context.applicationContext.filesDir, MAPLIBRE_OFFLINE_DATABASE_FILE)),
+        errorLog,
+    )
 
     // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
     // true heading. Consumed by MainActivity, which hands it to the map screen (dispatch

@@ -306,7 +306,7 @@ class CompassScreenOffTest {
         val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag("compass-screen-off-map")) }
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 compassProvider = compass,
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { now },

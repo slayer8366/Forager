@@ -80,7 +80,7 @@ abstract class NavigationRailOrderTests(private val rotation: Int) {
         composeRule.setContent {
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = false,
                 ),

@@ -160,6 +160,7 @@ fun AvailabilityScreen(
     // Phase 2.1 (dispatch 2026-10-19-28): the map controls bundle, unpacked under the parameter names it replaced.
     val onMapFullscreenChanged = mapControls.onMapFullscreenChanged
     val onMapShown = mapControls.onMapShown
+    val onMapsTabShownChanged = mapControls.onMapsTabShownChanged
     val onMapLayerVisibilityChanged = mapControls.onMapLayerVisibilityChanged
     val onMapLayerOpacityChanged = mapControls.onMapLayerOpacityChanged
     val onColourFieldMoved = mapControls.onColourFieldMoved
@@ -519,8 +520,11 @@ fun AvailabilityScreen(
     // (the Maps bottom-nav tab or rail item) the saved records reload and the forecast store is
     // asked again, so a find saved on the Journal tab shows the next time the map is shown.
     val isMapsTabShown = compactTab == CompactTab.MAP
+    // Dispatch 2026-10-28-13, Amendment 3: the same edge, both ways, for the barometer. Inside this effect rather than a
+    // new one, so no composition slot after it moves.
     LaunchedEffect(isMapsTabShown) {
         if (isMapsTabShown) onMapShown()
+        onMapsTabShownChanged(isMapsTabShown)
     }
     // Map chrome at 80% (dispatch 2026-09-28-56 as amended by -58; planner message -77, Q4): raised
     // only on the Maps tab, and follows the tab.
