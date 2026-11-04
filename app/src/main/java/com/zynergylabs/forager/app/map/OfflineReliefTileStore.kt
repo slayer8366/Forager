@@ -51,11 +51,33 @@ class OfflineReliefTileStore(
                     if (row.isNull(0)) return ReliefTileRead.Empty
                     val stored = row.getBlob(0)
                     val png = if (row.getInt(1) == 1) inflate(stored) else stored
-                    decode(png)
+                    when (val decoded = decode(png)) {
+                        is ReliefTileRead.Found -> ReliefTileRead.Found(decoded.tile, null) // STUB
+                        else -> decoded
+                    }
                 }
             }
         } catch (e: Exception) {
             ReliefTileRead.Failed(e)
+        }
+    }
+
+    /**
+     * The tile row's identity while a region links to it: its id, `modified`, size and `compressed`, so a row deleted,
+     * unlinked or rewritten answers differently. `null` when no region holds it, or when the database cannot be read
+     * (the caller then reads the tile again, which reports why).
+     */
+    override fun linkedFingerprint(z: Int, x: Int, y: Int): String? {
+        if (true) return null // STUB
+        return try {
+            SQLiteDatabase.openDatabase(database.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                if (schemaProblem(db) != null) return null
+                db.rawQuery(FINGERPRINT_QUERY, arrayOf(urlTemplate, z.toString(), x.toString(), y.toString())).use { row ->
+                    if (row.moveToFirst()) row.getString(0) else null
+                }
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -108,15 +130,21 @@ class OfflineReliefTileStore(
         const val SCHEMA_VERSION = 6
 
         private val NEEDED_COLUMNS = mapOf(
-            "tiles" to setOf("id", "url_template", "pixel_ratio", "z", "x", "y", "data", "compressed"),
+            "tiles" to setOf("id", "url_template", "pixel_ratio", "z", "x", "y", "modified", "data", "compressed"),
             "region_tiles" to setOf("region_id", "tile_id"),
         )
 
         // pixel_ratio 1: see the class doc. Only a tile some region links to (the ambient cache is not counted).
-        private const val TILE_QUERY =
-            "SELECT t.data, t.compressed FROM tiles t " +
-                "WHERE t.url_template = ? AND t.pixel_ratio = 1 AND t.z = ? AND t.x = ? AND t.y = ? " +
+        private const val LINKED_TILE =
+            "FROM tiles t WHERE t.url_template = ? AND t.pixel_ratio = 1 AND t.z = ? AND t.x = ? AND t.y = ? " +
                 "AND EXISTS (SELECT 1 FROM region_tiles rt WHERE rt.tile_id = t.id) LIMIT 1"
+
+        /** The row's identity: [linkedFingerprint]. */
+        private const val FINGERPRINT = "t.id || ':' || IFNULL(t.modified, '') || ':' || IFNULL(length(t.data), -1) || ':' || t.compressed"
+
+        private const val TILE_QUERY = "SELECT t.data, t.compressed, $FINGERPRINT $LINKED_TILE"
+
+        private const val FINGERPRINT_QUERY = "SELECT $FINGERPRINT $LINKED_TILE"
     }
 }
 

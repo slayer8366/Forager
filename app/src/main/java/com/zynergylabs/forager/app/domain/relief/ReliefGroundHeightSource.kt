@@ -32,8 +32,15 @@ import kotlin.math.tan
  * unreadable store once per process: never a made-up or nearest-guess height (CLAUDE.md, Errors).
  *
  * **Threading.** Every read is on [ioDispatcher], one at a time. Tiles that were read are kept, up to [CACHED_TILES], so
- * a bubble opened again nearby reads no disk; a tile that was not there is asked again next time, since a download may
+ * a bubble opened again nearby decodes nothing; a tile that was not there is asked again next time, since a download may
  * since have stored it.
+ *
+ * **A kept tile is used only while a region still holds it** (S22 session 11: after a region was deleted, a waypoint in
+ * another region sharing relief tile 11/326/734 still read "Elevation 451 ft" from this cache, with no region link left
+ * on disk). Each use asks [ReliefTileStore.linkedFingerprint] first, one small query and no decode: the same answer as
+ * when the tile was read keeps it; anything else (no region holds it now, or its stored row changed) drops it and reads
+ * the tile again, which then answers as any read does. So every way a region link goes (a delete, a replaced region, the
+ * repository's clean-up of an unfinished download, the SDK's own) is seen at the next lookup, with no signal to wire.
  */
 class ReliefGroundHeightSource(
     private val store: ReliefTileStore,
@@ -42,8 +49,8 @@ class ReliefGroundHeightSource(
 ) : GroundHeightSource {
 
     private val oneAtATime = Mutex()
-    private val cached = object : LinkedHashMap<TileKey, ReliefTile>(CACHED_TILES, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<TileKey, ReliefTile>?): Boolean = size > CACHED_TILES
+    private val cached = object : LinkedHashMap<TileKey, KeptTile>(CACHED_TILES, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<TileKey, KeptTile>?): Boolean = size > CACHED_TILES
     }
     private val logged = mutableSetOf<String>()
 
@@ -82,7 +89,9 @@ class ReliefGroundHeightSource(
     }
 
     private fun tile(key: TileKey): TileOrWhyNot {
-        cached[key]?.let { return TileOrWhyNot.Tile(it) }
+        cached[key]?.let { kept ->
+            return TileOrWhyNot.Tile(kept.tile) // STUB: as before the fix
+        }
         val read = try {
             store.tile(key.z, key.x, key.y)
         } catch (e: CancellationException) {
@@ -97,7 +106,8 @@ class ReliefGroundHeightSource(
                     logOnce("size", "Relief tile $key is ${read.tile.size} px, not $RELIEF_TILE_SIZE: no ground height from it.")
                     TileOrWhyNot.WhyNot(GroundHeightUnknown.UNSUPPORTED)
                 } else {
-                    cached[key] = read.tile
+                    // A tile with no fingerprint cannot be checked later, so it is not kept.
+                    cached[key] = KeptTile(read.tile, read.fingerprint ?: "") // STUB: as before the fix
                     TileOrWhyNot.Tile(read.tile)
                 }
             }
@@ -119,6 +129,18 @@ class ReliefGroundHeightSource(
             }
         }
     }
+
+    /** [key]'s fingerprint as a region holds it now, or null; a throw is a "no", logged, so the tile is read again. */
+    private fun stillLinkedAs(key: TileKey): String? = try {
+        store.linkedFingerprint(key.z, key.x, key.y)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        errorLog.w(TAG, "Checking kept relief tile $key failed: reading it again.", e)
+        null
+    }
+
+    private class KeptTile(val tile: ReliefTile, val fingerprint: String)
 
     private fun logOnce(key: String, message: String) {
         if (logged.add(key)) errorLog.w(TAG, message, ReliefNotice(message))
@@ -157,11 +179,19 @@ class ReliefGroundHeightSource(
 fun interface ReliefTileStore {
     /** The relief tile [z]/[x]/[y] (XYZ scheme), as a downloaded region holds it. Never throws: a failure is [ReliefTileRead.Failed]. */
     fun tile(z: Int, x: Int, y: Int): ReliefTileRead
+
+    /**
+     * What identifies the stored row [tile] would read for [z]/[x]/[y], while a downloaded region holds it; `null` when
+     * none does, or when it cannot tell. Cheap: no decode. [ReliefGroundHeightSource] keeps a decoded tile only while
+     * this answers what [ReliefTileRead.Found.fingerprint] did. The default, `null`, keeps nothing.
+     */
+    fun linkedFingerprint(z: Int, x: Int, y: Int): String? = null
 }
 
 /** What [ReliefTileStore.tile] found. */
 sealed interface ReliefTileRead {
-    class Found(val tile: ReliefTile) : ReliefTileRead
+    /** [fingerprint]: [ReliefTileStore.linkedFingerprint]'s answer for this row when it was read; `null` keeps it uncached. */
+    class Found(val tile: ReliefTile, val fingerprint: String? = null) : ReliefTileRead
 
     /** No downloaded region holds this tile (the ambient cache is not counted: dispatch D2, the planner's call). */
     data object NotStored : ReliefTileRead

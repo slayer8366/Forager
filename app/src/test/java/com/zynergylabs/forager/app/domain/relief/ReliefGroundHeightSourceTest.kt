@@ -40,11 +40,28 @@ class ReliefGroundHeightSourceTest {
         return (r shl 16) or (g shl 8) or b
     }
 
-    private class FakeStore(val tiles: Map<Triple<Int, Int, Int>, ReliefTileRead>) : ReliefTileStore {
+    /**
+     * Tiles by key, each found tile with a fingerprint ("v1" unless [fingerprints] says otherwise), as the real store
+     * gives one; a test changes [tiles] or [fingerprints] to stand for a region deleted or a tile rewritten.
+     */
+    private class FakeStore(var tiles: Map<Triple<Int, Int, Int>, ReliefTileRead>) : ReliefTileStore {
         val reads = mutableListOf<Triple<Int, Int, Int>>()
+        var fingerprints: Map<Triple<Int, Int, Int>, String> = emptyMap()
+
+        private fun fingerprintOf(key: Triple<Int, Int, Int>) = fingerprints[key] ?: "v1"
+
         override fun tile(z: Int, x: Int, y: Int): ReliefTileRead {
-            reads += Triple(z, x, y)
-            return tiles[Triple(z, x, y)] ?: ReliefTileRead.NotStored
+            val key = Triple(z, x, y)
+            reads += key
+            return when (val read = tiles[key] ?: ReliefTileRead.NotStored) {
+                is ReliefTileRead.Found -> ReliefTileRead.Found(read.tile, fingerprintOf(key))
+                else -> read
+            }
+        }
+
+        override fun linkedFingerprint(z: Int, x: Int, y: Int): String? {
+            val key = Triple(z, x, y)
+            return if (tiles[key] is ReliefTileRead.Found) fingerprintOf(key) else null
         }
     }
 
@@ -159,5 +176,33 @@ class ReliefGroundHeightSourceTest {
         source.groundHeightAt(at(331 * 256 + 120.5, 733 * 256 + 60.5))
 
         assertEquals(listOf(hood), store.reads)
+    }
+
+    @Test
+    fun `a kept tile no region holds any more gives no height, as a tile never downloaded does`() = runTest {
+        // S22 session 11: a region deleted, and another waypoint in the same relief tile still read a height.
+        val store = FakeStore(mapOf(hood to slope))
+        val source = source(store)
+        val point = at(331 * 256 + 100.5, 733 * 256 + 50.5)
+        assertEquals(1000.0 + 100 + 2 * 50, (source.groundHeightAt(point) as GroundHeight.Known).metres, 1e-6)
+
+        store.tiles = emptyMap() // the region that held it is deleted
+
+        assertEquals(GroundHeight.Unknown(GroundHeightUnknown.NOT_DOWNLOADED), source.groundHeightAt(point))
+        assertEquals(listOf("No downloaded region holds relief tile 11/331/733: no ground height there."), logLines)
+    }
+
+    @Test
+    fun `a kept tile whose stored row changed is read again`() = runTest {
+        val store = FakeStore(mapOf(hood to slope))
+        val source = source(store)
+        val point = at(331 * 256 + 100.5, 733 * 256 + 50.5)
+        source.groundHeightAt(point)
+
+        store.tiles = mapOf(hood to ReliefTileRead.Found(tile { _, _ -> 500.0 }))
+        store.fingerprints = mapOf(hood to "v2")
+
+        assertEquals(500.0, (source.groundHeightAt(point) as GroundHeight.Known).metres, 1e-6)
+        assertEquals("read once, then again for the new row", listOf(hood, hood), store.reads)
     }
 }
