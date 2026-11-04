@@ -138,7 +138,7 @@ class OwnTrailFallbackRetryTest {
             var navigationZoom = 0.0
             composeRule.setContent {
                 ForagerThemeWithNoSignal(darkTheme = false, noSignal = noSignal, offlineRegions = emptyList()) {
-                    // RECORD -2073 (Amendment 4 deleted): the light theme's normal selected fill is Material's own secondaryContainer.
+                    // RECORD -2074: every chip colour change reverted, so the normal selected fill is Material's own.
                     normalSelected = MaterialTheme.colorScheme.secondaryContainer
                     grey = MaterialTheme.colorScheme.outlineVariant
                     // Read in composition, as MapStyleReload, SightingsMapLayout and MapNavigationView read it.
