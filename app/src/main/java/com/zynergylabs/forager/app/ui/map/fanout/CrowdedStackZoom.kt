@@ -18,9 +18,10 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  * map (Recommended)".
  *
  * A tapped stack whose fan does not fit ([FanPlan.fits]) is not fanned past the edge any more: the map zooms to the
- * stack's own area, at once, until its icons split or its fan fits, and a fan that fits then opens by itself. Still on
- * one spot at the closest zoom, the stack is offered as a list instead. Back folds the fan, then puts the camera back
- * where it was before the tap. No map SDK here: the camera is [StackCamera], which this project owns.
+ * stack's own area until its icons split or its fan fits, and a fan that fits then opens by itself. Still on one spot at
+ * the closest zoom, the stack is offered as a list instead. Back folds the fan, then puts the camera back where it was
+ * before the tap. Since dispatch 2026-11-04-02 (A6) both moves are shown, eased over 750 ms, not jumped, except under
+ * Reduce Motion. No map SDK here: the camera is [StackCamera], which this project owns.
  */
 
 /**
@@ -174,6 +175,14 @@ class CrowdedStackHost(
      * (`SightingsMapState.reanchorFocusedBubble`): [screenPointOf] is where a place is on the map now, in the map's pixels.
      */
     fun followList(screenPointOf: (LatLng) -> Pair<Float, Float>?, bearingDeg: Float) {
+        val shown = list ?: return
+        val at = screenPointOf(shown.at)
+        if (at == null) {
+            warn("Crowded stack: the list's spot ${shown.at} could not be placed on the map; its bubble stays where it was.")
+            return
+        }
+        val moved = shown.copy(anchorXPx = at.first, anchorYPx = at.second, bearingDeg = bearingDeg)
+        if (moved != shown) list = moved
     }
 
     fun closeList() { list = null }
@@ -213,8 +222,9 @@ class CrowdedStackZoom(
 ) {
     /**
      * [stack] (the tapped marker [tapped] first) does not fit. Zooms to it, step by step, until its icons split or its fan fits
-     * ([open], at once: the move is marked so it does not fold it, [CameraMoveCause.APP_STACK_ZOOM]), or offers it as a list at
-     * the closest zoom. [locate] is where the named markers are now; [plan] works out a fan without opening it. When the
+     * ([open], once the camera has landed: the move is marked so it does not fold it, [CameraMoveCause.APP_STACK_ZOOM]), or
+     * offers it as a list at the closest zoom. The outcome is returned at the tap; what it opens waits for the shown move
+     * ([StackCamera.showMoveFrom]) and is not opened if a touch takes the move over. [locate] is where the named markers are now; [plan] works out a fan without opening it. When the
      * outcome is [CrowdedOutcome.NOT_HANDLED], [overflow] is the stack the caller fans past the edge.
      */
     fun onStackDoesNotFit(
@@ -228,13 +238,53 @@ class CrowdedStackZoom(
     ): CrowdedOutcome {
         val host = host() ?: return notHandled(stack, overflow, "this map has no crowded-stack host")
         val start = camera.spot() ?: return notHandled(stack, overflow, "the camera may not be moved now (navigating, or not ready)")
+        val steps = zoomSteps(host, start, stack, tapped, density, locate, plan, open, overflow)
+        // Dispatch 2026-11-04-02, A6 (S5, RECORD -2040: approach (i)): the steps above moved the camera at once, in this one turn
+        // of the main thread, so none of them was drawn. The camera now goes back to where it was and eases to where they put it,
+        // so it ends exactly where the jump did, and what the zoom opens waits for it to land. Under Reduce Motion it jumps, as
+        // before. A touch during the move takes over: the user's pan ends the way back (onUserPan) and nothing opens.
+        if (!steps.moved || reduceMotion()) {
+            steps.onLanded()
+        } else {
+            camera.showMoveFrom(
+                from = start,
+                onArrived = steps.onLanded,
+                onTakenOver = { warn("Crowded stack: the zoom's move was taken over by a touch; its ${steps.outcome} is not opened.") },
+            )
+        }
+        return steps.outcome
+    }
+
+    /** What the zoom's steps came to: its [outcome], what opens once the camera is where they put it, and whether they moved it. */
+    private class ZoomSteps(val outcome: CrowdedOutcome, val moved: Boolean, val onLanded: () -> Unit)
+
+    /**
+     * The zoom's steps, as before A6, each moving the camera at once and reading where the markers are then: until [stack]'s
+     * icons split, its fan fits, or the closest zoom is reached and it is a list. Opens nothing itself: the fan or the list is
+     * [ZoomSteps.onLanded]'s, worked out here from where the markers are at the steps' end, which is where the camera lands.
+     */
+    private fun zoomSteps(
+        host: CrowdedStackHost,
+        start: CameraSpot,
+        stack: List<ProbedMarker>,
+        tapped: FanKey,
+        density: Float,
+        locate: (List<FanKey>) -> List<ProbedMarker>,
+        plan: (List<ProbedMarker>) -> FanPlan,
+        open: (FanPlan) -> Unit,
+        overflow: (List<ProbedMarker>) -> Unit,
+    ): ZoomSteps {
         var current = stack
         var zoomBefore = start.zoom
         var pushed = false
+        fun listed(at: List<ProbedMarker>) = ZoomSteps(CrowdedOutcome.LISTED, pushed) { list(host, at, tapped) }
+        fun split() = ZoomSteps(CrowdedOutcome.SPLIT, pushed) {}
         repeat(MAX_ZOOM_STEPS) {
-            if (zoomBefore >= CROWDED_STACK_CLOSEST_ZOOM - ZOOM_EPS) return list(host, current, tapped)
+            if (zoomBefore >= CROWDED_STACK_CLOSEST_ZOOM - ZOOM_EPS) return listed(current)
             if (!camera.frame(frameOf(current))) {
-                return if (pushed) list(host, current, tapped) else notHandled(current, overflow, "the camera could not frame the stack")
+                if (pushed) return listed(current)
+                val unframed = current
+                return ZoomSteps(CrowdedOutcome.NOT_HANDLED, moved = false) { notHandled(unframed, overflow, "the camera could not frame the stack") }
             }
             if (!pushed) {
                 host.pushReturn(start, camera)
@@ -245,25 +295,22 @@ class CrowdedStackZoom(
             val tappedNow = located.firstOrNull { it.key == tapped }
             if (tappedNow == null) {
                 warn("Crowded stack: the tapped marker ${tapped.layerId}/${tapped.featureId} is not located after the zoom; nothing is opened.")
-                return CrowdedOutcome.SPLIT
+                return split()
             }
             val now = stackOf(tappedNow, located, density)
-            if (now.size < 2) return CrowdedOutcome.SPLIT
+            if (now.size < 2) return split()
             val fanned = plan(now)
-            if (fanned.fits) {
-                open(fanned)
-                return CrowdedOutcome.FANNED
-            }
+            if (fanned.fits) return ZoomSteps(CrowdedOutcome.FANNED, moved = true) { open(fanned) }
             current = now
             // A camera that did not get closer (the basemap's own limit) is as close as it goes.
             if (zoomAfter <= zoomBefore + ZOOM_EPS) {
                 warn("Crowded stack: the camera did not get closer than zoom $zoomAfter; ${current.size} markers are offered as a list there.")
-                return list(host, current, tapped)
+                return listed(current)
             }
             zoomBefore = zoomAfter
         }
         warn("Crowded stack: ${current.size} markers did not split or fit in $MAX_ZOOM_STEPS zoom steps; offered as a list.")
-        return list(host, current, tapped)
+        return listed(current)
     }
 
     /**
@@ -287,7 +334,7 @@ class CrowdedStackZoom(
      * No return is kept: what they see is theirs.
      */
     fun onUserPan() {
-        onUserAskedMove()
+        host()?.clearReturns()
     }
 
     /**

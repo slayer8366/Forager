@@ -92,9 +92,10 @@ class MapTapHandler(
         val density = probe.density
         var holdFanForEmptyTap = false
         val bubbleWasUp = bubbleOpen()
-        // The crowded stack's list closes at a tap on the map, as a fan folds; while a row's bubble shows, that tap closes the
-        // bubble only, and the list comes back (one layer at a time, as for the fan, amendment -255).
-        if (!bubbleWasUp) crowded?.onMapTap()
+        // The crowded stack's list closes at a tap on the map, as a fan folds. While a row's bubble shows, the tap closes both
+        // (dispatch 2026-11-04-02, S3, RECORD -2040), no longer the bubble alone with the list coming back (-255's one layer at
+        // a time, which still holds for the fan); the bubble closes by the plain tap below.
+        crowded?.onMapTap()
         if (fan.isOpen) {
             val picked = fanMemberAt(liveMembers(), fan.progress, xPx / density, yPx / density)
             if (picked != null) {
