@@ -33229,3 +33229,19 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **Phone build:** pre-main b8742ea75 merged into tools/s22-combined as 3854493f3 (count 4591), CI run 41850422000. This is the first compile of 22ae67021.
 - **Phone check:** the night chip in rust red #A2612C with a white label; the day chip in cream.
 **Notes:** Written by the planner by hand. Next free ID -2070.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2070
+**Timestamp:** 2026-11-04T14:51:27Z
+**Continues:** 2026-09-28-2069
+**Title:** The app's colours are outdoor features, researched, not aesthetics
+**Decision:** The owner, verbatim: "I ran a lot of research into these colors so they're more than aesthetics. They're part of the app features for outdoor use. I picked red over brown specifically because it's superior for night vision. The same with pure white, it reduces sun glare, feels more comfortable on the eyes, and pure white can be a high contrast accent rather than a surface color."
+- **The planner's reading, labelled as his:** the palette is a feature, with a reason behind each choice.
+  - Rust red is the night highlight, because red is superior to brown for night vision.
+  - By day, cream surfaces are used instead of pure white because they reduce sun glare and are easier on the eyes.
+  - Pure white is kept as a high-contrast accent (as on the night chip's label), not a surface colour.
+  - Where this reading and the owner's words differ, the owner's words stand.
+- **How it applies:** a colour change is a feature change. No dispatch, coder, test or contrast figure swaps a palette colour (night red, day cream, white as accent) for another without the owner's word. Contrast checks protect readability on top of the palette; they don't choose it.
+**Notes:** Written by the planner by hand. Next free ID -2071.
