@@ -33106,3 +33106,21 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
   - Hazel's slips, reported by her: a mislabelled throwaway branch (deleted, never run), a cherry-pick -x trailer, and one CI read a minute after another.
   - Still open: the device-only B3 checks; the earlier Hazel's worktree hazel-wayto-a1a2 is the last copy of the wip-a2 draft.
 **Notes:** Written by the planner by hand. Next free ID -2064.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2064
+**Timestamp:** 2026-11-04T13:42:18Z
+**Continues:** 2026-09-28-2063
+**Title:** S22 session 12, continued: build 4576 with the waypoint series installed; its device checks need a real GPS fix
+**Outcome:** The owner: "Yes, run both phone checks now".
+- **The planner's slip, a third time today:** the series wasn't in the installed build, so the planner merged wayto-dropoff-wiring c76969420 into tools/s22-combined as d20696186 and built it on CI (41836660077, green) while the owner waited.
+- **Build 4576 installed** over 4545, with the same signer (cb2f6da5…). Snapshots before and after are in ~/s22-2026-11-04/s12/snap/{before,after}-4576. App tables are unchanged; schemas are 23, 6 and 1, integrity ok.
+- **Navigate on Waypoint 1, indoors:** the card showed "≈ 0.5 mi · straight". The GPS fixes were 47-50 m accuracy (ForagerFix), and the dot stayed APPROXIMATE. No way-to line was logged.
+  - So the series' device checks did not run: the read-only open of mbgl-offline.db, and the second engine run's time.
+  - Not determined from the code: whether a rough fix skips the trail search altogether. Inferred from the "straight" with no way-to log.
+  - Navigation was stopped with its X.
+- **The crowded bubble's five steps:** not run. The phone has no visible crowded stack, and the planner has asked the owner whether he may add four temporary waypoints and delete them afterwards (no answer).
+- **svc power stayon** was set to usb for the session and is restored to false.
+**Notes:** Written by the planner by hand. Next free ID -2065.
