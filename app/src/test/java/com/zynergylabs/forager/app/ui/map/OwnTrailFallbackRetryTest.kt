@@ -13,7 +13,6 @@ import com.zynergylabs.forager.app.domain.NetworkSignal
 import com.zynergylabs.forager.app.domain.SIGNAL_RETURN_SWITCH_DELAY_MS
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_ATTRIBUTION
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
-import com.zynergylabs.forager.app.ui.theme.Cream
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -139,8 +138,8 @@ class OwnTrailFallbackRetryTest {
             var navigationZoom = 0.0
             composeRule.setContent {
                 ForagerThemeWithNoSignal(darkTheme = false, noSignal = noSignal, offlineRegions = emptyList()) {
-                    // Dispatch 2026-11-04-05 A1 (RECORD -2062): the light theme's normal selected fill is Cream.
-                    normalSelected = Cream
+                    // RECORD -2074: every chip colour change reverted, so the normal selected fill is Material's own.
+                    normalSelected = MaterialTheme.colorScheme.secondaryContainer
                     grey = MaterialTheme.colorScheme.outlineVariant
                     // Read in composition, as MapStyleReload, SightingsMapLayout and MapNavigationView read it.
                     val ownTrail = fallback.ownTrail()
