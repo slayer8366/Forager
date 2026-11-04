@@ -140,7 +140,7 @@ internal class MapIconClusterState(
     /** D42: whether the landscape navigation card shows its evening lines, written by that card. */
     var navigationEveningShown: Boolean by mutableStateOf(false)
 
-    /** D42: the landscape navigation card's height in px the last time it showed its evening lines; null before it has. */
+    /** D42: the tallest the landscape navigation card has been in px with its evening lines, this navigation; null before it has shown them. */
     var navigationCardHeightWithEveningPx: Float? by mutableStateOf(null)
 
     /**

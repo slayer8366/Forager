@@ -145,7 +145,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     )
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
-    LaunchedEffect(Unit) { cluster.navigationDisplayBottomInRootPx = null }
+    LaunchedEffect(Unit) {
+        cluster.navigationDisplayBottomInRootPx = null
+        // D42: measured afresh for each navigation.
+        cluster.navigationCardHeightWithEveningPx = null
+    }
     // Before the strip is first measured there is no width to take; nothing is drawn for that frame.
     if (layout.landscapeStripWidthPx <= 0 || layout.landscapeStripHeightPx <= 0) return
     // Motion Part 2, item 3: leaving, it takes no touch and gives up its keep-out at once. RECORD -691: no minimum touch target
@@ -201,7 +205,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
                 .onGloballyPositioned { coordinates ->
                     cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot()
-                    if (cluster.navigationEveningShown) cluster.navigationCardHeightWithEveningPx = coordinates.size.height.toFloat()
+                    // D42: the tallest it has been with its evening lines, so a frame of their grow or shrink is never taken for the
+                    // card's height with them (that fed the route card's decision back into itself: Compose never idle, run 41753745001).
+                    if (cluster.navigationEveningShown) {
+                        cluster.navigationCardHeightWithEveningPx = maxOf(cluster.navigationCardHeightWithEveningPx ?: 0f, coordinates.size.height.toFloat())
+                    }
                 },
         )
     }

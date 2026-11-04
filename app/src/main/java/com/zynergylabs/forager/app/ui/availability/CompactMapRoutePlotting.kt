@@ -226,10 +226,13 @@ internal fun BoxScope.CompactMapRouteCard(
     // so stepping aside does not feed back into the decision. A gap once stepped aside, so a top a pixel either side cannot flip it.
     val navigationCard = cluster.navigationCardBoundsInRoot
     val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
+    val tallestWithEvening = cluster.navigationCardHeightWithEveningPx
     val topWithEvening = when {
         navigationCard == null -> null
-        cluster.navigationEveningShown -> navigationCard.top
-        else -> cluster.navigationCardHeightWithEveningPx?.let { boxBottomPx - it }
+        // While they show, the higher of where it is and where its tallest with them puts it, so a frame of their grow is not read
+        // as room the lines leave.
+        cluster.navigationEveningShown -> minOf(navigationCard.top, tallestWithEvening?.let { boxBottomPx - it } ?: navigationCard.top)
+        else -> tallestWithEvening?.let { boxBottomPx - it }
     }
     var steppedAside by remember { mutableStateOf(false) }
     val stepsAside = navigationTopLimit != null && topWithEvening != null &&
