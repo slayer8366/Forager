@@ -33021,3 +33021,17 @@ Nothing in A6 is left open.
   - D, the words and button order for both jobs (P1 or P2), the navigation-alone icon, and what navigation alone shows if permission is lost.
 Building is held, per -2056: "let the other tasks finish, and then we can hammer this out on a fresh palette".
 **Notes:** Written by the planner by hand. Next free ID -2059.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2059
+**Timestamp:** 2026-11-04T09:26:04Z
+**Continues:** 2026-09-28-2050
+**Title:** Waypoint series: older tiles, read errors and the pick-up's GPS ruled; building starts
+**Decision:** Dispatch 2026-11-04-04 A4.
+- **Verify-first:** all six PRs are green on their heads (full CI 41802530004: 6,448 tests, 0 failures) and dry-merge clean onto 2d1dc54a4. No pick-up design exists anywhere.
+- **The owner, each the option as read:** "Any nearby tile (Recommended)"; "By trail, logged (Recommended)"; "Need a good fix (Recommended)".
+- **The planner's calls:** logged per call; Hazel's two-ended mechanism, at most two engine runs; no new words; no mixed-tile fixture for now.
+- **Hazel's observation:** fallback reasons log a tile's z/x/y to logcat, though FindWayToWaypointUseCase.kt:52 says "never a position". Noted, not acted on.
+**Notes:** Written by the planner by hand. Next free ID -2060.
