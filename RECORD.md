@@ -32854,3 +32854,18 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 **Title:** Route navigation, stop by stop, is to be built
 **Intent:** The owner: "Start building the route navigation". Dispatch 2026-11-03-03, amended with B3 and B4: #449 is merged, so the branch is cut from pre-main 8f240b447. The order is verify-first, then the A5 split, then the domain, then the ViewModel and the cards. A6 is still open and goes to the owner, with the rulings to come as A7. Hazel (Opus).
 **Notes:** Written by the planner by hand. Next free ID -2048.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2048
+**Timestamp:** 2026-11-04T08:21:15Z
+**Continues:** 2026-09-28-2046
+**Title:** The waypoint series: green on old heads; #438 conflicts and has open rulings
+**Outcome:** Hazel's read-only check against pre-main 8f240b447.
+- Every PR's GitHub base is pre-main. The stack is only in the ancestry: 433, then 435 and 436 side by side, then 437, then 439, then 438.
+- CI is green on every current head, but those runs are from 10-28/29, on a base 332 commits behind.
+- 433, 435, 436, 437 and 439 merge clean, in order and alone. #438 conflicts in AppContainer.kt (findWayToWaypoint against route plotting's plotRoute and savePlottedRoute). The merged tree was not compiled.
+- The blockers are all in #438's body and comments: old downloads go dark ("Couldn't check the map…"); there is no pick-up chooser at the walker's end; three notes need the owner's words; the second engine run is untimed on a phone. #435 needs the phone (MapLibre 13.5.0's writes, a read-only open of mbgl-offline.db). #439 depends on basemap patch 0004, and whether the 11-01 upload happened is unverified.
+- Premise wrong (the planner's): there is no dispatch file 2026-10-28 for this series in prompts/preserved on any branch, and none was ever added.
+**Notes:** Written by the planner by hand. Next free ID -2049.
