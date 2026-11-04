@@ -32806,3 +32806,22 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 **Title:** The v4 clone layers take their originals' night colours
 **Intent:** The owner: "Start the night colour fix for the clone layers". Dispatch 2026-11-04-03, Hazel (Opus). Required before any promotion (-2018).
 **Notes:** Written by the planner by hand. Next free ID -2044.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2044
+**Timestamp:** 2026-11-04T07:32:37Z
+**Continues:** 2026-09-28-2043
+**Title:** Clone layers at night: built, revert-checked, full CI green; PR to open
+**Outcome:** Hazel's report on clone-layers-night 4ad37abac, cut from pre-main 0fa3a936a.
+- **Premises re-checked:** 78 clones and 25 originals, in all four v4 copies. Exactly the 13 clones in #474's table differ at night today, with no 14th. Correction: the landuse_edges clones carry all 14 colours and all differ, but only their kinds' colours are visible. A single code path covers offline too: MapStyleReload.kt:148.
+- **Mechanism:** LayerClones.kt reads forager:layer-clones and gives each clone its original's layerColours and lineColours entries. A style that records no clones, or whose record is unreadable, keeps today's tables, and each load logs a line saying which.
+- **Failing first:** run 41783245400, 7 of 8 tests failed, each with its own message. The run on bf05bc645 didn't compile and isn't cited.
+- **Revert checks:** three, each built from its own revert commit with no compile errors, and each produced exactly the predicted failures (runs 41785718168, 41785720928, 41785723905). The forward change is still present afterwards.
+- **Full CI:** run 41790463442, 6409 tests, 0 failures, 24 skipped.
+- **Untested:** no night render or phone check has been done. That style.json carries the metadata at the setStyle callback is inferred from NightImageApply.kt:85, not verified. The device check is at night on trail-v4 near Molalla z11-12: a log line names 78 clones and 13 recoloured, minor roads are #333333, and boundaries are #bdbdbd.
+- **Calls beyond the dispatch, accepted by the planner:** C1, one log line per style load. C2, an entry already keyed by the clone's id wins. C3, one bad entry falls back entirely. C4, a second style.json parse, not measured.
+- **Flagged, not acted on:** pois__peak's layout differs from its original pois.
+- Hazel is told to open the PR against pre-main. Merging waits for the owner.
+**Notes:** Written by the planner by hand. Next free ID -2045.
