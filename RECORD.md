@@ -33501,3 +33501,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **#488:** pre-main and #488's head now differ by one comment line, which d82cf520e added and #488 doesn't have. #488 stays set aside, open and untouched.
 - **Still running:** 41860900001 and 41861172175, the older pre-main runs the owner ordered stopped (-2079). The watcher keeps retrying.
 **Notes:** Written by the planner by hand. Next free ID -2082.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2082
+**Timestamp:** 2026-11-04T16:22:00Z
+**Continues:** 2026-09-28-2081, 2026-09-28-2080, 2026-09-28-2078
+**Title:** The 11 chip reverts pushed to #485's branch, palette-rule; #485's page doesn't show them
+**Decision:**
+- **The owner, verbatim:** "Push the reverts to 486", then "Reverts to 485 not 486".
+- **Done:** the 11 reverts (192b9eab2..d4ce043f5, -2078) were cherry-picked with -x onto palette-rule 542f21974, as 5d4ecdf89..d0395ae6b, and pushed as a fast-forward (542f21974..d0395ae6b). Every copy names its original in a "cherry picked from" trailer.
+  - They were copied, not merged. revert-chip-colours and palette-rule share 8c8c36e2a, which already holds #485's chip revert, so git would read the 11 reverts as already applied, and a merge would have left the colours that 542f21974 put back.
+  - palette-rule's tree before was ee192a5e, the same as 192b9eab2's, so they applied with no conflict.
+- **Checked:** palette-rule's tree is now 43282309, byte-identical to revert-chip-colours's.
+- **#485 is merged** (closed, merged=true), so GitHub doesn't show the push on its page: it still lists 5 commits and head 8c8c36e2a. The work is on its branch only. As with #486 (-2080), a merged PR can't be reopened.
+- **Unchanged:** pre-main 3ffced9c0, main c61850aa2, #486 and delete-amendment-4. #488 and revert-chip-colours stay set aside.
+- **CI:** palette-rule has no open PR, and push CI runs only on main, pre-main and dev, so nothing ran on d0395ae6b. The same tree is in #488's run 41863141684. Of the older runs, 41860900001 ended cancelled; 41861172175 is still pending, and the watcher keeps retrying.
+**Notes:** Written by the planner by hand. Next free ID -2083.
