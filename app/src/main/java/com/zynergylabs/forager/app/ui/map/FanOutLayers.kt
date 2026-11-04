@@ -313,6 +313,12 @@ internal fun applyFanOutHiding(style: Style, members: List<FanMember>) {
             else -> Log.w(FAN_OUT_TAG, "Layer ${spec.id} is a ${layer::class.java.simpleName}; its originals were not hidden.")
         }
     }
+    // Dispatch 2026-11-02-04: a fanned pin's name goes with its pin (WaypointNameLayers.kt), by the same waypoint ids.
+    when (val names = style.getLayer(WaypointNameIds.LAYER)) {
+        is SymbolLayer -> names.setFilter(fanOutHiddenFilter(FEATURE_ID_PROPERTY, fanHiddenNameIds(members)))
+        null -> Log.w(FAN_OUT_TAG, "Layer ${WaypointNameIds.LAYER} is not in the loaded style; the fanned pins' names were not hidden.")
+        else -> Log.w(FAN_OUT_TAG, "Layer ${WaypointNameIds.LAYER} is a ${names::class.java.simpleName}; the fanned pins' names were not hidden.")
+    }
 }
 
 /**

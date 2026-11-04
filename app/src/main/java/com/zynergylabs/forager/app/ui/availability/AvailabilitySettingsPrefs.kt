@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
+import com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
@@ -42,6 +43,7 @@ internal class AvailabilitySettingsPrefs(
     private val setBatterySaverEnabled: suspend (Boolean) -> Result<Unit>,
     private val errorLog: ErrorLog,
     private val crowdedIconsRepository: CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
+    private val waypointNamesRepository: WaypointNamesPreferenceRepository = NoStoredWaypointNames,
 ) {
 
     /**
@@ -52,6 +54,7 @@ internal class AvailabilitySettingsPrefs(
      */
     fun loadNightModePreferences() {
         loadCrowdedIconsMode()
+        loadWaypointNamesShown()
         scope().launch {
             mapPreferencesRepository.getNightModeMaps().fold(
                 onSuccess = { night -> updateState { it.copy(nightModeMaps = night, nightModeMapsLoaded = true) } },
@@ -212,6 +215,27 @@ internal class AvailabilitySettingsPrefs(
         }
     }
 
+    /** Restores Settings > Map > "Waypoint names" (dispatch 2026-11-02-04). Nothing stored is the default, on; a failed read is logged and leaves it on. */
+    private fun loadWaypointNamesShown() {
+        scope().launch {
+            waypointNamesRepository.getWaypointNamesShown().fold(
+                onSuccess = { shown -> if (shown != null) updateState { it.copy(waypointNamesShown = shown) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the waypoint-names preference; names are shown.", error) },
+            )
+        }
+    }
+
+    /** Settings > Map > "Waypoint names": shown at once, then stored; a failed write is logged, as [onCrowdedIconsModeChanged]'s is. */
+    fun onWaypointNamesChanged(shown: Boolean) {
+        updateState { it.copy(waypointNamesShown = shown) }
+        scope().launch {
+            waypointNamesRepository.setWaypointNamesShown(shown).fold(
+                onSuccess = {},
+                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the waypoint-names preference.", error) },
+            )
+        }
+    }
+
     /** Settings > Map > "Crowded icons": shown at once, then stored; a failed write is logged, as [onNightModeMapsChanged]'s is. */
     fun onCrowdedIconsModeChanged(mode: CrowdedIconsMode) {
         updateState { it.copy(crowdedIconsMode = mode) }
@@ -324,6 +348,12 @@ internal class AvailabilitySettingsPrefs(
             )
         }
     }
+}
+
+/** The default for suites that never touch "Waypoint names": nothing stored, every write accepted. */
+internal object NoStoredWaypointNames : WaypointNamesPreferenceRepository {
+    override suspend fun getWaypointNamesShown(): Result<Boolean?> = Result.success(null)
+    override suspend fun setWaypointNamesShown(shown: Boolean): Result<Unit> = Result.success(Unit)
 }
 
 /** The default for suites that never touch "Crowded icons": nothing stored, every write accepted. */

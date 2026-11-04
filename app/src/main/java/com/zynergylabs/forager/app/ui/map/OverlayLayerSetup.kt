@@ -93,6 +93,10 @@ internal fun initializeOverlayLayers(
     // the live breadcrumb), below every marker; the arrival ring above the waypoints.
     if (style.getLayer(MapLayerIds.KEPT_TRACKS) != null && style.getLayer(MapLayerIds.WAYPOINTS) != null) {
         addRouteHomeLayers(style, palette, density, aboveLineLayerId = MapLayerIds.KEPT_TRACKS, aboveMarkerLayerId = MapLayerIds.WAYPOINTS)
+        // Dispatch 2026-10-30-08: a plotted route, above the kept tracks and below the way home's lowest line.
+        addPlottedRouteLayers(style, palette, belowLayerId = RouteHomeIds.PASSED_LAYER)
+        // Dispatch 2026-11-02-04: waypoint names directly above the pins, the route's stops' names above them (WaypointNameLayers.kt).
+        addWaypointNameLayers(style, aboveLayerId = MapLayerIds.WAYPOINTS)
     } else {
         Log.w(SIGHTINGS_MAP_TAG, "The kept-tracks or waypoints layer is missing; the way back is not drawn.")
     }

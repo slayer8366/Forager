@@ -45,11 +45,12 @@ import androidx.compose.runtime.setValue
  * **Opened fully expanded** (`skipPartiallyExpanded`), so every field shows without a drag in
  * portrait; in a short landscape window the sheet takes the height it has and its content scrolls.
  *
- * **Waypoint: Navigate, then Directions** (dispatch 2026-09-28-502, plan task T9). The owner's M1 ruling
- * asked for Navigate (the app's own HUD) beside Directions; J5c shipped Directions only, because nothing
- * then navigated to a chosen waypoint. [onNavigateToWaypoint] is that entry point now: the sheet closes
- * and the Maps tab navigates to the waypoint, and Back opens this sheet again (Amendment 1). A host that
- * passes none (an entry map's) offers Directions only.
+ * **Waypoint: Navigate** (dispatch 2026-09-28-502, plan task T9). The owner's M1 ruling asked for
+ * Navigate (the app's own HUD) beside Directions; J5c shipped Directions only, because nothing then
+ * navigated to a chosen waypoint. [onNavigateToWaypoint] is that entry point now: the sheet closes and
+ * the Maps tab navigates to the waypoint, and Back opens this sheet again (Amendment 1). Every host
+ * passes one (the Maps tab, Records, and since RECORD -890 a journal entry's map), so dispatch
+ * 2026-10-29-09 removed Directions from the sheet (RECORD -1819); a host passing none (tests) shows neither.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

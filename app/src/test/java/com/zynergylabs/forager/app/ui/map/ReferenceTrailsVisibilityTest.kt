@@ -151,7 +151,7 @@ class ReferenceTrailsVisibilityTest {
             val layer = layers.single { it.getValue("id").jsonPrimitive.content == id }
             val day = layer.getValue("paint").jsonObject.getValue("line-color").jsonPrimitive.content
             val property = LayerColourProperty(id, "line-color", StyleColourValue.Literal(day))
-            val street = streetNightRecolourOf(property, layer.getValue("source-layer").jsonPrimitive.content)
+            val street = trailNightRecolourOf(property, layer.getValue("source-layer").jsonPrimitive.content)
             assertTrue("$id: $street", street is NightRecolour.Recoloured)
             assertEquals(id, offlineNightRecolourOf(property), street)
             assertNotEquals(id, StyleColourValue.Literal(day), (street as NightRecolour.Recoloured).night)

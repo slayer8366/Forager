@@ -53,6 +53,8 @@ internal class SceneStackCamera(
                 val byHeight = if (heightAtZero > 0) log2((viewHeightDp - pad) / heightAtZero) else Double.POSITIVE_INFINITY
                 scene.zoom = min(maxZoom, min(frame.maxZoom, min(byWidth, byHeight)))
             }
+            // Dispatch 2026-10-30-08: a saved route's fit; a crowded stack never asks for one, so this scene does not model it.
+            is EntryMapFrame.FitInsets -> error("A crowded stack's camera never frames a FitInsets: $frame")
         }
         return true
     }

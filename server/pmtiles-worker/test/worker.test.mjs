@@ -13,7 +13,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { gunzipSync } from "node:zlib";
 import crypto from "node:crypto";
-import * as reference from "../../../map-style/overrides/forager-reference.mjs";
+// The official-trails archive's names: the folder's own copy (test/cross-folder.test.mjs holds it equal to map-style's).
+import * as reference from "./reference-names.mjs";
 
 const here = (p) => new URL(p, import.meta.url);
 const ARCHIVE = fs.readFileSync(here("./fixtures/tiny.pmtiles"));
@@ -23,11 +24,17 @@ const WORLD = fs.readFileSync(here("./fixtures/world-south.pmtiles"));
 // (dispatch 2026-10-22-02). Before it, tiny.pmtiles stood in, stopped at z14, and the overflow's R2 write was unreachable.
 const LIVE_BUILD = fs.readFileSync(here("./fixtures/live-build.pmtiles"));
 const OFFLINE_STYLE_SOURCE = fs.readFileSync(here("../src/offline-style.json"), "utf8");
-const STREET_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
-const STREET_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json"), "utf8");
+const TRAIL_V1_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v1.json"), "utf8");
+const TRAIL_V2_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v2.json"), "utf8");
 // Step 8a (dispatch 2026-10-26-14): Trail Map v3, with the official-trails band, and the synthetic archive standing in
 // for reference-trails.pmtiles (test/fixtures/make-reference-trails-pmtiles.py; invented positions, marker bodies).
-const STREET_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
+const TRAIL_V3_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v3.json"), "utf8");
+// The switch to Street v4 (dispatch 2026-11-01-coder-11 step (c); the owner: "Yes, queue it"): the fill-in, sprite v6's
+// orchard patterns and the hill shading, bundled like v3. test/cross-folder.test.mjs holds it equal to map-style's.
+const TRAIL_V4_STYLE_SOURCE = fs.readFileSync(here("../src/street-style-v4.json"), "utf8");
+// Trail Map v4 under the Trail Map's own code name (dispatch 2026-11-03-05 D1, RECORD -2000): the style the app loads.
+// street-v4 above stays, byte for byte, for the regions downloaded against it.
+const TRAIL_STYLE_V4_SOURCE = fs.readFileSync(here("../src/trail-style-v4.json"), "utf8");
 const REFERENCE = fs.readFileSync(here("./fixtures/reference-trails.pmtiles"));
 // The archive's manifest (dispatch 2026-10-26-22 M1), an R2 object beside it: invented values in the real file's shape.
 const MANIFEST = fs.readFileSync(here("./fixtures/reference-trails-manifest.json"));
@@ -136,6 +143,8 @@ beforeEach(() => {
     ["sprites/v4/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47])],
     ["sprites/v5/light.json", Buffer.from('{"townspot":{},"trailhead_b":{}}')],
     ["sprites/v5/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x35])],
+    ["sprites/v6/light.json", Buffer.from('{"townspot":{},"trailhead_b":{},"orchard_dots":{}}')],
+    ["sprites/v6/light@2x.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x36])],
     ["reference-trails-manifest.json", MANIFEST],
   ]);
 });
@@ -169,6 +178,32 @@ test("the TileJSON still advertises maxzoom 15 and the Worker's own tile URL", a
   assert.deepEqual(tilejson.tiles, [`${HOST}/us/{z}/{x}/{y}.mvt`]);
 });
 
+// --- The overflow and the advertised maxzoom are the Trail Map archive's alone (dispatch 2026-11-01-coder-11 step 1, before
+// relief.pmtiles, z5-11 raster-dem PNG, goes on R2). Any other archive advertises its own maxzoom, and a tile above it is
+// 204: never Protomaps' live vector build, which would answer a relief .png request with MVT and write it into R2.
+// other.pmtiles stands in for any non-Trail Map archive: tiny.pmtiles's tiles, maxzoom 14.
+
+test("a non-Trail Map archive's TileJSON advertises its own maxzoom, not the overflow's 15", async () => {
+  const tilejson = await (await call("/other.json")).json();
+  assert.equal(tilejson.maxzoom, 14);
+  assert.deepEqual(tilejson.tiles, [`${HOST}/other/{z}/{x}/{y}.mvt`]);
+});
+
+test("a non-Trail Map archive's tile above its maxzoom is 204, with no Protomaps read and no R2 overflow read or write", async () => {
+  const response = await call("/other/15/5303/11553.mvt");
+  assert.equal(response.status, 204);
+  assert.deepEqual(fetchCalls, []);
+  assert.ok(!bucketReads.some((k) => k.startsWith("overflow/")), JSON.stringify(bucketReads));
+  assert.deepEqual(bucketPuts, []);
+});
+
+test("the Trail Map archive keeps the overflow: us.json advertises 15 and its z15 tile reads the live build", async () => {
+  assert.equal((await (await call("/us.json")).json()).maxzoom, 15);
+  const response = await call("/us/15/5303/11553.mvt");
+  assert.equal(response.status, 200);
+  assert.ok(fetchCalls.some((c) => c.url.startsWith("https://build.protomaps.com/")), JSON.stringify(fetchCalls));
+});
+
 test("/style/offline.json is the bundled offline style, byte for byte as before", async () => {
   const response = await call("/style/offline.json");
   assert.equal(response.status, 200);
@@ -180,7 +215,7 @@ test("/style/street-v1.json is the Street style, with fonts and icons on this Wo
   const response = await call("/style/street-v1.json");
   assert.equal(response.status, 200);
   const text = await response.text();
-  assert.equal(text, JSON.stringify(JSON.parse(STREET_STYLE_SOURCE)));
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V1_STYLE_SOURCE)));
   const style = JSON.parse(text);
   assert.equal(style.glyphs, `${HOST}/fonts/{fontstack}/{range}.pbf`);
   assert.equal(style.sprite, `${HOST}/sprites/v4/light`);
@@ -192,13 +227,13 @@ test("/style/street-v2.json is Trail Map's v2 style, on sprite v5, beside an unc
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Content-Type"), "application/json");
   const text = await response.text();
-  assert.equal(text, JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V2_STYLE_SOURCE)));
   const style = JSON.parse(text);
   assert.equal(style.name, "Forager Street v2");
   assert.equal(style.glyphs, `${HOST}/fonts/{fontstack}/{range}.pbf`);
   assert.equal(style.sprite, `${HOST}/sprites/v5/light`);
   // The same tiles as v1, so a region downloaded against either draws the other's tiles.
-  assert.equal(style.sources.protomaps.url, JSON.parse(STREET_STYLE_SOURCE).sources.protomaps.url);
+  assert.equal(style.sources.protomaps.url, JSON.parse(TRAIL_V1_STYLE_SOURCE).sources.protomaps.url);
   const ids = style.layers.map((l) => l.id);
   for (const id of ["landuse_forest_glyphs", "landuse_wetland_tufts", "pois_area_names"]) assert.ok(ids.includes(id), id);
   // v1 is still v1: its own sprite, and none of v2's layers.
@@ -247,6 +282,23 @@ test("sprite v5 files are read from R2 under sprites/v5/, with a week's cache, a
   assert.deepEqual(bucketReads, ["sprites/v5/light.json", "sprites/v5/light@2x.png", "sprites/v4/light.json"]);
 });
 
+// Sprite v6 (dispatch 2026-10-31-coder-07 Part 3; the owner: "New icon set v6 (Recommended)"): v5 unchanged plus the
+// orchard, vineyard and nursery patterns, named by Street v4 only. v4 and v5 stay where they were.
+test("sprite v6 files are read from R2 under sprites/v6/, with a week's cache, and v4 and v5 stay where they were", async () => {
+  const json = await call("/sprites/v6/light.json");
+  assert.equal(json.status, 200);
+  assert.equal(json.headers.get("Content-Type"), "application/json");
+  assert.equal(json.headers.get("Cache-Control"), "public, max-age=604800");
+  assert.equal(await json.text(), '{"townspot":{},"trailhead_b":{},"orchard_dots":{}}');
+  const png = await call("/sprites/v6/light@2x.png");
+  assert.equal(png.status, 200);
+  assert.equal(png.headers.get("Content-Type"), "image/png");
+  assert.deepEqual([...Buffer.from(await png.arrayBuffer())], [0x89, 0x50, 0x4e, 0x47, 0x36]);
+  assert.equal(await (await call("/sprites/v5/light.json")).text(), '{"townspot":{},"trailhead_b":{}}');
+  assert.equal(await (await call("/sprites/v4/light.json")).text(), '{"townspot":{}}');
+  assert.deepEqual(bucketReads, ["sprites/v6/light.json", "sprites/v6/light@2x.png", "sprites/v5/light.json", "sprites/v4/light.json"]);
+});
+
 test("a missing font range is a 404 and is not cached", async () => {
   const response = await call("/fonts/Noto%20Sans%20Regular/256-511.pbf");
   assert.equal(response.status, 404);
@@ -258,7 +310,7 @@ test("a missing font range is a 404 and is not cached", async () => {
 test("other paths under /fonts/ and /sprites/ never read R2", async () => {
   for (const path of [
     "/fonts/../us.pmtiles", "/fonts/Noto%20Sans%20Regular/x.pbf", "/sprites/v4/dark.json", "/sprites/us.pmtiles",
-    "/sprites/v6/light.json", "/sprites/v5/dark.png",
+    "/sprites/v7/light.json", "/sprites/v5/dark.png", "/sprites/v6/dark.json",
   ]) {
     const response = await call(path);
     assert.equal(response.status, 404, path);
@@ -304,7 +356,7 @@ test("world fill: a z9 tile stays 204 even though world-south.pmtiles holds it",
 
 test("world fill: a tile missing from both archives is still 204", async () => {
   // No R2 read is asserted: with both archives' directories cached from earlier tests, a tile in neither directory
-  // needs none. The claim here is the answer: still 204, labelled as the Street archive's.
+  // needs none. The claim here is the answer: still 204, labelled as the Trail Map archive's.
   const response = await call("/us/5/9/17.mvt");
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("X-Forager-Origin"), "r2");
@@ -401,10 +453,11 @@ test("overflow: a z15 tile inside the archive's own bounds still goes to the ove
 });
 
 // --- Step 8a: Trail Map v3 with the official-trails band (dispatch 2026-10-26-14 and Amendment 1; RECORD -1633, -1678).
-// The archive's names come from map-style/overrides/forager-reference.mjs, the one place they are written.
+// The archive's names come from map-style/overrides/forager-reference.mjs, the one place they are written, through the
+// folder's copy in test/reference-names.mjs.
 
 const sha256 = (path) => crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
-const v3Style = () => JSON.parse(STREET_V3_STYLE_SOURCE);
+const v3Style = () => JSON.parse(TRAIL_V3_STYLE_SOURCE);
 const referenceLayers = (style) => style.layers.filter((l) => l.source === reference.REFERENCE_SOURCE_ID);
 
 test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are served as before", async () => {
@@ -412,24 +465,75 @@ test("/style/street-v3.json is the bundled v3 style, beside v2 and v1, which are
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Content-Type"), "application/json");
   const text = await response.text();
-  assert.equal(text, JSON.stringify(JSON.parse(STREET_V3_STYLE_SOURCE)));
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V3_STYLE_SOURCE)));
   assert.equal(JSON.parse(text).name, "Forager Street v3");
-  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(STREET_V2_STYLE_SOURCE)));
-  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(STREET_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(TRAIL_V2_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(TRAIL_V1_STYLE_SOURCE)));
   assert.deepEqual(fetchCalls, []);
 });
 
-test("v2 is frozen: all three copies byte for byte what pre-main c91f34c49 held", () => {
-  // Regions downloaded against v2 keep drawing in it (MapLibre keys a region by its style URL), so v2 never changes.
-  const v2 = "7547507bc2b7dbdae24e8b3735eeda569c0f903c068282259b1e51b4bcc7886d";
-  assert.deepEqual(
-    {
-      worker: sha256("../src/street-style-v2.json"),
-      app: sha256("../../../map-style/forager-street-v2.json"),
-      preview: sha256("../../../map-style/forager-street-v2.preview.json"),
-    },
-    { worker: v2, app: v2, preview: "d07ce0e343c1187e607f04e5bb455898776e9acaa41c9133430f459f98fdd039" },
-  );
+test("/style/street-v4.json is the bundled v4 style, beside v3, v2 and v1, which are served as before", async () => {
+  const response = await call("/style/street-v4.json");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/json");
+  const text = await response.text();
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_V4_STYLE_SOURCE)));
+  const v4 = JSON.parse(text);
+  assert.equal(v4.name, "Forager Street v4");
+  assert.equal(v4.sprite, `${HOST}/sprites/v6/light`);
+  assert.deepEqual(v4.sources.dem.tiles, [`${HOST}/relief/{z}/{x}/{y}.png`]);
+  assert.equal(v4.sources.protomaps.url, `${HOST}/us.json`);
+  assert.ok(v4.layers.some((l) => l.id === "hillshade") && v4.layers.some((l) => l.id === "landuse_orchards_pattern"));
+  assert.equal(await (await call("/style/street-v3.json")).text(), JSON.stringify(JSON.parse(TRAIL_V3_STYLE_SOURCE)));
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("/style/trail-v4.json is the bundled trail-v4 style, and every old route is served as before", async () => {
+  const response = await call("/style/trail-v4.json");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "application/json");
+  assert.equal(response.headers.get("Cache-Control"), "public, max-age=86400");
+  const text = await response.text();
+  assert.equal(text, JSON.stringify(JSON.parse(TRAIL_STYLE_V4_SOURCE)));
+  assert.equal(JSON.parse(text).name, "Forager Trail v4");
+  // Shipped builds and downloaded regions keep their routes (B2, D2): each answers what it answered before.
+  assert.equal(await (await call("/style/street-v4.json")).text(), JSON.stringify(JSON.parse(TRAIL_V4_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v3.json")).text(), JSON.stringify(JSON.parse(TRAIL_V3_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v2.json")).text(), JSON.stringify(JSON.parse(TRAIL_V2_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/street-v1.json")).text(), JSON.stringify(JSON.parse(TRAIL_V1_STYLE_SOURCE)));
+  assert.equal(await (await call("/style/offline.json")).text(), JSON.stringify(JSON.parse(OFFLINE_STYLE_SOURCE)));
+  assert.equal(JSON.parse(TRAIL_V4_STYLE_SOURCE).name, "Forager Street v4");
+  assert.deepEqual(fetchCalls, []);
+});
+
+test("trail-v4 is street-v4 with only its name and its generated-from changed: one style under two addresses", () => {
+  // D1's equivalence, which the app relies on (no false "Older map style" notice, v4's night tables): every layer,
+  // source, sprite, glyph and night table of trail-v4 is street-v4's.
+  const trail = JSON.parse(TRAIL_STYLE_V4_SOURCE);
+  const street = JSON.parse(TRAIL_V4_STYLE_SOURCE);
+  assert.equal(trail.name, "Forager Trail v4");
+  assert.equal(street.name, "Forager Street v4");
+  assert.match(trail.metadata["forager:generated-from"], /overrides\/forager-trail\.mjs/);
+  const rest = (style) => ({ ...style, name: undefined, metadata: { ...style.metadata, "forager:generated-from": undefined } });
+  assert.deepEqual(rest(trail), rest(street));
+});
+
+test("street-v3 and offline.json are frozen: the Worker's copies byte for byte what pre-main d88db1799 held", () => {
+  // Dispatch 2026-11-03-05 D2 (RECORD -2000): they stay byte for byte; "Forager Trail v4" goes only in trail-v4.json.
+  assert.equal(sha256("../src/street-style-v3.json"), "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f");
+  assert.equal(sha256("../src/street-style-v1.json"), "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da");
+  assert.equal(sha256("../src/offline-style.json"), "357e2603d1d72e4bf0e9431ecfb06292e91fca4333782ca3fd7e06713879b294");
+});
+
+test("street-v4 is held to the first zooms' v4, updated in place once since d88db1799 (dispatch 2026-11-02-coder-13)", () => {
+  // The owner: "Update v4 in place". street-v4 and trail-v4 change together and stay one style (the trail-v4 test above).
+  assert.equal(sha256("../src/street-style-v4.json"), "d27d42d163baf8a9576e2ad0407625f48aabf41713809fb61689b794d0f94e40");
+});
+
+test("v2 is frozen: the Worker's copy byte for byte what pre-main c91f34c49 held", () => {
+  // Regions downloaded against v2 keep drawing in it (MapLibre keys a region by its style URL), so v2 never changes. The
+  // app's and the preview's copies are held to the same sums in test/cross-folder.test.mjs.
+  assert.equal(sha256("../src/street-style-v2.json"), "7547507bc2b7dbdae24e8b3735eeda569c0f903c068282259b1e51b4bcc7886d");
 });
 
 // Since dispatch 2026-10-27-02 (RECORD -1730) v3 also differs from v2 in its buildings: the buildings layer's paint, and
@@ -438,7 +542,7 @@ const BUILDINGS_EDIT = new Set(["buildings", "buildings_outline"]);
 
 test("v3 is v2 plus the reference source and its layers and the buildings edit, and nothing else", () => {
   const v3 = v3Style();
-  const v2 = JSON.parse(STREET_V2_STYLE_SOURCE);
+  const v2 = JSON.parse(TRAIL_V2_STYLE_SOURCE);
   const { [reference.REFERENCE_SOURCE_ID]: added, ...sources } = v3.sources;
   assert.ok(added, "v3 has no reference source");
   assert.deepEqual(sources, v2.sources);
@@ -466,7 +570,7 @@ test("buildings below z14 are v2's, solid from z14, a step darker at z14 only, w
     "fill-opacity": ["step", ["zoom"], 0.5, 14, 1],
   });
   // Below z14 each step's first output is v2's own paint, so z11 to z13 draw as before.
-  const v2Buildings = JSON.parse(STREET_V2_STYLE_SOURCE).layers.find((l) => l.id === "buildings");
+  const v2Buildings = JSON.parse(TRAIL_V2_STYLE_SOURCE).layers.find((l) => l.id === "buildings");
   assert.equal(buildings.paint["fill-color"][2], v2Buildings.paint["fill-color"], "below z14 the fill is not v2's");
   assert.equal(buildings.paint["fill-opacity"][2], v2Buildings.paint["fill-opacity"], "below z14 the opacity is not v2's");
   assert.equal(at("buildings_outline"), at("buildings") + 1, "the outline is not directly above the buildings");
@@ -668,4 +772,77 @@ test("manifest: not on R2 is a 404 that is not cached, and never a read of a .pm
   const later = await call(MANIFEST_PATH);
   assert.equal(later.status, 200);
   assert.ok(Buffer.from(await later.arrayBuffer()).equals(MANIFEST));
+});
+
+// --- The edge cache's version, and "Archive not found" never cached (dispatch 2026-11-02-coder-14; the owner: "Yes,
+// fix it now"). Before it, the Worker kept every response a day under its plain URL, 404s included, so relief tiles asked
+// for before relief.pmtiles reached R2 stayed blank after it was there, and a replaced archive's old tiles were served.
+
+const TILE = "/us/14/2651/5776.mvt";
+async function withCacheVersion(version, fn) {
+  const before = env.CACHE_VERSION;
+  if (version === undefined) delete env.CACHE_VERSION; else env.CACHE_VERSION = version;
+  try { return await fn(); } finally { if (before === undefined) delete env.CACHE_VERSION; else env.CACHE_VERSION = before; }
+}
+
+test("coder-14: 'Archive not found' is a 404 sent no-store and never put in the edge cache", async () => {
+  const first = await call("/relief/9/82/183.png");
+  assert.equal(first.status, 404);
+  assert.equal(await first.text(), "Archive not found");
+  assert.equal(first.headers.get("Cache-Control"), "no-store", "the archive-not-found 404 must be sent no-store");
+  // The CORS headers every other tile response carries, so a browser can read the 404 (Sorrel's should-fix on #466).
+  assert.equal(first.headers.get("Access-Control-Allow-Origin"), "*", "the archive-not-found 404 must carry Access-Control-Allow-Origin");
+  assert.equal(first.headers.get("Vary"), "Origin", "the archive-not-found 404 must carry Vary: Origin");
+  assert.deepEqual([...globalThis.caches.default.entries.keys()], [], "the archive-not-found 404 must not be put in the edge cache");
+  // So the next request reads R2 again, and finds the archive once it is there.
+  bucketReads = [];
+  assert.equal((await call("/relief/9/82/183.png")).status, 404);
+  assert.ok(bucketReads.includes("relief.pmtiles"), JSON.stringify(bucketReads));
+});
+
+test("coder-14: the same URL under the same version is answered from the edge cache the second time", async () => {
+  await withCacheVersion("2", async () => {
+    assert.equal((await call(TILE)).status, 200);
+    const key = `${HOST}${TILE}?cv=2`;
+    assert.deepEqual([...globalThis.caches.default.entries.keys()], [key], "the cache key is the URL with cv=<CACHE_VERSION>");
+    // A marker in that entry proves the second answer comes from the cache, not from R2.
+    await globalThis.caches.default.put(key, new Response("from the edge cache", { status: 200 }));
+    assert.equal(await (await call(TILE)).text(), "from the edge cache");
+  });
+});
+
+test("coder-14: a tile or asset cached under version 1 is not served under version 2; R2 is read again", async () => {
+  const font = "/fonts/Noto%20Sans%20Regular/0-255.pbf";
+  await withCacheVersion("1", async () => {
+    await globalThis.caches.default.put(`${HOST}${TILE}?cv=1`, new Response("old tile", { status: 200 }));
+    await globalThis.caches.default.put(`${HOST}${font}?cv=1`, new Response("old font", { status: 200 }));
+    assert.equal(await (await call(TILE)).text(), "old tile", "under version 1 the version-1 entry is served");
+    assert.equal(await (await call(font)).text(), "old font", "under version 1 the version-1 asset is served");
+  });
+  await withCacheVersion("2", async () => {
+    const tile = await call(TILE);
+    assert.equal(tile.status, 200);
+    assert.equal(await tileText(tile), "tile 14/2651/5776", "a version-1 tile must not be served under version 2");
+    assert.equal(await (await call(font)).text(), "glyphs 0-255", "a version-1 asset must not be served under version 2");
+    const keys = [...globalThis.caches.default.entries.keys()];
+    assert.ok(keys.includes(`${HOST}${TILE}?cv=2`) && keys.includes(`${HOST}${font}?cv=2`), JSON.stringify(keys));
+  });
+});
+
+test("coder-14: a 404 cached before this change, under the plain URL, is not served", async () => {
+  // What the edge held at 2026-11-02 20:25: "Archive not found" for relief tiles, under the request URL itself.
+  await globalThis.caches.default.put(`${HOST}${TILE}`, new Response("Archive not found", { status: 404 }));
+  await globalThis.caches.default.put(`${HOST}/fonts/Noto%20Sans%20Regular/0-255.pbf`, new Response("Not found", { status: 404 }));
+  for (const version of [undefined, "2"]) {
+    await withCacheVersion(version, async () => {
+      const tile = await call(TILE);
+      assert.equal(tile.status, 200, `a plain-URL cached 404 must not be served (CACHE_VERSION ${version ?? "unset"})`);
+      assert.equal(await tileText(tile), "tile 14/2651/5776");
+      assert.equal(
+        (await call("/fonts/Noto%20Sans%20Regular/0-255.pbf")).status,
+        200,
+        `a plain-URL cached asset 404 must not be served (CACHE_VERSION ${version ?? "unset"})`,
+      );
+    });
+  }
 });

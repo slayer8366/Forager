@@ -153,8 +153,8 @@ import com.zynergylabs.forager.app.ui.format.displayDate
  * [getMapData] is the one live-fetch seam this screen has — a plain suspend function, not the whole
  * [com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase]/repository graph threaded through,
  * matching this codebase's own established "a plain suspend lambda, not the dependency it closes
- * over" shape (`MushroomLogViewModel.getPhotoEntryReferenceCount`,
- * `TrackRecordingViewModel.getWaypointReferenceCount`). Fired once per [entry], in a
+ * over" shape (`MushroomLogViewModel.getPhotoEntryReferenceCount` and
+ * `TrackRecordingViewModel.getWaypointReferenceCount` were two, until dispatch 2026-10-28-08 made those counts live). Fired once per [entry], in a
  * `LaunchedEffect` keyed on [CartographyEntry.id] — this screen's own render body still touches no
  * repository directly, only the resolved [CartographyEntryMapData] once it lands, so the Stage 2c
  * "no live fetches" rule still describes this composable's *render*, just not the composable's

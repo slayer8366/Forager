@@ -20,7 +20,13 @@ class GetPlannedTripsUseCase(
     suspend operator fun invoke(): Result<List<PlannedTrip>> = repository.getAll().map { trips ->
         val referenceDay = today()
         // false sorts before true, so today's trips (predicate false) land first; everything
-        // else keeps its natural date order behind them.
-        trips.sortedWith(compareBy({ it.date != referenceDay }, PlannedTrip::date))
+        // else keeps its natural date order behind them. Undated trips (schema 23, dispatch 2026-10-30-02) go after
+        // every dated one, by name and then id (Amendment 1, Q7): the store returns them in no particular order, so
+        // without a key of their own they would move about between loads.
+        trips.sortedWith(
+            compareBy<PlannedTrip>({ it.date != referenceDay }, { it.date == null }, { it.date })
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { if (it.date == null) it.name else "" }
+                .thenBy { if (it.date == null) it.id else "" },
+        )
     }
 }

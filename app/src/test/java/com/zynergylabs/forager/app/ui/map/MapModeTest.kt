@@ -23,7 +23,6 @@ class MapModeTest {
     fun `each mode resolves to its own fixed basemap`() {
         assertEquals(Basemap.FORAGER_TRAIL, MapMode.TRAIL.basemap)
         assertEquals(Basemap.OPEN_TOPO_MAP, MapMode.TOPOGRAPHIC.basemap)
-        assertEquals(Basemap.OSM_STANDARD, MapMode.OPENSTREETMAP.basemap)
         // The Journal's map reads the mode back from the basemap (JournalTab), so the lookup must hold both ways.
         MapMode.entries.forEach { assertEquals(it, MapMode.forBasemap(it.basemap)) }
     }
@@ -46,13 +45,14 @@ class MapModeTest {
     }
 
     /**
-     * Dispatch 2026-10-22-01 Amendment 2 (RECORD -1556): the chips read exactly "Trail", "Topo" and "OSM", in that
-     * order, left to right. Was "the modes are Street and Topographical, in that order" (dispatch 2026-09-28-708).
+     * Dispatch 2026-10-22-01 Amendment 2 (RECORD -1556): the chips read "Trail" and "Topo" first, left to right, then
+     * each added map type's (dispatch 2026-11-03-05 D7: the Street map's, held by `street/StreetMapTest`). Was "the modes
+     * are Street and Topographical, in that order" (dispatch 2026-09-28-708).
      */
     @Test
-    fun `the modes are Trail, Topo and OSM, in that order`() {
-        assertEquals(listOf(MapMode.TRAIL, MapMode.TOPOGRAPHIC, MapMode.OPENSTREETMAP), MapMode.entries.toList())
-        assertEquals(listOf("Trail", "Topo", "OSM"), MapMode.entries.map { it.label })
+    fun `the modes are Trail and Topo, then the added map types, in that order`() {
+        assertEquals(listOf(MapMode.TRAIL, MapMode.TOPOGRAPHIC) + ADDED_MAP_TYPES.map { it.mapMode }, MapMode.entries.toList())
+        assertEquals(listOf("Trail", "Topo"), MapMode.entries.take(2).map { it.label })
     }
 
     /**
@@ -61,10 +61,10 @@ class MapModeTest {
      */
     @Test
     fun `each mode is stored under a fixed key, and reads back from it`() {
-        // Trail keeps "street", so Street chosen before the update opens on Trail (RECORD -1556, option (a)).
-        assertEquals("street", MapMode.TRAIL.storageKey)
+        // Trail's key is "trail" since dispatch 2026-11-03-05 (A1, B1: a phone's old "street" is moved to it once,
+        // `BasemapKeyTrailStreetMigration`). The Street map's "street" is held by `street/StreetMapTest`.
+        assertEquals("trail", MapMode.TRAIL.storageKey)
         assertEquals("topographic", MapMode.TOPOGRAPHIC.storageKey)
-        assertEquals("openstreetmap", MapMode.OPENSTREETMAP.storageKey)
         MapMode.entries.forEach { assertEquals(it, MapMode.forStoredKey(it.storageKey)) }
     }
 

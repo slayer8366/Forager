@@ -15,7 +15,8 @@ import org.junit.Test
 /**
  * The climb along the way home shown, from the walker's place (dispatch 2026-10-26-19 Amendment 1; RECORD -1689, C1):
  * the track parts' own barometric heights, kept through [FindWayHomeUseCase], and the trail part's taken from the
- * walker's own track between the same two trail points, a stand-in until the routes carry elevation.
+ * walker's own track between the same two trail points: the stand-in, since this test's fake route has no heights
+ * (the trail data's heights are `WayHomeTrailHeightsTest`'s).
  *
  * The walk: out along a trail running east from the start, climbing 40 m over 500 m, then 200 m north into the forest,
  * climbing 10 m more.
