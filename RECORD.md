@@ -33072,3 +33072,13 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **GitHub:** SSH auth to GitHub failed intermittently from about 09:42 UTC, with the agent and with the key file alike, and an HTTPS push got an Internal Server Error. The owner checked the account: "Last update was 20 minutes ago, everything looks fine". The push went through on a retry at 2026-11-04T09:54:37Z.
 - **Also:** the A5 text missed dispatch 2026-11-04-04 at -2060 because the script stopped at the failed pull. It is added now, and -2060 is corrected by this note.
 **Notes:** Written by the planner by hand. Next free ID -2062.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2062
+**Timestamp:** 2026-11-04T09:57:07Z
+**Continues:** 2026-09-28-2061
+**Title:** The style picker: cream by day, red at night; the clone-night question goes to a Hazel
+**Decision:** The owner: "Night mode gets the red." So the selected chip is cream by day and stays rust red at night. Also: "GH shows normal on my end. I ran gh auth login again". Dispatch 2026-11-04-05 written: A1 the chip, B1 why the clone-night fix wasn't seen on the S22 ((a) street-v3 drawn, (b) Style.json drops the metadata, (c) other). Night Maps on the S22 stays on until the planner turns it back off at the session's end; the owner didn't say.
+**Notes:** Written by the planner by hand. Next free ID -2063.
