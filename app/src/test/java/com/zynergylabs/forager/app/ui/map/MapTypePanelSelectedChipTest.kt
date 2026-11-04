@@ -35,7 +35,6 @@ import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.DarkColors
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.theme.LightColors
-import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -54,8 +53,7 @@ import org.robolectric.annotation.GraphicsMode
  * in the light theme the selected map type chip is filled `secondary` with an `onSurface` outline, where it had been the
  * pale `secondaryContainer` with none, about 1.04:1 against the panel on the S22. Since Amendment 6 (RECORD -1774) the dark
  * theme's selected chip carries its own `onSurface` outline too, with its fill unchanged. Since dispatch 2026-11-04-05 A1
- * (RECORD -2062; the owner: "Cream + today's outline") the light fill is [Cream], and since RECORD -2067 the dark fill is the
- * rust red [MushroomDeep] the light one had; the outlines are unchanged.
+ * (RECORD -2062; the owner: "Cream + today's outline", "Keep dark brown") the light fill is [Cream], the outline unchanged.
  *
  * Both of the panel's real entry points: the Maps tab's icon bar and a journal entry's map, each opened by a real touch on
  * its Layers row, inside the app's own [ForagerTheme]. The fill and the outline are read from the drawn pixels, and the
@@ -163,15 +161,15 @@ class MapTypePanelSelectedChipTest {
     }
 
     /**
-     * Dark (Amendment 6, RECORD -1774; the owner: "Both themes. Make it uniform"): the dark theme's `onSurface` outline left
-     * of the fill, which is the rust red [MushroomDeep] since RECORD -2067 (dispatch 2026-11-04-05).
+     * Dark (Amendment 6, RECORD -1774; the owner: "Both themes. Make it uniform"): the fill unchanged, `secondaryContainer`,
+     * now with the dark theme's `onSurface` outline left of it.
      */
     private fun assertDarkSelectedChip(where: String) {
         composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
-        assertEquals("$where: the dark selected chip's drawn fill", MushroomDeep, drawnFill(MapMode.TRAIL))
+        assertEquals("$where: the dark selected chip's drawn fill", DarkColors.secondaryContainer, drawnFill(MapMode.TRAIL))
         assertEquals("$where: its recorded outline", DarkColors.onSurface, recorded(MapMode.TRAIL)[MapModeChipSelectedOutline])
         val row = middleRow(MapMode.TRAIL)
-        val firstFill = row.indexOf(MushroomDeep)
+        val firstFill = row.indexOf(DarkColors.secondaryContainer)
         assertTrue("$where: the fill is drawn on the middle row", firstFill >= 0)
         assertTrue("$where: an onSurface outline is drawn left of the fill", row.subList(0, firstFill).contains(DarkColors.onSurface))
     }
@@ -191,14 +189,14 @@ class MapTypePanelSelectedChipTest {
     }
 
     @Test
-    fun `Maps tab, dark theme, the selected chip is filled rust red with an onSurface outline`() {
+    fun `Maps tab, dark theme, the selected chip keeps its fill and has an onSurface outline`() {
         setMapsTab(dark = true)
         openPanel()
         assertDarkSelectedChip("Maps tab")
     }
 
     @Test
-    fun `entry map, dark theme, the selected chip is filled rust red with an onSurface outline`() {
+    fun `entry map, dark theme, the selected chip keeps its fill and has an onSurface outline`() {
         setEntryMap(dark = true)
         openPanel()
         assertDarkSelectedChip("entry map")
