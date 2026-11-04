@@ -484,3 +484,7 @@ here.
   contain the Functions. Recorded as unverified rather than dropped, because the
   pattern they describe is the one above.
 
+
+## The owner's word
+
+- **The owner's word stands until the owner changes it.** The owner, 2026-11-04, verbatim: "Write a rule that the owner's word must be taken seriously and cannot be override by anyone", then "And by anyone, I kean anyone except the owners themselves". A ruling, a colour, a word, a figure or a go given by the owner is carried out as given. No planner, coder, reviewer, auditor, test, tool or other session replaces, narrows, re-reads or "corrects" it. Only the owner can change their own ruling, and only by saying so. A finding that seems to conflict with a ruling is reported to the owner with the ruling quoted verbatim. Nobody acts on the finding instead of the ruling. Every dispatch, record and report carries the owner's own words in quotation marks. A planner's reading of them is labelled as the planner's and never stands in their place. When asking the owner again, the first option is what they already said, and no option that departs from it is marked Recommended. The instance that made this rule, and the plan that came out of it, are at `docs/audits/2026-11-04-owner-word-changed-mid-flight.md`.
