@@ -33482,3 +33482,22 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Not done, waiting for the owner:** the 11 reverts stay on revert-chip-colours (d4ce043f5). No new PR was opened. delete-amendment-4 is not moved. #488 is set aside, open and untouched.
 - **The older runs (-2079):** 41859153917, #486's run on d82cf520e, finished before the stop took hold, completed **success**, including Build, test, publish APK. That is the full suite on chip code identical to #488's except one comment line. 41860900001 (in_progress) and 41861172175 (pending) are still refusing cancel during GitHub's Actions incident, and the watcher keeps retrying. #488's own run 41863141684 is still queued.
 **Notes:** Written by the planner by hand. Next free ID -2081.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2081
+**Timestamp:** 2026-11-04T16:20:24Z
+**Continues:** 2026-09-28-2080, 2026-09-28-2077
+**Title:** #487 undone on pre-main: #485's chip revert is back, every map type chip is Material's default in both themes
+**Decision:**
+- **The owner, verbatim:** "Undo 487 also". The planner had said, before that, that undoing #487 puts #485's hand-built chip revert back on pre-main.
+- **Before:** pre-main 192b9eab2 was backed up to forager-repo-backups/pre-main-before-undo-487.bundle (verified, complete history, head 192b9eab2). pre-main is not protected, and the planner has pushed to it directly before (b1724365d, ea230c60e).
+- **Done:** 192b9eab2, #487's merge, reverted with mainline 1 as 3ffced9c0 and pushed to pre-main as a fast-forward (192b9eab2..3ffced9c0). No force, no PR. main (c61850aa2) is unchanged.
+- **Checked:**
+  - 3ffced9c0's tree is fa63ec865's (927cfaed), the tree #487 had undone. The change is four chip files, +10/-379.
+  - MapModeChips.kt on pre-main now has only Material's filterChipColors() and the grey "chosen, but offline" chip: no Cream, MushroomDeep, PureWhite or outline. Day #F6DFC8, night #6B421A.
+  - This code is d82cf520e's. Its full suite passed in 41859153917 (-2080). Pre-main's own run on 3ffced9c0, 41866101093, is queued during GitHub's Actions incident.
+- **#488:** pre-main and #488's head now differ by one comment line, which d82cf520e added and #488 doesn't have. #488 stays set aside, open and untouched.
+- **Still running:** 41860900001 and 41861172175, the older pre-main runs the owner ordered stopped (-2079). The watcher keeps retrying.
+**Notes:** Written by the planner by hand. Next free ID -2082.
