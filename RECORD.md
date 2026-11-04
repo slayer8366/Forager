@@ -32961,3 +32961,13 @@ Dispatch 2026-11-04-04 written, items A1 to A3 and B1 to B3. Hazel (Opus) has br
 - "Return replaces route (Recommended)"
 Nothing in A6 is left open.
 **Notes:** Written by the planner by hand. Next free ID -2055.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2055
+**Timestamp:** 2026-11-04T09:11:47Z
+**Continues:** 2026-09-28-2054
+**Title:** One shared location service for recording and route navigation, built now
+**Decision:** The owner asked "The same service can't run both tasks?". The planner answered that it can; splitting them was a code choice. The options: route navigation joins the recording's service, or one shared location service that both use. The planner recommended keeping two for release. The owner: "To be honest every update is an update before release, since every release contains an update. So let's just do the hard part now so we don't have to do the same task twice". Dispatch 2026-11-03-03 A10 replaces A9's service call: one shared location service. Verify-first comes before any change, and recording alone must behave exactly as today, proven first.
+**Notes:** Written by the planner by hand. Next free ID -2056.
