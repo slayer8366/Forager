@@ -382,7 +382,7 @@ internal fun CompassElevationStripContent(
                                 // degrees change at once (WordSwap). The elevation's likewise.
                                 // Dispatch 2026-09-28-677 (the owner, RECORD -656: "heading and altitude labelled"): each
                                 // reading after its short label, as on the navigation display (LabelledReadout); a status
-                                // ("Compass unavailable", "Elevation unavailable") names itself and has none.
+                                // ("Compass unavailable", "Alt unavailable") names itself and has none.
                                 if (fit.shown[0]) {
                                     Box {
                                         if (headingIcon) StripHeadingStatusIcon(heading) else

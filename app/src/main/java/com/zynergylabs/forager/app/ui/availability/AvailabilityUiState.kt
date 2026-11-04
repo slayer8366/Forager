@@ -8,7 +8,9 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.ShownHeight
 import com.zynergylabs.forager.app.domain.WaypointNavigation
+import com.zynergylabs.forager.app.domain.liveHeightToShowMeters
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
@@ -328,6 +330,13 @@ data class AvailabilityUiState(
      */
     val liveFix: LocationFix.Update? = null,
     /**
+     * The live height above sea level, steadied by the barometer (dispatch 2026-10-28-13, RECORD -1792): the one
+     * height the strip, the navigation card and the Return control read ([liveAltitudeMeters]). `null` before the
+     * first fix; [ShownHeight.Unavailable] when there is no height to show. Never [liveFix]'s raw height itself: that is put
+     * in only where it is shown, by [liveAltitudeMeters] (RECORD -2022).
+     */
+    val shownHeight: ShownHeight? = null,
+    /**
      * The newest fix the live gate refused ([com.zynergylabs.forager.app.domain.acceptLiveFix]: over 50 m, or
      * not from GPS, dispatch 2026-09-28-527):
      * an approximate reading, shown and never acted on (dispatch 2026-09-28-510; see
@@ -413,8 +422,13 @@ data class AvailabilityUiState(
      */
     val liveLocation: LatLng? get() = liveFix?.let { LatLng(it.lat, it.lng) }
 
-    /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
-    val liveAltitudeMeters: Double? get() = liveFix?.altitude
+    /**
+     * The live height above sea level ([shownHeight]), or, until the first conversion arrives and on a phone that cannot
+     * convert, [liveFix]'s own GPS height (RECORD -2022, [liveHeightToShowMeters]). `null` with no fix, or none of either
+     * ("Alt unavailable"). Until dispatch 2026-10-28-13 this was always [liveFix]'s own altitude: the height above the
+     * ellipsoid, about 21 m low in western Oregon.
+     */
+    val liveAltitudeMeters: Double? get() = if (liveFix == null) null else liveHeightToShowMeters(shownHeight, liveFix.altitude)
 
     /**
      * The position true north is worked out at (declination), dispatch 2026-09-28-510: the gated fix,
