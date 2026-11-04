@@ -328,7 +328,10 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
     var rotationDegrees by remember(relativePath) { mutableIntStateOf(0) }
     var decodeFailed by remember(relativePath) { mutableStateOf(false) }
     LaunchedEffect(relativePath) {
-        val decoded = withContext(Dispatchers.IO) {
+        // PhotoDecodeDispatcher, as DecodedPhoto's decode: Dispatchers.IO in production, the main looper under the unit
+        // tests, so the Compose test rule never resumes this effect, and recomposes, on an IO worker (pre-main run
+        // 41766149924; PhotoViewerDecodeThreadTest).
+        val decoded = withContext(PhotoDecodeDispatcher.current) {
             runCatching { decodeBoundedPhoto(File(context.filesDir, relativePath), VIEWER_MAX_EDGE_PX) }
                 .onFailure { error -> Log.w(TAG, "Couldn't decode photo at '$relativePath' for the viewer.", error) }
                 .getOrNull()

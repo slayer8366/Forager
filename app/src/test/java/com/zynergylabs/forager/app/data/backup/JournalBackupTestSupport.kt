@@ -121,7 +121,7 @@ internal class Phone(
     private fun Cursor.columnName(i: Int): String = getColumnName(i)
 
     companion object {
-        const val SCHEMA = 22
+        const val SCHEMA = 23
         // rawRelativePath (MIGRATION_21_22) is not a link, but like one it is null unless a test names it: a made-up DNG path
         // would be a photo file the backup then looks for.
         val LINK_COLUMNS = setOf("trackId", "originWaypointId", "offlineRegionId", "draftOfEntryId", "rawRelativePath")
@@ -178,7 +178,15 @@ internal fun Phone.seedFullJournal() {
     insert("log_entry_photos", "entryId" to "f1", "photoId" to "p1")
     insert("log_entry_photos", "entryId" to "f1", "photoId" to "p2")
     insert("planned_trips", "id" to "trip-1", "name" to "Chanterelle weekend", "date" to "2026-10-04")
-    insert("planned_trips", "id" to "trip-2", "name" to "Morels", "date" to "2027-04-20")
+    // Schema 23: trip-2 is undated and carries a two-stop route, one trail leg (real path bytes, so mangled bytes would
+    // show). Its pin is its first stop.
+    insert("planned_trips", "id" to "trip-2", "name" to "Morels", "lat" to 45.2, "lng" to -122.5, "date" to null)
+    insert("planned_trip_route_stops", "tripId" to "trip-2", "stopIndex" to 0L, "name" to "Creek pin", "lat" to 45.2, "lng" to -122.5)
+    insert("planned_trip_route_stops", "tripId" to "trip-2", "stopIndex" to 1L, "name" to "Big oak", "lat" to 45.22, "lng" to -122.52)
+    insert(
+        "planned_trip_route_legs", "tripId" to "trip-2", "legIndex" to 0L, "meters" to 2480.5, "trailFrom" to 1L, "trailTo" to 2L, "straightReason" to null,
+        "path" to com.zynergylabs.forager.app.domain.TrackPathCodec.encode(listOf(com.zynergylabs.forager.app.domain.model.LatLng(45.2, -122.5), com.zynergylabs.forager.app.domain.model.LatLng(45.201, -122.501), com.zynergylabs.forager.app.domain.model.LatLng(45.219, -122.519), com.zynergylabs.forager.app.domain.model.LatLng(45.22, -122.52))),
+    )
     insert("cartography_entries", "id" to "e1", "text" to "A good day", "isDraft" to 0L)
     insert("cartography_entry_track_refs", "entryId" to "e1", "trackId" to "t1")
     insert("cartography_entry_waypoint_refs", "entryId" to "e1", "waypointId" to "w1")

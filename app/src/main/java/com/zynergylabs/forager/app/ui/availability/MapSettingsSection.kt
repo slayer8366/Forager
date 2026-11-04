@@ -14,17 +14,26 @@ internal data class CrowdedIconsControls(
     val onModeChanged: (CrowdedIconsMode) -> Unit = {},
 )
 
+/** Settings > Map > "Waypoint names": the stored choice and its change (dispatch 2026-11-02-04, B2), on by default. */
+internal data class WaypointNamesControls(
+    val shown: Boolean = true,
+    val onChanged: (Boolean) -> Unit = {},
+)
+
 internal const val MAP_SETTINGS_TITLE = "Map"
+internal const val WAYPOINT_NAMES_LABEL = "Waypoint names"
+internal const val WAYPOINT_NAMES_TAG = "settings-waypoint-names"
 internal const val CROWDED_ICONS_LABEL = "Crowded icons"
 internal fun crowdedIconsTag(mode: CrowdedIconsMode) = "settings-crowded-icons-${mode.name.lowercase()}"
 
 /**
  * Settings' "Map" section (dispatch 2026-10-27-14 Amendment 3, RECORD -1758): "Crowded icons", a choice of two, as radio
  * rows, the shape [DistanceUnitSection] and [ThemeModeSection] give a choice. "Zoom in, then fan" is #430's zoom; "List"
- * opens the list for any stack of two or more, at once, on the Maps tab.
+ * opens the list for any stack of two or more, at once, on the Maps tab. Under it, "Waypoint names" (dispatch 2026-11-02-04,
+ * B2), a checkbox, on by default.
  */
 @Composable
-internal fun MapSettingsSection(crowdedIcons: CrowdedIconsControls) {
+internal fun MapSettingsSection(crowdedIcons: CrowdedIconsControls, waypointNames: WaypointNamesControls = WaypointNamesControls()) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(MAP_SETTINGS_TITLE, style = MaterialTheme.typography.titleMedium)
         Text(CROWDED_ICONS_LABEL, style = MaterialTheme.typography.bodyLarge)
@@ -36,5 +45,7 @@ internal fun MapSettingsSection(crowdedIcons: CrowdedIconsControls) {
                 tag = crowdedIconsTag(mode),
             )
         }
+        // Dispatch 2026-11-02-04, B2 (the owner: "Settings > Map"): a checkbox under "Crowded icons", the shape Night Maps has.
+        SettingsCheckboxRow(waypointNames.shown, waypointNames.onChanged, WAYPOINT_NAMES_LABEL, tag = WAYPOINT_NAMES_TAG)
     }
 }

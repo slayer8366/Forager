@@ -15,6 +15,7 @@ import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.RingerMode
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
@@ -62,6 +63,7 @@ internal fun wayHomeRecordingViewModel(
         currentTime = clock,
         zone = ZoneOffset.UTC,
         wayHomeWatch = wayHome,
+        entryReferenceCounts = NoEntryReferenceCounts,
     )
 }
 

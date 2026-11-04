@@ -35,7 +35,7 @@ internal fun createAvailabilityViewModel(
         container.unitSystemPreferenceRepository,
         container.appThemePreferenceRepository,
         container.getTodaysForecastUseCase,
-        getOfflineRegionReferenceCount = { id -> offlineRegionEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forOfflineRegion, androidErrorLog) },
+        entryReferenceCounts = container.entryReferenceCountSource,
         getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
         setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
         getSundownAlertsEnabled = container.sundownPreferencesRepository::getAlertsEnabled,
@@ -59,6 +59,7 @@ internal fun createAvailabilityViewModel(
         basemapPreferenceRepository = container.basemapPreferenceRepository,
         mapIconClusterPlacementRepository = container.mapIconClusterPlacementRepository,
         crowdedIconsRepository = container.crowdedIconsRepository,
+        waypointNamesRepository = container.waypointNamesRepository,
         noSignal = noSignal,
         // Dispatch 2026-10-24-07: the service's stored-end report, so a finished track is on the map right after Stop.
         trackEnds = container.trackEnds.latest,
@@ -67,4 +68,7 @@ internal fun createAvailabilityViewModel(
         currentTime = container.currentTimeProvider,
         // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails, on the shared trail engine (PR 2).
         findWayToWaypoint = { from, waypoint -> container.findWayToWaypoint(from, waypoint) },
+        // Dispatch 2026-10-28-13: the live height above sea level, steadied by the barometer, read while the map is open.
+        pressureProvider = container.pressureProvider,
+        seaLevelConverter = container.seaLevelConverter,
     )

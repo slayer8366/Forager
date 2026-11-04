@@ -28,6 +28,8 @@ data class AvailabilityScreenSettings(
     val onBatterySaverChanged: (Boolean) -> Unit = {},
     /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14) — see [AvailabilityUiState.crowdedIconsMode]. */
     val onCrowdedIconsModeChanged: (CrowdedIconsMode) -> Unit = {},
+    /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04) — see [AvailabilityUiState.waypointNamesShown]. */
+    val onWaypointNamesChanged: (Boolean) -> Unit = {},
     /**
      * RECORD -660/-661: a settings file was found corrupt and reset, and the one-time message is owed.
      * Shown as a snackbar that stays until dismissed, with a "Settings" action that opens Settings;

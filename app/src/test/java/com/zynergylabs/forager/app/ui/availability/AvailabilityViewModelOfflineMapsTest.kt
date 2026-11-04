@@ -5,6 +5,9 @@ import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -235,7 +238,7 @@ class AvailabilityViewModelOfflineMapsTest {
     private fun viewModel(
         offlineMapRepository: OfflineMapRepository,
         mapPreferencesRepository: MapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
-        getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
+        entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
         pendingDeleteCommitScope: CoroutineScope? = null,
     ): AvailabilityViewModel = AvailabilityViewModel(
         locationProvider = OfflineMapsUnusedLocationProvider,
@@ -259,7 +262,7 @@ class AvailabilityViewModelOfflineMapsTest {
         unitSystemPreferenceRepository = OfflineMapsStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineMapsStubTripPlanningWeatherProvider),
-        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
     )
 
@@ -565,7 +568,7 @@ class AvailabilityViewModelOfflineMapsTest {
     @Test
     fun `a requested region delete is pending, hidden from visibleOfflineRegions, and the tile delete is not called`() = runTest(dispatcher) {
         val repository = twoRegions()
-        val vm = viewModel(repository, getOfflineRegionReferenceCount = { id -> if (id == 1L) 3 else 0 })
+        val vm = viewModel(repository, entryReferenceCounts = FakeEntryReferenceCountSource(offlineRegions = mapOf(1L to 3)))
         advanceUntilIdle()
 
         vm.requestDeleteOfflineRegion(1L)

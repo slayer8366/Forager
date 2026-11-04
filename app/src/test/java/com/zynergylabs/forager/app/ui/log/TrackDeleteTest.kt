@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.AlertAudibilityState
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
@@ -128,7 +129,7 @@ class TrackDeleteTest {
             returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), { _: Alert -> }),
             alertAudibility = TrackDeleteAudible,
             errorLog = ErrorLog { tag, message, _ -> loggedFailures += "$tag: $message" },
-            getTrackReferenceCount = { id -> referenceCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(tracks = referenceCounts),
         )
         trackViewModel.loadTracks()
         composeRule.setContent {

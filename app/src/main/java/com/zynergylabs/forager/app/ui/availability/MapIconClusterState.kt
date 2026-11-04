@@ -103,6 +103,9 @@ internal class MapIconClusterState(
     /** The map pane's left in the root, written with the top above; with [clusterBoundsInRoot] it gives the cluster's rectangle in the map's own pixels (attribution clearance, dispatch 2026-09-29-57, item 1). */
     var mapContentBoxLeftInRootPx by mutableFloatStateOf(0f)
 
+    /** The map pane's width, written with its left (D18, RECORD -1958: where the portrait route card rests, against the credit). */
+    var mapContentBoxWidthPx by mutableFloatStateOf(0f)
+
     /** The cluster container's measured bounds in the root, written by the container only; null until first measured. */
     var clusterBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
@@ -127,6 +130,18 @@ internal class MapIconClusterState(
 
     /** RECORD -955: the landscape navigation card's bounds in the root while shown, written by the card; for its evening-line limit. */
     var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
+
+    /**
+     * D42 (RECORD -2021, the owner: "Only where room is short"): the landscape navigation card's evening lines step aside for the route
+     * card resting on it, which would not otherwise fit; written by the route card, read by the navigation card.
+     */
+    var navigationEveningStepsAside: Boolean by mutableStateOf(false)
+
+    /** D42: whether the landscape navigation card shows its evening lines, written by that card. */
+    var navigationEveningShown: Boolean by mutableStateOf(false)
+
+    /** D42: the tallest the landscape navigation card has been in px with its evening lines, this navigation; null before it has shown them. */
+    var navigationCardHeightWithEveningPx: Float? by mutableStateOf(null)
 
     /**
      * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster

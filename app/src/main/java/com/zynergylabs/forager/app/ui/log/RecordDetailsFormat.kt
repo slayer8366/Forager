@@ -106,6 +106,7 @@ internal const val RECORD_DETAILS_LABEL_TAG = "record-details-label"
 internal const val RECORD_DETAILS_NOTE_TAG = "record-details-note"
 internal const val RECORD_DETAILS_ZOOM_TAG = "record-details-zoom"
 internal const val RECORD_DETAILS_THUMBNAIL_TAG = "record-details-thumbnail"
+/** The sheet's Directions button, removed by dispatch 2026-10-29-09 (RECORD -1819); kept so tests can assert it stays gone. */
 internal const val RECORD_DETAILS_DIRECTIONS_TAG = "record-details-directions"
 internal const val RECORD_DETAILS_NAVIGATE_TAG = "record-details-navigate"
 internal const val RECORD_DETAILS_SHARE_TAG = "record-details-share"

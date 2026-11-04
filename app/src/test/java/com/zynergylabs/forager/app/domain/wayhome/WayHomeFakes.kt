@@ -95,5 +95,9 @@ internal class FakeRouter(var result: TrailRouteResult) : TrailRouter {
     companion object {
         /** A route along [points], with the engine's length given as [lengthMetres]. */
         fun found(lengthMetres: Int, vararg points: LatLng) = TrailRouteResult.Found(TrailRoute(points.toList(), lengthMetres))
+
+        /** A route along [points] whose trail data gives [heightsMetres], `null` where it has none (dispatch 2026-10-30-06). */
+        fun found(lengthMetres: Int, points: List<LatLng>, heightsMetres: List<Double?>) =
+            TrailRouteResult.Found(TrailRoute(points, lengthMetres, heightsMetres))
     }
 }

@@ -3,10 +3,12 @@ package com.zynergylabs.forager.app.ui.track
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.watchEntryReferenceCounts
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.Companion.TAG
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -14,7 +16,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The waypoint and track lists of [TrackRecordingViewModel] (UI split Phase 2.7, PR 2, dispatch 2026-10-19-30,
- * RECORD -1439): loading both lists with their reference counts, adding and removing a waypoint, and the
+ * RECORD -1439): loading both lists, watching their reference counts (dispatch 2026-10-28-08), adding and removing a waypoint, and the
  * process's one sweep of tracks left open, moved out of the ViewModel unchanged. It holds no state of its
  * own. Every value it reads from the screen's state comes through [uiState], every write goes through
  * [updateState], and its coroutines launch in [scope], the ViewModel's own `viewModelScope`, read each time
@@ -28,8 +30,7 @@ internal class TrackRecordingLists(
     private val getTracks: GetTracksUseCase,
     private val createWaypoint: CreateWaypointUseCase,
     private val deleteWaypoint: DeleteWaypointUseCase,
-    private val getWaypointReferenceCount: suspend (String) -> Int,
-    private val getTrackReferenceCount: suspend (String) -> Int,
+    private val entryReferenceCounts: EntryReferenceCountSource,
     private val abandonedTrackSweepOnce: AbandonedTrackSweepOnce,
     private val errorLog: ErrorLog,
 ) {
@@ -48,17 +49,27 @@ internal class TrackRecordingLists(
             .onFailure { error -> errorLog.w(TAG, "Couldn't list the tracks to end the ones left open by an earlier process; none was changed.", error) }
     }
 
+    /**
+     * Keeps [TrackRecordingUiState.waypointEntryReferenceCounts] and [TrackRecordingUiState.trackEntryReferenceCounts]
+     * live for the ViewModel's life, so a journal entry saved or deleted changes a waypoint's "Used in" and either
+     * delete message at once (dispatch 2026-10-28-08, RECORD -1781). Until then each list's load read its counts
+     * once, and no entry change read them again. Called once, from the ViewModel's `init`.
+     */
+    fun watchReferenceCounts() {
+        watchEntryReferenceCounts(scope(), entryReferenceCounts.waypointCounts(), errorLog, "waypoint") { counts ->
+            updateState { it.copy(waypointEntryReferenceCounts = counts) }
+        }
+        watchEntryReferenceCounts(scope(), entryReferenceCounts.trackCounts(), errorLog, "track") { counts ->
+            updateState { it.copy(trackEntryReferenceCounts = counts) }
+        }
+    }
+
     fun loadWaypoints(): Job {
         return scope().launch {
             getWaypoints()
                 .onSuccess { waypoints ->
+                    // The counts are not read here: [watchReferenceCounts] keeps them live (dispatch 2026-10-28-08).
                     updateState { it.copy(waypoints = waypoints, waypointsErrorMessage = null, waypointsLoaded = true) }
-                    // A handful of rows at most (see this list's own empty-state copy) — one query
-                    // per waypoint is simpler than a batched read this table has no precedent for,
-                    // and cheap at this scale. See TrackRecordingUiState.waypointEntryReferenceCounts'
-                    // own doc comment for what this feeds.
-                    val counts = waypoints.associate { it.id to getWaypointReferenceCount(it.id) }
-                    updateState { it.copy(waypointEntryReferenceCounts = counts) }
                 }
                 .onFailure { error ->
                     errorLog.w(TAG, "Couldn't load waypoints.", error)
@@ -79,11 +90,8 @@ internal class TrackRecordingLists(
         return scope().launch {
             getTracks()
                 .onSuccess { tracks ->
+                    // The counts are not read here: [watchReferenceCounts] keeps them live (dispatch 2026-10-28-08).
                     updateState { it.copy(tracks = tracks.sortedByDescending(Track::startedAtEpochMillis), tracksErrorMessage = null) }
-                    // One query per track, as the waypoints do (a handful of rows at most): what the Undo
-                    // snackbar's "used in N journal entries" reads (Part 2 follow-ups F1 item 5).
-                    val counts = tracks.associate { it.id to getTrackReferenceCount(it.id) }
-                    updateState { it.copy(trackEntryReferenceCounts = counts) }
                 }
                 .onFailure { error -> errorLog.w(TAG, "Couldn't load tracks.", error) }
         }

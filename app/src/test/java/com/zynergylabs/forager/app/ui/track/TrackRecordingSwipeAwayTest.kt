@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
 import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import androidx.lifecycle.ViewModelProvider
@@ -19,6 +20,7 @@ import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.FixProvider
+import com.zynergylabs.forager.app.domain.toTrackPoint
 import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
@@ -168,6 +170,7 @@ class TrackRecordingSwipeAwayTest {
         getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(tracks, waypoints),
         alreadyRecordingMessage = ALREADY_RECORDING,
         abandonedTrackSweepOnce = sweepOnce,
+        entryReferenceCounts = NoEntryReferenceCounts,
     ).also(createdViewModels::add)
 
     /** A ViewModel held the way an Activity holds one, so [ViewModelStore.clear] reaches its `onCleared`. */
@@ -652,6 +655,113 @@ class TrackRecordingSwipeAwayTest {
         reopened.stopRecording()
     }
 
+    // ---- Where the Return control's start height comes from (RECORD -2024) ---------------------
+    //
+    // The Return control's height difference falls back to raw start minus raw live when there is no sea-level height
+    // (ReturnToStartInfo.withLiveHeight). That is right only while the start's stored height is a raw GPS height: the
+    // stored height records no kind (TrackPointEntity.altitude, WaypointEntity.altitude), and a GPX import writes its file's
+    // <ele>, a sea-level height, into the same columns. So each route to the start is driven here through its real entry
+    // point, and each asserts the start height is the raw altitude of the fix it came from. A future route that brings an
+    // imported or converted height into the start fails here. The service's write is stood in for, as in the rest of this
+    // class, by storing the fix the way TrackRecordingService does (`fix.toTrackPoint()`).
+
+    /** A GPS fix with a raw [altitude], to the service (which keeps it, when [serviceKeeps]) and, when [toViewModel], to the ViewModel. */
+    private suspend fun TestScope.fixWithHeightArrives(
+        lat: Double,
+        t: Long,
+        altitude: Double,
+        trackId: String = "track-1",
+        toViewModel: Boolean = true,
+        serviceKeeps: Boolean = true,
+    ) {
+        val fix = LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
+        val point = fix.toTrackPoint()
+        if (serviceRecording) {
+            returnWatch.onFix(point, fix.provider)
+            if (serviceKeeps) tracks.appendForTest(trackId, point)
+        }
+        if (toViewModel) fixes.emit(fix)
+        runCurrent()
+    }
+
+    private fun startHeight(vm: TrackRecordingViewModel): Double? =
+        requireNotNull(vm.uiState.value.returnToStart) { "the Return control has no start" }.startAltitudeMeters
+
+    @Test
+    fun `the start height - the origin waypoint made from a live fix carries that fix's raw altitude`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 87.25)
+        assertEquals("precondition: the origin waypoint was made", WaypointDesignation.ORIGIN, vm.uiState.value.originWaypoint?.designation)
+
+        fixWithHeightArrives(lat = 45.001, t = 7_456L, altitude = 93.5)
+        assertEquals("the origin waypoint's height", 87.25, vm.uiState.value.originWaypoint!!.altitude)
+        assertEquals("the Return control's start height", 87.25, startHeight(vm))
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `the start height - the first recorded point, while no origin waypoint could be saved, carries its fix's raw altitude`() = runRecordingTest {
+        waypoints.failSaves = true
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 64.75)
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertNull("precondition: the origin waypoint could not be saved", vm.uiState.value.originWaypoint)
+        assertEquals("precondition: the first recorded point is on the screen", 45.000, vm.uiState.value.breadcrumbPoints.firstOrNull()?.lat)
+
+        fixWithHeightArrives(lat = 45.001, t = 7_456L, altitude = 70.0, serviceKeeps = false)
+        assertEquals("the Return control's start height", 64.75, startHeight(vm))
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `the start height - a recording taken up with its start marker carries the marker's fix's raw altitude`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        val first = viewModelIn(firstStore)
+        first.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 87.25)
+        assertEquals("precondition: the start marker was made before the swipe", "waypoint-1", first.uiState.value.originWaypoint?.id)
+        firstStore.clear()
+        runCurrent()
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertEquals("precondition: the reopened screen found the start marker", "waypoint-1", reopened.uiState.value.originWaypoint?.id)
+        fixWithHeightArrives(lat = 45.001, t = 7_456L, altitude = 93.5)
+        assertEquals("the Return control's start height", 87.25, startHeight(reopened))
+        reopened.stopRecording()
+    }
+
+    @Test
+    fun `the start height - a recording taken up without a start marker carries its first recorded point's raw altitude`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        val first = viewModelIn(firstStore)
+        first.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        // The service keeps this fix; the screen never saw it, so it made no start marker.
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 120.5, toViewModel = false)
+        assertNull("precondition: no start marker before the swipe", first.uiState.value.originWaypoint)
+        firstStore.clear()
+        runCurrent()
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertEquals("precondition: the marker is made at the first recorded point", 45.000, reopened.uiState.value.originWaypoint?.lat)
+        fixWithHeightArrives(lat = 45.010, t = 60_789L, altitude = 99.0)
+        assertEquals("the marker's height", 120.5, reopened.uiState.value.originWaypoint!!.altitude)
+        assertEquals("the Return control's start height", 120.5, startHeight(reopened))
+        reopened.stopRecording()
+    }
+
     // ---- The window after Stop (found by the planner's review of Part 3a) ------------------------
     //
     // stopRecording() clears this screen's recording at once. The service is stopped a moment
@@ -1044,6 +1154,9 @@ private class SwipeAwayWaypoints : WaypointRepository {
     override suspend fun getForTrack(trackId: String): Result<List<Waypoint>> = Result.success(saved.values.filter { it.trackId == trackId })
     override suspend fun detachFromTrack(trackId: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("detachFromTrack is not part of this test's path"))
-    override suspend fun save(waypoint: Waypoint): Result<Unit> = Result.success(Unit).also { saved[waypoint.id] = waypoint }
+    /** While true, every save fails, as a database error would. */
+    var failSaves = false
+    override suspend fun save(waypoint: Waypoint): Result<Unit> =
+        if (failSaves) Result.failure(IllegalStateException("the waypoint could not be saved")) else Result.success(Unit).also { saved[waypoint.id] = waypoint }
     override suspend fun delete(id: String): Result<Unit> = Result.success(Unit).also { saved.remove(id) }
 }
