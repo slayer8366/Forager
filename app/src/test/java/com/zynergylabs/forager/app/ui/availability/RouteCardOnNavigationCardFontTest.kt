@@ -102,6 +102,7 @@ abstract class RouteCardOnNavigationCardFontTests(
         var wrapped = 0
         var peekTop = 0.dp
         var peekCard: androidx.compose.ui.unit.DpRect? = null
+        var peekLeftElevationOut = false
         listOf(1, 3, 6).forEach { stops ->
             listOf(false, true).forEach { expanded ->
                 val where = "navigating, $stops stops, ${if (expanded) "expanded" else "peek"}"
@@ -124,8 +125,11 @@ abstract class RouteCardOnNavigationCardFontTests(
                 if (!expanded) {
                     peekTop = card.top
                     peekCard = card
+                    // D44 (RECORD -2027): a peek whose lines do not fit leaves its elevation line out, and is then shorter than its cap;
+                    // its lines still fill the cap, which is what D37 reads. The rig's legs carry heights, so a routed peek has one.
+                    peekLeftElevationOut = stops >= 2 && rig.count(com.zynergylabs.forager.app.ui.route.ROUTE_CARD_ROUTED_ELEVATION_TAG) == 0
                 }
-                val peekFillsCap = kotlin.math.abs((peekTop - (strip.bottom + 8.dp)).value) < 0.5f
+                val peekFillsCap = kotlin.math.abs((peekTop - (strip.bottom + 8.dp)).value) < 0.5f || peekLeftElevationOut
                 if (expanded && stops == 1) {
                     rig.assertSame("$where: at one stop, with no rows, expanded is the same as peek", peekCard!!, card)
                 } else if (expanded && peekFillsCap && !sundownLineShown) {
