@@ -50,8 +50,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Dispatch 2026-10-28-02 Amendment 4 (RECORD -1771; the owner, to "Make it stand out": "Option 1, but Give it an outline."):
  * in the light theme the selected map type chip is filled `secondary` with an `onSurface` outline, where it had been the
- * pale `secondaryContainer` with none, about 1.04:1 against the panel on the S22. Since Amendment 6 (RECORD -1774) the dark
- * theme's selected chip carries its own `onSurface` outline too, with its fill unchanged.
+ * pale `secondaryContainer` with none, about 1.04:1 against the panel on the S22. The dark theme is unchanged.
  *
  * Both of the panel's real entry points: the Maps tab's icon bar and a journal entry's map, each opened by a real touch on
  * its Layers row, inside the app's own [ForagerTheme]. The fill and the outline are read from the drawn pixels, and the
@@ -158,18 +157,11 @@ class MapTypePanelSelectedChipTest {
         assertTrue("$where: an onSurface outline is drawn left of the fill", row.subList(0, firstFill).contains(LightColors.onSurface))
     }
 
-    /**
-     * Dark (Amendment 6, RECORD -1774; the owner: "Both themes. Make it uniform"): the fill unchanged, `secondaryContainer`,
-     * now with the dark theme's `onSurface` outline left of it.
-     */
-    private fun assertDarkSelectedChip(where: String) {
+    /** Dark: unchanged, `secondaryContainer` and no selected outline. */
+    private fun assertDarkSelectedChipUnchanged(where: String) {
         composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
         assertEquals("$where: the dark selected chip's drawn fill", DarkColors.secondaryContainer, drawnFill(MapMode.TRAIL))
-        assertEquals("$where: its recorded outline", DarkColors.onSurface, recorded(MapMode.TRAIL)[MapModeChipSelectedOutline])
-        val row = middleRow(MapMode.TRAIL)
-        val firstFill = row.indexOf(DarkColors.secondaryContainer)
-        assertTrue("$where: the fill is drawn on the middle row", firstFill >= 0)
-        assertTrue("$where: an onSurface outline is drawn left of the fill", row.subList(0, firstFill).contains(DarkColors.onSurface))
+        assertEquals("$where: no selected outline in the dark theme", Color.Unspecified, recorded(MapMode.TRAIL)[MapModeChipSelectedOutline])
     }
 
     @Test
@@ -186,17 +178,19 @@ class MapTypePanelSelectedChipTest {
         assertLightSelectedChip("entry map")
     }
 
+    /** A guard, passing before and after by design: the amendment leaves the dark theme as it was. */
     @Test
-    fun `Maps tab, dark theme, the selected chip keeps its fill and has an onSurface outline`() {
+    fun `Maps tab, dark theme, the selected chip is unchanged`() {
         setMapsTab(dark = true)
         openPanel()
-        assertDarkSelectedChip("Maps tab")
+        assertDarkSelectedChipUnchanged("Maps tab")
     }
 
+    /** The same guard on the entry map. */
     @Test
-    fun `entry map, dark theme, the selected chip keeps its fill and has an onSurface outline`() {
+    fun `entry map, dark theme, the selected chip is unchanged`() {
         setEntryMap(dark = true)
         openPanel()
-        assertDarkSelectedChip("entry map")
+        assertDarkSelectedChipUnchanged("entry map")
     }
 }
