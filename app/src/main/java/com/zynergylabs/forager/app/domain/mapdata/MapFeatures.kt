@@ -17,6 +17,7 @@ data class MapFeatures(
     val water: List<WaterFeature> = emptyList(),
     val landuse: List<LanduseArea> = emptyList(),
     val barriers: List<BarrierLine> = emptyList(),
+    val roads: List<RoadLine> = emptyList(),
 ) {
     operator fun plus(other: MapFeatures) = MapFeatures(
         buildings + other.buildings,
@@ -24,6 +25,7 @@ data class MapFeatures(
         water + other.water,
         landuse + other.landuse,
         barriers + other.barriers,
+        roads + other.roads,
     )
 }
 
@@ -41,6 +43,9 @@ data class LanduseArea(val kind: String?, val rings: List<List<LatLng>>)
 
 /** A fence, wall, hedge or retaining wall, as lines. */
 data class BarrierLine(val kind: String?, val lines: List<List<LatLng>>)
+
+/** A road or path line, with the name the basemap gives it: the address street rank reads it (way-to PR 4). */
+data class RoadLine(val name: String?, val kind: String?, val kindDetail: String?, val access: String?, val lines: List<List<LatLng>>)
 
 /** One map tile's position on the web-mercator grid. */
 data class TileId(val z: Int, val x: Int, val y: Int)
@@ -78,7 +83,12 @@ object TileFeatureReader {
         val barriers = mvt.layer(BARRIERS)?.let { layer ->
             layer.features.filter { it.type == MvtGeometryType.LINESTRING }.map { BarrierLine(it.string("kind"), place(layer, it.parts)) }
         }.orEmpty()
-        return MapFeatures(buildings, addresses, water, landuse, barriers)
+        val roads = mvt.layer(ROADS)?.let { layer ->
+            layer.features.filter { it.type == MvtGeometryType.LINESTRING }.map {
+                RoadLine(it.string("name"), it.string("kind"), it.string("kind_detail"), it.string("access"), place(layer, it.parts))
+            }
+        }.orEmpty()
+        return MapFeatures(buildings, addresses, water, landuse, barriers, roads)
     }
 
     /** A point in [tile] at tile coordinates [p] of [extent], on the map (web-mercator, as the tile grid is). */
@@ -102,4 +112,5 @@ object TileFeatureReader {
     const val WATER = "water"
     const val LANDUSE = "landuse"
     const val BARRIERS = "barriers"
+    const val ROADS = "roads"
 }
