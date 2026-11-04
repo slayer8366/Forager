@@ -33493,6 +33493,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Decision:**
 - **The owner, verbatim:** "Undo 487 also". The planner had said, before that, that undoing #487 puts #485's hand-built chip revert back on pre-main.
 - **Before:** pre-main 192b9eab2 was backed up to forager-repo-backups/pre-main-before-undo-487.bundle (verified, complete history, head 192b9eab2). pre-main is not protected, and the planner has pushed to it directly before (b1724365d, ea230c60e).
+  *Correction (planner, 2026-11-04, on Clio's note, prompts/preserved/2026-11-04-clio-process-advice.md; the owner: "Yes, correct it (Recommended)"):* this first read "the planner has pushed to it directly before (b1724365d, ea230c60e)" as if those covered 3ffced9c0. They don't. Both are one-line doc edits (docs/process/known-bugs.md and CLAUDE.md), so they are no precedent for pushing app code to pre-main. 3ffced9c0 changes one app file and three test files, and it rests only on the owner's "Undo 487 also". It is not to be cited as a precedent.
 - **Done:** 192b9eab2, #487's merge, reverted with mainline 1 as 3ffced9c0 and pushed to pre-main as a fast-forward (192b9eab2..3ffced9c0). No force, no PR. main (c61850aa2) is unchanged.
 - **Checked:**
   - 3ffced9c0's tree is fa63ec865's (927cfaed), the tree #487 had undone. The change is four chip files, +10/-379.
@@ -33587,4 +33588,35 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Her worktree is ~/.cache/forager-wt/delete-a4 (delete-amendment-4 at d82cf520e). Her scratch is /mnt/work/scratch/delete-amendment-4/; that disk is 99% full, with about 650 MB free.
 - **Clio:** the owner opened a new Clio session with the four questions (-2084). The queued message to the old curator session may still arrive later, as a duplicate.
 - **The planner's slip:** today's scratch worktrees went under /tmp (rowan-chip-dryrun, rowan-undo-487, rowan-revert-chip-colours), against coder-profile's "never in /tmp, which is in memory on this laptop" (RECORD -1374). The first two are removed. /tmp/rowan-revert-chip-colours is left; its branch is pushed, and it waits for the owner's word.
+- *Correction (planner, 2026-11-04, on Clio's advice, prompts/preserved/2026-11-04-clio-process-advice.md; the owner: "Yes, fix it first (Recommended)"):* this intent was written after Hazel started. It should have been committed with the dispatch, before she started (dispatch-format.md:13). It also carried no outcome prediction (dispatch-format.md, section 9). Amendment 1 (prompts/preserved/2026-11-04-06-amendment-1.md, -2086) supplies both, before any go to build. The intent's fields point at the dispatch and the amendment: Change, A1; Scope boundary, C1, C2 and C6; Baseline, pre-main 3ffced9c0; Prediction (outcome, planner), B5; Prediction (mechanism, coder), to come from Hazel's Phase 1 report. The go to start her is the owner's "Start Hazel on the outline in the meantime" (C5).
 **Notes:** Written by the planner by hand. Next free ID -2086.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2086
+**Timestamp:** 2026-11-04T16:58:25Z
+**Continues:** 2026-09-28-2084, 2026-09-28-2085, 2026-09-28-2081
+**Title:** Clio's process advice received and filed; the owner approves fixing dispatch -06 before Hazel builds, correcting -2081, and removing the planner's /tmp worktree
+**Decision:**
+- **Clio's answer,** relayed by the owner ("From Clio:"), is filed unedited at prompts/preserved/2026-11-04-clio-process-advice.md.
+  - In short: starting a coder needs an intent entry and an explicit go first; no PR is required, only what a PR carries; undoing app code is coder work, and today's reverts are no precedent; a late result is a new outcome entry.
+  - The planner checked her citations from source: ENFORCEMENT.md:31, :33, :40 (E-GD Test-1 6fa9d68); dispatch-format.md:13, :24; planner-profile.md:95-96; RECORD.md:14. Each matches.
+- **The owner, verbatim, on the planner's three questions:** "Yes, fix it first (Recommended)"; "Yes, correct it (Recommended)"; "Remove it (Recommended)".
+- **Done:**
+  - Dispatch 2026-11-04-06 Amendment 1 (prompts/preserved/2026-11-04-06-amendment-1.md):
+    - B5, the outcome prediction: Bark 10.18:1 on the fill and 12.35:1 on the surface;
+    - C5, the owner's go to start Hazel;
+    - C6, replacing C4's audit index row: the index is the planner's to write, and Hazel's reports are filed by the planner beside the dispatch;
+    - C7, the writing rule, and naming the work by branch and commit, not as #486.
+  - -2085 corrected in place: its intent came after the start and had no prediction.
+  - -2081 corrected in place: b1724365d and ea230c60e are one-line doc edits, so they are no precedent for app code on pre-main.
+  - /tmp/rowan-revert-chip-colours removed, with git worktree remove on a clean tree whose head matched origin. The branch revert-chip-colours stays at d4ce043f5.
+- **Also read:** pre-main's own CI on 3ffced9c0, run 41866101093, completed success.
+- **For the owner, not acted on:**
+  - RECORD.md:14 still says "This file is append-only…", which contradicts the owner's correct-in-place rule.
+  - planner-profile.md:60 ("Gradle waits for the owner's 'go'") and coder-profile.md:30 ("No Gradle on the laptop") disagree.
+  - Whether "Rowan is not a coder" also covers undo work.
+  - Clio's own question, whether to record this in E-GD.
+- **Hazel:** still in Phase 1. Amendment 1 goes to her with the planner's go, after her report is read.
+**Notes:** Written by the planner by hand. Next free ID -2087.
