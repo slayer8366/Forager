@@ -188,6 +188,13 @@ internal fun routeCardNavigationTopLimitPx(heights: com.zynergylabs.forager.app.
  */
 internal fun routeCardSundownStepsAside(limitPx: Float, topWithEveningPx: Float, marginPx: Float): Boolean = topWithEveningPx < limitPx + marginPx - 0.5f
 
+/**
+ * D44 (RECORD -2027): whether the peek leaves the total line's elevation line out: where the card's natural lines, [heights]' linesPx
+ * (the elevation line counted even while it is out), are taller than the cap, [maxHeightPx], and there is an elevation line to leave.
+ */
+internal fun routeCardPeekLeavesElevationOut(heights: com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights, maxHeightPx: Float): Boolean =
+    heights.elevationPx > 0 && heights.linesPx > maxHeightPx + 0.5f
+
 /** Which side the card sits on: on the navigation card, the rail's; otherwise away from the bar. */
 internal fun routeCardOnLeft(barOnLeft: Boolean, landscapeRoom: RouteCardLandscapeRoom?): Boolean =
     if (landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp) landscapeRoom.railOnLeft else !barOnLeft

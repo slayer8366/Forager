@@ -202,7 +202,7 @@ internal fun BoxScope.CompactMapRouteCard(
     val cardMaxHeight = landscapeRoom?.let { if (coversStrip) it.overStripMaxHeight else it.maxHeight }
     // D40 (RECORD -2009, the owner: "Hide elevation while open"): where the lines fill even that raised cap, the total line's elevation
     // line is left out while expanded, and comes back on collapse.
-    val hideElevation = coversStrip && landscapeRoom != null && routeCardCoversStrip(true, hasRows, linesPx, with(density) { landscapeRoom.overStripMaxHeight.toPx() })
+    val hideElevationOpen = coversStrip && landscapeRoom != null && routeCardCoversStrip(true, hasRows, linesPx, with(density) { landscapeRoom.overStripMaxHeight.toPx() })
     // D42 (RECORD -2021): while the card rests on the navigation card, how low that card's top may sit for this one to fit, which keeps
     // the navigation card's sundown line out only where it would take the room. Its cap's top is fixed by the strip (or, raised, by the
     // controls), whatever the navigation card's height: the cap's bottom and height move together.
@@ -239,6 +239,13 @@ internal fun BoxScope.CompactMapRouteCard(
         cluster.navigationEveningStepsAside = stepsAside
     }
     DisposableEffect(Unit) { onDispose { cluster.navigationEveningStepsAside = false } }
+    // D44 (RECORD -2027, the owner: "Elevation steps aside here too"): at peek, where the lines do not fit the cap even with D42
+    // applied (the cap is read after the sundown line has stepped aside), the total line's elevation line is left out too. The lines
+    // count it at its last height while it is out, so the answer does not flip back.
+    val hideElevationPeek = landscapeRoom != null && state?.expanded != true && naturalHeights?.let { heights ->
+        routeCardPeekLeavesElevationOut(heights, with(density) { landscapeRoom.maxHeight.toPx() })
+    } == true
+    val hideElevation = hideElevationOpen || hideElevationPeek
     NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
             visible = !leaving && (portrait || landscapeRoom != null),
