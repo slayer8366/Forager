@@ -132,11 +132,16 @@ internal class MapIconClusterState(
     var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /**
-     * D42 (RECORD -2021, the owner: "Only where room is short"): while the route card rests on the landscape navigation card, the
-     * lowest the navigation card's top may sit, in the root, for the route card to fit above it ([routeCardNavigationTopLimitPx]); null
-     * otherwise. The navigation card leaves its evening lines out where they would take its top above it, as RECORD -955's limit does.
+     * D42 (RECORD -2021, the owner: "Only where room is short"): the landscape navigation card's evening lines step aside for the route
+     * card resting on it, which would not otherwise fit; written by the route card, read by the navigation card.
      */
-    var routeCardNavigationTopLimitInRootPx: Float? by mutableStateOf(null)
+    var navigationEveningStepsAside: Boolean by mutableStateOf(false)
+
+    /** D42: whether the landscape navigation card shows its evening lines, written by that card. */
+    var navigationEveningShown: Boolean by mutableStateOf(false)
+
+    /** D42: the landscape navigation card's height in px the last time it showed its evening lines; null before it has. */
+    var navigationCardHeightWithEveningPx: Float? by mutableStateOf(null)
 
     /**
      * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster

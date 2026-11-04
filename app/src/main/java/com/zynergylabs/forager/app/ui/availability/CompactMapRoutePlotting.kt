@@ -51,6 +51,7 @@ import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
 import com.zynergylabs.forager.app.ui.route.legInFlight
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.route.rememberRouteCardWidth
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
@@ -221,8 +222,23 @@ internal fun BoxScope.CompactMapRouteCard(
             )
         }
     }
-    SideEffect { cluster.routeCardNavigationTopLimitInRootPx = navigationTopLimit }
-    DisposableEffect(Unit) { onDispose { cluster.routeCardNavigationTopLimitInRootPx = null } }
+    // The navigation card's top with its evening lines: where it is while they show, or where its height when they last showed puts it,
+    // so stepping aside does not feed back into the decision. A gap once stepped aside, so a top a pixel either side cannot flip it.
+    val navigationCard = cluster.navigationCardBoundsInRoot
+    val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
+    val topWithEvening = when {
+        navigationCard == null -> null
+        cluster.navigationEveningShown -> navigationCard.top
+        else -> cluster.navigationCardHeightWithEveningPx?.let { boxBottomPx - it }
+    }
+    var steppedAside by remember { mutableStateOf(false) }
+    val stepsAside = navigationTopLimit != null && topWithEvening != null &&
+        routeCardSundownStepsAside(navigationTopLimit, topWithEvening, marginPx = if (steppedAside) with(density) { Spacing.xs.toPx() } else 0f)
+    SideEffect {
+        steppedAside = stepsAside
+        cluster.navigationEveningStepsAside = stepsAside
+    }
+    DisposableEffect(Unit) { onDispose { cluster.navigationEveningStepsAside = false } }
     NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
             visible = !leaving && (portrait || landscapeRoom != null),

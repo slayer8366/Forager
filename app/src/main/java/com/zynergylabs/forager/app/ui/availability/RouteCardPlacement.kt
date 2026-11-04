@@ -181,6 +181,13 @@ internal fun routeCardNavigationTopLimitPx(heights: com.zynergylabs.forager.app.
         capTopPx + heights.linesPx - tuckPx
     }
 
+/**
+ * D42: whether the navigation card's evening lines step aside: where, with them, its top, [topWithEveningPx], would sit above
+ * [limitPx] (from [routeCardNavigationTopLimitPx]), less [marginPx] once already stepped aside, so the decision cannot flip back and
+ * forth on a pixel.
+ */
+internal fun routeCardSundownStepsAside(limitPx: Float, topWithEveningPx: Float, marginPx: Float): Boolean = topWithEveningPx < limitPx + marginPx - 0.5f
+
 /** Which side the card sits on: on the navigation card, the rail's; otherwise away from the bar. */
 internal fun routeCardOnLeft(barOnLeft: Boolean, landscapeRoom: RouteCardLandscapeRoom?): Boolean =
     if (landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp) landscapeRoom.railOnLeft else !barOnLeft

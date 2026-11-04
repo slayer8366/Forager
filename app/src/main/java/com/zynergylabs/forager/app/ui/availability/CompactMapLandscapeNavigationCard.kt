@@ -186,9 +186,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             // north or the walker's dot. The dot sits where the navigation view puts it (the map's height times
             // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding), WALKER_DOT_CLEARANCE its radius. Reset north is the L's second
             // row, counted only where the L and the card share columns.
-            // D42 (RECORD -2021, the owner: "Only where room is short"): and where they would take its top above the room the route
-            // card resting on it needs (routeCardNavigationTopLimitInRootPx), so they step aside only then, and come back when it closes.
-            eveningLineTopLimitInRootPx = listOfNotNull(cardTopLimitInRootPx(cluster, density), cluster.routeCardNavigationTopLimitInRootPx).maxOrNull(),
+            eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
+            // D42 (RECORD -2021, the owner: "Only where room is short"): they also step aside while the route card resting on this one
+            // would not otherwise fit (the route card decides, from this card's measured heights), and come back when it closes.
+            eveningStepsAside = cluster.navigationEveningStepsAside,
+            onEveningShown = { cluster.navigationEveningShown = it },
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
             cardCorners = MapCardCorners.TOP,
             outlineSides = cardOutlineSides,
@@ -197,7 +199,10 @@ internal fun BoxScope.CompactMapNavigationDisplay(
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
-                .onGloballyPositioned { coordinates -> cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot() },
+                .onGloballyPositioned { coordinates ->
+                    cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot()
+                    if (cluster.navigationEveningShown) cluster.navigationCardHeightWithEveningPx = coordinates.size.height.toFloat()
+                },
         )
     }
     }

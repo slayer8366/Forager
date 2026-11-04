@@ -112,7 +112,9 @@ abstract class RouteCardOnNavigationCardFontTests(
                 println("C23 font ${composeRule.density.fontScale} rot $rotation $where: card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, Save ..${save.bottom.value}")
                 assertEquals("$where: the navigation card's left", hud.left.value, card.left.value, 0.5f)
                 assertEquals("$where: the navigation card's right", hud.right.value, card.right.value, 0.5f)
-                assertTrue("$where: Save's bottom ${save.bottom} shows at or above the navigation card's top ${hud.top}", save.bottom <= hud.top + 0.5.dp)
+                // D42 (RECORD -2021): the navigation card's evening lines may step aside for this card, so its top is read now.
+                val hudNow = rig.bounds(NAVIGATION_HUD_TAG)
+                assertTrue("$where: Save's bottom ${save.bottom} shows at or above the navigation card's top ${hudNow.top}", save.bottom <= hudNow.top + 0.5.dp)
                 // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek card already fills its cap (its top a
                 // gap below the strip's bottom) and has rows to show (two stops or more), the expanded card rises over the strip. At noon
                 // its lines and rows fill the raised cap, so its top is a gap below the screen's top. In the evening that exact top, and
