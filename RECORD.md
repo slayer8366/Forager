@@ -33291,7 +33291,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **ID:** 2026-09-28-2073
 **Timestamp:** 2026-11-04T15:31:35Z
 **Continues:** 2026-09-28-1771, 2026-09-28-2072
-**Title:** Amendment 4 of dispatch 2026-10-28-02 deleted with its code; the day chip back to the default pale fill with its outline
+**Title:** Amendment 4 of dispatch 2026-10-28-02 corrected as a planner error, with its code removed; the day chip back to the default pale fill with its outline
 **Decision:**
 - **The owner, verbatim, in order:**
   - "Find the change from cream to red in day mode";
@@ -33304,7 +33304,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The planner's Amendment 4 asked only for "a clearly stronger fill"; the Hazel chose secondary (#A2612C). The red was never the owner's choice.
 - **Done:**
   - **The branch:** style-picker-cream deleted locally and on origin.
-  - **The dispatch:** Amendment 4's text in prompts/preserved/2026-10-28-02-layers-to-tools.md replaced by a deletion note.
+  - **The dispatch:** Amendment 4's text in prompts/preserved/2026-10-28-02-layers-to-tools.md replaced by a correction note. *Correction (planner):* this entry first called it "deleted". The owner: "It was not deleted on Nov 4 it was corrected on Nov 4. Deleted means I reversed my decision. It was not my choice. Name it as a planner error". Amendment 4 is a planner error, corrected on 2026-11-04; the owner never reversed a decision.
   - **The code,** branch delete-amendment-4 (6fad20544, from pre-main 9660e542a):
     - the light selected chip uses FilterChipDefaults.filterChipColors() (fill #F6DFC8, label #3A2008), and lightSelectedChipColors and the Cream import are removed;
     - the 1 dp onSurface outline (Amendments 5 and 6) stays, and night stays rust red (-2067);

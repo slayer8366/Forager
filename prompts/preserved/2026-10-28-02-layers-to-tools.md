@@ -78,8 +78,8 @@ Sorrel's review (Fable) is `docs/reviews/2026-10-28-sorrel-pr432.md` on branch s
 - **Not in this PR:** N2 (the Worker's unused /reference-trails-manifest.json route) and N6 (the fold headers' height).
 CI only. Push to #432 and report.
 
-## Amendment 4: deleted
-Deleted on 2026-11-04 at the owner's word, with its code: "Delete amendment 4 and its coding" (RECORD -2073). It had filled the light theme's selected map type chip `secondary` (#A2612C, rust red), a colour the owner never chose.
+## Amendment 4: corrected (a planner error)
+Corrected on 2026-11-04 (RECORD -2073, -2074). This was a planner error, not the owner's choice. The owner's ruling (-1771) was "Option 1, but Give it an outline." to "Make it stand out (Recommended)". The planner wrote it here as "a clearly stronger fill" and named no colour, so the coder filled the light theme's selected map type chip `secondary` (#A2612C, rust red), a colour the owner never chose. The owner, correcting it: "It was not deleted on Nov 4 it was corrected on Nov 4. Deleted means I reversed my decision. It was not my choice. Name it as a planner error". Its code is removed with every later chip colour change (PR #486).
 
 ## Amendment 5 (2026-10-28): the grey chip gets the outline too (RECORD -1773)
 Amendment 4 is built: 5bd69cd4c, code 66c0457c0, run 40772168805 green, 5,889 tests. The owner: "Give the grey chip an outline too", then "Light theme only (Recommended)".
