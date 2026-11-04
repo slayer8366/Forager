@@ -32714,3 +32714,18 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 - **D:** the region and TEST S11 WP and TEST R2 were deleted by name.
 - **Bug:** right after the region was deleted, Region 1's waypoint (the same z11 tile) showed "Elevation 451 ft" from ReliefGroundHeightSource's in-memory cache, although the tile had no region link any more. After a force-stop it was gone. The fix is dispatched to Hazel, within -2026's ruling.
 **Notes:** Written by the planner by hand. Next free ID -2037.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2037
+**Timestamp:** 2026-11-04T04:31:53Z
+**Continues:** 2026-09-28-2036
+**Closes:** 2026-09-28-2032
+**Title:** S22 session 11 finished; auto-rotate set back to off
+**Outcome:** Hazel's final report; the audit is docs/audits/2026-11-04-s22-session-11.md on tools/s22-combined (7359a6fa1), and the evidence is in /home/zynergy-labs/s22-2026-11-04/s11/.
+- **Checks:** A and B as recorded in -2036; C skipped, as dispatched.
+- **End state:** Forager 4503 on the Maps tab, Trail Map, Imperial. Tables are equal to the post-install state. The download form's remembered pin now holds TEST S11's spot. A mistaken second download dialog was cancelled.
+- **Auto-rotate:** it was 0 at the start and 1 at the end, with writes by package "android" at 20:14:51 and 20:26:31, each within seconds of a force-stop and relaunch of Forager. The cause is not traced, and it wandered in sessions 8 and 9 too. The owner: "Set it back to off (Recommended)". The planner set it to 0 by adb and read 0 back.
+- **Not verified:** check A outdoors; why the three evening route card tests passed in that run (pre-main lacked #476 then); a restore test of the backup.
+**Notes:** Written by the planner by hand. Next free ID -2038.
