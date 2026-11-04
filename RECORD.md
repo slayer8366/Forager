@@ -33124,3 +33124,25 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **The crowded bubble's five steps:** not run. The phone has no visible crowded stack, and the planner has asked the owner whether he may add four temporary waypoints and delete them afterwards (no answer).
 - **svc power stayon** was set to usb for the session and is restored to false.
 **Notes:** Written by the planner by hand. Next free ID -2065.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2065
+**Timestamp:** 2026-11-04T14:16:35Z
+**Continues:** 2026-09-28-2064, 2026-09-28-2053
+**Title:** S22 session 12: the crowded list bubble seen working; the smooth zoom not checkable with this stack; phone left as found
+**Outcome:** The owner: "Yes, add the temporary waypoints".
+- **Four temporary waypoints:** "Temp stack 1"-"Temp stack 4" were dropped through the map's + > Waypoint, all at 45.32626,-122.63388. The small pans between drops didn't move the centre, so the four coincide.
+- **Zoom in, then fan:** tapping the stack fanned it at once (four pins in a cross). Coincident points can't separate by zooming, so step 1 (the eased zoom and the stray frame) and step 2 (taking over mid-zoom) were not exercised. A screen recording of the tap is at shots/s12-step1.mp4.
+- **List mode:**
+  - Tapping the stack showed the bubble "4 records at this spot", with four rows. It sat above the stack, clear of the icon bar, at the 80% fill.
+  - After a pan it moved with the stack (step 4, panning; a pinch was not tried).
+  - A row opened that waypoint's bubble (Navigate, Plot route, Details); Back returned to the list.
+  - Shots 16-19.
+- **Not tried:** landscape, Back's eased zoom out, a pinch while the list is open, and the bubble against the navigation and route cards (step 5).
+- **Observed, not investigated:** the waypoint bubbles for Waypoint 1 and Temp stack 2 showed the name and MGRS but no "Elevation … ft" line. #477's elevation line may need a relief tile cached for the spot; unverified.
+- **Cleanup:** the four were deleted by swiping them in Journal > Records > Waypoints; Undo was left to lapse.
+  - A snapshot afterwards: 11 waypoints, none named Temp stack. Every app table hash is identical to the after-4576 snapshot.
+  - Settings > Crowded icons is restored to "Zoom in, then fan" (it was set to List for the test). Night Maps is off. svc power stayon is false.
+**Notes:** Written by the planner by hand. Next free ID -2066.
