@@ -33204,3 +33204,26 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **The rule and the plan:** branch owner-word 425678495 holds CLAUDE.md "The owner's word" (appended at the end) and docs/audits/2026-11-04-owner-word-changed-mid-flight.md (the steps, the causes, a seven-point plan), plus an audits README row. The PR is opened against pre-main.
 - **Memory:** feedback rule owner-word-stands.
 **Notes:** Written by the planner by hand. Next free ID -2069.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2069
+**Timestamp:** 2026-11-04T14:43:56Z
+**Continues:** 2026-09-28-2068
+**Title:** Rust is the app's night colour, for night vision; #483 checked by reading; a phone build started
+**Decision:**
+- **The owner, verbatim:**
+  - "Catch it on the phone check and then double check the code for typos";
+  - "Rust is the night theme for the app so we must keep that color";
+  - "It has to do with night vision and how it eases the vision at night. Brown reduces that ease at night".
+- **The reason, recorded:** rust red at night is for night vision. Dark brown reduces that ease. It is not a style choice to revisit.
+- **The planner's read of 22ae67021 for typos, by eye with no compiler:**
+  - MapModeChips.kt: the imports MushroomDeep (Color.kt:82) and PureWhite (Color.kt:64) exist; strongLight is removed with no use left; isDarkTheme is still read (:115, :128); the when branches are standsAside, then isDarkTheme, then light.
+  - MapTypePanelOfflineChipTest: every name the new assertChosenChip uses is imported or defined (Color, luminance, toPixelMap, captureToImage, dp; darkTheme :76, chosen :77, setSheet :86, drawnFill :109, recordedFill :116).
+  - MapTypePanelSelectedChipTest: MushroomDeep is imported, and DarkColors is still used (onSurface).
+  - No other test asserts the chip's fill colour.
+  - No typo found; not proven until it compiles.
+- **Phone build:** pre-main b8742ea75 merged into tools/s22-combined as 3854493f3 (count 4591), CI run 41850422000. This is the first compile of 22ae67021.
+- **Phone check:** the night chip in rust red #A2612C with a white label; the day chip in cream.
+**Notes:** Written by the planner by hand. Next free ID -2070.
