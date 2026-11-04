@@ -32687,3 +32687,13 @@ PR opened against pre-main.
 - **The planner's call:** no revert. #474 changes only the v4 style files, their generator and the Worker tests. It doesn't touch the app code behind pre-main's red, and the owner approved it. The folder-only Worker release to main waits until pre-main is green.
 - The owner, to the planner: "The merge was approved by me." So #474's merge stands on the owner's approval. The "pre-main green first" condition was the planner's own, not the owner's. Aspen's account: the owner told Aspen at about 20:15 to 20:17 PST "Hold the merge", and then, asked whether that meant keeping #474 or reverting it, "Carry on as you were". #474 stays in pre-main, and the Worker release to main stays held until the planner says pre-main is green.
 **Notes:** Written by the planner by hand. Next free ID -2035.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2035
+**Timestamp:** 2026-11-04T04:18:36Z
+**Continues:** 2026-09-28-2034
+**Title:** The v4 first zooms' Worker release goes ahead; it doesn't wait for pre-main green
+**Decision:** The owner asked: "The merge is to main, is pre main really a hold for that?" The planner answered that it isn't. The folder-only release is guarded by check-release and the Worker tests, pre-main's red is an app test the Worker doesn't touch, and only the owner's test builds load v4. The planner's earlier hold was carried over from #474's own condition without being thought through. The owner: "Yes, tell Aspen to go ahead". Aspen opens the release from main with the usual checks, sends a line before merging, and confirms what is served afterwards. The night-colour app fix is still required before any promotion (-2018).
+**Notes:** Written by the planner by hand. Next free ID -2036.
