@@ -163,18 +163,24 @@ abstract class CrowdedListBubbleTests(
         settle()
     }
 
-    /** A real tap on empty map: away from the stack and outside the bubble, with its own positive controls. */
+    /**
+     * A real tap on empty map: the first of a few places around the stack that is in the map, outside its 48 dp tap box and
+     * outside every bubble shown, with its own positive controls, the last that the tap reached the map.
+     */
     private fun tapEmptyMap() {
         val m = mapBounds()
         val stack = stackInRoot()
-        // 60 dp below the stack: outside its 48 dp tap box, and on the side away from the bubble, which opens above it.
-        val inMap = stack - m.topLeft + Offset(0f, 60f * density)
-        val root = inMap + m.topLeft
+        val cards = listOf(CROWDED_LIST_TAG, MAP_BUBBLE_TAG).filter { shown(it) }.map { bounds(it) }
+        val margin = 24f * density
+        val candidates = listOf(Offset(0f, 60f), Offset(0f, -60f), Offset(120f, 0f), Offset(-120f, 0f), Offset(120f, 60f), Offset(-120f, 60f), Offset(0f, 120f))
+            .map { stack + it * density }
+        val root = candidates.firstOrNull { p ->
+            p.x > m.left + margin && p.x < m.right - margin && p.y > m.top + margin && p.y < m.bottom - margin && cards.none { it.contains(p) }
+        }
+        checkNotNull(root) { "positive control: an empty place on the map near the stack $stack, outside $cards" }
+        val inMap = root - m.topLeft
         val s = checkNotNull(map.scene)
         assertTrue("positive control: no marker within the tap box at $inMap", s.hitsInBox(inMap.x, inMap.y, TAP_BOX_DP / 2f * density, listOf(MapLayerIds.FINDS, MapLayerIds.WAYPOINTS)).isEmpty())
-        for (tag in listOf(CROWDED_LIST_TAG, MAP_BUBBLE_TAG)) {
-            if (shown(tag)) assertFalse("positive control: $root is outside $tag", bounds(tag).contains(root))
-        }
         val before = map.mapTaps
         composeRule.onNodeWithTag(CROWDED_STUB_MAP_TAG).performTouchInput { click(inMap) }
         settle()

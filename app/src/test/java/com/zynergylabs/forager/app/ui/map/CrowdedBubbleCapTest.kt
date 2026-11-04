@@ -9,10 +9,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.availability.layoutFixesHostActivityRule
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -33,8 +35,10 @@ import java.time.LocalDate
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 class CrowdedBubbleCapTest {
 
+    private val composeRule = createComposeRule()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
 
     private val waypoint = Waypoint("wp-1", 45.32, -122.63, null, "Waypoint 1", "", 1_700_000_000_000L)
 

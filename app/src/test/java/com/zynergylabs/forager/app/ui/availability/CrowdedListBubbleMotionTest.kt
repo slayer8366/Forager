@@ -109,10 +109,11 @@ class CrowdedListBubbleMotionTest {
         composeRule.onNode(SemanticsMatcher.keyIsDefined(MapPopUpScaleKey) and hasAnyDescendant(hasTestTag(tag)), useUnmergedTree = true)
             .fetchSemanticsNode().config[MapPopUpScaleKey]
 
+    /** [tag] is on screen and drawn small: its grow or shrink is under way, at or above where it starts and short of 1 (MapPopUpMotionTest's "growing: drawn small"). */
     private fun assertMidGrow(what: String, tag: String) {
         assertTrue("$what: $tag is on screen", shown(tag))
         val scale = popUpScale(tag)
-        assertTrue("$what: $tag is part way, scale $scale strictly between ${MotionTokens.MAP_POPUP_ENTER_SCALE} and 1", scale > MotionTokens.MAP_POPUP_ENTER_SCALE && scale < 1f)
+        assertTrue("$what: $tag is drawn small, scale $scale, from ${MotionTokens.MAP_POPUP_ENTER_SCALE} and short of 1", scale >= MotionTokens.MAP_POPUP_ENTER_SCALE - 1e-4f && scale < 0.999f)
     }
 
     private val row get() = crowdedListRowTag(FanKey(MapLayerIds.FINDS, "find-0"))
