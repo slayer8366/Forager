@@ -5,6 +5,9 @@ import android.util.Log
 import android.view.Gravity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
@@ -40,6 +43,8 @@ internal fun MapListeners(
     // Registered once per composition of this MapView, not per recomposition: getMapAsync's
     // callback fires exactly once for the life of the MapView, so there's no re-registration to
     // guard against the way the style reload's guard (MapStyleReload.kt) is needed for setStyle.
+    // Dispatch 2026-11-04-02, A6: the crowded-stack zoom reads the phone's Reduce Motion at each tap, so the latest is kept here.
+    val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
     DisposableEffect(state.mapView) {
         // A style that cannot be loaded — the offline style with no region covering the camera
         // and no network, or a worker URL that moved — fails here rather than in setStyle's own
@@ -102,6 +107,7 @@ internal fun MapListeners(
                     camera = MapStackCamera(map, state, resources.displayMetrics.density).also { state.tapHandlerRef.stackCamera = it },
                     host = { state.tapHandlerRef.crowdedHost },
                     warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
+                    reduceMotion = { reduceMotion },
                 ),
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = state.onTap()
@@ -160,7 +166,10 @@ internal fun MapListeners(
             // rarely rests, so a shown bubble is kept on its glyph on every camera move, not only at
             // idle. Outside navigation it is re-anchored at idle as before.
             map.addOnCameraMoveListener {
-                if (state.navigationView != null) state.reanchorFocusedBubble(map)
+                if (state.navigationView != null) {
+                    state.reanchorFocusedBubble(map)
+                    state.reanchorCrowdedList(map)
+                }
                 state.navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
             }
             // Dispatch -477, Part A: every fling MapLibre reports while navigating, with the camera mode then.
@@ -226,6 +235,8 @@ internal fun MapListeners(
                 // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
                 // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized, in SightingsMapLayout.kt).
                 state.reanchorFocusedBubble(map)
+                // Dispatch 2026-11-04-02, A1: and the crowded stack's list bubble on its stack, the same way.
+                state.reanchorCrowdedList(map)
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
             // corner this composable's own always-visible Basemap.attribution caption occupies (see

@@ -92,9 +92,10 @@ class MapTapHandler(
         val density = probe.density
         var holdFanForEmptyTap = false
         val bubbleWasUp = bubbleOpen()
-        // The crowded stack's list closes at a tap on the map, as a fan folds; while a row's bubble shows, that tap closes the
-        // bubble only, and the list comes back (one layer at a time, as for the fan, amendment -255).
-        if (!bubbleWasUp) crowded?.onMapTap()
+        // The crowded stack's list closes at a tap on the map, as a fan folds. While a row's bubble shows, the tap closes both
+        // (dispatch 2026-11-04-02, S3, RECORD -2040), no longer the bubble alone with the list coming back (-255's one layer at
+        // a time, which still holds for the fan); the bubble closes by the plain tap below.
+        crowded?.onMapTap()
         if (fan.isOpen) {
             val picked = fanMemberAt(liveMembers(), fan.progress, xPx / density, yPx / density)
             if (picked != null) {
@@ -165,10 +166,10 @@ class MapTapHandler(
         if (cause == CameraMoveCause.LOCATION_FOLLOW) return
         // The crowded-stack zoom's own move opens a fan as it lands; it must not fold it (dispatch 2026-10-27-07, step 5).
         if (cause == CameraMoveCause.APP_STACK_ZOOM) return
-        if (cause == CameraMoveCause.USER_GESTURE) crowded?.onUserGesture()
+        if (cause == CameraMoveCause.USER_GESTURE) crowded?.onUserPan()
         // A move the user asked for with a control (Locate, a search result, Return to Route) counts as their own pan
         // (Amendment 1, S1; RECORD -1753). The crowded stack's own camera return is marked plain, so it does not.
-        if (cause == CameraMoveCause.APP_USER_ASKED) crowded?.onUserGesture()
+        if (cause == CameraMoveCause.APP_USER_ASKED) crowded?.onUserAskedMove()
         fan.fold()
     }
 

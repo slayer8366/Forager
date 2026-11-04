@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.ui.map.fanout.SceneStackCamera
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 
 /**
  * A stub map for the crowded-stack screen tests of dispatch 2026-10-27-07 Amendment 1 (a `MapView` cannot be built under
@@ -70,6 +71,31 @@ internal class CrowdedStackStubMap(
     var mapLongPresses = 0
         private set
 
+    /** Real taps that reached the map (dispatch 2026-11-04-02: a test's positive control that its touch was the map's). */
+    var mapTaps = 0
+        private set
+
+    /** The current map's tap handler, classifier and host, for [pan]. */
+    private var handler: MapTapHandler? = null
+    private var classifier: CameraMoveClassifier? = null
+    private var host: com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost? = null
+
+    /**
+     * A pan by the user's finger (dispatch 2026-11-04-02, A1), of [dxPx], [dyPx] map pixels: every marker moves by it, MapLibre's
+     * move start arrives as a touch's, and at the idle the list's bubble follows its stack, through the host's own
+     * [com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost.followList] with this scene's projection standing in for the
+     * map's (`SightingsMapState.reanchorCrowdedList`, which a `MapView` is needed for). Call on the UI thread.
+     */
+    fun pan(dxPx: Float, dyPx: Float) {
+        val s = checkNotNull(scene)
+        s.panXPx += dxPx
+        s.panYPx += dyPx
+        val c = checkNotNull(classifier)
+        checkNotNull(handler).onCameraMoveStarted(c.classify(isGesture = true, followingLocation = false))
+        c.onCameraIdle()
+        host?.followList({ at -> (s.xPx(at.lng) + s.panXPx) to (s.yPx(at.lat) + s.panYPx) }, bearingDeg = 0f)
+    }
+
     val slot: MapSlot = { _, content, renderMode, _, _, onTap, _, _, modifier ->
         val density = LocalDensity.current.density
         val currentOnTap by rememberUpdatedState(onTap)
@@ -77,6 +103,8 @@ internal class CrowdedStackStubMap(
         val currentOnCloseBubble by rememberUpdatedState(renderMode.onCloseBubble)
         val bubbleShown = content.focusedFeature != null || content.focusedObservationId != null
         val currentBubbleShown by rememberUpdatedState(bubbleShown)
+        // MapListeners' line (dispatch 2026-11-04-02, A6): the zoom reads the phone's Reduce Motion at each tap.
+        val currentReduceMotion by rememberUpdatedState(LocalReduceMotion.current)
         val mapFan = remember { MarkerFanOutState().also { fan = it } }
         val probe = scene ?: FanOutTestScene(density, spotXDp * density to spotYDp * density).also { s ->
             scene = s
@@ -85,7 +113,8 @@ internal class CrowdedStackStubMap(
         val ref = remember { TapHandlerRef() }
         val sceneCamera = remember {
             builds++
-            SceneStackCamera(probe, viewWDp, viewHDp, CameraMoveClassifier(FakeLooper()::post)).also { cameras += it }
+            val c = CameraMoveClassifier(FakeLooper()::post).also { classifier = it }
+            SceneStackCamera(probe, viewWDp, viewHDp, c).also { cameras += it }
         }
         val handler = remember {
             val space = object : FanSpace {
@@ -111,12 +140,13 @@ internal class CrowdedStackStubMap(
                 },
                 space = space,
                 bubbleOpen = { currentBubbleShown },
-                crowded = CrowdedStackZoom(sceneCamera, { ref.crowdedHost }, {}),
-            )
+                crowded = CrowdedStackZoom(sceneCamera, { ref.crowdedHost }, {}, reduceMotion = { currentReduceMotion }),
+            ).also { this@CrowdedStackStubMap.handler = it }
         }
         // SightingsMap's lines: the host, and the fan it is told of.
         SideEffect {
             ref.crowdedHost = renderMode.crowdedStacks
+            host = renderMode.crowdedStacks
             renderMode.crowdedStacks?.fan = mapFan
         }
         // MapListeners' lines: this map's camera is the host's while the map lives.
@@ -137,7 +167,10 @@ internal class CrowdedStackStubMap(
                 .testTag(CROWDED_STUB_MAP_TAG)
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = { handler.onMapTap(LatLng(0.0, 0.0), it.x, it.y) },
+                        onTap = {
+                            mapTaps++
+                            handler.onMapTap(LatLng(0.0, 0.0), it.x, it.y)
+                        },
                         onLongPress = { mapLongPresses++ },
                     )
                 },
