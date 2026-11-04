@@ -518,12 +518,16 @@ test("trail-v4 is street-v4 with only its name and its generated-from changed: o
   assert.deepEqual(rest(trail), rest(street));
 });
 
-test("street-v4, street-v3 and offline.json are frozen: the Worker's copies byte for byte what pre-main d88db1799 held", () => {
+test("street-v3 and offline.json are frozen: the Worker's copies byte for byte what pre-main d88db1799 held", () => {
   // Dispatch 2026-11-03-05 D2 (RECORD -2000): they stay byte for byte; "Forager Trail v4" goes only in trail-v4.json.
-  assert.equal(sha256("../src/street-style-v4.json"), "6ce7271ed1d0da0b08b9c190310d6d7e0838febdfaf6bfcdd121b1162eacef80");
   assert.equal(sha256("../src/street-style-v3.json"), "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f");
   assert.equal(sha256("../src/street-style-v1.json"), "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da");
   assert.equal(sha256("../src/offline-style.json"), "357e2603d1d72e4bf0e9431ecfb06292e91fca4333782ca3fd7e06713879b294");
+});
+
+test("street-v4 is held to the first zooms' v4, updated in place once since d88db1799 (dispatch 2026-11-02-coder-13)", () => {
+  // The owner: "Update v4 in place". street-v4 and trail-v4 change together and stay one style (the trail-v4 test above).
+  assert.equal(sha256("../src/street-style-v4.json"), "d27d42d163baf8a9576e2ad0407625f48aabf41713809fb61689b794d0f94e40");
 });
 
 test("v2 is frozen: the Worker's copy byte for byte what pre-main c91f34c49 held", () => {
