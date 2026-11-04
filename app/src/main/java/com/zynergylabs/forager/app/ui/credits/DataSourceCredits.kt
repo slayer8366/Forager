@@ -71,6 +71,9 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
     // (docs/research/2026-10-30-nrcan-attribution.md, branch juniper-nrcan-credit): the Open Government Licence – Canada's
     // own attribution sentence and a link to it; the Copernicus WorldDEM-30 licence's notice for adapted data (its Article
     // 6(b)) and its liability sentence (6(c)), which NRCan's MRDEM carries on; and the USGS's "courtesy of" form for 3DEP.
+    // The same 3" heights draw the Trail Map's hill shading and give the waypoint bubble's elevation, so the detail lines
+    // under NRCan and USGS name all three (dispatch 2026-11-03-07 D6, RECORD -2030; the owner: "Yes, broaden the credits to
+    // cover them"); they read "Route heights in Forager are averaged from this data." before.
     SourceSection(
         "Heights",
         listOf(
@@ -79,7 +82,7 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 "Heights in Canada: Natural Resources Canada. Contains information licensed under the Open Government Licence – Canada.",
                 "licence",
                 "https://open.canada.ca/en/open-government-licence-canada",
-                detail = "Route heights in Forager are averaged from this data.",
+                detail = "Route heights, the map's hill shading and waypoint elevations in Forager come from this data.",
             ),
             SourceCredit(
                 "copernicus-heights",
@@ -96,7 +99,7 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 "Heights in the United States: 3DEP elevation data courtesy of the U.S. Geological Survey, public domain",
                 linkLabel = null,
                 url = null,
-                detail = "Route heights in Forager are averaged from this data.",
+                detail = "Route heights, the map's hill shading and waypoint elevations in Forager come from this data.",
             ),
         ),
     ),
