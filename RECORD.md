@@ -33082,3 +33082,27 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 **Title:** The style picker: cream by day, red at night; the clone-night question goes to a Hazel
 **Decision:** The owner: "Night mode gets the red." So the selected chip is cream by day and stays rust red at night. Also: "GH shows normal on my end. I ran gh auth login again". Dispatch 2026-11-04-05 written: A1 the chip, B1 why the clone-night fix wasn't seen on the S22 ((a) street-v3 drawn, (b) Style.json drops the metadata, (c) other). Night Maps on the S22 stays on until the planner turns it back off at the session's end; the owner didn't say.
 **Notes:** Written by the planner by hand. Next free ID -2063.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2063
+**Timestamp:** 2026-11-04T13:15:26Z
+**Continues:** 2026-09-28-2061, 2026-09-28-2062, 2026-09-28-2059
+**Title:** The clone-night fix confirmed on the S22 after a stale cached style was removed; the chip ruled; the waypoint series' A1, A5 and A2 green
+**Outcome:**
+- **Clone night: the cause, confirmed.**
+  - Hazel (dispatch 2026-11-04-05 B1) traced it to a stale cached trail-v4.json. The Maps tab always loads trail-v4.json, whatever the regions (BasemapStyles.kt:315-329). The Worker sends it with max-age=86400 and no validator, and #477 changed it in place. A phone that fetched it after #472 keeps the old copy for up to a day.
+  - The S22's mbgl-offline.db held trail-v4.json and street-v4.json as resources 305 and 302, with no region link. Both decoded to 104 layers with no forager:layer-clones; trail-v4's copy expired at 2026-11-04 23:14 UTC.
+  - The owner chose "Clear map cache now". The planner force-stopped the app and copied the db (saved as ~/s22-2026-11-04/s12/snap/mbgl-offline.before-style-clear.db). He deleted only those two rows, then checked integrity ok and user_version 6. He put the db back (sha 78cd0ff6… matched) and relaunched.
+  - With Night Maps on, the log read "Trail night: 78 clone layers recorded; 13 take their originals' night colours." That is exactly the predicted line. It also shows that MapLibre's Style.json keeps metadata on the device (B1 (b) is false).
+  - A screenshot caught mid-crossfade, so the colours weren't read from pixels.
+  - Night Maps was turned off again (checked false). A screen-stay-on setting used during the check (svc power stayon usb) was restored to false.
+- **The chip, the owner, each the option as read:** "Cream + today's outline"; "Keep dark brown (Recommended)". Hazel is told to build it, plus the B1 log line.
+- **Found, not acted on:** TrailStyle.kt:20-22 promises a style URL "never changes meaning", but #477 changed trail-v4.json in place behind a 24-hour cache. For the planner to raise.
+- **The waypoint series, dispatch 2026-11-04-04, A1, A5 and A2:**
+  - all on wayto-dropoff-wiring c76969420; full CI 41818672279: 6535 tests, 0 failures, 24 skipped;
+  - fail-first and two revert checks each for A1/A5 and for A2, each with 0 compile errors and failures specific to the edit; B1 CI green on all six heads;
+  - Hazel's slips, reported by her: a mislabelled throwaway branch (deleted, never run), a cherry-pick -x trailer, and one CI read a minute after another.
+  - Still open: the device-only B3 checks; the earlier Hazel's worktree hazel-wayto-a1a2 is the last copy of the wip-a2 draft.
+**Notes:** Written by the planner by hand. Next free ID -2064.
