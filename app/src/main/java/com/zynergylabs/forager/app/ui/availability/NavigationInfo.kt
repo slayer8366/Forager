@@ -134,7 +134,9 @@ internal fun NavigationInfo(
         ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithStackPx, eveningLineTopLimitInRootPx?.let { it - marginPx })
         val currentOnEveningShown by rememberUpdatedState(onEveningShown)
         SideEffect {
-            lastEveningShown = eveningShown
+            // D42: stepping aside leaves -955's memory as it was, so when the route card closes the lines come back on the same terms
+            // they showed on before it opened (the margin once shown), rather than on a fresh decision.
+            if (!eveningStepsAside) lastEveningShown = eveningShown
             currentOnEveningShown(eveningShown)
         }
         val shownSundown = sundownLine.takeIf { eveningShown }
