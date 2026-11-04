@@ -33259,5 +33259,6 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **Day (Light theme):** the Layers popover's Trail chip sampled at #EDE3D0 (Cream), with a dark label and outline (shots/23-day-chip.png).
 - **Night:** the planner set Settings > Night Mode to Dark for the check. The chip sampled at #A2612C (rust red), with a white label and a light outline (shots/24-night-chip.png).
 - **Restored:** Night Mode back to Light; every toggle matches the session's start; svc power stayon false.
+- **The owner, after:** "Do not change light theme". From now on the planner and coders don't switch the phone's theme setting for a check; a night look is asked of the owner or checked another way. The light palette isn't changed either.
 - **The palette rule:** CLAUDE.md, a bullet under "The owner's word" quoting the owner, on branch palette-rule. Opened as #485. The planner's attempt to merge it in the same step was blocked by the permission classifier, since the owner said "add it", not "merge". It waits for the owner's word to merge.
 **Notes:** Written by the planner by hand. Next free ID -2072.
