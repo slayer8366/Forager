@@ -32760,3 +32760,25 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 **Title:** The crowded list bubble: the planner's calls on Hazel's six stops, within the owner's words
 **Decision:** Dispatch 2026-11-04-02 section C. The root disk was full (2.6 MB free). The planner removed six worktrees of merged branches (route-plot-ui, waypoint-names, route-card-followups, hazel-trail-street, return-height-gps-fallback, route-navigate-read), after checking each was pushed; route-plot-ui's only local file was a build directory. That freed about 1.1 GB. The S22 evidence folders are kept.
 **Notes:** Written by the planner by hand. Next free ID -2041.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2041
+**Timestamp:** 2026-11-04T05:33:05Z
+**Continues:** 2026-09-28-2036, 2026-09-28-2033
+**Title:** pre-main's PhotoViewerDialogTest red and the relief cache bug are fixed and green; PRs opened
+**Outcome:** From Hazel's report. The planner read both CI runs as green and both diffs as free of @Ignore and of removed assertions.
+- **photo-viewer-decode-thread** (9ca9bd181, CI 41775116326, 6390 tests):
+  - The cause: the viewer decoded on Dispatchers.IO outside the PhotoDecodeDispatcher seam, so under the v1 compose rule a frame ran on the IO worker, a race.
+  - The failure was not reproducible on demand (0 of 600 runs). Instead, the mechanism is shown by a thread test that fails before the fix (41770486825), and a revert check (41772827886).
+  - Production is unchanged. The race fired once in the last 200 runs.
+  - Seen, not checked: TrackExportPanel.kt:282 has the same pattern.
+- **relief-cache-region-delete** (eb14a608a, CI 41777519179, 6394 tests):
+  - Kept tiles are checked against the store's linked fingerprint before use.
+  - The SDK's real delete was run on the CI emulator: the bug reproduced before the fix (41777566046) and passed after it (41777596985).
+  - Fail first 41775342942; revert check 41777537831.
+  - A kept-tile lookup now costs a median 15.4 ms (one noisy emulator run), on IO.
+- **Still seen, not investigated:** AvailabilityScreenCrowdedIconsSettingTest failed again, in throwaway run 41772847614.
+PRs opened against pre-main, not merged.
+**Notes:** Written by the planner by hand. Next free ID -2042.
