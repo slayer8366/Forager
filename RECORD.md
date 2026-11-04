@@ -32645,3 +32645,14 @@ Also recorded from Hazel's report:
 - **Not tested:** the real IO path in the bubble; switching between bubbles; the S22's density; reads during a download; old regions on a phone; Canada's coverage.
 - **PR:** #475, merged into pre-main on the owner's "Yes go ahead", after its PR CI (41760047895) was green on every job and pre-main was backed up (pre-main-before-475 bundle, verified).
 **Notes:** Written by the planner by hand. Next free ID -2032.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2032
+**Timestamp:** 2026-11-04T03:45:14Z
+**Title:** S22 session 11: #440's altitude on screen and #475's elevation line
+**Intent:** The owner: "S22 plugged in". The phone build had not been prepared beforehand: pre-main moved with #440 and #475 after session 10, and a CI build runs at the start of phone time. That is the planner's slip against -1998's rule. Dispatch 2026-11-04-01, Hazel (Opus), given in her prompt.
+- **Build:** tools/s22-combined with pre-main 808187098 merged in. Before installing: a versionCode above 4489 and the same signer.
+- **Checks:** A, #440's height on screen at 0, 2 and 5 min, with the heading kept; B, #475 shows no line in the old v3 regions, and, with the owner's "Yes, one small region (Recommended)", one small new US region is downloaded to see "Elevation N ft" and "Elevation N m", then deleted.
+**Notes:** Written by the planner by hand. Next free ID -2033.
