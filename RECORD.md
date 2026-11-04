@@ -33876,3 +33876,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** pre-main's CI on #489's merge (10c347378) passed on every job
 **Outcome:** run 41906966295, the push run on pre-main at 10c347378, completed with success on all 8 jobs. They include "Build, test, publish APK" and "The app builds and its tests pass with the Street map deleted". The planner's first watcher stopped on a network error ("error connecting to api.github.com"), not on the run. The result was read with gh run view once the run completed. The planner didn't download the run's JUnit XML.
 **Notes:** Written by the planner by hand. Next free ID -2100.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2100
+**Timestamp:** 2026-11-04T22:37:28Z
+**Continues:** 2026-09-28-2099, 2026-09-28-2098
+**Title:** Dispatch 2026-11-04-07's audit index row added to pre-main; its seven revert branches deleted
+**Decision:**
+- **The owner, verbatim,** to "The audit index row for this dispatch is mine to write, on pre-main. Shall I add it?" and "Hazel's seven revert branches are still on GitHub. Delete them, or keep them?": "1 yes 2 yes".
+- **The index row:** one row appended to docs/audits/README.md as 949ad8183 on pre-main, a fast-forward from 10c347378. It is docs only, without [skip ci], so pre-main's head gets its own CI run. main (c61850aa2) is unchanged.
+- **Deleted from origin:** map-type-chip-outlines-r1 (2b5745ac5), -r2 (aad96546b), -r3 (e0bb89326), -r4 (0bacf98e0), -r5 (2762c140d), -r7 (e6c54ee49) and -r8 (786a6dbaa).
+  - Before deleting: each held one commit, "[revert check rN, never merge]", and none was on pre-main.
+  - Each deletion was pinned with --force-with-lease to the commit read beforehand.
+  - Their CI runs (41897205441 to 41897303444) and the commit hashes stay in -2097 and in Hazel's report.
+- **Kept:** branch map-type-chip-outlines (858c77c54, merged) and Hazel's worktree ~/.cache/forager-wt/map-type-chip-outlines. Neither was asked about.
+- **Seen, not changed:** the index row before this one (2026-11-04, the owner's word audit) has two columns instead of three.
+**Notes:** Written by the planner by hand. Next free ID -2101.
