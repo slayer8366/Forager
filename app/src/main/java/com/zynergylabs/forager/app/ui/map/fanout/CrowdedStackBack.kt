@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map.fanout
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 
 /**
  * Back for a crowded stack (dispatch 2026-10-27-07, the owner's step paths; "Back retraces the way in"):
@@ -21,10 +22,12 @@ import androidx.compose.runtime.Composable
 @Composable
 fun CrowdedStackBackHandlers(host: CrowdedStackHost, bubbleShown: Boolean, backEnabled: Boolean) {
     val fanOpen = host.fan?.isOpen == true
+    // Dispatch 2026-11-04-02, A6: the camera eases back, except under Reduce Motion, where it jumps as before.
+    val animate = !LocalReduceMotion.current
     if (!backEnabled || bubbleShown || fanOpen) return
     if (host.list != null) {
         BackHandler { host.closeList() }
     } else if (host.cameraReturnPending) {
-        BackHandler { host.stepBack() }
+        BackHandler { host.stepBack(animate) }
     }
 }
