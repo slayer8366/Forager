@@ -33001,3 +33001,23 @@ Nothing in A6 is left open.
   - dry-run the merge onto 2d1dc54a4;
   - give a verify-first report on A1 (old maps fall back to the trail) and A2 (the pick-up chooser) before building.
 **Notes:** Written by the planner by hand. Next free ID -2058.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2058
+**Timestamp:** 2026-11-04T09:24:57Z
+**Continues:** 2026-09-28-2056
+**Title:** The shared location service: verify-first in; building is held until the release queue is done
+**Outcome:** Hazel's A10 report at route-navigate fae14e6e7, with no code written.
+- **The shape:** one service (keeping the name TrackRecordingService), one location collector, and RecordingJob and RouteNavigationJob attached by intents. It stops when no job is left.
+- **One notification:** recording alone is exactly today's; navigation alone uses A9's words; both together await the owner's words.
+- **Recording-alone tests:** 39 existing tests in 12 classes, with none edited. N1-N6 land first: the exact notification, one location listener, the per-fix order, stops with nothing recording, sticky start, and PermissionDenied.
+- **Premise corrected:** two services would really have held two location registrations, since the tracker is cold (AndroidLocationTracker.kt:52-64).
+- **fae14e6e7:** its non-sticky behaviour can't carry over (pinned by SwipeAwayTest:492). Its CI was still in progress at the one read.
+- **The planner's calls:** A, keep the class name; C, add the fixes seam N6 needs; Stop made an explicit report.
+- **For the owner, when this resumes:**
+  - B, Navigate asking for the notification permission on API 33+;
+  - D, the words and button order for both jobs (P1 or P2), the navigation-alone icon, and what navigation alone shows if permission is lost.
+Building is held, per -2056: "let the other tasks finish, and then we can hammer this out on a fresh palette".
+**Notes:** Written by the planner by hand. Next free ID -2059.
