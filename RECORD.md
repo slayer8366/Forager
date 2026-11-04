@@ -32522,3 +32522,24 @@ After the release there is one fresh run on the new tips, then the review, the r
 - CI green, except pre-main's own D37 test until route-card-evening lands.
 Known bug 22's row says it stays on phones below Android 14.
 **Notes:** Written by the planner by hand. Next free ID -2023.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2023
+**Timestamp:** 2026-11-04T00:29:47Z
+**Continues:** 2026-09-28-2022
+**Closes:** 2026-09-28-2014
+**Title:** #440 merged into pre-main; known bug 22's row updated
+**Outcome:** Hazel's report, with the planner's own check of CI 41744469503 (pull_request, 7769333ae: green). The branch:
+- merged pre-main 671b669bf in (7000dfab2, no conflicts);
+- carried the -1885 line (8d10f77aa), whose revert check failed for its own reason;
+- wrote its tests first (f110e8329: exactly 6 predicted failures, run 41742504638);
+- built the fix (7769333ae, liveHeightToShowMeters), revert-checked (41744466381: the same 6).
+6345 tests, 0 failures. pre-main's D37 test passed in that run only because it ran before the evening window. The planner read the diff: no @Ignore; 7 removed assertions are #440's own text and value changes ("Elevation unavailable", liveAltitudeMeters). Before merging, pre-main was backed up (pre-main-before-440-20261104T002917Z.bundle, verified). Merged as 15e12da94. Known bug 22's row now reads: fixed on Android 14 and up, still open below, with the walk to come.
+Hazel's calls, accepted by the planner:
+- an existing test's claim now reads "the fix's GPS height", per the ruling;
+- the navigation card reads the same height as the strip, keeping -1792's one height;
+- the expected wait for the first conversion is not logged.
+Open for the owner: the Return control's height difference reads only the converted height, so in the two ruled cases it shows no difference. Before #440 it compared raw with raw.
+**Notes:** Written by the planner by hand. Next free ID -2024.
