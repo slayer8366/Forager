@@ -33671,6 +33671,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Asked four questions together, the owner chose:**
   - day fill: "Pale #F6DFC8". The option read "What pre-main has now: Material's default, with a dark label. Only the outline is added.";
   - night fill: "Rust red #A2612C (Recommended)". The option read "As in your night screenshot, with its white label. Your words: "Rust is the night theme for the app so we must keep that color" (-2069); red is for night vision." The planner marked it Recommended, citing the owner's own -2069;
+    *Correction (planner, 2026-11-04, on Hazel's Phase 1 report S1, prompts/preserved/2026-11-04-07-phase1-report.md, checked by the planner's own pixel sample):* that option's description was false, and so is this entry's title where it says "as in the owner's screenshot". The night screenshot's selected chip is dark brown #6B421A with a pale #F6DFC8 label (16,010 and 999 exact pixels). Rust red #A2612C with a white #FFFFFF label is the day screenshot's chip (16,010 and 999). The planner had taken the night shot's build from -2071 instead of reading its pixels. The owner chose with that wrong description in front of them, under a Recommended mark the planner added.
   - night "white": "As shown, #EDE3D0";
   - the grey "chosen, but offline" chip: "No, normal chip only".
 - **And:** "Rust is a red color. That's meant for night vision". Rust red at night is a night-vision feature, not a style choice.
@@ -33716,3 +33717,24 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Started:** Hazel Cairnwright, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (prompts/preserved/2026-11-04-07-map-type-chip-outlines.md, records-after-173 cb0bd03ac), not a summary.
 - **Phase 1 only:** she reads the code at pre-main 9b58c66a4, checks the dispatch's premises with file and line, gives her mechanism prediction and test plan, reports to the planner, and stops. No branch, commit, push or Gradle until the planner's go for Phase 2. Her scratch is /mnt/work/scratch/map-type-chip-outlines/.
 **Notes:** Written by the planner by hand. Next free ID -2092.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2092
+**Timestamp:** 2026-11-04T18:41:07Z
+**Continues:** 2026-09-28-2091, 2026-09-28-2090
+**Title:** Hazel's Phase 1 report on dispatch 2026-11-04-07: the code premises hold; the night screenshot was misdescribed (S1); the selected chip is solid over the map (S2)
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-04-07-phase1-report.md, extracted from her hand-back. She read pre-main 9b58c66a4 (unmoved) and wrote no code, branch or commit, ran no Gradle and didn't touch the phone.
+- **Premises:** every code premise in the dispatch is confirmed with file and line. From the material3 1.5.0-alpha26 bytecode: the unselected outline is 1 dp \`outlineVariant\`, the selected one 0 dp transparent by default. \`LocalForagerDarkTheme\` and the colour scheme come from one value, so the chip follows the app's Night Mode on both entry points. The five contrast figures are reproduced.
+- **Prediction (mechanism — coder):** her section 3. MapModeChips.kt gains \`normalChipColors()\`, \`nightSelectedChipColors()\` (MushroomDeep, PureWhite) and \`mapModeChipBorder(selected, standsAside)\` (1 dp \`onSurface\` on the normal selected chip, Material's own border otherwise), about 116 to 150 lines. The tests fail before it because the selected border is invisible, the night fill is #6B421A and no #FFFFFF label pixel exists.
+- **S1, a wrong premise, the planner's:** dispatch A3's "That is the night screenshot" and -2089's night-fill option are false (-2089 corrected in place). The planner's own sample of the two files agrees with hers. Brought to the owner.
+- **S2, for the owner:** the selected chip's fill is solid over the map today and in the dispatch, against CLAUDE.md's "Nothing fully obstructs the map view", which names chips. Brought to the owner.
+- **The planner's calls on K1 to K4** (technical; nothing the owner sees changes):
+  - K1 accepted: MapTypePanelOfflineChipTest's normal-fill expectation follows the theme, to the ruled night value. It goes red in B2 and green after; nothing is loosened.
+  - K2 accepted: r4 (the outline on unselected chips) and r5 (day given the night colours) join B3.
+  - K3 accepted, option (b): the fallen-back grey case runs in MapTypePanelOfflineChipTest's harness with an injected fallback, as the dispatch's "as MapTypePanelOfflineChipTest drives them" allows. No process-wide state is touched.
+  - K4 accepted: the test fixture's entry-map tap becomes a real \`clickable\`, so a coordinate touch opens it.
+- **Not started:** Phase 2 waits for the owner's rulings on S1 and S2, an amendment, and the planner's go.
+**Notes:** Written by the planner by hand. Next free ID -2093.
