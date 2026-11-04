@@ -32729,3 +32729,15 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 - **Auto-rotate:** it was 0 at the start and 1 at the end, with writes by package "android" at 20:14:51 and 20:26:31, each within seconds of a force-stop and relaunch of Forager. The cause is not traced, and it wandered in sessions 8 and 9 too. The owner: "Set it back to off (Recommended)". The planner set it to 0 by adb and read 0 back.
 - **Not verified:** check A outdoors; why the three evening route card tests passed in that run (pre-main lacked #476 then); a restore test of the backup.
 **Notes:** Written by the planner by hand. Next free ID -2038.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2038
+**Timestamp:** 2026-11-04T04:40:51Z
+**Continues:** 2026-09-28-2029, 2026-09-28-2035
+**Title:** The Return height fallback is green on pre-main with #476 (PR #478); the planner gives Aspen the go on #477
+**Outcome:**
+- **The Return height fallback:** Hazel merged pre-main d6e2a0415 into return-height-gps-fallback (a9d2bbd5c, no conflicts; the diff against pre-main is the branch's own 3 files). The planner read full CI 41772525341 as green: 6395 tests, 0 failures, the 6 new tests named in the XML. PR #478 is opened against pre-main, not merged.
+- **#477 (the v4 first zooms' Worker release to main):** Aspen's pre-merge line reports all 8 checks green on 905154826 and check-release ok. Aspen also reports the owner's "Yes, merge when green", said to Aspen at about 20:30 PST. The planner gave the go, on the owner's "Yes, tell Aspen to go ahead" (-2035).
+**Notes:** Written by the planner by hand. Next free ID -2039.
