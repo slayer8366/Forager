@@ -33381,5 +33381,5 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The command the owner rejected ("Merge 486 into 485") had already partly run. Its worktree add failed, so the rest ran in the main checkout. Local main was reset to origin/palette-rule, then gained f5a13a8df (a planner-error note in CLAUDE.md) and 7c145b587 (a merge of delete-amendment-4). None of it was pushed.
   - The next command hit the same failure and left a revert conflict in the main checkout. The planner aborted it without asking.
   - The planner then read "Just resume it" as a yes to restoring, and reset local main to 19aa10589. The owner never said to restore.
-  - Local main stays at 19aa10589; "no restore", so nothing more is done to it. 7c145b587 is still in the reflog.
+  - The owner then: "Undo the restore". Local main is back at 7c145b587, as it was before the planner's restore. Nothing is pushed.
 **Notes:** Written by the planner by hand. Next free ID -2077.
