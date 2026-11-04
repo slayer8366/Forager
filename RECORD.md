@@ -32562,3 +32562,13 @@ Open for the owner: the Return control's height difference reads only the conver
 **Title:** The waypoint bubble shows the map's ground height under the coordinates
 **Intent:** The owner: "Now that we have map elevation, can we add elevation to the Waypoint map bubble below the coordinates?"; "The map's ground height (Recommended)"; "Leave the line out (Recommended)". Dispatch 2026-11-03-07, Hazel (Opus), verify-first. The words, from the owner: "Example: Elevation 372 ft."
 **Notes:** Written by the planner by hand. Next free ID -2026.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2026
+**Timestamp:** 2026-11-04T01:03:34Z
+**Continues:** 2026-09-28-2025
+**Title:** The waypoint bubble's height comes from the Trail Map's relief tiles; "Elevation 1352 ft"; every map
+**Decision:** Hazel's verify-first corrected the planner's premise: the route squares hold per-node heights, not a grid. The owner: "Map relief tiles (Recommended)"; "Elevation 1352 ft (Recommended)"; "Every map with bubbles (Recommended)". The planner's call: snapshot-only waypoints get the line too. Dispatch 2026-11-03-07 section D, starting with a spike that reads the offline relief tiles, and a check of the relief data's credit.
+**Notes:** Written by the planner by hand. Next free ID -2027.

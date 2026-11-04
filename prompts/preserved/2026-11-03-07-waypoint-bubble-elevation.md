@@ -42,3 +42,14 @@ Every fact below is a premise to re-check, with file and line.
   - the bubble through its real entry point, with a waypoint inside and outside a downloaded area;
   - feet and metres;
   - a square without heights.
+
+## D. Rulings on Hazel's verify-first (2026-11-03, -2026)
+- **D1.** Correction of B1, the planner's premise. The route squares hold one height per way node, not a grid (OsmNode.java:28,132; BRouterTrailRouter.kt:216-228). The 3″ grid was sampled at build time and is not on the phone. WayHomeHeights.kt:17-19's KDoc says otherwise and is corrected in this branch.
+- **D2** (the owner). The source: "Map relief tiles (Recommended)", whose option read "True ground height at the waypoint's spot, from the Trail Map's hill-shading data (about 54 m grid here). Shows only in areas downloaded with the current Trail Map (re-downloading older regions adds it). Hazel first does a short test that the offline tiles can be read."
+  - Start with a spike: read a relief tile for a point from MapLibre's offline database, in a test with a real database file.
+  - Report the schema and compression, and the risk on an SDK upgrade.
+  - If it can't be read reliably, stop.
+  - Also find the relief data's origin and whether its credit is shown. If a credit is owed and missing, stop and report.
+- **D3** (the owner). Numbers: "Elevation 1352 ft (Recommended)", with no separator, using formatWholeLength.
+- **D4** (the owner). Where: "Every map with bubbles (Recommended)".
+- **D5** (the planner's call). Snapshot-only waypoints get the line too (the owner's "however it was made").
