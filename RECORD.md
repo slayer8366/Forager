@@ -33793,3 +33793,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - K6: the light and dark backgrounds of B8 go with the 80% work. The outline's contrast against the panel is measured over the test's own background, which the report names.
 - **Not started:** Phase 2 waits for the owner's ruling on S4 and the planner's go.
 **Notes:** Written by the planner by hand. Next free ID -2096.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2096
+**Timestamp:** 2026-11-04T19:00:07Z
+**Continues:** 2026-09-28-2095, 2026-09-28-2091
+**Title:** The night press ripple left to Material (S4); the planner's go for Phase 2 of dispatch 2026-11-04-07
+**Decision:**
+- **The owner, verbatim,** asked "At night, while your finger is on the rust red chip, there's a faint press tint for a moment (the panel closes on the tap). Hazel thinks it would turn white instead of today's pale colour. That's her inference from the code; she'll confirm it first. Which should it be?": **"Leave it to Material"**. The option read "Whatever Material draws on the rust red, probably white. No extra code." The other, marked Recommended by the planner, was "Pale, like the label (Recommended)".
+- **So:** no code pins the ripple and no test asserts it. If Hazel sees its colour, she reports it as observed, and nothing changes.
+- **The planner's go for Phase 2,** to the same Hazel session, by message. It quotes S4's ruling, closes S3 on -2094, and restates the calls in -2095 (W1, W2, K5 with r8, K6).
+  - **What she builds:** the dispatch with Amendment 1 (A6, A7, B5, B6, B8 without its 80% parts) and Amendment 2 (A10, B9, C8, C9).
+  - **Where:** a worktree at ~/.cache/forager-wt/map-type-chip-outlines (the root disk has about 7.5 GB free; /mnt/work has about 630 MB), on branch map-type-chip-outlines from origin/pre-main 9b58c66a4.
+  - **How:** tests first; a draft PR into pre-main so its checks run; revert checks r1 to r5, r7 and r8 on throwaway branches, never merged; commit and push after every step.
+  - **Not hers:** the merge waits for the owner. The audit index and RECORD.md are the planner's.
+**Notes:** Written by the planner by hand. Next free ID -2097.
