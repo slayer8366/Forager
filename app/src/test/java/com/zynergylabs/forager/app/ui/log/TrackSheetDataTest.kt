@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.zynergylabs.forager.app.ui.availability.FixedOffsetSeaLevelConverter
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
 import android.app.Application
 import android.content.ComponentName
 import android.provider.Settings
@@ -78,6 +81,8 @@ class TrackSheetDataTest {
 
     private fun setScreen() {
         composeRule.setContent {
+            // Dispatch 2026-10-28-13: a zero sea-level offset, so the labels read the stored heights this test pins.
+            CompositionLocalProvider(LocalSeaLevelConverter provides FixedOffsetSeaLevelConverter(0.0)) {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(),
                 searchInputs = AvailabilityScreenSearchInputs(
@@ -116,6 +121,7 @@ class TrackSheetDataTest {
                 ),
                 currentTime = CurrentTimeProvider { NOW },
             )
+        }
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Journal").performClick()

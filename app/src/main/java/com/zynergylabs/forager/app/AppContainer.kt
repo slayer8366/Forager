@@ -1,7 +1,15 @@
 package com.zynergylabs.forager.app
 
+import com.zynergylabs.forager.app.domain.route.SavePlottedRouteUseCase
+import com.zynergylabs.forager.app.domain.route.PlotRouteUseCase
 import android.content.Context
+import com.zynergylabs.forager.app.data.repository.RoomEntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import java.io.File
+import com.zynergylabs.forager.app.domain.GroundHeightSource
+import com.zynergylabs.forager.app.domain.relief.ReliefGroundHeightSource
+import com.zynergylabs.forager.app.map.MAPLIBRE_OFFLINE_DATABASE_FILE
+import com.zynergylabs.forager.app.map.OfflineReliefTileStore
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -67,6 +75,8 @@ import com.zynergylabs.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.PressureProvider
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
+import com.zynergylabs.forager.app.location.AndroidSeaLevelConverter
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.DeclinationProvider
 import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
@@ -113,7 +123,6 @@ import com.zynergylabs.forager.app.domain.GetConditionsUseCase
 import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
 import com.zynergylabs.forager.app.domain.ImportGpxUseCase
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
-import com.zynergylabs.forager.app.domain.GetEntryReferenceCountUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetPlannedTripsUseCase
@@ -221,8 +230,23 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val lastKnownLocation: LastKnownLocationSource = AndroidLastKnownLocationSource(context.applicationContext)
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
 
-    /** The barometer, read by the recording service while a recording runs (RECORD -864, -867); see [PressureProvider]. */
+    /**
+     * The barometer, read by the recording service while a recording runs (RECORD -864, -867), and by the map's live
+     * height whenever the map is in the foreground (dispatch 2026-10-28-13); see [PressureProvider].
+     */
     val pressureProvider: PressureProvider = AndroidPressureProvider(context.applicationContext)
+
+    /** Raw height to sea level for what the app shows (dispatch 2026-10-28-13, RECORD -1792); see [SeaLevelConverter]. */
+    val seaLevelConverter: SeaLevelConverter = AndroidSeaLevelConverter(context.applicationContext, errorLog)
+
+    /**
+     * The ground's height at a point, from the Trail Map relief tiles that downloaded regions hold in MapLibre's offline
+     * database (dispatch 2026-11-03-07, D2): the waypoint bubble's "Elevation" line. See [ReliefGroundHeightSource].
+     */
+    val groundHeightSource: GroundHeightSource = ReliefGroundHeightSource(
+        OfflineReliefTileStore(File(context.applicationContext.filesDir, MAPLIBRE_OFFLINE_DATABASE_FILE)),
+        errorLog,
+    )
 
     // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
     // true heading. Consumed by MainActivity, which hands it to the map screen (dispatch
@@ -285,7 +309,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val runScheduledBackupUseCase = RunScheduledBackupUseCase(journalBackup, backupSchedulePreferences, backupFiles)
     val backupNotifier: BackupNotifier = AndroidBackupNotifier(context.applicationContext)
     val scheduledBackupReporter = ScheduledBackupReporter(backupNotifier, backupSchedulePreferences, errorLog)
-    val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())
+    val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripRouteDao(), errorLog)
     val getPlannedTripsUseCase = GetPlannedTripsUseCase(plannedTripRepository)
     val savePlannedTripUseCase = SavePlannedTripUseCase(plannedTripRepository)
     val deletePlannedTripUseCase = DeletePlannedTripUseCase(plannedTripRepository)
@@ -315,6 +339,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val basemapPreferenceRepository: BasemapPreferenceRepository = dataStoreMapPreferencesRepository
     val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = dataStoreMapPreferencesRepository
     val crowdedIconsRepository: CrowdedIconsPreferenceRepository = dataStoreMapPreferencesRepository
+    val waypointNamesRepository: com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository = dataStoreMapPreferencesRepository
 
     /**
      * Where the map's colour fields read their cells (map layers L0b, B5 and B6): the store that reports
@@ -363,7 +388,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val deleteCartographyEntryUseCase = DeleteCartographyEntryUseCase(cartographyEntryRepository)
     // J8: the report menu's "Show on map" and the Maps-tab chip's "Hide" write shownOnMap through this.
     val setCartographyEntryShownOnMapUseCase = SetCartographyEntryShownOnMapUseCase(cartographyEntryRepository)
-    val getEntryReferenceCountUseCase = GetEntryReferenceCountUseCase(cartographyEntryRepository)
+    // Dispatch 2026-10-28-08: how many journal entries keep each waypoint, track, offline region and photo, live.
+    // Replaced the one-shot GetEntryReferenceCountUseCase, whose four ViewModel callers were its only ones.
+    val entryReferenceCountSource: EntryReferenceCountSource = RoomEntryReferenceCountSource(database.cartographyEntryDao())
 
     // Phase 1a of the Forager Navigator plan (docs/navigation/forager-navigator-plan.md) — track
     // recording and waypoints. TrackRecordingService (com.zynergylabs.forager.app.service) reaches these
@@ -448,6 +475,10 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
      * hands it to the ViewModel, whose `AvailabilityWaypointRoute` asks it at the first fix.
      */
     val findWayToWaypoint = FindWayToWaypointUseCase(offlineMapRepository = offlineMapRepository, engines = trailRoutingEngine, errorLog = errorLog)
+
+    /** Route plotting (dispatch 2026-10-30-08, step 3), on the shared engine; its caller is `RoutePlottingViewModel`. */
+    val plotRoute = PlotRouteUseCase(offlineMapRepository = offlineMapRepository, engines = trailRoutingEngine, errorLog = errorLog)
+    val savePlottedRoute = SavePlottedRouteUseCase(plannedTripRepository)
     // Dispatch 2026-10-26-05 (RECORD -1651): the recording's newest kept points, written or not, held here so they outlive
     // the Activity, as the watches are. The service adds each kept point and ends it; the recording screen draws its line
     // from the stored track and these (TrackRecordingUiState.recordingLine).

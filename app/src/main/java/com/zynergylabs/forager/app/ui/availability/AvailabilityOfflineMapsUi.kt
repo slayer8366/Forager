@@ -19,7 +19,7 @@ package com.zynergylabs.forager.app.ui.availability
 //   -1309; the owner, from a screenshot of this screen showing Topo: "Offline maps displays topo
 //   maps. Have it display the street map", then, asked whether it should always be Street or
 //   follow the Layers choice, "Always be street."). It is `Basemap.FORAGER_TRAIL` since dispatch 2026-10-22-01 (RECORD
-//   -1556: "Offline-maps picker: shows Forager Trail Map"); it was `Basemap.OSM_STANDARD` from -1309, named
+//   -1556: "Offline-maps picker: shows Forager Trail Map"); it was `Basemap.STREET` from -1309, named
 //   directly rather than read from `MapMode.DEFAULT` (which is also Street today), so a later
 //   change to the app's opening map does not move this one, and rather than the Layers choice,
 //   which the owner turned down. Night mode is unchanged (Street's night paint, as on the Maps
@@ -107,7 +107,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * centre pin (an accessibility decision, not a style one). [Basemap.FORAGER_TRAIL] here
  * is the map the download is made in (RECORD -1554, -1556), whatever the Layers choice; see this
  * file's header comment. From dispatch 2026-10-18-07 (RECORD -1309; the owner: "Always be street.") it
- * was [Basemap.OSM_STANDARD]; before that [Basemap.OPEN_TOPO_MAP], and before that
+ * was [Basemap.STREET]; before that [Basemap.OPEN_TOPO_MAP], and before that
  * `Basemap.USGS_TOPO` (US-only), until [MapMode] removed it from the app entirely.
  *
  * Before anything is picked, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so the

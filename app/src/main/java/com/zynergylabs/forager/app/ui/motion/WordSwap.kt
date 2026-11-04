@@ -5,6 +5,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
@@ -32,6 +35,13 @@ private val NUMBER = Regex("""\d+(?:[.,]\d+)*""")
  *
  * A test tag belongs inside [content], on the text itself, so a reader finds the text's own node; for the length of a
  * crossfade there are two.
+ *
+ * The animated state is the words, not the text, and each line reads the latest text with those words, so a change in numbers
+ * starts no transition at all. Keying the full text with a `contentKey` looked the same on screen, but a same-key change swaps
+ * the current state out of AnimatedContent's visible list, and that list is only stable again once the transition finishes.
+ * Compose keeps composing a stopped activity with its frame clock paused, so a number changing then could never finish: the
+ * list edited itself on every frame until the screen came back (docs/audits/2026-10-31-recording-screen-off-recomposition.md,
+ * fix A; dispatch 2026-10-31-04).
  */
 @Composable
 fun WordSwap(
@@ -41,12 +51,20 @@ fun WordSwap(
     content: @Composable (String) -> Unit,
 ) {
     val fade = MotionTokens.wordSwapSpec<Float>()
+    val latest by rememberUpdatedState(text)
     AnimatedContent(
-        targetState = text,
+        targetState = wordsOf(text),
         modifier = modifier,
         transitionSpec = { (fadeIn(animationSpec = fade) togetherWith fadeOut(animationSpec = fade)).using(null) },
         contentAlignment = contentAlignment,
-        contentKey = { wordsOf(it) },
         label = "wordSwap",
-    ) { shown -> content(shown) }
+    ) { words ->
+        // A plain holder, not State: this scope reads it, so a State written here would invalidate the scope that wrote it.
+        val line = remember { Line(latest) }
+        if (wordsOf(latest) == words) line.text = latest
+        content(line.text)
+    }
 }
+
+/** The text a line last showed, which an outgoing line keeps while it fades out. */
+private class Line(var text: String)

@@ -26,6 +26,11 @@ bucket_name = "forager-maps"
 # client (e.g. a future web viewer) ever calls this Worker directly.
 ALLOWED_ORIGINS = "*"
 
+# The edge cache's version, part of every tile and asset cache key (src/index.ts, cacheKeyFor). Raise it to make the
+# Worker ignore every tile and asset it cached before, as after an archive on R2 is replaced (owner, 2026-11-02;
+# dispatch 2026-11-02-coder-14). The routing handler's cache is not keyed by it.
+CACHE_VERSION = "3"
+
 # PI_ORIGIN_URL removed: the Pi serves nothing live (RECORD -879, -1303), and since dispatch 2026-10-18-05
 # Part 2 the code no longer reads it either: every tile comes from R2. The two Access secrets left on the
 # deployed Worker are unused and can be removed in the dashboard at the owner's convenience.

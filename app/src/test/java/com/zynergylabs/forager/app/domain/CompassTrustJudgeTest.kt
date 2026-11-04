@@ -87,4 +87,29 @@ class CompassTrustJudgeTest {
         judge.reset()
         assertFalse(judge.next(estimated(5f, atMillis = 1L)))
     }
+
+    @Test
+    fun `restartClearHold - a good stretch from before the gap does not count, the hold starts again after it`() {
+        val judge = CompassTrustJudge()
+        assertTrue(judge.next(estimated(30f, atMillis = 0L)))
+        assertTrue("1 000 ms held before the gap", judge.next(estimated(3f, atMillis = 1_000L)))
+        judge.restartClearHold()
+        // 60 s later: without the restart the hold would count from 1 000 ms and clear here.
+        assertTrue("the first good reading after the gap is still untrusted", judge.next(estimated(3f, atMillis = 61_000L)))
+        assertTrue(judge.next(estimated(3f, atMillis = 62_999L))) // 1 999 ms held since the gap
+        assertFalse(judge.next(estimated(3f, atMillis = 63_000L))) // 2 000 ms
+    }
+
+    @Test
+    fun `restartClearHold - keeps a trusted compass trusted and an untrusted one untrusted`() {
+        val trusted = CompassTrustJudge()
+        assertFalse(trusted.next(estimated(3f, atMillis = 0L)))
+        trusted.restartClearHold()
+        assertFalse("trusted before the gap, trusted on the first good reading after it", trusted.next(estimated(3f, atMillis = 60_000L)))
+
+        val untrusted = CompassTrustJudge()
+        assertTrue(untrusted.next(estimated(30f, atMillis = 0L)))
+        untrusted.restartClearHold()
+        assertTrue("restarting the hold does not forget the untrusted state", untrusted.next(estimated(13f, atMillis = 60_000L)))
+    }
 }

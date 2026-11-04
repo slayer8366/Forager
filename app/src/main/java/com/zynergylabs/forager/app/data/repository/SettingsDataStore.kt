@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.data.repository
 import android.content.Context
 import android.util.Log
 import androidx.datastore.core.CorruptionException
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -34,6 +35,8 @@ internal fun settingsDataStore(
     fileName: String,
     onReset: SettingsResetListener,
     scope: CoroutineScope? = null,
+    /** Run by DataStore once before the file's first read or write (dispatch 2026-11-03-05 B1); none by default. */
+    migrations: List<DataMigration<Preferences>> = emptyList(),
 ): DataStore<Preferences> {
     val handler = ReplaceFileCorruptionHandler<Preferences> { error: CorruptionException ->
         Log.w(TAG, "The settings file '$fileName' could not be read; reset to its defaults.", error)
@@ -42,9 +45,9 @@ internal fun settingsDataStore(
     }
     val produceFile = { context.applicationContext.preferencesDataStoreFile(fileName) }
     return if (scope != null) {
-        PreferenceDataStoreFactory.create(corruptionHandler = handler, scope = scope, produceFile = produceFile)
+        PreferenceDataStoreFactory.create(corruptionHandler = handler, migrations = migrations, scope = scope, produceFile = produceFile)
     } else {
-        PreferenceDataStoreFactory.create(corruptionHandler = handler, produceFile = produceFile)
+        PreferenceDataStoreFactory.create(corruptionHandler = handler, migrations = migrations, produceFile = produceFile)
     }
 }
 

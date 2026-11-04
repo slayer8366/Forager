@@ -160,6 +160,7 @@ fun AvailabilityScreen(
     // Phase 2.1 (dispatch 2026-10-19-28): the map controls bundle, unpacked under the parameter names it replaced.
     val onMapFullscreenChanged = mapControls.onMapFullscreenChanged
     val onMapShown = mapControls.onMapShown
+    val onMapsTabShownChanged = mapControls.onMapsTabShownChanged
     val onMapLayerVisibilityChanged = mapControls.onMapLayerVisibilityChanged
     val onMapLayerOpacityChanged = mapControls.onMapLayerOpacityChanged
     val onColourFieldMoved = mapControls.onColourFieldMoved
@@ -519,8 +520,11 @@ fun AvailabilityScreen(
     // (the Maps bottom-nav tab or rail item) the saved records reload and the forecast store is
     // asked again, so a find saved on the Journal tab shows the next time the map is shown.
     val isMapsTabShown = compactTab == CompactTab.MAP
+    // Dispatch 2026-10-28-13, Amendment 3: the same edge, both ways, for the barometer. Inside this effect rather than a
+    // new one, so no composition slot after it moves.
     LaunchedEffect(isMapsTabShown) {
         if (isMapsTabShown) onMapShown()
+        onMapsTabShownChanged(isMapsTabShown)
     }
     // Map chrome at 80% (dispatch 2026-09-28-56 as amended by -58; planner message -77, Q4): raised
     // only on the Maps tab, and follows the tab.
@@ -597,6 +601,10 @@ fun AvailabilityScreen(
     val mapReturn = mapReturnCallbacks(state = screenState, mapReturnMemory = mapReturnMemory)
     // Declared after leaveLogEntryEditingOfferingDiscard, which its onOpenFind calls (F3).
     // Phase 2.6, PR 2: the Maps tab's bubbles' sources, built in AvailabilityScreenMapInputs.kt (its doc comment carries M1's notes).
+    // Dispatch 2026-10-30-08: route plotting, with the way back to the Trip Planner a route was opened from (RoutePlottingTrips.kt).
+    val routeLinks = rememberRoutePlottingLinks(mapControls.routePlotting, screenState)
+    val routePlotting = routeLinks.controls
+    CloseDeletedRoute(routePlotting, uiState.plannedTrips)
     val mapBubbleSources = availabilityMapBubbleSources(
         state = screenState,
         uiState = uiState,
@@ -612,7 +620,7 @@ fun AvailabilityScreen(
         onOpenLogEntry = onOpenLogEntry,
         onNavigateToWaypoint = onNavigateToWaypoint,
         startWaypointNavigation = startWaypointNavigation,
-    )
+    ).copy(routePlotting = routePlotting)
 
     // J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a failed
     // Show or Hide on map, from the Journal's report or the Maps tab's chip, told on whichever tab is up,
@@ -713,10 +721,12 @@ fun AvailabilityScreen(
         isNightMode = isNightMode,
         onNightModeMapsChanged = onNightModeMapsChanged,
         crowdedIcons = CrowdedIconsControls(uiState.crowdedIconsMode, settings.onCrowdedIconsModeChanged),
+        waypointNames = WaypointNamesControls(uiState.waypointNamesShown, settings.onWaypointNamesChanged),
         onThemeModeChanged = onThemeModeChanged,
         backup = backup,
         openBackupRequest = openBackupRequest,
         openOfflineMapsFromTools = openOfflineMapsFromTools,
+        onOpenPlannedRoute = routeLinks.onOpenFromTools,
         compactMainScaffold = compactMainScaffold,
     )
     // The in-app camera, once, after the tree above, which is what puts it on top: see AvailabilityScreenInAppCamera.kt.

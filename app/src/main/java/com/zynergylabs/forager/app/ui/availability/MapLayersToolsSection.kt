@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.toggleable
@@ -48,6 +49,8 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_OVERLAY_LABEL
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
+import com.zynergylabs.forager.app.ui.map.MapMode
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldSpec
 import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
@@ -97,7 +100,9 @@ internal val MAP_LAYER_OVERLAYS: List<MapOverlayOption> = listOf(
 /**
  * Tools > Map Layers: folded the first time, and once opened it stays open while the app runs ([open], held by
  * `AvailabilityScreen`). Open, it lists the record overlays ([MAP_LAYER_OVERLAYS]), then Trails, then the colour fields
- * that have data (`MapLayersControls.listedColourFields`), each with its opacity and reorder controls. No map type here:
+ * that have data (`MapLayersControls.listedColourFields`), each with its opacity and reorder controls. Since D24 (RECORD -1966) the
+ * Trails credit is under the Trails row, each map's credit is listed after it ([MapCreditEntries]), and the colour fields' credit is
+ * under them. No map type choice here:
  * that is the Layers button's panel. Every switch shows the user's stored choice ([MapLayersControls.stored]), the one the
  * Maps tab and the entry map both draw with, and a flip goes straight to it, so the map behind the drawer changes at once.
  *
@@ -127,10 +132,43 @@ internal fun MapLayersToolsSection(controls: MapLayersControls, open: Boolean, o
                 onCheckedChange = { controls.onVisibilityChanged(MapLayerIds.REFERENCE_FS_BAND, it) },
                 enabled = controls.referenceTrailsShown,
             )
+            layerCredits(listOf(MapLayerIds.REFERENCE_FS_BAND)).forEach { MapLayersCreditLine(it) }
+            MapCreditEntries()
             ColourFieldRows(controls.listedColourFields, state, controls.onVisibilityChanged, controls.onOpacityChanged, controls.onColourFieldMoved)
+            layerCredits(controls.listedColourFields.map { it.layerId }).forEach { MapLayersCreditLine(it) }
         }
     }
 }
+
+/**
+ * D24 (dispatch 2026-10-30-08, RECORD -1966; the owner: "Tools > Map Layers (Recommended)", whose option read "After the Trails row:
+ * Trail, Topo, Street, each with its credit underneath (e.g. Trail: 'Protomaps © OpenStreetMap'). The trail credit goes under the
+ * Trails row. No heading"): the map's credits, which until then were the strip drawn over every map (`MapCreditCaption`, removed).
+ * One entry per map type, by its chip's word ([MapMode.label]) with its credit under it ([Basemap.attribution], the strip's own
+ * wording per map). Not a control: the map type is still chosen on the Layers button's panel, so an entry has no click and a touch on
+ * it does nothing. Each entry is one node for TalkBack, read as its name then its credit. All three are always listed, whichever map
+ * is chosen, so a credit drawn only in some states (offline and topo-at-night draw Trail Map's tiles; the -1513 fallback draws
+ * OpenStreetMap's) is always here.
+ */
+@Composable
+private fun MapCreditEntries() {
+    MapMode.entries.forEach { mode ->
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs).semantics(mergeDescendants = true) {}) {
+            Text(mode.label, style = MaterialTheme.typography.bodyLarge)
+            MapLayersCreditLine(mode.basemap.attribution)
+        }
+    }
+}
+
+/** D24: a credit line in Tools > Map Layers, under what it credits. */
+@Composable
+private fun MapLayersCreditLine(credit: String) {
+    Text(credit, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** D24: the credits the registry gives [layerIds], in order, once each: the layer's own wording (`MapLayerSpec.credit`). */
+private fun layerCredits(layerIds: List<String>): List<String> =
+    layerIds.mapNotNull { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.credit }.distinct()
 
 /**
  * One switch row. The whole row is the toggle, tagged for tests, so a touch anywhere on it switches

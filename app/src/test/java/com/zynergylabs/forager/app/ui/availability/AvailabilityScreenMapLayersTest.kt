@@ -192,8 +192,11 @@ class AvailabilityScreenMapLayersToolsTest {
         setScreen(store = FixedForecastStore(BOTH_FORECAST_GROUPS))
         openSheet()
 
-        val top = composeRule.onNodeWithText(CHANTERELLES_LABEL).performScrollTo().getUnclippedBoundsInRoot().top
-        val below = composeRule.onNodeWithText(CHICKEN_LABEL).performScrollTo().getUnclippedBoundsInRoot().top
+        // One scroll, then both read in the same frame: a scroll between the two reads moves the second against the first, which
+        // D24's taller Map Layers (the credit rows) made happen here (CI run 41543362662).
+        composeRule.onNodeWithText(CHICKEN_LABEL).performScrollTo()
+        val top = composeRule.onNodeWithText(CHANTERELLES_LABEL).getUnclippedBoundsInRoot().top
+        val below = composeRule.onNodeWithText(CHICKEN_LABEL).getUnclippedBoundsInRoot().top
         assertTrue("chanterelles, drawn on top by default, is listed first ($top < $below)", top < below)
         val slider = composeRule.onNodeWithTag(mapLayerOpacityTag(MapLayerIds.FORECAST_CHANTERELLES)).fetchSemanticsNode().config
         assertEquals(listOf("$CHANTERELLES_LABEL opacity"), slider.getOrNull(SemanticsProperties.ContentDescription))

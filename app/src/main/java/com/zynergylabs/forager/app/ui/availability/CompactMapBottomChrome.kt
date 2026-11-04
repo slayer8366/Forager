@@ -20,18 +20,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
@@ -60,6 +66,23 @@ internal fun BoxScope.CompactMapBottomChrome(
     isDrawerOpen: Boolean,
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
+    /**
+     * Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise. The legend chip (Amendment 4) sits above it;
+     * "Return to Route", now Re-center (Amendment 3), only where it shares the card's column (Amendment 17, part 2 ruled, RECORD -1943).
+     */
+    routeCardHeight: Dp = 0.dp,
+    /** Amendment 17, part 2 ruled (RECORD -1943): the route card's left and right in root px while it shows. */
+    routeCardSpanPx: ClosedFloatingPointRange<Float>? = null,
+    /** D17 (RECORD -1958): Re-center sits beside the L, at the bottom, while the route card rests on the navigation card. */
+    reCenterBesideTheL: Boolean = false,
+    /** D17: the map credit strip's laid-out size in px, at the bottom start, which Re-center beside the L keeps above. */
+    creditSizePx: IntSize = IntSize.Zero,
+    /**
+     * D34 (RECORD -2005, the owner: "Icon beside the L (Recommended)"): the cards over the map in root px, the route card and the
+     * navigation card, in landscape navigation; empty elsewhere. Where Re-center's word at bottom centre would overlap one, Re-center
+     * goes beside the L, where D27's measurement shows its icon alone if the word does not fit.
+     */
+    cardsInRoot: List<androidx.compose.ui.geometry.Rect> = emptyList(),
 ) {
     val isNavigating = navigation.isNavigating
     val navigationFollowing = navigation.navigationFollowing
@@ -80,18 +103,72 @@ internal fun BoxScope.CompactMapBottomChrome(
     // nav keeps winning its own band.
     // Motion Part 2, item 4 (scout N3; "Fade and grow"): it grows up from its bottom centre and shrinks back down;
     // item 5: from the moment it starts to leave (a tap on it, which brings the view back) it takes no touch.
+    // Dispatch 2026-10-30-08: how far the legend chip (Amendment 4) rises while the route card shows, its height and a gap; nothing
+    // while it does not. "Return to Route" (Amendment 3) rises by the same, only for a card whose span it overlaps (below).
+    val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
+    val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
     val returnToRouteShown = isNavigating && !navigationFollowing
+    // Amendment 17, part 2 ruled: the pill's own span, which the lift does not move, so reading it here has no loop.
+    var returnToRouteSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
+    // D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"), replacing D20's rise where room is short: beside
+    // the L, it keeps its word where the word fits the gap between the L and the card, and shows its icon alone where it does not (the
+    // pill measures that against [besideRoomPx]). D32 (RECORD -1987): both cards narrow so the icon always fits there
+    // (routeCardLeaveRoomPx), so it never takes D10's rise in landscape navigation; D27's fallback for a room narrower than the icon
+    // (reCenterIconFitsBesideTheL) is removed. Before the card is measured the room is unknown, and the pill shows its icon alone.
+    val besideStart = routeCardBarColumn(with(LocalDensity.current) { mapIconClusterWidthPx.toDp() })
+    val besideLeftPx = cluster.mapContentBoxLeftInRootPx + with(LocalDensity.current) { (controlsPadding.calculateLeftPadding(LocalLayoutDirection.current) + besideStart).toPx() }
+    // D34: Re-center's word measured once, never placed, so where it would sit at bottom centre is known without moving it there.
+    var reCenterWordSize by remember { mutableStateOf(IntSize.Zero) }
+    ReturnToRouteWordProbe { reCenterWordSize = it }
+    val reCenterWord = if (cardsInRoot.isNotEmpty() && reCenterWordSize != IntSize.Zero) {
+        with(LocalDensity.current) {
+            val direction = LocalLayoutDirection.current
+            reCenterWordRectInRoot(
+                boxLeftPx = cluster.mapContentBoxLeftInRootPx,
+                boxWidthPx = cluster.mapContentBoxWidthPx,
+                leftPadPx = controlsPadding.calculateLeftPadding(direction).toPx(),
+                rightPadPx = controlsPadding.calculateRightPadding(direction).toPx(),
+                bottomPx = mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx - (controlsPadding.calculateBottomPadding() + renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE).toPx(),
+                wordSize = reCenterWordSize,
+                minHeightPx = RETURN_TO_ROUTE_PILL_HEIGHT.toPx(),
+            )
+        }
+    } else {
+        null
+    }
+    // The room beside the L runs to the nearest card's left: the route card's, or with it closed the navigation card's (D38 keeps
+    // that narrowed, so the icon fits).
+    val besideCardLeftPx = (listOfNotNull(routeCardSpanPx?.start) + cardsInRoot.map { it.left }).filter { it >= besideLeftPx }.minOrNull()
+    val besideRoomPx = reCenterRoomBesideTheL(besideLeftPx, besideCardLeftPx, with(LocalDensity.current) { Spacing.sm.toPx() })
+    val besideTheL = reCenterBesideTheL || reCenterWordCoversCard(reCenterWord, cardsInRoot)
+    val returnToRouteLift = if (!besideTheL && reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
+    // D17 (RECORD -1958, the owner: "Into the open map, at the bottom (Recommended)"): while the card rests on the navigation card,
+    // Re-center leaves the card's column for the open map beside the L (fixed on the screen's left while navigating, RECORD -955), at
+    // the bottom, next to the record pill, a gap from the L's measured width; it never rises for the card there. Elsewhere, as before.
+    val reCenterStart = if (besideTheL) besideStart else 0.dp
+    // At large text the credit there is taller than the clearance (68 dp at font 2.0 in the S22's window, two lines), so Re-center
+    // sits at the lowest place clear of it: a gap above its top where it reaches Re-center's start, the usual clearance otherwise.
+    val reCenterClearance = if (besideTheL) reCenterClearanceBesideTheL(creditSizePx, reCenterStart, LocalDensity.current) else LEGEND_ATTRIBUTION_CLEARANCE
     MapPopUp(
         visible = returnToRouteShown,
         pivot = PopUpPivot.BottomCentre,
         modifier = Modifier
-            .align(Alignment.BottomCenter)
+            .align(if (besideTheL) AbsoluteAlignment.BottomLeft else Alignment.BottomCenter)
             .padding(controlsPadding)
-            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+            .padding(start = reCenterStart)
+            // Amendment 3 (the owner: "Pill sits above the card (Recommended)"): the card sits on the same bottom, so the pill
+            // rises by the card's height and a gap, and the two never overlap.
+            // Amendment 17, part 2 ruled (RECORD -1943): only for a card whose span it overlaps ([reCenterRisesForRouteCard]).
+            .padding(bottom = renderMode.bottomInset + reCenterClearance + returnToRouteLift),
     ) {
         ReturnToRoutePill(
             onClick = onReturnToRoute,
-            modifier = if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier,
+            roomPx = if (besideTheL) besideRoomPx ?: 0f else null,
+            modifier = (if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier)
+                .onGloballyPositioned { coordinates ->
+                    val left = coordinates.positionInRoot().x
+                    returnToRouteSpanPx = left..left + coordinates.size.width
+                },
         )
     }
 
@@ -108,11 +185,11 @@ internal fun BoxScope.CompactMapBottomChrome(
     // cluster's column reaches the corner the legend sits in, so the legend moves just inboard of
     // it (the cluster's edge inset and measured width, plus the portrait gap), bottom-aligned as
     // before, collapsed or expanded. Otherwise it is in its corner as it always was.
-    val legendEndPadding = if (landscapeCluster && !isMapIconBarOnLeftSide) {
-        MAP_ICON_BAR_EDGE_INSET + with(LocalDensity.current) { mapIconClusterWidthPx.toDp() } + Spacing.sm
-    } else {
-        Spacing.sm
-    }
+    // Amendment 14 (RECORD -1928): in portrait the same while the route card shows, as the chip rises beside the bar then.
+    val legendEndPadding = routeCardLegendEndPadding(
+        barOnRight = !isMapIconBarOnLeftSide && (landscapeCluster || routeCardHeight > 0.dp),
+        barWidth = with(LocalDensity.current) { mapIconClusterWidthPx.toDp() },
+    )
     // Motion Part 2, item 4 (scout M2; "Fade and grow"): the legend grows out of its own bottom-end corner and shrinks
     // back into it; item 5: leaving, it takes no touch and gives up its keep-out at once. It keeps the cluster clear of
     // it (legendChipTopPx) until it has gone, so the cluster does not glide down over a legend still fading. Opening
@@ -125,7 +202,9 @@ internal fun BoxScope.CompactMapBottomChrome(
         modifier = Modifier
             .align(Alignment.BottomEnd)
             .padding(controlsPadding)
-            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+            // Amendment 4 (the owner: "Chip rises above the card (Recommended)"): the card sits on the same bottom, so the chip
+            // rises by the card's height and a gap, as the pill above does.
+            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + routeCardLift),
     ) {
         legendShown?.let { legend ->
             DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
@@ -135,8 +214,10 @@ internal fun BoxScope.CompactMapBottomChrome(
                 onExpandedChange = mapLayers.onLegendExpandedChange,
                 modifier = Modifier
                     .then(if (legendNow != null) Modifier.mapKeepOut(MapKeepOutIds.LEGEND) else Modifier)
+                    // Amendment 14 (RECORD -1928): the bar's lowest edge is where the chip sits with no card, so the card moves the
+                    // chip and not, through it, the bar.
                     .onGloballyPositioned { coordinates ->
-                        legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
+                        legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx + routeCardLiftPx
                     },
             )
         }

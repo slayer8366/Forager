@@ -165,6 +165,12 @@ import com.zynergylabs.forager.app.BuildConfig
  * from `21.json` with the one column added, and its identity hash computed by hand with the same Room 2.8.4 rule, by a
  * script that first reproduced 19.json's, 20.json's and 21.json's hashes exactly.
  *
+ * [version] 23 lets a planned trip carry a route and makes its date optional, via a real [MIGRATION_22_23] (its own file,
+ * `MigrationRouteTrips.kt`) — route plotting step 1 (dispatch 2026-10-30-02, RECORD -1826, -1827): `planned_trips` is
+ * rebuilt with `date` nullable, and `planned_trip_route_stops` and `planned_trip_route_legs` are added, read by
+ * `RoomPlannedTripRepository` through [PlannedTripRouteDao] and by backup and restore. Version 23 was checked unclaimed on
+ * every remote ref on 2026-10-30. `23.json` is Room's own export from a CI build of this change, not written by hand.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -202,12 +208,16 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
         CartographyEntryTrackPathEntity::class,
+        PlannedTripRouteStopEntity::class,
+        PlannedTripRouteLegEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
     abstract fun plannedTripDao(): PlannedTripDao
+
+    abstract fun plannedTripRouteDao(): PlannedTripRouteDao
 
     abstract fun cachedSearchDao(): CachedSearchDao
 
@@ -265,10 +275,10 @@ abstract class ForagerDatabase : RoomDatabase() {
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
             MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
-            MIGRATION_21_22,
+            MIGRATION_21_22, MIGRATION_22_23,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 22
+        const val SCHEMA_VERSION = 23
     }
 }
