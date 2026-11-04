@@ -53,3 +53,4 @@ Every fact below is a premise to re-check, with file and line.
 - **D3** (the owner). Numbers: "Elevation 1352 ft (Recommended)", with no separator, using formatWholeLength.
 - **D4** (the owner). Where: "Every map with bubbles (Recommended)".
 - **D5** (the planner's call). Snapshot-only waypoints get the line too (the owner's "however it was made").
+- **D6** (the owner, 2026-11-03, -2030). The Heights credits' detail line, "Route heights in Forager are averaged from this data." (DataSourceCredits.kt:82 and :99 at pre-main b1724365d, on the NRCan and USGS rows), becomes broader: the owner, "Yes, broaden the credits to cover them" (the map's hill shading and the waypoint elevation line). The planner's wording, stated to the owner, who may change it: "Route heights, the map's hill shading and waypoint elevations in Forager come from this data." It changes in this branch, with SourcesAndCreditsTest's HEIGHTS_AVERAGED constant updated to match and the change named.

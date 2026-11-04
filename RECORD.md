@@ -32618,3 +32618,13 @@ Also recorded from Hazel's report:
 - **Full CI:** 41751698524, 6351 tests, 2 failures: RouteCardExpandShortLandscapeTest (leg row 0 has height 0) and RouteCardOnNavigationCardShortFont20Test (D37, 24.67 against 8). pre-main's own push run 41747193319 fails both with identical messages, while #440's PR run at about 00:27 UTC passed them. The planner reads them as the same evening clock dependency that route-card-evening fixes.
 - **The planner's call:** no waiver. The branch waits for route-card-evening to land, then merges pre-main in and re-runs.
 **Notes:** Written by the planner by hand. Next free ID -2030.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2030
+**Timestamp:** 2026-11-04T01:38:30Z
+**Continues:** 2026-09-28-2028
+**Title:** The Heights credits cover the hill shading and waypoint elevations too
+**Decision:** The owner: "Yes, broaden the credits to cover them". The planner's wording, given to the owner: "Route heights, the map's hill shading and waypoint elevations in Forager come from this data." It replaces "Route heights in Forager are averaged from this data." on the NRCan and USGS rows. Dispatch 2026-11-03-07 D6, on waypoint-bubble-elevation.
+**Notes:** Written by the planner by hand. Next free ID -2031.
