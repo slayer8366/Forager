@@ -32869,3 +32869,21 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 - The blockers are all in #438's body and comments: old downloads go dark ("Couldn't check the map…"); there is no pick-up chooser at the walker's end; three notes need the owner's words; the second engine run is untimed on a phone. #435 needs the phone (MapLibre 13.5.0's writes, a read-only open of mbgl-offline.db). #439 depends on basemap patch 0004, and whether the 11-01 upload happened is unverified.
 - Premise wrong (the planner's): there is no dispatch file 2026-10-28 for this series in prompts/preserved on any branch, and none was ever added.
 **Notes:** Written by the planner by hand. Next free ID -2049.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2049
+**Timestamp:** 2026-11-04T08:45:15Z
+**Continues:** 2026-09-28-2047
+**Title:** Route navigation: the owner rules on the screen, the card, Back and the button
+**Decision:** Dispatch 2026-11-03-03 A7.
+- Screen off, the owner's own words: "Use the same method as off track notifications."
+- "Next stop bold (Recommended)".
+- "Card, then stop (Recommended)".
+- "Route icon by the X (Recommended)".
+- Premises Hazel corrected (B4): screen-off pocket alerts don't work today, since the main screen's location stops off screen; the return's alerts do vibrate; the top right of the navigation card holds the X; the route line is drawn only while the card is open.
+- The planner's calls, accepted from Hazel: the lifecycle split, WayHome.regionId as Long?, a target keyed by position.
+- Still open: the words, silent mode, the drawer on stopping, a pin's Navigate mid-route, a return mid-route, route B after A.
+- The waypoint series (-2048): the planner recommended holding it until after release; no answer yet.
+**Notes:** Written by the planner by hand. Next free ID -2050.

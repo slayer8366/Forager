@@ -41,6 +41,12 @@ Every fact below is a premise to re-check, with file and line.
   - After the last stop: A1 stands ("Arrived" and the ring, on until ended, as for a waypoint).
 - **A5** (2026-11-03, -1990, the planner's calls): AvailabilityViewModel.kt (797 lines) is split before it grows past 800 (-1490); WayHome.regionId takes a stated "none" for a saved leg (Hazel picks nullable or a named constant and says which); two stops closer than the arrival radius move on one stop per fix, never two on one fix.
 - **A6** (open, for the owner with the words): what the summoned route card shows while navigating (the stop headed to marked, and whether its Navigate reads "Stop navigating"); Back's order; the "i" button's look beside the map credit's "i"; every new word (Hazel's list: the next-stop line, "Reached <name>", "Stopped navigating: that route was deleted.").
+- **A7** (2026-11-04, -2049). The owner's rulings on A6 and Hazel's B4 report, each the option as read:
+  - Screen off, in the owner's own words to the question "With the screen off, stops don't tick over or buzz… What should happen?": "Use the same method as off track notifications." Hazel first reports, with file:line, how the return's off-track alerts reach the walker with the screen off. Does that need a recording running? Which service, which permission? Then she says how route navigation would use the same path, before building it.
+  - The summoned card: "Next stop bold (Recommended)": "Today's card, with the stop you're heading to in bold. Navigate reads "Stop navigating", and Directions stays."
+  - Back: "Card, then stop (Recommended)": "Back closes the route card if it's open. The next Back stops navigating and reopens the route card, as a waypoint returns you to its bubble. The next stop is remembered."
+  - The card button: "Route icon by the X (Recommended)": "A route or list icon just left of the X, so the two "i"s on screen don't mean different things. Tapping it again closes the card."
+  - Still open: the words (the next-stop line, "Reached", how long it shows, the deleted line, the button's accessibility label), whether the stop buzz obeys silent mode, the Trip Planner drawer on stopping, and Hazel's three unruled questions (a pin's Navigate mid-route, a return mid-route, route B after route A).
 
 ## B. Branch, build and tests
 - **B1** (2026-11-03, -1988). A new branch, route-navigate, cut from origin/route-plot-ui after D32 lands (not before), merged into pre-main only after #449, on the owner's word. A draft PR is opened only when the planner says.
