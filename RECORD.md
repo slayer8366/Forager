@@ -33035,3 +33035,17 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 - **The planner's calls:** logged per call; Hazel's two-ended mechanism, at most two engine runs; no new words; no mixed-tile fixture for now.
 - **Hazel's observation:** fallback reasons log a tile's z/x/y to logcat, though FindWayToWaypointUseCase.kt:52 says "never a position". Noted, not acted on.
 **Notes:** Written by the planner by hand. Next free ID -2060.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2060
+**Timestamp:** 
+**Continues:** 2026-09-28-2059
+**Title:** Waypoint series: an unreadable .rd5 goes by trail; a new Hazel finishes A1 and A2
+**Decision:** Hazel handed back partway, saying she had been told to hand back early; where that came from is unknown.
+- **Pushed:** pre-main 2d1dc54a4 merged into the stack, with no conflicts. Heads: 19bd883b2, 7c3b01a27, 564120d67, 812495796, fb58de45b, 28c4d2004. Their CI isn't read yet.
+- **A1:** fail-first tests at 7d0635d84 (hazel-a1-failfirst, run 41807853255, unread). The fix at 3cd9c62f4 (hazel-a1a2-wip) has never been compiled.
+- **A2:** drafted only, in wip-a2/ at c16ecb1ba, and must not merge.
+- **The owner:** "1 yes 2 yes". That is, an unreadable .rd5 goes by trail, logged (dispatch A5), and a new Hazel finishes from the notes.
+**Notes:** Written by the planner by hand. Next free ID -2061.
