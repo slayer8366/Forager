@@ -32586,3 +32586,18 @@ Also recorded from Hazel's report:
 - 8aeb6b47b keeps -955's once-shown memory, so the line comes back when the card closes.
 - The clock sweep: RouteCardOnNavigationCardFont20Test is the only hour-dependent class, now on a noon clock. TrackRecordingServiceAlertClearTest, BackByLoopTest and BackByTest fail when the clock is shifted, not by the hour (inferred: they compare the clock with real elapsed time). Night was not probed.
 **Notes:** Written by the planner by hand. Next free ID -2028.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-2028
+**Timestamp:** 2026-11-04T01:22:56Z
+**Continues:** 2026-09-28-2026
+**Title:** The spike: a relief tile reads back from MapLibre's offline database
+**Observed:** From Hazel's report.
+- **The spike:** waypoint-bubble-elevation-spike (35d00ebf3, a208c4333), with an API 34 emulator on CI, run 41752813862. A z10-15 Trail Map region downloaded through the SDK's offline API stores relief tile 11/331/733. Its summit pixel decodes to 3370.02 m, bit-equal to the live Worker's tile. The true summit is 3429 m, so on the ~54 m grid a peak reads about 59 m low.
+- **The schema:** user_version 6; table tiles(url_template, pixel_ratio, z, x, y, data, compressed); region_tiles. Tiles are zlib-deflated only when that is smaller (14 of 19 here), so the reader handles both.
+- **Download zoom:** MapLibre fetches the 256 px raster-dem one zoom above the region's, so z11-only regions store no relief. Regions downloaded before relief went live (about 11-02 20:13) most likely hold none.
+- **Credits:** the dem source credits "Heights: USGS 3DEP; NRCan MRDEM", and the app's Heights credits cover them. Two detail lines say only "Route heights in Forager are averaged from this data." (owner's call, also left open in a578ecd56).
+- **The planner's call:** only tiles linked to a downloaded region count, as the owner's option text says, and the ambient cache is left out. The reader checks the schema, opens read-only, and answers Unsupported (logged once) otherwise.
+**Notes:** Written by the planner by hand. Next free ID -2029.
