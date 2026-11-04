@@ -33614,3 +33614,30 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Clio's own question, whether to record this in E-GD.
 - **Hazel:** still in Phase 1. Amendment 1 goes to her with the planner's go, after her report is read.
 **Notes:** Written by the planner by hand. Next free ID -2087.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2087
+**Timestamp:** 2026-11-04T17:01:18Z
+**Continues:** 2026-09-28-2086
+**Title:** RECORD's append-only header paragraph and the planner profile's Gradle line removed, at the owner's word
+**Decision:**
+- **The owner, verbatim:** "Go ahead and remove it". Asked which, with the /tmp worktree already gone: "Both".
+- **Removed from RECORD.md's header** (df3ab14ab, records-after-173). It contradicted the owner's rule that a correction goes into the same entry (Clio's note, prompts/preserved/2026-11-04-clio-process-advice.md). Verbatim:
+
+      This file is append-only. Nothing already committed is edited or removed; a
+      correction is a new entry that points at the one it corrects. The one
+      exception is this header, rewritten on 2026-10-16 at the owner's word
+      ("Update both formats to match current standards"); entry 2026-09-28-1111 quotes the
+      header it replaced.
+
+  The header no longer states a rule for corrections.
+- **Removed from docs/process/planner-profile.md:60** (9b58c66a4, pre-main, a fast-forward from 3ffced9c0, docs only, [skip ci] as for b1724365d and ea230c60e). It read as if the planner may run Gradle on the owner's go, while coder-profile.md:30 says "No Gradle on the laptop". Verbatim:
+
+      - **Gradle waits for the owner's "go"**, given in the planner's own window.
+
+  The commit was made with a temporary index in /mnt/work/scratch, with no checkout, and the scratch was removed afterwards. main (c61850aa2) is unchanged.
+- **The planner's slip:** the question put to the owner cited the line as planner-profile.md:61. It is :60, as Clio had it.
+- **Hazel:** her dispatch's base is "3ffced9c0 or later", so pre-main's move to 9b58c66a4 doesn't change her work. She is still in Phase 1.
+**Notes:** Written by the planner by hand. Next free ID -2088.
