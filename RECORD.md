@@ -32942,3 +32942,22 @@ Dispatch 2026-11-04-04 written, items A1 to A3 and B1 to B3. Hazel (Opus) has br
 - **Hazel's slip:** gh run watch tripped GitHub's rate limit for about 30 minutes.
 - **Device only:** the stray frame between the zoom steps and the eased move, take-over, Back, following, and layout. Hazel's five-step phone check is in her report.
 **Notes:** Written by the planner by hand. Next free ID -2054.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2054
+**Timestamp:** 2026-11-04T09:04:59Z
+**Continues:** 2026-09-28-2052
+**Title:** Route navigation: every word, the notification, the drawer and a return mid-route ruled
+**Decision:** Dispatch 2026-11-03-03 A9. The planner accepts the new RouteNavigationService. The owner, each the option as read:
+- "To Ridge · 2 of 3 (Recommended)"
+- "Reached Ridge, 5 s (Recommended)"
+- "Navigating Creek loop (Recommended)"
+- "Same as X; stays (Recommended)"
+- "Mirror waypoint (Recommended)"
+- "Show route (Recommended)"
+- "Card only (Recommended)"
+- "Return replaces route (Recommended)"
+Nothing in A6 is left open.
+**Notes:** Written by the planner by hand. Next free ID -2055.

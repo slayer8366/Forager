@@ -54,6 +54,16 @@ Every fact below is a premise to re-check, with file and line.
   - A pin mid-route: "Pin replaces route (Recommended)": "Navigation switches to the pin. The route remembers its next stop, so Navigate on the route later carries on from there."
   - The planner accepts Hazel's calls beyond scope: stale fixes count and lost fixes don't (as arrivedAtStart does); distance measured along the leg's geometry; no hysteresis at 50 m without data; the nearer part for a leg that doubles back; placeholders landing with the cards.
   - Still open: the words (next-stop line, "Reached", how long it shows, the deleted line, the button's label, the notification's words), the Trip Planner drawer on stopping, and a return started mid-route.
+- **A9** (2026-11-04, -2054). The planner accepts Hazel's service proposal: a new RouteNavigationService (not a new action on TrackRecordingService), with RouteNavigationWatch in the container. Two location subscriptions run while recording and navigating together, until battery data says otherwise. The owner's rulings, each the option as read:
+  - Next-stop line: "To Ridge · 2 of 3 (Recommended)", on its own line under the distance.
+  - At a stop: "Reached Ridge, 5 s (Recommended)": "Reached Ridge" for 5 seconds, then the next stop.
+  - The notification: "Navigating Creek loop (Recommended)": title "Navigating <route name>", text "To <stop> · <i> of <n>", one button "Stop navigating". After the last stop: "Arrived". The channel is named "Route navigation".
+  - The notification's behaviour: "Same as X; stays (Recommended)": Stop ends navigation exactly as the card's X does, remembering the next stop. After the last stop the notification stays, showing "Arrived", until navigation is ended.
+  - Deleted: "Mirror waypoint (Recommended)": "Stopped navigating: that route was deleted."
+  - The icon's TalkBack label: "Show route (Recommended)": "Show route" when the card is closed, "Hide route" when it is open.
+  - The drawer: "Card only (Recommended)": stopping reopens the route card, not the drawer; closing that card then reopens the drawer, as today.
+  - A return mid-route: "Return replaces route (Recommended)": the return takes over, as a pin's Navigate does, and the route remembers its next stop.
+  - Nothing in A6 is left open.
 
 ## B. Branch, build and tests
 - **B1** (2026-11-03, -1988). A new branch, route-navigate, cut from origin/route-plot-ui after D32 lands (not before), merged into pre-main only after #449, on the owner's word. A draft PR is opened only when the planner says.
