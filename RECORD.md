@@ -33550,3 +33550,23 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - #488's run 41863141684 ended completed success on every job: 6,536 tests, 0 failures, 0 errors, 24 skipped, 947 suites. That is the tree now on palette-rule (-2082).
   - Of the older runs, 41859153917 ended success on its own; 41860900001 and 41861172175 ended cancelled.
 **Notes:** Written by the planner by hand. Next free ID -2084.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2084
+**Timestamp:** 2026-11-04T16:37:54Z
+**Continues:** 2026-09-28-2083
+**Title:** Process questions go to Clio, E-GD's curator; four from today sent, not yet delivered
+**Decision:**
+- **The owner, verbatim:** "Ask Clio in EGD repo for anything about processes".
+- **Clio:** Clio Ledger, the curator of E-GD (github.com/slayer8366/E-GD-Philosophy, branch Test-1 at 6fa9d68, profiles/curator.md). She writes nothing in Forager. Her text for Forager comes through the owner (E-GD RECORD 2026-10-17-16, -20).
+- **Sent:** one message to the E-GD curator session ("You are the EGD curator so familiarize yourself wi..." [74330b], over Remote Control). It is offline, so the message is queued until its machine reconnects and is not confirmed read (msg 2a6c12e5). The four questions:
+  1. Who starts the coder on a dispatch (2026-11-04-06, for Hazel).
+  2. Work the owner assigns to a merged PR (#485, #486; "No mew PR"), and how it is gated before pre-main.
+  3. Whether the planner's undo work (git reverts, a push to pre-main, cherry-picks) should go to a coder by dispatch; and the Gradle slip (-2083).
+  4. Whether a late result for an earlier entry (-2078's CI) goes in place or in a new entry.
+- **Not used:** an E-GD issue. The repo is public, so Forager internals don't go there without the owner's yes.
+- Clio's answers are advice. Nothing in Forager changes on them without the owner.
+- **Memory:** feedback process-questions-to-clio.
+**Notes:** Written by the planner by hand. Next free ID -2085.
