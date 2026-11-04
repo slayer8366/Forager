@@ -180,9 +180,6 @@ class CloneLayersNightTest {
         assertEquals(1, Regex("""trailNightTablesForSource\(source\)\.withLayerClonesOf\(style\)""").findAll(reload).count())
     }
 
-    private fun colourValueOf(value: JsonElement): StyleColourValue =
-        if (value is JsonPrimitive) StyleColourValue.Literal(value.content) else StyleColourValue.Expression(value.toString())
-
     /** Each day colour literal in [day] against the night colour at the same place in [night], both as `#rrggbb`. */
     private fun dayToNight(day: JsonElement, night: Any?): Map<String, String> {
         val nightElement = when (night) {
@@ -216,3 +213,6 @@ class CloneLayersNightTest {
     private fun inversionOf(hex: String): String =
         "#%06x".format(nightColorOf((0xFF shl 24) or hex.removePrefix("#").toInt(16)) and 0xFFFFFF)
 }
+
+private fun colourValueOf(value: JsonElement): StyleColourValue =
+    if (value is JsonPrimitive) StyleColourValue.Literal(value.content) else StyleColourValue.Expression(value.toString())
