@@ -32741,3 +32741,12 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 - **The Return height fallback:** Hazel merged pre-main d6e2a0415 into return-height-gps-fallback (a9d2bbd5c, no conflicts; the diff against pre-main is the branch's own 3 files). The planner read full CI 41772525341 as green: 6395 tests, 0 failures, the 6 new tests named in the XML. PR #478 is opened against pre-main, and merged on the owner's "Yes, merge 478" after its PR checks were green on every job and pre-main was backed up (pre-main-before-478 bundle, verified).
 - **#477 (the v4 first zooms' Worker release to main):** Aspen's pre-merge line reports all 8 checks green on 905154826 and check-release ok. Aspen also reports the owner's "Yes, merge when green", said to Aspen at about 20:30 PST. The planner gave the go, on the owner's "Yes, tell Aspen to go ahead" (-2035). Aspen merged #477 at 04:40:49Z (c61850aa2), and the new v4 was serving by 20:41:26 PST. By Aspen's comparison, street-v1, v2, v3 and offline are byte for byte unchanged. The planner read the live styles himself: trail-v4 and street-v4 each have 182 layers and 78 clones, and street-v1 has 90.
 **Notes:** Written by the planner by hand. Next free ID -2039.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2039
+**Timestamp:** 2026-11-04T05:23:55Z
+**Title:** The crowded-icons list becomes a floating bubble anchored to the stack
+**Intent:** The owner: "The list mode for map icons is a screen hog. Can it be a floating bubble that follows the icon cluster on the map, and adjust its height to the standard bubble size to have it fit easier?" Then: "Its own bubble replaces it (Recommended)"; "Yes, as described (Recommended)". Dispatch 2026-11-04-02, Hazel (Opus), verify-first.
+**Notes:** Written by the planner by hand. Next free ID -2040.
