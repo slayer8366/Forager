@@ -32981,3 +32981,23 @@ Nothing in A6 is left open.
 **Title:** Route navigation moves to a follow-up update; the release ships the current queue
 **Decision:** The owner: "Another way to do this is to release with the current queue of tasks, let them finish and merge, release, and then start this to do as a follow up update. So let's start this now, but let the other tasks finish, and then we can hammer this out on a fresh palette". Dispatch 2026-11-03-03 B5. The release is the current queue: #482 (the crowded list bubble), the waypoint series with the pick-up chooser (-2050), and the release checks. route-navigate stays off pre-main until after the release. Its work starts now with A10's verify-first. The first route navigation Hazel was stopped by the owner. She had pushed up to fae14e6e7, which includes a separate RouteNavigationService made before A10 reached her. Its last two commits' CI is not seen. A new Hazel picks up from there.
 **Notes:** Written by the planner by hand. Next free ID -2057.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2057
+**Timestamp:** 2026-11-04T09:19:53Z
+**Continues:** 2026-09-28-2053, 2026-09-28-2050
+**Title:** #482 merged; a new Hazel carries on the waypoint series
+**Outcome:** The owner: "Yes, merge 482 and start the waypoint Hazel".
+- **#482 (the crowded list bubble):**
+  - all 8 checks green, mergeable on 8f240b447;
+  - pre-main backed up first (pre-main-before-482.bundle, verified);
+  - diff of 19 files, +1501/-207, no @Ignore, no removed assertion, no deleted test file;
+  - merged as 2d1dc54a4.
+- **Two Hazels had stopped while waiting on CI:** the crowded bubble one after opening #482, and the series one after B1. Both runs finished green. B1's full CI was run 41802530004 on 17188bdbe.
+- **The new series Hazel** (dispatch 2026-11-04-04) is to:
+  - confirm the five other PRs' checks;
+  - dry-run the merge onto 2d1dc54a4;
+  - give a verify-first report on A1 (old maps fall back to the trail) and A2 (the pick-up chooser) before building.
+**Notes:** Written by the planner by hand. Next free ID -2058.
