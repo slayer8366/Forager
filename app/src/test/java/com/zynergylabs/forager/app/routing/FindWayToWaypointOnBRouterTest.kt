@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.routing
 
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
@@ -50,7 +51,7 @@ class FindWayToWaypointOnBRouterTest {
     // 20 km round the trail start: the fixture's ways and NO_TRAIL_NEAR, about 14 km north, all inside its rectangle.
     private fun find(from: LatLng, waypoint: LatLng, radiusKm: Int = 20) = runBlocking {
         val region = Ground.region(id = 7, centre = ACROSS_FROM, radiusKm = radiusKm, routeData = RegionRouteData.Stored("run", "t", 10L, data))
-        FindWayToWaypointUseCase(FakeRegions(region), engines, errorLog)(from, waypoint)
+        FindWayToWaypointUseCase(FakeRegions(region), engines, errorLog, AcceptEnds)(from, waypoint)
     }
 
     private fun snap(point: LatLng): LatLng {

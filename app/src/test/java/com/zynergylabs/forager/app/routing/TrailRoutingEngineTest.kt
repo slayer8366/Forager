@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.routing
 
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import com.zynergylabs.forager.app.domain.wayhome.FakeRegions
 import com.zynergylabs.forager.app.domain.wayhome.Ground
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
@@ -42,7 +43,7 @@ class TrailRoutingEngineTest {
         val wayHome = WayHomeRouting(engine, FakeRegions(), errorLog)
         // A region whose routes are recorded as stored at a folder that is not there: the way to the waypoint gets as
         // far as the engine, which finds no data and says so.
-        val wayTo = FindWayToWaypointUseCase(FakeRegions(Ground.region()), engine, errorLog)
+        val wayTo = FindWayToWaypointUseCase(FakeRegions(Ground.region()), engine, errorLog, AcceptEnds)
 
         runBlocking {
             assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.ROUTES_UNREADABLE), wayTo(walker, waypoint))
@@ -60,7 +61,7 @@ class TrailRoutingEngineTest {
         var installs = 0
         val engine = TrailRoutingEngine({ installs++; throw IOException("disk full") }, errorLog, Dispatchers.Unconfined)
         val wayHome = WayHomeRouting(engine, FakeRegions(), errorLog)
-        val wayTo = FindWayToWaypointUseCase(FakeRegions(Ground.region()), engine, errorLog)
+        val wayTo = FindWayToWaypointUseCase(FakeRegions(Ground.region()), engine, errorLog, AcceptEnds)
 
         runBlocking {
             assertEquals(WayToWaypointResult.StraightLine(WayToWaypointNote.NO_ROUTE_FOUND), wayTo(walker, waypoint))

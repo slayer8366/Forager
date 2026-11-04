@@ -37,7 +37,10 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
  *    (`BRouterTrailSnapperTest` pins that a snap is where a route from the point starts). An end with no way within
  *    reach fails for that end, which names the note (Q2).
  * 3. **The area check:** every point of the trail route inside the rectangle the region's routes were cut to.
- * 4. **The line:** a straight lead-in to the route's first point (Q1 (a)), the route, and a straight final leg from its
+ * 4. **The ends** ([ends], way-to dispatch 2026-10-28): a pin at a building is reached from the street in front of it,
+ *    never the nearest way just for being nearest, nor up a private way; a pin off a trail keeps the engine's end. Both
+ *    straight legs must cross no building, fence or river, or the result is the straight line with the note saying so.
+ * 5. **The line:** a straight lead-in to the route's first point (Q1 (a)), the route, and a straight final leg from its
  *    last point to the waypoint (Q2), in [WayHome]'s three slots ([WayToWaypointResult.AlongTrails]).
  *
  * **Always worth it** (Q3 as superseded at RECORD -1653, the owner: "It's always worth it"): there is no short-walk
@@ -46,15 +49,23 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
  * ## The fallbacks, and the log
  *
  * Every way it falls back to the straight line names its [WayToWaypointNote] and is logged once per call, through
- * [errorLog] (CLAUDE.md: no default fallback that isn't logged when it fires), in words, never a position.
+ * [errorLog] (CLAUDE.md: no default fallback that isn't logged when it fires), in words, never a position. An end that
+ * goes by trail as today because the map there cannot vouch for it ([WayToEnds.Settled.Route.byTrail]) is logged the
+ * same way, once per end per call.
  */
 class FindWayToWaypointUseCase(
     private val offlineMapRepository: OfflineMapRepository,
     private val engines: TrailEngineSource,
     private val errorLog: ErrorLog,
+    /**
+     * Settles the route's ends (way-to dispatch 2026-10-28, PR 5): the street drop-off for a pin at a building, and the
+     * gates on both straight legs (`StreetDropOffEnds` in production). A refusal is today's straight line with its note.
+     */
+    private val ends: WayToEnds,
 ) {
 
-    suspend operator fun invoke(from: LatLng, waypoint: LatLng): WayToWaypointResult {
+    /** [accuracyMeters] is the accuracy [from]'s fix reports, null when it reports none (A2: the pick-up needs a good fix). */
+    suspend operator fun invoke(from: LatLng, waypoint: LatLng, accuracyMeters: Float? = null): WayToWaypointResult {
         val regions = offlineMapRepository.listRegions().getOrElse { error ->
             return straight(WayToWaypointNote.ROUTES_UNREADABLE, "the downloaded regions could not be listed", error)
         }
@@ -67,14 +78,23 @@ class FindWayToWaypointUseCase(
         val engine = engines.engine().getOrElse { error ->
             return straight(WayToWaypointNote.NO_ROUTE_FOUND, "the routing profile could not be installed", error)
         }
-        val route = when (val result = engine.router.route(from, waypoint, routes.folder)) {
+        val found = when (val result = engine.router.route(from, waypoint, routes.folder)) {
             is TrailRouteResult.Found -> result.route
             is TrailRouteResult.Failed -> return failedOn(result.failure)
         }
         // The engine hands on no route of under two points (`BRouterTrailRouter.foundRoute`); said plainly if one ever comes.
-        if (route.points.size < 2) return straight(WayToWaypointNote.NO_ROUTE_FOUND, "the trail route has ${route.points.size} points")
-        if (route.points.any { !routes.area.contains(it) }) {
+        if (found.points.size < 2) return straight(WayToWaypointNote.NO_ROUTE_FOUND, "the trail route has ${found.points.size} points")
+        if (found.points.any { !routes.area.contains(it) }) {
             return straight(WayToWaypointNote.LEAVES_AREA, "the trail route runs outside region ${routes.regionId}'s area")
+        }
+        // Step 5 (way-to dispatch 2026-10-28): the ends. A street end at the waypoint moves to its drop-off and, on a good
+        // fix, one at the walker to its pick-up (dispatch 2026-11-04-04, A2), in one re-run; both legs are gated.
+        val route = when (val settled = ends.settle(from, accuracyMeters, waypoint, found, routes.folder) { a, b -> engine.router.route(a, b, routes.folder) }) {
+            is WayToEnds.Settled.Refused -> return straight(settled.note, "the route's ends: ${settled.reason}")
+            is WayToEnds.Settled.Route -> settled.route.also { settled.byTrail.forEach(::byTrail) }
+        }
+        if (route !== found && route.points.any { !routes.area.contains(it) }) {
+            return straight(WayToWaypointNote.LEAVES_AREA, "the re-run route, to the drop-off or from the pick-up, runs outside region ${routes.regionId}'s area")
         }
         val nearWalker = route.points.first()
         val nearWaypoint = route.points.last()
@@ -134,6 +154,15 @@ class FindWayToWaypointUseCase(
     private fun straight(note: WayToWaypointNote, reason: String, cause: Throwable? = null): WayToWaypointResult {
         errorLog.w(TAG, "The way to the waypoint is the straight line (${note.name}): $reason.", WayToWaypointFallback(reason, cause))
         return WayToWaypointResult.StraightLine(note)
+    }
+
+    /**
+     * An end that went by trail as today, with no drop-off and its leg ungated (dispatch 2026-11-04-04, A1 and A4): the
+     * map there could not be read or carries no fence data. Not a straight line, but a fallback all the same, so logged
+     * once per end per call, as the straight line's are.
+     */
+    private fun byTrail(end: WayToEnds.ByTrail) {
+        errorLog.w(TAG, "The way to the waypoint keeps the engine's end by trail, with no drop-off and the leg not gated: ${end.reason}.", WayToWaypointFallback(end.reason, end.cause))
     }
 
     /** What [errorLog] is handed for a fallback: [ErrorLog] takes a throwable, and this names the reason. */

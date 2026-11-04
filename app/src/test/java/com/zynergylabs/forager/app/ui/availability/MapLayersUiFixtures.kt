@@ -248,7 +248,7 @@ internal fun mapLayersViewModel(
     readWaypoint: suspend (String) -> Result<Waypoint?> = { Result.success(null) },
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails. Defaulted to none, today's straight line.
-    findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
+    findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)? = null,
     // Dispatch 2026-10-27-14: Settings > Map > "Crowded icons". Defaulted to nothing stored, which is "Zoom in, then fan".
     crowdedIcons: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
     // Dispatch 2026-11-02-04: Settings > Map > "Waypoint names". Defaulted to nothing stored, which is on.

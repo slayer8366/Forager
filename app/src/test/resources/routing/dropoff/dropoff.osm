@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6" generator="make-dropoff-fixture.py">
+  <node id="1000" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0961612" lon="-71.5080435"/>
+  <node id="1001" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0961612" lon="-71.5072206"/>
+  <node id="1002" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0961612" lon="-71.5045166"/>
+  <node id="1003" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0961612" lon="-71.5042815"/>
+  <node id="1004" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0961612" lon="-71.5016951"/>
+  <node id="1005" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0961612" lon="-71.5009897"/>
+  <node id="1006" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967008" lon="-71.5080435"/>
+  <node id="1007" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0974203" lon="-71.5080435"/>
+  <node id="1008" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0988592" lon="-71.5080435"/>
+  <node id="1009" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0974203" lon="-71.5045166"/>
+  <node id="1010" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0975102" lon="-71.5009897"/>
+  <node id="1011" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967008" lon="-71.5042815"/>
+  <node id="1012" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967907" lon="-71.5044226"/>
+  <node id="1013" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.1011075" lon="-71.5080435"/>
+  <node id="1014" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.1011075" lon="-71.5045166"/>
+  <node id="1015" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.1011075" lon="-71.5009897"/>
+  <node id="1016" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967638" lon="-71.5046107"/>
+  <node id="1017" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967638" lon="-71.5044226"/>
+  <node id="1018" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0969077" lon="-71.5044226"/>
+  <node id="1019" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0969077" lon="-71.5046107"/>
+  <node id="1020" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0970605" lon="-71.5046107"/>
+  <node id="1021" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0970605" lon="-71.5044226"/>
+  <node id="1022" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0972044" lon="-71.5044226"/>
+  <node id="1023" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0972044" lon="-71.5046107"/>
+  <node id="1024" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967638" lon="-71.5017891"/>
+  <node id="1025" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967638" lon="-71.5016010"/>
+  <node id="1026" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0969077" lon="-71.5016010"/>
+  <node id="1027" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0969077" lon="-71.5017891"/>
+  <node id="1028" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0966289" lon="-71.5073146"/>
+  <node id="1029" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0966289" lon="-71.5071265"/>
+  <node id="1030" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967728" lon="-71.5071265"/>
+  <node id="1031" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0967728" lon="-71.5073146"/>
+  <node id="1032" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0965210" lon="-71.5013424"/>
+  <node id="1033" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0971505" lon="-71.5013424"/>
+  <node id="1034" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0964310" lon="-71.5078084"/>
+  <node id="1035" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0964310" lon="-71.5066327"/>
+  <node id="1036" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0965659" lon="-71.5075733"/>
+  <node id="1037" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0968357" lon="-71.5075733"/>
+  <node id="1038" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.1009726" lon="-71.5033410"/>
+  <node id="1039" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.1009726" lon="-71.5021653"/>
+  <node id="1040" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0957116" lon="-71.5082786"/>
+  <node id="1041" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0957116" lon="-71.5007546"/>
+  <node id="1042" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0979599" lon="-71.5007546"/>
+  <node id="1043" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0979599" lon="-71.5082786"/>
+  <node id="1044" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0997585" lon="-71.5082786"/>
+  <node id="1045" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.0997585" lon="-71.5007546"/>
+  <node id="1046" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.1024565" lon="-71.5007546"/>
+  <node id="1047" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture" lat="40.1024565" lon="-71.5082786"/>
+  <way id="2000" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1000"/>
+    <nd ref="1001"/>
+    <nd ref="1002"/>
+    <nd ref="1003"/>
+    <nd ref="1004"/>
+    <nd ref="1005"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Front Road"/>
+  </way>
+  <way id="2001" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1000"/>
+    <nd ref="1006"/>
+    <nd ref="1007"/>
+    <nd ref="1008"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="West Road"/>
+  </way>
+  <way id="2002" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1007"/>
+    <nd ref="1009"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Back Lane"/>
+  </way>
+  <way id="2003" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1005"/>
+    <nd ref="1010"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="East Lane"/>
+  </way>
+  <way id="2004" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1003"/>
+    <nd ref="1011"/>
+    <nd ref="1012"/>
+    <tag k="access" v="private"/>
+    <tag k="highway" v="service"/>
+    <tag k="service" v="driveway"/>
+  </way>
+  <way id="2005" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1008"/>
+    <nd ref="1013"/>
+    <nd ref="1014"/>
+    <nd ref="1015"/>
+    <tag k="highway" v="path"/>
+    <tag k="surface" v="ground"/>
+  </way>
+  <way id="2006" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1016"/>
+    <nd ref="1017"/>
+    <nd ref="1018"/>
+    <nd ref="1019"/>
+    <nd ref="1016"/>
+    <tag k="addr:housenumber" v="12"/>
+    <tag k="addr:street" v="Front Road"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="2007" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1020"/>
+    <nd ref="1021"/>
+    <nd ref="1022"/>
+    <nd ref="1023"/>
+    <nd ref="1020"/>
+    <tag k="addr:housenumber" v="3"/>
+    <tag k="addr:street" v="Back Lane"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="2008" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1024"/>
+    <nd ref="1025"/>
+    <nd ref="1026"/>
+    <nd ref="1027"/>
+    <nd ref="1024"/>
+    <tag k="addr:housenumber" v="40"/>
+    <tag k="addr:street" v="Front Road"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="2009" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1028"/>
+    <nd ref="1029"/>
+    <nd ref="1030"/>
+    <nd ref="1031"/>
+    <nd ref="1028"/>
+    <tag k="addr:housenumber" v="7"/>
+    <tag k="addr:street" v="West Road"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="2010" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1032"/>
+    <nd ref="1033"/>
+    <tag k="barrier" v="fence"/>
+  </way>
+  <way id="2011" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1034"/>
+    <nd ref="1035"/>
+    <tag k="waterway" v="stream"/>
+  </way>
+  <way id="2012" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1036"/>
+    <nd ref="1037"/>
+    <tag k="tunnel" v="culvert"/>
+    <tag k="waterway" v="stream"/>
+  </way>
+  <way id="2013" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1038"/>
+    <nd ref="1039"/>
+    <tag k="waterway" v="stream"/>
+  </way>
+  <way id="2014" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1040"/>
+    <nd ref="1041"/>
+    <nd ref="1042"/>
+    <nd ref="1043"/>
+    <nd ref="1040"/>
+    <tag k="landuse" v="residential"/>
+  </way>
+  <way id="2015" version="1" timestamp="2026-10-28T00:00:00Z" changeset="1" uid="1" user="fixture">
+    <nd ref="1044"/>
+    <nd ref="1045"/>
+    <nd ref="1046"/>
+    <nd ref="1047"/>
+    <nd ref="1044"/>
+    <tag k="landuse" v="forest"/>
+  </way>
+</osm>

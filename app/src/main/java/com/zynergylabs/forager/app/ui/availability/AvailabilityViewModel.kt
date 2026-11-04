@@ -188,7 +188,7 @@ class AvailabilityViewModel(
     /** Step 6 PR 1 (RECORD -1655): the clock the waypoint line's freshness is read against. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /** Step 6 PR 3: the way to a waypoint along trails (AppContainer.findWayToWaypoint); `null`, none (tests), is today's straight line. */
-    private val findWayToWaypoint: (suspend (LatLng, LatLng) -> WayToWaypointResult)? = null,
+    private val findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)? = null,
     /** Dispatch 2026-10-28-13: the barometer and the sea-level converter behind the live height ([AvailabilityLiveLocation]). Defaulted to none: "Alt unavailable". */
     private val pressureProvider: PressureProvider = NoBarometer,
     private val seaLevelConverter: SeaLevelConverter = NoSeaLevelConverter,

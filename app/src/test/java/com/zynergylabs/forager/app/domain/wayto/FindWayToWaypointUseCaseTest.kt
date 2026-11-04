@@ -36,7 +36,7 @@ class FindWayToWaypointUseCaseTest {
     private val engines = FakeEngines(router)
 
     private fun find(from: LatLng, waypoint: LatLng, vararg regions: OfflineRegionSummary): WayToWaypointResult =
-        runBlocking { FindWayToWaypointUseCase(FakeRegions(*regions), engines, errorLog)(from, waypoint) }
+        runBlocking { FindWayToWaypointUseCase(FakeRegions(*regions), engines, errorLog, AcceptEnds)(from, waypoint) }
 
     private fun way(result: WayToWaypointResult): WayHome {
         assertTrue("a route along trails, not $result", result is WayToWaypointResult.AlongTrails)
@@ -171,7 +171,7 @@ class FindWayToWaypointUseCaseTest {
     fun `regions that cannot be listed are unreadable routes`() {
         val failing = FakeRegions(Result.failure(IOException("database closed")))
 
-        assertEquals(straight(WayToWaypointNote.ROUTES_UNREADABLE), runBlocking { FindWayToWaypointUseCase(failing, engines, errorLog)(at(0.0, 40.0), at(500.0, -60.0)) })
+        assertEquals(straight(WayToWaypointNote.ROUTES_UNREADABLE), runBlocking { FindWayToWaypointUseCase(failing, engines, errorLog, AcceptEnds)(at(0.0, 40.0), at(500.0, -60.0)) })
         assertEquals(1, logs.size)
     }
 
@@ -231,6 +231,10 @@ class FindWayToWaypointUseCaseTest {
                 "The waypoint is far from any trail · straight line",
                 "You're far from any trail · straight line",
                 "The waypoint is in another area · straight line",
+                // Way-to dispatch 2026-10-28, PR 5: rule 4's plain notes, proposed wording, for the owner's word.
+                "No clear way in to the waypoint · straight line",
+                "No clear way from you to the route · straight line",
+                "Couldn't check the map for houses, fences or water · straight line",
             ),
             WayToWaypointNote.entries.map { it.text },
         )

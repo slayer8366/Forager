@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import android.app.Application
+import com.zynergylabs.forager.app.domain.wayto.AcceptEnds
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
@@ -104,13 +105,13 @@ class AvailabilityScreenWaypointRouteTest {
     private lateinit var viewModel: AvailabilityViewModel
 
     private fun setScreen(regions: List<OfflineRegionSummary> = listOf(Ground.region())) {
-        val find = FindWayToWaypointUseCase(FakeRegions(*regions.toTypedArray()), FakeEngines(router), ErrorLog { _, _, _ -> })
+        val find = FindWayToWaypointUseCase(FakeRegions(*regions.toTypedArray()), FakeEngines(router), ErrorLog { _, _, _ -> }, AcceptEnds)
         viewModel = mapLayersViewModel(
             waypointNavigationRepository = store,
             locationTracker = tracker,
             readWaypoint = { id -> Result.success(pin.takeIf { it.id == id }) },
             currentTime = clock,
-            findWayToWaypoint = { from, to -> find(from, to) },
+            findWayToWaypoint = { from, to, _ -> find(from, to) },
         )
         viewModel.onEnteredForeground()
         composeRule.setContent {

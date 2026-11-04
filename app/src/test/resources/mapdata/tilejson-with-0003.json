@@ -1,0 +1,155 @@
+{
+ "maxzoom": 15,
+ "minzoom": 0,
+ "tilejson": "3.0.0",
+ "tiles": [
+  "https://tiles.example.invalid/us/{z}/{x}/{y}.mvt"
+ ],
+ "vector_layers": [
+  {
+   "fields": {
+    "kind": "String"
+   },
+   "id": "barriers",
+   "maxzoom": 15,
+   "minzoom": 15
+  },
+  {
+   "fields": {
+    "kind": "String",
+    "kind_detail": "Number",
+    "sort_rank": "Number"
+   },
+   "id": "boundaries",
+   "maxzoom": 15,
+   "minzoom": 0
+  },
+  {
+   "fields": {
+    "addr_housenumber": "String",
+    "addr_street": "String",
+    "height": "Number",
+    "kind": "String",
+    "kind_detail": "String",
+    "layer": "Number",
+    "sort_rank": "Number"
+   },
+   "id": "buildings",
+   "maxzoom": 15,
+   "minzoom": 11
+  },
+  {
+   "fields": {
+    "kind": "String",
+    "min_zoom": "Number"
+   },
+   "id": "earth",
+   "maxzoom": 15,
+   "minzoom": 0
+  },
+  {
+   "fields": {
+    "kind": "String"
+   },
+   "id": "landcover",
+   "maxzoom": 7,
+   "minzoom": 0
+  },
+  {
+   "fields": {
+    "kind": "String",
+    "sort_rank": "Number"
+   },
+   "id": "landuse",
+   "maxzoom": 15,
+   "minzoom": 8
+  },
+  {
+   "fields": {
+    "capital": "String",
+    "kind": "String",
+    "kind_detail": "String",
+    "min_zoom": "Number",
+    "name": "String",
+    "name:ar": "String",
+    "name:el": "String",
+    "name:en": "String",
+    "name:fa": "String",
+    "name:he": "String",
+    "name:hi": "String",
+    "name:ja": "String",
+    "name:ko": "String",
+    "name:lt": "String",
+    "name:pl": "String",
+    "name:ru": "String",
+    "name:uk": "String",
+    "name:ur": "String",
+    "pgf:name:hi": "String",
+    "population": "Number",
+    "population_rank": "Number",
+    "sort_key": "Number",
+    "wikidata": "String"
+   },
+   "id": "places",
+   "maxzoom": 15,
+   "minzoom": 4
+  },
+  {
+   "fields": {
+    "elevation": "Number",
+    "kind": "String",
+    "kind_detail": "String",
+    "min_zoom": "Number",
+    "name": "String",
+    "name:en": "String",
+    "name:es": "String"
+   },
+   "id": "pois",
+   "maxzoom": 15,
+   "minzoom": 11
+  },
+  {
+   "fields": {
+    "access": "String",
+    "foot": "String",
+    "informal": "String",
+    "is_bridge": "Boolean",
+    "is_link": "Boolean",
+    "is_tunnel": "Boolean",
+    "kind": "String",
+    "kind_detail": "String",
+    "min_zoom": "Number",
+    "name": "String",
+    "network": "String",
+    "network_1": "String",
+    "oneway": "String",
+    "ref": "String",
+    "sac_scale": "String",
+    "service": "String",
+    "shield_text": "String",
+    "shield_text_1": "String",
+    "sort_rank": "Number",
+    "surface": "String",
+    "tracktype": "String",
+    "trail_visibility": "String"
+   },
+   "id": "roads",
+   "maxzoom": 15,
+   "minzoom": 4
+  },
+  {
+   "fields": {
+    "kind": "String",
+    "kind_detail": "String",
+    "layer": "Number",
+    "min_zoom": "Number",
+    "name": "String",
+    "sort_rank": "Number",
+    "tunnel": "String"
+   },
+   "id": "water",
+   "maxzoom": 15,
+   "minzoom": 0
+  }
+ ]
+}
