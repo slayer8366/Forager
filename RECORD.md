@@ -32750,3 +32750,13 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 **Title:** The crowded-icons list becomes a floating bubble anchored to the stack
 **Intent:** The owner: "The list mode for map icons is a screen hog. Can it be a floating bubble that follows the icon cluster on the map, and adjust its height to the standard bubble size to have it fit easier?" Then: "Its own bubble replaces it (Recommended)"; "Yes, as described (Recommended)". Dispatch 2026-11-04-02, Hazel (Opus), verify-first. The owner then: "And have it animate open and shut please" (A5). And: "For crowded icons again: have the zoom-in and zoom-out animate rather than jump in also so it looks smooth" (A6).
 **Notes:** Written by the planner by hand. Next free ID -2040.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2040
+**Timestamp:** 2026-11-04T05:30:13Z
+**Continues:** 2026-09-28-2039
+**Title:** The crowded list bubble: the planner's calls on Hazel's six stops, within the owner's words
+**Decision:** Dispatch 2026-11-04-02 section C. The root disk was full (2.6 MB free). The planner removed six worktrees of merged branches (route-plot-ui, waypoint-names, route-card-followups, hazel-trail-street, return-height-gps-fallback, route-navigate-read), after checking each was pushed; route-plot-ui's only local file was a build directory. That freed about 1.1 GB. The S22 evidence folders are kept.
+**Notes:** Written by the planner by hand. Next free ID -2041.

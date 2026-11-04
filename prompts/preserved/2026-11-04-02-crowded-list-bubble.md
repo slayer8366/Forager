@@ -40,3 +40,14 @@ Every fact below is a premise to re-check, with file and line.
   - a row opens its record's bubble, and Back returns to the list;
   - X closes it, and a map tap closes it;
   - portrait and landscape, navigating, at font 1.0 and 2.0.
+
+## C. Rulings on Hazel's verify-first (2026-11-04, -2040, the planner's calls within the owner's words)
+Hazel read pre-main d7a49bb58 and corrected these premises: the standard bubble has no maximum height; it re-anchors when the camera rests, or every move while navigating, not frame by frame; a pan closes the list today (-1753, -1757); X on a row's bubble brings the list back today; the standard pop-up fades under Reduce Motion rather than going instant; both crowded-icon camera paths jump.
+- **C1** (S1). The height cap is the tallest standard bubble: a waypoint bubble with every action at font 1.0, measured in a Robolectric run and kept as a named constant, and never more than the room on screen. This is the owner's "the standard bubble size".
+- **C2** (S2). A pan or zoom keeps the bubble open and following, which is the owner's "follows the icon cluster on the map". This supersedes -1753 and -1757 for this bubble. A user-asked jump (Locate, a search result, Return to Route) still closes it.
+- **C3** (S3). From a row's record bubble: Back returns to the list (A2), while X, an empty-map tap, or any of the bubble's actions (Navigate, Details, Directions, Plot route) close both.
+- **C4** (S4). Under Reduce Motion it keeps the standard pop-up's fade, like every map pop-up. This corrects the planner's "instant" in A5 and A6 for the bubble; A6's camera move still jumps under Reduce Motion.
+- **C5** (S5). The camera uses NAVIGATION_VIEW_TRANSITION_MILLIS, 750 ms, with Hazel's approach (i): find the end by the existing steps, then make one ease there; the fan or list opens on finish, and a user gesture cancels it. Check for a stray frame on the next phone session.
+- **C6** (S6). The standard bubble's rule against the cards stays (the cards draw over it). The bubble also keeps clear of the icon cluster's column in portrait, as the old list did (run 40580543726).
+- **C7.** In zoom-then-fan mode, a stack still on one spot at zoom 17 opens this same bubble. Confirmed.
+- **Worktree:** under /mnt/work/forager-wt/ while the root disk is short. The planner freed about 1.1 GB on / by removing six worktrees of merged branches.
