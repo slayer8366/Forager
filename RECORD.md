@@ -33218,7 +33218,8 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
   - "Rust is the night theme for the app so we must keep that color";
   - "It has to do with night vision and how it eases the vision at night. Brown reduces that ease at night".
 - **Then:** "Rust red is the color we use for highlights so let's keep it that way". Asked with their earlier words quoted, the owner chose "Rust at night, cream by day". Night highlights are rust red; the day chip stays cream, as built in #483.
-- **The reason, recorded:** rust red at night is for night vision. Dark brown reduces that ease. It is not a style choice to revisit.
+- **Then:** "Right, it's for night mode only. Day gets cream colors because they play well in sunlight".
+- **The reason, recorded:** cream by day because it reads well in sunlight; rust red at night is for night vision. Dark brown reduces that ease. It is not a style choice to revisit.
 - **The planner's read of 22ae67021 for typos, by eye with no compiler:**
   - MapModeChips.kt: the imports MushroomDeep (Color.kt:82) and PureWhite (Color.kt:64) exist; strongLight is removed with no use left; isDarkTheme is still read (:115, :128); the when branches are standsAside, then isDarkTheme, then light.
   - MapTypePanelOfflineChipTest: every name the new assertChosenChip uses is imported or defined (Color, luminance, toPixelMap, captureToImage, dp; darkTheme :76, chosen :77, setSheet :86, drawnFill :109, recordedFill :116).
