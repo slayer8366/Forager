@@ -32671,7 +32671,7 @@ Also recorded from Hazel's report:
 - **Hazel's slip:** one git push -f, used to create a new throwaway branch, so nothing was overwritten.
 - **The tests she changed,** accepted by the planner: the C23 predicate; RouteCardExpandShortLandscapeTest under D44; RouteCardRecenterCoversNoCard's after-sunset variant.
 - **Not seen on a phone.**
-PR opened against pre-main.
+PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", after its PR CI was green on every job and pre-main was backed up (pre-main-before-476 bundle, verified). pre-main had gained #474 after the PR run; the two don't overlap (merge-tree clean).
 **Notes:** Written by the planner by hand. Next free ID -2034.
 
 ---
