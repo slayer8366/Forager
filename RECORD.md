@@ -33399,3 +33399,42 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **#486:** untouched.
 - **Correction (planner): a planner error.** The owner then: "Do not merge 485 to pre main"; "I never said to merge to pre main". "Resume the merge" meant the merge of #486 into #485 ("Merge 486 into 485"), which was already done (8c8c36e2a). The planner read it as merging #485 into pre-main and did so without that word. fa63ec865 stays on pre-main until the owner says what to do with it.
 **Notes:** Written by the planner by hand. Next free ID -2078.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2078
+**Timestamp:** 2026-11-04T16:02:31Z
+**Continues:** 2026-09-28-2077, 2026-09-28-2074, 2026-09-28-2073
+**Title:** Every map type chip colour change since 10-28 undone by reverting its commits; PR #488 to pre-main, not merged
+**Decision:**
+- **The owner, verbatim:** "There was a chip color being done on 10-28 that wasn't authorized, and we need to undo it and not add more code. We need to bring it back to its default state without adding to the code, but by undoing the commits".
+- **Asked, with -2074's "until all is reverted before any color change", -2073's "Pale default + outline" and -2069's "Rust is the night theme for the app so we must keep that color" and "Day gets cream colors because they play well in sunlight" quoted:**
+  - what default means: "Before any chip colour";
+  - where the reverts go: "Branch + PR, no merge (Recommended)".
+  - The planner told the owner that only the first is reachable by reverts alone: 64aacd969 brought in the red fill and the outline together, and #483's Cream and rust were written inside its code.
+- **Found, not recorded before:**
+  - #487 (undo-485-merge, d16075a48, the owner: "Undo the merge") merged to pre-main as 192b9eab2. Pre-main's tree is 9660e542a's again, so #483's chip colours were back on it. Its push run 41861172175 is still pending; 9660e542a's tree passed in 41851180717.
+  - GitHub marks #486 MERGED (2026-11-04T15:44:38Z, merge commit 8c8c36e2a) because its head d82cf520e reached pre-main inside #485. Nobody merged it.
+  - None of the chip commits are on main (c61850aa2).
+- **Done:** branch revert-chip-colours, from pre-main 192b9eab2, head d4ce043f5. It holds eleven reverts, newest first, one per original commit:
+  - #483: 22ae67021, 32c79a187, ba79a4080 (537c7a569, 4c518fb9c, 66f28d829);
+  - c00f05686, its chip test files only (be6e92996); its B1 style-load log line stays;
+  - Amendments 5 and 6: b25806b4b, f13e264d9 (1cc0bade7, 6dcb60c70);
+  - Amendment 4: 66c0457c0 (32a64eb30); e2a4e0bfe, MapModeChips.kt only (706e05e65), leaving its completion report as the record; 61bfe5335, 64aacd969, d4f300387 (e3c30239b, 13e290659, d4ce043f5).
+- **Conflicts, two, neither resolved by writing a line:**
+  - f13e264d9: the outline tests are deleted whole, including e6e37f58a's stand-in guard inside one of them.
+  - 64aacd969: its isDarkTheme line is dropped, and the line beside it keeps 5a34401b7's ownTrail().
+- **Checked:**
+  - A dry run in a throwaway worktree came first; the branch's tree (43282309) is byte-identical to it.
+  - MapModeChips.kt differs from d4f300387^ only by 11-03's three non-colour edits (Street wording, the standIn parameter, the OwnTrail rename).
+  - The four chip files equal d82cf520e's, except one comment line that commit added.
+  - Both themes are Material's default: light #F6DFC8, dark #6B421A, no outline.
+- **Tests:**
+  - Local, on that identical tree: MapTypePanel*, OwnTrailFallbackRetryTest and ThemeCompletenessTest, 28 tests, 0 failures, 0 compile errors in the log. The XML was dated after the worktree was made.
+  - CI: the head's subject carries the original's [skip ci], so the pull_request run is skipped. The commit was not amended (CLAUDE.md, push before you tidy). CI was started instead with workflow_dispatch (RECORD -865) as run 41863141684, queued behind 41860900001 and 41859153917.
+  - Device: not run. Theme changes on the phone are not the planner's (-2071, -2072).
+- **PR #488** is open against pre-main and not merged; it waits for the owner's word.
+- **Not changed:** RECORD's earlier entries, CLAUDE.md, the 10-28 completion report, B1, #485, #486, style-picker-cream-revert-1/2/3, the local undo-chip-colours, the running CI runs.
+- **Memory:** feedback undo-means-revert-commits; palette-is-a-feature gains the chips as the owner's exception.
+**Notes:** Written by the planner by hand. Next free ID -2079.
