@@ -32643,5 +32643,5 @@ Also recorded from Hazel's report:
 - **Hazel's slip:** she pushed the build before its tests, then stubbed the code so each test was seen failing first. History still shows the build before the tests.
 - **Hazel's calls,** accepted by the planner: a CompositionLocal for the source; interpolation across tile edges, with no line if a neighbour tile is missing; 4 tiles cached; logging once per tile and reason; a 200 KB SDK-written fixture; BubbleLine's modifier.
 - **Not tested:** the real IO path in the bubble; switching between bubbles; the S22's density; reads during a download; old regions on a phone; Canada's coverage.
-- **PR:** opened against pre-main, not merged.
+- **PR:** #475, merged into pre-main on the owner's "Yes go ahead", after its PR CI (41760047895) was green on every job and pre-main was backed up (pre-main-before-475 bundle, verified).
 **Notes:** Written by the planner by hand. Next free ID -2032.
