@@ -29,6 +29,7 @@ Every fact below is a premise to re-check, with file and line.
 - **A3.** The old full card is removed, with what it leaves dead, named.
 - **A4** (premises to report). Where the list card is placed today, and how; how the waypoint bubble anchors and follows; what the standard bubble's size limits are; and how this sits with the route card, the navigation card, Re-center and the D-items' clearance rules (dispatch 2026-10-30-08). Anything that is the owner's call is a stop.
 
+- **A5** (the owner, 2026-11-04, -2039). "And have it animate open and shut please". The bubble animates when it opens and when it closes. The planner's calls: it uses the standard bubble's existing open and close motion if it has one (report which). If it has none, it grows from and shrinks to the stack's tip, with an existing MotionTokens spec named in the report. Opening a record's bubble from a row, and Back to the list, use the same motion. It is instant under Reduce Motion. A test asserts a mid-frame state with mainClock.autoAdvance off, and the instant state under Reduce Motion.
 ## B. Branch and tests
 - **B1.** A new branch, crowded-list-bubble, from origin/pre-main.
 - **B2.** Tests through the real screen, with real coordinate touches on a stack, using a fixed clock (D43's lesson):
