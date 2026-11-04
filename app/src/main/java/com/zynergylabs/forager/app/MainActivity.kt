@@ -407,7 +407,7 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions, seaLevelConverter = container.seaLevelConverter) {
+            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions, seaLevelConverter = container.seaLevelConverter, groundHeightSource = container.groundHeightSource) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()

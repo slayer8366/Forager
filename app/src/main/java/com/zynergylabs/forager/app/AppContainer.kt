@@ -6,6 +6,10 @@ import android.content.Context
 import com.zynergylabs.forager.app.data.repository.RoomEntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import java.io.File
+import com.zynergylabs.forager.app.domain.GroundHeightSource
+import com.zynergylabs.forager.app.domain.relief.ReliefGroundHeightSource
+import com.zynergylabs.forager.app.map.MAPLIBRE_OFFLINE_DATABASE_FILE
+import com.zynergylabs.forager.app.map.OfflineReliefTileStore
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -234,6 +238,15 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
 
     /** Raw height to sea level for what the app shows (dispatch 2026-10-28-13, RECORD -1792); see [SeaLevelConverter]. */
     val seaLevelConverter: SeaLevelConverter = AndroidSeaLevelConverter(context.applicationContext, errorLog)
+
+    /**
+     * The ground's height at a point, from the Trail Map relief tiles that downloaded regions hold in MapLibre's offline
+     * database (dispatch 2026-11-03-07, D2): the waypoint bubble's "Elevation" line. See [ReliefGroundHeightSource].
+     */
+    val groundHeightSource: GroundHeightSource = ReliefGroundHeightSource(
+        OfflineReliefTileStore(File(context.applicationContext.filesDir, MAPLIBRE_OFFLINE_DATABASE_FILE)),
+        errorLog,
+    )
 
     // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
     // true heading. Consumed by MainActivity, which hands it to the map screen (dispatch

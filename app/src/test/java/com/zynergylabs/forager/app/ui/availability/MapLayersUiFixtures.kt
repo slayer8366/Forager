@@ -336,6 +336,8 @@ internal fun MapLayersTestScreen(
     // Dispatch 2026-10-30-08, Amendment 3: navigation and recording, for "Return to Route" over the route card; none by default.
     navigation: AvailabilityScreenNavigation = AvailabilityScreenNavigation(),
     recording: AvailabilityScreenRecording = AvailabilityScreenRecording(),
+    // The screen's clock (its sundown line, among others); the real one by default, as before.
+    currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 ) {
     val viewModelState by viewModel.uiState.collectAsState()
     val uiState = uiStateTransform(viewModelState)
@@ -405,6 +407,7 @@ internal fun MapLayersTestScreen(
         entryReportData = AvailabilityScreenEntryReportData(
             getCartographyEntryMapData = getCartographyEntryMapData,
         ),
+        currentTime = currentTime,
     )
 }
 

@@ -103,11 +103,11 @@ class SourcesAndCreditsTest {
             "the Heights section, top to bottom",
             listOf(
                 listOf(NRCAN_TEXT, "licence ›"),
-                listOf(HEIGHTS_AVERAGED),
+                listOf(HEIGHTS_DETAIL),
                 listOf(COPERNICUS_TEXT),
                 listOf(COPERNICUS_LIABILITY),
                 listOf(USGS_TEXT),
-                listOf(HEIGHTS_AVERAGED),
+                listOf(HEIGHTS_DETAIL),
             ),
             drawn.subList(heights + 1, weather),
         )
@@ -122,12 +122,12 @@ class SourcesAndCreditsTest {
         onPage("Rain and soil figures in Forager are summaries calculated from this data.").performScrollTo().assertIsDisplayed()
         // CC BY 4.0's change note for the Forest Service's trails (dispatch 2026-10-26-21, RECORD -1703: "Approve as drafted").
         onPage("Trail lines in Forager are simplified from this data.").performScrollTo().assertIsDisplayed()
-        // The Heights rows' lines underneath (dispatch 2026-10-30-19). The "averaged" line is under two rows.
+        // The Heights rows' lines underneath (dispatch 2026-10-30-19). The detail line (D6) is under two rows.
         onPage(COPERNICUS_LIABILITY).performScrollTo().assertIsDisplayed()
         assertEquals(
-            "the \"averaged\" line, under the NRCan and USGS rows",
+            "the detail line, under the NRCan and USGS rows",
             2,
-            composeRule.onAllNodes(hasText(HEIGHTS_AVERAGED) and hasAnyAncestor(hasTestTag(SOURCES_PAGE_TAG))).fetchSemanticsNodes().size,
+            composeRule.onAllNodes(hasText(HEIGHTS_DETAIL) and hasAnyAncestor(hasTestTag(SOURCES_PAGE_TAG))).fetchSemanticsNodes().size,
         )
 
         EXPECTED.filter { it.link == null }.forEach { source ->
@@ -277,7 +277,9 @@ class SourcesAndCreditsTest {
             "Heights in Canada: produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH " +
                 "2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved."
         const val USGS_TEXT = "Heights in the United States: 3DEP elevation data courtesy of the U.S. Geological Survey, public domain"
-        const val HEIGHTS_AVERAGED = "Route heights in Forager are averaged from this data."
+        // Dispatch 2026-11-03-07 D6 (RECORD -2030; the owner: "Yes, broaden the credits to cover them"); was "Route heights in
+        // Forager are averaged from this data." (dispatch 2026-10-30-19).
+        const val HEIGHTS_DETAIL = "Route heights, the map's hill shading and waypoint elevations in Forager come from this data."
         const val COPERNICUS_LIABILITY =
             "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any " +
                 "use of the Copernicus WorldDEM-30."
