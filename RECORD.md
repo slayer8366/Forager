@@ -32782,3 +32782,17 @@ PR #476 opened against pre-main, and merged as d6e2a0415 on the owner's "Yes", a
 - **Still seen, not investigated:** AvailabilityScreenCrowdedIconsSettingTest failed again, in throwaway run 41772847614.
 PRs opened against pre-main, not merged.
 **Notes:** Written by the planner by hand. Next free ID -2042.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2042
+**Timestamp:** 2026-11-04T05:37:23Z
+**Continues:** 2026-09-28-2040
+**Title:** The older S22 evidence folders are cleared
+**Outcome:** The owner: "Clear out the older S22 evidence folders".
+- **Deleted** from /home/zynergy-labs: s22-2026-10-27, -10-28, -10-29, -10-30, -10-31, -11-01, -11-02, s22-glyph and s22-glyph-fix. That is about 8.1 GB of screenshots, UI dumps, logs, phone database copies and in-app backups from S22 sessions up to session 7.
+- **Kept:** s22-2026-11-03 (sessions 8 to 10, with the s9 and s10 backups), s22-2026-11-04 (session 11, with its backup), and s22-tools.
+- **Result:** the root disk went from 1.1 GB to 9.1 GB free.
+- **What remains of the deleted folders:** the audits in docs/audits on tools/s22-combined and the RECORD entries. The shots they name for sessions up to 7 no longer exist on disk.
+**Notes:** Written by the planner by hand. Next free ID -2043.
