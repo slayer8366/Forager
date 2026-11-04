@@ -32543,3 +32543,13 @@ Hazel's calls, accepted by the planner:
 - the expected wait for the first conversion is not logged.
 Open for the owner: the Return control's height difference reads only the converted height, so in the two ruled cases it shows no difference. Before #440 it compared raw with raw.
 **Notes:** Written by the planner by hand. Next free ID -2024.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2024
+**Timestamp:** 2026-11-04T00:39:40Z
+**Continues:** 2026-09-28-2023
+**Title:** The Return control's height difference falls back to GPS height too
+**Decision:** The owner, "Yes it should", to the planner's question "Should it fall back to GPS height there too, like the strip does?". Where the sea-level height isn't available (below Android 14, or before the first conversion), the Return control's height difference uses the GPS heights, as the strip does under -2022. Hazel builds it on a new branch from pre-main 15e12da94 (ReturnToStartInfo.withLiveHeight), with the test first and a revert check. One thing to check while building: that both ends of the difference come from the same kind of height, so the control never subtracts a GPS height from a sea-level one.
+**Notes:** Written by the planner by hand. Next free ID -2025.
