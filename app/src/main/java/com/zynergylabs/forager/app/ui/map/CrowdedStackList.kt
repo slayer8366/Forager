@@ -33,6 +33,15 @@ import com.zynergylabs.forager.app.ui.theme.MapPalette
 /** The crowded stack's list, for tests. */
 internal const val CROWDED_LIST_TAG = "crowded-stack-list"
 
+/** The crowded stack's bubble's close button, for tests (dispatch 2026-11-04-02). */
+internal const val CROWDED_LIST_CLOSE_TAG = "crowded-stack-list-close"
+
+/**
+ * The tallest the crowded stack's bubble's card is (dispatch 2026-11-04-02, S1, RECORD -2040: "the tallest standard bubble,
+ * measured and kept as a constant, never more than the room on screen").
+ */
+internal val CROWDED_BUBBLE_MAX_CARD_HEIGHT = 0.dp
+
 /** A row of the crowded stack's list, for tests. */
 internal fun crowdedListRowTag(key: FanKey): String = "crowded-stack-row-${key.layerId}-${key.featureId}"
 

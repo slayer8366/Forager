@@ -50,7 +50,7 @@ internal class MapStackCamera(
         return moved
     }
 
-    override fun restore(spot: CameraSpot) {
+    override fun restore(spot: CameraSpot, animate: Boolean) {
         state.cameraMoveClassifier.markAppMove()
         map.cameraPosition = CameraPosition.Builder()
             .target(MapLibreLatLng(spot.lat, spot.lng))
@@ -65,5 +65,9 @@ internal class MapStackCamera(
             component.cameraMode = mode
         }
         Log.i(SIGHTINGS_MAP_TAG, "Crowded stack: Back returned the camera to zoom ${spot.zoom} (following=${mode != null}).")
+    }
+
+    override fun showMoveFrom(from: CameraSpot, onArrived: () -> Unit, onTakenOver: () -> Unit) {
+        onArrived()
     }
 }
