@@ -32920,3 +32920,25 @@ Dispatch 2026-11-04-04 written, items A1 to A3 and B1 to B3. Hazel (Opus) has br
 **Title:** Route navigation: its own background service, progress per route, obeys silent, a pin replaces the route
 **Decision:** Dispatch 2026-11-03-03 A8. Hazel's split and domain step are green: route-navigate 1cd1d1901, full CI 41800456426, 6435 tests with 0 failures. Fail-first run 41800460255 failed 18 of 26 tests. Four revert checks each produced their own failures. Three tests pass on the stub as well and are noted as not shown to bite. The owner, each the option as read: "Own service (Recommended)"; "Each route remembers (Recommended)"; "Obey silent (Recommended)"; "Pin replaces route (Recommended)". The planner accepts Hazel's four calls beyond scope. Still open: the words, the drawer on stopping, a return mid-route.
 **Notes:** Written by the planner by hand. Next free ID -2053.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2053
+**Timestamp:** 2026-11-04T09:00:19Z
+**Continues:** the crowded list bubble's intent (dispatch 2026-11-04-02)
+**Title:** The crowded list bubble: built, revert-checked, full CI green; PR to open
+**Outcome:** Hazel's report on crowded-list-bubble 994c8893a, cut from pre-main d7a49bb58. A trial merge with 8f240b447 is clean.
+- **Failing first:** run 41782753215, 42 of 49 tests failed. Seven pass over the stubs as well and are not shown to bite.
+- **Revert checks:** 13, each with a clean compile log and failures specific to its edit. Revert 11 (no cluster inset) failed nothing. The new CrowdedListBubbleClusterColumnTest then failed on revert 11b.
+- **Full CI:** run 41801094842, 6,445 tests, 0 failures, 24 skipped.
+- **Calls beyond the dispatch, accepted by the planner:**
+  - the cap measured from the Maps-tab waypoint bubble: 272.67 dp;
+  - AvailabilityScreenCrowdedStackTest's far long-press point moved below the bubble, with its threshold unchanged;
+  - a map tap closes both layers (the ruling's S3), while -255 still holds for the fan;
+  - StackCamera.restore(animate);
+  - onUserGesture split in two;
+  - the take-over is logged.
+- **Hazel's slip:** gh run watch tripped GitHub's rate limit for about 30 minutes.
+- **Device only:** the stray frame between the zoom steps and the eased move, take-over, Back, following, and layout. Hazel's five-step phone check is in her report.
+**Notes:** Written by the planner by hand. Next free ID -2054.
