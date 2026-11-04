@@ -33842,3 +33842,27 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Left in place:** the seven map-type-chip-outlines-rN branches on origin, unmerged; Hazel's worktree ~/.cache/forager-wt/map-type-chip-outlines, clean.
 - **Next:** the merge waits for the owner's word. The audit index row is the planner's, at merge.
 **Notes:** Written by the planner by hand. Next free ID -2098.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-2098
+**Timestamp:** 2026-11-04T20:29:11Z
+**Closes:** 2026-09-28-2090
+**Title:** PR #489 (the map type chips' outlines, rust red at night) merged into pre-main on the owner's word
+**Outcome:** completed.
+- **The owner, verbatim:** "Chips pass. Merge into pre main".
+- **Before merging:**
+  - pre-main 9b58c66a4 was backed up to ~/Zynergy/forager-repo-backups/pre-main-before-489.bundle. It was verified, holds the complete history, and its head is 9b58c66a4.
+  - All 8 of #489's checks passed at its head, 858c77c54. The diff had already been read for @Ignore and removed assertions, and had neither (-2097).
+- **Merged** with a merge commit, at the checked head (--match-head-commit 858c77c54d4e), as 10c347378 at 2026-11-04T20:28:38Z.
+  - pre-main's tree now equals 858c77c54's: 5 files, +694/-4 against 9b58c66a4.
+  - main (c61850aa2) is unchanged.
+  - pre-main's own push run, 41906966295, was still running when this was written. Its result goes in a later outcome entry.
+- **The planner's slip:** the first merge command carried a mistyped full hash and was refused by GitHub ("Could not coerce value"), so nothing merged. The retry used the hash read from git.
+- **Seen on a phone:** the record holds the owner's "Chips pass" and nothing about where they were looked at. The planner didn't touch the phone.
+- **Left:**
+  - the seven map-type-chip-outlines-rN branches on origin, which wait for the owner's word to delete;
+  - the branch map-type-chip-outlines, and Hazel's worktree ~/.cache/forager-wt/map-type-chip-outlines;
+  - the audit index row (the planner's), not yet written.
+**Notes:** Written by the planner by hand. Next free ID -2099.
