@@ -107,7 +107,7 @@ class OfflineReliefTileStoreTest {
     fun `a tiles table without a column this reads is unsupported, and says which`() {
         val db = File(folder.root, "other.db")
         SQLiteDatabase.openOrCreateDatabase(db, null).use { d ->
-            d.execSQL("CREATE TABLE tiles (id INTEGER PRIMARY KEY, url_template TEXT, pixel_ratio INTEGER, z INTEGER, x INTEGER, y INTEGER, data BLOB)")
+            d.execSQL("CREATE TABLE tiles (id INTEGER PRIMARY KEY, url_template TEXT, pixel_ratio INTEGER, z INTEGER, x INTEGER, y INTEGER, modified INTEGER, data BLOB)")
             d.execSQL("CREATE TABLE region_tiles (region_id INTEGER, tile_id INTEGER)")
             d.execSQL("PRAGMA user_version = 6")
         }
@@ -122,6 +122,50 @@ class OfflineReliefTileStoreTest {
         }
         val read = OfflineReliefTileStore(db).tile(11, 331, 733)
         assertTrue("expected a failure, got $read", read is ReliefTileRead.Failed)
+    }
+
+    /** What MapLibre's own region delete does (`offline_database.cpp` `deleteRegion` at android-v13.5.0): the region row, its links by cascade; the tile row stays. */
+    private fun File.deleteRegionAsTheSdkDoes(): File = change("PRAGMA foreign_keys = ON", "DELETE FROM regions")
+
+    @Test
+    fun `a linked tile has a fingerprint, the same each time and the one its read carried`() {
+        val store = OfflineReliefTileStore(fixture())
+        val first = store.linkedFingerprint(11, 331, 733)
+        assertTrue("a fingerprint while a region holds it", first != null)
+        assertEquals(first, store.linkedFingerprint(11, 331, 733))
+        assertEquals(first, found(store.tile(11, 331, 733)).fingerprint)
+    }
+
+    @Test
+    fun `after the SDK's region delete the tile row stays, with no fingerprint and not stored`() {
+        val db = fixture().deleteRegionAsTheSdkDoes()
+        val rows = SQLiteDatabase.openDatabase(db.path, null, SQLiteDatabase.OPEN_READONLY).use { d ->
+            d.rawQuery("SELECT (SELECT count(*) FROM tiles), (SELECT count(*) FROM region_tiles)", null).use { c -> c.moveToFirst(); c.getInt(0) to c.getInt(1) }
+        }
+        assertEquals("as on the S22: the tile row kept, its region link gone", 1 to 0, rows)
+        val store = OfflineReliefTileStore(db)
+        assertEquals(null, store.linkedFingerprint(11, 331, 733))
+        assertEquals(ReliefTileRead.NotStored, store.tile(11, 331, 733))
+    }
+
+    @Test
+    fun `a height read before a region's delete is not shown after it`() = kotlinx.coroutines.test.runTest {
+        // S22 session 11, through the real reader on the SDK's database: the source's kept tile must not outlive the delete.
+        val db = fixture()
+        val source = com.zynergylabs.forager.app.domain.relief.ReliefGroundHeightSource(
+            OfflineReliefTileStore(db),
+            { _, _, _ -> },
+            kotlinx.coroutines.test.StandardTestDispatcher(testScheduler),
+        )
+        val summit = com.zynergylabs.forager.app.domain.model.LatLng(45.3736, -121.6959)
+        assertTrue("a height before the delete", source.groundHeightAt(summit) is com.zynergylabs.forager.app.domain.GroundHeight.Known)
+
+        db.deleteRegionAsTheSdkDoes()
+
+        assertEquals(
+            com.zynergylabs.forager.app.domain.GroundHeight.Unknown(com.zynergylabs.forager.app.domain.GroundHeightUnknown.NOT_DOWNLOADED),
+            source.groundHeightAt(summit),
+        )
     }
 
     private fun inflate(bytes: ByteArray): ByteArray {
