@@ -32971,3 +32971,13 @@ Nothing in A6 is left open.
 **Title:** One shared location service for recording and route navigation, built now
 **Decision:** The owner asked "The same service can't run both tasks?". The planner answered that it can; splitting them was a code choice. The options: route navigation joins the recording's service, or one shared location service that both use. The planner recommended keeping two for release. The owner: "To be honest every update is an update before release, since every release contains an update. So let's just do the hard part now so we don't have to do the same task twice". Dispatch 2026-11-03-03 A10 replaces A9's service call: one shared location service. Verify-first comes before any change, and recording alone must behave exactly as today, proven first.
 **Notes:** Written by the planner by hand. Next free ID -2056.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2056
+**Timestamp:** 2026-11-04T09:17:04Z
+**Continues:** 2026-09-28-2055
+**Title:** Route navigation moves to a follow-up update; the release ships the current queue
+**Decision:** The owner: "Another way to do this is to release with the current queue of tasks, let them finish and merge, release, and then start this to do as a follow up update. So let's start this now, but let the other tasks finish, and then we can hammer this out on a fresh palette". Dispatch 2026-11-03-03 B5. The release is the current queue: #482 (the crowded list bubble), the waypoint series with the pick-up chooser (-2050), and the release checks. route-navigate stays off pre-main until after the release. Its work starts now with A10's verify-first. The first route navigation Hazel was stopped by the owner. She had pushed up to fae14e6e7, which includes a separate RouteNavigationService made before A10 reached her. Its last two commits' CI is not seen. A new Hazel picks up from there.
+**Notes:** Written by the planner by hand. Next free ID -2057.
