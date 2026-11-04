@@ -52,7 +52,8 @@ class DropOffFixtureTest {
     @Test
     fun `the fixture files are the ones its README records`() {
         assertEquals("a332b322768cdfddf9dcc69714e762f362d1d2258a9bf1d68b2fc72b2978d8f7", DropOffTestData.sha256("segments/W75_N40.rd5"))
-        assertEquals("90b523741b016304bf255112317739ad38b9619c2f35689113c123942e511eba", DropOffTestData.sha256(DropOffTestData.TILE))
+        assertEquals("65220c934a0416217bbbbee8ddc982a226810b018dfa6611a613d0ded7e3e031", DropOffTestData.sha256(DropOffTestData.TILE))
+        assertEquals("e654fb19bf8bcfbc02d5c94ba31e89f3a00637d63907d855902b1d29f28968cb", DropOffTestData.sha256(DropOffTestData.TILE_BEFORE_0003))
     }
 
     @Test
@@ -90,6 +91,9 @@ class DropOffFixtureTest {
 internal object DropOffTestData {
     const val SQUARE = "W75_N40.rd5"
     const val TILE = "15/9875/12393.mvt"
+
+    /** The same tile as every build before 11-01 wrote it: no barriers layer (so no mark), no addr_street, no tunnel on lines. */
+    const val TILE_BEFORE_0003 = "15/9875/12393.before-0003.mvt"
 
     fun segments(tmp: TemporaryFolder): File = tmp.newFolder("dropoff-segments").also { dir -> resource("segments/$SQUARE").copyTo(File(dir, SQUARE)) }
 

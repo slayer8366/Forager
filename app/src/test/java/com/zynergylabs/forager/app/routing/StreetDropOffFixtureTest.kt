@@ -37,13 +37,12 @@ class StreetDropOffFixtureTest {
     private val tile = DropOffTestData.resource(DropOffTestData.TILE).readBytes()
     private fun tileJson(name: String) = File(checkNotNull(javaClass.classLoader?.getResource("mapdata/$name")).toURI()).readText()
 
-    /** The 0003 TileJSON with addr_street taken out of the buildings fields: a tile set with fences but no street names. */
-    private val noStreetNames by lazy { tileJson("tilejson-with-0003.json").replace(Regex("\"addr_street\"\\s*:\\s*\"[A-Za-z]+\",?\\s*"), "") }
+    private val tileBefore0003 = DropOffTestData.resource(DropOffTestData.TILE_BEFORE_0003).readBytes()
 
-    private fun data(pin: String, json: String = tileJson("tilejson-with-0003.json")): NearbyMapData = runBlocking {
+    private fun data(pin: String, json: String = tileJson("tilejson-with-0003.json"), stored: ByteArray = tile): NearbyMapData = runBlocking {
         val basemap = object : OfflineBasemap {
             override suspend fun tileJson() = Result.success<String?>(json)
-            override suspend fun tile(id: TileId) = Result.success(if (id == fixtureTile) tile else null)
+            override suspend fun tile(id: TileId) = Result.success(if (id == fixtureTile) stored else null)
         }
         ReadNearbyMapData(basemap)(DropOffTestData.point(pin), 300.0).getOrThrow()
     }
@@ -101,19 +100,19 @@ class StreetDropOffFixtureTest {
 
     @Test
     fun `with no street names, the frontage rank passes over the fenced and the stream-crossed street for the clear one`() {
-        val b = choose("pin_b", data("pin_b", noStreetNames))
-        assertFound(b, "dropoff_b", Rank.FRONTAGE)
-        val c = choose("pin_c", data("pin_c", noStreetNames))
-        assertFound(c, "dropoff_c", Rank.FRONTAGE)
+        // Addresses with no street name, as OpenStreetMap often has them: the address rank finds nothing to go on.
+        fun nameless(d: NearbyMapData) = d.copy(features = d.features.copy(addresses = d.features.addresses.map { it.copy(street = null) }))
+        assertFound(choose("pin_b", nameless(data("pin_b"))), "dropoff_b", Rank.FRONTAGE)
+        assertFound(choose("pin_c", nameless(data("pin_c"))), "dropoff_c", Rank.FRONTAGE)
     }
 
     @Test
     fun `a tile set from before patch 0003 qualifies no drop-off, saying fences could not be checked`() {
-        val choice = choose("pin_a", data("pin_a", tileJson("tilejson-before-0003.json")))
+        val choice = choose("pin_a", data("pin_a", tileJson("tilejson-before-0003.json"), tileBefore0003))
         assertTrue("$choice", choice is Choice.NoneQualifies)
         val tried = (choice as Choice.NoneQualifies).tried
         assertTrue(tried.none { it.gates == GateResult.Passes })
-        assertTrue(tried.any { t -> (t.gates as? GateResult.Unchecked)?.what?.any { it.what == Crossing.FENCE && "barriers layer" in it.reason } == true })
+        assertTrue(tried.any { t -> (t.gates as? GateResult.Unchecked)?.what?.any { it.what == Crossing.FENCE && "no barrier mark" in it.reason } == true })
     }
 
     @Test
@@ -135,7 +134,7 @@ class StreetDropOffFixtureTest {
 
     @Test
     fun `in a tile set from before culverts were marked, a stream crossed may be in one - unchecked, not failed`() {
-        val old = data("pin_c", tileJson("tilejson-before-0003.json"))
+        val old = data("pin_c", tileJson("tilejson-before-0003.json"), tileBefore0003)
         val result = LegGates.check(p("engine_c"), p("pin_c"), old, own("pin_c", old))
         assertTrue("$result", result is GateResult.Unchecked && result.what.any { it.what == Crossing.WATER && it.reason.startsWith("a stream is crossed") })
     }
@@ -145,5 +144,14 @@ class StreetDropOffFixtureTest {
         val north = LatLng(p("pin_d").lat + 300 / 111_195.0, p("pin_d").lng) // past the fixture tile's north edge
         val result = LegGates.check(p("pin_d"), north, data("pin_d"))
         assertTrue("$result", result is GateResult.Unchecked && result.what.any { it.what == Crossing.BUILDING })
+    }
+
+    @Test
+    fun `fences are read from each tile's mark - an old tile is unchecked even when the stored TileJSON is new`() {
+        // The owner's choice (b), 10-28: a TileJSON refreshed by browsing says nothing about a tile downloaded before.
+        val choice = choose("pin_a", data("pin_a", tileJson("tilejson-with-0003.json"), tileBefore0003))
+        assertTrue("$choice", choice is Choice.NoneQualifies)
+        // And the other way round: a marked tile is checked even under the old TileJSON.
+        assertFound(choose("pin_a", data("pin_a", tileJson("tilejson-before-0003.json"), tile)), "dropoff_a", Rank.ACCESS_WAY)
     }
 }

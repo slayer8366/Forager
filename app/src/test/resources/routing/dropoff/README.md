@@ -18,7 +18,8 @@ with BRouter 1.7.10's map creator (MIT licence, Copyright (c) 2019 BRouter contr
 - `segments/W75_N40.rd5`: the routing square, 4,475 bytes, SHA-256 `a332b322…d8f7`, made by `make-dropoff-rd5.sh`
   (BRouter's three map-creator steps with the pinned jar and profiles, no elevation). It is the fixture of record:
   WayLinker stamps its run time, so a rerun differs in those bytes.
-- `15/9875/12393.mvt`: the one zoom-15 map tile the block lies in, uncompressed. SHA-256 `90b52374…1eba`.
+- `15/9875/12393.mvt`: the one zoom-15 map tile the block lies in, uncompressed, as the 11-01 build writes it (patches 0003 and 0004). SHA-256 `65220c93…e031`.
+- `15/9875/12393.before-0003.mvt`: the same tile as every build before it wrote it: no barriers layer (so no mark), no `addr_street`, no `tunnel` on water lines. SHA-256 `e654fb19…68cb`.
 
 ## The block
 
@@ -55,4 +56,4 @@ The layers and fields the Forager basemap build writes at zoom 15, including wha
 | `water` | stream lines | `kind`, `min_zoom`, `sort_rank`, and **`tunnel`** (new on lines: upstream sets it on water polygons only, so a culvert could not be told from an open stream) |
 | `landuse` | the residential area and the wood | `kind`, `sort_rank` |
 | `roads` | the ways above | `kind`, `kind_detail`, `name`, `access` |
-| **`barriers`** (new) | fence lines | `kind`: `fence`, `wall`, `hedge` or `retaining_wall` |
+| **`barriers`** (new) | fence lines, and the **mark** (patch 0004): one point at the tile's corner with no id and no fields, in every zoom-15 tile, fences or not | `kind`: `fence`, `wall`, `hedge` or `retaining_wall`; the mark has none |

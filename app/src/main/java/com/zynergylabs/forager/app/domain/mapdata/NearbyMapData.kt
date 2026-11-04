@@ -69,9 +69,11 @@ data class TileSetSchema(val fences: Coverage, val addressStreets: Coverage, val
  * stored ([missingTiles]: their buildings and water could not be checked), and what the tile set carries ([schema]).
  *
  * What can be relied on is answered per tile ([buildings], [fences], [culverts], [addressStreets]), so a gate asks about
- * exactly the tiles its leg crosses. Fences and culverts come per tile from [fencesByTile], which the reader fills. Today
- * every stored tile takes the tile set's answer. A per-tile mark in the build, if the owner takes it, changes only how
- * the reader fills it (the planner, 10-28).
+ * exactly the tiles its leg crosses. Fences, culverts and address streets come per tile from [fencesByTile], which the
+ * reader fills from the tile itself: basemap patch 0004 puts a mark in the barriers layer of every zoom-15 tile (the
+ * owner's choice (b), 10-28). A tile with the layer was built with barriers, so no fence line in it means none mapped;
+ * a tile without it was built before, so none of the three can be relied on there. The tile set's TileJSON ([schema])
+ * no longer decides any of them.
  */
 data class NearbyMapData(
     val features: MapFeatures,
@@ -86,13 +88,15 @@ data class NearbyMapData(
         else -> Coverage.Checked
     }
 
-    /** Fences in [tile]: only where the tile is stored and carries them. */
-    fun fences(tile: TileId): Coverage = buildings(tile).takeIf { it is Coverage.NotInTileSet } ?: fencesByTile[tile] ?: schema.fences
+    /** Fences in [tile]: only where the tile is stored and carries the barrier mark. */
+    fun fences(tile: TileId): Coverage =
+        buildings(tile).takeIf { it is Coverage.NotInTileSet } ?: fencesByTile[tile] ?: Coverage.NotInTileSet("tile ${tile.z}/${tile.x}/${tile.y} was not read")
 
-    /** Culverts in [tile]: they came with the fences (patch 0003), so the same mark answers for both. */
+    /** Culverts in [tile]: tunnel on water lines came with the barriers (patch 0003), so the same mark answers. */
     fun culverts(tile: TileId): Coverage = fences(tile)
 
-    fun addressStreets(tile: TileId): Coverage = buildings(tile).takeIf { it is Coverage.NotInTileSet } ?: schema.addressStreets
+    /** Address streets in [tile]: addr_street came with the barriers too. */
+    fun addressStreets(tile: TileId): Coverage = fences(tile)
 }
 
 /**
@@ -105,6 +109,7 @@ class ReadNearbyMapData(private val basemap: OfflineBasemap) {
         val schema = TileSetSchema.fromTileJson(basemap.tileJson().getOrElse { return Result.failure(it) })
         var features = MapFeatures()
         val missing = mutableListOf<TileId>()
+        val marks = HashMap<TileId, Coverage>()
         for (id in tilesAround(around, radiusMeters)) {
             val bytes = basemap.tile(id).getOrElse { return Result.failure(it) }
             if (bytes == null) {
@@ -119,11 +124,13 @@ class ReadNearbyMapData(private val basemap: OfflineBasemap) {
                 return Result.failure(MvtFormatException("tile ${id.z}/${id.x}/${id.y}: ${e.message}"))
             }
             features += TileFeatureReader.read(id, mvt)
+            marks[id] = if (mvt.layer(TileFeatureReader.BARRIERS) != null) {
+                Coverage.Checked
+            } else {
+                Coverage.NotInTileSet("tile ${id.z}/${id.x}/${id.y} has no barrier mark: it was built before fences were carried")
+            }
         }
-        val read = tilesAround(around, radiusMeters)
-        // Option (a), the planner's of 10-28: each stored tile takes the tile set's answer.
-        val fencesByTile = read.filter { it !in missing }.associateWith { schema.fences }
-        return Result.success(NearbyMapData(features, read, missing, schema, fencesByTile))
+        return Result.success(NearbyMapData(features, tilesAround(around, radiusMeters), missing, schema, marks))
     }
 
     companion object {

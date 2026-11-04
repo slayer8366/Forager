@@ -88,4 +88,17 @@ class NearbyMapDataTest {
         assertEquals(broken, read(FakeBasemap(Result.success(tileJson("tilejson-with-0003.json")), emptyMap(), failTile = broken)).exceptionOrNull())
         assertEquals(broken, read(FakeBasemap(Result.failure(broken), emptyMap())).exceptionOrNull())
     }
+
+    @Test
+    fun `fences, culverts and address streets come from each tile's barrier mark, not from the TileJSON`() {
+        val old = DropOffTestData.resource(DropOffTestData.TILE_BEFORE_0003).readBytes()
+        val unmarked = read(FakeBasemap(Result.success(tileJson("tilejson-with-0003.json")), mapOf(fixtureTile to old))).getOrThrow()
+        val why = Coverage.NotInTileSet("tile 15/9875/12393 has no barrier mark: it was built before fences were carried")
+        assertEquals(why, unmarked.fences(fixtureTile))
+        assertEquals(why, unmarked.culverts(fixtureTile))
+        assertEquals(why, unmarked.addressStreets(fixtureTile))
+        val marked = read(FakeBasemap(Result.success(tileJson("tilejson-before-0003.json")), mapOf(fixtureTile to tile))).getOrThrow()
+        assertEquals(Coverage.Checked, marked.fences(fixtureTile))
+        assertEquals(Coverage.Checked, marked.addressStreets(fixtureTile))
+    }
 }

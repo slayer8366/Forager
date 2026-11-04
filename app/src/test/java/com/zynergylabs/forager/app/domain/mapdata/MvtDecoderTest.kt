@@ -22,7 +22,7 @@ class MvtDecoderTest {
     @Test
     fun `the tile's layers and their feature counts are the drawing's`() {
         assertEquals(listOf("landuse", "water", "roads", "buildings", "barriers"), mvt.layers.map { it.name })
-        assertEquals(listOf(2, 3, 6, 8, 1), mvt.layers.map { it.features.size })
+        assertEquals(listOf(2, 3, 6, 8, 2), mvt.layers.map { it.features.size }) // barriers: fence B and the mark
         assertTrue(mvt.layers.all { it.extent == 4096 })
     }
 
