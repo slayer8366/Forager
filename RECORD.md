@@ -32601,3 +32601,20 @@ Also recorded from Hazel's report:
 - **Credits:** the dem source credits "Heights: USGS 3DEP; NRCan MRDEM", and the app's Heights credits cover them. Two detail lines say only "Route heights in Forager are averaged from this data." (owner's call, also left open in a578ecd56).
 - **The planner's call:** only tiles linked to a downloaded region count, as the owner's option text says, and the ambient cache is left out. The reader checks the schema, opens read-only, and answers Unsupported (logged once) otherwise.
 **Notes:** Written by the planner by hand. Next free ID -2029.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-2029
+**Timestamp:** 2026-11-04T01:28:54Z
+**Continues:** 2026-09-28-2024
+**Title:** The Return height fallback is built; it waits for pre-main to go green
+**Observed:** From Hazel's report, branch return-height-gps-fallback.
+- **The checks Hazel had inferred, now read:** an imported GPX track can't become the running recording, and backup restore can't reach the Return start (it is refused while recording). One inferred gap: the restore guard reads the screen's isRecording.
+- **The change:** the tests first (cf62d89eb), then the fix (e65a91a43, ReturnToStartInfo.withLiveHeight: raw start minus raw here when the sea-level height isn't there).
+- **Fail first:** 41749127880, exactly the 2 predicted failures.
+- **Revert check:** 41751625826, the same 2.
+- **Two mutations** (41751713347, 41751716711) fail all four provenance tests.
+- **Full CI:** 41751698524, 6351 tests, 2 failures: RouteCardExpandShortLandscapeTest (leg row 0 has height 0) and RouteCardOnNavigationCardShortFont20Test (D37, 24.67 against 8). pre-main's own push run 41747193319 fails both with identical messages, while #440's PR run at about 00:27 UTC passed them. The planner reads them as the same evening clock dependency that route-card-evening fixes.
+- **The planner's call:** no waiver. The branch waits for route-card-evening to land, then merges pre-main in and re-runs.
+**Notes:** Written by the planner by hand. Next free ID -2030.
