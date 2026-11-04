@@ -255,6 +255,13 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- Route navigation's background location service (dispatch 2026-11-03-03, A8): started by Navigate on a saved route,
+             with or without a recording, so a stop is reached with the screen off. The permissions above cover it. -->
+        <service
+            android:name=".service.RouteNavigationService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
         <!-- Grants the camera app write access to a file under filesDir/captures/ for
              ActivityResultContracts.TakePicture, without exposing broader file access — see
              com.zynergylabs.forager.app.photo.CameraCaptureFiles and res/xml/file_paths.xml. -->

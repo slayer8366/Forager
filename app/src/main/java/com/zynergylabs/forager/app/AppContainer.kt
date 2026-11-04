@@ -53,6 +53,10 @@ import com.zynergylabs.forager.app.data.repository.DataStoreCameraGridModeReposi
 import com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreWaypointNavigationRepository
+import com.zynergylabs.forager.app.data.repository.DataStoreRouteNavigationRepository
+import com.zynergylabs.forager.app.alert.AndroidStopReachedSignal
+import com.zynergylabs.forager.app.domain.routenav.RouteNavigationRepository
+import com.zynergylabs.forager.app.domain.routenav.RouteNavigationWatch
 import com.zynergylabs.forager.app.data.remote.INaturalistClient
 import com.zynergylabs.forager.app.data.remote.OpenMeteoArchiveClient
 import com.zynergylabs.forager.app.data.remote.OpenMeteoClient
@@ -436,6 +440,16 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         // shownTrailOf for the order. wayHomeWatch is declared below, and this runs only on a fix. Both watches are typed
         // explicitly: each reads the other, and Kotlin cannot infer either type otherwise (CI 40171062417).
         wayHomeTrail = { id -> shownTrailOf(wayHomeWatch, id) },
+    )
+
+    // Dispatch 2026-11-03-03 (A8): route navigation's stop-checking, held here so it outlives the Activity, as returnWatch is.
+    // RouteNavigationService feeds it every raw fix; the Maps tab's ViewModel begins and ends it and reads its state.
+    val routeNavigationRepository: RouteNavigationRepository = DataStoreRouteNavigationRepository(context, settingsReset = settingsResetNotice)
+    val routeNavigationWatch: RouteNavigationWatch = RouteNavigationWatch(
+        routeNavigationRepository,
+        AndroidStopReachedSignal(context.applicationContext),
+        CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        errorLog,
     )
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
