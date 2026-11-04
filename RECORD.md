@@ -32844,3 +32844,13 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 **Title:** A read-only check of the waypoint series' state
 **Intent:** The owner, asked what is left to merge: "Yes, check the waypoint series". Hazel (Opus) is to check open PRs #433 and #435-#439 (dispatch 2026-10-28) against pre-main 8f240b447: how they stack, CI on the current heads, clean merges into pre-main (the stack in order), drift, blockers, and what the dispatch leaves to do. No commits, pushes or CI runs. gh calls are kept few because of today's rate limit.
 **Notes:** Written by the planner by hand. Next free ID -2047.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2047
+**Timestamp:** 2026-11-04T08:19:12Z
+**Continues:** 2026-09-28-1990
+**Title:** Route navigation, stop by stop, is to be built
+**Intent:** The owner: "Start building the route navigation". Dispatch 2026-11-03-03, amended with B3 and B4: #449 is merged, so the branch is cut from pre-main 8f240b447. The order is verify-first, then the A5 split, then the domain, then the ViewModel and the cards. A6 is still open and goes to the owner, with the rulings to come as A7. Hazel (Opus).
+**Notes:** Written by the planner by hand. Next free ID -2048.
