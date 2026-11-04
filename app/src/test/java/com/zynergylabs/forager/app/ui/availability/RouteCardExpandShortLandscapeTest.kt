@@ -43,10 +43,7 @@ import org.robolectric.shadows.ShadowDisplay
  * semantically; and the claim is what shows, so leg row 0's bounds are read clipped, not unclipped: the rows are laid out at full
  * height and clipped to what shows (RouteCardReveal.kt), so an unclipped read passes on a card that shows no row.
  */
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardExpandShortLandscapeTest {
+abstract class RouteCardExpandShortLandscapeTests(private val clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -54,7 +51,7 @@ class RouteCardExpandShortLandscapeTest {
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
     // A fixed clock (D43): the navigation card's sundown line would change the room by the hour.
-    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = ROUTE_CARD_NOON_CLOCK)
+    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = clock)
 
     /** Leg row 0 as drawn: clipped by the reveal and by the card. */
     private fun rowShown(): DpRect = composeRule.onNodeWithTag(routeCardLegTag(0), useUnmergedTree = true).getBoundsInRoot()
@@ -126,3 +123,22 @@ class RouteCardExpandShortLandscapeTest {
         }
     }
 }
+
+/**
+ * D43 (RECORD -2020): at fixed clocks. Pre-main's push run 41747193319 failed this class at 00:57 UTC, just after the rig's sunset,
+ * when the sundown line ("Sunset was …") fits the navigation card here and takes the room; it had passed earlier in the day.
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardExpandShortLandscapeTest : RouteCardExpandShortLandscapeTests(ROUTE_CARD_NOON_CLOCK)
+
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardExpandShortLandscapeEveningTest : RouteCardExpandShortLandscapeTests(ROUTE_CARD_EVENING_CLOCK)
+
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardExpandShortLandscapeAfterSunsetTest : RouteCardExpandShortLandscapeTests(ROUTE_CARD_AFTER_SUNSET_CLOCK)

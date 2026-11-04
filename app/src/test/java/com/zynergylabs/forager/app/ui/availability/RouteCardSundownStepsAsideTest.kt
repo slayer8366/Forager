@@ -37,14 +37,14 @@ import org.robolectric.shadows.ShadowDisplay
  *
  * At [ROUTE_CARD_EVENING_CLOCK] (22:45 UTC, the sundown line due), the S22's insets and rotation, navigating, real touches on the handle.
  */
-abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true) {
+abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true, clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = ROUTE_CARD_EVENING_CLOCK) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = ROUTE_CARD_EVENING_CLOCK, legHeights = legHeights)
+    private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT, clock = clock, legHeights = legHeights)
 
     private fun sundownShown() = rig.count(NAVIGATION_HUD_SUNDOWN_LINE_TAG)
 
@@ -155,4 +155,16 @@ class RouteCardSundownStaysNormalTest : RouteCardSundownStepsAsideTests() {
 class RouteCardSundownStepsAsideFont20Test : RouteCardSundownStepsAsideTests() {
     @Test
     fun `evening, 823 x 384, font 2_0 - the sundown line steps aside, the card is whole and its rows show`() = assertStepsAsideWhereShort()
+}
+
+/**
+ * Just after sunset (pre-main's run 41747193319's hour), when the sundown line does fit the navigation card at 640 x 360 with no card:
+ * here D42 has a line to step aside, and it comes back when the card closes.
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+class RouteCardSundownStepsAsideShortAfterSunsetTest : RouteCardSundownStepsAsideTests(clock = ROUTE_CARD_AFTER_SUNSET_CLOCK) {
+    @Test
+    fun `just after sunset, 640 x 360, font 2_0, the S22's insets - the line steps aside, the card is whole and its rows show`() = assertStepsAsideWhereShort(lineExpected = true)
 }
