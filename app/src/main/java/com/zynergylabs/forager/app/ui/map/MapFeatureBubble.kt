@@ -87,6 +87,8 @@ internal fun MapFeatureBubble(
             is MapBubbleContent.WaypointContent -> {
                 BubbleTitle(content.waypoint.name)
                 content.mgrs?.let { BubbleLine(it) }
+                // Dispatch 2026-11-03-07 (A1): below the coordinates, above "from start"; no line when not known (A2).
+                content.elevation?.let { Box(Modifier.testTag(MAP_BUBBLE_ELEVATION_TAG)) { BubbleLine(it) } }
                 content.fromStart?.let { BubbleLine(it) }
                 KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions {
@@ -247,6 +249,9 @@ internal const val MAP_BUBBLE_DIRECTIONS_TAG = "map-bubble-directions"
 internal const val MAP_BUBBLE_NAVIGATE_TAG = "map-bubble-navigate"
 internal const val MAP_BUBBLE_PLOT_ROUTE_TAG = "map-bubble-plot-route"
 internal const val MAP_BUBBLE_DETAILS_TAG = "map-bubble-details"
+
+/** The waypoint bubble's elevation line (dispatch 2026-11-03-07). */
+internal const val MAP_BUBBLE_ELEVATION_TAG = "map-bubble-elevation"
 internal const val MAP_BUBBLE_STALE_TAG = "map-bubble-stale"
 internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"
 

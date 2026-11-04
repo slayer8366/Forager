@@ -14,9 +14,10 @@ import com.zynergylabs.forager.app.domain.routing.TrailRoute
  * - **The two track parts** carry their own stored points' barometric heights, kept through
  *   [FindWayHomeUseCase]'s track parts rather than dropped with the positions.
  * - **The trail part carries the trail data's heights** ([PartHeights.TrailData], [trailDataHeights]) when every point of
- *   the engine's route has one. The route squares carry heights on a three-arc-second grid (3″, posts about 90 m
- *   apart) since the route build of 2026-10-28 (RECORD -1835); the routing adapter keeps them
- *   ([com.zynergylabs.forager.app.domain.routing.TrailRoute.heightsMetres]).
+ *   the engine's route has one. Since the route build of 2026-10-28 (RECORD -1835) the route squares carry one height
+ *   per way node, sampled at build time from a three-arc-second grid (3″, posts about 90 m apart); the grid itself is not
+ *   on the phone (dispatch 2026-11-03-07, D1: BRouter's `OsmNode.selev`, read per node). The routing adapter keeps each
+ *   route node's ([com.zynergylabs.forager.app.domain.routing.TrailRoute.heightsMetres]).
  *   - **The step between the two kinds of height is never counted** (Amendment 1, J1, the owner: "Don't count the step
  *     (Recommended)"). The trail data's heights are the terrain model's and the track's are the barometer's, anchored to
  *     GPS; the two can sit metres apart, and the line is banked as one run ([climbFrom]), so joining them would count
