@@ -32887,3 +32887,17 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 - Still open: the words, silent mode, the drawer on stopping, a pin's Navigate mid-route, a return mid-route, route B after A.
 - The waypoint series (-2048): the planner recommended holding it until after release; no answer yet.
 **Notes:** Written by the planner by hand. Next free ID -2050.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2050
+**Timestamp:** 2026-11-04T08:48:51Z
+**Continues:** 2026-09-28-2048
+**Title:** The waypoint series gates release; the owner rules on old maps, the walker's end and the notes
+**Decision:** The owner: "Release is gated by waypoint series". This overrules the planner's recommendation to hold it (-2048). Then, each the option as read:
+- "Trail route, no drop-off (Recommended)" for areas without fence data;
+- "Needed for release" for a pick-up chooser at the walker's end;
+- "Yes, as written (Recommended)" for the three notes.
+Dispatch 2026-11-04-04 written, items A1 to A3 and B1 to B3. Hazel (Opus) has bringing the stack current: stack-order merges, AppContainer kept on both sides, no new FindWayToWaypointUseCase callers on pre-main.
+**Notes:** Written by the planner by hand. Next free ID -2051.
