@@ -33462,3 +33462,23 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - A watcher retries the cancel every minute and reports when each run ends.
   - Once 41861172175 stops, pre-main's head has no run of its own. Its tree is 9660e542a's, which passed in 41851180717.
 **Notes:** Written by the planner by hand. Next free ID -2080.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2080
+**Timestamp:** 2026-11-04T16:17:41Z
+**Continues:** 2026-09-28-2079, 2026-09-28-2076
+**Title:** #486's merge undone on palette-rule; #486 still cannot be reopened; #488 set aside; #486's old CI run passed
+**Decision:**
+- **The owner, verbatim, in order:**
+  - "486 is the next PR. That's been opened and it's for you to use. Go ahead and bring the work to that PR and set 488 aside for later";
+  - asked how to carry the work, since #486 is merged: "No mew PR";
+  - asked where the reverts should live: "Undo the merge";
+  - asked which merge, with the four listed: "Undo 486 merge".
+- **#486 cannot be reopened.** GitHub refused: HTTP 422, "state cannot be changed. The pull request cannot be reopened." It was tried before and after the revert below, and #486 is still closed with merged=true. GitHub marked it merged at 15:44:38Z when its head d82cf520e reached pre-main inside #485, crediting merge commit 8c8c36e2afba (delete-amendment-4 into palette-rule, the owner's earlier "Merge 486 into 485").
+- **Done:** 8c8c36e2a reverted on palette-rule (mainline 1) as 542f21974 and pushed as a fast-forward. palette-rule's tree is 1be861e3d's again, ee192a5e, which is also pre-main's tree. Pre-main (192b9eab2) and main (c61850aa2) are unchanged.
+  - *The planner's slip:* the commit body names the merge as "8c8c36e2a8". The right hash is 8c8c36e2afba95995c462e4c719484eda2531f55 (the subject's 8c8c36e2a is right). Left unamended under CLAUDE.md's push-before-you-tidy.
+- **Not done, waiting for the owner:** the 11 reverts stay on revert-chip-colours (d4ce043f5). No new PR was opened. delete-amendment-4 is not moved. #488 is set aside, open and untouched.
+- **The older runs (-2079):** 41859153917, #486's run on d82cf520e, finished before the stop took hold, completed **success**, including Build, test, publish APK. That is the full suite on chip code identical to #488's except one comment line. 41860900001 (in_progress) and 41861172175 (pending) are still refusing cancel during GitHub's Actions incident, and the watcher keeps retrying. #488's own run 41863141684 is still queued.
+**Notes:** Written by the planner by hand. Next free ID -2081.
