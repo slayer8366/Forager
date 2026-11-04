@@ -32796,3 +32796,13 @@ PRs #479 and #480 opened against pre-main, and merged on the owner's "Yes, merge
 - **Result:** the root disk went from 1.1 GB to 9.1 GB free.
 - **What remains of the deleted folders:** the audits in docs/audits on tools/s22-combined and the RECORD entries. The shots they name for sessions up to 7 no longer exist on disk.
 **Notes:** Written by the planner by hand. Next free ID -2043.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2043
+**Timestamp:** 2026-11-04T05:54:24Z
+**Continues:** 2026-09-28-2018
+**Title:** The v4 clone layers take their originals' night colours
+**Intent:** The owner: "Start the night colour fix for the clone layers". Dispatch 2026-11-04-03, Hazel (Opus). Required before any promotion (-2018).
+**Notes:** Written by the planner by hand. Next free ID -2044.
