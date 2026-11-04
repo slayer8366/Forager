@@ -33237,7 +33237,7 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 **Timestamp:** 2026-11-04T14:51:27Z
 **Continues:** 2026-09-28-2069
 **Title:** The app's colours are outdoor features, researched, not aesthetics
-**Decision:** The owner, verbatim: "I ran a lot of research into these colors so they're more than aesthetics. They're part of the app features for outdoor use. I picked red over brown specifically because it's superior for night vision. The same with pure white, it reduces sun glare, feels more comfortable on the eyes, and pure white can be a high contrast accent rather than a surface color."
+**Decision:** The owner, verbatim: "I ran a lot of research into these colors so they're more than aesthetics. They're part of the app features for outdoor use. I picked red over brown specifically because it's superior for night vision. The same with pure white, it reduces sun glare, feels more comfortable on the eyes, and pure white can be a high contrast accent rather than a surface color." Corrected by the owner straight after: "Same with cream over pure white rather*", so the sentence reads "The same with cream over pure white, it reduces sun glare, feels more comfortable on the eyes, and pure white can be a high contrast accent rather than a surface color."
 - **The planner's reading, labelled as his:** the palette is a feature, with a reason behind each choice.
   - Rust red is the night highlight, because red is superior to brown for night vision.
   - By day, cream surfaces are used instead of pure white because they reduce sun glare and are easier on the eyes.
