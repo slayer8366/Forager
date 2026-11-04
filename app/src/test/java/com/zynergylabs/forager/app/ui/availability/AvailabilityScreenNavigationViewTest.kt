@@ -110,7 +110,7 @@ class AvailabilityScreenNavigationViewTest {
         val set: (@Composable () -> Unit) -> Unit = restoration?.let { r -> { content: @Composable () -> Unit -> r.setContent(content) } } ?: { content -> composeRule.setContent(content) }
         set {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                     tripStartWarning = tripStartWarning,

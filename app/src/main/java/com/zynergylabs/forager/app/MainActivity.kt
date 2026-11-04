@@ -1,9 +1,12 @@
 package com.zynergylabs.forager.app
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.onAutoSaveLocationToPhotosChanged
 import com.zynergylabs.forager.app.ui.availability.onBatterySaverChanged
 import com.zynergylabs.forager.app.ui.availability.onCrowdedIconsModeChanged
+import com.zynergylabs.forager.app.ui.availability.onWaypointNamesChanged
 import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
 import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
 import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
@@ -49,6 +52,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.zynergylabs.forager.app.domain.model.withLiveHeight
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -176,6 +180,23 @@ class MainActivity : ComponentActivity() {
                 CameraFormatViewModel(
                     getCameraFormat = container.cameraFormatRepository::getCameraFormat,
                     setCameraFormat = container.cameraFormatRepository::setCameraFormat,
+                    errorLog = androidErrorLog,
+                )
+            }
+        }
+    }
+
+    /**
+     * Route plotting on the Maps tab (dispatch 2026-10-30-08, step 3): Activity-scoped, so a route being plotted survives a tab
+     * change (CLAUDE.md, UX defaults). A save reloads the Trip Planner's list through the screen's own loader.
+     */
+    private val routePlottingViewModel: RoutePlottingViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                RoutePlottingViewModel(
+                    routeLeg = container.plotRoute::leg,
+                    saveRoute = { route, name, date -> container.savePlottedRoute(route, name, date) },
+                    onSaved = { viewModel.plannedTrips.loadPlannedTrips() },
                     errorLog = androidErrorLog,
                 )
             }
@@ -344,6 +365,7 @@ class MainActivity : ComponentActivity() {
             // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so
             // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
+            val routePlottingState by routePlottingViewModel.uiState.collectAsState()
             val backupUiState by backupViewModel.uiState.collectAsState()
             // RECORD -660/-661: a corrupt settings file was reset; the screen shows the one-time snackbar.
             val settingsResetPending by container.settingsResetNotice.pending.collectAsState()
@@ -385,7 +407,7 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions) {
+            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions, seaLevelConverter = container.seaLevelConverter, groundHeightSource = container.groundHeightSource) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()
@@ -508,6 +530,7 @@ class MainActivity : ComponentActivity() {
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                         onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                         onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
+                        onWaypointNamesChanged = viewModel::onWaypointNamesChanged,
                         onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                         onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
                         onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
@@ -529,12 +552,14 @@ class MainActivity : ComponentActivity() {
                         },
                         onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                         onMapShown = viewModel::onMapShown,
+                        onMapsTabShownChanged = viewModel::onMapsTabShownChanged,
                         onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
                         onMapModeSelected = viewModel::onMapModeSelected,
                         onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
                         onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
                         onColourFieldMoved = viewModel::onColourFieldMoved,
                         forecastCellStore = container.forecastCellStore,
+                        routePlotting = RoutePlottingControls(routePlottingState, routePlottingViewModel),
                     ),
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     cameraInputs = AvailabilityScreenCamera(
@@ -664,7 +689,8 @@ class MainActivity : ComponentActivity() {
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigation = AvailabilityScreenNavigation(
-                        returnToStart = trackUiState.returnToStart,
+                        // Dispatch 2026-10-28-13: the height difference from the strip's live height, not the raw fixes'.
+                        returnToStart = trackUiState.returnToStart?.withLiveHeight(uiState.shownHeight),
                         isReturning = trackUiState.isReturning,
                         isArrivalHeld = trackUiState.isArrivalHeld,
                         isOffTrack = trackUiState.isOffTrack,

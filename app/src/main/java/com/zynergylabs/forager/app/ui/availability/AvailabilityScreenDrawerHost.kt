@@ -5,6 +5,7 @@ package com.zynergylabs.forager.app.ui.availability
 // is composed at the same point among the same siblings: after every effect and remember above it, and before
 // InAppCameraHost, which stays in the body after it because composition order is what puts the camera on top.
 
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.LocalContentColor
@@ -62,10 +63,13 @@ internal fun AvailabilityScreenDrawerHost(
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
+    waypointNames: WaypointNamesControls = WaypointNamesControls(),
     onThemeModeChanged: (AppThemeMode) -> Unit,
     backup: BackupControls,
     openBackupRequest: Int,
     openOfflineMapsFromTools: () -> Unit,
+    /** Dispatch 2026-10-30-08: a Trip Planner route row's tap; `null` leaves the rows as they were. */
+    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
     compactMainScaffold: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition, LocalTrackDetailsFold provides trackDetailsFoldOpen) {
@@ -114,6 +118,7 @@ internal fun AvailabilityScreenDrawerHost(
                     isNightMode = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     crowdedIcons = crowdedIcons,
+                    waypointNames = waypointNames,
                     themeMode = uiState.themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     backup = backup,
@@ -125,6 +130,7 @@ internal fun AvailabilityScreenDrawerHost(
                     onMapLayersOpenChange = { mapLayersFoldOpen.value = it },
                     tripPlannerOpen = tripPlannerFoldOpen.value,
                     onTripPlannerOpenChange = { tripPlannerFoldOpen.value = it },
+                    onOpenPlannedRoute = onOpenPlannedRoute,
                 )
                 }
                 }

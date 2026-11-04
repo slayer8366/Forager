@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
@@ -147,6 +148,7 @@ class AvailabilityScreenWaypointFlowTest {
             unitSystemPreferenceRepository = WaypointFlowStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = WaypointFlowStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(WaypointFlowStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -362,9 +364,8 @@ class AvailabilityScreenWaypointFlowTest {
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Directions to Reachable Waypoint")
-            .performScrollTo()
-            .assertIsDisplayed()
+        // Dispatch 2026-10-29-09 (RECORD -1819): was "performScrollTo().assertIsDisplayed()"; the row's Directions is gone.
+        composeRule.onNodeWithContentDescription("Directions to Reachable Waypoint").assertDoesNotExist()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "reachable-waypoint"))
             .performScrollTo()
             .performTouchInput { swipeLeft() }

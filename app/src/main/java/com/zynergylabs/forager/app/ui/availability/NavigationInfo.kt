@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
@@ -80,6 +81,14 @@ internal fun NavigationInfo(
     eveningLineBottomLimitInRootPx: Float? = null,
     eveningLineTopLimitInRootPx: Float? = null,
     arrivalHeld: Boolean = false,
+    /**
+     * D42 (RECORD -2021, the owner: "Only where room is short"): the evening lines leave the card while the route card resting on it
+     * would not otherwise fit, decided by the host from measured heights; [onEveningShown] is told whether they show.
+     */
+    eveningStepsAside: Boolean = false,
+    onEveningShown: (Boolean) -> Unit = {},
+    /** The strip's live height above sea level (dispatch 2026-10-28-13), so the card's cannot differ from it. */
+    heightMeters: Double? = null,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -91,7 +100,7 @@ internal fun NavigationInfo(
             value = currentTime.nowEpochMillis()
         }
     }
-    val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
+    val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing, heightMeters)
     val readout = if (arrivalHeld) heldArrivalReadout(liveReadout) else liveReadout
     // RECORD -955: the info's own bottom in the root, for a card anchored to the bottom edge (RECORD -953), whose top is its bottom
     // less its height. The height the decision uses is built from parts the evening stack does not change (the top padding, the left
@@ -119,13 +128,19 @@ internal fun NavigationInfo(
         val heightWithStackPx = topPaddingPx + maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()) + linesBelowHeightPx + bottomPaddingPx
         // A margin once shown, so a top a pixel either side of the limit cannot flip the decision back and forth.
         val marginPx = if (lastEveningShown) with(LocalDensity.current) { EVENING_LIMIT_MARGIN.toPx() } else 0f
-        val eveningShown = pieces.isNotEmpty() && eveningLineFits(
+        val eveningShown = !eveningStepsAside && pieces.isNotEmpty() && eveningLineFits(
             partsTopInRootPx + linesBelowHeightPx,
             maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()),
             bottomPaddingPx,
             eveningLineBottomLimitInRootPx,
         ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithStackPx, eveningLineTopLimitInRootPx?.let { it - marginPx })
-        SideEffect { lastEveningShown = eveningShown }
+        val currentOnEveningShown by rememberUpdatedState(onEveningShown)
+        SideEffect {
+            // D42: stepping aside leaves -955's memory as it was, so when the route card closes the lines come back on the same terms
+            // they showed on before it opened (the margin once shown), rather than on a fresh decision.
+            if (!eveningStepsAside) lastEveningShown = eveningShown
+            currentOnEveningShown(eveningShown)
+        }
         val shownSundown = sundownLine.takeIf { eveningShown }
         val shownBackBy = backByLine.takeIf { eveningShown }
         // Each evening line's own visibility, so the right part keeps a leaving line's width until its exit has run. Without it the

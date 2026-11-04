@@ -193,7 +193,7 @@ class GpxImportRecordsTest {
             intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)?.toList(),
         )
         assertEquals("backing out of the picker hands nothing on", 0, picked)
-        composeRule.onNodeWithText("No recorded tracks yet.").assertExists()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertExists()
     }
 
     @Test

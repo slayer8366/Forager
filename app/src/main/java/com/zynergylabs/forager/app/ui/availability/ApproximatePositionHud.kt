@@ -37,10 +37,12 @@ internal fun hudReadout(
     showDecimalDegrees: Boolean = false,
     route: ReturnRoute? = null,
     facing: NavigationFacing = NavigationFacing.FACING_UP,
+    /** The strip's live height above sea level (dispatch 2026-10-28-13); see [navigationReadout]. */
+    heightMeters: Double? = null,
 ): NavigationHudReadout = when (val inPlace = shownPosition(liveFix, approximateFix, lastKnownFix, nowEpochMillis).inPlaceOfGps(liveFix)) {
     is ShownPosition.Approximate -> approximateNavigationReadout(heading, inPlace.fix, target, distanceUnit, nowEpochMillis, route, facing)
     is ShownPosition.LastKnown -> lastKnownNavigationReadout(heading, inPlace.fix, target, distanceUnit, nowEpochMillis, facing)
-    else -> navigationReadout(heading, liveFix, target, distanceUnit, nowEpochMillis, showDecimalDegrees, route, facing)
+    else -> navigationReadout(heading, liveFix, target, distanceUnit, nowEpochMillis, showDecimalDegrees, route, facing, heightMeters)
 }
 
 /**

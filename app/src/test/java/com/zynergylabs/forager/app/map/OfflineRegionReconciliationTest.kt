@@ -186,7 +186,7 @@ class OfflineRegionReconciliationTest {
             reconcileOfflineRegions(
                 live = listOf(
                     LiveRegion(1, true, finishedMetadata(), 10, 100, styleUrl = OFFLINE_STYLE_URL),
-                    LiveRegion(2, true, finishedMetadata(), 10, 100, styleUrl = STREET_STYLE_URL),
+                    LiveRegion(2, true, finishedMetadata(), 10, 100, styleUrl = TRAIL_STYLE_URL),
                     LiveRegion(3, true, finishedMetadata(), 10, 100, styleUrl = null),
                 ),
                 dao = dao,
@@ -196,7 +196,7 @@ class OfflineRegionReconciliationTest {
                 routes = FakeRegionRouteFolders(),
             )
         }
-        assertEquals(mapOf(1L to OFFLINE_STYLE_URL, 2L to STREET_STYLE_URL, 3L to null), shown.associate { it.id to it.styleUrl })
+        assertEquals(mapOf(1L to OFFLINE_STYLE_URL, 2L to TRAIL_STYLE_URL, 3L to null), shown.associate { it.id to it.styleUrl })
     }
 
     private fun row(id: Long) = OfflineRegionEntity(id, "Row $id", 1.0, 2.0, 5, 6.0, 12.0, 1_000L)

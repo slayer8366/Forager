@@ -7,6 +7,8 @@ import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
 import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
@@ -16,6 +18,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.PhotoStore
 import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
@@ -87,7 +90,7 @@ class MushroomLogViewModelTest {
         currentFix: () -> LocationFix.Update? = { null },
         autoSaveLocationToPhotos: suspend () -> Boolean = { true },
         pendingDeleteCommitScope: CoroutineScope? = null,
-        getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
+        entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -108,7 +111,7 @@ class MushroomLogViewModelTest {
         now = { NOW },
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: PendingDeleteCommitScope,
-        getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -1704,7 +1707,7 @@ class MushroomLogViewModelTest {
     fun `a requested photo delete hides it from the gallery and from its find, carries its journal count, and deletes nothing`() = runTest(dispatcher) {
         val repository = photoRepository()
         val photoStore = FakePhotoStore()
-        val vm = viewModel(repository, photoStore, getPhotoEntryReferenceCount = { id -> if (id == photoA.id) 2 else 0 })
+        val vm = viewModel(repository, photoStore, entryReferenceCounts = FakeEntryReferenceCountSource(photos = mapOf(photoA.id to 2)))
         advanceUntilIdle()
         assertEquals("positive control: both photos loaded", setOf(photoA.id, photoB.id), vm.uiState.value.galleryPhotos.map { it.photo.id }.toSet())
 

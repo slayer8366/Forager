@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
@@ -68,7 +69,7 @@ internal val WALKER_DOT_CLEARANCE = 12.dp
  * edge by its own height, with a fade, on the same timing, and back down; under reduced motion it only fades.
  */
 @Composable
-private fun navigationChromeFromBottomTransitions(): Pair<EnterTransition, ExitTransition> {
+internal fun navigationChromeFromBottomTransitions(): Pair<EnterTransition, ExitTransition> {
     val reduceMotion = LocalReduceMotion.current
     val slide = MotionTokens.navigationViewChromeSpec<IntOffset>()
     val timedFade = MotionTokens.navigationViewChromeSpec<Float>()
@@ -117,6 +118,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     sundownClock: SundownClock,
     /** The landscape strip's measured size, read here; see [CompactMapLayoutState]. */
     layout: CompactMapLayoutState,
+    /**
+     * D32 (RECORD -1987, the owner: "Both cards narrow (Recommended)"): while the route card rests on this card, how much narrower both
+     * are from the L's side, so Re-center's icon fits beside the L at the bottom; the right edge is kept. 0 dp otherwise.
+     */
+    narrowBy: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val railPortEdge = landscape.railPortEdge ?: return
     val isNavigating = navigation.isNavigating
@@ -139,7 +145,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     )
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
-    LaunchedEffect(Unit) { cluster.navigationDisplayBottomInRootPx = null }
+    LaunchedEffect(Unit) {
+        cluster.navigationDisplayBottomInRootPx = null
+        // D42: measured afresh for each navigation.
+        cluster.navigationCardHeightWithEveningPx = null
+    }
     // Before the strip is first measured there is no width to take; nothing is drawn for that frame.
     if (layout.landscapeStripWidthPx <= 0 || layout.landscapeStripHeightPx <= 0) return
     // Motion Part 2, item 3: leaving, it takes no touch and gives up its keep-out at once. RECORD -691: no minimum touch target
@@ -152,7 +162,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
         modifier = Modifier
             .align(if (railPortEdge == ScreenEdge.Left) Alignment.BottomStart else Alignment.BottomEnd)
             .padding(controlsPadding)
-            .width(with(density) { layout.landscapeStripWidthPx.toDp() })
+            .width(with(density) { (layout.landscapeStripWidthPx.toDp() - narrowBy).coerceAtLeast(0.dp) })
             .clipToBounds()
             .leavingTakesNoTouches(leaving = !isNavigating),
     ) {
@@ -174,6 +184,8 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             onExit = navigation.onToggleReturning,
             // RECORD -845: "Arrived", held, after a return ended on arrival.
             arrivalHeld = navigation.isArrivalHeld,
+            // Dispatch 2026-10-28-13: the strip's own height, so the card cannot read another.
+            heightMeters = uiState.liveAltitudeMeters,
             sundownLine = sundownLine,
             backByLine = backByLine,
             // RECORD -955, C ("C yes", extending -770): the evening lines leave the card where they would take its top over Reset
@@ -181,6 +193,10 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding), WALKER_DOT_CLEARANCE its radius. Reset north is the L's second
             // row, counted only where the L and the card share columns.
             eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
+            // D42 (RECORD -2021, the owner: "Only where room is short"): they also step aside while the route card resting on this one
+            // would not otherwise fit (the route card decides, from this card's measured heights), and come back when it closes.
+            eveningStepsAside = cluster.navigationEveningStepsAside,
+            onEveningShown = { cluster.navigationEveningShown = it },
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
             cardCorners = MapCardCorners.TOP,
             outlineSides = cardOutlineSides,
@@ -189,7 +205,14 @@ internal fun BoxScope.CompactMapNavigationDisplay(
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
-                .onGloballyPositioned { coordinates -> cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot() },
+                .onGloballyPositioned { coordinates ->
+                    cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot()
+                    // D42: the tallest it has been with its evening lines, so a frame of their grow or shrink is never taken for the
+                    // card's height with them (that fed the route card's decision back into itself: Compose never idle, run 41753745001).
+                    if (cluster.navigationEveningShown) {
+                        cluster.navigationCardHeightWithEveningPx = maxOf(cluster.navigationCardHeightWithEveningPx ?: 0f, coordinates.size.height.toFloat())
+                    }
+                },
         )
     }
     }
