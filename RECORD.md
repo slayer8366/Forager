@@ -34068,3 +34068,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** dispatch Stops: a Room version number; a server change; new words; a change to MapLibre's store; an owner-level choice; a wrong premise; a weakened test; two failed attempts at one symptom.
 **Dispatch-file:** prompts/preserved/2026-11-04-09-drop-off-map-copy.md
 **Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-04-09 now?". Next free ID -2109.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2109
+**Timestamp:** 2026-11-05T09:22:34Z
+**Continues:** 2026-09-28-2108
+**Title:** The owner's go: Hazel started on dispatch 2026-11-04-09, Phase 1, verify first
+**Decision:**
+- **The owner, verbatim,** to "Start Hazel on dispatch 2026-11-04-09 now?": "Yes".
+- **Started:** a fresh Hazel Cairnwright session, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (records-after-173 bebceea19).
+- **Phase 1 only:** she reads and reports, then stops. No branch, code, commit, Gradle or phone until the planner's go for Phase 2.
+**Notes:** Written by the planner by hand. Next free ID -2110.
