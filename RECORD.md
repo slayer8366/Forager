@@ -34398,3 +34398,24 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Also: synchronous=OFF for the test's own writer, so the hot-journal fixture can fail today.
 - **To the owner:** S1, what "reads reliably" means. 3.1 with 3.2 recovers refusals, and any remaining overlap fails safe; 3.5 or 3.6 keep reads from overlapping writes.
 **Notes:** Written by the planner by hand. Next free ID -2122.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2122
+**Timestamp:** 2026-11-05T13:47:54Z
+**Continues:** 2026-09-28-2121
+**Title:** The store read: retry and fail safe; reads never delete the store; Amendment 1; Phase 2 go to a fresh Hazel
+**Decision:**
+- **The owner, verbatim,** to "The drop-off's reads of the map's storage can collide with the map's own saving. How far should the fix go?": **"Retry, fail safe (Recommended)"**.
+  - The option read: "When a read is refused, it waits a moment and tries again, within under a second, which clears the refusals seen. A read that still overlaps the map's save mid-way would very likely produce data the app can't make sense of, and then Navigate goes by trail, logged. That part is my inference. A small build."
+  - Not chosen: "Separate reader process" and "Drop-off uses own copy only".
+- **Told to the owner before asking, as the planner's calls in -2121:**
+  - reads never delete the store (3.2), with the delete path named as a finding;
+  - the relief reader gets the same fix;
+  - the doubled opening gets its root fix in RecordsTab;
+  - signal return is kept as ruled.
+- **The planner's inference** in the chosen option ("would very likely produce data the app can't make sense of") is for Hazel to check in Phase 2 (Amendment 1, A5).
+- **Amendment 1:** prompts/preserved/2026-11-05-01-amendment-1.md (A5 to A9, B1 to B3, C1 to C3).
+- **The planner's go for Phase 2,** to a fresh Hazel session: branch offline-store-read from pre-main 368f710fb, a draft PR into pre-main, and the merge on the owner's word. It is the same dispatch, under the owner's "Yes" (-2120).
+**Notes:** Written by the planner by hand. Next free ID -2123.
