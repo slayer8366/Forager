@@ -34558,3 +34558,26 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - no app services, and the Maps tab with Trail;
   - forager.db's tables identical to before-4626, with schemas 23, 6 and 1, integrity ok.
 **Notes:** Written by the planner by hand. Next free ID -2128.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-2128
+**Timestamp:** 2026-11-05T19:01:47Z
+**Closes:** 2026-09-28-2118
+**Title:** PR #491 (the store read: retry and fail safe, reads never delete the store, one opening per tap, the relief image check) merged into pre-main on the owner's word
+**Outcome:** completed.
+- **The owner, verbatim:** "Go ahead and merge".
+- **Before merging:**
+  - pre-main 368f710fb was backed up to ~/Zynergy/forager-repo-backups/pre-main-before-491.bundle, verified okay, with head 368f710fb;
+  - all 8 of #491's checks passed at its head 1cb09a1eb;
+  - the diff was read for @Ignore and removed assertions (-2123, -2125);
+  - session 15 passed on the phone (-2127).
+- **Merged** with --match-head-commit 1cb09a1eb13d, as 96d3c0c43 at 2026-11-05T19:01:08Z.
+  - pre-main's tree equals 1cb09a1eb's. main (c61850aa2) is unchanged.
+  - pre-main's push run, 42089828431, was running when this was written. Its result goes in a later entry.
+- **Left:**
+  - branches offline-store-read, offline-store-read-r1 to -r5, drop-off-map-copy and drop-off-map-copy-r1 to -r9 on origin, none merged except the two PR branches;
+  - Hazel's worktrees.
+- **Also:** /mnt/work has about 174 MB free after this bundle. The next bundle (about 144 MB) wouldn't leave room for much else; the owner is told.
+**Notes:** Written by the planner by hand. Next free ID -2129.
