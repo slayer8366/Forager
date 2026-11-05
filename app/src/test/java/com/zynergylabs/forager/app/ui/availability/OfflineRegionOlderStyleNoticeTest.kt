@@ -27,8 +27,9 @@ import org.robolectric.annotation.Config
 
 /**
  * RECORD -1294 as built by dispatch 2026-10-18-05 Part 2: an offline region downloaded against an older map style keeps
- * its row and gains one line, "Older map style. Download again to update.", once the own Street is on; and nothing
- * changes on the row while the switch is off, which is the release value.
+ * its row and gains one line, "Older map style. Download again for the new look and hill shading." (its words since
+ * dispatch 2026-11-04-09, RECORD -2112), once the own Street is on; and nothing changes on the row while the switch is
+ * off, which is the release value.
  *
  * Composes [OfflineRegionRow], the row both its callers (the offline maps panel and the All logbook) draw, rather than
  * the whole screen: the switch is a compile-time constant, so the screen can only ever show the release value, and the
@@ -74,7 +75,7 @@ class OfflineRegionOlderStyleNoticeTest {
     fun `an older region shows the one-line notice`() {
         show(region(1, OFFLINE_STYLE_URL))
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(1)).assertIsDisplayed()
-        composeRule.onNodeWithText("Older map style. Download again to update.").assertIsDisplayed()
+        composeRule.onNodeWithText("Older map style. Download again for the new look and hill shading.").assertIsDisplayed()
         composeRule.onNodeWithText("Region 1").assertIsDisplayed()
     }
 
@@ -83,7 +84,7 @@ class OfflineRegionOlderStyleNoticeTest {
         // RECORD -1561, the owner: "The existing notice" for regions downloaded under v1.
         show(region(4, TRAIL_STYLE_V1_URL))
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(4)).assertIsDisplayed()
-        composeRule.onNodeWithText("Older map style. Download again to update.").assertIsDisplayed()
+        composeRule.onNodeWithText("Older map style. Download again for the new look and hill shading.").assertIsDisplayed()
     }
 
     @Test
@@ -98,7 +99,7 @@ class OfflineRegionOlderStyleNoticeTest {
         show(region(5, TRAIL_STYLE_V4_STREET_URL))
         composeRule.onNodeWithText("Region 5").assertIsDisplayed()
         composeRule.onNodeWithTag(offlineRegionOlderStyleTag(5)).assertDoesNotExist()
-        composeRule.onNodeWithText("Older map style. Download again to update.").assertDoesNotExist()
+        composeRule.onNodeWithText("Older map style. Download again for the new look and hill shading.").assertDoesNotExist()
     }
 
     @Test

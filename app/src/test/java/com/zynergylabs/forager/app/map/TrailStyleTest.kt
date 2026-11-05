@@ -110,7 +110,8 @@ class TrailStyleTest {
 
     @Test
     fun `the notice reads as accepted`() {
-        assertEquals("Older map style. Download again to update.", OLDER_MAP_STYLE_NOTICE)
+        // Dispatch 2026-11-04-09 A8, RECORD -2112, the owner: "Look and hill shading (Recommended)".
+        assertEquals("Older map style. Download again for the new look and hill shading.", OLDER_MAP_STYLE_NOTICE)
     }
 
     @Test

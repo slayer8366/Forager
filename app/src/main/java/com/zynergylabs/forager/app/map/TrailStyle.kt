@@ -114,7 +114,12 @@ internal fun regionHasOlderMapStyle(
 ): Boolean = isDownloaded && regionStyleUrl != null && regionStyleUrl != offlineDownloadStyleUrl() && !isTodaysTrailStyle(regionStyleUrl)
 
 /**
- * The one-line notice on an older region (-1294; the wording offered in the Part 1 report, question 5, and accepted
- * with the owner's -1300). No re-download is forced or started on its own.
+ * The notice on an older region (-1294; first worded in the Part 1 report, question 5, accepted with the owner's -1300).
+ * No re-download is forced or started on its own. Its words since dispatch 2026-11-04-09 (RECORD -2112) are the owner's
+ * choice, "Look and hill shading (Recommended)": "It says exactly what improves, and promises nothing about the map's
+ * data." Downloading again brings the area the newest style, which also draws the other areas offline, and stores its
+ * hill shading; it reuses the stored map data and does not update it (dispatch 2026-11-04-08's report, section 2). The
+ * words replaced "Older map style. Download again to update.": the download updates the style, not the map's data. When
+ * the notice shows ([regionHasOlderMapStyle]) did not change. It may wrap to two lines in the row.
  */
-internal const val OLDER_MAP_STYLE_NOTICE = "Older map style. Download again to update."
+internal const val OLDER_MAP_STYLE_NOTICE = "Older map style. Download again for the new look and hill shading."
