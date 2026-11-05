@@ -34968,4 +34968,5 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - Finish line: a PR into pre-main, merged on the owner's word;
     - Abort conditions: a changed decision or screen; positions in the line; a wrong premise; two failed attempts.
   - **The outing:** the planner asks the owner where. The area is downloaded onto the S22 and the spot prepared from it, kept off GitHub. The outing's build carries the log line and the release's other pending work.
+- **Then the owner, verbatim:** "The walk will happen later, and I'll update you on that." The outing waits for the owner's word: where, and when. The promotion waits for it (-2136), and the builds go on meanwhile.
 **Notes:** Written by the planner by hand. Next free ID -2147.
