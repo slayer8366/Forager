@@ -35277,3 +35277,29 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **For the outing:** L2 of dispatch 2026-11-05-04's check 1 now reads this line, with `adb logcat -s FindWayToWaypoint:I`.
 **Waiting on:** the owner's word to merge PR #493. Before merging: a bundle of pre-main, verified, and `--match-head-commit 1673b0e1b66645516158e87efa9226909803eef6`. Pre-main is now 6e24b22c4, so the merge sits on top of #492.
 **Notes:** Written by the planner by hand. Next free ID -2160.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2160
+**Timestamp:** 2026-11-05T22:53:31Z
+**Continues:** 2026-09-28-2156
+**Title:** The edge shade: the outline test may also read the line over the map; the bubble's tail a clean triangle; the card and tail filled once
+**Decision:**
+- **Hazel's stop, by message** (PR #495, draft, forward 8ba253226):
+  - Forward run 42122210303 had no compile errors, 6668 tests and 2 failures.
+  - The failures are MapChromeOutlineLandscapeDayTest and MapChromeOutlineLandscape780DayTest: "the strip's end against the rail: every run across the outline holds a line pixel; 2 of 75 do not, first at (2224, 31)", and (2095, 31) at 780 dp.
+  - At that corner the line lies over the map (luminance 0.376 = 0.4 × Bark + 0.6 × map). The walk's isLine (MapChromeOutlinePixelsTest.kt:199, read by the planner) accepts only the line over the two pieces' fills.
+  - It passed before on one blended pixel, 0.672, inside 0.617 ± 0.07, the map there darkened by the shadow. With the shadow gone it reads 0.696.
+  - The planner read :190-202 and :410-455 on origin/edge-shade, and the walk is as she describes.
+- **The owner, verbatim**, to "An existing test of the map chrome's outline now fails. Where the top strip's rounded corner meets the side rail, the outline sits over the map, not over the strip. The test only passed before because the old shadow darkened the map there. Hazel wants the test to also recognise the outline over the map, with a missing line still failing it. Allow that change to the test?": **"Allow it (Recommended)"**.
+  - The option read: "The test reads the line where it really lies, over the map. A missing line would show bare map and still fail. The PR can go green."
+  - The other option: "Keep the test as is".
+- **Hazel's look question:** the tail's base is drawn square to the tail, so on a slanted tail one side has a step of about 2.3 dp under the card, and the outline now traces it.
+  - The planner sampled bubble-day.png from run 42122210303. The right side runs out about 10 px under the card's edge, then turns sharply to the tip, and no line crosses the join.
+- **The owner, verbatim**, to "The bubble's tail now has the outline. On a slanted tail, one side has a small kink just under the card, about 2 dp deep: the line runs out a little, then turns sharply toward the tip. It was always in the tail's shape and only shows now that it has a line. How should the tail look?": **"Clean triangle (Recommended)"**.
+  - The option read: "Both sides start on the card's edge and run straight to the tip, with no kink. The tail's root changes slightly on slanted tails."
+  - The others: "Keep it as drawn"; "Fill the kink in".
+- **The planner's call:** the card and the tail filled once as one shape is accepted. Before, the sliver of tail under the card was filled twice, 0.96 where 80% is the rule. CLAUDE.md: "Layered fills composite to that value; they do not each carry it".
+- **Told to Hazel** by message, with the words quoted. Neither screenshot could be sent to the owner, because this session can't send files.
+**Notes:** Written by the planner by hand. Next free ID -2161.
