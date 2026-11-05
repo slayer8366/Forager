@@ -34329,3 +34329,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** dispatch Stops: any write to MapLibre's store or its configuration; a server change; new words; an owner-level choice; a wrong premise; a weakened test; two failed attempts at one symptom.
 **Dispatch-file:** prompts/preserved/2026-11-05-01-offline-store-read.md
 **Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-05-01 now?". Next free ID -2119.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2119
+**Timestamp:** 2026-11-05T12:50:48Z
+**Continues:** 2026-09-28-2117
+**Title:** pre-main's CI on #490's merge (368f710fb) passed on every job
+**Outcome:** run 42027735694, the push run on pre-main at 368f710fb, completed with success on all 8 jobs. They include "Build, test, publish APK" and "The app builds and its tests pass with the Street map deleted". The result was read with gh run view; the planner didn't download the JUnit XML.
+**Notes:** Written by the planner by hand. Next free ID -2120.
