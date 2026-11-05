@@ -34621,3 +34621,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **So:** P2's signal-return trigger (RECORD -2110) works on the phone as ruled (-2121, A9). It fires on the app's own signal, 30 s after validation, while Offline maps is open. This closes -2116's and -2127's "not run".
 - **End state:** airplane_mode_on 0, wifi_on 1, mobile_data 1, no app services, the Maps tab. Region 3's copy is whole again; the removed tile was refetched from the server.
 **Notes:** Written by the planner by hand. Next free ID -2131.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2131
+**Timestamp:** 2026-11-05T19:25:22Z
+**Continues:** 2026-09-28-2128
+**Title:** pre-main's CI on #491's merge (96d3c0c43) passed on every job
+**Outcome:** run 42089828431, the push run on pre-main at 96d3c0c43, completed with success on all 8 jobs. They include "Build, test, publish APK" and "The app builds and its tests pass with the Street map deleted". The result was read with gh run view; the planner didn't download the JUnit XML.
+**Notes:** Written by the planner by hand. Next free ID -2132.
