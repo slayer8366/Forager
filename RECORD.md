@@ -33970,3 +33970,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The log capture was stopped: logs/logcat-s13.txt and app-s13.txt.
   - Evidence is in ~/s22-2026-11-04/s13/.
 **Notes:** Written by the planner by hand. Next free ID -2104.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2104
+**Timestamp:** 2026-11-05T05:19:05Z
+**Continues:** 2026-09-28-2103
+**Title:** Dispatch 2026-11-04-08 for Hazel: does "Download again" bring an older offline area's map up to date? Read only; not started
+**Change:** nothing changes. A report answering the dispatch's six questions: what "Download again" does; MapLibre 13.5.0 and stored tiles; deleting shared tiles; the map seen online; which actions bring the fence mark today; and options if none do. The owner, verbatim, to "Shall I write that dispatch?": "Go ahead."
+**Scope boundary:** read only: pre-main 949ad8183, MapLibre 13.5.0, and session 13's evidence in ~/s22-2026-11-04/s13/. No phone, code, branch, commit, push, Gradle, RECORD.md or audit index.
+**Baseline:** pre-main 949ad8183; records-after-173 cc2691b68.
+**Prediction (outcome — planner):** MapLibre reuses stored tiles in an offline download unless they are invalidated. "Download again" deletes and downloads, but tiles held by the other region stay old. So neither S22 area can be refreshed by the app's own actions today.
+**Prediction (mechanism — coder):** to come from Hazel's report.
+**Finish line:** Hazel's report by message, filed unedited as prompts/preserved/2026-11-04-08-report.md.
+**Abort conditions:** anything needing the phone; a wrong premise; an owner-level choice; a question answerable only by building or running code.
+**Dispatch-file:** prompts/preserved/2026-11-04-08-offline-refresh-check.md
+**Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-04-08 now?". Next free ID -2105.
