@@ -50,9 +50,30 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
     private val pillRole get() = if (dark) SurfaceContainerHighestDark else SurfaceContainerLowestLight
     private val scrimmed get() = edgeOver(Color.Black, EDGE_SHADE_SCRIM_ALPHA, EDGE_SHADE_MAP_GREY)
 
-    private fun read(name: String, pixels: PixelMap, tag: String, role: Color, under: Color, specs: List<EdgeSpec>) {
-        val fill = edgeFill(role, under)
-        assertEdges(name, readEdges(pixels, rig.density, rig.bounds(tag), fill, edgeLine(dark, fill), specs))
+    private fun read(name: String, pixels: PixelMap, tag: String, role: Color, under: Color, specs: List<EdgeSpec>) =
+        readOver(name, pixels, tag, role, { _, _ -> under }, specs)
+
+    private fun readOver(name: String, pixels: PixelMap, tag: String, role: Color, under: (Int, Int) -> Color, specs: List<EdgeSpec>) {
+        assertEdges(name, readEdges(pixels, rig.density, rig.bounds(tag), dark, role, under, specs))
+    }
+
+    /**
+     * A panel opened beside the icon bar (the add tile, the map type panel) lies partly over the bar, not the map: its side by the bar
+     * is over the bar's own fill and hairline (seen in the first run of this class, 42116693802, where that side read the bar under
+     * the scrim). So what lies under each of its pixels is read from the screen before the panel opened, under the scrim it lays
+     * over everything (black at 0.32). Checked at the bar's middle, which no panel covers: there the screen after is the scrim over
+     * the screen before, or this model is wrong and the test says so.
+     */
+    private fun underThePanel(before: PixelMap, after: PixelMap): (Int, Int) -> Color {
+        val d = rig.density
+        val bar = rig.bounds(com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_TAG)
+        val x = ((bar.left.value + 4f) * d).roundToInt()
+        val y = (((bar.top.value + bar.bottom.value) / 2f) * d).roundToInt()
+        val modelled = edgeOver(Color.Black, EDGE_SHADE_SCRIM_ALPHA, before[x, y])
+        check(edgeDiff(after[x, y], modelled) <= EDGE_FILL_TOLERANCE) {
+            "the scrim lies over the icon bar: at ($x, $y) read ${edgeHex(after[x, y])}, the scrim over ${edgeHex(before[x, y])} is ${edgeHex(modelled)}"
+        }
+        return { px, py -> edgeOver(Color.Black, EDGE_SHADE_SCRIM_ALPHA, before[px, py]) }
     }
 
     private fun openBubble(): PixelMap {
@@ -181,15 +202,19 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
         assertEdges("the bubble's tail", readings)
     }
 
-    /** The add tile (AddActionTile.kt): its chips sit 8 dp in on every side. Opened by a real touch on the icon bar's add row. */
+    /**
+     * The add tile (AddActionTile.kt): its chips sit 8 dp in on every side. Opened by a real touch on the icon bar's add row. Its side
+     * by the bar is read over the bar ([underThePanel]).
+     */
     @Test
     fun `the add tile opened from the icon bar is the 0_8 composite from 2 dp inside all four edges, with its hairline`() {
         rig.setScreen()
+        val before = rig.capture("add-tile-before")
         rig.touchDescribed(BAR_ADD)
         val pixels = rig.capture("add-tile")
-        val under = rig.reference(pixels, 0.01f, 0.75f, scrimmed)
-        read(
-            "the add tile", pixels, ADD_ACTION_TILE_TAG, token, under,
+        rig.reference(pixels, 0.01f, 0.75f, scrimmed)
+        readOver(
+            "the add tile", pixels, ADD_ACTION_TILE_TAG, token, underThePanel(before, pixels),
             listOf(
                 EdgeSpec(EdgeSide.LEFT, 0.5f, 2, 6, line = true),
                 EdgeSpec(EdgeSide.TOP, 0.5f, 2, 6, line = true),
@@ -199,15 +224,16 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
         )
     }
 
-    /** The map type panel (MapTypePanel.kt): its chips sit 8 dp in. Opened by a real touch on the icon bar's Layers row. */
+    /** The map type panel (MapTypePanel.kt): its chips sit 8 dp in. Opened by a real touch on the icon bar's Layers row; read as the tile is. */
     @Test
     fun `the map type panel opened from the icon bar is the 0_8 composite from 2 dp inside all four edges, with its hairline`() {
         rig.setScreen()
+        val before = rig.capture("map-type-panel-before")
         rig.touchDescribedStarting("Layers:")
         val pixels = rig.capture("map-type-panel")
-        val under = rig.reference(pixels, 0.01f, 0.75f, scrimmed)
-        read(
-            "the map type panel", pixels, MAP_TYPE_PANEL_TAG, token, under,
+        rig.reference(pixels, 0.01f, 0.75f, scrimmed)
+        readOver(
+            "the map type panel", pixels, MAP_TYPE_PANEL_TAG, token, underThePanel(before, pixels),
             listOf(
                 EdgeSpec(EdgeSide.LEFT, 0.5f, 2, 6, line = true),
                 EdgeSpec(EdgeSide.TOP, 0.5f, 2, 6, line = true),

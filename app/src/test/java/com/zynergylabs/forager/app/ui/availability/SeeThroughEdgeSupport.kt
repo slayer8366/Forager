@@ -100,8 +100,19 @@ internal data class EdgeReading(val where: String, val read: Color, val expected
 internal const val EDGE_FILL_TOLERANCE = 2f / 255f
 internal const val EDGE_LINE_TOLERANCE = 3f / 255f
 
-/** Reads [specs] on the window at [bounds] in [pixels] (3 px per dp here: every class runs at xxhdpi). */
-internal fun readEdges(pixels: PixelMap, density: Float, bounds: DpRect, fill: Color, line: Color, specs: List<EdgeSpec>): List<EdgeReading> {
+/**
+ * Reads [specs] on the window at [bounds] in [pixels] (3 px per dp here: every class runs at xxhdpi). Each sample is held to [role]
+ * at 0.8 over what lies under that pixel, [under], and the hairline over that.
+ */
+internal fun readEdges(
+    pixels: PixelMap,
+    density: Float,
+    bounds: DpRect,
+    dark: Boolean,
+    role: Color,
+    under: (x: Int, y: Int) -> Color,
+    specs: List<EdgeSpec>,
+): List<EdgeReading> {
     val l = (bounds.left.value * density).roundToInt()
     val t = (bounds.top.value * density).roundToInt()
     val r = (bounds.right.value * density).roundToInt()
@@ -118,7 +129,7 @@ internal fun readEdges(pixels: PixelMap, density: Float, bounds: DpRect, fill: C
                 EdgeSide.TOP -> alongX to t + px(k)
                 EdgeSide.BOTTOM -> alongX to b - 1 - px(k)
             }
-            EdgeReading("$name ${k}dp in", pixels[x, y], fill, EDGE_FILL_TOLERANCE)
+            EdgeReading("$name ${k}dp in", pixels[x, y], edgeFill(role, under(x, y)), EDGE_FILL_TOLERANCE)
         }
         val (ex, ey) = when (spec.side) {
             EdgeSide.LEFT -> l + 1 to alongY
@@ -126,8 +137,9 @@ internal fun readEdges(pixels: PixelMap, density: Float, bounds: DpRect, fill: C
             EdgeSide.TOP -> alongX to t + 1
             EdgeSide.BOTTOM -> alongX to b - 2
         }
+        val fill = edgeFill(role, under(ex, ey))
         val edge = if (spec.line) {
-            EdgeReading("$name edge, the hairline", pixels[ex, ey], line, EDGE_LINE_TOLERANCE)
+            EdgeReading("$name edge, the hairline", pixels[ex, ey], edgeLine(dark, fill), EDGE_LINE_TOLERANCE)
         } else {
             EdgeReading("$name edge, no line", pixels[ex, ey], fill, EDGE_FILL_TOLERANCE)
         }

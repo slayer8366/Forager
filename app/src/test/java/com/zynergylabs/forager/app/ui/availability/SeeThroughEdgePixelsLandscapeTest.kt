@@ -35,15 +35,18 @@ abstract class SeeThroughEdgePixelsLandscapeTests(private val dark: Boolean) {
     private val token get() = if (dark) SurfaceContainerDark else SurfaceContainerLight
 
     private fun read(name: String, pixels: PixelMap, tag: String, role: Color, under: Color, specs: List<EdgeSpec>) {
-        val fill = edgeFill(role, under)
-        assertEdges(name, readEdges(pixels, rig.density, rig.bounds(tag), fill, edgeLine(dark, fill), specs))
+        assertEdges(name, readEdges(pixels, rig.density, rig.bounds(tag), dark, role, { _, _ -> under }, specs))
     }
 
-    /** Whether [tag]'s window sits on the screen's left half, so its left side is the one against the rail. */
-    private fun railOnLeft(tag: String): Boolean {
-        val window = rig.bounds(tag)
+    /**
+     * Whether the rail is on the screen's left, so a window's left side is the one against it. Read from the rail's own bounds: the
+     * first run of this class (42116693802) took it from where the window sat, which is right for the narrow card beside the rail and
+     * wrong for the wide centre-pin row, whose middle lies away from the rail.
+     */
+    private fun railOnLeft(): Boolean {
+        val rail = rig.bounds(COMPACT_NAVIGATION_RAIL_TAG)
         val screen = composeRule.onRoot().getUnclippedBoundsInRoot()
-        return (window.left + window.right) / 2 < (screen.left + screen.right) / 2
+        return (rail.left + rail.right) / 2 < (screen.left + screen.right) / 2
     }
 
     /**
@@ -56,7 +59,7 @@ abstract class SeeThroughEdgePixelsLandscapeTests(private val dark: Boolean) {
         rig.touchTag(BAR_RETURN)
         val pixels = rig.capture("navigation-card-landscape")
         val under = rig.reference(pixels, 0.5f, 0.62f, EDGE_SHADE_MAP_GREY)
-        val railLeft = railOnLeft(NAVIGATION_HUD_TAG)
+        val railLeft = railOnLeft()
         read(
             "the landscape navigation card", pixels, NAVIGATION_HUD_TAG, token, under,
             listOf(
@@ -76,7 +79,7 @@ abstract class SeeThroughEdgePixelsLandscapeTests(private val dark: Boolean) {
         rig.touchText("Waypoint")
         val pixels = rig.capture("centre-pin-row-landscape")
         val under = rig.reference(pixels, 0.5f, 0.62f, EDGE_SHADE_MAP_GREY)
-        val railLeft = railOnLeft(CENTRE_PIN_CONFIRM_ROW_TAG)
+        val railLeft = railOnLeft()
         read(
             "the centre-pin row beside the rail", pixels, CENTRE_PIN_CONFIRM_ROW_TAG, token, under,
             listOf(
