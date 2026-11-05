@@ -34419,3 +34419,41 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Amendment 1:** prompts/preserved/2026-11-05-01-amendment-1.md (A5 to A9, B1 to B3, C1 to C3).
 - **The planner's go for Phase 2,** to a fresh Hazel session: branch offline-store-read from pre-main 368f710fb, a draft PR into pre-main, and the merge on the owner's word. It is the same dispatch, under the owner's "Yes" (-2120).
 **Notes:** Written by the planner by hand. Next free ID -2123.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2123
+**Timestamp:** 2026-11-05T15:34:03Z
+**Continues:** 2026-09-28-2122
+**Title:** Dispatch 2026-11-05-01 built: PR #491 into pre-main, green and ready for review, not merged; relief images may not fail safe; an intermittent settings test
+**Outcome:**
+- **Hazel's summary** is filed unedited at prompts/preserved/2026-11-05-01-report.md. Her full report is on the branch, at docs/audits/2026-11-05-01-offline-store-read-completion-report.md.
+- **Commits,** on offline-store-read from pre-main 368f710fb:
+  - bb41345b4, tests over stubs;
+  - 7fc9210f9, the store read;
+  - b1e8ebfe9, RecordsTab;
+  - e29b28d59, the report.
+- **What it does:**
+  - All three read-only opens of mbgl-offline.db go through map/MapLibreStoreRead.kt. It retries the read on SQLiteReadOnlyDatabaseException only, with 5 attempts waiting 50, 100, 200 and 400 ms (MapLibreStoreReadLimits.kt), and logs once.
+  - The open's error handler, KeepTheStoreOnCorruption, logs a corruption report and leaves the file.
+  - RecordsTab.kt:246-248: the effect reads its own key, so one tap is one opening.
+  - The signal-return trigger is unchanged.
+- **Her evidence:**
+  - Fail first: 42042157685, 14 of 18 new tests failing with their predicted messages, and 4 controls or guards passing.
+  - Reverts r1 to r4: each had a clean compile log and failed only its own cases (8, 3, 1, 2).
+  - CI at e29b28d59: 6,639 tests, 0 failures, 24 skipped in the main job; 6,609 and 0 in the job without the Street map.
+- **The planner checked,** from GitHub and git:
+  - #491 is open, not a draft, not merged, base pre-main, head e29b28d59, mergeable;
+  - all 8 checks pass, and pre-main is an ancestor;
+  - the diff is 13 files, +1275/-22. In app code: MapLibreOfflineBasemap.kt, MapLibreStoreRead.kt (new), MapLibreStoreReadLimits.kt (new), OfflineReliefTileStore.kt and RecordsTab.kt;
+  - no @Ignore, and no removed assertion;
+  - git grep finds one OPEN_READONLY openDatabase in main for the store (MapLibreStoreRead.kt:38), with the handler.
+  The planner did not re-read the JUnit XML or the revert runs.
+- **A5, the torn read (the planner's inference in the owner's option):**
+  - Established for the drop-off's tiles: 972 of 973 basemap rows are zlib-compressed and inflated to the end with Adler-32, and 0 of 3,897 page-sized splices were accepted (her laptop test). The one raw row is 73 bytes, inside one page.
+  - Not established for the waypoint bubble's relief images: 20 of 44 rows are raw PNGs of about 150 KB. Whether a torn one fails safe depends on the phone's image decoder, which wasn't read. If it doesn't, the bubble could show a wrong height. Brought to the owner.
+- **The planner's calls on her six calls beyond the dispatch:** all accepted. Call 3: a read that never clears costs Navigate about 1.5 s, its two ends read in turn, each under the bound.
+- **An intermittent test, not this branch's:** AvailabilityScreenCrowdedIconsSettingTest, "…the pick survives a restart". The file held zoom_then_fan where list was expected. Same commit, both outcomes, in the two jobs. One re-run of the failed job passed. It is reported, not touched. Her inference is two settings writes landing out of order; not traced.
+- **Device check:** in her report, five steps. Step 5 (signal return) needs an area whose copy is not whole; both S22 areas are whole, so it can't run as the phone stands without a data change.
+**Notes:** Written by the planner by hand. Next free ID -2124.
