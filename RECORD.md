@@ -35149,3 +35149,19 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Her stops, for the owner:** the option, and whether -945's "Lighter pill + shadow" covers the pill's 2 dp elevation shadow. The tuck shadow is hand-drawn and stays under every option.
 - **Also corrected:** the planner's middle sample was over the green part of the crop. Over grey it is #E7E3D8 against a band of #DFDBD0; the finding is the same.
 **Notes:** Written by the planner by hand. Next free ID -2154.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2154
+**Timestamp:** 2026-11-05T21:25:06Z
+**Continues:** 2026-09-28-2153
+**Title:** See-through map windows lose their shadow and gain the map-chrome hairline; the search pill too, its tuck shadow kept; this release; Amendment 1; Phase 2 go
+**Decision:**
+- **The owner, verbatim, to three questions:**
+  - "How should see-through map windows show their edge, instead of today's shaded band?": **"Thin outline (Recommended)"**. The option read "No shadow. A crisp 1 dp line at the edge, the same hairline you chose for the icon bar, bottom bar and header (-966/-967). The window reads an even 80% right to its edge, and the map shows through evenly."
+  - "Should the search pill's own edge shadow follow the choice above too?": **"Follow the choice (Recommended)"**. The option read "The pill's edge goes the same way as every other window, so its band goes. The tuck shadow you chose stays as it is."
+  - "Does this go in this release?": **"This release (Recommended)"**. The option read "Built now, while the walk is still to come, so it shouldn't hold the release longer. It changes many windows, so it gets a phone check and Elder re-checks it."
+- **Amendment 1:** prompts/preserved/2026-11-05-06-amendment-1.md (A1 to A3, B1 to B3, C1 to C4).
+- **The planner's go for Phase 2,** to a fresh Hazel session: branch edge-shade from pre-main. MapFeatureBubble.kt waits for trip-bubble-actions' merge. It is the same dispatch, under the owner's "investigate" (-2143) and "This release" above.
+**Notes:** Written by the planner by hand. Next free ID -2155.
