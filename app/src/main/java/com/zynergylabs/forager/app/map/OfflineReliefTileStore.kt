@@ -33,8 +33,14 @@ import java.util.zip.Inflater
  * as no line. So an SDK upgrade that changes the schema loses the line, never shows a wrong height. An SDK upgrade
  * re-runs the spike's check.
  *
+ * **Every open goes through [read]** (dispatch 2026-11-05-01, A6 and A7; `MapLibreStoreRead.kt`): read-only, a read SQLite
+ * refuses while MapLibre is mid-save is tried again within `MapLibreStoreReadLimits`, and a corruption report never
+ * deletes the file, as Android's default error handler would.
+ *
  * @param database MapLibre's offline database file.
  * @param urlTemplate the relief source's tile URL as the style gives it: the key the SDK stores it under.
+ * @param log where the retry's lines and a corruption report go.
+ * @param pause the wait between attempts; a test's seam.
  */
 class OfflineReliefTileStore(
     private val database: File,
@@ -47,21 +53,23 @@ class OfflineReliefTileStore(
         // No database: nothing has ever been downloaded or cached on this phone.
         if (!database.isFile) return ReliefTileRead.NotStored
         return try {
-            SQLiteDatabase.openDatabase(database.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-                schemaProblem(db)?.let { return ReliefTileRead.Unsupported(it) }
-                db.rawQuery(TILE_QUERY, arrayOf(urlTemplate, z.toString(), x.toString(), y.toString())).use { row ->
-                    if (!row.moveToFirst()) return ReliefTileRead.NotStored
-                    if (row.isNull(0)) return ReliefTileRead.Empty
-                    val stored = row.getBlob(0)
-                    val png = if (row.getInt(1) == 1) inflate(stored) else stored
-                    when (val decoded = decode(png)) {
-                        is ReliefTileRead.Found -> ReliefTileRead.Found(decoded.tile, row.getString(2))
-                        else -> decoded
-                    }
-                }
-            }
+            read { db -> tileIn(db, z, x, y) }
         } catch (e: Exception) {
             ReliefTileRead.Failed(e)
+        }
+    }
+
+    private fun tileIn(db: SQLiteDatabase, z: Int, x: Int, y: Int): ReliefTileRead {
+        schemaProblem(db)?.let { return ReliefTileRead.Unsupported(it) }
+        return db.rawQuery(TILE_QUERY, arrayOf(urlTemplate, z.toString(), x.toString(), y.toString())).use { row ->
+            if (!row.moveToFirst()) return ReliefTileRead.NotStored
+            if (row.isNull(0)) return ReliefTileRead.Empty
+            val stored = row.getBlob(0)
+            val png = if (row.getInt(1) == 1) inflate(stored) else stored
+            when (val decoded = decode(png)) {
+                is ReliefTileRead.Found -> ReliefTileRead.Found(decoded.tile, row.getString(2))
+                else -> decoded
+            }
         }
     }
 
@@ -73,16 +81,22 @@ class OfflineReliefTileStore(
     override fun linkedFingerprint(z: Int, x: Int, y: Int): String? {
         if (!database.isFile) return null
         return try {
-            SQLiteDatabase.openDatabase(database.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-                if (schemaProblem(db) != null) return null
-                db.rawQuery(FINGERPRINT_QUERY, arrayOf(urlTemplate, z.toString(), x.toString(), y.toString())).use { row ->
-                    if (row.moveToFirst()) row.getString(0) else null
-                }
-            }
+            read { db -> fingerprintIn(db, z, x, y) }
         } catch (e: Exception) {
             null
         }
     }
+
+    private fun fingerprintIn(db: SQLiteDatabase, z: Int, x: Int, y: Int): String? {
+        if (schemaProblem(db) != null) return null
+        return db.rawQuery(FINGERPRINT_QUERY, arrayOf(urlTemplate, z.toString(), x.toString(), y.toString())).use { row ->
+            if (row.moveToFirst()) row.getString(0) else null
+        }
+    }
+
+    /** The one open of the store here, for both reads (see the class doc). */
+    private fun <T> read(block: (SQLiteDatabase) -> T): T =
+        retryingRefusals(READ, log, pause) { openMapLibreStoreReadOnly(database, log).use(block) }
 
     /** What makes [db] a database this does not read, or null. */
     private fun schemaProblem(db: SQLiteDatabase): String? {
@@ -130,6 +144,9 @@ class OfflineReliefTileStore(
 
     companion object {
         private const val TAG = "OfflineReliefTileStore"
+
+        /** The read's name in the retry's log lines. */
+        private const val READ = "A relief read of MapLibre's store"
 
         /** The schema version this reads (MapLibre Native's `offline_schema`, unchanged at android-v13.5.0). */
         const val SCHEMA_VERSION = 6
