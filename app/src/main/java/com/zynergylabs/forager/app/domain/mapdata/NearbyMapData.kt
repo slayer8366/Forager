@@ -124,7 +124,8 @@ class ReadNearbyMapData(private val basemap: OfflineBasemap) {
                 return Result.failure(MvtFormatException("tile ${id.z}/${id.x}/${id.y}: ${e.message}"))
             }
             features += TileFeatureReader.read(id, mvt)
-            marks[id] = if (mvt.layer(TileFeatureReader.BARRIERS) != null) {
+            // The one definition of the mark (dispatch 2026-11-04-09, B1 P7), shared with the drop-off map copy.
+            marks[id] = if (BarrierMark.carriedBy(mvt)) {
                 Coverage.Checked
             } else {
                 Coverage.NotInTileSet("tile ${id.z}/${id.x}/${id.y} has no barrier mark: it was built before fences were carried")
