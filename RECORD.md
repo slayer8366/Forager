@@ -35200,3 +35200,29 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The notice's action colour keeps Material's behaviour exactly. Her inference is that it is SnackbarDefaults.actionColor (inversePrimary), not the primary the host's comment at :49-51 claims. She measures it in the parity test, and it goes to the owner if confirmed.
 - **Told to Hazel** by message, with the words quoted.
 **Notes:** Written by the planner by hand. Next free ID -2157.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2157
+**Timestamp:** 2026-11-05T22:08:43Z
+**Continues:** 2026-09-28-2139
+**Title:** The crowded-icons restart test fixed, test-only: PR #492 ready, waiting on the owner's word to merge
+**Outcome:**
+- **Hazel's Phase 2 report** for dispatch 2026-11-05-03 is preserved at prompts/preserved/2026-11-05-03-report.md. PR #492 (crowded-icons-test-fix, head 8005d54bb, base pre-main ee0651fe0) is ready and not merged.
+- **The fix:** the restart now waits until all three picks' writes have returned, each successfully, and the store reads List. Before, it waited for "List stored", which the first pick already made true. A new case drives a store whose writes land late, so the race is checked on every run.
+- **Her evidence, from JUnit XML:**
+  - The new case failed first at e9f904332 (run 42103982871), with the message seen on CI.
+  - The fix is green (run 42107288627).
+  - The one-line revert failed at :204, the line in the fix's layout, so it can't be step 1's run left over. The compile log had 0 errors, and the file was restored from a saved copy.
+  - The 100-copy repetition ran 2,400 times with 0 failures (runs 42110713139, 42110717427 and 42110721333).
+  - The head is green (run 42115303415). By test identity, it has the 6,644 cases of pre-main's run 42094523206 plus the new one.
+- **The planner's own check** at 2026-11-05T22:08:43Z, against origin:
+  - The PR is open, not a draft, and mergeable. Its merge base is pre-main ee0651fe0. The diff is 3 files: the test, the new CrowdedIconsTestStores.kt (75 lines) and the report.
+  - The planner read the app/src/test diff: no @Ignore and no removed or changed assertion. The only removed line is the old wait, and the old case's body moved whole into picksSurviveARestart.
+  - CI on 8005d54bb: success.
+  - The revert and repetition runs weren't re-read; they rest on her report.
+- **Her five calls beyond the dispatch's letter**, accepted by the planner as technical: the late store holds every write, the first too; the late case's wait reads through the ViewModel's store; a released write hands its result back on IO; the shared function; the r1 branch kept until merge.
+- **Also seen:** the same race turned one way-to end log run red (run 42111506814 on b2dfc73c0). Its re-run is green, and that Hazel left the test untouched.
+**Waiting on:** the owner's word to merge PR #492. Before merging: a bundle of pre-main, verified, and `--match-head-commit 8005d54bb80cff22c2c33e6a931be33f2c062123`.
+**Notes:** Written by the planner by hand. Next free ID -2158.
