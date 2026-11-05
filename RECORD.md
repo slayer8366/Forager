@@ -34120,3 +34120,23 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Both are told to the owner.
 - **To the owner:** S1 (the area's shown size), S2 (the tile budget), S3 (refresh by age), S4 (the "Older map style" notice).
 **Notes:** Written by the planner by hand. Next free ID -2111.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2111
+**Timestamp:** 2026-11-05T09:47:24Z
+**Continues:** 2026-09-28-2110
+**Title:** The drop-off copy: size included, budget not counted, fetched only while missing; the notice gets new words; Amendment 1; Phase 2 go to a fresh Hazel
+**Decision:**
+- **The owner, verbatim, to four questions:**
+  - shown size: **"Include it (Recommended)"**;
+  - tile budget: **"Don't count it (Recommended)"**;
+  - refresh: **"Only when missing (Recommended)"**;
+  - the "Older map style. Download again to update." notice: **"New words"**, whose option read "The notice gets new words. I'd bring you wording options first, since the words are yours."
+  Each option's text is quoted in Amendment 1 (A5 to A8).
+- **Told to the owner, not asked:** S5 (any signal, mobile data included, about 2 MB on the S22) and S6 (about 604 extra tile requests) are settled by the owner's option text, "refreshes it by itself whenever there's signal". Also told: Waypoint 1 may show a ruled note with a straight line once its data is complete.
+- **The notice's words:** the planner brings wording options once Hazel reports what downloading again actually changes (A8), so the words promise nothing untrue.
+- **Amendment 1:** prompts/preserved/2026-11-04-09-amendment-1.md (A5 to A10, B1 to B3, C1 to C3).
+- **The planner's go for Phase 2,** to a fresh Hazel session (C3): branch drop-off-map-copy from pre-main 949ad8183, a draft PR into pre-main, and the merge on the owner's word. It is the same dispatch, under the owner's "Yes" (-2109).
+**Notes:** Written by the planner by hand. Next free ID -2112.
