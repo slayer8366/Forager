@@ -239,8 +239,13 @@ internal fun RecordsTab(
         }
     }
 
-    LaunchedEffect(selectedTab) {
-        when (selectedTab) {
+    // The effect reads its own key, never the live chip (dispatch 2026-11-05-01, A8). Composed with the latch above already
+    // set (the Tools drawer's Offline maps row, a GPX import's Tracks), the latch's effect selects the chip before this one
+    // first runs. Read live, this launch, keyed on the old chip, opened the new one, and the key's change opened it again:
+    // S22 session 14's doubled opening (the Phase 1 report, section 5). The key and the launch order are as before.
+    val openedTab = selectedTab
+    LaunchedEffect(openedTab) {
+        when (openedTab) {
             RecordsSubTab.OFFLINE_MAPS -> onOfflineMapsOpened()
             RecordsSubTab.RECORDED_TRACKS -> onTracksOpened()
             RecordsSubTab.ALL, RecordsSubTab.WAYPOINTS, RecordsSubTab.FINDS -> Unit
