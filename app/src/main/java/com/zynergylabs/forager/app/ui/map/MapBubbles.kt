@@ -258,7 +258,8 @@ sealed interface MapBubbleContent {
 
     /** A planned trip: what its Trip Planner row shows; Directions. */
     /** [date] is null for an undated trip (schema 23), which shows no date line. */
-    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val coordinates: String) : MapBubbleContent
+    /** STUB (dispatch 2026-11-05-05, tests first): [coordinates] still filled, [elevation] never; built in a later commit. */
+    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val coordinates: String? = null, val elevation: String? = null) : MapBubbleContent
 
     /** An offline region: its name, radius, size, and whether it is stale; details. */
     data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent

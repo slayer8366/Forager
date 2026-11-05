@@ -118,7 +118,7 @@ internal fun MapFeatureBubble(
                 BubbleTitle(content.trip.name)
                 content.date?.let { BubbleLine(it) }
                 content.mgrs?.let { BubbleLine(it) }
-                BubbleLine(content.coordinates)
+                content.coordinates?.let { BubbleLine(it) }
                 // No further target: a planned trip has no sheet (planner's M1 ruling).
                 BubbleActions { BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.trip.name, content.trip.location) } }
             }

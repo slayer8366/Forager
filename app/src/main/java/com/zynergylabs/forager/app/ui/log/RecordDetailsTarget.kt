@@ -27,6 +27,9 @@ internal sealed interface RecordDetailsTarget {
     data class WaypointDetails(val id: String, val fromTrackId: String? = null) : RecordDetailsTarget
     data class TrackDetails(val id: String) : RecordDetailsTarget
     data class OfflineRegionDetails(val id: Long) : RecordDetailsTarget
+
+    /** STUB (dispatch 2026-11-05-05, tests first): a planned trip's card, by id. Nothing opens it yet, and it is not saved. */
+    data class TripDetails(val id: String) : RecordDetailsTarget
 }
 
 /**
@@ -52,6 +55,7 @@ internal val RecordDetailsTargetSaver: Saver<RecordDetailsTarget?, String> = Sav
                 ?: "$WAYPOINT_KEY${target.id}"
             is RecordDetailsTarget.TrackDetails -> "$TRACK_KEY${target.id}"
             is RecordDetailsTarget.OfflineRegionDetails -> "$REGION_KEY${target.id}"
+            is RecordDetailsTarget.TripDetails -> error("STUB (dispatch 2026-11-05-05, tests first): a trip's card is not saved yet")
         }
     },
     restore = { saved ->

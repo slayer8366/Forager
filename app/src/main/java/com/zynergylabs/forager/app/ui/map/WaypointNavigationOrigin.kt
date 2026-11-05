@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.geometry.Offset
+import com.zynergylabs.forager.app.domain.NavigationTargetKind
 
 /**
  * Where "Navigate" was tapped for a waypoint (dispatch 2026-09-28-502, Amendment 1, the owner's
@@ -12,10 +13,20 @@ sealed interface WaypointNavigationOrigin {
     val waypointId: String
 
     /** The waypoint's bubble on the Maps tab, where it was anchored when Navigate was tapped. */
-    data class MapBubble(override val waypointId: String, val anchorPx: Offset, val bearingDeg: Float) : WaypointNavigationOrigin
+    data class MapBubble(
+        override val waypointId: String,
+        val anchorPx: Offset,
+        val bearingDeg: Float,
+        /** STUB (dispatch 2026-11-05-05, tests first): a trip's bubble with [NavigationTargetKind.TRIP]. Not saved yet. */
+        val kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT,
+    ) : WaypointNavigationOrigin
 
     /** The waypoint's details sheet, opened from its bubble on the Maps tab. */
-    data class MapDetails(override val waypointId: String) : WaypointNavigationOrigin
+    data class MapDetails(
+        override val waypointId: String,
+        /** STUB (dispatch 2026-11-05-05, tests first): a trip's card with [NavigationTargetKind.TRIP]. Not saved yet. */
+        val kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT,
+    ) : WaypointNavigationOrigin
 
     /** The waypoint's row in Records. */
     data class RecordsRow(override val waypointId: String) : WaypointNavigationOrigin

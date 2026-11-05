@@ -35,6 +35,10 @@ fun AvailabilityViewModel.onNavigateToWaypoint(waypointId: String) {
     waypointNavigationStore.keepWaypointNavigation(navigation)
 }
 
+/** STUB (dispatch 2026-11-05-05, tests first): "Navigate" on planned trip [tripId]. Starts nothing yet; built in a later commit. */
+@Suppress("UNUSED_PARAMETER")
+fun AvailabilityViewModel.onNavigateToTrip(tripId: String) = Unit
+
 /**
  * Ends the waypoint navigation (Back, the X-circle, the HUD's ✕, or its waypoint deleted), clears what is
  * kept, and picks a paused return back up (step 6). The return captures its line afresh (the planner's
