@@ -33960,6 +33960,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - "Test s13" (1 mi, about 17 tiles) was downloaded at the owner's word, as app region 12 and MapLibre region 12 (35 tiles).
   - All 17 of its basemap tiles kept their old modified dates (2026-10-27 to 2026-11-03), and us/15/5222/11744 stayed at 2026-10-28 with no barrier mark. The download reused the stored tiles; it did not fetch current ones.
   - Deleted with "Delete Test s13". The tile budget is back to 832 / 6000, and Region 1 and Region 2 remain. Both now show "Older map style. Download again to update."
+    *Correction (planner, 2026-11-04, on Hazel's report for dispatch 2026-11-04-08, prompts/preserved/2026-11-04-08-report.md):* "Both now show" reads as if the test caused it. It didn't. The notice is decided by the region's style URL alone (TrailStyle.kt:111-114), and both regions were built against street-v3 in every snapshot, so both showed it before the test too. Also, "kept their old modified dates" is weaker evidence than it reads: `modified` is a carried-over server header, not a write time. What shows the reuse is the log (17 requests, all reference-trails, all 204, none for us/) and the unchanged `expires` and bytes.
 - **A finding for the owner, inferred, not confirmed in code:**
   - An area downloaded before the fence data may never get it by downloading again, because stored tiles are reused.
   - Then the drop-off would never appear there, and those areas would always go by trail. That is A1's fallback, so nothing breaks or goes dark.
@@ -34000,3 +34001,35 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Started:** a fresh Hazel Cairnwright session, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (records-after-173 ee6a86ca1), not a summary.
 - **Read only:** no phone, code, branch, commit, push or Gradle. Her report is filed by the planner.
 **Notes:** Written by the planner by hand. Next free ID -2106.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2106
+**Timestamp:** 2026-11-05T05:42:08Z
+**Continues:** 2026-09-28-2105, 2026-09-28-2104, 2026-09-28-2103
+**Title:** Dispatch 2026-11-04-08 answered: no app action refreshes an older area's map; the drop-off can't reach areas downloaded before the fence data; six options for the owner
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-04-08-report.md, extracted from Hazel's hand-back. She read pre-main 949ad8183, MapLibre Android 13.5.0 (classes.jar), MapLibre Native at tag android-v13.5.0 (a666f02, matching the AAR) and session 13's files. No phone, code, branch or Gradle.
+- **Prediction (mechanism — coder):** her first section.
+  - An offline download reuses any stored tile that has data, and never revalidates it (offline_download.cpp:477-514; offline_database.cpp:591-614).
+  - Deleting a region evicts nothing while the map cache is under 50 MiB (offline_database.cpp:988-1009, :1260-1334). The app never changes that limit, and the S22 holds 23.8 MB.
+  - Only drawing the map online refreshes a stored tile, one drawn zoom-15 tile at a time, in place. ReadNearbyMapData then reads the refreshed row.
+- **So, today:** for an area downloaded before the fence data, no app action brings the fence mark to the whole area: not a new download, not deleting and downloading, not waiting. On the S22, Region 2 has 2 of 600 zoom-15 tiles marked and Region 1 has 3 of 9; the marked ones were refreshed by online viewing. Clearing the app's storage would work, but takes all app data with it.
+- **The planner checked** two central claims from source:
+  - logcat: the test download's requests at 20:16:24-30 were 17, all workers.dev/reference-trails/, all "code = 204", none for us/;
+  - OfflineRegionsList.kt at pre-main: the "Download again" button renders only when `!region.isDownloaded && onDownloadAgain != null`.
+- **The planner's premises she found wrong:**
+  - "Download again" deletes and downloads: no such control exists for a downloaded area, so the user's only route is a new download, with an optional delete first;
+  - "tiles held by another region stay old" is true but incomplete: tiles held by no region stay too, as cache, and are reused;
+  - -2103's "Both now show" and its "old modified dates" reading are corrected in place.
+- **Also found:** the notice "Older map style. Download again to update." tells the user to do something that doesn't update the map data. Following it would clear the notice over the same old tiles.
+- **Options for the owner,** her section 6, none chosen:
+  - A, leave it;
+  - B, clear the map cache, then download again;
+  - C, invalidate, which is not recommended because it blanks the offline map with no signal;
+  - D, a new tile address for new data;
+  - E, the app keeps its own copy of the zoom-15 tiles for the drop-off, refreshed automatically;
+  - F, a notice based on the data, which needs B, D or E behind it.
+  Brought to the owner.
+**Notes:** Written by the planner by hand. Closes 2026-09-28-2104. Next free ID -2107.
