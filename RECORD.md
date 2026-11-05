@@ -35024,6 +35024,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - While plotting: **"Add it as a stop (Recommended)"**. The option read "The same as tapping a waypoint while plotting: the trip's spot joins the route as the next stop."
 - **Told before asking:** the planner's slip in -2140's option (corrected in place there), and the planner's calls in -2147.
 - **Then the owner, verbatim:** "Ideally, the trip is the first icon in the waypoint series, where the car would likely be, or the general starting point." Asked, against the ruling above, "While plotting a route, when you tap a trip's flag, where should the trip go in the route?": **"Next stop, as before"**. So A11 stands. A route plotted from a trip already starts at the trip, and a saved route's flag sits on its first stop.
+  Then: "It doesn't have to be, but in an ideal workflow, that's what will be done." The trip as a route's first stop is the expected use, not a rule the app enforces.
 - **Amendment 1:** prompts/preserved/2026-11-05-05-amendment-1.md (A8 to A12, B1, B2, C1 to C5).
 - **The planner's go for Phase 2,** to a fresh Hazel session: branch trip-bubble-actions from pre-main. It is the same dispatch, under the owner's "This release (Recommended)" (-2140).
 **Notes:** Written by the planner by hand. Next free ID -2149.
