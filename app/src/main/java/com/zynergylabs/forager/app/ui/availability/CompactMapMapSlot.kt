@@ -85,7 +85,10 @@ internal fun CompactMapMapSlot(
         displayRegion,
         MapOverlayContent(
             sightings = filteredSightings,
-            plannedTrips = uiState.plannedTrips,
+            // Dispatch 2026-11-05-05 (A8; the planner, RECORD -2147): arrived at a trip, its flag is left out under the ring, as a
+            // waypoint's pin is below. Matched by id, as the pin is: trip and waypoint ids are random UUIDs, so a waypoint target
+            // (or the start) never names a trip.
+            plannedTrips = if (arrivedAt != null) uiState.plannedTrips.filterNot { it.id == navigationTarget?.id } else uiState.plannedTrips,
             breadcrumbPoints = breadcrumbPoints,
             // Dispatch -497: once arrived, the start's pin is left out and the arrival
             // ring drawn in its place (RouteHomeLayers.kt), so the start changes form.

@@ -60,7 +60,11 @@ data class AvailabilityScreenNavigation(
      * does for its delete.
      */
     val onNavigateToWaypoint: ((String) -> Unit)? = null,
-    /** STUB (dispatch 2026-11-05-05, tests first): "Navigate" on a planned trip, given its id. Read by nothing yet. */
+    /**
+     * Dispatch 2026-11-05-05 (Amendment 1, A8): "Navigate" on a planned trip, given its id
+     * (`AvailabilityViewModel.onNavigateToTrip`). Offered in a trip's bubble and its card on the Maps tab; `null` (the
+     * default) offers it nowhere.
+     */
     val onNavigateToTrip: ((String) -> Unit)? = null,
     /** Dispatch 2026-09-28-502: ends the waypoint navigation (`AvailabilityViewModel.onStopWaypointNavigation`). */
     val onStopWaypointNavigation: () -> Unit = {},

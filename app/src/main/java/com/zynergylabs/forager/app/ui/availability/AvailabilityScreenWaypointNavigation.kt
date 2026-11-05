@@ -4,6 +4,7 @@ package com.zynergylabs.forager.app.ui.availability
 // composable, so composition is unchanged; the three lambdas are built where the body builds the holder, and every reader
 // of them comes after that line.
 
+import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.log.JournalTopTab
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
@@ -24,6 +25,8 @@ internal fun waypointNavigationActions(
     isNavigating: Boolean,
     navigatingToWaypoint: Waypoint?,
     onNavigateToWaypoint: ((String) -> Unit)?,
+    /** Dispatch 2026-11-05-05 (A8): "Navigate" on a planned trip, given its id, for an origin of kind TRIP. */
+    onNavigateToTrip: ((String) -> Unit)?,
     onStopWaypointNavigation: () -> Unit,
     onToggleReturning: () -> Unit,
 ): WaypointNavigationActions {
@@ -32,7 +35,9 @@ internal fun waypointNavigationActions(
     // between, so there is no new start zoom (the planner's ruling); a view the walker had moved away from is taken back,
     // as "Return to Route" does.
     val startWaypointNavigation: (WaypointNavigationOrigin) -> Unit = { origin ->
-        onNavigateToWaypoint?.let { navigate ->
+        // Dispatch 2026-11-05-05 (A8): an origin names a waypoint or, from a trip's bubble or card, a trip.
+        val navigateTo = if (origin.kind == NavigationTargetKind.TRIP) onNavigateToTrip else onNavigateToWaypoint
+        navigateTo?.let { navigate ->
             val wasNavigating = isNavigating
             state.setWaypointNavigationOrigin(origin)
             navigate(origin.waypointId)
