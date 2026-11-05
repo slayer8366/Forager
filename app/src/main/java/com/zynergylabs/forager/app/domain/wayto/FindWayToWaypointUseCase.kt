@@ -62,6 +62,11 @@ class FindWayToWaypointUseCase(
      * gates on both straight legs (`StreetDropOffEnds` in production). A refusal is today's straight line with its note.
      */
     private val ends: WayToEnds,
+    /**
+     * Where the info-level line goes (dispatch 2026-11-05-07): `Log.i` in production (`AppContainer`), and nothing by
+     * default, so the tests of other steps need not say. [ErrorLog] has only a warning level.
+     */
+    private val info: (tag: String, message: String) -> Unit = { _, _ -> },
 ) {
 
     /** [accuracyMeters] is the accuracy [from]'s fix reports, null when it reports none (A2: the pick-up needs a good fix). */
