@@ -34184,3 +34184,41 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - So it is built as it is. Each pass's log line counts the unmarked answers, so a server regression shows.
   - Told to the owner. Not asked, since the words settle it (owner-word-stands). Hazel was told by message.
 **Notes:** Written by the planner by hand. Next free ID -2114.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2114
+**Timestamp:** 2026-11-05T11:51:26Z
+**Continues:** 2026-09-28-2113, 2026-09-28-2111
+**Title:** Dispatch 2026-11-04-09 built: PR #490 into pre-main, green and ready for review, not merged
+**Outcome:**
+- **Hazel's summary** is filed unedited at prompts/preserved/2026-11-04-09-report.md. Her full report is on the branch, at docs/audits/2026-11-04-09-drop-off-map-copy-completion-report.md (0e4cdc577).
+- **Commits,** on drop-off-map-copy from pre-main 949ad8183:
+  - c153a1a61, stubs;
+  - 1de3896ac, tests;
+  - a1ec57517, the copy;
+  - 88c53835c, the wiring;
+  - c3815ac1e, the notice's words;
+  - 0e4cdc577, the report.
+- **Her evidence:**
+  - Fail first: 42008951889, 55 of 6,621 failing as predicted.
+  - Green: 42011776915 at c3815ac1e and 42019215314 at 0e4cdc577, each 6,621 tests, 0 failures, 24 skipped.
+  - Revert checks R1 to R6 and r7 to r9 (branches drop-off-map-copy-r1 to -r9): each had no compile errors and failed only its own cases.
+  - The notice wraps to 2 lines at the default size and 4 at font scale 2.0, between words.
+  - P7: NearbyMapData.kt:128 calls BarrierMark.carriedBy. The reader's tests are unchanged and green.
+  - The regression log line is DropOffMapFetch.kt:109.
+- **The planner checked,** from GitHub and git:
+  - PR #490 is open, not a draft, not merged, base pre-main, head 0e4cdc577, mergeable;
+  - all 8 checks pass;
+  - pre-main is an ancestor;
+  - the diff is 31 files, +2883/-24. In app code it is 16 files: 7 new, plus AppContainer.kt, OfflineMapRepository.kt, NearbyMapData.kt, MapLibreOfflineMapRepository.kt, OfflineRegionReconciliation.kt, TrailStyle.kt, AvailabilityOfflineRoutes.kt and AvailabilityViewModelOfflineMaps.kt. AvailabilityViewModel.kt is untouched;
+  - no @Ignore was added. The one removed assertion is TrailStyleTest's old notice words, replaced by the ruled ones;
+  - TrailStyle.kt:125 reads exactly the owner's words (-2112).
+  The planner did not re-read the JUnit XML or the revert runs; those figures are hers.
+- **The planner's calls on her 16 calls beyond the dispatch:** all accepted.
+  - Call 2 (the pass at a download's completion starts in AvailabilityOfflineRoutes.noteDownloaded) is checked against -1444/-1450, whose rule is that "every launch and cancel of every loop stays in a ViewModel function", meaning the decisions.
+  - The pass is one-shot, never a loop, and the decision is the ViewModel's own hand-off of a completed download (AvailabilityViewModel.kt:282). So it doesn't depart from that rule.
+- **Not verified:** the repository's fetch and delete with a real MapLibre store, AppContainer's wiring, the real server and timing, and the wrap in the phone's fonts. All of them are for the S22 device check in her report.
+- **Left in place:** the nine drop-off-map-copy-rN branches, and her worktree ~/.cache/forager-wt/drop-off-map-copy.
+**Notes:** Written by the planner by hand. Next free ID -2115.
