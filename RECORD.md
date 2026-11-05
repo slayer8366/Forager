@@ -34900,3 +34900,19 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** any change to the look (owner-level); a wrong premise; two failed attempts.
 **Dispatch-file:** prompts/preserved/2026-11-05-06-edge-shade.md
 **Notes:** Written by the planner by hand. Authorisation: the owner's "investigate" above. Started as a fresh Hazel session on Opus. Next free ID -2144.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2144
+**Timestamp:** 2026-11-05T20:32:12Z
+**Continues:** 2026-09-28-2142, 2026-09-28-1951, 2026-09-28-1943
+**Title:** Bug 14's warning: the map server decides where it shows, and any part of the area outside the detail counts; Amendment 2; a fresh Hazel for Phase 1b
+**Decision:**
+- **The owner, verbatim, to two questions:**
+  - "What should decide where the warning (…) shows?": **"The map server (Recommended)"**. The option read "When the pin settles and there's signal, the app asks the map server whether it has detailed map there. The warning shows wherever it doesn't: Central and South America, Mexico, the Caribbean, anywhere outside the coverage. It stays right whenever the map is rebuilt. With no signal it can't ask, so no warning, logged."
+  - "If an area is partly inside the detailed map and partly outside, when should the warning show?": **"If any part is outside"**. The option read "Shown whenever some of the download would be blank. The words say "A download here will be blank", which overstates it a little for the covered part."
+- **The words stand as -1951.** They replace A1's latitude condition, which came from the bug's description, not from a ruling on how it is decided.
+- **Amendment 2:** prompts/preserved/2026-11-02-02-amendment-2.md (A3 to A6, B2, C4, C5).
+- **Phase 1b** goes to a fresh Hazel session, under the owner's "Build it before promoting" (-2136).
+**Notes:** Written by the planner by hand. Next free ID -2145.
