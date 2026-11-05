@@ -34883,6 +34883,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - portrait: directly under "Pin at", as she read it;
   - landscape: option (a), pinned above "Pin at", always visible beside the pin's coordinates.
 - **The planner's addition for the owner, as an option for S2 and the finding:** the server decides. The Worker already answers 204 for a zoom-15 tile where the archive has no detail (index.ts:649-659, her reading), so the app could ask, when the pin settles with signal, whether there's detail there. With no signal, no line would show, logged. This is the planner's, not yet checked by a coder.
+  *Correction (planner, 2026-11-05, on Hazel's Phase 1b report, prompts/preserved/2026-11-02-02-phase1b-report.md, section 1):* the 204 holds only south of about 15.92°N. North of it, outside the source data, the server answers 200 with a tile holding only the land fill (earth), plus the sea (water, kind ocean) on a coast. She saw this at z10, z12 and z14 in central Mexico, the Sahara, a Caribbean coast and Mexico City, in 19 read-only requests. So a 204-only check would have missed most of the coverage the owner's chosen option described. The ruling stands. The mechanism is to read each tile's layers (-2150).
 - **Brought to the owner:** S1, S2 and the finding.
 **Notes:** Written by the planner by hand. Next free ID -2143.
 
@@ -35053,3 +35054,35 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - one line for both ends, firing on refusals too.
 - **Told to her:** the trip-bubble branch changes only the way-to notes' words for a trip target in WayToWaypoint.kt.
 **Notes:** Written by the planner by hand. Next free ID -2150.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2150
+**Timestamp:** 2026-11-05T20:59:27Z
+**Continues:** 2026-09-28-2144, 2026-09-28-2142
+**Title:** Bug 14's warning, Phase 1b: no detail north of the line is a land-only tile, not a 204; the app reads each z10 tile's layers, with no Worker change; the planner's calls; the edge's precision to the owner
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-02-02-phase1b-report.md. The planner checked: no coordinate pairs in it. She read pre-main ee0651fe0 (unmoved) and the Worker, identical on main and pre-main, and made 19 read-only requests to the live server.
+- **What the server answers:**
+  - 204 at z10 to z15 south of the archive's south bound;
+  - north of it, outside the source extracts, 200 with only earth (and ocean water on a coast);
+  - covered tiles carry roads, land use, water, places, boundaries, buildings or points of interest.
+  - /us.json: bounds -180, -85.05, 180, 85.04 (the south widened by the world fill), max zoom 15. Inferred: the header's south bound is still 15.92097, from its centre latitude.
+- **The mechanism, the planner's call on her S5, option (a):**
+  - the app asks for every z10 tile the download rectangle touches, from the Trail Map's own tile address, and reads each one's layers;
+  - a 204, or only earth and ocean, means no detail;
+  - any no-detail tile shows the line.
+  - No Worker change. The map side's coverage route, option (b), is not chosen. Its one dependency: the classifier names the build's fill layers once.
+- **Her limits, accepted:** a 750 ms debounce; at most 25 tiles per settle; 4 in flight; 8 s for the whole check; the latest area wins; a 1 MiB body cap; an early stop on the first no-detail answer.
+- **Her calls, accepted:**
+  - C1, the settle rides OfflineRouteActions, avoiding the 1,440- and 919-line files;
+  - C2, RealSearchScreenRig gains defaulted parameters;
+  - C3, a per-session cache of tile answers (up to 512), so the line doesn't blink while panning;
+  - re-checking on opening, on the radius slider and on signal return (the existing hook);
+  - the collaborator built inside AvailabilityOfflineMaps, keeping AvailabilityViewModel.kt under 800.
+- **Her S4, two coders on one file:** the trip bubble's Phase 2 (trip-bubble-actions) also changes AvailabilityViewModel.kt, MainActivity.kt and AvailabilityUiState.kt. The planner sequences them: bug 14's Phase 2 starts on pre-main after trip-bubble-actions has merged.
+- **Told to the owner:** the build is bigger than the "A small build" in the owner's go (-2136), about 430 new lines plus tests. Near-edge areas can be partly blank without the line, by up to about 33 km at z10; and remote covered places with only land and sea in a z10 tile could show the line falsely (not seen, not ruled out).
+- **Known bug 14's row** understates the bug, since north of the line outside the data downloads are land-only. The planner updates the row with the PR.
+- **To the owner:** S6, the edge's precision (z10, z11 or z12).
+**Notes:** Written by the planner by hand. Next free ID -2151.
