@@ -7,6 +7,9 @@ import android.content.IntentFilter
 import android.view.KeyEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
@@ -87,10 +90,15 @@ internal fun registerMapsApp(activity: Activity) {
 internal fun takeStartedGeo(activity: Activity): String? =
     Shadows.shadowOf(activity).nextStartedActivity?.takeIf { it.action == Intent.ACTION_VIEW }?.data?.toString()
 
-/** One real touch at ([fx], [fy]) of [tag]'s own bounds, after scrolling it into view (it may sit in a scrolling sheet). */
-internal fun ComposeTestRule.touchAcrossTag(tag: String, fx: Float, fy: Float) {
-    onNodeWithTag(tag).performScrollTo()
+/** Scrolls [tag] into view where it sits in something that scrolls, as a card's buttons do; a bubble's buttons do not. */
+internal fun ComposeTestRule.scrollIntoViewIfScrollable(tag: String) {
+    if (onAllNodes(hasTestTag(tag) and hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().isNotEmpty()) onNodeWithTag(tag).performScrollTo()
     waitForIdle()
+}
+
+/** One real touch at ([fx], [fy]) of [tag]'s own bounds, scrolled into view first where it sits in a scrolling card. */
+internal fun ComposeTestRule.touchAcrossTag(tag: String, fx: Float, fy: Float) {
+    scrollIntoViewIfScrollable(tag)
     onNodeWithTag(tag).performTouchInput { click(Offset(width * fx, height * fy)) }
     waitForIdle()
 }

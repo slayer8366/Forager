@@ -18,7 +18,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -188,8 +187,7 @@ class TripNavigateTest {
     // ── Helpers ──
 
     private fun touchCentreOf(tag: String) {
-        composeRule.onNodeWithTag(tag).performScrollTo()
-        composeRule.waitForIdle()
+        composeRule.scrollIntoViewIfScrollable(tag)
         composeRule.onNodeWithTag(tag).performTouchInput { click(center) }
         composeRule.waitForIdle()
     }

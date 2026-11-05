@@ -105,8 +105,9 @@ class TripBubbleActionsTest {
 
     private fun count(tag: String) = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
 
+    /** A button's words, read from its merged node, where its Text child's words are. */
     private fun label(tag: String): String =
-        composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
+        composeRule.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
 
     @Test
     fun `the bubble reads the trip's name, date, MGRS and elevation, in that order, with no coordinates and no Directions`() {

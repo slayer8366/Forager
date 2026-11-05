@@ -46,10 +46,16 @@ class TripWhilePlottingTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
+    /**
+     * [SADDLE] moved off Creek's spot: SADDLE sits exactly where the route fixtures' Creek does, and a stop at the last stop's
+     * position is refused by the plotting's own rule (RoutePlotDraft.withStop, the owner: "Ignore the second tap").
+     */
+    private val trip = SADDLE.copy(location = LatLng(45.346, -122.654))
+
     private val map = RouteMapSlot(
         listOf(
             StubGlyph(MapLayerIds.WAYPOINTS, CREEK.id, 60.dp, 300.dp, LatLng(CREEK.lat, CREEK.lng)),
-            StubGlyph(MapLayerIds.PLANNED_TRIPS, SADDLE.id, 60.dp, 420.dp, SADDLE.location),
+            StubGlyph(MapLayerIds.PLANNED_TRIPS, trip.id, 60.dp, 420.dp, trip.location),
         ),
     )
     private val plotting = RoutePlottingViewModel(
@@ -58,10 +64,10 @@ class TripWhilePlottingTest {
         onSaved = {},
         errorLog = { _, _, _ -> },
     )
-    private val saddleStop = RouteStop("Saddle loop", SADDLE.location)
+    private val saddleStop = RouteStop("Saddle loop", trip.location)
 
     private fun setScreen() {
-        val viewModel = mapLayersViewModel(plannedTrips = listOf(SADDLE))
+        val viewModel = mapLayersViewModel(plannedTrips = listOf(trip))
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
             MapLayersTestScreen(
@@ -76,7 +82,7 @@ class TripWhilePlottingTest {
     }
 
     private fun touchFlag(fx: Float, fy: Float) {
-        composeRule.onNodeWithTag(glyphTag(SADDLE.id)).performTouchInput { click(Offset(width * fx, height * fy)) }
+        composeRule.onNodeWithTag(glyphTag(trip.id)).performTouchInput { click(Offset(width * fx, height * fy)) }
         composeRule.waitForIdle()
     }
 
