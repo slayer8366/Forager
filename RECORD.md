@@ -35008,3 +35008,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - two flags at one spot after a route from a trip is the crowded-icons case, handled by the existing setting.
 - **To the owner:** S1 and S2, S3, S4, and S5's while-plotting case.
 **Notes:** Written by the planner by hand. Next free ID -2148.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2148
+**Timestamp:** 2026-11-05T20:49:32Z
+**Continues:** 2026-09-28-2147, 2026-09-28-2140
+**Title:** Trips: Navigate to the trip itself; the card without Created or Used in; "Trip date"; a trip tapped while plotting becomes a stop; Amendment 1; Phase 2 go
+**Decision:**
+- **The owner, verbatim, to four questions:**
+  - Navigate: **"As a trip (Recommended)"**. The option read "Navigate goes to the trip itself, with the same screen, the way along trails, the drop-off, and the arrival. Back returns to the trip. Its messages say "trip" where they'd say "waypoint" (for example "No clear way in to the trip · straight line"). The bigger build; nothing new appears in Records."
+  - The trip card: **"Leave both off (Recommended)"**. The option read "Name, the trip's date, MGRS and coordinates, then Navigate and Directions, centred. Nothing on it is empty or always the same."
+  - The date's label: **"Trip date (Recommended)"**. The option read "Says plainly that it's the day the trip is planned for."
+  - While plotting: **"Add it as a stop (Recommended)"**. The option read "The same as tapping a waypoint while plotting: the trip's spot joins the route as the next stop."
+- **Told before asking:** the planner's slip in -2140's option (corrected in place there), and the planner's calls in -2147.
+- **Amendment 1:** prompts/preserved/2026-11-05-05-amendment-1.md (A8 to A12, B1, B2, C1 to C5).
+- **The planner's go for Phase 2,** to a fresh Hazel session: branch trip-bubble-actions from pre-main. It is the same dispatch, under the owner's "This release (Recommended)" (-2140).
+**Notes:** Written by the planner by hand. Next free ID -2149.
