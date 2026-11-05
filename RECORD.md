@@ -35245,3 +35245,35 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Left as is:** `crowded-icons-test-fix-r1` (c1a98670a), the revert branch, is still on origin. Deleting it needs the owner's word.
 - **Open builds,** each based on ee0651fe0 and not affected by this merge: the trip bubble (2026-11-05-05), the edge shade (-06) and the way-to end log (-07).
 **Notes:** Written by the planner by hand. Next free ID -2159.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2159
+**Timestamp:** 2026-11-05T22:29:52Z
+**Continues:** 2026-09-28-2149
+**Title:** The way-to end log built: PR #493 ready, waiting on the owner's word to merge
+**Outcome:**
+- **Hazel's report** for dispatch 2026-11-05-07 is preserved at prompts/preserved/2026-11-05-07-report.md. PR #493 (wayto-end-log, head 1673b0e1b, base pre-main ee0651fe0) is ready and not merged.
+- **The change:**
+  - Each Navigate search that reaches the ends step logs one info line, tag FindWayToWaypoint, before today's lines: "The way to the waypoint's ends: the walker's end <W>; the waypoint's end <P>."
+  - Each end reads one of: moved to a pick-up or drop-off (rank and leg length), kept and gated (with why), not judged on a poor fix, by trail (by kind), refused (note), or not reached.
+  - The line holds no position. Nothing on screen changes, and no decision changes.
+- **Her evidence, from JUnit XML:**
+  - The stub run failed the 9 line cases (run 42108029374).
+  - The one-line revert failed the same 9 and nothing else, with a clean compile (run 42111554422).
+  - The forward change is green on attempt 2 of run 42111506814. Attempt 1's one red was the crowded-icons race, since fixed by PR #492 (-2158).
+  - The head is green (run 42118634449), and FindWayToWaypointEndLogTest passed 10 of 10.
+- **The planner's own check** at 2026-11-05T22:29:52Z, against origin:
+  - The PR is open, ready and mergeable. Its merge base is ee0651fe0. It changes 6 files, none of them the files PR #492 changed.
+  - The planner read the app/src/main diff:
+    - settle's order is unchanged. The waypoint's end is planned first, its refusal returns, then the walker's end. The steps after planning moved into drawAndGate, which still starts with the walker's refusal.
+    - Each EndPlan only gains what it became. The by-trail reasons and today's warning lines are word for word.
+    - One info call after settle, and Log.i wired in AppContainer.
+  - WayToEndsRecord.kt was read whole. Its words take only rank, leg length, the fix's accuracy, a note's name and fixed constants: no coordinate, tile, file or street name.
+  - 10 new @Test cases, no @Ignore, no removed assertion. CI on 1673b0e1b: success.
+  - The stub and revert runs weren't re-read; they rest on her report.
+- **Not tested, from her report:** the chooser at the walker's end with none qualifying, a walker whose own tile isn't stored, rank 3 (FRONTAGE), two of the three by-trail kinds, and the Log.i line on a device.
+- **For the outing:** L2 of dispatch 2026-11-05-04's check 1 now reads this line, with `adb logcat -s FindWayToWaypoint:I`.
+**Waiting on:** the owner's word to merge PR #493. Before merging: a bundle of pre-main, verified, and `--match-head-commit 1673b0e1b66645516158e87efa9226909803eef6`. Pre-main is now 6e24b22c4, so the merge sits on top of #492.
+**Notes:** Written by the planner by hand. Next free ID -2160.
