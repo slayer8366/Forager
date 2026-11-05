@@ -511,6 +511,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
             ),
             routeWays = BRouterRouteWays(profileDir = { routeWaysProfileDir }),
         ),
+        // Dispatch 2026-11-05-07: the line naming what each end of a search became, at info level (RECORD -2149, F1).
+        info = { tag, message -> Log.i(tag, message) },
     )
 
     /** The profile folder the route-square reader takes lookups.dat from: installed once, on its first read, off the main thread. */

@@ -37,14 +37,20 @@ interface WayToEnds {
 
     sealed interface Settled {
         /**
+         * What each end became, for the log (dispatch 2026-11-05-07), on a route and on a refusal alike; null only from a
+         * [WayToEnds] that records nothing, which the caller says.
+         */
+        val ends: WayToEndsRecord?
+
+        /**
          * The route to draw: [route] as found, or one to a drop-off. Its legs passed every gate, except at the ends in
          * [byTrail]: those kept the engine's end with their leg ungated, as before the ends step, because the map there
          * could not be read or carries no fence data (A1 and A4 of dispatch 2026-11-04-04). The caller logs each one.
          */
-        data class Route(val route: TrailRoute, val byTrail: List<ByTrail> = emptyList()) : Settled
+        data class Route(val route: TrailRoute, val byTrail: List<ByTrail> = emptyList(), override val ends: WayToEndsRecord? = null) : Settled
 
         /** No route may be drawn: [note] says why, [reason] says more for the log. */
-        data class Refused(val note: WayToWaypointNote, val reason: String) : Settled
+        data class Refused(val note: WayToWaypointNote, val reason: String, override val ends: WayToEndsRecord? = null) : Settled
     }
 
     /** An end that went by trail as today: [reason] for the log, with [cause] when a read failed. */
@@ -79,6 +85,9 @@ interface WayToEnds {
  *   a failure of [RouteWays.near] too). On a good fix the read round the walker reaches [RADIUS_METERS], as a pick-up
  *   looks that far, so the tile check does too (A5, the planner accepting that reading).
  *   [WayToWaypointNote.MAP_NOT_CHECKED] is left for an end whose tiles are not stored.
+ * - **The record** (dispatch 2026-11-05-07). Each end's plan carries what that end became ([WayToEndBecame]), and both go
+ *   back on whatever [settle] returns, a route or a refusal ([WayToEnds.Settled.ends]), for the caller's one line. The
+ *   record only describes the plan; nothing in it is read to decide anything.
  */
 class StreetDropOffEnds(
     private val mapData: ReadNearbyMapData,
@@ -94,8 +103,25 @@ class StreetDropOffEnds(
         reroute: suspend (from: LatLng, to: LatLng) -> TrailRouteResult,
     ): WayToEnds.Settled {
         val far = waypointEnd(waypoint, route, routeData)
-        if (far is EndPlan.Refused) return far.refused
+        if (far is EndPlan.Refused) return far.refused.copy(ends = WayToEndsRecord(walker = WayToEndBecame.NotReached, waypoint = far.became))
         val near = walkerEnd(walker, walkerAccuracyMeters, route, routeData)
+        // Dispatch 2026-11-05-07: what both ends were planned as goes with whatever comes of them, a route or a refusal.
+        val ends = WayToEndsRecord(walker = near.became, waypoint = far.became)
+        return when (val settled = drawAndGate(walker, waypoint, route, far, near, reroute)) {
+            is WayToEnds.Settled.Route -> settled.copy(ends = ends)
+            is WayToEnds.Settled.Refused -> settled.copy(ends = ends)
+        }
+    }
+
+    /** [settle]'s steps once both ends are planned, as they were before the end record (dispatch 2026-11-05-07): the one re-run, then the gates on the legs drawn. */
+    private suspend fun drawAndGate(
+        walker: LatLng,
+        waypoint: LatLng,
+        route: TrailRoute,
+        far: EndPlan,
+        near: EndPlan,
+        reroute: suspend (from: LatLng, to: LatLng) -> TrailRouteResult,
+    ): WayToEnds.Settled {
         if (near is EndPlan.Refused) return near.refused
         val from = (near as? EndPlan.MovedTo)?.at
         val to = (far as? EndPlan.MovedTo)?.at
@@ -126,16 +152,23 @@ class StreetDropOffEnds(
 
     /** What an end will be, decided before the one re-run. */
     private sealed interface EndPlan {
+        /** What this end became, for the log (dispatch 2026-11-05-07). */
+        val became: WayToEndBecame
+
         /** The engine's end stands with its leg ungated: the map or the ways there cannot vouch (A1, A4, A5). */
-        data class ByTrail(val why: WayToEnds.ByTrail) : EndPlan
+        data class ByTrail(val why: WayToEnds.ByTrail, val because: ByTrailBecause) : EndPlan {
+            override val became get() = WayToEndBecame.ByTrail(because)
+        }
 
         /** The engine's end stands, and its leg is gated against [map], [own] (the end's own building) excepted. */
-        data class Gated(val map: NearbyMapData, val own: BuildingOutline?) : EndPlan
+        data class Gated(val map: NearbyMapData, val own: BuildingOutline?, override val became: WayToEndBecame) : EndPlan
 
         /** The route moves to [at], a drop-off or a pick-up, and the leg there is gated against [map], [own] excepted. */
-        data class MovedTo(val at: LatLng, val map: NearbyMapData, val own: BuildingOutline?) : EndPlan
+        data class MovedTo(val at: LatLng, val map: NearbyMapData, val own: BuildingOutline?, override val became: WayToEndBecame.MovedTo) : EndPlan
 
-        data class Refused(val refused: WayToEnds.Settled.Refused) : EndPlan
+        data class Refused(val refused: WayToEnds.Settled.Refused) : EndPlan {
+            override val became get() = WayToEndBecame.Refused(refused.note)
+        }
     }
 
     /** The map and the own building a planned end's leg is gated against; null for an end with no gate. */
@@ -152,13 +185,16 @@ class StreetDropOffEnds(
     private sealed interface MapRead {
         data class Read(val data: NearbyMapData, val ways: List<RouteWay>) : MapRead
 
-        data class ByTrail(val why: WayToEnds.ByTrail) : MapRead
+        /** [why] for its own line, as always; [because], its kind, for the end record's (dispatch 2026-11-05-07). */
+        data class ByTrail(val why: WayToEnds.ByTrail, val because: ByTrailBecause) : MapRead
     }
 
     private suspend fun read(end: String, at: LatLng, radius: Double, routeData: File): MapRead {
-        val data = mapData(at, radius).getOrElse { return MapRead.ByTrail(WayToEnds.ByTrail("$end: the map could not be read: ${it.message}", it)) }
-        unmarkedTile(data)?.let { return MapRead.ByTrail(WayToEnds.ByTrail("$end: $it")) }
-        val ways = routeWays.near(at, radius, routeData).getOrElse { return MapRead.ByTrail(WayToEnds.ByTrail("$end: the route ways could not be read: ${it.message}", it)) }
+        val data = mapData(at, radius).getOrElse { return MapRead.ByTrail(WayToEnds.ByTrail("$end: the map could not be read: ${it.message}", it), ByTrailBecause.MAP_UNREADABLE) }
+        unmarkedTile(data)?.let { return MapRead.ByTrail(WayToEnds.ByTrail("$end: $it"), ByTrailBecause.NO_FENCE_MARK) }
+        val ways = routeWays.near(at, radius, routeData).getOrElse {
+            return MapRead.ByTrail(WayToEnds.ByTrail("$end: the route ways could not be read: ${it.message}", it), ByTrailBecause.WAYS_UNREADABLE)
+        }
         return MapRead.Read(data, ways)
     }
 
@@ -169,18 +205,18 @@ class StreetDropOffEnds(
      */
     private suspend fun waypointEnd(waypoint: LatLng, route: TrailRoute, routeData: File): EndPlan {
         val (map, ways) = when (val end = read("the waypoint's end", waypoint, RADIUS_METERS, routeData)) {
-            is MapRead.ByTrail -> return EndPlan.ByTrail(end.why)
+            is MapRead.ByTrail -> return EndPlan.ByTrail(end.why, end.because)
             is MapRead.Read -> end
         }
         return when (val end = StreetDropOff.classify(waypoint, map, ways)) {
             is StreetDropOff.End.Unknown -> EndPlan.Refused(notChecked("the waypoint's end: ${end.reason}"))
             StreetDropOff.End.Trail -> when (val gates = LegGates.check(route.points.last(), waypoint, map)) {
-                GateResult.Passes -> EndPlan.Gated(map, null)
+                GateResult.Passes -> EndPlan.Gated(map, null, WayToEndBecame.NotAStreetEnd)
                 else -> EndPlan.Refused(refusedFor(gates, "the leg from the trail to the waypoint"))
             }
             is StreetDropOff.End.Street -> when (val choice = StreetDropOff.choose(waypoint, end.building, map, ways)) {
                 is StreetDropOff.Choice.NoneQualifies -> EndPlan.Refused(refusedForAll(choice.tried, "drop-off", WayToWaypointNote.WAY_IN_BLOCKED))
-                is StreetDropOff.Choice.Found -> EndPlan.MovedTo(choice.dropOff.at, map, end.building)
+                is StreetDropOff.Choice.Found -> EndPlan.MovedTo(choice.dropOff.at, map, end.building, choice.dropOff.became())
             }
         }
     }
@@ -195,17 +231,28 @@ class StreetDropOffEnds(
         // A pick-up looks as far as a drop-off does, so the read round the walker reaches as far as one round the waypoint.
         val radius = if (goodFix) maxOf(leadIn, RADIUS_METERS) else leadIn
         val (map, ways) = when (val end = read("the lead-in", walker, radius, routeData)) {
-            is MapRead.ByTrail -> return EndPlan.ByTrail(end.why)
+            is MapRead.ByTrail -> return EndPlan.ByTrail(end.why, end.because)
             is MapRead.Read -> end
         }
         val end = StreetDropOff.classify(walker, map, ways)
         val own = (end as? StreetDropOff.End.Street)?.building
-        if (!goodFix || end !is StreetDropOff.End.Street) return EndPlan.Gated(map, own)
+        if (!goodFix || end !is StreetDropOff.End.Street) {
+            // Why, for the end record (dispatch 2026-11-05-07): the fix is checked first, as the pick-up needs it first.
+            val became = when {
+                !goodFix -> WayToEndBecame.NotJudged(accuracyMeters)
+                end is StreetDropOff.End.Unknown -> WayToEndBecame.StreetOrTrailUntold
+                else -> WayToEndBecame.NotAStreetEnd
+            }
+            return EndPlan.Gated(map, own, became)
+        }
         return when (val choice = StreetDropOff.choose(walker, own, map, ways)) {
             is StreetDropOff.Choice.NoneQualifies -> EndPlan.Refused(refusedForAll(choice.tried, "pick-up", WayToWaypointNote.LEAD_IN_BLOCKED))
-            is StreetDropOff.Choice.Found -> EndPlan.MovedTo(choice.dropOff.at, map, own)
+            is StreetDropOff.Choice.Found -> EndPlan.MovedTo(choice.dropOff.at, map, own, choice.dropOff.became())
         }
     }
+
+    /** A chosen drop-off or pick-up, for the end record: its rank and its leg, never where it is (dispatch 2026-11-05-07, A2). */
+    private fun StreetDropOff.Tried.became() = WayToEndBecame.MovedTo(rank, legMeters)
 
     private fun refusedFor(gates: GateResult, leg: String): WayToEnds.Settled.Refused = when (gates) {
         is GateResult.Fails -> WayToEnds.Settled.Refused(WayToWaypointNote.WAY_IN_BLOCKED, "$leg crosses ${gates.crossings}")
