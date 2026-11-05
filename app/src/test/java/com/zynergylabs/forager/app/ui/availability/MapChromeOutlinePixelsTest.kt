@@ -413,9 +413,14 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
      * so no stretch shows the map, or a fill, where a line should be. The runs cross: the pill's and the strip's bottoms and tops
      * between their corners, the rail's inner edge from below its top corner to above its bottom corner, and the rail's top
      * and bottom out to the screen's edge.
+     *
+     * Dispatch 2026-11-05-06 (RECORD -2160, the owner: "Allow it (Recommended)"): where a corner's arc lies outside both fills, in
+     * the corner gap over the map, the line there is the outline over the map, so [map], a bare map pixel, is a third reference
+     * beside the two fills, with the same [isLine] window and its 0.12 measured from that pixel. The strip's end against the rail
+     * passed before only because the strip's shadow, gone since that dispatch, darkened the map at its corner (run 42122210303).
      */
-    private fun assertWalkFindsLine(what: String, runs: List<List<Pair<Int, Int>>>, fillA: Color, fillB: Color) {
-        val broken = runs.filter { run -> run.none { (x, y) -> isLine(at(x, y), fillA) || isLine(at(x, y), fillB) } }
+    private fun assertWalkFindsLine(what: String, runs: List<List<Pair<Int, Int>>>, fillA: Color, fillB: Color, map: Color? = null) {
+        val broken = runs.filter { run -> run.none { (x, y) -> isLine(at(x, y), fillA) || isLine(at(x, y), fillB) || (map != null && isLine(at(x, y), map)) } }
         println("MEASURED $orientation $theme walk $what: ${runs.size} runs, ${broken.size} without a line")
         assertTrue("$what: every run across the outline holds a line pixel; ${broken.size} of ${runs.size} do not, first at ${broken.firstOrNull()?.firstOrNull()}", broken.isEmpty())
     }
@@ -465,7 +470,9 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertWalkFindsLine("the pill's outer end", (px(pill.top + r)..px(pill.bottom - r)).map { down(it, px(pill.left) + 1) }, pillFill, pillFill)
         // The stretch the owner located the gap in ("It's on the right part of the telemetry pill"): the strip's end against the
         // rail, its full height, walked across and followed down.
-        assertWalkFindsLine("the strip's end against the rail", roundedEndRuns(strip), stripFill, railFill)
+        // Dispatch 2026-11-05-06 (RECORD -2160): the bare map near that corner, outside every piece, 24 dp left of the rail and below the strip.
+        val mapNearCorner = at(rail.left - 24.dp, strip.bottom + 24.dp)
+        assertWalkFindsLine("the strip's end against the rail", roundedEndRuns(strip), stripFill, railFill, mapNearCorner)
         assertEndOutlineContinuous("the strip's end against the rail", strip, rail.left, stripFill, strip.top + 6.dp, strip.bottom - 6.dp)
     }
 

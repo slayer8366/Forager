@@ -104,7 +104,11 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
         )
     }
 
-    /** The bubble's card in px, and its tail as MapBubbleShell draws it, worked out the same way from the card and the tapped point. */
+    /**
+     * The bubble's card in px, and its tail as MapBubbleShell draws it, worked out the same way from the card and the tapped point.
+     * RECORD -2160 ("Clean triangle"): the tail's base lies along the card's edge where the line from the card's centre to the tip
+     * leaves it, 4 dp either side, kept on the edge's straight stretch clear of the 20 dp corners (MapBubbleOutline.kt, bubbleTail).
+     */
     private class Tail(val card: androidx.compose.ui.geometry.Rect, val tip: Offset, val base: Offset, val base1: Offset, val base2: Offset)
 
     private fun bubbleTail(): Tail {
@@ -118,10 +122,19 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
             "the tapped point $tip is outside the card $card, so the bubble draws a tail"
         }
         val angleDeg = Math.toDegrees(atan2(toTip.x.toDouble(), -toTip.y.toDouble())).toFloat()
-        val base = centre + rectEdgeIntersection(card.width / 2f, card.height / 2f, angleDeg)
-        val dir = (tip - base) / (tip - base).getDistance()
+        val hit = rectEdgeIntersection(card.width / 2f, card.height / 2f, angleDeg)
         val half = Spacing.xs.value * d // MapBubble.kt's BUBBLE_TAIL_BASE_HALF_WIDTH
-        return Tail(card, tip, base, Offset(base.x - dir.y * half, base.y + dir.x * half), Offset(base.x + dir.y * half, base.y - dir.x * half))
+        val corner = 20f * d // MapBubble.kt's BUBBLE_CORNER_RADIUS
+        val onTopOrBottom = kotlin.math.abs(kotlin.math.abs(hit.y) - card.height / 2f) <= kotlin.math.abs(kotlin.math.abs(hit.x) - card.width / 2f)
+        val base = if (onTopOrBottom) {
+            val reach = (card.width / 2f - corner - half).coerceAtLeast(0f)
+            centre + Offset(hit.x.coerceIn(-reach, reach), hit.y)
+        } else {
+            val reach = (card.height / 2f - corner - half).coerceAtLeast(0f)
+            centre + Offset(hit.x, hit.y.coerceIn(-reach, reach))
+        }
+        val along = if (onTopOrBottom) Offset(1f, 0f) else Offset(0f, 1f)
+        return Tail(card, tip, base, base - along * half, base + along * half)
     }
 
     /**
@@ -140,7 +153,7 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
         val fill = edgeFill(token, under)
         val line = edgeLine(dark, fill)
         val inset = 1.5f
-        val inside = { p: Offset -> p.x > tail.card.left && p.x < tail.card.right && p.y > tail.card.top && p.y < tail.card.bottom }
+        val inside = { p: Offset -> p.x > tail.card.left + 1f && p.x < tail.card.right - 1f && p.y > tail.card.top + 1f && p.y < tail.card.bottom - 1f }
         val centroid = (tail.base1 + tail.base2 + tail.tip) / 3f
         fun pixel(p: Offset) = pixels[p.x.roundToInt(), p.y.roundToInt()]
         val readings = mutableListOf<EdgeReading>()
@@ -200,6 +213,44 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
         }
         println("EDGESHADE|tail|card ${tail.card} tip ${tail.tip} base ${tail.base} corners ${tail.base1} ${tail.base2} tailLength ${BUBBLE_TAIL_LENGTH}")
         assertEdges("the bubble's tail", readings)
+    }
+
+    /**
+     * RECORD -2160 (the owner: "Clean triangle (Recommended)", whose option read "Both sides start on the card's edge and run straight
+     * to the tip, with no kink. The tail's root changes slightly on slanted tails"). Along each side, at 15%, 35% and 60% of the way
+     * from its corner on the card's edge to the tip: 1.5 px inside the side, the hairline; 1.5 px outside it, the bare map. So each
+     * side is one straight line from the card's edge to the tip, with no fill beyond it and no line missing along it.
+     *
+     * Before -2160 the tail's base was square to the tail, centred on the card's edge, so on a slanted tail one end of it lay
+     * outside the card and that side began with a step out along the base. In this bubble that is the second side, the tail's
+     * lower one, whose old corner lay at (74.9, 375.0) dp below the card's edge; the first side's angle changes a little too.
+     */
+    @Test
+    fun `the bubble's tail runs straight from the card's edge to its tip on both sides, with no step`() {
+        val pixels = openBubble()
+        val under = rig.reference(pixels, 0.01f, 0.75f, EDGE_SHADE_MAP_GREY)
+        val tail = bubbleTail()
+        val fill = edgeFill(token, under)
+        val line = edgeLine(dark, fill)
+        val inset = 1.5f
+        val inside = { p: Offset -> p.x > tail.card.left && p.x < tail.card.right && p.y > tail.card.top && p.y < tail.card.bottom }
+        val centroid = (tail.base1 + tail.base2 + tail.tip) / 3f
+        fun pixel(p: Offset) = pixels[p.x.roundToInt(), p.y.roundToInt()]
+        val readings = mutableListOf<EdgeReading>()
+        listOf("first" to tail.base1, "second" to tail.base2).forEach { (name, corner) ->
+            val along = (tail.tip - corner) / (tail.tip - corner).getDistance()
+            var normal = Offset(-along.y, along.x)
+            listOf(0.15f, 0.35f, 0.6f).forEach { t ->
+                val q = corner + (tail.tip - corner) * t
+                if ((centroid - q).x * normal.x + (centroid - q).y * normal.y < 0f) normal = -normal
+                val inner = q + normal * inset
+                val outer = q - normal * inset
+                check(!inside(outer)) { "the $name side's outer sample $outer at ${(t * 100).toInt()}% is outside the card ${tail.card}" }
+                readings += EdgeReading("tail's $name side ${(t * 100).toInt()}% along, inside, at $inner", pixel(inner), line, 4f / 255f)
+                readings += EdgeReading("tail's $name side ${(t * 100).toInt()}% along, outside, at $outer", pixel(outer), under, 3f / 255f)
+            }
+        }
+        assertEdges("the bubble's tail, straight from the card's edge", readings)
     }
 
     /**
