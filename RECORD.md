@@ -35295,6 +35295,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The owner, verbatim**, to "An existing test of the map chrome's outline now fails. Where the top strip's rounded corner meets the side rail, the outline sits over the map, not over the strip. The test only passed before because the old shadow darkened the map there. Hazel wants the test to also recognise the outline over the map, with a missing line still failing it. Allow that change to the test?": **"Allow it (Recommended)"**.
   - The option read: "The test reads the line where it really lies, over the map. A missing line would show bare map and still fail. The PR can go green."
   - The other option: "Keep the test as is".
+  - **Corrected here (2026-11-05T23:48:36Z, -2164):** the option's "A missing line would show bare map and still fail" was the planner's premise, and by day it was false. Hazel's revert r5 (run 42129142994) removed the arc. By day the arc squares then held the strip's fill blending into the map (luminance 0.57 to 0.66), and the old fill windows (0.617 and 0.587, each ± 0.07) accepted those blends in 60 and 59 of 62 squares, so both Day cases passed. At night both failed. The new map reference matched none of them. -2164 makes the premise true.
 - **Hazel's look question:** the tail's base is drawn square to the tail, so on a slanted tail one side has a step of about 2.3 dp under the card, and the outline now traces it.
   - The planner sampled bubble-day.png from run 42122210303. The right side runs out about 10 px under the card's edge, then turns sharply to the tip, and no line crosses the join.
 - **The owner, verbatim**, to "The bubble's tail now has the outline. On a slanted tail, one side has a small kink just under the card, about 2 dp deep: the line runs out a little, then turns sharply toward the tip. It was always in the tail's shape and only shows now that it has a line. How should the tail look?": **"Clean triangle (Recommended)"**.
@@ -35386,3 +35387,27 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The ForagerDatabase and FungiIndexDatabase version lines are the same in 0932a6ca and the PR.
 - **For the checks:** with no trips on the phone, the planner makes test trips in the app (-2129: "S22 is the test phone so do as you need to").
 **Notes:** Written by the planner by hand. Next free ID -2164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2164
+**Timestamp:** 2026-11-05T23:48:36Z
+**Continues:** 2026-09-28-2160
+**Title:** The edge shade: the day walk's arc squares count only a pixel darker than the bare map, so a missing arc fails by day too; Hazel's tail sampling fix accepted
+**Decision:**
+- **Hazel's report, by message:**
+  - O-1 is built (f96201a67). The bare map pixel reads 128,128,128 (0.502), and the arc pixels read 0.376.
+  - The day "N of 75" counts: 0 with the shadow, 2 after it went, 0 with O-1.
+  - Revert r5 (b21a95ccc, run 42129142994) removed the arcs on a shared right side. There were no compile errors, and 2 of 36 tests failed: both Night cases. Both Day cases passed, for the reason corrected in place in -2160.
+- **The planner's call: K-2, scoped.** It is a tightening, made so that the owner's "Allow it (Recommended)" holds as its option described.
+  - **The rule:** at the arc squares of the strip's end against the rail, a pixel counts as line only if it lies on the line's side of the bare map pixel by more than half the gap between the bare map and the outline over the map. By day that means darker than the map, below about 0.439.
+  - A blend of fill and map is never darker than the map by day. The real line, 0.376, clears 0.439 by 0.063. Hazel's own example, a 0.12 margin, would leave the real line only 0.006 to spare, so it is not used.
+  - **To show it works:** the forward run stays green, and r5 fails in all four cases (day and night, 823 and 780).
+  - **Not widened further:** she reports which other rounded-end walks share the blend blind spot, unchanged, for a later ruling.
+- **Accepted:** 5c9c97cb1, her own new tail check's outer samples moved from 1.5 px out to 2.5 px. On the stepped tail it still fails in 9 of 12 samples by day and 10 of 12 at night, by 7 to 42 levels. It is her new check, not an existing test.
+- **J-B is built (b21a95ccc):** the base lies along the card's edge, 4 dp either side, clear of the 20 dp corners.
+  - Red run 42126975492: the 4 tail cases failed, with the step on the lower side as she predicted.
+  - Forward run 42129154367: 1 night outer sample failed, which is what 5c9c97cb1 addresses.
+- **Told to Hazel** by message.
+**Notes:** Written by the planner by hand. Next free ID -2165.
