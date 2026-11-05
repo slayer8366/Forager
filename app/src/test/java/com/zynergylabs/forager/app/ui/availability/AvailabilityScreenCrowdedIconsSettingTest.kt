@@ -22,6 +22,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepository
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.CrowdedIconsMode
+import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.io.File
@@ -149,9 +150,24 @@ class AvailabilityScreenCrowdedIconsSettingTest {
     }
 
     @Test
-    fun `real touches across each row pick it, and the pick survives a restart`() {
+    fun `real touches across each row pick it, and the pick survives a restart`() = picksSurviveARestart { it }
+
+    /**
+     * The same three picks and restart as the case above, over a store whose writes land late, in the order CI showed on
+     * some runs ([LateCrowdedIconsStore], dispatch 2026-11-05-03). Whether the restart waits for the last pick is checked
+     * here on every run, not only on the runs whose timing happens to expose it.
+     */
+    @Test
+    fun `the last of three picks survives a restart when each write reaches the store late`() = picksSurviveARestart(::LateCrowdedIconsStore)
+
+    /**
+     * Real touches pick List, then Zoom in, then fan, then List, with the ViewModel writing through [storeOver]'s store over
+     * the real repository. The test then restarts and checks that the file and a new ViewModel both read List.
+     */
+    private fun picksSurviveARestart(storeOver: (CrowdedIconsPreferenceRepository) -> CrowdedIconsPreferenceRepository) {
         val (repository, scope) = launchRepository()
-        val viewModel = mapLayersViewModel(errorLog = errorLog, crowdedIcons = repository)
+        val store = storeOver(repository)
+        val viewModel = mapLayersViewModel(errorLog = errorLog, crowdedIcons = store)
         openSettings(viewModel)
 
         val picks = listOf(
@@ -164,7 +180,7 @@ class AvailabilityScreenCrowdedIconsSettingTest {
             assertEquals("a touch at $fraction across the $mode row picks it", CrowdedIconsMode.entries.map { it == mode }, CrowdedIconsMode.entries.map(::selected))
             assertEquals(mode, viewModel.uiState.value.crowdedIconsMode)
         }
-        awaitIdle("List stored") { runBlocking { repository.getCrowdedIconsMode { v -> throw AssertionError("the stored List read as an unknown value: \"$v\"") }.getOrNull() } == CrowdedIconsMode.LIST }
+        awaitIdle("List stored") { runBlocking { store.getCrowdedIconsMode { v -> throw AssertionError("the stored List read as an unknown value: \"$v\"") }.getOrNull() } == CrowdedIconsMode.LIST }
         release(scope)
 
         assertEquals("the file holds it under map.crowded_icons", "list", rawStored())
