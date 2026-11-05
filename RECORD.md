@@ -35184,3 +35184,19 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - a new small notice component for ScaffoldSnackbarHost, with Material's layout matched and parity tests, and SnackbarTrimmedTouchTest held;
   - the row's outline: top and sides, its bottom shared with the bar, none over the system bar in fullscreen, and the rail's line on its port side in the rail layout.
 **Notes:** Written by the planner by hand. Next free ID -2156.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2156
+**Timestamp:** 2026-11-05T21:40:39Z
+**Continues:** 2026-09-28-2155
+**Title:** The edge shade: one outline round a bubble and its tail; the notice copies Material's one-row layout; the notice's action colour measured and kept
+**Decision:**
+- **Hazel's stop, by message:** the bubble's tail (MapBubble.kt:147-172, drawn in drawBehind, 80% fill, no outline) wasn't covered by the rulings.
+- **The owner, verbatim,** to "With the thin outline on map bubbles, how should the bubble's tail (its pointer to the tapped spot) look?": **"Outline around both (Recommended)"**. The option read "One continuous line around the bubble and out along the tail's two sides to its tip, with no line across where they join, like an outlined speech bubble." The others: "Bubble only, tail plain"; "Bubble only, gap at tail".
+- **The planner's calls** (technical; nothing a user sees changes):
+  - The notice copies Material's one-row layout (LegacyOneRowSnackbar in 1.5.0-alpha26, with isSnackbarStylingFixEnabled false). The host never passes actionOnNewLine (ScaffoldSnackbarHost.kt:83-89), so the new-line path is unreachable and not built. Correction to -2155's "the action on a new line where Material puts it": a premise the planner hadn't read.
+  - The notice's action colour keeps Material's behaviour exactly. Her inference is that it is SnackbarDefaults.actionColor (inversePrimary), not the primary the host's comment at :49-51 claims. She measures it in the parity test, and it goes to the owner if confirmed.
+- **Told to Hazel** by message, with the words quoted.
+**Notes:** Written by the planner by hand. Next free ID -2157.
