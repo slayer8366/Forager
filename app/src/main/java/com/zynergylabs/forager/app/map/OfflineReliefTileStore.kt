@@ -37,6 +37,11 @@ import java.util.zip.Inflater
  * refuses while MapLibre is mid-save is tried again within `MapLibreStoreReadLimits`, and a corruption report never
  * deletes the file, as Android's default error handler would.
  *
+ * **Every stored image is checked before it is decoded** (dispatch 2026-11-05-01, Amendment 2, A10; `PngIntegrity.kt`):
+ * its chunks' CRC-32s and its image data's zlib stream, after a deflated row is inflated. A read torn across MapLibre's
+ * save can hand back a raw PNG with pages from two versions; one that fails is [ReliefTileRead.Failed], which the bubble
+ * shows as no line and the height source logs naming the tile.
+ *
  * @param database MapLibre's offline database file.
  * @param urlTemplate the relief source's tile URL as the style gives it: the key the SDK stores it under.
  * @param log where the retry's lines and a corruption report go.
@@ -66,6 +71,8 @@ class OfflineReliefTileStore(
             if (row.isNull(0)) return ReliefTileRead.Empty
             val stored = row.getBlob(0)
             val png = if (row.getInt(1) == 1) inflate(stored) else stored
+            // A damaged image is refused before the decoder sees it, never read as a wrong height (Amendment 2, A10).
+            pngIntegrityProblem(png)?.let { return ReliefTileRead.Failed(IllegalStateException("the stored relief tile $z/$x/$y fails its own checks: $it")) }
             when (val decoded = decode(png)) {
                 is ReliefTileRead.Found -> ReliefTileRead.Found(decoded.tile, row.getString(2))
                 else -> decoded
