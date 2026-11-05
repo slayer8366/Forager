@@ -34946,3 +34946,26 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **To the owner:** S1, and who carries the S22 where.
 - **The planner's slip:** the first commit attempt broke on the planner's own grep, whose zero-match status stopped the command chain. Nothing was committed or pushed.
 **Notes:** Written by the planner by hand. Next free ID -2146.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2146
+**Timestamp:** 2026-11-05T20:42:10Z
+**Continues:** 2026-09-28-2145, 2026-09-28-2136
+**Title:** Navigate logs what each end became before the pick-up check (dispatch 2026-11-05-07, started); the owner takes the S22 to another trail
+**Decision:**
+- **The owner, verbatim, to two questions:**
+  - "A chosen pick-up point leaves no trace… Should the app first record what it decided?": **"Add one log line first (Recommended)"**. The option read "A small change: each Navigate logs what your end of the route became (a pick-up point, the trail, or refused) and why. Nothing changes on screen. Then any Navigate, including the ones at home, shows whether the chooser worked, and the field check can be judged either way."
+  - "Who takes the S22 for the walk and the pick-up check, and where?": **"I'll take it elsewhere"**. The option read "You carry the S22 to another trail. I download that area onto the S22 first, with its copy and trail routes, and prepare from it."
+- **So:**
+  - **Dispatch 2026-11-05-07** (prompts/preserved/2026-11-05-07-wayto-end-log.md), for a fresh Hazel, started on these words:
+    - Change: one info line per search, for each end, under FindWayToWaypoint, with no positions;
+    - Scope: domain/wayto and tests only;
+    - Baseline: pre-main ee0651fe0;
+    - Prediction (outcome, planner): every Navigate leaves one line per end, naming a pick-up and its rank, a gated engine end, by trail, refused, or not judged;
+    - Prediction (mechanism, coder): in her message;
+    - Finish line: a PR into pre-main, merged on the owner's word;
+    - Abort conditions: a changed decision or screen; positions in the line; a wrong premise; two failed attempts.
+  - **The outing:** the planner asks the owner where. The area is downloaded onto the S22 and the spot prepared from it, kept off GitHub. The outing's build carries the log line and the release's other pending work.
+**Notes:** Written by the planner by hand. Next free ID -2147.
