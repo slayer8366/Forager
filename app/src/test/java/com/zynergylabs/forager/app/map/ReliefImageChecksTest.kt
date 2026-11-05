@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -119,6 +120,10 @@ class ReliefImageChecksTest {
         val torn = SyntheticReliefTiles.splice(first.png, second.png, at = FIRST_IDAT_END)
         assertEquals("fixture: every chunk's CRC-32 matches", listOf(true, true, true, true, true), SyntheticReliefTiles.chunks(torn).map { it.second })
 
-        assertRefused(bubbleHeight(torn), "zlib")
+        val height = bubbleHeight(torn)
+        // The value itself (the planner, Amendment 2's go): before the check, the platform decoder took this image, and the
+        // rows it never reached read as zero, which is Terrarium's -32768 m (tests-first run 42066897340).
+        assertNotEquals("the decoder's unread rows never reach the bubble as a height (logged: ${logs()})", GroundHeight.Known(-32768.0), height)
+        assertRefused(height, "zlib")
     }
 }
