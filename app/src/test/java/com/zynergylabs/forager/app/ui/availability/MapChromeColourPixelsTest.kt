@@ -206,8 +206,11 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
         val token = if (dark) SurfaceContainerDark else SurfaceContainerLight
         val card = composeRule.onNodeWithTag(MAP_BUBBLE_TAG).getUnclippedBoundsInRoot()
         val reference = at(root.left + 4.dp, root.bottom - 200.dp)
-        // Inside the card's left edge at mid-height, clear of its text; the card has a 6 dp shadow that darkens a little.
-        assertSameColourShadowed("the bubble is the token at 0.8", over(token, MAP_CHROME_OVER_MAP_ALPHA, reference), at(card.left + 4.dp, (card.top + card.bottom) / 2))
+        // Inside the card's left edge at mid-height, clear of its text. Dispatch 2026-11-05-06 (RECORD -2154, the owner: "Thin
+        // outline (Recommended)"): the card has no shadow, so it is the token at 0.8 exactly here. Was assertSameColourShadowed
+        // ("the card has a 6 dp shadow that darkens a little"), which allowed darkening by a factor of 0.90 to 1 and so passed with
+        // the shadow's band under this point (Phase 1 report, section 4).
+        assertSame("the bubble is the token at 0.8, with no band under its edge", over(token, MAP_CHROME_OVER_MAP_ALPHA, reference), at(card.left + 4.dp, (card.top + card.bottom) / 2))
     }
 }
 
