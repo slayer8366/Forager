@@ -34222,3 +34222,24 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Not verified:** the repository's fetch and delete with a real MapLibre store, AppContainer's wiring, the real server and timing, and the wrap in the phone's fonts. All of them are for the S22 device check in her report.
 - **Left in place:** the nine drop-off-map-copy-rN branches, and her worktree ~/.cache/forager-wt/drop-off-map-copy.
 **Notes:** Written by the planner by hand. Next free ID -2115.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2115
+**Timestamp:** 2026-11-05T11:58:52Z
+**Continues:** 2026-09-28-2114
+**Title:** S22 session 14: PR #490 checked on the phone before it merges; build 4616; three temporary changes allowed
+**Decision:**
+- **The owner, verbatim:**
+  - to "PR #490 is green. Check it on the S22 before it merges into pre-main, or merge now?": **"Phone check first (Recommended)"**;
+  - to "Which of these temporary changes may I make on the S22 for this check? Each is put back afterwards.": **"Airplane mode briefly,A small test area,Largest text size"**.
+- **The options as read:**
+  - "Airplane mode briefly": "Step 2: about a minute with no signal, to check the new notice words and that nothing is fetched without signal. Then Wi-Fi back on, as it is now."
+  - "A small test area": "Step 8: download a 1 mi test area, check that its copy is fetched when it finishes, then delete it and check its copy goes too. Region 1 and Region 2 are untouched."
+  - "Largest text size": "Step 9: set the phone's font scale to its largest, to see how the new notice wraps, then set it back to what it is now."
+- **Build:** drop-off-map-copy 0e4cdc577 merged into tools/s22-combined as 7f29aa310 (count 4616), from 957ef740c. git merge-tree reported no conflict. CI 42023044305 (workflow_dispatch) was started.
+- **Phone state, read before any change:** Forager 4609, font_scale 1.0, airplane_mode_on 0, wifi_on 1, mobile_data 1, no app services running, battery 100%.
+- **Before snapshot:** ~/s22-2026-11-04/s14/snap/before-4616. forager.db's tables are identical to session 13's end-s13. Schemas 23, 6 and 1, integrity ok.
+- **The steps:** Hazel's device check, completion report section "Device check (for the planner on the S22)", steps 1 to 9.
+**Notes:** Written by the planner by hand. Next free ID -2116.
