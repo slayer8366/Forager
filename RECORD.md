@@ -34081,3 +34081,42 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Started:** a fresh Hazel Cairnwright session, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (records-after-173 bebceea19).
 - **Phase 1 only:** she reads and reports, then stops. No branch, code, commit, Gradle or phone until the planner's go for Phase 2.
 **Notes:** Written by the planner by hand. Next free ID -2110.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2110
+**Timestamp:** 2026-11-05T09:44:05Z
+**Continues:** 2026-09-28-2109, 2026-09-28-2108
+**Title:** Hazel's Phase 1 report on dispatch 2026-11-04-09: no hard stop; the route fetch's selection would fetch nothing on the S22; the planner's calls on P1 to P7; S1 to S4 to the owner
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-04-09-phase1-report.md, extracted from her hand-back. She read pre-main 949ad8183 (unmoved) and session 13's end-s13 copy, and made four stated requests to the map server. No code, branch, Gradle or phone.
+- **Prediction (mechanism — coder):** her first section.
+  - Opening Offline maps with signal starts a copy pass for each downloaded area, with its own selection.
+  - It fetches the area's zoom-15 tiles that MapLibre's store doesn't hold marked: 6 and 598 on the S22, 604 requests for 600 distinct tiles, about 2 MB.
+  - A marked tile is stored in files/offline_basemap/<area id>/, written whole or not at all.
+  - A layered OfflineBasemap reads, per tile: MapLibre's tile when marked, else the copy's marked tile, else exactly today's.
+  - MapLibre's store is only read. There is no Room version; ForagerDatabase stays at 23.
+- **The planner's wrong premise, confirmed from source:** "the copy rides the route fetch".
+  - regionsNeedingRoutes() takes only regions whose routeData.needsFetch() (AvailabilityOfflineRoutes.kt, RegionRouteData.kt at pre-main), and Stored is false.
+  - Both S22 areas' routes.properties read state=stored (end-s13).
+  - So riding that selection would fetch nothing on the S22, and the dispatch's outcome prediction would not have happened. The copy needs its own selection at the same moment.
+- **Also corrected by her report:**
+  - the copy fetches only the unmarked tiles, not all 9 and 600;
+  - "Try again" shows only on a failed route fetch;
+  - signal returning while Offline maps is open is a third automatic trigger;
+  - the edge cache adds last-modified on cache hits, but a conditional request still got a full 200.
+- **The planner's calls** (technical; nothing the owner sees changes), each as she proposed unless stated:
+  - P1 accepted: AvailabilityOfflineRoutes.kt, OfflineMapRepository.kt, MapLibreOfflineMapRepository.kt and OfflineRegionReconciliation.kt may be touched. AvailabilityViewModel.kt (790 lines) is not.
+  - P2 accepted: the pass also runs when signal returns while Offline maps is open, and when a download completes.
+  - P3 accepted: MapLibre's marked tile first, then the copy. This replaces the dispatch's "copy first", which would ignore tiles that online viewing has refreshed.
+  - P4 accepted: A3 reads "where no marked tile is available, from either store, the end goes by trail, logged". The planner's wording in A3 was loose.
+  - P5 accepted: at most 4 in flight and 10 started a second; stop at the first connection failure or after 3 server errors in a row; refuse an area over 4,000 zoom-15 tiles; at most 512 KiB per body.
+  - P6 accepted: no margin past the area's edge.
+  - P7 changed: the mark has one definition. NearbyMapData's check calls the new shared BarrierMark check rather than keeping its own copy, and the reader's existing tests must stay green unchanged. This is so the two can't drift.
+- **Settled by the owner's option text** ("refreshes it by itself whenever there's signal"):
+  - S5: it fetches on any signal, mobile data included, about 2 MB on the S22.
+  - S6: the extra tile requests, about 604 for the S22. The server's tile paths have no rate limit (wrangler.toml's two limits are for route data only); the account's quota wasn't determined.
+  - Both are told to the owner.
+- **To the owner:** S1 (the area's shown size), S2 (the tile budget), S3 (refresh by age), S4 (the "Older map style" notice).
+**Notes:** Written by the planner by hand. Next free ID -2111.
