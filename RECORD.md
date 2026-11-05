@@ -34544,6 +34544,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Since the step began: "the map could not be read" 0, "on all 5 attempts" 0, "has no barrier mark" 0, and FindWayToWaypoint fallback lines 0.
   - **The retry was exercised:** 5 reads were refused and read on attempt 2 of 5 ("A basemap read of MapLibre's store was refused while MapLibre was saving, and read on attempt 2 of 5.", 10:14:19 to 10:16:33). There were 5 SQLITE_READONLY_ROLLBACK lines in all.
   - An eleventh run's card read "0.5 mi", "left 61°", "by trail", with no fallback logged. So the ends step ran fully and kept the trail end. That is an observation, not a gate.
+    *Correction (planner, 2026-11-05, on Hazel's report for dispatch 2026-11-05-04, prompts/preserved/2026-11-05-04-report.md, section 2.5):* "kept the trail end" is likely wrong. By the code (WayToEnds.kt:203-207), a street end on a good fix either chooses a pick-up or is refused and logged. Every run followed a 9.9 to 11.1 m GPS fix, the dot sits on a mapped building, and no FindWayToWaypoint line was logged. So the runs most likely chose a pick-up, silently, since a chosen pick-up isn't logged. That is inferred, not seen. Elder's "never seen on a phone" stands.
 - **Step 3, a test area:**
   - "Test s15" became app region 14. At its download's end: 10:18:57.879 "Drop-off map for region 14: whole. 6 requests; 6 stored, 0 empty.", with no "MapLibre's store could not be read". Pass.
   - It holds one linked relief tile, 11/326/734 (deflated, 113,388 B). Regions 3 and 8 hold none (query on a copy).
@@ -34916,3 +34917,32 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Amendment 2:** prompts/preserved/2026-11-02-02-amendment-2.md (A3 to A6, B2, C4, C5).
 - **Phase 1b** goes to a fresh Hazel session, under the owner's "Build it before promoting" (-2136).
 **Notes:** Written by the planner by hand. Next free ID -2145.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2145
+**Timestamp:** 2026-11-05T20:38:52Z
+**Continues:** 2026-09-28-2138
+**Title:** The field checks written up: the off-trail walk can be judged as things stand; the pick-up chooser only for a pass at a prepared spot, since a chosen pick-up isn't logged
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-05-04-report.md. It is read only, at pre-main ee0651fe0, with no positions in it. The planner checked: no latitude/longitude pairs in the file.
+- **Check 1, the pick-up chooser:**
+  - It acts only for a walker within 15 m of a mapped building, or in built-up land with a public street within 150 m, on a fix of 15 m or better (WayToEnds.kt:192-207; StreetDropOff.kt:38-48). The dispatch's "off the trail, near streets" isn't the code's condition.
+  - A chosen pick-up is neither logged nor marked on screen (FindWayToWaypointUseCase.kt:92-95); the card reads "by trail" either way.
+  - So the screen plus ForagerFix can confirm a pass only at a spot prepared from the map, with the pick-up point and the engine's point written down beforehand and clearly apart. A non-pass can't be diagnosed. A full judgement needs a record of what the walker's end decided: new logging. Her stop S1.
+  - -2127 is corrected in place: the S22's runs most likely chose a pick-up unseen.
+- **Check 2, the way home off the trail:** judgeable without new code.
+  - The dim is never logged, so it needs the screen recorded.
+  - The re-route's moment is logged by WayHomeWatch's far-band line.
+  - Logcat must be kept, by a larger buffer or a bug report straight after. The 10-28 walk's log had rotated away.
+  - Her prediction: at the S22's usual accuracy the route is withheld before the dim, and the dim shows only for a walker who lingers 15 s in a band about 6 m wide.
+  - Part B, the waypoint route on the same outing, is optional.
+- **Her stops:** S1 (owner and planner, below); S2, the off-track reminder on or off for the walk; S3, a larger log buffer; S4, Part B.
+- **The planner's calls:**
+  - S2: the reminder stays on, as a user has it. The alert near the dim's moment is an observation, not a failure, and the owner's question (-1726) is the dim against the re-route.
+  - S3: the S22's log buffer is enlarged for the outing under -2129 ("S22 is the test phone so do as you need to"), recorded, and set back afterwards.
+  - S4: Part B runs on the same outing if time allows.
+- **To the owner:** S1, and who carries the S22 where.
+- **The planner's slip:** the first commit attempt broke on the planner's own grep, whose zero-match status stopped the command chain. Nothing was committed or pushed.
+**Notes:** Written by the planner by hand. Next free ID -2146.
