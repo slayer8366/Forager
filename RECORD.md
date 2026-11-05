@@ -35023,6 +35023,32 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The date's label: **"Trip date (Recommended)"**. The option read "Says plainly that it's the day the trip is planned for."
   - While plotting: **"Add it as a stop (Recommended)"**. The option read "The same as tapping a waypoint while plotting: the trip's spot joins the route as the next stop."
 - **Told before asking:** the planner's slip in -2140's option (corrected in place there), and the planner's calls in -2147.
+- **Then the owner, verbatim:** "Ideally, the trip is the first icon in the waypoint series, where the car would likely be, or the general starting point." Asked, against the ruling above, "While plotting a route, when you tap a trip's flag, where should the trip go in the route?": **"Next stop, as before"**. So A11 stands. A route plotted from a trip already starts at the trip, and a saved route's flag sits on its first stop.
 - **Amendment 1:** prompts/preserved/2026-11-05-05-amendment-1.md (A8 to A12, B1, B2, C1 to C5).
 - **The planner's go for Phase 2,** to a fresh Hazel session: branch trip-bubble-actions from pre-main. It is the same dispatch, under the owner's "This release (Recommended)" (-2140).
 **Notes:** Written by the planner by hand. Next free ID -2149.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2149
+**Timestamp:** 2026-11-05T20:53:33Z
+**Continues:** 2026-09-28-2146
+**Title:** Dispatch 2026-11-05-07: the end log's format and Hazel's calls accepted
+**Decision:**
+- **Hazel's verify-first, by message:**
+  - pre-main ee0651fe0 (unmoved), branch wayto-end-log;
+  - the walker's end at WayToEnds.kt:192-207, and the existing lines at FindWayToWaypointUseCase.kt:92-95, :155 and :164-166, through errorLog.w;
+  - what each end became is private to StreetDropOffEnds' EndPlan (:128-139) today;
+  - Log.i survives a release build (no -assumenosideeffects; isMinifyEnabled false, app/build.gradle.kts:307).
+- **The format,** one line per search, at info level under FindWayToWaypoint: "The way to the waypoint's ends: the walker's end <W>; the waypoint's end <P>."
+  - <W> and <P> are one of: a pick-up with its rank (1 of 3) and leg in metres; the engine's end kept and gated, with classify's rule; not judged, with the fix's accuracy; by trail, by reason kind; refused, by note name; not reached.
+  - It names no tile ids, positions or street names.
+- **Her findings and calls, all accepted by the planner** (technical; nothing a user sees changes):
+  - F1, an info sink defaulting to no-op, and one wiring line in AppContainer.kt;
+  - F2, existing lines unchanged, word for word, though they carry tile ids and .rd5 names;
+  - F3, classify's whole rule stated, with no edit in domain/dropoff;
+  - F4, "the chooser ran and none qualified" isn't covered by a fixture, and is listed as such;
+  - one line for both ends, firing on refusals too.
+- **Told to her:** the trip-bubble branch changes only the way-to notes' words for a trip target in WayToWaypoint.kt.
+**Notes:** Written by the planner by hand. Next free ID -2150.
