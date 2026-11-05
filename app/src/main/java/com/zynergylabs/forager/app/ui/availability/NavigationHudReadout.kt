@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from NavigationHud.kt (dispatch 2026-10-19-03, UI split Phase 1, PR 1).
 
+import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -121,7 +122,11 @@ sealed interface ReturnRoute {
      * straight-line one, with [note] in its status line saying why (RECORD -1652 Q4, -1653, -1665, -1667). Only the way
      * to a waypoint gives it.
      */
-    data class Straight(val note: WayToWaypointNote) : ReturnRoute
+    data class Straight(
+        val note: WayToWaypointNote,
+        /** What is navigated to (dispatch 2026-11-05-05, A8): a trip's note says "the trip" where a waypoint's says "the waypoint". */
+        val kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT,
+    ) : ReturnRoute
 }
 
 /**

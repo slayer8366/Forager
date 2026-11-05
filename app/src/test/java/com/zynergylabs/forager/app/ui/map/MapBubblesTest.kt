@@ -281,11 +281,15 @@ class MapBubblesTest {
         assertEquals(null, mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-nowhere"), sources, is24HourClock = false))
     }
 
+    // Dispatch 2026-11-05-05 (A1; RECORD -2140, the owner: "Remove the long/lat coordinates from the Trip icon, and keep the
+    // military style"): was `a planned trip shows what its Trip Planner row shows`, which expected the row's four lines, the
+    // decimal degrees "45.5600, -122.6600" among them. Now name, date and MGRS, with no coordinates, and no elevation until
+    // the bubble's layer reads one (as a waypoint's).
     @Test
-    fun `a planned trip shows what its Trip Planner row shows`() {
+    fun `a planned trip shows its name, date and MGRS, without the coordinates`() {
         val mgrs = (MgrsConverter.convert(LatLng(45.56, -122.66)) as MgrsCoordinate.Grid).value
         assertEquals(
-            MapBubbleContent.Trip(trip, "Oct 3, 2026", mgrs, "45.5600, -122.6600"),
+            MapBubbleContent.Trip(trip, "Oct 3, 2026", mgrs),
             mapBubbleContentFor(target(MapBubbleKind.PLANNED_TRIP, MapLayerIds.PLANNED_TRIPS, "trip-1"), sources, is24HourClock = false),
         )
     }

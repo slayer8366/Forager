@@ -12,6 +12,7 @@ import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
 import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
 import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
 import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
+import com.zynergylabs.forager.app.ui.availability.onNavigateToTrip
 import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
 import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
 import com.zynergylabs.forager.app.ui.availability.onOffTrackReminderChanged
@@ -710,6 +711,7 @@ class MainActivity : ComponentActivity() {
                         onRetryRoute = trackRecordingViewModel::retryRoute,
                         // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
                         onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                        onNavigateToTrip = viewModel::onNavigateToTrip,
                         onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                     ),
                     records = AvailabilityScreenRecords(

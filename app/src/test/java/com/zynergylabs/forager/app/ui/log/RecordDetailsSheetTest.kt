@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -234,6 +235,8 @@ class RecordDetailsSheetTest {
         field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
         field("used-in").assertTextEquals("Used in", "2 journal entries")
         // Dispatch 2026-10-29-09 (RECORD -1819): was "is displayed"; the sheet offers Navigate in Directions' place.
+        // Dispatch 2026-11-05-05 (A5, C1; RECORD -2152): still absent, unchanged. Every sheet this runs in is opened with no
+        // onNavigateToWaypoint, so it has no Navigate, and Directions is shown only beside Navigate.
         composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
     }
 
@@ -476,19 +479,35 @@ class RecordDetailsSheetTest {
     // ── Actions ──
 
     @Test
-    fun `the waypoint sheet offers Navigate and no Directions`() {
+    fun `the waypoint sheet offers Navigate, and Directions to its right, which starts directions to that waypoint`() {
         // Dispatch -502 changed this. Before: named "... and there is no Navigate", it asserted that no
         // node's text contained "Navigate" (the J5c stop rule: no in-app entry point navigated to a chosen
         // waypoint). After: the owner asked for Navigate beside Directions (-502, T9), so it asserts the
         // sheet's Navigate is shown, labelled "Navigate". Dispatch 2026-10-29-09 (RECORD -1819) changed it
         // again: named "... beside Directions, and its Directions starts directions to that waypoint", it
         // asserted Directions shown and its geo intent; Directions is gone from the sheet, so it asserts that.
+        // Dispatch 2026-11-05-05 (A5; RECORD -2140, the owner: "In the Details card add the Directions button for external
+        // maps to the right of the in-app Navigate button and center the two buttons") changed it a third time: named "... offers
+        // Navigate and no Directions", it asserted Directions absent. Now Directions is shown, to Navigate's right, and a real
+        // touch on it starts the waypoint's geo intent. The centring is WaypointCardDirectionsTest's.
         setScreen(onNavigateToWaypoint = {})
+        registerFakeMapsApp()
         openRecords()
         touch(waypointRow("W1"), Offset(0.3f, 0.5f))
-        composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
         composeRule.onNodeWithTag(NAVIGATE).performScrollTo().assertIsDisplayed()
         assertEquals("Navigate", composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
+        assertEquals("Directions", composeRule.onNodeWithTag(DIRECTIONS).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        val navigate = composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().boundsInRoot
+        val directions = composeRule.onNodeWithTag(DIRECTIONS).fetchSemanticsNode().boundsInRoot
+        assertTrue("Directions to the right of Navigate: ${directions.left} vs ${navigate.right}", directions.left > navigate.right)
+
+        composeRule.onNodeWithTag(DIRECTIONS).performTouchInput { click(Offset(width * 0.3f, height * 0.5f)) }
+        composeRule.waitForIdle()
+        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started?.action)
+        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
+        assertTrue("the sheet stays open (A12)", sheetShowing())
     }
 
     @Suppress("DEPRECATION")
@@ -608,7 +627,9 @@ class RecordDetailsSheetTest {
             touch(walkWaypointRow("W1"), point)
             composeRule.onNodeWithTag(TITLE).assertTextEquals("Creek pin")
             field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
-            composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist() // Was "is displayed" (dispatch 2026-10-29-09).
+            // Was "is displayed" (dispatch 2026-10-29-09). Still absent under dispatch 2026-11-05-05 (C1; RECORD -2152): this sheet
+            // is opened with no onNavigateToWaypoint, and Directions is shown only beside Navigate.
+            composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
 
             pressBackOnSheet()
             assertTrue("Back from the waypoint (tap at $point) leaves a sheet showing", sheetShowing())
@@ -684,6 +705,21 @@ class RecordDetailsSheetTest {
             started != null
         }
         return started!!
+    }
+
+    /** Dispatch 2026-11-05-05: a maps app that takes `geo:` links, as this class had until dispatch 2026-10-29-09 removed it. */
+    private fun registerFakeMapsApp() {
+        val activity = composeRule.activity
+        val componentName = ComponentName(activity, "com.example.fakemaps.MapsActivity")
+        val shadowPackageManager = Shadows.shadowOf(activity.packageManager)
+        shadowPackageManager.addActivityIfNotPresent(componentName)
+        shadowPackageManager.addIntentFilterForActivity(
+            componentName,
+            IntentFilter(Intent.ACTION_VIEW).apply {
+                addCategory(Intent.CATEGORY_DEFAULT)
+                addDataScheme("geo")
+            },
+        )
     }
 
     private fun hasClickLabel(label: String): SemanticsMatcher =

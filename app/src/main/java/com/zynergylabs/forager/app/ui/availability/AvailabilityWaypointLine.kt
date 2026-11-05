@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.NavigationTargetRef
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel.Companion.TAG
 import kotlinx.coroutines.delay
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.collectLatest
  * draws it (the option the owner chose said so). Since the move it also outlives the Activity being rebuilt by a
  * dark-mode or language change, which the screen's `remember` did not (accepted, dispatch 2026-10-26-06 Amendment 1).
  *
- * The waypoint is looked up by id with [readWaypoint] when [follow] starts, which is when a navigation is chosen
+ * The waypoint is looked up by id with [readTarget] when [follow] starts, which is when a navigation is chosen
  * or picked back up (the owner, -1657: "Option 2: look up by id"). No hiding rule of its own: a deleted or
  * Undo-pending waypoint resolves as gone in the screen, which ends the navigation, and the screen draws this line
  * only while its own target is found. The copy read here does not go stale: nothing changes a placed waypoint's
@@ -29,24 +30,27 @@ import kotlinx.coroutines.flow.collectLatest
  *
  * It decides nothing on its own: the ViewModel starts [follow] and cancels it (-1450). Every write goes through
  * [updateState].
+ *
+ * Since dispatch 2026-11-05-05 (A8) the target may be a planned trip, read by [readTarget] as the point at its spot
+ * ([navigationTargetReader]); the line is drawn to it exactly as to a waypoint.
  */
 internal class AvailabilityWaypointLine(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
-    private val readWaypoint: suspend (String) -> Result<Waypoint?>,
+    private val readTarget: suspend (NavigationTargetRef) -> Result<Waypoint?>,
     private val currentTime: CurrentTimeProvider,
     private val errorLog: ErrorLog,
 ) {
 
     /**
-     * Draws the line to waypoint [waypointId] from each fix [liveFixes] gives, until the caller cancels it; `null`
+     * Draws the line to [target] from each fix [liveFixes] gives, until the caller cancels it; `null`
      * only clears the line. It is cleared first either way, so a line drawn to another waypoint is never kept for
      * this one (as before, where [nextStraightLine] kept a line only when it ended at the same target). Between
      * fixes the clock moves on at each moment the fix's freshness changes, so the line fades then without a new fix.
      */
-    suspend fun follow(waypointId: String?, liveFixes: Flow<LocationFix.Update?>) {
+    suspend fun follow(target: NavigationTargetRef?, liveFixes: Flow<LocationFix.Update?>) {
         updateState { it.copy(waypointStraightLine = null) }
-        if (waypointId == null) return
-        val target = readWaypoint(waypointId).getOrElse { error ->
+        if (target == null) return
+        val point = readTarget(target).getOrElse { error ->
             errorLog.w(TAG, "Couldn't read the waypoint being navigated to; no straight line is drawn to it.", error)
             return
         } ?: return // Not stored: the screen resolves it as gone and ends the navigation with its message.
@@ -54,7 +58,7 @@ internal class AvailabilityWaypointLine(
             var now = currentTime.nowEpochMillis()
             while (true) {
                 val at = now
-                updateState { it.copy(waypointStraightLine = nextStraightLine(it.waypointStraightLine, fix, target, at)) }
+                updateState { it.copy(waypointStraightLine = nextStraightLine(it.waypointStraightLine, fix, point, at)) }
                 val untilNextChange = millisUntilFreshnessChanges(fix, now) ?: break
                 delay(untilNextChange)
                 now = currentTime.nowEpochMillis()

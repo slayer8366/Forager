@@ -27,6 +27,12 @@ internal sealed interface RecordDetailsTarget {
     data class WaypointDetails(val id: String, val fromTrackId: String? = null) : RecordDetailsTarget
     data class TrackDetails(val id: String) : RecordDetailsTarget
     data class OfflineRegionDetails(val id: Long) : RecordDetailsTarget
+
+    /**
+     * A planned trip's card (dispatch 2026-11-05-05, A4 as A9 rules it), by id: opened from the trip's bubble on the Maps
+     * tab, the one host whose sheet is handed the trips (C1). Back closes it.
+     */
+    data class TripDetails(val id: String) : RecordDetailsTarget
 }
 
 /**
@@ -39,7 +45,7 @@ internal fun RecordDetailsTarget.returnsTo(): RecordDetailsTarget? =
 
 /**
  * Saves a [RecordDetailsTarget] as one string, `waypoint:<id>`, `track:<id>` or `region:<id>` (and, since dispatch -616,
- * `walk-waypoint:<track id><U+001F><id>` for a waypoint opened from its walk). A
+ * `walk-waypoint:<track id><U+001F><id>` for a waypoint opened from its walk; since dispatch 2026-11-05-05, `trip:<id>`). A
  * string that is none of these fails loudly on restore rather than quietly opening nothing, the
  * same choice [JournalScreenState]'s saver makes with `valueOf` and `toBooleanStrict`.
  */
@@ -52,6 +58,7 @@ internal val RecordDetailsTargetSaver: Saver<RecordDetailsTarget?, String> = Sav
                 ?: "$WAYPOINT_KEY${target.id}"
             is RecordDetailsTarget.TrackDetails -> "$TRACK_KEY${target.id}"
             is RecordDetailsTarget.OfflineRegionDetails -> "$REGION_KEY${target.id}"
+            is RecordDetailsTarget.TripDetails -> "$TRIP_KEY${target.id}"
         }
     },
     restore = { saved ->
@@ -65,6 +72,7 @@ internal val RecordDetailsTargetSaver: Saver<RecordDetailsTarget?, String> = Sav
             saved.startsWith(WAYPOINT_KEY) -> RecordDetailsTarget.WaypointDetails(saved.removePrefix(WAYPOINT_KEY))
             saved.startsWith(TRACK_KEY) -> RecordDetailsTarget.TrackDetails(saved.removePrefix(TRACK_KEY))
             saved.startsWith(REGION_KEY) -> RecordDetailsTarget.OfflineRegionDetails(saved.removePrefix(REGION_KEY).toLong())
+            saved.startsWith(TRIP_KEY) -> RecordDetailsTarget.TripDetails(saved.removePrefix(TRIP_KEY))
             else -> error("Not a saved record-details target: '$saved'")
         }
     },
@@ -74,6 +82,7 @@ private const val WAYPOINT_KEY = "waypoint:"
 private const val TRACK_KEY = "track:"
 private const val REGION_KEY = "region:"
 private const val WALK_WAYPOINT_KEY = "walk-waypoint:"
+private const val TRIP_KEY = "trip:"
 
 /** Between the walk's id and the waypoint's: a control character, so neither id (a UUID, or anything with colons) can contain it. */
 private const val WALK_WAYPOINT_SEPARATOR = '\u001F'

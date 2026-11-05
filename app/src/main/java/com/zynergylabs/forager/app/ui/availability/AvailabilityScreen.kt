@@ -3,7 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowRailEdgeFor
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
-import com.zynergylabs.forager.app.domain.waypointNavigationTarget
+import com.zynergylabs.forager.app.domain.navigationTargetOf
 import com.zynergylabs.forager.app.ui.map.ReferenceTrailsShown
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOriginSaver
@@ -195,6 +195,7 @@ fun AvailabilityScreen(
     val onToggleReturning = navigation.onToggleReturning
     val navigationTarget = navigation.navigationTarget
     val onNavigateToWaypoint = navigation.onNavigateToWaypoint
+    val onNavigateToTrip = navigation.onNavigateToTrip
     val onStopWaypointNavigation = navigation.onStopWaypointNavigation
     // Phase 2.1 (dispatch 2026-10-19-28): the recording bundle, unpacked under the parameter names it replaced.
     val tripStartWarning = recording.tripStartWarning
@@ -243,8 +244,9 @@ fun AvailabilityScreen(
     // with or without a recording. The waypoint is the AvailabilityViewModel's (uiState.waypointNavigation),
     // resolved here against the waypoints the app has loaded; while it is found it is the target, and it
     // overrules the return, which the ViewModel paused when it began. Before the waypoints load it is
-    // waited for; once loaded and missing, it was deleted, and the navigation ends with a message (below).
-    val waypointTarget = waypointNavigationTarget(uiState.waypointNavigation, waypoints, waypointsLoaded)
+    // waited for; once loaded and missing, it was deleted, and the navigation ends with a message (below). Since dispatch
+    // 2026-11-05-05 (A8) the target may be a planned trip, resolved against the trips instead, and waited for until they load.
+    val waypointTarget = navigationTargetOf(uiState.waypointNavigation, waypoints, waypointsLoaded, uiState.plannedTrips, uiState.plannedTripsLoaded)
     val navigatingToWaypoint = (waypointTarget as? WaypointNavigationTarget.Found)?.waypoint
     val isNavigating = isReturning || isArrivalHeld || navigatingToWaypoint != null
     val target = navigatingToWaypoint ?: navigationTarget
@@ -456,6 +458,7 @@ fun AvailabilityScreen(
         isNavigating = isNavigating,
         navigatingToWaypoint = navigatingToWaypoint,
         onNavigateToWaypoint = onNavigateToWaypoint,
+        onNavigateToTrip = onNavigateToTrip,
         onStopWaypointNavigation = onStopWaypointNavigation,
         onToggleReturning = onToggleReturning,
     )
@@ -577,6 +580,7 @@ fun AvailabilityScreen(
         backgroundRunPrompt = backgroundRunPrompt,
         networkFixesNotice = networkFixesNotice,
         waypointTarget = waypointTarget,
+        targetGoneText = navigationGoneText(uiState.waypointNavigation?.kind),
         endWaypointNavigation = endWaypointNavigation,
     )
     // Intent 2026-09-28-44, F1 (the owner: "Snackbar only for real drafts (Recommended)"). This used
@@ -627,7 +631,8 @@ fun AvailabilityScreen(
         onOpenLogEntry = onOpenLogEntry,
         onNavigateToWaypoint = onNavigateToWaypoint,
         startWaypointNavigation = startWaypointNavigation,
-    ).copy(routePlotting = routePlotting)
+        // Dispatch 2026-11-05-05 (A8): a trip's bubble and card offer Navigate where the host navigates to trips, the Maps tab.
+    ).copy(routePlotting = routePlotting, onNavigateToTrip = onNavigateToTrip?.let { startWaypointNavigation })
 
     // J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a failed
     // Show or Hide on map, from the Journal's report or the Maps tab's chip, told on whichever tab is up,
