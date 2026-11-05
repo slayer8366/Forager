@@ -34581,3 +34581,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Hazel's worktrees.
 - **Also:** /mnt/work has about 174 MB free after this bundle. The next bundle (about 144 MB) wouldn't leave room for much else; the owner is told.
 **Notes:** Written by the planner by hand. Next free ID -2129.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2129
+**Timestamp:** 2026-11-05T19:02:47Z
+**Continues:** 2026-09-28-2127
+**Title:** The signal-return pass is run on the S22, changing the app's data as needed; the S22 is a test phone
+**Decision:**
+- **The owner, verbatim:** "Go ahead and run the signal return and change the data as necessary. The real data is backed up and nothing in the app is valuable to preserve. S22 is the test phone so do as you need to".
+- **The planner's plan:**
+  - make Region 1's copy (app region 3) not whole, by removing its whole record and one tile from files/offline_basemap/3;
+  - with airplane mode on, open Offline maps: one no-signal line, and no pass;
+  - turn airplane mode off with Offline maps held open, and wait past the app's 30 s signal hold.
+  - **Pass:** exactly one pass for region 3, which makes it whole again, after the "Validated network (30 s…)" line, with no other trigger.
+- **Build:** 4626 (pre-main #491's code plus tools), already installed (-2127).
+- **Standing, from these words:** on the S22, the planner may change the app's data and the phone's settings as a check needs. Each change is still recorded, and put back where it matters for later checks.
+**Notes:** Written by the planner by hand. Next free ID -2130.
