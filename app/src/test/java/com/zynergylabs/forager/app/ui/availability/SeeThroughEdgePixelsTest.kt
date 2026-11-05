@@ -218,8 +218,12 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
     /**
      * RECORD -2160 (the owner: "Clean triangle (Recommended)", whose option read "Both sides start on the card's edge and run straight
      * to the tip, with no kink. The tail's root changes slightly on slanted tails"). Along each side, at 15%, 35% and 60% of the way
-     * from its corner on the card's edge to the tip: 1.5 px inside the side, the hairline; 1.5 px outside it, the bare map. So each
-     * side is one straight line from the card's edge to the tip, with no fill beyond it and no line missing along it.
+     * from its corner on the card's edge to the tip: 1.5 px inside the side, the hairline; 2.5 px outside it, the bare map. So each
+     * side is one straight line from the card's edge to the tip, with no fill beyond it and no line missing along it. Outside, 2.5
+     * px and not 1.5: at 1.5 px the pixel rounded to can reach the side's anti-aliased edge, and run 42129154367 read one such at
+     * night (AFAEAA against B5B4B0, about 5% of the fill). Checked on both runs' captures: over the clean triangle every outer
+     * sample reads the bare map exactly at 2.5 px; over the stepped tail (run 42126975492) 9 of 12 by day and 10 of 12 at night
+     * still read the old tail's fill or line, by 7 to 42 levels.
      *
      * Before -2160 the tail's base was square to the tail, centred on the card's edge, so on a slanted tail one end of it lay
      * outside the card and that side began with a step out along the base. In this bubble that is the second side, the tail's
@@ -244,7 +248,7 @@ abstract class SeeThroughEdgePixelsTests(private val dark: Boolean) {
                 val q = corner + (tail.tip - corner) * t
                 if ((centroid - q).x * normal.x + (centroid - q).y * normal.y < 0f) normal = -normal
                 val inner = q + normal * inset
-                val outer = q - normal * inset
+                val outer = q - normal * (inset + 1f)
                 check(!inside(outer)) { "the $name side's outer sample $outer at ${(t * 100).toInt()}% is outside the card ${tail.card}" }
                 readings += EdgeReading("tail's $name side ${(t * 100).toInt()}% along, inside, at $inner", pixel(inner), line, 4f / 255f)
                 readings += EdgeReading("tail's $name side ${(t * 100).toInt()}% along, outside, at $outer", pixel(outer), under, 3f / 255f)
