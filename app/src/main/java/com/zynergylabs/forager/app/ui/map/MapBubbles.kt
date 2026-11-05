@@ -33,7 +33,6 @@ import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
-import com.zynergylabs.forager.app.ui.availability.decimalDegreesLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.rectEdgeIntersection
 import com.zynergylabs.forager.app.ui.log.formatTrackDuration
@@ -201,7 +200,8 @@ data class MapRecordSources(
     /**
      * Dispatch 2026-09-28-502: a waypoint's "Navigate", in its bubble and its details sheet, given where it
      * was tapped. The Maps tab passes one, and since RECORD -890 a journal entry's map does too; `null`
-     * (tests only) offers none. Directions is offered only where Navigate cannot reach (RECORD -1819).
+     * (tests only) offers none. In a bubble, Directions is offered only where Navigate cannot reach (RECORD -1819); on the
+     * card it sits beside Navigate (dispatch 2026-11-05-05, A5; RECORD -2140).
      */
     val onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
     /**
@@ -209,6 +209,11 @@ data class MapRecordSources(
      * a waypoint bubble's "Plot route", and what the Maps tab's taps, card and Back read. Only the Maps tab passes one.
      */
     val routePlotting: RoutePlottingControls? = null,
+    /**
+     * Dispatch 2026-11-05-05 (Amendment 1, A8): a trip's "Navigate", in its bubble and its card, given where it was tapped (an
+     * origin of kind TRIP). Only the Maps tab passes one, the one map with trips; `null` offers none.
+     */
+    val onNavigateToTrip: ((WaypointNavigationOrigin) -> Unit)? = null,
 )
 
 /** The Maps tab's find action (owner's M1 ruling 2). */
@@ -256,10 +261,13 @@ sealed interface MapBubbleContent {
     /** A track: its title, date, distance and duration; details. */
     data class TrackContent(val trackId: String, val title: String, val date: String?, val distance: String, val duration: String, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A planned trip: what its Trip Planner row shows; Directions. */
-    /** [date] is null for an undated trip (schema 23), which shows no date line. */
-    /** STUB (dispatch 2026-11-05-05, tests first): [coordinates] still filled, [elevation] never; built in a later commit. */
-    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val coordinates: String? = null, val elevation: String? = null) : MapBubbleContent
+    /**
+     * A planned trip (dispatch 2026-11-05-05, A1; RECORD -2140, the owner: "Remove the long/lat coordinates from the Trip icon,
+     * and keep the military style"): its name, [date] (null for an undated trip, schema 23, which shows no date line), its
+     * MGRS line, and [elevation] as a waypoint's bubble has it, `null` until read and where none is known; then Navigate,
+     * Plot route and Details.
+     */
+    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val elevation: String? = null) : MapBubbleContent
 
     /** An offline region: its name, radius, size, and whether it is stale; details. */
     data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
@@ -329,13 +337,12 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                     ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false, fromStart = fromStart) }
         }
         MapBubbleKind.PLANNED_TRIP -> sources.plannedTrips.firstOrNull { it.id == id }?.let { trip ->
-            // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow): name,
-            // date, MGRS when there is one, decimal degrees.
+            // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow) but its decimal degrees, which
+            // dispatch 2026-11-05-05 (A1) took off: name, date, MGRS when there is one. The elevation joins in the layer.
             MapBubbleContent.Trip(
                 trip = trip,
                 date = trip.date?.let(::displayDate),
                 mgrs = mgrsOf(trip.location),
-                coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )
         }
         MapBubbleKind.TRACK -> (sources.tracks.firstOrNull { it.id == id }?.let { track ->
