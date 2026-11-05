@@ -194,6 +194,7 @@ private val BUBBLE_CORNER_RADIUS = 20.dp
 /** The shell's card and tail as one shape, for the tip as it is now ([bubbleShape]). */
 private fun DrawScope.shellShape(tipInBubble: State<Offset?>): Path {
     val tailPx = BUBBLE_TAIL_LENGTH.toPx()
-    val tail = tipInBubble.value?.let { bubbleTail(size, it, tailPx, BUBBLE_TAIL_BASE_HALF_WIDTH.toPx()) }
-    return bubbleShape(size, tailPx, BUBBLE_CORNER_RADIUS.toPx(), tail)
+    val cornerPx = BUBBLE_CORNER_RADIUS.toPx()
+    val tail = tipInBubble.value?.let { bubbleTail(size, it, tailPx, BUBBLE_TAIL_BASE_HALF_WIDTH.toPx(), cornerPx) }
+    return bubbleShape(size, tailPx, cornerPx, tail)
 }
