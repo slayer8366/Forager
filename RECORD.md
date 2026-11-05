@@ -35356,6 +35356,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The option read: "Plug in the S22. I install it, back up the app's data first, and run Hazel's checks: the bubble, the trip card, Directions, Navigate and Back, picking back up after a restart, Plot route, and the deleted message. Then you look at the bubble and card yourself, and merge on your word."
   - The other option: "Merge now".
 - **The APK** is from CI 42125306656, a pull_request run on 2c2c3fd1f. Its version name is 1.0.4586+g5c6856dc, GitHub's merge ref at the time.
+  - **Corrected here (S22 session 16, -2163):** this APK wasn't usable on the S22, so "ready for the S22" in the question was wrong. The phone has the tools build 1.0.4626+g0932a6ca (versionCode 4626), so 4586 would have been a downgrade, and it lacks the tools build's walk logger, Diagnostics, Crash Logs and Street v4 loading. The planner checked the installed version only once the phone was plugged in. The check runs on a tools/s22-combined build instead (-2163).
   - The base then was 6e24b22c4, which 2c2c3fd1f already contains, so the tree is 2c2c3fd1f's. That is inferred, not checked: the merge ref has moved since.
   - versionCode 4586, signer SHA-256 cb2f6da5…1626. Kept at /mnt/work/scratch/s22-494/apk/app-debug.apk.
 **Waiting on:** the S22, plugged in. Then the snapshot, the install and checks 1-9 of the -2161 report, then the owner's look and word.
@@ -35370,7 +35371,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** S22 session 16: the trip bubble's check moves to a tools build, because the PR's own APK would have been a downgrade
 **Outcome:**
 - **The owner:** "S22 plugged in".
-- **Correction to -2162's "Its APK is downloaded and ready for the S22":** it wasn't usable.
+- **The PR's own APK wasn't installed** (corrected in place in -2162):
   - The phone has 1.0.4626+g0932a6ca (versionCode 4626, installed 2026-11-05 10:09 local), the tools/s22-combined build of session 15. The PR's APK is 4586, so installing it would have been a downgrade.
   - That APK also lacks the tools build's walk logger, Diagnostics and Crash Logs, and its Street v4 loading (tools-only commits e5639e59f and 285476e69 onward, never merged).
   - The planner checked the installed version only once the phone was plugged in. It should have been checked before saying the APK was ready (memory: S22 build before phone).
