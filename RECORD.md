@@ -34523,3 +34523,38 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Before snapshot:** ~/s22-2026-11-04/s15/snap/before-4626. Schemas 23, 6 and 1, integrity ok. forager.db is compared with session 14's end-s14 in the session's outcome.
 - **The height step:** inside the test area, before it is deleted (-2125, Hazel's finding).
 **Notes:** Written by the planner by hand. Next free ID -2127.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2127
+**Timestamp:** 2026-11-05T18:23:01Z
+**Continues:** 2026-09-28-2126, 2026-09-28-2125
+**Title:** S22 session 15: PR #491 passes on the phone; one opening per tap; the retry cleared every refusal in ten Navigates; the height line not seen
+**Outcome:**
+- **Install:**
+  - The APK from 42078182905 (sha256 cfa68d68d13582fe…) is 4626, 1.0.4626+g0932a6ca, with signer cb2f6da5…, the same as before. Installed over 4616.
+  - forager.db's tables are identical before and after, at schema 23.
+  - The log is in ~/s22-2026-11-04/s15/logs/logcat-s15.txt, and the evidence in ~/s22-2026-11-04/s15/.
+- **Step 1, one opening per tap, pass:**
+  - In airplane mode, at the owner's "Yes, briefly", three taps Tools > Offline Maps with Back between (10:10:03, :19, :34 local) gave exactly 3 "Offline maps opened with no signal…" lines, at 10:10:03.881, 10:10:19.768 and 10:10:35.413. Session 14 had 2 per tap.
+  - Airplane mode was then off, with Wi-Fi back on.
+- **Step 2, Navigate to Waypoint 1 ten times while the map draws, pass:**
+  - Signal: the app's "Validated network (30 s…)" line at 10:11:30.642, then a 10.0 m fix. Ten runs from 10:12:04 to 10:17:05, each Navigate, then about 5 s, then Stop.
+  - Since the step began: "the map could not be read" 0, "on all 5 attempts" 0, "has no barrier mark" 0, and FindWayToWaypoint fallback lines 0.
+  - **The retry was exercised:** 5 reads were refused and read on attempt 2 of 5 ("A basemap read of MapLibre's store was refused while MapLibre was saving, and read on attempt 2 of 5.", 10:14:19 to 10:16:33). There were 5 SQLITE_READONLY_ROLLBACK lines in all.
+  - An eleventh run's card read "0.5 mi", "left 61°", "by trail", with no fallback logged. So the ends step ran fully and kept the trail end. That is an observation, not a gate.
+- **Step 3, a test area:**
+  - "Test s15" became app region 14. At its download's end: 10:18:57.879 "Drop-off map for region 14: whole. 6 requests; 6 stored, 0 empty.", with no "MapLibre's store could not be read". Pass.
+  - It holds one linked relief tile, 11/326/734 (deflated, 113,388 B). Regions 3 and 8 hold none (query on a copy).
+- **The height line: not seen on the phone.**
+  - Two taps at the Start waypoint's marker beside the location dot each opened the Oct 30 1:40 PM track's bubble ("24 ft · 0m"), not a waypoint's. The planner stopped after two attempts (CLAUDE.md).
+  - Nothing relief- or height-related was logged. The check is covered by ReliefImageChecksTest on the JVM only.
+- **The test area was deleted** with "Delete Test s15": the copy folder 14 is gone, with no "Couldn't delete" line. Regions 3 and 8 remain, and the budget is 832 / 6000.
+- **Signal return:** not run. It needs an area whose copy isn't whole (-2124's option).
+- **No corruption report** in the log ("Corruption reported" and "deleting the database file": 0).
+- **End state:**
+  - font_scale 1.0, airplane_mode_on 0, wifi_on 1, mobile_data 1;
+  - no app services, and the Maps tab with Trail;
+  - forager.db's tables identical to before-4626, with schemas 23, 6 and 1, integrity ok.
+**Notes:** Written by the planner by hand. Next free ID -2128.
