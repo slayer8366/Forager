@@ -35360,3 +35360,28 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - versionCode 4586, signer SHA-256 cb2f6da5…1626. Kept at /mnt/work/scratch/s22-494/apk/app-debug.apk.
 **Waiting on:** the S22, plugged in. Then the snapshot, the install and checks 1-9 of the -2161 report, then the owner's look and word.
 **Notes:** Written by the planner by hand. Next free ID -2163.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2163
+**Timestamp:** 2026-11-05T23:42:36Z
+**Continues:** 2026-09-28-2162
+**Title:** S22 session 16: the trip bubble's check moves to a tools build, because the PR's own APK would have been a downgrade
+**Outcome:**
+- **The owner:** "S22 plugged in".
+- **Correction to -2162's "Its APK is downloaded and ready for the S22":** it wasn't usable.
+  - The phone has 1.0.4626+g0932a6ca (versionCode 4626, installed 2026-11-05 10:09 local), the tools/s22-combined build of session 15. The PR's APK is 4586, so installing it would have been a downgrade.
+  - That APK also lacks the tools build's walk logger, Diagnostics and Crash Logs, and its Street v4 loading (tools-only commits e5639e59f and 285476e69 onward, never merged).
+  - The planner checked the installed version only once the phone was plugged in. It should have been checked before saying the APK was ready (memory: S22 build before phone).
+- **The tools build:**
+  - tools/s22-combined moved from 0932a6cab to 4670712fa:
+    - abb5c4a4a merges pre-main 3a3d85089 (PRs #492 and #493 and their index rows);
+    - 4670712fa merges trip-bubble-actions 05ccb60d2 (PR #494).
+  - Both merges came out clean from git merge-tree. Against the PR head, app/src/main differs only in the tools-only files (15 files).
+  - CI workflow_dispatch run 42131356768 started on 4670712fa. The push itself started no run, as before.
+- **Snapshot before install:** ~/s22-2026-11-04/s16/snap/before-install (app-data.tar 34 MB, 631 files).
+  - forager.db user_version 23, integrity ok: 11 waypoints, 0 planned trips. mbgl-offline.db 6, ok. fungi_index.db 1, ok.
+  - The ForagerDatabase and FungiIndexDatabase version lines are the same in 0932a6ca and the PR.
+- **For the checks:** with no trips on the phone, the planner makes test trips in the app (-2129: "S22 is the test phone so do as you need to").
+**Notes:** Written by the planner by hand. Next free ID -2164.
