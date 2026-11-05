@@ -33917,7 +33917,56 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The build option read: "I merge pre-main into the S22 build branch and build 4609 on CI (about 20 minutes). Then I snapshot the app's data, install it over 4591 with the same signer, and check the app's tables are unchanged. Nothing else on the phone is changed."
   - The checks question said: "I won't change the phone's theme or settings; any night look is yours to switch." The night chip option read "The same, with the app in Night Mode, which you switch".
 - **The planner's slip:** no build was ready when the phone was plugged in, against the planner's own rule (memory, s22-build-before-phone; RECORD -1998).
+- *Correction (planner, 2026-11-04, the owner: "It was never locked to begin with. I keep it off without a lock"):* the planner told the owner the S22 was on its lock screen and asked for it to be unlocked. The screen was off, showing the always-on clock, and the phone has no lock. The planner could have woken the screen, which changes nothing.
 - **Phone state, read only:** SM-S908U R5CT321008R, Forager 4591 (1.0.4591+g3854493f, installed 2026-11-04 07:04 local), no app services running, battery 100% on USB.
 - **Build:** pre-main 949ad8183 merged into tools/s22-combined as 957ef740c (count 4609), from 3854493f3. git merge-tree reported no conflict. CI 41961767798 (workflow_dispatch) was started.
 - **Before snapshot:** ~/s22-2026-11-04/s13/snap/before-4609, taken by session 12's snap.sh with only its scratch path changed. forager.db's tables are identical to s12/after-4591 (waypoints 11, tracks 5, track_points 273). mbgl-offline.db has the same row counts (resources 304, tiles 2114), but its contents have changed, which is the map's cache being used. Schemas 23, 6 and 1, integrity ok.
 **Notes:** Written by the planner by hand. Next free ID -2103.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2103
+**Timestamp:** 2026-11-05T04:20:51Z
+**Continues:** 2026-09-28-2102, 2026-09-28-2064, 2026-09-28-2097
+**Title:** S22 session 13: the chips pass by day and at night; the waypoint series reads the offline map and falls back by trail on old tiles; a new download reuses stale tiles
+**Outcome:**
+- **The owner, verbatim:** "S22 unlocked"; "This app is really starting to take on a premium feel and shape"; "Go ahead and do the switch"; "You are permitted to fully control the phone as you need to". To the drop-off question: "Check the server first (Recommended)", then "Test area, then delete (Recommended)".
+- **Install:**
+  - The APK from 41961767798 (app-debug-apk, sha256 f8402cfdb84ba042…) is versionCode 4609, 1.0.4609+g957ef740, with signer cb2f6da5…, the same as the installed 4591.
+  - Snapshots: before-install was unchanged from before-4609; 4609 was then installed with adb install -r and launched.
+  - after-4609: forager.db's tables are identical to before; schemas 23, 6 and 1, integrity ok.
+- **Chips by day,** Maps tab, Layers (shots/03-day-maps-layers.png), sampled from the screenshot:
+  - selected Trail: fill #F6DFC8, label #3A2008 (999 px), outline #3B2E24, 4 px (1 dp at 3.75 px per dp);
+  - Topo and Street: no fill, a 4 px #D5CEBF outline.
+  - **Pass.**
+- **Chips at night:**
+  - Night Mode was switched from Light to Dark on the owner's "Go ahead and do the switch", and confirmed Dark.
+  - Maps tab, Layers (shots/05-night-maps-layers.png): selected Trail fill #A2612C, label #F6DFC8 (999 px), outline #EDE3D0, 4 px; Topo and Street with no fill and a 4 px #444444 outline. **Pass.**
+  - Night Mode was then set back to Light, under "fully control the phone", and confirmed Light.
+- **The journal entry map:** not checked. The phone has no journal entries (cartography_entries 0), and making one would change the owner's data.
+- **Waypoint drop-off,** on a 9.9 m GPS fix (24 satellites) at the phone's spot, to Waypoint 1 (742 m):
+  - Records, "Navigate to Waypoint 1", tapped at 20:08:58.34 local. The card read "0.5 mi", "left 62°", "by trail"; session 12, on a 47-50 m fix, had "straight".
+  - The log at 20:09:00.126: "FindWayToWaypoint: ... the waypoint's end: tile 15/5222/11744 has no barrier mark: it was built before fences were carried". That is A1 ("Trail route, no drop-off") working as ruled, and logged.
+  - The navigation view was applied at 20:09:00.577: about 1.8 s from the tap to the decision, about 2.2 s to the view.
+  - No SQLite or database error appears in the app's log, so the read-only open of mbgl-offline.db worked alongside MapLibre on this phone (dispatch 2026-11-04-04 B3, #435).
+  - Not seen: a street drop-off, the second engine run's time, or the pick-up choice at the walker's end. There was no fallback line for that end, and a successful choice isn't logged.
+  - Navigation was stopped with "Stop navigating".
+- **The server, read from the laptop:**
+  - /style/trail-v4.json gives the basemap source /us.json, whose vector_layers include "barriers".
+  - Tile us/15/5222/11744 (HTTP 200, gzip, 30,708 bytes) carries a "barriers" layer with 2 features.
+  - So basemap patch 0004's fence mark is served (B3, #439).
+- **The test area:**
+  - "Test s13" (1 mi, about 17 tiles) was downloaded at the owner's word, as app region 12 and MapLibre region 12 (35 tiles).
+  - All 17 of its basemap tiles kept their old modified dates (2026-10-27 to 2026-11-03), and us/15/5222/11744 stayed at 2026-10-28 with no barrier mark. The download reused the stored tiles; it did not fetch current ones.
+  - Deleted with "Delete Test s13". The tile budget is back to 832 / 6000, and Region 1 and Region 2 remain. Both now show "Older map style. Download again to update."
+- **A finding for the owner, inferred, not confirmed in code:**
+  - An area downloaded before the fence data may never get it by downloading again, because stored tiles are reused.
+  - Then the drop-off would never appear there, and those areas would always go by trail. That is A1's fallback, so nothing breaks or goes dark.
+  - Whether the app's "Download again" clears the old tiles first has not been read.
+- **End state:**
+  - forager.db's tables are identical to the session's start (end-s13 against before-4609); schemas 23, 6 and 1, integrity ok.
+  - Night Mode is Light, no app services are running, and the phone is on the Maps tab with Trail chosen.
+  - The log capture was stopped: logs/logcat-s13.txt and app-s13.txt.
+  - Evidence is in ~/s22-2026-11-04/s13/.
+**Notes:** Written by the planner by hand. Next free ID -2104.
