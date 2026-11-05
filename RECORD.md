@@ -34474,3 +34474,35 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The planner's go for Amendment 2,** to a fresh Hazel session, on the same branch and PR #491. It is the same dispatch, under the owner's "Yes" (-2120).
 - **Also told to the owner:** AvailabilityScreenCrowdedIconsSettingTest is intermittent, not this branch's (-2123). The planner would look into it separately.
 **Notes:** Written by the planner by hand. Next free ID -2125.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2125
+**Timestamp:** 2026-11-05T17:48:21Z
+**Continues:** 2026-09-28-2124
+**Title:** Dispatch 2026-11-05-01 Amendment 2 built on PR #491: a stored relief image is checked before it is used; green and ready, not merged; the S22 build started
+**Outcome:**
+- **Hazel's summary** is filed unedited at prompts/preserved/2026-11-05-01-amendment-2-report.md. Her full Amendment 2 section is on the branch's completion report.
+- **Commits** on offline-store-read:
+  - 5912309fc, tests first (ReliefImageChecksTest, 5 tests; SyntheticReliefTiles);
+  - 455b2372e, the planner's addition 1;
+  - 7bb4df9bf, the check (map/PngIntegrity.kt, 75 lines; OfflineReliefTileStore.kt:75);
+  - 1cb09a1eb, the report.
+- **Her evidence:**
+  - Fail first: 42066897340, 4 of 6,644 failing as predicted, and the guard passing.
+  - Only the chunk-end splice bites on what the user sees: Known(metres=-32768.0) today. The other three bite on the logged reason, per -2124's correction.
+  - Revert r5 (c3c635d26, run 42070485632): a clean compile log, and the same 4 failing, with the split shown.
+  - Green: 42070419421 at 7bb4df9bf and 42074374922 at 1cb09a1eb, each 6,644 tests and 0 failures (main job), 6,614 and 0 (Street job).
+- **What the bubble shows on a refused image:** today's no-height case (ReliefGroundHeightSource.kt:127-129, MapBubbles.kt:386-389, MapFeatureBubble.kt:91), with no new words.
+- **The planner checked:**
+  - #491 is open, not a draft, mergeable, head 1cb09a1eb, and all 8 checks pass;
+  - pre-main is an ancestor;
+  - app code is 6 files, +249/-22, with OfflineReliefTileStore.kt:75 reading as described;
+  - no @Ignore and no removed assertion;
+  - the WIP branch offline-store-read-a2-wip is gone from origin.
+  The planner did not re-read the JUnit XML.
+- **Her finding for the device check:** on end-s14's copy, the 44 relief rows with data all pass the check. But none of the 104 relief rows is linked to a region, and the bubble reads only linked relief tiles. So the height step needs a region that holds relief tiles: step 4's test area, before it is deleted. That a download stores relief tiles is inferred, not re-read.
+- **The planner's calls on her seven calls beyond the dispatch:** all accepted.
+- **S22 build:** offline-store-read 1cb09a1eb merged into tools/s22-combined from 7f29aa310, with no merge-tree conflict, and CI started on it.
+**Notes:** Written by the planner by hand. Next free ID -2126.
