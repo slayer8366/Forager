@@ -34684,3 +34684,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Abort conditions: a cause a user could meet; anything silencing the test; a wrong premise; two failed attempts.
   - Started on the owner's words above, as a fresh Hazel session on Opus.
 **Notes:** Written by the planner by hand. Next free ID -2134.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2134
+**Timestamp:** 2026-11-05T19:55:20Z
+**Continues:** 2026-09-28-2132
+**Title:** pre-main's CI at ee0651fe0, the commit Elder audits, passed on every job
+**Outcome:** run 42094523206, the push run on pre-main at ee0651fe0 (two audit-index rows on top of 96d3c0c43), completed with success on every job. The result was read with gh run view; the planner didn't download the JUnit XML. That is the gate's first step for the promotion Elder is auditing (dispatch 2026-11-05-02).
+**Notes:** Written by the planner by hand. Next free ID -2135.
