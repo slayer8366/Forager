@@ -34858,3 +34858,45 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** dispatch Stops: a Room version; new words; an owner-level choice on how a trip reaches Navigate or plotting; a wrong premise; a weakened test; two failed attempts.
 **Dispatch-file:** prompts/preserved/2026-11-05-05-trip-bubble-actions.md
 **Notes:** Written by the planner by hand. Authorisation: "This release (Recommended)", whose option read "Built now…" (-2140). Started as a fresh Hazel session on Opus. Next free ID -2142.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2142
+**Timestamp:** 2026-11-05T20:29:52Z
+**Continues:** 2026-09-28-2137
+**Title:** Hazel's Phase 1 on the bug 14 warning: the app can't read the 15.92°N bound; the line likely misses areas outside the US and Canada north of it; three stops
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-02-02-phase1-report.md. She read pre-main ee0651fe0 (unmoved). The branch is free, and the words aren't in the code yet.
+- **Findings:**
+  - 15.92 appears nowhere as a value, only in comments and documents. The Worker reads the archive header's minLat at request time (index.ts:588, :610-621).
+  - The app can't read it: us.json's south bound has been the world archive's -85.05 since 10-22 (-1559, -1609; index.ts:604-606).
+  - The last reading of the bound, 15.92097, predates the 11-03 archive.
+  - Inferred: 15.92°N is one edge of a bounding box. Areas north of it but outside the US and Canada, such as most of Mexico and the Caribbean, are probably blank too, and A1's latitude condition wouldn't warn there.
+- **Stops:**
+  - S1 (owner): what an area straddling the line means.
+  - S2: the bound's source (a Worker route, a constant, or a repository file).
+  - S3 (planner): placement.
+- **The planner's call on S3:**
+  - portrait: directly under "Pin at", as she read it;
+  - landscape: option (a), pinned above "Pin at", always visible beside the pin's coordinates.
+- **The planner's addition for the owner, as an option for S2 and the finding:** the server decides. The Worker already answers 204 for a zoom-15 tile where the archive has no detail (index.ts:649-659, her reading), so the app could ask, when the pin settles with signal, whether there's detail there. With no signal, no line would show, logged. This is the planner's, not yet checked by a coder.
+- **Brought to the owner:** S1, S2 and the finding.
+**Notes:** Written by the planner by hand. Next free ID -2143.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2143
+**Timestamp:** 2026-11-05T20:29:52Z
+**Continues:** 2026-09-28-2140
+**Title:** Dispatch 2026-11-05-06 for Hazel: why every see-through map surface shows a shaded band at its edges; Phase 1, verify first
+**Change:** nothing yet. Phase 1 shows the cause, lists every surface it affects, and sets out fix options for the owner. The owner, verbatim: "Also, investigate why every transparent window has this shade add the edges".
+**Scope boundary:** read only, plus throwaway CI runs (edge-shade-runN). Not pre-main, main, RECORD.md, the audit index, the phone or the other Hazels' branches.
+**Baseline:** pre-main ee0651fe0.
+**Prediction (outcome — planner):** the cause is the elevation shadow drawn under 80% surfaces (MapBubble.kt:184 shadowElevation 6.dp, and others), showing through the fill. A rectangular inner edge is how a spot shadow looks through a see-through fill.
+**Prediction (mechanism — coder):** in Hazel's report.
+**Finish line:** her Phase 1 report, filed and brought to the owner.
+**Abort conditions:** any change to the look (owner-level); a wrong premise; two failed attempts.
+**Dispatch-file:** prompts/preserved/2026-11-05-06-edge-shade.md
+**Notes:** Written by the planner by hand. Authorisation: the owner's "investigate" above. Started as a fresh Hazel session on Opus. Next free ID -2144.
