@@ -34825,3 +34825,36 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Every existing assertion stays. A PR into pre-main, merged on the owner's word.
   - A fresh Hazel session builds it, since this one is past 200,000 tokens.
 **Notes:** Written by the planner by hand. Next free ID -2140.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2140
+**Timestamp:** 2026-11-05T20:27:57Z
+**Continues:** 2026-09-28-2136
+**Title:** The trip pin's bubble gets Navigate, Plot route, Details and elevation, without latitude/longitude or Directions; trips get a Details card like a waypoint's; Details cards get Directions beside Navigate, centred; in this release
+**Decision:**
+- **The owner, verbatim,** with three screenshots (filed under docs/audits/assets/2026-11-05-05-trip-bubble/): "The trip icon should show a navigate option, along with elevation data. Remove the directions from the bubble add Navigate, Plot Route Details. Remove the long/lat coordinates from the Trip icon, and keep the military style. In the Details card add the Directions button for external maps to the right of the in-app Navigate button and center the two buttons".
+- **Read from code first:** the trip bubble is MapFeatureBubble.kt:117-123 (name, date, MGRS, coordinates, Directions). A trip has no sheet (:122), and RecordDetailsTarget has no trip target.
+- **Then, to two questions:**
+  - "What should the new trip Details card show?": **"Like the waypoint's (Recommended)"**. The option read "The trip's name, its date, MGRS, coordinates, when it was created, and which journal entries use it, the same layout as a waypoint's card. Then Navigate and Directions, centred."
+  - "Does this go in this release, or the next update?": **"This release (Recommended)"**. The option read "Built now, beside the bug 14 warning, while the field check and the walk are still to do, so it shouldn't hold the release longer. Elder re-checks the added work, and it gets a phone check."
+- **So:** dispatch 2026-11-05-05 (-2141). The promotion also waits for this, and Elder re-checks the added work. The chosen option's "Built now" is the go to start it.
+**Notes:** Written by the planner by hand. Next free ID -2141.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2141
+**Timestamp:** 2026-11-05T20:27:57Z
+**Continues:** 2026-09-28-2140
+**Title:** Dispatch 2026-11-05-05 for Hazel: the trip bubble's actions and elevation, a trip Details card, and Directions beside Navigate; verify first
+**Change:** dispatch A1 to A7.
+**Scope boundary:** dispatch's Scope: a new branch from pre-main; the trip bubble; the way-to's and plotting's entry for a trip; a trip Details card; the cards' action row; tests. Not pre-main, main, RECORD.md, the audit index, the phone, the other Hazels' branches, Theme.kt or Color.kt. A Room version is a stop.
+**Baseline:** pre-main ee0651fe0.
+**Prediction (outcome — planner):** as the dispatch's Predictions; no database change.
+**Prediction (mechanism — coder):** to come from Hazel's Phase 1 report.
+**Finish line:** a PR into pre-main, green, merged on the owner's word; then an S22 check and Elder's re-check.
+**Abort conditions:** dispatch Stops: a Room version; new words; an owner-level choice on how a trip reaches Navigate or plotting; a wrong premise; a weakened test; two failed attempts.
+**Dispatch-file:** prompts/preserved/2026-11-05-05-trip-bubble-actions.md
+**Notes:** Written by the planner by hand. Authorisation: "This release (Recommended)", whose option read "Built now…" (-2140). Started as a fresh Hazel session on Opus. Next free ID -2142.
