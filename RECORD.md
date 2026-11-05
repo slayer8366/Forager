@@ -33987,3 +33987,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** anything needing the phone; a wrong premise; an owner-level choice; a question answerable only by building or running code.
 **Dispatch-file:** prompts/preserved/2026-11-04-08-offline-refresh-check.md
 **Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-04-08 now?". Next free ID -2105.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2105
+**Timestamp:** 2026-11-05T05:22:20Z
+**Continues:** 2026-09-28-2104
+**Title:** The owner's go: Hazel started on dispatch 2026-11-04-08 (read only)
+**Decision:**
+- **The owner, verbatim,** to "Start Hazel on dispatch 2026-11-04-08 now?": "Yes".
+- **Started:** a fresh Hazel Cairnwright session, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (records-after-173 ee6a86ca1), not a summary.
+- **Read only:** no phone, code, branch, commit, push or Gradle. Her report is filed by the planner.
+**Notes:** Written by the planner by hand. Next free ID -2106.
