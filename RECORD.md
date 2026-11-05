@@ -34161,3 +34161,26 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **So:** OLDER_MAP_STYLE_NOTICE (map/TrailStyle.kt:120) becomes exactly "Older map style. Download again for the new look and hill shading.", in dispatch 2026-11-04-09's PR. Only its words change, not when it shows.
 - **Told to Hazel** by message, with the owner's words quoted.
 **Notes:** Written by the planner by hand. Next free ID -2113.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2113
+**Timestamp:** 2026-11-05T10:35:01Z
+**Continues:** 2026-09-28-2112, 2026-09-28-2111
+**Title:** Dispatch 2026-11-04-09: draft PR #490, tests red as predicted; an unmarked tile is asked for again until the area is complete, by the owner's own words
+**Outcome:**
+- **Hazel, by message:**
+  - branch drop-off-map-copy from pre-main 949ad8183, draft PR #490 into pre-main;
+  - tests first at 1de3896ac (run 42008951889): no compile errors, 6,621 tests (6,556 plus 65 new), 55 failures, all in the new or reworded classes and each for its predicted reason;
+  - the change is three commits ending c3815ac1e: the copy, the wiring, and the notice's words as -2112. Run 42011776915 was running;
+  - revert checks were next.
+- **Her point:** A7's option text includes "Nothing is downloaded twice". As built, a 200 tile without the fence mark isn't stored and stays wanted, so it is asked for again at each later pass.
+  - Today the server answers a zoom-15 tile outside the archive with 204, recorded once (server/pmtiles-worker/src/index.ts:610-659, her reading).
+  - So an unmarked 200 could only come from a stale edge-cache copy or a future archive without patch 0004. Then about 600 requests would be made per opening on the S22, until the server is fixed.
+- **The planner's reading, from the owner's own words:** "Tiles are fetched until the area is complete, then never again. Nothing is downloaded twice." (A7, -2111).
+  - A tile without the mark leaves the area incomplete, so asking again is "until the area is complete". "Nothing is downloaded twice" holds for every stored tile.
+  - The alternative, recording an unmarked answer once, would leave a stale answer stuck, and the area would never get the drop-off.
+  - So it is built as it is. Each pass's log line counts the unmarked answers, so a server regression shows.
+  - Told to the owner. Not asked, since the words settle it (owner-word-stands). Hazel was told by message.
+**Notes:** Written by the planner by hand. Next free ID -2114.
