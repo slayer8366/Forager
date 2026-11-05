@@ -34736,3 +34736,56 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **A planner gap,** from the planner session of 11-02. The release queue of -2056 didn't list it either.
 - **Brought to the owner:** items 3, 4 and 5, and the order of items 1 and 2.
 **Notes:** Written by the planner by hand. Next free ID -2136.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2136
+**Timestamp:** 2026-11-05T20:13:19Z
+**Continues:** 2026-09-28-2135
+**Title:** Before promoting: the bug 14 warning is built; the pick-up chooser is field-checked; the way home is walked off the trail
+**Decision:**
+- **The owner, verbatim, to three questions:**
+  - Bug 14's warning, never built: **"Build it before promoting (Recommended)"**. The option read "Hazel builds the warning as you worded it, with tests and CI, and it goes into pre-main before the promotion. A small build; the promotion waits for it."
+  - The pick-up chooser: **"Field check first"**. The option read "Before promoting, someone takes the S22 to a spot off the trail near streets, with a good GPS fix, and Navigates, so the chooser can be seen working." The planner had recommended "Promote, not seen on phone", citing -1133.
+  - The way home: **"Walk first"**. The option read "The promotion waits for a walk that leaves the trail and comes back." The planner had recommended "Ship, next walk judges".
+- **Told to the owner, not asked:** after the promotion's merge, main's plain build is cold-started on the S22, since every phone build so far carried the tools (Elder's item 1). The owner's signed build is installed over a Play 3500 install before upload (A2, schema 22 to 23; Elder's item 2).
+- **So the promotion waits for three things:**
+  - dispatch 2026-11-02-02 with Amendment 1 (-2137);
+  - the pick-up field check;
+  - the off-trail walk. Both are written as device checks by dispatch 2026-11-05-04 (-2138), then done by whoever carries the phone.
+**Notes:** Written by the planner by hand. Next free ID -2137.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2137
+**Timestamp:** 2026-11-05T20:13:19Z
+**Continues:** 2026-09-28-2136, 2026-09-28-1951, 2026-09-28-1943
+**Title:** Dispatch 2026-11-02-02 (bug 14's picker warning) started at last, with Amendment 1; verify first
+**Change:** dispatch A1, the owner's step path and words (-1951): "Detailed offline maps aren't available here yet. A download here will be blank when you're offline." under the area when the pin is south of 15.92°N; Download still works.
+**Scope boundary:** the dispatch's, with Amendment 1's C1 to C3: branch bug-14-picker-warning from pre-main ee0651fe0, a PR into pre-main, no merge, no store read.
+**Baseline:** pre-main ee0651fe0.
+**Prediction (outcome — planner):** the line shows at 14.7°N 91.5°W and not at 45.3°N 122.6°W, through the real picker, with Download enabled in both. One bound feeds the app's check.
+**Prediction (mechanism — coder):** to come from Hazel's Phase 1 report.
+**Finish line:** a PR into pre-main, green, merged on the owner's word, before the promotion.
+**Abort conditions:** the straddle question (owner-level); a wrong premise; new words; a weakened test; two failed attempts at one symptom.
+**Dispatch-file:** prompts/preserved/2026-11-02-02-bug-14-picker-warning.md, with prompts/preserved/2026-11-02-02-amendment-1.md
+**Notes:** Written by the planner by hand. Authorisation: the owner's "Build it before promoting (Recommended)" (-2136). Started as a fresh Hazel session on Opus. Next free ID -2138.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2138
+**Timestamp:** 2026-11-05T20:13:19Z
+**Continues:** 2026-09-28-2136
+**Title:** Dispatch 2026-11-05-04: the pick-up chooser's field check and the way home's off-trail walk, written as device checks; read only
+**Change:** nothing in the app. Two device checks, with pass conditions and evidence, for the owner to carry out.
+**Scope boundary:** read only: pre-main ee0651fe0, records-after-173 and the S22 session folders. No code, branch, Gradle or phone.
+**Baseline:** pre-main ee0651fe0.
+**Prediction (outcome — planner):** the chooser can be judged from the screen (the route's start at a street pick-up rather than straight to the trail), and the walk from the screen plus the walk logger.
+**Prediction (mechanism — coder):** in Hazel's report.
+**Finish line:** her report, filed as prompts/preserved/2026-11-05-04-report.md and brought to the owner.
+**Abort conditions:** a check that can't be judged without new code or logging; an owner-level choice; a wrong premise.
+**Dispatch-file:** prompts/preserved/2026-11-05-04-field-checks.md
+**Notes:** Written by the planner by hand. Authorisation: the owner's "Field check first" and "Walk first" (-2136). Started as a fresh Hazel session on Opus, read only. Next free ID -2139.
