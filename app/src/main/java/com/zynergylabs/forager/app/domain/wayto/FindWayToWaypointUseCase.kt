@@ -52,6 +52,12 @@ import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
  * [errorLog] (CLAUDE.md: no default fallback that isn't logged when it fires), in words, never a position. An end that
  * goes by trail as today because the map there cannot vouch for it ([WayToEnds.Settled.Route.byTrail]) is logged the
  * same way, once per end per call.
+ *
+ * **What each end became** (dispatch 2026-11-05-07; the owner: "Add one log line first (Recommended)"). Every search that
+ * reaches the ends step logs one line at info level through [info], under the same tag, before any of the lines above:
+ * what the walker's end and the waypoint's end were planned as, and why ([WayToEndsRecord]). It names lengths, ranks
+ * and reasons, never a position. A search that falls back before the ends step has no such line, since no end was
+ * judged; its straight line says why.
  */
 class FindWayToWaypointUseCase(
     private val offlineMapRepository: OfflineMapRepository,
@@ -94,7 +100,10 @@ class FindWayToWaypointUseCase(
         }
         // Step 5 (way-to dispatch 2026-10-28): the ends. A street end at the waypoint moves to its drop-off and, on a good
         // fix, one at the walker to its pick-up (dispatch 2026-11-04-04, A2), in one re-run; both legs are gated.
-        val route = when (val settled = ends.settle(from, accuracyMeters, waypoint, found, routes.folder) { a, b -> engine.router.route(a, b, routes.folder) }) {
+        val settled = ends.settle(from, accuracyMeters, waypoint, found, routes.folder) { a, b -> engine.router.route(a, b, routes.folder) }
+        // Dispatch 2026-11-05-07: what each end became, once per search that gets this far, before today's lines.
+        info(TAG, settled.ends?.line() ?: WayToEndsRecord.NOT_RECORDED)
+        val route = when (settled) {
             is WayToEnds.Settled.Refused -> return straight(settled.note, "the route's ends: ${settled.reason}")
             is WayToEnds.Settled.Route -> settled.route.also { settled.byTrail.forEach(::byTrail) }
         }
