@@ -34243,3 +34243,46 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Before snapshot:** ~/s22-2026-11-04/s14/snap/before-4616. forager.db's tables are identical to session 13's end-s13. Schemas 23, 6 and 1, integrity ok.
 - **The steps:** Hazel's device check, completion report section "Device check (for the planner on the S22)", steps 1 to 9.
 **Notes:** Written by the planner by hand. Next free ID -2116.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2116
+**Timestamp:** 2026-11-05T12:28:40Z
+**Continues:** 2026-09-28-2115, 2026-09-28-2114
+**Title:** S22 session 14: PR #490 works on the phone, all nine steps; a read-only open of MapLibre's store fails with SQLITE_READONLY_ROLLBACK, intermittently, including in the way-to's own read
+**Outcome:**
+- **Install:**
+  - The APK from 42023044305 (sha256 1a7289464ab27f8d…) is 4616, 1.0.4616+g7f29aa31, with signer cb2f6da5…, the same as before. Installed over 4609.
+  - Snapshots: forager.db's tables are identical before and after, at schema 23.
+  - The log was captured to logs/logcat-s14.txt. The evidence is in ~/s22-2026-11-04/s14/.
+- **Step 1, pass:** no files/offline_basemap after the install; schema 23.
+- **Step 2, airplane mode:**
+  - Pass: both rows read exactly "Older map style. Download again for the new look and hill shading."; there was no DropOffMap line and no copy folder.
+  - Observation: 2 lines at the default size (shots/02).
+  - **Not as written:** "Offline maps opened with no signal: no drop-off map pass this time." was logged **twice**, at 04:20:27.844 and 04:20:28.074, where one was expected. A single tap through Tools > Offline Maps seems to count as two openings. That is inferred, not traced.
+- **Step 3, signal back:**
+  - Signal returning while Offline maps was open started no pass in about 15 s (inferred from no DropOffMap line and no us/15/ request). P2's signal-return trigger wasn't seen working.
+  - On reopening (04:21:50 local), the first pass failed at once for both areas: "Drop-off map for region 3 not fetched: MapLibre's store could not be read." and the same for region 8, with "SQLiteReadOnlyDatabaseException: attempt to write a readonly database (code 776 SQLITE_READONLY_ROLLBACK[776]): , while compiling: PRAGMA cache_size".
+  - A second pass followed: 04:21:53.152 "Drop-off map for region 3: whole. 6 requests; 6 stored, 0 empty."; 04:22:57.714 "Drop-off map for region 8: whole. 598 requests; 598 stored, 0 empty." That is R = S + E for both, 0 unmarked, about 64 s for region 8.
+  - Folders: region 3 has 7 files (6 tiles plus whole), 80 KB; region 8 has 599, 3,224 KB. 15-5222-11744.mvt is present.
+- **Step 4, pass:** Region 1 went from 6.6 to 6.7 MB, Region 2 from 10.1 to 12.1 MB, and the tile budget stayed at 832 / 6000.
+- **Step 5:**
+  - Pass on the store: region_tiles are 34 and 1,630 before and after, and none of the 603 region-linked zoom-15 us rows changed length.
+  - Not as written: the app's log has SQLite errors, the read-only failures above and in step 7. The one other SQLite error (UNIQUE constraint, pid 8683) is a Samsung system service, not the app.
+- **Step 6, pass:** a second opening gave no DropOffMap line and no us/15/ request.
+- **Step 7,** Waypoint 1 on a 10.6 m fix:
+  - Pass: there is no "the waypoint's end: tile … has no barrier mark" line.
+  - **But:** 04:25:40.980 "The way to the waypoint keeps the engine's end by trail, with no drop-off and the leg not gated: the lead-in: the map could not be read: attempt to write a readonly database (code 776 SQLITE_READONLY_ROLLBACK[776])". The walker's end went by trail, logged.
+  - The card read "0.5 mi", "left 61°", "by trail". Navigation was stopped.
+- **Step 8, test area "Test s14" (app region 13):**
+  - Pass: at its download's end, 04:26:39.515 "Drop-off map for region 13: whole. 6 requests; 6 stored, 0 empty."
+  - Pass: after "Delete Test s14" and the undo window, folder 13 is gone, with no "Couldn't delete" line. Regions 3 and 8 remain, and the budget is back to 832 / 6000.
+- **Step 9, font scale 2.0:** 4 lines, each breaking between words (shots/05). Set back to 1.0.
+- **The finding, for the owner:**
+  - A read-only open of MapLibre's store failed with SQLITE_READONLY_ROLLBACK 3 times this session: twice in the copy pass, and once in the way-to's lead-in read. The way-to's read went by trail as ruled, logged and not silent, but no drop-off or pick-up could be chosen there.
+  - Session 13 had none. The planner's inference, not traced in code: the error means a hot rollback journal was present, so MapLibre was mid-write, which a read-only connection can't roll back.
+  - The way-to's read has had this since #435. It is not caused by #490, though #490's pass also meets it.
+- **Not as written, also for Hazel:** the doubled opening (step 2), and the signal-return pass not seen (step 3).
+- **End state:** font_scale 1.0, airplane_mode_on 0, wifi_on 1, mobile_data 1, no app services, the Maps tab with Trail. forager.db's tables are identical to before-4616. The test area and its copy are gone. The copies for Region 1 and Region 2 stay, as #490 intends.
+**Notes:** Written by the planner by hand. Next free ID -2117.
