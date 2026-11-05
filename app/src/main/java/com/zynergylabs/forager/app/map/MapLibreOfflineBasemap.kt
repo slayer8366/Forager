@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.map
 
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
+import android.util.Log
 import com.zynergylabs.forager.app.domain.mapdata.OfflineBasemap
 import com.zynergylabs.forager.app.domain.mapdata.StoredTiles
 import com.zynergylabs.forager.app.domain.mapdata.TileId
@@ -22,10 +23,20 @@ import java.io.IOException
  *
  * A store that is not there is no basemap stored (null), not a failure. A store that cannot be opened or read fails with
  * the SQLite or decompression error.
+ *
+ * Every read opens the store through `MapLibreStoreRead.kt` (dispatch 2026-11-05-01): a read SQLite refuses while MapLibre
+ * is mid-save is tried again within `MapLibreStoreReadLimits`, and a corruption report never deletes the file. Until then
+ * "nothing is written" held for SQL but not for Android's default error handler, which deletes a database it is told is
+ * corrupt (the Phase 1 report, premise 7).
+ *
+ * @param log where the retry's lines and a corruption report go.
+ * @param pause the wait between attempts; a test's seam.
  */
 class MapLibreOfflineBasemap(
     private val database: File,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val log: (String, Throwable?) -> Unit = { message, error -> Log.w(TAG, message, error) },
+    private val pause: (Long) -> Unit = { Thread.sleep(it) },
 ) : OfflineBasemap {
     private val lock = Mutex()
     private var source: StoredTiles.BasemapSource? = null
@@ -53,7 +64,7 @@ class MapLibreOfflineBasemap(
         lock.withLock {
             if (!database.isFile) return@withLock Result.success(null)
             try {
-                SQLiteDatabase.openDatabase(database.path, null, SQLiteDatabase.OPEN_READONLY).use { Result.success(block(it)) }
+                Result.success(retryingRefusals(READ, log, pause) { openMapLibreStoreReadOnly(database, log).use(block) })
             } catch (e: SQLiteException) {
                 Result.failure(e)
             } catch (e: IOException) {
@@ -63,6 +74,11 @@ class MapLibreOfflineBasemap(
     }
 
     private companion object {
+        const val TAG = "MapLibreOfflineBasemap"
+
+        /** The read's name in the retry's log lines. */
+        const val READ = "A basemap read of MapLibre's store"
+
         /** `Resource::Kind::Source` in offline_schema.sql. */
         const val KIND_SOURCE = "2"
     }
