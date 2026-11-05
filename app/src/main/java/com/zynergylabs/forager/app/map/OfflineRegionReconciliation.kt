@@ -29,7 +29,7 @@ internal class LiveRegion(
  * [deleteRegion] deletes a region's tiles from `OfflineManager`; [inFlightIds] are downloads this
  * process is still running. [routes] holds each region's trail route data (dispatch 2026-10-23-03): each shown
  * region carries its state and counts its bytes into its size, a region deleted here loses its routes too, and
- * route folders no region owns are cleared last.
+ * route folders no region owns are cleared last. [dropOffMaps] is held to the same rules (dispatch 2026-11-04-09).
  */
 internal suspend fun reconcileOfflineRegions(
     live: List<LiveRegion>,
@@ -38,7 +38,11 @@ internal suspend fun reconcileOfflineRegions(
     deleteRegion: suspend (Long) -> Unit,
     warn: (String) -> Unit,
     routes: RegionRouteFolders,
-    @Suppress("UNUSED_PARAMETER") dropOffMaps: RegionDropOffMaps = NoRegionDropOffMaps,
+    /**
+     * Each region's drop-off map copy (dispatch 2026-11-04-09), one unit with it as its routes are: counted into its size
+     * (A5), deleted with it, and cleared with the same set kept. None by default, for callers that keep no copy.
+     */
+    dropOffMaps: RegionDropOffMaps = NoRegionDropOffMaps,
 ): List<OfflineRegionSummary> {
     // A Room row with no MapLibre region is kept, not shown, and logged every time it is seen.
     // MapLibre's read is not authoritative: an empty or partial read (a store that was not the one
@@ -61,6 +65,7 @@ internal suspend fun reconcileOfflineRegions(
                     dao.deleteById(region.id)
                     deletedIds += region.id
                     deleteRoutesOrLeaveForCleanup(routes, region.id, warn)
+                    deleteDropOffMapOrLeaveForCleanup(dropOffMaps, region.id, warn)
                 }
                 is IncompleteRegionDecision.Keep ->
                     warn("Region ${region.id} is incomplete; kept, not shown: ${decision.reason}.")
@@ -96,6 +101,7 @@ internal suspend fun reconcileOfflineRegions(
             }
 
         val routeData = routes.status(row.id)
+        val dropOffMap = dropOffMaps.status(row.id)
         OfflineRegionSummary(
             id = row.id,
             name = row.name,
@@ -103,17 +109,21 @@ internal suspend fun reconcileOfflineRegions(
             minZoom = row.minZoom,
             maxZoom = row.maxZoom,
             tileCount = region.tileCount.toInt(),
-            // One unit to the user: the region's size is its tiles and its routes (dispatch 2026-10-23-03, item 2).
-            sizeBytes = region.sizeBytes + routeData.sizeBytes,
+            // One unit to the user: the region's size is its tiles and its routes (dispatch 2026-10-23-03, item 2), and its
+            // drop-off map copy (dispatch 2026-11-04-09 A5, the owner: "Include it (Recommended)").
+            sizeBytes = region.sizeBytes + routeData.sizeBytes + dropOffMap.sizeBytes,
             createdAtEpochMillis = row.createdAtEpochMillis,
             styleUrl = region.styleUrl,
             routeData = routeData,
+            dropOffMap = dropOffMap,
         )
     }
 
     // Kept: every Room row (a row with no MapLibre region in this read is kept, above, and so are its routes), every
     // region in the read but those just deleted as never finished, and every download still running.
-    routes.cleanOrphans(dao.getAll().map { it.id }.toSet() + (liveIds - deletedIds) + inFlightIds)
+    val keepIds = dao.getAll().map { it.id }.toSet() + (liveIds - deletedIds) + inFlightIds
+    routes.cleanOrphans(keepIds)
+    dropOffMaps.cleanOrphans(keepIds)
     return shown
 }
 
@@ -126,6 +136,19 @@ internal suspend fun deleteRoutesOrLeaveForCleanup(routes: RegionRouteFolders, r
         routes.delete(regionId)
     } catch (e: java.io.IOException) {
         warn("Couldn't delete region $regionId's routes (${e.message}); the next listing clears them.")
+    }
+}
+
+/**
+ * Deletes [regionId]'s drop-off map copy after its tiles and row are gone, as [deleteRoutesOrLeaveForCleanup] does its
+ * routes. A failure is logged, not thrown: the copy, now owned by no region, is removed by the next
+ * [RegionDropOffMaps.cleanOrphans].
+ */
+internal suspend fun deleteDropOffMapOrLeaveForCleanup(dropOffMaps: RegionDropOffMaps, regionId: Long, warn: (String) -> Unit) {
+    try {
+        dropOffMaps.delete(regionId)
+    } catch (e: java.io.IOException) {
+        warn("Couldn't delete region $regionId's drop-off map copy (${e.message}); the next listing clears it.")
     }
 }
 
