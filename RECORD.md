@@ -34841,6 +34841,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - "What should the new trip Details card show?": **"Like the waypoint's (Recommended)"**. The option read "The trip's name, its date, MGRS, coordinates, when it was created, and which journal entries use it, the same layout as a waypoint's card. Then Navigate and Directions, centred."
   - "Does this go in this release, or the next update?": **"This release (Recommended)"**. The option read "Built now, beside the bug 14 warning, while the field check and the walk are still to do, so it shouldn't hold the release longer. Elder re-checks the added work, and it gets a phone check."
 - **So:** dispatch 2026-11-05-05 (-2141). The promotion also waits for this, and Elder re-checks the added work. The chosen option's "Built now" is the go to start it.
+- *Correction (planner, 2026-11-05, on Hazel's Phase 1 report, prompts/preserved/2026-11-05-05-phase1-report.md):* the trip-card option the owner chose promised two rows trips don't have. "When it was created": planned_trips holds id, name, lat, lng and date only (PlannedTripEntity.kt:16-24), and the ids are random UUIDs. "Which journal entries use it": no journal entry can reference a trip (schema 23), so it would always read "no journal entries". The planner had copied the waypoint card's fields without reading what a trip stores. Brought back to the owner, with the slip said plainly.
 **Notes:** Written by the planner by hand. Next free ID -2141.
 
 ---
@@ -34970,3 +34971,40 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The outing:** the planner asks the owner where. The area is downloaded onto the S22 and the spot prepared from it, kept off GitHub. The outing's build carries the log line and the release's other pending work.
 - **Then the owner, verbatim:** "The walk will happen later, and I'll update you on that." The outing waits for the owner's word: where, and when. The promotion waits for it (-2136), and the builds go on meanwhile.
 **Notes:** Written by the planner by hand. Next free ID -2147.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2147
+**Timestamp:** 2026-11-05T20:45:16Z
+**Continues:** 2026-09-28-2141
+**Title:** Hazel's Phase 1 on the trip bubble: elevation and Plot route need no data change; Navigate can't take a trip as it is; the trip card's "Created" and "Used in" have no data behind them
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-05-05-phase1-report.md. She read pre-main ee0651fe0 (unmoved).
+- **Confirmed:**
+  - the trip bubble (MapFeatureBubble.kt:117-124);
+  - the waypoint bubble (:87-107);
+  - no trip card (RecordDetailsTarget.kt:21-30);
+  - the waypoint card's Navigate alone at the left (RecordDetailsContent.kt:75-87, RecordDetailsParts.kt:127-130);
+  - 80% fills.
+- **Corrected:** plotting takes a name and position (RouteStop), not a waypoint id. Only the bubble's callback is id-keyed.
+- **Elevation and Plot route** need no data change.
+- **Navigate:** the whole chain is waypoint-id keyed (WaypointNavigation, DataStore target_id, resolved against waypoints only). A trip id would end at once as "that waypoint was deleted". The options:
+  - Option 1: navigate to a trip as itself, with no Room change, but a kind key in DataStore and changes across about 19 files, two of them near 800 lines;
+  - Option 2: save a waypoint at the trip's spot.
+- **Her stops:**
+  - S1, "Created" (no stored value; a column would mean Room version 24);
+  - S2, "Used in" (always "no journal entries");
+  - S3, the date label;
+  - S4, Navigate, Option 1 or 2, with words;
+  - S5, while plotting, a trip's Plot route would drop the route being plotted, and a saved route starting at a trip puts two identical flags on one spot;
+  - S6, existing tests whose assertions the owner's ruling reverses.
+- **The planner's calls:**
+  - S6 accepted: those tests move to the ruled behaviour, each recording what it was, as RecordDetailsSheetTest.kt:480-485 does;
+  - her four proposals accepted: Directions only where Navigate is; the track card's row unchanged; the trip card from the Maps tab bubble only; new logic in new files to keep the two large files under about 800 lines;
+  - on arrival at a trip, its flag is hidden under the ring, as a waypoint's pin is;
+  - the card stays open after Directions;
+  - the Trip Planner row and the waypoint's Records row are unchanged (not named in -2140);
+  - two flags at one spot after a route from a trip is the crowded-icons case, handled by the existing setting.
+- **To the owner:** S1 and S2, S3, S4, and S5's while-plotting case.
+**Notes:** Written by the planner by hand. Next free ID -2148.
