@@ -35303,3 +35303,35 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The planner's call:** the card and the tail filled once as one shape is accepted. Before, the sliver of tail under the card was filled twice, 0.96 where 80% is the rule. CLAUDE.md: "Layered fills composite to that value; they do not each carry it".
 - **Told to Hazel** by message, with the words quoted. Neither screenshot could be sent to the owner, because this session can't send files.
 **Notes:** Written by the planner by hand. Next free ID -2161.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2161
+**Timestamp:** 2026-11-05T23:37:22Z
+**Continues:** 2026-09-28-2152
+**Title:** The trip bubble built: PR #494 ready, green, nine reverts held; S22 check and the owner's word before merging
+**Outcome:**
+- **Hazel's Phase 2 report** for dispatch 2026-11-05-05 with Amendment 1 is preserved at prompts/preserved/2026-11-05-05-report.md. PR #494 (trip-bubble-actions, head 05ccb60d2) is ready and not merged.
+  - Hazel merged pre-main 6e24b22c4 in at 2c2c3fd1f, a plain merge.
+  - She went well past the ~200k handover point (about 677k tokens). The planner let her finish, because only the reverts and the report were left, and checked the PR more closely because of it.
+- **Her evidence, from JUnit XML:**
+  - Tests first had 45 failures, each a stub's (CI 42110501957).
+  - Nine one-line reverts each failed only their own cases, with clean compiles and files restored from saved copies.
+  - Green at c99016cfa with 6,694 tests, at the merge with 6,695, and at the head (CI 42127911538).
+- **The planner's own check** at 2026-11-05T23:37:22Z, against origin:
+  - The PR is open, ready and mergeable. Its merge base is pre-main 6e24b22c4 (current), and it changes 54 files. CI on 05ccb60d2 and on 2c2c3fd1f: success.
+  - No @Ignore or Assume was added. The planner read every removed test line that held an assertion, and each is one the owner's rulings reverse, with its replacement beside it:
+    - the trip bubble's "no Details" and its geo intent (Directions gone, A1);
+    - assertNavigateNotDirections ×2 (Directions beside Navigate);
+    - RoutePlottingBackOrderTest's trip tap (-2152);
+    - RecordDetailsSheetTest's Directions-absent line in Records, now Directions shown with its intent.
+  - The other two Directions-absent checks stay, only their comments changed, as -2152 agreed.
+  - Every new user-facing string matches Amendment 1 (A8's three notes and the deleted message; A10's "Trip date"). The other quoted phrases in the diff sit in comments that quote the owner. One new log line, "Trip $id is gone; plotting did not start.", carries an id and no position.
+  - TripNavigation.kt was read whole. A trip becomes a Waypoint-shaped value in memory, with createdAtEpochMillis 0.
+    - A grep of main for .createdAtEpochMillis readers finds the waypoint card, the crowded list, GPX export and the logbook. All of them take waypoints from the store or the map list, not the navigation target.
+    - The grep can't show that the target never reaches the crowded list; that rests on the report (mapVisibleWaypoints reads the id).
+- **Her six calls beyond scope** are accepted by the planner as technical. The trip stays a trip, as the owner chose ("The trip stays a trip: no waypoint is made at its spot"), and nothing is stored but the kind key.
+- **Not yet done:** the device checks 1-9 in her report, on the APK from CI 42125306656. The S22 wasn't connected at 2026-11-05T23:37:22Z.
+**Waiting on:** the owner. Run the S22 checks first or merge now, then the owner's word to merge. Before merging: a bundle of pre-main, verified, and `--match-head-commit 05ccb60d2354760c40c52aed249a709834968e98`. After merging: tell the edge-shade Hazel the merge commit for C2, and start bug 14's Phase 2.
+**Notes:** Written by the planner by hand. Next free ID -2162.
