@@ -34506,3 +34506,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The planner's calls on her seven calls beyond the dispatch:** all accepted.
 - **S22 build:** offline-store-read 1cb09a1eb merged into tools/s22-combined from 7f29aa310, with no merge-tree conflict, and CI started on it.
 **Notes:** Written by the planner by hand. Next free ID -2126.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2126
+**Timestamp:** 2026-11-05T17:53:52Z
+**Continues:** 2026-09-28-2125, 2026-09-28-2124
+**Title:** S22 session 15: PR #491 checked on the phone before it merges; build 4626; airplane mode allowed briefly
+**Decision:**
+- **The owner's words:**
+  - "Phone check first (Recommended)" (-2124), whose option named the steps: three taps into Offline maps, Navigate to Waypoint 1 ten times while the map draws, a test area's download, and the height line, with signal return recorded as not run;
+  - then, to "May I put the S22 in airplane mode for about a minute, to count one opening per tap? Wi-Fi goes back on straight after.": **"Yes, briefly"**.
+- **Build:** offline-store-read 1cb09a1eb merged into tools/s22-combined as 0932a6cab (count 4626), from 7f29aa310. CI 42078182905 was started.
+- **Phone state, read before any change:** font_scale=1.0 airplane=0 wifi=1 mobile_data=1 version=versionCode=4616 services=0.
+- **Before snapshot:** ~/s22-2026-11-04/s15/snap/before-4626. Schemas 23, 6 and 1, integrity ok. forager.db is compared with session 14's end-s14 in the session's outcome.
+- **The height step:** inside the test area, before it is deleted (-2125, Hazel's finding).
+**Notes:** Written by the planner by hand. Next free ID -2127.
