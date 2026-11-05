@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.map
 
 import android.database.sqlite.SQLiteDatabase
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.zynergylabs.forager.app.domain.relief.ReliefTile
 import com.zynergylabs.forager.app.domain.relief.ReliefTileRead
 import com.zynergylabs.forager.app.domain.relief.ReliefTileStore
@@ -38,6 +39,8 @@ import java.util.zip.Inflater
 class OfflineReliefTileStore(
     private val database: File,
     private val urlTemplate: String = RELIEF_TILE_URL_TEMPLATE,
+    private val log: (String, Throwable?) -> Unit = { message, error -> Log.w(TAG, message, error) },
+    private val pause: (Long) -> Unit = { Thread.sleep(it) },
 ) : ReliefTileStore {
 
     override fun tile(z: Int, x: Int, y: Int): ReliefTileRead {
@@ -126,6 +129,8 @@ class OfflineReliefTileStore(
     }
 
     companion object {
+        private const val TAG = "OfflineReliefTileStore"
+
         /** The schema version this reads (MapLibre Native's `offline_schema`, unchanged at android-v13.5.0). */
         const val SCHEMA_VERSION = 6
 

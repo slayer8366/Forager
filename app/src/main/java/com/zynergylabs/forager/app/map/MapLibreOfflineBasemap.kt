@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.map
 
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
+import android.util.Log
 import com.zynergylabs.forager.app.domain.mapdata.OfflineBasemap
 import com.zynergylabs.forager.app.domain.mapdata.StoredTiles
 import com.zynergylabs.forager.app.domain.mapdata.TileId
@@ -26,6 +27,8 @@ import java.io.IOException
 class MapLibreOfflineBasemap(
     private val database: File,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val log: (String, Throwable?) -> Unit = { message, error -> Log.w(TAG, message, error) },
+    private val pause: (Long) -> Unit = { Thread.sleep(it) },
 ) : OfflineBasemap {
     private val lock = Mutex()
     private var source: StoredTiles.BasemapSource? = null
@@ -63,6 +66,8 @@ class MapLibreOfflineBasemap(
     }
 
     private companion object {
+        const val TAG = "MapLibreOfflineBasemap"
+
         /** `Resource::Kind::Source` in offline_schema.sql. */
         const val KIND_SOURCE = "2"
     }
