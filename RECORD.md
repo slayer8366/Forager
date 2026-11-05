@@ -34789,3 +34789,39 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** a check that can't be judged without new code or logging; an owner-level choice; a wrong premise.
 **Dispatch-file:** prompts/preserved/2026-11-05-04-field-checks.md
 **Notes:** Written by the planner by hand. Authorisation: the owner's "Field check first" and "Walk first" (-2136). Started as a fresh Hazel session on Opus, read only. Next free ID -2139.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2139
+**Timestamp:** 2026-11-05T20:21:01Z
+**Continues:** 2026-09-28-2133
+**Title:** The intermittent crowded-icons test: the cause is the test's wait, not the app; Phase 2 go for a test-only fix
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-05-03-phase1-report.md, extracted from her hand-back. She read pre-main ee0651fe0, which didn't move.
+- **The reproduction:**
+  - Three dispatched runs (42097427375, 42097432227, 42097436843), stated before reading: 402 executions of the case, 18 failures, all in one build job (run3's 18 of 100).
+  - Every failure is at :170, "expected:<[list]> but was:<[zoom_then_fan]>".
+  - History: 423 full-suite executions since 5568f2f1f, 11 failures, all at :170. The first was on 2026-10-28.
+  - The run branches' only commit (d32acfd5d) made the class open and added 99 empty subclasses. It is deleted.
+- **The cause** (read in DataStore 1.2.1, compose ui-test 1.12.0, kotlinx-coroutines 1.11.0 and Robolectric 4.16.1; the last step is deduction, not instrumented):
+  - The case picks List, then Zoom-then-fan, then List. Each write is queued in tap order.
+  - :167's awaitIdle("List stored") is already true after the first write, which is also List.
+  - :168's release(scope) then cancels the store: the second write, already running, lands, and the third, still queued, is dropped silently.
+  - The writes are not reordered. The PR #491 inference ("out of order") was wrong.
+- **The planner checked:**
+  - :157-168 read as described: the first pick is LIST, then awaitIdle on LIST, then release(scope);
+  - run 42097436843's build job failed and 42097432227's passed;
+  - no crowded-icons-flake branches remain on origin.
+- **A user:**
+  - Writes land in tap order. Production never cancels the store's scope (DataStoreMapPreferencesRepository.kt:48, built once at AppContainer.kt:357).
+  - A pick is lost only if the process dies within milliseconds of the tap, which is inferred unreachable by a person.
+  - Her noted edge, for the record and not a stop: a ViewModel-scope cancel between a tap and its write would drop it unlogged, for any setting. That is inferred unreachable, and not this failure's cause.
+- **The planner's prediction** ("the fix makes the order deterministic") was off: the order already is, and the restart must wait for the last write.
+- **The planner's go for Phase 2** (dispatch's Finish line; the owner's "Run the random test failure", -2133):
+  - Her plan, test-only, no app code: a counting wrapper, and the case waits for all three writes to return before the restart.
+  - A new deterministic "late store" case, failing first at :170 with list/zoom_then_fan.
+  - A revert check, then the 100-copy repetition over the fix, about 300 filtered and 300 full-suite executions, expecting 0 failures.
+  - Every existing assertion stays. A PR into pre-main, merged on the owner's word.
+  - A fresh Hazel session builds it, since this one is past 200,000 tokens.
+**Notes:** Written by the planner by hand. Next free ID -2140.
