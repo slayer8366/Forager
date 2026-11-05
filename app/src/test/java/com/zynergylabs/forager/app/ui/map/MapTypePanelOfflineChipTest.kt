@@ -8,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -21,8 +20,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.map.TRAIL_STYLE_URL
-import com.zynergylabs.forager.app.ui.theme.Cream
-import com.zynergylabs.forager.app.ui.theme.MushroomDeep
+import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -86,9 +84,10 @@ class MapTypePanelOfflineChipTest {
     private fun setSheet() {
         composeRule.setContent {
             ForagerThemeWithNoSignal(darkTheme = darkTheme, noSignal = noSignal, offlineRegions = offlineRegions) {
-                // Dispatch 2026-11-04-05 A1 (RECORD -2062, -2067; the owner: "Cream + today's outline"): the light theme's
-                // normal selected fill is Cream, and the dark theme's the rust red MushroomDeep the light one had before.
-                normalSelected = if (darkTheme) MushroomDeep else Cream
+                // Dispatch 2026-11-04-07 (RECORD -2092, K1): the normal selected fill follows the theme, to the ruled values: by day
+                // Material's own pale `secondaryContainer` (A2), at night the rust red #A2612C (A3, A6). The night value is written
+                // out, not read from MapModeChips, so a chip drawn any other colour fails.
+                normalSelected = if (LocalForagerDarkTheme.current) Color(0xFFA2612C) else MaterialTheme.colorScheme.secondaryContainer
                 grey = MaterialTheme.colorScheme.outlineVariant
                 onSurface = MaterialTheme.colorScheme.onSurface
                 MapTypePanel(
@@ -113,98 +112,15 @@ class MapTypePanelOfflineChipTest {
         return pixels[x, pixels.height / 2]
     }
 
+    /** The first 6 dp of [mode]'s chip's middle row, from its left edge: where an outline would be drawn, short of the label. */
+    private fun leftEdge(mode: MapMode): List<Color> {
+        val pixels = composeRule.onNodeWithTag(mapModeChipTag(mode)).captureToImage().toPixelMap()
+        val n = with(composeRule.density) { 6.dp.roundToPx() }
+        return (0 until n).map { pixels[it, pixels.height / 2] }
+    }
+
     private fun recordedFill(mode: MapMode): Color =
         composeRule.onNodeWithTag(mapModeChipTag(mode)).fetchSemanticsNode().config[MapModeChipSelectedFill]
-
-    /**
-     * Amendments 5 and 6 (RECORD -1773, -1774; the owner: "Give the grey chip an outline too", then "Both themes. Make it
-     * uniform"): the grey [mode] chip carries a 1 dp outline in the theme's `onSurface`, drawn left of its grey fill on the
-     * middle row, and the chip's record of it. Its fill is unchanged.
-     */
-    private fun assertGreyChipOutline(mode: MapMode, where: String) {
-        val pixels = composeRule.onNodeWithTag(mapModeChipTag(mode)).captureToImage().toPixelMap()
-        val row = (0 until pixels.width).map { pixels[it, pixels.height / 2] }
-        val firstGrey = row.indexOf(grey)
-        assertTrue("$where: the grey fill is drawn on the middle row", firstGrey >= 0)
-        val outline = composeRule.onNodeWithTag(mapModeChipTag(mode)).fetchSemanticsNode().config[MapModeChipSelectedOutline]
-        assertEquals("$where: the grey chip's recorded outline is onSurface", onSurface, outline)
-        assertTrue("$where: an onSurface outline is drawn left of the grey fill", row.subList(0, firstGrey).contains(onSurface))
-    }
-
-    /**
-     * [mode]'s chip drawn and recorded in [fill], and its label readable on it: the label pixel farthest in luminance from
-     * the fill, in the chip's middle band clear of its outline and corners, must reach AA (4.5:1) against [fill]. A label
-     * no darker or lighter than the fill leaves only fill pixels there, 1:1.
-     */
-    private fun assertChosenChip(mode: MapMode, fill: Color, where: String) {
-        composeRule.onNodeWithTag(mapModeChipTag(mode)).assertIsSelected()
-        assertEquals("$where: drawn fill", fill, drawnFill(mode))
-        assertEquals("$where: recorded selected fill", fill, recordedFill(mode))
-        val pixels = composeRule.onNodeWithTag(mapModeChipTag(mode)).captureToImage().toPixelMap()
-        val inset = with(composeRule.density) { 3.dp.roundToPx() }
-        val band = (pixels.height / 4 until pixels.height * 3 / 4).flatMap { y -> (inset until pixels.width - inset).map { x -> pixels[x, y] } }
-        val contrast = band.maxOf { contrastOf(it, fill) }
-        assertTrue("$where: the label reaches 4.5:1 on the fill (was $contrast:1)", contrast >= 4.5f)
-    }
-
-    private fun contrastOf(a: Color, b: Color): Float {
-        val (high, low) = listOf(a.luminance(), b.luminance()).sortedDescending()
-        return (high + 0.05f) / (low + 0.05f)
-    }
-
-    /**
-     * Dispatch 2026-11-04-05 A1 (RECORD -2062): on the light theme's Cream fill the label is drawn in the theme's `onSurface`
-     * (Bark, 10.3:1), not Amendment 4's white, which would sit at 1.27:1 on Cream.
-     */
-    @Test
-    fun `in the light theme the chosen chip is Cream and its label reads on it`() {
-        darkTheme = false
-        chosen = MapMode.TRAIL
-        setSheet()
-        assertChosenChip(MapMode.TRAIL, Cream, "light")
-    }
-
-    /**
-     * RECORD -2067 (replacing "Keep dark brown"): in the dark theme the chosen chip is the rust red [MushroomDeep] #A2612C,
-     * with a white label (4.90:1; Cream would be 3.85:1, Bark 2.67:1).
-     */
-    @Test
-    fun `in the dark theme the chosen chip is rust red and its label reads on it`() {
-        darkTheme = true
-        chosen = MapMode.TRAIL
-        setSheet()
-        assertChosenChip(MapMode.TRAIL, MushroomDeep, "dark")
-    }
-
-    @Test
-    fun `with no signal the grey Topo chip has an onSurface outline, in both themes`() {
-        noSignal.value = true
-        setSheet()
-        for (dark in listOf(false, true)) {
-            settle { darkTheme = dark }
-            val theme = if (dark) "dark" else "light"
-            composeRule.onNodeWithTag(mapModeChipTag(MapMode.TOPOGRAPHIC)).assertIsSelected()
-            assertEquals("$theme, no signal: Topo drawn grey", grey, drawnFill(MapMode.TOPOGRAPHIC))
-            assertGreyChipOutline(MapMode.TOPOGRAPHIC, "$theme, no signal")
-        }
-    }
-
-    @Test
-    fun `fallen back, the grey Trail chip has an onSurface outline, in both themes`() {
-        // While a raster stands in for Trail Map (the Street map's). With none, a failed Trail Map draws from the downloads,
-        // which is what was chosen, so the chip is not grey (dispatch 2026-11-03-05 D8; TrailMapFallbackWithoutStandInTest).
-        if (trailMapStandIn == null) return
-        chosen = MapMode.TRAIL
-        setSheet()
-        failTrailMapStyle()
-        for (dark in listOf(false, true)) {
-            settle { darkTheme = dark }
-            val theme = if (dark) "dark" else "light"
-            composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
-            assertEquals("$theme, fallen back: Trail drawn grey", grey, drawnFill(MapMode.TRAIL))
-            assertGreyChipOutline(MapMode.TRAIL, "$theme, fallen back")
-        }
-    }
 
     private fun settle(update: () -> Unit) {
         update()
@@ -307,6 +223,8 @@ class MapTypePanelOfflineChipTest {
             val theme = if (dark) "dark" else "light"
             composeRule.onNodeWithTag(mapModeChipTag(MapMode.TRAIL)).assertIsSelected()
             assertEquals("$theme, fallen back: Trail drawn grey", grey, drawnFill(MapMode.TRAIL))
+            // Dispatch 2026-11-04-07 A4 (the owner: "No, normal chip only"; RECORD -2092, K3): the grey chip has no outline.
+            assertTrue("$theme, fallen back: no onSurface outline on the grey Trail chip", leftEdge(MapMode.TRAIL).none { it == onSurface })
             MapMode.entries.filter { it != MapMode.TRAIL }.forEach { composeRule.onNodeWithTag(mapModeChipTag(it)).assertIsNotSelected() }
         }
         assertEquals("the stored choice never changes", emptyList<MapMode>(), choices)
