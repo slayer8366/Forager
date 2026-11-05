@@ -34631,3 +34631,27 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** pre-main's CI on #491's merge (96d3c0c43) passed on every job
 **Outcome:** run 42089828431, the push run on pre-main at 96d3c0c43, completed with success on all 8 jobs. They include "Build, test, publish APK" and "The app builds and its tests pass with the Street map deleted". The result was read with gh run view; the planner didn't download the JUnit XML.
 **Notes:** Written by the planner by hand. Next free ID -2132.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2132
+**Timestamp:** 2026-11-05T19:31:17Z
+**Continues:** 2026-09-28-2131, 2026-09-28-2056
+**Title:** Dispatch 2026-11-05-02: Elder Ford's UX audit of the promotion from pre-main ee0651fe0 into main c61850aa2; started on the owner's "Yes"
+**Change:** nothing changes. A report: pass, pass with items, or fail, per auditor-profile.md, against qa-philosophy.md.
+**Scope boundary:** read only. pre-main, main, records-after-173 and the evidence named in the dispatch. No files, code, merge or phone.
+**Baseline:**
+- main c61850aa2; pre-main ee0651fe0.
+- ee0651fe0 is 96d3c0c43 plus two audit-index rows, added by the planner as a docs-only commit before the audit.
+- 663 commits ahead, 786 files. main's 19 commits since #393 are held identically on pre-main, and merge-tree reports no conflict.
+- CI run 42094523206 was queued at writing.
+**Prediction (outcome — planner):** pass with items. The items most likely to matter:
+- the known bugs a user would meet;
+- what was never seen on a phone (the relief height line, the journal entry map's chips);
+- the two points the planner couldn't settle (-1201's production steps; -1940 against -2056).
+**Prediction (mechanism — auditor):** Elder's own, first in the report.
+**Finish line:** Elder's report, filed unedited by the planner beside the dispatch as prompts/preserved/2026-11-05-02-report.md. The owner then rules on approval for public use.
+**Abort conditions:** a baseline that differs from this one; CI red at ee0651fe0; anything needing the phone.
+**Dispatch-file:** prompts/preserved/2026-11-05-02-promotion-audit.md
+**Notes:** Written by the planner by hand. Authorisation: the owner, verbatim, to "Shall I start Elder's audit now?": "Yes". Elder runs on Fable, a different model from the coders (-1134). Next free ID -2133.
