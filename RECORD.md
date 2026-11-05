@@ -33894,3 +33894,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Kept:** branch map-type-chip-outlines (858c77c54, merged) and Hazel's worktree ~/.cache/forager-wt/map-type-chip-outlines. Neither was asked about.
 - **Seen, not changed:** the index row before this one (2026-11-04, the owner's word audit) has two columns instead of three.
 **Notes:** Written by the planner by hand. Next free ID -2101.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2101
+**Timestamp:** 2026-11-05T03:07:52Z
+**Continues:** 2026-09-28-2100, 2026-09-28-2080
+**Title:** PR #488 kept for the next project
+**Decision:** The owner, verbatim, after the planner noted that PR #488 (revert-chip-colours, d4ce043f5) is still open against pre-main, replaced by today's chip work: "Reuse PR 488 for the next project." #488 stays open, and nothing on it or its branch changes until the next project is named. It still carries its title "do not merge without the owner's word" and the 11 chip reverts, which are no longer wanted: pre-main has the full undo (3ffced9c0) and the new chips (#489).
+**Notes:** Written by the planner by hand. Next free ID -2102.
