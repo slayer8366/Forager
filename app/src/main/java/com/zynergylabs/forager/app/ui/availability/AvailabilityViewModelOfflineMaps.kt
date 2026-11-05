@@ -54,13 +54,21 @@ fun AvailabilityViewModel.onDownloadAgain(id: Long) {
  * still wants them are fetched once (dispatch 2026-10-23-03; the owner: "Automatic, button as backup"). Its limits:
  * one attempt per opening, after the list is read, never a loop; nothing at all with no signal (the maps' own
  * state, read at the opening); a region already being fetched is not fetched twice.
+ *
+ * The drop-off map copy rides the same moment with its own selection (dispatch 2026-11-04-09; the owner: "Automatic
+ * (Recommended)", "refreshes it by itself whenever there's signal"): one pass for each downloaded area not yet whole,
+ * launched after the route fetch so its timing is unchanged. With no signal, no pass, and the log says so.
  */
 fun AvailabilityViewModel.onOfflineMapsOpened() {
     val listed = offlineMaps.onOfflineMapsOpened()
-    if (noSignal()) return
+    if (noSignal()) {
+        offlineRoutes.noteNoSignalForDropOffMaps()
+        return
+    }
     viewModelScope.launch {
         listed.join()
         offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+        offlineRoutes.fetchDropOffMaps(offlineRoutes.regionsNeedingDropOffMaps())
     }
 }
 
@@ -72,11 +80,17 @@ fun AvailabilityViewModel.onOfflineMapsOpened() {
 fun AvailabilityViewModel.onOfflineMapsSignalReturned() {
     if (noSignal()) return
     offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+    // Dispatch 2026-11-04-09 B1 P2: the drop-off map copy's passes too.
+    offlineRoutes.fetchDropOffMaps(offlineRoutes.regionsNeedingDropOffMaps())
 }
 
-/** "Try again" on a region's trail routes: one more fetch of that region, shown only after an attempt failed. */
+/**
+ * "Try again" on a region's trail routes: one more fetch of that region, shown only after an attempt failed. Also that
+ * region's drop-off map pass when it is not yet whole (dispatch 2026-11-04-09, which names "Try again" beside the opening).
+ */
 fun AvailabilityViewModel.onTryAgainRoutes(id: Long) {
     offlineRoutes.fetch(listOf(id))
+    offlineRoutes.fetchDropOffMaps(offlineRoutes.regionsNeedingDropOffMaps().filter { it == id })
 }
 
 /**

@@ -41,6 +41,7 @@ import com.zynergylabs.forager.app.routing.TrailRoutingEngine
 import com.zynergylabs.forager.app.routing.WayHomeRouting
 import com.zynergylabs.forager.app.domain.wayto.FindWayToWaypointUseCase
 import com.zynergylabs.forager.app.domain.wayto.StreetDropOffEnds
+import com.zynergylabs.forager.app.domain.mapdata.LayeredOfflineBasemap
 import com.zynergylabs.forager.app.domain.mapdata.ReadNearbyMapData
 import com.zynergylabs.forager.app.map.MapLibreOfflineBasemap
 import com.zynergylabs.forager.app.routing.BRouterRouteWays
@@ -48,6 +49,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import com.zynergylabs.forager.app.data.remote.ApiClients
+import com.zynergylabs.forager.app.data.dropoffmap.LocalRegionDropOffMaps
 import com.zynergylabs.forager.app.data.routedata.LocalRegionRouteFolders
 import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
@@ -336,7 +338,22 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         appKey = BuildConfig.ROUTING_APP_KEY,
         log = { message, error -> Log.w("RegionRoutes", message, error) },
     )
-    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao(), RoomOfflineRegionIdReplacer(database), regionRouteFolders)
+
+    /**
+     * MapLibre's own offline store, read only (files/mbgl-offline.db, MapLibreStorage.kt): one instance for the way-to's
+     * read and the drop-off map copy's, so their opens of it take turns behind its one lock.
+     */
+    private val mapLibreOfflineBasemap = MapLibreOfflineBasemap(File(context.filesDir, "mbgl-offline.db"))
+
+    // Each offline region's drop-off map copy (dispatch 2026-11-04-09; the owner: "Automatic (Recommended)"), fetched
+    // from the basemap's own tile address on the app's JSON client: its User-Agent and 15 s timeouts, as the routes'.
+    private val regionDropOffMaps = LocalRegionDropOffMaps.create(
+        filesDir = context.filesDir,
+        http = ApiClients.httpClient(debug = BuildConfig.DEBUG),
+        mapLibre = mapLibreOfflineBasemap,
+        log = { message, error -> Log.w("DropOffMap", message, error) },
+    )
+    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao(), RoomOfflineRegionIdReplacer(database), regionRouteFolders, regionDropOffMaps)
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     // One instance for both interfaces (map layers L0b, planner's ruling on F1): DataStore refuses a
     // second live instance on `map_preferences`, so the layer choices live in this same class.
@@ -486,9 +503,12 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         engines = trailRoutingEngine,
         errorLog = errorLog,
         // Way-to dispatch 2026-10-28, PR 5: the street drop-off and the gates, on the offline map MapLibre keeps
-        // (files/mbgl-offline.db, MapLibreStorage.kt) and on the stored route squares' own ways.
+        // (files/mbgl-offline.db, MapLibreStorage.kt) and on the stored route squares' own ways. Since dispatch
+        // 2026-11-04-09 a tile MapLibre holds without the fence mark is read from the drop-off map copy when it holds it marked.
         ends = StreetDropOffEnds(
-            mapData = ReadNearbyMapData(MapLibreOfflineBasemap(File(context.filesDir, "mbgl-offline.db"))),
+            mapData = ReadNearbyMapData(
+                LayeredOfflineBasemap(mapLibreOfflineBasemap, regionDropOffMaps.tiles) { message, error -> Log.w("DropOffMap", message, error) },
+            ),
             routeWays = BRouterRouteWays(profileDir = { routeWaysProfileDir }),
         ),
     )
