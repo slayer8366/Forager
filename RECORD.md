@@ -35086,3 +35086,18 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Known bug 14's row** understates the bug, since north of the line outside the data downloads are land-only. The planner updates the row with the PR.
 - **To the owner:** S6, the edge's precision (z10, z11 or z12).
 **Notes:** Written by the planner by hand. Next free ID -2151.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2151
+**Timestamp:** 2026-11-05T21:00:27Z
+**Continues:** 2026-09-28-2150
+**Title:** Bug 14's warning checks at zoom 11 ("Medium"); Amendment 3; its Phase 2 waits for the trip bubble's merge
+**Decision:**
+- **The owner, verbatim,** to "Near the edge of the detailed map (for example the US–Mexico border), how precise should the warning be? Finer means more small requests each time you place the pin.": **"Medium (Recommended)"**. The option read "Checks in about 16 km squares. An area can be partly blank without the warning only within about 16 km of the edge. About 16 to 25 small requests per placement; a dense covered city at the largest radius costs a few MB."
+  - The others: "Coarse" (about 33 km, the fewest requests) and "Fine" (about 8 km, 42 to 64 requests, up to about 15 MB).
+- **Told before asking:** the build is bigger than "A small build"; the edge band; a possible false line in remote covered places.
+- **Amendment 3:** prompts/preserved/2026-11-02-02-amendment-3.md (A7 to A9, B3, C6, C7).
+- **Phase 2:** a fresh Hazel session, started after trip-bubble-actions merges, on the planner's go.
+**Notes:** Written by the planner by hand. Next free ID -2152.
