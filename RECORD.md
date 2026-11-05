@@ -35101,3 +35101,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Amendment 3:** prompts/preserved/2026-11-02-02-amendment-3.md (A7 to A9, B3, C6, C7).
 - **Phase 2:** a fresh Hazel session, started after trip-bubble-actions merges, on the planner's go.
 **Notes:** Written by the planner by hand. Next free ID -2152.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2152
+**Timestamp:** 2026-11-05T21:03:06Z
+**Continues:** 2026-09-28-2148
+**Title:** Dispatch 2026-11-05-05: RoutePlottingBackOrderTest joins the tests A11 reverses; it moves to a track's bubble, its claim whole
+**Decision:**
+- **Hazel's stop, a wrong premise:** Amendment 1's B2 list missed RoutePlottingBackOrderTest.kt:117-134. It opens its bubble while plotting by tapping a plain trip (:53, :59; KDoc :41-42, "which plotting does not take"). Under A11 that tap adds a stop, so the test would fail at :123.
+- **The planner's call** (test-only; nothing is weakened):
+  - the bubble is opened instead by a recorded track's line (KEPT_TRACKS), which plotting still doesn't take;
+  - the same five real touches and three Back assertions;
+  - a comment records what it was, and the KDoc is corrected.
+  - Its claim, that a bubble over plotting closes on the first Back and the second Back cancels plotting, stays whole. A11's own new test covers the trip becoming a stop.
+- **Also from her check:** RecordDetailsSheetTest.kt:236 and :611 hold as written under C1, since those sheets have no Navigate. Only their comments change.
+**Notes:** Written by the planner by hand. Next free ID -2153.
