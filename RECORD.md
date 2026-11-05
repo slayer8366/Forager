@@ -34339,3 +34339,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** pre-main's CI on #490's merge (368f710fb) passed on every job
 **Outcome:** run 42027735694, the push run on pre-main at 368f710fb, completed with success on all 8 jobs. They include "Build, test, publish APK" and "The app builds and its tests pass with the Street map deleted". The result was read with gh run view; the planner didn't download the JUnit XML.
 **Notes:** Written by the planner by hand. Next free ID -2120.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2120
+**Timestamp:** 2026-11-05T13:10:26Z
+**Continues:** 2026-09-28-2118
+**Title:** The owner's go: Hazel started on dispatch 2026-11-05-01, Phase 1, verify first
+**Decision:**
+- **The owner, verbatim,** to "start Hazel on dispatch 2026-11-05-01, the read fix, now?": "Yes".
+- **Started:** a fresh Hazel Cairnwright session, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (records-after-173 6771d1fbc).
+- **Phase 1 only:** no branch, code, commit, Gradle or phone until the planner's go.
+**Notes:** Written by the planner by hand. Next free ID -2121.
