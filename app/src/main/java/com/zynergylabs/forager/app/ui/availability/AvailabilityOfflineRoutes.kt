@@ -58,6 +58,16 @@ internal class AvailabilityOfflineRoutes(
         }
     }
 
+    /** STUB (dispatch 2026-11-04-09, tests first): the drop-off map pass's selection. Built in the next commit. */
+    fun regionsNeedingDropOffMaps(): List<Long> = emptyList()
+
+    /** STUB (dispatch 2026-11-04-09, tests first): runs the drop-off map passes. Built in the next commit. */
+    @Suppress("UNUSED_PARAMETER")
+    fun fetchDropOffMaps(ids: Collection<Long>): Job? = null
+
+    /** STUB (dispatch 2026-11-04-09, tests first): the no-signal line. Built in the next commit. */
+    fun noteNoSignalForDropOffMaps() = Unit
+
     /** A download's own route fetch is an attempt too: when it left routes still wanted, its row offers "Try again". */
     fun noteDownloaded(region: OfflineRegionSummary) {
         if (region.routeData.needsFetch()) updateState { it.copy(offlineRouteFailedIds = it.offlineRouteFailedIds + region.id) }

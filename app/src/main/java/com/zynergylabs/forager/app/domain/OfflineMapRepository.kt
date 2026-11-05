@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.domain
 
+import com.zynergylabs.forager.app.domain.mapdata.DropOffMapPass
+import com.zynergylabs.forager.app.domain.mapdata.RegionDropOffMap
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 
@@ -102,6 +104,15 @@ interface OfflineMapRepository {
      */
     suspend fun fetchRoutes(id: Long): Result<RegionRouteData> =
         Result.failure(UnsupportedOperationException("this repository does not fetch routes"))
+
+    /**
+     * One pass of the drop-off map copy for the downloaded region [id] (dispatch 2026-11-04-09): its zoom-15 tiles that
+     * MapLibre's store does not hold with the fence mark are fetched into the app's own copy, within
+     * `data/dropoffmap/DropOffMapLimits`, and MapLibre's store is only read. Succeeds with how the pass ended, a stopped
+     * or refused one included; fails only when [id] is not a region downloaded on this phone.
+     */
+    suspend fun fetchDropOffMap(id: Long): Result<DropOffMapPass> =
+        Result.failure(UnsupportedOperationException("this repository keeps no drop-off map copy"))
 
     companion object {
         /**
@@ -249,7 +260,10 @@ data class OfflineRegionSummary(
     val minZoom: Double,
     val maxZoom: Double,
     val tileCount: Int,
-    /** The region's bytes on the phone: its tiles plus its stored route data ([routeData]). */
+    /**
+     * The region's bytes on the phone: its tiles, its stored route data ([routeData]) and its drop-off map copy
+     * ([dropOffMap]; dispatch 2026-11-04-09 A5, the owner: "Include it (Recommended)").
+     */
     val sizeBytes: Long,
     val createdAtEpochMillis: Long,
     /**
@@ -270,4 +284,11 @@ data class OfflineRegionSummary(
      * are already inside [sizeBytes]: map and routes are one unit to the user (RECORD -1498 q1).
      */
     val routeData: RegionRouteData = RegionRouteData.NotFetched,
+    /**
+     * What the app's own copy of its zoom-15 tiles holds for the street drop-off (dispatch 2026-11-04-09), read from its
+     * folder on every listing. Its bytes are inside [sizeBytes] (A5); its tiles are not counted against the tile budget
+     * (A6: `OfflineTileBudget.kt` counts each area by its estimate alone). [RegionDropOffMap.whole] decides whether the
+     * automatic pass takes the region.
+     */
+    val dropOffMap: RegionDropOffMap = RegionDropOffMap.NONE,
 )

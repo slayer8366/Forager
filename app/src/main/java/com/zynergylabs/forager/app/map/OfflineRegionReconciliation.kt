@@ -2,6 +2,8 @@ package com.zynergylabs.forager.app.map
 
 import com.zynergylabs.forager.app.data.local.OfflineRegionDao
 import com.zynergylabs.forager.app.data.local.OfflineRegionEntity
+import com.zynergylabs.forager.app.data.dropoffmap.NoRegionDropOffMaps
+import com.zynergylabs.forager.app.data.dropoffmap.RegionDropOffMaps
 import com.zynergylabs.forager.app.data.routedata.RegionRouteFolders
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
@@ -36,6 +38,7 @@ internal suspend fun reconcileOfflineRegions(
     deleteRegion: suspend (Long) -> Unit,
     warn: (String) -> Unit,
     routes: RegionRouteFolders,
+    @Suppress("UNUSED_PARAMETER") dropOffMaps: RegionDropOffMaps = NoRegionDropOffMaps,
 ): List<OfflineRegionSummary> {
     // A Room row with no MapLibre region is kept, not shown, and logged every time it is seen.
     // MapLibre's read is not authoritative: an empty or partial read (a store that was not the one
