@@ -34140,3 +34140,24 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Amendment 1:** prompts/preserved/2026-11-04-09-amendment-1.md (A5 to A10, B1 to B3, C1 to C3).
 - **The planner's go for Phase 2,** to a fresh Hazel session (C3): branch drop-off-map-copy from pre-main 949ad8183, a draft PR into pre-main, and the merge on the owner's word. It is the same dispatch, under the owner's "Yes" (-2109).
 **Notes:** Written by the planner by hand. Next free ID -2112.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2112
+**Timestamp:** 2026-11-05T09:58:33Z
+**Continues:** 2026-09-28-2111
+**Title:** The older-style notice's new words: "Older map style. Download again for the new look and hill shading."
+**Decision:**
+- **Hazel's A8 facts,** filed unedited at prompts/preserved/2026-11-04-09-a8-report.md.
+  - Downloading an older area again makes a new area against trail-v4, which clears its notice. The old area stays until deleted.
+  - When the map draws from downloads, it switches to the newest stored Trail Map style, for every area.
+  - It stores that area's hill shading, at zooms 10-11.
+  - It fetches the area's trail routes again.
+  - It doesn't update the basemap's data, which is reused.
+- **The owner, verbatim,** to the planner's options for the notice: **"Look and hill shading (Recommended)"**.
+  - The option read: ""Older map style. Download again for the new look and hill shading." It says exactly what improves, and promises nothing about the map's data. It's longer, so it may wrap to two lines in the row."
+  - The others were "Update the look" ("Older map style. Download again to update the look.") and "Fact only" ("Downloaded with an older map style.").
+- **So:** OLDER_MAP_STYLE_NOTICE (map/TrailStyle.kt:120) becomes exactly "Older map style. Download again for the new look and hill shading.", in dispatch 2026-11-04-09's PR. Only its words change, not when it shows.
+- **Told to Hazel** by message, with the owner's words quoted.
+**Notes:** Written by the planner by hand. Next free ID -2113.
