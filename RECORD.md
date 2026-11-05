@@ -34655,3 +34655,32 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** a baseline that differs from this one; CI red at ee0651fe0; anything needing the phone.
 **Dispatch-file:** prompts/preserved/2026-11-05-02-promotion-audit.md
 **Notes:** Written by the planner by hand. Authorisation: the owner, verbatim, to "Shall I start Elder's audit now?": "Yes". Elder runs on Fable, a different model from the coders (-1134). Next free ID -2133.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2133
+**Timestamp:** 2026-11-05T19:34:40Z
+**Continues:** 2026-09-28-2128, 2026-09-28-2123
+**Title:** The old backups cleared (54 bundles, about 5.3 GB, all on GitHub); dispatch 2026-11-05-03 for the intermittent crowded-icons test, started
+**Decision:**
+- **The owner, verbatim:** "Go ahead and clear the old backups"; "Run the random test failure".
+- **The backups,** ~/Zynergy/forager-repo-backups (14 GB before):
+  - The planner classified all 136 bundles by whether every head is on a current GitHub branch of its repository (Forager, forager-forecast or zynergy-site), with git branch -r --contains after fetching each.
+  - **58 safe, 78 not.** Of the safe ones, 54 were deleted with their 5 sidecar .sha256 files. The newest of each kind were kept: pre-main-before-491, forager-main-381515c61-20261024, forecast-main-20261022T192437Z-02756bb7, zynergy-site-main-20261019T103912Z-319871ca.
+  - The first removal was refused by a built-in safety check (paths from variables), and nothing ran. The planner then ran it with the 59 literal paths.
+  - /mnt/work went from 167 MB to 5.4 GB free. A note was appended to the folder's INDEX.md.
+  - **Not cleared, for the owner:** 78 bundles (about 7.6 GB) with history no current branch has:
+    - main before the October rewrite (2026-10-04 to -10);
+    - old dev states;
+    - the record-migration, history-rewrite, scrub and stage2 backups;
+    - records-after-173 before the -1948 removal;
+    - four early zynergy-site bundles.
+  - The planner read the folder's name, not its contents, before calling "2026-10-15-04-privacy" safe: its two bundles' heads are on GitHub.
+- **Dispatch 2026-11-05-03** (prompts/preserved/2026-11-05-03-crowded-icons-flake.md), for Hazel. Phase 1 reproduces on CI with the tests filter (ci.yml:25-29) and explains. No silencing.
+  - Prediction (outcome, planner): the cause is in the test's or the store's handling of two writes or store instances, not in anything a user meets.
+  - Prediction (mechanism, coder): from her Phase 1 report.
+  - Finish line: Phase 1, a report by message; Phase 2, on go, a PR into pre-main.
+  - Abort conditions: a cause a user could meet; anything silencing the test; a wrong premise; two failed attempts.
+  - Started on the owner's words above, as a fresh Hazel session on Opus.
+**Notes:** Written by the planner by hand. Next free ID -2134.
