@@ -35118,3 +35118,34 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Its claim, that a bubble over plotting closes on the first Back and the second Back cancels plotting, stays whole. A11's own new test covers the trip becoming a stop.
 - **Also from her check:** RecordDetailsSheetTest.kt:236 and :611 hold as written under C1, since those sheets have no Navigate. Only their comments change.
 **Notes:** Written by the planner by hand. Next free ID -2153.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2153
+**Timestamp:** 2026-11-05T21:17:30Z
+**Continues:** 2026-09-28-2143
+**Title:** The edge shade explained: the elevation shadow, drawn as a ring with a hole under an outline the renderer takes as opaque, shows through the 80% fills; options for the owner
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-05-06-phase1-report.md. She read pre-main ee0651fe0, Compose 1.12.0 and Material3 bytecode, and AOSP and Skia main. She ran CI on two throwaway branches, now deleted. Run 1 didn't compile (her slip; nothing cited); run 2 is 42107576317.
+- **The cause** (read, and fitted to the owner's crop):
+  - Compose passes the platform the layer's alpha, 1, not the fill's 0.8. So the renderer draws an opaque caster's shadow: a ring whose square-cornered hole sits about max(corner radius, blur) in.
+  - Through the 80% fill this shows as a band with a hard inner edge, with a faint second edge from the ambient shadow.
+  - The crop's middle is exactly the 0.8 composite, and the band is the map darkened by 0.23 ± 0.015, against the AOSP default 0.222.
+  - Ruled out in Robolectric: a second fill, tonal elevation, a clip.
+  - Robolectric's render differs from the phone's (a narrower band, rounded inner corners), so the phone is needed to judge the width.
+- **Sites:** about a dozen kinds of surface.
+  - Bands: bubbles, the add tile, the map type panel, the legend chip, the search pill, the compass strip and navigation card, the centre-pin row, two dialogs, six Material menus at 3 dp, and the snackbar at 6 dp.
+  - Even darkening: the narrow icon bar, control pill and cluster.
+  - First flagged at -92 (09-28) and set out of scope at -93.
+- **Options for the owner:**
+  - A, no shadow;
+  - B, a shadow outside the shape only;
+  - C, the map-chrome hairline instead;
+  - D or E, a filled shadow, which darkens the whole surface below 0.8.
+  - F (a lower elevation) and G (opaque) are not fixes.
+- **A test** fails today with a message naming the band's samples. A, B and C pass it; D and E don't. MapChromeColourPixelsTest.kt:207-210 passes with the band there, so it doesn't cover it.
+- **Overlap:** MapFeatureBubble.kt:193 (a menu) is in the trip bubble's file and waits for it.
+- **Her stops, for the owner:** the option, and whether -945's "Lighter pill + shadow" covers the pill's 2 dp elevation shadow. The tuck shadow is hand-drawn and stays under every option.
+- **Also corrected:** the planner's middle sample was over the green part of the crop. Over grey it is #E7E3D8 against a band of #DFDBD0; the finding is the same.
+**Notes:** Written by the planner by hand. Next free ID -2154.
