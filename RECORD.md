@@ -35226,3 +35226,22 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Also seen:** the same race turned one way-to end log run red (run 42111506814 on b2dfc73c0). Its re-run is green, and that Hazel left the test untouched.
 **Waiting on:** the owner's word to merge PR #492. Before merging: a bundle of pre-main, verified, and `--match-head-commit 8005d54bb80cff22c2c33e6a931be33f2c062123`.
 **Notes:** Written by the planner by hand. Next free ID -2158.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2158
+**Timestamp:** 2026-11-05T22:12:57Z
+**Continues:** 2026-09-28-2157
+**Title:** PR #492 merged into pre-main on the owner's word; audit index row written
+**Outcome:**
+- **The owner, verbatim:** "Merge 492 when ready".
+- **Before merging:**
+  - pre-main was at ee0651fe0 and the PR head at 8005d54bb, as recorded in -2157.
+  - Bundle ~/Zynergy/forager-repo-backups/pre-main-before-492.bundle (144 MB) verified with a complete history. Its one head is ee0651fe0.
+  - All 8 checks on run 42115303415 passed.
+- **Merged** with `gh pr merge 492 --merge --match-head-commit 8005d54bb80cff22c2c33e6a931be33f2c062123`. The merge commit is 389399423, with parents ee0651fe0 and 8005d54bb.
+- **Audit index:** the planner's row, docs only, pushed to pre-main as 6e24b22c4.
+- **Left as is:** `crowded-icons-test-fix-r1` (c1a98670a), the revert branch, is still on origin. Deleting it needs the owner's word.
+- **Open builds,** each based on ee0651fe0 and not affected by this merge: the trip bubble (2026-11-05-05), the edge shade (-06) and the way-to end log (-07).
+**Notes:** Written by the planner by hand. Next free ID -2159.
