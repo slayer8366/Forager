@@ -34286,3 +34286,46 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Not as written, also for Hazel:** the doubled opening (step 2), and the signal-return pass not seen (step 3).
 - **End state:** font_scale 1.0, airplane_mode_on 0, wifi_on 1, mobile_data 1, no app services, the Maps tab with Trail. forager.db's tables are identical to before-4616. The test area and its copy are gone. The copies for Region 1 and Region 2 stay, as #490 intends.
 **Notes:** Written by the planner by hand. Next free ID -2117.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-2117
+**Timestamp:** 2026-11-05T12:31:58Z
+**Closes:** 2026-09-28-2108
+**Title:** PR #490 (older offline areas get the drop-off's map data automatically) merged into pre-main on the owner's word; the read failure goes to a new dispatch, in this release
+**Outcome:** completed.
+- **The owner, verbatim, to two questions:**
+  - "PR #490 passed on the phone. Merge it into pre-main now?": **"Merge now (Recommended)"**;
+  - "The read failure makes the drop-off unreliable at moments. How should it be handled?": **"Fix it in this release (Recommended)"**. The option read "A verify-first dispatch for Hazel: find why the read fails while the map writes, and fix it so the drop-off reads reliably. The doubled opening and the signal-return pass go in it too. The release waits for it, since the drop-off is in the release."
+- **Before merging:**
+  - pre-main 949ad8183 was backed up to ~/Zynergy/forager-repo-backups/pre-main-before-490.bundle, verified okay, with head 949ad8183;
+  - all 8 of #490's checks passed at its head 0e4cdc577;
+  - the diff was read for @Ignore and removed assertions (-2114).
+- **The merge:**
+  - The first gh pr merge failed on a network error ("error connecting to api.github.com"), and #490 was confirmed still OPEN at 0e4cdc577.
+  - The retry merged it with --match-head-commit 0e4cdc57764b, as 368f710fb at 2026-11-05T12:30:34Z.
+  - pre-main's tree equals 0e4cdc577's. main (c61850aa2) is unchanged.
+  - pre-main's push run, 42027735694, was running when this was written. Its result goes in a later entry.
+- **Left:** the nine drop-off-map-copy-rN branches on origin, the branch drop-off-map-copy, and Hazel's worktree.
+**Notes:** Written by the planner by hand. Next free ID -2118.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2118
+**Timestamp:** 2026-11-05T12:31:58Z
+**Continues:** 2026-09-28-2117, 2026-09-28-2116
+**Title:** Dispatch 2026-11-05-01 for Hazel: the drop-off reads the map's offline store reliably while the map writes; the doubled opening; the signal-return pass; verify first; not started
+**Change:** dispatch A2 to A4.
+- The way-to's and the copy pass's reads of MapLibre's store stop failing with SQLITE_READONLY_ROLLBACK while MapLibre writes. Where a read still can't be made, it goes by trail, logged, as today.
+- One opening of Offline maps is one opening.
+- Signal returning while it's open runs the pass.
+**Scope boundary:** dispatch's Scope. No write to MapLibre's store, no change to its configuration, and no Worker, Theme.kt, Color.kt, pre-main, main, RECORD.md, audit index or phone.
+**Baseline:** pre-main 368f710fb; records-after-173 10a33dadc.
+**Prediction (outcome — planner):** repeated Navigate to Waypoint 1, while the map draws online, never logs "the map could not be read". One opening logs and runs one pass. Signal returning runs one pass.
+**Prediction (mechanism — coder):** to come from Hazel's Phase 1 report.
+**Finish line:** a PR into pre-main, green, merged on the owner's word; then the planner's S22 check.
+**Abort conditions:** dispatch Stops: any write to MapLibre's store or its configuration; a server change; new words; an owner-level choice; a wrong premise; a weakened test; two failed attempts at one symptom.
+**Dispatch-file:** prompts/preserved/2026-11-05-01-offline-store-read.md
+**Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-05-01 now?". Next free ID -2119.
