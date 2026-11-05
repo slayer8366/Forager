@@ -34599,3 +34599,25 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Build:** 4626 (pre-main #491's code plus tools), already installed (-2127).
 - **Standing, from these words:** on the S22, the planner may change the app's data and the phone's settings as a check needs. Each change is still recorded, and put back where it matters for later checks.
 **Notes:** Written by the planner by hand. Next free ID -2130.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2130
+**Timestamp:** 2026-11-05T19:05:05Z
+**Continues:** 2026-09-28-2129
+**Title:** The signal-return pass works on the S22: one pass, as signal is declared back, while Offline maps is open
+**Outcome:**
+- **Build:** 4626, as installed (-2127). The log is ~/s22-2026-11-04/s15b/logs/logcat-s15b.txt.
+- **Data changed for the check:** files/offline_basemap/3/whole and 15-5222-11744.mvt removed with run-as rm, leaving 5 tiles and no whole record.
+- **No signal:**
+  - Airplane mode on; the app's "No validated network (5 s)…" line at 11:03:12.959 local.
+  - Tools > Offline Maps at 11:03:24 gave one line, "Offline maps opened with no signal: no drop-off map pass this time." (11:03:24.804), and no DropOffMap line.
+- **Signal back, with Offline maps held open:**
+  - Airplane mode off at 11:03:38. ConnectivityService "+VALIDATED" for net 117 at 11:03:48.135. The app's "Validated network (30 s, or at start)…" at 11:04:18.154, 30.0 s later.
+  - Then exactly one pass: 11:04:18.481 "Drop-off map for region 3: whole. 1 requests; 1 stored, 0 empty."
+  - No other DropOffMap line, and no "could not be read" in the log.
+  - Region 3's folder again holds 6 tiles plus whole, with 15-5222-11744.mvt back.
+- **So:** P2's signal-return trigger (RECORD -2110) works on the phone as ruled (-2121, A9). It fires on the app's own signal, 30 s after validation, while Offline maps is open. This closes -2116's and -2127's "not run".
+- **End state:** airplane_mode_on 0, wifi_on 1, mobile_data 1, no app services, the Maps tab. Region 3's copy is whole again; the removed tile was refetched from the server.
+**Notes:** Written by the planner by hand. Next free ID -2131.
