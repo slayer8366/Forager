@@ -396,18 +396,25 @@ class AvailabilityScreenMapBubblesTest {
         composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertDoesNotExist()
     }
 
+    // Dispatch 2026-11-05-05 (A1, A4; RECORD -2140, the owner: "Remove the directions from the bubble add Navigate, Plot Route
+    // Details. Remove the long/lat coordinates from the Trip icon"): was `a planned trip's bubble shows its row's lines and its
+    // Directions`, which asserted no Details and a touch on Directions starting "geo:0,0?q=45.56,-122.66(Saddle%20loop)". Now
+    // no coordinates line and no Directions, and Details opens the trip's card. This screen wires no navigation and no
+    // plotting, so Navigate and Plot route are TripBubbleActionsTest's.
     @Test
-    fun `a planned trip's bubble shows its row's lines and its Directions`() {
+    fun `a planned trip's bubble shows its name, date and MGRS, no coordinates and no Directions, and its Details opens its card`() {
         setScreen()
-        composeRule.registerGeoHandler()
         tapGlyph("trip-1")
 
         composeRule.onNodeWithText("Saddle loop", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Oct 3, 2026", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
-        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
+        composeRule.onAllNodesWithText("45.5600, -122.6600", useUnmergedTree = true).assertCountEqualsZero()
+        composeRule.onAllNodesWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertCountEqualsZero()
+        composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
 
-        assertEquals("geo:0,0?q=45.56,-122.66(Saddle%20loop)", Shadows.shadowOf(composeRule.activity).nextStartedActivity?.data.toString())
+        composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Saddle loop")
+        composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
     }
 
     @Test

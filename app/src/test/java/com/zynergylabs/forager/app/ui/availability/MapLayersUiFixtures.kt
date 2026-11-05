@@ -257,9 +257,11 @@ internal fun mapLayersViewModel(
     entryReferenceCounts: com.zynergylabs.forager.app.domain.EntryReferenceCountSource = com.zynergylabs.forager.app.domain.NoEntryReferenceCounts,
     // Dispatch 2026-10-30-08 Amendment 8: the Units setting. Defaulted to metric, as before.
     unitSystemPreferences: UnitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
+    // Dispatch 2026-11-05-05: a planned-trip store a test can hold back; by default the fixed list above, as before.
+    tripRepository: PlannedTripRepository? = null,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
-    val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
+    val plannedTripRepository = tripRepository ?: MapLayersUiPlannedTripRepository(plannedTrips)
     return AvailabilityViewModel(
         locationProvider = MapLayersUiLocationProvider,
         locationTracker = locationTracker,
