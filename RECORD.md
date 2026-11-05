@@ -33904,3 +33904,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** PR #488 kept for the next project
 **Decision:** The owner, verbatim, after the planner noted that PR #488 (revert-chip-colours, d4ce043f5) is still open against pre-main, replaced by today's chip work: "Reuse PR 488 for the next project." #488 stays open, and nothing on it or its branch changes until the next project is named. It still carries its title "do not merge without the owner's word" and the 11 chip reverts, which are no longer wanted: pre-main has the full undo (3ffced9c0) and the new chips (#489).
 **Notes:** Written by the planner by hand. Next free ID -2102.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2102
+**Timestamp:** 2026-11-05T03:28:58Z
+**Continues:** 2026-09-28-2101, 2026-09-28-2098, 2026-09-28-2064
+**Title:** S22 session 13: build 4609 (pre-main 949ad8183) for the chips, day and night, and the waypoint drop-off outdoors
+**Decision:**
+- **The owner, verbatim:** "S22 plugged in". Then, to two questions: "Build, back up, install"; and the checks "Chips by day,Chips at night,Waypoint drop-off outdoors".
+  - The build option read: "I merge pre-main into the S22 build branch and build 4609 on CI (about 20 minutes). Then I snapshot the app's data, install it over 4591 with the same signer, and check the app's tables are unchanged. Nothing else on the phone is changed."
+  - The checks question said: "I won't change the phone's theme or settings; any night look is yours to switch." The night chip option read "The same, with the app in Night Mode, which you switch".
+- **The planner's slip:** no build was ready when the phone was plugged in, against the planner's own rule (memory, s22-build-before-phone; RECORD -1998).
+- **Phone state, read only:** SM-S908U R5CT321008R, Forager 4591 (1.0.4591+g3854493f, installed 2026-11-04 07:04 local), no app services running, battery 100% on USB.
+- **Build:** pre-main 949ad8183 merged into tools/s22-combined as 957ef740c (count 4609), from 3854493f3. git merge-tree reported no conflict. CI 41961767798 (workflow_dispatch) was started.
+- **Before snapshot:** ~/s22-2026-11-04/s13/snap/before-4609, taken by session 12's snap.sh with only its scratch path changed. forager.db's tables are identical to s12/after-4591 (waypoints 11, tracks 5, track_points 273). mbgl-offline.db has the same row counts (resources 304, tiles 2114), but its contents have changed, which is the map's cache being used. Schemas 23, 6 and 1, integrity ok.
+**Notes:** Written by the planner by hand. Next free ID -2103.
