@@ -34263,8 +34263,10 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Not as written:** "Offline maps opened with no signal: no drop-off map pass this time." was logged **twice**, at 04:20:27.844 and 04:20:28.074, where one was expected. A single tap through Tools > Offline Maps seems to count as two openings. That is inferred, not traced.
 - **Step 3, signal back:**
   - Signal returning while Offline maps was open started no pass in about 15 s (inferred from no DropOffMap line and no us/15/ request). P2's signal-return trigger wasn't seen working.
+    *Correction (planner, 2026-11-05, same report):* the trigger wasn't reached, so it isn't shown broken. The app counts signal as back only after 30 s of validated network (NetworkSignal.kt:33, :57). Android validated at 04:21:17.051, the planner left Offline maps at 04:21:22.803, and the app declared signal at 04:21:47.097.
   - On reopening (04:21:50 local), the first pass failed at once for both areas: "Drop-off map for region 3 not fetched: MapLibre's store could not be read." and the same for region 8, with "SQLiteReadOnlyDatabaseException: attempt to write a readonly database (code 776 SQLITE_READONLY_ROLLBACK[776]): , while compiling: PRAGMA cache_size".
   - A second pass followed: 04:21:53.152 "Drop-off map for region 3: whole. 6 requests; 6 stored, 0 empty."; 04:22:57.714 "Drop-off map for region 8: whole. 598 requests; 598 stored, 0 empty." That is R = S + E for both, 0 unmarked, about 64 s for region 8.
+    *Correction (planner, 2026-11-05, on Hazel's Phase 1 report for dispatch 2026-11-05-01, prompts/preserved/2026-11-05-01-phase1-report.md):* that second pass was not a retry. Nothing in the code retries a failed pass. It was the doubled opening's second launch (step 2's finding), released by the drop-off lock. Its first request was at 04:21:51.881, 148 ms after the first launch's last refusal.
   - Folders: region 3 has 7 files (6 tiles plus whole), 80 KB; region 8 has 599, 3,224 KB. 15-5222-11744.mvt is present.
 - **Step 4, pass:** Region 1 went from 6.6 to 6.7 MB, Region 2 from 10.1 to 12.1 MB, and the tile budget stayed at 832 / 6000.
 - **Step 5:**
@@ -34352,3 +34354,47 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Started:** a fresh Hazel Cairnwright session, on Opus, as a subagent of the planner's session. Her prompt opens with her name and role, and points her at the dispatch file itself (records-after-173 6771d1fbc).
 - **Phase 1 only:** no branch, code, commit, Gradle or phone until the planner's go.
 **Notes:** Written by the planner by hand. Next free ID -2121.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2121
+**Timestamp:** 2026-11-05T13:46:46Z
+**Continues:** 2026-09-28-2120, 2026-09-28-2118
+**Title:** Hazel's Phase 1 report on dispatch 2026-11-05-01: two copies of SQLite in one process can't see each other's locks; a latent delete-on-corruption; the doubled opening is in RecordsTab; the planner's calls; S1 to the owner
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-05-01-phase1-report.md, extracted from her hand-back. She read:
+  - pre-main 368f710fb (unmoved);
+  - MapLibre Native at android-v13.5.0 (a666f02), and the shipped arm64 libmaplibre.so and classes.jar;
+  - SQLite's documentation;
+  - AOSP Android 16 framework bytecode, from Robolectric's jar;
+  - sessions 13 and 14's logs and the end-s14 store.
+  She also ran one scratch experiment on synthetic data.
+- **Prediction (mechanism — coder):**
+  - MapLibre links its own static SQLite 3.45.3, with no sqlite3_ symbols exported or imported, while the app reads through Android's. Both run in one process.
+  - Per SQLite's howtocorrupt.html §2.2-2.3, the two copies can't see each other's POSIX locks. So during each MapLibre commit, a valid journal shows no lock the app's read-only connection can recognise; it judges the journal hot and refuses with 776 (lockingv3.html §4.0).
+  - MapLibre commits on every tile and resource it reads (UPDATE … accessed), not only on stores, so refusals cluster as a map view starts. All three in session 14 came 0.2 to 1.1 s after a style load.
+  - Her scratch experiment reproduced 776 only when the writer's lock was invisible.
+- **Also found:**
+  - The invisibility runs both ways, so MapLibre can commit during a read that has succeeded. A torn read is possible; none was seen.
+  - On AOSP 16, openDatabase(path, null, OPEN_READONLY) installs DefaultDatabaseErrorHandler, which deletes the database file on a corruption report. That would be mbgl-offline.db, with every offline area. It is not observed, and not read for the phone's own framework. OfflineReliefTileStore opens the store the same way.
+- **The doubled opening:** RecordsTab.kt:242-247. LaunchedEffect(selectedTab) reads the live selectedTab rather than its key, so composing with the Tools latch set calls onOfflineMapsOpened twice.
+- **The signal-return pass:** not reached in session 14. It is not shown broken; -2116 is corrected in place.
+- **Fix options for the read,** none writing to MapLibre's store:
+  - 3.1, a bounded retry of the read-only open;
+  - 3.2, the app's own error handler on the same open, so the read never deletes the file;
+  - 3.3, immutable or nolock, rejected by SQLite's documentation;
+  - 3.4, no MapLibre read API at 13.5.0;
+  - 3.5, a second app process (architectural);
+  - 3.6, the drop-off reads only the app's copy (departs from P3 and "Only when missing");
+  - 3.7, read only when the map is quiet (weak).
+- **The planner's calls** (technical; they change nothing the owner sees, except preventing a loss):
+  - P1: RecordsTab.kt joins "May touch" for A3's root fix (a). Fix (b), the ViewModel guard, is not used.
+  - P2: OfflineReliefTileStore.kt is in scope, for the same retry and handler. It is the waypoint bubble's ground height.
+  - P4: 5 attempts with waits of 50, 100, 200 and 400 ms, under 0.8 s, on SQLiteReadOnlyDatabaseException from the read-only open. One log line per read that needed a retry, and one per read that failed at the bound. The numbers are an operating limit, recorded with their reasons.
+  - P5: 3.2 is adopted, an error handler that never deletes, on every read-only open of the store. The owner is told.
+  - P6: A2's fix lands with A3's, in one PR.
+  - P7: A4's trigger is kept as ruled. "Signal" is the app's own 30 s validated signal. The device step waits at least 35 s on Offline maps after the network validates.
+  - Also: synchronous=OFF for the test's own writer, so the hot-journal fixture can fail today.
+- **To the owner:** S1, what "reads reliably" means. 3.1 with 3.2 recovers refusals, and any remaining overlap fails safe; 3.5 or 3.6 keep reads from overlapping writes.
+**Notes:** Written by the planner by hand. Next free ID -2122.
