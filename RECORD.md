@@ -34457,3 +34457,19 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **An intermittent test, not this branch's:** AvailabilityScreenCrowdedIconsSettingTest, "…the pick survives a restart". The file held zoom_then_fan where list was expected. Same commit, both outcomes, in the two jobs. One re-run of the failed job passed. It is reported, not touched. Her inference is two settings writes landing out of order; not traced.
 - **Device check:** in her report, five steps. Step 5 (signal return) needs an area whose copy is not whole; both S22 areas are whole, so it can't run as the phone stands without a data change.
 **Notes:** Written by the planner by hand. Next free ID -2124.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2124
+**Timestamp:** 2026-11-05T16:23:07Z
+**Continues:** 2026-09-28-2123
+**Title:** A stored relief image is checked before it is used (Amendment 2 to dispatch 2026-11-05-01); PR #491 is checked on the S22 before it merges
+**Decision:**
+- **The owner, verbatim, to two questions:**
+  - "The waypoint bubble's ground height could, rarely, read a half-saved image. What should happen?": **"Add a check (Recommended)"**. The option read "Before using a stored height image, the app checks the image's own built-in checksums. A damaged one is refused, so the bubble shows no height rather than a wrong one, logged. A small addition to PR #491 before it merges." The other option was "Accept as is".
+  - "When should PR #491 merge?": **"Phone check first (Recommended)"**. The option read "On the S22: tap into Offline maps three times (one opening each), Navigate to Waypoint 1 ten times while the map draws (no failed reads), a test area's download, and the height line. The signal-return step needs an incomplete area, which would change your data, so I'd record it as not run. Then it merges on your word."
+- **Amendment 2:** prompts/preserved/2026-11-05-01-amendment-2.md (A10, B4, C4, C5).
+- **The planner's go for Amendment 2,** to a fresh Hazel session, on the same branch and PR #491. It is the same dispatch, under the owner's "Yes" (-2120).
+- **Also told to the owner:** AvailabilityScreenCrowdedIconsSettingTest is intermittent, not this branch's (-2123). The planner would look into it separately.
+**Notes:** Written by the planner by hand. Next free ID -2125.
