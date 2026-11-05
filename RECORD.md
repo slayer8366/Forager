@@ -35335,3 +35335,28 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Not yet done:** the device checks 1-9 in her report, on the APK from CI 42125306656. The S22 wasn't connected at 2026-11-05T23:37:22Z.
 **Waiting on:** the owner. Run the S22 checks first or merge now, then the owner's word to merge. Before merging: a bundle of pre-main, verified, and `--match-head-commit 05ccb60d2354760c40c52aed249a709834968e98`. After merging: tell the edge-shade Hazel the merge commit for C2, and start bug 14's Phase 2.
 **Notes:** Written by the planner by hand. Next free ID -2162.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2162
+**Timestamp:** 2026-11-05T23:40:00Z
+**Continues:** 2026-09-28-2159, 2026-09-28-2161
+**Title:** PR #493 merged into pre-main; the trip bubble (PR #494) gets an S22 check before merging
+**Decision:**
+- **The owner, verbatim**, to "PR #493, the way-to end log, is ready (log only, nothing on screen changes). Merge it into pre-main?": **"Merge it (Recommended)"**.
+  - The option read: "I back up pre-main, confirm the backup and merge. The log line then goes into the outing build, ready for your field check."
+  - The other option: "Hold for now".
+- **The merge:**
+  - Before: pre-main 6e24b22c4, PR head 1673b0e1b, as recorded in -2159. Bundle ~/Zynergy/forager-repo-backups/pre-main-before-493.bundle (144 MB) verified "okay" with a complete history, its one head 6e24b22c4. All 8 checks passed.
+  - Merged with `--match-head-commit 1673b0e1b66645516158e87efa9226909803eef6`. The merge commit is 585f39461, with parents 6e24b22c4 and 1673b0e1b.
+  - The audit index row, the planner's and docs only, is on pre-main as 3a3d85089.
+  - `wayto-end-log-r1` (03528374b) stays on origin, as her report cites it.
+- **The owner, verbatim**, to "PR #494, the trip bubble, is built and green, and I've checked it on GitHub. Its APK is downloaded and ready for the S22 (version 4586, the usual signing key). Check it on the phone before merging, or merge now?": **"Phone check first (Recommended)"**.
+  - The option read: "Plug in the S22. I install it, back up the app's data first, and run Hazel's checks: the bubble, the trip card, Directions, Navigate and Back, picking back up after a restart, Plot route, and the deleted message. Then you look at the bubble and card yourself, and merge on your word."
+  - The other option: "Merge now".
+- **The APK** is from CI 42125306656, a pull_request run on 2c2c3fd1f. Its version name is 1.0.4586+g5c6856dc, GitHub's merge ref at the time.
+  - The base then was 6e24b22c4, which 2c2c3fd1f already contains, so the tree is 2c2c3fd1f's. That is inferred, not checked: the merge ref has moved since.
+  - versionCode 4586, signer SHA-256 cb2f6da5…1626. Kept at /mnt/work/scratch/s22-494/apk/app-debug.apk.
+**Waiting on:** the S22, plugged in. Then the snapshot, the install and checks 1-9 of the -2161 report, then the owner's look and word.
+**Notes:** Written by the planner by hand. Next free ID -2163.
