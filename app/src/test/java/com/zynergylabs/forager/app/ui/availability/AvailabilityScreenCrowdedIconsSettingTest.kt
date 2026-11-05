@@ -102,6 +102,23 @@ class AvailabilityScreenCrowdedIconsSettingTest {
         awaitIdle("the released store to close") { scope.isCompleted }
     }
 
+    /**
+     * Waits until [picks] writes have returned from [store], each successfully, and [store] then reads List (dispatch
+     * 2026-11-05-03). A wait on the value alone is not enough. The case's first pick is List as well as its last, so "List
+     * stored" is already true after the first write, and a restart then cancels the store with later writes still
+     * outstanding (the Phase 1 report, section 3).
+     *
+     * The returned writes are counted before the store is read, so the read is never older than the last of them. The store
+     * is read on every check, because [LateCrowdedIconsStore] lets a held write through only on a read.
+     */
+    private fun awaitEveryPickStored(store: CountingCrowdedIconsStore, picks: Int) {
+        awaitIdle("all $picks picks' writes returned, each successfully, and the store reads List") {
+            val returned = store.returned
+            val stored = runBlocking { store.getCrowdedIconsMode { v -> throw AssertionError("the stored List read as an unknown value: \"$v\"") }.getOrNull() }
+            returned.size == picks && returned.all { it.isSuccess } && stored == CrowdedIconsMode.LIST
+        }
+    }
+
     @Before fun setUp() { dataStoreFile().delete() }
 
     @After fun tearDown() {
@@ -162,11 +179,12 @@ class AvailabilityScreenCrowdedIconsSettingTest {
 
     /**
      * Real touches pick List, then Zoom in, then fan, then List, with the ViewModel writing through [storeOver]'s store over
-     * the real repository. The test then restarts and checks that the file and a new ViewModel both read List.
+     * the real repository. Once every pick's write has returned ([awaitEveryPickStored]), the test restarts and checks that
+     * the file and a new ViewModel both read List.
      */
     private fun picksSurviveARestart(storeOver: (CrowdedIconsPreferenceRepository) -> CrowdedIconsPreferenceRepository) {
         val (repository, scope) = launchRepository()
-        val store = storeOver(repository)
+        val store = CountingCrowdedIconsStore(storeOver(repository))
         val viewModel = mapLayersViewModel(errorLog = errorLog, crowdedIcons = store)
         openSettings(viewModel)
 
@@ -180,7 +198,7 @@ class AvailabilityScreenCrowdedIconsSettingTest {
             assertEquals("a touch at $fraction across the $mode row picks it", CrowdedIconsMode.entries.map { it == mode }, CrowdedIconsMode.entries.map(::selected))
             assertEquals(mode, viewModel.uiState.value.crowdedIconsMode)
         }
-        awaitIdle("List stored") { runBlocking { store.getCrowdedIconsMode { v -> throw AssertionError("the stored List read as an unknown value: \"$v\"") }.getOrNull() } == CrowdedIconsMode.LIST }
+        awaitEveryPickStored(store, picks.size)
         release(scope)
 
         assertEquals("the file holds it under map.crowded_icons", "list", rawStored())

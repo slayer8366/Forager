@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,6 +13,26 @@ import kotlinx.coroutines.withContext
  * 2026-11-05-03). Neither changes what a read or a write does to the file; each changes only when a write is made, or
  * what the test can see of it.
  */
+
+/**
+ * Passes every read and write to [delegate] unchanged, and keeps what each write returned to its caller, in the order
+ * they returned (dispatch 2026-11-05-03).
+ *
+ * A DataStore write returns only after its file is renamed into place and its cache updated (DataStore 1.2.1,
+ * DataStoreImpl.kt:167-186, 244-281 and 345-380; FileStorage.kt:105-128). The store applies writes one at a time, in
+ * the order they were made (SimpleActor.kt:45 and 78-117). So once every write made has returned successfully, the last
+ * one made is the one on disk, and a restart after that point drops none of them.
+ */
+internal class CountingCrowdedIconsStore(private val delegate: CrowdedIconsPreferenceRepository) : CrowdedIconsPreferenceRepository {
+    private val results = CopyOnWriteArrayList<Result<Unit>>()
+
+    /** What each write has returned so far, in the order they returned. */
+    val returned: List<Result<Unit>> get() = results.toList()
+
+    override suspend fun getCrowdedIconsMode(unknown: (String) -> Unit): Result<CrowdedIconsMode?> = delegate.getCrowdedIconsMode(unknown)
+
+    override suspend fun setCrowdedIconsMode(mode: CrowdedIconsMode): Result<Unit> = delegate.setCrowdedIconsMode(mode).also { results += it }
+}
 
 /**
  * A store whose writes reach [delegate] late, at points the test controls (dispatch 2026-11-05-03).
@@ -26,8 +47,11 @@ import kotlinx.coroutines.withContext
  *
  * A write let through runs on [Dispatchers.IO], not in its caller's context. DataStore runs a write's transform in the
  * caller's context (DataStore 1.2.1, DataStoreImpl.kt:351). The test reads from a `runBlocking` on the main thread, and
- * a write that needed the main looper there would never finish. A write held when the store is released is never made,
- * as a write still queued in a cancelled DataStore is not.
+ * a write that needed the main looper there would never finish. Its result is handed back on [Dispatchers.IO] too, as
+ * DataStore's own actor hands back a write's result (DataStoreImpl.kt:200-202 and 244-245). So the writer resumes
+ * through the main looper, as a real write's caller does, and never inside the test's read.
+ *
+ * A write held when the store is released is never made, as a write still queued in a cancelled DataStore is not.
  *
  * Every write is held, the first too. Phase 1's plan let the first go straight through. That write would then run in the
  * ViewModel's main-thread context, and a read that let the second through while the first was still queued would block
@@ -39,7 +63,7 @@ internal class LateCrowdedIconsStore(private val delegate: CrowdedIconsPreferenc
 
     override suspend fun getCrowdedIconsMode(unknown: (String) -> Unit): Result<CrowdedIconsMode?> {
         val read = delegate.getCrowdedIconsMode(unknown)
-        held.poll()?.let { (mode, written) -> written.complete(withContext(Dispatchers.IO) { delegate.setCrowdedIconsMode(mode) }) }
+        held.poll()?.let { (mode, written) -> withContext(Dispatchers.IO) { written.complete(delegate.setCrowdedIconsMode(mode)) } }
         return read
     }
 
