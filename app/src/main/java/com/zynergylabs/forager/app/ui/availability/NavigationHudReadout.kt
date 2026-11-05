@@ -124,7 +124,7 @@ sealed interface ReturnRoute {
      */
     data class Straight(
         val note: WayToWaypointNote,
-        /** STUB (dispatch 2026-11-05-05, tests first): what is navigated to, for the note's words. Read by nothing yet. */
+        /** What is navigated to (dispatch 2026-11-05-05, A8): a trip's note says "the trip" where a waypoint's says "the waypoint". */
         val kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT,
     ) : ReturnRoute
 }

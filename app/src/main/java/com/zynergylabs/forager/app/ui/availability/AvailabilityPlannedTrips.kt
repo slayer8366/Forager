@@ -31,7 +31,7 @@ internal class AvailabilityPlannedTrips(
     fun loadPlannedTrips(): Job {
         return scope().launch {
             getPlannedTrips().fold(
-                onSuccess = { trips -> updateState { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null) } },
+                onSuccess = { trips -> updateState { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null, plannedTripsLoaded = true) } },
                 onFailure = { error ->
                     errorLog.w(TAG, "Couldn't load planned trips.", error)
                     updateState {

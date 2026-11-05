@@ -3,7 +3,9 @@ package com.zynergylabs.forager.app.ui.availability
 // Moved unchanged from NavigationHud.kt (dispatch 2026-10-19-03, UI split Phase 1, PR 1).
 
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
+import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
+import com.zynergylabs.forager.app.domain.wayto.textFor
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 
 internal const val NAVIGATION_HUD_TAG = "navigation-hud"
@@ -100,7 +102,8 @@ private const val WAY_TO_WAYPOINT_NOTE_TAIL = " · straight line"
 
 /**
  * A way-to-waypoint note where the whole one does not fit (step 6 PR 3, dispatch 2026-10-26-11): the note without its
- * tail, or, for the leaves-area note, the way home's short form, which RECORD -1665 keeps as it is.
+ * tail, or, for the leaves-area note, the way home's short form, which RECORD -1665 keeps as it is. In [kind]'s words
+ * (dispatch 2026-11-05-05, A8: a trip's name "the trip" where a waypoint's name "the waypoint", [textFor]).
  */
-internal fun wayToWaypointNoteShortText(note: WayToWaypointNote): String =
-    if (note == WayToWaypointNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_TO_WAYPOINT_NOTE_TAIL)
+internal fun wayToWaypointNoteShortText(note: WayToWaypointNote, kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT): String =
+    if (note == WayToWaypointNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.textFor(kind).removeSuffix(WAY_TO_WAYPOINT_NOTE_TAIL)
