@@ -34033,3 +34033,38 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - F, a notice based on the data, which needs B, D or E behind it.
   Brought to the owner.
 **Notes:** Written by the planner by hand. Closes 2026-09-28-2104. Next free ID -2107.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2107
+**Timestamp:** 2026-11-05T05:46:33Z
+**Continues:** 2026-09-28-2106
+**Title:** Older offline areas get the drop-off's map data automatically, in this release
+**Decision:**
+- **The owner, verbatim,** to "How should older offline areas get the fence data the street drop-off needs?": **"Automatic (Recommended)"**. The option read "The app keeps its own copy of each area's close-zoom map data for the drop-off, and refreshes it by itself whenever there's signal, the way it already fetches trail routes. Old areas gain the drop-off with nothing for the user to do. Costs: some extra storage, and a bigger build."
+- **Not chosen:**
+  - "Re-download really refreshes";
+  - "New address for new data";
+  - "Leave it".
+  The planner marked "Automatic" Recommended: it asks nothing of the user ("Don't make me think") and needn't be redone (memory, no-defer-to-after-release).
+- **To "Does the fix go in this release, or a follow-up update?":** **"This release"**. The option read "The release waits for it: dispatch, build, tests, and a phone check."
+- **So:** the release queue (-2056) gains this work. The release waits for it.
+**Notes:** Written by the planner by hand. Next free ID -2108.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2108
+**Timestamp:** 2026-11-05T05:46:33Z
+**Continues:** 2026-09-28-2107
+**Title:** Dispatch 2026-11-04-09 for Hazel: older offline areas get the drop-off's map data automatically; verify first; not started
+**Change:** dispatch A1 to A4. The app keeps its own copy of each downloaded area's zoom-15 basemap tiles for the way-to's drop-off. It is behind the existing OfflineBasemap interface, refreshed by itself with signal, and rides the route fetch. MapLibre's store and drawing are unchanged. A1 of dispatch 2026-11-04-04 (by trail, logged) is unchanged where the mark is absent.
+**Scope boundary:** dispatch's Scope: new files; the wiring; the route-fetch trigger; area deletion; tests; the report. Not MapLibre's store, the Worker, Theme.kt, Color.kt, pre-main, main, RECORD.md, the audit index or the phone.
+**Baseline:** pre-main 949ad8183; records-after-173 dea53a561; ForagerDatabase version 23.
+**Prediction (outcome — planner):** opening Offline maps with signal fills the app's copy with the S22's areas' zoom-15 tiles, all carrying barriers. Navigate to Waypoint 1 then no longer logs "has no barrier mark" for 15/5222/11744.
+**Prediction (mechanism — coder):** to come from Hazel's Phase 1 report.
+**Finish line:** a PR into pre-main, green, merged on the owner's word; then the planner's S22 phone check.
+**Abort conditions:** dispatch Stops: a Room version number; a server change; new words; a change to MapLibre's store; an owner-level choice; a wrong premise; a weakened test; two failed attempts at one symptom.
+**Dispatch-file:** prompts/preserved/2026-11-04-09-drop-off-map-copy.md
+**Notes:** Written by the planner by hand. Not started: Hazel starts only on the owner's yes to "Start Hazel on dispatch 2026-11-04-09 now?". Next free ID -2109.
