@@ -35165,3 +35165,22 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Amendment 1:** prompts/preserved/2026-11-05-06-amendment-1.md (A1 to A3, B1 to B3, C1 to C4).
 - **The planner's go for Phase 2,** to a fresh Hazel session: branch edge-shade from pre-main. MapFeatureBubble.kt waits for trip-bubble-actions' merge. It is the same dispatch, under the owner's "investigate" (-2143) and "This release" above.
 **Notes:** Written by the planner by hand. Next free ID -2155.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2155
+**Timestamp:** 2026-11-05T21:35:46Z
+**Continues:** 2026-09-28-2154
+**Title:** The edge shade: the snackbar becomes the app's own notice, with no shadow and the hairline; the centre-pin row's outline on the top and both sides
+**Decision:**
+- **Hazel's stop, by message,** read from the material3 1.5.0-alpha26 bytecode:
+  - both Snackbar overloads call Surface with shadowElevation 6 dp (SnackbarTokens.ContainerElevation) and have no elevation or border parameter, so the ring inside can't be removed from outside;
+  - the centre-pin OK/Cancel row (CentrePinLocationPicker.kt:381-390) is full width on the bottom bar, so a plain border would draw on the screen's edges and double on the bar's line.
+- **The owner, verbatim, to two questions:**
+  - "The notice along the bottom (…) is Material's own, and its shadow can't be removed from outside. What should it do?": **"App's own notice (Recommended)"**. The option read "The app gets its own version: the same layout, words and buttons, with no shadow and the thin outline, so it reads an even 80% like every other window. A modest extra build, with tests that it lays out like Material's." The others: "Outline, keep shadow"; "Leave it as it is".
+  - "The OK/Cancel row in the pin pickers spans the screen and sits on the bottom bar. Which edges get the thin outline?": **"Top and both sides (Recommended)"**. The option read "As the bottom bar under it has had since your -989: "give the side of the bottom navigation strip the outline too. All the way down". Its bottom shares the bar's line." The others: "Top only"; "All round".
+- **Told to Hazel** by message, with the words quoted:
+  - a new small notice component for ScaffoldSnackbarHost, with Material's layout matched and parity tests, and SnackbarTrimmedTouchTest held;
+  - the row's outline: top and sides, its bottom shared with the bar, none over the system bar in fullscreen, and the rail's line on its port side in the rail layout.
+**Notes:** Written by the planner by hand. Next free ID -2156.
