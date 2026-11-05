@@ -34694,3 +34694,45 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** pre-main's CI at ee0651fe0, the commit Elder audits, passed on every job
 **Outcome:** run 42094523206, the push run on pre-main at ee0651fe0 (two audit-index rows on top of 96d3c0c43), completed with success on every job. The result was read with gh run view; the planner didn't download the JUnit XML. That is the gate's first step for the promotion Elder is auditing (dispatch 2026-11-05-02).
 **Notes:** Written by the planner by hand. Next free ID -2135.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2135
+**Timestamp:** 2026-11-05T20:06:41Z
+**Continues:** 2026-09-28-2132, 2026-09-28-2134
+**Title:** Elder's audit of the promotion pre-main ee0651fe0 into main c61850aa2: pass with items; the bug 14 picker warning was ruled and worded but never built
+**Outcome:**
+- **Filed unedited** at prompts/preserved/2026-11-05-02-report.md, extracted from his hand-back. Elder Ford, on Fable, read only.
+- **Verdict: pass with items.** Nothing found that crashes, loses a record, misleads on position, direction or time, reads as identification, breaks a ruling, or ships unfinished.
+- **Baseline confirmed:**
+  - merge-base bfbaca47c, 663 commits ahead, 786 files;
+  - main's 22 files are identical on pre-main, with no merge-tree conflict;
+  - CI 42094523206 green at ee0651fe0 (965 suites, 6,644 tests, 0 failures, 24 skipped);
+  - @Ignore 52 on both branches; the skip allowlist is unchanged; no developer tools on pre-main;
+  - schema 22 to 23, so A2, the upgrade check, applies.
+- **Items for the owner,** his section 5:
+  1. The plain build of the promoted commit has never been cold-started on a phone. Every S22 build was tools/s22-combined (A1).
+  2. The A2 upgrade check, the owner's signed build over a Play 3500 install, has not run. It is possible only from main after the promotion.
+  3. Known bug 14's picker warning is not in pre-main's code.
+  4. The pick-up chooser at the walker's end was never seen on a phone. The owner's "Needed for release" (-2050).
+  5. The way home's off-trail walk, which the owner asked for to judge it (-1726, -1729), is not recorded.
+  6. The night chip's label is 3.81:1, Appendix B's shortfall, as the owner chose (-2093).
+  7. Known bug 23, mid-word tab labels at font 2.0.
+  8. #476's route-card fix is not seen on a phone.
+  9. The intermittent test, pending dispatch 2026-11-05-03.
+  10. Known bugs 18 and 19 ship, with their ruled fixes for after.
+  11. Known bug 21.
+  12. The older-area copy's data cost, as told to the owner.
+  13. Areas downloaded before 11-04 hold no hill shading or height line; the notice is the next step.
+  14. Record and public-text notes: 79 of about 85 PRs in the range have no audit-index row; the live privacy page and the Data safety form couldn't be read; trail-v4.json was changed in place (#477).
+- **His judgements on the planner's three points:**
+  - -1201's production build and store listing come after this promotion;
+  - -1940 was an observation, not a hold, but the way home's off-trail walk is still owed;
+  - the intermittent test doesn't change the verdict.
+- **Item 3, checked by the planner from source:**
+  - The owner ruled -1943 "Warn in the area picker (Recommended)" ("Users choosing an area there are told before they download. The release isn't held.") and -1951 its words, "Detailed offline maps aren't available here yet. A download here will be blank when you're offline."
+  - prompts/preserved/2026-11-02-02-bug-14-picker-warning.md exists. But no coder was started on it: no intent closing it, and no branch or PR. git grep of pre-main's app/src/main finds no such text.
+  - **A planner gap,** from the planner session of 11-02. The release queue of -2056 didn't list it either.
+- **Brought to the owner:** items 3, 4 and 5, and the order of items 1 and 2.
+**Notes:** Written by the planner by hand. Next free ID -2136.
