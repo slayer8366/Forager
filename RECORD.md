@@ -35471,3 +35471,25 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The planner swiped without first checking which card was centred. Forager was swiped away only after a screenshot confirmed it.
 **Waiting on:** the owner's look at the trip bubble and card on the S22 (Test trip B is open), then the owner's word on merging #494. Clean-up afterwards: delete Test trip B and the Test s16 area, then snapshot.
 **Notes:** Written by the planner by hand. Next free ID -2166.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2166
+**Timestamp:** 2026-11-06T00:53:51Z
+**Continues:** 2026-09-28-2164
+**Title:** The edge shade: Hazel's interim hand-back, built and green except C2; her three remaining calls accepted; the notice's action colour measured as #D0BCFF, for the owner
+**Outcome:**
+- **Hazel's interim report** for dispatch 2026-11-05-06 is preserved at prompts/preserved/2026-11-05-06-interim-report.md. PR #495 is still a draft, head 2544e080e.
+  - The last full CI, run 42137248165, had no compile errors: 6680 tests, 0 failures, 24 skipped. K-2a is b02687d2e.
+  - r6 (r5's edit under K-2a) failed all four landscape cases at the arc squares: 38 of 75 by day and 40 at night, against her predicted 40 and 43. The direction held.
+  - The four squares K-2a drops were all broken in r5 under 12° to 72°.
+  - C2, the bubble's entry-count menu in MapFeatureBubble.kt, waits for #494's merge commit. She stopped rather than poll for hours.
+- **Her three remaining calls, accepted by the planner as technical:**
+  - a grey stand-in map under every read;
+  - each panel's side next to the icon bar read over the bar;
+  - the notice keeping Material's 6 dp shadow where no map is behind it, which follows the owner's "In the places that aren't covering a map, they can stay solid".
+- **For the owner, not decided:** the notice's action text is drawn in #D0BCFF, Material's inversePrimary, a light lavender, not the app's primary #2E5339. The host's comment at ScaffoldSnackbarHost.kt:49-51 says primary, and it is wrong. This is measured in her parity test, and nothing is changed.
+- **Unchanged, for a later ruling:** two more outline checks share the daytime blind spot, both reasoned rather than measured. They are the fullscreen far-end walk at MapChromeOutlinePixelsTest.kt:534, and the assertLineNear corner checks at :263, :264, :279, :313, :314, :343, :348, :367 and :368.
+- **Not checked yet:** the device check (B3), because Robolectric draws shadows differently from the phone.
+**Notes:** Written by the planner by hand. Next free ID -2167.
