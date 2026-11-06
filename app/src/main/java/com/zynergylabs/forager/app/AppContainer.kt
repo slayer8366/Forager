@@ -50,6 +50,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import com.zynergylabs.forager.app.data.remote.ApiClients
 import com.zynergylabs.forager.app.data.dropoffmap.LocalRegionDropOffMaps
+import com.zynergylabs.forager.app.data.mapdetail.WorkerTrailMapDetail
+import com.zynergylabs.forager.app.domain.mapdata.TrailMapDetail
 import com.zynergylabs.forager.app.data.routedata.LocalRegionRouteFolders
 import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
@@ -354,6 +356,13 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         log = { message, error -> Log.w("DropOffMap", message, error) },
     )
     val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao(), RoomOfflineRegionIdReplacer(database), regionRouteFolders, regionDropOffMaps)
+
+    // Known bug 14 (dispatch 2026-11-02-02): whether the Trail Map has its detail across the Offline Maps picker's area, asked of
+    // the Trail Map's own tile address on the app's JSON client (its User-Agent and 15 s timeouts, as the drop-off map copy's).
+    val trailMapDetail: TrailMapDetail = WorkerTrailMapDetail(
+        http = ApiClients.httpClient(debug = BuildConfig.DEBUG),
+        template = com.zynergylabs.forager.app.ui.map.Basemap.FORAGER_TRAIL.tileUrlTemplate,
+    )
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     // One instance for both interfaces (map layers L0b, planner's ruling on F1): DataStore refuses a
     // second live instance on `map_preferences`, so the layer choices live in this same class.

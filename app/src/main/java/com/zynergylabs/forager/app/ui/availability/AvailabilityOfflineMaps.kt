@@ -7,6 +7,8 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.mapdata.NoTrailMapDetail
+import com.zynergylabs.forager.app.domain.mapdata.TrailMapDetail
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.watchEntryReferenceCounts
@@ -38,7 +40,12 @@ internal class AvailabilityOfflineMaps(
     private val errorLog: ErrorLog,
     /** Told of each finished download, so a route fetch that failed with it shows "Try again" (dispatch 2026-10-23-03). */
     private val onDownloaded: (OfflineRegionSummary) -> Unit = {},
+    /** Known bug 14 (dispatch 2026-11-02-02): what the picker's [detail] check asks. */
+    trailMapDetail: TrailMapDetail = NoTrailMapDetail,
 ) {
+
+    /** The picker's detail check (known bug 14), built here so `AvailabilityViewModel.kt` stays under 800 lines (RECORD -2150). */
+    val detail = AvailabilityOfflineDetail(updateState, scope, trailMapDetail, errorLog)
 
     fun onOfflineMapLatChanged(text: String) {
         updateState { it.copy(offlineMapLatText = text) }
