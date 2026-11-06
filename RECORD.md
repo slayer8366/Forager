@@ -35899,7 +35899,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **ID:** 2026-09-28-2180
 **Timestamp:** 2026-11-06T04:49:19Z
 **Continues:** 2026-09-28-2177, 2026-09-28-2178
-**Title:** The Tools drawer gets the map-chrome outline, in PR #495: dispatch 2026-11-05-09
+**Title:** The Tools drawer gets the map-chrome outline: dispatch 2026-11-05-09
 **Decision:**
 - **The owner, verbatim,** with a screenshot of the open Tools drawer over the map from their own phone: **"Give the tools drawer an outline also please"**.
   - The screenshot shows the drawer see-through over the map, with no line at its map-facing edge. The edge shade (PR #495) didn't list the drawer.
@@ -35907,10 +35907,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The line goes on the edge that faces the map, in both directions, as #495's hairline.
   - Only on the Maps tab, where the drawer is see-through.
   - Nothing else changes, and the drawer's shadow, if any, is only reported.
-  - Phase 1 is read-only now. Phase 2 is built on branch edge-shade, into PR #495 (the owner's change below).
+  - Phase 1 is read-only now. Phase 2 is built after #495 merges, from pre-main as it is then.
 - **The planner's readings, open to the owner:**
   - Over the other tabs the drawer stays solid with no line, per the owner's "In the places that aren't covering a map, they can stay solid" (CLAUDE.md, the 80% rule).
   - "This release": the owner asked for it while the promotion is being assembled.
+- **Still waiting on the owner:** the look at #495 on the S22, its merge word, and whether #496 gets a phone check first.
 - **Changed (2026-11-06T04:50:39Z), the owner, verbatim:** **"Add it to 495"**. This answers "it's built after the edge shade (#495) merges" and "should I merge #495?".
   - So Phase 2 builds on branch edge-shade (PR #495), and the dispatch is marked in place. #495 isn't merged until the drawer is in, has its own S22 check, and the owner gives the word. The S22 check of -2178 stands for the rest of #495.
   - Told to Hazel (Phase 1, still read-only) by message, with the words quoted.
@@ -35926,4 +35927,5 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - #495 is set back to draft while its red tests-first commit lands, and made ready again at the end.
     - The -2178 S22 check stands for everything but the drawer, which gets its own short check on the new head.
     - The merge pins the new head.
+- **Appended (2026-11-06T05:06:42Z), the owner, verbatim:** "Append rule still applies, just keep it to the same record so that way lines don't get cluttered with simple changes". When "Add it to 495" was folded in, the planner had rewritten this entry's title and its Phase 2 line, and deleted its "Still waiting" line. All three are restored as written. The change stands only in the appended notes above.
 **Notes:** Written by the planner by hand. Next free ID -2181.
