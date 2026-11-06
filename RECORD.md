@@ -36225,4 +36225,19 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The planner's reading, a premise for Phase 1:** a turn is where the route leaves its way for another, at a junction or fork, with a real change of direction. A bend within one way, or carrying straight on through a junction, is never a turn.
 - **Privacy:** the owner's walk routes are near home. Phase 1 measures in public areas only (P or others), and the planner measures on the S22 privately if needed.
 - **Phase 1 started (2026-11-06T11:41Z)** with a fresh Hazel, from the dispatch's local file, because the planner's pushes wait on the owner's permission. The owner's Q4 option authorised the read-only look.
+- **Phase 1 (2026-11-06T12:21:31Z):** Hazel's read-only report is preserved at prompts/preserved/2026-11-06-01-phase1-report.md. It was measured on the repository's public routing fixture: 200 routes through the app's own router, angles and counts only.
+  - **Where it can work:** on the trail parts of the way to a waypoint or trip and of the way home. The route keeps points only, so junctions come from the route data's graph, through RouteWays, which already has a production caller.
+  - **Where it can't:** the walker's own track has no junction data, a straight line has none, and plotted-route navigation is not on pre-main.
+  - **No angle alone separates a turn from a winding path.** Comparing the route with the other ways at a junction does. Her rule R(30°, 30°) gives 544 turns over 190 km, against 1,097 bends of 30° or more within ways.
+  - **Corrected here:** the planner's reading, "leaves the way it is on", can't be read from the data, which has no way identity. The direction of the other ways replaces it.
+  - **Turns that aren't at junctions:** where the lead-in meets the trail, where the route leaves it, and the way home's two joints.
+  - **The fit:** at normal text it fits except on a 320 dp phone with a dusk time. At font 2.0 with an evening time, it squeezes the evening column.
+- **The planner's calls, open to the owner:**
+  - **O1:** R(30°, 30°), provisionally. It is set on fixture data, so Phase 2 adds an info log line, with no positions, for each junction's class, and the planner reads it on the S22 on the owner's routes (M1) before the thresholds are kept. This follows "no speculative logic without real data".
+  - **O4:** three bands, slight below 45°, plain 45 to 134° and sharp from 135°, as the owner named them ("slight, square or sharp"). There is no U-turn arrow.
+  - **O5:** the distance counts from the needle's place, never below 0. A turn is passed only when the walker's place passes it.
+  - **O9:** each turn in its turn, none merged.
+  - **O10:** junctions come from RouteWays; the vendored BRouter stays unmodified.
+- **For the owner now:** the joins (O3), forks (O2), the empty states (O6) and the walker's own track (O7).
+- **For the owner later,** once #498's fixed spaces are built and measured: the TalkBack words (O8) and the fit (O11).
 **Notes:** Written by the planner by hand. Next free ID -2184.
