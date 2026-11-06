@@ -35937,3 +35937,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - The merge pins the new head.
 - **Appended (2026-11-06T05:06:42Z), the owner, verbatim:** "Append rule still applies, just keep it to the same record so that way lines don't get cluttered with simple changes". When "Add it to 495" was folded in, the planner had rewritten this entry's title and its Phase 2 line, and deleted its "Still waiting" line. All three are restored as written. The change stands only in the appended notes above.
 **Notes:** Written by the planner by hand. Next free ID -2181.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2181
+**Timestamp:** 2026-11-06T05:20:26Z
+**Title:** The navigation card: the distance and "by trail" on one line, in portrait and landscape: dispatch 2026-11-05-10
+**Decision:**
+- **The owner, verbatim,** with a portrait and a landscape screenshot of a navigation card from their own phone: **"For navigation cards have the 2.2 mi on the left half, and then move the "by trail" from the bottom to the top right half, on the same line as 2.2 mi"**, then **"And do the same for landscape"**.
+- **The planner's reading, a premise for Phase 1 to check:**
+  - In the card's left part, the distance takes the left half of the top line and the distance kind ("by trail" or "straight", NavigationWords.kt:92-95) the right half of the same line. The turn line goes below, and the kind's bottom line goes.
+  - The right part ("Dark since …" and the X) is unchanged.
+- **Dispatch 2026-11-05-10** is at prompts/preserved/2026-11-05-10-nav-card-kind-line.md:
+  - Phase 1 is read-only. It maps every state the readout shows today and what the owner's layout makes of each; the cases the words don't settle come to the owner as options.
+  - Phase 2 runs after the owner's ruling.
+  - The edge shade (PR #495) touches none of the navigation card's files, so this runs on its own branch.
+- **Read before writing:** the kind word sits in a fitted status line (NavigationHudFit.kt statusLineFit, with kindLead; NavigationInfo.kt:182). It can lead other status words, and a route message takes its own line.
+**Notes:** Written by the planner by hand. Next free ID -2182.
