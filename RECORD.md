@@ -35629,6 +35629,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - The icon is the same BouncingIconButton as Directions and Delete, with the bottom bar's Filled.Map glyph.
     - A composition local, provided in AvailabilityScreen.kt, carries the tap to the Trip Planner list. There is no edit to AvailabilityScreenDrawerHost.kt, SearchControls.kt or AvailabilitySettingsUi.kt.
     - C1 can't happen: a broken stored route loads as a plain trip (RoomPlannedTripRepository.kt:51-67) and opens as one.
+- **Phase 2 (2026-11-06T07:39:54Z):** Hazel's report is preserved at prompts/preserved/2026-11-05-08-phase2-report.md.
+  - **PR #497,** head 4c645fba8, is ready and not merged. CI is green: 6,790 tests, 22 added, none removed or changed (run 42175191783, and the PR's own 42178441481).
+  - **Reverts:** nine, each failing for its own edit; R3b failed one more test than predicted, explained.
+  - **The planner's check:** no @Ignore and no removed assertion; the new on-screen words are the owner's; no home-location values added; no shared files with #495.
+  - **Her eight calls beyond the dispatch are accepted as technical:**
+    - covered means inside the downloaded rectangle;
+    - the pin is the middle of the line's extent;
+    - a successful download ends the trip;
+    - leaving during a download puts the page back;
+    - a second tap keeps the first "before";
+    - a route radius is held as the user's own;
+    - the test screen's wiring.
+    - Item 3, a note hiding once the pin or radius moves, is visible to the user. The planner accepts it under Amendment 1 A6 ("comes to the planner … with your recommendation"), and tells the owner.
+  - **Next:** the S22 check on the tools build with #495 and #497 (CI run 42182078955), then the owner's merge word.
 **Notes:** Written by the planner by hand. Next free ID -2172.
 
 ---
@@ -35944,6 +35958,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - The -2178 S22 check stands for everything but the drawer, which gets its own short check on the new head.
     - The merge pins the new head.
 - **Appended (2026-11-06T05:06:42Z), the owner, verbatim:** "Append rule still applies, just keep it to the same record so that way lines don't get cluttered with simple changes". When "Add it to 495" was folded in, the planner had rewritten this entry's title and its Phase 2 line, and deleted its "Still waiting" line. All three are restored as written. The change stands only in the appended notes above.
+- **Phase 2 (2026-11-06T07:39:54Z):** Hazel's report is preserved at prompts/preserved/2026-11-05-09-phase2-report.md.
+  - The line is built into #495, head d31170fa4: a draw-only modifier (ToolsDrawerEdge.kt), with one overMap value deciding both the fill and the line.
+  - **Tests:** six pixel classes, plus a shape guard. Tests first, 12 red (run 42168269666). r1 failed only the Maps-tab cases, and r2 only the List cases.
+  - **CI:** 6814 tests, 0 failures (run 42172468540).
+  - **#495** is ready again.
+  - **The planner's check:** no @Ignore and no removed assertion; 8 checks pass; no home-location values added.
+  - **Next:** the S22 check of the drawer, on the tools build with #495 and #497 (CI run 42182078955), then the owner's merge word.
 **Notes:** Written by the planner by hand. Next free ID -2181.
 
 ---
