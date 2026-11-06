@@ -35493,3 +35493,27 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Unchanged, for a later ruling:** two more outline checks share the daytime blind spot, both reasoned rather than measured. They are the fullscreen far-end walk at MapChromeOutlinePixelsTest.kt:534, and the assertLineNear corner checks at :263, :264, :279, :313, :314, :343, :348, :367 and :368.
 - **Not checked yet:** the device check (B3), because Robolectric draws shadows differently from the phone.
 **Notes:** Written by the planner by hand. Next free ID -2167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2167
+**Timestamp:** 2026-11-06T01:07:26Z
+**Title:** Download Maps from a trip in the Trip Planner, with the pin and name already set: dispatch 2026-11-05-08
+**Decision:**
+- **The owner, verbatim:** "Add an option to download the surrounding map from the trip planner so you don't need to do a separate search in the offline maps. Add a trip to the map, select the date. Then tap Download Maps button from the Trip Planner menu to be taken to the Offline Maps page with the coordinates already fixed into the Offline Maps, so all they have to do is adjust tile size and download."
+- **The owner, verbatim, to four questions:**
+  - "Where should the Download Maps button go in the Trip Planner?": **"On each trip (Recommended)"**. The option read: "Every trip in the Trip Planner list gets its own \"Download Maps\" button, which opens Offline Maps with the pin on that trip. Works however many trips are planned." The other: "One for the newest trip".
+  - "Should the Offline Maps name box come filled in with the trip's name?": **"Yes, the trip's name (Recommended)"**. The option read: "The area is saved as, say, \"Test trip B\", so it's easy to recognise in the list later. The user can still change it. Only the radius is left to set." The other: "No, leave it blank".
+  - "A trip with a planned route has several stops. Where should Download Maps put the pin for one of those?": **"Cover the whole route (Recommended)"**. The option read: "The pin goes in the middle of the route's stops and the radius starts just big enough to cover all of them, up to the largest radius. The user can still change it." The others: "At the route's start"; "Plain trips only".
+  - "When should this be built?": **"This release (Recommended)"**. The option read: "Build it before the promotion, alongside the trip bubble and edge shade. It touches the Trip Planner and Offline Maps, which nothing else in flight changes." The other: "Next release".
+    - **Corrected here:** "which nothing else in flight changes" was wrong. PR #494 changes AvailabilityScreen.kt, AvailabilityUiState.kt and AvailabilityViewModel.kt, which this may need. The planner checked the overlap only after asking.
+    - So Phase 1 is read-only now, and Phase 2 is built after #494 merges. The edge shade's branch touches none of those files.
+- **Dispatch 2026-11-05-08** is at prompts/preserved/2026-11-05-08-trip-download-maps.md:
+  - Phase 1 is read-only, a report by message.
+  - Phase 2 starts on the planner's go after #494 merges, from pre-main as it is then.
+  - It doesn't touch CentrePinLocationPicker.kt, which is bug 14's Phase 2 file.
+- **Already in place, read at pre-main 3a3d85089:**
+  - The Offline Maps page opens its pin on offlineMapLatText/offlineMapLngText when they are set, and otherwise on the device's location (AvailabilityOfflineMapsUi.kt:149-162).
+  - The trip rows today are PlannedTripRow (AvailabilityTripsWaypointsUi.kt:148, with Directions and Delete icons) and PlannedRouteRow.kt.
+**Notes:** Written by the planner by hand. Next free ID -2168.
