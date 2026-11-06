@@ -21,8 +21,8 @@ internal fun keyOf(p: LatLng) = PointKey((p.lat * 1e6).roundToLong(), (p.lng * 1
  */
 internal const val ON_WAY_METERS = 1.0
 
-/** One direction leaving a point along one of the data's ways: the way's points from that point outward. */
-internal class Branch(val points: List<LatLng>) {
+/** One direction leaving a point along one of the data's ways: the way's points from that point outward, and its tags. */
+internal class Branch(val points: List<LatLng>, val tags: Map<String, String>) {
     private val along = metersAlong(points)
 
     /** The way's first point apart from the one it leaves from, or `null` for a way of no length. */
@@ -60,8 +60,8 @@ internal class WaysAt(private val ways: List<RouteWay>) {
         val at = byPoint[keyOf(p)] ?: return null
         return at.flatMap { (way, k) ->
             listOfNotNull(
-                if (k > 0) Branch(way.points.subList(0, k + 1).asReversed()) else null,
-                if (k < way.points.lastIndex) Branch(way.points.subList(k, way.points.size)) else null,
+                if (k > 0) Branch(way.points.subList(0, k + 1).asReversed(), way.tags) else null,
+                if (k < way.points.lastIndex) Branch(way.points.subList(k, way.points.size), way.tags) else null,
             )
         }.filter { it.firstStep != null }
     }
@@ -73,7 +73,7 @@ internal class WaysAt(private val ways: List<RouteWay>) {
     fun onWay(p: LatLng): List<Branch> = ways.flatMap { way ->
         val k = (0 until way.points.lastIndex).minByOrNull { metersFromSegment(p, way.points[it], way.points[it + 1]) } ?: return@flatMap emptyList()
         if (metersFromSegment(p, way.points[k], way.points[k + 1]) > ON_WAY_METERS) return@flatMap emptyList()
-        listOf(Branch(listOf(p) + way.points.subList(0, k + 1).asReversed()), Branch(listOf(p) + way.points.subList(k + 1, way.points.size)))
+        listOf(Branch(listOf(p) + way.points.subList(0, k + 1).asReversed(), way.tags), Branch(listOf(p) + way.points.subList(k + 1, way.points.size), way.tags))
     }.filter { it.firstStep != null }
 }
 

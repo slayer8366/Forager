@@ -91,6 +91,20 @@ class RouteTurnsTest {
         assertEquals(TurnSide.RIGHT, j.judgement.side)
     }
 
+    @Test
+    fun `B5 - a driveway leaving a junction the route goes straight through is no path passed, and is counted apart`() {
+        val driveway = RouteWay(listOf(at(0.0, 0.0), at(-60.0, 0.0)), mapOf("highway" to "service", "service" to "driveway"))
+        val footway = RouteWay(listOf(at(0.0, 0.0), at(60.0, 0.0)), mapOf("highway" to "footway"))
+        val way = wayTo(listOf(0.0 to -250.0, 0.0 to -200.0), listOf(0.0 to -200.0, 0.0 to -100.0, 0.0 to 0.0, 0.0 to 200.0), listOf(0.0 to 200.0, 0.0 to 250.0))
+        val j = turnsOf(way, listOf(south, north, driveway, footway)).junctions.single().judgement
+
+        assertEquals(JunctionClass.STRAIGHT_ON, j.junctionClass)
+        assertEquals(0, j.leftPaths)
+        assertEquals(1, j.leftNotPaths)
+        assertEquals(1, j.rightPaths)
+        assertEquals(0, j.rightNotPaths)
+    }
+
     // B2: the joins, "with the trail's two directions as the ways there".
 
     private val trail = way(0.0 to -300.0, 0.0 to 300.0)

@@ -177,6 +177,29 @@ class NextTurnAheadTest {
         assertEquals(1, next.sameSidePathsBefore)
     }
 
+    // B5, the owner: "Walkable ways only (Recommended)": "Driveways, parking-lot lanes and motorway slips don't, so a
+    // driveway never makes it \"the second left\"."
+
+    private fun tagged(highway: String, vararg eastNorth: Pair<Double, Double>) = RouteWay(eastNorth.map { at(it) }, mapOf("highway" to highway))
+
+    private val withDriveways = listOf(
+        way(0.0 to -50.0, 0.0 to 100.0),
+        tagged("service", 0.0 to 100.0, -200.0 to 100.0), // a driveway left at 100 m
+        way(0.0 to 100.0, 0.0 to 200.0),
+        tagged("footway", 0.0 to 200.0, -200.0 to 200.0), // a footpath left at 200 m
+        tagged("motorway_link", 0.0 to 200.0, 200.0 to 200.0), // a motorway slip right
+        way(0.0 to 200.0, 0.0 to 300.0),
+        way(0.0 to 300.0, -300.0 to 300.0),
+        way(0.0 to 300.0, 300.0 to 300.0),
+        way(0.0 to 300.0, 0.0 to 500.0),
+    )
+
+    @Test
+    fun `B5 - the count passes over driveways and motorway slips, counting only walkable ways`() {
+        assertEquals("the footpath alone: \"take the second left\"", 1, turn(Walk(turnAt300(-300.0), withDriveways).at(0.0, -60.0)).sameSidePathsBefore)
+        assertEquals("the slip is not a path: \"turn right\"", 0, turn(Walk(turnAt300(300.0), withDriveways).at(0.0, -60.0)).sameSidePathsBefore)
+    }
+
     // E1: the owner, "Blank (Recommended)": "The space keeps its place, empty, so nothing moves."
 
     @Test

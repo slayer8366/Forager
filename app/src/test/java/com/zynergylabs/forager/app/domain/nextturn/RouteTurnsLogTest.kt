@@ -28,11 +28,11 @@ class RouteTurnsLogTest {
         RouteJunction(node, along, kind, ways, judgement)
 
     @Test
-    fun `M1 - each judged point's index, distance along, turn, margin, class and band, after the read's time`() {
+    fun `M1 - each judged point's index, distance along, turn, margin, class and band, with the count and the ways it leaves out, after the read's time`() {
         val turns = RouteTurns.Read(
             junctions = listOf(
                 judged(3, 31.4, JunctionKind.JOIN_START, 3, JunctionJudgement(JunctionClass.NO_LEG)),
-                judged(12, 118.6, JunctionKind.JUNCTION, 3, JunctionJudgement(JunctionClass.STRAIGHT_ON, 4.4, 85.6, leftPaths = 1)),
+                judged(12, 118.6, JunctionKind.JUNCTION, 4, JunctionJudgement(JunctionClass.STRAIGHT_ON, 4.4, 85.6, leftPaths = 1, leftNotPaths = 1)),
                 judged(20, 201.0, JunctionKind.JUNCTION, 4, JunctionJudgement(JunctionClass.STRAIGHT_ON, -2.0, 88.0, leftPaths = 1, rightPaths = 1)),
                 judged(26, 260.2, JunctionKind.JUNCTION, 4, JunctionJudgement(JunctionClass.TURN, -89.6, -89.6, TurnBand.PLAIN, TurnSide.LEFT)),
                 judged(31, 310.0, JunctionKind.JUNCTION, 3, JunctionJudgement(JunctionClass.FORK, 6.0, 30.0, keep = TurnSide.RIGHT)),
@@ -48,12 +48,12 @@ class RouteTurnsLogTest {
                 "M1 next turns, way to a waypoint: ways read in 12 ms (2 reads, 9 ways); 7 judged: 2 turns, 1 fork, 2 straight on, " +
                     "1 no leg, 1 unmatched. " +
                     "#1 node 3, 31 m, join (start) of 3 ways: NO_LEG | " +
-                    "#2 node 12, 119 m, junction of 3 ways: turn 4°, margin 86°, STRAIGHT_ON, paths 1 left 0 right | " +
-                    "#3 node 20, 201 m, junction of 4 ways: turn -2°, margin 88°, STRAIGHT_ON, paths 1 left 1 right | " +
-                    "#4 node 26, 260 m, junction of 4 ways: turn -90°, margin -90°, TURN, plain left, 2 same-side paths before | " +
+                    "#2 node 12, 119 m, junction of 4 ways: turn 4°, margin 86°, STRAIGHT_ON, paths 1 left 0 right, not paths 1 left 0 right | " +
+                    "#3 node 20, 201 m, junction of 4 ways: turn -2°, margin 88°, STRAIGHT_ON, paths 1 left 1 right, not paths 0 left 0 right | " +
+                    "#4 node 26, 260 m, junction of 4 ways: turn -90°, margin -90°, TURN, plain left, 2 same-side paths before, 1 same-side way not counted | " +
                     "#5 node 31, 310 m, junction of 3 ways: turn 6°, margin 30°, FORK, keep right | " +
                     "#6 node 40, 400 m, junction of 3 ways: UNMATCHED | " +
-                    "#7 node 44, 440 m, join (end) of 3 ways: turn 151°, margin -151°, TURN, sharp right, 0 same-side paths before",
+                    "#7 node 44, 440 m, join (end) of 3 ways: turn 151°, margin -151°, TURN, sharp right, 0 same-side paths before, 0 same-side ways not counted",
             ),
             routeTurnsLogLines(RouteKind.WAY_TO_WAYPOINT, turns),
         )

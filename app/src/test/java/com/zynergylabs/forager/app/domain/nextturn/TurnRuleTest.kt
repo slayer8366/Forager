@@ -10,7 +10,9 @@ import org.junit.Test
  */
 class TurnRuleTest {
 
-    private fun judge(out: Double, vararg others: Double) = judgeJunction(inBearing = 0.0, outBearing = out, otherBearings = others.toList())
+    private fun judge(out: Double, vararg others: Double) = judgeJunction(inBearing = 0.0, outBearing = out, others = others.map { OtherWay(it) })
+
+    private fun judgeWays(out: Double, vararg others: OtherWay) = judgeJunction(inBearing = 0.0, outBearing = out, others = others.toList())
 
     // B1: "It is a turn when another way there is straighter than the route's way, or when the route bends at least 30°
     // and is the straightest by less than 30°."
@@ -115,6 +117,26 @@ class TurnRuleTest {
         assertEquals(JunctionClass.FORK, j.junctionClass)
         assertEquals(0, j.leftPaths)
         assertEquals(0, j.rightPaths)
+    }
+
+    // B5, the owner: "Walkable ways only (Recommended)": "Footpaths, trails, tracks and streets count. Driveways,
+    // parking-lot lanes and motorway slips don't, so a driveway never makes it \"the second left\"."
+
+    @Test
+    fun `B5 - carrying straight on, a way that is not a path is not counted on its side, and is counted apart`() {
+        val j = judgeWays(0.0, OtherWay(270.0), OtherWay(90.0, countsAsPath = false), OtherWay(100.0, countsAsPath = false))
+        assertEquals(JunctionClass.STRAIGHT_ON, j.junctionClass)
+        assertEquals(1, j.leftPaths)
+        assertEquals(0, j.rightPaths)
+        assertEquals(0, j.leftNotPaths)
+        assertEquals(2, j.rightNotPaths)
+    }
+
+    @Test
+    fun `B5 - the turn rule still counts every way, so a driveway straight on makes turning left a turn`() {
+        val j = judgeWays(270.0, OtherWay(0.0, countsAsPath = false))
+        assertEquals(JunctionClass.TURN, j.junctionClass)
+        assertEquals(TurnSide.LEFT, j.side)
     }
 
     // C2: the fork's side.

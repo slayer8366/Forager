@@ -26,12 +26,16 @@ enum class JunctionClass {
     UNMATCHED,
 }
 
+/** Another way at a junction: its bearing from the node, and whether it counts as a path passed there (B5, [countsAsPath]). */
+data class OtherWay(val bearing: Double, val countsAsPath: Boolean = true)
+
 /**
  * One junction's judgement. [routeTurnDegrees] is the route's own change of direction, signed (right positive), measured
  * [TURN_MEASURE_METERS] either side; [marginDegrees] how much straighter the route is than the straightest other way
  * (below 0 when another way is straighter). Both `null` where nothing was measured ([JunctionClass.NO_LEG],
  * [JunctionClass.UNMATCHED]). [band] and [side] are a [JunctionClass.TURN]'s, [keep] a [JunctionClass.FORK]'s.
- * [leftPaths] and [rightPaths] count the other ways leaving to each side of the way in.
+ * [leftPaths] and [rightPaths] count the paths passed to each side of the way in at a [JunctionClass.STRAIGHT_ON] junction
+ * (B5: walkable ways only), and [leftNotPaths] and [rightNotPaths] the other ways there that are not counted.
  */
 data class JunctionJudgement(
     val junctionClass: JunctionClass,
@@ -42,15 +46,18 @@ data class JunctionJudgement(
     val keep: TurnSide? = null,
     val leftPaths: Int = 0,
     val rightPaths: Int = 0,
+    val leftNotPaths: Int = 0,
+    val rightNotPaths: Int = 0,
 )
 
 /**
  * Judges a junction from the bearing the route comes in on ([inBearing], from [TURN_MEASURE_METERS] back to the node),
- * the bearing it leaves on ([outBearing], from the node to [TURN_MEASURE_METERS] on), and the bearing of each other way
- * there ([otherBearings], from the node to [TURN_MEASURE_METERS] along it, or to its end if it is shorter). Bearings in
- * degrees clockwise from north.
+ * the bearing it leaves on ([outBearing], from the node to [TURN_MEASURE_METERS] on), and each other way there ([others]:
+ * its bearing from the node to [TURN_MEASURE_METERS] along it, or to its end if it is shorter, and whether it is a path).
+ * Bearings in degrees clockwise from north. Every way counts for the turn (B1); only paths count as passed (B5).
  */
-internal fun judgeJunction(inBearing: Double, outBearing: Double, otherBearings: List<Double>): JunctionJudgement {
+internal fun judgeJunction(inBearing: Double, outBearing: Double, others: List<OtherWay>): JunctionJudgement {
+    val otherBearings = others.map { it.bearing }
     val turn = normDegrees(outBearing - inBearing)
     val bend = abs(turn)
     // Each other way's turn from the way in, signed as the route's is.
