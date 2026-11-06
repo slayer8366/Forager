@@ -36125,6 +36125,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Amendment 1 gains category H (H1, H2) and E9. G3's turn line and status line parts are replaced as marked there. Sent to the Phase 3 Hazel by message first.
   - The planner's reading, open to the owner: the status words are centred in their own space, which stays put with or without the evening line. A compass strip hidden while navigating, if there is one, is a stop.
   - A planner note: the first attempt to push this was refused by the session's permission check, which gave no reason. A second attempt, in smaller steps, was refused as a way around the first. The planner stopped and asked the owner, and this waits for their permission.
+- **Pushed (2026-11-06T11:44:52Z) on the owner's word, verbatim: "Allow the pushes".** The held commit went up as d42e0d890, carrying -2181's compass-strip bullets, -2182's fix and sweep bullets, the new entry -2183, Amendment 1's category H and dispatch 2026-11-06-01.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
