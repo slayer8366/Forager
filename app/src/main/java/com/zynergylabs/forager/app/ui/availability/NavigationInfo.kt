@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DistanceKind
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -182,6 +183,7 @@ internal fun NavigationInfo(
                     backByVisibility = backByVisibility,
                     eveningBreaks = evening.breaks,
                     eveningHeld = eveningPieces(holdSundown, holdBackBy).isNotEmpty(),
+                    statusInRight = !evening.statusBelow,
                     onLeftHeight = { leftHeightPx = it },
                     onStatusHeight = { statusHeightPx = it },
                     modifier = Modifier
@@ -190,6 +192,8 @@ internal fun NavigationInfo(
                 )
                 Column(modifier = Modifier.onGloballyPositioned { linesBelowHeightPx = it.size.height.toFloat() }) {
                     CardRouteLines(readout, partsPx, onRetryRoute)
+                    // H8: where the right part is too narrow for the status words' widest word, they keep their own full-width line here.
+                    if (evening.statusBelow) StatusSpace(readout)
                 }
             }
             // The X at the card's right edge, top-aligned beside the parts and the lines under them, its own 48 dp touch box.
@@ -296,8 +300,12 @@ private fun measuredNavigationInfoFit(
         }
 }
 
-/** Amendment 1, H5: whether the evening line breaks at the ▪︎ ([eveningBreaks]), and the right part's width with no evening line. */
-internal class CardEvening(val breaks: Boolean, val rightFloorPx: Int)
+/**
+ * Amendment 1, H5: whether the evening line breaks at the ▪︎ ([eveningBreaks]), and the right part's width with no evening line; H8:
+ * whether the status words take their own line under the parts ([statusBelowTheParts]), where the right part then keeps no daytime
+ * width.
+ */
+internal class CardEvening(val breaks: Boolean, val rightFloorPx: Int, val statusBelow: Boolean = false)
 
 /**
  * H5 and the planner's reading of Q3: decided once for the card's width, font and the phone's clock, never from today's times, so it
@@ -319,7 +327,11 @@ private fun rememberCardEvening(partsPx: Int, metrics: InfoMetrics, distanceUnit
         val reservePx = nextTurnReservePx(metrics.gapPx, metrics.arrowPx, widthOf(longestTurnDistance(distanceUnit), evening))
         val leftNeedPx = maxOf(longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) }, turnLinePx + reservePx)
         val breaks = eveningBreaks(partsPx, metrics.dividerPx, leftNeedPx, widths)
-        CardEvening(breaks = breaks, rightFloorPx = if (breaks) widths.brokenPx else widths.oneLinePx)
+        val floorPx = if (breaks) widths.brokenPx else widths.oneLinePx
+        // H8: the left part's widest need with no reserve (the widest figure, the turn line, the wider kind), as the fit counts it.
+        val leftPartNeedPx = maxOf(longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) }, turnLinePx, DistanceKind.entries.maxOf { widthOf(it.words, small) })
+        val statusBelow = statusBelowTheParts(partsPx, metrics.dividerPx, leftPartNeedPx, floorPx, widestStatusWordPx { widthOf(it, small) })
+        CardEvening(breaks = breaks, rightFloorPx = if (statusBelow) 0 else floorPx, statusBelow = statusBelow)
     }
 }
 

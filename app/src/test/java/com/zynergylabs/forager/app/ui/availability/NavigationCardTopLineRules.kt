@@ -58,6 +58,12 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val needleLeft: Dp = 0.dp,
     )
 
+    /** The turn line's width: the degrees' fixed space, 4 dp and the 22 dp needle (G3 with H1), in pixels; `null` unmeasurable. */
+    protected fun turnLineWidthPx(c: Card): Int? {
+        val like = c.turn?.takeIf { it.layout != null } ?: return null
+        return (0..180).maxOf { widthPx(like, "$it°") } + (26 * densityPx).roundToInt()
+    }
+
     /** Where the centred turn line puts the needle's left edge in a left part whose middle is [middle] (G3 with H1); `null` unmeasurable. */
     protected fun turnLineNeedleLeft(c: Card, middle: Dp): Dp? {
         val like = c.turn?.takeIf { it.layout != null } ?: return null
@@ -140,7 +146,13 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         // X's 48 dp touch box starts, 24 dp left of its centre (its tagged node is the 40 dp icon).
         val totalPx = px((c.exit.left + c.exit.right) / 2 - 24.dp - left)
         val dividerPx = d.roundToInt() + 2 * (6 * d).roundToInt()
-        val wantRightPx = maxOf(eveningFloorPx(kindType), c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0)
+        // H8: where the status space (the daytime width, or what the left part's widest need leaves) is narrower than the status words'
+        // widest word, the status words take their own line under the parts and the right part keeps no daytime width.
+        val floorPx = eveningFloorPx(kindType)
+        val leftNeedPx = maxOf(listOf("≈ 8888 ft", "8888 ft", "88.8 mi").maxOf { widthPx(c.figure, it) }, turnLineWidthPx(c) ?: 0, listOf("by trail", "straight").maxOf { widthPx(kindType, it) })
+        val widestWordPx = cardStatusTexts().flatMap { it.split(' ') }.filter { it.isNotEmpty() && it != "·" }.maxOf { widthPx(kindType, it) }
+        val statusBelow = minOf(floorPx, totalPx - dividerPx - leftNeedPx) < widestWordPx
+        val wantRightPx = maxOf(if (statusBelow) 0 else floorPx, c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0)
         val basePx = totalPx - dividerPx - wantRightPx
         // Positive controls on that arithmetic: the left part is never narrower than what the evening piece leaves it, and where it
         // is wider (the fit overflowed) the right part is narrower than its widest piece, so that piece wraps.
@@ -209,7 +221,7 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
             }
         }
         println(
-            "RULES|$where|$s|$e|$facing|drawn $drawn|ruled $ruled|left part ${dpOf(widthPx)}|" +
+            "RULES|$where|$s|$e|$facing|drawn $drawn|ruled $ruled|left part ${dpOf(widthPx)}|status below $statusBelow (space ${dpOf(minOf(floorPx, totalPx - dividerPx - leftNeedPx))}, widest word ${dpOf(widestWordPx)})|" +
                 "longest ${dpOf(longestPx)}|kind ${dpOf(kindPx)}|stack ${stackPx?.let(::dpOf)}|shift ${dpOf(shiftPx)}|room ${dpOf(roomPx)}|nearest threshold ${dpOf(marginPx)}|right part wants ${dpOf(wantRightPx)}|" +
                 "turn <${c.turn?.text}> needle ${c.needle.left}|card height ${c.hud.bottom - c.hud.top}",
         )

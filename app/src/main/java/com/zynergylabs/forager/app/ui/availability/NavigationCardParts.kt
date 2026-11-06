@@ -51,6 +51,8 @@ internal fun InfoParts(
     eveningBreaks: Boolean,
     /** Whether an evening line is shown, or one is still leaving. */
     eveningHeld: Boolean,
+    /** H8: whether the status words are in the right part; `false` where they have their own line under the parts. */
+    statusInRight: Boolean,
     onLeftHeight: (Float) -> Unit,
     onStatusHeight: (Float) -> Unit,
     modifier: Modifier = Modifier,
@@ -69,7 +71,7 @@ internal fun InfoParts(
                         .testTag(NAVIGATION_HUD_DIVIDER_TAG),
                 )
             },
-            { RightPart(readout, sundownLine, backByLine, sundownVisibility, backByVisibility, eveningBreaks, eveningHeld, onStatusHeight) },
+            { RightPart(readout, sundownLine, backByLine, sundownVisibility, backByVisibility, eveningBreaks, eveningHeld, statusInRight, onStatusHeight) },
         ),
     ) { (left, divider, right), constraints ->
         val total = constraints.maxWidth

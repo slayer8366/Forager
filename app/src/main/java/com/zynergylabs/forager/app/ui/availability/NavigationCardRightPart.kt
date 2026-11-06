@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -39,17 +40,23 @@ internal fun RightPart(
     eveningBreaks: Boolean,
     /** Whether an evening line is shown or still leaving; without one, its first line is held empty. */
     eveningHeld: Boolean,
+    /** H8: the status words are here; `false` where they take their own line under the parts, and the right part holds the evening only. */
+    statusInRight: Boolean,
     onStatusHeight: (Float) -> Unit,
 ) {
     val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         if (eveningHeld) {
             EveningStack(sundownLine, backByLine, sundownVisibility, backByVisibility, eveningBreaks)
-        } else {
+        } else if (statusInRight) {
             val lineHeight = with(LocalDensity.current) { rememberTextMeasurer().measure("Sunset", eveningStyle, maxLines = 1).size.height.toDp() }
             Spacer(Modifier.height(lineHeight))
         }
-        StatusSpace(readout, Modifier.onGloballyPositioned { onStatusHeight(it.size.height.toFloat()) })
+        if (statusInRight) {
+            StatusSpace(readout, Modifier.onGloballyPositioned { onStatusHeight(it.size.height.toFloat()) })
+        } else {
+            SideEffect { onStatusHeight(0f) }
+        }
     }
 }
 
