@@ -177,7 +177,7 @@ URL *be* `STREET_STYLE_URL`, so it is in the list; that is the path the switch w
 
 All 16 shots (four views × v3 day, v4 day, v3 night, v4 night) rendered with no style errors and every tile 200.
 
-- **z9 Canby–Silverton, day.** v4 fills the Portland suburbs down through Oregon City, Canby and Woodburn with the
+- **z9 Canby–Silverton, day.** v4 fills the Portland suburbs down through [a city near the owner's home; removed 2026-11-06], Canby and Woodburn with the
   warm grey of residential land, the valley floor with farmland's pale straw, and parks in light green; v3 had bare
   earth there. Roads now sort themselves: motorways and trunks amber, primaries and secondaries paler, and a fine white
   net of tertiaries with grey edges across the farmland. It reads as a settled valley rather than an empty one.
@@ -185,7 +185,7 @@ All 16 shots (four views × v3 day, v4 day, v3 night, v4 night) rendered with no
   net becomes a dense web of dim brown lines across the whole valley, far busier than v3's night, where only the
   motorways and a thin amber net showed. Motorways stay bright amber. No trails draw at z9 (footpaths start at z12 to
   13).
-- **z11 Oregon City, day.** Residential grey blocks, parks green, the river unchanged; tertiaries show as white
+- **z11 [a city near the owner's home; removed 2026-11-06], day.** Residential grey blocks, parks green, the river unchanged; tertiaries show as white
   streets on the grey, which is what gives the OSM-like density. **Night.** Residential is a dark warm grey against the
   near-black ground, parks a dark green; major roads are brown with amber edges; tertiaries show as their grey casing
   (`#70685a`) with a black centre, so streets read as thin grey lines. Motorway and ramps bright amber, as ruled.

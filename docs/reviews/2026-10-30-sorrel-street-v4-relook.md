@@ -108,7 +108,7 @@ in both modes and still under the trails. Trails are also the only dashed lines;
 - **z9 Canby–Silverton.** Day: as before, now with Interstate 5 and the 205 in Carto's pink with the darker pink edge,
   which lifts the motorways clear of the amber trunks they had matched. Night: the fills quiet, the road web brown, the
   motorways a dark red core with a bright pink edge that reads as a pink line. No trails at z9.
-- **z11 Oregon City.** Day: pink 205 through grey residential and green parks; white tertiaries. Night: pink motorway,
+- **z11 [a city near the owner's home; removed 2026-11-06].** Day: pink 205 through grey residential and green parks; white tertiaries. Night: pink motorway,
   brown majors, tertiaries as grey casings with a dark-grey centre. Edges start at z13, so none here.
 - **z12 inner Portland.** Day: the three freeways pink over the amber grid, buildings a faint warm tan at half
   opacity, the lilac industrial strips along the river. Night: the dense grey lattice of before, the freeways pink,
@@ -116,7 +116,7 @@ in both modes and still under the trails. Trails are also the only dashed lines;
 - **z13.5 Silver Falls.** Day unchanged from the first review. Night: the tertiary is now a dark grey centre inside its
   grey casing, clearly weaker than the salmon trail dashes beside it; in the first review it was a solid black line.
   The forest and park edges are visible here as thin lines a shade lighter than the night forest.
-- **z15 Oregon City.** Day: tan buildings with their outline, residential grey with a faint edge, parks and the
+- **z15 [a city near the owner's home; removed 2026-11-06].** Day: tan buildings with their outline, residential grey with a faint edge, parks and the
   forest with a slightly darker green edge, white tertiaries, trail dashes at the park. The edges are faint, as ruled.
   Night: buildings as dark-brown blocks with a lighter outline, streets as grey casings, the park and forest edges as
   light-green outlines, the trail dashes the strongest line. The night edges read more strongly than the day ones

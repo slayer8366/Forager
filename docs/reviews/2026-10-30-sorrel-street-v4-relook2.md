@@ -83,7 +83,7 @@ lines 15 and 19 at `9295745d`, read at the first re-look).
   6.47 / 4.97 / 2.58) stand; nothing in this delta raises a road above the trails.
 
 **The renders (GL JS 6.12.0 in headless Firefox 142, 412×800 at 2×, tiles from the Worker, my night emulation of
-`NightColour.kt` with the four-entry line table; 16 shots: the four views, Silver Falls z13, Oregon City z15, Canby
+`NightColour.kt` with the four-entry line table; 16 shots: the four views, Silver Falls z13, [a city near the owner's home; removed 2026-11-06] z15, Canby
 z10.5 and z11.5 for the cross-fades; no style errors, every tile 200):**
 
 - **z9 Canby–Silverton.** Day: the roads are thinner and have no edges now; Interstate 5 is Carto's low-zoom pink, the
@@ -96,7 +96,7 @@ z10.5 and z11.5 for the cross-fades; no style errors, every tile 200):**
   majors have reached the ruled colours with a hairline casing, and the streets are still grey, half way to white.
   Night: the texture is a dim grey-brown lattice at z10.5 and a slightly lighter grey at z11.5; the majors brown with
   thin amber edges from z11. Nothing jumps between the two zooms; the fades read as continuous.
-- **z11 Oregon City.** Day: the street grid shows as fine grey lines across the residential grey, the pink 205 with its
+- **z11 [a city near the owner's home; removed 2026-11-06].** Day: the street grid shows as fine grey lines across the residential grey, the pink 205 with its
   darker low-zoom casing; the fills as before. Night: a grey lattice of streets, brown majors, the motorway pink-red.
 - **z12 inner Portland.** Day: the grid in white, buildings a faint tan, the three freeways pink. Night: the dense grey
   lattice with the tertiary edges, dark-brown buildings, pink motorways; unchanged in character from the first re-look.
@@ -104,7 +104,7 @@ z10.5 and z11.5 for the cross-fades; no style errors, every tile 200):**
   lines through the forest; the trails are the dashed red-brown and plainly stronger, the 214 amber. Night: the same
   roads are dark grey (`#333333`) inside the forest, weaker than the salmon trail dashes beside them and than the
   tertiary's grey casing. z13.5 is the same picture.
-- **z15 Oregon City.** Day: tan buildings with their outline, white streets, faint area edges, the trail dashes at the
+- **z15 [a city near the owner's home; removed 2026-11-06].** Day: tan buildings with their outline, white streets, faint area edges, the trail dashes at the
   park. Night: the forest and park now have a **darker** rim than their night fill (the first re-look's lighter rim is
   gone), the residential rims are all but invisible against the night ground (1.07:1, as computed), buildings
   dark-brown with a lighter outline, the trail dashes the strongest line.

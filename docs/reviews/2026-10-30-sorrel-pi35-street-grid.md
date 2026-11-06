@@ -46,7 +46,7 @@ no-access unclassified.
 | Tile | Base → z10 build | Roads layer change |
 |---|---|---|
 | Oregon 10/163/366 (Portland) | 130,403 → 206,049 B gzipped | +1 residential, +1 unclassified merged feature; `kind_detail` set on `minor_road` = {residential, unclassified}; `min_zoom` attr 13 |
-| Oregon 11/326/732 (Oregon City) | 91,385 → 131,509 B | the same two kinds |
+| Oregon 11/326/732 ([a city near the owner's home; removed 2026-11-06]) | 91,385 → 131,509 B | the same two kinds |
 | Oregon 12/652/1464 | 69,162 → 69,162 B, **identical** | none |
 | Oregon 9/81/183 | 151,921 → 151,921 B, **identical** | none |
 | New York 10/301/385 (lower Manhattan, Brooklyn) | 51,722 → 101,987 B | the same two kinds |
@@ -99,7 +99,7 @@ no `minzoom`; their width is `interpolate exponential 1.6: z11 → 0, z12.5 → 
 0.29 px at z12. Before 0005 the z11 tiles held no `minor_road` (upstream's first zoom is 12), so nothing was drawn
 there; after it they hold residential and unclassified streets, and v3 draws them, in white, as hairlines.
 
-I rendered v3 unchanged on Willow's Oregon base and z10 archives at Oregon City (GL JS in headless Firefox, 412×800
+I rendered v3 unchanged on Willow's Oregon base and z10 archives at [a city near the owner's home; removed 2026-11-06] (GL JS in headless Firefox, 412×800
 at 2×): at z11.0 and z12.0 the two renders are pixel-identical (z11.0: width 0; z12.0: the z12 tiles already carried
 the streets); at **z11.5 2.85 % and at z11.9 3.23 % of pixels differ**, and the difference is a faint white street
 lattice in the residential blocks that the base render does not have. Casings (`roads_minor_casing`, width 0 until
