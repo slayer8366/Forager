@@ -30,11 +30,12 @@ internal data class BasemapLayer(val id: String, val namesOrIcons: Boolean)
  * The basemap layer the app's block goes just under: the first of the basemap's top run of name and icon layers, or
  * `null` when the basemap's top layer is not one, and the app keeps today's placement, over the whole basemap.
  *
- * Why the top run and not the first symbol layer (the Category I pre-build report's premise 1): Trail Map v3 and v4 draw
- * the Forest Service trail number, `reference_fs_number`, among the roads (index 84 of v4's 182), so under the first
- * symbol layer every road, rail line, bridge and boundary would draw over the app's lines. The top run starts at
- * `address_label` on every served Trail Map, v1 to v4, and would stay the anchor's start if the style moved the trail
- * number up among the labels.
+ * Why the top run and not the first symbol layer (the Category I pre-build report's premise 1): Trail Map v3 draws the
+ * Forest Service trail number, `reference_fs_number`, among the roads, as v4 did until I8 (index 84 of its 182), so under
+ * the first symbol layer every road, rail line, bridge and boundary would draw over the app's lines. The top run starts
+ * at `address_label` on v1 to v3. Since I8 (dispatch 2026-11-06-01 Amendment 1; the owner: "Update v4 in place") v4 draws
+ * the trail number at the bottom of its labels, so on v4 the run starts with it (index 116 of 182) and the app's lines
+ * go under it too, by the same rule.
  *
  * Why this keeps every other map as it is: Topographical and Street are each one raster picture, their names part of
  * the image; Topographical at night lays the Topographical picture over Trail Map as the top layer
