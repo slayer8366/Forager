@@ -23,6 +23,9 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.printToString
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -114,6 +117,16 @@ class TripDownloadMapsScreenTest {
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         settle()
     }
+
+    /** A positive control that, failing, prints the screen's semantics tree with focus, so a test fault can be told from a finding. */
+    private fun control(holds: Boolean, what: String) {
+        if (holds) return
+        val focused = composeRule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Focused, true), useUnmergedTree = true)
+            .fetchSemanticsNodes().map { it.config.getOrNull(SemanticsProperties.TestTag) ?: it.config.getOrNull(SemanticsProperties.EditableText)?.text ?: "?" }
+        throw AssertionError("positive control: $what. Focused: $focused. Tree:\n" + composeRule.onAllNodes(isRoot()).onFirst().printToString(maxDepth = 40))
+    }
+
+    private fun mapsSelected() = composeRule.onNodeWithText("Maps").fetchSemanticsNode().config.getOrNull(SemanticsProperties.Selected) == true
 
     private fun drawerShown(): Boolean = runCatching { composeRule.onNodeWithTag(TOOLS_DRAWER_SHEET_TAG).assertIsDisplayed() }.isSuccess
 
@@ -332,12 +345,15 @@ class TripDownloadMapsScreenTest {
         assertEquals("positive control: the user's own pin", pinLine(panTo), mine.pin)
         assertEquals("positive control: the user's own name", "My spot", mine.name)
         touch(composeRule.onNodeWithText("Maps"))
+        control(mapsSelected() && !offlineMapsShown(), "the Maps tab is up, Offline Maps left")
 
         openTripPlanner()
         touch(icon(ROUTE_12))
         assertEquals("positive control: the trip's radius", "Radius: 12 km", radiusText())
         back()
+        control(mapsSelected() && drawerShown(), "the first Back put back Maps with Tools open")
         back()
+        control(!drawerShown(), "the second Back closed Tools")
 
         openOfflineMapsFromTools()
         assertEquals("Tools > Offline Maps afterwards opens as before the trip, the user's own entry put back", mine, page())
@@ -353,10 +369,13 @@ class TripDownloadMapsScreenTest {
         composeRule.onNode(hasSetTextAction() and hasText("Name (optional)", substring = true)).performTextReplacement("My spot")
         settle()
         touch(composeRule.onNodeWithText("Maps"))
+        control(mapsSelected() && !offlineMapsShown(), "the Maps tab is up, Offline Maps left")
 
         openTripPlanner()
         touch(icon(PLAIN))
+        control(offlineMapsShown() && !drawerShown(), "the trip's tap opened Offline Maps with Tools closed")
         touch(composeRule.onNodeWithText("Download Maps").performScrollTo())
+        control(shown("Download this area?"), "Download Maps asked \"Download this area?\"")
         touch(composeRule.onNode(hasText("Download") and hasAnyAncestor(isDialog())))
         assertEquals("the trip's area downloaded under its name", listOf(PLAIN.name to PLAIN.location), downloads.calls.map { (name, region) -> name to LatLng(region.lat, region.lng) })
         back()
