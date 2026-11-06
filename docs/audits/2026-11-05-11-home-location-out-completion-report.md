@@ -30,8 +30,8 @@ scripts [read: `git diff --stat 6cfcd8d6c` lists no file under `app/src/main` ex
 ## Verification before building
 
 - **Heads** [observed: `git ls-remote` after a fetch]: home-location-out was at `4e8b01106`, pre-main at `6cfcd8d6c`, and
-  nav-card-kind-line at `50808417f`, as the dispatch said. pre-main did not move during the work (re-checked before each
-  push), so no merge was needed.
+  nav-card-kind-line at `50808417f`, as the dispatch said. pre-main moved once, to `d02d2e74a`, a docs-only commit to
+  CLAUDE.md. It was merged, never rebased, at `d375a3191`, and the final search was re-run over the merged tree.
 - **The private patterns file** holds a description in comment lines, not `grep -f` patterns. It was read only
   through the earlier Hazel's private scanner and through its one starting-grep line. I checked the scanner before
   relying on it [read]. It reproduces the starting grep's own counts at pre-main exactly [observed].
@@ -78,8 +78,8 @@ scripts [read: `git diff --stat 6cfcd8d6c` lists no file under `app/src/main` ex
 | 42210999406 | throwaway at C `3b82f1271` | C green |
 | 42213599513 | throwaway: exactly E's change, on top of D2 | Green, with every test name pre-main has (below), so no expected value changes for E |
 | 42216233654 | home-location-out `9dab3e3c8` | **The guard red before the refill:** 3 tests, all in `TopoNightStreetSwitchTest`, "a short directory would make every check below vacuous expected:<81> but was:<75>". That test reads the topo-night folder and pins its sample size. Clean compile, and the other 6787 passed. A stop, ruled by the owner (below) |
-| 42223533171 | throwaway: H with the old sample's colour totals | <RED_H> |
-| 42223536949 | home-location-out `17dea9d5d`, the code head | <GREEN_H> |
+| 42223533171 | throwaway: H with the old sample's colour totals | **Red:** exactly the 3 `TopoNightStreetSwitchTest` tests that load the OpenTopoMap sample, each "distinct colours summed per tile zoom, against Pillow's count expected:<17832> but was:<17319>". The test's own reading equals the independent count. Clean compile [read: the build log has no `e:` lines and no failed compile task] |
+| 42223536949 | home-location-out `17dea9d5d`, the code head | Green. JUnit by name against pre-main: 0 missing, 0 status changes, 2 new (`MadeUpPlaceTest`) |
 
 - **C's red check.** It is a separate commit in a separate worktree, so the forward change was never edited. The
   forward change is present at the head [observed: grep for the new countdown].
@@ -94,7 +94,7 @@ scripts [read: `git diff --stat 6cfcd8d6c` lists no file under `app/src/main` ex
   identically before and after, for the reason just given.
 - **Text that failed after B: none.** B was green, so no distance, bearing, sunset or clock string needed recomputing.
 - **JUnit by test name**, against pre-main's own push run 42202397416 on `6cfcd8d6c` [observed: JUnit XML from both]:
-  - pre-main has 6836 test cases, and runs 42210999406 and 42213599513 have 6838;
+  - pre-main has 6836 test cases, and runs 42210999406, 42213599513 and 42223536949 have 6838;
   - 0 are missing and 0 changed status;
   - the 2 new ones are both in `MadeUpPlaceTest`;
   - the main suite is 6788 passed and 24 skipped on pre-main, and 6790 and 24 here; OlderSdks is 24 on both.
@@ -115,7 +115,7 @@ The final search uses the private file's box rule, through the scanner, and its 
 
 These are its own counts [observed].
 
-| Kind | pre-main `6cfcd8d6c` | head `9dab3e3c8` |
+| Kind | pre-main `6cfcd8d6c` | head `d375a3191`, merged with pre-main `d02d2e74a` |
 |---|---|---|
 | (a) pairs in the box | 242: test 196 (103 files), docs 39 (11), source 5 (2), scripts 2 (2) | **0** |
 | (a) single values in range | 22: test 10, docs 11, source 1 | 14, all classified below |
@@ -155,7 +155,7 @@ classifier. I have not reconciled the two line by line [not verified]. Two pairs
   - `SHA256SUMS` verifies [observed].
 - **Totals, recounted independently with Pillow:** 17,319 distinct colours summed per zoom for OpenTopoMap and
   3,637 for OSM. The method was first checked on the old sample: it reproduces the test's old pins, 17,832 and 3,652
-  [observed]. <TEST_READING>
+  [observed]. The test's own reading, from the red run's message, is 17,319, and the green run passes with 3,637 for OSM.
 - **Limits, unchanged** [observed: the folder's Python mirror of the shader, then CI]:
   - The darkness limit is still read from the sample (the zoomed-in means' maximum plus 0.03). It is 0.375 on the
     new sample.
@@ -183,7 +183,7 @@ classifier. I have not reconciled the two line by line [not verified]. Two pairs
   - The planner chose to list these by kind and count only, for privacy. That replaces "by file and count".
 - **Derived values left, the planner's (B):** 7 tile-count lines for areas at the old place.
 - **The topo-night folder's remaining files from the public town centre** (the zoom-8 to 12 tiles, checksum lines and
-  needed-tiles list) were first left under (B). They are now **replaced**, with the whole sample (below).
+  needed-tiles list) were first left under (B). They are now **replaced**, with the whole sample (above).
 - **Fixed time strings in formatting tests**, about 20 lines, are left as test data on the planner's word. I found no
   evidence that any was computed from the old place [read: the ones checked are fixed strings, not computed].
 - **(d) nearby names:** these are out of scope. I did not recount them; Phase 1's figure is 31 lines in 17 files, at
