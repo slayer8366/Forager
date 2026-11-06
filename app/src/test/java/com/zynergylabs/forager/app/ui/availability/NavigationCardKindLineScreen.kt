@@ -254,6 +254,25 @@ abstract class NavigationCardKindLineScreen {
 
     private var readings = 0L
 
+    /**
+     * Amendment 1, E14 (H12: "the decision must settle, never loop"): shows [s] with [e] facing the turn and settles it, then takes the
+     * compass away with the test clock stepped by hand, [settleMillis] of frames, and reads the card at each of the next [frames]
+     * frames. A card that never settles then reads as one that changes from frame to frame, not as a run that never goes idle (which
+     * is how it failed before, AppNotIdle, with no word of what moved). Returns the settled card with the compass, then the frames.
+     */
+    protected fun framesAfterTheCompassGoes(s: State, e: Evening, where: String, settleMillis: Long = 3_000, frames: Int = 60): Pair<Card, List<Card>> {
+        show(s, e, Facing.TURN)
+        val before = card(where)
+        composeRule.mainClock.autoAdvance = false
+        try {
+            composeRule.runOnIdle { compass.value = null }
+            composeRule.mainClock.advanceTimeBy(settleMillis)
+            return before to List(frames) { composeRule.mainClock.advanceTimeByFrame(); card("$where, frame ${it + 1}") }
+        } finally {
+            composeRule.mainClock.autoAdvance = true
+        }
+    }
+
     /** A text node in the card: its bounds, its words, its first baseline in the root, its type size, and how it was laid out. */
     protected class Laid(val bounds: DpRect, val text: String, val baseline: Dp, val fontSp: Float, val layout: TextLayoutResult?)
 

@@ -56,6 +56,8 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val heading: String? = null,
         /** The needle's left edge, so a case can say it did not move (G3, "The turn line"). */
         val needleLeft: Dp = 0.dp,
+        /** The evening pieces as drawn, for a case's positive controls (H12). */
+        val pieces: List<String> = emptyList(),
     )
 
     /** The turn line's width: the degrees' fixed space, 4 dp and the 22 dp needle (G3 with H1), in pixels; `null` unmeasurable. */
@@ -85,6 +87,9 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
      * Shows [s] with [e] and [facing], and lists each way its top line differs from the rulings, and from [step] and [shifted]
      * where they are given: the step this case is chosen to reach, and whether the meeting point moved right of the middle (by at
      * least 1 dp) or did not move at all. [crosses]: a word with no kind wider than its half (true) or within it (false).
+     * [eveningLeftOut]: Amendment 1, H12 (the owner: "(a) Leave out "Dark since"", the option reading "In that one case the evening
+     * line doesn't show; "by trail" keeps its own line"): the evening piece the card leaves out here, as it would read; no piece is
+     * drawn, and the card is laid out as with it, its right part keeping that piece's width, so nothing else moves as it goes.
      */
     protected fun topLine(
         where: String,
@@ -94,6 +99,7 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         step: Step? = null,
         shifted: Boolean? = null,
         crosses: Boolean? = null,
+        eveningLeftOut: String? = null,
     ): Reading {
         show(s, e, facing)
         val c = card(where)
@@ -108,7 +114,13 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val gapPx = (4 * d).roundToInt()
         // Positive controls: the state is the one named, and the right part is as the case says.
         if (c.figure.text != s.figure) problems += "positive control: the distance reads <${c.figure.text}>, not <${s.figure}>"
-        if ((c.pieces.isNotEmpty()) != (e != Evening.NONE)) problems += "positive control: ${c.pieces.size} evening pieces drawn for $e"
+        if (eveningLeftOut != null) {
+            if (e == Evening.NONE) problems += "positive control: an evening piece <$eveningLeftOut> left out with no evening time"
+            // H12: the line is left out here.
+            if (c.pieces.isNotEmpty()) problems += "the evening line shows (${c.pieces.map { it.text }}) where H12 leaves it out"
+        } else if ((c.pieces.isNotEmpty()) != (e != Evening.NONE)) {
+            problems += "positive control: ${c.pieces.size} evening pieces drawn for $e"
+        }
         if (abs((c.topLine.right - c.leftPartRight).value) > 0.5f) problems += "positive control: the top line ${c.topLine} is not the left part's width (its right ${c.leftPartRight})"
         val figureEndAtMiddle = widthPx / 2 - gapPx / 2
         val drawn = when {
@@ -152,7 +164,9 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val leftNeedPx = maxOf(listOf("≈ 8888 ft", "8888 ft", "88.8 mi").maxOf { widthPx(c.figure, it) }, turnLineWidthPx(c) ?: 0, listOf("by trail", "straight").maxOf { widthPx(kindType, it) })
         val widestWordPx = cardStatusTexts().flatMap { it.split(' ') }.filter { it.isNotEmpty() && it != "·" }.maxOf { widthPx(kindType, it) }
         val statusBelow = minOf(floorPx, totalPx - dividerPx - leftNeedPx) < widestWordPx
-        val wantRightPx = maxOf(if (statusBelow) 0 else floorPx, c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0)
+        // H12: a piece left out keeps its width ([eveningLeftOut]), in the evening's tabular type.
+        val leftOutPx = eveningLeftOut?.let { widthPx(kindType, it, tabular = true) } ?: 0
+        val wantRightPx = maxOf(if (statusBelow) 0 else floorPx, c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0, leftOutPx)
         val basePx = totalPx - dividerPx - wantRightPx
         // Positive controls on that arithmetic: the left part is never narrower than what the evening piece leaves it, and where it
         // is wider (the fit overflowed) the right part is narrower than its widest piece, so that piece wraps.
@@ -225,6 +239,6 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
                 "longest ${dpOf(longestPx)}|kind ${dpOf(kindPx)}|stack ${stackPx?.let(::dpOf)}|shift ${dpOf(shiftPx)}|room ${dpOf(roomPx)}|nearest threshold ${dpOf(marginPx)}|right part wants ${dpOf(wantRightPx)}|" +
                 "turn <${c.turn?.text}> needle ${c.needle.left}|card height ${c.hud.bottom - c.hud.top}",
         )
-        return Reading(drawn, ruled, widthPx, longestPx, shiftPx, marginPx, problems.map { "$where $s $e $facing: $it" }, c.turn?.text.orEmpty(), c.heading?.text, c.needle.left)
+        return Reading(drawn, ruled, widthPx, longestPx, shiftPx, marginPx, problems.map { "$where $s $e $facing: $it" }, c.turn?.text.orEmpty(), c.heading?.text, c.needle.left, c.pieces.map { it.text })
     }
 }

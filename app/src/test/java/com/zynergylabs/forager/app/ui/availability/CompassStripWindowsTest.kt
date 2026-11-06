@@ -103,6 +103,12 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
      * values shown and a change there may move its neighbours (the planner's reading: "The heading moves the others only when the strip
      * is short of room"). What the line keeps: the heading, the height and the grid reference, facing either way and at either height;
      * "Alt" comes and goes with the heading's width, as before H7.
+     *
+     * Amendment 1, H11 (the owner: "(b) Keep "Alt" when room", the option reading ""Alt" shows when the heading leaves room, so it comes
+     * and goes as you turn, as it did before this update"): whether the heading stays is decided on its widest reading (H7 refined
+     * again), but "Alt" shows wherever the heading as drawn leaves room. Facing 281° ("281° W") and 89° ("89° E"), and at 3000 m, it
+     * does here, so the line keeps all three values and "Alt" in each. Under H7 refined again alone, "Alt" went in every state (E13,
+     * stop 1: "the line keeps [heading, elevation, coordinates]").
      */
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi")
     fun `360 dp, font 1,0 - short of room, the line keeps the heading, Alt and the height as they change`() {
@@ -118,8 +124,9 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
         val turned = kept()
         setAltitude(3_000.0)
         val higher = kept()
-        // What the line keeps is decided on the squeezed form (the planner: ""Alt" is kept where it fits, follows "It fit before, so it
-        // should still fit now""), so here it keeps all three values and "Alt", facing either way and at either height.
+        // H11: the heading kept on its widest reading, "Alt" on the heading as drawn, each on the squeezed form (the planner: ""Alt" is
+        // kept where it fits, follows "It fit before, so it should still fit now""): here all three values and "Alt", facing either way
+        // and at either height.
         val all = tags + NAVIGATION_LABEL_TAG
         println("STRIPKEPT|360/1.0|facing 281° $first|facing 89° $turned|at 3000 m $higher")
         for ((name, kept) in listOf("facing 281°" to first, "facing 89°" to turned, "at 3000 m" to higher)) {

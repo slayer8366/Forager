@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -75,11 +76,21 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
         topLine("780x360/2.0", State.STRAIGHT, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
     )
 
-    /** By trail with an evening time, facing 169° off, 1° off, and with no compass: the left part's widest and narrowest turn rows. */
-    private fun turning(where: String): List<Reading> = Facing.entries.map { f -> topLine(where, State.TRAIL, Evening.DARK_SINCE, facing = f) }
+    /**
+     * By trail with an evening time, facing 169° off, 1° off, and with no compass: the left part's widest and narrowest turn rows.
+     * [leftOutWithoutCompass]: Amendment 1, H12 (the owner: "(a) Leave out "Dark since"", the option reading "In that one case the
+     * evening line doesn't show; "by trail" keeps its own line"): with no compass, "No compass" takes a line under the parts (H8), and
+     * the card with both the evening line and "by trail" on its own line rises past its limit (RECORD -955), so the line is left out.
+     * Was: the evening line drawn in all three, which at 823 × 384 never settled (E13, stop 2: AppNotIdle).
+     */
+    private fun turning(where: String, leftOutWithoutCompass: Boolean): List<Reading> = Facing.entries.map { f ->
+        topLine(where, State.TRAIL, Evening.DARK_SINCE, facing = f, eveningLeftOut = DARK_SINCE_PIECE.takeIf { leftOutWithoutCompass && f == Facing.NO_COMPASS })
+    }
 
-    private fun assertTheKindHoldsItsStepWhileTurning(where: String) {
-        val readings = turning(where)
+    private fun assertTheKindHoldsItsStepWhileTurning(where: String, leftOutWithoutCompass: Boolean = false) {
+        val readings = turning(where, leftOutWithoutCompass)
+        // Positive control on the piece H12 leaves out: it is the one drawn with the compass.
+        if (leftOutWithoutCompass) assertEquals("$where: the evening line with the compass", listOf(DARK_SINCE_PIECE), readings.first().pieces)
         assertClean(*readings.toTypedArray())
         val widths = readings.map { it.leftPartPx }
         // Positive controls: the phone faced as each case says (169° off, 1° off, no compass). Since Amendment 1, H1, the card draws no
@@ -98,5 +109,41 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
     fun `384 dp, font 2,0, Dark since - by trail keeps its step as the phone turns`() = assertTheKindHoldsItsStepWhileTurning("384/2.0 turning")
 
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
-    fun `823 x 384, font 2,0, Dark since - by trail keeps its step as the phone turns`() = assertTheKindHoldsItsStepWhileTurning("823x384/2.0 turning")
+    fun `823 x 384, font 2,0, Dark since - by trail keeps its step as the phone turns, the evening line left out with no compass`() =
+        assertTheKindHoldsItsStepWhileTurning("823x384/2.0 turning", leftOutWithoutCompass = true)
+
+    /**
+     * Amendment 1, H12, the planner's reading: "the decision must settle, never loop. Where showing the evening line would push "by
+     * trail" onto its own line and the card then no longer fits, the evening line is left out and stays out." Through the real screen
+     * at 823 × 384, font 2.0, "Dark since": settled with the compass (the line shows), then the compass goes, and after 3 s of frames
+     * each of the next 60 frames is read with the clock stepped by hand. In every frame: no evening piece, "by trail" on its own line,
+     * and the card, the distance, the kind and the divider where they were in the frame before. The left part keeps the width it had
+     * with the line (the right part keeps the line's width), so nothing else moves as it goes. Before H12 the card took the line and
+     * dropped it in a four-frame cycle (E13, stop 2, run 42278700471), and this case failed as AppNotIdle.
+     */
+    @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
+    fun `823 x 384, font 2,0, Dark since - with no compass the evening line stays out and the card stays still across frames`() {
+        val where = "823x384/2.0 settling"
+        val (before, frames) = framesAfterTheCompassGoes(State.TRAIL, Evening.DARK_SINCE, where)
+        val problems = mutableListOf<String>()
+        // Positive controls: with the compass the line shows and the kind is on its own line; without it, "No compass" is the status.
+        if (before.pieces.map { it.text } != listOf(DARK_SINCE_PIECE)) problems += "positive control: with the compass the evening pieces are ${before.pieces.map { it.text }}"
+        if (before.kind == null || before.kind.bounds.top < before.figure.bounds.bottom - 0.5.dp) problems += "positive control: with the compass the kind ${before.kind?.bounds} is not on its own line"
+        if (frames.last().notice?.text != "No compass" && frames.last().status != "No compass") problems += "positive control: no \"No compass\" without the compass (status <${frames.last().status}>, notice <${frames.last().notice?.text}>)"
+        fun still(c: Card) = listOf(c.hud, c.figure.bounds, c.kind?.bounds, c.divider, c.topLine)
+        frames.forEachIndexed { i, c ->
+            if (c.eveningPieces != 0) problems += "frame ${i + 1}: ${c.eveningPieces} evening pieces drawn"
+            if (c.kind == null || c.kind.bounds.top < c.figure.bounds.bottom - 0.5.dp) problems += "frame ${i + 1}: the kind ${c.kind?.bounds} is not on its own line under ${c.figure.bounds}"
+            if (i > 0 && still(c) != still(frames[i - 1])) problems += "frame ${i + 1}: moved from ${still(frames[i - 1])} to ${still(c)}"
+        }
+        val span = { c: Card -> c.topLine.left to c.topLine.right }
+        if (span(frames.first()) != span(before)) problems += "the left part moved as the evening line went: ${span(before)} to ${span(frames.first())}"
+        println("SETTLING|$where|before card ${before.hud} pieces ${before.pieces.map { it.text }}|frames ${frames.map { "${it.eveningPieces}:${it.hud.top}" }.distinct()}")
+        assertTrue(problems.distinct().take(12).joinToString("\n"), problems.isEmpty())
+    }
+
+    private companion object {
+        /** The evening line as the card draws it here: 37 min after "5:23 PM" on the test clock ([Evening.DARK_SINCE]). */
+        const val DARK_SINCE_PIECE = "Dark since 5:23 PM"
+    }
 }
