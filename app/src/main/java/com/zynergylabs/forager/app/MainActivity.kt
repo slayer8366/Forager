@@ -23,6 +23,7 @@ import com.zynergylabs.forager.app.ui.availability.onOfflineMapRadiusChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapsOpened
 import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import com.zynergylabs.forager.app.ui.availability.onSundownAlertsEnabledChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineAreaSettled
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapsSignalReturned
 import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
 import com.zynergylabs.forager.app.ui.availability.onTryAgainRoutes
@@ -525,7 +526,7 @@ class MainActivity : ComponentActivity() {
                         // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
                         onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                         onDownloadAgain = viewModel::onDownloadAgain,
-                        routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned),
+                        routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned, onAreaSettled = viewModel::onOfflineAreaSettled),
                     ),
                     settings = AvailabilityScreenSettings(
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,

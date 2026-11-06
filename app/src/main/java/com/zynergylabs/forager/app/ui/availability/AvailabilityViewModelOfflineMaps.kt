@@ -82,6 +82,19 @@ fun AvailabilityViewModel.onOfflineMapsSignalReturned() {
     offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
     // Dispatch 2026-11-04-09 B1 P2: the drop-off map copy's passes too.
     offlineRoutes.fetchDropOffMaps(offlineRoutes.regionsNeedingDropOffMaps())
+    // Known bug 14 (dispatch 2026-11-02-02, A9): the picker's area, which could not be asked about without signal.
+    offlineMaps.detail.lastSettled?.let { offlineMaps.detail.ask(it) }
+}
+
+/**
+ * The Offline Maps picker's area has settled: the pin stopped, or the radius moved, or the picker opened (known bug 14,
+ * dispatch 2026-11-02-02, A3 to A9). With signal, the map server is asked whether it has the Trail Map's detail across the
+ * area, and the line shows if any part is outside it (the owner, RECORD -2144: "If any part is outside"). With no signal it
+ * is not asked: no line, logged (the owner: "With no signal it can't ask, so no warning, logged").
+ */
+@Suppress("UNUSED_PARAMETER")
+fun AvailabilityViewModel.onOfflineAreaSettled(area: Region) {
+    // Fail-first stub (B2): nothing is asked until the next commit.
 }
 
 /**

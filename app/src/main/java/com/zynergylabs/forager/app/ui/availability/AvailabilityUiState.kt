@@ -407,6 +407,8 @@ data class AvailabilityUiState(
     val offlineRouteFetchingIds: Set<Long> = emptySet(),
     /** Regions whose route fetch failed this session, at download or automatically; only these offer "Try again". */
     val offlineRouteFailedIds: Set<Long> = emptySet(),
+    /** Known bug 14 (dispatch 2026-11-02-02): the map server's last answer on the Offline Maps picker's area; see [OfflineDetailAnswer]. */
+    val offlineDetail: OfflineDetailAnswer? = null,
 ) {
     /**
      * [offlineRegions] without [pendingOfflineRegionDelete]: what the Journal's region rows, the All

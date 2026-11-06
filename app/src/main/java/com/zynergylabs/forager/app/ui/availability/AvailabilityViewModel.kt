@@ -192,6 +192,8 @@ class AvailabilityViewModel(
     /** Dispatch 2026-10-28-13: the barometer and the sea-level converter behind the live height ([AvailabilityLiveLocation]). Defaulted to none: "Alt unavailable". */
     private val pressureProvider: PressureProvider = NoBarometer,
     private val seaLevelConverter: SeaLevelConverter = NoSeaLevelConverter,
+    /** Known bug 14 (dispatch 2026-11-02-02): the map server's detail check for the Offline Maps picker; defaulted to none. */
+    private val trailMapDetail: com.zynergylabs.forager.app.domain.mapdata.TrailMapDetail = com.zynergylabs.forager.app.domain.mapdata.NoTrailMapDetail,
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -280,6 +282,7 @@ class AvailabilityViewModel(
         entryReferenceCounts = entryReferenceCounts,
         errorLog = errorLog,
         onDownloaded = { region -> offlineRoutes.noteDownloaded(region) },
+        trailMapDetail = trailMapDetail,
     )
 
     internal val offlineRoutes: AvailabilityOfflineRoutes = AvailabilityOfflineRoutes(

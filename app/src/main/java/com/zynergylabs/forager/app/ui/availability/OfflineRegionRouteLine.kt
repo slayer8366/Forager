@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 import com.zynergylabs.forager.app.domain.routedata.needsAppUpdate
 import com.zynergylabs.forager.app.domain.routedata.needsFetch
@@ -42,9 +43,10 @@ internal data class OfflineRouteLine(val text: String, val tryAgain: Boolean)
 
 /**
  * What the Offline maps region list asks of the ViewModel about trail routes (dispatch 2026-10-23-03): [onTryAgain]
- * on a region's row, and [onSignalReturned] when signal comes back while the list is on screen (Amendment 1).
+ * on a region's row, and [onSignalReturned] when signal comes back while the list is on screen (Amendment 1). Since known
+ * bug 14 (dispatch 2026-11-02-02, call C1, RECORD -2150), also [onAreaSettled]: the picker's area each time it settles.
  */
-data class OfflineRouteActions(val onTryAgain: (Long) -> Unit = {}, val onSignalReturned: () -> Unit = {})
+data class OfflineRouteActions(val onTryAgain: (Long) -> Unit = {}, val onSignalReturned: () -> Unit = {}, val onAreaSettled: (Region) -> Unit = {})
 
 /** [OfflineRegionRow]'s route line and its button, under the region's one line. */
 @Composable

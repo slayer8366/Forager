@@ -62,7 +62,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -163,6 +165,11 @@ internal fun OfflineMapsPanel(
     val pin = pinState.cameraCenter
     val pinRegion = Region(lat = pin.lat, lng = pin.lng, radiusKm = uiState.offlineMapRadiusKm)
     val pinIsAPlace = pin.lat in -90.0..90.0 && pin.lng in -180.0..180.0
+    // Known bug 14 (dispatch 2026-11-02-02, A3 to A9): each area the pin and radius settle on is told to the ViewModel, which
+    // decides whether to ask the map server about it; the line under "Pin at" shows its answer, for this area only.
+    val currentRouteActions by rememberUpdatedState(routeActions)
+    LaunchedEffect(pinRegion, pinIsAPlace) { if (pinIsAPlace) currentRouteActions.onAreaSettled(pinRegion) }
+    val detailNote: @Composable () -> Unit = { OfflineDetailNote(uiState.offlineDetail, pinRegion) }
     // The map moves between the two layouts rather than being composed twice: a second mapSlot call
     // would tear down and rebuild the MapView on every turn (the same guarantee
     // CartographyEntryReportScreen's fullscreen relies on), losing the camera the pin reads.
@@ -314,6 +321,8 @@ internal fun OfflineMapsPanel(
             // Dispatch 2026-10-18-03 (Forager RECORD -1269): "Pin at: …", then Download Maps across the controls side. Was, under
             // RECORD -1253 ("C: OK, Cancel and Download on one line"), OK, Cancel and Download on one line under "Pin at".
             pinnedActions = {
+                // A5 (the planner's call on the Phase 1 report's S3, option a): in landscape, pinned above "Pin at".
+                detailNote()
                 CentrePinConfirmActions(
                     state = pinState,
                     onConfirm = onRegionPicked,
@@ -353,6 +362,8 @@ internal fun OfflineMapsPanel(
             val portraitMapRatio = if (isLargeScreenWindow()) 1f else MAP_PICKER_ASPECT_RATIO
             pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(portraitMapRatio).testTag(OFFLINE_PICKER_MAP_TAG))
             confirmActions()
+            // A5: in portrait, directly under "Pin at".
+            detailNote()
         }
 
         Column(
