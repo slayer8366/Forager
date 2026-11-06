@@ -64,6 +64,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -158,8 +159,10 @@ internal fun OfflineMapsPanel(
         lng = pickedLng ?: defaultCenter.lng,
         radiusKm = uiState.offlineMapRadiusKm,
     )
-    // One pin for both layouts below (L1): turning the phone swaps the layout, not the pin.
-    val pinState = rememberCentrePinState(pickerRegion)
+    // One pin for both layouts below (L1): turning the phone swaps the layout, not the pin. Started again on each trip's Download
+    // Maps (dispatch 2026-11-05-08, B3), which a pin the user has panned would otherwise ignore (CentrePinState's "follow until
+    // you touch it"). The picker's map is rebuilt with it, since pickerMap is remembered on the pin.
+    val pinState = key(uiState.offlineMapPinRequest) { rememberCentrePinState(pickerRegion) }
     // Dispatch 2026-10-18-03: Download Maps downloads wherever the pin sits, so the tile figures read the pin too (the line under
     // the slider and the confirmation's). They read the last confirmed point while OK existed; with OK gone that point would lag.
     val pin = pinState.cameraCenter
@@ -169,7 +172,11 @@ internal fun OfflineMapsPanel(
     // decides whether to ask the map server about it; the line under "Pin at" shows its answer, for this area only.
     val currentRouteActions by rememberUpdatedState(routeActions)
     LaunchedEffect(pinRegion, pinIsAPlace) { if (pinIsAPlace) currentRouteActions.onAreaSettled(pinRegion) }
-    val detailNote: @Composable () -> Unit = { OfflineDetailNote(uiState.offlineDetail, pinRegion) }
+    val detailNote: @Composable () -> Unit = {
+        OfflineDetailNote(uiState.offlineDetail, pinRegion)
+        // Dispatch 2026-11-05-08 (A3, A6): a route too big for one download says so, right after bug 14's line (TripDownloadMapsUi.kt).
+        TripAreaNoteLine(uiState.offlineMapsTripOpening, uiState.offlineMapRadiusKm, pinMoved = pinState.touched)
+    }
     // The map moves between the two layouts rather than being composed twice: a second mapSlot call
     // would tear down and rebuild the MapView on every turn (the same guarantee
     // CartographyEntryReportScreen's fullscreen relies on), losing the camera the pin reads.

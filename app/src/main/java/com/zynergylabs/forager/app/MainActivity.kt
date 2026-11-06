@@ -27,6 +27,9 @@ import com.zynergylabs.forager.app.ui.availability.onOfflineAreaSettled
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapsSignalReturned
 import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
 import com.zynergylabs.forager.app.ui.availability.onTryAgainRoutes
+import com.zynergylabs.forager.app.ui.availability.onDownloadMapsForTrip
+import com.zynergylabs.forager.app.ui.availability.onLeftTripOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.TripDownloadMapsActions
 import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.Manifest
@@ -532,6 +535,8 @@ class MainActivity : ComponentActivity() {
                         onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                         onDownloadAgain = viewModel::onDownloadAgain,
                         routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned, onAreaSettled = viewModel::onOfflineAreaSettled),
+                        // Dispatch 2026-11-05-08: a Trip Planner trip's Download Maps.
+                        tripDownloadMaps = TripDownloadMapsActions(onOpen = viewModel::onDownloadMapsForTrip, onLeft = viewModel::onLeftTripOfflineMaps),
                     ),
                     settings = AvailabilityScreenSettings(
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
