@@ -71,4 +71,6 @@ internal fun createAvailabilityViewModel(
         // Dispatch 2026-10-28-13: the live height above sea level, steadied by the barometer, read while the map is open.
         pressureProvider = container.pressureProvider,
         seaLevelConverter = container.seaLevelConverter,
+        // Known bug 14 (dispatch 2026-11-02-02): the Offline Maps picker's detail check, asked of the map server.
+        trailMapDetail = container.trailMapDetail,
     )
