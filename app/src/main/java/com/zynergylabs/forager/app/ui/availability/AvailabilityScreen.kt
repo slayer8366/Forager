@@ -25,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -486,6 +487,10 @@ fun AvailabilityScreen(
     val openOfflineMapsFromTools = buildOpenOfflineMapsFromTools(state = screenState, onMapFullscreenChanged = onMapFullscreenChanged)
     // Forgets where the row was tapped once the user moves on from the Offline maps chip (ScreenToolsOfflineMapsReturn.kt).
     ToolsOfflineMapsReturnWatch(toolsReturnSet = toolsReturn != null, toolsOfflineMapsReturn = toolsOfflineMapsReturn, tabSelections = tabSelections)
+    // Dispatch 2026-11-05-08: a Trip Planner trip's Download Maps, then that row's own way in; and forgetting the trip once the
+    // user leaves Offline Maps (A2). Both in TripDownloadMapsUi.kt.
+    val openTripOfflineMaps = buildOpenTripOfflineMaps(offlineMaps.tripDownloadMaps, openOfflineMapsFromTools)
+    TripOfflineMapsLeaveWatch(opened = uiState.offlineMapsTripOpening != null, tabSelections = tabSelections, onLeft = offlineMaps.tripDownloadMaps?.onLeft)
 
     LaunchedEffect(returnToMapRequest) {
         if (returnToMapRequest > 0) {
@@ -706,7 +711,9 @@ fun AvailabilityScreen(
     // The keep-outs, compass and position every map under this screen reads: see rememberScreenMapLocals (ScreenMapLocals.kt).
     val mapLocals = rememberScreenMapLocals(uiState, compassProvider, computeTrueHeading, currentTime)
     // Phase 2.6, PR 4: the composition locals, the Tools drawer and the frame it slides over (AvailabilityScreenDrawerHost.kt),
-    // composed here, unconditionally, at the line this tree was; InAppCameraHost stays below it.
+    // composed here, unconditionally, at the line this tree was; InAppCameraHost stays below it. Dispatch 2026-11-05-08: a trip's
+    // Download Maps reaches the Trip Planner's rows through LocalDownloadMapsForTrip (TripDownloadMapsUi.kt), so the host is unchanged.
+    CompositionLocalProvider(LocalDownloadMapsForTrip provides openTripOfflineMaps) {
     AvailabilityScreenDrawerHost(
         state = screenState,
         drawerState = drawerState,
@@ -734,6 +741,7 @@ fun AvailabilityScreen(
         onOpenPlannedRoute = routeLinks.onOpenFromTools,
         compactMainScaffold = compactMainScaffold,
     )
+    }
     // The in-app camera, once, after the tree above, which is what puts it on top: see AvailabilityScreenInAppCamera.kt.
     AvailabilityScreenInAppCamera(
         cameraInputs = cameraInputs,
