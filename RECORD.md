@@ -35621,6 +35621,14 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Phase 2 started (2026-11-06T05:16:08Z):** a fresh Hazel builds it on branch trip-download-maps, cut from pre-main 779599c3f.
   - B1's triggers have both happened: #494 merged as 7357524b7 and #496 as cd3fd2730.
   - **The planner's call:** she doesn't edit AvailabilityScreenDrawerHost.kt while the drawer outline is being built into #495. If the wiring truly needs it, she builds the rest and stops, and the planner adds the last wiring after #495 merges.
+- **Added (2026-11-06T05:30:01Z), from Hazel's Phase 2 stop, the owner, verbatim:**
+  - To "Download Maps from a trip: where should your note \"Some of this route's stops are outside this area. Download the rest as a second area.\" sit on the Offline Maps page?": **"Under \"Pin at\" (Recommended)"**. The option read: "In the page's one existing line about the area, the same small text as the bug 14 warning: under \"Pin at\" in portrait, above it in landscape, right after the warning if both show. Nothing new to look for." The other: "Under the tile count".
+  - To "A route over about 48 km across can have every stop inside the largest area while a bend of trail between two stops falls outside. Your note talks about stops, so it wouldn't be true there. What should happen?": **"Its own note (Recommended)"**. The option read: "Show \"Part of this route's trail is outside this area. Download the rest as a second area.\" in the same place, so the user always knows when part of the route won't be offline." The other: "No note".
+    - So C2's case gets those words, in the same slot. The stops note wins when a stop is outside, and the two never show together.
+  - **The planner's calls on her readings:**
+    - The icon is the same BouncingIconButton as Directions and Delete, with the bottom bar's Filled.Map glyph.
+    - A composition local, provided in AvailabilityScreen.kt, carries the tap to the Trip Planner list. There is no edit to AvailabilityScreenDrawerHost.kt, SearchControls.kt or AvailabilitySettingsUi.kt.
+    - C1 can't happen: a broken stored route loads as a plain trip (RoomPlannedTripRepository.kt:51-67) and opens as one.
 **Notes:** Written by the planner by hand. Next free ID -2172.
 
 ---
