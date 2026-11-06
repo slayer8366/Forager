@@ -36456,6 +36456,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "When the lines move down, what happens to those?" (the forecast colours, the downloaded-area tint and the journal rings): **"Move down with the lines (Recommended)"**. The option read: "They stay under the lines, so nothing changes in how the app's own layers stack, and your earlier ruling to keep the rings below all lines holds".
   - To the fan-out legs: **"Stay with the markers"**. The option read: "The legs stay on top with the fanned-out markers they belong to".
   - Amendment 1 gains I4 to I7.
+- **Category I built (2026-11-06), f3c4a07b7:** the app's block moves under Trail Map's first name or icon layer (address_label on v1 to v4), read from each style's own layers; Topo, Street, Topo at night and offline keep today's placement, logged. Full CI 42298652902 green, 6,952 tests, none changed against pre-main; the three reverts each failed for their own reason. The two wiring lines in OverlayLayerSetup.kt can't be reached by a JVM test; only the S22 covers them.
+  - **Stopped:** the trail number's move, because v4 is held frozen by check-trail-night.mjs, its check 10 and the Worker's tests. The freeze was the planner's call at -2000, not the owner's words.
+  - **Changed (2026-11-06T22:07Z), the owner,** to "Moving the Forest Service trail number above the lines means changing Trail Map's style. How should it ship?": **"Update v4 in place"**. The option read: "As you ruled for the first-zooms work. v4 changes at both its web addresses and the three locking checks are updated to match. No \"Older map style\" notice. Goes live at the next promotion". Amendment 1 gains I8.
 **Notes:** Written by the planner by hand. Next free ID -2184.
 
 ---
