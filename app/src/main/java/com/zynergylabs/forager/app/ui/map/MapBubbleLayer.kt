@@ -114,11 +114,14 @@ internal fun MapBubbleLayer(
                             }
                         }
                     }?.let { found ->
-                        // Dispatch 2026-11-03-07 (B2): the bubble shows at once; its elevation line joins it when read.
-                        if (found is MapBubbleContent.WaypointContent) {
-                            found.copy(elevation = rememberWaypointElevationLine(found.waypoint.lat, found.waypoint.lng, sources.distanceUnit))
-                        } else {
-                            found
+                        // Dispatch 2026-11-03-07 (B2): the bubble shows at once; its elevation line joins it when read. A trip's
+                        // too since dispatch 2026-11-05-05 (A1), by the same read at its spot.
+                        when (found) {
+                            is MapBubbleContent.WaypointContent ->
+                                found.copy(elevation = rememberWaypointElevationLine(found.waypoint.lat, found.waypoint.lng, sources.distanceUnit))
+                            is MapBubbleContent.Trip ->
+                                found.copy(elevation = rememberWaypointElevationLine(found.trip.location.lat, found.trip.location.lng, sources.distanceUnit))
+                            else -> found
                         }
                     }
                 }
@@ -175,6 +178,9 @@ internal fun MapBubbleLayer(
                                     }
                                 }
                             },
+                            // Dispatch 2026-11-05-05: a trip's Navigate and Plot route (MapBubbleTripActions.kt).
+                            onNavigateToTrip = tripBubbleNavigate(sources, bubble.tapped, onDismiss),
+                            onPlotRouteFromTrip = tripBubblePlotRoute(sources, onDismiss),
                         )
                     }
                 }
@@ -205,6 +211,9 @@ internal fun MapBubbleLayer(
                     navigate(WaypointNavigationOrigin.MapDetails(id))
                 }
             },
+            // Dispatch 2026-11-05-05: a trip's card, from its bubble on the Maps tab (C1), and its Navigate.
+            plannedTrips = sources.plannedTrips,
+            onNavigateToTrip = tripCardNavigate(sources) { detailsTarget = null },
         )
     }
     viewerPhotoId?.let { id ->

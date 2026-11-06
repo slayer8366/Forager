@@ -38,8 +38,9 @@ import org.robolectric.annotation.Config
  * through the real activity dispatcher; what opens each layer is a real touch sampled across it. The fan's case is in
  * [RoutePlottingFanBackTest], which needs the fan's stub map.
  *
- * A waypoint's glyph cannot open a bubble while plotting (`routePlottingTakesTap` adds it as a stop), so the bubble here is a
- * planned trip's with no route, which plotting does not take.
+ * A waypoint's glyph cannot open a bubble while plotting (`routePlottingTakesTap` adds it as a stop), and since dispatch
+ * 2026-11-05-05 (A11, RECORD -2148) nor can a planned trip's with no route, which joins the route as a stop too. So the bubble
+ * here is a recorded track's line, which plotting does not take (RECORD -2152; it was a planned trip's with no route).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -50,13 +51,15 @@ class RoutePlottingBackOrderTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private val plainTrip = PlannedTrip("trip-plain", "Saddle loop", LatLng(45.56, -122.66), null)
+    // Dispatch 2026-11-05-05 (RECORD -2152): was `plainTrip`, a planned trip with no route at this spot, whose bubble A11 replaced
+    // with a stop. A recorded track's line opens a bubble while plotting, as that trip's flag did before.
+    private val track = BUBBLE_TRACK
 
     private val map = RouteMapSlot(
         listOf(
             StubGlyph(MapLayerIds.WAYPOINTS, CREEK.id, 60.dp, 300.dp, LatLng(CREEK.lat, CREEK.lng)),
             StubGlyph(MapLayerIds.WAYPOINTS, RIDGE.id, 60.dp, 360.dp, LatLng(RIDGE.lat, RIDGE.lng)),
-            StubGlyph(MapLayerIds.PLANNED_TRIPS, plainTrip.id, 60.dp, 420.dp, plainTrip.location),
+            StubGlyph(MapLayerIds.KEPT_TRACKS, track.id, 60.dp, 420.dp, LatLng(45.505, -122.6)),
         ),
     )
     private val plotting = RoutePlottingViewModel(
@@ -67,7 +70,7 @@ class RoutePlottingBackOrderTest {
     )
 
     private fun setScreen() {
-        val viewModel = mapLayersViewModel(plannedTrips = listOf(plainTrip))
+        val viewModel = mapLayersViewModel()
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
             MapLayersTestScreen(
@@ -75,6 +78,7 @@ class RoutePlottingBackOrderTest {
                 mapSlot = map.slot,
                 store = OneCellStore(),
                 waypoints = listOf(CREEK, RIDGE),
+                tracks = listOf(track),
                 routePlotting = RoutePlottingControls(state, plotting),
             )
         }
@@ -117,9 +121,9 @@ class RoutePlottingBackOrderTest {
     fun `a bubble opened while plotting closes on the first Back, and the second Back cancels plotting`() {
         setScreen()
         ACROSS.forEach { (fx, fy) ->
-            val where = "the bubble opened by a touch at ($fx, $fy) on the trip's pin"
+            val where = "the bubble opened by a touch at ($fx, $fy) on the track's line"
             plotCreekToRidge()
-            touchAcross(composeRule.onNodeWithTag(glyphTag(plainTrip.id)), fx, fy)
+            touchAcross(composeRule.onNodeWithTag(glyphTag(track.id)), fx, fy)
             composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
             assertTrue("$where: plotting did not take the pin", mode() is RoutePlotMode.Plotting)
 

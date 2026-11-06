@@ -27,6 +27,8 @@ class RecordDetailsTargetSaverTest {
             RecordDetailsTarget.WaypointDetails("wp-creek", fromTrackId = "track:with:colons"),
             RecordDetailsTarget.TrackDetails("track:with:colons"),
             RecordDetailsTarget.OfflineRegionDetails(7L),
+            // Dispatch 2026-11-05-05 (A4, A9): a planned trip's card, colons and all.
+            RecordDetailsTarget.TripDetails("trip:with:colons"),
             null,
         )
         for (target in targets) assertEquals(target, roundTrip(target))
@@ -38,6 +40,7 @@ class RecordDetailsTargetSaverTest {
         assertEquals(null, RecordDetailsTarget.WaypointDetails("w1").returnsTo())
         assertEquals(null, RecordDetailsTarget.TrackDetails("t1").returnsTo())
         assertEquals(null, RecordDetailsTarget.OfflineRegionDetails(7L).returnsTo())
+        assertEquals(null, RecordDetailsTarget.TripDetails("trip-1").returnsTo())
     }
 
     @Test

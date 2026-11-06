@@ -280,6 +280,19 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithTag(directionsTag).assertDoesNotExist()
     }
 
+    /**
+     * Dispatch 2026-11-05-05 (A5; RECORD -2140, the owner: "In the Details card add the Directions button for external maps to
+     * the right of the in-app Navigate button"): on the card, Navigate and Directions both, Directions to the right. What
+     * Directions does, and the centring, are WaypointCardDirectionsTest's.
+     */
+    private fun assertNavigateAndDirections(navigateTag: String, directionsTag: String) {
+        assertEquals("Navigate", text(navigateTag))
+        assertEquals("Directions", text(directionsTag))
+        val navigate = composeRule.onNodeWithTag(navigateTag).getUnclippedBoundsInRoot()
+        val directions = composeRule.onNodeWithTag(directionsTag).getUnclippedBoundsInRoot()
+        assertTrue("Directions to the right of Navigate: ${directions.left} vs ${navigate.right}", directions.left > navigate.right)
+    }
+
     /** The same for a waypoint row, whose buttons are icons named for the waypoint. */
     private fun assertRowNavigateNotDirections() {
         composeRule.onNodeWithTag(waypointRowNavigateTag("wp-1")).performScrollTo()
@@ -347,7 +360,8 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithTag(RECORD_DETAILS_NAVIGATE_TAG).performScrollTo()
-        assertNavigateNotDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
+        // Dispatch 2026-11-05-05 (A5): was assertNavigateNotDirections, Navigate with no Directions (RECORD -1819). Now both.
+        assertNavigateAndDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
         touchCentreOf(RECORD_DETAILS_NAVIGATE_TAG)
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
@@ -392,7 +406,8 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithTag(RECORD_DETAILS_NAVIGATE_TAG).performScrollTo()
-        assertNavigateNotDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
+        // Dispatch 2026-11-05-05 (A5): was assertNavigateNotDirections, Navigate with no Directions (RECORD -1819). Now both.
+        assertNavigateAndDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
         touchCentreOf(RECORD_DETAILS_NAVIGATE_TAG)
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())

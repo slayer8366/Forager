@@ -40,7 +40,7 @@ import com.zynergylabs.forager.app.domain.NoReturnLeg
 import com.zynergylabs.forager.app.domain.NoStoredWaypointNavigation
 import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.ReturnLeg
-import com.zynergylabs.forager.app.domain.WaypointNavigation
+import com.zynergylabs.forager.app.domain.targetRef
 import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
@@ -321,10 +321,10 @@ class AvailabilityViewModel(
     )
 
     /** The straight line to the waypoint being navigated to, moved out of the screen by step 6 PR 1: see the class. */
-    private val waypointLine = AvailabilityWaypointLine({ transform -> _uiState.update(transform) }, readWaypoint, currentTime, errorLog)
+    private val waypointLine = AvailabilityWaypointLine({ transform -> _uiState.update(transform) }, navigationTargetReader(readWaypoint, getPlannedTrips::invoke), currentTime, errorLog)
     /** The way to that waypoint along trails (step 6 PR 3): see the class. Started and ended beside the line, below. */
     private val waypointRoute =
-        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, readWaypoint, findWayToWaypoint, { _uiState.value.offlineRegions }, currentTime, errorLog)
+        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, navigationTargetReader(readWaypoint, getPlannedTrips::invoke), findWayToWaypoint, { _uiState.value.offlineRegions }, currentTime, errorLog)
 
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
@@ -401,15 +401,15 @@ class AvailabilityViewModel(
         mapDisplay.loadBasemapPreference()
         mapDisplay.loadMapIconClusterPlacement()
         waypointNavigationStore.loadWaypointNavigation()
-        // Step 6 PR 1: the waypoint line runs while a waypoint is navigated to, started when one is chosen or picked back
-        // up and cancelled when it ends or another is chosen. Decided here, not in the collaborator (RECORD -1450).
+        // Step 6 PR 1: the waypoint line runs while a waypoint (since dispatch 2026-11-05-05, or a trip) is navigated to, started when
+        // one is chosen or picked back up and cancelled when it ends or another is chosen. Decided here, not in the collaborator (RECORD -1450).
         viewModelScope.launch {
-            _uiState.map { it.waypointNavigation?.waypointId }.distinctUntilChanged().collectLatest { id ->
+            _uiState.map { it.waypointNavigation?.targetRef }.distinctUntilChanged().collectLatest { target ->
                 val fixes = _uiState.map { it.liveFix }.distinctUntilChanged()
                 // Step 6 PR 3: the way along trails runs beside the line, for the same navigation, and ends with it.
                 coroutineScope {
-                    launch { waypointRoute.follow(id, fixes) }
-                    waypointLine.follow(id, fixes)
+                    launch { waypointRoute.follow(target, fixes) }
+                    waypointLine.follow(target, fixes)
                 }
             }
         }

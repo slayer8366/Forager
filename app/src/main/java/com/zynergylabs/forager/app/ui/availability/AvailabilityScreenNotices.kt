@@ -38,6 +38,8 @@ internal fun AvailabilityScreenNotices(
     backgroundRunPrompt: RecordingNotice?,
     networkFixesNotice: RecordingNotice?,
     waypointTarget: WaypointNavigationTarget,
+    /** What the walker is told when [waypointTarget] is gone, in its kind's words (dispatch 2026-11-05-05, A8; [navigationGoneText]). */
+    targetGoneText: String,
     endWaypointNavigation: (Boolean) -> Unit,
 ) {
     // RECORD -660/-661 (the owner: "Snackbar with 'Settings' button"): a corrupt settings file was reset.
@@ -101,7 +103,7 @@ internal fun AvailabilityScreenNotices(
     LaunchedEffect(waypointTargetGone) {
         if (waypointTargetGone) {
             endWaypointNavigation(false)
-            logDraftSnackbarScope.launch { logDraftSnackbarHostState.showSnackbar(message = WAYPOINT_NAVIGATION_GONE_TEXT, duration = SnackbarDuration.Long) }
+            logDraftSnackbarScope.launch { logDraftSnackbarHostState.showSnackbar(message = targetGoneText, duration = SnackbarDuration.Long) }
         }
     }
 }

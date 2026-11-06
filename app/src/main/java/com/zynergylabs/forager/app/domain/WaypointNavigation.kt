@@ -26,8 +26,11 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
  * The waypoint being navigated to, by id, and whether a return was paused for it ([resumesReturn]),
  * so that ending this navigation picks the return up again (step 6), including after the app was
  * closed and opened again.
+ *
+ * [kind] (dispatch 2026-11-05-05, A8): what [waypointId] names. A trip is navigated to as itself, so with
+ * [NavigationTargetKind.TRIP] the id is a planned trip's; the field's name is kept from -502.
  */
-data class WaypointNavigation(val waypointId: String, val resumesReturn: Boolean)
+data class WaypointNavigation(val waypointId: String, val resumesReturn: Boolean, val kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT)
 
 /**
  * Where the current [WaypointNavigation] is kept across the process (Amendment 1, "Pick navigation
