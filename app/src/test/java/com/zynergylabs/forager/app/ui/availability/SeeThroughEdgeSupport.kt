@@ -28,8 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
@@ -170,9 +172,14 @@ private val EDGE_SHADE_FIX = LocationFix.Update(
 /**
  * The real screen in the app's own theme over a grey map, recording, with one waypoint glyph to open a bubble from. The return
  * button toggles navigating to [EDGE_SHADE_ORIGIN], as the ViewModel's toggle would, so the navigation card is reached by a real
- * touch on the real control. The clock is noon (D43's lesson), so the card carries no evening lines.
+ * touch on the real control. The clock is noon (D43's lesson), so the card carries no evening lines. [entries] are the Journal's
+ * saved entries the screen is handed, as MainActivity hands it the day entries; none by default, so every other read is unchanged.
  */
-internal class EdgeShadeRig(private val composeRule: EdgeShadeRule, private val dark: Boolean) {
+internal class EdgeShadeRig(
+    private val composeRule: EdgeShadeRule,
+    private val dark: Boolean,
+    private val entries: List<CartographyEntry> = emptyList(),
+) {
     val map = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.WAYPOINTS, BUBBLE_WAYPOINT.id, 60.dp, 380.dp, LatLng(BUBBLE_WAYPOINT.lat, BUBBLE_WAYPOINT.lng))))
     private val greyMap: MapSlot = { region, content, renderMode, focus, onLongPress, onTap, a, b, modifier ->
         map.slot(region, content, renderMode, focus, onLongPress, onTap, a, b, modifier.background(EDGE_SHADE_MAP_GREY))
@@ -219,6 +226,7 @@ internal class EdgeShadeRig(private val composeRule: EdgeShadeRule, private val 
                 settings = AvailabilityScreenSettings(onNightModeMapsChanged = {}, onThemeModeChanged = {}),
                 mapSlot = greyMap,
                 records = AvailabilityScreenRecords(waypoints = listOf(BUBBLE_WAYPOINT)),
+                journalEntries = AvailabilityScreenJournalEntries(cartographyUiState = CartographyUiState(entries = entries)),
                 navigation = if (navigating) {
                     AvailabilityScreenNavigation(isReturning = true, onToggleReturning = { navigating = !navigating }, navigationTarget = EDGE_SHADE_ORIGIN)
                 } else {
