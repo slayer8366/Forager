@@ -36472,4 +36472,8 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - the readings open to the owner;
   - the promotion path;
   - later items.
+- **Added (2026-11-06T19:05:20Z), the owner, verbatim:** **"Write the relevant memory notes into a document along with the hand off please"**.
+  - The planner's 15 memory notes are at prompts/preserved/2026-11-06-handoff-memory.md: an index, then the Forager notes, then the two E-GD notes. Each is copied as it stands, without its internal metadata.
+  - The hand-off now points to it.
+  - Checked: no home values, email or secrets.
 **Notes:** Written by the planner by hand. Next free ID -2186.
