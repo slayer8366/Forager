@@ -48,14 +48,14 @@ class NextTurnCardStateTest {
     // E1's states: each blanks the space.
 
     @Test
-    fun `E1 - no GPS fix: the top line is the dash, and the space is blank for no fix`() {
+    fun `E1 - no GPS fix - the top line is the dash, and the space is blank for no fix`() {
         assertEquals("—", readout(null, byTrail).distanceText)
         assertEquals(NextTurnCardState.NO_FIX, stateOf(null, byTrail))
         assertEquals(NextTurn.Blank(NextTurnBlank.NO_FIX), nextTurnSpace(stateOf(null, byTrail), aTurn))
     }
 
     @Test
-    fun `E1 - a lost fix: the top line is the dash, and the space is blank`() {
+    fun `E1 - a lost fix - the top line is the dash, and the space is blank`() {
         val old = fix(400.0, at = t)
         val tenMinutesLater = t + 10 * 60_000L
         assertEquals("—", readout(old, byTrail, now = tenMinutesLater).distanceText)
@@ -64,31 +64,31 @@ class NextTurnCardStateTest {
     }
 
     @Test
-    fun `E1 - a route still being worked out: the top line is the dash, and the space is blank`() {
+    fun `E1 - a route still being worked out - the top line is the dash, and the space is blank`() {
         assertEquals("—", readout(fix(400.0), ReturnRoute.Pending).distanceText)
         assertEquals(NextTurnCardState.NO_DISTANCE, stateOf(fix(400.0), ReturnRoute.Pending))
     }
 
     @Test
-    fun `E1 - no target: the top line is the dash, and the space is blank`() {
+    fun `E1 - no target - the top line is the dash, and the space is blank`() {
         assertEquals(NextTurnCardState.NO_DISTANCE, stateOf(fix(400.0), byTrail, target = null))
     }
 
     @Test
-    fun `E1 - Arrived: the space is blank`() {
+    fun `E1 - Arrived - the space is blank`() {
         assertEquals(ARRIVED_TEXT, readout(fix(10.0), byTrail).distanceText)
         assertEquals(NextTurnCardState.ARRIVED, stateOf(fix(10.0), byTrail))
         assertEquals(NextTurn.Blank(NextTurnBlank.ARRIVED), nextTurnSpace(stateOf(fix(10.0), byTrail), aTurn))
     }
 
     @Test
-    fun `E1 - Arrived held after the return ended on arrival, the fix moving away: the space stays blank`() {
+    fun `E1 - Arrived held after the return ended on arrival, the fix moving away - the space stays blank`() {
         val held = heldArrivalReadout(readout(fix(400.0), byTrail))
         assertEquals(NextTurnCardState.ARRIVED, nextTurnCardState(held, hasFix = true))
     }
 
     @Test
-    fun `E1 - a held-back route, Unable to calculate route: the space is blank for the withheld route`() {
+    fun `E1 - a held-back route, Unable to calculate route - the space is blank for the withheld route`() {
         val withheld = ReturnRoute.Unavailable(canRetry = true)
         assertEquals(ROUTE_UNAVAILABLE_TEXT, readout(fix(400.0), withheld).distanceText)
         assertEquals(NextTurnCardState.ROUTE_WITHHELD, stateOf(fix(400.0), withheld))
@@ -108,7 +108,7 @@ class NextTurnCardStateTest {
     // Everywhere else, a figure: the space shows what lies ahead.
 
     @Test
-    fun `a figure by trail: the space shows the next turn`() {
+    fun `a figure by trail - the space shows the next turn`() {
         assertEquals(NextTurnCardState.SHOWS_DISTANCE, stateOf(fix(400.0), byTrail))
         assertEquals(aTurn, nextTurnSpace(stateOf(fix(400.0), byTrail), aTurn))
     }
@@ -121,7 +121,7 @@ class NextTurnCardStateTest {
     }
 
     @Test
-    fun `a figure by trail with no turn left: the straight-ahead arrow's state passes through`() {
+    fun `a figure by trail with no turn left - the straight-ahead arrow's state passes through`() {
         assertEquals(NextTurn.NoTurnLeft, nextTurnSpace(stateOf(fix(400.0), byTrail), NextTurn.NoTurnLeft))
     }
 
