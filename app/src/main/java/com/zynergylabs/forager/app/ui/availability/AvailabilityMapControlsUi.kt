@@ -377,18 +377,23 @@ internal fun CompassElevationStripContent(
                                     valuesPx = listOf(headingFitPx, elevationPx),
                                     separatorPx = separatorPx,
                                 )
+                                // Amendment 1, H11 (the owner: "(b) Keep "Alt" when room", the option reading ""Alt" shows when the heading
+                                // leaves room, so it comes and goes as you turn, as it did before this update"): the heading is kept on its
+                                // widest reading (above), but the labels show wherever the heading as drawn leaves room for them, with every
+                                // readout kept. Was the labels decided on the widest reading too, so at 360 dp "Alt" went in every state.
+                                val labelsShown = fit.labels || (fit.shown.all { it } && readoutsFitBeside(availablePx, coordinatesPx, listOf(labelPx(headingLabel), labelPx(elevationLabel)), listOf(headingPx, elevationPx), separatorPx).labels)
                                 // Amendment 1, H7 (the owner: "Info that changes and shares a line with other text should get its own
                                 // window so it doesn't shift all text on the same line"; then "If it's too small, then have them squeeze
                                 // together to make room"): each value shown sits centred in a window sized for the widest it can hold
                                 // (CompassStripWindows.kt), the grid reference's the wider of its two forms here; where the line is
                                 // too short for them, they squeeze ([squeezeStripWindows]).
-                                val labelShownPx = if (fit.labels) labelPx(elevationLabel) else 0
+                                val labelShownPx = if (labelsShown) labelPx(elevationLabel) else 0
                                 val iconPx = with(density) { stripHeadingIconSize().roundToPx() }
                                 val coordinatesWindowPx = coordinatesBothFormsWidthPx(lastLocation, ::widthOf, readoutStyle)
                                 val shownWindows = buildList {
                                     if (fit.shown[0]) add(StripWindow(stripHeadingWindowPx(::widthOf, readoutStyle, iconPx.takeIf { shortHeadingStatus }), stripHeadingValuesPx(::widthOf, readoutStyle), headingPx))
                                     if (fit.shown[1]) {
-                                        val altitude = stripAltitudeWindow(unitSystem, ::widthOf, readoutStyle, if (fit.labels) labelPx(ALTITUDE_LABEL) else 0)
+                                        val altitude = stripAltitudeWindow(unitSystem, ::widthOf, readoutStyle, if (labelsShown) labelPx(ALTITUDE_LABEL) else 0)
                                         add(StripWindow(altitude.widestPx, altitude.valuesPx, labelShownPx + elevationPx))
                                     }
                                     add(StripWindow(coordinatesWindowPx, coordinatesWindowPx, widthOf(coordinatesText, readoutStyle)))
@@ -425,7 +430,7 @@ internal fun CompassElevationStripContent(
                                     // H7: the heading centred in its window.
                                     Box(modifier = Modifier.width(windowDps[0]).testTag(COMPASS_STRIP_HEADING_WINDOW_TAG), contentAlignment = Alignment.Center) {
                                         if (headingIcon) StripHeadingStatusIcon(heading) else
-                                        LabelledReadout(label = headingLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
+                                        LabelledReadout(label = headingLabel.takeIf { labelsShown }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -446,7 +451,7 @@ internal fun CompassElevationStripContent(
                                 if (fit.shown[1]) {
                                     // H7: the altitude, its label with it, centred in its window.
                                     Box(modifier = Modifier.width(windowDps[elevationWindow]).testTag(COMPASS_STRIP_ELEVATION_WINDOW_TAG), contentAlignment = Alignment.Center) {
-                                        LabelledReadout(label = elevationLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
+                                        LabelledReadout(label = elevationLabel.takeIf { labelsShown }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = elevationText) { shownText ->
                                                 Text(
                                                     text = shownText,

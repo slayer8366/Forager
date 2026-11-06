@@ -109,7 +109,9 @@ internal fun NavigationInfo(
     // RECORD -955: the info's own bottom in the root, for a card anchored to the bottom edge (RECORD -953), whose top is its bottom
     // less its height. The height the decision uses is built from parts the evening stack does not change (the top padding, the left
     // part, the lines below, the bottom padding), never read back from the card: a first build read the card's measured height,
-    // which mid-animation fed the decision back into itself and never settled (CI 38304300338, the T11 harness at font 2.0).
+    // which mid-animation fed the decision back into itself and never settled (CI 38304300338, the T11 harness at font 2.0). Since
+    // G3 and A3 the kind's step, and so the left part's height, depends on the evening line; H12 (below, `fit`) keeps the left part
+    // as with the line wherever that would differ, so this holds again.
     var infoBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
     var lastEveningShown by remember { mutableStateOf(false) }
     BoxWithConstraints(
@@ -165,7 +167,16 @@ internal fun NavigationInfo(
         val lastBackBy = rememberLastShown(shownBackBy)
         val holdSundown = shownSundown ?: lastSundown.takeIf { sundownVisibility.currentState || !sundownVisibility.isIdle }
         val holdBackBy = shownBackBy ?: lastBackBy.takeIf { backByVisibility.currentState || !backByVisibility.isIdle }
-        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy, distanceUnit, evening)
+        val heldFit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy, distanceUnit, evening)
+        // Amendment 1, H12 (the owner: "(a) Leave out "Dark since"", the option reading "In that one case the evening line doesn't show;
+        // "by trail" keeps its own line"; the planner's reading: "the decision must settle, never loop"): where the evening line would
+        // change the kind's step and is left out for room (not stepping aside for the route card, D42), the card is laid out as with
+        // it: the kind keeps its step and the right part the line's width. So the left part's height the decision above reads is the
+        // same whether or not the line shows, and the decision cannot feed back into itself. Was the card as drawn without the line,
+        // so at 823 x 384, font 2.0, with no compass, leaving the line out put the kind beside the distance, which made room for the
+        // line again, every few frames (E13, stop 2, run 42278700471).
+        val withEveningFit = measuredNavigationInfoFit(readout, partsPx, metrics, sundownLine, backByLine, distanceUnit, evening)
+        val fit = if (!eveningStepsAside && pieces.isNotEmpty() && withEveningFit.topLine.kind != heldFit.topLine.kind) withEveningFit else heldFit
         Row(
             modifier = Modifier
                 .fillMaxWidth()
