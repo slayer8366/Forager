@@ -36299,3 +36299,22 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "When should it say \"take the first left\" rather than \"turn left\"?": **"When paths come first (Recommended)"**. The option read: "If other paths leave on the same side before your turn, it counts them: \"take the second left\". Otherwise \"turn left\". The arrow on screen is the same either way." The others: "Always for plain turns"; "Just an example".
   - Amendment 1 gains G3 and G4. Phase 2a was told: each turn carries its count of same-side paths before it. The planner's reading, open to the owner: the counting applies to plain turns only.
 **Notes:** Written by the planner by hand. Next free ID -2184.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2184
+**Timestamp:** 2026-11-06T13:28:26Z
+**Continues:** 2026-09-28-2181
+**Title:** Changing info gets its own window: a standing design rule; the card and the compass strip in #498, the rest after a sweep
+**Decision:**
+- **The owner, verbatim:** **"Info that changes and shares a line with other text should get its own window so it doesn't shift all text on the same line."**
+- **The owner's answers, verbatim:**
+  - To "Where should \"changing info gets its own window\" apply now?": **"Card and strip now, rest after (Recommended)"**. The option read: "The navigation card and the compass strip (heading, altitude, grid reference) in #498. A read-only sweep then finds every other line in the app where changing info shifts its neighbours, for its own PR." The others: "Everything in #498"; "Only the card for now".
+  - To "Write it into the project's standing design rules (CLAUDE.md, beside \"Don't make me think\"), so every new screen follows it?": **"Yes, write it in (Recommended)"**. The option read: "Your words, quoted, as a standing rule for every screen, added the same way as your earlier design rules." The other: "No, just this work".
+- **Written into CLAUDE.md** on pre-main as d02d2e74a (docs only), under UX defaults after "Don't make me think".
+  - It is one line. The Documentation bullet below was rejoined by one line break with no text change, so line 253 doesn't move (checked).
+  - The rule says a changing value sits in a space of its own, sized for the widest thing it can hold, and that the window is never made by shrinking text.
+- **The compass strip** joins #498 as Amendment 1 H7 for the G and H Hazel. Heading, altitude and grid reference each get a fixed window, in and out of navigation alike, so H1's "exact same" holds.
+- **The rest of the app:** a read-only sweep (a new dispatch) starts after #498's G and H land, and finds every line where changing info shifts its neighbours. Its fixes go in their own PR.
+**Notes:** Written by the planner by hand. Next free ID -2185.
