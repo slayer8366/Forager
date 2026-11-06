@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-made positive control for count_lint_issues.py (dispatch 2026-10-12-01). Not lint
+     output. Known counts, by construction:
+       5 issues: 2 Error, 3 Warning
+       categories: Correctness 3 (2 Error, 1 Warning), Performance 2 (2 Warning)
+       ids: ControlErrorA 2 (Error), ControlWarnC 2 (Warning), ControlWarnB 1 (Warning)
+       7 locations in all; one issue (the second ControlErrorA) has 3 locations
+     Traps: the root <issues> element must not be counted as an issue; a message holding the
+     escaped text "&lt;issue" must not be counted; the last issue is written on one line. -->
+<issues format="6" by="lint control-0.0.0">
+
+    <issue
+        id="ControlErrorA"
+        severity="Error"
+        message="First error, one location."
+        category="Correctness"
+        priority="6"
+        summary="Control error A">
+        <location
+            file="/runner/work/Forager/Forager/app/src/main/AndroidManifest.xml"
+            line="7"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ControlErrorA"
+        severity="Error"
+        message="Second error, three locations; its text mentions &lt;issue and &lt;issues to trap a naive count."
+        category="Correctness"
+        priority="6"
+        summary="Control error A">
+        <location
+            file="/runner/work/Forager/Forager/app/src/main/java/Foo.kt"
+            line="12"
+            column="9"/>
+        <location
+            file="/runner/work/Forager/Forager/app/src/main/java/Bar.kt"
+            line="30"
+            column="1"
+            message="Secondary location"/>
+        <location
+            file="/runner/work/Forager/Forager/app/src/main/java/Baz.kt"
+            line="44"
+            column="1"
+            message="Secondary location"/>
+    </issue>
+
+    <issue
+        id="ControlWarnB"
+        severity="Warning"
+        message="One warning in Correctness."
+        category="Correctness"
+        priority="5"
+        summary="Control warning B">
+        <location
+            file="/runner/work/Forager/Forager/app/src/main/res/values/strings.xml"
+            line="3"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ControlWarnC"
+        severity="Warning"
+        message="First Performance warning."
+        category="Performance"
+        priority="3"
+        summary="Control warning C">
+        <location
+            file="/runner/work/Forager/Forager/app/src/main/res/layout/x.xml"
+            line="21"/>
+    </issue>
+
+    <issue id="ControlWarnC" severity="Warning" message="Second Performance warning, one line." category="Performance" priority="3" summary="Control warning C"><location file="/runner/work/Forager/Forager/app/build.gradle.kts" line="99" column="2"/></issue>
+
+</issues>

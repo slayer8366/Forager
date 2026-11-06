@@ -1,0 +1,58 @@
+Totals: before 376 after 349 (delta -27)
+Issues by site (id, file; lines ignored): still 314, gone 62, new 35
+
+  id                                       before  after  delta  status
+  NewApi                                       18      0    -18  gone
+  StaticFieldLeak                               1      0     -1  gone
+  MonochromeLauncherIcon                        0      1     +1  new
+  LogNotTimber                                272    259    -13  still
+  UseKtx                                       13     15     +2  still
+  ModifierParameter                            14     14     +0  still
+  AutoboxingStateCreation                       9      9     +0  still
+  NewerVersionAvailable                         8      8     +0  still
+  GradleDependency                              7      7     +0  still
+  UnrememberedMutableState                      4      7     +3  still
+  ComposableNaming                              5      5     +0  still
+  LocalContextResourcesRead                     5      5     +0  still
+  NonObservableLocale                           5      5     +0  still
+  ConfigurationScreenWidthHeight                4      4     +0  still
+  AndroidGradlePluginVersion                    2      2     +0  still
+  ClickableViewAccessibility                    2      2     +0  still
+  InlinedApi                                    2      1     -1  still
+  DataExtractionRules                           1      1     +0  still
+  ObsoleteSdkInt                                1      1     +0  still
+  Range                                         1      1     +0  still
+  SuspiciousIndentation                         1      1     +0  still
+  UsableSpace                                   1      1     +0  still
+
+Gone sites:
+  InlinedApi x1 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/WalkLogSession.kt
+  LogNotTimber x1 app/src/debug/java/com/zynergylabs/forager/app/data/diagnostics/FileBackByRecord.kt
+  LogNotTimber x1 app/src/debug/java/com/zynergylabs/forager/app/data/diagnostics/FileReturnRecord.kt
+  LogNotTimber x1 app/src/debug/java/com/zynergylabs/forager/app/data/diagnostics/FileSundownRecord.kt
+  LogNotTimber x1 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/DiagnosticsLog.kt
+  LogNotTimber x9 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/WalkLogger.kt
+  LogNotTimber x8 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/AndroidWalkLogPlatform.kt
+  LogNotTimber x8 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/WalkLogWriter.kt
+  LogNotTimber x3 app/src/debug/java/com/zynergylabs/forager/app/forecast/SyntheticForecast.kt
+  LogNotTimber x2 app/src/debug/java/com/zynergylabs/forager/app/ui/crash/CrashLogPanel.kt
+  LogNotTimber x7 app/src/debug/java/com/zynergylabs/forager/app/ui/diagnostics/DiagnosticsPanel.kt
+  NewApi x1 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/DebugDiagnostics.kt
+  NewApi x17 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/walklog/AndroidWalkLogPlatform.kt
+  StaticFieldLeak x1 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/WalkLogger.kt
+  UsableSpace x1 app/src/debug/java/com/zynergylabs/forager/app/diagnostics/WalkLogger.kt
+New sites:
+  LogNotTimber x21 app/src/main/java/com/zynergylabs/forager/app/photo/CameraXCaptureSession.kt
+  LogNotTimber x1 app/src/main/java/com/zynergylabs/forager/app/photo/IntendedOrientation.kt
+  LogNotTimber x1 app/src/main/java/com/zynergylabs/forager/app/photo/RawShotSaver.kt
+  LogNotTimber x1 app/src/main/java/com/zynergylabs/forager/app/sensor/AndroidCompassProvider.kt
+  LogNotTimber x1 app/src/main/java/com/zynergylabs/forager/app/ui/availability/NavigationHud.kt
+  LogNotTimber x2 app/src/main/java/com/zynergylabs/forager/app/ui/credits/OpenMeteoCredit.kt
+  LogNotTimber x1 app/src/main/java/com/zynergylabs/forager/app/ui/credits/SourcesAndCreditsPages.kt
+  MonochromeLauncherIcon x1 app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationCardArrowsSideBySideTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationCardFitAcrossWidthsTest.kt
+  UnrememberedMutableState x1 app/src/test/java/com/zynergylabs/forager/app/ui/availability/NavigationInfoLayoutTest.kt
+  UsableSpace x1 app/src/main/java/com/zynergylabs/forager/app/photo/RawShotSaver.kt
+  UseKtx x1 app/src/main/java/com/zynergylabs/forager/app/photo/CameraXCapabilityReader.kt
+  UseKtx x1 app/src/main/java/com/zynergylabs/forager/app/ui/credits/OpenMeteoCredit.kt
