@@ -35597,3 +35597,25 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - There are 19 such commits: 15 on records-after-173 (7049c8c7a to 94ae82052), 2 on pre-main (6e24b22c4 and 3a3d85089, audit-index rows) and 2 on tools/s22-combined (abb5c4a4a and 4670712fa).
   - The trailer is fixed from this commit on. History isn't rewritten without the owner's word ("Push before you tidy").
 **Notes:** Written by the planner by hand. Next free ID -2171.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2171
+**Timestamp:** 2026-11-06T01:36:45Z
+**Continues:** 2026-09-28-2170
+**Title:** Download Maps from a trip: a maps icon left of Directions, the trip forgotten on leaving, the whole line covered, a note for a route too big
+**Decision:**
+- **The owner, verbatim:**
+  - To "In the Trip Planner, a \"Download Maps\" button doesn't fit beside a trip's Directions and Delete icons. Where should it go on each trip's card?": **"A maps icon next to the navigate icon."** This was typed in place of the offered options: "Under the details (Recommended)", "Full width at the bottom" and "Small, under the icons".
+  - To "If someone taps a trip's Download Maps, then leaves Offline Maps without downloading, what should Offline Maps show the next time it's opened from Tools?": **"Forget the trip (Recommended)"**. The option read: "Offline Maps opens just as it does today, as if the trip's button was never tapped. No trip name is left in the box to end up on an unrelated download by mistake." The other: "Keep the trip's pin and name".
+  - To "A route's stops can be further apart than the largest download (24 km radius). What should happen then?": **"Largest area, plus a note (Recommended)"**. The option read: "The page opens at the largest radius in the middle of the route, with one line saying the route is bigger than one download, so the user knows the far stops aren't covered." The others: "Largest area, no note"; "Centre on the first stop".
+  - To "For a route trip, should the starting area cover just the stops, or the whole drawn line between them? The line can bend outside the stops where a trail curves.": **"The whole line (Recommended)"**. The option read: "The radius starts big enough for every point of the route's line, so the trail between the stops is offline too. The stops are covered either way." The other: "Just the stops".
+  - To "Which side of the Directions icon should the maps icon go? A route trip's card has no Directions icon, only Delete.": **"Left of Directions (Recommended)"**. The option read: "Plain trip: maps, Directions, Delete. It stays one icon away from Delete, which removes the trip at once with no undo. Route trip: maps, then Delete." The other: "Right of Directions".
+  - To "The note on Offline Maps when a route is too big for one download. What should it say?": **"Some stops not covered"**. The option read: "\"Some of this route's stops are outside this area. Download the rest as a second area.\"" The others: "Route bigger than one area" and "Short and plain".
+- **The planner's readings:**
+  - "The navigate icon" is the card's Directions icon.
+  - The glyph is the bottom bar's Maps glyph, with the accessibility label "Download Maps for <trip name>".
+  - The note shows only when a stop falls outside the area. A route whose stops fit but whose line doesn't is a stop, because the words would be untrue there.
+- **Written as Amendment 1:** prompts/preserved/2026-11-05-08-amendment-1.md, with categories A (the owner's), B (the planner's) and C (stops).
+**Notes:** Written by the planner by hand. Next free ID -2172.
