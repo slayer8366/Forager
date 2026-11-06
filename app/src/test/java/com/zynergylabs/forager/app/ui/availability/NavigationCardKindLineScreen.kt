@@ -35,6 +35,7 @@ import com.zynergylabs.forager.app.domain.WaypointNavigation
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -119,11 +120,19 @@ abstract class NavigationCardKindLineScreen {
         override fun short(epochMillis: Long): String = SimpleDateFormat("h:mm", Locale.US).apply { timeZone = utc }.format(Date(epochMillis))
     }
 
-    protected enum class State(val figure: String, val kind: String?) {
+    protected enum class State(val figure: String, val kind: String?, val note: WayToWaypointNote? = null) {
         TRAIL("1280 ft", "by trail"),
         STRAIGHT("≈ 1250 ft", "straight"),
         ARRIVED("Arrived", null),
         DASH("—", null),
+        /** Amendment 1, F2: the straight line with no trail route, for a note that only says why, "No trail routes here". */
+        STRAIGHT_NOTE_GONE("≈ 1250 ft", "straight", WayToWaypointNote.NO_TRAIL_ROUTES),
+        /** F2: the straight line with a note that asks something, "Trail routes not downloaded". */
+        STRAIGHT_NOTE_KEPT("≈ 1250 ft", "straight", WayToWaypointNote.ROUTES_NOT_DOWNLOADED),
+        ;
+
+        /** Navigating to the waypoint, the straight line: with no route given, or with a note's straight line ([note]). */
+        val straight: Boolean get() = this == STRAIGHT || note != null
     }
 
     private var state by mutableStateOf(State.TRAIL)
@@ -141,11 +150,13 @@ abstract class NavigationCardKindLineScreen {
         composeRule.setContent {
             CompositionLocalProvider(LocalSundownClock provides clock) {
                 ForagerTheme(darkTheme = false) {
-                    val straight = state == State.STRAIGHT
+                    val straight = state.straight
                     AvailabilityScreen(
                         uiState = AvailabilityUiState(
                             liveFix = fix(),
                             waypointNavigation = WaypointNavigation(waypoint.id, resumesReturn = false).takeIf { straight },
+                            // F2: a note's straight line, as the way to a waypoint publishes it (AvailabilityWaypointRoute).
+                            waypointRoute = state.note?.let { WaypointRouteShown(hud = ReturnRoute.Straight(it), line = null) },
                         ).withFixHeight(),
                         recording = AvailabilityScreenRecording(isRecording = true, recordingSundownLine = evening.line?.invoke(t)),
                         navigation = AvailabilityScreenNavigation(
@@ -186,7 +197,7 @@ abstract class NavigationCardKindLineScreen {
         if (!composed) compose()
         // The way home's lookahead is due east, the waypoint due north. Facing 281° (191° for the waypoint) the aim is 169° to the
         // right; facing 89° (359°), 1° to the right.
-        val aim = if (s == State.STRAIGHT) 0f else 90f
+        val aim = if (s.straight) 0f else 90f
         val faced = when (facing) {
             Facing.TURN -> (aim + 191f) % 360f
             Facing.AHEAD -> (aim + 359f) % 360f
@@ -221,6 +232,8 @@ abstract class NavigationCardKindLineScreen {
         val needle: DpRect,
         val heading: Laid?,
         val status: String,
+        /** The status line's node: zero height where it is empty (CardRouteAndStatusLines). */
+        val statusBox: DpRect?,
         val eveningPieces: Int,
         /** The top line, the left part's whole width. */
         val topLine: DpRect,
@@ -276,6 +289,7 @@ abstract class NavigationCardKindLineScreen {
             needle = rect(single(NAVIGATION_HUD_NEEDLE_TAG, where)),
             heading = nodes(NAVIGATION_HUD_HEADING_TAG).singleOrNull()?.let(::laid),
             status = nodes(NAVIGATION_HUD_STATUS_TAG).singleOrNull()?.let { laid(it).text } ?: "",
+            statusBox = nodes(NAVIGATION_HUD_STATUS_TAG).singleOrNull()?.let(::rect),
             eveningPieces = nodes(NAVIGATION_HUD_EVENING_PIECE_TAG).size,
             topLine = rect(single(NAVIGATION_HUD_TOP_LINE_TAG, where)),
             kindWords = nodes(NAVIGATION_HUD_DISTANCE_KIND_WORD_TAG).map(::laid).sortedBy { it.bounds.top },
@@ -304,7 +318,10 @@ abstract class NavigationCardKindLineScreen {
     /** The word gap, centred on the middle (Spacing.xs): the figure ends this far left of it, the kind starts this far right. */
     private val halfGap = 2.dp
 
-    /** Each problem with [s]'s top line as the owner's "Meet at the middle" has it: one line, meeting at the middle. */
+    /**
+     * Each problem with [s]'s top line as the owner's "Meet at the middle" has it: one line, meeting at the middle; with no kind, the
+     * word or mark centred on the middle (B3, B4).
+     */
     protected fun meetsAtTheMiddle(where: String, s: State, withEvening: Boolean = false): List<String> {
         show(s, withEvening)
         val c = card(where)
@@ -315,8 +332,15 @@ abstract class NavigationCardKindLineScreen {
         if (c.figure.text != s.figure) problems += "positive control: the distance reads <${c.figure.text}>, not <${s.figure}>"
         if ((c.eveningPieces > 0) != withEvening) problems += "positive control: ${c.eveningPieces} evening pieces drawn, evening=$withEvening"
         if (c.status.isNotEmpty() && s != State.DASH) problems += "positive control: the status line reads <${c.status}>, expected none"
-        // "on the left half": the distance ends at the middle.
-        if (!near(c.figure.bounds.right, c.middle - halfGap)) problems += "the distance ${c.figure.bounds} does not end at the middle ${c.middle} (less the half gap)"
+        if (s.kind == null) {
+            // B3 ("Arrived is simply centered with no extras") and B4 ("Centre it like Arrived (Recommended)"): a word or mark on its
+            // own is centred on the middle. Was (B1, "In the left half"): ending at the middle less the half gap, as the distance.
+            val centre = (c.figure.bounds.left + c.figure.bounds.right) / 2
+            if (!near(centre, c.middle)) problems += "<${c.figure.text}> ${c.figure.bounds} is not centred on the middle ${c.middle}: its centre $centre"
+        } else if (!near(c.figure.bounds.right, c.middle - halfGap)) {
+            // "on the left half": the distance ends at the middle.
+            problems += "the distance ${c.figure.bounds} does not end at the middle ${c.middle} (less the half gap)"
+        }
         if (c.figure.bounds.left < c.hud.left - 0.5.dp) problems += "the distance ${c.figure.bounds} starts outside the card ${c.hud}"
         if (s.kind == null) {
             if (c.kind != null) problems += "a kind <${c.kind.text}> is drawn where there is none"

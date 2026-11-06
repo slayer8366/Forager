@@ -18,8 +18,9 @@ import kotlin.math.roundToInt
  * - "On the distance's line (Recommended)": stacked, both words start at the meeting point, "trail" on the distance's baseline and
  *   "by" just above.
  * - "At the middle (Recommended)": on its own line under the distance, the kind starts at the meeting point, or as near it as fits.
- * - "In the left half", then "Left, crossing as little (Recommended)": with no kind the word ends where the distance would, at the
- *   middle; wider than that, it starts at the left part's left edge.
+ * - B3, "Arrived is simply centered with no extras", and B4, "Centre it like Arrived (Recommended)": with no kind the word or mark
+ *   ("Arrived", the dash) is centred in the left part, its centre at the turn row's. Was "In the left half", then "Left, crossing as
+ *   little (Recommended)": ending at the middle, or starting at the left part's left edge where wider than its half.
  * - "Keep the text size the same size": the kind is in the turn words' type in every form.
  * - The planner's call of 2026-11-06 under "Decided for the longest distance the card could show, so it doesn't jump between lines
  *   as you walk": the step is decided for the narrowest the left part can be while the card shows, across every heading and turn
@@ -101,20 +102,22 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         if (s.kind == null) {
             if (c.kind != null) problems += "a kind <${c.kind.text}> is drawn where there is none"
             val figurePx = px(c.figure.bounds.right - c.figure.bounds.left)
+            // Positive control on the case: a word wider than its half, or within it. These are the cases that told the earlier
+            // rulings apart ("In the left half", then "Left, crossing as little"), so a centred word is checked against both.
             val wider = figurePx > figureEndAtMiddle
             if (crosses != null && wider != crosses) problems += "positive control: <${c.figure.text}> is ${dpOf(figurePx)} against its half's ${dpOf(figureEndAtMiddle)}, expected wider=$crosses"
-            if (wider) {
-                // "Left, crossing as little (Recommended)": from the left part's left edge.
-                if (!near(c.figure.bounds.left, left)) problems += "<${c.figure.text}> ${c.figure.bounds}, wider than its half, does not start at the left part's left edge $left"
-            } else if (!near(c.figure.bounds.right, left + dpOf(figureEndAtMiddle))) {
-                problems += "<${c.figure.text}> ${c.figure.bounds} does not end at the middle, ${left + dpOf(figureEndAtMiddle)} (\"In the left half\")"
-            }
+            // B3 and B4: centred in the left part, its centre at the left part's middle, which is the turn row's centre. Was (B1, then
+            // B2): ending at the middle, or, wider than its half, starting at the left part's left edge.
+            val middle = (c.topLine.left + c.topLine.right) / 2
+            val centre = (c.figure.bounds.left + c.figure.bounds.right) / 2
+            if (abs((c.middle - middle).value) > 1f) problems += "positive control: the turn row's centre ${c.middle} is not the left part's middle $middle"
+            if (!near(centre, middle)) problems += "<${c.figure.text}> ${c.figure.bounds} is not centred in the left part: its centre $centre, the left part's middle $middle"
             if (c.figure.bounds.bottom > c.turnRowTop + 0.5.dp) problems += "<${c.figure.text}> ${c.figure.bounds} is not above the turn row (top ${c.turnRowTop})"
             return Reading(drawn, Step.ALONE, Step.ALONE, widthPx, widthPx, null, 0, null, problems.map { "$where $s $e: $it" })
         }
         // The kind's type: its own text, a stacked word's, or the turn words' (the same labelMedium) where neither is a text.
         val kindType = c.kind?.takeIf { it.layout != null } ?: c.kindWords.firstOrNull() ?: checkNotNull(c.turn) { "$where: no text in the kind's type" }
-        val longestTexts = if (s == State.STRAIGHT) listOf("≈ 8888 ft", "88.8 mi") else listOf("8888 ft", "88.8 mi")
+        val longestTexts = if (s.straight) listOf("≈ 8888 ft", "88.8 mi") else listOf("8888 ft", "88.8 mi")
         val longestPx = (longestTexts + c.figure.text).maxOf { widthPx(c.figure, it) }
         val kindPx = widthPx(kindType, s.kind)
         val stackPx = if (s.kind == "by trail") maxOf(widthPx(kindType, "by"), widthPx(kindType, "trail")) else null
