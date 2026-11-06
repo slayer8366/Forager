@@ -35740,3 +35740,24 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Snapshot snap/end-s16: offline_regions 2 (Region 1, Region 2), planned_trips 0, waypoints 13 (the walk's Start and End added), forager.db user_version 23, integrity ok.
 **Waiting on:** the owner. Does this walk meet "Walk first" and "Field check first"? Do the off-trail figures stand (-1726)? And re-routing at vehicle speed.
 **Notes:** Written by the planner by hand. Next free ID -2176.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2176
+**Timestamp:** 2026-11-06T03:04:17Z
+**Continues:** 2026-09-28-2175, 2026-09-28-2136
+**Title:** "Walk first" and "Field check first" met; the off-trail figures stand; re-routing at driving speed left as it is
+**Decision:**
+- **The owner, verbatim:**
+  - To "\"Walk first\" asked for a walk that leaves the trail and comes back with Return on. You left the line three times by more than 50 m. Each time the route re-routed within about 2 s, by trail, and the line never dimmed, which is what the rule (40 m, 15 s, 50 m) predicts when you don't linger between about 44 and 50 m. Does that meet it?": **"Yes, keep the figures (Recommended)"**. The option read: "Count the walk as done. The way home behaved as designed, re-routing before any dim. 40 m, 15 s and 50 m stay as they are." The others: "Walk again to see the dim"; "Change the figures".
+  - To "\"Field check first\" was for seeing the pick-up chooser work. You added the log line so that, in your option's words, \"any Navigate, including the ones at home, shows whether the chooser worked\". At a standstill on a 3.8 m fix, the log shows your end moved to a pick-up on the house's own street, 24 m away. The other three pick-ups were chosen from the moving car. Does that meet it?": **"Yes, the log counts (Recommended)"**. The option read: "Count the check as done from the log. The chooser picked the address street on a good fix, standing beside a house." The other: "Check again on foot".
+    - "Standing beside a house" is inferred from the rank: rank 2, the address street, needs the walker's own building within 15 m (StreetDropOff.kt:38-45, per the field-check plan). It isn't from a position.
+  - To "While driving with Navigate on, the route re-routes about every 4 seconds, because you pass 50 m from each new line quickly. On foot it's about every 38 seconds. Do anything about it?": **"Leave it (Recommended)"**. The option read: "It looks like normal re-routing while driving, works offline, and nothing breaks. No change." The others: "Next release"; "Before promoting".
+- **So the promotion's two field gates (-2136) are met.** The way home's 40 m, 15 s and 50 m stand, closing -1726's "the figures for both routes are decided then" for the way home. The waypoint route's own figures weren't walked: Part B wasn't run (-2168), and the owner wasn't asked separately.
+- **Still before the promotion:**
+  - the edge shade, PR #495, finishing;
+  - bug 14's warning, Phase 2, building ("Build it before promoting", -2136);
+  - Download Maps from a trip, after bug 14 ("This release", -2167);
+  - then Elder's re-check of the added work, the promotion PR, main's cold start on the S22, the owner's upgrade check over the Play build, and the owner's approval.
+**Notes:** Written by the planner by hand. Next free ID -2177.
