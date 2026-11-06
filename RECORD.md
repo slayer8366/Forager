@@ -36126,6 +36126,10 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The planner's reading, open to the owner: the status words are centred in their own space, which stays put with or without the evening line. A compass strip hidden while navigating, if there is one, is a stop.
   - A planner note: the first attempt to push this was refused by the session's permission check, which gave no reason. A second attempt, in smaller steps, was refused as a way around the first. The planner stopped and asked the owner, and this waits for their permission.
 - **Pushed (2026-11-06T11:44:52Z) on the owner's word, verbatim: "Allow the pushes".** The held commit went up as d42e0d890, carrying -2181's compass-strip bullets, -2182's fix and sweep bullets, the new entry -2183, Amendment 1's category H and dispatch 2026-11-06-01.
+- **Phase 3 progress (2026-11-06T11:52:47Z), from Hazel:**
+  - B3, B4 and F2 are built: 35 of 69 red, then 69 of 69 green, both with clean compiles. Revert checks and full CI come next, then G and H.
+  - **TripNavigateTest.kt:** her F2 change is in 53d9bc0dc at :389-430. Red for F2's reason at 53d9bc0dc (run 42210654926), passing at 4d4519459 (run 42210751662). It adds a positive control that a note asking something still shows on the way to a trip.
+  - She is finished with that file, and it was handed back to the home-location Phase 2 for its one line (-2182). The planner checked the hunks: Phase 3's are at 390-401 of the base, and the other is the single line at 97.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
@@ -36198,6 +36202,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Phase 2 stop (2026-11-06T11:46:29Z), the decimals:**
   - **The planner's call:** the each-value-keeps-its-decimals rule applies to the values whose places were extended beyond what they had, the 2-decimal ones. The 3-decimal and longer values stay exact at P, because extended they carry only P's own last place. So P, MadeUpPlace and A's expected values stand as ruled.
   - **One test line** in TripNavigateTest.kt changes under the rule. That file belongs to the nav card's Phase 3 (-2181, E8), so the line waits until that Hazel has finished with the file, keeping one coder per file. The line's new text stays in the home-location Hazel's private scratch.
+- **TripNavigateTest.kt handed back (2026-11-06T11:52:47Z):** the nav card's Phase 3 finished with it (-2181), so the one line under the decimals rule goes ahead, that line only.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
